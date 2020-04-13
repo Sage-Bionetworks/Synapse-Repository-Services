@@ -167,7 +167,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		Long viewTypeMask = tableMangerSupport.getViewTypeMask(tableId);
 		Set<Long> allContainersInScope = tableMangerSupport.getAllContainerIdsForViewScope(tableId, viewTypeMask);
 		long limit = 1L;
-		Set<Long> changes = indexDao.getOutOfDateRowsForView(tableId, viewTypeMask, allContainersInScope,  limit);
+		Set<Long> changes = indexDao.getOutOfDateRowsForView(ObjectType.ENTITY, tableId, viewTypeMask, allContainersInScope,  limit);
 		return Optional.of(changes.isEmpty());
 	}
 	

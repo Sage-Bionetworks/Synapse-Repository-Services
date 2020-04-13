@@ -685,7 +685,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		final List<EntityDTO> sorted = new ArrayList<EntityDTO>(objectDtos);
 		Collections.sort(sorted);
 		// batch update the entity table
-		template.batchUpdate(TableConstants.ENTITY_REPLICATION_INSERT, new BatchPreparedStatementSetter(){
+		template.batchUpdate(TableConstants.OBJECT_REPLICATION_INSERT, new BatchPreparedStatementSetter(){
 
 			@Override
 			public void setValues(PreparedStatement ps, int i)
@@ -774,7 +774,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		// query for the template.
 		EntityDTO dto;
 		try {
-			dto = template.queryForObject(TableConstants.ENTITY_REPLICATION_GET, (ResultSet rs, int rowNum) -> {
+			dto = template.queryForObject(TableConstants.OBJECT_REPLICATION_GET, (ResultSet rs, int rowNum) -> {
 				EntityDTO dto1 = new EntityDTO();
 				dto1.setId(rs.getLong(OBJECT_REPLICATION_COL_OBJECT_ID));
 				dto1.setCurrentVersion(rs.getLong(OBJECT_REPLICATION_COL_VERSION));
@@ -845,14 +845,14 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void copyEntityReplicationToView(Long viewId, Long viewTypeMask,
+	public void copyEntityReplicationToView(ObjectType objectType, Long viewId, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema) {
 		Set<Long> rowIdsToCopy = null;
-		copyEntityReplicationToView(viewId, viewTypeMask, allContainersInScope, currentSchema, rowIdsToCopy);
+		copyEntityReplicationToView(objectType, viewId, viewTypeMask, allContainersInScope, currentSchema, rowIdsToCopy);
 	}
 	
 	@Override
-	public void copyEntityReplicationToView(Long viewId, Long viewTypeMask, Set<Long> allContainersInScope,
+	public void copyEntityReplicationToView(ObjectType objectType, Long viewId, Long viewTypeMask, Set<Long> allContainersInScope,
 			List<ColumnModel> currentSchema, Set<Long> rowIdsToCopy) {
 		ValidateArgument.required(viewTypeMask, "viewTypeMask");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
@@ -867,15 +867,16 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		boolean filterByRows = rowIdsToCopy != null;
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PARENT_ID_PARAM_NAME, allContainersInScope);
+		param.addValue(OBJECT_TYPE_PARAM_NAME, objectType.name());
 		if(filterByRows) {
 			param.addValue(ID_PARAM_NAME, rowIdsToCopy);
 		}
-		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewTypeMask, currentSchema, filterByRows);
+		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, viewTypeMask, currentSchema, filterByRows);
 		namedTemplate.update(sql, param);
 	}
 	
 	@Override
-	public void createViewSnapshotFromEntityReplication(Long viewId, Long viewTypeMask, Set<Long> allContainersInScope,
+	public void createViewSnapshotFromEntityReplication(ObjectType objectType, Long viewId, Long viewTypeMask, Set<Long> allContainersInScope,
 			List<ColumnModel> currentSchema, CSVWriterStream outputStream) {
 		ValidateArgument.required(viewTypeMask, "viewTypeMask");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
@@ -885,9 +886,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PARENT_ID_PARAM_NAME, allContainersInScope);
+		param.addValue(OBJECT_TYPE_PARAM_NAME, objectType.name());
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = false;
-		List<String> headers = SQLUtils.createSelectFromEntityReplication(builder, viewId, viewTypeMask, currentSchema, filterByRows);
+		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, viewId, viewTypeMask, currentSchema, filterByRows);
 		// push the headers to the stream
 		outputStream.writeNext(headers.toArray(new String[headers.size()]));
 		namedTemplate.query(builder.toString(), param, (ResultSet rs) -> {
@@ -901,7 +903,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public List<ColumnModel> getPossibleColumnModelsForContainers(
+	public List<ColumnModel> getPossibleColumnModelsForContainers(ObjectType objectType,
 			Set<Long> containerIds, Long viewTypeMask, Long limit, Long offset) {
 		ValidateArgument.required(containerIds, "containerIds");
 		ValidateArgument.required(limit, "limit");
@@ -910,6 +912,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return new LinkedList<>();
 		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(OBJECT_TYPE_PARAM_NAME, objectType.name());
 		param.addValue(PARENT_ID_PARAM_NAME, containerIds);
 		param.addValue(P_LIMIT, limit);
 		param.addValue(P_OFFSET, offset);
@@ -996,7 +999,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public List<Long> getExpiredContainerIds(List<Long> containerIds) {
+	public List<Long> getExpiredContainerIds(ObjectType objectType, List<Long> containerIds) {
 		ValidateArgument.required(containerIds, "entityContainerIds");
 		if(containerIds.isEmpty()){
 			return new LinkedList<Long>();
@@ -1009,6 +1012,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		LinkedHashSet<Long> expiredId = new LinkedHashSet<Long>(containerIds);
 		// Query for those that are not expired.
 		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(OBJECT_TYPE_PARAM_NAME, objectType.name());
 		param.addValue(ID_PARAM_NAME, containerIds);
 		param.addValue(EXPIRES_PARAM_NAME, System.currentTimeMillis());
 		List<Long> nonExpiredIds =  namedTemplate.queryForList(SELECT_NON_EXPIRED_IDS, param, Long.class);
@@ -1019,8 +1023,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void setContainerSynchronizationExpiration(final List<Long> toSet,
+	public void setContainerSynchronizationExpiration(ObjectType objectType, final List<Long> toSet,
 			final long newExpirationDateMS) {
+		ValidateArgument.required(objectType, "objectType");
 		ValidateArgument.required(toSet, "toSet");
 		if(toSet.isEmpty()){
 			return;
@@ -1031,6 +1036,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			public void setValues(PreparedStatement ps, int i) throws SQLException {
 				Long idToSet = toSet.get(i);
 				int index = 1;
+				ps.setString(index++, objectType.name());
 				ps.setLong(index++, idToSet);
 				ps.setLong(index++, newExpirationDateMS);
 				ps.setLong(index++, newExpirationDateMS);
@@ -1120,8 +1126,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, long viewTypeMask, Set<Long> allContainersInScope,
+	public Set<Long> getOutOfDateRowsForView(ObjectType objectType, IdAndVersion viewId, long viewTypeMask, Set<Long> allContainersInScope,
 			long limit) {
+		ValidateArgument.required(objectType, "objectType");
 		ValidateArgument.required(viewId, "viewId");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 		if(allContainersInScope.isEmpty()) {
@@ -1129,6 +1136,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 		String sql = SQLUtils.getOutOfDateRowsForViewSql(viewId, viewTypeMask);
 		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(OBJECT_TYPE_PARAM_NAME, objectType.name());
 		param.addValue("scopeIds", allContainersInScope);
 		param.addValue("limitParam", limit);
 		List<Long> deltas = namedTemplate.queryForList(sql, param, Long.class);

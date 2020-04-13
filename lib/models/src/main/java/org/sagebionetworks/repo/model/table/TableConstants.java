@@ -148,7 +148,7 @@ public class TableConstants {
 	
 	public static final String BATCH_INSERT_REPLICATION_SYNC_EXP =
 			"INSERT INTO "+REPLICATION_SYNC_EXPIRATION_TABLE +" ("
-			+ REPLICATION_SYNC_EXP_COL_OBJECT_TYPE + ","
+			+ REPLICATION_SYNC_EXP_COL_OBJECT_TYPE + ", "
 			+ REPLICATION_SYNC_EXP_COL_ID + ", "
 			+ REPLICATION_SYNC_EXP_COL_EXPIRES
 			+")"
@@ -202,7 +202,7 @@ public class TableConstants {
 			+ OBJECT_REPLICATION_COL_OBJECT_TYPE + " = ? AND "
 			+ OBJECT_REPLICATION_COL_OBJECT_ID+" = ?";
 	
-	public final static String ENTITY_REPLICATION_INSERT = "INSERT INTO "+OBJECT_REPLICATION_TABLE+" ("
+	public final static String OBJECT_REPLICATION_INSERT = "INSERT INTO "+OBJECT_REPLICATION_TABLE+" ("
 			+ OBJECT_REPLICATION_COL_OBJECT_TYPE+ ", "
 			+ OBJECT_REPLICATION_COL_OBJECT_ID+","
 			+ OBJECT_REPLICATION_COL_VERSION+","
@@ -222,11 +222,11 @@ public class TableConstants {
 			+ OBJECT_REPLICATION_COL_FILE_MD5
 			+ ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 	
-	public final static String ENTITY_REPLICATION_GET = "SELECT * FROM "+ OBJECT_REPLICATION_TABLE + " WHERE "
+	public final static String OBJECT_REPLICATION_GET = "SELECT * FROM "+ OBJECT_REPLICATION_TABLE + " WHERE "
 			+ OBJECT_REPLICATION_COL_OBJECT_TYPE + " = ? AND "
 			+ OBJECT_REPLICATION_COL_OBJECT_ID+" = ?";
 	
-	public static final String ENTITY_REPLICATION_ALIAS = "R";
+	public static final String OBJECT_REPLICATION_ALIAS = "R";
 	public static final String ANNOTATION_REPLICATION_ALIAS = "A";
 	
 	// template to calculate CRC32 of a table view.
@@ -311,10 +311,10 @@ public class TableConstants {
 			+ OBJECT_REPLICATION_TABLE + " AS E" 
 			+ " INNER JOIN "
 			+ ANNOTATION_REPLICATION_TABLE + " AS A" + " ON E." + OBJECT_REPLICATION_COL_OBJECT_TYPE + " = A." + ANNOTATION_REPLICATION_COL_OBJECT_TYPE
-			+ " AND " + OBJECT_REPLICATION_COL_OBJECT_ID + " = A." + ANNOTATION_REPLICATION_COL_OBJECT_ID 
+			+ " AND E." + OBJECT_REPLICATION_COL_OBJECT_ID + " = A." + ANNOTATION_REPLICATION_COL_OBJECT_ID 
 			+ " WHERE E." + ANNOTATION_REPLICATION_COL_OBJECT_TYPE + "=:" + OBJECT_TYPE_PARAM_NAME
 			// This can be the object id or the parent id according to the view type filter (e.g. project filters on the object id)
-			+ " AND %1$s IN (:"+ PARENT_ID_PARAM_NAME + ")"
+			+ " AND E.%1$s IN (:"+ PARENT_ID_PARAM_NAME + ")"
 			+ " GROUP BY A." + ANNOTATION_REPLICATION_COL_KEY 
 			+ " LIMIT :" + P_LIMIT
 			+ " OFFSET :" + P_OFFSET;

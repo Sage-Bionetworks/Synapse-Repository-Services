@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.verify;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_TYPE_PARAM_NAME;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -1600,7 +1602,7 @@ public class SQLUtilsTest {
 		assertEquals(index, meta.getColumnIndex());
 		assertEquals("_C123_", meta.getColumnNameForId());
 		assertEquals(EntityField.benefactorId, meta.getEntityField());
-		assertEquals(TableConstants.ENTITY_REPLICATION_ALIAS, meta.getTableAlias());
+		assertEquals(TableConstants.OBJECT_REPLICATION_ALIAS, meta.getTableAlias());
 		assertEquals(EntityField.benefactorId.getDatabaseColumnName(), meta.getSelectColumnName());
 		assertEquals(null, meta.getAnnotationType());
 	}
@@ -1757,19 +1759,19 @@ public class SQLUtilsTest {
 	@Test
 	public void testCreateViewTypeFilterFile(){
 		String result = SQLUtils.createViewTypeFilter(ViewTypeMask.getMaskForDepricatedType(ViewType.file));
-		assertEquals("SUBTYPE IN ('file')", result);
+		assertEquals("R.SUBTYPE IN ('file')", result);
 	}
 
 	@Test
 	public void testCreateViewTypeFilterProject(){
 		String result = SQLUtils.createViewTypeFilter(ViewTypeMask.getMaskForDepricatedType(ViewType.project));
-		assertEquals("SUBTYPE IN ('project')", result);
+		assertEquals("R.SUBTYPE IN ('project')", result);
 	}
 
 	@Test
 	public void testCreateViewTypeFilterFileAndTable(){
 		String result = SQLUtils.createViewTypeFilter(ViewTypeMask.getMaskForDepricatedType(ViewType.file_and_table));
-		assertEquals("SUBTYPE IN ('file', 'table')", result);
+		assertEquals("R.SUBTYPE IN ('file', 'table')", result);
 	}
 
 	@Test
@@ -1779,7 +1781,7 @@ public class SQLUtilsTest {
 			typeMask |= type.getMask();
 		}
 		String result = SQLUtils.createViewTypeFilter(typeMask);
-		assertEquals("SUBTYPE IN ('file', 'project', 'table', 'folder', 'entityview', 'dockerrepo')", result);
+		assertEquals("R.SUBTYPE IN ('file', 'project', 'table', 'folder', 'entityview', 'dockerrepo')", result);
 	}
 
 	@Test
@@ -1899,7 +1901,7 @@ public class SQLUtilsTest {
 		StringBuilder builder = new StringBuilder();
 		String columnName = TableConstants.OBJECT_REPLICATION_COL_BENEFACTOR_ID;
 		// Call under test
-		SQLUtils.buildEntityReplicationSelect(builder, columnName);
+		SQLUtils.buildObjectReplicationSelect(builder, columnName);
 		assertEquals(", MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID", builder.toString());
 	}
 
@@ -1907,7 +1909,7 @@ public class SQLUtilsTest {
 	public void testBuildEntityReplicationSelectStandardColumns() {
 		StringBuilder builder = new StringBuilder();
 		// call under test
-		List<String> headers = SQLUtils.buildEntityReplicationSelectStandardColumns(builder);
+		List<String> headers = SQLUtils.buildObjectReplicationSelectStandardColumns(builder);
 		assertEquals("R.OBJECT_ID"
 				+ ", MAX(R.CURRENT_VERSION) AS CURRENT_VERSION"
 				+ ", MAX(R.ETAG) AS ETAG"
@@ -1924,7 +1926,7 @@ public class SQLUtilsTest {
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = false;
-		List<String> headers = SQLUtils.createSelectFromEntityReplication(builder, viewId, viewTypeMask, schema, filterByRows);
+		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, viewId, viewTypeMask, schema, filterByRows);
 		String sql = builder.toString();
 		assertEquals("SELECT"
 				+ " R.OBJECT_ID,"
@@ -1936,10 +1938,11 @@ public class SQLUtilsTest {
 				+ " FROM"
 				+ " OBJECT_REPLICATION R"
 				+ " LEFT JOIN ANNOTATION_REPLICATION A"
-				+ " ON(R.OBJECT_ID = A.OBJECT_ID)"
+				+ " ON(R.OBJECT_TYPE = A.OBJECT_TYPE AND R.OBJECT_ID = A.OBJECT_ID)"
 				+ " WHERE"
-				+ " R.PARENT_ID IN (:parentIds)"
-				+ " AND SUBTYPE IN ('file')"
+				+ " R.OBJECT_TYPE = :objectType"
+				+ " AND R.PARENT_ID IN (:parentIds)"
+				+ " AND R.SUBTYPE IN ('file')"
 				+ " GROUP BY R.OBJECT_ID ORDER BY R.OBJECT_ID", sql);
 		assertEquals(Lists.newArrayList("ROW_ID", "ROW_VERSION","ROW_ETAG","ROW_BENEFACTOR","_C1_","_C2_"), headers);
 	}
@@ -1954,7 +1957,7 @@ public class SQLUtilsTest {
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = true;
 		// call under test
-		List<String> headers = SQLUtils.createSelectFromEntityReplication(builder, viewId, viewTypeMask, schema, filterByRows);
+		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, viewId, viewTypeMask, schema, filterByRows);
 		String sql = builder.toString();
 		assertEquals("SELECT"
 				+ " R.OBJECT_ID,"
@@ -1966,10 +1969,11 @@ public class SQLUtilsTest {
 				+ " FROM"
 				+ " OBJECT_REPLICATION R"
 				+ " LEFT JOIN ANNOTATION_REPLICATION A"
-				+ " ON(R.OBJECT_ID = A.OBJECT_ID)"
+				+ " ON(R.OBJECT_TYPE = A.OBJECT_TYPE AND R.OBJECT_ID = A.OBJECT_ID)"
 				+ " WHERE"
-				+ " R.PARENT_ID IN (:parentIds)"
-				+ " AND SUBTYPE IN ('file')"
+				+ " R.OBJECT_TYPE = :objectType"
+				+ " AND R.PARENT_ID IN (:parentIds)"
+				+ " AND R.SUBTYPE IN ('file')"
 				+ " AND R.OBJECT_ID IN (:ids)"
 				+ " GROUP BY R.OBJECT_ID ORDER BY R.OBJECT_ID", sql);
 		assertEquals(Lists.newArrayList("ROW_ID", "ROW_VERSION","ROW_ETAG","ROW_BENEFACTOR","_C1_","_C2_"), headers);
@@ -1984,7 +1988,7 @@ public class SQLUtilsTest {
 		List<ColumnModel> schema = Lists.newArrayList(one, id);
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		boolean filterByRows = false;
-		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewTypeMask, schema, filterByRows);
+		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, viewTypeMask, schema, filterByRows);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_)"
 				+ " SELECT"
 				+ " R.OBJECT_ID,"
@@ -1996,10 +2000,11 @@ public class SQLUtilsTest {
 				+ " FROM"
 				+ " OBJECT_REPLICATION R"
 				+ " LEFT JOIN ANNOTATION_REPLICATION A"
-				+ " ON(R.OBJECT_ID = A.OBJECT_ID)"
+				+ " ON(R.OBJECT_TYPE = A.OBJECT_TYPE AND R.OBJECT_ID = A.OBJECT_ID)"
 				+ " WHERE"
-				+ " R.PARENT_ID IN (:parentIds)"
-				+ " AND SUBTYPE IN ('file')"
+				+ " R.OBJECT_TYPE = :objectType"
+				+ " AND R.PARENT_ID IN (:parentIds)"
+				+ " AND R.SUBTYPE IN ('file')"
 				+ " GROUP BY R.OBJECT_ID ORDER BY R.OBJECT_ID", sql);
 	}
 	
@@ -2011,7 +2016,7 @@ public class SQLUtilsTest {
 		List<ColumnModel> schema = Lists.newArrayList(one, id);
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		boolean filterByRows = true;
-		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewTypeMask, schema, filterByRows);
+		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, viewTypeMask, schema, filterByRows);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_)"
 				+ " SELECT"
 				+ " R.OBJECT_ID,"
@@ -2023,10 +2028,11 @@ public class SQLUtilsTest {
 				+ " FROM"
 				+ " OBJECT_REPLICATION R"
 				+ " LEFT JOIN ANNOTATION_REPLICATION A"
-				+ " ON(R.OBJECT_ID = A.OBJECT_ID)"
+				+ " ON(R.OBJECT_TYPE = A.OBJECT_TYPE AND R.OBJECT_ID = A.OBJECT_ID)"
 				+ " WHERE"
-				+ " R.PARENT_ID IN (:parentIds)"
-				+ " AND SUBTYPE IN ('file')"
+				+ " R.OBJECT_TYPE = :objectType"
+				+ " AND R.PARENT_ID IN (:parentIds)"
+				+ " AND R.SUBTYPE IN ('file')"
 				+ " AND R.OBJECT_ID IN (:ids)"
 				+ " GROUP BY R.OBJECT_ID ORDER BY R.OBJECT_ID", sql);
 	}
@@ -2039,7 +2045,7 @@ public class SQLUtilsTest {
 		List<ColumnModel> schema = Lists.newArrayList(one, id);
 		Long viewTypeMask = ViewTypeMask.Project.getMask();
 		boolean filterByRows = false;
-		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewTypeMask, schema, filterByRows);
+		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, viewTypeMask, schema, filterByRows);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_)"
 				+ " SELECT"
 				+ " R.OBJECT_ID,"
@@ -2051,9 +2057,11 @@ public class SQLUtilsTest {
 				+ " FROM"
 				+ " OBJECT_REPLICATION R"
 				+ " LEFT JOIN ANNOTATION_REPLICATION A"
-				+ " ON(R.OBJECT_ID = A.OBJECT_ID)"
-				+ " WHERE R.OBJECT_ID IN (:parentIds)"
-				+ " AND SUBTYPE IN ('project')"
+				+ " ON(R.OBJECT_TYPE = A.OBJECT_TYPE AND R.OBJECT_ID = A.OBJECT_ID)"
+				+ " WHERE"
+				+ " R.OBJECT_TYPE = :objectType"
+				+ " AND R.OBJECT_ID IN (:parentIds)"
+				+ " AND R.SUBTYPE IN ('project')"
 				+ " GROUP BY R.OBJECT_ID ORDER BY R.OBJECT_ID", sql);
 	}
 
@@ -2066,7 +2074,7 @@ public class SQLUtilsTest {
 		List<ColumnModel> schema = Lists.newArrayList(doubleAnnotation);
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		boolean filterByRows = false;
-		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewTypeMask, schema, filterByRows);
+		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, viewTypeMask, schema, filterByRows);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _DBL_C3_, _C3_)"
 				+ " SELECT"
 				+ " R.OBJECT_ID, MAX(R.CURRENT_VERSION) AS CURRENT_VERSION,"
@@ -2076,10 +2084,11 @@ public class SQLUtilsTest {
 				+ " MAX(IF(A.ANNO_KEY ='doubleAnnotation', A.DOUBLE_VALUE, NULL)) AS _C3_"
 				+ " FROM OBJECT_REPLICATION R"
 				+ " LEFT JOIN ANNOTATION_REPLICATION A"
-				+ " ON(R.OBJECT_ID = A.OBJECT_ID)"
+				+ " ON(R.OBJECT_TYPE = A.OBJECT_TYPE AND R.OBJECT_ID = A.OBJECT_ID)"
 				+ " WHERE"
-				+ " R.PARENT_ID IN (:parentIds)"
-				+ " AND SUBTYPE IN ('file')"
+				+ " R.OBJECT_TYPE = :objectType"
+				+ " AND R.PARENT_ID IN (:parentIds)"
+				+ " AND R.SUBTYPE IN ('file')"
 				+ " GROUP BY R.OBJECT_ID ORDER BY R.OBJECT_ID", sql);
 	}
 
@@ -2907,14 +2916,16 @@ public class SQLUtilsTest {
 		String expected = "WITH DELTAS (ID, MISSING) AS ("
 				+ " SELECT R.OBJECT_ID, V.ROW_ID FROM OBJECT_REPLICATION R"
 				+ "    LEFT JOIN T999 V ON ("
-				+ "		 R.OBJECT_ID = V.ROW_ID"
+				+ "      R.OBJECT_TYPE = :objectType"
+				+ "		 AND R.OBJECT_ID = V.ROW_ID"
 				+ "      AND R.ETAG = V.ROW_ETAG"
 				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR)"
 				+ "   WHERE R.PARENT_ID IN (:scopeIds) AND R.SUBTYPE IN ('file')"
 				+ " UNION ALL"
 				+ " SELECT V.ROW_ID, R.OBJECT_ID FROM OBJECT_REPLICATION R"
 				+ "    RIGHT JOIN T999 V ON ("
-				+ "      R.OBJECT_ID = V.ROW_ID"
+				+ "      R.OBJECT_TYPE = :objectType"
+				+ "      AND R.OBJECT_ID = V.ROW_ID"
 				+ "      AND R.ETAG = V.ROW_ETAG"
 				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR"
 				+ "      AND R.PARENT_ID IN (:scopeIds) AND R.SUBTYPE IN ('file'))"
@@ -2931,14 +2942,16 @@ public class SQLUtilsTest {
 		String expected = "WITH DELTAS (ID, MISSING) AS ("
 				+ " SELECT R.OBJECT_ID, V.ROW_ID FROM OBJECT_REPLICATION R"
 				+ "    LEFT JOIN T999 V ON ("
-				+ "		 R.OBJECT_ID = V.ROW_ID"
+				+ "      R.OBJECT_TYPE = :objectType"
+				+ "		 AND R.OBJECT_ID = V.ROW_ID"
 				+ "      AND R.ETAG = V.ROW_ETAG"
 				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR)"
 				+ "   WHERE R.OBJECT_ID IN (:scopeIds) AND R.SUBTYPE IN ('project')"
 				+ " UNION ALL"
 				+ " SELECT V.ROW_ID, R.OBJECT_ID FROM OBJECT_REPLICATION R"
 				+ "    RIGHT JOIN T999 V ON ("
-				+ "      R.OBJECT_ID = V.ROW_ID"
+				+ "      R.OBJECT_TYPE = :objectType"
+				+ "      AND R.OBJECT_ID = V.ROW_ID"
 				+ "      AND R.ETAG = V.ROW_ETAG"
 				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR"
 				+ "      AND R.OBJECT_ID IN (:scopeIds) AND R.SUBTYPE IN ('project'))"

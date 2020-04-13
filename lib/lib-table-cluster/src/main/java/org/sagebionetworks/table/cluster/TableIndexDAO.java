@@ -348,7 +348,7 @@ public interface TableIndexDAO {
 	 * @param allContainersInScope
 	 * @param currentSchema
 	 */
-	void copyEntityReplicationToView(Long viewId, Long viewTypeMask,
+	void copyEntityReplicationToView(ObjectType objectType, Long viewId, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
 	
 	/**
@@ -360,7 +360,7 @@ public interface TableIndexDAO {
 	 * @param currentSchema
 	 * @param rowIdsToCopy Optional.  When included, copy rows with these Ids to the view.
 	 */
-	void copyEntityReplicationToView(Long viewId, Long viewTypeMask, Set<Long> allContainersInScope,
+	void copyEntityReplicationToView(ObjectType objectType, Long viewId, Long viewTypeMask, Set<Long> allContainersInScope,
 			List<ColumnModel> currentSchema, Set<Long> rowIdsToCopy);
 	
 	/**
@@ -371,7 +371,7 @@ public interface TableIndexDAO {
 	 * @param allContainersInScope
 	 * @param currentSchema
 	 */
-	void createViewSnapshotFromEntityReplication(Long viewId, Long viewTypeMask,
+	void createViewSnapshotFromEntityReplication(ObjectType objectType, Long viewId, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema, CSVWriterStream outStream);
 
 	/**
@@ -402,7 +402,7 @@ public interface TableIndexDAO {
 	 * @param offset
 	 * @return
 	 */
-	List<ColumnModel> getPossibleColumnModelsForContainers(
+	List<ColumnModel> getPossibleColumnModelsForContainers(ObjectType objectType,
 			Set<Long> containerIds, Long viewTypeMask, Long limit, Long offset);
 	
 	/**
@@ -421,7 +421,7 @@ public interface TableIndexDAO {
 	 * @param entityContainerIds
 	 * @return
 	 */
-	List<Long> getExpiredContainerIds(List<Long> entityContainerIds);
+	List<Long> getExpiredContainerIds(ObjectType objectType, List<Long> entityContainerIds);
 	
 
 	/**
@@ -431,7 +431,7 @@ public interface TableIndexDAO {
 	 * 
 	 * @param expirations
 	 */
-	void setContainerSynchronizationExpiration(List<Long> toSet, long newExpirationDateMS);
+	void setContainerSynchronizationExpiration(ObjectType objectType, List<Long> toSet, long newExpirationDateMS);
 	
 	/**
 	 * Clear all expirations.
@@ -514,7 +514,7 @@ public interface TableIndexDAO {
 	 * @param limit Limit the number of rows returned. 
 	 * @return
 	 */
-	Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, long viewTypeMask, Set<Long> allContainersInScope, long limit);
+	Set<Long> getOutOfDateRowsForView(ObjectType objectTpe, IdAndVersion viewId, long viewTypeMask, Set<Long> allContainersInScope, long limit);
 
 	/**
 	 * Delete a batch of rows from a view.

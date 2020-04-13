@@ -176,7 +176,7 @@ public interface TableIndexManager {
 	 * @param currentSchema
 	 * @return View CRC32
 	 */
-	long populateViewFromEntityReplication(Long tableId, Long viewTypeMask,
+	long populateViewFromEntityReplication(Long viewId, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
 	
 	/**
