@@ -4,6 +4,7 @@ package org.sagebionetworks.repo.web.controller;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -24,6 +25,9 @@ public abstract class AbstractAutowiredControllerJunit5TestBase implements Appli
 
 	@Autowired
 	protected ServletTestHelper servletTestHelper;
+
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
 
 	protected DispatcherServlet dispatchServlet;
 
@@ -47,7 +51,7 @@ public abstract class AbstractAutowiredControllerJunit5TestBase implements Appli
 		dispatchServlet = new DispatcherServlet();
 		dispatchServlet.init(servletConfig);
 		servletTestHelper.setUp(dispatchServlet);
-		entityServletHelper = new EntityServletTestHelper(dispatchServlet);
+		entityServletHelper = new EntityServletTestHelper(dispatchServlet, oidcTokenHelper);
 	}
 
 	@AfterEach
