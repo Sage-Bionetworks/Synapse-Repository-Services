@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -23,6 +24,9 @@ public abstract class AbstractAutowiredControllerTestBase implements Application
 
 	@Autowired
 	protected ServletTestHelper servletTestHelper;
+
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
 
 	protected DispatcherServlet dispatchServlet;
 
@@ -46,7 +50,7 @@ public abstract class AbstractAutowiredControllerTestBase implements Application
 		dispatchServlet = new DispatcherServlet();
 		dispatchServlet.init(servletConfig);
 		servletTestHelper.setUp(dispatchServlet);
-		entityServletHelper = new EntityServletTestHelper(dispatchServlet);
+		entityServletHelper = new EntityServletTestHelper(dispatchServlet, oidcTokenHelper);
 	}
 
 	@After
