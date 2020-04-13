@@ -131,7 +131,7 @@ public class AuthenticationFilter implements Filter {
 		ValidateArgument.required(accessToken, "accessToken");
 
 		// If the user is not anonymous, check if they have accepted the terms of use
-		if (userId != BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId()) {
+		if (!BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(userId)) {
 			try {
 				if (!authenticationService.hasUserAcceptedTermsOfUse(accessToken)) {
 					HttpAuthUtil.reject((HttpServletResponse) servletResponse, TOU_UNSIGNED_REASON, HttpStatus.FORBIDDEN);

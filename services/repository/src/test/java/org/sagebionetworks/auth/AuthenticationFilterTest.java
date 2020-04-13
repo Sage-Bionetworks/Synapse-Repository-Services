@@ -123,6 +123,8 @@ public class AuthenticationFilterTest {
 	
 	@Test
 	public void testAnonymous() throws Exception {
+		when(oidcTokenHelper.createAnonymousAccessToken()).thenReturn(ANONYMOUS_TOKEN);
+
 		// A request with no information provided
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
@@ -143,6 +145,8 @@ public class AuthenticationFilterTest {
 	 */
 	@Test
 	public void testPLFM_2422() throws Exception {
+		when(oidcTokenHelper.createAnonymousAccessToken()).thenReturn(ANONYMOUS_TOKEN);
+
 		// A request with no information provided
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.addHeader(AuthorizationConstants.SESSION_TOKEN_PARAM, "");
@@ -162,7 +166,6 @@ public class AuthenticationFilterTest {
 	public void testSessionToken_asHeader() throws Exception {
 		when(mockAuthService.revalidate(eq(sessionToken), eq(false))).thenReturn(userId);
 		when(mockAuthService.hasUserAcceptedTermsOfUse(anyString())).thenReturn(true);
-		when(mockOidcManager.getUserAuthorization(anyString())).thenReturn(userInfo);
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.addHeader(AuthorizationConstants.SESSION_TOKEN_PARAM, sessionToken);
@@ -188,7 +191,6 @@ public class AuthenticationFilterTest {
 	public void testSessionToken_asParameter() throws Exception {
 		when(mockAuthService.revalidate(eq(sessionToken), eq(false))).thenReturn(userId);
 		when(mockAuthService.hasUserAcceptedTermsOfUse(anyString())).thenReturn(true);
-		when(mockOidcManager.getUserAuthorization(anyString())).thenReturn(userInfo);
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.addParameter(AuthorizationConstants.SESSION_TOKEN_PARAM, sessionToken);
@@ -211,6 +213,8 @@ public class AuthenticationFilterTest {
 	
 	@Test
 	public void testSessionToken_isNull() throws Exception {
+		when(oidcTokenHelper.createAnonymousAccessToken()).thenReturn(ANONYMOUS_TOKEN);
+
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.addParameter(AuthorizationConstants.SESSION_TOKEN_PARAM, (String) null);
 		
@@ -231,7 +235,6 @@ public class AuthenticationFilterTest {
 		when(mockAuthService.getSecretKey(eq(userId))).thenReturn(secretKey);
 		when(mockAuthService.hasUserAcceptedTermsOfUse(anyString())).thenReturn(true);
 		when(mockUserManager.lookupUserByUsernameOrEmail(eq(username))).thenReturn(pa);
-		when(mockOidcManager.getUserAuthorization(anyString())).thenReturn(userInfo);
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		String timestamp = new DateTime().toString();
@@ -306,7 +309,7 @@ public class AuthenticationFilterTest {
 		// method under test
 		filter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
 		
-		verify(oidcTokenHelper).validateJWT(BEARER_TOKEN);
+		verify(mockOidcManager).getUserAuthorization(BEARER_TOKEN);
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
 		verify(mockAuthService).hasUserAcceptedTermsOfUse(BEARER_TOKEN);
 		
@@ -351,12 +354,12 @@ public class AuthenticationFilterTest {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BEARER_TOKEN_HEADER);
 		when(mockHttpResponse.getWriter()).thenReturn(mockPrintWriter);
 
-		doThrow(new IllegalArgumentException()).when(oidcTokenHelper).validateJWT(BEARER_TOKEN);
+		doThrow(new IllegalArgumentException()).when(mockOidcManager).getUserAuthorization(BEARER_TOKEN);
 
 		// method under test
 		filter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
 		
-		verify(oidcTokenHelper).validateJWT(BEARER_TOKEN);
+		verify(mockOidcManager).getUserAuthorization(BEARER_TOKEN);
 		verify(mockAuthService, never()).hasUserAcceptedTermsOfUse(BEARER_TOKEN);
 		verify(mockFilterChain, never()).doFilter((ServletRequest)any(), (ServletResponse)any());
 		verify(mockHttpResponse).setStatus(401);
