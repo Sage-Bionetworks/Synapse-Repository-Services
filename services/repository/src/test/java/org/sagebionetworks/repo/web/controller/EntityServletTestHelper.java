@@ -60,6 +60,7 @@ public class EntityServletTestHelper {
 	private HttpServlet dispatcherServlet = null;
 	
 	private OIDCTokenHelper oidcTokenHelper;
+	private String anonymousAccessToken;
 
 	/**
 	 * Setup the servlet, default test user, and entity list for test cleanup.
@@ -72,6 +73,7 @@ public class EntityServletTestHelper {
 	public EntityServletTestHelper(HttpServlet dispatcherServlet, OIDCTokenHelper oidcTokenHelper) throws Exception {
 		this.dispatcherServlet = dispatcherServlet;
 		this.oidcTokenHelper = oidcTokenHelper;
+		this.anonymousAccessToken = oidcTokenHelper.createAnonymousAccessToken();
 	}
 
 	private String token(Long userId) {
@@ -327,7 +329,7 @@ public class EntityServletTestHelper {
 	 */
 	public RestResourceList getRESTResources() throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.REST_RESOURCES, null, null, null);
+				HTTPMODE.GET, UrlHelpers.REST_RESOURCES, null, anonymousAccessToken, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -342,7 +344,7 @@ public class EntityServletTestHelper {
 	public ObjectSchema getEffectiveSchema(String resourceId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.REST_RESOURCES
-						+ UrlHelpers.EFFECTIVE_SCHEMA, null, null, null);
+						+ UrlHelpers.EFFECTIVE_SCHEMA, null, anonymousAccessToken, null);
 		request.addParameter(UrlHelpers.RESOURCE_ID, resourceId);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -358,7 +360,7 @@ public class EntityServletTestHelper {
 	public ObjectSchema getFullSchema(String resourceId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.REST_RESOURCES + UrlHelpers.SCHEMA,
-				null, null, null);
+				null, anonymousAccessToken, null);
 		request.addParameter(UrlHelpers.RESOURCE_ID, resourceId);
 
 		MockHttpServletResponse response = ServletTestHelperUtils

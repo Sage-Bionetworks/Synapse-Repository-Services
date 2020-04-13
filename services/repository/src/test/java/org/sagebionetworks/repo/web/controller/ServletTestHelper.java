@@ -666,7 +666,7 @@ public class ServletTestHelper {
 	public StackStatus getStackStatus(HttpServlet dispatchServlet)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.STACK_STATUS, null, null, null);
+				HTTPMODE.GET, UrlHelpers.STACK_STATUS, null, accessToken, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -680,7 +680,7 @@ public class ServletTestHelper {
 	public StackStatus getAdminStackStatus(HttpServlet dispatchServlet)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.ADMIN_STACK_STATUS, null, null, null, null);
+				HTTPMODE.GET, UrlHelpers.ADMIN_STACK_STATUS, null, accessToken, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -808,7 +808,7 @@ public class ServletTestHelper {
 	public void createCloudInMessage(Message message)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.CLOUDMAILIN_MESSAGE, null, null, message);
+				HTTPMODE.POST, UrlHelpers.CLOUDMAILIN_MESSAGE, null, accessToken, message);
 
 		ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
@@ -934,7 +934,7 @@ public class ServletTestHelper {
 	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(
 			String pefix, int limit, int offest) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.USER_GROUP_HEADERS, null, null, null);
+				HTTPMODE.GET, UrlHelpers.USER_GROUP_HEADERS, null, accessToken, null);
 		if (pefix != null) {
 			request.setParameter(UrlHelpers.PREFIX_FILTER, pefix);
 		}
@@ -1179,7 +1179,7 @@ public class ServletTestHelper {
 
 	public SynapseVersionInfo getVersionInfo() throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.VERSIONINFO, null, null, null);
+				HTTPMODE.GET, UrlHelpers.VERSIONINFO, null, accessToken, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -1506,7 +1506,7 @@ public class ServletTestHelper {
 	 */
 	public AliasCheckResponse checkAlias(HttpServlet dispatchServlet, AliasCheckRequest check) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.PRINCIPAL_AVAILABLE, null, null, check);
+				HTTPMODE.POST, UrlHelpers.PRINCIPAL_AVAILABLE, null, accessToken, check);
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
 		return objectMapper
