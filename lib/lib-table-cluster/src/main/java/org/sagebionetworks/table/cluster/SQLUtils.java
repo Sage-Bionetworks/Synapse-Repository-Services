@@ -37,6 +37,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -1651,21 +1652,35 @@ public class SQLUtils {
 		}
 		List<ColumnChangeDetails> results = new LinkedList<ColumnChangeDetails>();
 		for (ColumnChangeDetails change : changes) {
-			DatabaseColumnInfo oldColumnInfo = null;
 			ColumnModel oldColumn = change.getOldColumn();
-			if (oldColumn != null) {
-				oldColumnInfo = currentColumnIdToInfo.get(oldColumn.getId());
-				if (oldColumnInfo == null) {
+			ColumnModel newColumn = change.getNewColumn();
+
+
+			String newColumnId = newColumn == null ? null : newColumn.getId();
+			String oldColumnId = oldColumn == null ? null : oldColumn.getId();
+			DatabaseColumnInfo oldColumnInfo = currentColumnIdToInfo.get(oldColumnId);
+
+			boolean newColumnExistsInDatabase = currentColumnIdToInfo.get(newColumnId) != null;
+			boolean oldColumnExistsInDatabase = oldColumnInfo != null;
+			boolean isColumnUpdate = !Objects.equals(newColumnId, oldColumnId);
+
+			if (!oldColumnExistsInDatabase) {
 					/*
 					 * The old column does not exist in the table. Setting the
 					 * old column to null will treat this change as an add
 					 * instead of an update.
 					 */
 					oldColumn = null;
-				}
 			}
-			results.add(new ColumnChangeDetails(oldColumn, oldColumnInfo, change
-					.getNewColumn()));
+
+			if (newColumnExistsInDatabase && isColumnUpdate) {
+				/*
+				 * The new column already exists in the table and this is a real change so we do no need to re-add it
+				 */
+				newColumn = null;
+			}
+
+			results.add(new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn));
 		}
 		return results;
 	}
