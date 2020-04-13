@@ -1179,7 +1179,7 @@ public class ServletTestHelper {
 
 	public SynapseVersionInfo getVersionInfo() throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.VERSIONINFO, null, token(userId), null);
+				HTTPMODE.GET, UrlHelpers.VERSIONINFO, null, null, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -1506,7 +1506,7 @@ public class ServletTestHelper {
 	 */
 	public AliasCheckResponse checkAlias(HttpServlet dispatchServlet, AliasCheckRequest check) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.PRINCIPAL_AVAILABLE, null, token(userId), check);
+				HTTPMODE.POST, UrlHelpers.PRINCIPAL_AVAILABLE, null, null, check);
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
 		return objectMapper
@@ -1550,7 +1550,7 @@ public class ServletTestHelper {
 	public void deleteTeam(HttpServlet dispatchServlet, Long userId,
 			Team team) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, UrlHelpers.TEAM + "/" + team.getId(), token(userId), userId,
+				HTTPMODE.DELETE, UrlHelpers.TEAM + "/" + team.getId(), userId,
 				 token(userId), null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.NO_CONTENT);

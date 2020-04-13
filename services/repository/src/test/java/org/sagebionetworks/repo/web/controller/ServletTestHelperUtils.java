@@ -68,6 +68,8 @@ public class ServletTestHelperUtils {
 		MockHttpServletRequest request = initRequestUnauthenticated(mode, path, requestURI, entity);
 		if (userId != null) {
 			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId.toString());
+		}
+		if (accessToken != null) {
 			request.addHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, "Bearer "+accessToken);
 		}
 		return request;
@@ -97,6 +99,7 @@ public class ServletTestHelperUtils {
 		return initRequest(mode, "/repo/v1", requestURI, userId, accessToken, entity);
 	}
 
+	// TODO:  delete this
 	public static MockHttpServletRequest initRequestWithAccessTokenAuth(HTTPMODE mode,
 			String requestURI, String accessToken, JSONEntity entity)
 			throws Exception {
