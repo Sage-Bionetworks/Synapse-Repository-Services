@@ -11,5 +11,5 @@ import org.sagebionetworks.repo.model.oauth.OAuthScope;
 @Retention(RUNTIME)
 @Target(METHOD)
 public @interface RequiredScope {
-	OAuthScope[] scope();
+	OAuthScope[] value();
 }

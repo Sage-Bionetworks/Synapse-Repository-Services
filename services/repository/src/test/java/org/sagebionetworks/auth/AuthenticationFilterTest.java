@@ -88,7 +88,6 @@ public class AuthenticationFilterTest {
 	private static final String username = "AuthFilter@test.sagebase.org";
 	private static final Long userId = 123456789L;
 	private static final String BEARER_TOKEN = "bearer token";
-	private static final String ANONYMOUS_TOKEN = "anonymous token";
 	private static final String BEARER_TOKEN_HEADER = "Bearer "+BEARER_TOKEN;
 	private static final List<String> HEADER_NAMES = Collections.singletonList("Authorization");
 	private PrincipalAlias pa;
@@ -119,8 +118,6 @@ public class AuthenticationFilterTest {
 	
 	@Test
 	public void testAnonymous() throws Exception {
-		when(oidcTokenHelper.createAnonymousAccessToken()).thenReturn(ANONYMOUS_TOKEN);
-
 		// A request with no information provided
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
@@ -141,8 +138,6 @@ public class AuthenticationFilterTest {
 	 */
 	@Test
 	public void testPLFM_2422() throws Exception {
-		when(oidcTokenHelper.createAnonymousAccessToken()).thenReturn(ANONYMOUS_TOKEN);
-
 		// A request with no information provided
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.addHeader(AuthorizationConstants.SESSION_TOKEN_PARAM, "");
@@ -209,8 +204,6 @@ public class AuthenticationFilterTest {
 	
 	@Test
 	public void testSessionToken_isNull() throws Exception {
-		when(oidcTokenHelper.createAnonymousAccessToken()).thenReturn(ANONYMOUS_TOKEN);
-
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.addParameter(AuthorizationConstants.SESSION_TOKEN_PARAM, (String) null);
 		
@@ -372,7 +365,7 @@ public class AuthenticationFilterTest {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(null);
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
 		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.emptyEnumeration());
-		when(oidcTokenHelper.createAnonymousAccessToken()).thenReturn(ANONYMOUS_TOKEN);
+
 		// method under test
 		filter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
 		
@@ -381,7 +374,6 @@ public class AuthenticationFilterTest {
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
 		
 		assertEquals("273950", requestCaptor.getValue().getParameter("userId"));
-		assertEquals("Bearer "+ANONYMOUS_TOKEN, requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME));
 	}
 
 

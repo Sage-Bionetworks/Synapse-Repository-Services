@@ -120,15 +120,11 @@ public class AuthenticationFilter implements Filter {
 				}	
 			} else { // anonymous
 				userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
-				// there is no bearer token (as an Auth or sessionToken header) or digital signature
-				// so create an 'anonymous' bearer token
-				accessToken = oidcTokenHelper.createAnonymousAccessToken();
 			}
 		}
 		
-		// there are multiple paths to this point, but all require creating a userId and access token
+		// there are multiple paths to this point, but all require creating a userId
 		ValidateArgument.required(userId, "userId");
-		ValidateArgument.required(accessToken, "accessToken");
 
 		// If the user is not anonymous, check if they have accepted the terms of use
 		if (!BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(userId)) {
@@ -152,7 +148,9 @@ public class AuthenticationFilter implements Filter {
 			Map<String, String[]> modParams = new HashMap<String, String[]>(req.getParameterMap());
 			modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
 			Map<String, String[]> modHeaders = HttpAuthUtil.copyHeaders(req);
-			HttpAuthUtil.setBearerTokenHeader(modHeaders, accessToken);
+			if (accessToken!=null) {
+				HttpAuthUtil.setBearerTokenHeader(modHeaders, accessToken);
+			}
 			HttpServletRequest modRqst = new ModHttpServletRequest(req, modHeaders, modParams);
 			filterChain.doFilter(modRqst, servletResponse);
 		} finally {

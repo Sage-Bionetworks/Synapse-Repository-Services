@@ -159,11 +159,7 @@ public class ITAccessTokenTest {
 			// Now the calls made by 'synapseClientLackingCredentials' are authenticated/authorized
 			// as User1.
 
-
-			// TODO This should NOT throw an exception after we add desired scope to the UserInfo endpoint
-			Assertions.assertThrows(SynapseForbiddenException.class, () -> {
-				synapseClientLackingCredentials.getUserInfoAsJSON();
-			});
+			synapseClientLackingCredentials.getUserInfoAsJSON();
 		} finally {
 			synapseClientLackingCredentials.removeAuthorizationHeader();
 		}		

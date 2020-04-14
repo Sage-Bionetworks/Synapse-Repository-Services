@@ -109,8 +109,7 @@ public class ITOpenIDConnectTest {
 		authorizationRequest.setClientId(client.getClient_id());
 		authorizationRequest.setRedirectUri(client.getRedirect_uris().get(0));
 		authorizationRequest.setResponseType(OAuthResponseType.code);
-		//authorizationRequest.setScope("openid"); TODO restore
-		authorizationRequest.setScope("openid view modify download"); // TODO remove
+		authorizationRequest.setScope("openid");
 		authorizationRequest.setClaims(
 				"{\"id_token\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}},"+
 				 "\"userinfo\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}}}"
@@ -192,7 +191,7 @@ public class ITOpenIDConnectTest {
 			synapseAnonymous.setBearerAuthorizationToken(tokenResponse.getAccess_token());
 			
 			SynapseServerException sse =
-					assertThrows(SynapseServerException.class, () -> { // TODO should be SynapseForbiddenException but is SynapseServiceUnavailable
+					assertThrows(SynapseForbiddenException.class, () -> {
 				synapseAnonymous.getUserInfoAsJSON();
 			});
 			
@@ -245,8 +244,7 @@ public class ITOpenIDConnectTest {
 		authorizationRequest.setClientId(client.getClient_id());
 		authorizationRequest.setRedirectUri(client.getRedirect_uris().get(0));
 		authorizationRequest.setResponseType(OAuthResponseType.code);
-		//authorizationRequest.setScope("openid"); TODO restore
-		authorizationRequest.setScope("openid view modify download"); // TODO remove
+		authorizationRequest.setScope("openid");
 		authorizationRequest.setClaims(
 				"{\"id_token\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}},"+
 				 "\"userinfo\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}}}"
