@@ -90,8 +90,8 @@ public class OAuthScopeInterceptor implements HandlerInterceptor {
 					requestScopes = Arrays.asList(OAuthScope.values());
 				} else {
 					String synapseAuthorizationHeader = request.getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME);
-					if (synapseAuthorizationHeader!=null) {
-						String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(synapseAuthorizationHeader);
+					String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(synapseAuthorizationHeader);
+					if (accessToken!=null) {
 						Jwt<JwsHeader, Claims> jwt = oidcTokenHelper.parseJWT(accessToken);
 						requestScopes = ClaimsJsonUtil.getScopeFromClaims(jwt.getBody());
 					}

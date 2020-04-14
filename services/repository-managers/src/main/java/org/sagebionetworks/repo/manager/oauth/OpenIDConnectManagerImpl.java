@@ -259,6 +259,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		return EncryptionUtils.decrypt(ppid, sectorIdentifierSecret);
 	}
 	
+	@Override
 	public String getUserId(String jwtToken) {
 		Claims claims = oidcTokenHelper.parseJWT(jwtToken).getBody();
 		return getUserIdFromPPID(claims.getSubject(), claims.getAudience());
