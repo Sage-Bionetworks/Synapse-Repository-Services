@@ -143,6 +143,8 @@ public class BaseClientImpl implements BaseClient {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getUsername(), "LoginRequest.username");
 		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
+		defaultGETDELETEHeaders.remove(SESSION_TOKEN_HEADER);
+		defaultPOSTPUTHeaders.remove(SESSION_TOKEN_HEADER);
 		LoginResponse response = postJSONEntity(authEndpoint, "/login", request, LoginResponse.class);
 		defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, response.getSessionToken());
 		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, response.getSessionToken());

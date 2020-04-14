@@ -114,16 +114,15 @@ class HttpAuthUtilTest {
 	}
 
 	@Test
-	void testFilterAuthorizationHeaders() {
+	void testCopyAuthorizationHeaders() {
 		String nonAuthHeader = "Accept";
 		String nonAuthHeaderValue = "application/json";
 
-		when(httpRequest.getHeaderNames()).thenReturn(Collections.enumeration(ImmutableList.of(
-				"Synapse-Authorization", "userId", "signatureTimestamp", "signature", "verifiedOAuthClientId", nonAuthHeader)));
+		when(httpRequest.getHeaderNames()).thenReturn(Collections.enumeration(ImmutableList.of(nonAuthHeader)));
 		when(httpRequest.getHeaders(nonAuthHeader)).thenReturn(Collections.enumeration(Collections.singleton(nonAuthHeaderValue)));
 		
 		// method under test
-		Map<String,String[]> actual = HttpAuthUtil.filterAuthorizationHeaders(httpRequest);
+		Map<String,String[]> actual = HttpAuthUtil.copyHeaders(httpRequest);
 		
 		assertEquals(1, actual.size());
 		assertEquals(Collections.singleton(nonAuthHeader), actual.keySet());

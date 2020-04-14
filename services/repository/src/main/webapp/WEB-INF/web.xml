@@ -93,12 +93,8 @@
 	<filter-mapping>
 		<filter-name>authFilter</filter-name>
 		<url-pattern>/auth/v1/*</url-pattern>
-		<!-- url-pattern>/auth/v1/secretKey</url-pattern>
-		<url-pattern>/auth/v1/oauth2/alias</url-pattern>
-		<url-pattern>/auth/v1/oauth2/client/*</url-pattern>
-		<url-pattern>/auth/v1/oauth2/consent</url-pattern>
-		<url-pattern>/auth/v1/oauth2/consentcheck</url-pattern>
-		<url-pattern>/auth/v1/oauth2/userinfo</url-pattern -->
+		<url-pattern>/docker/v1/*</url-pattern>
+		<url-pattern>/dockerRegistryListener/v1/*</url-pattern>
 		<url-pattern>/repo/v1/*</url-pattern>
 		<url-pattern>/file/v1/*</url-pattern>
 	</filter-mapping>

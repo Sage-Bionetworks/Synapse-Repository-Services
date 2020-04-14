@@ -45,7 +45,7 @@ public class OAuthClientAuthFilter implements Filter {
 		if (validCredentials) {
 			// get the current headers, but be sure to leave behind anything that might be mistaken for a valid
 			// authentication header 'down the filter chain'
-			Map<String, String[]> modHeaders = HttpAuthUtil.copyHeaders(httpRequest, null);
+			Map<String, String[]> modHeaders = HttpAuthUtil.copyHeaders(httpRequest);
 			modHeaders.put(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER, new String[] {oauthClientId});
 			HttpServletRequest modRqst = new ModHttpServletRequest(httpRequest, modHeaders, null);
 			chain.doFilter(modRqst, response);
