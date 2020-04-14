@@ -43,7 +43,9 @@ public class StatisticsMonthlyProcessorNotifierImpl implements StatisticsMonthly
 			transactionSynchronization.registerSynchronization(new TransactionSynchronization() {
 				@Override
 				public void afterCommit() {
-					LOG.info("Sending processing notification for object type {} and month {}", objectType, month);
+					if (LOG.isDebugEnabled()) {
+						LOG.debug("Sending processing notification for object type {} and month {}", objectType, month);
+					}
 					awsSQSClient.sendMessage(queueUrl, StatisticsMonthlyUtils.buildNotificationBody(objectType, month));
 				}
 			});

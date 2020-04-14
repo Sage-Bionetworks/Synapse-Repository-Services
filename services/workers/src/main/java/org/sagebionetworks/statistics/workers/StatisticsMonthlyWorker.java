@@ -39,11 +39,15 @@ public class StatisticsMonthlyWorker implements MessageDrivenRunner {
 		try {
 			String messageBody = message.getBody();
 
-			LOG.debug("Process notification received: " + messageBody);
+			if (LOG.isDebugEnabled()) {
+				LOG.debug("Process notification received: " + messageBody);
+			}
 
 			StatisticsMonthlyProcessNotification notification = StatisticsMonthlyUtils.fromNotificationBody(messageBody);
 
-			LOG.info("Proccessing months {} for object type {}...", notification.getMonth(), notification.getObjectType());
+			if (LOG.isDebugEnabled()) {
+				LOG.debug("Proccessing months {} for object type {}...", notification.getMonth(), notification.getObjectType());
+			}
 
 			manager.processMonth(notification.getObjectType(), notification.getMonth(), progressCallback);
 		} catch (Throwable e) {

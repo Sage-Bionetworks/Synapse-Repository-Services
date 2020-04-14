@@ -10,8 +10,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.manager.statistics.project.StatisticsMonthlyProjectFileDownloadsProcessor;
-import org.sagebionetworks.repo.manager.statistics.project.StatisticsMonthlyProjectManager;
 import org.sagebionetworks.repo.model.statistics.FileEvent;
 
 @ExtendWith(MockitoExtension.class)

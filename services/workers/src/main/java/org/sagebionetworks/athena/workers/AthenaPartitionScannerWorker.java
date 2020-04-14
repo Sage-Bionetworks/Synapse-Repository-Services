@@ -28,8 +28,6 @@ public class AthenaPartitionScannerWorker implements ProgressingRunner {
 
 	@Override
 	public void run(ProgressCallback progressCallback) throws Exception {
-		LOG.info("Scanning partitions...");
-
 		try {
 			Iterator<Database> databases = athenaSupport.getDatabases();
 
@@ -42,8 +40,6 @@ public class AthenaPartitionScannerWorker implements ProgressingRunner {
 			// Sends a fail metric for cloud watch
 			workerLogger.logWorkerFailure(AthenaPartitionScannerWorker.class.getName(), e, willRetry);
 		}
-
-		LOG.info("Scanning partitions...DONE");
 	}
 
 	private void repairDatabaseTables(Database database) {
