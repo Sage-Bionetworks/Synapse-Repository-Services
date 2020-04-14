@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_S
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
@@ -117,39 +118,21 @@ public class DBOJsonSchemaDependency implements MigratableDatabaseObject<DBOJson
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((dependsOnSchemaId == null) ? 0 : dependsOnSchemaId.hashCode());
-		result = prime * result + ((dependsOnSemanticVersion == null) ? 0 : dependsOnSemanticVersion.hashCode());
-		result = prime * result + ((versionNumber == null) ? 0 : versionNumber.hashCode());
-		return result;
+		return Objects.hash(dependsOnSchemaId, dependsOnSemanticVersion, versionNumber);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (!(obj instanceof DBOJsonSchemaDependency)) {
 			return false;
-		if (getClass() != obj.getClass())
-			return false;
+		}
 		DBOJsonSchemaDependency other = (DBOJsonSchemaDependency) obj;
-		if (dependsOnSchemaId == null) {
-			if (other.dependsOnSchemaId != null)
-				return false;
-		} else if (!dependsOnSchemaId.equals(other.dependsOnSchemaId))
-			return false;
-		if (dependsOnSemanticVersion == null) {
-			if (other.dependsOnSemanticVersion != null)
-				return false;
-		} else if (!dependsOnSemanticVersion.equals(other.dependsOnSemanticVersion))
-			return false;
-		if (versionNumber == null) {
-			if (other.versionNumber != null)
-				return false;
-		} else if (!versionNumber.equals(other.versionNumber))
-			return false;
-		return true;
+		return Objects.equals(dependsOnSchemaId, other.dependsOnSchemaId)
+				&& Objects.equals(dependsOnSemanticVersion, other.dependsOnSemanticVersion)
+				&& Objects.equals(versionNumber, other.versionNumber);
 	}
 
 	@Override
