@@ -52,7 +52,7 @@ public class DBOJsonSchemaVersion implements MigratableDatabaseObject<DBOJsonSch
 			dbo.setVersionNumber(rs.getLong(COL_JSON_SCHEMA_VER_NUMBER));
 			dbo.setSchemaId(rs.getLong(COL_JSON_SCHEMA_VER_SCHEMA_ID));
 			dbo.setSemanticVersion(rs.getString(COL_JSON_SCHEMA_VER_SEMANTIC));
-			dbo.setCreatedBy(rs.getLong(COL_JSON_SCHEMA_VER_CREATED_ON));
+			dbo.setCreatedBy(rs.getLong(COL_JSON_SCHEMA_VER_CREATED_BY));
 			dbo.setCreatedOn(rs.getTimestamp(COL_JSON_SCHEMA_VER_CREATED_ON));
 			dbo.setS3Bucket(rs.getString(COL_JSON_SCHEMA_VER_S3_BUCKET));
 			dbo.setS3Key(rs.getString(COL_JSON_SCHEMA_VER_S3_KEY));
