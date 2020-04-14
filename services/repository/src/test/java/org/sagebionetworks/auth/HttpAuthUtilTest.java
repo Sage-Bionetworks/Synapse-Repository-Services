@@ -2,12 +2,16 @@ package org.sagebionetworks.auth;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.PrintWriter;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -20,7 +24,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.springframework.http.HttpStatus;
 
 import com.google.common.collect.ImmutableList;
-import com.sun.syndication.io.impl.Base64; 
 
 @ExtendWith(MockitoExtension.class)
 class HttpAuthUtilTest {
@@ -35,45 +38,93 @@ class HttpAuthUtilTest {
 	@Mock
 	private PrintWriter mockWriter;
 	
+	private static final String username = "username";
+	private static final String password = "password";
+	
+	private static String base64Encode(String in) {
+		return Base64.getEncoder().encodeToString(in.getBytes());
+	}
+	
 
 	@Test
-	void testGetBasicAuthenticationCredentials() {
+	void testGetBasicAuthenticationCredentialsWithNoHeader() {
 		// test no authorization header
 		when(httpRequest.getHeader("Authorization")).thenReturn(null);
 		// method under test
-		assertNull(HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest));
-
+		assertEquals(Optional.empty(), HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest));
+	}
+	
+	@Test
+	void testGetBasicAuthenticationCredentialsWithEmptyHeader() {
+		// Empty header
 		when(httpRequest.getHeader("Authorization")).thenReturn(" ");
 		// method under test
-		assertNull(HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest));
+		assertEquals(Optional.empty(), HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest));
+	}
+	
+	@Test
+	void testGetBasicAuthenticationCredentialsWithWrongHeader() {
 
 		// not Basic Authentication
 		when(httpRequest.getHeader("Authorization")).thenReturn("Bearer 1a2b3c");
 		// method under test
-		assertNull(HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest));
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+			HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest);
+		});
 		
+		assertEquals("Invalid Authorization header for basic authentication (Missing \"Basic \" prefix)", ex.getMessage());
+	}
+	
+	@Test
+	void testGetBasicAuthenticationCredentialsWithoutColon() {
 		// not properly formatted Basic auth
-		when(httpRequest.getHeader("Authorization")).thenReturn("Basic "+Base64.encode("some random text"));
-		assertNull(HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest));
-
-		// test with proper Basic authorization header
-		String username = "username";
-		String password = "password";
+		when(httpRequest.getHeader("Authorization")).thenReturn("Basic "+base64Encode("some random text"));
 		
-		when(httpRequest.getHeader("Authorization")).thenReturn("Basic "+Base64.encode(username+":"+password));
-		UserNameAndPassword expected = new UserNameAndPassword(username, password);
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+			HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest);
+		});
 		
-		// method under test
-		assertEquals(expected, HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest));
-
-		// extra white space
-		when(httpRequest.getHeader("Authorization")).thenReturn("Basic   \t"+Base64.encode(username+":"+password)+"\n\n    \t");
-	
-		// method under test
-		assertEquals(expected, HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest));
-	
+		assertEquals("Invalid Authorization header for basic authentication (Decoded credentials should be colon separated)", ex.getMessage());
+		
 	}
 
+	@Test
+	void testGetBasicAuthenticationCredentialsWithCredentials() {
+
+		when(httpRequest.getHeader("Authorization")).thenReturn("Basic "+base64Encode(username+":"+password));
+		
+		Optional<UserNameAndPassword> expected = Optional.of(new UserNameAndPassword(username, password));
+		
+		// method under test
+		assertEquals(expected, HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest));
+	}
+
+	@Test
+	void testGetBasicAuthenticationCredentialsWithExtraSpace() {
+		// extra white space
+		when(httpRequest.getHeader("Authorization")).thenReturn("Basic   \t"+base64Encode(username+":"+password)+"\n\n    \t");
+	
+		Optional<UserNameAndPassword> expected = Optional.of(new UserNameAndPassword(username, password));
+		
+		// method under test
+		assertEquals(expected, HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest));
+		
+	}
+	
+	@Test
+	void testGetBasicAuthenticationCredentialsWithInvalidEncoding() {
+		// invalid encoding
+		when(httpRequest.getHeader("Authorization")).thenReturn("Basic "+base64Encode(username+":"+password)+"__");
+		
+		// method under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+			HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest);
+		});
+		
+		assertEquals("Invalid Authorization header for basic authentication (Malformed Base64 encoding: Input byte array has incorrect ending byte at 24)", ex.getMessage());
+	}
+
+		
 	@Test
 	void testGetBearerToken() {
 		// test no authorization header

@@ -136,7 +136,12 @@
 	
 	<filter>
 		<filter-name>dockerRegistryAuthFilter</filter-name>
-		<filter-class>org.sagebionetworks.repo.web.filter.DockerRegistryAuthFilter</filter-class>
+		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+		<init-param>
+			<!-- Make sure the init-params are passed through the proxy to the bean -->
+			<param-name>targetFilterLifecycle</param-name>
+			<param-value>true</param-value>
+		</init-param>
 	</filter>
 
 	<filter-mapping>
@@ -253,11 +258,6 @@
 	
 	<filter>
 		<filter-name>cloudMailInAuthFilter</filter-name>
-		<filter-class>org.sagebionetworks.auth.CloudMailInAuthFilter</filter-class>
-	</filter>
-
-	<filter>
-		<filter-name>oauthClientAuthFilter</filter-name>
 		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
 		<init-param>
 			<!-- Make sure the init-params are passed through the proxy to the bean -->
@@ -268,12 +268,12 @@
 
 	<filter>
 		<filter-name>cloudMailInAcceptPlainTextFilter</filter-name>
-		<filter-class>org.sagebionetworks.auth.CloudMailInAcceptPlainTextFilter</filter-class>
+		<filter-class>org.sagebionetworks.repo.web.filter.CloudMailInAcceptPlainTextFilter</filter-class>
 	</filter>
 
 	<filter>
 		<filter-name>cloudMailInContentTypeFilter</filter-name>
-		<filter-class>org.sagebionetworks.auth.CloudMailInCharacterEncodingFilter</filter-class>
+		<filter-class>org.sagebionetworks.repo.web.filter.CloudMailInCharacterEncodingFilter</filter-class>
 	</filter>
 
     <!--  Note we tried applying the filter to both /cloudMailInMessage and /cloudMailInAuthorization,
@@ -294,6 +294,16 @@
 		<url-pattern>/repo/v1/cloudMailInMessage/*</url-pattern>
 		<url-pattern>/repo/v1/cloudMailInAuthorization/*</url-pattern>
 	</filter-mapping>
+	
+	<filter>
+		<filter-name>oauthClientAuthFilter</filter-name>
+		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+		<init-param>
+			<!-- Make sure the init-params are passed through the proxy to the bean -->
+			<param-name>targetFilterLifecycle</param-name>
+			<param-value>true</param-value>
+		</init-param>
+	</filter>
 
 	<filter-mapping>
 		<filter-name>oauthClientAuthFilter</filter-name>

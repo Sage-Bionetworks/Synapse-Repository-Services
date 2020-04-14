@@ -1,7 +1,8 @@
-package org.sagebionetworks.auth;
+package org.sagebionetworks.auth.controller;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.auth.DeprecatedUtils;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;

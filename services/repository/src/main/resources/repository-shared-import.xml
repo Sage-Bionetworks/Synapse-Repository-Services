@@ -8,6 +8,5 @@
 	<import resource="classpath:private/profiler-spb.xml" />
 	<import resource="classpath:private/throttle-services-spb.xml" />
 	<import resource="classpath:private/service-spb.xml" />
-	<import resource="classpath:private/docker-filter-spb.xml" />
 	<import resource="classpath:private/simple-cors-filter-spb.xml" />
 </beans>

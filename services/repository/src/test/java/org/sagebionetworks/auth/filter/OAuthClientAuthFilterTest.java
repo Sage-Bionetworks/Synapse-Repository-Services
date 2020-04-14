@@ -1,6 +1,8 @@
-package org.sagebionetworks.auth;
+package org.sagebionetworks.auth.filter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -25,6 +27,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
@@ -41,12 +44,14 @@ public class OAuthClientAuthFilterTest {
 	@Mock
 	private HttpServletResponse mockHttpResponse;
 	
-	
 	@Mock
 	private PrintWriter mockPrintWriter;
 	
 	@Mock
 	private FilterChain mockFilterChain;
+	
+	@Mock
+	private Consumer mockConsumer;
 	
 	@InjectMocks
 	private OAuthClientAuthFilter oAuthClientAuthFilter;
@@ -60,6 +65,8 @@ public class OAuthClientAuthFilterTest {
 	@BeforeEach
 	public void setUp() throws Exception {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BASIC_HEADER);
+		assertTrue(oAuthClientAuthFilter.credentialsRequired());
+		assertFalse(oAuthClientAuthFilter.reportBadCredentialsMetric());
 	}
 
 	@Test
@@ -83,7 +90,6 @@ public class OAuthClientAuthFilterTest {
 	public void testFilter_invalid_Credentials() throws Exception {
 		when(mockHttpResponse.getWriter()).thenReturn(mockPrintWriter);
 		when(mockOauthClientManager.validateClientCredentials((OAuthClientIdAndSecret)any())).thenReturn(false);
-		when(mockHttpResponse.getWriter()).thenReturn(mockPrintWriter);
 
 		// method under test
 		oAuthClientAuthFilter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
@@ -93,7 +99,7 @@ public class OAuthClientAuthFilterTest {
 		verify(mockFilterChain, never()).doFilter((ServletRequest)any(), (ServletResponse)any());
 		verify(mockHttpResponse).setStatus(401);
 		verify(mockHttpResponse).setContentType("application/json");
-		verify(mockPrintWriter).println("{\"reason\":\"OAuth Client ID and secret must be passed via Basic Authentication.  Credentials are missing or invalid.\"}");
+		verify(mockPrintWriter).println("{\"reason\":\"OAuth Client ID and secret must be passed via Basic Authentication. Credentials are missing or invalid.\"}");
 	}
 
 	@Test
@@ -109,7 +115,7 @@ public class OAuthClientAuthFilterTest {
 		verify(mockFilterChain, never()).doFilter((ServletRequest)any(), (ServletResponse)any());
 		verify(mockHttpResponse).setStatus(401);
 		verify(mockHttpResponse).setContentType("application/json");
-		verify(mockPrintWriter).println("{\"reason\":\"OAuth Client ID and secret must be passed via Basic Authentication.  Credentials are missing or invalid.\"}");
+		verify(mockPrintWriter).println("{\"reason\":\"Missing required credentials in the authorization header.\"}");
 	}
 
 }

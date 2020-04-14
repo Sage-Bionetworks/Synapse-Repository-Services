@@ -1,7 +1,8 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.net.URL;
 import java.net.URLEncoder;
@@ -13,11 +14,11 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.http.HttpStatus;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.client.ClientUtils;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
@@ -69,7 +70,7 @@ public class ITDocker {
 
 	private static SimpleHttpClient simpleClient;
 
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() throws Exception {
 		StackConfiguration config = StackConfigurationSingleton.singleton();
 		// Create 2 users
@@ -89,7 +90,7 @@ public class ITDocker {
 		simpleClient = new SimpleHttpClientImpl();
 	}
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		config = StackConfigurationSingleton.singleton();
 		Project project = new Project();
@@ -97,13 +98,13 @@ public class ITDocker {
 		projectId = project.getId();
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		if (projectId!=null) synapseOne.deleteEntityById(projectId);
 		projectId=null;
 	}
 
-	@AfterClass
+	@AfterAll
 	public static void afterClass() throws Exception {
 		try {
 			adminSynapse.deleteUser(userToDelete);
@@ -253,6 +254,29 @@ public class ITDocker {
 		assertNotNull(childResponse);
 		assertNotNull(childResponse.getPage());
 		assertEquals(0, childResponse.getPage().size());
+	}
+	
+	// Test for PLFM-6189 and PLFM-6188
+	@Test
+	public void testSendRegistryEventsInvalidEncodedCredentials() throws Exception {
+		Map<String, String> requestHeaders = new HashMap<String, String>();
+		// Note, without this header  we get a 415 response code
+		requestHeaders.put("Content-Type", "application/json"); 
+		requestHeaders.put(
+				AuthorizationConstants.AUTHORIZATION_HEADER_NAME,
+				ClientUtils.createBasicAuthorizationHeader("wrong user name", "wrong password") + "_wrong");
+		
+		DockerRegistryEventList registryEvents = new DockerRegistryEventList();
+		
+		URL url = new URL(config.getDockerRegistryListenerEndpoint() + 
+				DOCKER_REGISTRY_EVENTS);
+		
+		SimpleHttpRequest request = new SimpleHttpRequest();
+		request.setUri(url.toString());
+		request.setHeaders(requestHeaders);
+		String body = EntityFactory.createJSONStringForEntity(registryEvents);
+		SimpleHttpResponse response = simpleClient.post(request, body);
+		assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
 	}
 
 

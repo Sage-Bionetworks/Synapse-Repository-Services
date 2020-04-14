@@ -4,7 +4,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,7 +47,7 @@ public class WorkerLoggerImpl implements WorkerLogger {
 	 * @return
 	 */
 	public static ProfileData makeProfileDataDTO(
-			Class workerClass, 
+			Class<?> workerClass, 
 			ChangeMessage changeMessage, 
 			Throwable cause, 
 			boolean willRetry,
@@ -83,17 +82,7 @@ public class WorkerLoggerImpl implements WorkerLogger {
 			dimension.put(CHANGE_TYPE_KEY, changeMessage.getChangeType().name());
 			dimension.put(OBJECT_TYPE_KEY, changeMessage.getObjectType().name());
 		}
-		String stackTraceAsString = "";
-		if (cause!=null) {
-			stackTraceAsString = ExceptionUtils.getStackTrace(cause);
-			String message = cause.getMessage();
-			if (message!=null && message.length()>0) {
-				int i = stackTraceAsString.indexOf(message);
-				if (i>=0) {
-					stackTraceAsString = stackTraceAsString.substring(0, i)+stackTraceAsString.substring(i+message.length());
-				}
-			}
-		}
+		String stackTraceAsString = MetricUtils.stackTracetoString(cause);
 		dimension.put(STACK_TRACE_KEY, stackTraceAsString);
 		nextPD.setDimension(dimension);
 		

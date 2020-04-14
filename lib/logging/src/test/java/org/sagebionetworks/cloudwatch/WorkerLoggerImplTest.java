@@ -1,15 +1,15 @@
 package org.sagebionetworks.cloudwatch;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyObject;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 
 import java.util.Date;
 import java.util.Map;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -100,7 +100,7 @@ public class WorkerLoggerImplTest {
 		Throwable cause = new Exception();
 		boolean willRetry = false;
 		workerLoggerImpl.logWorkerFailure(workerClass, changeMessage, cause, willRetry);
-		Mockito.verify(mockConsumer).addProfileData((ProfileData)anyObject());
+		Mockito.verify(mockConsumer).addProfileData(any(ProfileData.class));
 	}
 
 	@Test
@@ -112,6 +112,6 @@ public class WorkerLoggerImplTest {
 		Throwable cause = new Exception();
 		boolean willRetry = false;
 		workerLoggerImpl.logWorkerFailure("generic ", cause, willRetry);
-		Mockito.verify(mockConsumer).addProfileData((ProfileData)anyObject());
+		Mockito.verify(mockConsumer).addProfileData(any(ProfileData.class));
 	}
 }
