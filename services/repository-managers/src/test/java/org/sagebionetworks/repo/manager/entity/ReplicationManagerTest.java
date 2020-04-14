@@ -107,8 +107,8 @@ public class ReplicationManagerTest {
 		// call under test
 		manager.replicate(changes);
 		verify(mockNodeDao).getEntityDTOs(Lists.newArrayList("111", "222"), ReplicationManagerImpl.MAX_ANNOTATION_CHARS);
-		verify(mockIndexDao).deleteObjectData(ObjectType.ENTITY, eq(Lists.newArrayList(111L,222L,333L)));
-		verify(mockIndexDao).addObjectData(ObjectType.ENTITY, eq(entityData));
+		verify(mockIndexDao).deleteObjectData(ObjectType.ENTITY, Lists.newArrayList(111L,222L,333L));
+		verify(mockIndexDao).addObjectData(ObjectType.ENTITY, entityData);
 	}
 
 	

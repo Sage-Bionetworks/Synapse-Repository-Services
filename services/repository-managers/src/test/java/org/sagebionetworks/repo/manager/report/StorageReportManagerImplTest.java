@@ -64,7 +64,7 @@ public class StorageReportManagerImplTest {
 	public void writeStorageReportAllProjects() {
 		request.setReportType(StorageReportType.ALL_PROJECTS);
 		doAnswer(invocation -> {
-			Callback<SynapseStorageProjectStats> callback = invocation.getArgument(0);
+			Callback<SynapseStorageProjectStats> callback = invocation.getArgument(1);
 			callback.invoke(projectStats);
 			return null;
 		}).when(mockTableIndexDao).streamSynapseStorageStats(any(), any());
@@ -82,7 +82,7 @@ public class StorageReportManagerImplTest {
 	public void writeStorageReportNullReportType() {
 		request.setReportType(null);
 		doAnswer(invocation -> {
-			Callback<SynapseStorageProjectStats> callback = invocation.getArgument(0);
+			Callback<SynapseStorageProjectStats> callback = invocation.getArgument(1);
 			callback.invoke(projectStats);
 			return null;
 		}).when(mockTableIndexDao).streamSynapseStorageStats(any(), any());
