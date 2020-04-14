@@ -529,7 +529,11 @@
 				<artifactId>lib-models</artifactId>
 				<version>${project.version}</version>
 			</dependency>
-
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>lib-schema-id</artifactId>
+				<version>${project.version}</version>
+			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>lib-search</artifactId>

@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo;
+package org.sagebionetworks.repo.model.dbo.schema;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -37,8 +37,7 @@ public class OrganizationDaoImplTest {
 		// Call under test
 		Organization created = organizationDao.createOrganization(name, adminUserId);
 		assertNotNull(created);
-		// name should be lower
-		assertEquals(name.toLowerCase(), created.getName());
+		assertEquals(name, created.getName());
 		assertNotNull(created.getId());
 		assertNotNull(created.getCreatedOn());
 		assertEquals(""+adminUserId, created.getCreatedBy());
@@ -48,6 +47,14 @@ public class OrganizationDaoImplTest {
 		assertEquals(created, fetched);
 		// call under test
 		organizationDao.deleteOrganization(fetched.getId());
+	}
+	
+	@Test
+	public void testGetOrganizationDifferentCase() {
+		Organization created = organizationDao.createOrganization(name.toLowerCase(), adminUserId);
+		// call under test lookup
+		Organization fetched = organizationDao.getOrganizationByName(name.toUpperCase());
+		assertEquals(created, fetched);
 	}
 
 	@Test
@@ -60,7 +67,20 @@ public class OrganizationDaoImplTest {
 			// call under test
 			organizationDao.createOrganization(name, adminUserId);
 		}).getMessage();
-		assertEquals("An Organization with the name: 'foo.bar' already exists", message);
+		assertEquals("An Organization with the name: 'Foo.Bar' already exists", message);
+	}
+	
+	@Test
+	public void testCreateOrganizationDuplicateNameByCase() {
+		// Call under test
+		Organization created = organizationDao.createOrganization(name.toLowerCase(), adminUserId);
+		assertNotNull(created);
+		// Attempt to create a duplicate name.
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			organizationDao.createOrganization(name.toUpperCase(), adminUserId);
+		}).getMessage();
+		assertEquals("An Organization with the name: 'FOO.BAR' already exists", message);
 	}
 
 	@Test
@@ -70,7 +90,7 @@ public class OrganizationDaoImplTest {
 			// call under test
 			organizationDao.getOrganizationByName(name);
 		}).getMessage();
-		assertEquals("Organization with name: 'foo.bar' not found", message);
+		assertEquals("Organization with name: 'Foo.Bar' not found", message);
 	}
 
 	@Test

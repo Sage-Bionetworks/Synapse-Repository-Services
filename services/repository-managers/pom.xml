@@ -15,6 +15,10 @@
 		<!-- Sage Bionetworks Dependencies -->
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-schema-id</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-models</artifactId>
 		</dependency>
 		<dependency>

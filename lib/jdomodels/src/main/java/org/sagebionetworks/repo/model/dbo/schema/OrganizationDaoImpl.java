@@ -10,7 +10,6 @@ import java.sql.Timestamp;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -26,11 +25,9 @@ import org.springframework.stereotype.Repository;
 public class OrganizationDaoImpl implements OrganizationDao {
 
 	@Autowired
-	DBOBasicDao basicDao;
+	private IdGenerator idGenerator;
 	@Autowired
-	IdGenerator idGenerator;
-	@Autowired
-	JdbcTemplate jdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 
 	static final RowMapper<DBOOrganization> ROW_MAPPER = new DBOOrganization().getTableMapping();
 
@@ -40,7 +37,7 @@ public class OrganizationDaoImpl implements OrganizationDao {
 		ValidateArgument.required(name, "name");
 		ValidateArgument.required(createdBy, "createdBy");
 		DBOOrganization dbo = new DBOOrganization();
-		dbo.setName(name.toLowerCase());
+		dbo.setName(name);
 		dbo.setCreatedBy(createdBy);
 		dbo.setCreatedOn(new Timestamp(System.currentTimeMillis()));
 		dbo.setId(idGenerator.generateNewId(IdType.ORGANIZATION_ID));
@@ -64,10 +61,10 @@ public class OrganizationDaoImpl implements OrganizationDao {
 		try {
 			DBOOrganization dbo = jdbcTemplate.queryForObject(
 					"SELECT * FROM " + TABLE_ORGANIZATION + " WHERE " + COL_ORGANIZATION_NAME + " = ?", ROW_MAPPER,
-					name.toLowerCase());
+					name);
 			return createDtoFromDbo(dbo);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("Organization with name: '" + name.toLowerCase() + "' not found");
+			throw new NotFoundException("Organization with name: '" + name + "' not found");
 		}
 	}
 

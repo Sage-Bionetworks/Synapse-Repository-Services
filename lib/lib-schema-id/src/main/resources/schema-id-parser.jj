@@ -18,6 +18,42 @@ public class SchemaIdParser {
 	public SchemaIdParser(String input){
 		this(new StringReader(input));
 	}
+	
+	/**
+	 * Parse an $id string into a SchemaId object.
+	 * 
+	 * @param id
+	 * @throws IllegalArgumentException that wraps any ParseException
+	 * @return
+	 */
+	public static SchemaId parseSchemaId(String id) {
+		if(id == null) {
+			throw new IllegalArgumentException("$id cannot be null");
+		}
+		SchemaIdParser parser = new SchemaIdParser(id);
+		try {
+			return parser.schemaId();
+		} catch (ParseException e) {
+			throw new IllegalArgumentException("Invalid '$id' : '" + id + "'/n" + e.getMessage(), e);
+		}
+	}
+	
+	/**
+	 * Parse an organization name into an OrganizationName object.
+	 * @param organizationName
+	 * @return
+	 */
+	public static OrganizationName parseOrganizationName(String organizationName) {
+		if(organizationName == null) {
+			throw new IllegalArgumentException("Organization name cannot be null");
+		}
+		SchemaIdParser parser = new SchemaIdParser(organizationName);
+		try {
+			return parser.organizationNameTerminal();
+		} catch (ParseException e) {
+			throw new IllegalArgumentException("Invalid 'organizationName' : '" + organizationName + "'\n" + e.getMessage(), e);
+		}
+	}
 
 }
 
@@ -185,6 +221,14 @@ OrganizationName organizationName():
 {
 	dotSeparatedAlphaNumeric = dotSeparatedAlphaNumeric()
 	{ return new OrganizationName(dotSeparatedAlphaNumeric); }
+}
+OrganizationName organizationNameTerminal():
+{
+	OrganizationName organizationName = null;
+}
+{
+	organizationName = organizationName() <EOF>
+	{ return organizationName; }
 }
 SchemaName schemaName():
 {

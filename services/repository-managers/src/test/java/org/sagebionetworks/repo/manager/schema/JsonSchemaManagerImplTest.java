@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.schema;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -69,7 +70,7 @@ public class JsonSchemaManagerImplTest {
 		anonymousUser = new UserInfo(isAdmin, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
 		request = new CreateOrganizationRequest();
-		request.setOrganizationName("a.2.b.com");
+		request.setOrganizationName("a.z2.b.com");
 
 		organization = new Organization();
 		organization.setCreatedBy("" + user.getId());
@@ -83,9 +84,9 @@ public class JsonSchemaManagerImplTest {
 
 	@Test
 	public void testProcessAndValidateOrganizationName() {
-		String inputName = " A.9.C.DEFG \n";
+		String inputName = " A.b9.C.DEFG \n";
 		String processedName = JsonSchemaManagerImpl.processAndValidateOrganizationName(inputName);
-		assertEquals("a.9.c.defg", processedName);
+		assertEquals("A.b9.C.DEFG", processedName);
 	}
 
 	@Test
@@ -129,29 +130,30 @@ public class JsonSchemaManagerImplTest {
 		}).getMessage();
 		assertEquals(JsonSchemaManagerImpl.SAGEBIONETWORKS_RESERVED_MESSAGE, message);
 	}
+	
+	@Test
+	public void testProcessAndValidateOrganizationNameSagebionetworksUpper() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			JsonSchemaManagerImpl.processAndValidateOrganizationName("SageBionetwork");
+		}).getMessage();
+		assertEquals(JsonSchemaManagerImpl.SAGEBIONETWORKS_RESERVED_MESSAGE, message);
+	}
 
 	@Test
 	public void testProcessAndValidateOrganizationNameStartWithDigit() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			JsonSchemaManagerImpl.processAndValidateOrganizationName("1abcdefg");
 		}).getMessage();
-		assertEquals(JsonSchemaManagerImpl.BAD_ORGANIZATION_NAME_MESSAGE, message);
+		assertTrue(message.startsWith("Invalid 'organizationName'"));
 	}
 
-	@Test
-	public void testProcessAndValidateOrganizationNameEndWithDigit() {
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			JsonSchemaManagerImpl.processAndValidateOrganizationName("abcdefg9");
-		}).getMessage();
-		assertEquals(JsonSchemaManagerImpl.BAD_ORGANIZATION_NAME_MESSAGE, message);
-	}
 
 	@Test
 	public void testProcessAndValidateOrganizationNameStartWithDot() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			JsonSchemaManagerImpl.processAndValidateOrganizationName(".abcdefg");
 		}).getMessage();
-		assertEquals(JsonSchemaManagerImpl.BAD_ORGANIZATION_NAME_MESSAGE, message);
+		assertTrue(message.startsWith("Invalid 'organizationName'"));
 	}
 
 	@Test
@@ -159,7 +161,7 @@ public class JsonSchemaManagerImplTest {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			JsonSchemaManagerImpl.processAndValidateOrganizationName("abcdefg.");
 		}).getMessage();
-		assertEquals(JsonSchemaManagerImpl.BAD_ORGANIZATION_NAME_MESSAGE, message);
+		assertTrue(message.startsWith("Invalid 'organizationName'"));
 	}
 
 	@Test
@@ -167,7 +169,7 @@ public class JsonSchemaManagerImplTest {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			JsonSchemaManagerImpl.processAndValidateOrganizationName("abc/defg");
 		}).getMessage();
-		assertEquals(JsonSchemaManagerImpl.BAD_ORGANIZATION_NAME_MESSAGE, message);
+		assertTrue(message.startsWith("Invalid 'organizationName'"));
 	}
 
 	@Test
@@ -199,7 +201,7 @@ public class JsonSchemaManagerImplTest {
 		assertNotNull(returned);
 		assertEquals(organization, returned);
 
-		verify(mockOrganizationDao).createOrganization("allcaps", user.getId());
+		verify(mockOrganizationDao).createOrganization("ALLCAPS", user.getId());
 	}
 
 	@Test
@@ -256,7 +258,7 @@ public class JsonSchemaManagerImplTest {
 			// call under test
 			manager.createOrganziation(user, request);
 		}).getMessage();
-		assertEquals(JsonSchemaManagerImpl.BAD_ORGANIZATION_NAME_MESSAGE, message);
+		assertTrue(message.startsWith("Invalid 'organizationName'"));
 	}
 
 	@Test
