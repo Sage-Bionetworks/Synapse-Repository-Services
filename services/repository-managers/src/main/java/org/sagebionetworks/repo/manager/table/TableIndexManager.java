@@ -149,9 +149,8 @@ public interface TableIndexManager {
 
 	/**
 	 * Delete the temporary copy of table's index.
-	 * @param callback
 	 */
-	void deleteTemporaryTableCopy(IdAndVersion tableId, ProgressCallback callback);
+	void deleteTemporaryTableCopy(IdAndVersion tableId);
 
 	/**
 	 * Attempt to alter the schema of a temporary copy of a table.

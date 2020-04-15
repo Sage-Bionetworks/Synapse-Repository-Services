@@ -1290,17 +1290,17 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createTempMultiValueColumnIndexTableSql(IdAndVersion tableId, String columnId) {
+	public static String[] createTempMultiValueColumnIndexTableSql(IdAndVersion tableId, String columnId) {
 		String tableName = getTableNameForMultiValueColumnIndex(tableId, columnId, false);
 		String tempName = getTableNameForMultiValueColumnIndex(tableId, columnId, true);
 		String tempParentTable = getTemporaryTableName(tableId);
 		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableId, columnId, true);
 		String rowIdRefColumnName = getRowIdRefColumnNameForId(columnId);
 
-		return String.format(CREATE_TABLE_LIKE, tempName, tableName) + ";" +
+		return new String[]{String.format(CREATE_TABLE_LIKE, tempName, tableName),
+				// foreign keys are not copied over so we manually add it
 				"ALTER TABLE " + tempName +
-				" DROP FOREIGN KEY " + tableName + "_FK" + "," +
-				" ADD " + getMultiValueIndexTableForeignKeyConstraint(tempParentTable, columnIndexTableName, rowIdRefColumnName);
+				" ADD " + getMultiValueIndexTableForeignKeyConstraint(tempParentTable, columnIndexTableName, rowIdRefColumnName)};
 	}
 
 	/**

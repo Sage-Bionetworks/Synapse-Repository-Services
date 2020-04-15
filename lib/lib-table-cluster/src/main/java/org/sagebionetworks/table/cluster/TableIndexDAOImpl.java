@@ -653,8 +653,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void createTemporaryMultiValueColumnIndexTable(IdAndVersion tableId, String columnId){
-		String sql = SQLUtils.createTempMultiValueColumnIndexTableSql(tableId, columnId);
-		template.update(sql);
+		String[] sqlBatch = SQLUtils.createTempMultiValueColumnIndexTableSql(tableId, columnId);
+		template.batchUpdate(sqlBatch);
 	}
 
 	@Override

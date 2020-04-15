@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -1612,13 +1613,12 @@ public class SQLUtilsTest {
 
 	@Test
 	public void testTempMultiValueColumnIndexTableSql(){
-		String sql = SQLUtils.createTempMultiValueColumnIndexTableSql(tableId, "123");
-		String expec = "CREATE TABLE TEMPT999_INDEX_C123_ LIKE T999_INDEX_C123_;" +
+		String[] sql = SQLUtils.createTempMultiValueColumnIndexTableSql(tableId, "123");
+		String[] expected = new String[]{"CREATE TABLE TEMPT999_INDEX_C123_ LIKE T999_INDEX_C123_",
 				"ALTER TABLE TEMPT999_INDEX_C123_ " +
-				"DROP FOREIGN KEY T999_INDEX_C123__FK, " +
 				"ADD CONSTRAINT TEMPT999_INDEX_C123__FK FOREIGN KEY (ROW_ID_REF_C123_) REFERENCES TEMPT999(ROW_ID) " +
-				"ON DELETE CASCADE";
-		assertEquals(expec, sql);
+				"ON DELETE CASCADE"};
+		assertArrayEquals(expected, sql);
 	}
 
 	@Test

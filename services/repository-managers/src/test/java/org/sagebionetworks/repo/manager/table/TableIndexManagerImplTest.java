@@ -471,21 +471,38 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao, never()).setCurrentSchemaMD5Hex(any(IdAndVersion.class), anyString());
 	}
 	
-	@SuppressWarnings("unchecked")
 	@Test
-	public void testCreateTemporaryTableCopy() throws Exception{
+	public void testCreateTemporaryTableCopy_noMultiValueColumnIndexTables(){
 		// call under test
 		manager.createTemporaryTableCopy(tableId);
 		verify(mockIndexDao).createTemporaryTable(tableId);
 		verify(mockIndexDao).copyAllDataToTemporaryTable(tableId);
+		verify(mockIndexDao).getMultivalueColumnIndexTableColumnIds(tableId);
+		verify(mockIndexDao, never()).createTemporaryMultiValueColumnIndexTable(any(IdAndVersion.class), anyString());
+		verify(mockIndexDao, never()).copyAllDataToTemporaryMultiValueColumnIndexTable(any(IdAndVersion.class), anyString());
+	}
+
+	@Test
+	public void testCreateTemporaryTableCopy_hasMultiValueColumnIndexTables(){
+		when(mockIndexDao.getMultivalueColumnIndexTableColumnIds(tableId)).thenReturn(Sets.newHashSet(123L, 456L));
+
+		// call under test
+		manager.createTemporaryTableCopy(tableId);
+		verify(mockIndexDao).createTemporaryTable(tableId);
+		verify(mockIndexDao).copyAllDataToTemporaryTable(tableId);
+		verify(mockIndexDao).getMultivalueColumnIndexTableColumnIds(tableId);
+		verify(mockIndexDao).createTemporaryMultiValueColumnIndexTable(tableId, "123");
+		verify(mockIndexDao).copyAllDataToTemporaryMultiValueColumnIndexTable(tableId, "123");
+		verify(mockIndexDao).createTemporaryMultiValueColumnIndexTable(tableId, "456");
+		verify(mockIndexDao).copyAllDataToTemporaryMultiValueColumnIndexTable(tableId, "456");
 	}
 	
-	@SuppressWarnings("unchecked")
 	@Test
-	public void testDeleteTemporaryTableCopy() throws Exception{
+	public void testDeleteTemporaryTableCopy(){
 		// call under test
-		manager.deleteTemporaryTableCopy(tableId, mockCallback);
+		manager.deleteTemporaryTableCopy(tableId);
 		verify(mockIndexDao).deleteTemporaryTable(tableId);
+		verify(mockIndexDao).deleteAllTemporaryMultiValueColumnIndexTable(tableId);
 	}
 	
 	@Test
@@ -1209,7 +1226,7 @@ public class TableIndexManagerImplTest {
 		// call under test
 		manager.populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
 		verify(mockIndexDao, never()).populateListColumnIndexTable(any(IdAndVersion.class), any(ColumnModel.class),
-				anySet(), false);
+				anySet(), anyBoolean());
 	}
 	
 	@Test

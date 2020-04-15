@@ -364,24 +364,22 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	@Override
 	public void createTemporaryTableCopy(final IdAndVersion tableId) {
 		// creating a temp table can take a long time so auto-progress is used.
-		try {
-			// create the table.
-			tableIndexDao.createTemporaryTable(tableId);
-			// copy all the data from the original to the temp.
-			tableIndexDao.copyAllDataToTemporaryTable(tableId);
+		// create the table.
+		tableIndexDao.createTemporaryTable(tableId);
+		// copy all the data from the original to the temp.
+		tableIndexDao.copyAllDataToTemporaryTable(tableId);
 
-			for(Long columnId: tableIndexDao.getMultivalueColumnIndexTableColumnIds(tableId)) {
-				String colIdStr = columnId.toString();
-				tableIndexDao.createTemporaryMultiValueColumnIndexTable(tableId, colIdStr);
-				tableIndexDao.copyAllDataToTemporaryMultiValueColumnIndexTable(tableId, colIdStr);
-			}
-		} catch (Exception e) {
-			throw new RuntimeException(e);
+		// if any multi-value column index tables exist, create a copy of them
+		for(Long columnId: tableIndexDao.getMultivalueColumnIndexTableColumnIds(tableId)) {
+			String colIdStr = columnId.toString();
+			tableIndexDao.createTemporaryMultiValueColumnIndexTable(tableId, colIdStr);
+			tableIndexDao.copyAllDataToTemporaryMultiValueColumnIndexTable(tableId, colIdStr);
 		}
-		
 	}
 	@Override
-	public void deleteTemporaryTableCopy(final IdAndVersion tableId, ProgressCallback callback) {
+	public void deleteTemporaryTableCopy(final IdAndVersion tableId) {
+		// delete multi-value index table first as they have a foreign key ref to the temp table
+		tableIndexDao.deleteAllTemporaryMultiValueColumnIndexTable(tableId);
 		// delete
 		tableIndexDao.deleteTemporaryTable(tableId);
 	}

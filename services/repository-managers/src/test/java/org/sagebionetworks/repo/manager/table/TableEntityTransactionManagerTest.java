@@ -198,7 +198,7 @@ public class TableEntityTransactionManagerTest {
 		verify(tableIndexConnectionFactory).connectToTableIndex(idAndVersion);
 		verify(tableIndexManager).createTemporaryTableCopy(idAndVersion);
 		verify(tableEntityManager).validateUpdateRequest(progressCallback, userInfo, uploadRequest, tableIndexManager);
-		verify(tableIndexManager).deleteTemporaryTableCopy(idAndVersion, progressCallback);
+		verify(tableIndexManager).deleteTemporaryTableCopy(idAndVersion);
 	}
 
 	@Test
@@ -220,7 +220,7 @@ public class TableEntityTransactionManagerTest {
 		verify(tableIndexConnectionFactory).connectToTableIndex(idAndVersion);
 		verify(tableIndexManager).createTemporaryTableCopy(idAndVersion);
 		verify(tableEntityManager).validateUpdateRequest(progressCallback, userInfo, uploadRequest, tableIndexManager);
-		verify(tableIndexManager).deleteTemporaryTableCopy(idAndVersion, progressCallback);
+		verify(tableIndexManager).deleteTemporaryTableCopy(idAndVersion);
 	}
 
 	@Test
@@ -232,8 +232,7 @@ public class TableEntityTransactionManagerTest {
 		verify(tableIndexConnectionFactory, never()).connectToTableIndex(idAndVersion);
 		verify(tableIndexManager, never()).createTemporaryTableCopy(idAndVersion);
 		verify(tableEntityManager).validateUpdateRequest(progressCallback, userInfo, uploadRequest, null);
-		verify(tableIndexManager, never()).deleteTemporaryTableCopy(any(IdAndVersion.class),
-				any(ProgressCallback.class));
+		verify(tableIndexManager, never()).deleteTemporaryTableCopy(any(IdAndVersion.class));
 	}
 
 	@Test
