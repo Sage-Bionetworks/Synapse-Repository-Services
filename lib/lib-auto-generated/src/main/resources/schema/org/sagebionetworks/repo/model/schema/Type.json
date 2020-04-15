@@ -12,7 +12,7 @@
 		},
 		{
 			"name": "object",
-            "description":"An unordered set of properties mapping a string to an instance, from the JSON \"object\" production.  If a \"type\" is not provided in a schema definition it will defaul to \"object\"."
+            "description":"An unordered set of properties mapping a string to an instance, from the JSON \"object\" production.  If a \"type\" is not provided in a schema definition it will default to \"object\"."
 		},
 		{
 			"name": "array",

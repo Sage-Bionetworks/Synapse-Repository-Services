@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.model.dbo.schema;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_NUMBER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_S3_BUCKET;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_S3_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_SCHEMA_ID;
@@ -28,7 +28,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 public class DBOJsonSchemaVersion implements MigratableDatabaseObject<DBOJsonSchemaVersion, DBOJsonSchemaVersion> {
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn("versionNumber", COL_JSON_SCHEMA_VER_NUMBER, true).withIsBackupId(true),
+			new FieldColumn("versionNumber", COL_JSON_SCHEMA_VER_ID, true).withIsBackupId(true),
 			new FieldColumn("schemaId", COL_JSON_SCHEMA_VER_SCHEMA_ID),
 			new FieldColumn("semanticVersion", COL_JSON_SCHEMA_VER_SEMANTIC),
 			new FieldColumn("createdBy", COL_JSON_SCHEMA_VER_CREATED_BY),
@@ -36,7 +36,7 @@ public class DBOJsonSchemaVersion implements MigratableDatabaseObject<DBOJsonSch
 			new FieldColumn("s3Bucket", COL_JSON_SCHEMA_VER_S3_BUCKET),
 			new FieldColumn("s3Key", COL_JSON_SCHEMA_VER_S3_KEY),};
 	
-	private Long versionNumber;
+	private Long versionId;
 	private Long schemaId;
 	private String semanticVersion;
 	private Long createdBy;
@@ -49,7 +49,7 @@ public class DBOJsonSchemaVersion implements MigratableDatabaseObject<DBOJsonSch
 		@Override
 		public DBOJsonSchemaVersion mapRow(ResultSet rs, int rowNum) throws SQLException {
 			DBOJsonSchemaVersion dbo = new DBOJsonSchemaVersion();
-			dbo.setVersionNumber(rs.getLong(COL_JSON_SCHEMA_VER_NUMBER));
+			dbo.setVersionId(rs.getLong(COL_JSON_SCHEMA_VER_ID));
 			dbo.setSchemaId(rs.getLong(COL_JSON_SCHEMA_VER_SCHEMA_ID));
 			dbo.setSemanticVersion(rs.getString(COL_JSON_SCHEMA_VER_SEMANTIC));
 			dbo.setCreatedBy(rs.getLong(COL_JSON_SCHEMA_VER_CREATED_BY));
@@ -113,12 +113,12 @@ public class DBOJsonSchemaVersion implements MigratableDatabaseObject<DBOJsonSch
 		return seconday;
 	}
 
-	public Long getVersionNumber() {
-		return versionNumber;
+	public Long getVersionId() {
+		return versionId;
 	}
 
-	public void setVersionNumber(Long versionNumber) {
-		this.versionNumber = versionNumber;
+	public void setVersionId(Long versionId) {
+		this.versionId = versionId;
 	}
 
 	public Long getSchemaId() {
@@ -171,7 +171,7 @@ public class DBOJsonSchemaVersion implements MigratableDatabaseObject<DBOJsonSch
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(createdBy, createdOn, s3Bucket, s3Key, schemaId, semanticVersion, versionNumber);
+		return Objects.hash(createdBy, createdOn, s3Bucket, s3Key, schemaId, semanticVersion, versionId);
 	}
 
 	@Override
@@ -186,12 +186,12 @@ public class DBOJsonSchemaVersion implements MigratableDatabaseObject<DBOJsonSch
 		return Objects.equals(createdBy, other.createdBy) && Objects.equals(createdOn, other.createdOn)
 				&& Objects.equals(s3Bucket, other.s3Bucket) && Objects.equals(s3Key, other.s3Key)
 				&& Objects.equals(schemaId, other.schemaId) && Objects.equals(semanticVersion, other.semanticVersion)
-				&& Objects.equals(versionNumber, other.versionNumber);
+				&& Objects.equals(versionId, other.versionId);
 	}
 
 	@Override
 	public String toString() {
-		return "DBOJsonSchemaVersion [versionNumber=" + versionNumber + ", schemaId=" + schemaId + ", semanticVersion="
+		return "DBOJsonSchemaVersion [versionNumber=" + versionId + ", schemaId=" + schemaId + ", semanticVersion="
 				+ semanticVersion + ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", s3Bucket=" + s3Bucket
 				+ ", s3Key=" + s3Key + "]";
 	}

@@ -19,7 +19,7 @@ public interface JsonSchemaDao {
 	 * @param schemaName
 	 * @return
 	 */
-	SchemaInfo getSchemaInfo(String organizationName, String schemaName);
+	SchemaInfo getSchemaInfoForUpdate(String organizationName, String schemaName);
 
 	/**
 	 * Truncate all data.

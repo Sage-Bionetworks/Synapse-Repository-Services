@@ -34,7 +34,7 @@ public class SchemaIdParser {
 		try {
 			return parser.schemaId();
 		} catch (ParseException e) {
-			throw new IllegalArgumentException("Invalid '$id' : '" + id + "'/n" + e.getMessage(), e);
+			throw new IllegalArgumentException("Invalid '$id' : '" + id + "'\n" + e.getMessage(), e);
 		}
 	}
 	

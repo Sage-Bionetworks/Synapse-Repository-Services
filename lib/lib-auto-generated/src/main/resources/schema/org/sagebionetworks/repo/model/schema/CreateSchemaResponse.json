@@ -1,5 +1,5 @@
 {
-	"description": "The reponse of a create JsonSchema request.",
+	"description": "The response of a create JsonSchema request.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
@@ -7,7 +7,7 @@
 	],
 	"properties": {
 		"schema": {
-			"description": "The JsonSchema defintion to be created.",
+			"description": "The JsonSchema definition to be created.",
 			"$ref": "org.sagebionetworks.repo.model.schema.JsonSchema"
 		}
 	}

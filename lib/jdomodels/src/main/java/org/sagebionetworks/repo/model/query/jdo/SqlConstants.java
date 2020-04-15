@@ -123,7 +123,7 @@ public class SqlConstants {
 	
 	// Json-Schema-Version
 	public static final String TABLE_JSON_SCHEMA_VERSION 		= "JSON_SCHEMA_VERSION";
-	public static final String COL_JSON_SCHEMA_VER_NUMBER		= "VERSION_NUM";
+	public static final String COL_JSON_SCHEMA_VER_ID			= "VERSION_ID";
 	public static final String COL_JSON_SCHEMA_VER_SCHEMA_ID 	= "SCHEMA_ID";
 	public static final String COL_JSON_SCHEMA_VER_SEMANTIC		= "SEMANTIC_VERSION";
 	public static final String COL_JSON_SCHEMA_VER_CREATED_BY	= "CREATED_BY";

@@ -14,11 +14,14 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.schema.SchemaInfo;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
+
 
 @Repository
 public class JsonSchemaDaoImpl implements JsonSchemaDao {
@@ -50,30 +53,32 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		ValidateArgument.required(schemaRoot.getName(), "schema.name");
 		ValidateArgument.required(schemaRoot.getCreatedBy(), "schema.createdBy");
 		ValidateArgument.required(schemaRoot.getCreatedOn(), "schema.createdOn");
-
-		// By inserting a row without an ID we ensure concurrent calls lock on the new
-		// row.
-		int updateCount = jdbcTemplate.update(
-				"INSERT IGNORE INTO " + TABLE_JSON_SCHEMA + " (" + COL_JSON_SCHEMA_ORG_ID + "," + COL_JSON_SCHEMA_NAME
-						+ "," + COL_JSON_SCHEMA_CREATED_BY + "," + COL_JSON_SCHEMA_CREATED_ON + ") VALUES (?,?,?,?)",
-				schemaRoot.getOrganizationId(), schemaRoot.getName(), schemaRoot.getCreatedBy(), schemaRoot.getCreatedOn());
-		if (updateCount > 0) {
-			// The row did not already exist so we need to issue an ID to this schema
+		try {
+			// Try to get the schema if it already exists
+			return getSchemaInfoForUpdate(schemaRoot.getOrganizationId(), schemaRoot.getName());
+		} catch (NotFoundException e) {
 			Long numericId = idGenerator.generateNewId(IdType.JSON_SCHEMA_ID);
+			// For concurrent calls the loser's data will be ignored.
 			jdbcTemplate.update(
-					"UPDATE " + TABLE_JSON_SCHEMA + " SET " + COL_JSON_SCHEMA_ID + " = ? WHERE "
-							+ COL_JSON_SCHEMA_ORG_ID + " = ? AND " + COL_JSON_SCHEMA_NAME + " = ?",
-					numericId, schemaRoot.getOrganizationId(), schemaRoot.getName());
+					"INSERT IGNORE INTO " + TABLE_JSON_SCHEMA + " (" + COL_JSON_SCHEMA_ID + "," + COL_JSON_SCHEMA_ORG_ID
+							+ "," + COL_JSON_SCHEMA_NAME + "," + COL_JSON_SCHEMA_CREATED_BY + ","
+							+ COL_JSON_SCHEMA_CREATED_ON + ") VALUES (?,?,?,?,?)",
+					numericId, schemaRoot.getOrganizationId(), schemaRoot.getName(), schemaRoot.getCreatedBy(),
+					schemaRoot.getCreatedOn());
+			return getSchemaInfoForUpdate(schemaRoot.getOrganizationId(), schemaRoot.getName());
 		}
-		return getSchemaInfo(schemaRoot.getOrganizationId(), schemaRoot.getName());
 	}
 
 	@Override
-	public SchemaInfo getSchemaInfo(String organizationName, String schemaName) {
-		ValidateArgument.required(organizationName, "organizationName");
+	public SchemaInfo getSchemaInfoForUpdate(String organizationId, String schemaName) {
+		ValidateArgument.required(organizationId, "organizationId");
 		ValidateArgument.required(schemaName, "schemaName");
-		return jdbcTemplate.queryForObject("SELECT * FROM " + TABLE_JSON_SCHEMA + " WHERE " + COL_JSON_SCHEMA_ORG_ID
-				+ " = ? AND " + COL_JSON_SCHEMA_NAME + " = ?", SCHEMA_INFO_MAPPER, organizationName, schemaName);
+		try {
+			return jdbcTemplate.queryForObject("SELECT * FROM " + TABLE_JSON_SCHEMA + " WHERE " + COL_JSON_SCHEMA_ORG_ID
+					+ " = ? AND " + COL_JSON_SCHEMA_NAME + " = ? FOR UPDATE", SCHEMA_INFO_MAPPER, organizationId, schemaName);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("JsonSchema not found for organizationId: '" + organizationId + "' and schemaName: '" + schemaName + "'");
+		}
 	}
 
 	@Override
