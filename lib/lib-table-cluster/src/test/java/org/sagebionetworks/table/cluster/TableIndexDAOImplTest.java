@@ -1255,7 +1255,11 @@ public class TableIndexDAOImplTest {
 		String columnId = strListCol.getId();
 
 		tableIndexDAO.deleteAllTemporaryMultiValueColumnIndexTable(tableId);
+		tableIndexDAO.deleteTemporaryTable(tableId);
+
 		// Create a copy of the table
+		tableIndexDAO.createTemporaryTable(tableId);
+		tableIndexDAO.copyAllDataToTemporaryTable(tableId);
 		tableIndexDAO.createTemporaryMultiValueColumnIndexTable(tableId, columnId);
 		// populate table with data
 		tableIndexDAO.copyAllDataToTemporaryMultiValueColumnIndexTable(tableId, columnId);
@@ -1266,6 +1270,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(10L, count);
 		// delete the temp and get the count again
 		tableIndexDAO.deleteAllTemporaryMultiValueColumnIndexTable(tableId);
+		tableIndexDAO.deleteTemporaryTable(tableId);
 		count = tableIndexDAO.getTempTableMultiValueColumnIndexCount(tableId, columnId);
 		assertEquals(0L, count);
 	}
