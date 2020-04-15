@@ -70,7 +70,7 @@ public class OAuthClientAuthFilter extends BasicAuthenticationFilter {
 		// mistaken for a valid
 		// authentication header 'down the filter chain'
 
-		Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(request);
+		Map<String, String[]> modHeaders = HttpAuthUtil.copyHeaders(request);
 		modHeaders.put(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER, new String[] { oauthClientId });
 		HttpServletRequest modRqst = new ModHttpServletRequest(request, modHeaders, null);
 
