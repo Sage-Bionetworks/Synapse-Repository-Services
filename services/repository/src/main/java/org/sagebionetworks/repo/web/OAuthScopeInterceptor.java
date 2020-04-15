@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.web.controller.RequiredScope;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -41,19 +42,23 @@ public class OAuthScopeInterceptor implements HandlerInterceptor {
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
 	
-	public static boolean hasUserIdParameter(HandlerMethod handlerMethod) {
+	public static boolean hasUserIdParameterOrAccessTokenHeader(HandlerMethod handlerMethod) {
 		for (MethodParameter methodParameter : handlerMethod.getMethodParameters()) {
 			RequestParam requestParam = methodParameter.getParameterAnnotation(RequestParam.class);
 			if (requestParam!=null && requestParam.value().equals(AuthorizationConstants.USER_ID_PARAM)) {
 				return true;
 			}
+			RequestHeader requestHeader = methodParameter.getParameterAnnotation(RequestHeader.class);
+			if (requestHeader!=null && requestHeader.value().equals(SYNAPSE_AUTHORIZATION_HEADER_NAME)) {
+				return true;
+			}
 		}
 		return false;
 	}
-
+	
 	public static boolean isAnonymous(HttpServletRequest request) {
 		String userIdRequestParameter = request.getParameter(AuthorizationConstants.USER_ID_PARAM);
-		return userIdRequestParameter ==null ||
+		return userIdRequestParameter == null ||
 				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId()
 					.equals(Long.parseLong(userIdRequestParameter));
 	}
@@ -63,32 +68,35 @@ public class OAuthScopeInterceptor implements HandlerInterceptor {
 			throws Exception {
 		Set<OAuthScope> missingScopes;
 		{
+			// anonymous requests do not need to have scope checked, they have the same 
+			// access that unauthenticated requests have
+			if (isAnonymous(request)) {
+				return true;
+			}
+			
 			List<OAuthScope> requestScopes = Collections.EMPTY_LIST;
-			Set<OAuthScope> requiredScopes = new HashSet<OAuthScope>(DEFAULT_SCOPES);
+			String synapseAuthorizationHeader = request.getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME);
+			String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(synapseAuthorizationHeader);
+			if (accessToken!=null) {
+				Jwt<JwsHeader, Claims> jwt = oidcTokenHelper.parseJWT(accessToken);
+				requestScopes = ClaimsJsonUtil.getScopeFromClaims(jwt.getBody());
+			}
 
+			// if no scopes are specified by an annotation on the method, then we use these defaults
+			Set<OAuthScope> requiredScopes = new HashSet<OAuthScope>(DEFAULT_SCOPES);
+			
 			if (handler instanceof HandlerMethod) {
 				HandlerMethod handlerMethod = (HandlerMethod) handler;
+
+				// if no 'userId' parameter or access token header then this is not an authenticated request, 
+				// and no scope is required
+				if (!hasUserIdParameterOrAccessTokenHeader(handlerMethod)) {
+					return true;
+				}
+
 				RequiredScope requiredScopeAnnotation = handlerMethod.getMethodAnnotation(RequiredScope.class);
 				if (requiredScopeAnnotation != null) {
 					requiredScopes = new HashSet<OAuthScope>(Arrays.asList(requiredScopeAnnotation.value()));
-				}
-
-				// if no 'userId' parameter then this is not an authenticated request, 
-				// and no scope is required
-				if (!hasUserIdParameter(handlerMethod)) {
-					requiredScopes.clear();
-				}
-
-				// if anonymous, consider it to have 'full scope'
-				if (isAnonymous(request)) {
-					requestScopes = Arrays.asList(OAuthScope.values());
-				} else {
-					String synapseAuthorizationHeader = request.getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME);
-					String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(synapseAuthorizationHeader);
-					if (accessToken!=null) {
-						Jwt<JwsHeader, Claims> jwt = oidcTokenHelper.parseJWT(accessToken);
-						requestScopes = ClaimsJsonUtil.getScopeFromClaims(jwt.getBody());
-					}
 				}
 			}
 

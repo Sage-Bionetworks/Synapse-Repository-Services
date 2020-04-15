@@ -114,10 +114,6 @@ class OAuthScopeInterceptorTest {
 	void testAnonymous() throws Exception {
 		RequiredScope requiredScopeAnnotation = createRequiredScopeAnnotation(OAuthScope.values());
 			
-		when(mockHandler.getMethodAnnotation(RequiredScope.class)).thenReturn(requiredScopeAnnotation);
-		when(mockHandler.getMethodParameters()).thenReturn(new MethodParameter[] {userIdParameter});
-		when(userIdParameter.getParameterAnnotation(RequestParam.class)).thenReturn(requestParam);
-		
 		when(mockRequest.getParameter(AuthorizationConstants.USER_ID_PARAM)).thenReturn(
 				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
 		
