@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.schema.id.DotSeparatedAlphaNumeric;
@@ -335,5 +336,63 @@ public class SchemaIdParserTest {
 		SchemaId schemaId = parser.schemaId();
 		assertEquals(input, schemaId.toString());
 		return schemaId;
+	}
+	
+	@Test
+	public void testParseSchemaId() {
+		SchemaId id = SchemaIdParser.parseSchemaId("org.valid/name");
+		assertNotNull(id);
+		assertEquals("org.valid/name", id.toString());
+	}
+	
+	@Test
+	public void testParseSchemaIdInvalid() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, ()->{
+			SchemaIdParser.parseSchemaId("org.valid/name/0");
+		});
+		assertTrue(exception.getMessage().startsWith("Invalid '$id' : 'org.valid/name/0'"));
+		assertTrue(exception.getCause() instanceof ParseException);
+	}
+	
+	@Test
+	public void testParseSchemaIdNullId() {
+		String id = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			SchemaIdParser.parseSchemaId(id);
+		}).getMessage();
+		assertEquals("$id cannot be null", message);
+	}
+	
+	@Test
+	public void testParseOrganizationName() {
+		OrganizationName orgName = SchemaIdParser.parseOrganizationName("org.valid");
+		assertNotNull(orgName);
+		assertEquals("org.valid", orgName.toString());
+	}
+	
+	@Test
+	public void testParseOrganizationNameInvalid() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, ()->{
+			SchemaIdParser.parseOrganizationName("org.valid.0");
+		});
+		assertTrue(exception.getMessage().startsWith("Invalid 'organizationName' : 'org.valid.0"));
+		assertTrue(exception.getCause() instanceof ParseException);
+	}
+	
+	@Test
+	public void testParseOrganizationNameContainsSlash() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, ()->{
+			SchemaIdParser.parseOrganizationName("org.valid/bar");
+		});
+		assertTrue(exception.getMessage().startsWith("Invalid 'organizationName' : 'org.valid/bar"));
+	}
+	
+	@Test
+	public void testParseOrganizationNameNull() {
+		String name = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			SchemaIdParser.parseOrganizationName(name);
+		}).getMessage();
+		assertEquals("Organization name cannot be null", message);
 	}
 }

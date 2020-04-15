@@ -111,6 +111,33 @@ public class SqlConstants {
 	public static final String COL_ORGANIZATION_CREATED_ON 		= "CREATED_ON";
 	public static final String COL_ORGANIZATION_CREATED_BY 		= "CREATED_BY";
 	public static final String DDL_FILE_ORGANIZATION 			= "schema/Organization-ddl.sql";
+	
+	// Json-Schema
+	public static final String TABLE_JSON_SCHEMA			= "JSON_SCHEMA";
+	public static final String COL_JSON_SCHEMA_ID			= "ID";
+	public static final String COL_JSON_SCHEMA_ORG_ID		= "ORG_ID";
+	public static final String COL_JSON_SCHEMA_NAME			= "NAME";
+	public static final String COL_JSON_SCHEMA_CREATED_BY	= "CREATED_BY";
+	public static final String COL_JSON_SCHEMA_CREATED_ON	= "CREATED_ON";
+	public static final String DDL_FILE_JSON_SCHEMA			= "schema/JsonSchema-ddl.sql";
+	
+	// Json-Schema-Version
+	public static final String TABLE_JSON_SCHEMA_VERSION 		= "JSON_SCHEMA_VERSION";
+	public static final String COL_JSON_SCHEMA_VER_NUMBER		= "VERSION_NUM";
+	public static final String COL_JSON_SCHEMA_VER_SCHEMA_ID 	= "SCHEMA_ID";
+	public static final String COL_JSON_SCHEMA_VER_SEMANTIC		= "SEMANTIC_VERSION";
+	public static final String COL_JSON_SCHEMA_VER_CREATED_BY	= "CREATED_BY";
+	public static final String COL_JSON_SCHEMA_VER_CREATED_ON	= "CREATED_ON";
+	public static final String COL_JSON_SCHEMA_VER_S3_BUCKET	= "S3_BUCKET";
+	public static final String COL_JSON_SCHEMA_VER_S3_KEY		= "S3_KEY";
+	public static final String DDL_FILE_JSON_SCHEMA_VERSION		= "schema/JsonSchemaVersion-ddl.sql";
+	
+	// Json-Schema-Dependency
+	public static final String TABLE_JSON_SCHEMA_DEPENDENCY		= "JSON_SCHEMA_DEPENDENCY";
+	public static final String COL_JSON_SCHEMA_DEP_VERSION_NUM	= "VERSION_NUM";
+	public static final String COL_JSON_SCHEMA_DEP_SCHEMA_ID	= "DEPENDS_ON_SCHEMA_ID";
+	public static final String COL_JSON_SCHEMA_DEP_SEM_VER		= "DEPENDS_ON_SEM_VER";
+	public static final String DDL_FILE_JSON_SCHEMA_DEPENDS		= "schema/JsonSchemaDependency-ddl.sql";
 
 	// The Project Stats table
 	public static final String TABLE_PROJECT_STAT				= "PROJECT_STAT";
