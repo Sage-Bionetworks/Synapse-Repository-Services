@@ -8,8 +8,8 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REP
 import static org.sagebionetworks.repo.model.table.TableConstants.BATCH_INSERT_REPLICATION_SYNC_EXP;
 import static org.sagebionetworks.repo.model.table.TableConstants.CRC_ALIAS;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_BENEFACTOR_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CRATED_BY;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CRATED_ON;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CREATED_BY;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CREATED_ON;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBEJCT_REPLICATION_COL_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_MD5;
@@ -652,7 +652,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	
 	@Override
 	public void createEntityReplicationTablesIfDoesNotExist(){
-		template.update(TableConstants.ENTITY_REPLICATION_TABLE_CREATE);
+		template.update(TableConstants.OBJECT_REPLICATION_TABLE_CREATE);
 		template.update(TableConstants.ANNOTATION_REPLICATION_TABLE_CREATE);
 		template.update(TableConstants.REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE);
 	}
@@ -778,8 +778,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				EntityDTO dto1 = new EntityDTO();
 				dto1.setId(rs.getLong(OBJECT_REPLICATION_COL_OBJECT_ID));
 				dto1.setCurrentVersion(rs.getLong(OBJECT_REPLICATION_COL_VERSION));
-				dto1.setCreatedBy(rs.getLong(OBJECT_REPLICATION_COL_CRATED_BY));
-				dto1.setCreatedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_CRATED_ON)));
+				dto1.setCreatedBy(rs.getLong(OBJECT_REPLICATION_COL_CREATED_BY));
+				dto1.setCreatedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_CREATED_ON)));
 				dto1.setEtag(rs.getString(OBEJCT_REPLICATION_COL_ETAG));
 				dto1.setName(rs.getString(OBJECT_REPLICATION_COL_NAME));
 				dto1.setType(EntityType.valueOf(rs.getString(OBJECT_REPLICATION_COL_SUBTYPE)));
