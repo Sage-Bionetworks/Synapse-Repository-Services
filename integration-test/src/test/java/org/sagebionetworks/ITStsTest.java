@@ -1,9 +1,6 @@
 package org.sagebionetworks;
 
-import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicSessionCredentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
@@ -21,6 +18,7 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.SynapseStsCredentialsProvider;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
@@ -28,7 +26,6 @@ import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
-import org.sagebionetworks.repo.model.sts.StsCredentials;
 import org.sagebionetworks.repo.model.sts.StsPermission;
 import org.sagebionetworks.util.ContentDispositionUtils;
 
@@ -129,11 +126,8 @@ public class ITStsTest {
 		synapse.createProjectSetting(projectSetting);
 
 		// Get read-only credentials.
-		StsCredentials stsCredentials = synapse.getTemporaryCredentialsForEntity(folder.getId(),
+		AWSCredentialsProvider awsCredentialsProvider = new SynapseStsCredentialsProvider(synapse, folder.getId(),
 				StsPermission.read_only);
-		AWSCredentials awsCredentials = new BasicSessionCredentials(stsCredentials.getAccessKeyId(),
-				stsCredentials.getSecretAccessKey(), stsCredentials.getSessionToken());
-		AWSCredentialsProvider awsCredentialsProvider = new AWSStaticCredentialsProvider(awsCredentials);
 		AmazonS3 tempClient = AmazonS3ClientBuilder.standard().withCredentials(awsCredentialsProvider).build();
 
 		// Validate we can list the bucket from the base key.
