@@ -165,7 +165,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void deleteTable(IdAndVersion tableId) {
-		deleteMultiValueTablesForTable(tableId);
+		deleteMultiValueTablesForTable(tableId, false);
 		template.update(SQLUtils.dropTableSQL(tableId, SQLUtils.TableType.INDEX));
 		deleteSecondaryTables(tableId);
 	}
@@ -184,9 +184,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	/**
 	 * Delete all multi-value tables associated with the given tableId.
 	 * @param tableId
+	 * @param alterTemp
 	 */
-	void deleteMultiValueTablesForTable(IdAndVersion tableId) {
-		List<String> tablesToDelete = getMultivalueColumnIndexTableNames(tableId);
+	void deleteMultiValueTablesForTable(IdAndVersion tableId, boolean alterTemp) {
+		List<String> tablesToDelete = getMultivalueColumnIndexTableNames(tableId, alterTemp);
 		for(String tableNames: tablesToDelete) {
 			template.update("DROP TABLE IF EXISTS "+tableNames);
 		}
@@ -446,32 +447,32 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public Set<Long> getMultivalueColumnIndexTableColumnIds(IdAndVersion tableId){
-		return getMultivalueColumnIndexTableNames(tableId)
+		return getMultivalueColumnIndexTableNames(tableId, false)
 				.stream()
 				.map((String indexTableName) -> SQLUtils.getColumnIdFromMultivalueColumnIndexTableName(tableId, indexTableName))
 				.collect(Collectors.toSet());
 	}
 
-	private List<String> getMultivalueColumnIndexTableNames(IdAndVersion tableId){
-		String multiValueTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(tableId);
+	private List<String> getMultivalueColumnIndexTableNames(IdAndVersion tableId, boolean alterTemp){//TODO: test
+		String multiValueTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(tableId, alterTemp);
 		return template.queryForList("SHOW TABLES LIKE '"+multiValueTableNamePrefix+"%'", String.class);
 	}
 
 	@Override
-	public void createMultivalueColumnIndexTable(IdAndVersion tableId, ColumnModel columnModel){
-		template.update(SQLUtils.createListColumnIndexTable(tableId, columnModel));
+	public void createMultivalueColumnIndexTable(IdAndVersion tableId, ColumnModel columnModel, boolean alterTemp){
+		template.update(SQLUtils.createListColumnIndexTable(tableId, columnModel, alterTemp));
 	}
 
 	@Override
-	public void deleteMultivalueColumnIndexTable(IdAndVersion tableId, Long columnId){
-		String tableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId.toString());
+	public void deleteMultivalueColumnIndexTable(IdAndVersion tableId, Long columnId, boolean alterTemp){
+		String tableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId.toString(), alterTemp);
 		template.update("DROP TABLE IF EXISTS " + tableName);
 	}
 
 
 	@Override
-	public void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn){
-		String sql = SQLUtils.createAlterListColumnIndexTable(tableId, oldColumnId, newColumn);
+	public void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn, boolean alterTemp){
+		String sql = SQLUtils.createAlterListColumnIndexTable(tableId, oldColumnId, newColumn, alterTemp);
 		template.update(sql);
 	}
 
@@ -571,7 +572,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	
 
 	@Override
-	public void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds){
+	public void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds, boolean alterTemp){
 		ValidateArgument.required(tableId, "tableId");
 		ValidateArgument.required(listColumn, "listColumn");
 		//only operate on list column types
@@ -582,7 +583,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			throw new IllegalArgumentException("When rowIds is provided (not null) it cannot be empty");
 		}
 		boolean filterRows = rowIds != null;
-		String insertIntoSql = SQLUtils.insertIntoListColumnIndexTable(tableId, listColumn, filterRows);
+		String insertIntoSql = SQLUtils.insertIntoListColumnIndexTable(tableId, listColumn, filterRows, alterTemp);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		if(filterRows) {
 			param.addValue(ID_PARAMETER_NAME, rowIds);
@@ -635,10 +636,39 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		try {
 			return template.queryForObject(sql, Long.class);
 		} catch (DataAccessException e) {
-			return 0l;
+			return 0L;
 		}
 	}
-	
+
+	@Override
+	public long getTempTableMultiValueColumnIndexCount(IdAndVersion tableId, String columnName) {
+		boolean alterTemp = true;
+		String sql = "SELECT COUNT(*) FROM " + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnName, alterTemp);
+		try {
+			return template.queryForObject(sql, Long.class);
+		} catch (DataAccessException e) {
+			return 0L;
+		}
+	}
+
+	@Override
+	public void createTemporaryMultiValueColumnIndexTable(IdAndVersion tableId, String columnId){
+		String sql = SQLUtils.createTempMultiValueColumnIndexTableSql(tableId, columnId);
+		template.update(sql);
+	}
+
+	@Override
+	public void copyAllDataToTemporaryMultiValueColumnIndexTable(IdAndVersion tableId, String columnId) {
+		String sql = SQLUtils.copyMultiValueColumnIndexTableToTempSql(tableId, columnId);
+		template.update(sql);
+	}
+
+	@Override
+	public void deleteAllTemporaryMultiValueColumnIndexTable(IdAndVersion tableId) {
+		boolean alterTemp = true;
+		deleteMultiValueTablesForTable(tableId, alterTemp);
+	}
+
 	@Override
 	public void createEntityReplicationTablesIfDoesNotExist(){
 		template.update(TableConstants.ENTITY_REPLICATION_TABLE_CREATE);

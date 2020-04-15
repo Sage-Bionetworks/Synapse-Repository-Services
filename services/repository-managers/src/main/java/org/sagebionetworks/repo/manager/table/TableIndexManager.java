@@ -143,10 +143,9 @@ public interface TableIndexManager {
 
 	/**
 	 * Create a temporary copy of the table's index table.
-	 * 
-	 * @param callback
+	 *
 	 */
-	void createTemporaryTableCopy(IdAndVersion tableId, ProgressCallback callback);
+	void createTemporaryTableCopy(IdAndVersion tableId);
 
 	/**
 	 * Delete the temporary copy of table's index.
@@ -163,7 +162,7 @@ public interface TableIndexManager {
 	 * @param changes
 	 * @return
 	 */
-	boolean alterTempTableSchmea(IdAndVersion tableId, List<ColumnChangeDetails> changes);
+	void alterTempTableSchmea(IdAndVersion tableId, List<ColumnChangeDetails> changes);
 
 
 	/**

@@ -23,7 +23,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -33,7 +32,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import com.amazonaws.services.glue.model.Column;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -68,7 +66,6 @@ import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
-import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
@@ -294,8 +291,8 @@ public class TableIndexManagerImplTest {
 		Set<Long> expectedRows = Sets.newHashSet(0L,5L);
 		verify(mockIndexDao).deleteFromListColumnIndexTable(tableId, schema.get(0), expectedRows);
 		verify(mockIndexDao).deleteFromListColumnIndexTable(tableId, schema.get(1), expectedRows);
-		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(0), expectedRows);
-		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(1), expectedRows);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(0), expectedRows, false);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(1), expectedRows, false);
 	}
 	
 	@Test
@@ -350,8 +347,8 @@ public class TableIndexManagerImplTest {
 		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Lists.newArrayList(column.getId()));
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 		verify(mockIndexDao).getMultivalueColumnIndexTableColumnIds(tableId);
-		verify(mockIndexDao).createMultivalueColumnIndexTable(tableId, column);
-		verify(mockIndexDao).populateListColumnIndexTable(tableId, column, null);
+		verify(mockIndexDao).createMultivalueColumnIndexTable(tableId, column, false);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, column, null, false);
 	}
 
 	
@@ -478,7 +475,7 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testCreateTemporaryTableCopy() throws Exception{
 		// call under test
-		manager.createTemporaryTableCopy(tableId, mockCallback);
+		manager.createTemporaryTableCopy(tableId);
 		verify(mockIndexDao).createTemporaryTable(tableId);
 		verify(mockIndexDao).copyAllDataToTemporaryTable(tableId);
 	}
@@ -877,8 +874,8 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).alterTableAsNeeded(tableId, columnChanges, alterTemp);
 
 		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, mockChange.getChangeNumber());
-		verify(mockIndexDao).createMultivalueColumnIndexTable(tableId, newColumn);
-		verify(mockIndexDao).populateListColumnIndexTable(tableId, newColumn, null);
+		verify(mockIndexDao).createMultivalueColumnIndexTable(tableId, newColumn, false);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, newColumn, null, false);
 	}
 	
 	@Test
@@ -1212,7 +1209,7 @@ public class TableIndexManagerImplTest {
 		// call under test
 		manager.populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
 		verify(mockIndexDao, never()).populateListColumnIndexTable(any(IdAndVersion.class), any(ColumnModel.class),
-				anySet());
+				anySet(), false);
 	}
 	
 	@Test
@@ -1232,9 +1229,9 @@ public class TableIndexManagerImplTest {
 		
 		// call under test
 		manager.populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
-		verify(mockIndexDao, never()).populateListColumnIndexTable(tableId, notAList, rowsIdsWithChanges);
-		verify(mockIndexDao).populateListColumnIndexTable(tableId, listOne, rowsIdsWithChanges);
-		verify(mockIndexDao).populateListColumnIndexTable(tableId, listTwo, rowsIdsWithChanges);
+		verify(mockIndexDao, never()).populateListColumnIndexTable(tableId, notAList, rowsIdsWithChanges, false);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, listOne, rowsIdsWithChanges, false);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, listTwo, rowsIdsWithChanges, false);
 		verifyNoMoreInteractions(mockIndexDao);
 	}
 	
@@ -1258,7 +1255,7 @@ public class TableIndexManagerImplTest {
 		rowsIdsWithChanges = null;
 		// call under test
 		manager.populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
-		verify(mockIndexDao).populateListColumnIndexTable(tableId, listOne, null);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, listOne, null, false);
 	}
 	
 	@Test
@@ -1714,11 +1711,13 @@ public class TableIndexManagerImplTest {
 		columnModel.setMaximumSize(46L);
 		ListColumnIndexTableChange addChange = ListColumnIndexTableChange.newAddition(columnModel);
 
-		//method under test
-		manager.applyListColumnIndexTableChanges(tableId, Collections.singletonList(addChange));
+		boolean alterTemp = false;
 
-		verify(mockIndexDao).createMultivalueColumnIndexTable(tableId, columnModel);
-		verify(mockIndexDao).populateListColumnIndexTable(tableId, columnModel, null);
+		//method under test
+		manager.applyListColumnIndexTableChanges(tableId, Collections.singletonList(addChange), alterTemp);
+
+		verify(mockIndexDao).createMultivalueColumnIndexTable(tableId, columnModel, alterTemp);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, columnModel, null, alterTemp);
 	}
 
 
@@ -1727,10 +1726,12 @@ public class TableIndexManagerImplTest {
 		long columnIdToRemove = 1234L;
 		ListColumnIndexTableChange removeChange = ListColumnIndexTableChange.newRemoval(columnIdToRemove);
 
-		//method under test
-		manager.applyListColumnIndexTableChanges(tableId, Collections.singletonList(removeChange));
+		boolean alterTemp = false;
 
-		verify(mockIndexDao).deleteMultivalueColumnIndexTable(tableId, columnIdToRemove);
+		//method under test
+		manager.applyListColumnIndexTableChanges(tableId, Collections.singletonList(removeChange), alterTemp);
+
+		verify(mockIndexDao).deleteMultivalueColumnIndexTable(tableId, columnIdToRemove, alterTemp);
 	}
 
 
@@ -1745,10 +1746,11 @@ public class TableIndexManagerImplTest {
 
 		ListColumnIndexTableChange addChange = ListColumnIndexTableChange.newUpdate(oldColumnId, columnModel);
 
+		boolean alterTemp = false;
 		//method under test
-		manager.applyListColumnIndexTableChanges(tableId, Collections.singletonList(addChange));
+		manager.applyListColumnIndexTableChanges(tableId, Collections.singletonList(addChange), alterTemp);
 
-		verify(mockIndexDao).updateMultivalueColumnIndexTable(tableId, oldColumnId, columnModel);
+		verify(mockIndexDao).updateMultivalueColumnIndexTable(tableId, oldColumnId, columnModel, alterTemp);
 	}
 
 	@Test
@@ -1764,12 +1766,13 @@ public class TableIndexManagerImplTest {
 
 		long columnIdToRemove = 456L;
 		ListColumnIndexTableChange removeChange = ListColumnIndexTableChange.newRemoval(columnIdToRemove);
-
+		boolean alterTemp = false;
 		//method under test
-		manager.applyListColumnIndexTableChanges(tableId, Arrays.asList(addChange, removeChange));
-		verify(mockIndexDao).createMultivalueColumnIndexTable(tableId, columnModel);
-		verify(mockIndexDao).populateListColumnIndexTable(tableId, columnModel, null);
-		verify(mockIndexDao).deleteMultivalueColumnIndexTable(tableId, columnIdToRemove);
+		manager.applyListColumnIndexTableChanges(tableId, Arrays.asList(addChange, removeChange), alterTemp);
+
+		verify(mockIndexDao).createMultivalueColumnIndexTable(tableId, columnModel, alterTemp);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, columnModel, null, alterTemp);
+		verify(mockIndexDao).deleteMultivalueColumnIndexTable(tableId, columnIdToRemove, alterTemp);
 	}
 
 	

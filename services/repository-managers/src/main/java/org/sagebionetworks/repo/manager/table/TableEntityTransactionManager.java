@@ -113,7 +113,7 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 			String tableId = request.getEntityId();
 			IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 			TableIndexManager indexManager = tableIndexConnectionFactory.connectToTableIndex(idAndVersion);
-			indexManager.createTemporaryTableCopy(idAndVersion, callback);
+			indexManager.createTemporaryTableCopy(idAndVersion);
 			try{
 				// validate while the temp table exists.
 				validateEachUpdateRequest(callback, userInfo, request, indexManager);
