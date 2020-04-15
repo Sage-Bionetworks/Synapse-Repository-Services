@@ -23,7 +23,6 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
-import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
@@ -190,12 +189,11 @@ public class ITOpenIDConnectTest {
 		try {
 			synapseAnonymous.setBearerAuthorizationToken(tokenResponse.getAccess_token());
 			
-			SynapseServerException sse =
-					assertThrows(SynapseForbiddenException.class, () -> {
+			ex = assertThrows(SynapseForbiddenException.class, () -> {
 				synapseAnonymous.getUserInfoAsJSON();
 			});
 			
-			assertEquals("The OAuth client (" + client.getClient_id() + ") is not verified.", sse.getMessage());
+			assertEquals("The OAuth client (" + client.getClient_id() + ") is not verified.", ex.getMessage());
 			
 			// Verify the client once again
 			client = adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), client.getEtag(), true);
@@ -292,7 +290,7 @@ public class ITOpenIDConnectTest {
 		Claims accessClaims = parsedAccessToken.getBody();
 		Map access = (Map)accessClaims.get("access", Map.class);
 		List<String> userInfoScope = (List<String>)access.get("scope");
-		// assertEquals(1, userInfoScope.size()); TODO restore
+		assertEquals(1, userInfoScope.size());
 		assertEquals(OAuthScope.openid.name(), userInfoScope.get(0));
 		Map userInfoClaims = (Map)access.get("oidc_claims");
 		assertTrue(userInfoClaims.containsKey("userid"));

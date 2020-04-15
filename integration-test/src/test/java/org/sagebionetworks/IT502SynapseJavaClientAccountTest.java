@@ -107,6 +107,7 @@ public class IT502SynapseJavaClientAccountTest {
 		assertNotNull(session.getSessionToken());
 		// need to get the ID of the new user to delete it
 		SynapseClientImpl sc = new SynapseClientImpl();
+		sc.setSessionToken(session.getSessionToken());
 		SynapseClientHelper.setEndpoints(sc);
 		sc.setUsername(username);
 		sc.signTermsOfUse(session.getSessionToken(), true);

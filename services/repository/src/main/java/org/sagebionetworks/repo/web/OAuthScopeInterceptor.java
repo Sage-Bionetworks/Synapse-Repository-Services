@@ -41,12 +41,6 @@ public class OAuthScopeInterceptor implements HandlerInterceptor {
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
 	
-//	public static boolean isAnonymous(Jwt<JwsHeader, Claims> jwt) {
-//		Claims claims = jwt.getBody();
-//		return claims.getSubject().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString()) &&
-//			claims.getAudience().equals(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID);
-//	}
-	
 	public static boolean hasUserIdParameter(HandlerMethod handlerMethod) {
 		for (MethodParameter methodParameter : handlerMethod.getMethodParameters()) {
 			RequestParam requestParam = methodParameter.getParameterAnnotation(RequestParam.class);

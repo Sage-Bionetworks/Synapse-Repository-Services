@@ -28,7 +28,7 @@
 		class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping">
 		<property name="interceptors">
 			<list>
-				<ref bean="stackStatusInterceptor" /> 
+				<ref bean="stackStatusInterceptor" />
 				<ref bean="accessInterceptor" />
 				<ref bean="oauthScopeInterceptor" />
 			</list>
