@@ -3,20 +3,23 @@ package org.sagebionetworks.table.cluster;
 import static org.sagebionetworks.repo.model.table.ColumnConstants.isTableTooLargeForFourByteUtf8;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_ALIAS;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_DOUBLE_ABSTRACT;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_ALIAS;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_BENEFACTOR_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ETAG;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_PARENT_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_VERSION;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.FILE_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ID_PARAMETER_NAME;
+import static org.sagebionetworks.repo.model.table.TableConstants.ID_PARAM_NAME;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_TYPE_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.INDEX_NUM;
-import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAMETER_NAME;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBEJCT_REPLICATION_COL_ETAG;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_ALIAS;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_BENEFACTOR_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PARENT_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_VERSION;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_TABLE;
+import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_BENEFACTOR;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
@@ -24,7 +27,6 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.SCHEMA_HASH;
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_DISTINCT_ANNOTATION_COLUMNS_TEMPLATE;
 import static org.sagebionetworks.repo.model.table.TableConstants.SINGLE_KEY;
-import static org.sagebionetworks.repo.model.table.TableConstants.SQL_ENTITY_REPLICATION_CRC_32_TEMPLATE;
 import static org.sagebionetworks.repo.model.table.TableConstants.SQL_TABLE_VIEW_CRC_32_TEMPLATE;
 
 import java.sql.PreparedStatement;
@@ -42,6 +44,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.json.JSONArray;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -77,7 +80,7 @@ public class SQLUtils {
 	private static final String EMPTY_STRING = "";
 	private static final String ABSTRACT_DOUBLE_ALIAS_PREFIX = "_DBL";
 	private static final String TEMPLATE_MAX_ANNOTATION_SELECT = ", MAX(IF(%1$s.%2$s ='%3$s', %1$s.%4$s, NULL)) AS %5$s%6$s";
-	private static final String TEMPLATE_MAX_ENTITY_SELECT = ", MAX(%1$s.%2$s) AS %2$s";
+	private static final String TEMPLATE_MAX_OBJECT_SELECT = ", MAX(%1$s.%2$s) AS %2$s";
 	private static final String DROP_TABLE_IF_EXISTS = "DROP TABLE IF EXISTS %1$S";
 	private static final String SELECT_COUNT_FROM_TEMP = "SELECT COUNT(*) FROM ";
 	private static final String SQL_COPY_TABLE_TO_TEMP = "INSERT INTO %1$S SELECT * FROM %2$S ORDER BY "+ROW_ID;
@@ -1304,7 +1307,7 @@ public class SQLUtils {
 		String columnNameForId = getColumnNameForId(model.getId());
 		AnnotationType annotationType = null;
 		if(entityField != null){
-			tableAlias = TableConstants.ENTITY_REPLICATION_ALIAS;
+			tableAlias = TableConstants.OBJECT_REPLICATION_ALIAS;
 			selectColumnName = entityField.getDatabaseColumnName();
 		}else{
 			tableAlias = TableConstants.ANNOTATION_REPLICATION_ALIAS+index;
@@ -1374,7 +1377,7 @@ public class SQLUtils {
 	 * @param currentSchema
 	 * @return
 	 */
-	public static String createSelectInsertFromEntityReplication(Long viewId, Long viewTypeMask,
+	public static String createSelectInsertFromObjectReplication(Long viewId, Long viewTypeMask,
 			List<ColumnModel> currentSchema, boolean filterByRows) {
 		List<ColumnMetadata> metadata = translateColumns(currentSchema);
 		StringBuilder builder = new StringBuilder();
@@ -1383,7 +1386,7 @@ public class SQLUtils {
 		builder.append("(");
 		buildInsertValues(builder, metadata);
 		builder.append(") ");
-		createSelectFromEntityReplication(builder, viewId, viewTypeMask, currentSchema, filterByRows);
+		createSelectFromObjectReplication(builder, viewId, viewTypeMask, currentSchema, filterByRows);
 		return builder.toString();
 	}
 	
@@ -1394,37 +1397,47 @@ public class SQLUtils {
 	 * @param currentSchema
 	 * @return
 	 */
-	public static List<String> createSelectFromEntityReplication(StringBuilder builder, Long viewId, Long viewTypeMask,
+	public static List<String> createSelectFromObjectReplication(StringBuilder builder, Long viewId, Long viewTypeMask,
 			List<ColumnModel> currentSchema, boolean filterByRows) {
 		List<ColumnMetadata> metadata = translateColumns(currentSchema);
 		builder.append("SELECT ");
 		List<String> headers = buildSelect(builder, metadata);
 		builder.append(" FROM ");
-		builder.append(ENTITY_REPLICATION_TABLE);
+		builder.append(OBJECT_REPLICATION_TABLE);
 		builder.append(" ");
-		builder.append(ENTITY_REPLICATION_ALIAS);
+		builder.append(OBJECT_REPLICATION_ALIAS);
 		builder.append(" LEFT JOIN ");
 		builder.append(ANNOTATION_REPLICATION_TABLE);
 		builder.append(" ").append(ANNOTATION_REPLICATION_ALIAS);
 		builder.append(" ON(");
-		builder.append(ENTITY_REPLICATION_ALIAS).append(".").append(ENTITY_REPLICATION_COL_ID);
+		builder.append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_TYPE);
 		builder.append(" = ");
-		builder.append(ANNOTATION_REPLICATION_ALIAS).append(".").append(ANNOTATION_REPLICATION_COL_ENTITY_ID);
+		builder.append(ANNOTATION_REPLICATION_ALIAS).append(".").append(ANNOTATION_REPLICATION_COL_OBJECT_TYPE);
+		builder.append(" AND ");
+		builder.append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID);
+		builder.append(" = ");
+		builder.append(ANNOTATION_REPLICATION_ALIAS).append(".").append(ANNOTATION_REPLICATION_COL_OBJECT_ID);
 		builder.append(")");
 		builder.append(" WHERE ");
-		builder.append(ENTITY_REPLICATION_ALIAS);
+		builder.append(OBJECT_REPLICATION_ALIAS);
+		builder.append(".");
+		builder.append(OBJECT_REPLICATION_COL_OBJECT_TYPE);
+		builder.append(" = :");
+		builder.append(OBJECT_TYPE_PARAM_NAME);
+		builder.append(" AND ");
+		builder.append(OBJECT_REPLICATION_ALIAS);
 		builder.append(".");
 		builder.append(getViewScopeFilterColumnForType(viewTypeMask));
 		builder.append(" IN (:");
-		builder.append(PARENT_ID_PARAMETER_NAME);
+		builder.append(PARENT_ID_PARAM_NAME);
 		builder.append(") AND ");
 		builder.append(createViewTypeFilter(viewTypeMask));
 		if (filterByRows) {
-			builder.append(" AND ").append(ENTITY_REPLICATION_ALIAS).append(".").append(ENTITY_REPLICATION_COL_ID)
-					.append(" IN (:").append(ID_PARAMETER_NAME).append(")");
+			builder.append(" AND ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID)
+					.append(" IN (:").append(ID_PARAM_NAME).append(")");
 		}
-		builder.append(" GROUP BY ").append(ENTITY_REPLICATION_ALIAS).append(".").append(ENTITY_REPLICATION_COL_ID);
-		builder.append(" ORDER BY ").append(ENTITY_REPLICATION_ALIAS).append(".").append(ENTITY_REPLICATION_COL_ID);
+		builder.append(" GROUP BY ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID);
+		builder.append(" ORDER BY ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID);
 		return headers;
 	}
 	
@@ -1436,7 +1449,9 @@ public class SQLUtils {
 	public static String createViewTypeFilter(Long viewTypeMask){
 		ValidateArgument.required(viewTypeMask, "viewTypeMask");
 		StringBuilder builder = new StringBuilder();
-		builder.append(TableConstants.ENTITY_REPLICATION_COL_TYPE);
+		builder.append(OBJECT_REPLICATION_ALIAS);
+		builder.append(".");
+		builder.append(TableConstants.OBJECT_REPLICATION_COL_SUBTYPE);
 		builder.append(" IN (");
 		// add all types that match the given mask
 		int count = 0;
@@ -1463,7 +1478,7 @@ public class SQLUtils {
 	public static List<String> buildSelect(StringBuilder builder,
 			List<ColumnMetadata> metadata) {
 		// select the standard entity columns.
-		List<String> headers = buildEntityReplicationSelectStandardColumns(builder);
+		List<String> headers = buildObjectReplicationSelectStandardColumns(builder);
 		for(ColumnMetadata meta: metadata){
 			headers.addAll(buildSelectMetadata(builder, meta));
 		}
@@ -1479,7 +1494,7 @@ public class SQLUtils {
 	public static List<String> buildSelectMetadata(StringBuilder builder, ColumnMetadata meta) {
 		if (meta.getEntityField() != null) {
 			// entity field select
-			buildEntityReplicationSelect(builder, meta.getEntityField().getDatabaseColumnName());
+			buildObjectReplicationSelect(builder, meta.getEntityField().getDatabaseColumnName());
 			return Lists.newArrayList(meta.getColumnNameForId());
 		}
 		List<String> headers = new LinkedList<>();
@@ -1500,15 +1515,15 @@ public class SQLUtils {
 	 * Build the select including the standard entity columns of, id, version, etag, and benefactor..
 	 * @param builder
 	 */
-	public static List<String> buildEntityReplicationSelectStandardColumns(StringBuilder builder) {
+	public static List<String> buildObjectReplicationSelectStandardColumns(StringBuilder builder) {
 
-		builder.append(ENTITY_REPLICATION_ALIAS);
+		builder.append(OBJECT_REPLICATION_ALIAS);
 		builder.append(".");
-		builder.append(ENTITY_REPLICATION_COL_ID);
-		buildEntityReplicationSelect(builder,
-				ENTITY_REPLICATION_COL_VERSION,
-				ENTITY_REPLICATION_COL_ETAG,
-				ENTITY_REPLICATION_COL_BENEFACTOR_ID);
+		builder.append(OBJECT_REPLICATION_COL_OBJECT_ID);
+		buildObjectReplicationSelect(builder,
+				OBJECT_REPLICATION_COL_VERSION,
+				OBEJCT_REPLICATION_COL_ETAG,
+				OBJECT_REPLICATION_COL_BENEFACTOR_ID);
 		List<String> headers = new LinkedList<>();
 		headers.add(ROW_ID);
 		headers.add(ROW_VERSION);
@@ -1521,9 +1536,9 @@ public class SQLUtils {
 	 * @param builder
 	 * @param names
 	 */
-	public static void buildEntityReplicationSelect(StringBuilder builder, String...names) {
+	public static void buildObjectReplicationSelect(StringBuilder builder, String...names) {
 		for(String name: names) {
-			builder.append(String.format(TEMPLATE_MAX_ENTITY_SELECT, ENTITY_REPLICATION_ALIAS, name));
+			builder.append(String.format(TEMPLATE_MAX_OBJECT_SELECT, OBJECT_REPLICATION_ALIAS, name));
 		}
 	}
 	/**
@@ -1761,9 +1776,9 @@ public class SQLUtils {
 	 */
 	public static String getViewScopeFilterColumnForType(Long viewTypeMask) {
 		if(ViewTypeMask.Project.getMask() == viewTypeMask) {
-			return ENTITY_REPLICATION_COL_ID;
+			return OBJECT_REPLICATION_COL_OBJECT_ID;
 		}else {
-			return ENTITY_REPLICATION_COL_PARENT_ID;
+			return OBJECT_REPLICATION_COL_PARENT_ID;
 		}
 	}
 	
@@ -1780,25 +1795,15 @@ public class SQLUtils {
 	}
 	
 	/**
-	 * Generate the SQL used to calculate CRC32 for views. 
-	 * @param type
-	 * @return
-	 */
-	public static String getCalculateCRC32Sql(Long viewTypeMask){
-		String typeFilter = createViewTypeFilter(viewTypeMask);
-		String filterColumln = getViewScopeFilterColumnForType(viewTypeMask);
-		return String.format(SQL_ENTITY_REPLICATION_CRC_32_TEMPLATE, typeFilter, filterColumln);
-	}
-	
-	/**
 	 * Write the given annotations DTO to the given prepared statement for insert into the database.
 	 * 
 	 * @param ps
 	 * @param dto
 	 * @throws SQLException
 	 */
-	public static void writeAnnotationDtoToPreparedStatement(PreparedStatement ps, AnnotationDTO dto) throws SQLException{
+	public static void writeAnnotationDtoToPreparedStatement(ObjectType objectType, PreparedStatement ps, AnnotationDTO dto) throws SQLException{
 		int parameterIndex = 1;
+		ps.setString(parameterIndex++, objectType.name());
 		ps.setLong(parameterIndex++, dto.getEntityId());
 		ps.setString(parameterIndex++, dto.getKey());
 		ps.setString(parameterIndex++, dto.getType().name());
@@ -1982,7 +1987,7 @@ public class SQLUtils {
 		String columnExpandTypeSQl =  mySqlColumnType.name() + (mySqlColumnType.hasSize() && columnInfo.getMaximumSize() != null ? "("  + columnInfo.getMaximumSize() + ")" : "");
 		String rowFilter = "";
 		if(filterRows) {
-			rowFilter = " WHERE "+tableName+"."+ROW_ID+" IN (:"+ID_PARAMETER_NAME+")";
+			rowFilter = " WHERE "+tableName+"."+ROW_ID+" IN (:"+ID_PARAM_NAME+")";
 		}
 
 		return "INSERT INTO " + columnIndexTableName + " (" + rowIdRefColumnName + "," + INDEX_NUM + ","+ unnestedColumnName +") " +
@@ -1999,19 +2004,21 @@ public class SQLUtils {
 	
 	public static String VIEW_ROWS_OUT_OF_DATE_TEMPLATE = 
 			"WITH DELTAS (ID, MISSING) AS ( " 
-			+ "SELECT R."+ENTITY_REPLICATION_COL_ID+", V."+ROW_ID+" FROM "+ENTITY_REPLICATION_TABLE+" R "
+			+ "SELECT R."+OBJECT_REPLICATION_COL_OBJECT_ID+", V."+ROW_ID+" FROM "+OBJECT_REPLICATION_TABLE+" R "
 			+ "   LEFT JOIN %1$s V ON ("
-			+ "		 R."+ENTITY_REPLICATION_COL_ID+" = V."+ROW_ID
-			+ "      AND R."+ENTITY_REPLICATION_COL_ETAG+" = V."+ROW_ETAG
-			+ "      AND R."+ENTITY_REPLICATION_COL_BENEFACTOR_ID+" = V."+ROW_BENEFACTOR+")"
-			+ "   WHERE R.%2$s IN (:scopeIds) AND R.%3$s" 
+			+ "      R."+OBJECT_REPLICATION_COL_OBJECT_TYPE+" = :"+OBJECT_TYPE_PARAM_NAME
+			+ "		 AND R."+OBJECT_REPLICATION_COL_OBJECT_ID+" = V."+ROW_ID
+			+ "      AND R."+OBEJCT_REPLICATION_COL_ETAG+" = V."+ROW_ETAG
+			+ "      AND R."+OBJECT_REPLICATION_COL_BENEFACTOR_ID+" = V."+ROW_BENEFACTOR+")"
+			+ "   WHERE R.%2$s IN (:scopeIds) AND %3$s" 
 			+ " UNION ALL"
-			+ " SELECT V."+ROW_ID+", R."+ENTITY_REPLICATION_COL_ID+" FROM "+ENTITY_REPLICATION_TABLE+" R "
+			+ " SELECT V."+ROW_ID+", R."+OBJECT_REPLICATION_COL_OBJECT_ID+" FROM "+OBJECT_REPLICATION_TABLE+" R "
 			+ "   RIGHT JOIN %1$s V ON ("
-			+ "      R."+ENTITY_REPLICATION_COL_ID+" = V."+ROW_ID
-			+ "      AND R."+ENTITY_REPLICATION_COL_ETAG+" = V."+ROW_ETAG
-			+ "      AND R."+ENTITY_REPLICATION_COL_BENEFACTOR_ID+" = V."+ROW_BENEFACTOR
-			+ "      AND R.%2$s IN (:scopeIds) AND R.%3$s)"
+			+ "      R."+OBJECT_REPLICATION_COL_OBJECT_TYPE+" = :"+OBJECT_TYPE_PARAM_NAME
+			+ "      AND R."+OBJECT_REPLICATION_COL_OBJECT_ID+" = V."+ROW_ID
+			+ "      AND R."+OBEJCT_REPLICATION_COL_ETAG+" = V."+ROW_ETAG
+			+ "      AND R."+OBJECT_REPLICATION_COL_BENEFACTOR_ID+" = V."+ROW_BENEFACTOR
+			+ "      AND R.%2$s IN (:scopeIds) AND %3$s)"
 			+ ")"
 			+ "SELECT ID FROM DELTAS WHERE MISSING IS NULL ORDER BY ID DESC LIMIT :limitParam";
 	

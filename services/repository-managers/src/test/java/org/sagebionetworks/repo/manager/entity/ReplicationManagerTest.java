@@ -107,8 +107,8 @@ public class ReplicationManagerTest {
 		// call under test
 		manager.replicate(changes);
 		verify(mockNodeDao).getEntityDTOs(Lists.newArrayList("111", "222"), ReplicationManagerImpl.MAX_ANNOTATION_CHARS);
-		verify(mockIndexDao).deleteEntityData(eq(Lists.newArrayList(111L,222L,333L)));
-		verify(mockIndexDao).addEntityData(eq(entityData));
+		verify(mockIndexDao).deleteObjectData(ObjectType.ENTITY, Lists.newArrayList(111L,222L,333L));
+		verify(mockIndexDao).addObjectData(ObjectType.ENTITY, entityData);
 	}
 
 	
@@ -165,8 +165,8 @@ public class ReplicationManagerTest {
 		// call under test
 		manager.replicate(entityId);
 		verify(mockNodeDao).getEntityDTOs(entityids, ReplicationManagerImpl.MAX_ANNOTATION_CHARS);
-		verify(mockIndexDao).deleteEntityData(Lists.newArrayList(123L));
-		verify(mockIndexDao).addEntityData(entityData);
+		verify(mockIndexDao).deleteObjectData(ObjectType.ENTITY, Lists.newArrayList(123L));
+		verify(mockIndexDao).addObjectData(ObjectType.ENTITY, entityData);
 	}
 	
 	/**

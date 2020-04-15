@@ -996,7 +996,7 @@
 	<!-- Note, do not put in custom developer configuration that should not 
 		be shared, esp passwords. Those go in settings.xml -->
 	<properties>
-		<argLine>-Xmx1024m -Xms128m</argLine>
+		<argLine>-Xmx2048m -Xms1024m</argLine>
 		<jacoco.branch.minumum>0.00</jacoco.branch.minumum>
 		<jacoco.line.minumum>0.00</jacoco.line.minumum>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

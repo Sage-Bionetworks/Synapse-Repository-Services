@@ -98,6 +98,8 @@ public class EntityReplicationReconciliationWorker implements ChangeMessageDrive
 				// ignore non-view messages
 				return;
 			}
+			// TODO Should be inferred from the view type
+			ObjectType objectType = ObjectType.ENTITY;
 			/*
 			 * Entity replication reconciliation is expensive. It serves as a fail-safe for
 			 * lost messages and is not a replacement for the normal replication process.
@@ -124,7 +126,7 @@ public class EntityReplicationReconciliationWorker implements ChangeMessageDrive
 			TableIndexDAO indexDao = getRandomConnection();
 			// Determine which of the given container IDs have expired.
 			List<Long> expiredContainerIds = indexDao
-					.getExpiredContainerIds(containerIds);
+					.getExpiredContainerIds(objectType, containerIds);
 			if (expiredContainerIds.isEmpty()) {
 				// nothing to do.
 				return;
@@ -134,13 +136,13 @@ public class EntityReplicationReconciliationWorker implements ChangeMessageDrive
 			Set<Long> trashedParents = getTrashedContainers(expiredContainerIds);
 			
 			// Find all children deltas for the expired containers.
-			findChildrenDeltas(progressCallback, indexDao, expiredContainerIds,
+			findChildrenDeltas(objectType, indexDao, expiredContainerIds,
 					trashedParents);
 			
 			// re-set the expiration for all containers that were synchronized.
 			long newExpirationDateMs = clock.currentTimeMillis()
 					+ SYNCHRONIZATION_FEQUENCY_MS;
-			indexDao.setContainerSynchronizationExpiration(expiredContainerIds,
+			indexDao.setContainerSynchronizationExpiration(objectType, expiredContainerIds,
 					newExpirationDateMs);
 
 		} catch (Throwable cause) {
@@ -194,18 +196,18 @@ public class EntityReplicationReconciliationWorker implements ChangeMessageDrive
 	 * @param parentIds
 	 * @throws JSONObjectAdapterException
 	 */
-	public void findChildrenDeltas(ProgressCallback progressCallback,
+	public void findChildrenDeltas(ObjectType objectType,
 			TableIndexDAO indexDao, List<Long> parentIds,
 			Set<Long> trashedParents) throws JSONObjectAdapterException {
 		// Find the parents out-of-synch.
-		Set<Long> outOfSynchParentIds = compareCheckSums(progressCallback,
+		Set<Long> outOfSynchParentIds = compareCheckSums(objectType,
 				indexDao, parentIds, trashedParents);
 		log.info("Out-of-synch parents: " + outOfSynchParentIds.size());
 		for (Long outOfSynchParentId : outOfSynchParentIds) {
 			boolean isParentInTrash = trashedParents
 					.contains(outOfSynchParentId);
 			List<ChangeMessage> childChanges = findChangesForParentId(
-					progressCallback, indexDao, outOfSynchParentId,
+					objectType, indexDao, outOfSynchParentId,
 					isParentInTrash);
 			replicationMessageManager.pushChangeMessagesToReplicationQueue(childChanges);
 			log.info("Published: " + childChanges.size() + " messages to replication queue");
@@ -232,12 +234,11 @@ public class EntityReplicationReconciliationWorker implements ChangeMessageDrive
 	 * @param isParentInTrash
 	 * @return
 	 */
-	public List<ChangeMessage> findChangesForParentId(
-			ProgressCallback progressCallback, TableIndexDAO firstIndex,
+	public List<ChangeMessage> findChangesForParentId(ObjectType objectType, TableIndexDAO firstIndex,
 			Long outOfSynchParentId, boolean isParentInTrash) {
 		List<ChangeMessage> changes = new LinkedList<>();
 		Set<IdAndEtag> replicaChildren = new LinkedHashSet<>(
-				firstIndex.getEntityChildren(outOfSynchParentId));
+				firstIndex.getObjectChildren(objectType, outOfSynchParentId));
 		if (!isParentInTrash) {
 			// The parent is not in the trash so find entities that are
 			// out-of-synch
@@ -295,13 +296,13 @@ public class EntityReplicationReconciliationWorker implements ChangeMessageDrive
 	 * @param trashedParents
 	 * @return
 	 */
-	public Set<Long> compareCheckSums(ProgressCallback progressCallback,
+	public Set<Long> compareCheckSums(ObjectType objectType,
 			TableIndexDAO indexDao, List<Long> parentIds,
 			Set<Long> trashedParents) {
 		Map<Long, Long> truthCRCs = nodeDao
 				.getSumOfChildCRCsForEachParent(parentIds);
 		Map<Long, Long> indexCRCs = indexDao
-				.getSumOfChildCRCsForEachParent(parentIds);
+				.getSumOfChildCRCsForEachParent(objectType, parentIds);
 		HashSet<Long> parentsOutOfSynch = new HashSet<Long>();
 		// Find the mismatches
 		for (Long parentId : parentIds) {

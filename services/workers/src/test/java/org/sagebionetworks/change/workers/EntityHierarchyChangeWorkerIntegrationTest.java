@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -99,7 +100,7 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 		assertNotNull(replicatedChild);
 		assertEquals(KeyFactory.stringToKey(project.getId()), replicatedChild.getBenefactorId());
 		// Delete the replicated data
-		indexDao.deleteEntityData(Lists.newArrayList(KeyFactory.stringToKey(child.getId())));
+		indexDao.deleteObjectData(ObjectType.ENTITY, Lists.newArrayList(KeyFactory.stringToKey(child.getId())));
 		// Add an ACL to the folder to trigger a hierarchy change
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(folder.getId(), adminUser, new Date());
 		entityPermissionsManager.overrideInheritance(acl, adminUser);
@@ -120,7 +121,7 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 	public EntityDTO waitForEntityDto(String entityId) throws InterruptedException{
 		long startTimeMS = System.currentTimeMillis();
 		while(true){
-			EntityDTO entityDto = indexDao.getEntityData(KeyFactory.stringToKey(entityId));
+			EntityDTO entityDto = indexDao.getObjectData(ObjectType.ENTITY, KeyFactory.stringToKey(entityId));
 			if(entityDto != null){
 				return entityDto;
 			}

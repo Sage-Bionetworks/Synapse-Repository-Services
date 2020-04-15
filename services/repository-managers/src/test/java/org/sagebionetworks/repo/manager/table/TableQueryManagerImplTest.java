@@ -8,10 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyListOf;
-import static org.mockito.ArgumentMatchers.anyMapOf;
-import static org.mockito.ArgumentMatchers.anySetOf;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -50,6 +49,7 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
@@ -427,7 +427,7 @@ public class TableQueryManagerImplTest {
 		// auth check should occur
 		verify(mockTableManagerSupport).validateTableReadAccess(user, idAndVersion);
 		// a benefactor check should not occur for TableEntities
-		verify(mockTableManagerSupport, never()).getAccessibleBenefactors(any(UserInfo.class), anySetOf(Long.class));
+		verify(mockTableManagerSupport, never()).getAccessibleBenefactors(any(UserInfo.class), any());
 	}
 	
 	@Test
@@ -451,19 +451,19 @@ public class TableQueryManagerImplTest {
 		// auth check should occur
 		verify(mockTableManagerSupport).validateTableReadAccess(user, idAndVersion);
 		// a benefactor check must occur for FileViews
-		verify(mockTableManagerSupport).getAccessibleBenefactors(any(UserInfo.class), anySetOf(Long.class));
+		verify(mockTableManagerSupport).getAccessibleBenefactors(any(UserInfo.class), any());
 		// validate the benefactor filter is applied
 		assertEquals("SELECT COUNT(*) FROM T123 WHERE ROW_BENEFACTOR IN ( :b0 )", results.getOutputSQL());
 	}
 	
 	@Test
 	public void testQueryAsStreamAfterAuthorizationCountOnly() throws Exception {
-		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(10L);
+		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(10L);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		
 		Long count = 201L;
 		// setup count results
-		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
+		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(count);
 		// null handler indicates not to run the main query.
 		RowHandler rowHandler = null;
 		queryOptions = new QueryOptions().withRunCount(true);
@@ -507,12 +507,12 @@ public class TableQueryManagerImplTest {
 	 */
 	@Test
 	public void testQueryAsStreamAfterAuthorizationWithLimit() throws Exception {
-		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(10L);
+		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(10L);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		
 		Long count = 201L;
 		// setup count results
-		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
+		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(count);
 		// null handler indicates not to run the main query.
 		RowHandler rowHandler = null;
 		queryOptions = new QueryOptions().withRunCount(true);
@@ -543,13 +543,13 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryAsStreamAfterAuthorizationQueryAndCount() throws Exception {
-		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(10L);
+		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(10L);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		setupQueryCallback();
 		
 		Long count = 201L;
 		// setup count results
-		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
+		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(count);
 		// non-null handler indicates the query should be run.
 		RowHandler rowHandler = new SinglePageRowHandler();
 		queryOptions = new QueryOptions().withRunCount(true).withRunQuery(true);
@@ -793,7 +793,7 @@ public class TableQueryManagerImplTest {
 			throws Exception {
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
-		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(10L);
+		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(10L);
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
@@ -806,7 +806,7 @@ public class TableQueryManagerImplTest {
 		Long maxRowsPerPage = new Long(maxBytesPerRequest/maxRowSizeBytes);
 		// setup the count
 		Long count = 101L;
-		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
+		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(count);
 		
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
@@ -1216,7 +1216,7 @@ public class TableQueryManagerImplTest {
 		long count = manager.runCountQuery(query, mockTableIndexDAO);
 		assertEquals(1l, count);
 		// no need to run a query for a simple aggregate
-		verify(mockTableIndexDAO, never()).countQuery(anyString(), anyMapOf(String.class, Object.class));
+		verify(mockTableIndexDAO, never()).countQuery(anyString(), anyMap());
 	}
 	
 	@Test
@@ -1224,12 +1224,12 @@ public class TableQueryManagerImplTest {
 		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" where i0 = 'aValue'", models).build();
 		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
-		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMapOf(String.class, Object.class))).thenReturn(200L);
+		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
 		// method under test
 		long count = manager.runCountQuery(query, mockTableIndexDAO);
 		assertEquals(200L, count);
 		assertEquals("SELECT COUNT(*) FROM T123 WHERE _C0_ = :b0", sqlCaptrue.getValue());
-		verify(mockTableIndexDAO).countQuery(anyString(), anyMapOf(String.class, Object.class));
+		verify(mockTableIndexDAO).countQuery(anyString(), anyMap());
 	}
 	
 	@Test
@@ -1237,7 +1237,7 @@ public class TableQueryManagerImplTest {
 		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 100", models).build();
 		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
-		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMapOf(String.class, Object.class))).thenReturn(200L);
+		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
 		// method under test
 		long count = manager.runCountQuery(query, mockTableIndexDAO);
 		assertEquals(100L, count);
@@ -1248,7 +1248,7 @@ public class TableQueryManagerImplTest {
 		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 300", models).build();
 		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
-		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMapOf(String.class, Object.class))).thenReturn(200L);
+		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
 		// method under test
 		long count = manager.runCountQuery(query, mockTableIndexDAO);
 		assertEquals(200L, count);
@@ -1259,7 +1259,7 @@ public class TableQueryManagerImplTest {
 		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 100 offset 50", models).build();
 		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
-		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMapOf(String.class, Object.class))).thenReturn(200L);
+		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
 		// method under test
 		long count = manager.runCountQuery(query, mockTableIndexDAO);
 		assertEquals(100L, count);
@@ -1270,7 +1270,7 @@ public class TableQueryManagerImplTest {
 		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 100 offset 150", models).build();
 		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
-		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMapOf(String.class, Object.class))).thenReturn(200L);
+		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
 		// method under test
 		long count = manager.runCountQuery(query, mockTableIndexDAO);
 		assertEquals(50L, count);
@@ -1281,7 +1281,7 @@ public class TableQueryManagerImplTest {
 		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 100 offset 150", models).build();
 		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
-		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMapOf(String.class, Object.class))).thenReturn(149L);
+		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(149L);
 		// method under test
 		long count = manager.runCountQuery(query, mockTableIndexDAO);
 		assertEquals(0L, count);
@@ -1297,7 +1297,7 @@ public class TableQueryManagerImplTest {
 		SqlQuery query = new SqlQueryBuilder("select i0 as bar from "+tableId+" group by bar", models).build();
 		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
-		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMapOf(String.class, Object.class))).thenReturn(200L);
+		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
 		// method under test
 		long count = manager.runCountQuery(query, mockTableIndexDAO);
 		assertEquals("SELECT COUNT(DISTINCT _C0_) FROM T123", sqlCaptrue.getValue());
@@ -1313,7 +1313,7 @@ public class TableQueryManagerImplTest {
 		SqlQuery query = new SqlQueryBuilder("select distinct i0 as bar, i4 from "+tableId, models).build();
 		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
-		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMapOf(String.class, Object.class))).thenReturn(200L);
+		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
 		// method under test
 		long count = manager.runCountQuery(query, mockTableIndexDAO);
 		assertEquals("SELECT COUNT(DISTINCT _C0_, _C4_) FROM T123", sqlCaptrue.getValue());
@@ -1343,7 +1343,7 @@ public class TableQueryManagerImplTest {
 	public void testQuerySinglePageWithNextPage() throws Exception{
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
-		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(10L);
+		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(10L);
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
@@ -1498,13 +1498,13 @@ public class TableQueryManagerImplTest {
 	public void testQuerySinglePageOverrideLimit() throws Exception{
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
-		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(10L);
+		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(10L);
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
 		
 		Long totalCount = 101L;
-		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(totalCount);
+		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(totalCount);
 		queryOptions = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(false);
 		Query query = new Query();
 		query.setIsConsistent(true);
@@ -1530,13 +1530,13 @@ public class TableQueryManagerImplTest {
 	public void testQuerySinglePageWithLimit() throws Exception{
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
-		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(10L);
+		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(10L);
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
 		
 		Long totalCount = 101L;
-		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(totalCount);
+		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(totalCount);
 		queryOptions = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(false);
 		Query query = new Query();
 		query.setIsConsistent(true);
@@ -1750,8 +1750,8 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testRunSumFileSize() throws Exception {
-		when(mockTableIndexDAO.getRowIds(any(), anyMapOf(String.class, Object.class))).thenReturn(Lists.newArrayList(1L,2L));
-		when(mockTableIndexDAO.getSumOfFileSizes(anyListOf(Long.class))).thenReturn(sumFilesizes);
+		when(mockTableIndexDAO.getRowIds(any(), any())).thenReturn(Lists.newArrayList(1L,2L));
+		when(mockTableIndexDAO.getSumOfFileSizes(any(), any())).thenReturn(sumFilesizes);
 		
 		// query against an entity view.
 		SqlQuery query = new SqlQueryBuilder("select i0 from " + tableId + " limit 1000", models)
@@ -1763,19 +1763,19 @@ public class TableQueryManagerImplTest {
 		assertNotNull(sum);
 		assertEquals(sumFilesizes, sum.getSumFileSizesBytes());
 		assertFalse(sum.getGreaterThan());
-		verify(mockTableIndexDAO).getRowIds(sqlCaptrue.capture(), anyMapOf(String.class, Object.class));
+		verify(mockTableIndexDAO).getRowIds(sqlCaptrue.capture(), any());
 		assertEquals("SELECT ROW_ID FROM T123 LIMIT 101", sqlCaptrue.getValue());
-		verify(mockTableIndexDAO).getSumOfFileSizes(anyListOf(Long.class));
+		verify(mockTableIndexDAO).getSumOfFileSizes(eq(ObjectType.ENTITY), any());
 	}
 	
 	@Test
 	public void testRunSumFileSizeOverLimit() throws Exception {
-		when(mockTableIndexDAO.getRowIds(any(), anyMapOf(String.class, Object.class))).thenReturn(Lists.newArrayList(1L,2L));
-		when(mockTableIndexDAO.getSumOfFileSizes(anyListOf(Long.class))).thenReturn(sumFilesizes);
+		when(mockTableIndexDAO.getRowIds(any(), any())).thenReturn(Lists.newArrayList(1L,2L));
+		when(mockTableIndexDAO.getSumOfFileSizes(any(), any())).thenReturn(sumFilesizes);
 
 		// setup a result with more than the max rows
 		List<Long> rowIds = createListOfSize(TableQueryManagerImpl.MAX_ROWS_PER_CALL + 1L);
-		when(mockTableIndexDAO.getRowIds(any(), anyMapOf(String.class, Object.class))).thenReturn(rowIds);
+		when(mockTableIndexDAO.getRowIds(any(), any())).thenReturn(rowIds);
 		// query against an entity view.
 		SqlQuery query = new SqlQueryBuilder("select i0 from " + tableId, models)
 				.tableType(EntityType.entityview).build();
@@ -1786,8 +1786,8 @@ public class TableQueryManagerImplTest {
 		assertEquals(sumFilesizes, sum.getSumFileSizesBytes());
 		// when over the limit
 		assertTrue(sum.getGreaterThan());
-		verify(mockTableIndexDAO).getRowIds(anyString(), anyMapOf(String.class, Object.class));
-		verify(mockTableIndexDAO).getSumOfFileSizes(anyListOf(Long.class));
+		verify(mockTableIndexDAO).getRowIds(anyString(), any());
+		verify(mockTableIndexDAO).getSumOfFileSizes(eq(ObjectType.ENTITY), any());
 	}
 
 	
@@ -1801,8 +1801,8 @@ public class TableQueryManagerImplTest {
 		assertNotNull(sum);
 		assertEquals(new Long(0), sum.getSumFileSizesBytes());
 		assertFalse(sum.getGreaterThan());
-		verify(mockTableIndexDAO, never()).getRowIds(anyString(), anyMapOf(String.class, Object.class));
-		verify(mockTableIndexDAO, never()).getSumOfFileSizes(anyListOf(Long.class));
+		verify(mockTableIndexDAO, never()).getRowIds(anyString(), any());
+		verify(mockTableIndexDAO, never()).getSumOfFileSizes(any(), any());
 	}
 	
 	@Test
@@ -1814,8 +1814,8 @@ public class TableQueryManagerImplTest {
 		assertNotNull(sum);
 		assertEquals(new Long(0), sum.getSumFileSizesBytes());
 		assertFalse(sum.getGreaterThan());
-		verify(mockTableIndexDAO, never()).getRowIds(anyString(), anyMapOf(String.class, Object.class));
-		verify(mockTableIndexDAO, never()).getSumOfFileSizes(anyListOf(Long.class));
+		verify(mockTableIndexDAO, never()).getRowIds(anyString(), any());
+		verify(mockTableIndexDAO, never()).getSumOfFileSizes(eq(ObjectType.ENTITY), any());
 	}
 	
 	private RowSet createRowSetForTest(List<String> headerNames, List<String>... rowValues){

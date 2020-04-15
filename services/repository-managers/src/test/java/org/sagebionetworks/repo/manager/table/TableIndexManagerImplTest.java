@@ -15,7 +15,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -23,7 +22,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -33,7 +31,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import com.amazonaws.services.glue.model.Column;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,6 +46,7 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.table.change.ListColumnIndexTableChange;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -68,7 +66,6 @@ import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
-import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
@@ -120,6 +117,7 @@ public class TableIndexManagerImplTest {
 	Set<Long> scopeIds;
 	ViewScope scope;
 	
+	ObjectType objectType;
 	Long viewType;
 	ColumnModel newColumn;
 	List<ColumnChangeDetails> columnChanges;
@@ -127,9 +125,12 @@ public class TableIndexManagerImplTest {
 	Set<Long> rowsIdsWithChanges;
 	
 	
+	
+	
 	@SuppressWarnings("unchecked")
 	@BeforeEach
 	public void before() throws Exception{
+		objectType = ObjectType.ENTITY;
 		tableId = IdAndVersion.parse("syn123");
 		manager = new TableIndexManagerImpl(mockIndexDao, mockManagerSupport);
 		managerSpy = Mockito.spy(manager);
@@ -174,6 +175,7 @@ public class TableIndexManagerImplTest {
 		scope = new ViewScope();
 		scope.setScope(scopeSynIds);
 		scope.setViewTypeMask(viewType);
+		scope.setObjectType(objectType);
 		
 		ColumnModel oldColumn = null;
 		newColumn = new ColumnModel();
@@ -501,7 +503,7 @@ public class TableIndexManagerImplTest {
 		// call under test
 		Long resultCrc = manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);
 		assertEquals(crc32, resultCrc);
-		verify(mockIndexDao).copyEntityReplicationToView(tableId.getId(), viewType, scope, schema);
+		verify(mockIndexDao).copyEntityReplicationToView(objectType, tableId.getId(), viewType, scope, schema);
 		// the CRC should be calculated with the etag column.
 		verify(mockIndexDao).calculateCRC32ofTableView(tableId.getId());
 	}
@@ -579,7 +581,7 @@ public class TableIndexManagerImplTest {
 		// call under test
 		Long resultCrc = manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);
 		assertEquals(crc32, resultCrc);
-		verify(mockIndexDao).copyEntityReplicationToView(tableId.getId(), viewType, scope, schema);
+		verify(mockIndexDao).copyEntityReplicationToView(objectType, tableId.getId(), viewType, scope, schema);
 		// the CRC should be calculated with the etag column.
 		verify(mockIndexDao).calculateCRC32ofTableView(tableId.getId());
 	}
@@ -591,7 +593,7 @@ public class TableIndexManagerImplTest {
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		// setup a failure
 		IllegalArgumentException error = new IllegalArgumentException("Something went wrong");
-		doThrow(error).when(mockIndexDao).copyEntityReplicationToView(tableId.getId(), viewType, scope, schema);
+		doThrow(error).when(mockIndexDao).copyEntityReplicationToView(objectType, tableId.getId(), viewType, scope, schema);
 		try {
 			// call under test
 			manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);
@@ -621,60 +623,59 @@ public class TableIndexManagerImplTest {
 		annotation.setColumnType(ColumnType.STRING);
 		
 		// setup the annotations 
-		when(mockIndexDao.getPossibleColumnModelsForContainers(scope, viewType, Long.MAX_VALUE, 0L)).thenReturn(Lists.newArrayList(annotation));
+		when(mockIndexDao.getPossibleColumnModelsForContainers(objectType, scope, viewType, Long.MAX_VALUE, 0L)).thenReturn(Lists.newArrayList(annotation));
 		// setup a failure
 		IllegalArgumentException error = new IllegalArgumentException("Something went wrong");
-		doThrow(error).when(mockIndexDao).copyEntityReplicationToView(tableId.getId(), viewType, scope, schema);
-		try {
+		doThrow(error).when(mockIndexDao).copyEntityReplicationToView(objectType, tableId.getId(), viewType, scope, schema);
+		IllegalArgumentException expected = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);
-			fail("Should have failed");
-		} catch (IllegalArgumentException expected) {
-			assertTrue(expected.getMessage().startsWith("The size of the column 'foo' is too small"));
-			// the cause should match the original error.
-			assertEquals(error, expected.getCause());
-		}
+		});
+		
+		assertTrue(expected.getMessage().startsWith("The size of the column 'foo' is too small"));
+		// the cause should match the original error.
+		assertEquals(error, expected.getCause());
 	}
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForContainerLastPage(){
-		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), any(Long.class), anyLong(), anyLong())).thenReturn(schema);
+		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), anySet(), any(Long.class), anyLong(), anyLong())).thenReturn(schema);
 
 		// call under test
-		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, viewType, tokenString);
+		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(objectType, containerIds, viewType, tokenString);
 		assertNotNull(results);
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
 		// should request one more than the limit
-		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, viewType, limit+1, offset);
+		verify(mockIndexDao).getPossibleColumnModelsForContainers(objectType, containerIds, viewType, limit+1, offset);
 	}
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForContainerLastPageNullToken(){
-		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), any(Long.class), anyLong(), anyLong())).thenReturn(schema);
+		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), anySet(), any(Long.class), anyLong(), anyLong())).thenReturn(schema);
 		tokenString = null;
 		// call under test
-		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, viewType, tokenString);
+		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(objectType, containerIds, viewType, tokenString);
 		assertNotNull(results);
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
 		// should request one more than the limit
-		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, viewType, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET);
+		verify(mockIndexDao).getPossibleColumnModelsForContainers(objectType, containerIds, viewType, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET);
 	}
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForContainerHasNextPage(){
 		List<ColumnModel> pagePluseOne = new LinkedList<ColumnModel>(schema);
 		pagePluseOne.add(new ColumnModel());
-		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), any(Long.class), anyLong(), anyLong())).thenReturn(pagePluseOne);
+		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), anySet(), any(Long.class), anyLong(), anyLong())).thenReturn(pagePluseOne);
 		nextPageToken =  new NextPageToken(schema.size(), 0L);
 		// call under test
-		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, viewType, nextPageToken.toToken());
+		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(objectType, containerIds, viewType, nextPageToken.toToken());
 		assertNotNull(results);
 		assertEquals(new NextPageToken(2L, 2L).toToken(), results.getNextPageToken());
 		assertEquals(schema, results.getResults());
 		// should request one more than the limit
-		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, viewType, nextPageToken.getLimitForQuery(), nextPageToken.getOffset());
+		verify(mockIndexDao).getPossibleColumnModelsForContainers(objectType, containerIds, viewType, nextPageToken.getLimitForQuery(), nextPageToken.getOffset());
 	}
 	
 	
@@ -684,7 +685,7 @@ public class TableIndexManagerImplTest {
 		containerIds = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, viewType, token);
+			manager.getPossibleAnnotationDefinitionsForContainerIds(objectType, containerIds, viewType, token);
 		});
 	}
 	
@@ -693,12 +694,12 @@ public class TableIndexManagerImplTest {
 		String token = nextPageToken.toToken();
 		containerIds = new HashSet<>();
 		// call under test
-		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, viewType, token);
+		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(objectType, containerIds, viewType, token);
 		assertNotNull(results);
 		assertNotNull(results.getResults());
 		assertEquals(null, results.getNextPageToken());
 		// should not call the dao
-		verify(mockIndexDao, never()).getPossibleColumnModelsForContainers(anySet(), any(Long.class), anyLong(), anyLong());
+		verify(mockIndexDao, never()).getPossibleColumnModelsForContainers(any(), anySet(), any(Long.class), anyLong(), anyLong());
 	}
 	
 	
@@ -708,14 +709,14 @@ public class TableIndexManagerImplTest {
 		nextPageToken = new NextPageToken(limit, offset);
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, viewType, nextPageToken.toToken());
+			manager.getPossibleAnnotationDefinitionsForContainerIds(objectType, containerIds, viewType, nextPageToken.toToken());
 		});
 	}
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForView(){
 		when(mockManagerSupport.getViewTypeMask(tableId)).thenReturn(viewType);
-		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), any(Long.class), anyLong(), anyLong())).thenReturn(schema);
+		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), anySet(), any(Long.class), anyLong(), anyLong())).thenReturn(schema);
 		when(mockManagerSupport.getAllContainerIdsForViewScope(tableId, viewType)).thenReturn(containerIds);
 
 		// call under test
@@ -736,7 +737,7 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForScope(){
-		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), any(Long.class), anyLong(), anyLong())).thenReturn(schema);
+		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), anySet(), any(Long.class), anyLong(), anyLong())).thenReturn(schema);
 		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds, viewType)).thenReturn(containerIds);
 		// call under test
 		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString);
@@ -747,7 +748,7 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForScopeTypeNull(){
-		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), any(Long.class), anyLong(), anyLong())).thenReturn(schema);
+		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), anySet(), any(Long.class), anyLong(), anyLong())).thenReturn(schema);
 		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds, viewType)).thenReturn(containerIds);
 
 		viewType = null;
@@ -755,7 +756,7 @@ public class TableIndexManagerImplTest {
 		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString);
 		assertNotNull(results);
 		// should default to file view.
-		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, ViewTypeMask.File.getMask(), nextPageToken.getLimitForQuery(), nextPageToken.getOffset());
+		verify(mockIndexDao).getPossibleColumnModelsForContainers(objectType, containerIds, ViewTypeMask.File.getMask(), nextPageToken.getLimitForQuery(), nextPageToken.getOffset());
 	}
 	
 	@Test
@@ -1287,9 +1288,9 @@ public class TableIndexManagerImplTest {
 		managerSpy.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, viewType, scopeIds, schema);
 		verify(mockIndexDao).executeInWriteTransaction(any());
 		verify(mockIndexDao).deleteRowsFromViewBatch(tableId, rowsIdsArray);
-		verify(mockIndexDao).copyEntityReplicationToView(tableId.getId(), viewType, scopeIds, schema, rowsIdsWithChanges);
+		verify(mockIndexDao).copyEntityReplicationToView(objectType, tableId.getId(), viewType, scopeIds, schema, rowsIdsWithChanges);
 		verify(managerSpy).populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
-		verify(managerSpy, never()).determineCauseOfReplicationFailure(any(), any(), any(), any());
+		verify(managerSpy, never()).determineCauseOfReplicationFailure(any(), any(), any(), any(), any());
 	}
 	
 	@Test
@@ -1297,7 +1298,7 @@ public class TableIndexManagerImplTest {
 		setupExecuteInWriteTransaction();
 		// setup an exception on copy
 		IllegalArgumentException exception = new IllegalArgumentException("something wrong");
-		doThrow(exception).when(mockIndexDao).copyEntityReplicationToView(tableId.getId(), viewType, scopeIds, schema, rowsIdsWithChanges);
+		doThrow(exception).when(mockIndexDao).copyEntityReplicationToView(objectType, tableId.getId(), viewType, scopeIds, schema, rowsIdsWithChanges);
 		
 		Long[] rowsIdsArray = rowsIdsWithChanges.stream().toArray(Long[] ::new); 
 		Exception thrown = assertThrows(IllegalArgumentException.class, ()->{
@@ -1308,9 +1309,9 @@ public class TableIndexManagerImplTest {
 
 		verify(mockIndexDao).executeInWriteTransaction(any());
 		verify(mockIndexDao).deleteRowsFromViewBatch(tableId, rowsIdsArray);
-		verify(mockIndexDao).copyEntityReplicationToView(tableId.getId(), viewType, scopeIds, schema, rowsIdsWithChanges);
+		verify(mockIndexDao).copyEntityReplicationToView(objectType, tableId.getId(), viewType, scopeIds, schema, rowsIdsWithChanges);
 		// must attempt to determine the type of exception.
-		verify(managerSpy).determineCauseOfReplicationFailure(exception, schema, scopeIds, viewType);
+		verify(managerSpy).determineCauseOfReplicationFailure(exception, objectType, schema, scopeIds, viewType);
 		verify(managerSpy, never()).populateListColumnIndexTables(any(), any(), any());
 	}
 	

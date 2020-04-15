@@ -3,8 +3,6 @@ package org.sagebionetworks.repo.manager.statistics;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.kinesis.AwsKinesisLogRecord;
 import org.sagebionetworks.repo.manager.events.EventLogRecordProvider;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
@@ -31,12 +29,10 @@ public class StatisticsFileEventLogRecordProvider implements EventLogRecordProvi
 	);
 	
 	private ProjectResolver projectResolver;
-	private Logger log;
 	
 	@Autowired
-	public StatisticsFileEventLogRecordProvider(ProjectResolver projectResolver, LoggerProvider logProvider) {
+	public StatisticsFileEventLogRecordProvider(ProjectResolver projectResolver) {
 		this.projectResolver = projectResolver;
-		this.log = logProvider.getLogger(StatisticsFileEventLogRecordProvider.class.getName());
 	}
 
 	@Override
@@ -62,7 +58,7 @@ public class StatisticsFileEventLogRecordProvider implements EventLogRecordProvi
 		try {
 			projectId = projectResolver.resolveProject(event.getAssociationType(), event.getAssociationId());
 		} catch (NotFoundException | IllegalStateException e) {
-			log.warn(e.getMessage(), e);
+			// The object does not exist anymore or there is a loop
 			return Optional.empty();
 		}
 		

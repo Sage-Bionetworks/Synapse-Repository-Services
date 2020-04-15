@@ -818,7 +818,7 @@ public class TableViewIntegrationTest {
 		// manually delete the replicated data the file to simulate a data loss.
 		IdAndVersion idAndVersion = IdAndVersion.parse(fileViewId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
-		indexDao.deleteEntityData(Lists.newArrayList(firtFileIdLong));
+		indexDao.deleteObjectData(ObjectType.ENTITY, Lists.newArrayList(firtFileIdLong));
 		indexDao.truncateReplicationSyncExpiration();
 
 		// This query should trigger the reconciliation to repair the lost data.
@@ -851,7 +851,7 @@ public class TableViewIntegrationTest {
 		// manually delete the replicated data of the project to simulate a data loss.
 		IdAndVersion idAndVersion = IdAndVersion.parse(viewId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
-		indexDao.deleteEntityData(Lists.newArrayList(projectIdLong));
+		indexDao.deleteObjectData(ObjectType.ENTITY, Lists.newArrayList(projectIdLong));
 		indexDao.truncateReplicationSyncExpiration();
 
 		// This query should trigger the reconciliation to repair the lost data.
@@ -1709,7 +1709,7 @@ public class TableViewIntegrationTest {
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		while(true){
-			EntityDTO dto = indexDao.getEntityData(KeyFactory.stringToKey(entityId));
+			EntityDTO dto = indexDao.getObjectData(ObjectType.ENTITY, KeyFactory.stringToKey(entityId));
 			if(dto == null || !dto.getEtag().equals(entity.getEtag())){
 				assertTrue((System.currentTimeMillis()-start) <  MAX_WAIT_MS, "Timed out waiting for table view status change.");
 				System.out.println("Waiting for entity replication. id: "+entityId+" etag: "+entity.getEtag());
