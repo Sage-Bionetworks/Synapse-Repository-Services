@@ -28,7 +28,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 public class DBOJsonSchemaVersion implements MigratableDatabaseObject<DBOJsonSchemaVersion, DBOJsonSchemaVersion> {
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn("versionNumber", COL_JSON_SCHEMA_VER_ID, true).withIsBackupId(true),
+			new FieldColumn("versionId", COL_JSON_SCHEMA_VER_ID, true).withIsBackupId(true),
 			new FieldColumn("schemaId", COL_JSON_SCHEMA_VER_SCHEMA_ID),
 			new FieldColumn("semanticVersion", COL_JSON_SCHEMA_VER_SEMANTIC),
 			new FieldColumn("createdBy", COL_JSON_SCHEMA_VER_CREATED_BY),
