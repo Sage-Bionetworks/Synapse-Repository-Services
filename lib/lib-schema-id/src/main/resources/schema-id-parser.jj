@@ -201,6 +201,6 @@ SchemaId schemaId():
 	SemanticVersion semanticVersion = null;
 }
 {
-	organizationName = organizationName() <slash> schemaName = schemaName() [ <slash> semanticVersion = semanticVersion() ]
+	organizationName = organizationName() <slash> schemaName = schemaName() [ <slash> semanticVersion = semanticVersion() ] <EOF>
 	{ return new SchemaId(organizationName, schemaName, semanticVersion); }
 }

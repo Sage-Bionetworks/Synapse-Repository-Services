@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -109,7 +110,7 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 		IdAndVersion viewId = IdAndVersion.parse(view.getId());
 		
 		// Simulate out-of-synch by deleting the project's replication data
-		indexDao.deleteEntityData(Lists.newArrayList(projectIdLong));
+		indexDao.deleteObjectData(ObjectType.ENTITY, Lists.newArrayList(projectIdLong));
 			
 		// Getting the status of the view should trigger the reconciliation.
 		tableManagerSupport.getTableStatusOrCreateIfNotExists(viewId);
@@ -141,9 +142,9 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 		IdAndVersion viewId = IdAndVersion.parse(view.getId());
 		
 		// simulate a stale benefactor on the folder
-		indexDao.deleteEntityData(Lists.newArrayList(KeyFactory.stringToKey(folder.getId())));
+		indexDao.deleteObjectData(ObjectType.ENTITY, Lists.newArrayList(KeyFactory.stringToKey(folder.getId())));
 		dto.setBenefactorId(dto.getParentId());
-		indexDao.addEntityData(Lists.newArrayList(dto));
+		indexDao.addObjectData(ObjectType.ENTITY, Lists.newArrayList(dto));
 		
 		// Getting the status of the view should trigger the reconciliation.
 		tableManagerSupport.getTableStatusOrCreateIfNotExists(viewId);
@@ -217,7 +218,7 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 	public EntityDTO waitForEntityDto(String entityId, Long expectedBenefactor) throws InterruptedException{
 		long startTimeMS = System.currentTimeMillis();
 		while(true){
-			EntityDTO entityDto = indexDao.getEntityData(KeyFactory.stringToKey(entityId));
+			EntityDTO entityDto = indexDao.getObjectData(ObjectType.ENTITY, KeyFactory.stringToKey(entityId));
 			if(entityDto != null){
 				if(expectedBenefactor == null || expectedBenefactor.equals(entityDto.getBenefactorId())) {
 					return entityDto;

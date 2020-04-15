@@ -14,8 +14,6 @@
 	<url>http://maven.apache.org</url>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<jacoco.branch.minumum>0.50</jacoco.branch.minumum>
-		<jacoco.line.minumum>0.50</jacoco.line.minumum>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -89,6 +87,17 @@
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<!-- Auto-generated classes that are hardly used and therefore not tested. -->
+						<exclude>org/sagebionetworks/schema/parser/SchemaIdParserTokenManager.java</exclude>
+						<exclude>org/sagebionetworks/schema/parser/SimpleCharStream.java</exclude>
+					</excludes>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

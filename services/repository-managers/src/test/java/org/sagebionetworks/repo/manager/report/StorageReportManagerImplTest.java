@@ -64,10 +64,10 @@ public class StorageReportManagerImplTest {
 	public void writeStorageReportAllProjects() {
 		request.setReportType(StorageReportType.ALL_PROJECTS);
 		doAnswer(invocation -> {
-			Callback<SynapseStorageProjectStats> callback = invocation.getArgument(0);
+			Callback<SynapseStorageProjectStats> callback = invocation.getArgument(1);
 			callback.invoke(projectStats);
 			return null;
-		}).when(mockTableIndexDao).streamSynapseStorageStats(any(Callback.class));
+		}).when(mockTableIndexDao).streamSynapseStorageStats(any(), any());
 		// Call under test
 		storageReportManager.writeStorageReport(adminUser, request, mockCsvWriter);
 		// Verify that the CSV had the header and data written in order;
@@ -82,10 +82,10 @@ public class StorageReportManagerImplTest {
 	public void writeStorageReportNullReportType() {
 		request.setReportType(null);
 		doAnswer(invocation -> {
-			Callback<SynapseStorageProjectStats> callback = invocation.getArgument(0);
+			Callback<SynapseStorageProjectStats> callback = invocation.getArgument(1);
 			callback.invoke(projectStats);
 			return null;
-		}).when(mockTableIndexDao).streamSynapseStorageStats(any(Callback.class));
+		}).when(mockTableIndexDao).streamSynapseStorageStats(any(), any());
 		// Call under test
 		storageReportManager.writeStorageReport(adminUser, request, mockCsvWriter);
 		// Verify that the CSV had the header and data written in order;

@@ -1,7 +1,6 @@
 package org.sagebionetworks.table.cluster.columntranslation;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;

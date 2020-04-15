@@ -11,8 +11,8 @@
 	<name>lib-logging</name>
 	<description>General utilities for logging and metrics in Synapse</description>
 	<properties>
-		<jacoco.branch.minumum>0.60</jacoco.branch.minumum>
-		<jacoco.line.minumum>0.80</jacoco.line.minumum>
+		<jacoco.branch.minumum>0.50</jacoco.branch.minumum>
+		<jacoco.line.minumum>0.75</jacoco.line.minumum>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 

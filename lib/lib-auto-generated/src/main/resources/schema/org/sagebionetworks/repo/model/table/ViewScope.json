@@ -13,6 +13,10 @@
 				"type": "string"
 			}
 		},
+		"objectType": {
+			"description": "The type of the objects in the rows of a view (E.g. ENTITY for entity views)",
+			"$ref": "org.sagebionetworks.repo.model.ObjectType"
+		},
 		"viewType": {
 			"description": "Deprecated. Use: 'viewTypeMask'",
 			"$ref": "org.sagebionetworks.repo.model.table.ViewType"

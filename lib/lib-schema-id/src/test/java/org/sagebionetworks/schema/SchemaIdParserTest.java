@@ -87,6 +87,7 @@ public class SchemaIdParserTest {
 		testAlphanumericIdentifier("-");
 		testAlphanumericIdentifier("a");
 		testAlphanumericIdentifier("a1123");
+		testAlphanumericIdentifier("aaa123");
 		testAlphanumericIdentifier("abcdefghijklmnopqurstuvwxyz");
 		testAlphanumericIdentifier("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 		testAlphanumericIdentifier("z1-z2");
@@ -109,6 +110,14 @@ public class SchemaIdParserTest {
 	@Test
 	public void testAlphaNumericStartWithZero() throws ParseException {
 		SchemaIdParser parser = new SchemaIdParser("0123");
+		assertThrows(ParseException.class, ()->{
+			parser.alphanumericIdentifier();
+		});
+	}
+	
+	@Test
+	public void testAlphaNumericWithZero() throws ParseException {
+		SchemaIdParser parser = new SchemaIdParser("0");
 		assertThrows(ParseException.class, ()->{
 			parser.alphanumericIdentifier();
 		});
@@ -168,6 +177,7 @@ public class SchemaIdParserTest {
 		testSemanticVersion("1.23.456");
 		testSemanticVersion("1.23.456-x.7.z.92");
 		testSemanticVersion("1.23.456-x.7.z.92+exp.sha.5114f85");
+		testSemanticVersion("1.23.456+exp.sha.5114f85");
 	}
 	
 	public void testSemanticVersion(String input) throws ParseException {
@@ -181,6 +191,20 @@ public class SchemaIdParserTest {
 		testDotSeparatedAlphanumeric("abc");
 		testDotSeparatedAlphanumeric("abc.xyz");
 		testDotSeparatedAlphanumeric("a1.b-3.c4123");
+	}
+	
+	@Test
+	public void testDotSeparatedAlphanumericStrartDot() {
+		assertThrows(ParseException.class, ()->{
+			testDotSeparatedAlphanumeric(".abc");
+		});
+	}
+	
+	@Test
+	public void testDotSeparatedAlphanumericEndDot() {
+		assertThrows(ParseException.class, ()->{
+			testDotSeparatedAlphanumeric("abc.");
+		});
 	}
 	
 	public void testDotSeparatedAlphanumeric(String input) throws ParseException {
@@ -207,6 +231,34 @@ public class SchemaIdParserTest {
 	public void testOrganziationName() throws ParseException {
 		testOrganizationName("foo");
 		testOrganizationName("foo.bar.a1");
+	}
+	
+	@Test
+	public void testOrganziationNameStartWithDot() {
+		assertThrows(ParseException.class, ()->{
+			testOrganizationName(".abc");
+		});
+	}
+	
+	@Test
+	public void testOrganziationNameEndWithDot() {
+		assertThrows(ParseException.class, ()->{
+			testOrganizationName("abc.");
+		});
+	}
+	
+	@Test
+	public void testOrganziationNameContainsNumers() {
+		assertThrows(ParseException.class, ()->{
+			testOrganizationName("foo.123.bar");
+		});
+	}
+	
+	@Test
+	public void testOrganziationNameContainsZero() {
+		assertThrows(ParseException.class, ()->{
+			testOrganizationName("foo.0.bar");
+		});
 	}
 	
 	public void testOrganizationName(String input) throws ParseException {
@@ -248,6 +300,34 @@ public class SchemaIdParserTest {
 		assertEquals("path.SomeClass", id.getSchemaName().toString());
 		assertNotNull(id.getSemanticVersion());
 		assertEquals("1.2.3-alpha+1234f", id.getSemanticVersion().toString());
+	}
+	
+	@Test
+	public void testSchemaIdWhiteSpace() throws ParseException {
+		SchemaIdParser parser = new SchemaIdParser("\n  org.myorg/path.SomeClass/1.2.3-alpha+1234f \t");
+		SchemaId schemaId = parser.schemaId();
+		assertEquals("org.myorg/path.SomeClass/1.2.3-alpha+1234f", schemaId.toString());
+	}
+	
+	@Test
+	public void testSchemaIdWithVersionVersionPatchLeadingZero() throws ParseException {
+		assertThrows(ParseException.class, ()->{
+			testSchemaId("org.myorg/path.SomeClass/1.2.03");
+		});
+	}
+	
+	@Test
+	public void testSchemaIdWithVersionVersionEndSlash() throws ParseException {
+		assertThrows(ParseException.class, ()->{
+			testSchemaId("org.myorg/path.SomeClass/");
+		});
+	}
+	
+	@Test
+	public void testSchemaIdWithVersionVersionEndDot() throws ParseException {
+		assertThrows(ParseException.class, ()->{
+			testSchemaId("org.myorg/path.SomeClass.");
+		});
 	}
 	
 	public SchemaId testSchemaId(String input) throws ParseException {

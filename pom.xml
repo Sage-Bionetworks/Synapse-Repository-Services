@@ -112,6 +112,12 @@
 				<artifactId>log4j-1.2-api</artifactId>
 				<version>${log4j.version}</version>
 			</dependency>
+			<!-- Binding for slf4j -->
+			<dependency>
+			    <groupId>org.apache.logging.log4j</groupId>
+			    <artifactId>log4j-slf4j-impl</artifactId>
+			    <version>${log4j.version}</version>
+			</dependency>
 			<dependency>
 				<groupId>commons-logging</groupId>
 				<artifactId>commons-logging</artifactId>
@@ -990,7 +996,7 @@
 	<!-- Note, do not put in custom developer configuration that should not 
 		be shared, esp passwords. Those go in settings.xml -->
 	<properties>
-		<argLine>-Xmx1024m -Xms128m</argLine>
+		<argLine>-Xmx2048m -Xms1024m</argLine>
 		<jacoco.branch.minumum>0.00</jacoco.branch.minumum>
 		<jacoco.line.minumum>0.00</jacoco.line.minumum>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -1010,7 +1016,7 @@
 		<mysql.mysql-connector-java.version>8.0.18</mysql.mysql-connector-java.version>
 		<org.aspectj.aspectjlib.version>1.6.2</org.aspectj.aspectjlib.version>
 		<org.aspectj.version>1.8.11</org.aspectj.version>
-		<schema-to-pojo.version>0.4.3</schema-to-pojo.version>
+		<schema-to-pojo.version>0.4.4</schema-to-pojo.version>
 		<com.amazonaws.version>1.11.751</com.amazonaws.version>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
 		<org.apache.httpcomponents.version>4.5.9</org.apache.httpcomponents.version>

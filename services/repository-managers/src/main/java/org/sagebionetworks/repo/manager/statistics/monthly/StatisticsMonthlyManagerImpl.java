@@ -134,19 +134,25 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 	}
 
 	private void runProcessing(StatisticsObjectType objectType, YearMonth month) {
-		LOG.info("Processing object type: {} (Month: {})...", objectType, month);
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("Processing object type: {} (Month: {})...", objectType, month);
+		}
 
 		List<StatisticsMonthlyProcessor> processors = getProcessors(objectType);
 
-		LOG.info("Found {} processors for object type {}", processors.size(), objectType);
-
 		for (StatisticsMonthlyProcessor processor : processors) {
-			LOG.info("Executing processor {} on month {}...", processor.getClass().getSimpleName(), month);
+			if (LOG.isDebugEnabled()) {
+				LOG.debug("Executing processor {} on month {}...", processor.getClass().getSimpleName(), month);
+			}
 			processor.processMonth(month);
-			LOG.info("Executing processor {} on month {}...DONE", processor.getClass().getSimpleName(), month);
+			if (LOG.isDebugEnabled()) {
+				LOG.debug("Executing processor {} on month {}...DONE", processor.getClass().getSimpleName(), month);
+			}
 		}
 
-		LOG.info("Processing object type: {} (Month: {})...DONE", objectType, month);
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("Processing object type: {} (Month: {})...DONE", objectType, month);
+		}
 	}
 
 	private ProgressListener getProgressListener(StatisticsObjectType objectType, YearMonth month) {

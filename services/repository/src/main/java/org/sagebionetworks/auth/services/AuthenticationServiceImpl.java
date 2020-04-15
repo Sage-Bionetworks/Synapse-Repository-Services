@@ -26,7 +26,9 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class AuthenticationServiceImpl implements AuthenticationService {
 
 

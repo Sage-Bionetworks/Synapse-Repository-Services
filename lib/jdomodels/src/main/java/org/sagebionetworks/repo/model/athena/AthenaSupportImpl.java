@@ -147,9 +147,11 @@ public class AthenaSupportImpl implements AthenaSupport {
 		// Just wait for the result
 		AthenaQueryStatistics queryStats = waitForQueryResults(queryExecutionId);
 
-		LOG.info("Repairing table {} in database {}...DONE (Scanned: {} bytes, Elapsed Time: {} ms)", table.getName(),
-				table.getDatabaseName(), queryStats.getDataScanned(), queryStats.getExecutionTime());
-
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("Repairing table {} in database {}...DONE (Scanned: {} bytes, Elapsed Time: {} ms)", table.getName(),
+					table.getDatabaseName(), queryStats.getDataScanned(), queryStats.getExecutionTime());
+		}
+		
 		return queryStats;
 	}
 
@@ -157,13 +159,17 @@ public class AthenaSupportImpl implements AthenaSupport {
 	public String submitRepairTable(Table table) {
 		ValidateArgument.required(table, "table");
 
-		LOG.info("Repairing table {} in database {}...", table.getName(), table.getDatabaseName());
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("Repairing table {} in database {}...", table.getName(), table.getDatabaseName());
+		}
 
 		String repairQuery = String.format(TEMPLATE_ATHENA_REPAIR_TABLE, table.getName().toLowerCase());
 
 		String queryExecutionId = submitQuery(table.getDatabaseName(), repairQuery);
 
-		LOG.info("Repairing table {} in database {}...SUBMITTED", table.getName(), table.getDatabaseName());
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("Repairing table {} in database {}...SUBMITTED", table.getName(), table.getDatabaseName());
+		}
 
 		return queryExecutionId;
 	}
@@ -185,15 +191,19 @@ public class AthenaSupportImpl implements AthenaSupport {
 		ValidateArgument.required(query, "query");
 		ValidateArgument.required(rowMapper, "rowMapper");
 
-		LOG.debug("Executing query {} on database {}...", query, database.getName());
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("Executing query {} on database {}...", query, database.getName());
+		}
 
 		// Run the query
 		String queryExecutionId = submitQuery(database, query);
 
 		AthenaQueryStatistics queryStatistics = waitForQueryResults(queryExecutionId);
 
-		LOG.debug("Executing query {} on database {}...DONE (Byte Scanned: {}, Elapsed Time: {})", query, database.getName(),
-				queryStatistics.getDataScanned(), queryStatistics.getExecutionTime());
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("Executing query {} on database {}...DONE (Byte Scanned: {}, Elapsed Time: {})", query, database.getName(),
+					queryStatistics.getDataScanned(), queryStatistics.getExecutionTime());
+		}
 
 		return retrieveQueryResults(queryExecutionId, queryStatistics, rowMapper, excludeHeader);
 

@@ -124,8 +124,8 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	 */
 	void replicateInIndex(final TableIndexDAO indexDao, final List<EntityDTO> entityDTOs, List<Long> ids) {
 		indexDao.executeInWriteTransaction((TransactionStatus status) -> {
-			indexDao.deleteEntityData(ids);
-			indexDao.addEntityData(entityDTOs);
+			indexDao.deleteObjectData(ObjectType.ENTITY, ids);
+			indexDao.addObjectData(ObjectType.ENTITY, entityDTOs);
 			return null;
 		});
 	}

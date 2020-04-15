@@ -9,7 +9,6 @@
 		<version>develop-SNAPSHOT</version>
 	</parent>
 
-	<groupId>org.sagebionetworks</groupId>
 	<artifactId>services-repository</artifactId>
 	<packaging>war</packaging>
 	<name>Platform Repository Service</name>
@@ -56,6 +55,11 @@
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
 		</dependency>
+
+		<dependency>
+		    <groupId>org.apache.logging.log4j</groupId>
+		    <artifactId>log4j-slf4j-impl</artifactId>
+		</dependency>		
 
 		<dependency>
 			<groupId>commons-fileupload</groupId>
@@ -241,7 +245,7 @@
 					<useStandardDocletOptions>false</useStandardDocletOptions>
 					<destDir>${project.build.directory}/javadoc/restdocs</destDir>
 					<!-- This name is used to link to the authentication controller -->
-					<additionalJOption>-authControllerName org.sagebionetworks.auth.AuthenticationController</additionalJOption>
+					<additionalJOption>-authControllerName org.sagebionetworks.auth.controller.AuthenticationController</additionalJOption>
 					<additionnalDependencies>
 						<additionnalDependency>
 							<groupId>org.sagebionetworks</groupId>

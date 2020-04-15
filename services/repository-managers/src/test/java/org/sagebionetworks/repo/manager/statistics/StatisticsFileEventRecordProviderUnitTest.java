@@ -2,27 +2,19 @@ package org.sagebionetworks.repo.manager.statistics;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 
-import org.apache.logging.log4j.Logger;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.kinesis.AwsKinesisLogRecord;
-import org.sagebionetworks.repo.manager.statistics.ProjectResolver;
-import org.sagebionetworks.repo.manager.statistics.StatisticsEventLogRecord;
-import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
-import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventLogRecord;
-import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventLogRecordProvider;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.statistics.FileEvent;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -38,18 +30,10 @@ public class StatisticsFileEventRecordProviderUnitTest {
 	LoggerProvider mockLogProvider;
 	
 	@Mock
-	Logger mockLogger;
-	
-	@Mock
 	ProjectResolver mockProjectResolver;
 
+	@InjectMocks
 	StatisticsFileEventLogRecordProvider provider;
-	
-	@BeforeEach
-	public void before() {
-		when(mockLogProvider.getLogger(StatisticsFileEventLogRecordProvider.class.getName())).thenReturn(mockLogger);
-		provider = new StatisticsFileEventLogRecordProvider(mockProjectResolver, mockLogProvider);
-	}
 	
 	@Test
 	public void testGetEventClass() {
@@ -130,8 +114,6 @@ public class StatisticsFileEventRecordProviderUnitTest {
 		Optional<AwsKinesisLogRecord> record = provider.getRecordForEvent(event);
 
 		assertFalse(record.isPresent());
-		
-		verify(mockLogger, times(1)).warn(ex.getMessage(), ex);
 	}
 
 }

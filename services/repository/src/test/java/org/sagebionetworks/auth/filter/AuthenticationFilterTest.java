@@ -1,4 +1,4 @@
-package org.sagebionetworks.auth;
+package org.sagebionetworks.auth.filter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -54,6 +54,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 
 @ExtendWith({MockitoExtension.class})
 public class AuthenticationFilterTest {
+	
 	@Mock
 	private HttpServletRequest mockHttpRequest;
 	
@@ -74,14 +75,14 @@ public class AuthenticationFilterTest {
 	
 	@Captor
 	private ArgumentCaptor<HttpServletRequest> requestCaptor;
-	
-	@InjectMocks
-	private AuthenticationFilter filter;
 
 	@Mock
 	private AuthenticationService mockAuthService;
 	@Mock
 	private UserManager mockUserManager;
+	
+	@InjectMocks
+	private AuthenticationFilter filter;
 
 	private static final String sessionToken = "someSortaSessionToken";
 	private static final String secretKey = "Totally a plain text key :D";

@@ -9,6 +9,7 @@ import javax.sql.DataSource;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.IdAndEtag;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
@@ -317,36 +318,27 @@ public interface TableIndexDAO {
 	void createEntityReplicationTablesIfDoesNotExist();
 
 	/**
-	 * Delete all entity data with the given Ids.
+	 * Delete all object data with the given Ids.
+	 * @param objectsType TODO
+	 * @param objectIds
 	 * @param progressCallback 
-	 * 
-	 * @param allIds
 	 */
-	void deleteEntityData(List<Long> allIds);
+	void deleteObjectData(ObjectType objectsType, List<Long> objectIds);
 
 	/**
-	 * Add the given entity data to the index.
-	 * 
-	 * @param entityDTOs
+	 * Add the given object data to the index.
+	 * @param objectType TODO
+	 * @param objectDtos
 	 */
-	void addEntityData(List<EntityDTO> entityDTOs);
+	void addObjectData(ObjectType objectType, List<EntityDTO> objectDtos);
 	
 	/**
 	 * Get the entity DTO for a given entity ID.
-	 * @param entityId
+	 * @param objectType TODO
+	 * @param objectId
 	 * @return
 	 */
-	EntityDTO getEntityData(Long entityId);
-
-	/**
-	 * Given a container scope calculate the CRC32 of the entity replication table on 'id-etag'.
-	 * @param viewType 
-	 * 
-	 * @param allContainersInScope
-	 * @return
-	 */
-	long calculateCRC32ofEntityReplicationScope(
-			Long viewTypeMask, Set<Long> allContainersInScope);
+	EntityDTO getObjectData(ObjectType objectType, Long objectId);
 
 	/**
 	 * Copy the data from the entity replication tables to the given view.
@@ -356,7 +348,7 @@ public interface TableIndexDAO {
 	 * @param allContainersInScope
 	 * @param currentSchema
 	 */
-	void copyEntityReplicationToView(Long viewId, Long viewTypeMask,
+	void copyEntityReplicationToView(ObjectType objectType, Long viewId, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
 	
 	/**
@@ -368,7 +360,7 @@ public interface TableIndexDAO {
 	 * @param currentSchema
 	 * @param rowIdsToCopy Optional.  When included, copy rows with these Ids to the view.
 	 */
-	void copyEntityReplicationToView(Long viewId, Long viewTypeMask, Set<Long> allContainersInScope,
+	void copyEntityReplicationToView(ObjectType objectType, Long viewId, Long viewTypeMask, Set<Long> allContainersInScope,
 			List<ColumnModel> currentSchema, Set<Long> rowIdsToCopy);
 	
 	/**
@@ -379,7 +371,7 @@ public interface TableIndexDAO {
 	 * @param allContainersInScope
 	 * @param currentSchema
 	 */
-	void createViewSnapshotFromEntityReplication(Long viewId, Long viewTypeMask,
+	void createViewSnapshotFromEntityReplication(ObjectType objectType, Long viewId, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema, CSVWriterStream outStream);
 
 	/**
@@ -410,7 +402,7 @@ public interface TableIndexDAO {
 	 * @param offset
 	 * @return
 	 */
-	List<ColumnModel> getPossibleColumnModelsForContainers(
+	List<ColumnModel> getPossibleColumnModelsForContainers(ObjectType objectType,
 			Set<Long> containerIds, Long viewTypeMask, Long limit, Long offset);
 	
 	/**
@@ -429,7 +421,7 @@ public interface TableIndexDAO {
 	 * @param entityContainerIds
 	 * @return
 	 */
-	List<Long> getExpiredContainerIds(List<Long> entityContainerIds);
+	List<Long> getExpiredContainerIds(ObjectType objectType, List<Long> entityContainerIds);
 	
 
 	/**
@@ -439,7 +431,7 @@ public interface TableIndexDAO {
 	 * 
 	 * @param expirations
 	 */
-	void setContainerSynchronizationExpiration(List<Long> toSet, long newExpirationDateMS);
+	void setContainerSynchronizationExpiration(ObjectType objectType, List<Long> toSet, long newExpirationDateMS);
 	
 	/**
 	 * Clear all expirations.
@@ -451,14 +443,15 @@ public interface TableIndexDAO {
 	 *   
 	 * @return Map.key = parentId and map.value = sum of children CRCs.
 	 */
-	Map<Long, Long> getSumOfChildCRCsForEachParent(List<Long> parentIds);
+	Map<Long, Long> getSumOfChildCRCsForEachParent(ObjectType objectType, List<Long> parentIds);
 
 	/**
-	 * Get the Id and Etag for each child of the given Entity parentId.
+	 * Get the Id and Etag for each child of the given parentId.
+	 * @param objectType TODO
 	 * @param outOfSynchParentId
 	 * @return
 	 */
-	List<IdAndEtag> getEntityChildren(Long parentId);
+	List<IdAndEtag> getObjectChildren(ObjectType objectType, Long parentId);
 
 	/**
 	 * Get the rowIds for the given query.
@@ -475,13 +468,13 @@ public interface TableIndexDAO {
 	 * @param rowIds
 	 * @return
 	 */
-	long getSumOfFileSizes(List<Long> rowIds);
+	long getSumOfFileSizes(ObjectType objectType, List<Long> rowIds);
 
 	/**
 	 * Get the statistics about Synapse storage usage per-project.
 	 * @return
 	 */
-	void streamSynapseStorageStats(Callback<SynapseStorageProjectStats> callback);
+	void streamSynapseStorageStats(ObjectType objectType, Callback<SynapseStorageProjectStats> callback);
 
 	/**
 	 * Populate a view from a snapshot.
@@ -521,7 +514,7 @@ public interface TableIndexDAO {
 	 * @param limit Limit the number of rows returned. 
 	 * @return
 	 */
-	Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, long viewTypeMask, Set<Long> allContainersInScope, long limit);
+	Set<Long> getOutOfDateRowsForView(ObjectType objectTpe, IdAndVersion viewId, long viewTypeMask, Set<Long> allContainersInScope, long limit);
 
 	/**
 	 * Delete a batch of rows from a view.

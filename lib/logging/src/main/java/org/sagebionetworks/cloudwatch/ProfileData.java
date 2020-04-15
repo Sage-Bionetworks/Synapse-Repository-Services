@@ -2,6 +2,7 @@ package org.sagebionetworks.cloudwatch;
 
 import java.util.Date;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Data transfer object for metric information.
@@ -140,4 +141,27 @@ public class ProfileData {
 				+ metricStats + "]";
 	}
 
+	@Override
+	public int hashCode() {
+		return Objects.hash(dimension, metricStats, name, namespace, timestamp, unit, value);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		ProfileData other = (ProfileData) obj;
+		return Objects.equals(dimension, other.dimension) && Objects.equals(metricStats, other.metricStats)
+				&& Objects.equals(name, other.name) && Objects.equals(namespace, other.namespace)
+				&& Objects.equals(timestamp, other.timestamp) && Objects.equals(unit, other.unit)
+				&& Objects.equals(value, other.value);
+	}
+	
 }
