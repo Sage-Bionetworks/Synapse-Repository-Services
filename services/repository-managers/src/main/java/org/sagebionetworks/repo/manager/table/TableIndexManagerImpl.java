@@ -108,11 +108,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 								tableIndexDao.applyFileHandleIdsToTable(
 										tableId, fileHandleIds);
 							}
-
+							boolean alterTemp = false;
 							//once all changes to main table are applied, populate the list-type columns with the changes.
 							for(ListColumnRowChanges listColumnChange : rowset.groupListColumnChanges()){
 								tableIndexDao.deleteFromListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds());
-								tableIndexDao.populateListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds(), false);
+								tableIndexDao.populateListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds(), alterTemp);
 							}
 
 							// set the new max version for the index
@@ -355,9 +355,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	public void populateListColumnIndexTables(final IdAndVersion tableIdAndVersion, final List<ColumnModel> schema, Set<Long> rowIds){
 		ValidateArgument.required(tableIdAndVersion, "tableIdAndVersion");
 		ValidateArgument.required(schema, "schema");
+		boolean alterTemp = false;
+
 		for(ColumnModel column: schema) {
 			if (ColumnTypeListMappings.isList(column.getColumnType())) {
-				tableIndexDao.populateListColumnIndexTable(tableIdAndVersion, column, rowIds, false);
+				tableIndexDao.populateListColumnIndexTable(tableIdAndVersion, column, rowIds, alterTemp);
 			}
 		}
 	}

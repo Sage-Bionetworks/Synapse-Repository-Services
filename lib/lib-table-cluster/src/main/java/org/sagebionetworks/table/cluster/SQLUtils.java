@@ -1230,7 +1230,8 @@ public class SQLUtils {
 	static long getColumnIdFromMultivalueColumnIndexTableName(IdAndVersion tableId, String indexTableName){
 		ValidateArgument.required(tableId, "tableId");
 		ValidateArgument.requiredNotEmpty(indexTableName, "columnName");
-		return getColumnId(indexTableName.substring(getTableNamePrefixForMultiValueColumns(tableId, false).length()));
+		boolean alterTemp = false;
+		return getColumnId(indexTableName.substring(getTableNamePrefixForMultiValueColumns(tableId, alterTemp).length()));
 	}
 
 	/**
