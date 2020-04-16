@@ -203,22 +203,25 @@ public interface TableIndexDAO {
 	 * Creates an index table for the multi-value column described in the columnModel.
 	 * @param tableId
 	 * @param columnModel
+	 * @param alterTemp
 	 */
-	void createMultivalueColumnIndexTable(IdAndVersion tableId, ColumnModel columnModel);
+	void createMultivalueColumnIndexTable(IdAndVersion tableId, ColumnModel columnModel, boolean alterTemp);
 
 	/**
 	 * Drop the multi-value column index table associated with the table id and column id
 	 * @param tableId
 	 * @param columnId
+	 * @param alterTemp
 	 */
-	void deleteMultivalueColumnIndexTable(IdAndVersion tableId, Long columnId);
+	void deleteMultivalueColumnIndexTable(IdAndVersion tableId, Long columnId, boolean alterTemp);
 
 	/**
 	 * Drop the multi-value column index table associated with the table id and column id
 	 * @param columnId
 	 * @param tableId
+	 * @param alterTemp
 	 */
-	void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn);
+	void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn, boolean alterTemp);
 
 	/**
 	 * Truncate all of the data in the given table.
@@ -276,8 +279,9 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @param listColumn
 	 * @param rowIds Optional.  When included, only rows with the given IDs will be populated.
+	 * @param alterTemp
 	 */
-	void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds);
+	void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds, boolean alterTemp);
 
 	/**
 	 * Delete rows from an a specific list column's index table.
@@ -310,7 +314,31 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	long getTempTableCount(IdAndVersion tableId);
-	
+
+	/**
+	 * Create a temporary multivalue column index table like the given table.
+	 * @param tableId
+	 */
+	void createTemporaryMultiValueColumnIndexTable(IdAndVersion tableId, String columnId);
+
+	/**
+	 * Copy all of the data from the original multivalue column index table to the temporary table.
+	 * @param tableId
+	 */
+	void copyAllDataToTemporaryMultiValueColumnIndexTable(IdAndVersion tableId, String columnId);
+
+	/**
+	 * Delete all of the temporary multivalue column index table associated with the given table.
+	 */
+	void deleteAllTemporaryMultiValueColumnIndexTable(IdAndVersion tableId);
+
+	/**
+	 * Count the rows in the temp multi value index table.
+	 * @param tableId
+	 * @return
+	 */
+	long getTempTableMultiValueColumnIndexCount(IdAndVersion tableId, String columnName);
+
 	/**
 	 * Create the entity replication tables if they do not exist.
 	 * 

@@ -112,7 +112,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 							//once all changes to main table are applied, populate the list-type columns with the changes.
 							for(ListColumnRowChanges listColumnChange : rowset.groupListColumnChanges()){
 								tableIndexDao.deleteFromListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds());
-								tableIndexDao.populateListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds());
+								tableIndexDao.populateListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds(), false);
 							}
 
 							// set the new max version for the index
@@ -156,7 +156,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		//apply changes to multi-value column indexes
 		Set<Long> existingListColumnIndexTableNames = tableIndexDao.getMultivalueColumnIndexTableColumnIds(tableId);
 		List<ListColumnIndexTableChange> listColumnIndexTableChanges = listColumnIndexTableChangesFromExpectedSchema(newSchema, existingListColumnIndexTableNames);
-		applyListColumnIndexTableChanges(tableId, listColumnIndexTableChanges);
+		boolean alterTemp = false;
+		applyListColumnIndexTableChanges(tableId, listColumnIndexTableChanges, alterTemp);
 		return changes;
 	}
 
@@ -256,18 +257,18 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		return result;
 	}
 
-	void applyListColumnIndexTableChanges(IdAndVersion tableId, List<ListColumnIndexTableChange> changes){
+	void applyListColumnIndexTableChanges(IdAndVersion tableId, List<ListColumnIndexTableChange> changes, boolean alterTemp){
 		for(ListColumnIndexTableChange change : changes){
 			switch (change.getListIndexTableChangeType()){
 				case ADD:
-					tableIndexDao.createMultivalueColumnIndexTable(tableId, change.getNewColumnChange());
-					tableIndexDao.populateListColumnIndexTable(tableId, change.getNewColumnChange(), null);
+					tableIndexDao.createMultivalueColumnIndexTable(tableId, change.getNewColumnChange(), alterTemp);
+					tableIndexDao.populateListColumnIndexTable(tableId, change.getNewColumnChange(), null, alterTemp);
 					break;
 				case REMOVE:
-					tableIndexDao.deleteMultivalueColumnIndexTable(tableId, change.getOldColumnId());
+					tableIndexDao.deleteMultivalueColumnIndexTable(tableId, change.getOldColumnId(), alterTemp);
 					break;
 				case UPDATE:
-					tableIndexDao.updateMultivalueColumnIndexTable(tableId, change.getOldColumnId(), change.getNewColumnChange());
+					tableIndexDao.updateMultivalueColumnIndexTable(tableId, change.getOldColumnId(), change.getNewColumnChange(), alterTemp);
 					break;
 			}
 		}
@@ -302,9 +303,10 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}	
 	
 	@Override
-	public boolean alterTempTableSchmea(final IdAndVersion tableId, final List<ColumnChangeDetails> changes){
+	public void alterTempTableSchmea(final IdAndVersion tableId, final List<ColumnChangeDetails> changes){
 		boolean alterTemp = true;
-		return alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
+		alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
+		alterListColumnIndexTableWithSchemaChange(tableId,changes, alterTemp);
 	}
 
 	/**
@@ -355,26 +357,30 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ValidateArgument.required(schema, "schema");
 		for(ColumnModel column: schema) {
 			if (ColumnTypeListMappings.isList(column.getColumnType())) {
-				tableIndexDao.populateListColumnIndexTable(tableIdAndVersion, column, rowIds);
+				tableIndexDao.populateListColumnIndexTable(tableIdAndVersion, column, rowIds, false);
 			}
 		}
 	}
 
 	@Override
-	public void createTemporaryTableCopy(final IdAndVersion tableId, ProgressCallback callback) {
+	public void createTemporaryTableCopy(final IdAndVersion tableId) {
 		// creating a temp table can take a long time so auto-progress is used.
-		try {
-			// create the table.
-			tableIndexDao.createTemporaryTable(tableId);
-			// copy all the data from the original to the temp.
-			tableIndexDao.copyAllDataToTemporaryTable(tableId);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
+		// create the table.
+		tableIndexDao.createTemporaryTable(tableId);
+		// copy all the data from the original to the temp.
+		tableIndexDao.copyAllDataToTemporaryTable(tableId);
+
+		// if any multi-value column index tables exist, create a copy of them
+		for(Long columnId: tableIndexDao.getMultivalueColumnIndexTableColumnIds(tableId)) {
+			String colIdStr = columnId.toString();
+			tableIndexDao.createTemporaryMultiValueColumnIndexTable(tableId, colIdStr);
+			tableIndexDao.copyAllDataToTemporaryMultiValueColumnIndexTable(tableId, colIdStr);
 		}
-		
 	}
 	@Override
-	public void deleteTemporaryTableCopy(final IdAndVersion tableId, ProgressCallback callback) {
+	public void deleteTemporaryTableCopy(final IdAndVersion tableId) {
+		// delete multi-value index table first as they have a foreign key ref to the temp table
+		tableIndexDao.deleteAllTemporaryMultiValueColumnIndexTable(tableId);
 		// delete
 		tableIndexDao.deleteTemporaryTable(tableId);
 	}
@@ -613,16 +619,21 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		boolean isTableView = false;
 		updateTableSchema(idAndVersion, isTableView, schemaChangeData.getChange().getDetails());
 
-		//apply changes to multi-value column indexes
-		Set<Long> existingListColumnIndexTableNames = tableIndexDao.getMultivalueColumnIndexTableColumnIds(idAndVersion);
-		List<ListColumnIndexTableChange> listColumnIndexTableChanges = listColumnIndexTableChangesFromChangeDetails(schemaChangeData.getChange().getDetails(), existingListColumnIndexTableNames);
-
-		applyListColumnIndexTableChanges(idAndVersion, listColumnIndexTableChanges);
+		boolean alterTemp = false;
+		alterListColumnIndexTableWithSchemaChange(idAndVersion, schemaChangeData.getChange().getDetails(), alterTemp);
 
 		// set the new max version for the index
 		tableIndexDao.setMaxCurrentCompleteVersionForTable(idAndVersion, schemaChangeData.getChangeNumber());
 	}
-	
+
+	private void alterListColumnIndexTableWithSchemaChange(IdAndVersion idAndVersion, List<ColumnChangeDetails> columnChangeDetails, boolean alterTemp) {
+		//apply changes to multi-value column indexes
+		Set<Long> existingListColumnIndexTableNames = tableIndexDao.getMultivalueColumnIndexTableColumnIds(idAndVersion);
+		List<ListColumnIndexTableChange> listColumnIndexTableChanges = listColumnIndexTableChangesFromChangeDetails(columnChangeDetails, existingListColumnIndexTableNames);
+
+		applyListColumnIndexTableChanges(idAndVersion, listColumnIndexTableChanges, alterTemp);
+	}
+
 	/**
 	 * Apply the provided row change set to the provide table's index.
 	 * @param idAndVersion

@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -190,6 +191,98 @@ public class TableTransactionWorkerIntegrationTest {
 		assertNotNull(response);
 		assertNotNull(response.getResults());
 		assertEquals(1, response.getResults().size());
+	}
+
+
+	/**
+	 * Test schema change on list columns
+	 * @throws InterruptedException
+	 */
+	@Test
+	public void testSchemaChange_listColumnMaxSizeTooSmall() throws InterruptedException{
+		// Reproduces PLFM-6190
+
+		// string List column
+		ColumnModel stringListColumn = new ColumnModel();
+		stringListColumn.setName("aString");
+		stringListColumn.setColumnType(ColumnType.STRING_LIST);
+		stringListColumn.setMaximumSize(5L);
+		stringListColumn = columnManager.createColumnModel(stringListColumn);
+
+		// test schema change on a TableEntity
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		String entityId = entityManager.createEntity(adminUserInfo, table, null);
+		table = entityManager.getEntity(adminUserInfo, entityId, TableEntity.class);
+		toDelete.add(entityId);
+
+		ColumnChange add = new ColumnChange();
+		add.setOldColumnId(null);
+		add.setNewColumnId(stringListColumn.getId());
+		List<ColumnChange> changes = Lists.newArrayList(add);
+		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
+		request.setEntityId(entityId);
+		request.setChanges(changes);
+		List<String> orderedColumnIds = Arrays.asList(stringListColumn.getId());
+		request.setOrderedColumnIds(orderedColumnIds);
+
+		List<TableUpdateRequest> updates = new LinkedList<TableUpdateRequest>();
+		updates.add(request);
+		TableUpdateTransactionRequest transaction = new TableUpdateTransactionRequest();
+		transaction.setEntityId(entityId);
+		transaction.setChanges(updates);
+
+		// wait for the change to complete
+		TableUpdateTransactionResponse response = startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
+		assertNotNull(response);
+		assertNotNull(response.getResults());
+		assertEquals(1, response.getResults().size());
+		TableUpdateResponse updateResponse = response.getResults().get(0);
+		assertTrue(updateResponse instanceof TableSchemaChangeResponse);
+		TableSchemaChangeResponse changeResponse = (TableSchemaChangeResponse) updateResponse;
+		assertNotNull(changeResponse.getSchema());
+		assertEquals(1, changeResponse.getSchema().size());
+		assertEquals(stringListColumn, changeResponse.getSchema().get(0));
+
+
+		// add row to column
+		PartialRow rowOne = TableModelTestUtils.createPartialRow(null, stringListColumn.getId(), "[\"12345\"]");
+		PartialRowSet rowSet = createRowSet(entityId, rowOne);
+		transaction = createAddDataRequest(entityId, rowSet);
+		response = startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
+
+
+		QueryBundleRequest queryRequest = createQueryRequest("SELECT * FROM " + table.getId(), table.getId());
+		List<Row> rows = startAndWaitForJob(adminUserInfo, queryRequest, QueryResultBundle.class)
+				.getQueryResult().getQueryResults().getRows();
+		assertEquals(1, rows.size());
+
+		// smaller string list column
+		ColumnModel smallerStringListColumn = new ColumnModel();
+		smallerStringListColumn.setName("aString");
+		smallerStringListColumn.setColumnType(ColumnType.STRING_LIST);
+		smallerStringListColumn.setMaximumSize(2L);
+		smallerStringListColumn = columnManager.createColumnModel(smallerStringListColumn);
+
+		// Update the column to a size much smaller than the values inside the column
+		ColumnChange updateSmallerColumn = new ColumnChange();
+		updateSmallerColumn.setOldColumnId(stringListColumn.getId());
+		updateSmallerColumn.setNewColumnId(smallerStringListColumn.getId());
+		changes = Lists.newArrayList(updateSmallerColumn);
+		request = new TableSchemaChangeRequest();
+		request.setEntityId(entityId);
+		request.setChanges(changes);
+		request.setOrderedColumnIds(Arrays.asList(smallerStringListColumn.getId()));
+
+		updates = new LinkedList<TableUpdateRequest>();
+		updates.add(request);
+		transaction = new TableUpdateTransactionRequest();
+		transaction.setEntityId(entityId);
+		transaction.setChanges(updates);
+
+		// wait for the change to complete
+		String errorMessage = startAndWaitForFailedJob(adminUserInfo, transaction);
+		assertEquals("Data truncated for column 'aString_UNNEST' at row 1", errorMessage);
 	}
 	
 	@Test

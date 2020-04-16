@@ -83,7 +83,7 @@ public class SQLUtils {
 	private static final String TEMPLATE_MAX_OBJECT_SELECT = ", MAX(%1$s.%2$s) AS %2$s";
 	private static final String DROP_TABLE_IF_EXISTS = "DROP TABLE IF EXISTS %1$S";
 	private static final String SELECT_COUNT_FROM_TEMP = "SELECT COUNT(*) FROM ";
-	private static final String SQL_COPY_TABLE_TO_TEMP = "INSERT INTO %1$S SELECT * FROM %2$S ORDER BY "+ROW_ID;
+	private static final String SQL_COPY_TABLE_TO_TEMP = "INSERT INTO %1$S SELECT * FROM %2$S";
 	private static final String CREATE_TABLE_LIKE = "CREATE TABLE %1$S LIKE %2$S";
 	private static final String TEMP = "TEMP";
 	private static final String IDX = "idx_";
@@ -244,8 +244,11 @@ public class SQLUtils {
 	 * @param idAndVersion
 	 * @return
 	 */
-	public static String getTableNamePrefixForMultiValueColumns(IdAndVersion idAndVersion) {
+	public static String getTableNamePrefixForMultiValueColumns(IdAndVersion idAndVersion, boolean alterTemp) {
 		StringBuilder builder = new StringBuilder();
+		if(alterTemp){
+			builder.append(TEMP);
+		}
 		//currently only TableType.INDEX (i.e. the original user table) have multi-value columns
 		appendTableNameForId(idAndVersion, TableType.INDEX, builder);
 		builder.append("_INDEX");
@@ -259,9 +262,14 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String getTableNameForMultiValueColumnIndex(IdAndVersion idAndVersion, String columnId){
+		boolean alterTemp = false;
+		return getTableNameForMultiValueColumnIndex(idAndVersion, columnId, alterTemp);
+	}
+
+	public static String getTableNameForMultiValueColumnIndex(IdAndVersion idAndVersion, String columnId, boolean alterTemp){
 		ValidateArgument.required(idAndVersion, "idAndVersion");
 		ValidateArgument.required(columnId, "columnId");
-		StringBuilder builder = new StringBuilder(getTableNamePrefixForMultiValueColumns(idAndVersion));
+		StringBuilder builder = new StringBuilder(getTableNamePrefixForMultiValueColumns(idAndVersion, alterTemp));
 		appendColumnNameForId(columnId, builder);
 		return builder.toString();
 	}
@@ -738,19 +746,19 @@ public class SQLUtils {
 		return builder.toString();
 	}
 
-	public static String createAlterListColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn){
-		String tableName = getTableNameForMultiValueColumnIndex(tableId, oldColumnId.toString());
+	public static String createAlterListColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn, boolean alterTemp){
+		String tableName = getTableNameForMultiValueColumnIndex(tableId, oldColumnId.toString(), alterTemp);
 		String oldColumnName = getUnnestedColumnNameForId(oldColumnId.toString());
 
 		String newColumnName = getUnnestedColumnNameForId(newColumn.getId());
 		String newColumnTypeSql = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(newColumn.getColumnType()))
 				.toSql(newColumn.getMaximumSize(), null, false);
 
-		String newTableName = getTableNameForMultiValueColumnIndex(tableId, newColumn.getId());
+		String newTableName = getTableNameForMultiValueColumnIndex(tableId, newColumn.getId(), alterTemp);
 
 		String oldRowRefName = getRowIdRefColumnNameForId(oldColumnId.toString());
 		String newRowRefName = getRowIdRefColumnNameForId(newColumn.getId());
-		String parentTableName = getTableNameForId(tableId, TableType.INDEX);
+		String parentTableName = alterTemp ? getTemporaryTableName(tableId) : getTableNameForId(tableId, TableType.INDEX);
 
 		return  "ALTER TABLE " + tableName +
 				" DROP INDEX " + oldColumnName + "_IDX," +
@@ -758,9 +766,9 @@ public class SQLUtils {
 				//modify the row_id column which references the main table's row_ids
 				" DROP FOREIGN KEY " + tableName + "_FK" + "," +
 				" RENAME COLUMN " + oldRowRefName + " TO " + newRowRefName + "," +
-				" ADD CONSTRAINT "+ newTableName + "_FK" +" FOREIGN KEY ("+newRowRefName+") REFERENCES "+parentTableName+"("+ROW_ID+") ON DELETE CASCADE," +
+				" ADD " + getMultiValueIndexTableForeignKeyConstraint(parentTableName,newTableName,newRowRefName)+
 
-				" CHANGE COLUMN " + oldColumnName +  " " + newColumnName + " "+ newColumnTypeSql + "," +
+				", CHANGE COLUMN " + oldColumnName +  " " + newColumnName + " "+ newColumnTypeSql + "," +
 				" ADD INDEX " + newColumnName + "_IDX ("+newColumnName+" ASC)," +
 
 				" RENAME " + newTableName;
@@ -1222,7 +1230,7 @@ public class SQLUtils {
 	static long getColumnIdFromMultivalueColumnIndexTableName(IdAndVersion tableId, String indexTableName){
 		ValidateArgument.required(tableId, "tableId");
 		ValidateArgument.requiredNotEmpty(indexTableName, "columnName");
-		return getColumnId(indexTableName.substring(getTableNamePrefixForMultiValueColumns(tableId).length()));
+		return getColumnId(indexTableName.substring(getTableNamePrefixForMultiValueColumns(tableId, false).length()));
 	}
 
 	/**
@@ -1258,7 +1266,7 @@ public class SQLUtils {
 		String tempName = getTemporaryTableName(tableId);
 		return String.format(SQL_COPY_TABLE_TO_TEMP, tempName, tableName);
 	}
-	
+
 	/**
 	 * SQL to count the rows in temp table.
 	 * @param tableId
@@ -1277,6 +1285,37 @@ public class SQLUtils {
 	public static String deleteTempTableSql(IdAndVersion tableId){
 		String tempName = getTemporaryTableName(tableId);
 		return String.format(DROP_TABLE_IF_EXISTS, tempName);
+	}
+
+
+	/**
+	 * Create the SQL used to create a temporary multivalue column index table
+	 * @param tableId
+	 * @return
+	 */
+	public static String[] createTempMultiValueColumnIndexTableSql(IdAndVersion tableId, String columnId) {
+		String tableName = getTableNameForMultiValueColumnIndex(tableId, columnId, false);
+		String tempName = getTableNameForMultiValueColumnIndex(tableId, columnId, true);
+		String tempParentTable = getTemporaryTableName(tableId);
+		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableId, columnId, true);
+		String rowIdRefColumnName = getRowIdRefColumnNameForId(columnId);
+
+		return new String[]{String.format(CREATE_TABLE_LIKE, tempName, tableName),
+				// foreign keys are not copied over so we manually add it
+				"ALTER TABLE " + tempName +
+				" ADD " + getMultiValueIndexTableForeignKeyConstraint(tempParentTable, columnIndexTableName, rowIdRefColumnName)};
+	}
+
+	/**
+	 * Create the SQL used to copy all of the data from a table to the temp table.
+	 *
+	 * @param tableId
+	 * @return
+	 */
+	public static String copyMultiValueColumnIndexTableToTempSql(IdAndVersion tableId, String columnId){
+		String tableName = getTableNameForMultiValueColumnIndex(tableId, columnId, false);
+		String tempName = getTableNameForMultiValueColumnIndex(tableId, columnId, true);
+		return String.format(SQL_COPY_TABLE_TO_TEMP, tempName, tableName);
 	}
 
 	/**
@@ -1948,24 +1987,28 @@ public class SQLUtils {
 	}
 
 
-	static String createListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnModel){
+	static String createListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnModel, boolean alterTemp){
 		ValidateArgument.required(tableIdAndVersion, "tableIdAndVersion");
 		ValidateArgument.required(columnModel, "columnModel");
 		ValidateArgument.requirement(ColumnTypeListMappings.isList(columnModel.getColumnType()), "columnModel's type must be a LIST type");
 
-		String parentTable = getTableNameForId(tableIdAndVersion, TableType.INDEX);
-		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnModel.getId());
+		String parentTable = alterTemp ? getTemporaryTableName(tableIdAndVersion) : getTableNameForId(tableIdAndVersion, TableType.INDEX);
+		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnModel.getId(), alterTemp);
 		String columnName = getUnnestedColumnNameForId(columnModel.getId());
 		String rowIdRefColumnName = getRowIdRefColumnNameForId(columnModel.getId());
 		String columnTypeSql = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnModel.getColumnType())).toSql(columnModel.getMaximumSize(), null, false);
 		return "CREATE TABLE IF NOT EXISTS " + columnIndexTableName + " (" +
-				rowIdRefColumnName+" BIGINT NOT NULL, " +
+				rowIdRefColumnName + " BIGINT NOT NULL, " +
 				INDEX_NUM + " BIGINT NOT NULL, " + //index of value in its list
 				columnName + " " + columnTypeSql + ", " +
-				"PRIMARY KEY ("+rowIdRefColumnName+", "+INDEX_NUM+"), " +
-				"INDEX "+columnName+"_IDX ("+columnName+" ASC), " +
-				"CONSTRAINT " + columnIndexTableName + "_FK" + " FOREIGN KEY ("+rowIdRefColumnName+") REFERENCES "+parentTable+"("+ROW_ID+") ON DELETE CASCADE"+
+				"PRIMARY KEY (" + rowIdRefColumnName + ", " + INDEX_NUM + "), " +
+				"INDEX " + columnName + "_IDX (" + columnName + " ASC), " +
+				getMultiValueIndexTableForeignKeyConstraint(parentTable, columnIndexTableName, rowIdRefColumnName) +
 				");";
+	}
+
+	private static String getMultiValueIndexTableForeignKeyConstraint(String parentTable, String columnIndexTableName, String rowIdRefColumnName) {
+		return "CONSTRAINT " + columnIndexTableName + "_FK" + " FOREIGN KEY (" + rowIdRefColumnName + ") REFERENCES " + parentTable + "(" + ROW_ID + ") ON DELETE CASCADE";
 	}
 
 	/**
@@ -1973,15 +2016,16 @@ public class SQLUtils {
 	 * @param tableIdAndVersion
 	 * @param columnInfo
 	 * @param filterRows When true a where clause to filter by ROW_ID will be included.
+	 * @param alterTemp
 	 * @return
 	 */
-	public static String insertIntoListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnInfo, boolean filterRows){
+	public static String insertIntoListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnInfo, boolean filterRows, boolean alterTemp){
 		String columnName = getColumnNameForId(columnInfo.getId());
 		String unnestedColumnName = getUnnestedColumnNameForId(columnInfo.getId());
 
 		String rowIdRefColumnName = getRowIdRefColumnNameForId(columnInfo.getId());
-		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnInfo.getId());
-		String tableName = getTableNameForId(tableIdAndVersion, TableType.INDEX);
+		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnInfo.getId(), alterTemp);
+		String tableName = alterTemp ? getTemporaryTableName(tableIdAndVersion) : getTableNameForId(tableIdAndVersion, TableType.INDEX);
 		MySqlColumnType mySqlColumnType = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnInfo.getColumnType())).getMySqlType();
 
 		String columnExpandTypeSQl =  mySqlColumnType.name() + (mySqlColumnType.hasSize() && columnInfo.getMaximumSize() != null ? "("  + columnInfo.getMaximumSize() + ")" : "");
