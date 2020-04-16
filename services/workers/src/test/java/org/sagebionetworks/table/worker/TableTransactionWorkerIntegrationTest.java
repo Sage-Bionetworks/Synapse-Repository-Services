@@ -283,11 +283,6 @@ public class TableTransactionWorkerIntegrationTest {
 		// wait for the change to complete
 		String errorMessage = startAndWaitForFailedJob(adminUserInfo, transaction);
 		assertEquals("Data truncated for column 'aString_UNNEST' at row 1", errorMessage);
-
-		queryRequest = createQueryRequest("SELECT * FROM " + table.getId(), table.getId());
-		rows = startAndWaitForJob(adminUserInfo, queryRequest, QueryResultBundle.class)
-				.getQueryResult().getQueryResults().getRows();
-		assertEquals(1, rows.size());
 	}
 	
 	@Test
