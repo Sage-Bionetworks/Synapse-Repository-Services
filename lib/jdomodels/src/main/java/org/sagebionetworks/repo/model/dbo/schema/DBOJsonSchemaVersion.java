@@ -1,10 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.schema;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_BLOB_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_S3_BUCKET;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_S3_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_SCHEMA_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_SEMANTIC;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_JSON_SCHEMA_VERSION;
@@ -33,16 +32,14 @@ public class DBOJsonSchemaVersion implements MigratableDatabaseObject<DBOJsonSch
 			new FieldColumn("semanticVersion", COL_JSON_SCHEMA_VER_SEMANTIC),
 			new FieldColumn("createdBy", COL_JSON_SCHEMA_VER_CREATED_BY),
 			new FieldColumn("createdOn", COL_JSON_SCHEMA_VER_CREATED_ON),
-			new FieldColumn("s3Bucket", COL_JSON_SCHEMA_VER_S3_BUCKET),
-			new FieldColumn("s3Key", COL_JSON_SCHEMA_VER_S3_KEY),};
+			new FieldColumn("blobId", COL_JSON_SCHEMA_VER_BLOB_ID)};
 	
 	private Long versionId;
 	private Long schemaId;
 	private String semanticVersion;
 	private Long createdBy;
 	private Timestamp createdOn;
-	private String s3Bucket;
-	private String s3Key;
+	private Long blobId;
 	
 	public static TableMapping<DBOJsonSchemaVersion> MAPPING = new TableMapping<DBOJsonSchemaVersion>() {
 
@@ -54,8 +51,7 @@ public class DBOJsonSchemaVersion implements MigratableDatabaseObject<DBOJsonSch
 			dbo.setSemanticVersion(rs.getString(COL_JSON_SCHEMA_VER_SEMANTIC));
 			dbo.setCreatedBy(rs.getLong(COL_JSON_SCHEMA_VER_CREATED_BY));
 			dbo.setCreatedOn(rs.getTimestamp(COL_JSON_SCHEMA_VER_CREATED_ON));
-			dbo.setS3Bucket(rs.getString(COL_JSON_SCHEMA_VER_S3_BUCKET));
-			dbo.setS3Key(rs.getString(COL_JSON_SCHEMA_VER_S3_KEY));
+			dbo.setBlobId(rs.getLong(COL_JSON_SCHEMA_VER_BLOB_ID));
 			return dbo;
 		}
 
@@ -153,25 +149,23 @@ public class DBOJsonSchemaVersion implements MigratableDatabaseObject<DBOJsonSch
 		this.createdOn = createdOn;
 	}
 
-	public String getS3Bucket() {
-		return s3Bucket;
+	/**
+	 * @return the blobId
+	 */
+	public Long getBlobId() {
+		return blobId;
 	}
 
-	public void setS3Bucket(String s3Bucket) {
-		this.s3Bucket = s3Bucket;
-	}
-
-	public String getS3Key() {
-		return s3Key;
-	}
-
-	public void setS3Key(String s3Key) {
-		this.s3Key = s3Key;
+	/**
+	 * @param blobId the blobId to set
+	 */
+	public void setBlobId(Long blobId) {
+		this.blobId = blobId;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(createdBy, createdOn, s3Bucket, s3Key, schemaId, semanticVersion, versionId);
+		return Objects.hash(blobId, createdBy, createdOn, schemaId, semanticVersion, versionId);
 	}
 
 	@Override
@@ -183,16 +177,16 @@ public class DBOJsonSchemaVersion implements MigratableDatabaseObject<DBOJsonSch
 			return false;
 		}
 		DBOJsonSchemaVersion other = (DBOJsonSchemaVersion) obj;
-		return Objects.equals(createdBy, other.createdBy) && Objects.equals(createdOn, other.createdOn)
-				&& Objects.equals(s3Bucket, other.s3Bucket) && Objects.equals(s3Key, other.s3Key)
-				&& Objects.equals(schemaId, other.schemaId) && Objects.equals(semanticVersion, other.semanticVersion)
-				&& Objects.equals(versionId, other.versionId);
+		return Objects.equals(blobId, other.blobId) && Objects.equals(createdBy, other.createdBy)
+				&& Objects.equals(createdOn, other.createdOn) && Objects.equals(schemaId, other.schemaId)
+				&& Objects.equals(semanticVersion, other.semanticVersion) && Objects.equals(versionId, other.versionId);
 	}
 
 	@Override
 	public String toString() {
-		return "DBOJsonSchemaVersion [versionNumber=" + versionId + ", schemaId=" + schemaId + ", semanticVersion="
-				+ semanticVersion + ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", s3Bucket=" + s3Bucket
-				+ ", s3Key=" + s3Key + "]";
+		return "DBOJsonSchemaVersion [versionId=" + versionId + ", schemaId=" + schemaId + ", semanticVersion="
+				+ semanticVersion + ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", blobId=" + blobId
+				+ "]";
 	}
+
 }

@@ -121,6 +121,13 @@ public class SqlConstants {
 	public static final String COL_JSON_SCHEMA_CREATED_ON	= "CREATED_ON";
 	public static final String DDL_FILE_JSON_SCHEMA			= "schema/JsonSchema-ddl.sql";
 	
+	// Json-Schema blobs
+	public static final String TABLE_JSON_SCHEMA_BLOB		= "JSON_SCHEMA_BLOB";
+	public static final String COL_JSON_SCHEMA_BLOB_ID		= "BLOB_ID";
+	public static final String COL_JSON_SCHEMA_BLOB_BLOB	= "JSON_BLOB";
+	public static final String COL_JSON_SCHEMA_BLOB_SHA256	= "SHA_256_HEX";
+	public static final String DDL_FILE_JSON_SCHEMA_BLOB	= "schema/JsonSchemaBlob-ddl.sql";
+	
 	// Json-Schema-Version
 	public static final String TABLE_JSON_SCHEMA_VERSION 		= "JSON_SCHEMA_VERSION";
 	public static final String COL_JSON_SCHEMA_VER_ID			= "VERSION_ID";
@@ -128,8 +135,7 @@ public class SqlConstants {
 	public static final String COL_JSON_SCHEMA_VER_SEMANTIC		= "SEMANTIC_VERSION";
 	public static final String COL_JSON_SCHEMA_VER_CREATED_BY	= "CREATED_BY";
 	public static final String COL_JSON_SCHEMA_VER_CREATED_ON	= "CREATED_ON";
-	public static final String COL_JSON_SCHEMA_VER_S3_BUCKET	= "S3_BUCKET";
-	public static final String COL_JSON_SCHEMA_VER_S3_KEY		= "S3_KEY";
+	public static final String COL_JSON_SCHEMA_VER_BLOB_ID		= "BLOB_ID";
 	public static final String DDL_FILE_JSON_SCHEMA_VERSION		= "schema/JsonSchemaVersion-ddl.sql";
 	
 	// Json-Schema-Dependency
