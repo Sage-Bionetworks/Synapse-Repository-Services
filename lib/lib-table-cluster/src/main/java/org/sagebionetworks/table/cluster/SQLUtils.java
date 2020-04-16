@@ -1371,7 +1371,7 @@ public class SQLUtils {
 	}
 	
 	/**
-	 * Generate the SQL used to insert select data from the entity replication tables to a
+	 * Generate the SQL used to insert select data from the object replication tables to a
 	 * table's index.
 	 * @param viewId
 	 * @param currentSchema
@@ -1391,7 +1391,7 @@ public class SQLUtils {
 	}
 	
 	/**
-	 * Generate the SQL to get all of the data for a view table from the entity replication tables.
+	 * Generate the SQL to get all of the data for a view table from the object replication tables.
 	 * @param viewId
 	 * @param viewTypeMask
 	 * @param currentSchema
@@ -1471,7 +1471,7 @@ public class SQLUtils {
 	}
 	
 	/**
-	 * Build the select clause of the entity replication insert select.
+	 * Build the select clause of the object replication insert select.
 	 * @param builder
 	 * @param metadata
 	 */
@@ -1486,7 +1486,7 @@ public class SQLUtils {
 	}
 	
 	/**
-	 * Build a entity replication select for the given ColumnMetadata.
+	 * Build a object replication select for the given ColumnMetadata.
 	 * 
 	 * @param builder
 	 * @param meta
@@ -1512,7 +1512,7 @@ public class SQLUtils {
 	}
 	
 	/**
-	 * Build the select including the standard entity columns of, id, version, etag, and benefactor..
+	 * Build the select including the standard object columns of, id, version, etag, and benefactor..
 	 * @param builder
 	 */
 	public static List<String> buildObjectReplicationSelectStandardColumns(StringBuilder builder) {
@@ -1564,7 +1564,7 @@ public class SQLUtils {
 	}
 
 	/**
-	 * Build the insert clause section of entity replication insert select.
+	 * Build the insert clause section of object replication insert select.
 	 * 
 	 * @param builder
 	 * @param metadata
@@ -2010,7 +2010,7 @@ public class SQLUtils {
 			+ "		 AND R."+OBJECT_REPLICATION_COL_OBJECT_ID+" = V."+ROW_ID
 			+ "      AND R."+OBEJCT_REPLICATION_COL_ETAG+" = V."+ROW_ETAG
 			+ "      AND R."+OBJECT_REPLICATION_COL_BENEFACTOR_ID+" = V."+ROW_BENEFACTOR+")"
-			+ "   WHERE R.%2$s IN (:scopeIds) AND %3$s" 
+			+ "   WHERE R."+OBJECT_REPLICATION_COL_OBJECT_TYPE+" = :"+OBJECT_TYPE_PARAM_NAME+" AND R.%2$s IN (:scopeIds) AND %3$s" 
 			+ " UNION ALL"
 			+ " SELECT V."+ROW_ID+", R."+OBJECT_REPLICATION_COL_OBJECT_ID+" FROM "+OBJECT_REPLICATION_TABLE+" R "
 			+ "   RIGHT JOIN %1$s V ON ("

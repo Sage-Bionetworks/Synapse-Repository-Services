@@ -1,6 +1,5 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE;
@@ -35,6 +34,8 @@ import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_OBJECT_
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_OBJECT_CHILD_ID_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_NON_EXPIRED_IDS;
 import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE;
+import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_OBJECT_REPLICATION_TABLE;
+import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_ANNOTATION_REPLICATION_TABLE;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -1051,11 +1052,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void truncateReplicationSyncExpiration() {
-		template.update(TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE);
-	}
-
-	@Override
 	public List<Long> getRowIds(String sql, Map<String, Object> parameters) {
 		ValidateArgument.required(sql, "sql");
 		ValidateArgument.required(parameters, "parameters");
@@ -1160,6 +1156,19 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				return idsToDelete.length;
 			}
 		});
+	}
+	
+
+	@Override
+	public void truncateReplicationSyncExpiration() {
+		template.update(TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE);
+	}
+	
+	@Override
+	public void truncateIndex() {
+		truncateReplicationSyncExpiration();
+		template.update(TRUNCATE_ANNOTATION_REPLICATION_TABLE);
+		template.update(TRUNCATE_OBJECT_REPLICATION_TABLE);
 	}
 
 }

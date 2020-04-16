@@ -226,6 +226,9 @@ public class TableConstants {
 			+ OBJECT_REPLICATION_COL_OBJECT_TYPE + " = ? AND "
 			+ OBJECT_REPLICATION_COL_OBJECT_ID+" = ?";
 	
+	public static final String TRUNCATE_OBJECT_REPLICATION_TABLE = 
+			"DELETE FROM "+OBJECT_REPLICATION_TABLE;	
+	
 	public static final String OBJECT_REPLICATION_ALIAS = "R";
 	public static final String ANNOTATION_REPLICATION_ALIAS = "A";
 	
@@ -295,6 +298,9 @@ public class TableConstants {
 	public final static String ANNOTATION_REPLICATION_GET = "SELECT * FROM "+ANNOTATION_REPLICATION_TABLE+" WHERE "
 			+ANNOTATION_REPLICATION_COL_OBJECT_TYPE+" = ? AND "
 			+ANNOTATION_REPLICATION_COL_OBJECT_ID+" = ?";
+	
+	public static final String TRUNCATE_ANNOTATION_REPLICATION_TABLE = 
+			"TRUNCATE TABLE "+ANNOTATION_REPLICATION_TABLE;	
 
 	public static final String NULL_VALUE_KEYWORD = "org.sagebionetworks.UNDEFINED_NULL_NOTSET";
 	
