@@ -83,6 +83,7 @@ docker run -i --rm --name ${build_container_name} \
 -w /repo \
 maven:3-jdk-8 \
 bash -c "mvn clean ${MVN_GOAL} -U \
+-Dtest=TableTransactionWorkerIntegrationTest -DfailIfNoTests=false \
 -Dorg.sagebionetworks.repository.database.connection.url=jdbc:mysql://${org_sagebionetworks_repository_database_connection_url}/${db_name} \
 -Dorg.sagebionetworks.id.generator.database.connection.url=jdbc:mysql://${org_sagebionetworks_repository_database_connection_url}/${db_name} \
 -Dorg.sagebionetworks.repository.database.username=${rds_user_name} \
