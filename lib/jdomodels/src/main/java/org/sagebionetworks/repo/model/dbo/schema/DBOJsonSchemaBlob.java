@@ -36,7 +36,7 @@ public class DBOJsonSchemaBlob implements MigratableDatabaseObject<DBOJsonSchema
 			DBOJsonSchemaBlob dbo = new DBOJsonSchemaBlob();
 			dbo.setBlobId(rs.getLong(COL_JSON_SCHEMA_BLOB_ID));
 			dbo.setJson(rs.getString(COL_JSON_SCHEMA_BLOB_BLOB));
-			dbo.setJson(rs.getString(COL_JSON_SCHEMA_BLOB_SHA256));
+			dbo.setSha256Hex(rs.getString(COL_JSON_SCHEMA_BLOB_SHA256));
 			return dbo;
 		}
 
