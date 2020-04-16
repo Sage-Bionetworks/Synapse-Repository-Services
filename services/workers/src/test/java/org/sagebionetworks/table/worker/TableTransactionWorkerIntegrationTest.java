@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -201,19 +202,19 @@ public class TableTransactionWorkerIntegrationTest {
 	public void testSchemaChange_listColumnMaxSizeTooSmall() throws InterruptedException{
 		// Reproduces PLFM-6190
 
-		// test schema change on a TableEntity
-		TableEntity table = new TableEntity();
-		table.setName(UUID.randomUUID().toString());
-		String entityId = entityManager.createEntity(adminUserInfo, table, null);
-		table = entityManager.getEntity(adminUserInfo, entityId, TableEntity.class);
-		toDelete.add(entityId);
-
 		// string List column
 		ColumnModel stringListColumn = new ColumnModel();
 		stringListColumn.setName("aString");
 		stringListColumn.setColumnType(ColumnType.STRING_LIST);
 		stringListColumn.setMaximumSize(5L);
 		stringListColumn = columnManager.createColumnModel(stringListColumn);
+
+		// test schema change on a TableEntity
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		String entityId = entityManager.createEntity(adminUserInfo, table, null);
+		table = entityManager.getEntity(adminUserInfo, entityId, TableEntity.class);
+		toDelete.add(entityId);
 
 		ColumnChange add = new ColumnChange();
 		add.setOldColumnId(null);
@@ -250,6 +251,12 @@ public class TableTransactionWorkerIntegrationTest {
 		transaction = createAddDataRequest(entityId, rowSet);
 		response = startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
 
+
+		QueryBundleRequest queryRequest = createQueryRequest("SELECT * FROM " + table.getId(), table.getId());
+		List<Row> rows = startAndWaitForJob(adminUserInfo, queryRequest, QueryResultBundle.class)
+				.getQueryResult().getQueryResults().getRows();
+		assertEquals(1, rows.size());
+
 		// smaller string list column
 		ColumnModel smallerStringListColumn = new ColumnModel();
 		smallerStringListColumn.setName("aString");
@@ -276,6 +283,11 @@ public class TableTransactionWorkerIntegrationTest {
 		// wait for the change to complete
 		String errorMessage = startAndWaitForFailedJob(adminUserInfo, transaction);
 		assertEquals("Data truncated for column 'aString_UNNEST' at row 1", errorMessage);
+
+		queryRequest = createQueryRequest("SELECT * FROM " + table.getId(), table.getId());
+		rows = startAndWaitForJob(adminUserInfo, queryRequest, QueryResultBundle.class)
+				.getQueryResult().getQueryResults().getRows();
+		assertEquals(1, rows.size());
 	}
 	
 	@Test
