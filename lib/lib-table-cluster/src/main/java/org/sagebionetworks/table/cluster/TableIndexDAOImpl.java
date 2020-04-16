@@ -453,7 +453,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				.collect(Collectors.toSet());
 	}
 
-	private List<String> getMultivalueColumnIndexTableNames(IdAndVersion tableId, boolean alterTemp){//TODO: test
+	private List<String> getMultivalueColumnIndexTableNames(IdAndVersion tableId, boolean alterTemp){
 		String multiValueTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(tableId, alterTemp);
 		return template.queryForList("SHOW TABLES LIKE '"+multiValueTableNamePrefix+"%'", String.class);
 	}
