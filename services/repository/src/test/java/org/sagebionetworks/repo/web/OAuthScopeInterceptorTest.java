@@ -282,4 +282,29 @@ class OAuthScopeInterceptorTest {
 		verify(mockHandler).getMethodAnnotation(RequiredScope.class);
 	}
 
+	@Test
+	void testPrehandleInvalidAccessToken() throws Exception {
+		mockRequiredScopeAnnotation();
+		mockRequestIdParam();
+		
+		mockRequest(USER_ID, ACCESS_TOKEN);// NOT anonymous, no access token
+		
+		String message = "the error message";
+
+		when(mockOidcTokenHelper.parseJWT(ACCESS_TOKEN)).thenThrow(new IllegalArgumentException(message));
+		
+		OutputStream os = mockResponse();
+		
+		// method under test
+		boolean result = oauthScopeInterceptor.preHandle(mockRequest, mockResponse, mockHandler);
+		
+		assertFalse(result);
+
+		assertEquals("{\"reason\":\""+message+"\"}\n",  os.toString());
+		
+		verify(mockRequest).getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME);
+		verify(mockOidcTokenHelper).parseJWT(anyString());
+		verify(mockHandler).getMethodAnnotation(RequiredScope.class);
+	}
+
 }
