@@ -19,6 +19,7 @@ import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
@@ -143,6 +144,13 @@ public class ITAccessTokenTest {
 				project = synapseClientLackingCredentials.getEntity(project.getId(), Project.class);				
 			});
 			
+			// Same result if we make the call anonymously (no access token)
+			synapseClientLackingCredentials.removeAuthorizationHeader();
+			Assertions.assertThrows(SynapseForbiddenException.class, () -> {
+				project = synapseClientLackingCredentials.getEntity(project.getId(), Project.class);				
+			});
+			// note that we CAN make anonymous requests that require no authentication
+			assertNotNull(synapseClientLackingCredentials.getVersionInfo());
 		} finally {
 			synapseClientLackingCredentials.removeAuthorizationHeader();
 		}
@@ -150,22 +158,17 @@ public class ITAccessTokenTest {
 	}
 	
 	@Test
-	public void testAccessTokenDoesntEnable() throws Exception {
-		String accessTokenForUser1 = getAccessTokenForUser1("openid modify view download");
+	public void testAccessTokenWithSpecificallyScopedController() throws Exception {
+		String accessTokenForUser1 = getAccessTokenForUser1("openid");
 		try {
 			// We use the bearer token to authorize the client 
 			synapseClientLackingCredentials.setBearerAuthorizationToken(accessTokenForUser1);
 			// Now the calls made by 'synapseClientLackingCredentials' are authenticated/authorized
 			// as User1.
 
-			Evaluation evaluation = new Evaluation();
-			evaluation.setName("test");
-
-			// Since the Evaluation Controller does not recognize the access token
-			// it will treat this as an anonymous request and return a 403 response
-			Assertions.assertThrows(SynapseBadRequestException.class, () -> {
-				synapseClientLackingCredentials.createEvaluation(evaluation);
-			});
+			// We can make this request, even though we don't have full OAuth scope (just 'openid')
+			// since the service requires just openid
+			synapseClientLackingCredentials.getUserInfoAsJSON();
 		} finally {
 			synapseClientLackingCredentials.removeAuthorizationHeader();
 		}		

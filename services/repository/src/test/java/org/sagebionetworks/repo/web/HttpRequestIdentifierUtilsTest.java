@@ -48,12 +48,13 @@ public class HttpRequestIdentifierUtilsTest {
 
 	@Test
 	public void testGetRequestIdentifier(){
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId.toString());
 		request.setCookies(sessionIdCookie);
 		request.setRequestURI(requestPath);
 		request.setRemoteAddr(ipAddress);
 
 
 		HttpRequestIdentifier expected = new HttpRequestIdentifier(userId,sessionId,ipAddress,requestPath);
-		assertEquals(expected, HttpRequestIdentifierUtils.getRequestIdentifier(request, userId));
+		assertEquals(expected, HttpRequestIdentifierUtils.getRequestIdentifier(request));
 	}
 }

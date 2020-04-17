@@ -205,6 +205,10 @@ public class ServletTestHelper {
 		}
 	}
 
+	private String token(Long userId) {
+		return oidcTokenHelper.createTotalAccessToken(userId);
+	}
+	
 	public <T extends Entity> T createEntity(T entity,
 			Map<String, String> extraParams) throws Exception {
 		T returnedEntity = createEntity(dispatchServlet,
@@ -217,7 +221,7 @@ public class ServletTestHelper {
 	public <T extends Object> T createObject(String uri, T object)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, "",uri, userId, null);
+				HTTPMODE.POST, "",uri, userId, token(userId),null);
 
 		StringWriter out = new StringWriter();
 		objectMapper.writeValue(out, object);
@@ -447,7 +451,7 @@ public class ServletTestHelper {
 			Integer limit, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId
-						+ UrlHelpers.VERSION, userId, null);
+						+ UrlHelpers.VERSION, userId, token(userId),null);
 		if (offset != null) {
 			request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM,
 					offset.toString());
@@ -480,7 +484,7 @@ public class ServletTestHelper {
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
 			Long userId, Map<String, String> extraParams) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, UrlHelpers.ENTITY + "/" + id, userId, null);
+				HTTPMODE.DELETE, UrlHelpers.ENTITY + "/" + id, userId, token(userId),null);
 		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
@@ -495,7 +499,7 @@ public class ServletTestHelper {
 			Long versionNumber, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.DELETE, UrlHelpers.ENTITY + "/" + id
-						+ UrlHelpers.VERSION + "/" + versionNumber, userId,
+						+ UrlHelpers.VERSION + "/" + versionNumber, userId, token(userId),
 				null);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
@@ -566,7 +570,7 @@ public class ServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.DELETE, UrlHelpers.ENTITY + "/" + resourceId
-						+ UrlHelpers.ACL, userId, null);
+						+ UrlHelpers.ACL, userId, token(userId),null);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.NO_CONTENT);
@@ -578,7 +582,7 @@ public class ServletTestHelper {
 	public PaginatedResults<UserProfile> getUsers(
 			HttpServlet dispatchServlet, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.USER, userId, null);
+				HTTPMODE.GET, UrlHelpers.USER, userId, token(userId),null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -593,7 +597,7 @@ public class ServletTestHelper {
 	public PaginatedResults<UserGroup> getGroups(
 			HttpServlet dispatchServlet, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.USERGROUP, userId, null);
+				HTTPMODE.GET, UrlHelpers.USERGROUP, userId, token(userId),null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -608,7 +612,7 @@ public class ServletTestHelper {
 	public UserProfile getUserProfile(
 			HttpServlet dispatchServlet, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.USER_PROFILE, userId, null);
+				HTTPMODE.GET, UrlHelpers.USER_PROFILE, userId, token(userId),null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -626,7 +630,7 @@ public class ServletTestHelper {
 	public void updateUserProfile(Long userId, UserProfile userProfile)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, UrlHelpers.USER_PROFILE, userId, userProfile);
+				HTTPMODE.PUT, UrlHelpers.USER_PROFILE, userId, token(userId),userProfile);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
@@ -642,7 +646,7 @@ public class ServletTestHelper {
 			Long userId, String accessType) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.ACCESS,
-				userId, null);
+				userId, token(userId),null);
 		request.setParameter(UrlHelpers.ACCESS_TYPE_PARAM, accessType);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -662,7 +666,7 @@ public class ServletTestHelper {
 	public StackStatus getStackStatus(HttpServlet dispatchServlet)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.STACK_STATUS, null, null);
+				HTTPMODE.GET, UrlHelpers.STACK_STATUS, null, accessToken, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -676,7 +680,7 @@ public class ServletTestHelper {
 	public StackStatus getAdminStackStatus(HttpServlet dispatchServlet)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.ADMIN_STACK_STATUS, null, null);
+				HTTPMODE.GET, UrlHelpers.ADMIN_STACK_STATUS, null, accessToken, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -690,7 +694,7 @@ public class ServletTestHelper {
 	public StackStatus updateStackStatus(HttpServlet dispatchServlet,
 			Long userId, StackStatus toUpdate) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, UrlHelpers.ADMIN_STACK_STATUS, userId, toUpdate);
+				HTTPMODE.PUT, UrlHelpers.ADMIN_STACK_STATUS, userId, token(userId),toUpdate);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -709,7 +713,7 @@ public class ServletTestHelper {
 	public void clearAllLocks(HttpServlet dispatchServlet,
 			Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, UrlHelpers.ADMIN_CLEAR_LOCKS, userId, null);
+				HTTPMODE.DELETE, UrlHelpers.ADMIN_CLEAR_LOCKS, userId, token(userId),null);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
@@ -718,7 +722,7 @@ public class ServletTestHelper {
 			String id, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.TYPE,
-				userId, null);
+				userId, token(userId),null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -732,7 +736,7 @@ public class ServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id
-						+ UrlHelpers.REFERENCED_BY, userId, null);
+						+ UrlHelpers.REFERENCED_BY, userId, token(userId),null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -747,7 +751,7 @@ public class ServletTestHelper {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.VERSION
 						+ "/" + versionNumber + UrlHelpers.REFERENCED_BY,
-				userId, null);
+				userId, token(userId),null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -764,7 +768,7 @@ public class ServletTestHelper {
 			Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id
-						+ UrlHelpers.BENEFACTOR, userId, null);
+						+ UrlHelpers.BENEFACTOR, userId, token(userId),null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -779,7 +783,7 @@ public class ServletTestHelper {
 	public SearchResults getSearchResults(HttpServlet dispatchServlet,
 			Long userId, Map<String, String> extraParams) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/search", userId, null);
+				HTTPMODE.GET, "/search", userId, token(userId),null);
 		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -792,7 +796,7 @@ public class ServletTestHelper {
 	public MessageToUser sendMessage(Long userId, MessageToUser message)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.MESSAGE, userId, message);
+				HTTPMODE.POST, UrlHelpers.MESSAGE, userId, token(userId), message);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
@@ -804,7 +808,7 @@ public class ServletTestHelper {
 	public void createCloudInMessage(Message message)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.CLOUDMAILIN_MESSAGE, null, message);
+				HTTPMODE.POST, UrlHelpers.CLOUDMAILIN_MESSAGE, null, accessToken, message);
 
 		ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
@@ -833,7 +837,7 @@ public class ServletTestHelper {
 			List<MessageStatusType> inboxFilter, MessageSortBy orderBy,
 			Boolean descending, long limit, long offset) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.MESSAGE_INBOX, userId, null);
+				HTTPMODE.GET, UrlHelpers.MESSAGE_INBOX, userId, token(userId), null);
 		ServletTestHelperUtils.addExtraParams(
 				request,
 				fillInMessagingParams(inboxFilter, orderBy, descending, limit,
@@ -850,7 +854,7 @@ public class ServletTestHelper {
 			MessageSortBy orderBy, Boolean descending, long limit, long offset)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.MESSAGE_OUTBOX, userId, null);
+				HTTPMODE.GET, UrlHelpers.MESSAGE_OUTBOX, userId, token(userId), null);
 		ServletTestHelperUtils
 				.addExtraParams(
 						request,
@@ -867,7 +871,7 @@ public class ServletTestHelper {
 	public MessageToUser getMessage(Long userId, String messageId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.MESSAGE + "/" + messageId, userId,
+				HTTPMODE.GET, UrlHelpers.MESSAGE + "/" + messageId, userId, token(userId), 
 				null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -881,7 +885,7 @@ public class ServletTestHelper {
 			MessageRecipientSet recipients) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.POST, UrlHelpers.MESSAGE + "/" + messageId
-						+ UrlHelpers.FORWARD, userId, recipients);
+						+ UrlHelpers.FORWARD, userId, token(userId), recipients);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
@@ -895,7 +899,7 @@ public class ServletTestHelper {
 			Boolean descending, long limit, long offset) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.MESSAGE + "/" + associatedMessageId
-						+ UrlHelpers.CONVERSATION, userId, null);
+						+ UrlHelpers.CONVERSATION, userId, token(userId), null);
 		ServletTestHelperUtils
 				.addExtraParams(
 						request,
@@ -912,7 +916,7 @@ public class ServletTestHelper {
 	public void updateMessageStatus(Long userId, MessageStatus status)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, UrlHelpers.MESSAGE_STATUS, userId, status);
+				HTTPMODE.PUT, UrlHelpers.MESSAGE_STATUS, userId, token(userId), status);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
@@ -921,7 +925,7 @@ public class ServletTestHelper {
 	public void deleteMessage(HttpServlet dispatchServlet,
 			Long userId, String id) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, UrlHelpers.ADMIN + UrlHelpers.MESSAGE + "/" + id, userId, null);
+				HTTPMODE.DELETE, UrlHelpers.ADMIN + UrlHelpers.MESSAGE + "/" + id, userId, token(userId), null);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
@@ -930,7 +934,7 @@ public class ServletTestHelper {
 	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(
 			String pefix, int limit, int offest) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.USER_GROUP_HEADERS, null, null);
+				HTTPMODE.GET, UrlHelpers.USER_GROUP_HEADERS, null, accessToken, null);
 		if (pefix != null) {
 			request.setParameter(UrlHelpers.PREFIX_FILTER, pefix);
 		}
@@ -990,7 +994,7 @@ public class ServletTestHelper {
 		url.setTokenID(tokenId);
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.POST, UrlHelpers.getAttachmentTypeURL(type) + "/" + id
-						+ UrlHelpers.ATTACHMENT_URL, userId, url);
+						+ UrlHelpers.ATTACHMENT_URL, userId, token(userId), url);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
@@ -1001,7 +1005,7 @@ public class ServletTestHelper {
 
 	public String checkAmznHealth() throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.HEAD, UrlHelpers.HEALTHCHECK, userId, null);
+				HTTPMODE.HEAD, UrlHelpers.HEALTHCHECK, userId, token(userId), null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -1014,7 +1018,7 @@ public class ServletTestHelper {
 			HttpServlet dispatchServlet, T accessRequirement, Long userId,
 			Map<String, String> extraParams) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.ACCESS_REQUIREMENT, userId,
+				HTTPMODE.POST, UrlHelpers.ACCESS_REQUIREMENT, userId, token(userId),
 				accessRequirement);
 		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
@@ -1031,7 +1035,7 @@ public class ServletTestHelper {
 			Map<String, String> extraParams) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.ACCESS_REQUIREMENT+"/"+accessRequirement.getId(), userId,
-				accessRequirement);
+				 token(userId), accessRequirement);
 		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -1046,7 +1050,7 @@ public class ServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/entity/" + id + UrlHelpers.ACCESS_REQUIREMENT,
-				userId, null);
+				userId, token(userId), null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -1060,7 +1064,7 @@ public class ServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/evaluation/" + id
-						+ UrlHelpers.ACCESS_REQUIREMENT, userId, null);
+						+ UrlHelpers.ACCESS_REQUIREMENT, userId, token(userId), null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -1074,7 +1078,7 @@ public class ServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils
 				.initRequest(HTTPMODE.GET, "/entity/" + id
-						+ "/accessRequirementUnfulfilled", userId, null);
+						+ "/accessRequirementUnfulfilled", userId, token(userId), null);
 		if (accessType!=null) request.setParameter("accessType", accessType.name());
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -1088,7 +1092,7 @@ public class ServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/evaluation/" + id
-						+ "/accessRequirementUnfulfilled", userId, null);
+						+ "/accessRequirementUnfulfilled", userId, token(userId), null);
 		if (accessType!=null) request.setParameter("accessType", accessType.name());
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -1102,7 +1106,7 @@ public class ServletTestHelper {
 			String id, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.DELETE, UrlHelpers.ACCESS_REQUIREMENT + "/" + id,
-				userId, null);
+				userId,  token(userId),null);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
@@ -1114,7 +1118,7 @@ public class ServletTestHelper {
 			Map<String, String> extraParams) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.POST, UrlHelpers.ACCESS_APPROVAL, userId,
-				accessApproval);
+				 token(userId), accessApproval);
 		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -1129,7 +1133,7 @@ public class ServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/entity/" + id + UrlHelpers.ACCESS_APPROVAL,
-				userId, null);
+				userId, token(userId), null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -1143,7 +1147,7 @@ public class ServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/evaluation/" + id + UrlHelpers.ACCESS_APPROVAL,
-				userId, null);
+				userId, token(userId), null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -1156,7 +1160,7 @@ public class ServletTestHelper {
 			String id, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.DELETE, UrlHelpers.ACCESS_APPROVAL + "/" + id, userId,
-				null);
+				 token(userId), null);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
@@ -1166,7 +1170,7 @@ public class ServletTestHelper {
 			String requirementId, String accessorId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.DELETE, UrlHelpers.ACCESS_APPROVAL,
-				userId, null);
+				userId, token(userId), null);
 		request.addParameter(ServiceConstants.ACCESS_REQUIREMENT_ID_PARAM, requirementId);
 		request.addParameter(ServiceConstants.ACCESSOR_ID_PARAM, accessorId);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
@@ -1175,7 +1179,7 @@ public class ServletTestHelper {
 
 	public SynapseVersionInfo getVersionInfo() throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.VERSIONINFO, null, null);
+				HTTPMODE.GET, UrlHelpers.VERSIONINFO, null, accessToken, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -1188,7 +1192,7 @@ public class ServletTestHelper {
 			Activity activity, Long userId, Map<String, String> extraParams)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.ACTIVITY, userId, activity);
+				HTTPMODE.POST, UrlHelpers.ACTIVITY, userId, token(userId), activity);
 		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -1202,7 +1206,7 @@ public class ServletTestHelper {
 			String activityId, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ACTIVITY + "/" + activityId, userId,
-				null);
+				 token(userId), null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -1215,7 +1219,7 @@ public class ServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.ACTIVITY + "/" + activity.getId(),
-				userId, activity);
+				userId, token(userId), activity);
 		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -1230,7 +1234,7 @@ public class ServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.DELETE, UrlHelpers.ACTIVITY + "/" + activityId,
-				userId, null);
+				userId, token(userId), null);
 		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
@@ -1242,7 +1246,7 @@ public class ServletTestHelper {
 			Map<String, String> extraParams) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ACTIVITY + "/" + activity.getId()
-						+ UrlHelpers.GENERATED, userId, activity);
+						+ UrlHelpers.GENERATED, userId, token(userId), activity);
 		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -1257,7 +1261,7 @@ public class ServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.POST, UrlHelpers.FAVORITE + "/" + entityId, userId,
-				null);
+				 token(userId), null);
 		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -1272,7 +1276,7 @@ public class ServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.DELETE, UrlHelpers.FAVORITE + "/" + entityId, userId,
-				null);
+				 token(userId), null);
 		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
@@ -1283,7 +1287,7 @@ public class ServletTestHelper {
 			HttpServlet dispatchServlet, Long userId,
 			Map<String, String> extraParams) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.FAVORITE, userId, null);
+				HTTPMODE.GET, UrlHelpers.FAVORITE, userId, token(userId), null);
 		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -1305,7 +1309,7 @@ public class ServletTestHelper {
 	public ColumnModel createColumnModel(DispatcherServlet instance,
 			ColumnModel cm, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.COLUMN, userId, cm);
+				HTTPMODE.POST, UrlHelpers.COLUMN, userId, token(userId), cm);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(instance, request, HttpStatus.CREATED);
@@ -1324,7 +1328,7 @@ public class ServletTestHelper {
 	public ColumnModel getColumnModel(DispatcherServlet instance,
 			String columnId, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.COLUMN + "/" + columnId, userId, null);
+				HTTPMODE.GET, UrlHelpers.COLUMN + "/" + columnId, userId, token(userId), null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(instance, request, HttpStatus.OK);
@@ -1345,7 +1349,7 @@ public class ServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId
-						+ UrlHelpers.COLUMN, userId, null);
+						+ UrlHelpers.COLUMN, userId, token(userId), null);
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(instance, request, HttpStatus.OK);
 		PaginatedColumnModels pcm = ServletTestHelperUtils.readResponse(
@@ -1364,7 +1368,7 @@ public class ServletTestHelper {
 	 */
 	public AsynchronousJobStatus startAsynchJob(DispatcherServlet instance, Long userId, AsynchronousRequestBody body) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.ASYNCHRONOUS_JOB, userId, body);
+				HTTPMODE.POST, UrlHelpers.ASYNCHRONOUS_JOB, userId, token(userId), body);
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		instance.service(request, response);
 		String reponseString = response.getContentAsString();
@@ -1387,7 +1391,7 @@ public class ServletTestHelper {
 	 */
 	public AsynchronousJobStatus getAsynchJobStatus(DispatcherServlet instance, Long userId, String jobId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.ASYNCHRONOUS_JOB+"/"+jobId, userId, null);
+				HTTPMODE.GET, UrlHelpers.ASYNCHRONOUS_JOB+"/"+jobId, userId, token(userId), null);
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		instance.service(request, response);
 		String reponseString = response.getContentAsString();
@@ -1404,7 +1408,7 @@ public class ServletTestHelper {
 	 */
 	public AsynchronousJobStatus startAdminAsynchJob(DispatcherServlet instance, Long userId, AsynchronousRequestBody body) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.ADMIN_ASYNCHRONOUS_JOB, userId, body);
+				HTTPMODE.POST, UrlHelpers.ADMIN_ASYNCHRONOUS_JOB, userId, token(userId), body);
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		instance.service(request, response);
 		String reponseString = response.getContentAsString();
@@ -1418,7 +1422,7 @@ public class ServletTestHelper {
 
 	public AsynchronousJobStatus getAdminAsynchJobStatus(DispatcherServlet instance, Long userId, String jobId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.ADMIN_ASYNCHRONOUS_JOB+"/"+jobId, userId, null);
+				HTTPMODE.GET, UrlHelpers.ADMIN_ASYNCHRONOUS_JOB+"/"+jobId, userId, token(userId), null);
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		instance.service(request, response);
 		String reponseString = response.getContentAsString();
@@ -1432,13 +1436,13 @@ public class ServletTestHelper {
 	
 	public void deleteTableRows(DispatcherServlet instance, RowSelection rows, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.POST, UrlHelpers.ENTITY + "/" + rows.getTableId()
-				+ UrlHelpers.TABLE + "/deleteRows", userId, rows);
+				+ UrlHelpers.TABLE + "/deleteRows", userId, token(userId), rows);
 		ServletTestHelperUtils.dispatchRequest(instance, request, HttpStatus.CREATED);
 	}
 
 	public RowSet getTableRows(DispatcherServlet instance, RowReferenceSet rows, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.POST, UrlHelpers.ENTITY + "/" + rows.getTableId()
-				+ UrlHelpers.TABLE + "/getRows", userId, rows);
+				+ UrlHelpers.TABLE + "/getRows", userId, token(userId), rows);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(instance, request, HttpStatus.CREATED);
 		return ServletTestHelperUtils.readResponse(response, RowSet.class);
 	}
@@ -1447,7 +1451,7 @@ public class ServletTestHelper {
 			boolean preview) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, UrlHelpers.ENTITY + "/" + tableId
 				+ UrlHelpers.TABLE + UrlHelpers.COLUMN + "/" + columnId + "/row/" + row.getRowId() + "/version/" + row.getVersionNumber()
-				+ (preview ? UrlHelpers.FILE_PREVIEW : UrlHelpers.FILE), userId, null);
+				+ (preview ? UrlHelpers.FILE_PREVIEW : UrlHelpers.FILE), userId, token(userId), null);
 		ServletTestHelperUtils.addExtraParams(request, Collections.singletonMap("redirect", "false"));
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(instance, request, HttpStatus.OK);
 		return response.getContentAsString();
@@ -1455,7 +1459,7 @@ public class ServletTestHelper {
 
 	public TableFileHandleResults getTableFileHandles(DispatcherServlet instance, RowReferenceSet row, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.POST, UrlHelpers.ENTITY + "/" + row.getTableId()
-				+ UrlHelpers.TABLE + UrlHelpers.FILE_HANDLES, userId, row);
+				+ UrlHelpers.TABLE + UrlHelpers.FILE_HANDLES, userId, token(userId), row);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(instance, request, HttpStatus.OK);
 		TableFileHandleResults tfhr = ServletTestHelperUtils.readResponse(response, TableFileHandleResults.class);
 		return tfhr;
@@ -1476,7 +1480,7 @@ public class ServletTestHelper {
 			DispatcherServlet instance, Long userId, String prefix, Long limit,
 			Long offset) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.COLUMN, userId, null);
+				HTTPMODE.GET, UrlHelpers.COLUMN, userId, token(userId), null);
 		if (prefix != null) {
 			request.addParameter("prefix", prefix);
 		}
@@ -1502,7 +1506,7 @@ public class ServletTestHelper {
 	 */
 	public AliasCheckResponse checkAlias(HttpServlet dispatchServlet, AliasCheckRequest check) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.PRINCIPAL_AVAILABLE, null, check);
+				HTTPMODE.POST, UrlHelpers.PRINCIPAL_AVAILABLE, null, accessToken, check);
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
 		return objectMapper
@@ -1512,7 +1516,7 @@ public class ServletTestHelper {
 	public Team createTeam(HttpServlet dispatchServlet, Long userId,
 			Team team) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.TEAM, userId, team);
+				HTTPMODE.POST, UrlHelpers.TEAM, userId, token(userId), team);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
@@ -1523,7 +1527,7 @@ public class ServletTestHelper {
 	
 	public List<Team> listTeams(HttpServlet dispatchServlet, IdList idList) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.TEAM_LIST, userId, idList);
+				HTTPMODE.POST, UrlHelpers.TEAM_LIST, userId, token(userId), idList);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -1535,7 +1539,7 @@ public class ServletTestHelper {
 			HttpServlet dispatchServlet, Long teamMemberId, TeamSortOrder sort, Boolean ascending) throws Exception {
 		String uri = UrlHelpers.USER + "/" + teamMemberId + UrlHelpers.TEAM + "/id";
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, uri, userId, null);
+				HTTPMODE.GET, uri, userId, token(userId), null);
 		request.addParameter(ServiceConstants.SORT_BY_PARAM, sort.name());
 		request.addParameter(ServiceConstants.ASCENDING_PARAM, ascending.toString());
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -1547,7 +1551,7 @@ public class ServletTestHelper {
 			Team team) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.DELETE, UrlHelpers.TEAM + "/" + team.getId(), userId,
-				null);
+				 token(userId), null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.NO_CONTENT);
 	}
@@ -1557,7 +1561,7 @@ public class ServletTestHelper {
 			MembershipInvitation mis,
 			String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.MEMBERSHIP_INVITATION, userId, mis);
+				HTTPMODE.POST, UrlHelpers.MEMBERSHIP_INVITATION, userId, token(userId), mis);
 		request.addParameter(AuthorizationConstants.ACCEPT_INVITATION_ENDPOINT_PARAM, acceptInvitationEndpoint);
 		request.addParameter(AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, notificationUnsubscribeEndpoint);
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -1572,7 +1576,7 @@ public class ServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.MEMBERSHIP_INVITATION + "/" + misId,
-				userId, null);
+				userId, token(userId), null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -1587,7 +1591,7 @@ public class ServletTestHelper {
 
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.TEAM + "/" + teamId
-						+ "/openInvitation", userId, null);
+						+ "/openInvitation", userId, token(userId), null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -1601,7 +1605,7 @@ public class ServletTestHelper {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.DELETE,
 				UrlHelpers.MEMBERSHIP_INVITATION + "/" + mis.getId(), userId,
-				null);
+				 token(userId), null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.NO_CONTENT);
 	}
@@ -1610,7 +1614,7 @@ public class ServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + entityId
-						+ UrlHelpers.DOI, userId, null);
+						+ UrlHelpers.DOI, userId, token(userId), null);
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.ACCEPTED);
 
@@ -1622,7 +1626,7 @@ public class ServletTestHelper {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + entityId
 						+ UrlHelpers.VERSION + "/" + versionNumber
-						+ UrlHelpers.DOI, userId, null);
+						+ UrlHelpers.DOI, userId, token(userId), null);
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.ACCEPTED);
 
@@ -1633,7 +1637,7 @@ public class ServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId
-						+ UrlHelpers.DOI, userId, null);
+						+ UrlHelpers.DOI, userId, token(userId), null);
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 
@@ -1645,7 +1649,7 @@ public class ServletTestHelper {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId
 						+ UrlHelpers.VERSION + "/" + versionNumber
-						+ UrlHelpers.DOI, userId, null);
+						+ UrlHelpers.DOI, userId, token(userId), null);
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 
@@ -1656,7 +1660,7 @@ public class ServletTestHelper {
 		String path = "?id=" + objectId + "&type=" + objectType + "&version=" + versionNumber;
 
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.DOI_ASYNC_START, path, userId, null);
+				HTTPMODE.GET, UrlHelpers.DOI_ASYNC_START, path, userId, token(userId), null);
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 		return ServletTestHelperUtils.readResponse(response, DoiAssociation.class);
@@ -1666,7 +1670,7 @@ public class ServletTestHelper {
 		String path = "?id=" + objectId + "&type=" + objectType + "&version=" + versionNumber;
 
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.DOI_ASYNC_START, path, userId, null);
+				HTTPMODE.GET, UrlHelpers.DOI_ASYNC_START, path, userId, token(userId), null);
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 		return ServletTestHelperUtils.readResponse(response, org.sagebionetworks.repo.model.doi.v2.Doi.class);
@@ -1674,7 +1678,7 @@ public class ServletTestHelper {
 
 	public DoiResponse getPortalUrlLocation(Long userId, String objectId, ObjectType objectType, Long versionNumber) throws Exception {
 		String path = "?id=" + objectId + "&type=" + objectType + "&version=" + versionNumber;
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, path, UrlHelpers.DOI_LOCATE, userId, null);
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, path, UrlHelpers.DOI_LOCATE, userId, token(userId), null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 		return ServletTestHelperUtils.readResponse(response, DoiResponse.class);
@@ -1685,7 +1689,7 @@ public class ServletTestHelper {
 	public SearchResults getSearchResults(Long userId, SearchQuery query)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, "/search", userId, query);
+				HTTPMODE.POST, "/search", userId, token(userId), query);
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
 
@@ -1697,7 +1701,7 @@ public class ServletTestHelper {
 	public PaginatedResults<TrashedEntity> getTrashCan(Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.TRASHCAN_VIEW, userId, null);
+				HTTPMODE.GET, UrlHelpers.TRASHCAN_VIEW, userId, token(userId), null);
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 
@@ -1709,7 +1713,7 @@ public class ServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.TRASHCAN + "/trash/" + entityId,
-				userId, null);
+				userId, token(userId), null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 	}
@@ -1718,7 +1722,7 @@ public class ServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.TRASHCAN_PURGE + "/" + entityId,
-				userId, null);
+				userId, token(userId), null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 	}
@@ -1727,14 +1731,14 @@ public class ServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.TRASHCAN + "/restore/" + entityId,
-				userId, null);
+				userId, token(userId), null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 	}
 	
 	public S3FileHandle getFileHandle(Long userId, String fileHandleId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET,"/file/v1", "/fileHandle/" + fileHandleId, userId, null);
+				HTTPMODE.GET,"/file/v1", "/fileHandle/" + fileHandleId, userId, token(userId), null);
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 
@@ -1743,21 +1747,21 @@ public class ServletTestHelper {
 	
 	public void deleteFile(Long userId, String fileHandleId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE,"/file/v1", "/fileHandle/" + fileHandleId, userId, null);
+				HTTPMODE.DELETE,"/file/v1", "/fileHandle/" + fileHandleId, userId, token(userId), null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 	}
 	
 	public void deleteFilePreview(Long userId, String fileHandleId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE,"/file/v1", "/fileHandle/" + fileHandleId + "/filepreview", userId, null);
+				HTTPMODE.DELETE,"/file/v1", "/fileHandle/" + fileHandleId + "/filepreview", userId, token(userId), null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 	}
 	
 	public URL getFileHandleUrl(Long userId, String fileHandleId, Boolean redirect) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET,"/file/v1", "/fileHandle/" + fileHandleId +"/url", userId, null);
+				HTTPMODE.GET,"/file/v1", "/fileHandle/" + fileHandleId +"/url", userId, token(userId), null);
 		if (redirect != null) {
 			request.setParameter("redirect", redirect.toString());
 		}
@@ -1768,7 +1772,7 @@ public class ServletTestHelper {
 	
 	public ExternalFileHandle createExternalFileHandle(Long userId, ExternalFileHandle handle) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST,"/file/v1", "/externalFileHandle", userId, handle);
+				HTTPMODE.POST,"/file/v1", "/externalFileHandle", userId, token(userId), handle);
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 
@@ -1779,7 +1783,7 @@ public class ServletTestHelper {
 			HttpServlet dispatchServlet, Long userId,
 			VerificationSubmission vs, String notificationUnsubscribeEndpoint) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.VERIFICATION_SUBMISSION, userId, vs);
+				HTTPMODE.POST, UrlHelpers.VERIFICATION_SUBMISSION, userId, token(userId), vs);
 		request.addParameter(AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, notificationUnsubscribeEndpoint);
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
@@ -1794,7 +1798,7 @@ public class ServletTestHelper {
 			throws Exception {
 
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.VERIFICATION_SUBMISSION, userId, null);
+				HTTPMODE.GET, UrlHelpers.VERIFICATION_SUBMISSION, userId, token(userId), null);
 		if (verifiedUserId!=null) request.addParameter("verifiedUserId", verifiedUserId.toString());
 		if (state!=null) request.addParameter("currentVerificationState", state.name());
 		if (limit!=null) request.addParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, limit.toString());
@@ -1812,7 +1816,7 @@ public class ServletTestHelper {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.DELETE,
 				UrlHelpers.VERIFICATION_SUBMISSION + "/" + verificationId, userId,
-				null);
+				 token(userId), null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.NO_CONTENT);
 	}
@@ -1821,7 +1825,7 @@ public class ServletTestHelper {
 			HttpServlet dispatchServlet, Long userId, Long verificationId,
 			VerificationState state, String notificationUnsubscribeEndpoint) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.VERIFICATION_SUBMISSION+"/"+verificationId+"/state", userId, state);
+				HTTPMODE.POST, UrlHelpers.VERIFICATION_SUBMISSION+"/"+verificationId+"/state", userId, token(userId), state);
 		request.addParameter(AuthorizationConstants.
 				NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, notificationUnsubscribeEndpoint);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
@@ -1830,7 +1834,7 @@ public class ServletTestHelper {
 	public String getFileHandleUrl(DispatcherServlet instance, 
 			FileHandleAssociation fha, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, "/file/v1",
-				UrlHelpers.FILE + "/" + fha.getFileHandleId(), userId, null);
+				UrlHelpers.FILE + "/" + fha.getFileHandleId(), userId, token(userId), null);
 		request.addParameter("fileAssociateType", fha.getAssociateObjectType().name());
 		request.addParameter("fileAssociateId", fha.getAssociateObjectId());
 		request.addParameter("redirect", "false");
@@ -1841,7 +1845,7 @@ public class ServletTestHelper {
 	public Forum getForumByProjectId(DispatcherServlet dispatchServlet, String projectId,
 			Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.PROJECT+"/"+projectId+UrlHelpers.FORUM, userId, null);
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.PROJECT+"/"+projectId+UrlHelpers.FORUM, userId, token(userId), null);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), Forum.class);
@@ -1850,7 +1854,7 @@ public class ServletTestHelper {
 	public Forum getForum(DispatcherServlet dispatchServlet, String forumId,
 			Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.FORUM+"/"+forumId, userId, null);
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.FORUM+"/"+forumId, userId, token(userId), null);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), Forum.class);
@@ -1859,7 +1863,7 @@ public class ServletTestHelper {
 	public DiscussionThreadBundle createThread(DispatcherServlet dispatchServlet,
 			Long userId, CreateDiscussionThread toCreate) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, "/repo/v1", UrlHelpers.THREAD, userId, toCreate);
+				HTTPMODE.POST, "/repo/v1", UrlHelpers.THREAD, userId, token(userId), toCreate);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.CREATED);
 		return objectMapper.readValue(response.getContentAsString(), DiscussionThreadBundle.class);
@@ -1868,7 +1872,7 @@ public class ServletTestHelper {
 	public DiscussionThreadBundle getThread(DispatcherServlet dispatchServlet,
 			Long userId, String threadId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.THREAD+"/"+threadId, userId, null);
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.THREAD+"/"+threadId, userId, token(userId), null);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), DiscussionThreadBundle.class);
@@ -1877,7 +1881,7 @@ public class ServletTestHelper {
 	public DiscussionThreadBundle updateThreadTitle(DispatcherServlet dispatchServlet,
 			Long userId, String threadId, UpdateThreadTitle title) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+"/title", userId, title);
+				HTTPMODE.PUT, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+"/title", userId, token(userId), title);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.CREATED);
 		return objectMapper.readValue(response.getContentAsString(), DiscussionThreadBundle.class);
@@ -1886,7 +1890,7 @@ public class ServletTestHelper {
 	public DiscussionThreadBundle updateThreadMessage(DispatcherServlet dispatchServlet,
 			Long userId, String threadId, UpdateThreadMessage newMessage) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+"/message", userId, newMessage);
+				HTTPMODE.PUT, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+"/message", userId, token(userId), newMessage);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.CREATED);
 		return objectMapper.readValue(response.getContentAsString(), DiscussionThreadBundle.class);
@@ -1895,28 +1899,28 @@ public class ServletTestHelper {
 	public void markThreadAsDeleted(DispatcherServlet dispatchServlet,
 			Long userId, String threadId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, "/repo/v1", UrlHelpers.THREAD+"/"+threadId, userId, null);
+				HTTPMODE.DELETE, "/repo/v1", UrlHelpers.THREAD+"/"+threadId, userId, token(userId), null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
 	public void markThreadAsNotDeleted(DispatcherServlet dispatchServlet,
 			Long userId, String threadId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+"/restore", userId, null);
+				HTTPMODE.PUT, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+"/restore", userId, token(userId), null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 	}
 
 	public void pinThread(DispatcherServlet dispatchServlet,
 			Long userId, String threadId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+UrlHelpers.PIN, userId, null);
+				HTTPMODE.PUT, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+UrlHelpers.PIN, userId, token(userId), null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
 	public void unpinThread(DispatcherServlet dispatchServlet,
 			Long userId, String threadId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+UrlHelpers.UNPIN, userId, null);
+				HTTPMODE.PUT, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+UrlHelpers.UNPIN, userId, token(userId), null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
@@ -1924,7 +1928,7 @@ public class ServletTestHelper {
 			Long userId, String forumId, Long limit, Long offset, DiscussionThreadOrder order,
 			Boolean ascending, DiscussionFilter filter) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.FORUM+"/"+forumId+"/threads", userId, null);
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.FORUM+"/"+forumId+"/threads", userId, token(userId), null);
 		request.addParameter("limit", limit.toString());
 		request.addParameter("offset", offset.toString());
 		if (order != null) {
@@ -1942,7 +1946,7 @@ public class ServletTestHelper {
 	public DiscussionReplyBundle createReply(DispatcherServlet dispatchServlet,
 			Long userId, CreateDiscussionReply createReply) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, "/repo/v1", UrlHelpers.REPLY, userId, createReply);
+				HTTPMODE.POST, "/repo/v1", UrlHelpers.REPLY, userId, token(userId), createReply);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.CREATED);
 		return objectMapper.readValue(response.getContentAsString(), DiscussionReplyBundle.class);
@@ -1950,7 +1954,7 @@ public class ServletTestHelper {
 
 	public DiscussionReplyBundle getReply(DispatcherServlet dispatchServlet, Long userId, String replyId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.REPLY+"/"+replyId, userId, null);
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.REPLY+"/"+replyId, userId, token(userId), null);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), DiscussionReplyBundle.class);
@@ -1960,7 +1964,7 @@ public class ServletTestHelper {
 			Long userId, String threadId, Long limit, Long offset, DiscussionReplyOrder order,
 			Boolean ascending, DiscussionFilter filter) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+"/replies", userId, null);
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+"/replies", userId, token(userId), null);
 		request.addParameter("limit", limit.toString());
 		request.addParameter("offset", offset.toString());
 		if (order != null) {
@@ -1978,7 +1982,7 @@ public class ServletTestHelper {
 	public DiscussionReplyBundle updateReplyMessage(DispatcherServlet dispatchServlet,
 			Long userId, String replyId, UpdateReplyMessage newMessage) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, "/repo/v1", UrlHelpers.REPLY+"/"+replyId+"/message", userId, newMessage);
+				HTTPMODE.PUT, "/repo/v1", UrlHelpers.REPLY+"/"+replyId+"/message", userId, token(userId), newMessage);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.CREATED);
 		return objectMapper.readValue(response.getContentAsString(), DiscussionReplyBundle.class);
@@ -1987,14 +1991,14 @@ public class ServletTestHelper {
 	public void markReplyAsDeleted(DispatcherServlet dispatchServlet, Long userId,
 			String replyId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, "/repo/v1", UrlHelpers.REPLY+"/"+replyId, userId, null);
+				HTTPMODE.DELETE, "/repo/v1", UrlHelpers.REPLY+"/"+replyId, userId, token(userId), null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
 	public MessageURL getThreadUrl(DispatcherServlet dispatchServlet,
 			Long userId, String messageKey) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.THREAD_URL, userId, null);
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.THREAD_URL, userId, token(userId), null);
 		request.setParameter("messageKey", messageKey);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
@@ -2004,7 +2008,7 @@ public class ServletTestHelper {
 	public MessageURL getReplyUrl(DispatcherServlet dispatchServlet,
 			Long userId, String messageKey) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.REPLY_URL, userId, null);
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.REPLY_URL, userId, token(userId), null);
 		request.setParameter("messageKey", messageKey);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
@@ -2014,7 +2018,7 @@ public class ServletTestHelper {
 	public Subscription subscribe(DispatcherServlet dispatchServlet,
 			Long userId, Topic toSubscribe) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, "/repo/v1", UrlHelpers.SUBSCRIPTION, userId, toSubscribe);
+				HTTPMODE.POST, "/repo/v1", UrlHelpers.SUBSCRIPTION, userId, token(userId), toSubscribe);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.CREATED);
 		return objectMapper.readValue(response.getContentAsString(), Subscription.class);
@@ -2024,7 +2028,7 @@ public class ServletTestHelper {
 			DispatcherServlet dispatchServlet, Long userId, Long limit,
 			Long offset, SubscriptionObjectType objectType) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.SUBSCRIPTION_ALL, userId, null);
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.SUBSCRIPTION_ALL, userId, token(userId), null);
 		request.setParameter("limit", limit.toString());
 		request.setParameter("offset", offset.toString());
 		if (objectType != null) {
@@ -2038,20 +2042,20 @@ public class ServletTestHelper {
 	public void unsubscribe(DispatcherServlet dispatchServlet, Long userId,
 			String subscriptionId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, "/repo/v1", UrlHelpers.SUBSCRIPTION+"/"+subscriptionId, userId, null);
+				HTTPMODE.DELETE, "/repo/v1", UrlHelpers.SUBSCRIPTION+"/"+subscriptionId, userId, token(userId), null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
 	public void unsubscribeAll(DispatcherServlet dispatchServlet, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, "/repo/v1", UrlHelpers.SUBSCRIPTION_ALL, userId, null);
+				HTTPMODE.DELETE, "/repo/v1", UrlHelpers.SUBSCRIPTION_ALL, userId, token(userId), null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
 	public SubscriptionPagedResults getSubscriptionList(DispatcherServlet dispatchServlet,
 			Long userId, SubscriptionRequest subRequest) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, "/repo/v1", UrlHelpers.SUBSCRIPTION_LIST, userId, subRequest);
+				HTTPMODE.POST, "/repo/v1", UrlHelpers.SUBSCRIPTION_LIST, userId, token(userId), subRequest);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), SubscriptionPagedResults.class);
@@ -2060,7 +2064,7 @@ public class ServletTestHelper {
 	public Subscription get(DispatcherServlet dispatchServlet, Long userId,
 			String subscriptionId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.SUBSCRIPTION+"/"+subscriptionId, userId, null);
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.SUBSCRIPTION+"/"+subscriptionId, userId, token(userId), null);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), Subscription.class);
 	}
@@ -2068,7 +2072,7 @@ public class ServletTestHelper {
 	public ThreadCount getThreadCount(DispatcherServlet dispatchServlet, Long userId, String forumId,
 			DiscussionFilter filter) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.FORUM+"/"+forumId+UrlHelpers.THREAD_COUNT, userId, null);
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.FORUM+"/"+forumId+UrlHelpers.THREAD_COUNT, userId, token(userId), null);
 		request.addParameter("filter", filter.name());
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
@@ -2078,7 +2082,7 @@ public class ServletTestHelper {
 	public ReplyCount getReplyCount(DispatcherServlet dispatchServlet, Long userId, String threadId,
 			DiscussionFilter filter) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+UrlHelpers.REPLY_COUNT, userId, null);
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+UrlHelpers.REPLY_COUNT, userId, token(userId), null);
 		request.addParameter("filter", filter.name());
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
@@ -2087,7 +2091,7 @@ public class ServletTestHelper {
 
 	public PrincipalAliasResponse getPrincipalAlias(DispatcherServlet dispatchServlet, PrincipalAliasRequest principalAliasRequest) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, "/repo/v1", UrlHelpers.PRINCIPAL+"/alias", userId, principalAliasRequest);
+				HTTPMODE.POST, "/repo/v1", UrlHelpers.PRINCIPAL+"/alias", userId, token(userId), principalAliasRequest);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), PrincipalAliasResponse.class);
@@ -2096,7 +2100,7 @@ public class ServletTestHelper {
 	public DockerAuthorizationToken authorizeDockerAccess(DispatcherServlet dispatchServlet, Long userId,
 			String service, String[] scope) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.DOCKER_PATH, UrlHelpers.DOCKER_AUTHORIZATION, userId, null);
+				HTTPMODE.GET, UrlHelpers.DOCKER_PATH, UrlHelpers.DOCKER_AUTHORIZATION, userId, token(userId), null);
 		request.addParameter(AuthorizationConstants.DOCKER_SERVICE_PARAM, service);
 		if (scope != null) {
 			request.addParameter(AuthorizationConstants.DOCKER_SCOPE_PARAM, scope);
@@ -2109,7 +2113,7 @@ public class ServletTestHelper {
 	public void createDockerCommit(DispatcherServlet dispatchServlet,
 			Long userId, String entityId, DockerCommit commit) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, "/repo/v1", "/entity/"+entityId+"/dockerCommit", userId, commit);
+				HTTPMODE.POST, "/repo/v1", "/entity/"+entityId+"/dockerCommit", userId, token(userId), commit);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
@@ -2117,7 +2121,7 @@ public class ServletTestHelper {
 	  		DockerCommitSortBy sortBy, Boolean ascending, Long limit, Long offset)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/entity/"+entityId+"/dockerTag", userId, null);
+				HTTPMODE.GET, "/entity/"+entityId+"/dockerTag", userId, token(userId), null);
 
 		if (sortBy!=null) request.addParameter("sort", ""+sortBy);
 		if (ascending!=null) request.addParameter("ascending", ""+ascending);
@@ -2134,7 +2138,7 @@ public class ServletTestHelper {
 	public PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(DispatcherServlet dispatchServlet,
 			Long userId, String entityId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.REPO_PATH, UrlHelpers.ENTITY+"/"+entityId+UrlHelpers.THREADS, userId, null);
+				HTTPMODE.GET, UrlHelpers.REPO_PATH, UrlHelpers.ENTITY+"/"+entityId+UrlHelpers.THREADS, userId, token(userId), null);
 		request.addParameter("limit", limit.toString());
 		request.addParameter("offset", offset.toString());
 		if (order != null) {
@@ -2159,7 +2163,7 @@ public class ServletTestHelper {
 
 	public PaginatedIds getModerators(DispatcherServlet dispatchServlet, Long adminUserId, String forumId, Long limit, Long offset) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.REPO_PATH, UrlHelpers.FORUM+"/"+forumId+UrlHelpers.MODERATORS, userId, null);
+				HTTPMODE.GET, UrlHelpers.REPO_PATH, UrlHelpers.FORUM+"/"+forumId+UrlHelpers.MODERATORS, userId, token(userId), null);
 		request.addParameter("limit", limit.toString());
 		request.addParameter("offset", offset.toString());
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
