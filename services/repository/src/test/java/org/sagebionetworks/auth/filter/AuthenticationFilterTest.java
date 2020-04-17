@@ -2,7 +2,6 @@ package org.sagebionetworks.auth.filter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -45,7 +44,6 @@ import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.mock.web.MockFilterChain;
@@ -123,6 +121,7 @@ public class AuthenticationFilterTest {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		MockFilterChain filterChain = new MockFilterChain();
+		when(oidcTokenHelper.createAnonymousAccessToken()).thenReturn(BEARER_TOKEN);
 		
 		filter.doFilter(request, response, filterChain);
 		
@@ -144,7 +143,8 @@ public class AuthenticationFilterTest {
 		request.addHeader(AuthorizationConstants.SESSION_TOKEN_PARAM, "");
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		MockFilterChain filterChain = new MockFilterChain();
-		
+		when(oidcTokenHelper.createAnonymousAccessToken()).thenReturn(BEARER_TOKEN);
+
 		filter.doFilter(request, response, filterChain);
 		
 		// Should default to anonymous
@@ -208,7 +208,7 @@ public class AuthenticationFilterTest {
 	public void testSessionToken_isNull() throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.addParameter(AuthorizationConstants.SESSION_TOKEN_PARAM, (String) null);
-		
+		when(oidcTokenHelper.createAnonymousAccessToken()).thenReturn(BEARER_TOKEN);		
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		MockFilterChain filterChain = new MockFilterChain();
 		
@@ -369,6 +369,7 @@ public class AuthenticationFilterTest {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(null);
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
 		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.emptyEnumeration());
+		when(oidcTokenHelper.createAnonymousAccessToken()).thenReturn(BEARER_TOKEN);		
 
 		// method under test
 		filter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
@@ -378,7 +379,7 @@ public class AuthenticationFilterTest {
 		verify(mockAuthService, never()).hasUserAcceptedTermsOfUse(BEARER_TOKEN);
 		
 		assertEquals("273950", requestCaptor.getValue().getParameter(AuthorizationConstants.USER_ID_PARAM));
-		assertNull(requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME));
+		assertEquals("Bearer "+BEARER_TOKEN, requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME));
 	}
 
 

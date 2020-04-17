@@ -123,11 +123,13 @@ public class AuthenticationFilter implements Filter {
 				}	
 			} else { // anonymous
 				userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+				accessToken = oidcTokenHelper.createAnonymousAccessToken(); // TODO once we roll back the original OAuth changes we can remove this
 			}
 		}
 		
 		// there are multiple paths to this point, but all require creating a userId
 		ValidateArgument.required(userId, "userId");
+		ValidateArgument.required(accessToken, "accessToken"); // TODO once we roll back the original OAuth changes we can remove this
 
 		// If the user is not anonymous, check if they have accepted the terms of use
 		if (!BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(userId)) {
