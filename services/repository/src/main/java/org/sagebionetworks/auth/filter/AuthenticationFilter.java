@@ -150,7 +150,7 @@ public class AuthenticationFilter implements Filter {
 		try {
 			Map<String, String[]> modParams = new HashMap<String, String[]>(req.getParameterMap());
 			modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
-			Map<String, String[]> modHeaders = HttpAuthUtil.copyHeaders(req);
+			Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(req);
 			if (accessToken!=null) {
 				HttpAuthUtil.setBearerTokenHeader(modHeaders, accessToken);
 			}
