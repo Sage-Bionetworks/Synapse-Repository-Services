@@ -82,52 +82,50 @@ public class OAuthScopeInterceptor implements HandlerInterceptor {
 			return true;
 		}
 		
-		Set<String> missingScopes = new TreeSet<String>();
-		{
-			// if no scopes are specified by an annotation on the method, then we use these defaults
-			Set<OAuthScope> requiredScopes = new TreeSet<OAuthScope>(DEFAULT_SCOPES);
-			
-			if (!(handler instanceof HandlerMethod)) {
-				throw new IllegalStateException("Ths HandlerInterceptor should only be applied to HandlerMethods, but this handler is a "+handler.getClass());
-			}
-			
-			HandlerMethod handlerMethod = (HandlerMethod) handler;
+		if (!(handler instanceof HandlerMethod)) {
+			throw new IllegalStateException("Ths HandlerInterceptor should only be applied to HandlerMethods, but this handler is a "+handler.getClass());
+		}
+		
+		HandlerMethod handlerMethod = (HandlerMethod) handler;
 
-			// if no 'userId' parameter or access token header then this is 
-			// not an authenticated request, and no scope is required
-			if (!hasUserIdParameterOrAccessTokenHeader(handlerMethod)) {
-				return true;
-			}
+		// if no 'userId' parameter or access token header then this is 
+		// not an authenticated request, and no scope is required
+		if (!hasUserIdParameterOrAccessTokenHeader(handlerMethod)) {
+			return true;
+		}
 
-			RequiredScope requiredScopeAnnotation = handlerMethod.getMethodAnnotation(RequiredScope.class);
-			if (requiredScopeAnnotation != null) {
-				requiredScopes = new HashSet<OAuthScope>(Arrays.asList(requiredScopeAnnotation.value()));
-			}
+		// if no scopes are specified by an annotation on the method, then we use these defaults
+		Set<OAuthScope> requiredScopes = new TreeSet<OAuthScope>(DEFAULT_SCOPES);
+		
+		RequiredScope requiredScopeAnnotation = handlerMethod.getMethodAnnotation(RequiredScope.class);
+		if (requiredScopeAnnotation != null) {
+			requiredScopes = new HashSet<OAuthScope>(Arrays.asList(requiredScopeAnnotation.value()));
+		}
 
-			List<OAuthScope> requestScopes = Collections.EMPTY_LIST;
-			String synapseAuthorizationHeader = request.getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME);
-			String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(synapseAuthorizationHeader);
-			if (accessToken!=null) {
+		List<OAuthScope> requestScopes = Collections.EMPTY_LIST;
+		String synapseAuthorizationHeader = request.getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME);
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(synapseAuthorizationHeader);
+		if (accessToken!=null) {
+			try {
 				Jwt<JwsHeader, Claims> jwt = oidcTokenHelper.parseJWT(accessToken);
 				requestScopes = ClaimsJsonUtil.getScopeFromClaims(jwt.getBody());
-			}
-
-			requiredScopes.removeAll(requestScopes);
-			for (OAuthScope scope: requiredScopes) {
-				missingScopes.add(scope.name());
+			} catch (IllegalArgumentException e) {
+				HttpAuthUtil.reject(response, e.getMessage(), HttpStatus.UNAUTHORIZED);
+				return false;
 			}
 		}
 
-		if (missingScopes.isEmpty()) {
+		requiredScopes.removeAll(requestScopes);
+		if (requiredScopes.isEmpty()) {
 			return true;
 		}
 		
-		StringBuilder sb = new StringBuilder(ERROR_MESSAGE_PREFIX);
-		boolean first = true;
-		for (String missingScope : missingScopes) {
-			if (first) first=false; else sb.append(", ");
-			sb.append(missingScope);
+		Set<String> missingScopes = new TreeSet<String>();
+		for (OAuthScope scope: requiredScopes) {
+			missingScopes.add(scope.name());
 		}
+		StringBuilder sb = new StringBuilder(ERROR_MESSAGE_PREFIX);
+		sb.append(String.join(", ", missingScopes));
 
 		HttpAuthUtil.reject(response, sb.toString(), HttpStatus.FORBIDDEN);
 		
