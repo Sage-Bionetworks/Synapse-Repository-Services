@@ -1,9 +1,8 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,10 +11,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -52,11 +51,12 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.google.common.collect.Lists;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TableTransactionWorkerIntegrationTest {
 	
@@ -84,7 +84,7 @@ public class TableTransactionWorkerIntegrationTest {
 	List<String> toDelete;
 	
 
-	@Before
+	@BeforeEach
 	public void before(){		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		// integer column
@@ -102,13 +102,13 @@ public class TableTransactionWorkerIntegrationTest {
 		toDelete = new LinkedList<>();
 	}
 	
-	@After
+	@AfterEach
 	public void after(){
 		if(toDelete != null){
 			for(String id: toDelete){
 				try {
 					entityManager.deleteEntity(adminUserInfo, id);
-				} catch (Exception e) {}
+				} catch (Exception ignored) {}
 			}
 		}
 	}
@@ -437,8 +437,7 @@ public class TableTransactionWorkerIntegrationTest {
 	 * @return
 	 */
 	public static SnapshotRequest createVersionRequest() {
-		SnapshotRequest version = new SnapshotRequest();
-		return version;
+		return new SnapshotRequest();
 	}
 	
 	/**
@@ -449,9 +448,7 @@ public class TableTransactionWorkerIntegrationTest {
 	 */
 	public static PartialRowSet createRowSet(String tableId, PartialRow...partialRows) {
 		List<PartialRow> rows = new ArrayList<PartialRow>(partialRows.length);
-		for(PartialRow row: partialRows) {
-			rows.add(row);
-		}
+		rows.addAll(Arrays.asList(partialRows));
 		PartialRowSet rowSet = new PartialRowSet();
 		rowSet.setRows(rows);
 		rowSet.setTableId(tableId);
@@ -491,9 +488,9 @@ public class TableTransactionWorkerIntegrationTest {
 			status = asynchJobStatusManager.getJobStatus(user, status.getJobId());
 			switch(status.getJobState()){
 			case FAILED:
-				assertTrue("Job failed: "+status.getErrorDetails(), false);
+				fail("Job failed: " + status.getErrorDetails());
 			case PROCESSING:
-				assertTrue("Timed out waiting for job to complete",(System.currentTimeMillis()-startTime) < MAX_WAIT_MS);
+				assertTrue((System.currentTimeMillis()-startTime) < MAX_WAIT_MS, "Timed out waiting for job to complete");
 				System.out.println("Waiting for job: "+status.getProgressMessage());
 				Thread.sleep(1000);
 				break;
@@ -519,12 +516,12 @@ public class TableTransactionWorkerIntegrationTest {
 			case FAILED:
 				return status.getErrorMessage();
 			case PROCESSING:
-				assertTrue("Timed out waiting for job to complete",(System.currentTimeMillis()-startTime) < MAX_WAIT_MS);
+				assertTrue((System.currentTimeMillis()-startTime) < MAX_WAIT_MS, "Timed out waiting for job to complete");
 				System.out.println("Waiting for job to fail");
 				Thread.sleep(1000);
 				break;
 			case COMPLETE:
-				assertTrue("Expected the Job to fail but it completed.", false);
+				fail("Expected the Job to fail but it completed.");
 			}
 		}
 	}
