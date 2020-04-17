@@ -8,11 +8,11 @@ public interface JsonSchemaDao {
 	/**
 	 * Create a JSON schema if it does not already exist.
 	 * 
-	 * @param schemaRoot
+	 * @param request
 	 * @return The returned SchemaInfo.id will either be the ID of the newly created
 	 *         schema or the ID of the existing schema.
 	 */
-	SchemaInfo createSchemaIfDoesNotExist(SchemaInfo schemaRoot);
+	SchemaInfo createSchemaIfDoesNotExist(NewSchemaRequest request);
 
 	/**
 	 * Lookup a SchemaInfo from an organization name and schema name.
@@ -47,7 +47,7 @@ public interface JsonSchemaDao {
 	 * @param request
 	 * @return
 	 */
-	String createNewVersion(NewVersionRequest request);
+	JsonSchemaVersionInfo createNewVersion(NewVersionRequest request);
 	
 	/**
 	 * Get the version information for the given version ID

@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.schema;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BLOB_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BLOB_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BLOB_SHA256;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_CREATED_BY;
@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -41,8 +42,6 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 	private IdGenerator idGenerator;
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
-	@Autowired
-	private DBOBasicDao basicDao;
 
 	public static final RowMapper<SchemaInfo> SCHEMA_INFO_MAPPER = (ResultSet rs, int rowNum) -> {
 		SchemaInfo info = new SchemaInfo();
@@ -66,25 +65,24 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 
 	@WriteTransaction
 	@Override
-	public SchemaInfo createSchemaIfDoesNotExist(SchemaInfo schemaRoot) {
-		ValidateArgument.required(schemaRoot, "SchemaInfo");
-		ValidateArgument.required(schemaRoot.getOrganizationId(), "schema.organizationId");
-		ValidateArgument.required(schemaRoot.getName(), "schema.name");
-		ValidateArgument.required(schemaRoot.getCreatedBy(), "schema.createdBy");
-		ValidateArgument.required(schemaRoot.getCreatedOn(), "schema.createdOn");
+	public SchemaInfo createSchemaIfDoesNotExist(NewSchemaRequest request) {
+		ValidateArgument.required(request, "NewSchemaRequest");
+		ValidateArgument.required(request.getOrganizationId(), "request.organizationId");
+		ValidateArgument.required(request.getSchemaName(), "request.schemaName");
+		ValidateArgument.required(request.getCreatedBy(), "request.createdBy");
 		try {
 			// Try to get the schema if it already exists
-			return getSchemaInfoForUpdate(schemaRoot.getOrganizationId(), schemaRoot.getName());
+			return getSchemaInfoForUpdate(request.getOrganizationId(), request.getSchemaName());
 		} catch (NotFoundException e) {
 			Long numericId = idGenerator.generateNewId(IdType.JSON_SCHEMA_ID);
+			Timestamp now = new Timestamp(System.currentTimeMillis());
 			// For concurrent calls the loser's data will be ignored.
 			jdbcTemplate.update(
 					"INSERT IGNORE INTO " + TABLE_JSON_SCHEMA + " (" + COL_JSON_SCHEMA_ID + "," + COL_JSON_SCHEMA_ORG_ID
 							+ "," + COL_JSON_SCHEMA_NAME + "," + COL_JSON_SCHEMA_CREATED_BY + ","
 							+ COL_JSON_SCHEMA_CREATED_ON + ") VALUES (?,?,?,?,?)",
-					numericId, schemaRoot.getOrganizationId(), schemaRoot.getName(), schemaRoot.getCreatedBy(),
-					schemaRoot.getCreatedOn());
-			return getSchemaInfoForUpdate(schemaRoot.getOrganizationId(), schemaRoot.getName());
+					numericId, request.getOrganizationId(), request.getSchemaName(), request.getCreatedBy(), now);
+			return getSchemaInfoForUpdate(request.getOrganizationId(), request.getSchemaName());
 		}
 	}
 
@@ -141,27 +139,32 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 
 	@WriteTransaction
 	@Override
-	public String createNewVersion(NewVersionRequest request) {
+	public JsonSchemaVersionInfo createNewVersion(NewVersionRequest request) {
 		ValidateArgument.required(request, "NewVersionRequest");
 		ValidateArgument.required(request.getSchemaId(), "schemaId");
 		ValidateArgument.required(request.getCreatedBy(), "createdBy");
-		ValidateArgument.required(request.getCreatedOn(), "createdOn");
 		ValidateArgument.required(request.getBlobId(), "blobId");
 
 		Long versionId = idGenerator.generateNewId(IdType.JSON_SCHEMA_VERSION_ID);
-		DBOJsonSchemaVersion dbo = new DBOJsonSchemaVersion();
-		dbo.setVersionId(versionId);
-		dbo.setSchemaId(Long.parseLong(request.getSchemaId()));
-		dbo.setSemanticVersion(request.getSemanticVersion());
-		dbo.setCreatedBy(request.getCreatedBy());
-		dbo.setCreatedOn(new Timestamp(request.getCreatedOn().getTime()));
-		dbo.setBlobId(Long.parseLong(request.getBlobId()));
-		basicDao.createNew(dbo);
-		return versionId.toString();
+		Timestamp now = new Timestamp(System.currentTimeMillis());
+		try {
+			jdbcTemplate.update(
+					"INSERT INTO " + TABLE_JSON_SCHEMA_VERSION + " (" + COL_JSON_SCHEMA_VER_ID + ","
+							+ COL_JSON_SCHEMA_VER_SCHEMA_ID + "," + COL_JSON_SCHEMA_VER_SEMANTIC + ","
+							+ COL_JSON_SCHEMA_VER_CREATED_BY + "," + COL_JSON_SCHEMA_VER_CREATED_ON + ","
+							+ COL_JSON_SCHEMA_VER_BLOB_ID + ") VALUES (?,?,?,?,?,?)",
+					versionId, request.getSchemaId(), request.getSemanticVersion(), request.getCreatedBy(), now,
+					request.getBlobId());
+		} catch (DuplicateKeyException e) {
+			throw new IllegalArgumentException(
+					"Semantic version: '" + request.getSemanticVersion() + "' already exists for this JSON schema");
+		}
+		return getVersionInfo(versionId.toString());
 	}
 
 	@Override
 	public JsonSchemaVersionInfo getVersionInfo(String versionId) {
+		ValidateArgument.required(versionId, "versionId");
 		try {
 			return jdbcTemplate.queryForObject(
 					"SELECT V.*, B." + COL_JSON_SCHEMA_BLOB_SHA256 + " FROM " + TABLE_JSON_SCHEMA_VERSION

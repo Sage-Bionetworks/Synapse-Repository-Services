@@ -115,7 +115,7 @@ public class SqlConstants {
 	// Json-Schema
 	public static final String TABLE_JSON_SCHEMA			= "JSON_SCHEMA";
 	public static final String COL_JSON_SCHEMA_ID			= "ID";
-	public static final String COL_JSON_SCHEMA_ORG_ID		= "ORG_ID";
+	public static final String COL_JSON_SCHEMA_ORG_ID		= "ORGANIZATION_ID";
 	public static final String COL_JSON_SCHEMA_NAME			= "NAME";
 	public static final String COL_JSON_SCHEMA_CREATED_BY	= "CREATED_BY";
 	public static final String COL_JSON_SCHEMA_CREATED_ON	= "CREATED_ON";

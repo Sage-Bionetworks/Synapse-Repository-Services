@@ -1,13 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.schema;
 
-import java.util.Date;
+import java.util.Objects;
 
 public class NewVersionRequest {
 
 	private String schemaId;
 	private String semanticVersion;
 	private Long createdBy;
-	private Date createdOn;
 	private String blobId;
 
 	/**
@@ -56,21 +55,6 @@ public class NewVersionRequest {
 	}
 
 	/**
-	 * @return the createdOn
-	 */
-	public Date getCreatedOn() {
-		return createdOn;
-	}
-
-	/**
-	 * @param createdOn the createdOn to set
-	 */
-	public NewVersionRequest withCreatedOn(Date createdOn) {
-		this.createdOn = createdOn;
-		return this;
-	}
-
-	/**
 	 * @return the blobId
 	 */
 	public String getBlobId() {
@@ -83,6 +67,24 @@ public class NewVersionRequest {
 	public NewVersionRequest withBlobId(String blobId) {
 		this.blobId = blobId;
 		return this;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(blobId, createdBy, schemaId, semanticVersion);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (!(obj instanceof NewVersionRequest)) {
+			return false;
+		}
+		NewVersionRequest other = (NewVersionRequest) obj;
+		return Objects.equals(blobId, other.blobId) && Objects.equals(createdBy, other.createdBy)
+				&& Objects.equals(schemaId, other.schemaId) && Objects.equals(semanticVersion, other.semanticVersion);
 	}
 
 }

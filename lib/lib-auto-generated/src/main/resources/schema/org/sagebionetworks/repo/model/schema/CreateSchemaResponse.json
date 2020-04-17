@@ -6,9 +6,9 @@
 		}
 	],
 	"properties": {
-		"schema": {
+		"newVersionInfo": {
 			"description": "The JsonSchema definition to be created.",
-			"$ref": "org.sagebionetworks.repo.model.schema.JsonSchema"
+			"$ref": "org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo"
 		}
 	}
 }
