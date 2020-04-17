@@ -176,7 +176,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void deleteTable(IdAndVersion tableId) {
-		deleteMultiValueTablesForTable(tableId, false);
+		boolean alterTemp = false;
+		deleteMultiValueTablesForTable(tableId, alterTemp);
 		template.update(SQLUtils.dropTableSQL(tableId, SQLUtils.TableType.INDEX));
 		deleteSecondaryTables(tableId);
 	}
@@ -458,7 +459,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public Set<Long> getMultivalueColumnIndexTableColumnIds(IdAndVersion tableId){
-		return getMultivalueColumnIndexTableNames(tableId, false)
+		boolean alterTemp = false;
+		return getMultivalueColumnIndexTableNames(tableId, alterTemp)
 				.stream()
 				.map((String indexTableName) -> SQLUtils.getColumnIdFromMultivalueColumnIndexTableName(tableId, indexTableName))
 				.collect(Collectors.toSet());
