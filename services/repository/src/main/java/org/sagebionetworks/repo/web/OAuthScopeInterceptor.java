@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -29,13 +30,21 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
 
+/*
+ * For requests which require authentication (have a 'userId' parameter) and are not anonymous, 
+ * the scope in the access token is compared to the scope in the RequiredScope annotation 
+ * (default to full scope) and 403 status is returned if the required scope is not present.
+ */
 public class OAuthScopeInterceptor implements HandlerInterceptor {
 
 	/*
 	 * If a handler is not annotated with RequiredScope then, by default, it requires the following
 	 */
-	private static final Set<OAuthScope> DEFAULT_SCOPES = new HashSet<OAuthScope>(
-			Arrays.asList(new OAuthScope[] {OAuthScope.view, OAuthScope.download, OAuthScope.modify}));
+	private static final Set<OAuthScope> DEFAULT_SCOPES;
+	static {
+		DEFAULT_SCOPES = new HashSet<OAuthScope>(Arrays.asList(OAuthScope.values()));
+		DEFAULT_SCOPES.remove(OAuthScope.openid);
+	}
 
 	private static final String ERROR_MESSAGE_PREFIX  = "Request lacks scope(s) required by this service: ";
 	
@@ -66,14 +75,35 @@ public class OAuthScopeInterceptor implements HandlerInterceptor {
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
 			throws Exception {
-		Set<OAuthScope> missingScopes;
+		
+		// anonymous requests do not need to have scope checked, they have the same 
+		// access that unauthenticated requests have
+		if (isAnonymous(request)) {
+			return true;
+		}
+		
+		Set<String> missingScopes = new TreeSet<String>();
 		{
-			// anonymous requests do not need to have scope checked, they have the same 
-			// access that unauthenticated requests have
-			if (isAnonymous(request)) {
-				return true;
+			// if no scopes are specified by an annotation on the method, then we use these defaults
+			Set<OAuthScope> requiredScopes = new TreeSet<OAuthScope>(DEFAULT_SCOPES);
+			
+			if (!(handler instanceof HandlerMethod)) {
+				throw new IllegalStateException("Ths HandlerInterceptor should only be applied to HandlerMethods, but this handler is a "+handler.getClass());
 			}
 			
+			HandlerMethod handlerMethod = (HandlerMethod) handler;
+
+			// if no 'userId' parameter or access token header then this is 
+			// not an authenticated request, and no scope is required
+			if (!hasUserIdParameterOrAccessTokenHeader(handlerMethod)) {
+				return true;
+			}
+
+			RequiredScope requiredScopeAnnotation = handlerMethod.getMethodAnnotation(RequiredScope.class);
+			if (requiredScopeAnnotation != null) {
+				requiredScopes = new HashSet<OAuthScope>(Arrays.asList(requiredScopeAnnotation.value()));
+			}
+
 			List<OAuthScope> requestScopes = Collections.EMPTY_LIST;
 			String synapseAuthorizationHeader = request.getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME);
 			String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(synapseAuthorizationHeader);
@@ -82,26 +112,10 @@ public class OAuthScopeInterceptor implements HandlerInterceptor {
 				requestScopes = ClaimsJsonUtil.getScopeFromClaims(jwt.getBody());
 			}
 
-			// if no scopes are specified by an annotation on the method, then we use these defaults
-			Set<OAuthScope> requiredScopes = new HashSet<OAuthScope>(DEFAULT_SCOPES);
-			
-			if (handler instanceof HandlerMethod) {
-				HandlerMethod handlerMethod = (HandlerMethod) handler;
-
-				// if no 'userId' parameter or access token header then this is not an authenticated request, 
-				// and no scope is required
-				if (!hasUserIdParameterOrAccessTokenHeader(handlerMethod)) {
-					return true;
-				}
-
-				RequiredScope requiredScopeAnnotation = handlerMethod.getMethodAnnotation(RequiredScope.class);
-				if (requiredScopeAnnotation != null) {
-					requiredScopes = new HashSet<OAuthScope>(Arrays.asList(requiredScopeAnnotation.value()));
-				}
-			}
-
 			requiredScopes.removeAll(requestScopes);
-			missingScopes = requiredScopes;
+			for (OAuthScope scope: requiredScopes) {
+				missingScopes.add(scope.name());
+			}
 		}
 
 		if (missingScopes.isEmpty()) {
@@ -110,9 +124,9 @@ public class OAuthScopeInterceptor implements HandlerInterceptor {
 		
 		StringBuilder sb = new StringBuilder(ERROR_MESSAGE_PREFIX);
 		boolean first = true;
-		for (OAuthScope missingScope : missingScopes) {
+		for (String missingScope : missingScopes) {
 			if (first) first=false; else sb.append(", ");
-			sb.append(missingScope.name());
+			sb.append(missingScope);
 		}
 
 		HttpAuthUtil.reject(response, sb.toString(), HttpStatus.FORBIDDEN);

@@ -197,6 +197,7 @@ public class AuthenticationFilterTest {
 
 		// Session token should be recognized
 		verify(mockAuthService, times(1)).revalidate(eq(sessionToken), eq(false));
+		verify(mockAuthService).hasUserAcceptedTermsOfUse(BEARER_TOKEN);
 		ServletRequest modRequest = filterChain.getRequest();
 		assertNotNull(modRequest);
 		String sessionUserId = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
@@ -240,6 +241,7 @@ public class AuthenticationFilterTest {
 
 		// Signature should match
 		verify(mockAuthService, times(1)).getSecretKey(eq(userId));
+		verify(mockAuthService).hasUserAcceptedTermsOfUse(BEARER_TOKEN);
 		ServletRequest modRequest = filterChain.getRequest();
 		assertNotNull(modRequest);
 		String passedAlongUsername = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
@@ -303,6 +305,7 @@ public class AuthenticationFilterTest {
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
 		verify(mockAuthService).hasUserAcceptedTermsOfUse(BEARER_TOKEN);
 		
+		assertEquals(""+userId, requestCaptor.getValue().getParameter(AuthorizationConstants.USER_ID_PARAM));
 		assertEquals("Bearer "+BEARER_TOKEN, requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME));
 	}
 	
@@ -370,11 +373,12 @@ public class AuthenticationFilterTest {
 		// method under test
 		filter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
 		
-		verify(oidcTokenHelper, never()).validateJWT(BEARER_TOKEN);
-		verify(mockAuthService, never()).hasUserAcceptedTermsOfUse(BEARER_TOKEN);
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
+		verify(mockOidcManager, never()).getUserId(BEARER_TOKEN);
+		verify(mockAuthService, never()).hasUserAcceptedTermsOfUse(BEARER_TOKEN);
 		
-		assertEquals("273950", requestCaptor.getValue().getParameter("userId"));
+		assertEquals("273950", requestCaptor.getValue().getParameter(AuthorizationConstants.USER_ID_PARAM));
+		assertNull(requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME));
 	}
 
 

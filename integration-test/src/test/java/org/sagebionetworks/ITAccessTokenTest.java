@@ -159,10 +159,26 @@ public class ITAccessTokenTest {
 			// Now the calls made by 'synapseClientLackingCredentials' are authenticated/authorized
 			// as User1.
 
+			// We can make this request, even though we don't have full OAuth scope (just 'openid')
+			// since the service requires just openid
 			synapseClientLackingCredentials.getUserInfoAsJSON();
 		} finally {
 			synapseClientLackingCredentials.removeAuthorizationHeader();
 		}		
+	}
+	
+	@Test
+	public void testNoAccessToken() throws Exception {
+		synapseClientLackingCredentials.removeAuthorizationHeader();
+
+		Assertions.assertThrows(SynapseForbiddenException.class, () -> {
+			// the Id doesn't exist, but we won't even get that far, we'll just get a 
+			// Forbidden exception since we have no access token
+			project = synapseClientLackingCredentials.getEntity("syn12345", Project.class);				
+		});
+		
+		// note that we CAN make certain anonymous requests
+		assertNotNull(synapseClientLackingCredentials.getVersionInfo());
 	}
 
 }
