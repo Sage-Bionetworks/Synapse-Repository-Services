@@ -140,7 +140,7 @@ public class SqlConstants {
 	
 	// Json-Schema-Dependency
 	public static final String TABLE_JSON_SCHEMA_DEPENDENCY		= "JSON_SCHEMA_DEPENDENCY";
-	public static final String COL_JSON_SCHEMA_DEP_VERSION_NUM	= "VERSION_NUM";
+	public static final String COL_JSON_SCHEMA_DEP_VERSION_ID	= "VERSION_ID";
 	public static final String COL_JSON_SCHEMA_DEP_SCHEMA_ID	= "DEPENDS_ON_SCHEMA_ID";
 	public static final String COL_JSON_SCHEMA_DEP_SEM_VER		= "DEPENDS_ON_SEM_VER";
 	public static final String DDL_FILE_JSON_SCHEMA_DEPENDS		= "schema/JsonSchemaDependency-ddl.sql";

@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.model.dbo.schema;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_DEP_SCHEMA_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_DEP_SEM_VER;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_DEP_VERSION_NUM;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_DEP_VERSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_JSON_SCHEMA_DEPENDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_DEPENDENCY;
 
@@ -21,11 +21,11 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 public class DBOJsonSchemaDependency implements MigratableDatabaseObject<DBOJsonSchemaDependency, DBOJsonSchemaDependency> {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn("versionNumber", COL_JSON_SCHEMA_DEP_VERSION_NUM, true).withIsBackupId(true),
+			new FieldColumn("versionId", COL_JSON_SCHEMA_DEP_VERSION_ID, true).withIsBackupId(true),
 			new FieldColumn("dependsOnSchemaId", COL_JSON_SCHEMA_DEP_SCHEMA_ID, true),
 			new FieldColumn("dependsOnSemanticVersion", COL_JSON_SCHEMA_DEP_SEM_VER, true)};
 	
-	private Long versionNumber;
+	private Long versionId;
 	private Long dependsOnSchemaId;
 	private String dependsOnSemanticVersion;
 	
@@ -34,7 +34,7 @@ public class DBOJsonSchemaDependency implements MigratableDatabaseObject<DBOJson
 		@Override
 		public DBOJsonSchemaDependency mapRow(ResultSet rs, int rowNum) throws SQLException {
 			DBOJsonSchemaDependency dbo = new DBOJsonSchemaDependency();
-			dbo.setVersionNumber(rs.getLong(COL_JSON_SCHEMA_DEP_VERSION_NUM));
+			dbo.setVersionId(rs.getLong(COL_JSON_SCHEMA_DEP_VERSION_ID));
 			dbo.setDependsOnSchemaId(rs.getLong(COL_JSON_SCHEMA_DEP_SCHEMA_ID));
 			dbo.setDependsOnSemanticVersion(rs.getString(COL_JSON_SCHEMA_DEP_SEM_VER));
 			return dbo;
@@ -92,12 +92,12 @@ public class DBOJsonSchemaDependency implements MigratableDatabaseObject<DBOJson
 		return null;
 	}
 
-	public Long getVersionNumber() {
-		return versionNumber;
+	public Long getVersionId() {
+		return versionId;
 	}
 
-	public void setVersionNumber(Long versionNumber) {
-		this.versionNumber = versionNumber;
+	public void setVersionId(Long versionId) {
+		this.versionId = versionId;
 	}
 
 	public Long getDependsOnSchemaId() {
@@ -118,7 +118,7 @@ public class DBOJsonSchemaDependency implements MigratableDatabaseObject<DBOJson
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(dependsOnSchemaId, dependsOnSemanticVersion, versionNumber);
+		return Objects.hash(dependsOnSchemaId, dependsOnSemanticVersion, versionId);
 	}
 
 	@Override
@@ -132,12 +132,12 @@ public class DBOJsonSchemaDependency implements MigratableDatabaseObject<DBOJson
 		DBOJsonSchemaDependency other = (DBOJsonSchemaDependency) obj;
 		return Objects.equals(dependsOnSchemaId, other.dependsOnSchemaId)
 				&& Objects.equals(dependsOnSemanticVersion, other.dependsOnSemanticVersion)
-				&& Objects.equals(versionNumber, other.versionNumber);
+				&& Objects.equals(versionId, other.versionId);
 	}
 
 	@Override
 	public String toString() {
-		return "DBOJsonSchemaDependency [versionNumber=" + versionNumber + ", dependsOnSchemaId=" + dependsOnSchemaId
+		return "DBOJsonSchemaDependency [versionId=" + versionId + ", dependsOnSchemaId=" + dependsOnSchemaId
 				+ ", dependsOnSemanticVersion=" + dependsOnSemanticVersion + "]";
 	}
 
