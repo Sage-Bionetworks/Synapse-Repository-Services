@@ -451,7 +451,6 @@ public interface TableIndexDAO {
 	 */
 	List<Long> getExpiredContainerIds(ObjectType objectType, List<Long> entityContainerIds);
 	
-
 	/**
 	 * @see {@link #getExpiredContainerIds(List)}.
 	 * 
@@ -460,11 +459,6 @@ public interface TableIndexDAO {
 	 * @param expirations
 	 */
 	void setContainerSynchronizationExpiration(ObjectType objectType, List<Long> toSet, long newExpirationDateMS);
-	
-	/**
-	 * Clear all expirations.
-	 */
-	void truncateReplicationSyncExpiration();
 
 	/**
 	 * For each parent, get the sum of CRCs of their children.
@@ -551,5 +545,17 @@ public interface TableIndexDAO {
 	 * @param idsToDelete
 	 */
 	void deleteRowsFromViewBatch(IdAndVersion viewId, Long...idsToDelete);
+	
+	// For testing:
+	
+	/**
+	 * Clear all expirations.
+	 */
+	void truncateReplicationSyncExpiration();
+
+	/** 
+	 * Cleanup all the index tables
+	 */
+	void truncateIndex();
 
 }

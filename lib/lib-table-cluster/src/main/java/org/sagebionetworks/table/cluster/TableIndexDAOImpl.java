@@ -1,6 +1,5 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE;
@@ -8,8 +7,8 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REP
 import static org.sagebionetworks.repo.model.table.TableConstants.BATCH_INSERT_REPLICATION_SYNC_EXP;
 import static org.sagebionetworks.repo.model.table.TableConstants.CRC_ALIAS;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_BENEFACTOR_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CRATED_BY;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CRATED_ON;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CREATED_BY;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CREATED_ON;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBEJCT_REPLICATION_COL_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_MD5;
@@ -35,6 +34,8 @@ import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_OBJECT_
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_OBJECT_CHILD_ID_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_NON_EXPIRED_IDS;
 import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE;
+import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_OBJECT_REPLICATION_TABLE;
+import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_ANNOTATION_REPLICATION_TABLE;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -684,7 +685,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void createEntityReplicationTablesIfDoesNotExist(){
-		template.update(TableConstants.ENTITY_REPLICATION_TABLE_CREATE);
+		template.update(TableConstants.OBJECT_REPLICATION_TABLE_CREATE);
 		template.update(TableConstants.ANNOTATION_REPLICATION_TABLE_CREATE);
 		template.update(TableConstants.REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE);
 	}
@@ -810,8 +811,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				EntityDTO dto1 = new EntityDTO();
 				dto1.setId(rs.getLong(OBJECT_REPLICATION_COL_OBJECT_ID));
 				dto1.setCurrentVersion(rs.getLong(OBJECT_REPLICATION_COL_VERSION));
-				dto1.setCreatedBy(rs.getLong(OBJECT_REPLICATION_COL_CRATED_BY));
-				dto1.setCreatedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_CRATED_ON)));
+				dto1.setCreatedBy(rs.getLong(OBJECT_REPLICATION_COL_CREATED_BY));
+				dto1.setCreatedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_CREATED_ON)));
 				dto1.setEtag(rs.getString(OBEJCT_REPLICATION_COL_ETAG));
 				dto1.setName(rs.getString(OBJECT_REPLICATION_COL_NAME));
 				dto1.setType(EntityType.valueOf(rs.getString(OBJECT_REPLICATION_COL_SUBTYPE)));
@@ -1083,11 +1084,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void truncateReplicationSyncExpiration() {
-		template.update(TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE);
-	}
-
-	@Override
 	public List<Long> getRowIds(String sql, Map<String, Object> parameters) {
 		ValidateArgument.required(sql, "sql");
 		ValidateArgument.required(parameters, "parameters");
@@ -1192,6 +1188,19 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				return idsToDelete.length;
 			}
 		});
+	}
+	
+
+	@Override
+	public void truncateReplicationSyncExpiration() {
+		template.update(TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE);
+	}
+	
+	@Override
+	public void truncateIndex() {
+		truncateReplicationSyncExpiration();
+		template.update(TRUNCATE_ANNOTATION_REPLICATION_TABLE);
+		template.update(TRUNCATE_OBJECT_REPLICATION_TABLE);
 	}
 
 }

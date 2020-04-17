@@ -1949,7 +1949,7 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void testBuildEntityReplicationSelect() {
+	public void testBuildObjectReplicationSelect() {
 		StringBuilder builder = new StringBuilder();
 		String columnName = TableConstants.OBJECT_REPLICATION_COL_BENEFACTOR_ID;
 		// Call under test
@@ -1958,7 +1958,7 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void testBuildEntityReplicationSelectStandardColumns() {
+	public void testBuildObjectReplicationSelectStandardColumns() {
 		StringBuilder builder = new StringBuilder();
 		// call under test
 		List<String> headers = SQLUtils.buildObjectReplicationSelectStandardColumns(builder);
@@ -1970,7 +1970,7 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void testCreateSelectFromEntityReplication(){
+	public void testCreateSelectFromObjectReplication(){
 		ColumnModel one = TableModelTestUtils.createColumn(1L);
 		ColumnModel id = EntityField.id.getColumnModel();
 		id.setId("2");
@@ -2000,7 +2000,7 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
-	public void testCreateSelectFromEntityReplicationFilterByRows(){
+	public void testCreateSelectFromObjectReplicationFilterByRows(){
 		ColumnModel one = TableModelTestUtils.createColumn(1L);
 		ColumnModel id = EntityField.id.getColumnModel();
 		id.setId("2");
@@ -2033,7 +2033,7 @@ public class SQLUtilsTest {
 
 
 	@Test
-	public void testCreateSelectInsertFromEntityReplication(){
+	public void testCreateSelectInsertFromObjectReplication(){
 		ColumnModel one = TableModelTestUtils.createColumn(1L);
 		ColumnModel id = EntityField.id.getColumnModel();
 		id.setId("2");
@@ -2061,7 +2061,7 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
-	public void testCreateSelectInsertFromEntityReplicationFilterByRows(){
+	public void testCreateSelectInsertFromObjectReplicationFilterByRows(){
 		ColumnModel one = TableModelTestUtils.createColumn(1L);
 		ColumnModel id = EntityField.id.getColumnModel();
 		id.setId("2");
@@ -2090,7 +2090,7 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void testCreateSelectInsertFromEntityReplicationProjectView(){
+	public void testCreateSelectInsertFromObjectReplicationProjectView(){
 		ColumnModel one = TableModelTestUtils.createColumn(1L);
 		ColumnModel id = EntityField.id.getColumnModel();
 		id.setId("2");
@@ -2118,7 +2118,7 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void testCreateSelectInsertFromEntityReplicationWithDouble(){
+	public void testCreateSelectInsertFromObjectReplicationWithDouble(){
 		ColumnModel doubleAnnotation = new ColumnModel();
 		doubleAnnotation.setColumnType(ColumnType.DOUBLE);
 		doubleAnnotation.setId("3");
@@ -3005,11 +3005,10 @@ public class SQLUtilsTest {
 		String expected = "WITH DELTAS (ID, MISSING) AS ("
 				+ " SELECT R.OBJECT_ID, V.ROW_ID FROM OBJECT_REPLICATION R"
 				+ "    LEFT JOIN T999 V ON ("
-				+ "      R.OBJECT_TYPE = :objectType"
-				+ "		 AND R.OBJECT_ID = V.ROW_ID"
+				+ "		 R.OBJECT_ID = V.ROW_ID"
 				+ "      AND R.ETAG = V.ROW_ETAG"
 				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR)"
-				+ "   WHERE R.PARENT_ID IN (:scopeIds) AND R.SUBTYPE IN ('file')"
+				+ "   WHERE R.OBJECT_TYPE = :objectType AND R.PARENT_ID IN (:scopeIds) AND R.SUBTYPE IN ('file')"
 				+ " UNION ALL"
 				+ " SELECT V.ROW_ID, R.OBJECT_ID FROM OBJECT_REPLICATION R"
 				+ "    RIGHT JOIN T999 V ON ("
@@ -3031,11 +3030,10 @@ public class SQLUtilsTest {
 		String expected = "WITH DELTAS (ID, MISSING) AS ("
 				+ " SELECT R.OBJECT_ID, V.ROW_ID FROM OBJECT_REPLICATION R"
 				+ "    LEFT JOIN T999 V ON ("
-				+ "      R.OBJECT_TYPE = :objectType"
-				+ "		 AND R.OBJECT_ID = V.ROW_ID"
+				+ "		 R.OBJECT_ID = V.ROW_ID"
 				+ "      AND R.ETAG = V.ROW_ETAG"
 				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR)"
-				+ "   WHERE R.OBJECT_ID IN (:scopeIds) AND R.SUBTYPE IN ('project')"
+				+ "   WHERE R.OBJECT_TYPE = :objectType AND R.OBJECT_ID IN (:scopeIds) AND R.SUBTYPE IN ('project')"
 				+ " UNION ALL"
 				+ " SELECT V.ROW_ID, R.OBJECT_ID FROM OBJECT_REPLICATION R"
 				+ "    RIGHT JOIN T999 V ON ("

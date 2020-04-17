@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.model.table;
 
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_BENEFACTOR_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CRATED_BY;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CRATED_ON;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CREATED_BY;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CREATED_ON;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBEJCT_REPLICATION_COL_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_MD5;
@@ -28,8 +28,8 @@ public enum EntityField {
 	
 	id					(OBJECT_REPLICATION_COL_OBJECT_ID, 		ColumnType.ENTITYID, 		null,	null),
 	name				(OBJECT_REPLICATION_COL_NAME,			ColumnType.STRING,			256L,	null),
-	createdOn			(OBJECT_REPLICATION_COL_CRATED_ON, 		ColumnType.DATE,			null,	FacetType.range),
-	createdBy			(OBJECT_REPLICATION_COL_CRATED_BY, 		ColumnType.USERID,			null,	FacetType.enumeration),
+	createdOn			(OBJECT_REPLICATION_COL_CREATED_ON, 	ColumnType.DATE,			null,	FacetType.range),
+	createdBy			(OBJECT_REPLICATION_COL_CREATED_BY, 	ColumnType.USERID,			null,	FacetType.enumeration),
 	etag				(OBEJCT_REPLICATION_COL_ETAG,	 		ColumnType.STRING,			36L,	null),
 	type				(OBJECT_REPLICATION_COL_SUBTYPE,	 	ColumnType.STRING,			20L,	FacetType.enumeration),
 	currentVersion		(OBJECT_REPLICATION_COL_VERSION, 		ColumnType.INTEGER, 		null,	null),
