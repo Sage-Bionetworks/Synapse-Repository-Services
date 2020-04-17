@@ -144,6 +144,13 @@ public class ITAccessTokenTest {
 				project = synapseClientLackingCredentials.getEntity(project.getId(), Project.class);				
 			});
 			
+			// Same result if we make the call anonymously (no access token)
+			synapseClientLackingCredentials.removeAuthorizationHeader();
+			Assertions.assertThrows(SynapseForbiddenException.class, () -> {
+				project = synapseClientLackingCredentials.getEntity(project.getId(), Project.class);				
+			});
+			// note that we CAN make anonymous requests that require no authentication
+			assertNotNull(synapseClientLackingCredentials.getVersionInfo());
 		} finally {
 			synapseClientLackingCredentials.removeAuthorizationHeader();
 		}
@@ -165,20 +172,6 @@ public class ITAccessTokenTest {
 		} finally {
 			synapseClientLackingCredentials.removeAuthorizationHeader();
 		}		
-	}
-	
-	@Test
-	public void testNoAccessToken() throws Exception {
-		synapseClientLackingCredentials.removeAuthorizationHeader();
-
-		Assertions.assertThrows(SynapseForbiddenException.class, () -> {
-			// the Id doesn't exist, but we won't even get that far, we'll just get a 
-			// Forbidden exception since we have no access token
-			project = synapseClientLackingCredentials.getEntity("syn12345", Project.class);				
-		});
-		
-		// note that we CAN make certain anonymous requests
-		assertNotNull(synapseClientLackingCredentials.getVersionInfo());
 	}
 
 }
