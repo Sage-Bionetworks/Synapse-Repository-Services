@@ -1,5 +1,7 @@
 package org.sagebionetworks.auth.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.openid;
+
 import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientNotVerifiedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -17,6 +19,7 @@ import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.controller.RequiredScope;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -188,7 +191,7 @@ public class OpenIDConnectController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_ID, method = RequestMethod.DELETE)
-	public void deletedOpenIDClient(
+	public void deleteOpenIDClient(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String id
 			) throws NotFoundException {
@@ -304,6 +307,7 @@ public class OpenIDConnectController {
 	 * @throws NotFoundException
 	 * @throws OAuthClientNotVerifiedException if the client is not verified
 	 */
+	@RequiredScope({openid})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.GET})
 	public @ResponseBody
@@ -325,6 +329,7 @@ public class OpenIDConnectController {
 	 * 
 	 * @throws OAuthClientNotVerifiedException if the client is not verified
 	 */
+	@RequiredScope({openid})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.POST})
 	public @ResponseBody

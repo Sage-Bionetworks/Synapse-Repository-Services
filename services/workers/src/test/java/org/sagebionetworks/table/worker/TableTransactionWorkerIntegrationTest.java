@@ -1,20 +1,20 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -51,11 +51,12 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.google.common.collect.Lists;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TableTransactionWorkerIntegrationTest {
 	
@@ -83,7 +84,7 @@ public class TableTransactionWorkerIntegrationTest {
 	List<String> toDelete;
 	
 
-	@Before
+	@BeforeEach
 	public void before(){		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		// integer column
@@ -101,13 +102,13 @@ public class TableTransactionWorkerIntegrationTest {
 		toDelete = new LinkedList<>();
 	}
 	
-	@After
+	@AfterEach
 	public void after(){
 		if(toDelete != null){
 			for(String id: toDelete){
 				try {
 					entityManager.deleteEntity(adminUserInfo, id);
-				} catch (Exception e) {}
+				} catch (Exception ignored) {}
 			}
 		}
 	}
@@ -190,6 +191,98 @@ public class TableTransactionWorkerIntegrationTest {
 		assertNotNull(response);
 		assertNotNull(response.getResults());
 		assertEquals(1, response.getResults().size());
+	}
+
+
+	/**
+	 * Test schema change on list columns
+	 * @throws InterruptedException
+	 */
+	@Test
+	public void testSchemaChange_listColumnMaxSizeTooSmall() throws InterruptedException{
+		// Reproduces PLFM-6190
+
+		// string List column
+		ColumnModel stringListColumn = new ColumnModel();
+		stringListColumn.setName("aString");
+		stringListColumn.setColumnType(ColumnType.STRING_LIST);
+		stringListColumn.setMaximumSize(5L);
+		stringListColumn = columnManager.createColumnModel(stringListColumn);
+
+		// test schema change on a TableEntity
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		String entityId = entityManager.createEntity(adminUserInfo, table, null);
+		table = entityManager.getEntity(adminUserInfo, entityId, TableEntity.class);
+		toDelete.add(entityId);
+
+		ColumnChange add = new ColumnChange();
+		add.setOldColumnId(null);
+		add.setNewColumnId(stringListColumn.getId());
+		List<ColumnChange> changes = Lists.newArrayList(add);
+		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
+		request.setEntityId(entityId);
+		request.setChanges(changes);
+		List<String> orderedColumnIds = Arrays.asList(stringListColumn.getId());
+		request.setOrderedColumnIds(orderedColumnIds);
+
+		List<TableUpdateRequest> updates = new LinkedList<TableUpdateRequest>();
+		updates.add(request);
+		TableUpdateTransactionRequest transaction = new TableUpdateTransactionRequest();
+		transaction.setEntityId(entityId);
+		transaction.setChanges(updates);
+
+		// wait for the change to complete
+		TableUpdateTransactionResponse response = startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
+		assertNotNull(response);
+		assertNotNull(response.getResults());
+		assertEquals(1, response.getResults().size());
+		TableUpdateResponse updateResponse = response.getResults().get(0);
+		assertTrue(updateResponse instanceof TableSchemaChangeResponse);
+		TableSchemaChangeResponse changeResponse = (TableSchemaChangeResponse) updateResponse;
+		assertNotNull(changeResponse.getSchema());
+		assertEquals(1, changeResponse.getSchema().size());
+		assertEquals(stringListColumn, changeResponse.getSchema().get(0));
+
+
+		// add row to column
+		PartialRow rowOne = TableModelTestUtils.createPartialRow(null, stringListColumn.getId(), "[\"12345\"]");
+		PartialRowSet rowSet = createRowSet(entityId, rowOne);
+		transaction = createAddDataRequest(entityId, rowSet);
+		response = startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
+
+
+		QueryBundleRequest queryRequest = createQueryRequest("SELECT * FROM " + table.getId(), table.getId());
+		List<Row> rows = startAndWaitForJob(adminUserInfo, queryRequest, QueryResultBundle.class)
+				.getQueryResult().getQueryResults().getRows();
+		assertEquals(1, rows.size());
+
+		// smaller string list column
+		ColumnModel smallerStringListColumn = new ColumnModel();
+		smallerStringListColumn.setName("aString");
+		smallerStringListColumn.setColumnType(ColumnType.STRING_LIST);
+		smallerStringListColumn.setMaximumSize(2L);
+		smallerStringListColumn = columnManager.createColumnModel(smallerStringListColumn);
+
+		// Update the column to a size much smaller than the values inside the column
+		ColumnChange updateSmallerColumn = new ColumnChange();
+		updateSmallerColumn.setOldColumnId(stringListColumn.getId());
+		updateSmallerColumn.setNewColumnId(smallerStringListColumn.getId());
+		changes = Lists.newArrayList(updateSmallerColumn);
+		request = new TableSchemaChangeRequest();
+		request.setEntityId(entityId);
+		request.setChanges(changes);
+		request.setOrderedColumnIds(Arrays.asList(smallerStringListColumn.getId()));
+
+		updates = new LinkedList<TableUpdateRequest>();
+		updates.add(request);
+		transaction = new TableUpdateTransactionRequest();
+		transaction.setEntityId(entityId);
+		transaction.setChanges(updates);
+
+		// wait for the change to complete
+		String errorMessage = startAndWaitForFailedJob(adminUserInfo, transaction);
+		assertEquals("Data truncated for column 'aString_UNNEST' at row 1", errorMessage);
 	}
 	
 	@Test
@@ -344,8 +437,7 @@ public class TableTransactionWorkerIntegrationTest {
 	 * @return
 	 */
 	public static SnapshotRequest createVersionRequest() {
-		SnapshotRequest version = new SnapshotRequest();
-		return version;
+		return new SnapshotRequest();
 	}
 	
 	/**
@@ -356,9 +448,7 @@ public class TableTransactionWorkerIntegrationTest {
 	 */
 	public static PartialRowSet createRowSet(String tableId, PartialRow...partialRows) {
 		List<PartialRow> rows = new ArrayList<PartialRow>(partialRows.length);
-		for(PartialRow row: partialRows) {
-			rows.add(row);
-		}
+		rows.addAll(Arrays.asList(partialRows));
 		PartialRowSet rowSet = new PartialRowSet();
 		rowSet.setRows(rows);
 		rowSet.setTableId(tableId);
@@ -398,9 +488,9 @@ public class TableTransactionWorkerIntegrationTest {
 			status = asynchJobStatusManager.getJobStatus(user, status.getJobId());
 			switch(status.getJobState()){
 			case FAILED:
-				assertTrue("Job failed: "+status.getErrorDetails(), false);
+				fail("Job failed: " + status.getErrorDetails());
 			case PROCESSING:
-				assertTrue("Timed out waiting for job to complete",(System.currentTimeMillis()-startTime) < MAX_WAIT_MS);
+				assertTrue((System.currentTimeMillis()-startTime) < MAX_WAIT_MS, "Timed out waiting for job to complete");
 				System.out.println("Waiting for job: "+status.getProgressMessage());
 				Thread.sleep(1000);
 				break;
@@ -426,12 +516,12 @@ public class TableTransactionWorkerIntegrationTest {
 			case FAILED:
 				return status.getErrorMessage();
 			case PROCESSING:
-				assertTrue("Timed out waiting for job to complete",(System.currentTimeMillis()-startTime) < MAX_WAIT_MS);
+				assertTrue((System.currentTimeMillis()-startTime) < MAX_WAIT_MS, "Timed out waiting for job to complete");
 				System.out.println("Waiting for job to fail");
 				Thread.sleep(1000);
 				break;
 			case COMPLETE:
-				assertTrue("Expected the Job to fail but it completed.", false);
+				fail("Expected the Job to fail but it completed.");
 			}
 		}
 	}

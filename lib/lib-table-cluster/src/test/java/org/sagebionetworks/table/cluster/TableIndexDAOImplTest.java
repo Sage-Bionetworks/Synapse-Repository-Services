@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_MAX_STRING_LENGTH;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
@@ -93,15 +94,18 @@ public class TableIndexDAOImplTest {
 	EntityDTO entityTwo;
 	
 	ObjectType objectType;
-
+	ObjectType otherObjectType;
+	
 	@BeforeEach
 	public void before() {
 		objectType = ObjectType.ENTITY;
+		otherObjectType = ObjectType.EVALUATION_SUBMISSIONS;
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 		tableId = IdAndVersion.parse("syn123");
 		// First get a connection for this table
 		tableIndexDAO = tableConnectionFactory.getConnection(tableId);
 		tableIndexDAO.deleteTable(tableId);
+		tableIndexDAO.truncateIndex();
 		isView = false;
 	}
 
@@ -111,6 +115,7 @@ public class TableIndexDAOImplTest {
 		if (tableId != null && tableIndexDAO != null) {
 			tableIndexDAO.deleteTable(tableId);
 		}
+		tableIndexDAO.truncateIndex();
 	}
 	
 	/**
@@ -130,7 +135,7 @@ public class TableIndexDAOImplTest {
 
 		for(ColumnModel columnModel : newSchema){
 			if(ColumnTypeListMappings.isList(columnModel.getColumnType())){
-				tableIndexDAO.createMultivalueColumnIndexTable(tableId, columnModel);
+				tableIndexDAO.createMultivalueColumnIndexTable(tableId, columnModel, false);
 			}
 		}
 
@@ -1203,7 +1208,7 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = Lists.newArrayList(intColumn, booleanColumn);
 		
 		createOrUpdateTable(schema, tableId, isView);
-		// create three rows.
+		// create five rows.
 		List<Row> rows = TableModelTestUtils.createRows(schema, 5);
 		// add duplicate values
 		RowSet set = new RowSet();
@@ -1230,6 +1235,59 @@ public class TableIndexDAOImplTest {
 		// delete the temp and get the count again
 		tableIndexDAO.deleteTemporaryTable(tableId);
 		count = tableIndexDAO.getTempTableCount(tableId);
+		assertEquals(0L, count);
+	}
+
+
+	@Test
+	public void testCreateMultiValueColumnIndexTable(){
+		ColumnModel strListCol = new ColumnModel();
+		strListCol.setId("12");
+		strListCol.setName("foo");
+		strListCol.setMaximumSize(50L);
+		strListCol.setColumnType(ColumnType.STRING_LIST);
+
+		List<ColumnModel> schema = Lists.newArrayList(strListCol);
+
+		createOrUpdateTable(schema, tableId, isView);
+		// create five rows.
+		List<Row> rows = TableModelTestUtils.createRows(schema, 5);
+		// add duplicate values
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getSelectColumns(schema));
+		set.setTableId(tableId.toString());
+
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(3L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+
+		createOrUpdateOrDeleteRows(tableId, set, schema);
+		//populate the column index table
+		tableIndexDAO.populateListColumnIndexTable(tableId, strListCol, null, false);
+
+		String columnId = strListCol.getId();
+
+		tableIndexDAO.deleteAllTemporaryMultiValueColumnIndexTable(tableId);
+		tableIndexDAO.deleteTemporaryTable(tableId);
+
+		// Create a copy of the table
+		tableIndexDAO.createTemporaryTable(tableId);
+		tableIndexDAO.copyAllDataToTemporaryTable(tableId);
+		tableIndexDAO.createTemporaryMultiValueColumnIndexTable(tableId, columnId);
+		// populate table with data
+		tableIndexDAO.copyAllDataToTemporaryMultiValueColumnIndexTable(tableId, columnId);
+
+		long count = tableIndexDAO.getTempTableMultiValueColumnIndexCount(tableId, columnId);
+
+		// we created 5 rows using the test utility, but there are 2 values per row which are expanded into the index table
+		assertEquals(10L, count);
+		// delete the temp and get the count again
+		tableIndexDAO.deleteAllTemporaryMultiValueColumnIndexTable(tableId);
+		tableIndexDAO.deleteTemporaryTable(tableId);
+		count = tableIndexDAO.getTempTableMultiValueColumnIndexCount(tableId, columnId);
 		assertEquals(0L, count);
 	}
 	
@@ -1271,7 +1329,8 @@ public class TableIndexDAOImplTest {
 		// lookup the column manually
 		String query = "SELECT " + ANNOTATION_REPLICATION_COL_MAX_STRING_LENGTH +
 				" FROM " + ANNOTATION_REPLICATION_TABLE +
-				" WHERE " + ANNOTATION_REPLICATION_COL_OBJECT_ID + "=" + id;
+				" WHERE " + ANNOTATION_REPLICATION_COL_OBJECT_TYPE + "='" + objectType.name() 
+				+ "' AND " + ANNOTATION_REPLICATION_COL_OBJECT_ID + "=" + id;
 		long queriedMaxSize = tableIndexDAO.getConnection().queryForObject(query, Long.class);
 		assertEquals(3, queriedMaxSize);
 	}
@@ -2064,7 +2123,6 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testReplicationExpiration() throws InterruptedException{
-		tableIndexDAO.truncateReplicationSyncExpiration();
 		Long one = 111L;
 		Long two = 222L;
 		Long three = 333L;
@@ -2201,8 +2259,10 @@ public class TableIndexDAOImplTest {
 		// apply the rows
 		createOrUpdateOrDeleteRows(tableId, rows, schema);
 		
+		long timeFilter = System.currentTimeMillis() - 1000;
+		
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select aDate from " + tableId+" where aDate > unix_timestamp(CURRENT_TIMESTAMP - INTERVAL 1 SECOND)*1000", schema).build();
+		SqlQuery query = new SqlQueryBuilder("select aDate from " + tableId+" where aDate > " + timeFilter, schema).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -2447,7 +2507,7 @@ public class TableIndexDAOImplTest {
 		createOrUpdateOrDeleteRows(tableId, rows, schema);
 
 		Set<Long> rowsIds = null;
-		tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, rowsIds);
+		tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, rowsIds, false);
 
 		//each list value created by createRows has 2 items in the list
 		assertEquals(numRows * 2, countRowsInMultiValueIndex(tableId, stringListColumn.getId()));
@@ -2482,7 +2542,7 @@ public class TableIndexDAOImplTest {
 		Set<Long> rowsIds = null;
 		String message = assertThrows(IllegalArgumentException.class, ()-> {
 			//method under test
-			tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, rowsIds);
+			tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, rowsIds, false);
 		}).getMessage();
 
 		assertEquals("The size of the column 'myList' is too small." +
@@ -2500,7 +2560,7 @@ public class TableIndexDAOImplTest {
 		Set<Long> rowIdFilter = null;
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
 		}).getMessage();
 		assertEquals("tableId is required.", message);
 
@@ -2512,7 +2572,7 @@ public class TableIndexDAOImplTest {
 		Set<Long> rowIdFilter = Sets.newHashSet(1L);
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
 		}).getMessage();
 		assertEquals("listColumn is required.", message);
 	}
@@ -2591,7 +2651,7 @@ public class TableIndexDAOImplTest {
 		List<Row> rows = TableModelTestUtils.createRows(schema, numRows);
 		createOrUpdateOrDeleteRows(tableId, rows, schema);
 
-		tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, null);
+		tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, null, false);
 
 		assertEquals(numRows * 2, countRowsInMultiValueIndex(tableId, stringListColumn.getId()));
 
@@ -2611,6 +2671,10 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 2;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		
+		// Make additional object with a different type but same ids
+		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
+		
 		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
@@ -2633,6 +2697,10 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 2;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		
+		// Make additional object with a different type but same ids
+		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
+		
 		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
@@ -2662,6 +2730,10 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 2;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		
+		// Make additional object with a different type but same ids
+		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
+		
 		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
@@ -2694,6 +2766,10 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 2;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		
+		// Make additional object with a different type but same ids
+		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
+		
 		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
@@ -2726,6 +2802,10 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 2;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		
+		// Make additional object with a different type but same ids
+		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
+		
 		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
@@ -2758,6 +2838,10 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 2;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		
+		// Make additional object with a different type but same ids
+		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
+		
 		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
@@ -2781,6 +2865,10 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 4;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		
+		// Make additional object with a different type but same ids
+		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
+		
 		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
@@ -2804,6 +2892,10 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 4;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		
+		// Make additional object with a different type but same ids
+		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
+		
 		// add a non-file that should not be part of the view but is in the scope.
 		EntityDTO viewDto = createEntityOfType(rowCount, EntityType.entityview, dtos.get(0).getParentId());
 		
@@ -2832,6 +2924,10 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 4;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		
+		// Make additional object with a different type but same ids
+		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
+		
 		// add a non-file that should not be part of the view but is in the scope.
 		EntityDTO folderDto = createEntityOfType(rowCount, EntityType.folder, dtos.get(0).getParentId());
 		
@@ -2862,6 +2958,11 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetOutOfDateRowsForView_EmptyScope(){
 		Set<Long> scope = Collections.emptySet();
+		
+		int rowCount = 2;
+		// Make additional object with a different type
+		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
+		
 		long limit = 1L;
 		// call under test
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(objectType, tableId, ViewTypeMask.File.getMask(), scope, limit);
@@ -2896,16 +2997,20 @@ public class TableIndexDAOImplTest {
 	 */
 	List<EntityDTO> createFileEntityEntityDTOs(int count){
 		boolean includeMultiValue = false;
-		return createFileEntityEntityDTOs(count, includeMultiValue);
+		return createObjectDTOs(objectType, EntityType.file, count, includeMultiValue);
 	}
 	
-	List<EntityDTO> createFileEntityEntityDTOs(int count, boolean includeMultiValue){
+	List<EntityDTO> createFileEntityEntityDTOs(int count, boolean includeMultiValue) {
+		return createObjectDTOs(objectType, EntityType.file, count, includeMultiValue);
+	}
+	
+	List<EntityDTO> createObjectDTOs(ObjectType objectType, EntityType subType, int count, boolean includeMultiValue){
 		List<Long> newIds = new ArrayList<Long>(count);
 		List<EntityDTO> results = new ArrayList<EntityDTO>(count);
 		for(int i=0; i<count; i++) {
 			Long entityId = new Long(i+1);
 			newIds.add(entityId);
-			EntityDTO file = createEntityDTO(entityId, EntityType.file, 3);
+			EntityDTO file = createEntityDTO(entityId, subType, 3);
 			file.setParentId(entityId*100);
 			if(includeMultiValue) {
 				AnnotationDTO multiValue = new AnnotationDTO();
@@ -2932,14 +3037,18 @@ public class TableIndexDAOImplTest {
 	 * @return
 	 */
 	EntityDTO createEntityOfType(int index, EntityType type, long parentId) {
-		Long entityId = new Long(index+1);
-		EntityDTO entity = createEntityDTO(entityId, type, 3);
-		entity.setParentId(parentId);
+		return createObjectDTO(objectType, type, index, parentId);
+	}
+	
+	EntityDTO createObjectDTO(ObjectType objectType, EntityType subtype, int index, long parentId) {
+		Long id = new Long(index+1);
+		EntityDTO object = createEntityDTO(id, subtype, 3);
+		object.setParentId(parentId);
 		// delete all rows if they already exist
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(entityId));
+		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(id));
 		// create all of the rows in the replication table
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(entity));
-		return entity;
+		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(object));
+		return object;
 	}
 	
 	@Test
@@ -2947,6 +3056,10 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 4;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		
+		// Make additional object with a different type but same ids
+		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
+		
 		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
@@ -2974,6 +3087,10 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 4;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		
+		// Make additional object with a different type but same ids
+		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
+		
 		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
@@ -3017,7 +3134,11 @@ public class TableIndexDAOImplTest {
 		long limit = 100;
 		isView = true;
 		int rowCount = 4;
-		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);		
+
+		// Make additional object with a different type but same ids
+		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
+		
 		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
@@ -3045,7 +3166,11 @@ public class TableIndexDAOImplTest {
 		long limit = 100;
 		isView = true;
 		int rowCount = 4;
-		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);			
+		
+		// Make additional object with a different type but same ids
+		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
+		
 		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
@@ -3065,6 +3190,10 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 4;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		
+		// Make additional object with a different type but same ids
+		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
+		
 		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
@@ -3084,6 +3213,10 @@ public class TableIndexDAOImplTest {
 		int rowCount = 4;
 		boolean includeMultiValue = true;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount, includeMultiValue);
+
+		// Make additional object with a different type but same ids
+		createObjectDTOs(otherObjectType, EntityType.file, rowCount, includeMultiValue);
+		
 		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		ColumnModel multiValue = new ColumnModel();
 		multiValue.setId("886");
@@ -3098,7 +3231,7 @@ public class TableIndexDAOImplTest {
 		// push all of the data to the view
 		tableIndexDAO.copyEntityReplicationToView(objectType, tableId.getId(), ViewTypeMask.File.getMask(), scope, schema, rowIdFilter);
 		// call under test
-		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
 
 		//each list value created by createRows has 2 items in the list
 		assertEquals(rowCount * 2, countRowsInMultiValueIndex(tableId, multiValue.getId()));
@@ -3117,6 +3250,10 @@ public class TableIndexDAOImplTest {
 		int rowCount = 4;
 		boolean includeMultiValue = true;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount, includeMultiValue);
+
+		// Make additional object with a different type but same ids
+		createObjectDTOs(otherObjectType, EntityType.file, rowCount, includeMultiValue);
+		
 		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		ColumnModel multiValue = new ColumnModel();
 		multiValue.setId("886");
@@ -3131,7 +3268,7 @@ public class TableIndexDAOImplTest {
 		// push all of the data to the view
 		tableIndexDAO.copyEntityReplicationToView(objectType, tableId.getId(), ViewTypeMask.File.getMask(), scope, schema, rowIdFilter);
 		// start will all of the data in the secondary table
-		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
 		// Should start with two row for each entity 
 		assertEquals(rowCount * 2,countRowsInMultiValueIndex(tableId, multiValue.getId()));
 		
@@ -3145,7 +3282,7 @@ public class TableIndexDAOImplTest {
 		rowIdFilter = Sets.newHashSet(dtos.get(0).getId(), dtos.get(3).getId());
 		tableIndexDAO.copyEntityReplicationToView(objectType, tableId.getId(), ViewTypeMask.File.getMask(), scope, schema, rowIdFilter);
 		// call under test
-		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
 		assertEquals(4 * 2,countRowsInMultiValueIndex(tableId, multiValue.getId()));
 	}
 	
@@ -3160,7 +3297,7 @@ public class TableIndexDAOImplTest {
 		Set<Long> rowIdFilter = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
 		});
 	}
 	
@@ -3170,7 +3307,7 @@ public class TableIndexDAOImplTest {
 		Set<Long> rowIdFilter = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
 		});
 	}
 	
@@ -3184,7 +3321,7 @@ public class TableIndexDAOImplTest {
 		Set<Long> rowIdFilter = null;
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
 		}).getMessage();
 		assertEquals("Only valid for List type columns", message);
 	}
@@ -3200,7 +3337,7 @@ public class TableIndexDAOImplTest {
 		Set<Long> rowIdFilter = Collections.emptySet();
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
 		}).getMessage();
 		assertEquals("When rowIds is provided (not null) it cannot be empty", message);
 	}
@@ -3241,7 +3378,7 @@ public class TableIndexDAOImplTest {
 
 		Set<Long> rowIds = null;
 		// call under test
-		tableIndexDAO.populateListColumnIndexTable(tableId, intListColumn, rowIds);
+		tableIndexDAO.populateListColumnIndexTable(tableId, intListColumn, rowIds, false);
 
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schema).build();
 		// Now query for the results
@@ -3313,7 +3450,7 @@ public class TableIndexDAOImplTest {
 		// Create the table
 		tableIndexDAO.createTableIfDoesNotExist(tableId, isView);
 		//add column
-		tableIndexDAO.createMultivalueColumnIndexTable(tableId, column);
+		tableIndexDAO.createMultivalueColumnIndexTable(tableId, column, false);
 
 
 		//check index table was created
@@ -3325,7 +3462,7 @@ public class TableIndexDAOImplTest {
 		updated.setId("44444");
 		updated.setMaximumSize(79L);
 		updated.setName("newStringList");
-		tableIndexDAO.updateMultivalueColumnIndexTable(tableId, Long.parseLong(column.getId()), updated);
+		tableIndexDAO.updateMultivalueColumnIndexTable(tableId, Long.parseLong(column.getId()), updated, false);
 
 		//check original no longer exists
 		assertThrows(EmptyResultDataAccessException.class, () -> {
@@ -3336,7 +3473,7 @@ public class TableIndexDAOImplTest {
 
 
 		//delete column
-		tableIndexDAO.deleteMultivalueColumnIndexTable(tableId, Long.parseLong(column.getId()));
+		tableIndexDAO.deleteMultivalueColumnIndexTable(tableId, Long.parseLong(column.getId()), false);
 
 		//check index table was deleted
 		assertThrows(EmptyResultDataAccessException.class, () -> {

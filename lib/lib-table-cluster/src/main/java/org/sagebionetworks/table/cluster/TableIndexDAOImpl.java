@@ -1,6 +1,5 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE;
@@ -8,8 +7,8 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REP
 import static org.sagebionetworks.repo.model.table.TableConstants.BATCH_INSERT_REPLICATION_SYNC_EXP;
 import static org.sagebionetworks.repo.model.table.TableConstants.CRC_ALIAS;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_BENEFACTOR_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CRATED_BY;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CRATED_ON;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CREATED_BY;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CREATED_ON;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBEJCT_REPLICATION_COL_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_MD5;
@@ -35,6 +34,8 @@ import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_OBJECT_
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_OBJECT_CHILD_ID_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_NON_EXPIRED_IDS;
 import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE;
+import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_OBJECT_REPLICATION_TABLE;
+import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_ANNOTATION_REPLICATION_TABLE;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -176,7 +177,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void deleteTable(IdAndVersion tableId) {
-		deleteMultiValueTablesForTable(tableId);
+		boolean alterTemp = false;
+		deleteMultiValueTablesForTable(tableId, alterTemp);
 		template.update(SQLUtils.dropTableSQL(tableId, SQLUtils.TableType.INDEX));
 		deleteSecondaryTables(tableId);
 	}
@@ -195,9 +197,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	/**
 	 * Delete all multi-value tables associated with the given tableId.
 	 * @param tableId
+	 * @param alterTemp
 	 */
-	void deleteMultiValueTablesForTable(IdAndVersion tableId) {
-		List<String> tablesToDelete = getMultivalueColumnIndexTableNames(tableId);
+	void deleteMultiValueTablesForTable(IdAndVersion tableId, boolean alterTemp) {
+		List<String> tablesToDelete = getMultivalueColumnIndexTableNames(tableId, alterTemp);
 		for(String tableNames: tablesToDelete) {
 			template.update("DROP TABLE IF EXISTS "+tableNames);
 		}
@@ -457,32 +460,33 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public Set<Long> getMultivalueColumnIndexTableColumnIds(IdAndVersion tableId){
-		return getMultivalueColumnIndexTableNames(tableId)
+		boolean alterTemp = false;
+		return getMultivalueColumnIndexTableNames(tableId, alterTemp)
 				.stream()
 				.map((String indexTableName) -> SQLUtils.getColumnIdFromMultivalueColumnIndexTableName(tableId, indexTableName))
 				.collect(Collectors.toSet());
 	}
 
-	private List<String> getMultivalueColumnIndexTableNames(IdAndVersion tableId){
-		String multiValueTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(tableId);
+	private List<String> getMultivalueColumnIndexTableNames(IdAndVersion tableId, boolean alterTemp){
+		String multiValueTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(tableId, alterTemp);
 		return template.queryForList("SHOW TABLES LIKE '"+multiValueTableNamePrefix+"%'", String.class);
 	}
 
 	@Override
-	public void createMultivalueColumnIndexTable(IdAndVersion tableId, ColumnModel columnModel){
-		template.update(SQLUtils.createListColumnIndexTable(tableId, columnModel));
+	public void createMultivalueColumnIndexTable(IdAndVersion tableId, ColumnModel columnModel, boolean alterTemp){
+		template.update(SQLUtils.createListColumnIndexTable(tableId, columnModel, alterTemp));
 	}
 
 	@Override
-	public void deleteMultivalueColumnIndexTable(IdAndVersion tableId, Long columnId){
-		String tableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId.toString());
+	public void deleteMultivalueColumnIndexTable(IdAndVersion tableId, Long columnId, boolean alterTemp){
+		String tableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId.toString(), alterTemp);
 		template.update("DROP TABLE IF EXISTS " + tableName);
 	}
 
 
 	@Override
-	public void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn){
-		String sql = SQLUtils.createAlterListColumnIndexTable(tableId, oldColumnId, newColumn);
+	public void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn, boolean alterTemp){
+		String sql = SQLUtils.createAlterListColumnIndexTable(tableId, oldColumnId, newColumn, alterTemp);
 		template.update(sql);
 	}
 
@@ -582,7 +586,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	
 
 	@Override
-	public void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds){
+	public void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds, boolean alterTemp){
 		ValidateArgument.required(tableId, "tableId");
 		ValidateArgument.required(listColumn, "listColumn");
 		//only operate on list column types
@@ -593,7 +597,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			throw new IllegalArgumentException("When rowIds is provided (not null) it cannot be empty");
 		}
 		boolean filterRows = rowIds != null;
-		String insertIntoSql = SQLUtils.insertIntoListColumnIndexTable(tableId, listColumn, filterRows);
+		String insertIntoSql = SQLUtils.insertIntoListColumnIndexTable(tableId, listColumn, filterRows, alterTemp);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		if(filterRows) {
 			param.addValue(ID_PARAM_NAME, rowIds);
@@ -646,13 +650,42 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		try {
 			return template.queryForObject(sql, Long.class);
 		} catch (DataAccessException e) {
-			return 0l;
+			return 0L;
 		}
 	}
-	
+
+	@Override
+	public long getTempTableMultiValueColumnIndexCount(IdAndVersion tableId, String columnName) {
+		boolean alterTemp = true;
+		String sql = "SELECT COUNT(*) FROM " + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnName, alterTemp);
+		try {
+			return template.queryForObject(sql, Long.class);
+		} catch (DataAccessException e) {
+			return 0L;
+		}
+	}
+
+	@Override
+	public void createTemporaryMultiValueColumnIndexTable(IdAndVersion tableId, String columnId){
+		String[] sqlBatch = SQLUtils.createTempMultiValueColumnIndexTableSql(tableId, columnId);
+		template.batchUpdate(sqlBatch);
+	}
+
+	@Override
+	public void copyAllDataToTemporaryMultiValueColumnIndexTable(IdAndVersion tableId, String columnId) {
+		String sql = SQLUtils.copyMultiValueColumnIndexTableToTempSql(tableId, columnId);
+		template.update(sql);
+	}
+
+	@Override
+	public void deleteAllTemporaryMultiValueColumnIndexTable(IdAndVersion tableId) {
+		boolean alterTemp = true;
+		deleteMultiValueTablesForTable(tableId, alterTemp);
+	}
+
 	@Override
 	public void createEntityReplicationTablesIfDoesNotExist(){
-		template.update(TableConstants.ENTITY_REPLICATION_TABLE_CREATE);
+		template.update(TableConstants.OBJECT_REPLICATION_TABLE_CREATE);
 		template.update(TableConstants.ANNOTATION_REPLICATION_TABLE_CREATE);
 		template.update(TableConstants.REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE);
 	}
@@ -778,8 +811,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				EntityDTO dto1 = new EntityDTO();
 				dto1.setId(rs.getLong(OBJECT_REPLICATION_COL_OBJECT_ID));
 				dto1.setCurrentVersion(rs.getLong(OBJECT_REPLICATION_COL_VERSION));
-				dto1.setCreatedBy(rs.getLong(OBJECT_REPLICATION_COL_CRATED_BY));
-				dto1.setCreatedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_CRATED_ON)));
+				dto1.setCreatedBy(rs.getLong(OBJECT_REPLICATION_COL_CREATED_BY));
+				dto1.setCreatedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_CREATED_ON)));
 				dto1.setEtag(rs.getString(OBEJCT_REPLICATION_COL_ETAG));
 				dto1.setName(rs.getString(OBJECT_REPLICATION_COL_NAME));
 				dto1.setType(EntityType.valueOf(rs.getString(OBJECT_REPLICATION_COL_SUBTYPE)));
@@ -1051,11 +1084,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void truncateReplicationSyncExpiration() {
-		template.update(TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE);
-	}
-
-	@Override
 	public List<Long> getRowIds(String sql, Map<String, Object> parameters) {
 		ValidateArgument.required(sql, "sql");
 		ValidateArgument.required(parameters, "parameters");
@@ -1160,6 +1188,19 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				return idsToDelete.length;
 			}
 		});
+	}
+	
+
+	@Override
+	public void truncateReplicationSyncExpiration() {
+		template.update(TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE);
+	}
+	
+	@Override
+	public void truncateIndex() {
+		truncateReplicationSyncExpiration();
+		template.update(TRUNCATE_ANNOTATION_REPLICATION_TABLE);
+		template.update(TRUNCATE_OBJECT_REPLICATION_TABLE);
 	}
 
 }

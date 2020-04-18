@@ -55,13 +55,7 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 					return updateTableWithTransactionWithExclusiveLock(callback, userInfo, request);
 				}
 			});
-		}catch (TableUnavailableException e) {
-			throw e;
-		}catch (LockUnavilableException e) {
-			throw e;
-		}catch (RecoverableMessageException e) {
-			throw e;
-		}catch (RuntimeException e) {
+		} catch (TableUnavailableException | RecoverableMessageException | RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
@@ -113,12 +107,12 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 			String tableId = request.getEntityId();
 			IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 			TableIndexManager indexManager = tableIndexConnectionFactory.connectToTableIndex(idAndVersion);
-			indexManager.createTemporaryTableCopy(idAndVersion, callback);
+			indexManager.createTemporaryTableCopy(idAndVersion);
 			try{
 				// validate while the temp table exists.
 				validateEachUpdateRequest(callback, userInfo, request, indexManager);
 			}finally{
-				indexManager.deleteTemporaryTableCopy(idAndVersion, callback);
+				indexManager.deleteTemporaryTableCopy(idAndVersion);
 			}
 		}else{
 			// we do not need a temporary copy to validate this request.

@@ -17,6 +17,9 @@
 	<!-- This bean will intercept all HTTP calls and records access records -->
 	<bean id="accessInterceptor" class="org.sagebionetworks.repo.web.AccessInterceptor" />
 	
+	<!-- This bean will intercept all HTTP calls and check for required OAuth scope -->
+	<bean id="oauthScopeInterceptor" class="org.sagebionetworks.repo.web.OAuthScopeInterceptor" />
+	
 	<!-- This bean will intercept gather extra data from controller methods for auditing. -->
 	<bean id="controllerAuditAspect" class="org.sagebionetworks.repo.web.ControllerAuditAspect" />
 
@@ -27,6 +30,7 @@
 			<list>
 				<ref bean="stackStatusInterceptor" />
 				<ref bean="accessInterceptor" />
+				<ref bean="oauthScopeInterceptor" />
 			</list>
 		</property>
 	</bean>

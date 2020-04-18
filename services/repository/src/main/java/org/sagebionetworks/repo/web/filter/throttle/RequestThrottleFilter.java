@@ -11,12 +11,8 @@ import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.cloudwatch.Consumer;
-import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.web.HttpRequestIdentifier;
 import org.sagebionetworks.repo.web.HttpRequestIdentifierUtils;
@@ -26,10 +22,6 @@ public class RequestThrottleFilter implements Filter {
 
 	@Autowired
 	private Consumer consumer;
-	
-	@Autowired
-	private OpenIDConnectManager oidcManager;
-
 
 	RequestThrottler requestThrottler;
 
@@ -39,10 +31,7 @@ public class RequestThrottleFilter implements Filter {
 
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-		String synapseAuthorizationHeader = ((HttpServletRequest)request).getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME);
-		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(synapseAuthorizationHeader);
-		Long userId = Long.parseLong(oidcManager.getUserId(accessToken));
-		HttpRequestIdentifier httpRequestIdentifier = HttpRequestIdentifierUtils.getRequestIdentifier(request, userId);
+		HttpRequestIdentifier httpRequestIdentifier = HttpRequestIdentifierUtils.getRequestIdentifier(request);
 
 		//TODO: remove exception for anonymous users once java client has a way to get session id from cookies
 		if ( isMigrationAdmin(httpRequestIdentifier.getUserId()) || AuthorizationUtils.isUserAnonymous(httpRequestIdentifier.getUserId())) { //do not throttle the admin responsible for migration.

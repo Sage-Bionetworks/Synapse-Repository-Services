@@ -23,9 +23,10 @@ public class HttpRequestIdentifierUtils {
 	}
 
 
-	public static HttpRequestIdentifier getRequestIdentifier(ServletRequest request, Long userId){
+	public static HttpRequestIdentifier getRequestIdentifier(ServletRequest request){
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
 
+		Long userId = Long.parseLong(httpRequest.getParameter(AuthorizationConstants.USER_ID_PARAM));
 		String sessionId = getSessionId(httpRequest);
 		String ipAddress = IpAddressUtil.getIpAddress(httpRequest);
 		String requestPath = httpRequest.getRequestURI();

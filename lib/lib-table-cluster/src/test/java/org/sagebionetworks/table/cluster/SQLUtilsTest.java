@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -16,7 +17,6 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -240,17 +240,29 @@ public class SQLUtilsTest {
 			SQLUtils.getTableNameForMultiValueColumnIndex(tableId, null );
 		});
 	}
+
+	@Test
+	public void testGetTableNameForMultiValueColumnIndex(){
+		String temp = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, "123", true);
+		assertEquals("TEMPT999_INDEX_C123_", temp);
+	}
 	
 	@Test
 	public void testGetTableNamePrefixForMultiValueColumns_Id_NoVersion(){
-		String tableName = SQLUtils.getTableNamePrefixForMultiValueColumns(IdAndVersion.parse("syn123"));
+		String tableName = SQLUtils.getTableNamePrefixForMultiValueColumns(IdAndVersion.parse("syn123"), false);
 		assertEquals("T123_INDEX", tableName);
 	}
 
 	@Test
 	public void testGetTableNamePrefixForMultiValueColumns_Id_WithVersion(){
-		String tableName = SQLUtils.getTableNamePrefixForMultiValueColumns(IdAndVersion.parse("syn123.456"));
+		String tableName = SQLUtils.getTableNamePrefixForMultiValueColumns(IdAndVersion.parse("syn123.456"), false);
 		assertEquals("T123_456_INDEX", tableName);
+	}
+
+	@Test
+	public void testGetTableNamePrefixForMultiValueColumns_alterTempTrue(){
+		String tableName = SQLUtils.getTableNamePrefixForMultiValueColumns(IdAndVersion.parse("syn123"), true);
+		assertEquals("TEMPT123_INDEX", tableName);
 	}
 
 	@Test
@@ -889,7 +901,7 @@ public class SQLUtilsTest {
 		Long oldColumn = 21L;
 
 
-		String sql = SQLUtils.createAlterListColumnIndexTable(tableId, oldColumn, newColumn);
+		String sql = SQLUtils.createAlterListColumnIndexTable(tableId, oldColumn, newColumn, false);
 		String expected = "ALTER TABLE T999_INDEX_C21_" +
 				" DROP INDEX _C21__UNNEST_IDX," +
 				" DROP FOREIGN KEY T999_INDEX_C21__FK," +
@@ -902,7 +914,30 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void testCreateAlterTableSqlMultipleTempTrue(){
+	public void testCreateAlterListColumnIndexTable_alterTempTrue(){
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("42");
+		newColumn.setName("testerino");
+		newColumn.setColumnType(ColumnType.STRING_LIST);
+		newColumn.setMaximumSize(58L);
+
+		Long oldColumn = 21L;
+
+
+		String sql = SQLUtils.createAlterListColumnIndexTable(tableId, oldColumn, newColumn, true);
+		String expected = "ALTER TABLE TEMPT999_INDEX_C21_" +
+				" DROP INDEX _C21__UNNEST_IDX," +
+				" DROP FOREIGN KEY TEMPT999_INDEX_C21__FK," +
+				" RENAME COLUMN ROW_ID_REF_C21_ TO ROW_ID_REF_C42_," +
+				" ADD CONSTRAINT TEMPT999_INDEX_C42__FK FOREIGN KEY (ROW_ID_REF_C42_) REFERENCES TEMPT999(ROW_ID) ON DELETE CASCADE," +
+				" CHANGE COLUMN _C21__UNNEST _C42__UNNEST VARCHAR(58) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING'," +
+				" ADD INDEX _C42__UNNEST_IDX (_C42__UNNEST ASC)," +
+				" RENAME TEMPT999_INDEX_C42_";
+		assertEquals(expected, sql);
+	}
+
+	@Test
+	public void testCreateAlterTableSqlMultiple_alterTempTrue(){
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setId("123");
 		oldColumn.setColumnType(ColumnType.BOOLEAN);
@@ -1578,10 +1613,27 @@ public class SQLUtilsTest {
 		assertEquals("CREATE TABLE TEMPT999 LIKE T999", sql);
 	}
 
+
+	@Test
+	public void testTempMultiValueColumnIndexTableSql(){
+		String[] sql = SQLUtils.createTempMultiValueColumnIndexTableSql(tableId, "123");
+		String[] expected = new String[]{"CREATE TABLE TEMPT999_INDEX_C123_ LIKE T999_INDEX_C123_",
+				"ALTER TABLE TEMPT999_INDEX_C123_ " +
+				"ADD CONSTRAINT TEMPT999_INDEX_C123__FK FOREIGN KEY (ROW_ID_REF_C123_) REFERENCES TEMPT999(ROW_ID) " +
+				"ON DELETE CASCADE"};
+		assertArrayEquals(expected, sql);
+	}
+
 	@Test
 	public void testCopyTableToTempSql(){
 		String sql = SQLUtils.copyTableToTempSql(tableId);
-		assertEquals("INSERT INTO TEMPT999 SELECT * FROM T999 ORDER BY ROW_ID", sql);
+		assertEquals("INSERT INTO TEMPT999 SELECT * FROM T999", sql);
+	}
+
+	@Test
+	public void testMultiValueColumnIndexTableToTempSql(){
+		String sql = SQLUtils.copyMultiValueColumnIndexTableToTempSql(tableId, "123");
+		assertEquals("INSERT INTO TEMPT999_INDEX_C123_ SELECT * FROM T999_INDEX_C123_", sql);
 	}
 
 	@Test
@@ -1897,7 +1949,7 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void testBuildEntityReplicationSelect() {
+	public void testBuildObjectReplicationSelect() {
 		StringBuilder builder = new StringBuilder();
 		String columnName = TableConstants.OBJECT_REPLICATION_COL_BENEFACTOR_ID;
 		// Call under test
@@ -1906,7 +1958,7 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void testBuildEntityReplicationSelectStandardColumns() {
+	public void testBuildObjectReplicationSelectStandardColumns() {
 		StringBuilder builder = new StringBuilder();
 		// call under test
 		List<String> headers = SQLUtils.buildObjectReplicationSelectStandardColumns(builder);
@@ -1918,7 +1970,7 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void testCreateSelectFromEntityReplication(){
+	public void testCreateSelectFromObjectReplication(){
 		ColumnModel one = TableModelTestUtils.createColumn(1L);
 		ColumnModel id = EntityField.id.getColumnModel();
 		id.setId("2");
@@ -1948,7 +2000,7 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
-	public void testCreateSelectFromEntityReplicationFilterByRows(){
+	public void testCreateSelectFromObjectReplicationFilterByRows(){
 		ColumnModel one = TableModelTestUtils.createColumn(1L);
 		ColumnModel id = EntityField.id.getColumnModel();
 		id.setId("2");
@@ -1981,7 +2033,7 @@ public class SQLUtilsTest {
 
 
 	@Test
-	public void testCreateSelectInsertFromEntityReplication(){
+	public void testCreateSelectInsertFromObjectReplication(){
 		ColumnModel one = TableModelTestUtils.createColumn(1L);
 		ColumnModel id = EntityField.id.getColumnModel();
 		id.setId("2");
@@ -2009,7 +2061,7 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
-	public void testCreateSelectInsertFromEntityReplicationFilterByRows(){
+	public void testCreateSelectInsertFromObjectReplicationFilterByRows(){
 		ColumnModel one = TableModelTestUtils.createColumn(1L);
 		ColumnModel id = EntityField.id.getColumnModel();
 		id.setId("2");
@@ -2038,7 +2090,7 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void testCreateSelectInsertFromEntityReplicationProjectView(){
+	public void testCreateSelectInsertFromObjectReplicationProjectView(){
 		ColumnModel one = TableModelTestUtils.createColumn(1L);
 		ColumnModel id = EntityField.id.getColumnModel();
 		id.setId("2");
@@ -2066,7 +2118,7 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void testCreateSelectInsertFromEntityReplicationWithDouble(){
+	public void testCreateSelectInsertFromObjectReplicationWithDouble(){
 		ColumnModel doubleAnnotation = new ColumnModel();
 		doubleAnnotation.setColumnType(ColumnType.DOUBLE);
 		doubleAnnotation.setId("3");
@@ -2823,7 +2875,7 @@ public class SQLUtilsTest {
 		columnModel.setMaximumSize(42L);
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
-			SQLUtils.createListColumnIndexTable(null, columnModel);
+			SQLUtils.createListColumnIndexTable(null, columnModel, false);
 		}).getMessage();
 		assertEquals("tableIdAndVersion is required.", errorMessage);
 	}
@@ -2832,7 +2884,7 @@ public class SQLUtilsTest {
 	public void testCreateListColumnIndexTable__nullColumnModel(){
 		ColumnModel nullColumnModel = null;
 		String errorMessage = assertThrows(IllegalArgumentException.class, () ->{
-			SQLUtils.createListColumnIndexTable(tableId, nullColumnModel);
+			SQLUtils.createListColumnIndexTable(tableId, nullColumnModel, false);
 		}).getMessage();
 		assertEquals("columnModel is required.", errorMessage);
 	}
@@ -2845,19 +2897,19 @@ public class SQLUtilsTest {
 		columnModel.setMaximumSize(42L);
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () ->{
-			SQLUtils.createListColumnIndexTable(tableId, columnModel);
+			SQLUtils.createListColumnIndexTable(tableId, columnModel, false);
 		}).getMessage();
 
 		assertEquals("columnModel's type must be a LIST type", errorMessage);
 	}
 
 	@Test
-	public void testCreateListColumnIndexTable(){
+	public void testCreateListColumnIndexTable_alterTempTrue(){
 		ColumnModel columnInfo = new ColumnModel();
 		columnInfo.setColumnType(ColumnType.STRING_LIST);
 		columnInfo.setId("0");
 		columnInfo.setMaximumSize(42L);
-		String sql = SQLUtils.createListColumnIndexTable(tableId, columnInfo);
+		String sql = SQLUtils.createListColumnIndexTable(tableId, columnInfo, false);
 		String expected = "CREATE TABLE IF NOT EXISTS T999_INDEX_C0_ (" +
 				"ROW_ID_REF_C0_ BIGINT NOT NULL, " +
 				"INDEX_NUM BIGINT NOT NULL, " +
@@ -2869,13 +2921,30 @@ public class SQLUtilsTest {
 	}
 
 	@Test
+	public void testCreateListColumnIndexTable_alterTempFalse(){
+		ColumnModel columnInfo = new ColumnModel();
+		columnInfo.setColumnType(ColumnType.STRING_LIST);
+		columnInfo.setId("0");
+		columnInfo.setMaximumSize(42L);
+		String sql = SQLUtils.createListColumnIndexTable(tableId, columnInfo, true);
+		String expected = "CREATE TABLE IF NOT EXISTS TEMPT999_INDEX_C0_ (" +
+				"ROW_ID_REF_C0_ BIGINT NOT NULL, " +
+				"INDEX_NUM BIGINT NOT NULL, " +
+				"_C0__UNNEST VARCHAR(42) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
+				"PRIMARY KEY (ROW_ID_REF_C0_, INDEX_NUM)," +
+				" INDEX _C0__UNNEST_IDX (_C0__UNNEST ASC)," +
+				" CONSTRAINT TEMPT999_INDEX_C0__FK FOREIGN KEY (ROW_ID_REF_C0_) REFERENCES TEMPT999(ROW_ID) ON DELETE CASCADE);";
+		assertEquals(expected, sql);
+	}
+
+	@Test
 	public void testInsertIntoListColumnIndexTable(){
 		ColumnModel columnInfo = new ColumnModel();
 		columnInfo.setColumnType(ColumnType.STRING_LIST);
 		columnInfo.setId("0");
 		columnInfo.setMaximumSize(42L);
 		boolean filterRows = false;
-		String sql = SQLUtils.insertIntoListColumnIndexTable(tableId, columnInfo, filterRows);
+		String sql = SQLUtils.insertIntoListColumnIndexTable(tableId, columnInfo, filterRows, false);
 		String expected = "INSERT INTO T999_INDEX_C0_ (ROW_ID_REF_C0_,INDEX_NUM,_C0__UNNEST) " +
 				"SELECT ROW_ID ,  TEMP_JSON_TABLE.ORDINAL - 1 , TEMP_JSON_TABLE.COLUMN_EXPAND" +
 				" FROM T999, JSON_TABLE(" +
@@ -2889,13 +2958,13 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
-	public void testInsertIntoListColumnIndexTableFilterRows(){
+	public void testInsertIntoListColumnIndexTableFilterRows_alterTempFalse(){
 		ColumnModel columnInfo = new ColumnModel();
 		columnInfo.setColumnType(ColumnType.STRING_LIST);
 		columnInfo.setId("0");
 		columnInfo.setMaximumSize(42L);
 		boolean filterRows = true;
-		String sql = SQLUtils.insertIntoListColumnIndexTable(tableId, columnInfo, filterRows);
+		String sql = SQLUtils.insertIntoListColumnIndexTable(tableId, columnInfo, filterRows, false);
 		String expected = "INSERT INTO T999_INDEX_C0_ (ROW_ID_REF_C0_,INDEX_NUM,_C0__UNNEST) " +
 				"SELECT ROW_ID ,  TEMP_JSON_TABLE.ORDINAL - 1 , TEMP_JSON_TABLE.COLUMN_EXPAND" +
 				" FROM T999, JSON_TABLE(" +
@@ -2907,6 +2976,26 @@ public class SQLUtilsTest {
 				") TEMP_JSON_TABLE WHERE T999.ROW_ID IN (:ids)";
 		assertEquals(expected, sql);
 	}
+
+	@Test
+	public void testInsertIntoListColumnIndexTableFilterRows_alterTempTrue(){
+		ColumnModel columnInfo = new ColumnModel();
+		columnInfo.setColumnType(ColumnType.STRING_LIST);
+		columnInfo.setId("0");
+		columnInfo.setMaximumSize(42L);
+		boolean filterRows = true;
+		String sql = SQLUtils.insertIntoListColumnIndexTable(tableId, columnInfo, filterRows, true);
+		String expected = "INSERT INTO TEMPT999_INDEX_C0_ (ROW_ID_REF_C0_,INDEX_NUM,_C0__UNNEST) " +
+				"SELECT ROW_ID ,  TEMP_JSON_TABLE.ORDINAL - 1 , TEMP_JSON_TABLE.COLUMN_EXPAND" +
+				" FROM TEMPT999, JSON_TABLE(" +
+				"_C0_," +
+				" '$[*]' COLUMNS (" +
+				" ORDINAL FOR ORDINALITY," +
+				"  COLUMN_EXPAND VARCHAR(42) PATH '$' " +
+				")" +
+				") TEMP_JSON_TABLE WHERE TEMPT999.ROW_ID IN (:ids)";
+		assertEquals(expected, sql);
+	}
 	
 	@Test
 	public void testGetOutOfDateRowsForViewSqlFileView() {
@@ -2916,11 +3005,10 @@ public class SQLUtilsTest {
 		String expected = "WITH DELTAS (ID, MISSING) AS ("
 				+ " SELECT R.OBJECT_ID, V.ROW_ID FROM OBJECT_REPLICATION R"
 				+ "    LEFT JOIN T999 V ON ("
-				+ "      R.OBJECT_TYPE = :objectType"
-				+ "		 AND R.OBJECT_ID = V.ROW_ID"
+				+ "		 R.OBJECT_ID = V.ROW_ID"
 				+ "      AND R.ETAG = V.ROW_ETAG"
 				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR)"
-				+ "   WHERE R.PARENT_ID IN (:scopeIds) AND R.SUBTYPE IN ('file')"
+				+ "   WHERE R.OBJECT_TYPE = :objectType AND R.PARENT_ID IN (:scopeIds) AND R.SUBTYPE IN ('file')"
 				+ " UNION ALL"
 				+ " SELECT V.ROW_ID, R.OBJECT_ID FROM OBJECT_REPLICATION R"
 				+ "    RIGHT JOIN T999 V ON ("
@@ -2942,11 +3030,10 @@ public class SQLUtilsTest {
 		String expected = "WITH DELTAS (ID, MISSING) AS ("
 				+ " SELECT R.OBJECT_ID, V.ROW_ID FROM OBJECT_REPLICATION R"
 				+ "    LEFT JOIN T999 V ON ("
-				+ "      R.OBJECT_TYPE = :objectType"
-				+ "		 AND R.OBJECT_ID = V.ROW_ID"
+				+ "		 R.OBJECT_ID = V.ROW_ID"
 				+ "      AND R.ETAG = V.ROW_ETAG"
 				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR)"
-				+ "   WHERE R.OBJECT_ID IN (:scopeIds) AND R.SUBTYPE IN ('project')"
+				+ "   WHERE R.OBJECT_TYPE = :objectType AND R.OBJECT_ID IN (:scopeIds) AND R.SUBTYPE IN ('project')"
 				+ " UNION ALL"
 				+ " SELECT V.ROW_ID, R.OBJECT_ID FROM OBJECT_REPLICATION R"
 				+ "    RIGHT JOIN T999 V ON ("
