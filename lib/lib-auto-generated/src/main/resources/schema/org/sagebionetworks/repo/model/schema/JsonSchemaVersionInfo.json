@@ -1,0 +1,28 @@
+{
+	"description": "Information about a single version of a JSON schema.",
+	"properties": {
+		"versionId": {
+			"type": "string",
+			"description": "The Synapse issued numeric identifier for this version."
+		},
+		"semanticVersion": {
+			"type": "string",
+			"description": "The semantic version label provided when this version was created.  Can be null if a semantic version was not provided when this version was created."
+		},
+		"jsonSHA256Hex": {
+			"type": "string",
+			"description": "The SHA-256 hexadecimal hash of the UTF-8 encoded JSON schema."
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this JSON schema version was created.",
+			"title": "Created On"
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "The ID of the user that created this JSON schema version.",
+			"title": "Created By"
+		}
+	}
+}

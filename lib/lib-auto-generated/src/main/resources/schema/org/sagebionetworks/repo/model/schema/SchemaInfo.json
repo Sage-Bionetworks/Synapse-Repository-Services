@@ -3,11 +3,11 @@
 	"properties": {
 		"numericId": {
 			"type": "string",
-			"description": "The Synapes issued numeric identifier of the JSON schema."
+			"description": "The Synapse issued numeric identifier of the JSON schema."
 		},
 		"organizationId": {
 			"type": "string",
-			"description": "The Synapes issued numeric identifier of the organization that the JSON schema belongs"
+			"description": "The Synapse issued numeric identifier of the organization that the JSON schema belongs"
 		},
 		"name": {
 			"type": "string",

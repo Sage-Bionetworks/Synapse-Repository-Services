@@ -130,6 +130,7 @@
 				<!--  Schema -->
 				<bean class="org.sagebionetworks.repo.model.dbo.schema.DBOOrganization" />
 				<bean class="org.sagebionetworks.repo.model.dbo.schema.DBOJsonSchema" />
+				<bean class="org.sagebionetworks.repo.model.dbo.schema.DBOJsonSchemaBlob" />
 				<bean class="org.sagebionetworks.repo.model.dbo.schema.DBOJsonSchemaVersion" />
 				<bean class="org.sagebionetworks.repo.model.dbo.schema.DBOJsonSchemaDependency" />
 				<!-- Download -->
@@ -241,6 +242,7 @@
 				<!--  Schema -->
 				<bean class="org.sagebionetworks.repo.model.dbo.schema.DBOOrganization" />
 				<bean class="org.sagebionetworks.repo.model.dbo.schema.DBOJsonSchema" />
+				<bean class="org.sagebionetworks.repo.model.dbo.schema.DBOJsonSchemaBlob" />
 				<bean class="org.sagebionetworks.repo.model.dbo.schema.DBOJsonSchemaVersion" />
 				<!-- Download -->
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadList" />
