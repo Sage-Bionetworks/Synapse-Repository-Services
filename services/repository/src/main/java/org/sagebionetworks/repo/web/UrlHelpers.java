@@ -386,9 +386,13 @@ public class UrlHelpers {
 	 * Schema API URIs
 	 * 
 	 */
-	public static final String ORGANIZATION = SCHEMA+"/organization";
+	public static final String JSON_SCHEMA = "schema";
+	public static final String ORGANIZATION = JSON_SCHEMA+"/organization";
 	public static final String ORGANIZATION_ID = ORGANIZATION+"/{id}";
 	public static final String ORGANIZATION_ID_ACL = ORGANIZATION_ID+"/acl";
+	public static final String JSON_SCHEMA_TYPE = JSON_SCHEMA+"/type";
+	public static final String JSON_SCHEMA_TYPE_ASYNCH_START = JSON_SCHEMA_TYPE+ASYNC_START_REQUEST;
+	public static final String JSON_SCHEMA_TYPE_ASYNCH_GET = JSON_SCHEMA_TYPE+ASYNC_GET_REQUEST;
 	
 	public static final String FORM_DATA_ACCEPT = FORM_DATA_ID+"/accept";
 	public static final String FORM_DATA_REJECT = FORM_DATA_ID+"/reject";

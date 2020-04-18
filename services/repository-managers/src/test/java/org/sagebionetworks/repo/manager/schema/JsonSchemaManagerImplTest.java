@@ -609,7 +609,7 @@ public class JsonSchemaManagerImplTest {
 		verify(managerSpy).getAndValidateSemanticVersion(schemaId.getSemanticVersion());
 		assertEquals(versionInfo, response.getNewVersionInfo());
 		verify(mockOrganizationDao).getOrganizationByName(organizationName);
-		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.UPDATE);
+		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.CREATE);
 		NewSchemaRequest expectedNewSchemaRequest = new NewSchemaRequest().withOrganizationId(organization.getId())
 				.withSchemaName(schemaName).withCreatedBy(user.getId());
 		verify(mockSchemaDao).createSchemaIfDoesNotExist(expectedNewSchemaRequest);
@@ -637,7 +637,7 @@ public class JsonSchemaManagerImplTest {
 			manager.createJsonSchema(user, createSchemaRequest);
 		}).getMessage();
 		assertEquals("no", message);
-		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.UPDATE);
+		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.CREATE);
 	}
 	
 	@Test

@@ -178,9 +178,9 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 
 		String semanticVersionString = getAndValidateSemanticVersion(schemaId.getSemanticVersion());
 
-		// Does the user have update on the organization
+		// User must have create on the organization.
 		Organization organization = organizationDao.getOrganizationByName(schemaId.getOrganizationName().toString());
-		aclDao.canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.UPDATE)
+		aclDao.canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.CREATE)
 				.checkAuthorizationOrElseThrow();
 
 		// Create or get the root schema

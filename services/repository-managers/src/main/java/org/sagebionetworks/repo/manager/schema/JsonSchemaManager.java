@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 /**
  * 
@@ -61,5 +62,5 @@ public interface JsonSchemaManager {
 	 * @param request
 	 * @return
 	 */
-	CreateSchemaResponse createJsonSchema(UserInfo user, CreateSchemaRequest request);
+	CreateSchemaResponse createJsonSchema(UserInfo user, CreateSchemaRequest request) throws RecoverableMessageException;
 }

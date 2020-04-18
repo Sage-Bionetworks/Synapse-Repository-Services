@@ -62,6 +62,7 @@
     <import resource="classpath:athena-spb.xml" />
     <import resource="classpath:statistics-spb.xml" />
     <import resource="classpath:ses-notification-spb.xml" />
+    <import resource="classpath:schema-create-worker-sqs-spb.xml" />
 
 	<util:list id="workersList">
 		<!-- workers -->
@@ -107,6 +108,7 @@
 		<ref bean="statisticsMonthlyStatusWatcherWorkerTrigger" /> 
 		<ref bean="statisticsMonthlyWorkerTrigger" />
 		<ref bean="sesNotificationWorkerTrigger" />
+		<ref bean="schemaCreateTransactionMessageTrigger" />
 	</util:list>
 
 	<bean id="mainScheduler"

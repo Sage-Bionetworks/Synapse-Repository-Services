@@ -2,7 +2,11 @@ package org.sagebionetworks.repo.web.controller;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.asynch.AsyncJobId;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
+import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
+import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -54,7 +58,8 @@ public class JsonSchemaController {
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION }, method = RequestMethod.POST)
-	public @ResponseBody Organization createOrganziation(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	public @ResponseBody Organization createOrganziation(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody CreateOrganizationRequest request) {
 		return serviceProvider.getSchemaServices().createOrganization(userId, request);
 	}
@@ -68,7 +73,8 @@ public class JsonSchemaController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION }, method = RequestMethod.GET)
-	public @ResponseBody Organization getOrganizationByName(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	public @ResponseBody Organization getOrganizationByName(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = true) String name) {
 		return serviceProvider.getSchemaServices().getOrganizationByName(userId, name);
 	}
@@ -107,8 +113,8 @@ public class JsonSchemaController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION_ID_ACL }, method = RequestMethod.GET)
-	public @ResponseBody AccessControlList getOrganizationAcl(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id) {
+	public @ResponseBody AccessControlList getOrganizationAcl(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id) {
 		return serviceProvider.getSchemaServices().getOrganizationAcl(userId, id);
 	}
 
@@ -129,9 +135,61 @@ public class JsonSchemaController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION_ID_ACL }, method = RequestMethod.PUT)
 	public @ResponseBody AccessControlList updateOrganizationAcl(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable(value = "id", required = true) String id,
-			@RequestBody AccessControlList acl) {
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = "id", required = true) String id, @RequestBody AccessControlList acl) {
 		return serviceProvider.getSchemaServices().updateOrganizationAcl(userId, id, acl);
+	}
+
+	/**
+	 * Start an asynchronous job to create a new JSON schema. To monitor the
+	 * progress of the job and to get the final results use:
+	 * <a href="${GET.schema.type.async.get}">GET
+	 * schema/type/async/get/{asyncToken}"</a>
+	 * <p>
+	 * Note: The caller must be granted the
+	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.CREATE</a> permission on the Organization in the schema's $id.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return Use the resulting token to monitor the job's progress and to get the
+	 *         final results.
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.JSON_SCHEMA_TYPE_ASYNCH_START, method = RequestMethod.POST)
+	public @ResponseBody AsyncJobId createSchemaAsyncStart(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody CreateSchemaRequest request) {
+		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, request);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	/**
+	 * Get the results of an asynchronous job that was started to create a new JSON
+	 * schema. *
+	 * <p>
+	 * Note: If the job has not completed, this method will return a status code of
+	 * 202 (ACCEPTED) and the response body will be a
+	 * <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+	 * >AsynchronousJobStatus</a> object.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param asyncToken Forward the token returned when the job was started.
+	 * @return
+	 * @throws Throwable
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.JSON_SCHEMA_TYPE_ASYNCH_GET, method = RequestMethod.GET)
+	public @ResponseBody CreateSchemaResponse createSchemaAsyncGet(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String asyncToken)
+			throws Throwable {
+		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+				asyncToken);
+		return (CreateSchemaResponse) jobStatus.getResponseBody();
 	}
 
 }
