@@ -47,7 +47,6 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
