@@ -143,8 +143,8 @@ public class JsonSchemaController {
 	/**
 	 * Start an asynchronous job to create a new JSON schema. To monitor the
 	 * progress of the job and to get the final results use:
-	 * <a href="${GET.schema.type.async.get}">GET
-	 * schema/type/async/get/{asyncToken}"</a>
+	 * <a href="${GET.schema.type.create.async.get.asyncToken}">GET
+	 * schema/type/create/async/get/{asyncToken}"</a>
 	 * <p>
 	 * Note: The caller must be granted the
 	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
