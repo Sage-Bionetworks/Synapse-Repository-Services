@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.table.ViewScopeType;
+
 /**
  * Tracks views and their scopes.
  * 
@@ -10,17 +12,13 @@ import java.util.Set;
 public interface ViewScopeDao {
 	
 	/**
-	 * Set the containers that define the scope of a view.
+	 * Associate the scope and type to the view with the given id
 	 * 
 	 * @param viewId
 	 * @param containerIds
+	 * @param scopeType
 	 */
-	void setViewScopeAndType(Long viewId, Set<Long> containerIds, Long viewTypeMask);
-	
-	/**
-	 * Clear all data in the table.
-	 */
-	void truncateAll();
+	void setViewScopeAndType(Long viewId, Set<Long> containerIds, ViewScopeType scopeType);
 
 	/**
 	 * Get the scope for the given view.
@@ -37,5 +35,9 @@ public interface ViewScopeDao {
 	 */
 	Long getViewTypeMask(Long tableId);
 	
+	/**
+	 * Clear all data in the table.
+	 */
+	void truncateAll();
 
 }

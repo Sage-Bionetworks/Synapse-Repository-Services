@@ -58,6 +58,7 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationManager;
 import org.sagebionetworks.repo.model.BucketAndKey;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
@@ -80,6 +81,7 @@ import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.ViewScope;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -170,6 +172,8 @@ public class TableViewManagerImplTest {
 	org.sagebionetworks.repo.model.Annotations annotations;
 	Annotations annotationsV2;
 	
+	ViewScopeType scopeType;
+	
 
 	@BeforeEach
 	public void before(){
@@ -184,6 +188,7 @@ public class TableViewManagerImplTest {
 		viewType =ViewTypeMask.File.getMask();
 		
 		viewScope = new ViewScope();
+		viewScope.setObjectType(ObjectType.ENTITY);
 		viewScope.setScope(scope);
 		viewScope.setViewTypeMask(viewType);
 		
@@ -240,6 +245,7 @@ public class TableViewManagerImplTest {
 		snapshotOptions.setSnapshotComment("a comment");
 		allContainersInScope = Sets.newHashSet(123L, 456L);;
 		viewTypeMask = ViewTypeMask.File.getMask();
+		scopeType = new ViewScopeType(ObjectType.ENTITY, viewTypeMask);
 		
 		managerSpy = Mockito.spy(manager);
 	}
@@ -260,7 +266,7 @@ public class TableViewManagerImplTest {
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 		// the size should be validated
 		verify(mockTableManagerSupport).validateScopeSize(scopeIds, viewType);
-		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), viewType);
+		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), scopeType);
 		verify(mockColumnModelManager).bindColumnsToDefaultVersionOfObject(schema, viewId);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
@@ -286,7 +292,7 @@ public class TableViewManagerImplTest {
 		schema = null;
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
-		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), viewType);
+		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), scopeType);
 		verify(mockColumnModelManager).bindColumnsToDefaultVersionOfObject(null, viewId);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
@@ -296,7 +302,7 @@ public class TableViewManagerImplTest {
 		viewScope.setScope(null);
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
-		verify(viewScopeDao).setViewScopeAndType(555L, null, viewType);
+		verify(viewScopeDao).setViewScopeAndType(555L, null, scopeType);
 		verify(mockColumnModelManager).bindColumnsToDefaultVersionOfObject(schema, viewId);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
@@ -332,9 +338,22 @@ public class TableViewManagerImplTest {
 	public void testSetViewSchemaAndScopeWithProjectOnly(){
 		long mask = ViewTypeMask.Project.getMask();
 		viewScope.setViewTypeMask(mask);
+		ViewScopeType expectedScopeType = new ViewScopeType(ObjectType.ENTITY, mask);
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
-		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), mask);
+		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), expectedScopeType);
+	}
+	
+	@Test
+	public void testSetViewSchemaAndScopeWithNullObjectType(){
+		viewScope.setObjectType(null);
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
+		});
+		
+		assertEquals("The scope objectType is required.", ex.getMessage());
 	}
 	
 	@Test

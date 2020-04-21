@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.ViewScope;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -121,6 +122,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	public void setViewSchemaAndScope(UserInfo userInfo, List<String> schema, ViewScope scope, String viewIdString) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(scope, "scope");
+		ValidateArgument.required(scope.getObjectType(), "The scope objectType");
 		validateViewSchemaSize(schema);
 		Long viewId = KeyFactory.stringToKey(viewIdString);
 		IdAndVersion idAndVersion = IdAndVersion.parse(viewIdString);
@@ -128,17 +130,19 @@ public class TableViewManagerImpl implements TableViewManager {
 		if (scope.getScope() != null) {
 			scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scope.getScope()));
 		}
-		Long viewTypeMaks = ViewTypeMask.getViewTypeMask(scope);
-		if ((viewTypeMaks & ViewTypeMask.Project.getMask()) > 0) {
-			if (viewTypeMaks != ViewTypeMask.Project.getMask()) {
+		Long viewTypeMask = ViewTypeMask.getViewTypeMask(scope);
+		if ((viewTypeMask & ViewTypeMask.Project.getMask()) > 0) {
+			if (viewTypeMask != ViewTypeMask.Project.getMask()) {
 				throw new IllegalArgumentException(PROJECT_TYPE_CANNOT_BE_COMBINED_WITH_ANY_OTHER_TYPE);
 			}
 		}
 		// validate the scope size
-		tableManagerSupport.validateScopeSize(scopeIds, viewTypeMaks);
+		tableManagerSupport.validateScopeSize(scopeIds, viewTypeMask);
+		
+		ViewScopeType scopeType = new ViewScopeType(scope.getObjectType(), viewTypeMask);
 
 		// Define the scope of this view.
-		viewScopeDao.setViewScopeAndType(viewId, scopeIds, viewTypeMaks);
+		viewScopeDao.setViewScopeAndType(viewId, scopeIds, scopeType);
 		// Define the schema of this view.
 		columModelManager.bindColumnsToDefaultVersionOfObject(schema, viewIdString);
 		// trigger an update
