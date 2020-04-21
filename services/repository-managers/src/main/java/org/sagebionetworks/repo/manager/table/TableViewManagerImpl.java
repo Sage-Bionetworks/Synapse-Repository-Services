@@ -136,11 +136,12 @@ public class TableViewManagerImpl implements TableViewManager {
 				throw new IllegalArgumentException(PROJECT_TYPE_CANNOT_BE_COMBINED_WITH_ANY_OTHER_TYPE);
 			}
 		}
-		// validate the scope size
-		tableManagerSupport.validateScopeSize(scopeIds, viewTypeMask);
 		
 		ViewScopeType scopeType = new ViewScopeType(scope.getObjectType(), viewTypeMask);
 
+		// validate the scope size
+		tableManagerSupport.validateScopeSize(scopeIds, scopeType);
+		
 		// Define the scope of this view.
 		viewScopeDao.setViewScopeAndType(viewId, scopeIds, scopeType);
 		// Define the schema of this view.
@@ -383,8 +384,8 @@ public class TableViewManagerImpl implements TableViewManager {
 	void applyChangesToAvailableViewHoldingLock(IdAndVersion viewId) {
 		try {
 			TableIndexManager indexManager = connectionFactory.connectToTableIndex(viewId);
-			Long viewTypeMask = tableManagerSupport.getViewTypeMask(viewId);
-			Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(viewId, viewTypeMask);
+			ViewScopeType scopeType = tableManagerSupport.getViewScopeType(viewId);
+			Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(viewId, scopeType);
 			List<ColumnModel> currentSchema = tableManagerSupport.getTableSchema(viewId);
 			Set<Long> rowsIdsWithChanges = null;
 			Set<Long> previousPageRowIdsWithChanges = Collections.emptySet();
@@ -395,7 +396,7 @@ public class TableViewManagerImpl implements TableViewManager {
 					// no point in continuing if the table is no longer available.
 					return;
 				}
-				rowsIdsWithChanges = indexManager.getOutOfDateRowsForView(viewId, viewTypeMask, allContainersInScope,  MAX_ROWS_PER_TRANSACTION);
+				rowsIdsWithChanges = indexManager.getOutOfDateRowsForView(viewId, scopeType, allContainersInScope,  MAX_ROWS_PER_TRANSACTION);
 				// Are thrashing on the same Ids?
 				Set<Long> intersectionWithPreviousPage = Sets.intersection(rowsIdsWithChanges,
 						previousPageRowIdsWithChanges);
@@ -408,7 +409,7 @@ public class TableViewManagerImpl implements TableViewManager {
 				
 				if (!rowsIdsWithChanges.isEmpty()) {
 					// update these rows in a new transaction.
-					indexManager.updateViewRowsInTransaction(viewId, rowsIdsWithChanges, viewTypeMask, allContainersInScope,
+					indexManager.updateViewRowsInTransaction(viewId, rowsIdsWithChanges, scopeType, allContainersInScope,
 							currentSchema);
 					previousPageRowIdsWithChanges = rowsIdsWithChanges;
 					tableManagerSupport.updateChangedOnIfAvailable(viewId);
@@ -504,12 +505,13 @@ public class TableViewManagerImpl implements TableViewManager {
 	long populateViewIndexFromReplication(IdAndVersion idAndVersion, TableIndexManager indexManager,
 			List<ColumnModel> viewSchema) {
 		// Look-up the type for this table.
-		Long viewTypeMask = tableManagerSupport.getViewTypeMask(idAndVersion);
+		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(idAndVersion);
+		
 		// Get the containers for this view.
 		Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion,
-				viewTypeMask);
-		return indexManager.populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask,
-				allContainersInScope, viewSchema);
+				scopeType);
+		
+		return indexManager.populateViewFromEntityReplication(idAndVersion.getId(), scopeType, allContainersInScope, viewSchema);
 	}
 
 	/**
@@ -551,10 +553,10 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * @throws FileNotFoundException
 	 * @throws UnsupportedEncodingException
 	 */
-	BucketAndKey createViewSnapshotAndUploadToS3(IdAndVersion idAndVersion, Long viewTypeMask,
+	BucketAndKey createViewSnapshotAndUploadToS3(IdAndVersion idAndVersion, ViewScopeType scopeType,
 			List<ColumnModel> viewSchema, Set<Long> allContainersInScope) {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
-		ValidateArgument.required(viewTypeMask, "viewTypeMask");
+		ValidateArgument.required(scopeType, "scopeType");
 		ValidateArgument.required(viewSchema, "viewSchema");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 
@@ -571,7 +573,7 @@ public class TableViewManagerImpl implements TableViewManager {
 					writer.writeNext(nextLine);
 				};
 				// write the snapshot to the temp file.
-				indexManager.createViewSnapshot(idAndVersion.getId(), viewTypeMask, allContainersInScope, viewSchema,
+				indexManager.createViewSnapshot(idAndVersion.getId(), scopeType, allContainersInScope, viewSchema,
 						writerAdapter);
 			}
 			// upload the resulting CSV to S3.
@@ -593,10 +595,10 @@ public class TableViewManagerImpl implements TableViewManager {
 	@Override
 	public long createSnapshot(UserInfo userInfo, String tableId, SnapshotRequest snapshotOptions) {
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
-		Long viewTypeMask = tableManagerSupport.getViewTypeMask(idAndVersion);
+		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(idAndVersion);
 		List<ColumnModel> viewSchema = getViewSchema(idAndVersion);
-		Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewTypeMask);
-		BucketAndKey bucketAndKey = createViewSnapshotAndUploadToS3(idAndVersion, viewTypeMask, viewSchema,
+		Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, scopeType);
+		BucketAndKey bucketAndKey = createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema,
 				allContainersInScope);
 		// create a new version
 		long snapshotVersion = nodeManager.createSnapshotAndVersion(userInfo, tableId, snapshotOptions);

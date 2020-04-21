@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_TYPE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_TYPE_VIEW_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_TYPE_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_TYPE_VIEW_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_TYPE_VIEW_TYPE_MASK;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_VIEW_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VIEW_TYPE;
@@ -26,7 +26,7 @@ public class DBOViewType implements MigratableDatabaseObject<DBOViewType, DBOVie
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("viewId", COL_VIEW_TYPE_VIEW_ID, true).withIsBackupId(true),
-		new FieldColumn("viewObjectType", COL_VIEW_TYPE_OBJECT_TYPE),
+		new FieldColumn("viewObjectType", COL_VIEW_TYPE_VIEW_OBJECT_TYPE),
 		new FieldColumn("viewTypeMask", COL_VIEW_TYPE_VIEW_TYPE_MASK),
 		new FieldColumn("etag", COL_VIEW_TYPE_ETAG).withIsEtag(true),
 	};
@@ -37,7 +37,7 @@ public class DBOViewType implements MigratableDatabaseObject<DBOViewType, DBOVie
 		public DBOViewType mapRow(ResultSet rs, int rowNum) throws SQLException {
 			DBOViewType dbo = new DBOViewType();
 			dbo.setViewId(rs.getLong(COL_VIEW_TYPE_VIEW_ID));
-			dbo.setViewObjectType(rs.getString(COL_VIEW_TYPE_OBJECT_TYPE));
+			dbo.setViewObjectType(rs.getString(COL_VIEW_TYPE_VIEW_OBJECT_TYPE));
 			// removed with PLFM-4956
 			dbo.setViewType(null);
 			dbo.setEtag(rs.getString(COL_VIEW_TYPE_ETAG));

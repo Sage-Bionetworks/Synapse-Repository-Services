@@ -167,6 +167,7 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 		String viewId = entityManager.createEntity(adminUserInfo, view, activityId);
 		view = entityManager.getEntity(adminUserInfo, viewId, EntityView.class);
 		ViewScope scope = new ViewScope();
+		scope.setObjectType(ObjectType.ENTITY);
 		scope.setScope(view.getScopeIds());
 		scope.setViewType(view.getType());
 		scope.setViewTypeMask(view.getViewTypeMask());

@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -214,7 +215,7 @@ public interface TableManagerSupport {
 	 * @param idAndVersion
 	 * @return
 	 */
-	Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion, Long viewTypeMask);
+	Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion, ViewScopeType scopeType);
 	
 	/**
 	 * Get the set of container ids (Projects and Folders) for a given set
@@ -226,7 +227,7 @@ public interface TableManagerSupport {
 	 * @param scope
 	 * @return
 	 */
-	Set<Long> getAllContainerIdsForScope(Set<Long> scope, Long viewTypeMask);
+	Set<Long> getAllContainerIdsForScope(Set<Long> scope, ViewScopeType scopeType);
 
 
 	/**
@@ -373,12 +374,12 @@ public interface TableManagerSupport {
 	EntityType getTableEntityType(IdAndVersion tableId);
 
 	/**
-	 * Get the view type for the given table ID.
+	 * Get the view scope type for the view with the give id
 	 * 
 	 * @param viewId
 	 * @return
 	 */
-	Long getViewTypeMask(IdAndVersion viewId);
+	ViewScopeType getViewScopeType(IdAndVersion viewId);
 
 	/**
 	 * Only Administrator can perform this action.
@@ -395,7 +396,7 @@ public interface TableManagerSupport {
 	 * @param scopeIds
 	 * @param type
 	 */
-	void validateScopeSize(Set<Long> scopeIds, Long viewTypeMask);
+	void validateScopeSize(Set<Long> scopeIds, ViewScopeType scopeType);
 
 	/**
 	 * Does the given table exist?  If the table is in the trash then this will

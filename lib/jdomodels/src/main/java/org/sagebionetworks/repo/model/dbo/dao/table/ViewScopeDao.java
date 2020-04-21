@@ -27,13 +27,14 @@ public interface ViewScopeDao {
 	 * @return
 	 */
 	Set<Long> getViewScope(Long viewId);
-
+	
 	/**
-	 * Get the ViewType for the given table ID.
-	 * @param tableId
+	 * Get the scope type for view with the given id, will include both the objectType and the type mask
+	 * 
+	 * @param viewId
 	 * @return
 	 */
-	Long getViewTypeMask(Long tableId);
+	ViewScopeType getViewScopeType(Long viewId);
 	
 	/**
 	 * Clear all data in the table.

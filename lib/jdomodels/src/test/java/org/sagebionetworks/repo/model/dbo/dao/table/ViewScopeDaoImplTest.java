@@ -54,7 +54,7 @@ public class ViewScopeDaoImplTest {
 		// find the intersection
 		Set<Long> fetched = viewScopeDao.getViewScope(viewId1);
 		assertEquals(containers, fetched);
-		assertEquals(new Long(ViewTypeMask.File.getMask()), viewScopeDao.getViewTypeMask(viewId1));
+		assertEquals(viewScopeType, viewScopeDao.getViewScopeType(viewId1));
 	}
 	
 	
@@ -63,7 +63,7 @@ public class ViewScopeDaoImplTest {
 		long viewId1 = 123L;
 		assertThrows(NotFoundException.class, ()->{
 			// call under test
-			viewScopeDao.getViewTypeMask(viewId1);
+			viewScopeDao.getViewScopeType(viewId1);
 		});
 	}
 	
