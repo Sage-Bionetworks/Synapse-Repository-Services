@@ -22,8 +22,22 @@
 			}
 		},
 		"items": {
-			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.3.1.1\">items\"$ref\"</a>",
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.3.1.1\">items\"</a>",
 			"$recursiveRef": "#"
+		},
+		"properties": {
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.3.2.1\">properties</a>",
+			"type": "map",
+			"key": {
+				"type": "string"
+			},
+			"value": {
+				"$recursiveRef": "#"
+			}
+		},
+		"description": {
+			"type": "string",
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-hypermedia.html#rfc.section.6.5.2\">description</a>"
 		}
 	}
 }

@@ -52,6 +52,7 @@ import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.id.SchemaId;
+import org.sagebionetworks.schema.id.SchemaName;
 import org.sagebionetworks.schema.parser.ParseException;
 import org.sagebionetworks.schema.parser.SchemaIdParser;
 import org.sagebionetworks.schema.semantic.version.SemanticVersion;
@@ -593,6 +594,25 @@ public class JsonSchemaManagerImplTest {
 		}).getMessage();
 		assertEquals("Semantic version must be 250 characters or less", message);
 	}
+	
+	@Test
+	public void testGetAndValidateSchemaNameAtMax() throws ParseException {
+		String schemanNameStart = StringUtils.repeat('a', JsonSchemaManagerImpl.MAX_SCHEMA_NAME_CHARS);
+		SchemaName schemaName = new SchemaIdParser(schemanNameStart).schemaName();
+		// call under test
+		String result = manager.getAndValidateSchemaName(schemaName);
+		assertEquals(schemanNameStart,result);
+	}
+	
+	@Test
+	public void testGetAndValidateSchemaNameOverMax() throws ParseException {
+		String schemanNameStart = StringUtils.repeat('a', JsonSchemaManagerImpl.MAX_SCHEMA_NAME_CHARS+1);
+		SchemaName schemaName = new SchemaIdParser(schemanNameStart).schemaName();
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			manager.getAndValidateSchemaName(schemaName);
+		}).getMessage();
+		assertEquals("Schema name must be 250 characters or less", message);
+	}
 
 	@Test
 	public void testCreateJsonSchema() {
@@ -607,6 +627,7 @@ public class JsonSchemaManagerImplTest {
 		assertNotNull(response);
 		assertEquals(versionInfo, response.getNewVersionInfo());
 		verify(managerSpy).getAndValidateSemanticVersion(schemaId.getSemanticVersion());
+		verify(managerSpy).getAndValidateSchemaName(schemaId.getSchemaName());
 		assertEquals(versionInfo, response.getNewVersionInfo());
 		verify(mockOrganizationDao).getOrganizationByName(organizationName);
 		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.CREATE);

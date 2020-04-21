@@ -34,6 +34,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.id.OrganizationName;
 import org.sagebionetworks.schema.id.SchemaId;
+import org.sagebionetworks.schema.id.SchemaName;
 import org.sagebionetworks.schema.parser.SchemaIdParser;
 import org.sagebionetworks.schema.semantic.version.SemanticVersion;
 import org.sagebionetworks.util.ValidateArgument;
@@ -47,9 +48,10 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 
 	public static final String SAGEBIONETWORKS_RESERVED_MESSAGE = "The name 'sagebionetworks' is reserved, and cannot be included in an Organziation's name";
 
-	public static int MAX_ORGANZIATION_NAME_CHARS = 250;
-	public static int MIN_ORGANZIATION_NAME_CHARS = 6;
-	public static int MAX_SEMANTIC_VERSION_CHARS = 250;
+	public static final int MAX_ORGANZIATION_NAME_CHARS = 250;
+	public static final int MIN_ORGANZIATION_NAME_CHARS = 6;
+	public static final int MAX_SEMANTIC_VERSION_CHARS = 250;
+	public static final int MAX_SCHEMA_NAME_CHARS = 250; 
 
 	@Autowired
 	private OrganizationDao organizationDao;
@@ -177,6 +179,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		SchemaId schemaId = SchemaIdParser.parseSchemaId(request.getSchema().get$id());
 
 		String semanticVersionString = getAndValidateSemanticVersion(schemaId.getSemanticVersion());
+		String schemaNameString = getAndValidateSchemaName(schemaId.getSchemaName());
 
 		// User must have create on the organization.
 		Organization organization = organizationDao.getOrganizationByName(schemaId.getOrganizationName().toString());
@@ -186,7 +189,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		// Create or get the root schema
 		SchemaInfo schemaRoot = jsonSchemaDao
 				.createSchemaIfDoesNotExist(new NewSchemaRequest().withOrganizationId(organization.getId())
-						.withSchemaName(schemaId.getSchemaName().toString()).withCreatedBy(user.getId()));
+						.withSchemaName(schemaNameString).withCreatedBy(user.getId()));
 		// Create or get the JSON blob
 		String jsonBlobId = createJsonBlobIfDoesNotExist(request.getSchema());
 
@@ -235,6 +238,31 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 					"Semantic version must be " + MAX_SEMANTIC_VERSION_CHARS + " characters or less");
 		}
 		return semanticVersionString;
+	}
+	
+	/**
+	 * Extract the schema name and validate its size is within limits.
+	 * @param schemaName
+	 * @return
+	 */
+	String getAndValidateSchemaName(SchemaName schemaName) {
+		ValidateArgument.required(schemaName, "schemaName");
+		String name = schemaName.toString();
+		if(name.length() > MAX_SCHEMA_NAME_CHARS) {
+			throw new IllegalArgumentException("Schema name must be "+MAX_SCHEMA_NAME_CHARS+" characters or less");
+		}
+		return name;
+	}
+
+	@Override
+	public JsonSchema getSchema(String organizationName, String schemaName, String semanticVersion) {
+		ValidateArgument.required(organizationName, "organizationName");
+		ValidateArgument.required(schemaName, "schemaName");
+		if(semanticVersion == null || semanticVersion.trim().isEmpty()) {
+			return jsonSchemaDao.getSchemaLatestVersion(organizationName, schemaName);
+		}else {
+			return jsonSchemaDao.getSchemaVersion(organizationName, schemaName, semanticVersion);
+		}
 	}
 
 }

@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -25,12 +26,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 /**
  * This set of services provide project designers with tools to define their own
  * schemas to control and validate metadata applied to Projects, Folders, and
- * Files. All schemas are defined using JSON schemas following <a
- * href=\"https://json-schema.org/\">json-schema.org</a> specification.
+ * Files. All schemas are defined using JSON schemas following
+ * <a href="https://json-schema.org/">json-schema.org</a> specification.
  * <p>
- * To get started, you will need to either create a new <a
- * href=\"${org.sagebionetworks.repo.model.schema.Organization}">Organization</a>
- * or join an existing Organization. Each Organization has an AccessControlList
+ * To get started, you will need to either create a new <a href=
+ * "${org.sagebionetworks.repo.model.schema.Organization}">Organization</a> or
+ * join an existing Organization. Each Organization has an AccessControlList
  * (ACL) that controls which users/teams are authorized to contribute schemas
  * under that Organization's name-space. The Organization's name-space is
  * referenced using the Organization's name, which is also the root of all
@@ -46,9 +47,9 @@ public class JsonSchemaController {
 	ServiceProvider serviceProvider;
 
 	/**
-	 * Create a new <a
-	 * href=\"${org.sagebionetworks.repo.model.schema.Organization}">Organization</a>
-	 * by providing a unique organization name. The new Organization will have an
+	 * Create a new <a href=
+	 * "${org.sagebionetworks.repo.model.schema.Organization}">Organization</a> by
+	 * providing a unique organization name. The new Organization will have an
 	 * auto-generated AcessControlList (ACL) granting the caller all relevant
 	 * permission on the newly created Organization.
 	 * 
@@ -141,8 +142,56 @@ public class JsonSchemaController {
 	}
 
 	/**
-	 * Start an asynchronous job to create a new JSON schema. To monitor the
-	 * progress of the job and to get the final results use:
+	 * Start an asynchronous job to create a new JSON schema.
+	 * <p>
+	 * A JSON schema must include an $id that is a relative URL of that schema. The
+	 * pseudo-BNF syntax for a valid $id is as follows:
+	 * 
+	 * <pre>
+	 * < $id > ::= < organization name > "/" < schema name > [ "/"  < semantic version > ]
+	 * 
+	 * < organization name > ::= < dot separated alpha numeric > 
+	 * 
+	 * < schema name > ::= < dot separated alpha numeric >
+	 * 
+	 * < semantic version > ::= See: https://semver.org/
+	 * 
+	 * < dot separated alpha numeric >  :: = < alpha numeric > ( "." < alpha numeric > )*
+	 * 
+	 * < alpha numeric > ::= < letter > ( < identifier > )*
+	 * 
+	 * < letter > ::= [a-zA-Z]
+	 * 
+	 * < identifier > ::= < letter > | < digit >
+	 * 
+	 * < digit > :: = [0-9]
+	 * </pre>
+	 * <p>
+	 * Take the following example, if organizationName="my.organization",
+	 * schemaName="foo.Bar.json", and semanticVersion="0.1.2", then
+	 * $id="my.organization/foo.Bar.json/0.1.2". Note: The semantic version is
+	 * optional. When provide the semantic version is a label for a specific version
+	 * that allows other schemas to reference it by its version. When a semantic
+	 * version is include, that version of the schema is immutable. This means if a
+	 * semantic version is included in a registered schema's $id, all $refs within
+	 * the schema must also include a semantic version.
+	 * </p>
+	 * <p>
+	 * All $ref within a JSON schema must either be references to "definitions"
+	 * within the schema or references other registered JSON schemas. References to
+	 * non-registered schemas is not currently supported. To reference a registered
+	 * schema $ref should equal the $id of the referenced schema. To reference the
+	 * example schema from above use $ref="my.organization/foo.Bar.json/0.1.2".
+	 * </p>
+	 * <p>
+	 * Note: The semantic version of a referenced schema is optional. When the
+	 * semantic version is excluded in a $ref the reference is assumed to reference
+	 * the latest version of the schema. So $ref="my.organization/foo.Bar.json"
+	 * would be a reference to the latest version of that schema. While
+	 * $ref="my.organization/foo.Bar.json/0.1.2" would be a reference to the version
+	 * 0.1.2
+	 * </p>
+	 * To monitor the progress of the job and to get the final results use:
 	 * <a href="${GET.schema.type.create.async.get.asyncToken}">GET
 	 * schema/type/create/async/get/{asyncToken}"</a>
 	 * <p>
@@ -190,6 +239,26 @@ public class JsonSchemaController {
 		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId,
 				asyncToken);
 		return (CreateSchemaResponse) jobStatus.getResponseBody();
+	}
+
+	/**
+	 * Get a registered JSON schema using its $id.
+	 * 
+	 * @param userId
+	 * @param organizationName The name of the organization to which the schema
+	 *                         belongs.
+	 * @param schemaName       The full name of the schema, including any path
+	 *                         information.
+	 * @param semanticVersion  When provided, the specified version of the schema
+	 *                         will be returned. When excluded the latest version of
+	 *                         the schema will be returned.
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.JSON_SCHEMA_TYPE_ID }, method = RequestMethod.GET)
+	public @ResponseBody JsonSchema getJsonSchema(@PathVariable(required = true) String organizationName,
+			@PathVariable(required = true) String schemaName, @PathVariable(required = false) String semanticVersion) {
+		return serviceProvider.getSchemaServices().getSchema(organizationName, schemaName, semanticVersion);
 	}
 
 }

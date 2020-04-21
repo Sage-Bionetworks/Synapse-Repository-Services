@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.schema;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BLOB_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BLOB_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BLOB_SHA256;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_CREATED_BY;
@@ -12,23 +12,28 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCH
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_SCHEMA_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_SEMANTIC;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_BLOB;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.SchemaInfo;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -61,6 +66,15 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		info.setCreatedOn(rs.getTimestamp(COL_JSON_SCHEMA_VER_CREATED_ON));
 		info.setJsonSHA256Hex(rs.getString(COL_JSON_SCHEMA_BLOB_SHA256));
 		return info;
+	};
+
+	public static final RowMapper<JsonSchema> SCHEMA_MAPPER = (ResultSet rs, int rowNum) -> {
+		String json = rs.getString(COL_JSON_SCHEMA_BLOB_BLOB);
+		try {
+			return EntityFactory.createEntityFromJSONString(json, JsonSchema.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new IllegalStateException(e);
+		}
 	};
 
 	@WriteTransaction
@@ -173,6 +187,46 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 					SCHEMA_VERSION_INFO_MAPPER, versionId);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("JSON version not found for versionId: " + versionId);
+		}
+	}
+
+	@Override
+	public JsonSchema getSchemaLatestVersion(String organizationName, String schemaName) {
+		ValidateArgument.required(organizationName, "organizationName");
+		ValidateArgument.required(schemaName, "schemaName");
+		String sql = "WITH VERSIONS AS ( SELECT V." + COL_JSON_SCHEMA_VER_ID + " FROM " + TABLE_ORGANIZATION + " O"
+				+ " JOIN " + TABLE_JSON_SCHEMA + " S ON (O." + COL_ORGANIZATION_ID + " = S." + COL_JSON_SCHEMA_ORG_ID
+				+ ")" + " JOIN " + TABLE_JSON_SCHEMA_VERSION + " V ON (S." + COL_JSON_SCHEMA_ID + " = V."
+				+ COL_JSON_SCHEMA_VER_SCHEMA_ID + ")" + " WHERE O." + COL_ORGANIZATION_NAME + " = ? AND S."
+				+ COL_JSON_SCHEMA_NAME + " = ?)," + " MAX_VERSION AS" + " (SELECT MAX(" + COL_JSON_SCHEMA_VER_ID
+				+ ") AS MAX_VER_ID FROM VERSIONS)" + " SELECT B." + COL_JSON_SCHEMA_BLOB_BLOB + " FROM "
+				+ TABLE_JSON_SCHEMA_BLOB + " B" + " JOIN " + TABLE_JSON_SCHEMA_VERSION + " V ON (B."
+				+ COL_JSON_SCHEMA_BLOB_ID + " = V." + COL_JSON_SCHEMA_VER_BLOB_ID + ")" + " JOIN MAX_VERSION M ON (V."
+				+ COL_JSON_SCHEMA_VER_ID + " = M.MAX_VER_ID)";
+		try {
+			return jdbcTemplate.queryForObject(sql, SCHEMA_MAPPER, organizationName, schemaName);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("JSON Schema not found for organizationName: '" + organizationName
+					+ "' and schemaName: '" + schemaName + "'");
+		}
+	}
+
+	@Override
+	public JsonSchema getSchemaVersion(String organizationName, String schemaName, String semanticVersion) {
+		ValidateArgument.required(organizationName, "organizationName");
+		ValidateArgument.required(schemaName, "schemaName");
+		ValidateArgument.required(semanticVersion, "semanticVersion");
+		String sql = "SELECT B." + COL_JSON_SCHEMA_BLOB_BLOB + " FROM " + TABLE_ORGANIZATION + " O JOIN "
+				+ TABLE_JSON_SCHEMA + " S ON (O." + COL_ORGANIZATION_ID + " = S." + COL_JSON_SCHEMA_ORG_ID + ") JOIN "
+				+ TABLE_JSON_SCHEMA_VERSION + " V ON (S." + COL_JSON_SCHEMA_ID + " = V." + COL_JSON_SCHEMA_VER_SCHEMA_ID
+				+ ") JOIN " + TABLE_JSON_SCHEMA_BLOB + " B ON (V." + COL_JSON_SCHEMA_VER_BLOB_ID + " = B."
+				+ COL_JSON_SCHEMA_BLOB_ID + ") WHERE O." + COL_ORGANIZATION_NAME + " = ? AND S." + COL_JSON_SCHEMA_NAME
+				+ " = ? AND V." + COL_JSON_SCHEMA_VER_SEMANTIC + " = ?";
+		try {
+			return jdbcTemplate.queryForObject(sql, SCHEMA_MAPPER, organizationName, schemaName, semanticVersion);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("JSON Schema not found for organizationName: '" + organizationName
+					+ "' and schemaName: '" + schemaName + "' and semanticVersion: '" + semanticVersion + "'");
 		}
 	}
 

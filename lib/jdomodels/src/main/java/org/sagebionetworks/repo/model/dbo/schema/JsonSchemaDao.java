@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.schema;
 
+import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.SchemaInfo;
 
@@ -60,5 +61,22 @@ public interface JsonSchemaDao {
 	 * Truncate all data.
 	 */
 	void trunacteAll();
+
+	/**
+	 * Get the latest version of a schema for the given organization and name.
+	 * @param organizationName
+	 * @param schemaName
+	 * @return
+	 */
+	JsonSchema getSchemaLatestVersion(String organizationName, String schemaName);
+
+	/**
+	 * Get a JSON schema.
+	 * @param organizationName
+	 * @param schemaName
+	 * @param semanticVersion
+	 * @return
+	 */
+	JsonSchema getSchemaVersion(String organizationName, String schemaName, String semanticVersion);
 
 }
