@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @RequestMapping(UrlHelpers.REPO_PATH)
 public class HealthCheckController {
 	
+	@RequiredScope({})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(
 			value=UrlHelpers.HEALTHCHECK,

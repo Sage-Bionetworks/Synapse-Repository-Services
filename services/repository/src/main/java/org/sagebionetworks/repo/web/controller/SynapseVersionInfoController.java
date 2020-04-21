@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
@@ -46,13 +48,10 @@ public class SynapseVersionInfoController {
 				
 	}
 	
+	@RequiredScope({})
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(
-			value=UrlHelpers.VERSIONINFO,
-			method=RequestMethod.GET
-			)
-	public 
-	@ResponseBody
+	@RequestMapping(value=UrlHelpers.VERSIONINFO, method=RequestMethod.GET)
+	public @ResponseBody
 	SynapseVersionInfo getVersionInfo(HttpServletRequest request) throws RuntimeException {
 		SynapseVersionInfo vInfo = new SynapseVersionInfo();
 		vInfo.setVersion(Holder.getVersionInfo());

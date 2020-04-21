@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
@@ -56,6 +59,7 @@ public class DataAccessController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.RESEARCH_PROJECT, method = RequestMethod.POST)
 	public @ResponseBody ResearchProject createOrUpdate(
@@ -74,6 +78,7 @@ public class DataAccessController {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_RESEARCH_PROJECT, method = RequestMethod.GET)
 	public @ResponseBody ResearchProject getUserOwnResearchProjectForUpdate(
@@ -90,6 +95,7 @@ public class DataAccessController {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST, method = RequestMethod.POST)
 	public @ResponseBody RequestInterface createOrUpdate(
@@ -110,6 +116,7 @@ public class DataAccessController {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_DATA_ACCESS_REQUEST_FOR_UPDATE, method = RequestMethod.GET)
 	public @ResponseBody RequestInterface getRequestForUpdate(
@@ -126,6 +133,7 @@ public class DataAccessController {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST_ID_SUBMISSION, method = RequestMethod.POST)
 	public @ResponseBody SubmissionStatus submit(
@@ -144,6 +152,7 @@ public class DataAccessController {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_ID_CANCEL, method = RequestMethod.PUT)
 	public @ResponseBody SubmissionStatus cancel(
@@ -161,6 +170,7 @@ public class DataAccessController {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_ID, method = RequestMethod.PUT)
 	public @ResponseBody Submission updateState(
@@ -178,6 +188,7 @@ public class DataAccessController {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_LIST_SUBMISSION, method = RequestMethod.POST)
 	public @ResponseBody SubmissionPage listSubmissions(
@@ -195,6 +206,7 @@ public class DataAccessController {
 	 * @return in order of modifiedOn, ascending
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_LIST_APPROVED_SUBMISISON_INFO, method = RequestMethod.POST)
 	public @ResponseBody SubmissionInfoPage listInfoForApprovedSubmissions(
@@ -210,6 +222,7 @@ public class DataAccessController {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_STATUS, method = RequestMethod.GET)
 	public @ResponseBody AccessRequirementStatus getAccessRequirementStatus(
@@ -225,6 +238,7 @@ public class DataAccessController {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.RESTRICTION_INFORMATION, method = RequestMethod.POST)
 	public @ResponseBody RestrictionInformationResponse getRestrictionInformation(
@@ -241,6 +255,7 @@ public class DataAccessController {
 	 * @param nextPageToken
 	 * @return
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_OPEN_SUBMISSIONS, method = RequestMethod.GET)
 	public @ResponseBody OpenSubmissionPage getOpenSubmissions(

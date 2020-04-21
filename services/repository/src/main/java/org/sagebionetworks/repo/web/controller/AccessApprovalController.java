@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
-
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 import static org.sagebionetworks.repo.web.UrlHelpers.EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS;
 import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
 
@@ -65,6 +66,7 @@ public class AccessApprovalController {
 	 * @throws InvalidModelException
 	 * @throws IOException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL, method = RequestMethod.POST)
 	public @ResponseBody
@@ -84,6 +86,7 @@ public class AccessApprovalController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_APPROVAL_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -107,6 +110,7 @@ public class AccessApprovalController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_GROUP, method = RequestMethod.POST)
 	public @ResponseBody AccessorGroupResponse listAccessorGroup(
@@ -125,6 +129,7 @@ public class AccessApprovalController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_GROUP_REVOKE, method = RequestMethod.PUT)
 	public void revokeGroup(
@@ -143,6 +148,7 @@ public class AccessApprovalController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_INFO, method = RequestMethod.POST)
 	public @ResponseBody BatchAccessApprovalInfoResponse getBatchAccessApprovalInfo(
@@ -164,6 +170,7 @@ public class AccessApprovalController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_ENTITY_ID, method = RequestMethod.GET)
@@ -192,6 +199,7 @@ public class AccessApprovalController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_TEAM_ID, method = RequestMethod.GET)
@@ -220,6 +228,7 @@ public class AccessApprovalController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_EVALUATION_ID, method = RequestMethod.GET)
@@ -244,6 +253,7 @@ public class AccessApprovalController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({modify})
 	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_APPROVAL_ID, method = RequestMethod.DELETE)
@@ -262,6 +272,7 @@ public class AccessApprovalController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({modify})
 	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL, method = RequestMethod.DELETE)

@@ -63,7 +63,9 @@ public class OAuthPermissionUtils {
 		case modify:
 			return "To modify the content which you can modify (create, change, delete)";
 		case download:
-			return "To download the content which you can download";				
+			return "To download the content which you can download";
+		case authorize:
+			return "To authorize others to access to resources you control";
 		}
 		return null;
 	}
