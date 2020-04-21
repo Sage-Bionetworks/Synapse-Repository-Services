@@ -14,6 +14,8 @@ import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
@@ -79,6 +81,11 @@ public class DataAccessServiceImpl implements DataAccessService{
 	public SubmissionPage listSubmissions(Long userId, SubmissionPageRequest request) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return dataAccessSubmissionManager.listSubmission(user, request);
+	}
+
+	@Override
+	public SubmissionInfoPage listInfoForApprovedSubmissions(SubmissionInfoPageRequest request) {
+		return dataAccessSubmissionManager.listInfoForApprovedSubmissions(request);
 	}
 
 	@Override

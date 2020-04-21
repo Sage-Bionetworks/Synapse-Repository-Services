@@ -11,6 +11,8 @@ import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
@@ -180,8 +182,24 @@ public class DataAccessController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_LIST_SUBMISSION, method = RequestMethod.POST)
 	public @ResponseBody SubmissionPage listSubmissions(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody SubmissionPageRequest SubmissionPageRequest) throws NotFoundException {
-		return serviceProvider.getDataAccessService().listSubmissions(userId, SubmissionPageRequest);
+			@RequestBody SubmissionPageRequest submissionPageRequest) throws NotFoundException {
+		return serviceProvider.getDataAccessService().listSubmissions(userId, submissionPageRequest);
+	}
+
+	/**
+	 * Return the research project info for approved data access submissions, 
+	 * ordered by submission modified-on date, ascending
+	 * 
+	 * @param userId
+	 * @param researchProjectPageRequest
+	 * @return in order of modifiedOn, ascending
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_LIST_APPROVED_SUBMISISON_INFO, method = RequestMethod.POST)
+	public @ResponseBody SubmissionInfoPage listInfoForApprovedSubmissions(
+			@RequestBody SubmissionInfoPageRequest submissionInfoPageRequest) throws NotFoundException {
+		return serviceProvider.getDataAccessService().listInfoForApprovedSubmissions(submissionInfoPageRequest);
 	}
 
 	/**

@@ -44,6 +44,8 @@ import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionInfo;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
@@ -113,6 +115,9 @@ public class ITDataAccessTest {
 		conversionRequest.setCurrentVersion(actAR.getVersionNumber());
 		conversionRequest.setEtag(actAR.getEtag());
 		managedAR = (ManagedACTAccessRequirement) adminSynapse.convertAccessRequirement(conversionRequest);
+		
+		managedAR.setIsIDUPublic(true);
+		managedAR = (ManagedACTAccessRequirement) adminSynapse.updateAccessRequirement(managedAR);
 
 		assertNotNull(synapseOne.getSubjects(managedAR.getId().toString(), null));
 
@@ -193,7 +198,15 @@ public class ITDataAccessTest {
 		assertNotNull(submissions);
 		assertEquals(1, submissions.getResults().size());
 		assertEquals(submission, submissions.getResults().get(0));
-
+		
+		SubmissionInfoPage researchProjectPage = adminSynapse.listApprovedSubmissionInfo(managedAR.getId().toString(), null);
+		assertNotNull(researchProjectPage.getResults());
+		assertEquals(1, researchProjectPage.getResults().size());
+		SubmissionInfo submissionInfo = researchProjectPage.getResults().get(0);
+		assertEquals(submission.getResearchProjectSnapshot().getIntendedDataUseStatement(), 
+				submissionInfo.getIntendedDataUseStatement());
+		assertEquals(submission.getModifiedOn().getTime(), submissionInfo.getModifiedOn().getTime());
+		
 		AccessorGroupRequest accessorGroupRequest = new AccessorGroupRequest();
 		AccessorGroupResponse response = adminSynapse.listAccessorGroup(accessorGroupRequest);
 		assertNotNull(response);

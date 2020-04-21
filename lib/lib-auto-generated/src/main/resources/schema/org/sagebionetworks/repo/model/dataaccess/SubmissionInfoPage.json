@@ -1,0 +1,15 @@
+{
+	"description": "A page of Submission Information",
+	"properties": {
+		"results": {
+			"type": "array",
+			"items": {
+				"$ref":"org.sagebionetworks.repo.model.dataaccess.SubmissionInfo"
+			}
+		},
+		"nextPageToken":{
+			"description":"The token to get the next page result.",
+			"type": "string"
+		}
+	}
+}

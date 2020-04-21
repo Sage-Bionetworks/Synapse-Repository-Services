@@ -1,0 +1,23 @@
+{
+	"title":"SubmissionInfo",
+	"description": "Information about a request to access controlled data and its related Research Project",
+	"properties":{
+		"institution":{
+			"type":"string",
+			"description":"The institution that the research project belongs to."
+		},
+		"projectLead":{
+			"type":"string",
+			"description":"The person who is leading the research project."
+		},
+		"intendedDataUseStatement":{
+			"type":"string",
+			"description":"A few short paragraph that explains how the controlled data will be used."
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date the request submission was last modified."
+		}
+	}
+}
