@@ -1,5 +1,5 @@
 {
-	"description": "A page of ResearchProjects",
+	"description": "A page of Submission Information",
 	"properties": {
 		"results": {
 			"type": "array",

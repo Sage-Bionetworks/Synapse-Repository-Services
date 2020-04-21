@@ -1,6 +1,6 @@
 {
 	"title":"SubmissionInfo",
-	"description": "Information about a request to access controlled data and the related Research Project",
+	"description": "Information about a request to access controlled data and its related Research Project",
 	"properties":{
 		"institution":{
 			"type":"string",
