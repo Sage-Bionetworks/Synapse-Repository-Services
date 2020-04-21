@@ -482,16 +482,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		 */
 		return columnModelManager.createColumnModel(field.getColumnModel());
 	}
-	
-	@Override
-	public List<ColumnModel> getColumnModels(EntityField... fields) {
-		List<ColumnModel> results = new LinkedList<ColumnModel>();
-		for(EntityField field: fields){
-			results.add(getColumnModel(field));
-		}
-		return results;
-	}
-
 
 	@Override
 	public Set<Long> getAccessibleBenefactors(UserInfo user,

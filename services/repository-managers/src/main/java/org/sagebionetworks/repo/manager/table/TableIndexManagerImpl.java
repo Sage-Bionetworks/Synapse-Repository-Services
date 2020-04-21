@@ -443,7 +443,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ValidateArgument.required(scope, "scope");
 		ValidateArgument.required(scope.getScope(), "scope.scopeIds");
 		
-		ObjectType objectType = getViewObjectType(null);
+		ObjectType objectType = scope.getObjectType();
+		
+		// When the scope does not specify the object type we defaults to ENTITY as not to break the API
+		if (objectType == null) {
+			objectType = ObjectType.ENTITY;
+		}
 		
 		long viewTypeMask = ViewTypeMask.getViewTypeMask(scope);
 		// lookup the containers for the given scope

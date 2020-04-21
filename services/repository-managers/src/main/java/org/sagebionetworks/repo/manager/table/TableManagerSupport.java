@@ -356,14 +356,6 @@ public interface TableManagerSupport {
 	ColumnModel getColumnModel(EntityField field);
 
 	/**
-	 * Get the ColumnModels for the passed fields.
-	 * 
-	 * @param field
-	 * @return
-	 */
-	List<ColumnModel> getColumnModels(EntityField... field);
-
-	/**
 	 * Get the default ColumnModels for a view based on the viewTypeMask.
 	 * 
 	 * @param viewTypeMask Bit mask of the types included in the view.
