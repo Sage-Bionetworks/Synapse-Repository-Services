@@ -12,6 +12,8 @@ import static org.mockito.Mockito.when;
 
 import java.io.PrintWriter;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.List;
 
 import javax.servlet.FilterChain;
 import javax.servlet.http.HttpServletRequest;
@@ -25,6 +27,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.auth.services.AuthenticationService;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
@@ -48,6 +51,9 @@ public class DockerClientAuthFilterTest {
 	private FilterChain mockFilterChain;
 	@Mock
 	private PrincipalAlias mockPrincipalAlias;
+	
+	@Mock 
+	private OIDCTokenHelper mockOidcTokenHelper;
 
 	@InjectMocks
 	private DockerClientAuthFilter filter;
@@ -56,6 +62,9 @@ public class DockerClientAuthFilterTest {
 	private static final String USERNAME = "username";
 	private static final String PASSWORD = "password";
 	private static final Long USERID = 123L;
+	private static final String AUTHORIZATION_HEADER_NAME = "Authorization";
+	private static final List<String> HEADER_NAMES = Collections.singletonList(AUTHORIZATION_HEADER_NAME);
+
 
 	@BeforeEach
 	public void before() {
@@ -66,6 +75,9 @@ public class DockerClientAuthFilterTest {
 
 	@Test
 	public void testDoFilterWithoutBasicAuth() throws Exception {
+		when(mockRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
+		when(mockRequest.getHeaders(AUTHORIZATION_HEADER_NAME)).thenReturn(Collections.emptyEnumeration());
+
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		verify(mockAuthenticationService, never()).login(any(LoginRequest.class));
 		verify(mockAuthenticationService, never()).lookupUserForAuthentication(anyString());
@@ -80,7 +92,7 @@ public class DockerClientAuthFilterTest {
 	@Test
 	public void testDoFilterWithWrongUsernameAndPassword() throws Exception {
 		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
-		when(mockRequest.getHeader("Authorization")).thenReturn(header);
+		when(mockRequest.getHeader(AUTHORIZATION_HEADER_NAME)).thenReturn(header);
 		LoginRequest loginCred = new LoginRequest();
 		loginCred.setUsername(USERNAME);
 		loginCred.setPassword(PASSWORD);
@@ -97,7 +109,7 @@ public class DockerClientAuthFilterTest {
 	@Test
 	public void testDoFilterWithNotFoundUsername() throws Exception {
 		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
-		when(mockRequest.getHeader("Authorization")).thenReturn(header);
+		when(mockRequest.getHeader(AUTHORIZATION_HEADER_NAME)).thenReturn(header);
 		LoginRequest loginCred = new LoginRequest();
 		loginCred.setUsername(USERNAME);
 		loginCred.setPassword(PASSWORD);
@@ -113,7 +125,11 @@ public class DockerClientAuthFilterTest {
 
 	@Test
 	public void testDoFilterAuthenticateSuccess() throws Exception {
-		when(mockRequest.getHeader("Authorization")).thenReturn(header);
+		when(mockRequest.getHeader(AUTHORIZATION_HEADER_NAME)).thenReturn(header);
+		when(mockRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
+		when(mockRequest.getHeaders(AUTHORIZATION_HEADER_NAME)).thenReturn(Collections.emptyEnumeration());
+		String token = "token";
+		when(mockOidcTokenHelper.createTotalAccessToken(USERID)).thenReturn(token);
 		LoginRequest loginCred = new LoginRequest();
 		loginCred.setUsername(USERNAME);
 		loginCred.setPassword(PASSWORD);
@@ -129,6 +145,7 @@ public class DockerClientAuthFilterTest {
 		HttpServletRequest request = requestCaptor.getValue();
 		assertNotNull(request);
 		assertEquals(request.getParameter(AuthorizationConstants.USER_ID_PARAM), USERID.toString());
+		assertEquals("Bearer "+token, request.getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME));
 	}
 
 }
