@@ -14,12 +14,14 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCH
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_SCHEMA_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_SEMANTIC;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ORGANIZATION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ORGANIZATION_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_BLOB;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ORGANIZATION;
 
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -33,7 +35,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -60,6 +61,10 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 
 	public static final RowMapper<JsonSchemaVersionInfo> SCHEMA_VERSION_INFO_MAPPER = (ResultSet rs, int rowNum) -> {
 		JsonSchemaVersionInfo info = new JsonSchemaVersionInfo();
+		info.setOrganizationId(rs.getString("ORG_ID"));
+		info.setOrganizationName(rs.getString("ORG_NAME"));
+		info.setSchemaId(rs.getString("SCHEMA_ID"));
+		info.setSchemaName(rs.getString("SCHEMA_NAME"));
 		info.setVersionId(rs.getString(COL_JSON_SCHEMA_VER_ID));
 		info.setSemanticVersion(rs.getString(COL_JSON_SCHEMA_VER_SEMANTIC));
 		info.setCreatedBy(rs.getString(COL_JSON_SCHEMA_VER_CREATED_BY));
@@ -180,11 +185,14 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 	public JsonSchemaVersionInfo getVersionInfo(String versionId) {
 		ValidateArgument.required(versionId, "versionId");
 		try {
-			return jdbcTemplate.queryForObject(
-					"SELECT V.*, B." + COL_JSON_SCHEMA_BLOB_SHA256 + " FROM " + TABLE_JSON_SCHEMA_VERSION
-							+ " V INNER JOIN " + TABLE_JSON_SCHEMA_BLOB + " B ON (V." + COL_JSON_SCHEMA_VER_BLOB_ID
-							+ "=B." + COL_JSON_SCHEMA_BLOB_ID + ") WHERE V." + COL_JSON_SCHEMA_VER_ID + "=?",
-					SCHEMA_VERSION_INFO_MAPPER, versionId);
+			return jdbcTemplate.queryForObject("SELECT O." + COL_ORGANIZATION_ID + " AS ORG_ID, O."
+					+ COL_ORGANIZATION_NAME + " AS ORG_NAME, S." + COL_JSON_SCHEMA_ID + " AS SCHEMA_ID, S."
+					+ COL_JSON_SCHEMA_NAME + " AS SCHEMA_NAME, V.*, B." + COL_JSON_SCHEMA_BLOB_SHA256 + " FROM "
+					+ TABLE_JSON_SCHEMA_VERSION + " V INNER JOIN " + TABLE_JSON_SCHEMA_BLOB + " B ON (V."
+					+ COL_JSON_SCHEMA_VER_BLOB_ID + "=B." + COL_JSON_SCHEMA_BLOB_ID + ") JOIN " + TABLE_JSON_SCHEMA
+					+ " S ON (V." + COL_JSON_SCHEMA_VER_SCHEMA_ID + " = S." + COL_JSON_SCHEMA_ID + " ) JOIN "
+					+ TABLE_ORGANIZATION + " O ON (S." + COL_JSON_SCHEMA_ORG_ID + " = O." + COL_ORGANIZATION_ID
+					+ ") WHERE V." + COL_JSON_SCHEMA_VER_ID + "=?", SCHEMA_VERSION_INFO_MAPPER, versionId);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("JSON version not found for versionId: " + versionId);
 		}
@@ -212,7 +220,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 	}
 
 	@Override
-	public JsonSchema getSchemaVersion(String organizationName, String schemaName, String semanticVersion) {
+	public JsonSchema getSchemaForVersion(String organizationName, String schemaName, String semanticVersion) {
 		ValidateArgument.required(organizationName, "organizationName");
 		ValidateArgument.required(schemaName, "schemaName");
 		ValidateArgument.required(semanticVersion, "semanticVersion");
@@ -228,6 +236,23 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 			throw new NotFoundException("JSON Schema not found for organizationName: '" + organizationName
 					+ "' and schemaName: '" + schemaName + "' and semanticVersion: '" + semanticVersion + "'");
 		}
+	}
+
+	@WriteTransaction
+	@Override
+	public int deleteAllSchemaVersions(String schemaId) {
+		ValidateArgument.required(schemaId, "schemaId");
+		return jdbcTemplate.update(
+				"DELETE FROM " + TABLE_JSON_SCHEMA_VERSION + " WHERE " + COL_JSON_SCHEMA_VER_SCHEMA_ID + " = ?",
+				schemaId);
+	}
+
+	@WriteTransaction
+	@Override
+	public int deleteSchema(String schemaId) {
+		ValidateArgument.required(schemaId, "schemaId");
+		return jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA + " WHERE " + COL_JSON_SCHEMA_ID + " = ?",
+				schemaId);
 	}
 
 }

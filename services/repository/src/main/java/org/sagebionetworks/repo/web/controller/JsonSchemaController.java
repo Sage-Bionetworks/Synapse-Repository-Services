@@ -255,10 +255,29 @@ public class JsonSchemaController {
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.JSON_SCHEMA_TYPE_ID }, method = RequestMethod.GET)
+	@RequestMapping(value = { UrlHelpers.JSON_SCHEMA_TYPE_REG_ORG_SCHEMA_VER }, method = RequestMethod.GET)
 	public @ResponseBody JsonSchema getJsonSchema(@PathVariable(required = true) String organizationName,
 			@PathVariable(required = true) String schemaName, @PathVariable(required = false) String semanticVersion) {
 		return serviceProvider.getSchemaServices().getSchema(organizationName, schemaName, semanticVersion);
+	}
+
+	/**
+	 * Delete the given schema and all of its versions.
+	 * <p>
+	 * Note: The caller must be granted the
+	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.DELETE</a> permission on the schema's organization.s
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param organizationName
+	 * @param schemaName
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = { UrlHelpers.JSON_SCHEMA_TYPE_REG_ORG_SCHEMA }, method = RequestMethod.DELETE)
+	public void deleteSchemaa(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(required = true) String organizationName, @PathVariable(required = true) String schemaName) {
+		serviceProvider.getSchemaServices().deleteSchema(userId, organizationName, schemaName);
 	}
 
 }

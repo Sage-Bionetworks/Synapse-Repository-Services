@@ -18,11 +18,11 @@ public interface JsonSchemaDao {
 	/**
 	 * Lookup a SchemaInfo from an organization name and schema name.
 	 * 
-	 * @param organizationName
+	 * @param organizationId
 	 * @param schemaName
 	 * @return
 	 */
-	SchemaInfo getSchemaInfoForUpdate(String organizationName, String schemaName);
+	SchemaInfo getSchemaInfoForUpdate(String organizationId, String schemaName);
 
 	/**
 	 * Create a new JSON blob if the one does not already exist for the given
@@ -77,6 +77,18 @@ public interface JsonSchemaDao {
 	 * @param semanticVersion
 	 * @return
 	 */
-	JsonSchema getSchemaVersion(String organizationName, String schemaName, String semanticVersion);
+	JsonSchema getSchemaForVersion(String organizationName, String schemaName, String semanticVersion);
+
+	/**
+	 * Attempt to delete all versions for the given schema
+	 * @param schemaId
+	 */
+	int deleteAllSchemaVersions(String schemaId);
+
+	/**
+	 * Attempt to delete the given schema.
+	 * @param schemaId
+	 */
+	int deleteSchema(String schemaId);
 
 }

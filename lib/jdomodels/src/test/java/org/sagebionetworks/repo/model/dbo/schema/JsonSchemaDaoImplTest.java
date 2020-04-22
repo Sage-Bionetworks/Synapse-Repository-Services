@@ -295,11 +295,16 @@ public class JsonSchemaDaoImplTest {
 	}
 
 	@Test
-	public void testGetVersionInfo() {
-		NewVersionRequest request = setupValidNewVersionRequest();
-		JsonSchemaVersionInfo info = jsonSchemaDao.createNewVersion(request);
+	public void testGetVersionInfo() throws JSONObjectAdapterException {
+		JsonSchemaVersionInfo info = createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", 1);
 		// call under test
 		JsonSchemaVersionInfo getInfo = jsonSchemaDao.getVersionInfo(info.getVersionId());
+		assertNotNull(getInfo.getOrganizationId());
+		assertEquals("my.org.edu", getInfo.getOrganizationName());
+		assertNotNull(getInfo.getSchemaId());
+		assertEquals("foo.bar", getInfo.getSchemaName());
+		assertNotNull(getInfo.getVersionId());
+		assertEquals("1.0.1", getInfo.getSemanticVersion());
 		assertEquals(info, getInfo);
 	}
 
@@ -405,12 +410,12 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testGetSchemaLatestVersionNullOrganization() {
 		String organizationName = null;
-		String schemaName ="other.schema.name";
+		String schemaName = "other.schema.name";
 		assertThrows(IllegalArgumentException.class, () -> {
 			jsonSchemaDao.getSchemaLatestVersion(organizationName, schemaName);
 		});
 	}
-	
+
 	@Test
 	public void testGetSchemaLatestVersionNullSchema() {
 		String organizationName = "my.org.edu";
@@ -431,7 +436,7 @@ public class JsonSchemaDaoImplTest {
 		createNewSchemaVersion("my.org.edu/foo.bar.other", index++);
 
 		// call under test
-		JsonSchema schema = jsonSchemaDao.getSchemaVersion("my.org.edu", "foo.bar", "1.0.1");
+		JsonSchema schema = jsonSchemaDao.getSchemaForVersion("my.org.edu", "foo.bar", "1.0.1");
 		assertNotNull(schema);
 		assertEquals("my.org.edu/foo.bar/1.0.1", schema.get$id());
 		assertEquals("index:2", schema.getDescription());
@@ -442,7 +447,7 @@ public class JsonSchemaDaoImplTest {
 		int index = 0;
 		createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
 		String message = assertThrows(NotFoundException.class, () -> {
-			jsonSchemaDao.getSchemaVersion("other.org", "foo.bar", "1.0.1");
+			jsonSchemaDao.getSchemaForVersion("other.org", "foo.bar", "1.0.1");
 		}).getMessage();
 		assertEquals(
 				"JSON Schema not found for organizationName: 'other.org' and schemaName: 'foo.bar' and semanticVersion: '1.0.1'",
@@ -454,7 +459,7 @@ public class JsonSchemaDaoImplTest {
 		int index = 0;
 		createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
 		assertThrows(NotFoundException.class, () -> {
-			jsonSchemaDao.getSchemaVersion("my.org.edu", "foo.bar.bar", "1.0.1");
+			jsonSchemaDao.getSchemaForVersion("my.org.edu", "foo.bar.bar", "1.0.1");
 		});
 	}
 
@@ -463,37 +468,55 @@ public class JsonSchemaDaoImplTest {
 		int index = 0;
 		createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
 		assertThrows(NotFoundException.class, () -> {
-			jsonSchemaDao.getSchemaVersion("my.org.edu", "foo.bar", "1.0.2");
+			jsonSchemaDao.getSchemaForVersion("my.org.edu", "foo.bar", "1.0.2");
 		});
 	}
-	
+
 	@Test
 	public void testGetSchemaVersionSchemaVersionNullOrganization() throws JSONObjectAdapterException {
 		String organizationName = null;
-		String schemaName ="other.schema.name";
+		String schemaName = "other.schema.name";
 		String semanticVersion = "1.0.2";
 		assertThrows(IllegalArgumentException.class, () -> {
-			jsonSchemaDao.getSchemaVersion(organizationName, schemaName, semanticVersion);
+			jsonSchemaDao.getSchemaForVersion(organizationName, schemaName, semanticVersion);
 		});
 	}
-	
+
 	@Test
 	public void testGetSchemaVersionSchemaVersionNullSchema() throws JSONObjectAdapterException {
 		String organizationName = "my.org.edu";
 		String schemaName = null;
 		String semanticVersion = "1.0.2";
 		assertThrows(IllegalArgumentException.class, () -> {
-			jsonSchemaDao.getSchemaVersion(organizationName, schemaName, semanticVersion);
+			jsonSchemaDao.getSchemaForVersion(organizationName, schemaName, semanticVersion);
 		});
 	}
-	
+
 	@Test
 	public void testGetSchemaVersionSchemaVersionNullVersion() throws JSONObjectAdapterException {
 		String organizationName = "my.org.edu";
-		String schemaName ="other.schema.name";
+		String schemaName = "other.schema.name";
 		String semanticVersion = null;
 		assertThrows(IllegalArgumentException.class, () -> {
-			jsonSchemaDao.getSchemaVersion(organizationName, schemaName, semanticVersion);
+			jsonSchemaDao.getSchemaForVersion(organizationName, schemaName, semanticVersion);
+		});
+	}
+
+	@Test
+	public void testDeleteVersions() throws JSONObjectAdapterException {
+		int index = 0;
+		createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar/1.0.2", index++);
+		JsonSchemaVersionInfo lastInfo = createNewSchemaVersion("my.org.edu/foo.bar", index++);
+		String schemaName = "foo.bar";
+		SchemaInfo info = jsonSchemaDao.getSchemaInfoForUpdate(lastInfo.getOrganizationId(), schemaName);
+		// call under test
+		int rowsUpdated = jsonSchemaDao.deleteAllSchemaVersions(info.getNumericId());
+		assertEquals(3, rowsUpdated);
+		rowsUpdated = jsonSchemaDao.deleteSchema(info.getNumericId());
+		assertEquals(1, rowsUpdated);
+		assertThrows(NotFoundException.class, ()->{
+			jsonSchemaDao.getSchemaInfoForUpdate(organizationName, schemaName);
 		});
 	}
 

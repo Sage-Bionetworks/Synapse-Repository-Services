@@ -53,4 +53,10 @@ public class JsonSchemaServicesImpl implements JsonSchemaServices {
 		return schemaManager.getSchema(organizationName, schemaName, semanticVersion);
 	}
 
+	@Override
+	public void deleteSchema(Long userId, String organizationName, String schemaName) {
+		UserInfo user = userManager.getUserInfo(userId);
+		schemaManager.deleteSchema(user, organizationName, schemaName);
+	}
+
 }

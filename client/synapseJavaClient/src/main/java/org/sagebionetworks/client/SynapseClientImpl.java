@@ -234,6 +234,9 @@ import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
 import org.sagebionetworks.repo.model.report.StorageReportType;
 import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
+import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
+import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -303,6 +306,7 @@ import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.base.Joiner;
 
+import au.com.bytecode.opencsv.CSV.Builder;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
@@ -611,6 +615,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	public static final String STORAGE_REPORT = "/storageReport";
 	public static final String ANNOTATIONS_V2 = "/annotations2";
+	
+	public static final String SCHEMA_TYPE_CREATE = "/schema/type/create/";
 
 	/**
 	 * Default constructor uses the default repository and file services endpoints.
@@ -5521,6 +5527,44 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(toUpdate, "AccessControlList");
 		String url = "/schema/organization/"+id+"/acl";
 		return putJSONEntity(getRepoEndpoint(), url, toUpdate, AccessControlList.class);
+	}
+
+	@Override
+	public String startCreateSchemaJob(CreateSchemaRequest request) throws SynapseException {
+		return startAsynchJob(AsynchJobType.CreateJsonSchema, request);
+	}
+
+	@Override
+	public CreateSchemaResponse getCreateSchemaJobResult(String asyncJobToken)
+			throws SynapseException, SynapseResultNotReadyException {
+		String url = SCHEMA_TYPE_CREATE + ASYNC_GET + asyncJobToken;
+		return (CreateSchemaResponse) getAsynchJobResponse(url, CreateSchemaResponse.class, getRepoEndpoint());
+	}
+
+	@Override
+	public JsonSchema getJsonSchema(String organizationName, String schemaName, String semanticVersion) throws SynapseException {
+		ValidateArgument.required(organizationName, "organizationName");
+		ValidateArgument.required(schemaName, "schemaName");
+		StringBuilder builder = new StringBuilder("/schema/type/registered/");
+		builder.append(organizationName);
+		builder.append("/");
+		builder.append(schemaName);
+		if(semanticVersion != null) {
+			builder.append("/");
+			builder.append(semanticVersion);
+		}
+		return getJSONEntity(getRepoEndpoint(), builder.toString(), JsonSchema.class);
+	}
+
+	@Override
+	public void deleteSchema(String organizationName, String schemaName) throws SynapseException {
+		ValidateArgument.required(organizationName, "organizationName");
+		ValidateArgument.required(schemaName, "schemaName");
+		StringBuilder builder = new StringBuilder("/schema/type/registered/");
+		builder.append(organizationName);
+		builder.append("/");
+		builder.append(schemaName);
+		deleteUri(getRepoEndpoint(), builder.toString());
 	}
 
 }

@@ -79,6 +79,7 @@ public class JsonSchemaManagerImplTest {
 	Date now;
 	UserInfo user;
 	UserInfo anonymousUser;
+	UserInfo adminUser;
 	String organizationName;
 	CreateOrganizationRequest createOrganizationRequest;
 	String schemaName;
@@ -101,6 +102,8 @@ public class JsonSchemaManagerImplTest {
 		managerSpy = Mockito.spy(manager);
 		boolean isAdmin = false;
 		user = new UserInfo(isAdmin, 123L);
+		isAdmin = true;
+		adminUser = new UserInfo(isAdmin, 456L);
 
 		anonymousUser = new UserInfo(isAdmin, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
@@ -682,6 +685,143 @@ public class JsonSchemaManagerImplTest {
 		createSchemaRequest.setSchema(null);
 		assertThrows(IllegalArgumentException.class, ()->{
 			manager.createJsonSchema(user, createSchemaRequest);
+		});
+	}
+	
+	@Test
+	public void testGetSchemaWithVersion() {
+		when(mockSchemaDao.getSchemaForVersion(any(), any(), any())).thenReturn(schema);
+		// call under test
+		JsonSchema result = manager.getSchema(organizationName, schemaName, semanticVersionString);
+		assertEquals(schema, result);
+		verify(mockSchemaDao).getSchemaForVersion(organizationName, schemaName, semanticVersionString);
+		verify(mockSchemaDao, never()).getSchemaLatestVersion(any(), any());	
+	}
+	
+	@Test
+	public void testGetSchemaWithVersionTrim() {
+		when(mockSchemaDao.getSchemaForVersion(any(), any(), any())).thenReturn(schema);
+		// call under test
+		JsonSchema result = manager.getSchema(organizationName+"\n", schemaName+" ", semanticVersionString+"\t");
+		assertEquals(schema, result);
+		verify(mockSchemaDao).getSchemaForVersion(organizationName, schemaName, semanticVersionString);
+		verify(mockSchemaDao, never()).getSchemaLatestVersion(any(), any());	
+	}
+	
+	@Test
+	public void testGetSchemaNullVersion() {
+		when(mockSchemaDao.getSchemaLatestVersion(any(), any())).thenReturn(schema);
+		semanticVersionString = null;
+		// call under test
+		JsonSchema result = manager.getSchema(organizationName, schemaName, semanticVersionString);
+		assertEquals(schema, result);
+		verify(mockSchemaDao, never()).getSchemaForVersion(any(), any(), any());
+		verify(mockSchemaDao).getSchemaLatestVersion(organizationName, schemaName);	
+	}
+	
+	@Test
+	public void testGetSchemaNullVersionTrim() {
+		when(mockSchemaDao.getSchemaLatestVersion(any(), any())).thenReturn(schema);
+		semanticVersionString = null;
+		// call under test
+		JsonSchema result = manager.getSchema(organizationName+" ", schemaName+" \t", semanticVersionString);
+		assertEquals(schema, result);
+		verify(mockSchemaDao, never()).getSchemaForVersion(any(), any(), any());
+		verify(mockSchemaDao).getSchemaLatestVersion(organizationName, schemaName);	
+	}
+	
+	@Test
+	public void testGetSchemaEmptyVersion() {
+		when(mockSchemaDao.getSchemaLatestVersion(any(), any())).thenReturn(schema);
+		semanticVersionString = " ";
+		// call under test
+		JsonSchema result = manager.getSchema(organizationName, schemaName, semanticVersionString);
+		assertEquals(schema, result);
+		verify(mockSchemaDao, never()).getSchemaForVersion(any(), any(), any());
+		verify(mockSchemaDao).getSchemaLatestVersion(organizationName, schemaName);	
+	}
+	
+	@Test
+	public void testGetSchemaNullOrganization() {
+		organizationName = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.getSchema(organizationName, schemaName, semanticVersionString);
+		});
+	}
+	
+	
+	@Test
+	public void testGetSchemaNullSchemaName() {
+		schemaName = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.getSchema(organizationName, schemaName, semanticVersionString);
+		});
+	}
+	
+	@Test
+	public void testDeleteSchema() {
+		when(mockOrganizationDao.getOrganizationByName(any())).thenReturn(organization);
+		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
+		.thenReturn(AuthorizationStatus.authorized());
+		when(mockSchemaDao.getSchemaInfoForUpdate(any(), any())).thenReturn(schemaInfo);
+		// call under test
+		manager.deleteSchema(user, organizationName, schemaName);
+		verify(mockOrganizationDao).getOrganizationByName(organizationName);
+		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE);
+		verify(mockSchemaDao).getSchemaInfoForUpdate(organization.getId(), schemaName);
+		verify(mockSchemaDao).deleteAllSchemaVersions(schemaInfo.getNumericId());
+		verify(mockSchemaDao).deleteSchema(schemaInfo.getNumericId());
+	}
+	
+	@Test
+	public void testDeleteSchemaAdmin() {
+		when(mockOrganizationDao.getOrganizationByName(any())).thenReturn(organization);
+		when(mockSchemaDao.getSchemaInfoForUpdate(any(), any())).thenReturn(schemaInfo);
+		// call under test
+		manager.deleteSchema(adminUser, organizationName, schemaName);
+		verify(mockOrganizationDao).getOrganizationByName(organizationName);
+		verify(mockAclDao, never()).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE);
+		verify(mockSchemaDao).getSchemaInfoForUpdate(organization.getId(), schemaName);
+		verify(mockSchemaDao).deleteAllSchemaVersions(schemaInfo.getNumericId());
+		verify(mockSchemaDao).deleteSchema(schemaInfo.getNumericId());
+	}
+	
+	@Test
+	public void testDeleteSchemaUnauthorized() {
+		when(mockOrganizationDao.getOrganizationByName(any())).thenReturn(organization);
+		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
+		.thenReturn(AuthorizationStatus.accessDenied("nope"));
+		assertThrows(UnauthorizedException.class, ()->{
+			// call under test
+			manager.deleteSchema(user, organizationName, schemaName);
+		});
+		verify(mockOrganizationDao).getOrganizationByName(organizationName);
+		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE);
+		verify(mockSchemaDao, never()).deleteAllSchemaVersions(any());
+		verify(mockSchemaDao, never()).deleteSchema(any());
+	}
+	
+	@Test
+	public void testDeleteSchemaNullUser() {
+		user = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.deleteSchema(user, organizationName, schemaName);
+		});
+	}
+	
+	@Test
+	public void testDeleteSchemaNullOrganization() {
+		organizationName = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.deleteSchema(user, organizationName, schemaName);
+		});
+	}
+	
+	@Test
+	public void testDeleteSchemaNullSchema() {
+		schemaName = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.deleteSchema(user, organizationName, schemaName);
 		});
 	}
 }

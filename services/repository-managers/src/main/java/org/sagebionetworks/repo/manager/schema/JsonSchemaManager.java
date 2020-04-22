@@ -74,4 +74,14 @@ public interface JsonSchemaManager {
 	 * @return
 	 */
 	JsonSchema getSchema(String organizationName, String schemaName, String semanticVersion);
+
+	/**
+	 * Attempt to delete all version of a schema.
+	 * @param user
+	 * @param organizationName
+	 * @param schemaName
+	 */
+	public void deleteSchema(UserInfo user, String organizationName, String schemaName);
+
+	void truncateAll();
 }

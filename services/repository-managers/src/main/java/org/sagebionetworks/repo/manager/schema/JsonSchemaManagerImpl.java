@@ -258,11 +258,37 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	public JsonSchema getSchema(String organizationName, String schemaName, String semanticVersion) {
 		ValidateArgument.required(organizationName, "organizationName");
 		ValidateArgument.required(schemaName, "schemaName");
+		organizationName = organizationName.trim();
+		schemaName = schemaName.trim();
 		if(semanticVersion == null || semanticVersion.trim().isEmpty()) {
 			return jsonSchemaDao.getSchemaLatestVersion(organizationName, schemaName);
 		}else {
-			return jsonSchemaDao.getSchemaVersion(organizationName, schemaName, semanticVersion);
+			return jsonSchemaDao.getSchemaForVersion(organizationName, schemaName, semanticVersion.trim());
 		}
 	}
+
+	@Override
+	public void truncateAll() {
+		jsonSchemaDao.trunacteAll();
+		organizationDao.truncateAll();
+	}
+
+	@WriteTransaction
+	@Override
+	public void deleteSchema(UserInfo user, String organizationName, String schemaName) {
+		ValidateArgument.required(user, "user");
+		ValidateArgument.required(organizationName, "organizationName");
+		ValidateArgument.required(schemaName, "schemaName");
+		// Must have delete on the organziation.s
+		Organization organization = organizationDao.getOrganizationByName(organizationName);
+		if(!user.isAdmin()) {
+			aclDao.canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE)
+			.checkAuthorizationOrElseThrow();
+		}
+		SchemaInfo info = jsonSchemaDao.getSchemaInfoForUpdate(organization.getId(), schemaName);
+		jsonSchemaDao.deleteAllSchemaVersions(info.getNumericId());
+		jsonSchemaDao.deleteSchema(info.getNumericId());
+	}
+
 
 }

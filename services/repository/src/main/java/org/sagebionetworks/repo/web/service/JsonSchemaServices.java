@@ -19,4 +19,6 @@ public interface JsonSchemaServices {
 
 	JsonSchema getSchema(String organizationName, String schemaName, String semanticVersion);
 
+	void deleteSchema(Long userId, String organizationName, String schemaName);
+
 }

@@ -194,6 +194,9 @@ import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
 import org.sagebionetworks.repo.model.report.StorageReportType;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
+import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
+import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -3525,4 +3528,39 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	AccessControlList updateOrganizationAcl(String id, AccessControlList toUpdate) throws SynapseException;
+	
+	/**
+	 * Start an asynchronous job to create a new JSON schema.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	public String startCreateSchemaJob(CreateSchemaRequest request) throws SynapseException;
+
+	/**
+	 * Get the results of a create schema asynchronous request.
+	 * @param asyncJobToken
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseResultNotReadyException
+	 */
+	public CreateSchemaResponse getCreateSchemaJobResult(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException;
+	
+	/**
+	 * Get the JSON schema for the given organization, schema, and version.
+	 * @param organizationName
+	 * @param schemaName
+	 * @param semanticVersion
+	 * @return
+	 * @throws SynapseException 
+	 */
+	JsonSchema getJsonSchema(String organizationName, String schemaName, String semanticVersion) throws SynapseException;
+	
+	/**
+	 * Delete the given schema and all of its versions.
+	 * @param organizationName
+	 * @param schemaName
+	 * @throws SynapseException 
+	 */
+	public void deleteSchema(String organizationName, String schemaName) throws SynapseException;
 }
