@@ -129,6 +129,7 @@ public class ITDocker {
 		
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri(urlString);
+		request.setHeaders(requestHeaders);
 		SimpleHttpResponse response = simpleClient.get(request);
 		assertNotNull(response.getContent());
 		assertEquals(HttpStatus.SC_OK, response.getStatusCode());
