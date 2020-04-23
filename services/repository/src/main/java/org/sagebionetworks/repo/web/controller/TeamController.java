@@ -353,7 +353,7 @@ public class TeamController {
 	 * @param notificationUnsubscribeEndpoint
 	 * @throws NotFoundException
 	 */
-	@RequiredScope({view,modify})
+	@RequiredScope({})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.TEAM_MEMBER, method = RequestMethod.PUT)
 	public @ResponseBody ResponseMessage addTeamMemberViaSignedToken(
@@ -550,7 +550,7 @@ public class TeamController {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	@RequiredScope({authorize})
+	@RequiredScope({view,modify,authorize})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.TEAM_ACL, method = RequestMethod.PUT)
 	public @ResponseBody

@@ -506,7 +506,7 @@ public class TableController {
 	 * @throws NotFoundException
 	 * @throws AsynchJobFailedException
 	 */
-	@RequiredScope({view,modify})
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_TRANSACTION_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
@@ -649,7 +649,7 @@ public class TableController {
 	 * @throws AsynchJobFailedException
 	 */
 	@Deprecated
-	@RequiredScope({view,modify})
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_APPEND_ROW_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
@@ -718,7 +718,7 @@ public class TableController {
 	 * @throws IOException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequiredScope({download})
+	@RequiredScope({view})
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_FILE_HANDLES, method = RequestMethod.POST)
 	public @ResponseBody
 	TableFileHandleResults getFileHandles(
@@ -1178,7 +1178,7 @@ public class TableController {
 	 * @throws AsynchJobFailedException
 	 * @throws NotReadyException
 	 */
-	@RequiredScope({view,modify})
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_PREVIEW_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
@@ -1204,7 +1204,7 @@ public class TableController {
 	}
 
 	@Deprecated
-	@RequiredScope({view,modify})
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
@@ -1287,7 +1287,7 @@ public class TableController {
 	 * @throws NotReadyException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequiredScope({view,modify})
+	@RequiredScope({view})
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_UPLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
 	UploadToTableResult csvUploadAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,

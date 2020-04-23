@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.web;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -14,11 +13,12 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
 
-class RequiredScopeAnnotationTest {
+public class RequiredScopeAnnotationTest {
 
 	@Test
-	void testCoverage() throws Exception {
+	public void testCoverage() throws Exception {
 
 		ClassPathScanningCandidateComponentProvider provider = new ClassPathScanningCandidateComponentProvider(false);
 		// Find controllers
@@ -30,7 +30,7 @@ class RequiredScopeAnnotationTest {
 			String className = bd.getBeanClassName();
 			Class<?> clazz = Class.forName(className);
 			for (Method method : clazz.getDeclaredMethods()) {
-				if (method.getAnnotation(RequiredScope.class)==null && !Modifier.isStatic(method.getModifiers())) {
+				if (method.getAnnotation(RequiredScope.class)==null && method.getAnnotation(RequestMapping.class)!=null) {
 					missingRequiredScope.add(className+"."+method.getName()+"()");
 				}
 			}

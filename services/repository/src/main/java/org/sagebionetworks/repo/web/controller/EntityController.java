@@ -1507,7 +1507,7 @@ public class EntityController {
 	 * @param id
 	 * @param dataType
 	 */
-	@RequiredScope({view,modify})
+	@RequiredScope({view,modify,authorize})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_DATA_TYPE }, method = RequestMethod.PUT)
 	public @ResponseBody DataTypeResponse changeEntityDataType(

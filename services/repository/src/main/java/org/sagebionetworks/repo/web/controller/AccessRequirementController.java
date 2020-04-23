@@ -1,11 +1,11 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.authorize;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -215,7 +215,7 @@ public class AccessRequirementController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	@RequiredScope({modify})
+	@RequiredScope({modify,authorize})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID, method = RequestMethod.DELETE)
 	public void deleteAccessRequirements(

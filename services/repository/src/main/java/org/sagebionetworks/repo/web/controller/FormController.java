@@ -132,7 +132,7 @@ public class FormController {
 	 * @param acl    The updated ACL.
 	 * @return
 	 */
-	@RequiredScope({authorize})
+	@RequiredScope({view,modify,authorize})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_GROUP_ACL }, method = RequestMethod.PUT)
 	public @ResponseBody AccessControlList updateGroupAcl(
