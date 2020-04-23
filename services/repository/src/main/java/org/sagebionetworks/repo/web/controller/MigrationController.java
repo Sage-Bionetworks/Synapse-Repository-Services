@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import java.io.IOException;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -47,6 +50,7 @@ public class MigrationController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MIGRATION_COUNTS, method = RequestMethod.GET)
 	public @ResponseBody
@@ -64,6 +68,7 @@ public class MigrationController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MIGRATION_COUNT, method = RequestMethod.GET)
 	public @ResponseBody
@@ -86,6 +91,7 @@ public class MigrationController {
 	 * @throws IOException
 	 * @throws ConflictingUpdateException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.MIGRATION_PRIMARY }, method = RequestMethod.GET)
 	public @ResponseBody
@@ -101,6 +107,7 @@ public class MigrationController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.MIGRATION_PRIMARY_NAMES }, method = RequestMethod.GET)
 	public @ResponseBody
@@ -114,6 +121,7 @@ public class MigrationController {
 	 * @param userId
 	 * @return
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.MIGRATION_TYPES }, method = RequestMethod.GET)
 	public @ResponseBody
@@ -129,6 +137,7 @@ public class MigrationController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.MIGRATION_TYPE_NAMES }, method = RequestMethod.GET)
 	public @ResponseBody
@@ -141,6 +150,7 @@ public class MigrationController {
 	 * A checksum on ETAG or backup ID for a given range and a given migration type
 	 * @throws NotFoundException 
 	 */	
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.MIGRATION_RANGE_CHECKSUM }, method = RequestMethod.GET)
 	public @ResponseBody
@@ -157,6 +167,7 @@ public class MigrationController {
 	 * A (table) checksum on a given migration type
 	 * @throws NotFoundException 
 	 */	
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.MIGRATION_TYPE_CHECKSUM }, method = RequestMethod.GET)
 	public @ResponseBody

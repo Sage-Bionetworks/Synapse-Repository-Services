@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+
 import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -37,6 +39,7 @@ public class DockerRegistryEventController {
 	 * 
 	 * @param registryEvents
 	 */
+	@RequiredScope({})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.DOCKER_REGISTRY_EVENTS, method = RequestMethod.POST)
 	public void registryEvents(@RequestBody DockerRegistryEventList registryEvents)  {

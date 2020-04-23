@@ -1,5 +1,9 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.authorize;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
@@ -52,6 +56,7 @@ public class JsonSchemaController {
 	 * @param request
 	 * @return
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION }, method = RequestMethod.POST)
 	public @ResponseBody Organization createOrganziation(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -66,6 +71,7 @@ public class JsonSchemaController {
 	 * @param name   The name of the Organization to lookup.
 	 * @return
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION }, method = RequestMethod.GET)
 	public @ResponseBody Organization getOrganizationByName(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -86,6 +92,7 @@ public class JsonSchemaController {
 	 * @param userId
 	 * @param id     The numeric identifier of the organization.
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION_ID }, method = RequestMethod.DELETE)
 	public void deleteOrganization(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -105,6 +112,7 @@ public class JsonSchemaController {
 	 * @param id     The numeric identifier of the organization.
 	 * @return
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION_ID_ACL }, method = RequestMethod.GET)
 	public @ResponseBody AccessControlList getOrganizationAcl(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -126,6 +134,7 @@ public class JsonSchemaController {
 	 * @param acl    The updated ACL.
 	 * @return
 	 */
+	@RequiredScope({view,modify,authorize})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION_ID_ACL }, method = RequestMethod.PUT)
 	public @ResponseBody AccessControlList updateOrganizationAcl(

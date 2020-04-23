@@ -17,6 +17,10 @@
     {
       "name": "modify",
       "description": "Create or change content"
+    },
+    {
+      "name": "authorize",
+      "description": "Authorize access and share resources"
     }
   ]
 }

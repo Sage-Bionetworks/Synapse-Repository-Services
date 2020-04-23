@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.subscription.SortByType;
@@ -49,6 +52,7 @@ public class SubscriptionController{
 	 * @param topic - Topic to subscribe to
 	 * @return
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.SUBSCRIPTION, method = RequestMethod.POST)
 	public @ResponseBody Subscription create(
@@ -67,6 +71,7 @@ public class SubscriptionController{
 	 * @param objectType - SubscriptionObjectType to subscribe to
 	 * @return
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.SUBSCRIPTION_ALL, method = RequestMethod.POST)
 	public @ResponseBody Subscription subscribeAll(
@@ -85,6 +90,7 @@ public class SubscriptionController{
 	 * @param request - This object defines what topics the user is asking for
 	 * @return
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBSCRIPTION_LIST, method = RequestMethod.POST)
 	public @ResponseBody SubscriptionPagedResults getList(
@@ -102,6 +108,7 @@ public class SubscriptionController{
 	 * @param id - the ID of the subscription that is created when the user subscribed to the topic
 	  * @return
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBSCRIPTION_ID, method = RequestMethod.GET)
 	public @ResponseBody Subscription get(
@@ -123,6 +130,7 @@ public class SubscriptionController{
 	 * @param sortDirection- When provided, the results will be sorted in this direction.
 	 * @return
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBSCRIPTION_ALL, method = RequestMethod.GET)
 	public @ResponseBody SubscriptionPagedResults getAll(
@@ -143,6 +151,7 @@ public class SubscriptionController{
 	 * @param userId - the ID of the user who is making the request
 	 * @param id - the ID of the subscription that is created when the user subscribed to the topic
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.SUBSCRIPTION_ID, method = RequestMethod.DELETE)
 	public void delete(
@@ -158,6 +167,7 @@ public class SubscriptionController{
 	 * 
 	 * @param userId - the ID of the user who is making the request
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.SUBSCRIPTION_ALL, method = RequestMethod.DELETE)
 	public void deleteAll(
@@ -172,6 +182,7 @@ public class SubscriptionController{
 	 * @param topic
 	 * @return
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBSCRIPTION_SUBSCRIBERS, method = RequestMethod.POST)
 	public @ResponseBody SubscriberPagedResults getSubscribers(
@@ -188,6 +199,7 @@ public class SubscriptionController{
 	 * @param topic
 	 * @return
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBSCRIPTION_SUBSCRIBER_COUNT, method = RequestMethod.POST)
 	public @ResponseBody SubscriberCount getSubscriberCount(

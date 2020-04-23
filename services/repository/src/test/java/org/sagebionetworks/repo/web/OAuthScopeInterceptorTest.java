@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.web;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -105,7 +106,7 @@ class OAuthScopeInterceptorTest {
 	}
 		
 	private void mockRequestIdParam() {
-		when(mockRequestParam.value()).thenReturn( AuthorizationConstants.USER_ID_PARAM);
+		when(mockRequestParam.value()).thenReturn(AuthorizationConstants.USER_ID_PARAM);
 		when(mockHandler.getMethodParameters()).thenReturn(new MethodParameter[] {mockUserIdParameter});
 		when(mockUserIdParameter.getParameterAnnotation(RequestParam.class)).thenReturn(mockRequestParam);
 	}
@@ -227,19 +228,18 @@ class OAuthScopeInterceptorTest {
 
 	@Test
 	void testPrehandleNoScopeAnnotation() throws Exception {
-		when(mockHandler.getMethodAnnotation(RequiredScope.class)).thenReturn(null);
+		mockRequest("123", null);// NOT anonymous
 		mockRequestIdParam();
-		mockRequest(USER_ID, ACCESS_TOKEN);// NOT anonymous	
-		mockAccessToken(OAuthScope.values());
+		when(mockHandler.getMethodAnnotation(RequiredScope.class)).thenReturn(null);
 		
 		// method under test
-		boolean result = oauthScopeInterceptor.preHandle(mockRequest, mockResponse, mockHandler);
-		
-		assertTrue(result);
+		assertThrows(IllegalStateException.class, ()->{
+			oauthScopeInterceptor.preHandle(mockRequest, mockResponse, mockHandler);
+		});
 		
 		verify(mockHandler).getMethodAnnotation(RequiredScope.class);
-		verify(mockRequest).getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME);
-		verify(mockOidcTokenHelper).parseJWT(ACCESS_TOKEN);
+		verify(mockRequest, never()).getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME);
+		verify(mockOidcTokenHelper, never()).parseJWT(ACCESS_TOKEN);
 	}
 
 	@Test
@@ -258,7 +258,7 @@ class OAuthScopeInterceptorTest {
 		
 		verify(mockRequest).getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME);
 
-		assertEquals("{\"reason\":\"Request lacks scope(s) required by this service: download, modify, openid\"}\n", os.toString());
+		assertEquals("{\"reason\":\"Request lacks scope(s) required by this service: authorize, download, modify, openid\"}\n", os.toString());
 		
 	}
 
@@ -275,7 +275,7 @@ class OAuthScopeInterceptorTest {
 		
 		assertFalse(result);
 
-		assertEquals("{\"reason\":\"Request lacks scope(s) required by this service: download, modify, openid, view\"}\n",  os.toString());
+		assertEquals("{\"reason\":\"Request lacks scope(s) required by this service: authorize, download, modify, openid, view\"}\n",  os.toString());
 		
 		verify(mockRequest).getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME);
 		verify(mockOidcTokenHelper, never()).parseJWT(anyString());
@@ -306,5 +306,4 @@ class OAuthScopeInterceptorTest {
 		verify(mockOidcTokenHelper).parseJWT(anyString());
 		verify(mockHandler).getMethodAnnotation(RequiredScope.class);
 	}
-
 }
