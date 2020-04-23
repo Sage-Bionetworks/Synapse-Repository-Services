@@ -59,6 +59,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import au.com.bytecode.opencsv.CSVWriter;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 
 /**
  * 
@@ -445,7 +446,7 @@ public class TableModelUtilsTest {
 		ColumnModel cm = TableModelTestUtils.createColumn(123L, "myCol", ColumnType.STRING_LIST);
 		//make array list of 1 over limit
 		StringJoiner joiner = new StringJoiner(",", "[", "]");
-		for (int i = 0; i < ListStringParser.MAX_NUMBER_OF_ITEMS_IN_LIST + 1; i++) {
+		for (int i = 0; i < ColumnConstants.MAX_ALLOWED_LIST_LENGTH + 1; i++) {
 			joiner.add("\"a\"");
 		}
 
@@ -471,12 +472,38 @@ public class TableModelUtilsTest {
 	public void testValidateValue_StringList_valueListElementSizeExceeded(){
 		ColumnModel cm = TableModelTestUtils.createColumn(123L, "myCol", ColumnType.STRING_LIST);
 		cm.setMaximumSize(4L);
+		cm.setMaximumListLength(52L);
 
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			TableModelUtils.validateValue("[\"1\",\"12345\", \"123\"]", cm);
 		});
 
 		assertEquals("String '12345' exceeds the maximum length of 4 characters.", exception.getMessage());
+	}
+
+	@Test
+	public void testValidateValue_StringList_valueListLengthExceeded(){
+		ColumnModel cm = TableModelTestUtils.createColumn(123L, "myCol", ColumnType.STRING_LIST);
+		cm.setMaximumSize(54L);
+		cm.setMaximumListLength(2L);
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			TableModelUtils.validateValue("[\"1\",\"12345\", \"123\"]", cm);
+		});
+
+		assertEquals("Exceeds the maximum number of list elements defined in the ColumnModel (2): \"[\"1\",\"12345\", \"123\"]\"", exception.getMessage());
+	}
+
+	@Test
+	public void testValidateValue_IntList_valueListLengthExceeded(){
+		ColumnModel cm = TableModelTestUtils.createColumn(123L, "myCol", ColumnType.STRING_LIST);
+		cm.setMaximumListLength(2L);
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			TableModelUtils.validateValue("[1, 12345, 123]", cm);
+		});
+
+		assertEquals("Exceeds the maximum number of list elements defined in the ColumnModel (2): \"[1, 12345, 123]\"", exception.getMessage());
 	}
 
 	@Test
@@ -615,7 +642,7 @@ public class TableModelUtilsTest {
 		char[] array = new char[(int) maxSize];
 		Arrays.fill(array, Character.MAX_VALUE);
 		int expected = (int) (maxSize * ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8);
-		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.STRING, maxSize));
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.STRING, maxSize, null));
 	}
 	
 	@Test
@@ -624,86 +651,125 @@ public class TableModelUtilsTest {
 		char[] array = new char[(int) maxSize];
 		Arrays.fill(array, Character.MAX_VALUE);
 		int expected = (int) (maxSize * ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8);
-		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.LINK, maxSize));
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.LINK, maxSize, null));
 	}
 	
 	@Test
 	public void testCalculateMaxSizeForTypeBoolean(){
 		int expected = "false".getBytes(StandardCharsets.UTF_8).length;
-		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.BOOLEAN, null));
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.BOOLEAN, null, null));
 	}
 	
 	@Test
 	public void testCalculateMaxSizeForTypeLong(){
 		int expected = Long.toString(-1111111111111111111l).getBytes(StandardCharsets.UTF_8).length;
-		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.INTEGER, null));
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.INTEGER, null, null));
 	}
 
 	@Test
 	public void testCalculateMaxSizeForTypeDate(){
 		int expected = Long.toString(-1111111111111111111l).getBytes(StandardCharsets.UTF_8).length;
-		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.DATE, null));
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.DATE, null, null));
 	}
 
 	@Test
 	public void testCalculateMaxSizeForTypeDouble(){
 		double big = -1.123456789123456789e123;
 		int expected = Double.toString(big).getBytes(StandardCharsets.UTF_8).length;
-		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.DOUBLE, null));
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.DOUBLE, null, null));
 	}
 
 	@Test
 	public void testCalculateMaxSizeForTypeFileHandle(){
 		int expected = Long.toString(-1111111111111111111l).getBytes(StandardCharsets.UTF_8).length;
-		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.FILEHANDLEID, null));
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.FILEHANDLEID, null, null));
 	}
 	
 	@Test
 	public void testCalculateMaxSizeForTypeUserID(){
 		int expected = Long.toString(-1111111111111111111l).getBytes(StandardCharsets.UTF_8).length;
-		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.USERID, null));
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.USERID, null, null));
 	}
 
 	@Test
 	public void testCalculateMaxSizeForTypeEntityId(){
 		int expected = ("syn" + -1111111111111111111l + "." + -1111111111111111111l)
 				.getBytes(StandardCharsets.UTF_8).length;
-		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.ENTITYID, null));
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.ENTITYID, null, null));
 	}
 	
 	@Test
 	public void testCalculateMaxSizeForTypeLargeText(){
 		assertEquals(ColumnConstants.SIZE_OF_LARGE_TEXT_FOR_COLUMN_SIZE_ESTIMATE_BYTES,
-				TableModelUtils.calculateMaxSizeForType(ColumnType.LARGETEXT, null));
+				TableModelUtils.calculateMaxSizeForType(ColumnType.LARGETEXT, null, null));
 	}
 
 	@Test
 	public void testCalculateMaxSizeForTypeStringList(){
 		long maxSize = 444;
-		int expected = (int) (maxSize * ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8) * 100;
+		long maxListLength = 52;
+		int expected = (int) (maxSize * ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8) * 52;
 		assertEquals(expected,
-				TableModelUtils.calculateMaxSizeForType(ColumnType.STRING_LIST, maxSize));
+				TableModelUtils.calculateMaxSizeForType(ColumnType.STRING_LIST, maxSize, maxListLength));
+	}
+
+	@Test
+	public void testCalculateMaxSizeForTypeStringList_nullMaxListLength(){
+		long maxSize = 444;
+		Long maxListLength = null;
+
+		assertThrows(IllegalArgumentException.class, () ->
+				TableModelUtils.calculateMaxSizeForType(ColumnType.STRING_LIST, maxSize, maxListLength));
 	}
 
 	@Test
 	public void testCalculateMaxSizeForTypeIntegerList(){
-		int expected = Long.toString(-1111111111111111111l).getBytes(StandardCharsets.UTF_8).length * 100;
+		int expected = Long.toString(-1111111111111111111l).getBytes(StandardCharsets.UTF_8).length * 52;
+		long maxListLength = 52;
 		assertEquals(expected,
-				TableModelUtils.calculateMaxSizeForType(ColumnType.INTEGER_LIST, null));
+				TableModelUtils.calculateMaxSizeForType(ColumnType.INTEGER_LIST, null, maxListLength));
+	}
+
+	@Test
+	public void testCalculateMaxSizeForTypeIntegerList_nullMaxListLength(){
+		Long maxListLength = null;
+
+		assertThrows(IllegalArgumentException.class, () ->
+				TableModelUtils.calculateMaxSizeForType(ColumnType.INTEGER_LIST, null, maxListLength));
 	}
 
 	@Test
 	public void testCalculateMaxSizeForTypeDateList(){
-		int expected = Long.toString(-1111111111111111111l).getBytes(StandardCharsets.UTF_8).length * 100;
+		long maxListLength = 52;
+		int expected = Long.toString(-1111111111111111111l).getBytes(StandardCharsets.UTF_8).length * 52;
 		assertEquals(expected,
-				TableModelUtils.calculateMaxSizeForType(ColumnType.DATE_LIST, null));
+				TableModelUtils.calculateMaxSizeForType(ColumnType.DATE_LIST, null, maxListLength));
+	}
+
+	@Test
+	public void testCalculateMaxSizeForTypeDateList_nullMaxListLength(){
+		Long maxListLength = null;
+
+		assertThrows(IllegalArgumentException.class, () ->
+				TableModelUtils.calculateMaxSizeForType(ColumnType.DATE_LIST, null, maxListLength));
 	}
 
 	@Test
 	public void testCalculateMaxSizeForTypeBooleanList(){
-		int expected = "false".getBytes(StandardCharsets.UTF_8).length * 100;
+		long maxListLength = 52;
+
+		int expected = "false".getBytes(StandardCharsets.UTF_8).length * 52;
 		assertEquals(expected,
-				TableModelUtils.calculateMaxSizeForType(ColumnType.BOOLEAN_LIST, null));
+				TableModelUtils.calculateMaxSizeForType(ColumnType.BOOLEAN_LIST, null, maxListLength));
+	}
+
+
+	@Test
+	public void testCalculateMaxSizeForTypeBooleanList_nullMaxListLength(){
+		Long maxListLength = null;
+
+		assertThrows(IllegalArgumentException.class, () ->
+				TableModelUtils.calculateMaxSizeForType(ColumnType.BOOLEAN_LIST, null, maxListLength));
 	}
 
 	@Test
@@ -711,13 +777,17 @@ public class TableModelUtilsTest {
 		// The should be a size for each type.
 		for (ColumnType ct : ColumnType.values()) {
 			Long maxSize = null;
+			Long maxListLength = null;
 			if (ColumnType.STRING == ct || ColumnType.STRING_LIST == ct) {
 				maxSize = 14L;
+			}
+			if(ColumnTypeListMappings.isList(ct)){
+				maxListLength = 52L;
 			}
 			if (ColumnType.LINK == ct) {
 				maxSize = 32L;
 			}
-			TableModelUtils.calculateMaxSizeForType(ct, maxSize);
+			TableModelUtils.calculateMaxSizeForType(ct, maxSize, maxListLength);
 		}
 	}
 	
@@ -738,9 +808,9 @@ public class TableModelUtilsTest {
 		// call under test
 		int maxSize = TableModelUtils.calculateMaxRowSize(select, nameToSchemaMap);
 		// part of the size is from the select that matches the schema
-		int expectedSize = TableModelUtils.calculateMaxSizeForType(ColumnType.STRING, columnOne.getMaximumSize());
+		int expectedSize = TableModelUtils.calculateMaxSizeForType(ColumnType.STRING, columnOne.getMaximumSize(), columnOne.getMaximumListLength());
 		// the other part of the size does not match the schema so the max allowed string size should be used.
-		expectedSize += TableModelUtils.calculateMaxSizeForType(ColumnType.STRING, ColumnConstants.MAX_ALLOWED_STRING_SIZE);
+		expectedSize += TableModelUtils.calculateMaxSizeForType(ColumnType.STRING, ColumnConstants.MAX_ALLOWED_STRING_SIZE, ColumnConstants.MAX_ALLOWED_LIST_LENGTH);
 		assertEquals(expectedSize, maxSize);
 	}
 	
@@ -774,7 +844,7 @@ public class TableModelUtilsTest {
 	public void testCalculateMaxRowSize() {
 		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
 		int allBytes = TableModelUtils.calculateMaxRowSize(all);
-		assertEquals(25961, allBytes);
+		assertEquals(13146, allBytes);
 	}
 
 	@Test
