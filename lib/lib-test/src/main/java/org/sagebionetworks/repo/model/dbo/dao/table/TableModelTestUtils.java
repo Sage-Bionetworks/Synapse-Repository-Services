@@ -515,6 +515,9 @@ public class TableModelTestUtils {
 		if (type == ColumnType.STRING || type == ColumnType.STRING_LIST) {
 			cm.setMaximumSize(50L);
 		}
+		if(ColumnTypeListMappings.isList(type)){
+			cm.setMaximumListLength(24L);
+		}
 		return cm;
 	}
 
