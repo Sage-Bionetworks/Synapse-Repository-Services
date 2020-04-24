@@ -946,7 +946,7 @@ public class UploadController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	@RequiredScope({download})
+	@RequiredScope({view,modify,download})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_ADD_START_ASYNCH, method = RequestMethod.POST)
 	public @ResponseBody AsyncJobId startAddFileToDownloadList(

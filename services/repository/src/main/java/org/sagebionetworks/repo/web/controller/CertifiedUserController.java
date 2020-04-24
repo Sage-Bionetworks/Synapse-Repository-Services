@@ -175,7 +175,7 @@ public class CertifiedUserController {
 		return "This endpoint has been removed. The service has been moved to " + UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_STATUS + " and is only accessible to Synapse administrators";
 	}
 
-	@RequiredScope({view,modify})
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_STATUS, method = RequestMethod.PUT)
 	public void setUserCertificationStatus(

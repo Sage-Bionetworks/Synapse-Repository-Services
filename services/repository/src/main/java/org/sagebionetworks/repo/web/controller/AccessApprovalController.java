@@ -1,4 +1,5 @@
 package org.sagebionetworks.repo.web.controller;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.authorize;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 import static org.sagebionetworks.repo.web.UrlHelpers.EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS;
@@ -66,7 +67,7 @@ public class AccessApprovalController {
 	 * @throws InvalidModelException
 	 * @throws IOException
 	 */
-	@RequiredScope({view,modify})
+	@RequiredScope({view,modify,authorize})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL, method = RequestMethod.POST)
 	public @ResponseBody
@@ -129,7 +130,7 @@ public class AccessApprovalController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	@RequiredScope({modify})
+	@RequiredScope({modify,authorize})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_GROUP_REVOKE, method = RequestMethod.PUT)
 	public void revokeGroup(
@@ -253,7 +254,7 @@ public class AccessApprovalController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	@RequiredScope({modify})
+	@RequiredScope({modify,authorize})
 	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_APPROVAL_ID, method = RequestMethod.DELETE)
@@ -272,7 +273,7 @@ public class AccessApprovalController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	@RequiredScope({modify})
+	@RequiredScope({modify,authorize})
 	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL, method = RequestMethod.DELETE)

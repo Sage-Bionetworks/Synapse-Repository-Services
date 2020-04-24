@@ -134,7 +134,7 @@ public class AuthenticationController {
 	 * Deauthenticate a session token. This will sign out all active sessions
 	 * using the session token.
 	 */
-	@RequiredScope({modify})
+	@RequiredScope({})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.DELETE)
 	public void deauthenticate(HttpServletRequest request) {
@@ -322,7 +322,7 @@ public class AuthenticationController {
 	 * @param alias the alias for the user given by the provider
 	 * @throws Exception
 	 */
-	@RequiredScope({modify})
+	@RequiredScope({modify,authorize})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_ALIAS, method = RequestMethod.DELETE)
 	public void unbindExternalAliasFromAccount(
