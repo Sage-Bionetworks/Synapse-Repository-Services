@@ -2000,6 +2000,27 @@ public class TableWorkerIntegrationTest {
 		assertEquals((Long) 1L, enumListValues.get(3).getCount());
 	}
 
+
+	@Test
+	public void testUnnest_returnCount() throws Exception{
+		//reproduces PLFM-6206
+
+		facetTestSetup();
+		long expectedMin = 203000;
+		long expectedMax = 203005;
+		query.setSql("SELECT UNNEST(i10) from " + tableId);
+		query.setLimit(25L);
+		query.setOffset(0L);
+		queryOptions.withReturnFacets(true);
+
+		QueryResultBundle queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, query, queryOptions);
+		List<Row> rows = queryResultBundle.getQueryResult().getQueryResults().getRows();
+
+		//6 rows are created as part of the setup, each with 2 elements in the list
+		assertEquals(12, rows.size());
+	}
+
+
 	@Test
 	public void testFacet_ListColumnValueSelected() throws Exception{
 		facetTestSetup();
