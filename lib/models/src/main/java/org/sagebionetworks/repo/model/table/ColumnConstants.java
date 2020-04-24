@@ -154,11 +154,6 @@ public class ColumnConstants {
 	public static final Long MAX_ALLOWED_LIST_LENGTH = 100L;
 
 	/**
-	 * The default number of elements allowed for list column types.
-	 */
-	public static final Long DEFAULT_LIST_LENGTH = 25L;
-	
-	/**
 	 * Size of a 64 bit reference in bytes.
 	 */
 	public static final int SIZE_OF_REFERENCE_BYTES = 64/8;

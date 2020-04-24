@@ -84,7 +84,7 @@
         },
         "maximumListLength": {
             "type": "integer",
-            "description": "Required if using a columnType with a \"_LIST\" suffix. Describes the maximum number of values that will appear in that list. Value range 1-100 inclusive. Default 25"
+            "description": "Required if using a columnType with a \"_LIST\" suffix. Describes the maximum number of values that will appear in that list. Value range 1-100 inclusive. Default 100"
         },
         "enumValues": {
             "description": "Columns of type STRING can be constrained to an enumeration values set on this list. The maximum number of entries for an enum is 100",

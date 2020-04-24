@@ -242,13 +242,13 @@ public class ColumnModelUtils {
 	static void validateListLengthForClone(ColumnModel clone){
 		if(clone.getMaximumListLength() == null){
 			// Use the default value
-			clone.setMaximumListLength(ColumnConstants.DEFAULT_LIST_LENGTH);
+			clone.setMaximumListLength(ColumnConstants.MAX_ALLOWED_LIST_LENGTH);
 		}else if(clone.getMaximumListLength() > ColumnConstants.MAX_ALLOWED_LIST_LENGTH){
 			// The max is beyond the allowed size
 			throw new IllegalArgumentException("ColumnModel.maximumListLength for a LIST column cannot exceed: "+ColumnConstants.MAX_ALLOWED_LIST_LENGTH);
-		} else if (clone.getMaximumListLength() < 0) {
+		} else if (clone.getMaximumListLength() < 2) {
 			// The max is beyond the allowed size
-			throw new IllegalArgumentException("ColumnModel.maximumListLength for a LIST column must be greater than 0");
+			throw new IllegalArgumentException("ColumnModel.maximumListLength for a LIST column must be at least 2");
 		}
 	}
 

@@ -127,9 +127,6 @@ public class DBOColumnModel implements MigratableDatabaseObject<DBOColumnModel, 
 			public DBOColumnModel createDatabaseObjectFromBackup(DBOColumnModel backup) {
 				//doing this round trip will assign default value to maxListLength
 				ColumnModel columnModel = ColumnModelUtils.createDTOFromDBO(backup);
-				if(ColumnTypeListMappings.isList(columnModel.getColumnType())){
-					columnModel.setMaximumListLength(ColumnConstants.MAX_ALLOWED_LIST_LENGTH);
-				}
 				DBOColumnModel modifiedDBO = ColumnModelUtils.createDBOFromDTO(columnModel,
 						StackConfigurationSingleton.singleton().getTableMaxEnumValues());
 				return modifiedDBO;

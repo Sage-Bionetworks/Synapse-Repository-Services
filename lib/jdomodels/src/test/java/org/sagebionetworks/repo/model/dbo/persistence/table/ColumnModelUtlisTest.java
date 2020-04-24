@@ -213,7 +213,7 @@ public class ColumnModelUtlisTest {
 		expected.setColumnType(ColumnType.STRING_LIST);
 		expected.setDefaultValue("[\"str\"]");
 		expected.setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE-1);
-		expected.setMaximumListLength(ColumnConstants.DEFAULT_LIST_LENGTH);
+		expected.setMaximumListLength(ColumnConstants.MAX_ALLOWED_LIST_LENGTH);
 		// input
 		original.setName("name");
 		original.setColumnType(ColumnType.STRING_LIST);
@@ -232,7 +232,7 @@ public class ColumnModelUtlisTest {
 		expected.setId(null);
 		expected.setName("name");
 		expected.setColumnType(ColumnType.INTEGER_LIST);
-		expected.setMaximumListLength(ColumnConstants.DEFAULT_LIST_LENGTH);
+		expected.setMaximumListLength(ColumnConstants.MAX_ALLOWED_LIST_LENGTH);
 		// input
 		original = new ColumnModel();
 		original.setName("name");
@@ -453,7 +453,7 @@ public class ColumnModelUtlisTest {
 
 		ColumnModelUtils.validateListLengthForClone(columnModel);
 
-		assertEquals(ColumnConstants.DEFAULT_LIST_LENGTH, columnModel.getMaximumListLength());
+		assertEquals(ColumnConstants.MAX_ALLOWED_LIST_LENGTH, columnModel.getMaximumListLength());
 	}
 
 
@@ -473,13 +473,13 @@ public class ColumnModelUtlisTest {
 	@Test
 	public void testValidateListLengthForClone_maxLengthNegative(){
 		ColumnModel columnModel = new ColumnModel();
-		columnModel.setMaximumListLength(-1L);
+		columnModel.setMaximumListLength(1L);
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
 				ColumnModelUtils.validateListLengthForClone(columnModel)
 		).getMessage();
 
-		assertEquals("ColumnModel.maximumListLength for a LIST column must be greater than 0", errorMessage);
+		assertEquals("ColumnModel.maximumListLength for a LIST column must be at least 2", errorMessage);
 	}
 
 	@Test
