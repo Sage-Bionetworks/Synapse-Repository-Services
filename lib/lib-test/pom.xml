@@ -77,6 +77,10 @@
 			<artifactId>spring-context</artifactId>
 			<scope>compile</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-table-query</artifactId>
+		</dependency>
 
 	</dependencies>
 
