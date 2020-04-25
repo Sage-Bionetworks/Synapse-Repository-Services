@@ -114,9 +114,9 @@ public class SqlConstants {
 	
 	// Json-Schema
 	public static final String TABLE_JSON_SCHEMA			= "JSON_SCHEMA";
-	public static final String COL_JSON_SCHEMA_ID			= "ID";
+	public static final String COL_JSON_SCHEMA_ID			= "SCHEMA_ID";
 	public static final String COL_JSON_SCHEMA_ORG_ID		= "ORGANIZATION_ID";
-	public static final String COL_JSON_SCHEMA_NAME			= "NAME";
+	public static final String COL_JSON_SCHEMA_NAME			= "SCHEMA_NAME";
 	public static final String COL_JSON_SCHEMA_CREATED_BY	= "CREATED_BY";
 	public static final String COL_JSON_SCHEMA_CREATED_ON	= "CREATED_ON";
 	public static final String DDL_FILE_JSON_SCHEMA			= "schema/JsonSchema-ddl.sql";
@@ -137,6 +137,13 @@ public class SqlConstants {
 	public static final String COL_JSON_SCHEMA_VER_CREATED_ON	= "CREATED_ON";
 	public static final String COL_JSON_SCHEMA_VER_BLOB_ID		= "BLOB_ID";
 	public static final String DDL_FILE_JSON_SCHEMA_VERSION		= "schema/JsonSchemaVersion-ddl.sql";
+	
+	// JSON schema latest version.
+	public static final String TABLE_JSON_SCHEMA_LATEST_VERSION		= "JSON_SCHEMA_LATEST_VERSION";
+	public static final String COL_JSON_SCHEMA_LATEST_VER_SCHEMA_ID	= "SCHEMA_ID";
+	public static final String COL_JSON_SCHEMA_LATEST_VER_ETAG		= "ETAG";
+	public static final String COL_JSON_SCHEMA_LATEST_VER_VER_ID	= "VERSION_ID";
+	public static final String DDL_FILE_JSON_SCHEMA_LATEST_VERSION	="schema/JsonSchemaLatestVersion-ddl.sql";
 	
 	// Json-Schema-Dependency
 	public static final String TABLE_JSON_SCHEMA_DEPENDENCY		= "JSON_SCHEMA_DEPENDENCY";

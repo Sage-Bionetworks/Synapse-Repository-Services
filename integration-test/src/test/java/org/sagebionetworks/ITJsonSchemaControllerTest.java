@@ -177,7 +177,7 @@ public class ITJsonSchemaControllerTest {
 	public void testCreateSchemaGetDeleteWithVersoin() throws SynapseException, InterruptedException {
 		organization = synapse.createOrganization(createOrganizationRequest);
 		assertNotNull(organization);
-		String semanticVersion = "1.45.67";
+		String semanticVersion = "1.45.67+alpha-beta";
 		JsonSchema schema = new JsonSchema();
 		schema.set$id(organizationName+"/"+schemaName+"/"+semanticVersion);
 		schema.setDescription("test without a version");

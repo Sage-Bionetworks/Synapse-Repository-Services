@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
@@ -39,7 +41,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  *
  */
 @Controller
-@ControllerInfo(displayName = "Schema Services", path = "repo/v1")
+@ControllerInfo(displayName = "JSON Schema Services", path = "repo/v1")
 @RequestMapping(UrlHelpers.REPO_PATH)
 public class JsonSchemaController {
 
@@ -242,42 +244,76 @@ public class JsonSchemaController {
 	}
 
 	/**
-	 * Get a registered JSON schema using its $id.
+	 * Get a registered JSON schema using its $id. This method excludes the semantic
+	 * version, and will return the latest version of the schema.
 	 * 
 	 * @param userId
-	 * @param organizationName The name of the organization to which the schema
-	 *                         belongs.
-	 * @param schemaName       The full name of the schema, including any path
-	 *                         information.
-	 * @param semanticVersion  When provided, the specified version of the schema
-	 *                         will be returned. When excluded the latest version of
-	 *                         the schema will be returned.
+	 * @param id     The $if of the schema to get.
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.JSON_SCHEMA_TYPE_REG_ORG_SCHEMA_VER }, method = RequestMethod.GET)
-	public @ResponseBody JsonSchema getJsonSchema(@PathVariable(required = true) String organizationName,
-			@PathVariable(required = true) String schemaName, @PathVariable(required = false) String semanticVersion) {
+	@RequestMapping(value = { UrlHelpers.JSON_SHCEMA_TYPE_REG_ORG_NAME }, method = RequestMethod.GET)
+	public @ResponseBody JsonSchema getJsonSchemaNoVersion(@PathVariable String organizationName,
+			@PathVariable String schemaName) {
+		String semanticVersion = null;
 		return serviceProvider.getSchemaServices().getSchema(organizationName, schemaName, semanticVersion);
 	}
 
 	/**
-	 * Delete the given schema and all of its versions.
+	 * Get a registered JSON schema using its $id. This method includes the semantic
+	 * version, and will return a specific version of a schema.
+	 * 
+	 * @param organizationName
+	 * @param schemaName
+	 * @param semanticVersion
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.JSON_SHCEMA_TYPE_REG_ORG_NAME_VER }, method = RequestMethod.GET)
+	public @ResponseBody JsonSchema getJsonSchemaWithVersion(@PathVariable String organizationName,
+			@PathVariable String schemaName, @PathVariable String semanticVersion) {
+		return serviceProvider.getSchemaServices().getSchema(organizationName, schemaName, semanticVersion);
+	}
+
+	/**
+	 * Delete the given schema and all of its versions. Caution: This operation
+	 * cannot be undone.
 	 * <p>
 	 * Note: The caller must be granted the
 	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.DELETE</a> permission on the schema's organization.s
+	 * >ACCESS_TYPE.DELETE</a> permission on the schema's organization.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id     The $id of the schema to delete.
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = { UrlHelpers.JSON_SHCEMA_TYPE_REG_ORG_NAME }, method = RequestMethod.DELETE)
+	public void deleteSchemaAllVersions(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String organizationName, @PathVariable String schemaName) {
+		serviceProvider.getSchemaServices().deleteSchemaAllVersions(userId, organizationName, schemaName);
+	}
+
+	/**
+	 * Delete a specific version of a schema. Caution: This operation cannot be
+	 * undone.
+	 * <p>
+	 * Note: The caller must be granted the
+	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.DELETE</a> permission on the schema's organization.
 	 * </p>
 	 * 
 	 * @param userId
 	 * @param organizationName
 	 * @param schemaName
+	 * @param semanticVersion
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = { UrlHelpers.JSON_SCHEMA_TYPE_REG_ORG_SCHEMA }, method = RequestMethod.DELETE)
-	public void deleteSchemaa(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(required = true) String organizationName, @PathVariable(required = true) String schemaName) {
-		serviceProvider.getSchemaServices().deleteSchema(userId, organizationName, schemaName);
+	@RequestMapping(value = { UrlHelpers.JSON_SHCEMA_TYPE_REG_ORG_NAME_VER }, method = RequestMethod.DELETE)
+	public void deleteSchemaVersion(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String organizationName, @PathVariable String schemaName,
+			@PathVariable String semanticVersion) {
+		serviceProvider.getSchemaServices().deleteSchemaVersion(userId, organizationName, schemaName, semanticVersion);
 	}
 
 }

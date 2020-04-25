@@ -6,6 +6,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCH
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_LATEST_VER_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_LATEST_VER_SCHEMA_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_LATEST_VER_VER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_ORG_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VER_BLOB_ID;
@@ -18,6 +21,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ORGANIZA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ORGANIZATION_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_LATEST_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ORGANIZATION;
 
@@ -61,10 +65,10 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 
 	public static final RowMapper<JsonSchemaVersionInfo> SCHEMA_VERSION_INFO_MAPPER = (ResultSet rs, int rowNum) -> {
 		JsonSchemaVersionInfo info = new JsonSchemaVersionInfo();
-		info.setOrganizationId(rs.getString("ORG_ID"));
-		info.setOrganizationName(rs.getString("ORG_NAME"));
-		info.setSchemaId(rs.getString("SCHEMA_ID"));
-		info.setSchemaName(rs.getString("SCHEMA_NAME"));
+		info.setOrganizationId(rs.getString(COL_ORGANIZATION_ID));
+		info.setOrganizationName(rs.getString(COL_ORGANIZATION_NAME));
+		info.setSchemaId(rs.getString(COL_JSON_SCHEMA_ID));
+		info.setSchemaName(rs.getString(COL_JSON_SCHEMA_NAME));
 		info.setVersionId(rs.getString(COL_JSON_SCHEMA_VER_ID));
 		info.setSemanticVersion(rs.getString(COL_JSON_SCHEMA_VER_SEMANTIC));
 		info.setCreatedBy(rs.getString(COL_JSON_SCHEMA_VER_CREATED_BY));
@@ -123,6 +127,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 
 	@Override
 	public void trunacteAll() {
+		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_LATEST_VERSION);
 		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_VERSION);
 		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_BLOB);
 		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA);
@@ -167,6 +172,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		Long versionId = idGenerator.generateNewId(IdType.JSON_SCHEMA_VERSION_ID);
 		Timestamp now = new Timestamp(System.currentTimeMillis());
 		try {
+			// insert the version row
 			jdbcTemplate.update(
 					"INSERT INTO " + TABLE_JSON_SCHEMA_VERSION + " (" + COL_JSON_SCHEMA_VER_ID + ","
 							+ COL_JSON_SCHEMA_VER_SCHEMA_ID + "," + COL_JSON_SCHEMA_VER_SEMANTIC + ","
@@ -174,6 +180,13 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 							+ COL_JSON_SCHEMA_VER_BLOB_ID + ") VALUES (?,?,?,?,?,?)",
 					versionId, request.getSchemaId(), request.getSemanticVersion(), request.getCreatedBy(), now,
 					request.getBlobId());
+			// set this version to be the latest
+			jdbcTemplate.update(
+					"INSERT INTO " + TABLE_JSON_SCHEMA_LATEST_VERSION + " (" + COL_JSON_SCHEMA_LATEST_VER_SCHEMA_ID
+							+ "," + COL_JSON_SCHEMA_LATEST_VER_ETAG + "," + COL_JSON_SCHEMA_LATEST_VER_VER_ID
+							+ ") VALUES (?,UUID(),?) ON DUPLICATE KEY UPDATE " + COL_JSON_SCHEMA_LATEST_VER_ETAG
+							+ " = UUID(), " + COL_JSON_SCHEMA_LATEST_VER_VER_ID + " = ?",
+					request.getSchemaId(), versionId, versionId);
 		} catch (DuplicateKeyException e) {
 			throw new IllegalArgumentException(
 					"Semantic version: '" + request.getSemanticVersion() + "' already exists for this JSON schema");
@@ -185,34 +198,69 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 	public JsonSchemaVersionInfo getVersionInfo(String versionId) {
 		ValidateArgument.required(versionId, "versionId");
 		try {
-			return jdbcTemplate.queryForObject("SELECT O." + COL_ORGANIZATION_ID + " AS ORG_ID, O."
-					+ COL_ORGANIZATION_NAME + " AS ORG_NAME, S." + COL_JSON_SCHEMA_ID + " AS SCHEMA_ID, S."
-					+ COL_JSON_SCHEMA_NAME + " AS SCHEMA_NAME, V.*, B." + COL_JSON_SCHEMA_BLOB_SHA256 + " FROM "
-					+ TABLE_JSON_SCHEMA_VERSION + " V INNER JOIN " + TABLE_JSON_SCHEMA_BLOB + " B ON (V."
-					+ COL_JSON_SCHEMA_VER_BLOB_ID + "=B." + COL_JSON_SCHEMA_BLOB_ID + ") JOIN " + TABLE_JSON_SCHEMA
-					+ " S ON (V." + COL_JSON_SCHEMA_VER_SCHEMA_ID + " = S." + COL_JSON_SCHEMA_ID + " ) JOIN "
-					+ TABLE_ORGANIZATION + " O ON (S." + COL_JSON_SCHEMA_ORG_ID + " = O." + COL_ORGANIZATION_ID
-					+ ") WHERE V." + COL_JSON_SCHEMA_VER_ID + "=?", SCHEMA_VERSION_INFO_MAPPER, versionId);
+			return jdbcTemplate.queryForObject("SELECT O." + COL_ORGANIZATION_ID + ", O." + COL_ORGANIZATION_NAME
+					+ ", S." + COL_JSON_SCHEMA_ID + ", S." + COL_JSON_SCHEMA_NAME + ", V.*, B."
+					+ COL_JSON_SCHEMA_BLOB_SHA256 + " FROM " + TABLE_JSON_SCHEMA_VERSION + " V INNER JOIN "
+					+ TABLE_JSON_SCHEMA_BLOB + " B ON (V." + COL_JSON_SCHEMA_VER_BLOB_ID + "=B."
+					+ COL_JSON_SCHEMA_BLOB_ID + ") JOIN " + TABLE_JSON_SCHEMA + " S ON (V."
+					+ COL_JSON_SCHEMA_VER_SCHEMA_ID + " = S." + COL_JSON_SCHEMA_ID + " ) JOIN " + TABLE_ORGANIZATION
+					+ " O ON (S." + COL_JSON_SCHEMA_ORG_ID + " = O." + COL_ORGANIZATION_ID + ") WHERE V."
+					+ COL_JSON_SCHEMA_VER_ID + "=?", SCHEMA_VERSION_INFO_MAPPER, versionId);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("JSON version not found for versionId: " + versionId);
 		}
 	}
 
+	@WriteTransaction
 	@Override
-	public JsonSchema getSchemaLatestVersion(String organizationName, String schemaName) {
+	public int deleteSchema(String schemaId) {
+		ValidateArgument.required(schemaId, "schemaId");
+		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_LATEST_VERSION + " WHERE "
+				+ COL_JSON_SCHEMA_LATEST_VER_SCHEMA_ID + " = ?", schemaId);
+		jdbcTemplate.update(
+				"DELETE FROM " + TABLE_JSON_SCHEMA_VERSION + " WHERE " + COL_JSON_SCHEMA_VER_SCHEMA_ID + " = ?",
+				schemaId);
+		return jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA + " WHERE " + COL_JSON_SCHEMA_ID + " = ?",
+				schemaId);
+	}
+
+	@WriteTransaction
+	@Override
+	public int deleteSchemaVersion(String versionId) {
+		ValidateArgument.required(versionId, "versionId");
+		return jdbcTemplate.update(
+				"DELETE FROM " + TABLE_JSON_SCHEMA_VERSION + " WHERE " + COL_JSON_SCHEMA_VER_ID + " = ?", versionId);
+	}
+
+	@Override
+	public String getVersionId(String organizationName, String schemaName, String semanticVersion) {
 		ValidateArgument.required(organizationName, "organizationName");
 		ValidateArgument.required(schemaName, "schemaName");
-		String sql = "WITH VERSIONS AS ( SELECT V." + COL_JSON_SCHEMA_VER_ID + " FROM " + TABLE_ORGANIZATION + " O"
-				+ " JOIN " + TABLE_JSON_SCHEMA + " S ON (O." + COL_ORGANIZATION_ID + " = S." + COL_JSON_SCHEMA_ORG_ID
-				+ ")" + " JOIN " + TABLE_JSON_SCHEMA_VERSION + " V ON (S." + COL_JSON_SCHEMA_ID + " = V."
-				+ COL_JSON_SCHEMA_VER_SCHEMA_ID + ")" + " WHERE O." + COL_ORGANIZATION_NAME + " = ? AND S."
-				+ COL_JSON_SCHEMA_NAME + " = ?)," + " MAX_VERSION AS" + " (SELECT MAX(" + COL_JSON_SCHEMA_VER_ID
-				+ ") AS MAX_VER_ID FROM VERSIONS)" + " SELECT B." + COL_JSON_SCHEMA_BLOB_BLOB + " FROM "
-				+ TABLE_JSON_SCHEMA_BLOB + " B" + " JOIN " + TABLE_JSON_SCHEMA_VERSION + " V ON (B."
-				+ COL_JSON_SCHEMA_BLOB_ID + " = V." + COL_JSON_SCHEMA_VER_BLOB_ID + ")" + " JOIN MAX_VERSION M ON (V."
-				+ COL_JSON_SCHEMA_VER_ID + " = M.MAX_VER_ID)";
+		ValidateArgument.required(semanticVersion, "semanticVersion");
+		String sql = "SELECT V." + COL_JSON_SCHEMA_VER_ID + " FROM " + TABLE_ORGANIZATION + " O JOIN "
+				+ TABLE_JSON_SCHEMA + " S ON (O." + COL_ORGANIZATION_ID + " = S." + COL_JSON_SCHEMA_ORG_ID + ") JOIN "
+				+ TABLE_JSON_SCHEMA_VERSION + " V ON (S." + COL_JSON_SCHEMA_ID + " = V." + COL_JSON_SCHEMA_VER_SCHEMA_ID
+				+ ") WHERE O." + COL_ORGANIZATION_NAME + " = ? AND S." + COL_JSON_SCHEMA_NAME + " = ? AND V."
+				+ COL_JSON_SCHEMA_VER_SEMANTIC + " = ?";
 		try {
-			return jdbcTemplate.queryForObject(sql, SCHEMA_MAPPER, organizationName, schemaName);
+			return jdbcTemplate.queryForObject(sql, String.class, organizationName, schemaName, semanticVersion);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("JSON Schema not found for organizationName: '" + organizationName
+					+ "' and schemaName: '" + schemaName + "' and semanticVersion: '" + semanticVersion + "'");
+		}
+	}
+
+	@Override
+	public String getLatestVersionId(String organizationName, String schemaName) {
+		ValidateArgument.required(organizationName, "organizationName");
+		ValidateArgument.required(schemaName, "schemaName");
+		try {
+			return jdbcTemplate.queryForObject("SELECT L." + COL_JSON_SCHEMA_LATEST_VER_VER_ID + " FROM "
+					+ TABLE_ORGANIZATION + " O JOIN " + TABLE_JSON_SCHEMA + " S ON (O." + COL_ORGANIZATION_ID + " = S."
+					+ COL_JSON_SCHEMA_ORG_ID + ") JOIN " + TABLE_JSON_SCHEMA_LATEST_VERSION + " L ON (S."
+					+ COL_JSON_SCHEMA_ID + " = L." + COL_JSON_SCHEMA_LATEST_VER_SCHEMA_ID + ") WHERE O."
+					+ COL_ORGANIZATION_NAME + " = ? AND " + COL_JSON_SCHEMA_NAME + " = ?", String.class,
+					organizationName, schemaName);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("JSON Schema not found for organizationName: '" + organizationName
 					+ "' and schemaName: '" + schemaName + "'");
@@ -220,39 +268,29 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 	}
 
 	@Override
-	public JsonSchema getSchemaForVersion(String organizationName, String schemaName, String semanticVersion) {
-		ValidateArgument.required(organizationName, "organizationName");
-		ValidateArgument.required(schemaName, "schemaName");
-		ValidateArgument.required(semanticVersion, "semanticVersion");
-		String sql = "SELECT B." + COL_JSON_SCHEMA_BLOB_BLOB + " FROM " + TABLE_ORGANIZATION + " O JOIN "
-				+ TABLE_JSON_SCHEMA + " S ON (O." + COL_ORGANIZATION_ID + " = S." + COL_JSON_SCHEMA_ORG_ID + ") JOIN "
-				+ TABLE_JSON_SCHEMA_VERSION + " V ON (S." + COL_JSON_SCHEMA_ID + " = V." + COL_JSON_SCHEMA_VER_SCHEMA_ID
-				+ ") JOIN " + TABLE_JSON_SCHEMA_BLOB + " B ON (V." + COL_JSON_SCHEMA_VER_BLOB_ID + " = B."
-				+ COL_JSON_SCHEMA_BLOB_ID + ") WHERE O." + COL_ORGANIZATION_NAME + " = ? AND S." + COL_JSON_SCHEMA_NAME
-				+ " = ? AND V." + COL_JSON_SCHEMA_VER_SEMANTIC + " = ?";
+	public JsonSchema getSchema(String versionId) {
+		ValidateArgument.required(versionId, "versionId");
 		try {
-			return jdbcTemplate.queryForObject(sql, SCHEMA_MAPPER, organizationName, schemaName, semanticVersion);
+			return jdbcTemplate.queryForObject("SELECT B." + COL_JSON_SCHEMA_BLOB_BLOB + " FROM "
+					+ TABLE_JSON_SCHEMA_VERSION + " V JOIN " + TABLE_JSON_SCHEMA_BLOB + " B ON (V."
+					+ COL_JSON_SCHEMA_VER_BLOB_ID + " = B." + COL_JSON_SCHEMA_BLOB_ID + ") WHERE V."
+					+ COL_JSON_SCHEMA_VER_ID+" = ?", SCHEMA_MAPPER,
+					versionId);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("JSON Schema not found for organizationName: '" + organizationName
-					+ "' and schemaName: '" + schemaName + "' and semanticVersion: '" + semanticVersion + "'");
+			throw new NotFoundException("JSON Schema not found for versionId: '" + versionId+"'");
 		}
 	}
 
-	@WriteTransaction
 	@Override
-	public int deleteAllSchemaVersions(String schemaId) {
-		ValidateArgument.required(schemaId, "schemaId");
-		return jdbcTemplate.update(
-				"DELETE FROM " + TABLE_JSON_SCHEMA_VERSION + " WHERE " + COL_JSON_SCHEMA_VER_SCHEMA_ID + " = ?",
-				schemaId);
+	public JsonSchemaVersionInfo getVersionInfo(String organizationName, String schemaName, String semanticVersion) {
+		String versionId = getVersionId(organizationName, schemaName, semanticVersion);
+		return getVersionInfo(versionId);
 	}
 
-	@WriteTransaction
 	@Override
-	public int deleteSchema(String schemaId) {
-		ValidateArgument.required(schemaId, "schemaId");
-		return jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA + " WHERE " + COL_JSON_SCHEMA_ID + " = ?",
-				schemaId);
+	public JsonSchemaVersionInfo getVersionLatestInfo(String organizationName, String schemaName) {
+		String versionId = getLatestVersionId(organizationName, schemaName);
+		return getVersionInfo(versionId);
 	}
 
 }

@@ -339,6 +339,10 @@
 			"description": "Specific version of user-defined JSON-schemas."
 		},
 		{
+			"name": "JSON_SCHEMA_LATEST_VERSION",
+			"description": "Tracks the latest version of a schema"
+		},
+		{
 			"name": "JSON_SCHEMA_DEPENDENCY",
 			"description": "Version dependencies of user-defined JSON-schemas."
 		},

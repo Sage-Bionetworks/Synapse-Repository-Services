@@ -2,6 +2,7 @@ package org.sagebionetworks.schema.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +18,7 @@ import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -72,5 +74,9 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 		assertNotNull(response.getNewVersionInfo());
 		assertEquals(adminUserInfo.getId().toString(), response.getNewVersionInfo().getCreatedBy());
 		assertEquals(semanticVersion, response.getNewVersionInfo().getSemanticVersion());
+		jsonSchemaManager.deleteSchemaAllVersion(adminUserInfo, organizationName, schemaName);
+		assertThrows(NotFoundException.class, ()->{
+			jsonSchemaManager.deleteSchemaAllVersion(adminUserInfo, organizationName, schemaName);
+		});
 	}
 }

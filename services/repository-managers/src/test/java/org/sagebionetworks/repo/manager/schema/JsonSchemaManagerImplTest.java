@@ -765,7 +765,7 @@ public class JsonSchemaManagerImplTest {
 		.thenReturn(AuthorizationStatus.authorized());
 		when(mockSchemaDao.getSchemaInfoForUpdate(any(), any())).thenReturn(schemaInfo);
 		// call under test
-		manager.deleteSchema(user, organizationName, schemaName);
+		manager.deleteSchemaAllVersion(user, organizationName, schemaName);
 		verify(mockOrganizationDao).getOrganizationByName(organizationName);
 		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE);
 		verify(mockSchemaDao).getSchemaInfoForUpdate(organization.getId(), schemaName);
@@ -778,7 +778,7 @@ public class JsonSchemaManagerImplTest {
 		when(mockOrganizationDao.getOrganizationByName(any())).thenReturn(organization);
 		when(mockSchemaDao.getSchemaInfoForUpdate(any(), any())).thenReturn(schemaInfo);
 		// call under test
-		manager.deleteSchema(adminUser, organizationName, schemaName);
+		manager.deleteSchemaAllVersion(adminUser, organizationName, schemaName);
 		verify(mockOrganizationDao).getOrganizationByName(organizationName);
 		verify(mockAclDao, never()).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE);
 		verify(mockSchemaDao).getSchemaInfoForUpdate(organization.getId(), schemaName);
@@ -793,7 +793,7 @@ public class JsonSchemaManagerImplTest {
 		.thenReturn(AuthorizationStatus.accessDenied("nope"));
 		assertThrows(UnauthorizedException.class, ()->{
 			// call under test
-			manager.deleteSchema(user, organizationName, schemaName);
+			manager.deleteSchemaAllVersion(user, organizationName, schemaName);
 		});
 		verify(mockOrganizationDao).getOrganizationByName(organizationName);
 		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE);
@@ -805,7 +805,7 @@ public class JsonSchemaManagerImplTest {
 	public void testDeleteSchemaNullUser() {
 		user = null;
 		assertThrows(IllegalArgumentException.class, ()->{
-			manager.deleteSchema(user, organizationName, schemaName);
+			manager.deleteSchemaAllVersion(user, organizationName, schemaName);
 		});
 	}
 	
@@ -813,7 +813,7 @@ public class JsonSchemaManagerImplTest {
 	public void testDeleteSchemaNullOrganization() {
 		organizationName = null;
 		assertThrows(IllegalArgumentException.class, ()->{
-			manager.deleteSchema(user, organizationName, schemaName);
+			manager.deleteSchemaAllVersion(user, organizationName, schemaName);
 		});
 	}
 	
@@ -821,7 +821,7 @@ public class JsonSchemaManagerImplTest {
 	public void testDeleteSchemaNullSchema() {
 		schemaName = null;
 		assertThrows(IllegalArgumentException.class, ()->{
-			manager.deleteSchema(user, organizationName, schemaName);
+			manager.deleteSchemaAllVersion(user, organizationName, schemaName);
 		});
 	}
 }

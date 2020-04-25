@@ -81,7 +81,17 @@ public interface JsonSchemaManager {
 	 * @param organizationName
 	 * @param schemaName
 	 */
-	public void deleteSchema(UserInfo user, String organizationName, String schemaName);
+	public void deleteSchemaAllVersion(UserInfo user, String organizationName, String schemaName);
+	
+	/**
+	 * Delete a specific version of a schema.
+	 * @param user
+	 * @param organizationName
+	 * @param schemaName
+	 * @param semanticVersion
+	 */
+	void deleteSchemaVersion(UserInfo user, String organizationName, String schemaName, String semanticVersion);
 
 	void truncateAll();
+
 }

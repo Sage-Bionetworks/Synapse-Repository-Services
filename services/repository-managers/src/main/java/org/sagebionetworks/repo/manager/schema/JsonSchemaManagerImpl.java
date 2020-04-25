@@ -197,6 +197,8 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		JsonSchemaVersionInfo versionInfo = jsonSchemaDao
 				.createNewVersion(new NewVersionRequest().withSchemaId(schemaRoot.getNumericId())
 						.withSemanticVersion(semanticVersionString).withCreatedBy(user.getId()).withBlobId(jsonBlobId));
+		
+		jsonSchemaDao.setLatestVersion(versionInfo.getSchemaId(), versionInfo.getVersionId());
 
 		CreateSchemaResponse response = new CreateSchemaResponse();
 		response.setNewVersionInfo(versionInfo);
@@ -260,11 +262,13 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		ValidateArgument.required(schemaName, "schemaName");
 		organizationName = organizationName.trim();
 		schemaName = schemaName.trim();
+		String versionId = null;
 		if(semanticVersion == null || semanticVersion.trim().isEmpty()) {
-			return jsonSchemaDao.getSchemaLatestVersion(organizationName, schemaName);
+			versionId = jsonSchemaDao.getLatestVersionId(organizationName, schemaName);
 		}else {
-			return jsonSchemaDao.getSchemaForVersion(organizationName, schemaName, semanticVersion.trim());
+			versionId = jsonSchemaDao.getVersionId(organizationName, schemaName, semanticVersion);
 		}
+		return jsonSchemaDao.getSchema(versionId);
 	}
 
 	@Override
@@ -275,19 +279,33 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 
 	@WriteTransaction
 	@Override
-	public void deleteSchema(UserInfo user, String organizationName, String schemaName) {
+	public void deleteSchemaAllVersion(UserInfo user, String organizationName, String schemaName) {
 		ValidateArgument.required(user, "user");
 		ValidateArgument.required(organizationName, "organizationName");
 		ValidateArgument.required(schemaName, "schemaName");
-		// Must have delete on the organziation.s
-		Organization organization = organizationDao.getOrganizationByName(organizationName);
+		JsonSchemaVersionInfo versionInfo = jsonSchemaDao.getVersionLatestInfo(organizationName, schemaName);
+		// Must have delete on the organization
 		if(!user.isAdmin()) {
-			aclDao.canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE)
+			aclDao.canAccess(user, versionInfo.getOrganizationId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE)
 			.checkAuthorizationOrElseThrow();
 		}
-		SchemaInfo info = jsonSchemaDao.getSchemaInfoForUpdate(organization.getId(), schemaName);
-		jsonSchemaDao.deleteAllSchemaVersions(info.getNumericId());
-		jsonSchemaDao.deleteSchema(info.getNumericId());
+		jsonSchemaDao.deleteSchema(versionInfo.getSchemaId());
+	}
+
+	@WriteTransaction
+	@Override
+	public void deleteSchemaVersion(UserInfo user, String organizationName, String schemaName, String semanticVersion) {
+		ValidateArgument.required(user, "user");
+		ValidateArgument.required(organizationName, "organizationName");
+		ValidateArgument.required(schemaName, "schemaName");
+		ValidateArgument.required(semanticVersion, "semanticVersion");
+		JsonSchemaVersionInfo versionInfo = jsonSchemaDao.getVersionInfo(organizationName, schemaName, semanticVersion);
+		// Must have delete on the organization
+		if(!user.isAdmin()) {
+			aclDao.canAccess(user, versionInfo.getOrganizationId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE)
+			.checkAuthorizationOrElseThrow();
+		}
+		jsonSchemaDao.deleteSchemaVersion(versionInfo.getVersionId());
 	}
 
 

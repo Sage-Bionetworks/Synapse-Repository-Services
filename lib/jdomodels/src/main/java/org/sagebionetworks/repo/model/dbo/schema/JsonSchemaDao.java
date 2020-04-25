@@ -56,6 +56,42 @@ public interface JsonSchemaDao {
 	 * @return
 	 */
 	JsonSchemaVersionInfo getVersionInfo(String versionId);
+	
+	/**
+	 * Get the versionId for a specific schema version.
+	 * @param organizationName
+	 * @param schemaName
+	 * @param semanticVersion
+	 * @return
+	 */
+	String getVersionId(String organizationName, String schemaName, String semanticVersion);
+	
+	/**
+	 * Get the JsonSchemaVersionInfo for a specific version.
+	 * @param organizationName
+	 * @param schemaName
+	 * @param semanticVersion
+	 * @return
+	 */
+	JsonSchemaVersionInfo getVersionInfo(String organizationName, String schemaName, String semanticVersion);
+	
+	
+	/**
+	 * Get the versionId of the latest version for a schema.
+	 * @param organizationName
+	 * @param schemaName
+	 * @return
+	 */
+	String getLatestVersionId(String organizationName, String schemaName);
+	
+	/**
+	 * Get the latest JsonSchemaVersionInfo for a schema.
+	 * @param organizationName
+	 * @param schemaNames
+	 * @return
+	 */
+	JsonSchemaVersionInfo getVersionLatestInfo(String organizationName, String schemaName);
+	
 
 	/**
 	 * Truncate all data.
@@ -63,32 +99,23 @@ public interface JsonSchemaDao {
 	void trunacteAll();
 
 	/**
-	 * Get the latest version of a schema for the given organization and name.
+	 * Get the schema for the given version ID.
 	 * @param organizationName
 	 * @param schemaName
 	 * @return
 	 */
-	JsonSchema getSchemaLatestVersion(String organizationName, String schemaName);
-
-	/**
-	 * Get a JSON schema.
-	 * @param organizationName
-	 * @param schemaName
-	 * @param semanticVersion
-	 * @return
-	 */
-	JsonSchema getSchemaForVersion(String organizationName, String schemaName, String semanticVersion);
-
-	/**
-	 * Attempt to delete all versions for the given schema
-	 * @param schemaId
-	 */
-	int deleteAllSchemaVersions(String schemaId);
+	JsonSchema getSchema(String versionId);
 
 	/**
 	 * Attempt to delete the given schema.
 	 * @param schemaId
 	 */
 	int deleteSchema(String schemaId);
+
+	/**
+	 * Delete a specific version of a schema.
+	 * 
+	 */
+	int deleteSchemaVersion(String versionId);
 
 }

@@ -54,9 +54,15 @@ public class JsonSchemaServicesImpl implements JsonSchemaServices {
 	}
 
 	@Override
-	public void deleteSchema(Long userId, String organizationName, String schemaName) {
+	public void deleteSchemaAllVersions(Long userId, String organizationName, String schemaName) {
 		UserInfo user = userManager.getUserInfo(userId);
-		schemaManager.deleteSchema(user, organizationName, schemaName);
+		schemaManager.deleteSchemaAllVersion(user, organizationName, schemaName);
+	}
+
+	@Override
+	public void deleteSchemaVersion(Long userId, String organizationName, String schemaName, String semanticVersion) {
+		UserInfo user = userManager.getUserInfo(userId);
+		schemaManager.deleteSchemaVersion(user, organizationName, schemaName, semanticVersion);
 	}
 
 }
