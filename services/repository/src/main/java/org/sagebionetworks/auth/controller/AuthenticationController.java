@@ -23,8 +23,8 @@ import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.controller.RequiredScope;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -64,8 +64,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * culminating with this request to retrieve an access token:
  * <a href="${POST.oauth2.token}">POST /oauth2/token</a>
  * which is then included as a Bearer token in the Authorization header of 
- * subsequent requests.  Note:  At this time only selected services recognize the OAuth 2.0
- * token and they are documented accordingly.
+ * subsequent requests.  Note: The access token has a set of 'scopes' and
+ * each service lists the scopes which the access token must include in order 
+ * to use that service.
  * </p>
  * <p>
  * To authenticate using an API Key, include the following three headers in

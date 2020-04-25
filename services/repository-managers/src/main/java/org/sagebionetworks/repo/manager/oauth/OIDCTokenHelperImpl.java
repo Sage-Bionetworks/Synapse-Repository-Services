@@ -143,15 +143,4 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 	public void validateJWT(String token) {
 		JSONWebTokenHelper.parseJWT(token, jsonWebKeySet);
 	}
-
-	@Override
-	public String createAnonymousAccessToken() {
-		String issuer = null; // doesn't matter -- it's only important to the client (which will never see this token, used internally)
-		String subject = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString(); // we don't encrypt the subject
-		String oauthClientId = ""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID;
-		String tokenId = UUID.randomUUID().toString();
-		List<OAuthScope> scopes = Arrays.asList(OAuthScope.values());
-		return createOIDCaccessToken(issuer, subject, oauthClientId, System.currentTimeMillis(), null,
-				tokenId, scopes, Collections.EMPTY_MAP);
-	}
 }

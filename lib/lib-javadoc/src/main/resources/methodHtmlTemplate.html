@@ -73,10 +73,23 @@
 											<tr>
 												<td>Authentication</td>
 												<td>#if($method.isAuthenticationRequired) <a href="${authControllerName}">Required</a>
-													#else false #end</td>
+													#else not required #end</td>
 											</tr>
+											#if(${method.requiredScopes})
 											<tr>
-												<td>HTTP Methods</td>
+												<td>Required <a href="${pathToRoot}/org/sagebionetworks/repo/model/oauth/OAuthScope.html">OAuth Scopes</a></td>
+												<td>
+													#foreach( $scope in $method.requiredScopes ) 
+														#if($velocityCount > 1)
+															, 
+														#end
+														$scope 
+													#end
+												</td>
+											</tr>
+											#end
+											<tr>
+												<td>HTTP Method</td>
 												<td>${method.httpType}</td>
 											</tr>
 											<tr>

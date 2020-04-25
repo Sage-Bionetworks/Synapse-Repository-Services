@@ -1,16 +1,9 @@
 package org.sagebionetworks.repo.web.service;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Random;
-import java.util.UUID;
-
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.io.Files;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,8 +12,6 @@ import org.sagebionetworks.file.services.FileUploadService;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.file.MultipartManager;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
-import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -31,7 +22,6 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
@@ -43,10 +33,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.io.Files;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Random;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -77,12 +73,6 @@ public class TrashServiceImplAutowiredTest {
 	@Autowired
 	private TrashService trashService;
 
-	@Autowired
-	private OIDCTokenHelper oidcTokenHelper;
-	
-	@Autowired
-	private OpenIDConnectManager oidcManager;
-	
 	private List<Entity> entitiesToDelete;
 	private List<S3FileHandle> fileHandlesToDelete;
 	private List<File> filesToDelete;
@@ -90,8 +80,6 @@ public class TrashServiceImplAutowiredTest {
 	private Long adminUserId;
 	private String projectId;
 	private Long userId;
-	
-	private UserInfo userInfo;
 
 	@BeforeEach
 	public void beforeEach() {
@@ -103,14 +91,12 @@ public class TrashServiceImplAutowiredTest {
 		// Set up test user.
 		adminUserId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		userId = createUser();
-		String accessToken = oidcTokenHelper.createTotalAccessToken(userId);
-		userInfo = oidcManager.getUserAuthorization(accessToken);
 
 		// Set up test project.
 		Project project = new Project();
 		String projectName = "project" + new Random().nextInt();
 		project.setName(projectName);
-		project = entityService.createEntity(userInfo, project, null);
+		project = entityService.createEntity(userId, project, null);
 		entitiesToDelete.add(project);
 		projectId = project.getId();
 	}
@@ -153,8 +139,6 @@ public class TrashServiceImplAutowiredTest {
 	public void fileHandleNonOwnerCanDeleteAndRestoreFileEntity() throws Exception {
 		// Create another user and give them access to the project.
 		long user2Id = createUser();
-		String accessToken2 = oidcTokenHelper.createTotalAccessToken(user2Id);
-		UserInfo userInfo2 = oidcManager.getUserAuthorization(accessToken2);
 
 		ResourceAccess userAccess = new ResourceAccess();
 		userAccess.setPrincipalId(userId);
@@ -165,9 +149,9 @@ public class TrashServiceImplAutowiredTest {
 		user2Access.setAccessType(EnumSet.of(ACCESS_TYPE.CREATE, ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE,
 				ACCESS_TYPE.DELETE));
 
-		AccessControlList acl = entityService.getEntityACL(projectId, userInfo);
+		AccessControlList acl = entityService.getEntityACL(projectId, userId);
 		acl.setResourceAccess(ImmutableSet.of(userAccess, user2Access));
-		entityService.updateEntityACL(userInfo, acl);
+		entityService.updateEntityACL(userId, acl);
 
 		// Upload a file to the project (with user 1).
 		FileEntity fileEntity = uploadFile(projectId, null);
@@ -175,7 +159,7 @@ public class TrashServiceImplAutowiredTest {
 
 		// User 2 can delete and restore the file.
 		trashService.moveToTrash(user2Id, fileEntityId, false);
-		assertThrows(EntityInTrashCanException.class, () -> entityService.getEntity(userInfo2, fileEntityId));
+		assertThrows(EntityInTrashCanException.class, () -> entityService.getEntity(user2Id, fileEntityId));
 
 		trashService.restoreFromTrash(user2Id, fileEntityId, null);
 		FileEntity restored = entityService.getEntity(user2Id, fileEntityId, FileEntity.class);
@@ -199,7 +183,7 @@ public class TrashServiceImplAutowiredTest {
 
 		// Trash the file entity. Getting the file entity will now throw an EntityInTrashCanException.
 		trashService.moveToTrash(userId, fileEntityId, false);
-		assertThrows(EntityInTrashCanException.class, () -> entityService.getEntity(userInfo, fileEntityId));
+		assertThrows(EntityInTrashCanException.class, () -> entityService.getEntity(userId, fileEntityId));
 
 		// Restore the file entity. It is gettable now.
 		trashService.restoreFromTrash(userId, fileEntityId, null);
@@ -237,7 +221,7 @@ public class TrashServiceImplAutowiredTest {
 
 		// Trash the subfolder. Getting the subfolder will now throw an EntityInTrashCanException.
 		trashService.moveToTrash(userId, subfolderId, false);
-		assertThrows(EntityInTrashCanException.class, () -> entityService.getEntity(userInfo, subfolderId));
+		assertThrows(EntityInTrashCanException.class, () -> entityService.getEntity(userId, subfolderId));
 
 		// Restore the subfolder. It is gettable now.
 		trashService.restoreFromTrash(userId, subfolderId, null);
@@ -261,7 +245,7 @@ public class TrashServiceImplAutowiredTest {
 	private Folder createFolder(String parentId) {
 		Folder folder = new Folder();
 		folder.setParentId(parentId);
-		folder = entityService.createEntity(userInfo, folder, null);
+		folder = entityService.createEntity(userId, folder, null);
 		entitiesToDelete.add(folder);
 		return folder;
 	}
@@ -304,7 +288,7 @@ public class TrashServiceImplAutowiredTest {
 		FileEntity fileEntity = new FileEntity();
 		fileEntity.setDataFileHandleId(fileHandle.getId());
 		fileEntity.setParentId(parentId);
-		fileEntity = entityService.createEntity(userInfo, fileEntity, null);
+		fileEntity = entityService.createEntity(userId, fileEntity, null);
 		entitiesToDelete.add(fileEntity);
 		return fileEntity;
 	}

@@ -14,13 +14,13 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -279,10 +279,10 @@ public class WikiController {
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_KEY, method = RequestMethod.GET)
 	public @ResponseBody
 	WikiPageKey getEntityRootWikiKey(
-			UserInfo userInfo,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId) throws DatastoreException,
 			NotFoundException, UnauthorizedException, IOException {
-		return serviceProvider.getWikiService().getRootWikiKey(userInfo,
+		return serviceProvider.getWikiService().getRootWikiKey(userId,
 				ownerId, ObjectType.ENTITY);
 	}
 	
@@ -307,10 +307,10 @@ public class WikiController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_KEY, method = RequestMethod.GET)
 	public @ResponseBody
 	WikiPageKey getEvaluationRootWikiKey(
-			UserInfo userInfo,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId) throws DatastoreException,
 			NotFoundException, UnauthorizedException, IOException {
-		return serviceProvider.getWikiService().getRootWikiKey(userInfo,
+		return serviceProvider.getWikiService().getRootWikiKey(userId,
 				ownerId, ObjectType.EVALUATION);
 	}
 	
@@ -335,10 +335,10 @@ public class WikiController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_KEY, method = RequestMethod.GET)
 	public @ResponseBody
 	WikiPageKey getAccessRequirmentRootWikiKey(
-			UserInfo userInfo,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId) throws DatastoreException,
 			NotFoundException, UnauthorizedException, IOException {
-		return serviceProvider.getWikiService().getRootWikiKey(userInfo,
+		return serviceProvider.getWikiService().getRootWikiKey(userId,
 				ownerId, ObjectType.ACCESS_REQUIREMENT);
 	}
 

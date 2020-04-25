@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -11,19 +11,18 @@ import java.util.List;
 import org.apache.commons.net.util.Base64;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class DockerAuthorizationControllerAutowiredTest extends AbstractAutowiredControllerJunit5TestBase {
+public class DockerAuthorizationControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
 
 	private Long adminUserId;
 	private String service;
@@ -34,23 +33,17 @@ public class DockerAuthorizationControllerAutowiredTest extends AbstractAutowire
 	@Autowired
 	NodeManager nodeManager;
 	
-	@Autowired
-	private OIDCTokenHelper oidcTokenHelper;
-
-	private String accessToken;
-	
 	List<String> cleanupIdList;
 	
 
-	@BeforeEach
+	@Before
 	public void before() throws Exception {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
 		service = "docker.synapse.org";
 		cleanupIdList = new ArrayList<String>();
 	}
 	
-	@AfterEach
+	@After
 	public void after(){
 		//cleanup
 		UserInfo adminUserInfo = userManager.getUserInfo(adminUserId);
@@ -70,7 +63,7 @@ public class DockerAuthorizationControllerAutowiredTest extends AbstractAutowire
 		//Setup: create a project
 		Project p = new Project();
 		p.setName("Create without entity type");
-		Project clone = (Project) entityServletHelper.createEntity(p, accessToken, null);
+		Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = clone.getId();
 		cleanupIdList.add(id);
 		

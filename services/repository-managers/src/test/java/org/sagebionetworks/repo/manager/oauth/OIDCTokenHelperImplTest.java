@@ -255,16 +255,5 @@ public class OIDCTokenHelperImplTest {
 		assertNotNull(claims.getId());
 		assertEquals(Arrays.asList(OAuthScope.values()), ClaimsJsonUtil.getScopeFromClaims(claims));
 	}
-	
-	@Test
-	public void testCreateAnonymousAccessToken() {
-		String accessToken = oidcTokenHelper.createAnonymousAccessToken();
-		Jwt<JwsHeader,Claims> jwt = Jwts.parser().setSigningKey(getPublicSigningKey()).parse(accessToken);
-		Claims claims = jwt.getBody();
-		assertNull(claims.getIssuer());
-		assertEquals("273950", claims.getSubject());
-		assertEquals(""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID, claims.getAudience());
-		assertNotNull(claims.getId());
-		assertEquals(Arrays.asList(OAuthScope.values()), ClaimsJsonUtil.getScopeFromClaims(claims));
-	}
+
 }

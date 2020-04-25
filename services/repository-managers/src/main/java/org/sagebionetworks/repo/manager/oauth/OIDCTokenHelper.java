@@ -61,7 +61,7 @@ public interface OIDCTokenHelper {
 	void validateJWT(String token);
 
 	/**
-	 * Parse the given JWT
+	 * Parse and validate the given JWT
 	 * @param a serialized JSON Web Token
 	 * @return the parsed and validated JWT
 	 * @throws IllegalArgumentException if the token is not valid
@@ -78,11 +78,5 @@ public interface OIDCTokenHelper {
 	 * @return
 	 */
 	String createTotalAccessToken(Long principalId);
-	
-	/**
-	 * Create an access token representing the anonymous user
-	 * @return
-	 */
-	String createAnonymousAccessToken();
 
 }

@@ -119,7 +119,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		// Validate that the user can assign all file handles
 		for(FileHandle handle: fileHandlesToCheck){
 			// the user must have access to the raw FileHandle to assign it to an object.
-			authorizationManager.canAccessRawFileHandleByCreator(user, handle.getId(), handle.getCreatedBy(), ACCESS_TYPE.CREATE).checkAuthorizationOrElseThrow();
+			authorizationManager.canAccessRawFileHandleByCreator(user, handle.getId(), handle.getCreatedBy()).checkAuthorizationOrElseThrow();
 		}
 		// pass to the DAO
 		return wikiPageDao.create(wikiPage, nameToHandleMap, objectId, objectType, newFileHandlesToInsert);
@@ -278,7 +278,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 			// If this file handle is not in the wiki's reservation of attachments, check permissions
 			if(!existingFileHandleIds.contains(Long.valueOf(handle.getId()))){
 				// the user must have access to the raw FileHandle to assign it to an object.
-				authorizationManager.canAccessRawFileHandleByCreator(user, handle.getId(), handle.getCreatedBy(), ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
+				authorizationManager.canAccessRawFileHandleByCreator(user, handle.getId(), handle.getCreatedBy()).checkAuthorizationOrElseThrow();
 				// Add this to the list of file handles to insert for this update
 				newFileHandlesToInsert.add(handle.getId());
 			}

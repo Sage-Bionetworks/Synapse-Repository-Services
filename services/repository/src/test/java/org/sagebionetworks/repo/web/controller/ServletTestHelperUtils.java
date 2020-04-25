@@ -99,18 +99,6 @@ public class ServletTestHelperUtils {
 		return initRequest(mode, "/repo/v1", requestURI, userId, accessToken, entity);
 	}
 
-	// TODO:  when PLFM-5170 is done this will be gone
-	public static MockHttpServletRequest initRequestWithAccessTokenAuth(HTTPMODE mode,
-			String requestURI, String accessToken, JSONEntity entity)
-			throws Exception {
-		MockHttpServletRequest request = initRequestUnauthenticated(mode, "/repo/v1", requestURI, entity);
-		if (accessToken != null) {
-			request.addHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, "Bearer "+accessToken);
-		}
-		return request;
-
-	}
-
 	/**
 	 * Sends off a Mock HTTP request and check for errors
 	 * 

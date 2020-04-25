@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
@@ -174,7 +173,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		
 		if(updated.getProfilePicureFileHandleId() != null){
 			// The user must own the file handle to set it as a picture.
-			authorizationManager.canAccessRawFileHandleById(userInfo, updated.getProfilePicureFileHandleId(), ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
+			authorizationManager.canAccessRawFileHandleById(userInfo, updated.getProfilePicureFileHandleId()).checkAuthorizationOrElseThrow();
 		}
 		// Update the DAO first
 		userProfileDAO.update(updated);

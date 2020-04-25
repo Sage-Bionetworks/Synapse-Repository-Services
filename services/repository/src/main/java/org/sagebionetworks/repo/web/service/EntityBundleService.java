@@ -3,12 +3,11 @@ package org.sagebionetworks.repo.web.service;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -23,7 +22,7 @@ public interface EntityBundleService {
 	/**
 	 * Get an entity and related data with a single GET.
 	 *
-	 * @param userInfo 
+	 * @param userId -The user that is doing the get.
 	 * @param entityId - The ID of the entity to fetch.
 	 * @param request
 	 * @return The requested Entity if it exists.
@@ -33,7 +32,7 @@ public interface EntityBundleService {
 	 * @throws ACLInheritanceException
 	 * @throws ParseException
 	 */
-	public EntityBundle getEntityBundle(UserInfo userInfo, String entityId, EntityBundleRequest request) throws NotFoundException,
+	public EntityBundle getEntityBundle(Long userId, String entityId, EntityBundleRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException;
 
 	/**
@@ -50,13 +49,13 @@ public interface EntityBundleService {
 	 * @throws ACLInheritanceException
 	 * @throws ParseException
 	 */
-	public EntityBundle getEntityBundle(UserInfo userInfo, String entityId, Long versionNumber, EntityBundleRequest request) throws NotFoundException,
+	public EntityBundle getEntityBundle(Long userId, String entityId, Long versionNumber, EntityBundleRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException;
 
 	/**
 	 * Get an entity and related data with a single GET.
 	 * 
-	 * @param userInfo
+	 * @param userId -The user that is doing the get.
 	 * @param entityId - The ID of the entity to fetch.
 	 * @param request
 	 * @return The requested Entity if it exists.
@@ -67,7 +66,7 @@ public interface EntityBundleService {
 	 * @throws ParseException 
 	 */
 	@Deprecated
-	public org.sagebionetworks.repo.model.EntityBundle getEntityBundle(UserInfo userInfo, String entityId, int mask) throws NotFoundException,
+	public org.sagebionetworks.repo.model.EntityBundle getEntityBundle(Long userId, String entityId, int mask) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException;
 
 
@@ -86,7 +85,7 @@ public interface EntityBundleService {
 	 * @throws ParseException 
 	 */
 	@Deprecated
-	public org.sagebionetworks.repo.model.EntityBundle getEntityBundle(UserInfo userInfo, String entityId, Long versionNumber, int mask) throws NotFoundException,
+	public org.sagebionetworks.repo.model.EntityBundle getEntityBundle(Long userId, String entityId, Long versionNumber, int mask) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException;
 	
 	/**
@@ -97,7 +96,7 @@ public interface EntityBundleService {
 	 * Upon successful creation, an EntityBundle is returned containing the
 	 * created components, as defined by the partsMask.
 	 * 
-	 * @param userInfo
+	 * @param userId
 	 * @param eb
 	 * @param partsMask
 	 * @param request
@@ -111,7 +110,7 @@ public interface EntityBundleService {
 	 * @throws ACLInheritanceException 
 	 */
 	@Deprecated
-	public org.sagebionetworks.repo.model.EntityBundle createEntityBundle(UserInfo userInfo, org.sagebionetworks.repo.model.EntityBundleCreate ebc, String activityId)
+	public org.sagebionetworks.repo.model.EntityBundle createEntityBundle(Long userId, org.sagebionetworks.repo.model.EntityBundleCreate ebc, String activityId)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException;
 
@@ -123,7 +122,7 @@ public interface EntityBundleService {
 	 * Upon successful creation, an EntityBundle is returned containing the
 	 * updated components.
 	 * 
-	 * @param userInfo
+	 * @param userId
 	 * @param entityId
 	 * @param ebc
 	 * @param request
@@ -137,7 +136,7 @@ public interface EntityBundleService {
 	 * @throws ParseException
 	 */
 	@Deprecated
-	public org.sagebionetworks.repo.model.EntityBundle updateEntityBundle(UserInfo userInfo, String entityId,
+	public org.sagebionetworks.repo.model.EntityBundle updateEntityBundle(Long userId, String entityId,
 																		  org.sagebionetworks.repo.model.EntityBundleCreate ebc, String activityId) throws
 			ConflictingUpdateException,	DatastoreException, 
 			InvalidModelException, UnauthorizedException, NotFoundException, 
@@ -152,7 +151,7 @@ public interface EntityBundleService {
 	 * Upon successful creation, an EntityBundle is returned containing the
 	 * created components, as defined by the partsMask.
 	 *
-	 * @param userInfo
+	 * @param userId
 	 * @param eb
 	 * @param partsMask
 	 * @param request
@@ -165,7 +164,7 @@ public interface EntityBundleService {
 	 * @throws ParseException
 	 * @throws ACLInheritanceException
 	 */
-	public EntityBundle createEntityBundle(UserInfo userInfo, EntityBundleCreate ebc, String activityId)
+	public EntityBundle createEntityBundle(Long userId, EntityBundleCreate ebc, String activityId)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException;
 
@@ -177,7 +176,7 @@ public interface EntityBundleService {
 	 * Upon successful creation, an EntityBundle is returned containing the
 	 * updated components.
 	 *
-	 * @param userInfo
+	 * @param userId
 	 * @param entityId
 	 * @param ebc
 	 * @param request
@@ -190,7 +189,7 @@ public interface EntityBundleService {
 	 * @throws ACLInheritanceException
 	 * @throws ParseException
 	 */
-	public EntityBundle updateEntityBundle(UserInfo userInfo, String entityId,
+	public EntityBundle updateEntityBundle(Long userId, String entityId,
 										   EntityBundleCreate ebc, String activityId) throws
 			ConflictingUpdateException,	DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException,

@@ -1,5 +1,6 @@
 package org.sagebionetworks.javadoc.velocity.controller;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -10,7 +11,7 @@ import org.jsoup.Jsoup;
 import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
 import org.sagebionetworks.javadoc.web.services.FilterUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,7 +24,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.google.common.collect.Lists;
 import com.sun.javadoc.AnnotationDesc;
 import com.sun.javadoc.AnnotationDesc.ElementValuePair;
+import com.sun.javadoc.AnnotationValue;
 import com.sun.javadoc.ClassDoc;
+import com.sun.javadoc.FieldDoc;
 import com.sun.javadoc.MethodDoc;
 import com.sun.javadoc.ParamTag;
 import com.sun.javadoc.Parameter;
@@ -120,10 +123,7 @@ public class ControllerUtils {
 		methodModel.setIsAuthenticationRequired(false);
 		Map<String, ParameterModel> paramMap = new HashMap<String, ParameterModel>();
         if(params != null){
-        	for(Parameter param: params) {
-        		if (param.typeName().equals(UserInfo.class.getSimpleName())) {
-					methodModel.setIsAuthenticationRequired(true);       			
-        		}
+        	for(Parameter param: params){
         		AnnotationDesc[] paramAnnos = param.annotations();
         		if(paramAnnos != null){
         			for(AnnotationDesc ad: paramAnnos){
@@ -204,17 +204,35 @@ public class ControllerUtils {
 			MethodModel methodModel) {
 		AnnotationDesc[] annos = methodDoc.annotations();
         if(annos != null){
-        	for(AnnotationDesc ad: annos){
+        	for (AnnotationDesc ad: annos) {
         		String qualifiedName = ad.annotationType().qualifiedName();
         		System.out.println(qualifiedName);
-        		if(RequestMapping.class.getName().equals(qualifiedName)){
+        	if (RequestMapping.class.getName().equals(qualifiedName)){
         			extractRequestMapping(methodModel, ad);
-        		}else if(ResponseBody.class.getName().equals(qualifiedName)){
+        		} else if (ResponseBody.class.getName().equals(qualifiedName)) {
 					extractResponseLink(methodDoc, methodModel);
+        		} else if (RequiredScope.class.getName().equals(qualifiedName)) {
+        			extractRequiredScope(methodModel, ad);
         		}
         	}
         }
 	}
+	
+	private static void extractRequiredScope(MethodModel methodModel, AnnotationDesc ad) {
+		List<String> requiredScopes = new ArrayList<String>();
+		for (ElementValuePair evp : ad.elementValues()) {
+			for (AnnotationValue av : (AnnotationValue[])evp.value().value()) {
+				FieldDoc fieldDoc = (FieldDoc)av.value();
+				String name = fieldDoc.name();
+				requiredScopes.add(name);
+			}
+		}
+		if (requiredScopes.isEmpty()) {
+			methodModel.setRequiredScopes(null);
+		} else {
+			methodModel.setRequiredScopes(requiredScopes.toArray(new String[] {}));
+		}
+	}	
 
 	private static void extractResponseLink(MethodDoc methodDoc, MethodModel methodModel) {
 		// this means there is a response body for this method.

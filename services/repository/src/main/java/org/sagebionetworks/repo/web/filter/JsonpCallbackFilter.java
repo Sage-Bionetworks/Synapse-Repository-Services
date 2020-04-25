@@ -47,6 +47,10 @@ public class JsonpCallbackFilter implements Filter {
 			if(sessionToken != null){
 				throw new ServletException("JSONP callbacks are only allowed on public methods with no 'sessionToken'");
 			}
+			String accessToken = httpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME);
+			if(accessToken != null){
+				throw new ServletException("JSONP callbacks are only allowed on public methods with no authorization.");
+			}
 			OutputStream out = httpResponse.getOutputStream();
 
 			GenericResponseWrapper wrapper = new GenericResponseWrapper(httpResponse);

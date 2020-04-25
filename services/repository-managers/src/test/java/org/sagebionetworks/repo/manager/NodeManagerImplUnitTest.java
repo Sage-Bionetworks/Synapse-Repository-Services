@@ -52,7 +52,6 @@ import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
-import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -105,7 +104,6 @@ public class NodeManagerImplUnitTest {
 	@BeforeEach
 	public void before() throws Exception {
 		mockUserInfo = new UserInfo(false, 101L);
-		mockUserInfo.setScopes(Arrays.asList(OAuthScope.values()));
 		
 		anonUserInfo = new UserInfo(false, 102L);
 		
@@ -268,7 +266,7 @@ public class NodeManagerImplUnitTest {
 		String parentId = "202";
 		newNode.setParentId(parentId);
 		when(mockAuthManager.canCreate(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthManager.canAccessRawFileHandleById(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockNodeDao.isNodeAvailable(parentId)).thenReturn(true);
 		
@@ -304,7 +302,7 @@ public class NodeManagerImplUnitTest {
 		newNode.setETag(startEtag);
 		when(mockAuthManager.canCreate(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthManager.canUserMoveRestrictedEntity(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthManager.canAccessRawFileHandleById(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockNodeDao.isNodeAvailable(parentId)).thenReturn(true);
 		

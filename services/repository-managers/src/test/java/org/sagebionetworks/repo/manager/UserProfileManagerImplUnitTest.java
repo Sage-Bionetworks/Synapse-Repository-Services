@@ -27,7 +27,6 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
@@ -201,7 +200,7 @@ public class UserProfileManagerImplUnitTest {
 	@Test
 	public void testUpdateProfileFileHandleAuthrorized() throws NotFoundException{
 		String fileHandleId = "123";
-		when(mockAuthorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId)).thenReturn(AuthorizationStatus.authorized());
 		UserProfile profile = new UserProfile();
 		profile.setOwnerId(""+userInfo.getId());
 		profile.setUserName("some username");
@@ -213,7 +212,7 @@ public class UserProfileManagerImplUnitTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testUpdateProfileFileHandleUnAuthrorized() throws NotFoundException{
 		String fileHandleId = "123";
-		when(mockAuthorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.accessDenied("User does not own the file handle"));
+		when(mockAuthorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId)).thenReturn(AuthorizationStatus.accessDenied("User does not own the file handle"));
 		UserProfile profile = new UserProfile();
 		profile.setOwnerId(""+userInfo.getId());
 		profile.setUserName("some username");

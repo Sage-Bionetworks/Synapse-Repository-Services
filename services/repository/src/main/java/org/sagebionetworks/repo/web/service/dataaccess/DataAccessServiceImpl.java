@@ -95,8 +95,9 @@ public class DataAccessServiceImpl implements DataAccessService{
 	}
 
 	@Override
-	public RestrictionInformationResponse getRestrictionInformation(UserInfo userInfo, RestrictionInformationRequest request) {
-		return accessRequirementManager.getRestrictionInformation(userInfo, request);
+	public RestrictionInformationResponse getRestrictionInformation(Long userId, RestrictionInformationRequest request) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return accessRequirementManager.getRestrictionInformation(user, request);
 	}
 
 	@Override

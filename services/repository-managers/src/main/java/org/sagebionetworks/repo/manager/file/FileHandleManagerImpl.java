@@ -284,7 +284,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		// Get the file handle
 		FileHandle handle = getRawFileHandleUnchecked(handleId);
 		// Only the user that created this handle is authorized to get it.
-		authorizationManager.canAccessRawFileHandleByCreator(userInfo, handleId,handle.getCreatedBy(), ACCESS_TYPE.READ)
+		authorizationManager.canAccessRawFileHandleByCreator(userInfo, handleId,handle.getCreatedBy())
 				.checkAuthorizationOrElseThrow();
 		return handle;
 	}
@@ -307,7 +307,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		try {
 			FileHandle handle = fileHandleDao.get(handleId);
 			// Is the user authorized?
-			authorizationManager.canAccessRawFileHandleByCreator(userInfo, handleId, handle.getCreatedBy(), ACCESS_TYPE.DELETE)
+			authorizationManager.canAccessRawFileHandleByCreator(userInfo, handleId, handle.getCreatedBy())
 					.checkAuthorizationOrElseThrow();
 			// If this file has a preview then we want to delete the preview as
 			// well.
@@ -488,7 +488,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		FileHandle handle = fileHandleDao.get(handleId);
 		// Is the user authorized?
 		if (!authorizationManager.canAccessRawFileHandleByCreator(userInfo,
-				handleId, handle.getCreatedBy(), ACCESS_TYPE.UPDATE).isAuthorized()) {
+				handleId, handle.getCreatedBy()).isAuthorized()) {
 			throw new UnauthorizedException(
 					"Only the creator of a FileHandle can clear the preview");
 		}
@@ -1247,7 +1247,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		 * Only the creator of the original file handle can create a copy
 		 */
 		// Is the user authorized?
-		if (!authorizationManager.canAccessRawFileHandleByCreator(userInfo, handleIdToCopyFrom, originalFileHandle.getCreatedBy(), ACCESS_TYPE.CREATE)
+		if (!authorizationManager.canAccessRawFileHandleByCreator(userInfo, handleIdToCopyFrom, originalFileHandle.getCreatedBy())
 				.isAuthorized()) {
 			throw new UnauthorizedException("Only the creator of a file handle can create a copy. File handle id=" + handleIdToCopyFrom
 					+ " is not owned by you");

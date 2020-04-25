@@ -52,25 +52,14 @@ public interface OpenIDConnectManager {
 	boolean hasUserGrantedConsent(UserInfo userInfo, OIDCAuthorizationRequest authorizationRequest);
 	
 	/**
-	 * Parse the given JWT token and return the user identity, groups,
-	 * and scopes/claims authorized by the token.
-	 * 
-	 * @param oauthToken
-	 * @return
-	 */
-	public UserInfo getUserAuthorization(String oauthToken);
-	
-	/**
 	 * Given the validated access token content, return the up-to-date user info
 	 * requested in the scopes / claims embedded in the access token
 	 * 
-	 * @param userInfo
-	 * @param oauthClientId
-	 * @param oauthEndpoint
+	 * @param accessToken
 	 * @return either a JWT or a JSON Object, depending on whether the client registered a value for
 	 * userinfo_signed_response_alg
 	 */
-	Object getUserInfo(UserInfo userInfo, String oauthClientId, String oauthEndpoint);
+	Object getUserInfo(String accessToken, String oauthEndpoint);
 	
 	/**
 	 * 

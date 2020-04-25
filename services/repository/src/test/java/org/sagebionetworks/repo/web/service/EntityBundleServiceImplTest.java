@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
@@ -24,7 +25,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-
 import javax.servlet.ServletException;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +37,9 @@ import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -50,7 +53,6 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
@@ -60,9 +62,6 @@ import org.sagebionetworks.repo.model.discussion.EntityThreadCount;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
-import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
-import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -80,6 +79,8 @@ public class EntityBundleServiceImplTest {
 	
 	private EntityBundleService entityBundleService;
 	
+	private static final Long TEST_USER1 = 8745962384L;
+
 	@Mock
 	private ServiceProvider mockServiceProvider;
 	@Mock
@@ -103,7 +104,6 @@ public class EntityBundleServiceImplTest {
 	private Annotations annotationsV2;
 	private AccessControlList acl;
 	private EntityThreadCounts threadCounts;
-	private UserInfo userInfo;
 
 	private org.sagebionetworks.repo.model.EntityBundle responseBundle;
 
@@ -169,19 +169,17 @@ public class EntityBundleServiceImplTest {
 		responseBundle.setEntity(study);
 		responseBundle.setAnnotations(annos);
 		responseBundle.setAccessControlList(acl);
-		
-		userInfo = new UserInfo(false);
 	}
 
 	@Test
 	public void testCreateEntityBundle() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException, ConflictingUpdateException, InvalidModelException, UnauthorizedException, ACLInheritanceException, ParseException {
 		String activityId = "123";
-		when(mockEntityService.getEntity(any(UserInfo.class), eq(STUDY_ID))).thenReturn(studyWithId);
-		when(mockEntityService.createEntity(any(UserInfo.class), eq(study), eq(activityId))).thenReturn(studyWithId);
-		when(mockEntityService.getEntityACL(eq(STUDY_ID), any(UserInfo.class))).thenReturn(acl);
-		when(mockEntityService.createOrUpdateEntityACL(any(UserInfo.class), eq(acl))).thenReturn(acl);
-		when(mockEntityService.getEntityAnnotations(any(UserInfo.class), eq(STUDY_ID))).thenReturn(AnnotationsV2TestUtils.newEmptyAnnotationsV2(STUDY_ID));
-		when(mockEntityService.updateEntityAnnotations(any(UserInfo.class), eq(STUDY_ID), eq(annotationsV2))).thenReturn(annotationsV2);
+		when(mockEntityService.getEntity(eq(TEST_USER1), eq(STUDY_ID))).thenReturn(studyWithId);
+		when(mockEntityService.createEntity(eq(TEST_USER1), eq(study), eq(activityId))).thenReturn(studyWithId);
+		when(mockEntityService.getEntityACL(eq(STUDY_ID), eq(TEST_USER1))).thenReturn(acl);
+		when(mockEntityService.createOrUpdateEntityACL(eq(TEST_USER1), eq(acl))).thenReturn(acl);
+		when(mockEntityService.getEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID))).thenReturn(AnnotationsV2TestUtils.newEmptyAnnotationsV2(STUDY_ID));
+		when(mockEntityService.updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annotationsV2))).thenReturn(annotationsV2);
 		when(mockServiceProvider.getEntityService()).thenReturn(mockEntityService);
 
 		// Create the bundle, verify contents
@@ -191,7 +189,7 @@ public class EntityBundleServiceImplTest {
 		ebc.setAnnotations(annos);
 		ebc.setAccessControlList(acl);
 		
-		org.sagebionetworks.repo.model.EntityBundle eb = entityBundleService.createEntityBundle(userInfo, ebc, activityId);
+		org.sagebionetworks.repo.model.EntityBundle eb = entityBundleService.createEntityBundle(TEST_USER1, ebc, activityId);
 		Folder s2 = (Folder) eb.getEntity();
 		assertNotNull(s2);
 		assertEquals(study.getName(), s2.getName());
@@ -205,9 +203,9 @@ public class EntityBundleServiceImplTest {
 		assertNotNull(acl2);
 		assertEquals(acl.getResourceAccess(), acl2.getResourceAccess(), "Retrieved ACL in bundle does not match original one");
 	
-		verify(mockEntityService).createEntity(any(UserInfo.class), eq(study), eq(activityId));
-		verify(mockEntityService).updateEntityAnnotations(any(UserInfo.class), eq(STUDY_ID), eq(annotationsV2));
-		verify(mockEntityService).createOrUpdateEntityACL(any(UserInfo.class), eq(acl));
+		verify(mockEntityService).createEntity(eq(TEST_USER1), eq(study), eq(activityId));
+		verify(mockEntityService).updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annotationsV2));
+		verify(mockEntityService).createOrUpdateEntityACL(eq(TEST_USER1), eq(acl));
 	}
 	
 	@Test
@@ -216,12 +214,12 @@ public class EntityBundleServiceImplTest {
 		annosWithId.setId(STUDY_ID);
 		String activityId = "1";
 			
-		when(mockEntityService.getEntity(any(UserInfo.class), eq(STUDY_ID))).thenReturn(studyWithId);
-		when(mockEntityService.updateEntity(any(UserInfo.class), eq(study), eq(false), eq(activityId))).thenReturn(studyWithId);
-		when(mockEntityService.getEntityACL(eq(STUDY_ID), any(UserInfo.class))).thenReturn(acl);
-		when(mockEntityService.createOrUpdateEntityACL(any(UserInfo.class), eq(acl))).thenReturn(acl);
-		when(mockEntityService.getEntityAnnotations(any(UserInfo.class), eq(STUDY_ID))).thenReturn(annosWithId);
-		when(mockEntityService.updateEntityAnnotations(any(UserInfo.class), eq(STUDY_ID), eq(annotationsV2))).thenReturn(annotationsV2);
+		when(mockEntityService.getEntity(eq(TEST_USER1), eq(STUDY_ID))).thenReturn(studyWithId);
+		when(mockEntityService.updateEntity(eq(TEST_USER1), eq(study), eq(false), eq(activityId))).thenReturn(studyWithId);
+		when(mockEntityService.getEntityACL(eq(STUDY_ID), eq(TEST_USER1))).thenReturn(acl);
+		when(mockEntityService.createOrUpdateEntityACL(eq(TEST_USER1), eq(acl))).thenReturn(acl);
+		when(mockEntityService.getEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID))).thenReturn(annosWithId);
+		when(mockEntityService.updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annotationsV2))).thenReturn(annotationsV2);
 		when(mockServiceProvider.getEntityService()).thenReturn(mockEntityService);
 		
 		// Create the bundle, verify contents
@@ -233,7 +231,7 @@ public class EntityBundleServiceImplTest {
 		ebc.setAnnotations(annos);
 		ebc.setAccessControlList(acl);
 
-		org.sagebionetworks.repo.model.EntityBundle eb = entityBundleService.updateEntityBundle(userInfo, STUDY_ID, ebc, activityId);
+		org.sagebionetworks.repo.model.EntityBundle eb = entityBundleService.updateEntityBundle(TEST_USER1, STUDY_ID, ebc, activityId);
 
 		Folder s2 = (Folder) eb.getEntity();
 		assertNotNull(s2);
@@ -248,9 +246,9 @@ public class EntityBundleServiceImplTest {
 		assertNotNull(acl2);
 		assertEquals(acl.getResourceAccess(), acl2.getResourceAccess(), "Retrieved ACL in bundle does not match original one");
 	
-		verify(mockEntityService).updateEntity(any(UserInfo.class), eq(study), eq(false), eq(activityId));
-		verify(mockEntityService).updateEntityAnnotations(any(UserInfo.class), eq(STUDY_ID), eq(annotationsV2));
-		verify(mockEntityService).createOrUpdateEntityACL(any(UserInfo.class), eq(acl));
+		verify(mockEntityService).updateEntity(eq(TEST_USER1), eq(study), eq(false), eq(activityId));
+		verify(mockEntityService).updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annotationsV2));
+		verify(mockEntityService).createOrUpdateEntityACL(eq(TEST_USER1), eq(acl));
 	}
 	
 	@Test
@@ -266,7 +264,7 @@ public class EntityBundleServiceImplTest {
 		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeTableBundle(true);
 		// call under test
-		EntityBundle bundle = entityBundleService.getEntityBundle(userInfo, entityId, request);
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, request);
 		assertNotNull(bundle);
 		assertEquals(tableBundle, bundle.getTableBundle());
 		verify(mockTableService).getTableBundle(idAndVersion);
@@ -286,7 +284,7 @@ public class EntityBundleServiceImplTest {
 		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeTableBundle(true);
 		// call under test
-		EntityBundle bundle = entityBundleService.getEntityBundle(userInfo, entityId, versionNumber, request);
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, versionNumber, request);
 		assertNotNull(bundle);
 		assertEquals(tableBundle, bundle.getTableBundle());
 		verify(mockTableService).getTableBundle(idAndVersion);
@@ -303,7 +301,7 @@ public class EntityBundleServiceImplTest {
 		doi.setObjectVersion(null);
 		when(mockDoiServiceV2.getDoiAssociation(entityId, ObjectType.ENTITY, null)).thenReturn(doi);
 		// Call under test
-		EntityBundle bundle = entityBundleService.getEntityBundle(userInfo, entityId, request);
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, request);
 		assertNotNull(bundle);
 		assertEquals(doi, bundle.getDoiAssociation());
 	}
@@ -319,11 +317,11 @@ public class EntityBundleServiceImplTest {
 		doi.setObjectId(FILE_ID);
 		doi.setObjectVersion(FILE_VERSION);
 
-		when(mockEntityService.getEntity(any(UserInfo.class), eq(FILE_ID))).thenReturn(file);
+		when(mockEntityService.getEntity(eq(TEST_USER1), eq(FILE_ID))).thenReturn(file);
 		when(mockDoiServiceV2.getDoiAssociation(FILE_ID, ObjectType.ENTITY, FILE_VERSION)).thenReturn(doi);
 
 		// Call under test. Note the bundle requests 'null' version
-		EntityBundle bundle = entityBundleService.getEntityBundle(userInfo, FILE_ID, request);
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, FILE_ID, request);
 
 		verify(mockDoiServiceV2, never()).getDoiAssociation(FILE_ID, ObjectType.ENTITY, null);
 		assertNotNull(bundle);
@@ -337,7 +335,7 @@ public class EntityBundleServiceImplTest {
 		String entityId = "syn123";
 		when(mockDoiServiceV2.getDoiAssociation(entityId, ObjectType.ENTITY, null)).thenThrow(new NotFoundException());
 		// Call under test
-		EntityBundle bundle = entityBundleService.getEntityBundle(userInfo, entityId, request);
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, request);
 		assertNotNull(bundle);
 		assertNull(bundle.getDoiAssociation());
 		verify(mockDoiServiceV2).getDoiAssociation(entityId, ObjectType.ENTITY, null);
@@ -353,8 +351,8 @@ public class EntityBundleServiceImplTest {
 		key.setOwnerObjectId(entityId);
 		key.setOwnerObjectType(ObjectType.ENTITY);
 		key.setWikiPageId(rootWikiId);
-		when(mockWikiService.getRootWikiKey(userInfo, entityId, ObjectType.ENTITY)).thenReturn(key);
-		EntityBundle bundle = entityBundleService.getEntityBundle(userInfo, entityId, request);
+		when(mockWikiService.getRootWikiKey(TEST_USER1, entityId, ObjectType.ENTITY)).thenReturn(key);
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, request);
 		assertNotNull(bundle);
 		assertEquals(rootWikiId, bundle.getRootWikiId());
 	}
@@ -364,8 +362,8 @@ public class EntityBundleServiceImplTest {
 		String entityId = "syn123";
 		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeRootWikiId(true);
-		when(mockWikiService.getRootWikiKey(userInfo, entityId, ObjectType.ENTITY)).thenThrow(new NotFoundException("does not exist"));
-		EntityBundle bundle = entityBundleService.getEntityBundle(userInfo, entityId, request);
+		when(mockWikiService.getRootWikiKey(TEST_USER1, entityId, ObjectType.ENTITY)).thenThrow(new NotFoundException("does not exist"));
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, request);
 		assertNotNull(bundle);
 		assertNull(bundle.getRootWikiId(), "ID should be null when it does not exist");
 	}
@@ -380,8 +378,8 @@ public class EntityBundleServiceImplTest {
 		String entityId = "syn123";
 		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeBenefactorACL(true);
-		when(mockEntityService.getEntityACL(anyString(), any(UserInfo.class))).thenReturn(acl);
-		EntityBundle bundle = entityBundleService.getEntityBundle(userInfo, entityId, request);
+		when(mockEntityService.getEntityACL(anyString(), anyLong())).thenReturn(acl);
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, request);
 		assertNotNull(bundle);
 		assertEquals(acl, bundle.getBenefactorAcl());
 	}
@@ -395,10 +393,10 @@ public class EntityBundleServiceImplTest {
 		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeBenefactorACL(true);
 		// this entity inherits its permissions.
-		when(mockEntityService.getEntityACL(entityId, userInfo)).thenThrow(new ACLInheritanceException("Has a benefactor", benefactorId));
+		when(mockEntityService.getEntityACL(entityId, TEST_USER1)).thenThrow(new ACLInheritanceException("Has a benefactor", benefactorId));
 		// return the benefactor ACL.
-		when(mockEntityService.getEntityACL(benefactorId, userInfo)).thenReturn(acl);
-		EntityBundle bundle = entityBundleService.getEntityBundle(userInfo, entityId, request);
+		when(mockEntityService.getEntityACL(benefactorId, TEST_USER1)).thenReturn(acl);
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, request);
 		assertNotNull(bundle);
 		assertEquals(acl, bundle.getBenefactorAcl());
 	}
@@ -412,7 +410,7 @@ public class EntityBundleServiceImplTest {
 		long dataFileHandleId = 101L;
 		entity.setDataFileHandleId(""+dataFileHandleId);
 		String fileName = "foo.txt";
-		when(mockEntityService.getEntity(userInfo, entityId)).thenReturn(entity);
+		when(mockEntityService.getEntity(TEST_USER1, entityId)).thenReturn(entity);
 		FileHandleResults fhr = new FileHandleResults();
 		List<FileHandle> fhs = new ArrayList<FileHandle>();
 		fhr.setList(fhs);
@@ -425,23 +423,38 @@ public class EntityBundleServiceImplTest {
 		fh.setFileName("preview.txt");
 		fhs.add(fh);
 		fhr.setList(fhs);
-		when(mockEntityService.getEntityFileHandlesForCurrentVersion(userInfo, entityId)).thenReturn(fhr);
-		EntityBundle bundle = entityBundleService.getEntityBundle(userInfo, entityId, request);
+		when(mockEntityService.getEntityFileHandlesForCurrentVersion(TEST_USER1, entityId)).thenReturn(fhr);
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, request);
 		assertNotNull(bundle);
 		assertEquals(fileName, bundle.getFileName());
 	}
 	
 	@Test
 	public void testFileNameWithOverride() throws Exception {
+		long dataFileHandleId = 101L;
+		String fileName = "foo.txt";
+		FileHandleResults fhr = new FileHandleResults();
+		List<FileHandle> fhs = new ArrayList<FileHandle>();
+		fhr.setList(fhs);
+		S3FileHandle fh = new S3FileHandle();
+		fh.setId(""+dataFileHandleId);
+		fh.setFileName(fileName);
+		fhs.add(fh);
+		fh = new S3FileHandle();
+		fh.setId(""+(dataFileHandleId+1));
+		fh.setFileName("preview.txt");
+		fhs.add(fh);
+		fhr.setList(fhs);
+
 		String entityId = "syn123";
 		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeFileName(true);
 		FileEntity entity = new FileEntity();
 		String fileNameOverride = "foo.txt";
 		entity.setFileNameOverride(fileNameOverride);
-		when(mockEntityService.getEntityFileHandlesForCurrentVersion(userInfo, entityId)).thenReturn(new FileHandleResults());
-		when(mockEntityService.getEntity(userInfo, entityId)).thenReturn(entity);
-		EntityBundle bundle = entityBundleService.getEntityBundle(userInfo, entityId, request);
+		when(mockEntityService.getEntity(TEST_USER1, entityId)).thenReturn(entity);
+		when(mockEntityService.getEntityFileHandlesForCurrentVersion(TEST_USER1, entityId)).thenReturn(fhr);
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, request);
 		assertNotNull(bundle);
 		assertEquals(fileNameOverride, bundle.getFileName());
 	}
@@ -450,13 +463,13 @@ public class EntityBundleServiceImplTest {
 	public void testThreadCountNoEntityRef() throws Exception {
 		// thread count
 		threadCounts = new EntityThreadCounts();
-		when(mockDiscussionService.getThreadCounts(any(UserInfo.class), any(EntityIdList.class))).thenReturn(threadCounts);
+		when(mockDiscussionService.getThreadCounts(eq(TEST_USER1), any(EntityIdList.class))).thenReturn(threadCounts);
 
 		String entityId = "syn123";
 		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeThreadCount(true);
 		threadCounts.setList(new LinkedList<EntityThreadCount>());
-		EntityBundle bundle = entityBundleService.getEntityBundle(userInfo, entityId, request);
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, request);
 		assertNotNull(bundle);
 		assertEquals((Long)0L, bundle.getThreadCount());
 	}
@@ -465,7 +478,7 @@ public class EntityBundleServiceImplTest {
 	public void testThreadCount() throws Exception {
 		// thread count
 		threadCounts = new EntityThreadCounts();
-		when(mockDiscussionService.getThreadCounts(any(UserInfo.class), any(EntityIdList.class))).thenReturn(threadCounts);
+		when(mockDiscussionService.getThreadCounts(eq(TEST_USER1), any(EntityIdList.class))).thenReturn(threadCounts);
 
 		String entityId = "syn123";
 		EntityBundleRequest request = new EntityBundleRequest();
@@ -474,7 +487,7 @@ public class EntityBundleServiceImplTest {
 		threadCount.setEntityId(entityId);
 		threadCount.setCount(1L);
 		threadCounts.setList(Arrays.asList(threadCount));
-		EntityBundle bundle = entityBundleService.getEntityBundle(userInfo, entityId, request);
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, request);
 		assertNotNull(bundle);
 		assertEquals((Long)1L, bundle.getThreadCount());
 	}
@@ -483,7 +496,7 @@ public class EntityBundleServiceImplTest {
 	public void testThreadCountUnexpectedResultListSize() throws Exception {
 		// thread count
 		threadCounts = new EntityThreadCounts();
-		when(mockDiscussionService.getThreadCounts(any(UserInfo.class), any(EntityIdList.class))).thenReturn(threadCounts);
+		when(mockDiscussionService.getThreadCounts(eq(TEST_USER1), any(EntityIdList.class))).thenReturn(threadCounts);
 
 		String entityId = "syn123";
 		EntityBundleRequest request = new EntityBundleRequest();
@@ -493,7 +506,7 @@ public class EntityBundleServiceImplTest {
 		threadCount.setCount(1L);
 		threadCounts.setList(Arrays.asList(threadCount, threadCount));
 		assertThrows(IllegalStateException.class, ()-> {
-			entityBundleService.getEntityBundle(userInfo, entityId, request);
+			entityBundleService.getEntityBundle(TEST_USER1, entityId, request);
 		});
 	}
 
@@ -506,10 +519,10 @@ public class EntityBundleServiceImplTest {
 		request.setObjectId(entityId);
 		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
 		RestrictionInformationResponse response = new RestrictionInformationResponse();
-		when(mockDataAccessService.getRestrictionInformation(userInfo, request)).thenReturn(response );
-		EntityBundle bundle = entityBundleService.getEntityBundle(userInfo, entityId, bundleV2Request);
+		when(mockDataAccessService.getRestrictionInformation(TEST_USER1, request)).thenReturn(response );
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, bundleV2Request);
 		assertEquals(response, bundle.getRestrictionInformation());
-		verify(mockDataAccessService).getRestrictionInformation(userInfo, request);
+		verify(mockDataAccessService).getRestrictionInformation(TEST_USER1, request);
 	}
 
 	@Test

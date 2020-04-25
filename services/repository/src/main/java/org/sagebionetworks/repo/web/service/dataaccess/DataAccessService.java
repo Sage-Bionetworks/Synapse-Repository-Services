@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web.service.dataaccess;
 
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
@@ -38,7 +37,7 @@ public interface DataAccessService {
 
 	AccessRequirementStatus getAccessRequirementStatus(Long userId, String requirementId);
 
-	RestrictionInformationResponse getRestrictionInformation(UserInfo userInfo, RestrictionInformationRequest request);
+	RestrictionInformationResponse getRestrictionInformation(Long userId, RestrictionInformationRequest request);
 
 	OpenSubmissionPage getOpenSubmissions(Long userId, String nextPageToken);
 

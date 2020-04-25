@@ -5,7 +5,6 @@ import java.io.IOException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.PaginatedIds;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
@@ -230,11 +229,11 @@ public interface DiscussionService {
 	/**
 	 * Get EntityThreadCounts for a list of entityIds.
 	 * 
-	 * @param userInfo
+	 * @param userId
 	 * @param entityIds
 	 * @return
 	 */
-	public EntityThreadCounts getThreadCounts(UserInfo userInfo, EntityIdList entityIds);
+	public EntityThreadCounts getThreadCounts(Long userId, EntityIdList entityIds);
 
 	/**
 	 * Mark a reply as not deleted

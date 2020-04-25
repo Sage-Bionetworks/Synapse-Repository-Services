@@ -37,7 +37,6 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -575,37 +574,6 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 
 		// Call under test (after revoking)
 		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
-	}
-
-	@Test
-	public void testAuthenticatedUserScope() throws Exception {
-		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.testAuthenticatedUserScope";
-		String nodeId = createNode(nodeName, EntityType.project, adminUserInfo);
-		String evalName = nodeName;
-		String evalId = createEval(evalName, nodeId, adminUserInfo);
-
-		// Ensure the user does not have access before granting read and submit
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).isAuthorized());
-
-		// add READ, SUBMIT privilege to ACL for authenticated user
-		AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
-		ResourceAccess ra = new ResourceAccess();
-		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
-		ra.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
-		Set<ResourceAccess> raSet = Collections.singleton(ra);
-		acl.setResourceAccess(raSet);
-		evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
-
-		// Ensure the user has access when they have full scope
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
-		
-		// But not when 'view' scope isn't present
-		userInfo.setScopes(Collections.singletonList(OAuthScope.openid));
-
-		// Method under test
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
-		
 	}
 
 	@Test

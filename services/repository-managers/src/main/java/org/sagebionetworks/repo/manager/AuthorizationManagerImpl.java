@@ -14,7 +14,6 @@ import java.util.Set;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.model.Submission;
-import org.sagebionetworks.manager.util.OAuthPermissionUtils;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.form.FormManager;
@@ -54,7 +53,6 @@ import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.util.DockerNameUtil;
@@ -244,10 +242,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	public AuthorizationStatus canAccessActivity(UserInfo userInfo, String activityId) throws DatastoreException, NotFoundException {
 		if(userInfo.isAdmin()) return AuthorizationStatus.authorized();
 		
-		if (!OAuthPermissionUtils.scopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.READ)) {
-			return OAuthPermissionUtils.accessDenied(ACCESS_TYPE.READ);
-		}
-		
 		// check if owner
 		Activity act = activityDAO.get(activityId);
 		if(act.getCreatedBy().equals(userInfo.getId().toString()))
@@ -285,13 +279,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public AuthorizationStatus canAccessRawFileHandleByCreator(UserInfo userInfo, String fileHandleId, String creator, ACCESS_TYPE accessType) {
-		if (isUserCreatorOrAdmin(userInfo, creator)) {
-			if (OAuthPermissionUtils.scopeAllowsAccess(userInfo.getScopes(), accessType)) {
-				return AuthorizationStatus.authorized();
-			} else {
-				return OAuthPermissionUtils.accessDenied(accessType);
-			}
+	public AuthorizationStatus canAccessRawFileHandleByCreator(UserInfo userInfo, String fileHandleId, String creator) {
+		if( isUserCreatorOrAdmin(userInfo, creator)) {
+			return AuthorizationStatus.authorized();
 		} else {
 			return AuthorizationStatus.accessDenied(createFileHandleUnauthorizedMessage(fileHandleId, userInfo));
 		}
@@ -311,13 +301,13 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 
 
 	@Override
-	public AuthorizationStatus canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId, ACCESS_TYPE accessType) throws NotFoundException {
+	public AuthorizationStatus canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException {
 		// Admins can do anything
 		if(userInfo.isAdmin()) return AuthorizationStatus.authorized();
 		// Lookup the creator by
 		String creator  = fileHandleDao.getHandleCreator(fileHandleId);
 		// Call the other methods
-		return canAccessRawFileHandleByCreator(userInfo, fileHandleId, creator, accessType);
+		return canAccessRawFileHandleByCreator(userInfo, fileHandleId, creator);
 	}
 
 	@Override
