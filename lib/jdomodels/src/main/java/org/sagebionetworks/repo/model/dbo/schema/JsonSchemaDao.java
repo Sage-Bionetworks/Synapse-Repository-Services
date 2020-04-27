@@ -2,38 +2,18 @@ package org.sagebionetworks.repo.model.dbo.schema;
 
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
-import org.sagebionetworks.repo.model.schema.SchemaInfo;
 
 public interface JsonSchemaDao {
 
 	/**
-	 * Create a JSON schema if it does not already exist.
-	 * 
-	 * @param request
-	 * @return The returned SchemaInfo.id will either be the ID of the newly created
-	 *         schema or the ID of the existing schema.
-	 */
-	SchemaInfo createSchemaIfDoesNotExist(NewSchemaRequest request);
-
-	/**
-	 * Lookup a SchemaInfo from an organization name and schema name.
+	 * Lookup the schemaId given an organizationId and schema name, and lock on the
+	 * row using FOR UPDATE.
 	 * 
 	 * @param organizationId
 	 * @param schemaName
-	 * @return
+	 * @return schemaId
 	 */
-	SchemaInfo getSchemaInfoForUpdate(String organizationId, String schemaName);
-
-	/**
-	 * Create a new JSON blob if the one does not already exist for the given
-	 * sha256hex.
-	 * 
-	 * @param json
-	 * @param sha256hex
-	 * @return If a new JSON blob is created then the new ID will be returned, else
-	 *         the existing ID will be returned.
-	 */
-	String createJsonBlobIfDoesNotExist(String json, String sha256hex);
+	String getSchemaInfoForUpdate(String organizationId, String schemaName);
 
 	/**
 	 * Get the JSON data ID for the provide sha256hex
@@ -42,56 +22,52 @@ public interface JsonSchemaDao {
 	 * @return
 	 */
 	String getJsonBlobId(String sha256hex);
-	
-	/**
-	 * Create a new version for a JSON schema.
-	 * @param request
-	 * @return
-	 */
-	JsonSchemaVersionInfo createNewVersion(NewVersionRequest request);
-	
+
 	/**
 	 * Get the version information for the given version ID
+	 * 
 	 * @param versionId
 	 * @return
 	 */
 	JsonSchemaVersionInfo getVersionInfo(String versionId);
-	
+
 	/**
 	 * Get the versionId for a specific schema version.
+	 * 
 	 * @param organizationName
 	 * @param schemaName
 	 * @param semanticVersion
 	 * @return
 	 */
 	String getVersionId(String organizationName, String schemaName, String semanticVersion);
-	
+
 	/**
 	 * Get the JsonSchemaVersionInfo for a specific version.
+	 * 
 	 * @param organizationName
 	 * @param schemaName
 	 * @param semanticVersion
 	 * @return
 	 */
 	JsonSchemaVersionInfo getVersionInfo(String organizationName, String schemaName, String semanticVersion);
-	
-	
+
 	/**
 	 * Get the versionId of the latest version for a schema.
+	 * 
 	 * @param organizationName
 	 * @param schemaName
 	 * @return
 	 */
 	String getLatestVersionId(String organizationName, String schemaName);
-	
+
 	/**
 	 * Get the latest JsonSchemaVersionInfo for a schema.
+	 * 
 	 * @param organizationName
 	 * @param schemaNames
 	 * @return
 	 */
 	JsonSchemaVersionInfo getVersionLatestInfo(String organizationName, String schemaName);
-	
 
 	/**
 	 * Truncate all data.
@@ -100,6 +76,7 @@ public interface JsonSchemaDao {
 
 	/**
 	 * Get the schema for the given version ID.
+	 * 
 	 * @param organizationName
 	 * @param schemaName
 	 * @return
@@ -108,6 +85,7 @@ public interface JsonSchemaDao {
 
 	/**
 	 * Attempt to delete the given schema.
+	 * 
 	 * @param schemaId
 	 */
 	int deleteSchema(String schemaId);
@@ -116,6 +94,67 @@ public interface JsonSchemaDao {
 	 * Delete a specific version of a schema.
 	 * 
 	 */
-	int deleteSchemaVersion(String versionId);
+	void deleteSchemaVersion(String versionId);
+
+	/**
+	 * Use: {@link #createNewSchemaVersion(NewSchemaVersionRequest)}
+	 * 
+	 * @param organizationId
+	 * @param schemaName
+	 * @param createdBy
+	 * @return
+	 */
+	String createSchemaIfDoesNotExist(String organizationId, String schemaName, Long createdBy);
+
+	/**
+	 * Use: {@link #createNewSchemaVersion(NewSchemaVersionRequest)}
+	 * 
+	 * @param schema
+	 * @return
+	 */
+	String createJsonBlobIfDoesNotExist(JsonSchema schema);
+
+	/**
+	 * Use: {@link #createNewSchemaVersion(NewSchemaVersionRequest)}
+	 * 
+	 * @param schemaId
+	 * @param semanticVersion
+	 * @param createdBy
+	 * @param blobId
+	 * @return
+	 */
+	JsonSchemaVersionInfo createNewVersion(String schemaId, String semanticVersion, Long createdBy, String blobId);
+
+	/**
+	 * Create a new schema version for the given request.
+	 * 
+	 * @param request
+	 * @return
+	 */
+	JsonSchemaVersionInfo createNewSchemaVersion(NewSchemaVersionRequest request);
+
+	/**
+	 * Find the latest version ID for the given schema ID without using the cache.
+	 * 
+	 * @param schemaId
+	 * @return
+	 */
+	Long findLatestVersionId(String schemaId);
+
+	/**
+	 * Get the schemaId for the given versionId and lock schema row using FOR
+	 * UPDATE.
+	 * 
+	 * @param versionId
+	 * @return
+	 */
+	String getSchemaIdForUpdate(String versionId);
+
+	/**
+	 * Get the etag of the latest version for a given schema ID.
+	 * @param schemaId
+	 * @return
+	 */
+	String getLatestVersionEtag(String schemaId);
 
 }

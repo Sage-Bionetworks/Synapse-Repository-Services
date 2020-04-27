@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -306,7 +307,6 @@ import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.base.Joiner;
 
-import au.com.bytecode.opencsv.CSV.Builder;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
@@ -5545,26 +5545,39 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public JsonSchema getJsonSchema(String organizationName, String schemaName, String semanticVersion) throws SynapseException {
 		ValidateArgument.required(organizationName, "organizationName");
 		ValidateArgument.required(schemaName, "schemaName");
-		StringBuilder builder = new StringBuilder("/schema/type/registered/");
-		builder.append(organizationName);
-		builder.append("/");
-		builder.append(schemaName);
+		StringJoiner joiner = new StringJoiner("/");
+		joiner.add("/schema/type/registered");
+		joiner.add(organizationName);
+		joiner.add(schemaName);
 		if(semanticVersion != null) {
-			builder.append("/");
-			builder.append(semanticVersion);
+			joiner.add(semanticVersion);
 		}
-		return getJSONEntity(getRepoEndpoint(), builder.toString(), JsonSchema.class);
+		return getJSONEntity(getRepoEndpoint(), joiner.toString(), JsonSchema.class);
 	}
 
 	@Override
 	public void deleteSchema(String organizationName, String schemaName) throws SynapseException {
 		ValidateArgument.required(organizationName, "organizationName");
 		ValidateArgument.required(schemaName, "schemaName");
-		StringBuilder builder = new StringBuilder("/schema/type/registered/");
-		builder.append(organizationName);
-		builder.append("/");
-		builder.append(schemaName);
-		deleteUri(getRepoEndpoint(), builder.toString());
+		StringJoiner joiner = new StringJoiner("/");
+		joiner.add("/schema/type/registered");
+		joiner.add(organizationName);
+		joiner.add(schemaName);
+		deleteUri(getRepoEndpoint(), joiner.toString());
+	}
+
+	@Override
+	public void deleteSchemaVersion(String organizationName, String schemaName, String semanticVersion)
+			throws SynapseException {
+		ValidateArgument.required(organizationName, "organizationName");
+		ValidateArgument.required(schemaName, "schemaName");
+		ValidateArgument.required(semanticVersion, "semanticVersion");
+		StringJoiner joiner = new StringJoiner("/");
+		joiner.add("/schema/type/registered");
+		joiner.add(organizationName);
+		joiner.add(schemaName);
+		joiner.add(semanticVersion);
+		deleteUri(getRepoEndpoint(), joiner.toString());
 	}
 
 }

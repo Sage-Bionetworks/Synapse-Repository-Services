@@ -151,7 +151,7 @@ public class ITJsonSchemaControllerTest {
 	}
 	
 	@Test
-	public void testCreateSchemaGetDeleteNullVersoin() throws SynapseException, InterruptedException {
+	public void testCreateSchemaGetDeleteNullVersion() throws SynapseException, InterruptedException {
 		organization = synapse.createOrganization(createOrganizationRequest);
 		assertNotNull(organization);
 		JsonSchema schema = new JsonSchema();
@@ -174,13 +174,13 @@ public class ITJsonSchemaControllerTest {
 	}
 	
 	@Test
-	public void testCreateSchemaGetDeleteWithVersoin() throws SynapseException, InterruptedException {
+	public void testCreateSchemaGetDeleteWithVersion() throws SynapseException, InterruptedException {
 		organization = synapse.createOrganization(createOrganizationRequest);
 		assertNotNull(organization);
 		String semanticVersion = "1.45.67+alpha-beta";
 		JsonSchema schema = new JsonSchema();
 		schema.set$id(organizationName+"/"+schemaName+"/"+semanticVersion);
-		schema.setDescription("test without a version");
+		schema.setDescription("test with a version");
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(schema);
 		// Call under test
@@ -195,6 +195,24 @@ public class ITJsonSchemaControllerTest {
 		assertEquals(schema, fetched);
 		// call under test
 		synapse.deleteSchema(organizationName, schemaName);
+	}
+	
+	@Test
+	public void testDeleteSchemaVersion() throws SynapseException, InterruptedException {
+		organization = synapse.createOrganization(createOrganizationRequest);
+		assertNotNull(organization);
+		String semanticVersion = "1.45.0";
+		JsonSchema schema = new JsonSchema();
+		schema.set$id(organizationName+"/"+schemaName+"/"+semanticVersion);
+		schema.setDescription("test with a version");
+		CreateSchemaRequest request = new CreateSchemaRequest();
+		request.setSchema(schema);
+		CreateSchemaResponse response = waitForSchemaCreate(request);
+		assertNotNull(response);
+		JsonSchema fetched = synapse.getJsonSchema(organizationName, schemaName, semanticVersion);
+		assertEquals(schema, fetched);
+		// call under test
+		synapse.deleteSchemaVersion(organizationName, schemaName, semanticVersion);
 	}
 	
 	/**

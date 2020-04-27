@@ -9,7 +9,6 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import java.util.Date;
 import java.util.Set;
 
-import org.apache.commons.codec.digest.DigestUtils;
 import org.sagebionetworks.repo.manager.PermissionsManagerUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -18,8 +17,7 @@ import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.schema.JsonSchemaDao;
-import org.sagebionetworks.repo.model.dbo.schema.NewSchemaRequest;
-import org.sagebionetworks.repo.model.dbo.schema.NewVersionRequest;
+import org.sagebionetworks.repo.model.dbo.schema.NewSchemaVersionRequest;
 import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
@@ -27,16 +25,11 @@ import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.Organization;
-import org.sagebionetworks.repo.model.schema.SchemaInfo;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.id.OrganizationName;
 import org.sagebionetworks.schema.id.SchemaId;
-import org.sagebionetworks.schema.id.SchemaName;
 import org.sagebionetworks.schema.parser.SchemaIdParser;
-import org.sagebionetworks.schema.semantic.version.SemanticVersion;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -50,8 +43,6 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 
 	public static final int MAX_ORGANZIATION_NAME_CHARS = 250;
 	public static final int MIN_ORGANZIATION_NAME_CHARS = 6;
-	public static final int MAX_SEMANTIC_VERSION_CHARS = 250;
-	public static final int MAX_SCHEMA_NAME_CHARS = 250; 
 
 	@Autowired
 	private OrganizationDao organizationDao;
@@ -178,82 +169,24 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 
 		SchemaId schemaId = SchemaIdParser.parseSchemaId(request.getSchema().get$id());
 
-		String semanticVersionString = getAndValidateSemanticVersion(schemaId.getSemanticVersion());
-		String schemaNameString = getAndValidateSchemaName(schemaId.getSchemaName());
+		String semanticVersionString = null;
+		if(schemaId.getSemanticVersion() != null) {
+			semanticVersionString = schemaId.getSemanticVersion().toString();
+		}
+		String schemaNameString = schemaId.getSchemaName().toString();
 
 		// User must have create on the organization.
 		Organization organization = organizationDao.getOrganizationByName(schemaId.getOrganizationName().toString());
 		aclDao.canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.CREATE)
 				.checkAuthorizationOrElseThrow();
-
-		// Create or get the root schema
-		SchemaInfo schemaRoot = jsonSchemaDao
-				.createSchemaIfDoesNotExist(new NewSchemaRequest().withOrganizationId(organization.getId())
-						.withSchemaName(schemaNameString).withCreatedBy(user.getId()));
-		// Create or get the JSON blob
-		String jsonBlobId = createJsonBlobIfDoesNotExist(request.getSchema());
-
-		// Unconditionally create a new version.
-		JsonSchemaVersionInfo versionInfo = jsonSchemaDao
-				.createNewVersion(new NewVersionRequest().withSchemaId(schemaRoot.getNumericId())
-						.withSemanticVersion(semanticVersionString).withCreatedBy(user.getId()).withBlobId(jsonBlobId));
 		
-		jsonSchemaDao.setLatestVersion(versionInfo.getSchemaId(), versionInfo.getVersionId());
+		JsonSchemaVersionInfo info = jsonSchemaDao.createNewSchemaVersion(
+				new NewSchemaVersionRequest().withOrganizationId(organization.getId()).withCreatedBy(user.getId())
+						.withSchemaName(schemaNameString).withSemanticVersion(semanticVersionString).withJsonSchema(request.getSchema()));
 
 		CreateSchemaResponse response = new CreateSchemaResponse();
-		response.setNewVersionInfo(versionInfo);
+		response.setNewVersionInfo(info);
 		return response;
-	}
-
-	/**
-	 * Create a new JSON blob if the one does not already exist for the given
-	 * schema.
-	 * 
-	 * @param schema
-	 * @return
-	 */
-	String createJsonBlobIfDoesNotExist(JsonSchema schema) {
-		ValidateArgument.required(schema, "schema");
-		String schemaJson = null;
-		try {
-			schemaJson = EntityFactory.createJSONStringForEntity(schema);
-		} catch (JSONObjectAdapterException e) {
-			throw new IllegalArgumentException(e);
-		}
-		String sha256hex = DigestUtils.sha256Hex(schemaJson);
-		return jsonSchemaDao.createJsonBlobIfDoesNotExist(schemaJson, sha256hex);
-	}
-
-	/**
-	 * Extract the semantic version string and validate its size is within limits.
-	 * 
-	 * @param version
-	 * @return
-	 */
-	String getAndValidateSemanticVersion(SemanticVersion version) {
-		if (version == null) {
-			return null;
-		}
-		String semanticVersionString = version.toString();
-		if (semanticVersionString.length() > MAX_SEMANTIC_VERSION_CHARS) {
-			throw new IllegalArgumentException(
-					"Semantic version must be " + MAX_SEMANTIC_VERSION_CHARS + " characters or less");
-		}
-		return semanticVersionString;
-	}
-	
-	/**
-	 * Extract the schema name and validate its size is within limits.
-	 * @param schemaName
-	 * @return
-	 */
-	String getAndValidateSchemaName(SchemaName schemaName) {
-		ValidateArgument.required(schemaName, "schemaName");
-		String name = schemaName.toString();
-		if(name.length() > MAX_SCHEMA_NAME_CHARS) {
-			throw new IllegalArgumentException("Schema name must be "+MAX_SCHEMA_NAME_CHARS+" characters or less");
-		}
-		return name;
 	}
 
 	@Override
@@ -266,7 +199,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		if(semanticVersion == null || semanticVersion.trim().isEmpty()) {
 			versionId = jsonSchemaDao.getLatestVersionId(organizationName, schemaName);
 		}else {
-			versionId = jsonSchemaDao.getVersionId(organizationName, schemaName, semanticVersion);
+			versionId = jsonSchemaDao.getVersionId(organizationName, schemaName, semanticVersion.trim());
 		}
 		return jsonSchemaDao.getSchema(versionId);
 	}

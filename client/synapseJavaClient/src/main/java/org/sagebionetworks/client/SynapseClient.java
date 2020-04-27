@@ -3563,4 +3563,13 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	public void deleteSchema(String organizationName, String schemaName) throws SynapseException;
+	
+	/**
+	 * Delete a specific version of a schema.
+	 * @param organizationName
+	 * @param schemaName
+	 * @param semanticVersion
+	 * @throws SynapseException
+	 */
+	public void deleteSchemaVersion(String organizationName, String schemaName, String semanticVersion) throws SynapseException;
 }
