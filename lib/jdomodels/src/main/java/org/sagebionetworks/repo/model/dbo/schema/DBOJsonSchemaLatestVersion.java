@@ -23,7 +23,7 @@ public class DBOJsonSchemaLatestVersion
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("schemaId", COL_JSON_SCHEMA_LATEST_VER_SCHEMA_ID, true).withIsBackupId(true),
-			new FieldColumn("etag", COL_JSON_SCHEMA_LATEST_VER_ETAG),
+			new FieldColumn("etag", COL_JSON_SCHEMA_LATEST_VER_ETAG).withIsEtag(true),
 			new FieldColumn("versionId", COL_JSON_SCHEMA_LATEST_VER_VER_ID) };
 
 	private Long schemaId;
