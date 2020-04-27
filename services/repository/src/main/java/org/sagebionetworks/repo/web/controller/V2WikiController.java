@@ -1,5 +1,9 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.download;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import java.io.IOException;
 
 import javax.servlet.http.HttpServletResponse;
@@ -113,6 +117,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_V2, method = RequestMethod.POST)
 	public @ResponseBody
@@ -145,6 +150,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_V2, method = RequestMethod.POST)
 	public @ResponseBody
@@ -177,6 +183,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_V2, method = RequestMethod.POST)
 	public @ResponseBody
@@ -203,6 +210,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_V2, method = RequestMethod.GET)
 	public @ResponseBody
@@ -224,6 +232,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_V2, method = RequestMethod.GET)
 	public @ResponseBody
@@ -250,6 +259,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_V2, method = RequestMethod.GET)
 	public @ResponseBody
@@ -279,6 +289,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_V2, method = RequestMethod.GET)
 	public @ResponseBody
@@ -303,6 +314,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_V2, method = RequestMethod.GET)
 	public @ResponseBody
@@ -332,6 +344,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_V2, method = RequestMethod.GET)
 	public @ResponseBody
@@ -375,6 +388,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_V2, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -416,6 +430,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_V2_ORDER_HINT, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -457,6 +472,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_V2, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -500,6 +516,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_V2, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -519,7 +536,7 @@ public class V2WikiController {
 	 * @param wikiId
 	 * @param wikiPage
 	 */
-	private void validateUpateArguments(String wikiId, V2WikiPage wikiPage) {
+	private static void validateUpateArguments(String wikiId, V2WikiPage wikiPage) {
 		if (wikiPage == null)
 			throw new IllegalArgumentException("WikiPage cannot be null");
 		if (!wikiId.equals(wikiPage.getId())) {
@@ -558,6 +575,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_AND_VERSION_V2, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -596,6 +614,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_AND_VERSION_V2, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -636,6 +655,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_AND_VERSION_V2, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -668,10 +688,10 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_V2, method = RequestMethod.DELETE)
-	public @ResponseBody
-	void deleteEntityWikiPage(
+	public void deleteEntityWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId)
 			throws DatastoreException, NotFoundException {
@@ -697,10 +717,10 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_V2, method = RequestMethod.DELETE)
-	public @ResponseBody
-	void deleteAccessRequirementWikiPage(
+	public void deleteAccessRequirementWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId)
 			throws DatastoreException, NotFoundException {
@@ -728,10 +748,10 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_V2, method = RequestMethod.DELETE)
-	public @ResponseBody
-	void deleteCompetitionWikiPage(
+	public void deleteCompetitionWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId)
 			throws DatastoreException, NotFoundException {
@@ -766,6 +786,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_TREE_V2, method = RequestMethod.GET)
 	public @ResponseBody
@@ -798,6 +819,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_V2_ORDER_HINT, method = RequestMethod.GET)
 	public @ResponseBody
@@ -829,6 +851,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_TREE_V2, method = RequestMethod.GET)
 	public @ResponseBody
@@ -868,6 +891,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_TREE_V2, method = RequestMethod.GET)
 	public @ResponseBody
@@ -911,6 +935,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_HISTORY_V2, method = RequestMethod.GET)
 	public @ResponseBody
@@ -950,6 +975,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_HISTORY_V2, method = RequestMethod.GET)
 	public @ResponseBody
@@ -994,6 +1020,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_HISTORY_V2, method = RequestMethod.GET)
 	public @ResponseBody
@@ -1030,6 +1057,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_ATTCHMENT_HANDLE_V2, method = RequestMethod.GET)
 	public @ResponseBody
@@ -1058,6 +1086,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_ATTCHMENT_HANDLE_V2, method = RequestMethod.GET)
 	public @ResponseBody
@@ -1091,6 +1120,7 @@ public class V2WikiController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_ATTCHMENT_HANDLE_V2, method = RequestMethod.GET)
 	public @ResponseBody
@@ -1138,9 +1168,9 @@ public class V2WikiController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_ATTCHMENT_FILE_V2, method = RequestMethod.GET)
-	public @ResponseBody
-	void getEntityWikiAttachmentFile(
+	public void getEntityWikiAttachmentFile(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = true)  String fileName,
@@ -1182,9 +1212,9 @@ public class V2WikiController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_ATTCHMENT_FILE_V2, method = RequestMethod.GET)
-	public @ResponseBody
-	void getAccessRequirementWikiAttachmentFile(
+	public void getAccessRequirementWikiAttachmentFile(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = true)  String fileName,
@@ -1232,9 +1262,9 @@ public class V2WikiController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_ATTCHMENT_FILE_V2, method = RequestMethod.GET)
-	public @ResponseBody
-	void getCompetitionAttachmentFile(
+	public void getCompetitionAttachmentFile(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = true) String fileName,
@@ -1283,9 +1313,9 @@ public class V2WikiController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_ATTCHMENT_FILE_PREVIEW_V2, method = RequestMethod.GET)
-	public @ResponseBody
-	void getEntityWikiAttachmenPreviewFile(
+	public void getEntityWikiAttachmenPreviewFile(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = true) String fileName,
@@ -1327,6 +1357,7 @@ public class V2WikiController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_ATTCHMENT_FILE_PREVIEW_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	void getAccessRequirementWikiAttachmenPreviewFile(
@@ -1377,9 +1408,9 @@ public class V2WikiController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW_V2, method = RequestMethod.GET)
-	public @ResponseBody
-	void getCompetitionAttachmenthPreviewFile(
+	public void getCompetitionAttachmenthPreviewFile(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = true) String fileName,
@@ -1420,9 +1451,9 @@ public class V2WikiController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_MARKDOWN_FILE_V2, method = RequestMethod.GET)
-	public @ResponseBody
-	void getEntityWikiMarkdownFile(
+	public void getEntityWikiMarkdownFile(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = false) Boolean redirect,
@@ -1454,9 +1485,9 @@ public class V2WikiController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_MARKDOWN_FILE_V2, method = RequestMethod.GET)
-	public @ResponseBody
-	void getAccessRequirementWikiMarkdownFile(
+	public void getAccessRequirementWikiMarkdownFile(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = false) Boolean redirect,
@@ -1493,9 +1524,9 @@ public class V2WikiController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_MARKDOWN_FILE_V2, method = RequestMethod.GET)
-	public @ResponseBody
-	void getEvaluationWikiMarkdownFile(
+	public void getEvaluationWikiMarkdownFile(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = false) Boolean redirect,

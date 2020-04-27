@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.authorize;
+
 import java.util.List;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -39,6 +41,7 @@ public class DockerAuthorizationController {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({authorize})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DOCKER_AUTHORIZATION, method = RequestMethod.GET)
 	public @ResponseBody

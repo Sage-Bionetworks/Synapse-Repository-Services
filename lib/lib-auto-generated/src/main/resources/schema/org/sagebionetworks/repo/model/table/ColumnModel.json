@@ -82,6 +82,10 @@
             "type": "integer",
             "description": "A parameter for columnTypes with a maximum size.  For example, ColumnType.STRINGs have a default maximum size of 50 characters, but can be set to a maximumSize of 1 to 1000 characters."
         },
+        "maximumListLength": {
+            "type": "integer",
+            "description": "Required if using a columnType with a \"_LIST\" suffix. Describes the maximum number of values that will appear in that list. Value range 1-100 inclusive. Default 100"
+        },
         "enumValues": {
             "description": "Columns of type STRING can be constrained to an enumeration values set on this list. The maximum number of entries for an enum is 100",
             "type": "array",

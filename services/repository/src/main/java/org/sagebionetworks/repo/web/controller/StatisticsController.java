@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsRequest;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsResponse;
@@ -54,10 +57,10 @@ public class StatisticsController {
 	 *         containing the statistics according to the original <a href=
 	 *         "${org.sagebionetworks.repo.model.statistics.ObjectStatisticsRequest}">request</a>
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.STATISTICS, method = RequestMethod.POST)
 	public @ResponseBody ObjectStatisticsResponse getObjectStatistics(
-			// Injected
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, 
 			@RequestBody ObjectStatisticsRequest request) {
 		return service.getStatistics(userId, request);

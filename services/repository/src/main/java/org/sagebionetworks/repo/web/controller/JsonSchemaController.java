@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
-import javax.servlet.http.HttpServletRequest;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.authorize;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -59,6 +61,7 @@ public class JsonSchemaController {
 	 * @param request
 	 * @return
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION }, method = RequestMethod.POST)
 	public @ResponseBody Organization createOrganziation(
@@ -74,6 +77,7 @@ public class JsonSchemaController {
 	 * @param name   The name of the Organization to lookup.
 	 * @return
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION }, method = RequestMethod.GET)
 	public @ResponseBody Organization getOrganizationByName(
@@ -95,6 +99,7 @@ public class JsonSchemaController {
 	 * @param userId
 	 * @param id     The numeric identifier of the organization.
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION_ID }, method = RequestMethod.DELETE)
 	public void deleteOrganization(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -114,6 +119,7 @@ public class JsonSchemaController {
 	 * @param id     The numeric identifier of the organization.
 	 * @return
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION_ID_ACL }, method = RequestMethod.GET)
 	public @ResponseBody AccessControlList getOrganizationAcl(
@@ -135,6 +141,7 @@ public class JsonSchemaController {
 	 * @param acl    The updated ACL.
 	 * @return
 	 */
+	@RequiredScope({view,modify,authorize})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION_ID_ACL }, method = RequestMethod.PUT)
 	public @ResponseBody AccessControlList updateOrganizationAcl(
@@ -207,6 +214,7 @@ public class JsonSchemaController {
 	 * @return Use the resulting token to monitor the job's progress and to get the
 	 *         final results.
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.JSON_SCHEMA_TYPE_ASYNCH_START, method = RequestMethod.POST)
 	public @ResponseBody AsyncJobId createSchemaAsyncStart(
@@ -233,6 +241,7 @@ public class JsonSchemaController {
 	 * @return
 	 * @throws Throwable
 	 */
+	@RequiredScope({view, modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.JSON_SCHEMA_TYPE_ASYNCH_GET, method = RequestMethod.GET)
 	public @ResponseBody CreateSchemaResponse createSchemaAsyncGet(
@@ -251,6 +260,7 @@ public class JsonSchemaController {
 	 * @param id     The $if of the schema to get.
 	 * @return
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.JSON_SHCEMA_TYPE_REG_ORG_NAME }, method = RequestMethod.GET)
 	public @ResponseBody JsonSchema getJsonSchemaNoVersion(@PathVariable String organizationName,
@@ -268,6 +278,7 @@ public class JsonSchemaController {
 	 * @param semanticVersion
 	 * @return
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.JSON_SHCEMA_TYPE_REG_ORG_NAME_VER }, method = RequestMethod.GET)
 	public @ResponseBody JsonSchema getJsonSchemaWithVersion(@PathVariable String organizationName,
@@ -287,6 +298,7 @@ public class JsonSchemaController {
 	 * @param userId
 	 * @param id     The $id of the schema to delete.
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = { UrlHelpers.JSON_SHCEMA_TYPE_REG_ORG_NAME }, method = RequestMethod.DELETE)
 	public void deleteSchemaAllVersions(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -308,6 +320,7 @@ public class JsonSchemaController {
 	 * @param schemaName
 	 * @param semanticVersion
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = { UrlHelpers.JSON_SHCEMA_TYPE_REG_ORG_NAME_VER }, method = RequestMethod.DELETE)
 	public void deleteSchemaVersion(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,

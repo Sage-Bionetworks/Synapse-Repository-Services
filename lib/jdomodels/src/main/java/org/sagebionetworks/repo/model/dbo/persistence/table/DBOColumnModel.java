@@ -12,13 +12,18 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
+import org.sagebionetworks.util.TemporaryCode;
+
 /**
  * Database Object (DBO) for the Table Column Model.
  * @author John
@@ -116,7 +121,17 @@ public class DBOColumnModel implements MigratableDatabaseObject<DBOColumnModel, 
 
 	@Override
 	public MigratableTableTranslation<DBOColumnModel, DBOColumnModel> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOColumnModel>();
+		return new BasicMigratableTableTranslation<DBOColumnModel>(){
+			@TemporaryCode(author="ziming", comment = "one-time migration change. remove after stack 309")
+			@Override
+			public DBOColumnModel createDatabaseObjectFromBackup(DBOColumnModel backup) {
+				//doing this round trip will assign default value to maxListLength
+				ColumnModel columnModel = ColumnModelUtils.createDTOFromDBO(backup);
+				DBOColumnModel modifiedDBO = ColumnModelUtils.createDBOFromDTO(columnModel,
+						StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+				return modifiedDBO;
+			}
+		};
 	}
 
 	@Override

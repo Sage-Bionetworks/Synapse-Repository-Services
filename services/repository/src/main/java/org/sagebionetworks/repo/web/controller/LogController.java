@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -39,10 +42,10 @@ public class LogController {
 	 * @param userId The user's id.
 	 * @param log The log entry to log.
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.LOG, method = RequestMethod.POST)
-	public @ResponseBody
-	void log(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody LogEntry logEntry,
+	public void log(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody LogEntry logEntry,
 			HttpServletRequest request, @RequestHeader("User-Agent") String userAgent) {
 		serviceProvider.getLogService().log(logEntry, userAgent);
 	}

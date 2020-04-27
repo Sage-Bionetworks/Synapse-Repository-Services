@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -344,8 +345,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	
 	@Override
 	public Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion) {
-		Long viewTypeMask = getViewTypeMask(idAndVersion);
-		return getAllContainerIdsForViewScope(idAndVersion, viewTypeMask);
+		ViewScopeType viewScopeType = getViewScopeType(idAndVersion);
+		return getAllContainerIdsForViewScope(idAndVersion, viewScopeType);
 	}
 
 	/*
@@ -353,11 +354,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * @see org.sagebionetworks.repo.manager.table.TableViewTruthManager#getAllContainerIdsForViewScope(java.lang.String)
 	 */
 	@Override
-	public Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion, Long viewTypeMask) {
+	public Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion, ViewScopeType scopeType) {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
 		// Lookup the scope for this view.
 		Set<Long> scope = viewScopeDao.getViewScope(idAndVersion.getId());
-		return getAllContainerIdsForScope(scope, viewTypeMask);
+		return getAllContainerIdsForScope(scope, scopeType);
 	}
 
 	/*
@@ -365,9 +366,12 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#getAllContainerIdsForScope(java.util.Set)
 	 */
 	@Override
-	public Set<Long> getAllContainerIdsForScope(Set<Long> scope, Long viewTypeMask) {
+	public Set<Long> getAllContainerIdsForScope(Set<Long> scope, ViewScopeType scopeType) {
 		ValidateArgument.required(scope, "scope");
-		ValidateArgument.required(viewTypeMask, "viewTypeMask");
+		ValidateArgument.required(scopeType, "viewTypeMask");
+		
+		Long viewTypeMask = scopeType.getTypeMask();
+		
 		// Validate the given scope is under the limit.
 		if(scope.size() > MAX_CONTAINERS_PER_VIEW){
 			throw new IllegalArgumentException(createViewOverLimitMessage(viewTypeMask));
@@ -482,16 +486,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		 */
 		return columnModelManager.createColumnModel(field.getColumnModel());
 	}
-	
-	@Override
-	public List<ColumnModel> getColumnModels(EntityField... fields) {
-		List<ColumnModel> results = new LinkedList<ColumnModel>();
-		for(EntityField field: fields){
-			results.add(getColumnModel(field));
-		}
-		return results;
-	}
-
 
 	@Override
 	public Set<Long> getAccessibleBenefactors(UserInfo user,
@@ -505,8 +499,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 	
 	@Override
-	public Long getViewTypeMask(IdAndVersion idAndVersion){
-		return viewScopeDao.getViewTypeMask(idAndVersion.getId());
+	public ViewScopeType getViewScopeType(IdAndVersion idAndVersion){
+		return viewScopeDao.getViewScopeType(idAndVersion.getId());
 	}
 
 	@Override
@@ -553,10 +547,10 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	@Override
-	public void validateScopeSize(Set<Long> scopeIds, Long viewTypeMask) {
+	public void validateScopeSize(Set<Long> scopeIds, ViewScopeType scopeType) {
 		if(scopeIds != null){
 			// Validation is built into getAllContainerIdsForScope() call
-			getAllContainerIdsForScope(scopeIds, viewTypeMask);
+			getAllContainerIdsForScope(scopeIds, scopeType);
 		}
 	}
 

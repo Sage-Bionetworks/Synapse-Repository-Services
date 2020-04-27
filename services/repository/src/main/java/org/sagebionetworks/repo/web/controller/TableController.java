@@ -1,5 +1,9 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.download;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -224,6 +228,7 @@ public class TableController {
 	 * @throws DatastoreException
 	 *             - Synapse error.
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.COLUMN, method = RequestMethod.POST)
 	public @ResponseBody
@@ -258,6 +263,7 @@ public class TableController {
 	 * @throws DatastoreException
 	 *             - Synapse error.
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.COLUMN_BATCH, method = RequestMethod.POST)
 	public @ResponseBody
@@ -282,6 +288,7 @@ public class TableController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.COLUMN_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -319,6 +326,7 @@ public class TableController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_COLUMNS, method = RequestMethod.GET)
 	public @ResponseBody
@@ -355,6 +363,7 @@ public class TableController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.COLUMN, method = RequestMethod.GET)
 	public @ResponseBody
@@ -383,6 +392,7 @@ public class TableController {
 	 *  
 	 */
 	@Deprecated
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.COLUMN_TABLE_VIEW_DEFAULT_TYPE, method = RequestMethod.GET)
 	public @ResponseBody
@@ -410,6 +420,7 @@ public class TableController {
 	 * @throws DatastoreException
 	 *             - Synapse error.
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.COLUMN_TABLE_VIEW_DEFAULT, method = RequestMethod.GET)
 	public @ResponseBody
@@ -457,6 +468,7 @@ public class TableController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_TRANSACTION_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
@@ -494,6 +506,7 @@ public class TableController {
 	 * @throws NotFoundException
 	 * @throws AsynchJobFailedException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_TRANSACTION_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
@@ -597,6 +610,7 @@ public class TableController {
 	 * @throws IOException
 	 */
 	@Deprecated
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_APPEND_ROW_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
@@ -635,6 +649,7 @@ public class TableController {
 	 * @throws AsynchJobFailedException
 	 */
 	@Deprecated
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_APPEND_ROW_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
@@ -649,6 +664,7 @@ public class TableController {
 	}
 
 	@Deprecated
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_DELETE_ROWS, method = RequestMethod.POST)
 	public @ResponseBody
@@ -702,6 +718,7 @@ public class TableController {
 	 * @throws IOException
 	 */
 	@ResponseStatus(HttpStatus.OK)
+	@RequiredScope({view})
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_FILE_HANDLES, method = RequestMethod.POST)
 	public @ResponseBody
 	TableFileHandleResults getFileHandles(
@@ -738,9 +755,9 @@ public class TableController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_FILE, method = RequestMethod.GET)
-	public @ResponseBody
-	void fileRedirectURLForRow(
+	public void fileRedirectURLForRow(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @PathVariable String columnId,
 			@PathVariable Long rowId, @PathVariable Long versionNumber,
@@ -778,9 +795,9 @@ public class TableController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_FILE_PREVIEW, method = RequestMethod.GET)
-	public @ResponseBody
-	void filePreviewRedirectURLForRow(
+	public void filePreviewRedirectURLForRow(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @PathVariable String columnId,
 			@PathVariable Long rowId, @PathVariable Long versionNumber,
@@ -890,6 +907,7 @@ public class TableController {
 	 * @throws TableUnavailableException
 	 * @throws TableFailedException
 	 */
+	@RequiredScope({view,download})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_QUERY_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
@@ -928,6 +946,7 @@ public class TableController {
 	 * @throws AsynchJobFailedException
 	 *             when the asynchronous job failed
 	 */
+	@RequiredScope({view,download})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_QUERY_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
@@ -959,6 +978,7 @@ public class TableController {
 	 * @throws IOException
 	 */
 	@Deprecated
+	@RequiredScope({view,download})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_QUERY_NEXT_PAGE_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
@@ -999,6 +1019,7 @@ public class TableController {
 	 * @throws NotReadyException
 	 */
 	@Deprecated
+	@RequiredScope({view,download})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_QUERY_NEXT_PAGE_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
@@ -1013,6 +1034,7 @@ public class TableController {
 	}
 
 	@Deprecated
+	@RequiredScope({view,download})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_DOWNLOAD_CSV_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
@@ -1024,6 +1046,7 @@ public class TableController {
 	}
 
 	@Deprecated
+	@RequiredScope({view,download})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_DOWNLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
@@ -1048,6 +1071,7 @@ public class TableController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({view,download})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_DOWNLOAD_CSV_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
@@ -1087,6 +1111,7 @@ public class TableController {
 	 * @throws AsynchJobFailedException
 	 * @throws NotReadyException
 	 */
+	@RequiredScope({view,download})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_DOWNLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
@@ -1117,6 +1142,7 @@ public class TableController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_PREVIEW_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
@@ -1152,6 +1178,7 @@ public class TableController {
 	 * @throws AsynchJobFailedException
 	 * @throws NotReadyException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_PREVIEW_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
@@ -1165,6 +1192,7 @@ public class TableController {
 	}
 
 	@Deprecated
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
@@ -1176,6 +1204,7 @@ public class TableController {
 	}
 
 	@Deprecated
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
@@ -1215,6 +1244,7 @@ public class TableController {
 	 * @throws IOException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
+	@RequiredScope({view,modify})
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_UPLOAD_CSV_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
 	AsyncJobId csvUploadAsyncStart(
@@ -1257,6 +1287,7 @@ public class TableController {
 	 * @throws NotReadyException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
+	@RequiredScope({view})
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_UPLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
 	UploadToTableResult csvUploadAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
@@ -1285,6 +1316,7 @@ public class TableController {
 	 * 
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
+	@RequiredScope({view})
 	@RequestMapping(value = UrlHelpers.TABLE_COLUMNS_OF_SCOPE, method = RequestMethod.POST)
 	public @ResponseBody
 	ColumnModelPage getPossibleColumnModelsForView(
@@ -1308,6 +1340,7 @@ public class TableController {
 	 * @throws ParseException 
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
+	@RequiredScope({})
 	@RequestMapping(value = UrlHelpers.TABLE_SQL_TRANSFORM, method = RequestMethod.POST)
 	public @ResponseBody SqlTransformResponse transformSqlRequest(@RequestBody SqlTransformRequest request) throws ParseException {
 		return serviceProvider.getTableServices().transformSqlRequest(request);
@@ -1334,6 +1367,7 @@ public class TableController {
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
+	@RequiredScope({view,modify})
 	@RequestMapping(value = UrlHelpers.TABLE_SNAPSHOT, method = RequestMethod.POST)
 	public @ResponseBody SnapshotResponse createSnapshot(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,

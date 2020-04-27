@@ -1,5 +1,10 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.authorize;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.download;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -7,7 +12,6 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.SchemaManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -265,6 +269,7 @@ public class EntityController {
 	 *                                    header.
 	 * @throws JSONObjectAdapterException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.ENTITY }, method = RequestMethod.POST)
 	public @ResponseBody Entity createEntity(
@@ -295,6 +300,7 @@ public class EntityController {
 	 * @throws DatastoreException    - Thrown when an there is a server failure.
 	 * @throws UnauthorizedException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID }, method = RequestMethod.GET)
 	public @ResponseBody Entity getEntity(@PathVariable String id,
@@ -371,6 +377,7 @@ public class EntityController {
 	 * @throws IOException                - There is a problem reading the contents.
 	 * @throws JSONObjectAdapterException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID }, method = RequestMethod.PUT)
 	public @ResponseBody Entity updateEntity(@PathVariable String id,
@@ -409,6 +416,7 @@ public class EntityController {
 	 * @throws DatastoreException    - Thrown when there is a server side problem.
 	 * @throws UnauthorizedException
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID }, method = RequestMethod.DELETE)
 	public void deleteEntity(@PathVariable String id,
@@ -440,6 +448,7 @@ public class EntityController {
 	 * @throws DatastoreException    - Thrown when there is a server side problem.
 	 * @throws UnauthorizedException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ANNOTATIONS }, method = RequestMethod.GET)
 	@Deprecated
@@ -477,6 +486,7 @@ public class EntityController {
 	 * @throws InvalidModelException      - Thrown if the passed entity contents doe
 	 *                                    not match the expected schema.
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ANNOTATIONS }, method = RequestMethod.PUT)
 	@Deprecated
@@ -505,6 +515,7 @@ public class EntityController {
 	 * @throws DatastoreException    - Thrown when there is a server side problem.
 	 * @throws UnauthorizedException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ANNOTATIONS_V2 }, method = RequestMethod.GET)
 	public @ResponseBody Annotations getEntityAnnotationsV2(@PathVariable String id,
@@ -523,6 +534,7 @@ public class EntityController {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION_ANNOTATIONS_V2 }, method = RequestMethod.GET)
 	public @ResponseBody Annotations getEntityAnnotationsV2ForVersion(@PathVariable String id,
@@ -555,6 +567,7 @@ public class EntityController {
 	 * @throws InvalidModelException      - Thrown if the passed entity contents doe
 	 *                                    not match the expected schema.
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ANNOTATIONS_V2 }, method = RequestMethod.PUT)
 	public @ResponseBody Annotations updateEntityAnnotationsV2(@PathVariable String id,
@@ -581,6 +594,7 @@ public class EntityController {
 	 * @throws JSONObjectAdapterException
 	 */
 	@Deprecated
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION }, method = RequestMethod.PUT)
 	public @ResponseBody Versionable createNewVersion(
@@ -610,6 +624,7 @@ public class EntityController {
 	 * @throws UnauthorizedException
 	 */
 	@Deprecated
+	@RequiredScope({view,modify})
 	private Entity updateEntityImpl(		
 			UserInfo userInfo,
 			HttpHeaders header, boolean newVersion, String activityId,
@@ -634,6 +649,7 @@ public class EntityController {
 	 * @throws UnauthorizedException
 	 * @throws ConflictingUpdateException
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION_NUMBER }, method = RequestMethod.DELETE)
 	public void deleteEntityVersion(@PathVariable String id,
@@ -662,6 +678,7 @@ public class EntityController {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION_NUMBER }, method = RequestMethod.GET)
 	public @ResponseBody Entity getEntityForVersion(@PathVariable String id,
@@ -685,6 +702,7 @@ public class EntityController {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_TYPE }, method = RequestMethod.GET)
 	public @ResponseBody EntityHeader getEntityType(
@@ -707,6 +725,7 @@ public class EntityController {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_TYPE }, method = RequestMethod.GET)
 	public @ResponseBody PaginatedResults<EntityHeader> getEntityTypeBatch(
@@ -736,6 +755,7 @@ public class EntityController {
 	 * @throws DatastoreException    - Thrown when an there is a server failure.
 	 * @throws UnauthorizedException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_TYPE_HEADER }, method = RequestMethod.POST)
 	public @ResponseBody PaginatedResults<EntityHeader> getEntityVersionedTypeBatch(
@@ -764,6 +784,7 @@ public class EntityController {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID + UrlHelpers.PERMISSIONS }, method = RequestMethod.GET)
 	public @ResponseBody UserEntityPermissions getUserEntityPermissions(@PathVariable String id,
@@ -793,6 +814,7 @@ public class EntityController {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID + UrlHelpers.ACCESS }, method = RequestMethod.GET)
 	public @ResponseBody BooleanResult hasAccess(@PathVariable String id,
@@ -815,6 +837,7 @@ public class EntityController {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_PATH }, method = RequestMethod.GET)
 	public @ResponseBody EntityPath getEntityPath(@PathVariable String id,
@@ -862,6 +885,7 @@ public class EntityController {
 	 *                                    header.
 	 * @throws ConflictingUpdateException
 	 */
+	@RequiredScope({view,modify,authorize})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_ACL }, method = RequestMethod.POST)
 	public @ResponseBody AccessControlList createEntityAcl(@PathVariable String id,
@@ -893,6 +917,7 @@ public class EntityController {
 	 * @throws UnauthorizedException
 	 * @throws ACLInheritanceException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_ACL }, method = RequestMethod.GET)
 	public @ResponseBody AccessControlList getEntityAcl(@PathVariable String id,
@@ -919,6 +944,7 @@ public class EntityController {
 	 * @throws UnauthorizedException
 	 * @throws ConflictingUpdateException
 	 */
+	@RequiredScope({view,modify,authorize})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_ACL }, method = RequestMethod.PUT)
 	public @ResponseBody AccessControlList updateEntityAcl(@PathVariable String id,
@@ -965,6 +991,7 @@ public class EntityController {
 	 * @throws UnauthorizedException
 	 * @throws ConflictingUpdateException
 	 */
+	@RequiredScope({modify,authorize})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_ACL }, method = RequestMethod.DELETE)
 	public void deleteEntityACL(@PathVariable String id,
@@ -994,6 +1021,7 @@ public class EntityController {
 	 * @throws UnauthorizedException
 	 * @throws ACLInheritanceException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_ID_BENEFACTOR }, method = RequestMethod.GET)
 	public @ResponseBody EntityHeader getEntityBenefactor(@PathVariable String id,
@@ -1019,6 +1047,7 @@ public class EntityController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION }, method = RequestMethod.GET)
 	public @ResponseBody PaginatedResults<VersionInfo> getAllVersionsOfEntity(@PathVariable String id,
@@ -1045,6 +1074,7 @@ public class EntityController {
 	 * @throws UnauthorizedException
 	 */
 	@Deprecated
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION_ANNOTATIONS }, method = RequestMethod.GET)
 	public @ResponseBody org.sagebionetworks.repo.model.Annotations getEntityAnnotationsForVersion(
@@ -1068,6 +1098,7 @@ public class EntityController {
 	 * @param request
 	 * @return
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.REST_RESOURCES }, method = RequestMethod.GET)
 	public @ResponseBody RestResourceList getRESTResources(HttpServletRequest request) {
@@ -1090,6 +1121,7 @@ public class EntityController {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.REST_RESOURCES + UrlHelpers.EFFECTIVE_SCHEMA }, method = RequestMethod.GET)
 	public @ResponseBody ObjectSchema getEffectiveSchema(
@@ -1118,6 +1150,7 @@ public class EntityController {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.REST_RESOURCES + UrlHelpers.SCHEMA }, method = RequestMethod.GET)
 	public @ResponseBody ObjectSchema getFullSchema(
@@ -1142,6 +1175,7 @@ public class EntityController {
 	 * @throws UnauthorizedException - Thrown if specified user is unauthorized to
 	 *                               access this activity.
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_GENERATED_BY }, method = RequestMethod.GET)
 	public @ResponseBody Activity getActivityForEntity(@PathVariable String id,
@@ -1164,6 +1198,7 @@ public class EntityController {
 	 * @throws UnauthorizedException - Thrown if specified user is unauthorized to
 	 *                               access this activity.
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION_GENERATED_BY }, method = RequestMethod.GET)
 	public @ResponseBody Activity getActivityForEntityVersion(@PathVariable String id, @PathVariable Long versionNumber,
@@ -1189,6 +1224,7 @@ public class EntityController {
 	 * @throws UnauthorizedException - Thrown if specified user is unauthorized to
 	 *                               access this activity.
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_GENERATED_BY }, method = RequestMethod.PUT)
 	public @ResponseBody Activity updateActivityForEntity(@PathVariable String id,
@@ -1211,6 +1247,7 @@ public class EntityController {
 	 * @throws UnauthorizedException - Thrown if specified user is unauthorized to
 	 *                               access this activity.
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = { UrlHelpers.ENTITY_GENERATED_BY }, method = RequestMethod.DELETE)
 	public void deleteActivityForEntity(@PathVariable String id,
@@ -1238,8 +1275,9 @@ public class EntityController {
 	 * @throws IOException
 	 */
 	@Deprecated
+	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.ENTITY_FILE, method = RequestMethod.GET)
-	public @ResponseBody void fileRedirectURLForCurrentVersion(
+	public void fileRedirectURLForCurrentVersion(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
 			@RequestParam(required = false) Boolean redirect, HttpServletResponse response)
 			throws DatastoreException, NotFoundException, IOException {
@@ -1267,8 +1305,9 @@ public class EntityController {
 	 * @throws IOException
 	 */
 	@Deprecated
+	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_FILE, method = RequestMethod.GET)
-	public @ResponseBody void fileRedirectURLForVersion(
+	public void fileRedirectURLForVersion(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
 			@PathVariable Long versionNumber, @RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response) throws DatastoreException, NotFoundException, IOException {
@@ -1294,8 +1333,9 @@ public class EntityController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.ENTITY_FILE_PREVIEW, method = RequestMethod.GET)
-	public @ResponseBody void filePreviewRedirectURLForCurrentVersion(
+	public void filePreviewRedirectURLForCurrentVersion(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
 			@RequestParam(required = false) Boolean redirect, HttpServletResponse response)
 			throws DatastoreException, NotFoundException, IOException {
@@ -1322,8 +1362,9 @@ public class EntityController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_FILE_PREVIEW, method = RequestMethod.GET)
-	public @ResponseBody void filePreviewRedirectURLForVersion(
+	public void filePreviewRedirectURLForVersion(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
 			@PathVariable Long versionNumber, @RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response) throws DatastoreException, NotFoundException, IOException {
@@ -1348,6 +1389,7 @@ public class EntityController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({view})
 	@RequestMapping(value = UrlHelpers.ENTITY_FILE_HANDLES, method = RequestMethod.GET)
 	public @ResponseBody FileHandleResults getEntityFileHandlesForCurrentVersion(
 			UserInfo userInfo, @PathVariable String id)
@@ -1371,6 +1413,7 @@ public class EntityController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({view})
 	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_FILE_HANDLES, method = RequestMethod.GET)
 	public @ResponseBody FileHandleResults getEntityFileHandlesForVersion(
 			UserInfo userInfo, @PathVariable String id,
@@ -1386,6 +1429,7 @@ public class EntityController {
 	 * @param userId The user making the request
 	 * @throws NotFoundException If no such entity can be found
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_MD5 }, method = RequestMethod.GET)
 	public @ResponseBody PaginatedResults<EntityHeader> getEntityHeaderByMd5(@PathVariable String md5,
@@ -1404,6 +1448,7 @@ public class EntityController {
 	 * @param alias
 	 * @throws NotFoundException If the given alias is not assigned to an entity.
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ALIAS }, method = RequestMethod.GET)
 	public @ResponseBody EntityId getEntityIdByAlias(@PathVariable String alias) throws NotFoundException {
@@ -1419,6 +1464,7 @@ public class EntityController {
 	 * @param request
 	 * @return
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_CHILDREN }, method = RequestMethod.POST)
 	public @ResponseBody EntityChildrenResponse getChildren(
@@ -1436,6 +1482,7 @@ public class EntityController {
 	 * @param request
 	 * @return
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_CHILD }, method = RequestMethod.POST)
 	public @ResponseBody EntityId lookupChild(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -1460,6 +1507,7 @@ public class EntityController {
 	 * @param id
 	 * @param dataType
 	 */
+	@RequiredScope({view,modify,authorize})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_DATA_TYPE }, method = RequestMethod.PUT)
 	public @ResponseBody DataTypeResponse changeEntityDataType(
@@ -1469,6 +1517,7 @@ public class EntityController {
 	}
 
 	/** Gets the temporary S3 credentials from STS for the given entity. */
+	@RequiredScope({view,modify,download})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_STS }, method = RequestMethod.GET)
 	public @ResponseBody StsCredentials getTemporaryCredentialsForEntity(

@@ -150,8 +150,10 @@ public class ColumnModelUtils {
 				defaultValue = defaultValue.trim();
 			}
 			switch (clone.getColumnType()) {
-			case STRING:
 			case STRING_LIST:
+				validateListLengthForClone(clone);
+				// intentional no break to also validate max size
+			case STRING:
 			case LINK:
 				if(clone.getMaximumSize() == null){
 					// Use the default value
@@ -175,13 +177,15 @@ public class ColumnModelUtils {
 					throw new IllegalArgumentException("Columns of type ENTITYID, FILEHANDLEID, USERID, and LARGETEXT cannot have default values.");
 				}
 				break;
+			case INTEGER_LIST:
+			case DATE_LIST:
+			case BOOLEAN_LIST:
+				validateListLengthForClone(clone);
+				// intentional no break for default value validation
 			case BOOLEAN:
 			case DATE:
 			case INTEGER:
 			case DOUBLE:
-			case INTEGER_LIST:
-			case DATE_LIST:
-			case BOOLEAN_LIST:
 				if (StringUtils.isEmpty(defaultValue)) {
 					defaultValue = null;
 				}
@@ -232,6 +236,19 @@ public class ColumnModelUtils {
 			return clone;
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
+		}
+	}
+
+	static void validateListLengthForClone(ColumnModel clone){
+		if(clone.getMaximumListLength() == null){
+			// Use the default value
+			clone.setMaximumListLength(ColumnConstants.MAX_ALLOWED_LIST_LENGTH);
+		}else if(clone.getMaximumListLength() > ColumnConstants.MAX_ALLOWED_LIST_LENGTH){
+			// The max is beyond the allowed size
+			throw new IllegalArgumentException("ColumnModel.maximumListLength for a LIST column cannot exceed: "+ColumnConstants.MAX_ALLOWED_LIST_LENGTH);
+		} else if (clone.getMaximumListLength() < 2) {
+			// The max is beyond the allowed size
+			throw new IllegalArgumentException("ColumnModel.maximumListLength for a LIST column must be at least 2");
 		}
 	}
 

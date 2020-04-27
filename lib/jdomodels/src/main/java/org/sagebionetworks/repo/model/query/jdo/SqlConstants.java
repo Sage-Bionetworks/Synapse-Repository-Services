@@ -511,10 +511,11 @@ public class SqlConstants {
 	public static final String DDL_TABLE_ROW_CHANGE = "schema/TableRowChange-ddl.sql";
 	
 	// Tracks view scope.
-	public static final String TABLE_VIEW_TYPE				= "VIEW_TYPE";
-	public static final String COL_VIEW_TYPE_VIEW_ID		= "VIEW_ID";
-	public static final String COL_VIEW_TYPE_VIEW_TYPE_MASK	= "VIEW_TYPE_MASK";
-	public static final String COL_VIEW_TYPE_ETAG			= "ETAG";
+	public static final String TABLE_VIEW_TYPE					= "VIEW_TYPE";
+	public static final String COL_VIEW_TYPE_VIEW_ID			= "VIEW_ID";
+	public static final String COL_VIEW_TYPE_VIEW_OBJECT_TYPE	= "VIEW_OBJECT_TYPE";
+	public static final String COL_VIEW_TYPE_VIEW_TYPE_MASK		= "VIEW_TYPE_MASK";
+	public static final String COL_VIEW_TYPE_ETAG				= "ETAG";
 	public static final String DDL_VIEW_TYPE = "schema/ViewType-ddl.sql";
 	
 	// Tracks view scope.

@@ -10,10 +10,12 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.auth.UserNameAndPassword;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.ModHttpServletRequest;
 import org.sagebionetworks.cloudwatch.Consumer;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
@@ -28,10 +30,17 @@ public class DockerClientAuthFilter extends BasicAuthenticationFilter {
 	
 	private AuthenticationService authenticationService;
 	
+	private OIDCTokenHelper oidcTokenHelper;
+
 	@Autowired
-	public DockerClientAuthFilter(StackConfiguration config, Consumer consumer, AuthenticationService authenticationService) {
+	public DockerClientAuthFilter(
+			StackConfiguration config, 
+			Consumer consumer, 
+			AuthenticationService authenticationService,
+			OIDCTokenHelper oidcTokenHelper) {
 		super(config, consumer);
 		this.authenticationService = authenticationService;
+		this.oidcTokenHelper=oidcTokenHelper;
 	}
 
 	// The anonymous user can come in
@@ -77,10 +86,16 @@ public class DockerClientAuthFilter extends BasicAuthenticationFilter {
 				return;
 			}
 		}
+		
+		Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(request);
+		if (!userId.equals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())) {
+			String accessToken = oidcTokenHelper.createTotalAccessToken(userId);
+			HttpAuthUtil.setBearerTokenHeader(modHeaders, accessToken);
+		}
 
 		Map<String, String[]> modParams = new HashMap<String, String[]>(request.getParameterMap());
 		modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
-		HttpServletRequest modRqst = new ModHttpServletRequest(request, null, modParams);
+		HttpServletRequest modRqst = new ModHttpServletRequest(request, modHeaders, modParams);
 		
 		filterChain.doFilter(modRqst, response);
 	}

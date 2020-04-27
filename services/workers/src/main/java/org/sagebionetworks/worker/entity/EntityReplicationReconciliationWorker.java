@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -160,14 +161,15 @@ public class EntityReplicationReconciliationWorker implements ChangeMessageDrive
 	 * @return
 	 */
 	public List<Long> getContainersToReconcile(IdAndVersion idAndVersion) {
-		Long viewTypeMask = tableManagerSupport.getViewTypeMask(idAndVersion);
+		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(idAndVersion);
+		Long viewTypeMask = scopeType.getTypeMask();
 		if(ViewTypeMask.Project.getMask() == viewTypeMask){
 			// project views reconcile with root.
 			Long rootId = KeyFactory.stringToKey(NodeUtils.ROOT_ENTITY_ID);
 			return Lists.newArrayList(rootId);
 		}else{
 			// all other views reconcile one the view's scope.
-			return  new ArrayList<Long>(tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewTypeMask));
+			return  new ArrayList<Long>(tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, scopeType));
 		}
 	}
 

@@ -92,6 +92,7 @@ import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
@@ -3097,6 +3098,17 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	SubmissionPage listSubmissions(String requirementId, String nextPageToken, SubmissionState filter, SubmissionOrder order, Boolean isAscending) throws SynapseException;
+
+	/**
+	 * List the research projects for approved data access submissions, 
+	 * ordered by modifiedOn date, ascending
+
+	 * @param requirementId
+	 * @param nextPageToken
+	 * @return
+	 * @throws SynapseException
+	 */
+	SubmissionInfoPage listApprovedSubmissionInfo(String requirementId, String nextPageToken) throws SynapseException;
 
 	/**
 	 * Retrieve the status for a given access requirement.

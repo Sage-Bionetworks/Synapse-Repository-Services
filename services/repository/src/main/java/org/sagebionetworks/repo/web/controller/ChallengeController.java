@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -53,6 +55,7 @@ public class ChallengeController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.CHALLENGE, method = RequestMethod.POST)
 	public @ResponseBody
@@ -73,6 +76,7 @@ public class ChallengeController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.CHALLENGE_CHALLENGE_ID, method = RequestMethod.GET)
 	public @ResponseBody Challenge getChallenge(
@@ -92,6 +96,7 @@ public class ChallengeController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_CHALLENGE, method = RequestMethod.GET)
 	public @ResponseBody Challenge getChallengeByProjectId(
@@ -114,6 +119,7 @@ public class ChallengeController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.CHALLENGE, method = RequestMethod.GET)
 	public @ResponseBody ChallengePagedResults listChallengesForParticipant(
@@ -137,6 +143,7 @@ public class ChallengeController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.CHALLENGE_CHALLENGE_ID, method = RequestMethod.PUT)
 	public @ResponseBody Challenge updateChallenge(
@@ -157,6 +164,7 @@ public class ChallengeController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.CHALLENGE_CHALLENGE_ID, method = RequestMethod.DELETE)
 	public void deleteChallenge(
@@ -181,6 +189,7 @@ public class ChallengeController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.CHALLENGE_CHAL_ID_PARTICIPANT, method = RequestMethod.GET)
 	public @ResponseBody PaginatedIds listParticipantsInChallenge(
@@ -204,6 +213,7 @@ public class ChallengeController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.CHALLENGE_CHAL_ID_CHAL_TEAM, method = RequestMethod.POST)
 	public @ResponseBody ChallengeTeam createChallengeTeam(
@@ -228,6 +238,7 @@ public class ChallengeController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.CHALLENGE_CHAL_ID_CHAL_TEAM, method = RequestMethod.GET)
 	public @ResponseBody ChallengeTeamPagedResults listChallengeTeams(
@@ -254,6 +265,7 @@ public class ChallengeController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.CHALLENGE_CHAL_ID_REGISTRATABLE_TEAM, method = RequestMethod.GET)
 	public @ResponseBody PaginatedIds listRegistratableTeams(
@@ -277,6 +289,7 @@ public class ChallengeController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.CHALLENGE_CHAL_ID_CHAL_TEAM_CHAL_TEAM_ID, method = RequestMethod.PUT)
 	public @ResponseBody ChallengeTeam updateChallengeTeam(
@@ -302,6 +315,7 @@ public class ChallengeController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.CHALLENGE_TEAM_CHAL_TEAM_ID, method = RequestMethod.DELETE)
 	public void deleteChallengeTeam(
@@ -324,6 +338,7 @@ public class ChallengeController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.CHALLENGE_CHAL_ID_SUBMISSION_TEAMS, method = RequestMethod.GET)
 	public @ResponseBody PaginatedIds listSubmissionTeams(

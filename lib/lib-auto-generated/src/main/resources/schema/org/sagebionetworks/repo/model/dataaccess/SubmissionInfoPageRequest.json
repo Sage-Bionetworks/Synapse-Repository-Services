@@ -1,0 +1,13 @@
+{
+	"description": "A request to retrieve a page of Submission Information",
+	"properties": {
+		"accessRequirementId":{
+			"type": "string",
+			"description": "The ID of an AccessRequirement."
+		},
+		"nextPageToken":{
+			"type": "string",
+			"description": "The token to get the next page result."
+		}
+	}
+}

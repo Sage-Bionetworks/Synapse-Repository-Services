@@ -277,6 +277,7 @@ public class TableViewIntegrationTest {
 		String viewId = entityManager.createEntity(adminUserInfo, view, null);
 		view = entityManager.getEntity(adminUserInfo, viewId, EntityView.class);
 		ViewScope viewScope = new ViewScope();
+		viewScope.setObjectType(ObjectType.ENTITY);
 		viewScope.setScope(view.getScopeIds());
 		viewScope.setViewType(view.getType());
 		tableViewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), viewScope, viewId);
@@ -632,6 +633,7 @@ public class TableViewIntegrationTest {
 				stringColumn);
 		defaultColumnIds.add(stringColumn.getId());
 		ViewScope scope = new ViewScope();
+		scope.setObjectType(ObjectType.ENTITY);
 		scope.setScope(Lists.newArrayList(project.getId()));
 		scope.setViewType(ViewType.file);
 		tableViewManager.setViewSchemaAndScope(adminUserInfo, defaultColumnIds,
@@ -672,6 +674,7 @@ public class TableViewIntegrationTest {
 				stringColumn);
 		defaultColumnIds.add(stringColumn.getId());
 		ViewScope scope = new ViewScope();
+		scope.setObjectType(ObjectType.ENTITY);
 		scope.setScope(Lists.newArrayList(project.getId()));
 		scope.setViewTypeMask(ViewTypeMask.File.getMask());
 		tableViewManager.setViewSchemaAndScope(adminUserInfo, defaultColumnIds,

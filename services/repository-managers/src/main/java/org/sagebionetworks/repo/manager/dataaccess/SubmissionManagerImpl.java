@@ -30,7 +30,12 @@ import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
+import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionInfo;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPageRequest;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
@@ -298,6 +303,42 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		SubmissionPage pageResult = new SubmissionPage();
 		pageResult.setResults(submissions);
 		pageResult.setNextPageToken(token.getNextPageTokenForCurrentResults(submissions));
+		return pageResult;
+	}
+
+	@Override
+	public SubmissionInfoPage listInfoForApprovedSubmissions(SubmissionInfoPageRequest request) {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getAccessRequirementId(), "accessRequirementId");
+		AccessRequirement ar = accessRequirementDao.get(request.getAccessRequirementId());
+		if (!(ar instanceof ManagedACTAccessRequirement)) {
+			throw new IllegalArgumentException("Cannot list research projects for an access requirement which is not a Managed ACT Access Requirement");
+		}
+		if (!((ManagedACTAccessRequirement)ar).getIsIDUPublic()) {
+			throw new IllegalArgumentException("Cannot list research projects for an access requirement whose IDUs are not public.");
+		}
+		NextPageToken token = new NextPageToken(request.getNextPageToken());
+		List<Submission> submissionsInDescendingDateOrder = submissionDao.getSubmissions(
+				request.getAccessRequirementId(), SubmissionState.APPROVED, SubmissionOrder.CREATED_ON,
+				false, token.getLimitForQuery(), token.getOffset());
+		List<SubmissionInfo> submissionInfoList = new ArrayList<SubmissionInfo>();
+		Set<String> alreadySeen = new HashSet<String>();
+		for (Submission submission : submissionsInDescendingDateOrder) {
+			ResearchProject researchProject = submission.getResearchProjectSnapshot();
+			if (!alreadySeen.add(researchProject.getId())) {
+				continue;
+			}
+			SubmissionInfo submissionInfo = new SubmissionInfo();
+			submissionInfo.setInstitution(researchProject.getInstitution());
+			submissionInfo.setIntendedDataUseStatement(researchProject.getIntendedDataUseStatement());
+			submissionInfo.setProjectLead(researchProject.getProjectLead());
+			submissionInfo.setModifiedOn(submission.getModifiedOn());
+			// note, we append to beginning, not end, of list, to make the order of the returned list AScending
+			submissionInfoList.add(0, submissionInfo);
+		}
+		SubmissionInfoPage pageResult = new SubmissionInfoPage();
+		pageResult.setResults(submissionInfoList);
+		pageResult.setNextPageToken(token.getNextPageTokenForCurrentResults(submissionsInDescendingDateOrder));
 		return pageResult;
 	}
 

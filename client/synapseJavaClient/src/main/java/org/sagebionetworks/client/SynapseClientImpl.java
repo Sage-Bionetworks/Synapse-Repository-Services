@@ -122,6 +122,9 @@ import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionInfo;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
@@ -5242,6 +5245,17 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return postJSONEntity(getRepoEndpoint(), url, request, SubmissionPage.class);
 	}
 
+	@Override
+	public SubmissionInfoPage listApprovedSubmissionInfo(String requirementId, String nextPageToken) throws SynapseException {
+		ValidateArgument.required(requirementId, "requirementId");
+		SubmissionInfoPageRequest request = new SubmissionInfoPageRequest();
+		request.setAccessRequirementId(requirementId);
+		request.setNextPageToken(nextPageToken);
+		String url = ACCESS_REQUIREMENT + "/" + requirementId + "/approvedSubmissionInfo";
+		return postJSONEntity(getRepoEndpoint(), url, request, SubmissionInfoPage.class);
+		
+	}
+	
 	@Override
 	public AccessRequirementStatus getAccessRequirementStatus(String requirementId) throws SynapseException {
 		ValidateArgument.required(requirementId, "requirementId");
