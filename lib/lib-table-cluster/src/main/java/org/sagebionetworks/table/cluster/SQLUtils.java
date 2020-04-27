@@ -1318,44 +1318,6 @@ public class SQLUtils {
 		String tempName = getTableNameForMultiValueColumnIndex(tableId, columnId, true);
 		return String.format(SQL_COPY_TABLE_TO_TEMP, tempName, tableName);
 	}
-
-	/**
-	 * Translate a list of ColumnModels to a list of ColumnMetadata.
-	 * @param currentSchema
-	 * @return
-	 */
-	public static List<ColumnMetadata> translateColumns(List<ColumnModel> currentSchema){
-		List<ColumnMetadata> list = new LinkedList<ColumnMetadata>();
-		for(int i=0; i<currentSchema.size(); i++){
-			ColumnModel cm = currentSchema.get(i);
-			list.add(translateColumns(cm, i));
-		}
-		return list;
-	}
-	
-	/**
-	 * Translate a single ColumnModel into ColumnMetadata.
-	 * @param model
-	 * @param index
-	 * @return
-	 */
-	public static ColumnMetadata translateColumns(ColumnModel model, int index){
-		// First determine if this an entity column or an annotation
-		EntityField entityField = EntityField.findMatch(model);
-		String tableAlias;
-		String selectColumnName;
-		String columnNameForId = getColumnNameForId(model.getId());
-		AnnotationType annotationType = null;
-		if(entityField != null){
-			tableAlias = TableConstants.OBJECT_REPLICATION_ALIAS;
-			selectColumnName = entityField.getDatabaseColumnName();
-		}else{
-			tableAlias = TableConstants.ANNOTATION_REPLICATION_ALIAS+index;
-			selectColumnName = translateColumnTypeToAnnotationValueName(model.getColumnType());
-			annotationType =  translateColumnTypeToAnnotationType(model.getColumnType());
-		}
-		return new ColumnMetadata(model, entityField, tableAlias, selectColumnName, columnNameForId, index, annotationType);
-	}
 	
 	/**
 	 * Translate form ColumnType to AnnotationType;
@@ -1417,16 +1379,14 @@ public class SQLUtils {
 	 * @param currentSchema
 	 * @return
 	 */
-	public static String createSelectInsertFromObjectReplication(Long viewId, Long viewTypeMask,
-			List<ColumnModel> currentSchema, boolean filterByRows) {
-		List<ColumnMetadata> metadata = translateColumns(currentSchema);
+	public static String createSelectInsertFromObjectReplication(Long viewId, List<ColumnMetadata> metadata, Long viewTypeMask, boolean filterByRows) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("INSERT INTO ");
 		builder.append(getTableNameForId(IdAndVersion.newBuilder().setId(viewId).build(), TableType.INDEX));
 		builder.append("(");
 		buildInsertValues(builder, metadata);
 		builder.append(") ");
-		createSelectFromObjectReplication(builder, viewId, viewTypeMask, currentSchema, filterByRows);
+		createSelectFromObjectReplication(builder, metadata, viewTypeMask, filterByRows);
 		return builder.toString();
 	}
 	
@@ -1437,9 +1397,7 @@ public class SQLUtils {
 	 * @param currentSchema
 	 * @return
 	 */
-	public static List<String> createSelectFromObjectReplication(StringBuilder builder, Long viewId, Long viewTypeMask,
-			List<ColumnModel> currentSchema, boolean filterByRows) {
-		List<ColumnMetadata> metadata = translateColumns(currentSchema);
+	public static List<String> createSelectFromObjectReplication(StringBuilder builder, List<ColumnMetadata> metadata, Long viewTypeMask, boolean filterByRows) {
 		builder.append("SELECT ");
 		List<String> headers = buildSelect(builder, metadata);
 		builder.append(" FROM ");
@@ -1515,11 +1473,10 @@ public class SQLUtils {
 	 * @param builder
 	 * @param metadata
 	 */
-	public static List<String> buildSelect(StringBuilder builder,
-			List<ColumnMetadata> metadata) {
-		// select the standard entity columns.
+	public static List<String> buildSelect(StringBuilder builder, List<ColumnMetadata> metadata) {
+		// select the standard object replication columns.
 		List<String> headers = buildObjectReplicationSelectStandardColumns(builder);
-		for(ColumnMetadata meta: metadata){
+		for(ColumnMetadata meta: metadata) {
 			headers.addAll(buildSelectMetadata(builder, meta));
 		}
 		return headers;
@@ -1532,21 +1489,22 @@ public class SQLUtils {
 	 * @param meta
 	 */
 	public static List<String> buildSelectMetadata(StringBuilder builder, ColumnMetadata meta) {
-		if (meta.getEntityField() != null) {
-			// entity field select
-			buildObjectReplicationSelect(builder, meta.getEntityField().getDatabaseColumnName());
-			return Lists.newArrayList(meta.getColumnNameForId());
-		}
-		List<String> headers = new LinkedList<>();
-		// annotation select
-		if (ColumnType.DOUBLE.equals(meta.getColumnModel().getColumnType())) {
-			// For doubles, the double-meta columns is also selected.
-			boolean isDoubleAbstract = true;
+		List<String> headers = new ArrayList<>();
+		if (meta.isObjectReplicationField()) {
+			// object field select
+			buildObjectReplicationSelect(builder, meta.getSelectColumnName());
+			headers.add(meta.getColumnNameForId());
+		} else {
+			// annotation select
+			if (ColumnType.DOUBLE.equals(meta.getColumnModel().getColumnType())) {
+				// For doubles, the double-meta columns is also selected.
+				boolean isDoubleAbstract = true;
+				headers.add(buildAnnotationSelect(builder, meta, isDoubleAbstract));
+			}
+			// select the annotation
+			boolean isDoubleAbstract = false;
 			headers.add(buildAnnotationSelect(builder, meta, isDoubleAbstract));
 		}
-		// select the annotation
-		boolean isDoubleAbstract = false;
-		headers.add(buildAnnotationSelect(builder, meta, isDoubleAbstract));
 		return headers;
 
 	}
@@ -1609,8 +1567,7 @@ public class SQLUtils {
 	 * @param builder
 	 * @param metadata
 	 */
-	public static void buildInsertValues(StringBuilder builder,
-			List<ColumnMetadata> metadata) {
+	public static void buildInsertValues(StringBuilder builder, List<ColumnMetadata> metadata) {
 		builder.append(ROW_ID);
 		builder.append(", ");
 		builder.append(ROW_VERSION);
