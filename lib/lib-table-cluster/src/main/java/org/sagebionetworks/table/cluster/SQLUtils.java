@@ -1708,6 +1708,7 @@ public class SQLUtils {
 	 *            The possible column models for the annotations within the
 	 *            view's scope.
 	 */
+	@Deprecated
 	public static void determineCauseOfException(Exception exception,
 			List<ColumnModel> viewSchema, List<ColumnModel> possibleAnnotations) {
 		// Find matches
@@ -1733,6 +1734,7 @@ public class SQLUtils {
 	 * are strings, and the annotation value size is larger than the view column size.
 	 * No other case will throw an exception.
 	 */
+	@Deprecated
 	public static void determineCauseOfException(Exception exception,
 			ColumnModel columnModel, ColumnModel annotationModel) {
 		EntityField entityField = EntityField.findMatch(columnModel);
