@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -189,10 +188,10 @@ public class EntityReplicationReconciliationWorkerTest {
 	@Test
 	public void testCreateChange(){
 		IdAndEtag idAndEtag = new IdAndEtag(111L, "anEtag",444L);
-		ChangeMessage message = worker.createChange(idAndEtag, ChangeType.DELETE);
+		ChangeMessage message = worker.createChange(objectType, idAndEtag.getId(), ChangeType.DELETE);
 		assertNotNull(message);
 		assertEquals(""+idAndEtag.getId(), message.getObjectId());
-		assertEquals(ObjectType.ENTITY, message.getObjectType());
+		assertEquals(objectType, message.getObjectType());
 		assertEquals(ChangeType.DELETE, message.getChangeType());
 		assertNotNull(message.getChangeNumber());
 		assertNotNull(message.getTimestamp());
@@ -369,9 +368,8 @@ public class EntityReplicationReconciliationWorkerTest {
 	@Test
 	public void testGetContainersToReconcile_Project() {
 		viewScopeType = new ViewScopeType(objectType, ViewTypeMask.Project.getMask());
-		when(mockTableManagerSupport.getViewScopeType(viewId)).thenReturn(viewScopeType);
 		// call under test
-		List<Long> containers = worker.getContainersToReconcile(viewId);
+		List<Long> containers = worker.getContainersToReconcile(viewId, viewScopeType);
 		Long root = KeyFactory.stringToKey(NodeUtils.ROOT_ENTITY_ID);
 		assertEquals(Lists.newArrayList(root), containers);
 	}
@@ -379,31 +377,11 @@ public class EntityReplicationReconciliationWorkerTest {
 	@Test
 	public void testGetContainersToReconcile_File() {
 		viewScopeType = new ViewScopeType(objectType, ViewTypeMask.File.getMask());
-		when(mockTableManagerSupport.getViewScopeType(viewId)).thenReturn(viewScopeType);
 		Set<Long> allContainers = Sets.newHashSet(111L,222L);
 		when(mockTableManagerSupport.getAllContainerIdsForViewScope(viewId, viewScopeType)).thenReturn(allContainers);
 		// call under test
-		List<Long> containers = worker.getContainersToReconcile(viewId);
+		List<Long> containers = worker.getContainersToReconcile(viewId, viewScopeType);
 		assertEquals(new ArrayList<Long>(allContainers), containers);
-	}
-	
-	
-	/**
-	 * Helper to create some messages.
-	 * @param count
-	 * @return
-	 */
-	public List<ChangeMessage> createMessages(int count){
-		List<ChangeMessage> list = new LinkedList<ChangeMessage>();
-		for(int i=0; i<count; i++){
-			ChangeMessage message = new ChangeMessage();
-			message.setChangeNumber(new Long(i));
-			message.setChangeType(ChangeType.UPDATE);
-			message.setObjectId("id"+i);
-			message.setObjectType(ObjectType.ENTITY);
-			list.add(message);
-		}
-		return list;
 	}
 
 }
