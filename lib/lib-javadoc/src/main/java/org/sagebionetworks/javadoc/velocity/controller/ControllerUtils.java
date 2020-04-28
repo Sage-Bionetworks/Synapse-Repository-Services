@@ -30,7 +30,7 @@ import com.sun.javadoc.Parameter;
 import com.sun.javadoc.Type;
 
 public class ControllerUtils {
-
+	
 	public static String REQUEST_MAPPING_VALUE = RequestMapping.class.getName()+".value";
 	public static String REQUEST_MAPPING_METHOD = RequestMapping.class.getName()+".method";
 	public static String REQUEST_PARAMETER_VALUE = RequestParam.class.getName()+".value";
@@ -71,22 +71,22 @@ public class ControllerUtils {
 		return model;
 	}
 
-	public static MethodModel translateMethod(MethodDoc methodDoc){
+	public static MethodModel translateMethod(MethodDoc methodDoc) {
 		MethodModel methodModel = new MethodModel();
-		//Process the method annotations.
-        processMethodAnnotations(methodDoc, methodModel);
-        // Now process the parameters
-        processParameterAnnotations(methodDoc, methodModel);
+		// Process the method annotations.
+		processMethodAnnotations(methodDoc, methodModel);
+		// Now process the parameters
+		processParameterAnnotations(methodDoc, methodModel);
 		methodModel.setDescription(methodDoc.commentText());
 		String truncated = createTruncatedText(MAX_SHORT_DESCRIPTION_LENGTH, methodModel.getDescription());
 		methodModel.setShortDescription(truncated);
-		// Create the Link to this method
-		String niceUrl = methodModel.getUrl().replaceAll("\\{", "");
-		niceUrl = niceUrl.replaceAll("\\}", "");
-		niceUrl = niceUrl.replaceAll("/", ".");
-		String fullName = methodModel.getHttpType()+niceUrl;
+		// remove regular expressions
+		String urlDisplay = methodModel.getUrl().replaceAll("\\:[^\\}]+", "").replace("*", "");
+		methodModel.setUrl(urlDisplay);
+		String fullNameSuffix = urlDisplay.replaceAll("[\\{\\}]", "").replaceAll("/", ".");
+		String fullName = methodModel.getHttpType() + fullNameSuffix;
 		methodModel.setFullMethodName(fullName);
-		Link methodLink = new Link("${"+fullName+"}", methodModel.getHttpType()+" "+methodModel.getUrl());
+		Link methodLink = new Link("${" + fullName + "}", methodModel.getHttpType() + " " + urlDisplay);
 		methodModel.setMethodLink(methodLink);
 		return methodModel;
 	}
