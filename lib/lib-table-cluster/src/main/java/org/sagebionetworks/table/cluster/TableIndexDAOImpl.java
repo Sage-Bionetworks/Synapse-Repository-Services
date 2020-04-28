@@ -51,6 +51,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -69,6 +70,7 @@ import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -904,7 +906,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		if(filterByRows) {
 			param.addValue(ID_PARAM_NAME, rowIdsToCopy);
 		}
-		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, viewTypeMask, currentSchema, filterByRows);
+		List<ColumnMetadata> metadata = translateSchema(objectType, currentSchema);
+		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, viewTypeMask, filterByRows);
 		namedTemplate.update(sql, param);
 	}
 	
@@ -922,7 +925,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		param.addValue(OBJECT_TYPE_PARAM_NAME, objectType.name());
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = false;
-		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, viewId, viewTypeMask, currentSchema, filterByRows);
+		List<ColumnMetadata> metadata = translateSchema(objectType, currentSchema);
+		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, metadata, viewTypeMask, filterByRows);
 		// push the headers to the stream
 		outputStream.writeNext(headers.toArray(new String[headers.size()]));
 		namedTemplate.query(builder.toString(), param, (ResultSet rs) -> {
@@ -933,6 +937,37 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			}
 			outputStream.writeNext(row);
 		});
+	}
+	
+	// Translates the Column Model schema into a column metadata schema, that maps to the object/annotation replication index
+	List<ColumnMetadata> translateSchema(ObjectType objectType, List<ColumnModel> schema) {
+		return schema.stream()
+			.map((ColumnModel columnModel) -> translateColumnModel(objectType, columnModel))
+			.collect(Collectors.toList());
+	}
+	
+	ColumnMetadata translateColumnModel(ObjectType objectType, ColumnModel model) {
+		// First determine if this an object column or an annotation
+		Optional<EntityField> entityField = findObjectField(objectType, model);
+		
+		String selectColumnForId = SQLUtils.getColumnNameForId(model.getId());
+		boolean isObjectReplicationField;
+		String selectColumnName;
+		
+		if (entityField.isPresent()) {
+			isObjectReplicationField = true;
+			selectColumnName = entityField.get().getDatabaseColumnName();
+		} else {
+			isObjectReplicationField = false;
+			selectColumnName = SQLUtils.translateColumnTypeToAnnotationValueName(model.getColumnType());
+		}
+		
+		return new ColumnMetadata(model, selectColumnName, selectColumnForId, isObjectReplicationField);
+	}
+	
+	Optional<EntityField> findObjectField(ObjectType objectType, ColumnModel model) {
+		// TODO move this to a class that uses some type of provider according to the objectType
+		return Optional.ofNullable(EntityField.findMatch(model));
 	}
 
 	@Override

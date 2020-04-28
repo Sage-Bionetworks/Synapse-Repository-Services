@@ -421,7 +421,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		Long typeMask = scopeType.getTypeMask();		
 		// Calculate the schema from the annotations
 		List<ColumnModel> schemaFromAnnotations = tableIndexDao.getPossibleColumnModelsForContainers(objectType, containersInScope, typeMask, Long.MAX_VALUE, 0L);
-		// check the 
+		// TODO: Should use a provider that given the object type skips the column models that are mapped to the object replication table
 		SQLUtils.determineCauseOfException(exception, currentSchema, schemaFromAnnotations);
 		// Have not determined the cause so throw the original exception
 		if(exception instanceof RuntimeException) {
