@@ -131,6 +131,8 @@
 							<org.sagebionetworks.table.cluster.endpoint.0>${org.sagebionetworks.table.cluster.endpoint.0}</org.sagebionetworks.table.cluster.endpoint.0>
 							<org.sagebionetworks.table.cluster.schema.0>${org.sagebionetworks.table.cluster.schema.0}</org.sagebionetworks.table.cluster.schema.0>
 							<org.sagebionetworks.search.enabled>${org.sagebionetworks.search.enabled}</org.sagebionetworks.search.enabled>
+							<org.sagebionetworks.doi.prefix>${org.sagebionetworks.doi.prefix}</org.sagebionetworks.doi.prefix>
+							<org.sagebionetworks.doi.datacite.api.endpoint>${org.sagebionetworks.doi.datacite.api.endpoint}</org.sagebionetworks.doi.datacite.api.endpoint>
 							<org.sagebionetworks.doi.datacite.enabled>${org.sagebionetworks.doi.datacite.enabled}</org.sagebionetworks.doi.datacite.enabled>
 							<org.sagebionetworks.doi.datacite.username>${org.sagebionetworks.doi.datacite.username}</org.sagebionetworks.doi.datacite.username>
 							<org.sagebionetworks.doi.datacite.password>${org.sagebionetworks.doi.datacite.password}</org.sagebionetworks.doi.datacite.password>

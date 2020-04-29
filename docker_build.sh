@@ -15,8 +15,11 @@
 # org_sagebionetworks_repository_database_connection_url - endpoint to mysql database for repo data
 # org_sagebionetworks_table_cluster_endpoint_0 - endpoint to mysql database for user tables data
 # org.sagebionetworks.doi.datacite.enabled - when set to true, enable DOI minting/editing features
+# org.sagebionetworks.doi.prefix - the prefix to use when minting DOIs (e.g. 10.12345)
+# org.sagebionetworks.doi.datacite.enabled - when set to true, enable DOI minting/editing features
 # org.sagebionetworks.doi.datacite.username - the username used to connect to DataCite for minting DOIs
 # org.sagebionetworks.doi.datacite.password - the password used to connect to DataCite for minting DOIs
+# org.sagebionetworks.doi.datacite.api.endpoint - the endpoint used to connect to DataCite for minting DOIs (e.g. mds.test.datacite.org)
 # org.sagebionetworks.google.cloud.enabled - when set to true, enable Google Cloud features
 # org.sagebionetworks.google.cloud.key - the private key used to log into the Google Cloud service account
 
@@ -97,8 +100,10 @@ ${AWS_CREDS} \
 -Dorg.sagebionetworks.table.cluster.schema.0=${db_name} \
 -Dorg.sagebionetworks.search.enabled=${org_sagebionetworks_search_enabled} \
 -Dorg.sagebionetworks.doi.datacite.enabled=${org_sagebionetworks_datacite_enabled} \
+-Dorg.sagebionetworks.doi.prefix=${org_sagebionetworks_doi_prefix} \
 -Dorg.sagebionetworks.doi.datacite.username=${org_sagebionetworks_datacite_username} \
 -Dorg.sagebionetworks.doi.datacite.password=${org_sagebionetworks_datacite_password} \
+-Dorg.sagebionetworks.doi.datacite.api.endpoint=${org_sagebionetworks_doi_datacite_api_endpoint} \
 -Dorg.sagebionetworks.google.cloud.enabled=${org_sagebionetworks_google_cloud_enabled} \
 -Dorg.sagebionetworks.google.cloud.key="${org_sagebionetworks_google_cloud_key}" \
 -Duser.home=/root"
