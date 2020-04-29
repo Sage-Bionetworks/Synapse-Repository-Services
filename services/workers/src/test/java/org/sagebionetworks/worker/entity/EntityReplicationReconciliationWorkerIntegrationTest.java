@@ -28,8 +28,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.EntityDTO;
-import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -99,7 +99,7 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 	@Test
 	public void testReconciliation() throws Exception{
 		// wait for the project to replicate from the entity creation event
-		EntityDTO dto = waitForEntityDto(projectId);
+		ObjectDataDTO dto = waitForEntityDto(projectId);
 		assertNotNull(dto);
 		assertEquals(projectIdLong, dto.getId());
 		
@@ -132,7 +132,7 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 		// Add a folder to the project
 		Folder folder = addHierarchyToProject();
 		// wait for the folder to replicated
-		EntityDTO dto = waitForEntityDto(folder.getId());
+		ObjectDataDTO dto = waitForEntityDto(folder.getId());
 		assertNotNull(dto);
 		
 		// create a view for this project
@@ -161,7 +161,7 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 		view.setScopeIds(scopeIds);
 		view.setViewTypeMask(viewTypeMask);
 		view.setParentId(projectId);
-		ColumnModel cm = tableManagerSupport.getColumnModel(EntityField.name);
+		ColumnModel cm = tableManagerSupport.getColumnModel(ObjectField.name);
 		view.setColumnIds(Lists.newArrayList(cm.getId()));
 		String activityId = null;
 		String viewId = entityManager.createEntity(adminUserInfo, view, activityId);
@@ -203,7 +203,7 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 	 * @return
 	 * @throws InterruptedException
 	 */
-	public EntityDTO waitForEntityDto(String entityId) throws InterruptedException{
+	public ObjectDataDTO waitForEntityDto(String entityId) throws InterruptedException{
 		Long expectedBenefactor = null;
 		return waitForEntityDto(entityId, expectedBenefactor);
 	}
@@ -216,10 +216,10 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 	 * @return
 	 * @throws InterruptedException
 	 */
-	public EntityDTO waitForEntityDto(String entityId, Long expectedBenefactor) throws InterruptedException{
+	public ObjectDataDTO waitForEntityDto(String entityId, Long expectedBenefactor) throws InterruptedException{
 		long startTimeMS = System.currentTimeMillis();
 		while(true){
-			EntityDTO entityDto = indexDao.getObjectData(ObjectType.ENTITY, KeyFactory.stringToKey(entityId));
+			ObjectDataDTO entityDto = indexDao.getObjectData(ObjectType.ENTITY, KeyFactory.stringToKey(entityId));
 			if(entityDto != null){
 				if(expectedBenefactor == null || expectedBenefactor.equals(entityDto.getBenefactorId())) {
 					return entityDto;

@@ -30,7 +30,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -101,7 +101,7 @@ public class ReplicationManagerTest {
 	@Test
 	public void testRun() throws RecoverableMessageException, Exception{
 		int count = 5;
-		List<EntityDTO> entityData = createEntityDtos(count);
+		List<ObjectDataDTO> entityData = createEntityDtos(count);
 		when(mockNodeDao.getEntityDTOs(anyListOf(String.class), anyInt())).thenReturn(entityData);
 		
 		// call under test
@@ -120,7 +120,7 @@ public class ReplicationManagerTest {
 	@Test
 	public void testPLFM_4497Single() throws Exception{
 		int count = 1;
-		List<EntityDTO> entityData = createEntityDtos(count);
+		List<ObjectDataDTO> entityData = createEntityDtos(count);
 		// set a benefactor ID to be null;
 		entityData.get(0).setBenefactorId(null);
 		when(mockNodeDao.getEntityDTOs(anyListOf(String.class), anyInt())).thenReturn(entityData);
@@ -141,7 +141,7 @@ public class ReplicationManagerTest {
 	@Test
 	public void testPLFM_4497Batch() throws Exception{
 		int count = 2;
-		List<EntityDTO> entityData = createEntityDtos(count);
+		List<ObjectDataDTO> entityData = createEntityDtos(count);
 		// set a benefactor ID to be null;
 		entityData.get(0).setBenefactorId(null);
 		when(mockNodeDao.getEntityDTOs(anyListOf(String.class), anyInt())).thenReturn(entityData);
@@ -159,7 +159,7 @@ public class ReplicationManagerTest {
 		when(mockConnectionFactory.getConnection(ideAndVersion)).thenReturn(mockIndexDao);
 		List<String> entityids = Collections.singletonList(entityId);
 		int count = 1;
-		List<EntityDTO> entityData = createEntityDtos(count);
+		List<ObjectDataDTO> entityData = createEntityDtos(count);
 		when(mockNodeDao.getEntityDTOs(entityids, ReplicationManagerImpl.MAX_ANNOTATION_CHARS)).thenReturn(entityData);
 
 		// call under test
@@ -175,10 +175,10 @@ public class ReplicationManagerTest {
 	 * @param count
 	 * @return
 	 */
-	List<EntityDTO> createEntityDtos(int count){
-		List<EntityDTO> dtos = new LinkedList<>();
+	List<ObjectDataDTO> createEntityDtos(int count){
+		List<ObjectDataDTO> dtos = new LinkedList<>();
 		for(int i=0; i<count; i++){
-			EntityDTO dto = new EntityDTO();
+			ObjectDataDTO dto = new ObjectDataDTO();
 			dto.setId(new Long(i));
 			dto.setBenefactorId(new Long(i-1));
 			dtos.add(dto);

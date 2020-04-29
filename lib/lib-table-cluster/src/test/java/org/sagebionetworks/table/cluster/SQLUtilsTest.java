@@ -30,12 +30,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.table.AnnotationDTO;
+import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -63,7 +63,7 @@ public class SQLUtilsTest {
 
 	Map<Long, ColumnModel> schemaIdToModelMap;
 
-	AnnotationDTO annotationDto;
+	ObjectAnnotationDTO annotationDto;
 
 	boolean isFirst;
 
@@ -98,8 +98,8 @@ public class SQLUtilsTest {
 
 		schemaIdToModelMap = TableModelUtils.createIDtoColumnModelMap(simpleSchema);
 
-		annotationDto = new AnnotationDTO();
-		annotationDto.setEntityId(123L);
+		annotationDto = new ObjectAnnotationDTO();
+		annotationDto.setObjectId(123L);
 		annotationDto.setType(AnnotationType.STRING);
 		annotationDto.setKey("someKey");
 		annotationDto.setValue("someString");
@@ -1731,7 +1731,7 @@ public class SQLUtilsTest {
 		// Build a select for each type.
 		List<ColumnMetadata> metaList = new LinkedList<>();
 		int i = 0;
-		for(EntityField field: EntityField.values()){
+		for(ObjectField field: ObjectField.values()){
 			ColumnMetadata cm = createMetadataForEntityField(field, i);
 			metaList.add(cm);
 			i++;
@@ -1763,7 +1763,7 @@ public class SQLUtilsTest {
 	}
 	
 	
-	private ColumnMetadata createMetadataForEntityField(EntityField field, int id) {
+	private ColumnMetadata createMetadataForEntityField(ObjectField field, int id) {
 		return new ColumnMetadata(field.getColumnModel(), field.getDatabaseColumnName(), SQLUtils.getColumnNameForId("" + id), true);
 	}
 	
@@ -1838,7 +1838,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testBuildSelectMetadataEntityField() {
 		StringBuilder builder = new StringBuilder();
-		ColumnMetadata meta = createMetadataForEntityField(EntityField.createdOn, 1);
+		ColumnMetadata meta = createMetadataForEntityField(ObjectField.createdOn, 1);
 		// call under test
 		List<String> headers = SQLUtils.buildSelectMetadata(builder, meta);
 		assertEquals(", MAX(R.CREATED_ON) AS CREATED_ON", builder.toString());
@@ -1905,7 +1905,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testCreateSelectFromObjectReplication(){
 		ColumnMetadata one = createMetadataForAnnotation(ColumnType.STRING, 1);
-		ColumnMetadata id = createMetadataForEntityField(EntityField.id, 2);
+		ColumnMetadata id = createMetadataForEntityField(ObjectField.id, 2);
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = false;
@@ -1934,7 +1934,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testCreateSelectFromObjectReplicationFilterByRows(){
 		ColumnMetadata one = createMetadataForAnnotation(ColumnType.STRING, 1);
-		ColumnMetadata id = createMetadataForEntityField(EntityField.id, 2);
+		ColumnMetadata id = createMetadataForEntityField(ObjectField.id, 2);
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = true;
@@ -1966,7 +1966,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testCreateSelectInsertFromObjectReplication(){
 		ColumnMetadata one = createMetadataForAnnotation(ColumnType.STRING, 1);
-		ColumnMetadata id = createMetadataForEntityField(EntityField.id, 2);
+		ColumnMetadata id = createMetadataForEntityField(ObjectField.id, 2);
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		boolean filterByRows = false;
 		List<ColumnMetadata> metadata = ImmutableList.of(one, id);
@@ -1993,7 +1993,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testCreateSelectInsertFromObjectReplicationFilterByRows(){
 		ColumnMetadata one = createMetadataForAnnotation(ColumnType.STRING, 1);
-		ColumnMetadata id = createMetadataForEntityField(EntityField.id, 2);
+		ColumnMetadata id = createMetadataForEntityField(ObjectField.id, 2);
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		boolean filterByRows = true;
 		List<ColumnMetadata> metadata = ImmutableList.of(one, id);
@@ -2021,7 +2021,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testCreateSelectInsertFromObjectReplicationProjectView(){
 		ColumnMetadata one = createMetadataForAnnotation(ColumnType.STRING, 1);
-		ColumnMetadata id = createMetadataForEntityField(EntityField.id, 2);
+		ColumnMetadata id = createMetadataForEntityField(ObjectField.id, 2);
 		Long viewTypeMask = ViewTypeMask.Project.getMask();
 		boolean filterByRows = false;
 		List<ColumnMetadata> metadata = ImmutableList.of(one, id);
@@ -2571,7 +2571,7 @@ public class SQLUtilsTest {
 		SQLUtils.writeAnnotationDtoToPreparedStatement(ObjectType.ENTITY, mockPreparedStatement, annotationDto);
 		
 		verify(mockPreparedStatement).setString(1, ObjectType.ENTITY.name());
-		verify(mockPreparedStatement).setLong(2, annotationDto.getEntityId());
+		verify(mockPreparedStatement).setLong(2, annotationDto.getObjectId());
 		verify(mockPreparedStatement).setString(3, annotationDto.getKey());
 		verify(mockPreparedStatement).setString(4, annotationDto.getType().name());
 		verify(mockPreparedStatement).setString(5, annotationDto.getValue().get(0));
@@ -2590,7 +2590,7 @@ public class SQLUtilsTest {
 		SQLUtils.writeAnnotationDtoToPreparedStatement(ObjectType.ENTITY, mockPreparedStatement, annotationDto);
 		
 		verify(mockPreparedStatement).setString(1, ObjectType.ENTITY.name());
-		verify(mockPreparedStatement).setLong(2, annotationDto.getEntityId());
+		verify(mockPreparedStatement).setLong(2, annotationDto.getObjectId());
 		verify(mockPreparedStatement).setString(3, annotationDto.getKey());
 		verify(mockPreparedStatement).setString(4, annotationDto.getType().name());
 		verify(mockPreparedStatement).setString(5, annotationDto.getValue().get(0));
@@ -2641,7 +2641,7 @@ public class SQLUtilsTest {
 		SQLUtils.writeAnnotationDtoToPreparedStatement(ObjectType.ENTITY, mockPreparedStatement, annotationDto);
 
 		verify(mockPreparedStatement).setString(1, ObjectType.ENTITY.name());
-		verify(mockPreparedStatement).setLong(2, annotationDto.getEntityId());
+		verify(mockPreparedStatement).setLong(2, annotationDto.getObjectId());
 		verify(mockPreparedStatement).setString(3, annotationDto.getKey());
 		verify(mockPreparedStatement).setString(4, annotationDto.getType().name());
 		verify(mockPreparedStatement).setString(5, annotationDto.getValue().get(0));
@@ -2706,7 +2706,7 @@ public class SQLUtilsTest {
 		SQLUtils.writeAnnotationDtoToPreparedStatement(ObjectType.ENTITY, mockPreparedStatement, annotationDto);
 		
 		verify(mockPreparedStatement).setString(1, ObjectType.ENTITY.name());
-		verify(mockPreparedStatement).setLong(2, annotationDto.getEntityId());
+		verify(mockPreparedStatement).setLong(2, annotationDto.getObjectId());
 		verify(mockPreparedStatement).setString(3, annotationDto.getKey());
 		verify(mockPreparedStatement).setString(4, annotationDto.getType().name());
 		verify(mockPreparedStatement).setString(5, annotationDto.getValue().get(0));

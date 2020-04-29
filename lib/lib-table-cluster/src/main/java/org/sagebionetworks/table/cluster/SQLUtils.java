@@ -46,11 +46,11 @@ import java.util.regex.Pattern;
 import org.json.JSONArray;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.table.AnnotationDTO;
+import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
@@ -1737,7 +1737,7 @@ public class SQLUtils {
 	@Deprecated
 	public static void determineCauseOfException(Exception exception,
 			ColumnModel columnModel, ColumnModel annotationModel) {
-		EntityField entityField = EntityField.findMatch(columnModel);
+		ObjectField entityField = ObjectField.findMatch(columnModel);
 		if(entityField != null){
 			// entity field are not matched to annotations.
 			return;
@@ -1800,10 +1800,10 @@ public class SQLUtils {
 	 * @param dto
 	 * @throws SQLException
 	 */
-	public static void writeAnnotationDtoToPreparedStatement(ObjectType objectType, PreparedStatement ps, AnnotationDTO dto) throws SQLException{
+	public static void writeAnnotationDtoToPreparedStatement(ObjectType objectType, PreparedStatement ps, ObjectAnnotationDTO dto) throws SQLException{
 		int parameterIndex = 1;
 		ps.setString(parameterIndex++, objectType.name());
-		ps.setLong(parameterIndex++, dto.getEntityId());
+		ps.setLong(parameterIndex++, dto.getObjectId());
 		ps.setString(parameterIndex++, dto.getKey());
 		ps.setString(parameterIndex++, dto.getType().name());
 		List<String> stringList = dto.getValue();

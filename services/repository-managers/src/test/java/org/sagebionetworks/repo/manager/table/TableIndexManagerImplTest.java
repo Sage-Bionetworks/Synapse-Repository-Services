@@ -54,7 +54,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -531,7 +531,7 @@ public class TableIndexManagerImplTest {
 	public void testPopulateViewFromEntityReplicationMissingEtagColumn(){
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
-		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
+		ColumnModel etagColumn = ObjectField.findMatch(schema, ObjectField.etag);
 		// remove the etag column
 		schema.remove(etagColumn);
 		// call under test
@@ -545,7 +545,7 @@ public class TableIndexManagerImplTest {
 	public void testPopulateViewFromEntityReplicationMissingBenefactorColumn(){
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
-		ColumnModel benefactorColumn = EntityField.findMatch(schema, EntityField.benefactorId);
+		ColumnModel benefactorColumn = ObjectField.findMatch(schema, ObjectField.benefactorId);
 		// remove the benefactor column
 		schema.remove(benefactorColumn);
 		// call under test
@@ -1853,7 +1853,7 @@ public class TableIndexManagerImplTest {
 	 * @return
 	 */
 	public static List<ColumnModel> createDefaultColumnsWithIds(){
-		List<ColumnModel> schema = EntityField.getAllColumnModels();
+		List<ColumnModel> schema = ObjectField.getAllColumnModels();
 		for(int i=0; i<schema.size(); i++){
 			ColumnModel cm = schema.get(i);
 			cm.setId(""+i);
