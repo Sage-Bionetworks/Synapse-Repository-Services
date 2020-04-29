@@ -27,6 +27,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ORGANI
 
 import java.sql.ResultSet;
 import java.sql.Timestamp;
+import java.util.Optional;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.sagebionetworks.ids.IdGenerator;
@@ -183,8 +184,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 	 * @param blobId
 	 * @return
 	 */
-	JsonSchemaVersionInfo createNewVersion(String schemaId, String semanticVersion, Long createdBy,
-			String blobId) {
+	JsonSchemaVersionInfo createNewVersion(String schemaId, String semanticVersion, Long createdBy, String blobId) {
 		ValidateArgument.required(schemaId, "schemaId");
 		ValidateArgument.required(createdBy, "createdBy");
 		ValidateArgument.required(blobId, "blobId");
@@ -285,12 +285,12 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_VERSION + " WHERE " + COL_JSON_SCHEMA_VER_ID + " = ?",
 				versionId);
 		// find the latest version for the schema
-		Long latestVersionId = findLatestVersionId(schemaId);
-		if (latestVersionId == null) {
+		Optional<Long> latestVersionIdOptional = findLatestVersionId(schemaId);
+		if (latestVersionIdOptional.isPresent()) {
+			setLatestVersion(schemaId, latestVersionIdOptional.get());
+		} else {
 			// deleted the last version so delete the schema.
 			deleteSchema(schemaId);
-		} else {
-			setLatestVersion(schemaId, latestVersionId);
 		}
 	}
 
@@ -355,9 +355,10 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		return getVersionInfo(versionId);
 	}
 
-	Long findLatestVersionId(String schemaId) {
+	Optional<Long> findLatestVersionId(String schemaId) {
 		ValidateArgument.required(schemaId, "schemaId");
-		return jdbcTemplate.queryForObject("SELECT MAX(" + COL_JSON_SCHEMA_VER_ID + ") FROM "
+		Long versionId = jdbcTemplate.queryForObject("SELECT MAX(" + COL_JSON_SCHEMA_VER_ID + ") FROM "
 				+ TABLE_JSON_SCHEMA_VERSION + " WHERE " + COL_JSON_SCHEMA_VER_SCHEMA_ID + " = ?", Long.class, schemaId);
+		return Optional.ofNullable(versionId);
 	}
 }
