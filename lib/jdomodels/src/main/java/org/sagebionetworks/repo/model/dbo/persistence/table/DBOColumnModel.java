@@ -138,36 +138,23 @@ public class DBOColumnModel implements MigratableDatabaseObject<DBOColumnModel, 
 			@TemporaryCode(author="ziming", comment = "one-time migration change. remove after stack 309")
 			@Override
 			public DBOColumnModel createDatabaseObjectFromBackup(DBOColumnModel backup) {
-				//doing this round trip will assign default value to maxListLength
 				ColumnModel columnModel = ColumnModelUtils.createDTOFromDBO(backup);
 
 				if(ColumnTypeListMappings.isList(columnModel.getColumnType()) && columnModel.getMaximumListLength() == null){
+					columnModel.setId(null);
 					columnModel.setMaximumListLength(ColumnConstants.MAX_ALLOWED_LIST_LENGTH);
+					try {
+						backup.setBytes(JDOSecondaryPropertyUtils.compressObject(X_STREAM, columnModel));
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
+					String hash = ColumnModelUtils.calculateHash(columnModel);
+					backup.setHash(hash);
 				}
 
-				// Some old column models where using a big number of enum values, we need to skip that side of the validation to avoid breaking migration
-				DBOColumnModel modifiedDBO = createDBOFromDTO(columnModel);
-				return modifiedDBO;
+				return backup;
 			}
 		};
-	}
-
-	@TemporaryCode(author="ziming", comment = "one-time migration change. remove after stack 309")
-	public static DBOColumnModel createDBOFromDTO(ColumnModel dto) {
-		try {
-			String hash = ColumnModelUtils.calculateHash(dto);
-			// Create the bytes
-			DBOColumnModel dbo = new DBOColumnModel();
-			dbo.setBytes(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
-			dbo.setName(dto.getName());
-			dbo.setHash(hash);
-			if(dto.getId() != null){
-				dbo.setId(Long.parseLong(dto.getId()));
-			}
-			return dbo;
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
 	}
 
 	@Override
