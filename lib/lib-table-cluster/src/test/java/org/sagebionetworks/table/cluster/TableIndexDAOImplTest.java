@@ -9,8 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_MAX_STRING_LENGTH;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
@@ -1246,6 +1246,7 @@ public class TableIndexDAOImplTest {
 		strListCol.setName("foo");
 		strListCol.setMaximumSize(50L);
 		strListCol.setColumnType(ColumnType.STRING_LIST);
+		strListCol.setMaximumListLength(25L);
 
 		List<ColumnModel> schema = Lists.newArrayList(strListCol);
 
@@ -2424,6 +2425,9 @@ public class TableIndexDAOImplTest {
 				if(cm.getColumnType() == ColumnType.STRING || cm.getColumnType() == ColumnType.STRING_LIST){
 					cm.setMaximumSize(50L);
 				}
+				if(annoDto.getValue().size() > 1){
+					cm.setMaximumListLength(21L);
+				}
 				schema.add(cm);
 			}
 		}
@@ -2491,6 +2495,7 @@ public class TableIndexDAOImplTest {
 		stringListColumn.setName("myList");
 		stringListColumn.setMaximumSize(54L);
 		stringListColumn.setColumnType(ColumnType.STRING_LIST);
+		stringListColumn.setMaximumListLength(25L);
 
 
 		ColumnModel booleanColumn = new ColumnModel();
@@ -2524,6 +2529,7 @@ public class TableIndexDAOImplTest {
 		// in a view, values are replicated from
 		stringListColumn.setMaximumSize(54L);
 		stringListColumn.setColumnType(ColumnType.STRING_LIST);
+		stringListColumn.setMaximumListLength(25L);
 
 
 		List<ColumnModel> schema = Lists.newArrayList(stringListColumn);
@@ -2636,6 +2642,7 @@ public class TableIndexDAOImplTest {
 		stringListColumn.setName("myList");
 		stringListColumn.setMaximumSize(54L);
 		stringListColumn.setColumnType(ColumnType.STRING_LIST);
+		stringListColumn.setMaximumListLength(25L);
 
 
 		ColumnModel booleanColumn = new ColumnModel();
@@ -3366,6 +3373,7 @@ public class TableIndexDAOImplTest {
 		intListColumn.setName("intList");
 		intListColumn.setColumnType(ColumnType.INTEGER_LIST);
 		intListColumn.setDefaultValue("[1,2,3]");
+		intListColumn.setMaximumListLength(25L);
 
 		List<ColumnModel> schema = Arrays.asList(intColumn, intListColumn);
 
@@ -3480,4 +3488,5 @@ public class TableIndexDAOImplTest {
 			tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, column.getId()) + "'", String.class);
 		});
 	}
+
 }

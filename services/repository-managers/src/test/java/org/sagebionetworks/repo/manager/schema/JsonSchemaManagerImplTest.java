@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.schema;
 
-import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -38,8 +37,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.schema.JsonSchemaDao;
-import org.sagebionetworks.repo.model.dbo.schema.NewSchemaRequest;
-import org.sagebionetworks.repo.model.dbo.schema.NewVersionRequest;
+import org.sagebionetworks.repo.model.dbo.schema.NewSchemaVersionRequest;
 import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
@@ -47,14 +45,11 @@ import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.Organization;
-import org.sagebionetworks.repo.model.schema.SchemaInfo;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.id.SchemaId;
-import org.sagebionetworks.schema.parser.ParseException;
 import org.sagebionetworks.schema.parser.SchemaIdParser;
-import org.sagebionetworks.schema.semantic.version.SemanticVersion;
 
 @ExtendWith(MockitoExtension.class)
 public class JsonSchemaManagerImplTest {
@@ -78,6 +73,7 @@ public class JsonSchemaManagerImplTest {
 	Date now;
 	UserInfo user;
 	UserInfo anonymousUser;
+	UserInfo adminUser;
 	String organizationName;
 	CreateOrganizationRequest createOrganizationRequest;
 	String schemaName;
@@ -88,9 +84,9 @@ public class JsonSchemaManagerImplTest {
 	String schemaJsonSHA256Hex;
 	String jsonBlobId;
 	SchemaId schemaId;
+	String versionId;
 
 	Organization organization;
-	SchemaInfo schemaInfo;
 	JsonSchemaVersionInfo versionInfo;
 
 	AccessControlList acl;
@@ -100,6 +96,8 @@ public class JsonSchemaManagerImplTest {
 		managerSpy = Mockito.spy(manager);
 		boolean isAdmin = false;
 		user = new UserInfo(isAdmin, 123L);
+		isAdmin = true;
+		adminUser = new UserInfo(isAdmin, 456L);
 
 		anonymousUser = new UserInfo(isAdmin, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
@@ -130,20 +128,17 @@ public class JsonSchemaManagerImplTest {
 		schemaJson = EntityFactory.createJSONStringForEntity(schema);
 		schemaJsonSHA256Hex = DigestUtils.sha256Hex(schemaJson);
 		jsonBlobId = "987";
-
-		schemaInfo = new SchemaInfo();
-		schemaInfo.setCreatedBy(user.getId().toString());
-		schemaInfo.setCreatedOn(now);
-		schemaInfo.setName(schemaName);
-		schemaInfo.setNumericId("432");
-		schemaInfo.setOrganizationId(organization.getId());
+		
+		versionId = "888";
 
 		versionInfo = new JsonSchemaVersionInfo();
+		versionInfo.setOrganizationId(organization.getId());
+		versionInfo.setOrganizationName(organizationName);
 		versionInfo.setCreatedBy(user.getId().toString());
 		versionInfo.setCreatedOn(now);
 		versionInfo.setJsonSHA256Hex(schemaJsonSHA256Hex);
 		versionInfo.setSemanticVersion(semanticVersionString);
-		versionInfo.setVersionId("765");
+		versionInfo.setVersionId(versionId);
 	}
 
 	@Test
@@ -534,133 +529,294 @@ public class JsonSchemaManagerImplTest {
 	}
 
 	@Test
-	public void testCreateJsonBlobIfDoesNotExist() {
-		when(mockSchemaDao.createJsonBlobIfDoesNotExist(any(), any())).thenReturn(jsonBlobId);
-		// call under test
-		String blobId = manager.createJsonBlobIfDoesNotExist(schema);
-		assertEquals(jsonBlobId, blobId);
-		verify(mockSchemaDao).createJsonBlobIfDoesNotExist(schemaJson, schemaJsonSHA256Hex);
-	}
-
-	@Test
-	public void testCreateJsonBlobIfDoesNotExistNullSchema() {
-		schema = null;
-		// call under test
-		assertThrows(IllegalArgumentException.class, () -> {
-			manager.createJsonBlobIfDoesNotExist(schema);
-		});
-	}
-
-	@Test
-	public void testGetAndValidateSemanticVersion() {
-		SemanticVersion version = schemaId.getSemanticVersion();
-		assertNotNull(version);
-		// call under test
-		String versionString = manager.getAndValidateSemanticVersion(version);
-		assertEquals(semanticVersionString, versionString);
-	}
-
-	@Test
-	public void testGetAndValidateSemanticVersionNull() {
-		SemanticVersion version = null;
-		// call under test
-		String versionString = manager.getAndValidateSemanticVersion(version);
-		assertNull(versionString);
-	}
-
-	@Test
-	public void testGetAndValidateSemanticVersionAtLimit() throws ParseException {
-		String prefix = "2.3.1+";
-		String version = prefix
-				+ StringUtils.repeat('a', JsonSchemaManagerImpl.MAX_SEMANTIC_VERSION_CHARS - prefix.length());
-		assertEquals(JsonSchemaManagerImpl.MAX_SEMANTIC_VERSION_CHARS, version.length());
-		SemanticVersion semanticVersion = new SchemaIdParser(version).semanticVersion();
-		// call under test
-		String versionString = manager.getAndValidateSemanticVersion(semanticVersion);
-		assertEquals(version, versionString);
-	}
-
-	@Test
-	public void testGetAndValidateSemanticVersionOverLimit() throws ParseException {
-		String prefix = "2.3.1+";
-		String version = prefix
-				+ StringUtils.repeat('a', JsonSchemaManagerImpl.MAX_SEMANTIC_VERSION_CHARS - prefix.length() + 1);
-		assertEquals(JsonSchemaManagerImpl.MAX_SEMANTIC_VERSION_CHARS + 1, version.length());
-		SemanticVersion semanticVersion = new SchemaIdParser(version).semanticVersion();
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			manager.getAndValidateSemanticVersion(semanticVersion);
-		}).getMessage();
-		assertEquals("Semantic version must be 250 characters or less", message);
-	}
-
-	@Test
 	public void testCreateJsonSchema() {
 		when(mockOrganizationDao.getOrganizationByName(any())).thenReturn(organization);
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
 				.thenReturn(AuthorizationStatus.authorized());
-		when(mockSchemaDao.createSchemaIfDoesNotExist(any())).thenReturn(schemaInfo);
-		when(mockSchemaDao.createJsonBlobIfDoesNotExist(any(), any())).thenReturn(jsonBlobId);
-		when(mockSchemaDao.createNewVersion(any())).thenReturn(versionInfo);
+		when(mockSchemaDao.createNewSchemaVersion(any())).thenReturn(versionInfo);
 		// call under test
 		CreateSchemaResponse response = managerSpy.createJsonSchema(user, createSchemaRequest);
 		assertNotNull(response);
 		assertEquals(versionInfo, response.getNewVersionInfo());
-		verify(managerSpy).getAndValidateSemanticVersion(schemaId.getSemanticVersion());
 		assertEquals(versionInfo, response.getNewVersionInfo());
 		verify(mockOrganizationDao).getOrganizationByName(organizationName);
-		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.UPDATE);
-		NewSchemaRequest expectedNewSchemaRequest = new NewSchemaRequest().withOrganizationId(organization.getId())
-				.withSchemaName(schemaName).withCreatedBy(user.getId());
-		verify(mockSchemaDao).createSchemaIfDoesNotExist(expectedNewSchemaRequest);
-		verify(managerSpy).createJsonBlobIfDoesNotExist(schema);
-		verify(mockSchemaDao).createJsonBlobIfDoesNotExist(schemaJson, schemaJsonSHA256Hex);
-		NewVersionRequest expectedNewVersionRequest = new NewVersionRequest().withSchemaId(schemaInfo.getNumericId())
-				.withCreatedBy(user.getId()).withBlobId(jsonBlobId).withSemanticVersion(semanticVersionString);
-		verify(mockSchemaDao).createNewVersion(expectedNewVersionRequest);
+		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.CREATE);
+		NewSchemaVersionRequest expectedNewSchemaRequest = new NewSchemaVersionRequest()
+				.withOrganizationId(organization.getId()).withSchemaName(schemaName).withCreatedBy(user.getId())
+				.withJsonSchema(schema).withSemanticVersion(semanticVersionString);
+		verify(mockSchemaDao).createNewSchemaVersion(expectedNewSchemaRequest);
 	}
-	
+
+	@Test
+	public void testCreateJsonSchemaNullVersion() {
+		when(mockOrganizationDao.getOrganizationByName(any())).thenReturn(organization);
+		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockSchemaDao.createNewSchemaVersion(any())).thenReturn(versionInfo);
+		schema.set$id(organizationName + "/" + schemaName);
+		// call under test
+		CreateSchemaResponse response = managerSpy.createJsonSchema(user, createSchemaRequest);
+		assertNotNull(response);
+		assertEquals(versionInfo, response.getNewVersionInfo());
+		assertEquals(versionInfo, response.getNewVersionInfo());
+		verify(mockOrganizationDao).getOrganizationByName(organizationName);
+		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.CREATE);
+		NewSchemaVersionRequest expectedNewSchemaRequest = new NewSchemaVersionRequest()
+				.withOrganizationId(organization.getId()).withSchemaName(schemaName).withCreatedBy(user.getId())
+				.withJsonSchema(schema).withSemanticVersion(null);
+		verify(mockSchemaDao).createNewSchemaVersion(expectedNewSchemaRequest);
+	}
+
 	@Test
 	public void testCreateJsonSchemaAnonymous() {
-		String message = assertThrows(UnauthorizedException.class, ()->{
-			 manager.createJsonSchema(anonymousUser, createSchemaRequest);
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			manager.createJsonSchema(anonymousUser, createSchemaRequest);
 		}).getMessage();
 		assertEquals("Must login to perform this action", message);
 	}
-	
+
 	@Test
 	public void testCreateJsonSchemaUnauthorized() {
 		when(mockOrganizationDao.getOrganizationByName(any())).thenReturn(organization);
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
 				.thenReturn(AuthorizationStatus.accessDenied("no"));
-		String message = assertThrows(UnauthorizedException.class, ()->{
+		String message = assertThrows(UnauthorizedException.class, () -> {
 			manager.createJsonSchema(user, createSchemaRequest);
 		}).getMessage();
 		assertEquals("no", message);
-		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.UPDATE);
+		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.CREATE);
 	}
-	
+
 	@Test
 	public void testCreateJsonSchemaNullUser() {
 		user = null;
-		assertThrows(IllegalArgumentException.class, ()->{
+		assertThrows(IllegalArgumentException.class, () -> {
 			manager.createJsonSchema(user, createSchemaRequest);
 		});
 	}
-	
+
 	@Test
 	public void testCreateJsonSchemaNullRequest() {
 		createSchemaRequest = null;
-		assertThrows(IllegalArgumentException.class, ()->{
+		assertThrows(IllegalArgumentException.class, () -> {
 			manager.createJsonSchema(user, createSchemaRequest);
+		});
+	}
+
+	@Test
+	public void testCreateJsonSchemaNullSchema() {
+		createSchemaRequest.setSchema(null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.createJsonSchema(user, createSchemaRequest);
+		});
+	}
+
+	@Test
+	public void testGetSchemaWithVersion() {
+		when(mockSchemaDao.getVersionId(any(), any(), any())).thenReturn(versionId);
+		when(mockSchemaDao.getSchema(any())).thenReturn(schema);
+		// call under test
+		JsonSchema result = manager.getSchema(organizationName, schemaName, semanticVersionString);
+		assertEquals(schema, result);
+		verify(mockSchemaDao).getVersionId(organizationName, schemaName, semanticVersionString);
+		verify(mockSchemaDao, never()).getLatestVersionId(any(), any());
+		verify(mockSchemaDao).getSchema(versionId);
+	}
+
+	@Test
+	public void testGetSchemaWithVersionTrim() {
+		when(mockSchemaDao.getVersionId(any(), any(), any())).thenReturn(versionId);
+		when(mockSchemaDao.getSchema(any())).thenReturn(schema);
+		// call under test
+		JsonSchema result = manager.getSchema(organizationName + "\n", schemaName + " ", semanticVersionString + "\t");
+		assertEquals(schema, result);
+		verify(mockSchemaDao).getVersionId(organizationName, schemaName, semanticVersionString);
+		verify(mockSchemaDao, never()).getLatestVersionId(any(), any());
+		verify(mockSchemaDao).getSchema(versionId);
+	}
+
+	@Test
+	public void testGetSchemaNullVersion() {
+		when(mockSchemaDao.getLatestVersionId(any(), any())).thenReturn(versionId);
+		when(mockSchemaDao.getSchema(any())).thenReturn(schema);
+		semanticVersionString = null;
+		// call under test
+		JsonSchema result = manager.getSchema(organizationName, schemaName, semanticVersionString);
+		assertEquals(schema, result);
+		verify(mockSchemaDao, never()).getVersionId(any(), any(), any());
+		verify(mockSchemaDao).getLatestVersionId(organizationName, schemaName);
+		verify(mockSchemaDao).getSchema(versionId);
+	}
+
+	@Test
+	public void testGetSchemaNullVersionTrim() {
+		when(mockSchemaDao.getLatestVersionId(any(), any())).thenReturn(versionId);
+		when(mockSchemaDao.getSchema(any())).thenReturn(schema);
+		semanticVersionString = null;
+		// call under test
+		JsonSchema result = manager.getSchema(organizationName + " ", schemaName + " \t", semanticVersionString);
+		assertEquals(schema, result);
+		verify(mockSchemaDao, never()).getVersionId(any(), any(), any());
+		verify(mockSchemaDao).getLatestVersionId(organizationName, schemaName);
+		verify(mockSchemaDao).getSchema(versionId);
+	}
+
+	@Test
+	public void testGetSchemaEmptyVersion() {
+		when(mockSchemaDao.getLatestVersionId(any(), any())).thenReturn(versionId);
+		when(mockSchemaDao.getSchema(any())).thenReturn(schema);
+		semanticVersionString = " ";
+		// call under test
+		JsonSchema result = manager.getSchema(organizationName, schemaName, semanticVersionString);
+		assertEquals(schema, result);
+		verify(mockSchemaDao, never()).getVersionId(any(), any(), any());
+		verify(mockSchemaDao).getLatestVersionId(organizationName, schemaName);
+		verify(mockSchemaDao).getSchema(versionId);
+	}
+
+	@Test
+	public void testGetSchemaNullOrganization() {
+		organizationName = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.getSchema(organizationName, schemaName, semanticVersionString);
+		});
+	}
+
+	@Test
+	public void testGetSchemaNullSchemaName() {
+		schemaName = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.getSchema(organizationName, schemaName, semanticVersionString);
+		});
+	}
+
+	@Test
+	public void testDeleteSchema() {
+		when(mockSchemaDao.getVersionLatestInfo(any(), any())).thenReturn(versionInfo);
+		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
+				.thenReturn(AuthorizationStatus.authorized());
+
+		// call under test
+		manager.deleteSchemaAllVersion(user, organizationName, schemaName);
+		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE);
+		verify(mockSchemaDao).deleteSchema(versionInfo.getSchemaId());
+	}
+
+	@Test
+	public void testDeleteSchemaAdmin() {
+		when(mockSchemaDao.getVersionLatestInfo(any(), any())).thenReturn(versionInfo);
+		// call under test
+		manager.deleteSchemaAllVersion(adminUser, organizationName, schemaName);
+		verify(mockAclDao, never()).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE);
+		verify(mockSchemaDao).deleteSchema(versionInfo.getSchemaId());
+	}
+
+	@Test
+	public void testDeleteSchemaUnauthorized() {
+		when(mockSchemaDao.getVersionLatestInfo(any(), any())).thenReturn(versionInfo);
+		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
+				.thenReturn(AuthorizationStatus.accessDenied("nope"));
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.deleteSchemaAllVersion(user, organizationName, schemaName);
+		});
+		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE);
+		verify(mockSchemaDao, never()).deleteSchema(any());
+	}
+
+	@Test
+	public void testDeleteSchemaNullUser() {
+		user = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.deleteSchemaAllVersion(user, organizationName, schemaName);
+		});
+	}
+
+	@Test
+	public void testDeleteSchemaNullOrganization() {
+		organizationName = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.deleteSchemaAllVersion(user, organizationName, schemaName);
+		});
+	}
+
+	@Test
+	public void testDeleteSchemaNullSchema() {
+		schemaName = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.deleteSchemaAllVersion(user, organizationName, schemaName);
+		});
+	}
+
+	@Test
+	public void testDeleteSchemaVersion() {
+		when(mockSchemaDao.getVersionInfo(any(), any(), any())).thenReturn(versionInfo);
+		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
+				.thenReturn(AuthorizationStatus.authorized());
+		// call under test
+		manager.deleteSchemaVersion(user, organizationName, schemaName, semanticVersionString);
+		verify(mockSchemaDao).getVersionInfo(organizationName, schemaName, semanticVersionString);
+		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE);
+		verify(mockSchemaDao).deleteSchemaVersion(versionId);
+	}
+	
+	@Test
+	public void testDeleteSchemaVersionUnauthorized() {
+		when(mockSchemaDao.getVersionInfo(any(), any(), any())).thenReturn(versionInfo);
+		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
+				.thenReturn(AuthorizationStatus.accessDenied("naw"));
+		assertThrows(UnauthorizedException.class, ()->{
+			// call under test
+			manager.deleteSchemaVersion(user, organizationName, schemaName, semanticVersionString);
+		});
+		verify(mockSchemaDao).getVersionInfo(organizationName, schemaName, semanticVersionString);
+		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE);
+		verify(mockSchemaDao, never()).deleteSchemaVersion(any());
+	}
+	
+	@Test
+	public void testDeleteSchemaVersionAdmin() {
+		when(mockSchemaDao.getVersionInfo(any(), any(), any())).thenReturn(versionInfo);
+		// call under test
+		manager.deleteSchemaVersion(adminUser, organizationName, schemaName, semanticVersionString);
+		verify(mockSchemaDao).getVersionInfo(organizationName, schemaName, semanticVersionString);
+		verify(mockAclDao, never()).canAccess(any(UserInfo.class), any(), any(), any());
+		verify(mockSchemaDao).deleteSchemaVersion(versionId);
+	}
+	
+	@Test
+	public void testDeleteSchemaVersionNullUser() {
+		user = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.deleteSchemaVersion(user, organizationName, schemaName, semanticVersionString);
 		});
 	}
 	
 	@Test
-	public void testCreateJsonSchemaNullSchema() {
-		createSchemaRequest.setSchema(null);
+	public void testDeleteSchemaVersionNullOrganizationName() {
+		organizationName = null;
 		assertThrows(IllegalArgumentException.class, ()->{
-			manager.createJsonSchema(user, createSchemaRequest);
+			// call under test
+			manager.deleteSchemaVersion(user, organizationName, schemaName, semanticVersionString);
+		});
+	}
+	
+	@Test
+	public void testDeleteSchemaVersionNullSchemaName() {
+		schemaName = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.deleteSchemaVersion(user, organizationName, schemaName, semanticVersionString);
+		});
+	}
+	
+	@Test
+	public void testDeleteSchemaVersionNullSemanticVersion() {
+		semanticVersionString = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.deleteSchemaVersion(user, organizationName, schemaName, semanticVersionString);
 		});
 	}
 }

@@ -372,4 +372,18 @@ public class ExampleController {
 			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME) String authorizationHeader) {
 		return null;
 	}
+	
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = "/someOther/{id:.+}/{secondId:\\w}", method = RequestMethod.POST)
+	public @ResponseBody Long pathIncludesRegEx(
+			UserInfo userInfo, @PathVariable(required = true, name = "id") String id) {
+		return null;
+	}
+	
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = "/someOther/{*id}", method = RequestMethod.POST)
+	public @ResponseBody Long pathIncludesStar(
+			UserInfo userInfo, @PathVariable(required = true, name = "id") String id) {
+		return null;
+	}
 }

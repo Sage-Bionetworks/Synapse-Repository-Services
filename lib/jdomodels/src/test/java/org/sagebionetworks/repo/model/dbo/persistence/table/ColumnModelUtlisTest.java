@@ -138,11 +138,14 @@ public class ColumnModelUtlisTest {
 		expected.setColumnType(ColumnType.STRING_LIST);
 		expected.setDefaultValue("[\"str\"]");
 		expected.setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE);
+		expected.setMaximumListLength(32L);
+
 		//input
 		original.setName("name");
 		original.setColumnType(ColumnType.STRING_LIST);
 		original.setEnumValues(null);
 		original.setDefaultValue("[\"str\"]");
+		original.setMaximumListLength(32L);
 		// Setting this to null should result in the default size.
 		original.setMaximumSize(null);
 		ColumnModel normlaized = ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
@@ -188,12 +191,52 @@ public class ColumnModelUtlisTest {
 		expected.setColumnType(ColumnType.STRING_LIST);
 		expected.setDefaultValue("[\"str\"]");
 		expected.setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE-1);
+		expected.setMaximumListLength(32L);
 		// input
 		original.setName("name");
 		original.setColumnType(ColumnType.STRING_LIST);
 		original.setEnumValues(null);
 		original.setDefaultValue("[\"str\"]");
 		original.setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE-1);
+		original.setMaximumListLength(32L);
+		ColumnModel normlaized = ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		assertNotNull(normlaized);
+		assertNotSame(normlaized, original, "A new object should have been created");
+		assertEquals(expected, normlaized);
+	}
+
+	@Test
+	public void testNormalizedStringListColumnNullMaxListLength(){
+		ColumnModel expected = new ColumnModel();
+		expected.setId(null);
+		expected.setName("name");
+		expected.setColumnType(ColumnType.STRING_LIST);
+		expected.setDefaultValue("[\"str\"]");
+		expected.setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE-1);
+		expected.setMaximumListLength(ColumnConstants.MAX_ALLOWED_LIST_LENGTH);
+		// input
+		original.setName("name");
+		original.setColumnType(ColumnType.STRING_LIST);
+		original.setEnumValues(null);
+		original.setDefaultValue("[\"str\"]");
+		original.setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE-1);
+		ColumnModel normlaized = ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		assertNotNull(normlaized);
+		assertNotSame(normlaized, original, "A new object should have been created");
+		assertEquals(expected, normlaized);
+	}
+
+	@Test
+	public void testNormalizedIntegerListColumnNullMaxListLength(){
+		ColumnModel expected = new ColumnModel();
+		expected.setId(null);
+		expected.setName("name");
+		expected.setColumnType(ColumnType.INTEGER_LIST);
+		expected.setMaximumListLength(ColumnConstants.MAX_ALLOWED_LIST_LENGTH);
+		// input
+		original = new ColumnModel();
+		original.setName("name");
+		original.setColumnType(ColumnType.INTEGER_LIST);
 		ColumnModel normlaized = ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
 		assertNotNull(normlaized);
 		assertNotSame(normlaized, original, "A new object should have been created");
@@ -403,4 +446,53 @@ public class ColumnModelUtlisTest {
 		assertEquals(changes, results);
 	}
 
+	@Test
+	public void testValidateListLengthForClone_maxLengthNull(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setMaximumListLength(null);
+
+		ColumnModelUtils.validateListLengthForClone(columnModel);
+
+		assertEquals(ColumnConstants.MAX_ALLOWED_LIST_LENGTH, columnModel.getMaximumListLength());
+	}
+
+
+	@Test
+	public void testValidateListLengthForClone_maxLengthAboveAllowedMax(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setMaximumListLength(ColumnConstants.MAX_ALLOWED_LIST_LENGTH+1);
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
+			ColumnModelUtils.validateListLengthForClone(columnModel)
+		).getMessage();
+
+		assertEquals("ColumnModel.maximumListLength for a LIST column cannot exceed: 100", errorMessage);
+	}
+
+
+	@Test
+	public void testValidateListLengthForClone_maxLengthNegative(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setMaximumListLength(1L);
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
+				ColumnModelUtils.validateListLengthForClone(columnModel)
+		).getMessage();
+
+		assertEquals("ColumnModel.maximumListLength for a LIST column must be at least 2", errorMessage);
+	}
+
+	@Test
+	public void testValidateListLengthForClone_nothingHappens(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setMaximumListLength(45L);
+
+		ColumnModelUtils.validateListLengthForClone(columnModel);
+
+		ColumnModel expected = new ColumnModel();
+		expected.setMaximumListLength(45L);
+
+		// nothing was changed
+		assertEquals(expected, columnModel);
+	}
 }

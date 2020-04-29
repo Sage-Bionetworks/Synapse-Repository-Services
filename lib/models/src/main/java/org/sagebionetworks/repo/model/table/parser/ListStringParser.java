@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.table.parser;
 
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ValueParser;
 
 /**
@@ -10,8 +11,6 @@ import org.sagebionetworks.repo.model.table.ValueParser;
 public class ListStringParser extends AbstractValueParser{
 	private ValueParser individualElementParser;
 
-	//keep in sync with ColumnConstants.MAX_NUMBER_OF_ITEMS_IN_LIST
-	public final static int MAX_NUMBER_OF_ITEMS_IN_LIST = 100;
 	/**
 	 *
 	 * @param individualElementParser parser that will be applied to each element in the list
@@ -25,8 +24,8 @@ public class ListStringParser extends AbstractValueParser{
 		try {
 			JSONArray parsed = new JSONArray(value);
 			JSONArray toDatabase = new JSONArray();
-			if(parsed.length() >  MAX_NUMBER_OF_ITEMS_IN_LIST){
-				throw new IllegalArgumentException("value can not exceed " + MAX_NUMBER_OF_ITEMS_IN_LIST + " elements in list: " + value);
+			if(parsed.length() > ColumnConstants.MAX_ALLOWED_LIST_LENGTH){
+				throw new IllegalArgumentException("value can not exceed " + ColumnConstants.MAX_ALLOWED_LIST_LENGTH + " elements in list: " + value);
 			}
 			for(int i = 0; i < parsed.length(); i++){
 				if(parsed.isNull(i)){

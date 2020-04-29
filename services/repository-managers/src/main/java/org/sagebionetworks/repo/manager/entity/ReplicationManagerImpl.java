@@ -124,6 +124,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	 */
 	void replicateInIndex(final TableIndexDAO indexDao, final List<EntityDTO> entityDTOs, List<Long> ids) {
 		indexDao.executeInWriteTransaction((TransactionStatus status) -> {
+			// TODO should get the object type in input
 			indexDao.deleteObjectData(ObjectType.ENTITY, ids);
 			indexDao.addObjectData(ObjectType.ENTITY, entityDTOs);
 			return null;

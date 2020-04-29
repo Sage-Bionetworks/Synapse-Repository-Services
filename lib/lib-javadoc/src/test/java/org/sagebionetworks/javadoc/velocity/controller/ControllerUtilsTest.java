@@ -102,6 +102,42 @@ public class ControllerUtilsTest {
 	}
 	
 	@Test
+	public void testPathVariablesWithRegEx(){
+		MethodDoc method = methodMap.get("pathIncludesRegEx");
+		assertNotNull(method);
+		// Now translate the message
+		MethodModel model = ControllerUtils.translateMethod(method);
+		assertNotNull(model);
+		assertNotNull(model.getPathVariables());
+		assertEquals(1, model.getPathVariables().size());
+		ParameterModel pathParam = model.getPathVariables().get(0);
+		assertNotNull(pathParam);
+		assertEquals("id", pathParam.getName());
+		assertEquals("POST.someOther.id.secondId", model.getFullMethodName());
+		assertNotNull(model.getMethodLink());
+		assertEquals("POST /someOther/{id}/{secondId}", model.getMethodLink().getDisplay());
+		assertEquals("/someOther/{id}/{secondId}", model.getUrl());
+	}
+	
+	@Test
+	public void testPathVariablesWithStar(){
+		MethodDoc method = methodMap.get("pathIncludesStar");
+		assertNotNull(method);
+		// Now translate the message
+		MethodModel model = ControllerUtils.translateMethod(method);
+		assertNotNull(model);
+		assertNotNull(model.getPathVariables());
+		assertEquals(1, model.getPathVariables().size());
+		ParameterModel pathParam = model.getPathVariables().get(0);
+		assertNotNull(pathParam);
+		assertEquals("id", pathParam.getName());
+		assertEquals("POST.someOther.id", model.getFullMethodName());
+		assertNotNull(model.getMethodLink());
+		assertEquals("POST /someOther/{id}", model.getMethodLink().getDisplay());
+		assertEquals("/someOther/{id}", model.getUrl());
+	}
+	
+	@Test
 	public void testParameters(){
 		MethodDoc method = methodMap.get("getRowMetadataDelta");
 		assertNotNull(method);
