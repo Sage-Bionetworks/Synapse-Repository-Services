@@ -31,7 +31,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 public class JsonSchemaDaoImplTest {
 
 	@Autowired
-	private JsonSchemaDao jsonSchemaDao;
+	private JsonSchemaDaoImpl jsonSchemaDao;
 
 	@Autowired
 	private OrganizationDao organizationDao;

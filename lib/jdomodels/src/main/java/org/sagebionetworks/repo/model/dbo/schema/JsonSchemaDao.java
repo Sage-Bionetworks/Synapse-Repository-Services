@@ -6,24 +6,6 @@ import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 public interface JsonSchemaDao {
 
 	/**
-	 * Lookup the schemaId given an organizationId and schema name, and lock on the
-	 * row using FOR UPDATE.
-	 * 
-	 * @param organizationId
-	 * @param schemaName
-	 * @return schemaId
-	 */
-	String getSchemaInfoForUpdate(String organizationId, String schemaName);
-
-	/**
-	 * Get the JSON data ID for the provide sha256hex
-	 * 
-	 * @param sha256hex
-	 * @return
-	 */
-	String getJsonBlobId(String sha256hex);
-
-	/**
 	 * Get the version information for the given version ID
 	 * 
 	 * @param versionId
@@ -97,35 +79,6 @@ public interface JsonSchemaDao {
 	void deleteSchemaVersion(String versionId);
 
 	/**
-	 * Use: {@link #createNewSchemaVersion(NewSchemaVersionRequest)}
-	 * 
-	 * @param organizationId
-	 * @param schemaName
-	 * @param createdBy
-	 * @return
-	 */
-	String createSchemaIfDoesNotExist(String organizationId, String schemaName, Long createdBy);
-
-	/**
-	 * Use: {@link #createNewSchemaVersion(NewSchemaVersionRequest)}
-	 * 
-	 * @param schema
-	 * @return
-	 */
-	String createJsonBlobIfDoesNotExist(JsonSchema schema);
-
-	/**
-	 * Use: {@link #createNewSchemaVersion(NewSchemaVersionRequest)}
-	 * 
-	 * @param schemaId
-	 * @param semanticVersion
-	 * @param createdBy
-	 * @param blobId
-	 * @return
-	 */
-	JsonSchemaVersionInfo createNewVersion(String schemaId, String semanticVersion, Long createdBy, String blobId);
-
-	/**
 	 * Create a new schema version for the given request.
 	 * 
 	 * @param request
@@ -133,28 +86,5 @@ public interface JsonSchemaDao {
 	 */
 	JsonSchemaVersionInfo createNewSchemaVersion(NewSchemaVersionRequest request);
 
-	/**
-	 * Find the latest version ID for the given schema ID without using the cache.
-	 * 
-	 * @param schemaId
-	 * @return
-	 */
-	Long findLatestVersionId(String schemaId);
-
-	/**
-	 * Get the schemaId for the given versionId and lock schema row using FOR
-	 * UPDATE.
-	 * 
-	 * @param versionId
-	 * @return
-	 */
-	String getSchemaIdForUpdate(String versionId);
-
-	/**
-	 * Get the etag of the latest version for a given schema ID.
-	 * @param schemaId
-	 * @return
-	 */
-	String getLatestVersionEtag(String schemaId);
 
 }
