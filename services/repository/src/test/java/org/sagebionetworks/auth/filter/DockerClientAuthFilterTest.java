@@ -28,6 +28,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
@@ -54,6 +55,9 @@ public class DockerClientAuthFilterTest {
 	
 	@Mock 
 	private OIDCTokenHelper mockOidcTokenHelper;
+	
+	@Mock 
+	private OpenIDConnectManager mockOidcManager;
 
 	@InjectMocks
 	private DockerClientAuthFilter filter;
@@ -77,7 +81,7 @@ public class DockerClientAuthFilterTest {
 	public void testDoFilterWithoutBasicAuth() throws Exception {
 		when(mockRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
 		when(mockRequest.getHeaders(AUTHORIZATION_HEADER_NAME)).thenReturn(Collections.emptyEnumeration());
-
+				
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		verify(mockAuthenticationService, never()).login(any(LoginRequest.class));
 		verify(mockAuthenticationService, never()).lookupUserForAuthentication(anyString());
@@ -93,6 +97,7 @@ public class DockerClientAuthFilterTest {
 	public void testDoFilterWithWrongUsernameAndPassword() throws Exception {
 		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
 		when(mockRequest.getHeader(AUTHORIZATION_HEADER_NAME)).thenReturn(header);
+		when(mockOidcManager.getUserId(PASSWORD)).thenThrow(new IllegalArgumentException()); // not an access token
 		LoginRequest loginCred = new LoginRequest();
 		loginCred.setUsername(USERNAME);
 		loginCred.setPassword(PASSWORD);
@@ -110,6 +115,7 @@ public class DockerClientAuthFilterTest {
 	public void testDoFilterWithNotFoundUsername() throws Exception {
 		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
 		when(mockRequest.getHeader(AUTHORIZATION_HEADER_NAME)).thenReturn(header);
+		when(mockOidcManager.getUserId(PASSWORD)).thenThrow(new IllegalArgumentException()); // not an access token
 		LoginRequest loginCred = new LoginRequest();
 		loginCred.setUsername(USERNAME);
 		loginCred.setPassword(PASSWORD);
@@ -128,6 +134,8 @@ public class DockerClientAuthFilterTest {
 		when(mockRequest.getHeader(AUTHORIZATION_HEADER_NAME)).thenReturn(header);
 		when(mockRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
 		when(mockRequest.getHeaders(AUTHORIZATION_HEADER_NAME)).thenReturn(Collections.emptyEnumeration());
+		when(mockOidcManager.getUserId(PASSWORD)).thenThrow(new IllegalArgumentException()); // not an access token
+		when(mockOidcTokenHelper.parseJWT(PASSWORD)).thenThrow(new IllegalArgumentException()); // not an access token
 		String token = "token";
 		when(mockOidcTokenHelper.createTotalAccessToken(USERID)).thenReturn(token);
 		LoginRequest loginCred = new LoginRequest();

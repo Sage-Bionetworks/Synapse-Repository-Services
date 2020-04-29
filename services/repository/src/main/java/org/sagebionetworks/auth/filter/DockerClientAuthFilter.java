@@ -16,6 +16,7 @@ import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.ModHttpServletRequest;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
@@ -32,15 +33,19 @@ public class DockerClientAuthFilter extends BasicAuthenticationFilter {
 	
 	private OIDCTokenHelper oidcTokenHelper;
 
+	private OpenIDConnectManager oidcManager;
+	
 	@Autowired
 	public DockerClientAuthFilter(
 			StackConfiguration config, 
 			Consumer consumer, 
 			AuthenticationService authenticationService,
-			OIDCTokenHelper oidcTokenHelper) {
+			OIDCTokenHelper oidcTokenHelper,
+			OpenIDConnectManager oidcManager) {
 		super(config, consumer);
 		this.authenticationService = authenticationService;
 		this.oidcTokenHelper=oidcTokenHelper;
+		this.oidcManager=oidcManager;
 	}
 
 	// The anonymous user can come in
@@ -56,18 +61,28 @@ public class DockerClientAuthFilter extends BasicAuthenticationFilter {
 
 	@Override
 	protected boolean validCredentials(UserNameAndPassword credentials) {
-		LoginRequest credential = new LoginRequest();
-		
-		credential.setUsername(credentials.getUserName());
-		credential.setPassword(credentials.getPassword());
-		
+
 		try {
-			authenticationService.login(credential);
-		} catch (UnauthenticatedException e) {
-			return false;
+			// is the password actually an access token?
+			String userId = oidcManager.getUserId(credentials.getPassword());
+			// it is!  does the user id match the user name?
+			PrincipalAlias alias = authenticationService.lookupUserForAuthentication(credentials.getUserName());
+			return alias.getPrincipalId().equals(userId);
+		} catch (IllegalArgumentException iae) {
+			// the password is NOT a (valid) access token,
+			// but maybe it's a password
+			LoginRequest credential = new LoginRequest();
+			
+			credential.setUsername(credentials.getUserName());
+			credential.setPassword(credentials.getPassword());
+			
+			try {
+				authenticationService.login(credential);
+				return true;
+			} catch (UnauthenticatedException e) {
+				return false;
+			}
 		}
-		
-		return true;
 
 	}
 	
@@ -88,8 +103,17 @@ public class DockerClientAuthFilter extends BasicAuthenticationFilter {
 		}
 		
 		Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(request);
+		
 		if (!userId.equals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())) {
-			String accessToken = oidcTokenHelper.createTotalAccessToken(userId);
+
+			String accessToken;
+			try {
+				accessToken=credentials.getPassword();
+				oidcTokenHelper.parseJWT(accessToken);
+			} catch (IllegalArgumentException iae) {
+				accessToken = oidcTokenHelper.createTotalAccessToken(userId);
+			}
+			
 			HttpAuthUtil.setBearerTokenHeader(modHeaders, accessToken);
 		}
 
