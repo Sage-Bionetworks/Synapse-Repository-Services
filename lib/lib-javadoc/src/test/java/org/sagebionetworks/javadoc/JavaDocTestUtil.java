@@ -47,7 +47,7 @@ public class JavaDocTestUtil {
 		reader.close();
 		classpath += File.pathSeparator + additionalClasspathDirectory.getAbsolutePath();
 
-		int result = Main.execute(JavaDocTestUtil.class.getClassLoader(), new String[]{
+		Main.execute(JavaDocTestUtil.class.getClassLoader(), new String[]{
 			"-d",
 			outputDirectory.getAbsolutePath(),
 			"-doclet", TestDoclet.class.getName(),

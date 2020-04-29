@@ -98,7 +98,7 @@ public class NodeManagerAuthorizationTest {
 		// The user is allowed to create the file handle but not allowed to use the file handle.
 		String fileHandleId = "123456";
 		when(mockAuthDao.canCreate(mockUserInfo, mockNode.getParentId(), mockNode.getNodeType())).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthDao.canAccessRawFileHandleById(mockUserInfo, fileHandleId, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationStatus.accessDenied(""));
+		when(mockAuthDao.canAccessRawFileHandleById(mockUserInfo, fileHandleId)).thenReturn(AuthorizationStatus.accessDenied(""));
 		when(mockNode.getFileHandleId()).thenReturn(fileHandleId);
 		// Should fail
 		nodeManager.createNewNode(mockNode, mockUserInfo);
@@ -109,7 +109,7 @@ public class NodeManagerAuthorizationTest {
 		// The user is allowed to create the file handle but not allowed to use the file handle.
 		String fileHandleId = "123456";
 		when(mockAuthDao.canCreate(mockUserInfo, mockNode.getParentId(), mockNode.getNodeType())).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthDao.canAccessRawFileHandleById(mockUserInfo, fileHandleId, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthDao.canAccessRawFileHandleById(mockUserInfo, fileHandleId)).thenReturn(AuthorizationStatus.authorized());
 		when(mockNode.getFileHandleId()).thenReturn(fileHandleId);
 		when(mockEntityBootstrapper.getChildAclSchemeForPath(any(String.class))).thenReturn(ACL_SCHEME.INHERIT_FROM_PARENT);
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(AuthorizationStatus.authorized());
@@ -137,7 +137,7 @@ public class NodeManagerAuthorizationTest {
 		// The old file handle does not match the new file handle.
 		when(mockNodeDao.getFileHandleIdForVersion(mockNode.getId(), null)).thenReturn(oldFileHandleId);
 		// The user did not create the file handle.
-		when(mockAuthDao.canAccessRawFileHandleById(mockUserInfo, fileHandleId, ACCESS_TYPE.UPDATE)).thenReturn(
+		when(mockAuthDao.canAccessRawFileHandleById(mockUserInfo, fileHandleId)).thenReturn(
 				AuthorizationStatus.accessDenied(mockUserInfo.getId().toString()+" cannot access "+fileHandleId));
 		when(mockNode.getFileHandleId()).thenReturn(fileHandleId);
 		when(mockNode.getParentId()).thenReturn(parentId);
@@ -174,7 +174,7 @@ public class NodeManagerAuthorizationTest {
 		// The file handle was already set on this node so it is not changing with this update.
 		when(mockNodeDao.getFileHandleIdForVersion(mockNode.getId(), null)).thenReturn(fileHandleId);
 		// If the user were to set this file handle it would fail as they are not the creator of the file handle.
-		when(mockAuthDao.canAccessRawFileHandleById(mockUserInfo, fileHandleId, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.accessDenied(""));
+		when(mockAuthDao.canAccessRawFileHandleById(mockUserInfo, fileHandleId)).thenReturn(AuthorizationStatus.accessDenied(""));
 		when(mockNode.getFileHandleId()).thenReturn(fileHandleId);
 		when(mockNode.getParentId()).thenReturn(parentId);
 		when(mockAuthDao.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId))).thenReturn(AuthorizationStatus.authorized());
@@ -206,7 +206,7 @@ public class NodeManagerAuthorizationTest {
 		// The current file handle on the node does not match the new handle.
 		when(mockNodeDao.getFileHandleIdForVersion(mockNode.getId(), null)).thenReturn(oldFileHandleId);
 		// The user can access the new file handle.
-		when(mockAuthDao.canAccessRawFileHandleById(mockUserInfo, fileHandleId, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthDao.canAccessRawFileHandleById(mockUserInfo, fileHandleId)).thenReturn(AuthorizationStatus.authorized());
 		when(mockNode.getFileHandleId()).thenReturn(fileHandleId);
 		when(mockNode.getParentId()).thenReturn(parentId);
 		when(mockAuthDao.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId))).thenReturn(AuthorizationStatus.authorized());

@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.filter;
 
-import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -19,14 +18,15 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 public class JsonpCallbackFilterTest {
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 	}
 	
@@ -34,7 +34,7 @@ public class JsonpCallbackFilterTest {
 	private static final String CHARACTER_ENCODING = "ISO-8859-1";
 	private static final String JSON_FUNCTION_NAME = "myfunction";
 	
-	private static HttpServletRequest createHttpServletRequest() {
+	private static MockHttpServletRequest createHttpServletRequest() {
 		MockHttpServletRequest request = new MockHttpServletRequest(){
 			public Map<String,String[]> getParameterMap() {
 				Map<String,String[]> result = new HashMap<String,String[]>();
@@ -112,6 +112,54 @@ public class JsonpCallbackFilterTest {
 		
 		assertEquals(JSON_FUNCTION_NAME+"("+RESPONSE_BODY+");", 
 				new String(baos.toByteArray(), response.getCharacterEncoding()));
+	}
+
+
+	@Test
+	public void testRejectRequestWithSessionTokenHeader() throws Exception {
+		JsonpCallbackFilter filter = new JsonpCallbackFilter();
+		final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+		MockHttpServletRequest request = createHttpServletRequest();
+		request.addHeader("sessionToken", "xxxxxxx");
+
+		HttpServletResponse response = createHttpServletResponse(baos);
+		
+		FilterChain filterChain = new FilterChain() {
+			@Override
+			public void doFilter(ServletRequest request,
+					ServletResponse response) throws IOException,
+					ServletException {
+			}};
+			
+		assertThrows(ServletException.class, () -> {
+			filter.doFilter(request, response, filterChain);
+		});
+		
+	}
+
+
+	@Test
+	public void testRejectRequestWithAuthorizationHeader() throws Exception {
+		JsonpCallbackFilter filter = new JsonpCallbackFilter();
+		final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+		MockHttpServletRequest request = createHttpServletRequest();
+		request.addHeader("Authorization", "Bearer xxxx");
+
+		HttpServletResponse response = createHttpServletResponse(baos);
+		
+		FilterChain filterChain = new FilterChain() {
+			@Override
+			public void doFilter(ServletRequest request,
+					ServletResponse response) throws IOException,
+					ServletException {
+			}};
+			
+		assertThrows(ServletException.class, () -> {
+			filter.doFilter(request, response, filterChain);
+		});
+		
 	}
 
 }

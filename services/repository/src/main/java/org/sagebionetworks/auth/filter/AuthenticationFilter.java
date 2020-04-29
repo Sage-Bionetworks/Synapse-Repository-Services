@@ -22,12 +22,13 @@ import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.ModHttpServletRequest;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.OAuthClientNotVerifiedException;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
-import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.util.ThreadLocalProvider;
@@ -112,7 +113,7 @@ public class AuthenticationFilter implements Filter {
 				try {
 					// validate token and get userid parameter
 					userId = Long.parseLong(oidcManager.getUserId(accessToken));
-				} catch (IllegalArgumentException e) {
+				} catch (IllegalArgumentException  | ForbiddenException | OAuthClientNotVerifiedException e) {
 					String failureReason = "Invalid access token";
 					if (StringUtils.isNotEmpty(e.getMessage())) {
 						failureReason = e.getMessage();
@@ -123,18 +124,16 @@ public class AuthenticationFilter implements Filter {
 				}	
 			} else { // anonymous
 				userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
-				accessToken = oidcTokenHelper.createAnonymousAccessToken(); // TODO once we roll back the original OAuth changes we can remove this
 			}
 		}
 		
 		// there are multiple paths to this point, but all require creating a userId
 		ValidateArgument.required(userId, "userId");
-		ValidateArgument.required(accessToken, "accessToken"); // TODO once we roll back the original OAuth changes we can remove this
 
 		// If the user is not anonymous, check if they have accepted the terms of use
 		if (!BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(userId)) {
 			try {
-				if (!authenticationService.hasUserAcceptedTermsOfUse(accessToken)) {
+				if (!authenticationService.hasUserAcceptedTermsOfUse(userId)) {
 					HttpAuthUtil.reject((HttpServletResponse) servletResponse, TOU_UNSIGNED_REASON, HttpStatus.FORBIDDEN);
 					return;
 				}
