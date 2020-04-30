@@ -394,7 +394,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ValidateArgument.required(currentSchema, "currentSchema");
 
 		ObjectType objectType = getViewObjectType(viewId);
-		
+
+		// before updating. verify that all rows that would be changed won't exceed the user-specified maxListLength,
+		// which is used for query row size estimation
+		validateMaxListLengthInAnnotationReplication(objectType,viewId,viewTypeMask,allContainersInScope,currentSchema,null);
+
 		// copy the data from the entity replication tables to table's index
 		try {
 			tableIndexDao.copyEntityReplicationToView(objectType, viewId, viewTypeMask, allContainersInScope, currentSchema);
@@ -404,6 +408,34 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		}
 		// calculate the new CRC32;
 		return tableIndexDao.calculateCRC32ofTableView(viewId);
+	}
+
+	void validateMaxListLengthInAnnotationReplication(ObjectType objectType, long viewId, long viewTypeMask,
+															 Set<Long> allContainersInScope, List<ColumnModel> currentSchema,
+															 Set<Long> objectIdFilter){
+		Map<String,Long> listAnnotationListLengthMaximum = currentSchema.stream()
+				.filter(cm -> ColumnTypeListMappings.isList(cm.getColumnType()))
+				.collect(Collectors.toMap(
+						ColumnModel::getName,
+						ColumnModel::getMaximumListLength
+				));
+		if(listAnnotationListLengthMaximum.isEmpty()){
+			//nothing to validate
+			return;
+		}
+
+		Map<String,Long> maxLengthsInReplication = tableIndexDao.getMaxListSizeForAnnotations(objectType, viewId,
+				viewTypeMask,allContainersInScope, listAnnotationListLengthMaximum.keySet(), objectIdFilter);
+
+		for(Map.Entry<String,Long> entry : listAnnotationListLengthMaximum.entrySet()){
+			String annotationName = entry.getKey();
+			long maxListLength = entry.getValue();
+			long maxLengthInReplication = maxLengthsInReplication.getOrDefault(annotationName,0L);
+			if(maxLengthInReplication > maxListLength){
+				throw new IllegalArgumentException("maximumListLength for ColumnModel \""
+						+ annotationName + "\" must be at least: " + maxLengthInReplication);
+			}
+		}
 	}
 	
 	/**
@@ -679,10 +711,14 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ValidateArgument.required(currentSchema, "currentSchema");
 		
 		ObjectType objectType = getViewObjectType(viewId.getId());
-		
+		// before updating. verify that all rows that would be changed won't exceed the user-specified maxListLength,
+		// which is used for query row size estimation
+		//TODO: test
+		validateMaxListLengthInAnnotationReplication(objectType,viewId.getId(),viewTypeMask,allContainersInScope,currentSchema,rowsIdsWithChanges);
+
 		// all calls are in a single transaction.
 		tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
-			Long[] rowsIdsArray = rowsIdsWithChanges.stream().toArray(Long[] ::new); 
+			Long[] rowsIdsArray = rowsIdsWithChanges.stream().toArray(Long[] ::new);
  			// First delete the provided rows from the view
 			tableIndexDao.deleteRowsFromViewBatch(viewId, rowsIdsArray);
 			try {

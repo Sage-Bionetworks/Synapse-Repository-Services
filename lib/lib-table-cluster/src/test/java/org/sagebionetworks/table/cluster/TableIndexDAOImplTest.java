@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -28,6 +29,8 @@ import java.util.Set;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.junit.jupiter.api.AfterEach;
@@ -1407,6 +1410,228 @@ public class TableIndexDAOImplTest {
 	}
 
 	@Test
+	public void testGetMaxListSizeForAnnotations_nullScope() throws ParseException {
+
+		Set<Long> nullScope = null;
+
+		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
+				tableIndexDAO.getMaxListSizeForAnnotations(objectType, tableId.getId(),
+						ViewTypeMask.File.getMask(), nullScope, annotationNames, null)
+		).getMessage();
+
+		assertEquals("allContainersInScope is required.", errorMessage);
+
+	}
+
+	@Test
+	public void testGetMaxListSizeForAnnotations_emptyScope() throws ParseException {
+
+		Set<Long> emptyScope = Collections.emptySet();
+
+		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
+
+		assertEquals(Collections.emptyMap(),
+				tableIndexDAO.getMaxListSizeForAnnotations(objectType, tableId.getId(),
+						ViewTypeMask.File.getMask(), emptyScope, annotationNames, null));
+
+	}
+
+	@Test
+	public void testGetMaxListSizeForAnnotations_nullAnnotationNames() throws ParseException {
+
+		Set<Long> scope = Sets.newHashSet(222L,333L);
+
+		Set<String> nullAnnotationNames = null;
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
+				tableIndexDAO.getMaxListSizeForAnnotations(objectType, tableId.getId(),
+						ViewTypeMask.File.getMask(), scope, nullAnnotationNames, null)
+		).getMessage();
+
+		assertEquals("annotationNames is required.", errorMessage);
+
+	}
+
+	@Test
+	public void testGetMaxListSizeForAnnotations_emptyObjectIdFilter() throws ParseException {
+
+		Set<Long> scope = Sets.newHashSet(222L,333L);
+
+		Set<String> annotationNames = Sets.newHashSet("foo","bar");
+
+		Set<Long> emptyObjectIdFilter = Collections.emptySet();
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
+				tableIndexDAO.getMaxListSizeForAnnotations(objectType, tableId.getId(),
+						ViewTypeMask.File.getMask(), scope, annotationNames, emptyObjectIdFilter)
+		).getMessage();
+
+		assertEquals("When objectIdFilter is provided (not null) it cannot be empty", errorMessage);
+	}
+
+	@Test
+	public void testGetMaxListSizeForAnnotations_emptyAnnotationNames() throws ParseException {
+
+		Set<Long> scope = Sets.newHashSet(222L,333L);
+
+		Set<String> emptyAnnotationNames = Collections.emptySet();
+
+		assertEquals(Collections.emptyMap(),
+				tableIndexDAO.getMaxListSizeForAnnotations(objectType, tableId.getId(),
+						ViewTypeMask.File.getMask(), scope, emptyAnnotationNames, null));
+
+	}
+
+	@Test
+	public void testGetMaxListSizeForAnnotations() throws ParseException {
+		isView = true;
+		// delete all data
+		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+
+		// setup some hierarchy.
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		file1.setParentId(333L);
+		AnnotationDTO foo1 = new AnnotationDTO();
+		foo1.setKey("foo");
+		foo1.setValue(Arrays.asList("one", "two", "three"));
+		foo1.setType(AnnotationType.STRING);
+		foo1.setEntityId(2L);
+		AnnotationDTO bar1 = new AnnotationDTO();
+		bar1.setKey("bar");
+		bar1.setValue(Arrays.asList("1", "2", "3"));
+		bar1.setType(AnnotationType.LONG);
+		bar1.setEntityId(2L);
+
+		file1.setAnnotations(Arrays.asList(foo1,bar1));
+
+
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		file2.setParentId(222L);
+		AnnotationDTO foo2 = new AnnotationDTO();
+		foo2.setKey("foo");
+		foo2.setValue(Arrays.asList("one", "two"));
+		foo2.setType(AnnotationType.STRING);
+		foo2.setEntityId(3L);
+		AnnotationDTO bar2 = new AnnotationDTO();
+		bar2.setKey("bar");
+		bar2.setValue(Arrays.asList("1", "2", "3", "4","5"));
+		bar2.setType(AnnotationType.LONG);
+		bar2.setEntityId(3L);
+		file2.setAnnotations(Arrays.asList(foo2,bar2));
+
+
+		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+
+		// both parents
+		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
+		// Create the schema for this table
+		List<ColumnModel> schema = createSchemaFromEntityDTO(file2);
+		// Create the view index
+		createOrUpdateTable(schema, tableId, isView);
+		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
+		// method under test
+		Map<String, Long> listSizes = tableIndexDAO.getMaxListSizeForAnnotations(objectType, tableId.getId(), ViewTypeMask.File.getMask(), scope, annotationNames, null);
+		HashMap<String,Long> expected = new HashMap<>();
+		expected.put("foo",3L);
+		expected.put("bar",5L);
+		assertEquals(expected, listSizes);
+	}
+
+
+	@Test
+	public void testGetMaxListSizeForAnnotations_noAnnotationsInReplication() throws ParseException {
+		isView = true;
+		// delete all data
+		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+
+		// setup some hierarchy.
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		file1.setParentId(333L);
+
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		file2.setParentId(222L);
+
+
+		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+
+		// both parents
+		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
+		// Create the schema for this table
+		List<ColumnModel> schema = createSchemaFromEntityDTO(file2);
+		// Create the view index
+		createOrUpdateTable(schema, tableId, isView);
+		// Copy the entity data to the table
+		// method under test
+		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
+
+		Map<String, Long> listSizes = tableIndexDAO.getMaxListSizeForAnnotations(objectType, tableId.getId(), ViewTypeMask.File.getMask(), scope, annotationNames, null);
+		HashMap<String,Long> expected = new HashMap<>();
+		expected.put("foo",0L);
+		expected.put("bar",0L);
+		assertEquals(expected, listSizes);
+	}
+
+	@Test
+	public void testGetMaxListSizeForAnnotations_WithObjectIdFilter() throws ParseException {
+		isView = true;
+		// delete all data
+		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+
+		// setup some hierarchy.
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		file1.setParentId(333L);
+		AnnotationDTO foo1 = new AnnotationDTO();
+		foo1.setKey("foo");
+		foo1.setValue(Arrays.asList("one", "two", "three"));
+		foo1.setType(AnnotationType.STRING);
+		foo1.setEntityId(2L);
+		AnnotationDTO bar1 = new AnnotationDTO();
+		bar1.setKey("bar");
+		bar1.setValue(Arrays.asList("1", "2", "3"));
+		bar1.setType(AnnotationType.LONG);
+		bar1.setEntityId(2L);
+
+		file1.setAnnotations(Arrays.asList(foo1,bar1));
+
+
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		file2.setParentId(222L);
+		AnnotationDTO foo2 = new AnnotationDTO();
+		foo2.setKey("foo");
+		foo2.setValue(Arrays.asList("one", "two"));
+		foo2.setType(AnnotationType.STRING);
+		foo2.setEntityId(3L);
+		AnnotationDTO bar2 = new AnnotationDTO();
+		bar2.setKey("bar");
+		bar2.setValue(Arrays.asList("1", "2", "3", "4"));
+		bar2.setType(AnnotationType.LONG);
+		bar2.setEntityId(3L);
+		file2.setAnnotations(Arrays.asList(foo2,bar2));
+
+
+		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+
+		// both parents
+		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
+		// Create the schema for this table
+		List<ColumnModel> schema = createSchemaFromEntityDTO(file2);
+		// Create the view index
+		createOrUpdateTable(schema, tableId, isView);
+		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
+
+		Set<Long> objectIdFilter = Sets.newHashSet(2L);
+		// method under test
+		Map<String, Long> listSizes = tableIndexDAO.getMaxListSizeForAnnotations(objectType, tableId.getId(), ViewTypeMask.File.getMask(), scope, annotationNames, objectIdFilter);
+		HashMap<String,Long> expected = new HashMap<>();
+		expected.put("foo",3L);
+		expected.put("bar",3L);
+		assertEquals(expected, listSizes);
+	}
+
+
+	@Test
 	public void testCopyEntityReplicationToTable(){
 		isView = true;
 		// delete all data
@@ -1923,31 +2148,37 @@ public class TableIndexDAOImplTest {
 		ColumnModel cm = results.get(0);
 		assertEquals("foo", cm.getName());
 		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertNull(cm.getMaximumListLength());
 		assertEquals(new Long(101), cm.getMaximumSize());
 		// one
 		cm = results.get(1);
 		assertEquals("foo", cm.getName());
 		assertEquals(ColumnType.DOUBLE, cm.getColumnType());
+		assertNull(cm.getMaximumListLength());
 		assertEquals(null, cm.getMaximumSize());
 		// two
 		cm = results.get(2);
 		assertEquals("bar", cm.getName());
 		assertEquals(ColumnType.DOUBLE, cm.getColumnType());
+		assertNull(cm.getMaximumListLength());
 		assertEquals(null, cm.getMaximumSize());
 		// three
 		cm = results.get(3);
 		assertEquals("bar", cm.getName());
 		assertEquals(ColumnType.INTEGER, cm.getColumnType());
+		assertNull(cm.getMaximumListLength());
 		assertEquals(null, cm.getMaximumSize());
 		// four
 		cm = results.get(4);
 		assertEquals("foobar", cm.getName());
 		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertNull(cm.getMaximumListLength());
 		assertEquals(new Long(202), cm.getMaximumSize());
 		// five
 		cm = results.get(5);
 		assertEquals("barbaz", cm.getName());
 		assertEquals(ColumnType.STRING_LIST, cm.getColumnType());
+		assertEquals(3L, cm.getMaximumListLength());
 		assertEquals(new Long(111), cm.getMaximumSize());
 	}
 	

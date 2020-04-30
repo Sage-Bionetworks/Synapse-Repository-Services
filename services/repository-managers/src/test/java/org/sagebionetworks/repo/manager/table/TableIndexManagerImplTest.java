@@ -1,4 +1,5 @@
 package org.sagebionetworks.repo.manager.table;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -19,6 +20,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -31,6 +33,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -518,11 +521,12 @@ public class TableIndexManagerImplTest {
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		// call under test
-		Long resultCrc = manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);
+		Long resultCrc = managerSpy.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);
 		assertEquals(crc32, resultCrc);
 		verify(mockIndexDao).copyEntityReplicationToView(objectType, tableId.getId(), viewType, scope, schema);
 		// the CRC should be calculated with the etag column.
 		verify(mockIndexDao).calculateCRC32ofTableView(tableId.getId());
+		verify(managerSpy).validateMaxListLengthInAnnotationReplication(objectType,tableId.getId(),viewType,scope,schema,null);
 	}
 	
 	/**
@@ -596,11 +600,12 @@ public class TableIndexManagerImplTest {
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		// call under test
-		Long resultCrc = manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);
+		Long resultCrc = managerSpy.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);
 		assertEquals(crc32, resultCrc);
 		verify(mockIndexDao).copyEntityReplicationToView(objectType, tableId.getId(), viewType, scope, schema);
 		// the CRC should be calculated with the etag column.
 		verify(mockIndexDao).calculateCRC32ofTableView(tableId.getId());
+		verify(managerSpy).validateMaxListLengthInAnnotationReplication(objectType,tableId.getId(),viewType,scope,schema,null);
 	}
 	
 	@Test
@@ -1308,6 +1313,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).copyEntityReplicationToView(objectType, tableId.getId(), viewType, scopeIds, schema, rowsIdsWithChanges);
 		verify(managerSpy).populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
 		verify(managerSpy, never()).determineCauseOfReplicationFailure(any(), any(), any(), any(), any());
+		verify(managerSpy).validateMaxListLengthInAnnotationReplication(objectType,tableId.getId(),viewType,scopeIds,schema,rowsIdsWithChanges);
 	}
 	
 	@Test
@@ -1330,6 +1336,7 @@ public class TableIndexManagerImplTest {
 		// must attempt to determine the type of exception.
 		verify(managerSpy).determineCauseOfReplicationFailure(exception, objectType, schema, scopeIds, viewType);
 		verify(managerSpy, never()).populateListColumnIndexTables(any(), any(), any());
+		verify(managerSpy).validateMaxListLengthInAnnotationReplication(objectType,tableId.getId(),viewType,scopeIds,schema,rowsIdsWithChanges);
 	}
 	
 	@Test
@@ -1794,6 +1801,170 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).createMultivalueColumnIndexTable(tableId, columnModel, alterTemp);
 		verify(mockIndexDao).populateListColumnIndexTable(tableId, columnModel, null, alterTemp);
 		verify(mockIndexDao).deleteMultivalueColumnIndexTable(tableId, columnIdToRemove, alterTemp);
+	}
+
+	@Test
+	public void testValidateMaxListLengthInAnnotationReplication_noListColumns(){
+
+		ColumnModel bar = new ColumnModel();
+		bar.setId("1234");
+		bar.setName("bar");
+		bar.setColumnType(ColumnType.INTEGER);
+
+		List<ColumnModel> currentSchema = Arrays.asList(bar);
+
+
+		ObjectType objectType = ObjectType.FILE;
+		long viewId = 123L;
+		long viewTypeMask = 1L;
+		Set<Long> allContainersInScope = Sets.newHashSet(111L,222L);
+		Set<Long> objectIdFilter = null;
+
+		// method under test
+		manager.validateMaxListLengthInAnnotationReplication(objectType,viewId,viewTypeMask,
+				allContainersInScope,currentSchema,objectIdFilter);
+		verifyZeroInteractions(mockIndexDao);
+	}
+
+
+	@Test
+	public void testValidateMaxListLengthInAnnotationReplication_maxInReplicationExceeded(){
+		ColumnModel foo = new ColumnModel();
+		foo.setId("9876");
+		foo.setName("foo");
+		foo.setColumnType(ColumnType.STRING_LIST);
+		foo.setMaximumSize(46L);
+		foo.setMaximumListLength(5L);
+
+		ColumnModel bar = new ColumnModel();
+		bar.setId("1234");
+		bar.setName("bar");
+		bar.setColumnType(ColumnType.INTEGER);
+
+
+		ColumnModel baz = new ColumnModel();
+		baz.setId("6666");
+		baz.setName("baz");
+		baz.setColumnType(ColumnType.INTEGER_LIST);
+		baz.setMaximumListLength(15L);
+
+		List<ColumnModel> currentSchema = Arrays.asList(foo,bar,baz);
+
+		ObjectType objectType = ObjectType.FILE;
+		long viewId = 123L;
+		long viewTypeMask = 1L;
+		Set<Long> allContainersInScope = Sets.newHashSet(111L,222L);
+		Set<Long> objectIdFilter = null;
+
+		HashSet<String> listAnnotationNames = Sets.newHashSet("foo", "baz");
+
+		//mock return a map where "baz" exceeds its defined limit
+		when(mockIndexDao.getMaxListSizeForAnnotations(objectType, viewId,
+				viewTypeMask,allContainersInScope, listAnnotationNames, objectIdFilter))
+				.thenReturn(ImmutableMap.of("foo",4L,"baz",16L));
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
+						// method under test
+						manager.validateMaxListLengthInAnnotationReplication(objectType,viewId,viewTypeMask,
+								allContainersInScope,currentSchema,objectIdFilter)
+				).getMessage();
+
+		assertEquals("maximumListLength for ColumnModel \"baz\" must be at least: 16", errorMessage);
+
+		verify(mockIndexDao).getMaxListSizeForAnnotations(objectType, viewId,
+				viewTypeMask,allContainersInScope, listAnnotationNames, objectIdFilter);
+	}
+
+	@Test
+	public void testValidateMaxListLengthInAnnotationReplication_valueNotInReturnedMap(){
+		ColumnModel foo = new ColumnModel();
+		foo.setId("9876");
+		foo.setName("foo");
+		foo.setColumnType(ColumnType.STRING_LIST);
+		foo.setMaximumSize(46L);
+		foo.setMaximumListLength(5L);
+
+		ColumnModel bar = new ColumnModel();
+		bar.setId("1234");
+		bar.setName("bar");
+		bar.setColumnType(ColumnType.INTEGER);
+
+
+		ColumnModel baz = new ColumnModel();
+		baz.setId("6666");
+		baz.setName("baz");
+		baz.setColumnType(ColumnType.INTEGER_LIST);
+		baz.setMaximumListLength(15L);
+
+		List<ColumnModel> currentSchema = Arrays.asList(foo,bar,baz);
+
+		ObjectType objectType = ObjectType.FILE;
+		long viewId = 123L;
+		long viewTypeMask = 1L;
+		Set<Long> allContainersInScope = Sets.newHashSet(111L,222L);
+		Set<Long> objectIdFilter = null;
+
+		HashSet<String> listAnnotationNames = Sets.newHashSet("foo", "baz");
+
+		//mock return a map where only "foo" exists as a key
+		when(mockIndexDao.getMaxListSizeForAnnotations(objectType, viewId,
+				viewTypeMask,allContainersInScope, listAnnotationNames, objectIdFilter))
+				.thenReturn(ImmutableMap.of("foo",4L));
+
+		assertDoesNotThrow(() ->
+				// method under test
+				manager.validateMaxListLengthInAnnotationReplication(objectType,viewId,viewTypeMask,
+						allContainersInScope,currentSchema,objectIdFilter)
+		);
+
+		verify(mockIndexDao).getMaxListSizeForAnnotations(objectType, viewId,
+				viewTypeMask,allContainersInScope, listAnnotationNames, objectIdFilter);
+	}
+
+	@Test
+	public void testValidateMaxListLengthInAnnotationReplication_allUnderLimit(){
+		ColumnModel foo = new ColumnModel();
+		foo.setId("9876");
+		foo.setName("foo");
+		foo.setColumnType(ColumnType.STRING_LIST);
+		foo.setMaximumSize(46L);
+		foo.setMaximumListLength(5L);
+
+		ColumnModel bar = new ColumnModel();
+		bar.setId("1234");
+		bar.setName("bar");
+		bar.setColumnType(ColumnType.INTEGER);
+
+
+		ColumnModel baz = new ColumnModel();
+		baz.setId("6666");
+		baz.setName("baz");
+		baz.setColumnType(ColumnType.INTEGER_LIST);
+		baz.setMaximumListLength(15L);
+
+		List<ColumnModel> currentSchema = Arrays.asList(foo,bar,baz);
+
+		ObjectType objectType = ObjectType.FILE;
+		long viewId = 123L;
+		long viewTypeMask = 1L;
+		Set<Long> allContainersInScope = Sets.newHashSet(111L,222L);
+		Set<Long> objectIdFilter = null;
+
+		HashSet<String> listAnnotationNames = Sets.newHashSet("foo", "baz");
+
+		//mock return a map where "baz" does not exceed limit
+		when(mockIndexDao.getMaxListSizeForAnnotations(objectType, viewId,
+				viewTypeMask,allContainersInScope, listAnnotationNames, objectIdFilter))
+				.thenReturn(ImmutableMap.of("foo",4L,"bar",15L));
+
+		assertDoesNotThrow(() ->
+				// method under test
+				manager.validateMaxListLengthInAnnotationReplication(objectType,viewId,viewTypeMask,
+						allContainersInScope,currentSchema,objectIdFilter)
+		);
+
+		verify(mockIndexDao).getMaxListSizeForAnnotations(objectType, viewId,
+				viewTypeMask,allContainersInScope, listAnnotationNames, objectIdFilter);
 	}
 
 	

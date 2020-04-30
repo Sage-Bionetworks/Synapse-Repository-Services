@@ -4,6 +4,7 @@ import static org.sagebionetworks.repo.model.table.ColumnConstants.isTableTooLar
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_ALIAS;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_DOUBLE_ABSTRACT;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_LIST_LENGTH;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
@@ -1442,6 +1443,13 @@ public class SQLUtils {
 		List<ColumnMetadata> metadata = translateColumns(currentSchema);
 		builder.append("SELECT ");
 		List<String> headers = buildSelect(builder, metadata);
+		objectReplicationJoinAnnotationReplicationFilter(builder, viewTypeMask, filterByRows);
+		builder.append(" GROUP BY ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID);
+		builder.append(" ORDER BY ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID);
+		return headers;
+	}
+
+	private static void objectReplicationJoinAnnotationReplicationFilter(StringBuilder builder, Long viewTypeMask, boolean filterByRows) {
 		builder.append(" FROM ");
 		builder.append(OBJECT_REPLICATION_TABLE);
 		builder.append(" ");
@@ -1476,9 +1484,24 @@ public class SQLUtils {
 			builder.append(" AND ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID)
 					.append(" IN (:").append(ID_PARAM_NAME).append(")");
 		}
-		builder.append(" GROUP BY ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID);
-		builder.append(" ORDER BY ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID);
-		return headers;
+	}
+
+	/**
+	 * Generate the SQL to validate that all of the list columns for a view table from the object replication tables.
+	 * @param viewId
+	 * @param viewTypeMask
+	 * @param annotationNames
+	 * @return
+	 */
+	public static String createAnnotationMaxListLengthSQL(Long viewId, Long viewTypeMask,
+																 Set<String> annotationNames, boolean filterByRows) {
+		ValidateArgument.requiredNotEmpty(annotationNames,"annotationNames");
+
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT ");
+		buildSelectListLength(builder, annotationNames);
+		objectReplicationJoinAnnotationReplicationFilter(builder, viewTypeMask, filterByRows);
+		return builder.toString();
 	}
 	
 	/**
@@ -1523,6 +1546,30 @@ public class SQLUtils {
 			headers.addAll(buildSelectMetadata(builder, meta));
 		}
 		return headers;
+	}
+
+	/**
+	 * Build the select clause to retrieve list lengths for each annotation.
+	 * @param builder
+	 * @param currentSchema
+	 */
+	private static void buildSelectListLength(StringBuilder builder,
+										   Set<String> annotationNames) {
+
+		boolean first = true;
+		for(String annotation: annotationNames){
+			if(!first){
+				builder.append(", ");
+			}
+			builder.append(String.format("MAX(IF(%1$s.%2$s ='%3$s', %1$s.%4$s, 0)) AS %3$s",
+					ANNOTATION_REPLICATION_ALIAS,
+					ANNOTATION_REPLICATION_COL_KEY,
+					annotation,
+					ANNOTATION_REPLICATION_COL_LIST_LENGTH
+			));
+
+			first = false;
+		}
 	}
 	
 	/**
@@ -1933,6 +1980,7 @@ public class SQLUtils {
 				.max(Integer::compareTo)
 				.orElse(0);
 		ps.setLong(parameterIndex++, maxElementStringSize);
+		ps.setLong(parameterIndex++, stringList.size());
 	}
 
 	/**

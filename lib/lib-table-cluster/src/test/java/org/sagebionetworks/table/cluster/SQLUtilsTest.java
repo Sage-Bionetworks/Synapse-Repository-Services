@@ -17,10 +17,13 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -1998,6 +2001,75 @@ public class SQLUtilsTest {
 				+ " GROUP BY R.OBJECT_ID ORDER BY R.OBJECT_ID", sql);
 		assertEquals(Lists.newArrayList("ROW_ID", "ROW_VERSION","ROW_ETAG","ROW_BENEFACTOR","_C1_","_C2_"), headers);
 	}
+
+	@Test
+	public void createMaxListLengthValidationSQL_singleAnnotation(){
+		Set<String> annotationNames = Sets.newHashSet("foo");
+		Long viewTypeMask = ViewTypeMask.File.getMask();
+		StringBuilder builder = new StringBuilder();
+		boolean filterByRows = false;
+		String sql = SQLUtils.createAnnotationMaxListLengthSQL(viewId, viewTypeMask, annotationNames, filterByRows);
+
+		assertEquals("SELECT"
+				+ " MAX(IF(A.ANNO_KEY ='foo', A.LIST_LENGTH, NULL)) AS foo"
+				+ " FROM"
+				+ " OBJECT_REPLICATION R"
+				+ " LEFT JOIN ANNOTATION_REPLICATION A"
+				+ " ON(R.OBJECT_TYPE = A.OBJECT_TYPE AND R.OBJECT_ID = A.OBJECT_ID)"
+				+ " WHERE"
+				+ " R.OBJECT_TYPE = :objectType"
+				+ " AND R.PARENT_ID IN (:parentIds)"
+				+ " AND R.SUBTYPE IN ('file')", sql);
+	}
+
+	@Test
+	public void createMaxListLengthValidationSQL_multipleAnnotations(){
+		Set<String> annotationNames = Sets.newHashSet("foo", "bar","baz");
+		Long viewTypeMask = ViewTypeMask.File.getMask();
+		StringBuilder builder = new StringBuilder();
+		boolean filterByRows = false;
+		String sql = SQLUtils.createAnnotationMaxListLengthSQL(viewId, viewTypeMask, annotationNames, filterByRows);
+
+		assertEquals("SELECT"
+				+ " MAX(IF(A.ANNO_KEY ='foo', A.LIST_LENGTH, 0)) AS foo"
+				+ ", MAX(IF(A.ANNO_KEY ='bar', A.LIST_LENGTH, 0)) AS bar"
+				+ ", MAX(IF(A.ANNO_KEY ='baz', A.LIST_LENGTH, 0)) AS baz"
+				+ " FROM"
+				+ " OBJECT_REPLICATION R"
+				+ " LEFT JOIN ANNOTATION_REPLICATION A"
+				+ " ON(R.OBJECT_TYPE = A.OBJECT_TYPE AND R.OBJECT_ID = A.OBJECT_ID)"
+				+ " WHERE"
+				+ " R.OBJECT_TYPE = :objectType"
+				+ " AND R.PARENT_ID IN (:parentIds)"
+				+ " AND R.SUBTYPE IN ('file')", sql);
+	}
+
+
+	@Test
+	public void createMaxListLengthValidationSQL_nullAnnotationNames(){
+		Set<String> annotationNames = null;
+		Long viewTypeMask = ViewTypeMask.File.getMask();
+		StringBuilder builder = new StringBuilder();
+		boolean filterByRows = false;
+
+		assertThrows(IllegalArgumentException.class, () ->
+			SQLUtils.createAnnotationMaxListLengthSQL(viewId, viewTypeMask, annotationNames, filterByRows)
+		);
+
+	}
+
+	@Test
+	public void createMaxListLengthValidationSQL_emptyAnnotationNames(){
+		Set<String> annotationNames = Collections.emptySet();
+		Long viewTypeMask = ViewTypeMask.File.getMask();
+		StringBuilder builder = new StringBuilder();
+		boolean filterByRows = false;
+
+		assertThrows(IllegalArgumentException.class, () ->
+				SQLUtils.createAnnotationMaxListLengthSQL(viewId, viewTypeMask, annotationNames, filterByRows)
+		);
+
+	}
 	
 	@Test
 	public void testCreateSelectFromObjectReplicationFilterByRows(){
@@ -2679,6 +2751,7 @@ public class SQLUtilsTest {
 		verify(mockPreparedStatement).setString(11, null);
 		verify(mockPreparedStatement).setString(12, null);
 		verify(mockPreparedStatement).setLong(13, 4);
+		verify(mockPreparedStatement).setLong(14, 2);
 
 	}
 
@@ -2731,6 +2804,7 @@ public class SQLUtilsTest {
 		verify(mockPreparedStatement).setString(11, null);
 		verify(mockPreparedStatement).setString(12, "[false,true,false]");
 		verify(mockPreparedStatement).setLong(13, 5);
+		verify(mockPreparedStatement).setLong(14, 3);
 	}
 
 	@Test
@@ -2796,6 +2870,7 @@ public class SQLUtilsTest {
 		verify(mockPreparedStatement).setString(11, "[123,4560,789]");
 		verify(mockPreparedStatement).setString(12, null);
 		verify(mockPreparedStatement).setLong(13, 4);
+		verify(mockPreparedStatement).setLong(14, 4);
 
 	}
 
