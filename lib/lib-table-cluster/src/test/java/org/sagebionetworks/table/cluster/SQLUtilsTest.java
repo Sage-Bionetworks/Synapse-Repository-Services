@@ -1943,7 +1943,7 @@ public class SQLUtilsTest {
 		String sql = SQLUtils.createAnnotationMaxListLengthSQL(viewId, viewTypeMask, annotationNames, filterByRows);
 
 		assertEquals("SELECT"
-				+ " MAX(IF(A.ANNO_KEY ='foo', A.LIST_LENGTH, NULL)) AS foo"
+				+ " MAX(IF(A.ANNO_KEY ='foo', A.LIST_LENGTH, 0)) AS foo"
 				+ " FROM"
 				+ " OBJECT_REPLICATION R"
 				+ " LEFT JOIN ANNOTATION_REPLICATION A"
@@ -1956,7 +1956,7 @@ public class SQLUtilsTest {
 
 	@Test
 	public void createMaxListLengthValidationSQL_multipleAnnotations(){
-		Set<String> annotationNames = Sets.newHashSet("foo", "bar","baz");
+		Set<String> annotationNames = Sets.newLinkedHashSet(Arrays.asList("foo", "bar","baz"));
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = false;
@@ -2795,7 +2795,7 @@ public class SQLUtilsTest {
 		verify(mockPreparedStatement).setString(11, "[123,4560,789]");
 		verify(mockPreparedStatement).setString(12, null);
 		verify(mockPreparedStatement).setLong(13, 4);
-		verify(mockPreparedStatement).setLong(14, 4);
+		verify(mockPreparedStatement).setLong(14, 3);
 
 	}
 
