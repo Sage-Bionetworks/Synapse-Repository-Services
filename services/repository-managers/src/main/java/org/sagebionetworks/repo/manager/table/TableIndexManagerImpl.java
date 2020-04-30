@@ -401,7 +401,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 
 		// before updating. verify that all rows that would be changed won't exceed the user-specified maxListLength,
 		// which is used for query row size estimation
-		validateMaxListLengthInAnnotationReplication(objectType,viewId,viewTypeMask,allContainersInScope,currentSchema,null);
+		validateMaxListLengthInAnnotationReplication(objectType,viewId,typeMask,allContainersInScope,currentSchema,null);
 
 		// copy the data from the entity replication tables to table's index
 		try {
@@ -733,7 +733,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 
 		// before updating. verify that all rows that would be changed won't exceed the user-specified maxListLength,
 		// which is used for query row size estimation
-		validateMaxListLengthInAnnotationReplication(objectType,viewId.getId(),viewTypeMask,allContainersInScope,currentSchema,rowsIdsWithChanges);
+		validateMaxListLengthInAnnotationReplication(objectType,viewId.getId(),typeMask,allContainersInScope,currentSchema,rowsIdsWithChanges);
 
 		// all calls are in a single transaction.
 		tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {

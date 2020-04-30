@@ -520,12 +520,12 @@ public class TableIndexManagerImplTest {
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		// call under test
-		Long resultCrc = manager.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
+		Long resultCrc = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
 		assertEquals(crc32, resultCrc);
 		verify(mockIndexDao).copyEntityReplicationToView(scopeType.getObjectType(), tableId.getId(), scopeType.getTypeMask(), scope, schema);
 		// the CRC should be calculated with the etag column.
 		verify(mockIndexDao).calculateCRC32ofTableView(tableId.getId());
-		verify(managerSpy).validateMaxListLengthInAnnotationReplication(objectType,tableId.getId(),viewType,scope,schema,null);
+		verify(managerSpy).validateMaxListLengthInAnnotationReplication(objectType,tableId.getId(),scopeType.getTypeMask(),scope,schema,null);
 	}
 	
 	/**
@@ -594,12 +594,12 @@ public class TableIndexManagerImplTest {
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		// call under test
-		Long resultCrc = manager.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
+		Long resultCrc = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
 		assertEquals(crc32, resultCrc);
 		verify(mockIndexDao).copyEntityReplicationToView(scopeType.getObjectType(), tableId.getId(), scopeType.getTypeMask(), scope, schema);
 		// the CRC should be calculated with the etag column.
 		verify(mockIndexDao).calculateCRC32ofTableView(tableId.getId());
-		verify(managerSpy).validateMaxListLengthInAnnotationReplication(objectType,tableId.getId(),viewType,scope,schema,null);
+		verify(managerSpy).validateMaxListLengthInAnnotationReplication(objectType,tableId.getId(), scopeType.getTypeMask(),scope,schema,null);
 	}
 	
 	@Test
@@ -1304,7 +1304,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).copyEntityReplicationToView(scopeType.getObjectType(), tableId.getId(), scopeType.getTypeMask(), scopeIds, schema, rowsIdsWithChanges);
 		verify(managerSpy).populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
 		verify(managerSpy, never()).determineCauseOfReplicationFailure(any(), any(), any(), any());
-		verify(managerSpy).validateMaxListLengthInAnnotationReplication(objectType,tableId.getId(),viewType,scopeIds,schema,rowsIdsWithChanges);
+		verify(managerSpy).validateMaxListLengthInAnnotationReplication(objectType,tableId.getId(),scope.getViewTypeMask(),scopeIds,schema,rowsIdsWithChanges);
 	}
 	
 	@Test
@@ -1327,7 +1327,7 @@ public class TableIndexManagerImplTest {
 		// must attempt to determine the type of exception.
 		verify(managerSpy).determineCauseOfReplicationFailure(exception, scopeType, schema, scopeIds);
 		verify(managerSpy, never()).populateListColumnIndexTables(any(), any(), any());
-		verify(managerSpy).validateMaxListLengthInAnnotationReplication(objectType,tableId.getId(),viewType,scopeIds,schema,rowsIdsWithChanges);
+		verify(managerSpy).validateMaxListLengthInAnnotationReplication(objectType,tableId.getId(),scopeType.getTypeMask(),scopeIds,schema,rowsIdsWithChanges);
 	}
 	
 	@Test
