@@ -38,6 +38,27 @@
 		"description": {
 			"type": "string",
 			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-hypermedia.html#rfc.section.6.5.2\">description</a>"
+		},
+		"allOf": {
+			"description": "Use allOf to 'extend' or 'implement' one or more schemas.  See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.2.1.1\">allOf</a>",
+			"type": "array",
+			"items": {
+				"$recursiveRef": "#"
+			}
+		},
+		"anyOf": {
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.2.1.2\">anyOf</a>",
+			"type": "array",
+			"items": {
+				"$recursiveRef": "#"
+			}
+		},
+		"oneOf": {
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.2.1.3\">oneOf</a>",
+			"type": "array",
+			"items": {
+				"$recursiveRef": "#"
+			}
 		}
 	}
 }
