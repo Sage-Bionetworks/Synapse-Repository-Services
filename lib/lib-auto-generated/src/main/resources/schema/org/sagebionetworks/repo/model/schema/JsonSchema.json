@@ -16,10 +16,7 @@
 		},
 		"type": {
 			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.4.2.1\">Instance Data Model</a>",
-			"type": "array",
-			"items": {
-				"$ref": "org.sagebionetworks.repo.model.schema.Type"
-			}
+			"$ref": "org.sagebionetworks.repo.model.schema.Type"
 		},
 		"items": {
 			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.3.1.1\">items\"</a>",
