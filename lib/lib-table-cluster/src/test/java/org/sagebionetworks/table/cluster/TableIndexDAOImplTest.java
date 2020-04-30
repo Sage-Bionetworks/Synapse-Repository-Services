@@ -9,8 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_MAX_STRING_LENGTH;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
@@ -46,12 +46,12 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
-import org.sagebionetworks.repo.model.table.AnnotationDTO;
+import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.EntityDTO;
-import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
@@ -93,8 +93,8 @@ public class TableIndexDAOImplTest {
 	IdAndVersion tableId;
 	boolean isView;
 	
-	EntityDTO entityOne;
-	EntityDTO entityTwo;
+	ObjectDataDTO entityOne;
+	ObjectDataDTO entityTwo;
 	
 	ObjectType objectType;
 	ObjectType otherObjectType;
@@ -1300,13 +1300,13 @@ public class TableIndexDAOImplTest {
 		// delete all data
 		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(1L,2L,3L));
 
-		EntityDTO project = createEntityDTO(1L, EntityType.project, 0);
-		EntityDTO folder = createEntityDTO(2L, EntityType.folder, 5);
-		EntityDTO file = createEntityDTO(3L, EntityType.file, 10);
+		ObjectDataDTO project = createEntityDTO(1L, EntityType.project, 0);
+		ObjectDataDTO folder = createEntityDTO(2L, EntityType.folder, 5);
+		ObjectDataDTO file = createEntityDTO(3L, EntityType.file, 10);
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file, folder, project));
 
 		// lookup each
-		EntityDTO fetched = tableIndexDAO.getObjectData(objectType, 1L);
+		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, 1L);
 		assertEquals(project, fetched);
 		fetched = tableIndexDAO.getObjectData(objectType, 2L);
 		assertEquals(folder, fetched);
@@ -1320,9 +1320,9 @@ public class TableIndexDAOImplTest {
 		long id = 1L;
 		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(id));
 
-		EntityDTO project = createEntityDTO(id, EntityType.project, 0);
-		AnnotationDTO stringAnno = new AnnotationDTO();
-		stringAnno.setEntityId(id);
+		ObjectDataDTO project = createEntityDTO(id, EntityType.project, 0);
+		ObjectAnnotationDTO stringAnno = new ObjectAnnotationDTO();
+		stringAnno.setObjectId(id);
 		stringAnno.setType(AnnotationType.STRING);
 		stringAnno.setKey("myStringAnno");
 		stringAnno.setValue(Arrays.asList("a", "ab", "aaa", "abc", "c"));
@@ -1345,9 +1345,9 @@ public class TableIndexDAOImplTest {
 		long id = 1L;
 		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(id));
 
-		EntityDTO project = createEntityDTO(id, EntityType.project, 0);
-		AnnotationDTO abstractDoubleAnnos = new AnnotationDTO();
-		abstractDoubleAnnos.setEntityId(id);
+		ObjectDataDTO project = createEntityDTO(id, EntityType.project, 0);
+		ObjectAnnotationDTO abstractDoubleAnnos = new ObjectAnnotationDTO();
+		abstractDoubleAnnos.setObjectId(id);
 		abstractDoubleAnnos.setType(AnnotationType.DOUBLE);
 		abstractDoubleAnnos.setKey("abstractDoubles");
 		abstractDoubleAnnos.setValue(Arrays.asList("1.2", "infinity", "+infinity", "5.6", "nan", "7.8"));
@@ -1356,7 +1356,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(objectType, Collections.singletonList(project));
 
 		// lookup each
-		EntityDTO fetched = tableIndexDAO.getObjectData(objectType, id);
+		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, id);
 		assertEquals(project, fetched);
 	}
 	
@@ -1365,7 +1365,7 @@ public class TableIndexDAOImplTest {
 		// delete all data
 		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(1L));
 		
-		EntityDTO project = createEntityDTO(1L, EntityType.project, 0);
+		ObjectDataDTO project = createEntityDTO(1L, EntityType.project, 0);
 		project.setParentId(null);
 		project.setProjectId(null);
 		project.setFileHandleId(null);
@@ -1373,7 +1373,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(project));
 		
 		// lookup each
-		EntityDTO fetched = tableIndexDAO.getObjectData(objectType, 1L);
+		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, 1L);
 		assertEquals(project, fetched);
 	}
 	
@@ -1382,7 +1382,7 @@ public class TableIndexDAOImplTest {
 		// delete all data
 		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(1L));
 		
-		EntityDTO project = createEntityDTO(1L, EntityType.project, 0);
+		ObjectDataDTO project = createEntityDTO(1L, EntityType.project, 0);
 		project.setBenefactorId(null);
 		try {
 			tableIndexDAO.addObjectData(objectType, Lists.newArrayList(project));
@@ -1397,7 +1397,7 @@ public class TableIndexDAOImplTest {
 		// delete all data
 		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(1L));
 		
-		EntityDTO file = createEntityDTO(1L, EntityType.file, 5);
+		ObjectDataDTO file = createEntityDTO(1L, EntityType.file, 5);
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file));
 		// delete before an update
 		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(file.getId()));
@@ -1405,7 +1405,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file));
 		
 		// lookup each
-		EntityDTO fetched = tableIndexDAO.getObjectData(objectType, 1L);
+		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, 1L);
 		assertEquals(file, fetched);
 	}
 
@@ -1638,9 +1638,9 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
 		
 		// setup some hierarchy.
-		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		ObjectDataDTO file1 = createEntityDTO(2L, EntityType.file, 2);
 		file1.setParentId(333L);
-		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		ObjectDataDTO file2 = createEntityDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
 		
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
@@ -1668,21 +1668,21 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
 
 		// setup some hierarchy.
-		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		ObjectDataDTO file1 = createEntityDTO(2L, EntityType.file, 2);
 		file1.setParentId(333L);
-		AnnotationDTO double1 = new AnnotationDTO();
+		ObjectAnnotationDTO double1 = new ObjectAnnotationDTO();
 		double1.setKey("foo");
 		double1.setValue(Arrays.asList("NaN", "1.2", "Infinity"));
 		double1.setType(AnnotationType.STRING);
-		double1.setEntityId(2L);
+		double1.setObjectId(2L);
 		file1.setAnnotations(Arrays.asList(double1));
-		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		ObjectDataDTO file2 = createEntityDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
-		AnnotationDTO double2 = new AnnotationDTO();
+		ObjectAnnotationDTO double2 = new ObjectAnnotationDTO();
 		double2.setKey("foo");
 		double2.setValue(Arrays.asList("Infinity", "222.222"));
 		double2.setType(AnnotationType.STRING);
-		double2.setEntityId(3L);
+		double2.setObjectId(3L);
 		file2.setAnnotations(Arrays.asList(double2));
 
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
@@ -1720,21 +1720,21 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
 		
 		// setup some hierarchy.
-		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		ObjectDataDTO file1 = createEntityDTO(2L, EntityType.file, 2);
 		file1.setParentId(333L);
-		AnnotationDTO double1 = new AnnotationDTO();
+		ObjectAnnotationDTO double1 = new ObjectAnnotationDTO();
 		double1.setKey("foo");
 		double1.setValue("NaN");
 		double1.setType(AnnotationType.DOUBLE);
-		double1.setEntityId(2L);
+		double1.setObjectId(2L);
 		file1.setAnnotations(Arrays.asList(double1));
-		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		ObjectDataDTO file2 = createEntityDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
-		AnnotationDTO double2 = new AnnotationDTO();
+		ObjectAnnotationDTO double2 = new ObjectAnnotationDTO();
 		double2.setKey("foo");
 		double2.setValue("Infinity");
 		double2.setType(AnnotationType.DOUBLE);
-		double2.setEntityId(3L);
+		double2.setObjectId(3L);
 		file2.setAnnotations(Arrays.asList(double2));
 		
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
@@ -1759,21 +1759,21 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
 		
 		// setup some hierarchy.
-		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		ObjectDataDTO file1 = createEntityDTO(2L, EntityType.file, 2);
 		file1.setParentId(333L);
-		AnnotationDTO double1 = new AnnotationDTO();
+		ObjectAnnotationDTO double1 = new ObjectAnnotationDTO();
 		double1.setKey("foo");
 		double1.setValue("NaN");
 		double1.setType(AnnotationType.DOUBLE);
-		double1.setEntityId(2L);
+		double1.setObjectId(2L);
 		file1.setAnnotations(Arrays.asList(double1));
-		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		ObjectDataDTO file2 = createEntityDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
-		AnnotationDTO double2 = new AnnotationDTO();
+		ObjectAnnotationDTO double2 = new ObjectAnnotationDTO();
 		double2.setKey("foo");
 		double2.setValue("Infinity");
 		double2.setType(AnnotationType.DOUBLE);
-		double2.setEntityId(3L);
+		double2.setObjectId(3L);
 		file2.setAnnotations(Arrays.asList(double2));
 		
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
@@ -1801,21 +1801,21 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
 
 		// setup some hierarchy.
-		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		ObjectDataDTO file1 = createEntityDTO(2L, EntityType.file, 2);
 		file1.setParentId(333L);
-		AnnotationDTO int1 = new AnnotationDTO();
+		ObjectAnnotationDTO int1 = new ObjectAnnotationDTO();
 		int1.setKey("foo");
 		int1.setValue(Arrays.asList("123", "456", "789"));
 		int1.setType(AnnotationType.LONG);
-		int1.setEntityId(2L);
+		int1.setObjectId(2L);
 		file1.setAnnotations(Arrays.asList(int1));
-		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		ObjectDataDTO file2 = createEntityDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
-		AnnotationDTO int2 = new AnnotationDTO();
+		ObjectAnnotationDTO int2 = new ObjectAnnotationDTO();
 		int2.setKey("foo");
 		int2.setValue(Arrays.asList("321", "654"));
 		int2.setType(AnnotationType.LONG);
-		int2.setEntityId(3L);
+		int2.setObjectId(3L);
 		file2.setAnnotations(Arrays.asList(int2));
 
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
@@ -1847,21 +1847,21 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.deleteTable(tableId);
 		
 		// setup some hierarchy.
-		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		ObjectDataDTO file1 = createEntityDTO(2L, EntityType.file, 2);
 		file1.setParentId(333L);
-		AnnotationDTO double1 = new AnnotationDTO();
+		ObjectAnnotationDTO double1 = new ObjectAnnotationDTO();
 		double1.setKey("foo");
 		double1.setValue("NaN");
 		double1.setType(AnnotationType.DOUBLE);
-		double1.setEntityId(2L);
+		double1.setObjectId(2L);
 		file1.setAnnotations(Arrays.asList(double1));
-		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		ObjectDataDTO file2 = createEntityDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
-		AnnotationDTO double2 = new AnnotationDTO();
+		ObjectAnnotationDTO double2 = new ObjectAnnotationDTO();
 		double2.setKey("foo");
 		double2.setValue("Infinity");
 		double2.setType(AnnotationType.DOUBLE);
-		double2.setEntityId(3L);
+		double2.setObjectId(3L);
 		file2.setAnnotations(Arrays.asList(double2));
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
 		
@@ -1908,9 +1908,9 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
 		
 		// setup some hierarchy.
-		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		ObjectDataDTO file1 = createEntityDTO(2L, EntityType.file, 2);
 		file1.setParentId(333L);
-		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		ObjectDataDTO file2 = createEntityDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
 		
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
@@ -1937,9 +1937,9 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
 		
 		// setup some hierarchy.
-		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 15);
+		ObjectDataDTO file1 = createEntityDTO(2L, EntityType.file, 15);
 		file1.setParentId(333L);
-		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 12);
+		ObjectDataDTO file2 = createEntityDTO(3L, EntityType.file, 12);
 		file2.setParentId(222L);
 		
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
@@ -1978,24 +1978,24 @@ public class TableIndexDAOImplTest {
 		String duplicateName = "duplicate";
 		
 		// one
-		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 15);
+		ObjectDataDTO file1 = createEntityDTO(2L, EntityType.file, 15);
 		file1.getAnnotations().clear();
 		file1.setParentId(333L);
 		// add a string annotation with a size of 3
-		AnnotationDTO annoDto = new AnnotationDTO();
-		annoDto.setEntityId(file1.getId());
+		ObjectAnnotationDTO annoDto = new ObjectAnnotationDTO();
+		annoDto.setObjectId(file1.getId());
 		annoDto.setKey(duplicateName);
 		annoDto.setType(AnnotationType.STRING);
 		annoDto.setValue("123");
 		file1.getAnnotations().add(annoDto);
 	
 		// two
-		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 12);
+		ObjectDataDTO file2 = createEntityDTO(3L, EntityType.file, 12);
 		file2.getAnnotations().clear();
 		file2.setParentId(222L);
 		// add a long annotation with a size of 6
-		annoDto = new AnnotationDTO();
-		annoDto.setEntityId(file2.getId());
+		annoDto = new ObjectAnnotationDTO();
+		annoDto.setObjectId(file2.getId());
 		annoDto.setKey(duplicateName);
 		annoDto.setType(AnnotationType.LONG);
 		annoDto.setValue("123456");
@@ -2035,21 +2035,21 @@ public class TableIndexDAOImplTest {
 		// delete all data
 		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
 		// one
-		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 1);
+		ObjectDataDTO file1 = createEntityDTO(2L, EntityType.file, 1);
 		file1.getAnnotations().clear();
 		file1.setParentId(333L);
 
 		String key = "someKey";
 		// lower
-		AnnotationDTO lower = new AnnotationDTO();
-		lower.setEntityId(file1.getId());
+		ObjectAnnotationDTO lower = new ObjectAnnotationDTO();
+		lower.setObjectId(file1.getId());
 		lower.setKey(key.toLowerCase());
 		lower.setType(AnnotationType.STRING);
 		lower.setValue("123");
 		file1.getAnnotations().add(lower);
 		//upper
-		AnnotationDTO upper = new AnnotationDTO();
-		upper.setEntityId(file1.getId());
+		ObjectAnnotationDTO upper = new ObjectAnnotationDTO();
+		upper.setObjectId(file1.getId());
 		upper.setKey(key.toUpperCase());
 		upper.setType(AnnotationType.STRING);
 		upper.setValue("123");
@@ -2068,31 +2068,31 @@ public class TableIndexDAOImplTest {
 		String annoKey = "myAnnotation";
 
 		// setup some hierarchy.
-		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 0);
+		ObjectDataDTO file1 = createEntityDTO(2L, EntityType.file, 0);
 		file1.setParentId(333L);
 
-		AnnotationDTO annotationDTO1 = new AnnotationDTO();
+		ObjectAnnotationDTO annotationDTO1 = new ObjectAnnotationDTO();
 		annotationDTO1.setKey(annoKey);
 		annotationDTO1.setType(AnnotationType.STRING);
-		annotationDTO1.setEntityId(2L);
+		annotationDTO1.setObjectId(2L);
 		annotationDTO1.setValue(Arrays.asList("123"));
 		file1.setAnnotations(Collections.singletonList(annotationDTO1));
 
-		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 0);
+		ObjectDataDTO file2 = createEntityDTO(3L, EntityType.file, 0);
 		file2.setParentId(222L);
-		AnnotationDTO annotationDTO2 = new AnnotationDTO();
+		ObjectAnnotationDTO annotationDTO2 = new ObjectAnnotationDTO();
 		annotationDTO2.setKey(annoKey);
 		annotationDTO2.setType(AnnotationType.STRING);
-		annotationDTO2.setEntityId(3L);
+		annotationDTO2.setObjectId(3L);
 		annotationDTO2.setValue(Arrays.asList("12",  "123456", "1234"));
 		file2.setAnnotations(Collections.singletonList(annotationDTO2));
 
-		EntityDTO file3 = createEntityDTO(4L, EntityType.file, 0);
+		ObjectDataDTO file3 = createEntityDTO(4L, EntityType.file, 0);
 		file3.setParentId(222L);
-		AnnotationDTO annotationDTO3 = new AnnotationDTO();
+		ObjectAnnotationDTO annotationDTO3 = new ObjectAnnotationDTO();
 		annotationDTO3.setKey(annoKey);
 		annotationDTO3.setType(AnnotationType.STRING);
-		annotationDTO3.setEntityId(3L);
+		annotationDTO3.setObjectId(3L);
 		annotationDTO3.setValue(Arrays.asList("12345"));
 		file3.setAnnotations(Collections.singletonList(annotationDTO3));
 
@@ -2201,9 +2201,9 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
 		
 		// setup some hierarchy.
-		EntityDTO project1 = createEntityDTO(2L, EntityType.project, 15);
+		ObjectDataDTO project1 = createEntityDTO(2L, EntityType.project, 15);
 		project1.setParentId(111L);
-		EntityDTO project2 = createEntityDTO(3L, EntityType.project, 12);
+		ObjectDataDTO project2 = createEntityDTO(3L, EntityType.project, 12);
 		project2.setParentId(111L);
 		
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(project1, project2));
@@ -2240,9 +2240,9 @@ public class TableIndexDAOImplTest {
 		Long parentTwoId = 222L;
 		Long parentThreeId = 444L;
 		// setup some hierarchy.
-		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		ObjectDataDTO file1 = createEntityDTO(2L, EntityType.file, 2);
 		file1.setParentId(parentOneId);
-		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		ObjectDataDTO file2 = createEntityDTO(3L, EntityType.file, 3);
 		file2.setParentId(parentTwoId);
 		
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
@@ -2275,9 +2275,9 @@ public class TableIndexDAOImplTest {
 		Long parentTwoId = 222L;
 		Long parentThreeId = 444L;
 		// setup some hierarchy.
-		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		ObjectDataDTO file1 = createEntityDTO(2L, EntityType.file, 2);
 		file1.setParentId(parentOneId);
-		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		ObjectDataDTO file2 = createEntityDTO(3L, EntityType.file, 3);
 		file2.setParentId(parentTwoId);
 		
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
@@ -2305,9 +2305,9 @@ public class TableIndexDAOImplTest {
 		Long parentOneId = 333L;
 		Long parentTwoId = 222L;
 		// setup some hierarchy.
-		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		ObjectDataDTO file1 = createEntityDTO(2L, EntityType.file, 2);
 		file1.setParentId(parentOneId);
-		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		ObjectDataDTO file2 = createEntityDTO(3L, EntityType.file, 3);
 		file2.setParentId(parentTwoId);
 		
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
@@ -2326,7 +2326,7 @@ public class TableIndexDAOImplTest {
 		
 		Long parentOneId = 333L;
 		// setup some hierarchy.
-		EntityDTO folder = createEntityDTO(2L, EntityType.folder, 2);
+		ObjectDataDTO folder = createEntityDTO(2L, EntityType.folder, 2);
 		folder.setParentId(parentOneId);
 		
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(folder));
@@ -2553,16 +2553,16 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(1L,2L,3L, 4L, 5L, 6L));
 
 		// Set up some data to test
-		EntityDTO project1 = createEntityDTO(1L, EntityType.project, 0);
-		EntityDTO project2 = createEntityDTO(2L, EntityType.project, 0);
+		ObjectDataDTO project1 = createEntityDTO(1L, EntityType.project, 0);
+		ObjectDataDTO project2 = createEntityDTO(2L, EntityType.project, 0);
 
 		project1.setName("Project Name One");
 		project2.setName("Project Name Two");
 
-		EntityDTO file1 = createEntityDTO(3L, EntityType.file, 0);
-		EntityDTO file2 = createEntityDTO(4L, EntityType.file, 0);
-		EntityDTO file3 = createEntityDTO(5L, EntityType.file, 0);
-		EntityDTO file4 = createEntityDTO(6L, EntityType.file, 0);
+		ObjectDataDTO file1 = createEntityDTO(3L, EntityType.file, 0);
+		ObjectDataDTO file2 = createEntityDTO(4L, EntityType.file, 0);
+		ObjectDataDTO file3 = createEntityDTO(5L, EntityType.file, 0);
+		ObjectDataDTO file4 = createEntityDTO(6L, EntityType.file, 0);
 
 		file1.setIsInSynapseStorage(true);
 		file2.setIsInSynapseStorage(true);
@@ -2644,11 +2644,11 @@ public class TableIndexDAOImplTest {
 	 * @param dto
 	 * @return
 	 */
-	public static List<ColumnModel> createSchemaFromEntityDTO(EntityDTO dto){
+	public static List<ColumnModel> createSchemaFromEntityDTO(ObjectDataDTO dto){
 		List<ColumnModel> schema = new LinkedList<>();
 		// add a column for each annotation
 		if(dto.getAnnotations() != null){
-			for(AnnotationDTO annoDto: dto.getAnnotations()){
+			for(ObjectAnnotationDTO annoDto: dto.getAnnotations()){
 				ColumnModel cm = new ColumnModel();
 				//double lists are not supported at the moment
 				cm.setColumnType(annoDto.getValue().size() > 1 ? ColumnTypeListMappings.listType(annoDto.getType().getColumnType()) : annoDto.getType().getColumnType());
@@ -2663,7 +2663,7 @@ public class TableIndexDAOImplTest {
 			}
 		}
 		// Add all of the default EntityFields
-		schema.addAll(EntityField.getAllColumnModels());
+		schema.addAll(ObjectField.getAllColumnModels());
 		// assign each column an ID
 		for(int i=0; i<schema.size(); i++){
 			ColumnModel cm = schema.get(i);
@@ -2679,15 +2679,15 @@ public class TableIndexDAOImplTest {
 	 * @param annotationCount
 	 * @return
 	 */
-	private static EntityDTO createEntityDTO(long id, EntityType type, int annotationCount){
-		EntityDTO entityDto = new EntityDTO();
+	private static ObjectDataDTO createEntityDTO(long id, EntityType type, int annotationCount){
+		ObjectDataDTO entityDto = new ObjectDataDTO();
 		entityDto.setId(id);
 		entityDto.setCurrentVersion(2L);
 		entityDto.setCreatedBy(222L);
 		entityDto.setCreatedOn(new Date());
 		entityDto.setEtag("etag"+id);
 		entityDto.setName("name"+id);
-		entityDto.setType(type);
+		entityDto.setSubType(type);
 		entityDto.setParentId(1L);
 		entityDto.setBenefactorId(2L);
 		entityDto.setProjectId(3L);
@@ -2698,10 +2698,10 @@ public class TableIndexDAOImplTest {
 			entityDto.setFileSizeBytes(999L);
 			entityDto.setFileMD5(Long.toHexString(id*1000));
 		}
-		List<AnnotationDTO> annos = new LinkedList<AnnotationDTO>();
+		List<ObjectAnnotationDTO> annos = new LinkedList<ObjectAnnotationDTO>();
 		for(int i=0; i<annotationCount; i++){
-			AnnotationDTO annoDto = new AnnotationDTO();
-			annoDto.setEntityId(id);
+			ObjectAnnotationDTO annoDto = new ObjectAnnotationDTO();
+			annoDto.setObjectId(id);
 			annoDto.setKey("key"+i);
 			annoDto.setType(AnnotationType.values()[i%AnnotationType.values().length]);
 			annoDto.setValue(""+i);
@@ -2908,12 +2908,12 @@ public class TableIndexDAOImplTest {
 	public void testGetOutOfDateRowsForView_ReplicationRowsMissingFromView(){
 		isView = true;
 		int rowCount = 2;
-		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		List<ObjectDataDTO> dtos = createFileEntityEntityDTOs(rowCount);
 		
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
-		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		// Create the empty view
@@ -2923,7 +2923,7 @@ public class TableIndexDAOImplTest {
 		// call under test
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(objectType, tableId, ViewTypeMask.File.getMask(), scope, limit);
 		assertNotNull(results);
-		Set<Long> expected = dtos.stream().map(EntityDTO::getId).collect(Collectors.toSet());
+		Set<Long> expected = dtos.stream().map(ObjectDataDTO::getId).collect(Collectors.toSet());
 		assertEquals(expected, results);
 	}
 	
@@ -2934,12 +2934,12 @@ public class TableIndexDAOImplTest {
 	public void testGetOutOfDateRowsForView_DeletedRowsStillInView(){
 		isView = true;
 		int rowCount = 2;
-		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		List<ObjectDataDTO> dtos = createFileEntityEntityDTOs(rowCount);
 		
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
-		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		// Create the empty view
@@ -2967,12 +2967,12 @@ public class TableIndexDAOImplTest {
 	public void testGetOutOfDateRowsForView_MovedOutOfScope(){
 		isView = true;
 		int rowCount = 2;
-		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		List<ObjectDataDTO> dtos = createFileEntityEntityDTOs(rowCount);
 		
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
-		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		// Create the empty view
@@ -2982,7 +2982,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.copyEntityReplicationToView(objectType, tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
 		
 		// move the entity out of scope
-		EntityDTO first = dtos.get(0);
+		ObjectDataDTO first = dtos.get(0);
 		first.setParentId(9999L);
 		List<Long> toUpdate = Lists.newArrayList(first.getId());
 		tableIndexDAO.deleteObjectData(objectType, toUpdate);
@@ -3003,12 +3003,12 @@ public class TableIndexDAOImplTest {
 	public void testGetOutOfDateRowsForView_EtagDoesNotMatch(){
 		isView = true;
 		int rowCount = 2;
-		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		List<ObjectDataDTO> dtos = createFileEntityEntityDTOs(rowCount);
 		
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
-		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		// Create the empty view
@@ -3018,7 +3018,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.copyEntityReplicationToView(objectType, tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
 		
 		// change the etag of the first entity
-		EntityDTO first = dtos.get(0);
+		ObjectDataDTO first = dtos.get(0);
 		first.setEtag(first.getEtag()+"updated");
 		List<Long> toUpdate = Lists.newArrayList(first.getId());
 		tableIndexDAO.deleteObjectData(objectType, toUpdate);
@@ -3039,12 +3039,12 @@ public class TableIndexDAOImplTest {
 	public void testGetOutOfDateRowsForView_BenefactorDoesNotMatch(){
 		isView = true;
 		int rowCount = 2;
-		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		List<ObjectDataDTO> dtos = createFileEntityEntityDTOs(rowCount);
 		
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
-		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		// Create the empty view
@@ -3054,7 +3054,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.copyEntityReplicationToView(objectType, tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
 		
 		// change the benefactor of the first entity
-		EntityDTO first = dtos.get(0);
+		ObjectDataDTO first = dtos.get(0);
 		first.setBenefactorId(first.getBenefactorId()*100);
 		List<Long> toUpdate = Lists.newArrayList(first.getId());
 		tableIndexDAO.deleteObjectData(objectType, toUpdate);
@@ -3075,12 +3075,12 @@ public class TableIndexDAOImplTest {
 	public void testGetOutOfDateRowsForView_ViewUpToDate(){
 		isView = true;
 		int rowCount = 2;
-		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		List<ObjectDataDTO> dtos = createFileEntityEntityDTOs(rowCount);
 		
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
-		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		// Create the empty view
@@ -3102,12 +3102,12 @@ public class TableIndexDAOImplTest {
 	public void testGetOutOfDateRowsForView_Limit(){
 		isView = true;
 		int rowCount = 4;
-		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		List<ObjectDataDTO> dtos = createFileEntityEntityDTOs(rowCount);
 		
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
-		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		// Create the empty view
@@ -3129,15 +3129,15 @@ public class TableIndexDAOImplTest {
 	public void testGetOutOfDateRowsForView_FilterTypes(){
 		isView = true;
 		int rowCount = 4;
-		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		List<ObjectDataDTO> dtos = createFileEntityEntityDTOs(rowCount);
 		
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
 		// add a non-file that should not be part of the view but is in the scope.
-		EntityDTO viewDto = createEntityOfType(rowCount, EntityType.entityview, dtos.get(0).getParentId());
+		ObjectDataDTO viewDto = createEntityOfType(rowCount, EntityType.entityview, dtos.get(0).getParentId());
 		
-		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		// Create the empty view
@@ -3149,7 +3149,7 @@ public class TableIndexDAOImplTest {
 		assertNotNull(results);
 		// The view should not be in the results
 		assertFalse(results.contains(viewDto.getId()));
-		Set<Long> expectedResults = dtos.stream().map(EntityDTO::getId).collect(Collectors.toSet());
+		Set<Long> expectedResults = dtos.stream().map(ObjectDataDTO::getId).collect(Collectors.toSet());
 		assertEquals(expectedResults, results);
 	}
 	
@@ -3161,15 +3161,15 @@ public class TableIndexDAOImplTest {
 	public void testGetOutOfDateRowsForView_RemoveTypesNoLongerInView(){
 		isView = true;
 		int rowCount = 4;
-		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		List<ObjectDataDTO> dtos = createFileEntityEntityDTOs(rowCount);
 		
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
 		// add a non-file that should not be part of the view but is in the scope.
-		EntityDTO folderDto = createEntityOfType(rowCount, EntityType.folder, dtos.get(0).getParentId());
+		ObjectDataDTO folderDto = createEntityOfType(rowCount, EntityType.folder, dtos.get(0).getParentId());
 		
-		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		// Create the empty view
@@ -3233,26 +3233,26 @@ public class TableIndexDAOImplTest {
 	 * @param count
 	 * @return
 	 */
-	List<EntityDTO> createFileEntityEntityDTOs(int count){
+	List<ObjectDataDTO> createFileEntityEntityDTOs(int count){
 		boolean includeMultiValue = false;
 		return createObjectDTOs(objectType, EntityType.file, count, includeMultiValue);
 	}
 	
-	List<EntityDTO> createFileEntityEntityDTOs(int count, boolean includeMultiValue) {
+	List<ObjectDataDTO> createFileEntityEntityDTOs(int count, boolean includeMultiValue) {
 		return createObjectDTOs(objectType, EntityType.file, count, includeMultiValue);
 	}
 	
-	List<EntityDTO> createObjectDTOs(ObjectType objectType, EntityType subType, int count, boolean includeMultiValue){
+	List<ObjectDataDTO> createObjectDTOs(ObjectType objectType, EntityType subType, int count, boolean includeMultiValue){
 		List<Long> newIds = new ArrayList<Long>(count);
-		List<EntityDTO> results = new ArrayList<EntityDTO>(count);
+		List<ObjectDataDTO> results = new ArrayList<ObjectDataDTO>(count);
 		for(int i=0; i<count; i++) {
 			Long entityId = new Long(i+1);
 			newIds.add(entityId);
-			EntityDTO file = createEntityDTO(entityId, subType, 3);
+			ObjectDataDTO file = createEntityDTO(entityId, subType, 3);
 			file.setParentId(entityId*100);
 			if(includeMultiValue) {
-				AnnotationDTO multiValue = new AnnotationDTO();
-				multiValue.setEntityId(file.getId());
+				ObjectAnnotationDTO multiValue = new ObjectAnnotationDTO();
+				multiValue.setObjectId(file.getId());
 				multiValue.setKey("multiValue");
 				multiValue.setType(AnnotationType.STRING);
 				multiValue.setValue(Lists.newArrayList("one"+i, "two"+i));
@@ -3274,13 +3274,13 @@ public class TableIndexDAOImplTest {
 	 * @param parentId
 	 * @return
 	 */
-	EntityDTO createEntityOfType(int index, EntityType type, long parentId) {
+	ObjectDataDTO createEntityOfType(int index, EntityType type, long parentId) {
 		return createObjectDTO(objectType, type, index, parentId);
 	}
 	
-	EntityDTO createObjectDTO(ObjectType objectType, EntityType subtype, int index, long parentId) {
+	ObjectDataDTO createObjectDTO(ObjectType objectType, EntityType subtype, int index, long parentId) {
 		Long id = new Long(index+1);
-		EntityDTO object = createEntityDTO(id, subtype, 3);
+		ObjectDataDTO object = createEntityDTO(id, subtype, 3);
 		object.setParentId(parentId);
 		// delete all rows if they already exist
 		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(id));
@@ -3293,12 +3293,12 @@ public class TableIndexDAOImplTest {
 	public void testDeleteRowsFromView() {
 		isView = true;
 		int rowCount = 4;
-		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		List<ObjectDataDTO> dtos = createFileEntityEntityDTOs(rowCount);
 		
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
-		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		tableIndexDAO.copyEntityReplicationToView(objectType, tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
@@ -3324,12 +3324,12 @@ public class TableIndexDAOImplTest {
 	public void testDeleteRowsFromViewEmpty() {
 		isView = true;
 		int rowCount = 4;
-		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		List<ObjectDataDTO> dtos = createFileEntityEntityDTOs(rowCount);
 		
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
-		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		tableIndexDAO.copyEntityReplicationToView(objectType, tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
@@ -3372,12 +3372,12 @@ public class TableIndexDAOImplTest {
 		long limit = 100;
 		isView = true;
 		int rowCount = 4;
-		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);		
+		List<ObjectDataDTO> dtos = createFileEntityEntityDTOs(rowCount);		
 
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
-		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		
@@ -3404,12 +3404,12 @@ public class TableIndexDAOImplTest {
 		long limit = 100;
 		isView = true;
 		int rowCount = 4;
-		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);			
+		List<ObjectDataDTO> dtos = createFileEntityEntityDTOs(rowCount);			
 		
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
-		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		
@@ -3427,12 +3427,12 @@ public class TableIndexDAOImplTest {
 	public void testCopyEntityReplicationToViewWithRowFilterEmpty() {
 		isView = true;
 		int rowCount = 4;
-		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		List<ObjectDataDTO> dtos = createFileEntityEntityDTOs(rowCount);
 		
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
-		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		
@@ -3450,12 +3450,12 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 4;
 		boolean includeMultiValue = true;
-		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount, includeMultiValue);
+		List<ObjectDataDTO> dtos = createFileEntityEntityDTOs(rowCount, includeMultiValue);
 
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, includeMultiValue);
 		
-		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		ColumnModel multiValue = new ColumnModel();
 		multiValue.setId("886");
 		multiValue.setColumnType(ColumnType.STRING_LIST);
@@ -3487,12 +3487,12 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 4;
 		boolean includeMultiValue = true;
-		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount, includeMultiValue);
+		List<ObjectDataDTO> dtos = createFileEntityEntityDTOs(rowCount, includeMultiValue);
 
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, includeMultiValue);
 		
-		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		ColumnModel multiValue = new ColumnModel();
 		multiValue.setId("886");
 		multiValue.setColumnType(ColumnType.STRING_LIST);
@@ -3719,4 +3719,5 @@ public class TableIndexDAOImplTest {
 			tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, column.getId()) + "'", String.class);
 		});
 	}
+
 }

@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -11,6 +14,7 @@ import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -55,6 +59,7 @@ public class VerificationController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.VERIFICATION_SUBMISSION, method = RequestMethod.POST)
 	public @ResponseBody
@@ -83,10 +88,10 @@ public class VerificationController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.VERIFICATION_SUBMISSION_ID_STATE, method = RequestMethod.POST)
-	public
-	void changeVerificationSubmissionState(
+	public void changeVerificationSubmissionState(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable Long id,
 			@RequestBody VerificationState newState,
@@ -101,6 +106,7 @@ public class VerificationController {
 	 * @param userId
 	 * @param id
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.VERIFICATION_SUBMISSION_ID, method=RequestMethod.DELETE)
 	public void deleteVerificationSubmission(
@@ -124,6 +130,7 @@ public class VerificationController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.VERIFICATION_SUBMISSION, method = RequestMethod.GET)
 	public @ResponseBody VerificationPagedResults listVerificationSubmissions(

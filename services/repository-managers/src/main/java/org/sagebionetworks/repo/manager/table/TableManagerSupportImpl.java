@@ -30,9 +30,10 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -58,32 +59,32 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public static final String SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW = "The view's scope exceeds the maximum number of "
 			+ MAX_CONTAINERS_PER_VIEW + " projects.";
 	
-	private static final List<EntityField> FILE_VIEW_DEFAULT_COLUMNS= Lists.newArrayList(
-			EntityField.id,
-			EntityField.name,
-			EntityField.createdOn,
-			EntityField.createdBy,
-			EntityField.etag,
-			EntityField.type,
-			EntityField.currentVersion,
-			EntityField.parentId,
-			EntityField.benefactorId,
-			EntityField.projectId,
-			EntityField.modifiedOn,
-			EntityField.modifiedBy,
-			EntityField.dataFileHandleId,
-			EntityField.dataFileSizeBytes,
-			EntityField.dataFileMD5Hex
+	private static final List<ObjectField> FILE_VIEW_DEFAULT_COLUMNS= Lists.newArrayList(
+			ObjectField.id,
+			ObjectField.name,
+			ObjectField.createdOn,
+			ObjectField.createdBy,
+			ObjectField.etag,
+			ObjectField.type,
+			ObjectField.currentVersion,
+			ObjectField.parentId,
+			ObjectField.benefactorId,
+			ObjectField.projectId,
+			ObjectField.modifiedOn,
+			ObjectField.modifiedBy,
+			ObjectField.dataFileHandleId,
+			ObjectField.dataFileSizeBytes,
+			ObjectField.dataFileMD5Hex
 			);
 	
-	private static final List<EntityField> BASIC_ENTITY_DEAFULT_COLUMNS = Lists.newArrayList(
-			EntityField.id,
-			EntityField.name,
-			EntityField.createdOn,
-			EntityField.createdBy,
-			EntityField.etag,
-			EntityField.modifiedOn,
-			EntityField.modifiedBy
+	private static final List<ObjectField> BASIC_ENTITY_DEAFULT_COLUMNS = Lists.newArrayList(
+			ObjectField.id,
+			ObjectField.name,
+			ObjectField.createdOn,
+			ObjectField.createdBy,
+			ObjectField.etag,
+			ObjectField.modifiedOn,
+			ObjectField.modifiedBy
 			);
 
 	@Autowired
@@ -344,8 +345,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	
 	@Override
 	public Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion) {
-		Long viewTypeMask = getViewTypeMask(idAndVersion);
-		return getAllContainerIdsForViewScope(idAndVersion, viewTypeMask);
+		ViewScopeType viewScopeType = getViewScopeType(idAndVersion);
+		return getAllContainerIdsForViewScope(idAndVersion, viewScopeType);
 	}
 
 	/*
@@ -353,11 +354,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * @see org.sagebionetworks.repo.manager.table.TableViewTruthManager#getAllContainerIdsForViewScope(java.lang.String)
 	 */
 	@Override
-	public Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion, Long viewTypeMask) {
+	public Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion, ViewScopeType scopeType) {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
 		// Lookup the scope for this view.
 		Set<Long> scope = viewScopeDao.getViewScope(idAndVersion.getId());
-		return getAllContainerIdsForScope(scope, viewTypeMask);
+		return getAllContainerIdsForScope(scope, scopeType);
 	}
 
 	/*
@@ -365,9 +366,12 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#getAllContainerIdsForScope(java.util.Set)
 	 */
 	@Override
-	public Set<Long> getAllContainerIdsForScope(Set<Long> scope, Long viewTypeMask) {
+	public Set<Long> getAllContainerIdsForScope(Set<Long> scope, ViewScopeType scopeType) {
 		ValidateArgument.required(scope, "scope");
-		ValidateArgument.required(viewTypeMask, "viewTypeMask");
+		ValidateArgument.required(scopeType, "viewTypeMask");
+		
+		Long viewTypeMask = scopeType.getTypeMask();
+		
 		// Validate the given scope is under the limit.
 		if(scope.size() > MAX_CONTAINERS_PER_VIEW){
 			throw new IllegalArgumentException(createViewOverLimitMessage(viewTypeMask));
@@ -474,7 +478,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 	
 	@Override
-	public ColumnModel getColumnModel(EntityField field){
+	public ColumnModel getColumnModel(ObjectField field){
 		ValidateArgument.required(field, "field");
 		/*
 		 * We no longer cache these columns in memory.  Caching has caused
@@ -482,16 +486,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		 */
 		return columnModelManager.createColumnModel(field.getColumnModel());
 	}
-	
-	@Override
-	public List<ColumnModel> getColumnModels(EntityField... fields) {
-		List<ColumnModel> results = new LinkedList<ColumnModel>();
-		for(EntityField field: fields){
-			results.add(getColumnModel(field));
-		}
-		return results;
-	}
-
 
 	@Override
 	public Set<Long> getAccessibleBenefactors(UserInfo user,
@@ -505,8 +499,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 	
 	@Override
-	public Long getViewTypeMask(IdAndVersion idAndVersion){
-		return viewScopeDao.getViewTypeMask(idAndVersion.getId());
+	public ViewScopeType getViewScopeType(IdAndVersion idAndVersion){
+		return viewScopeDao.getViewScopeType(idAndVersion.getId());
 	}
 
 	@Override
@@ -526,9 +520,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * @param fields
 	 * @return
 	 */
-	public List<ColumnModel> getColumnModels(List<EntityField> fields){
+	public List<ColumnModel> getColumnModels(List<ObjectField> fields){
 		List<ColumnModel> results = new LinkedList<ColumnModel>();
-		for(EntityField field: fields){
+		for(ObjectField field: fields){
 			results.add(getColumnModel(field));
 		}
 		return results;
@@ -553,10 +547,10 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	@Override
-	public void validateScopeSize(Set<Long> scopeIds, Long viewTypeMask) {
+	public void validateScopeSize(Set<Long> scopeIds, ViewScopeType scopeType) {
 		if(scopeIds != null){
 			// Validation is built into getAllContainerIdsForScope() call
-			getAllContainerIdsForScope(scopeIds, viewTypeMask);
+			getAllContainerIdsForScope(scopeIds, scopeType);
 		}
 	}
 

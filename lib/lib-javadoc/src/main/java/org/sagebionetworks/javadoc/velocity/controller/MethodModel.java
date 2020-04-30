@@ -1,5 +1,6 @@
 package org.sagebionetworks.javadoc.velocity.controller;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -26,6 +27,7 @@ public class MethodModel {
 	boolean isAuthenticationRequired;
 	List<ParameterModel> pathVariables;
 	List<ParameterModel> parameters;
+	String[] requiredScopes;
 	
 	public Link getResponseBody() {
 		return responseBody;
@@ -130,30 +132,31 @@ public class MethodModel {
 		this.shortDescription = shortDescription;
 	}
 	
+	public String[] getRequiredScopes() {
+		return requiredScopes;
+	}
+	
+	public void setRequiredScopes(String[] requiredScopes) {
+		this.requiredScopes = requiredScopes;
+	}
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((description == null) ? 0 : description.hashCode());
-		result = prime * result
-				+ ((fullMethodName == null) ? 0 : fullMethodName.hashCode());
-		result = prime * result
-				+ ((httpType == null) ? 0 : httpType.hashCode());
+		result = prime * result + ((description == null) ? 0 : description.hashCode());
+		result = prime * result + ((fullMethodName == null) ? 0 : fullMethodName.hashCode());
+		result = prime * result + ((httpType == null) ? 0 : httpType.hashCode());
 		result = prime * result + (isAuthenticationRequired ? 1231 : 1237);
-		result = prime * result
-				+ ((methodLink == null) ? 0 : methodLink.hashCode());
-		result = prime * result
-				+ ((parameters == null) ? 0 : parameters.hashCode());
-		result = prime * result
-				+ ((pathVariables == null) ? 0 : pathVariables.hashCode());
-		result = prime * result
-				+ ((requestBody == null) ? 0 : requestBody.hashCode());
-		result = prime * result
-				+ ((responseBody == null) ? 0 : responseBody.hashCode());
-		result = prime
-				* result
-				+ ((shortDescription == null) ? 0 : shortDescription.hashCode());
+		result = prime * result + ((methodLink == null) ? 0 : methodLink.hashCode());
+		result = prime * result + ((parameters == null) ? 0 : parameters.hashCode());
+		result = prime * result + ((pathVariables == null) ? 0 : pathVariables.hashCode());
+		result = prime * result + ((requestBody == null) ? 0 : requestBody.hashCode());
+		result = prime * result + Arrays.hashCode(requestBodyGenericParams);
+		result = prime * result + Arrays.hashCode(requiredScopes);
+		result = prime * result + ((responseBody == null) ? 0 : responseBody.hashCode());
+		result = prime * result + Arrays.hashCode(responseBodyGenericParams);
+		result = prime * result + ((shortDescription == null) ? 0 : shortDescription.hashCode());
 		result = prime * result + ((url == null) ? 0 : url.hashCode());
 		return result;
 	}
@@ -203,10 +206,16 @@ public class MethodModel {
 				return false;
 		} else if (!requestBody.equals(other.requestBody))
 			return false;
+		if (!Arrays.equals(requestBodyGenericParams, other.requestBodyGenericParams))
+			return false;
+		if (!Arrays.equals(requiredScopes, other.requiredScopes))
+			return false;
 		if (responseBody == null) {
 			if (other.responseBody != null)
 				return false;
 		} else if (!responseBody.equals(other.responseBody))
+			return false;
+		if (!Arrays.equals(responseBodyGenericParams, other.responseBodyGenericParams))
 			return false;
 		if (shortDescription == null) {
 			if (other.shortDescription != null)
@@ -222,14 +231,13 @@ public class MethodModel {
 	}
 	@Override
 	public String toString() {
-		return "MethodModel [fullMethodName=" + fullMethodName
-				+ ", methodLink=" + methodLink + ", responseBody="
-				+ responseBody + ", requestBody=" + requestBody + ", httpType="
-				+ httpType + ", url=" + url + ", description=" + description
-				+ ", shortDescription=" + shortDescription
-				+ ", isAuthenticationRequired=" + isAuthenticationRequired
-				+ ", pathVariables=" + pathVariables + ", parameters="
-				+ parameters + "]";
+		return "MethodModel [fullMethodName=" + fullMethodName + ", methodLink=" + methodLink + ", responseBody="
+				+ responseBody + ", responseBodyGenericParams=" + Arrays.toString(responseBodyGenericParams)
+				+ ", requestBodyGenericParams=" + Arrays.toString(requestBodyGenericParams) + ", requestBody="
+				+ requestBody + ", httpType=" + httpType + ", url=" + url + ", description=" + description
+				+ ", shortDescription=" + shortDescription + ", isAuthenticationRequired=" + isAuthenticationRequired
+				+ ", pathVariables=" + pathVariables + ", parameters=" + parameters + ", requiredScopes="
+				+ Arrays.toString(requiredScopes) + "]";
 	}
 
 }

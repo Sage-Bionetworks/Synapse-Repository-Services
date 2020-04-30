@@ -58,6 +58,7 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationManager;
 import org.sagebionetworks.repo.model.BucketAndKey;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
@@ -74,12 +75,13 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.ViewScope;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -170,6 +172,8 @@ public class TableViewManagerImplTest {
 	org.sagebionetworks.repo.model.Annotations annotations;
 	Annotations annotationsV2;
 	
+	ViewScopeType scopeType;
+	
 
 	@BeforeEach
 	public void before(){
@@ -184,6 +188,7 @@ public class TableViewManagerImplTest {
 		viewType =ViewTypeMask.File.getMask();
 		
 		viewScope = new ViewScope();
+		viewScope.setObjectType(ObjectType.ENTITY);
 		viewScope.setScope(scope);
 		viewScope.setViewTypeMask(viewType);
 		
@@ -219,7 +224,7 @@ public class TableViewManagerImplTest {
 		intListColumn.setId("4");
 
 		
-		etagColumn = EntityField.etag.getColumnModel();
+		etagColumn = ObjectField.etag.getColumnModel();
 		etagColumn.setId("3");
 		
 		viewSchema = new LinkedList<ColumnModel>();
@@ -240,6 +245,7 @@ public class TableViewManagerImplTest {
 		snapshotOptions.setSnapshotComment("a comment");
 		allContainersInScope = Sets.newHashSet(123L, 456L);;
 		viewTypeMask = ViewTypeMask.File.getMask();
+		scopeType = new ViewScopeType(ObjectType.ENTITY, viewTypeMask);
 		
 		managerSpy = Mockito.spy(manager);
 	}
@@ -247,7 +253,7 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testSetViewSchemaAndScopeOverLimit(){
 		IllegalArgumentException overLimit = new IllegalArgumentException("Over limit");
-		doThrow(overLimit).when(mockTableManagerSupport).validateScopeSize(anySet(), any(Long.class));
+		doThrow(overLimit).when(mockTableManagerSupport).validateScopeSize(anySet(), any());
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
@@ -259,8 +265,8 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 		// the size should be validated
-		verify(mockTableManagerSupport).validateScopeSize(scopeIds, viewType);
-		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), viewType);
+		verify(mockTableManagerSupport).validateScopeSize(scopeIds, scopeType);
+		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), scopeType);
 		verify(mockColumnModelManager).bindColumnsToDefaultVersionOfObject(schema, viewId);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
@@ -286,7 +292,7 @@ public class TableViewManagerImplTest {
 		schema = null;
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
-		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), viewType);
+		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), scopeType);
 		verify(mockColumnModelManager).bindColumnsToDefaultVersionOfObject(null, viewId);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
@@ -296,7 +302,7 @@ public class TableViewManagerImplTest {
 		viewScope.setScope(null);
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
-		verify(viewScopeDao).setViewScopeAndType(555L, null, viewType);
+		verify(viewScopeDao).setViewScopeAndType(555L, null, scopeType);
 		verify(mockColumnModelManager).bindColumnsToDefaultVersionOfObject(schema, viewId);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
@@ -332,17 +338,30 @@ public class TableViewManagerImplTest {
 	public void testSetViewSchemaAndScopeWithProjectOnly(){
 		long mask = ViewTypeMask.Project.getMask();
 		viewScope.setViewTypeMask(mask);
+		ViewScopeType expectedScopeType = new ViewScopeType(ObjectType.ENTITY, mask);
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
-		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), mask);
+		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), expectedScopeType);
+	}
+	
+	@Test
+	public void testSetViewSchemaAndScopeWithNullObjectType(){
+		viewScope.setObjectType(null);
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
+		});
+		
+		assertEquals("The scope objectType is required.", ex.getMessage());
 	}
 	
 	@Test
 	public void testGetViewSchemaWithRequiredColumnsNoAdditions(){
 		List<ColumnModel> rawSchema = Lists.newArrayList(
-				EntityField.benefactorId.getColumnModel(),
-				EntityField.createdBy.getColumnModel(),
-				EntityField.etag.getColumnModel()
+				ObjectField.benefactorId.getColumnModel(),
+				ObjectField.createdBy.getColumnModel(),
+				ObjectField.etag.getColumnModel()
 				);
 		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(rawSchema);
 		// call under test
@@ -353,18 +372,18 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testGetViewSchema(){
 		List<ColumnModel> rawSchema = Lists.newArrayList(
-				EntityField.createdBy.getColumnModel(),
-				EntityField.createdOn.getColumnModel(),
-				EntityField.benefactorId.getColumnModel()
+				ObjectField.createdBy.getColumnModel(),
+				ObjectField.createdOn.getColumnModel(),
+				ObjectField.benefactorId.getColumnModel()
 				);
 		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(rawSchema);
 		// call under test
 		List<ColumnModel> result = manager.getViewSchema(idAndVersion);
 		
 		List<ColumnModel> expected = Lists.newArrayList(
-				EntityField.createdBy.getColumnModel(),
-				EntityField.createdOn.getColumnModel(),
-				EntityField.benefactorId.getColumnModel()
+				ObjectField.createdBy.getColumnModel(),
+				ObjectField.createdOn.getColumnModel(),
+				ObjectField.benefactorId.getColumnModel()
 				);
 		assertEquals(expected, result);
 	}
@@ -375,7 +394,7 @@ public class TableViewManagerImplTest {
 		change.setOldColumnId(null);
 		change.setNewColumnId("456");
 		List<ColumnChange> changes = Lists.newArrayList(change);
-		ColumnModel model = EntityField.benefactorId.getColumnModel();
+		ColumnModel model = ObjectField.benefactorId.getColumnModel();
 		model.setId(change.getNewColumnId());
 		List<ColumnModel> schema = Lists.newArrayList(model);
 		List<String> newColumnIds = Lists.newArrayList(change.getNewColumnId());
@@ -400,7 +419,7 @@ public class TableViewManagerImplTest {
 		change.setOldColumnId(null);
 		change.setNewColumnId("456");
 		List<ColumnChange> changes = Lists.newArrayList(change);
-		ColumnModel model = EntityField.benefactorId.getColumnModel();
+		ColumnModel model = ObjectField.benefactorId.getColumnModel();
 		model.setId(change.getNewColumnId());
 		// the new schema should be over the limit
 		List<String> newSchemaColumnIds = new LinkedList<>();
@@ -423,7 +442,7 @@ public class TableViewManagerImplTest {
 	public void testUpdateAnnotationsFromValues(){
 		Annotations annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
 		Map<String, String> values = new HashMap<>();
-		values.put(EntityField.etag.name(), "anEtag");
+		values.put(ObjectField.etag.name(), "anEtag");
 		values.put(anno1.getId(), "aString");
 		values.put(anno2.getId(), "123");
 		// call under test
@@ -436,7 +455,7 @@ public class TableViewManagerImplTest {
 		assertEquals("123",AnnotationsV2Utils.getSingleValue(anno2Value));
 		assertEquals(AnnotationsValueType.LONG, anno2Value.getType());
 		// etag should not be included.
-		assertNull(AnnotationsV2Utils.getSingleValue(annos, EntityField.etag.name()));
+		assertNull(AnnotationsV2Utils.getSingleValue(annos, ObjectField.etag.name()));
 	}
 
 	@Test
@@ -447,7 +466,7 @@ public class TableViewManagerImplTest {
 
 		Annotations annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
 		Map<String, String> values = new HashMap<>();
-		values.put(EntityField.etag.name(), "anEtag");
+		values.put(ObjectField.etag.name(), "anEtag");
 		values.put(anno1.getId(), "[\"asdf\", \"qwerty\"]");
 		values.put(intListColumn.getId(), "[123, 456, 789]");
 		// call under test
@@ -460,7 +479,7 @@ public class TableViewManagerImplTest {
 		assertEquals(Arrays.asList("123", "456", "789"),intListValue.getValue());
 		assertEquals(AnnotationsValueType.LONG, intListValue.getType());
 		// etag should not be included.
-		assertNull(AnnotationsV2Utils.getSingleValue(annos, EntityField.etag.name()));
+		assertNull(AnnotationsV2Utils.getSingleValue(annos, ObjectField.etag.name()));
 	}
 
 	@Test
@@ -498,7 +517,7 @@ public class TableViewManagerImplTest {
 		AnnotationsV2TestUtils.putAnnotations(annos, anno2.getName(), "not a long", AnnotationsValueType.STRING);
 		// update the values.
 		Map<String, String> values = new HashMap<>();
-		values.put(EntityField.etag.name(), "anEtag");
+		values.put(ObjectField.etag.name(), "anEtag");
 		values.put(anno1.getId(), "aString");
 		values.put(anno2.getId(), "123");
 		// call under test
@@ -514,7 +533,7 @@ public class TableViewManagerImplTest {
 		assertEquals(AnnotationsValueType.LONG, anno2Value.getType());
 
 		// etag should not be included.
-		assertNull(AnnotationsV2Utils.getSingleValue(annos, EntityField.etag.name()));
+		assertNull(AnnotationsV2Utils.getSingleValue(annos, ObjectField.etag.name()));
 	}
 	
 	/**
@@ -780,16 +799,15 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testPopulateViewIndexFromReplication() {
-		Long viewTypeMask = 1L;
-		when(mockTableManagerSupport.getViewTypeMask(idAndVersion)).thenReturn(viewTypeMask);
+		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
 		Set<Long> scope = Sets.newHashSet(124L, 455L);
-		when(mockTableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewTypeMask)).thenReturn(scope);
+		when(mockTableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, scopeType)).thenReturn(scope);
 		viewCRC = 987L;
-		when(mockIndexManager.populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask, scope, viewSchema)).thenReturn(viewCRC);
+		when(mockIndexManager.populateViewFromEntityReplication(idAndVersion.getId(), scopeType, scope, viewSchema)).thenReturn(viewCRC);
 		// call under test
 		long resultCRC32 = manager.populateViewIndexFromReplication(idAndVersion, mockIndexManager, viewSchema);
 		assertEquals(viewCRC, resultCRC32);
-		verify(mockIndexManager).populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask, scope,
+		verify(mockIndexManager).populateViewFromEntityReplication(idAndVersion.getId(), scopeType, scope,
 				viewSchema);
 	}
 	
@@ -813,32 +831,32 @@ public class TableViewManagerImplTest {
 		String token = "the token";
 		when(mockTableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
 		Long viewTypeMask = 1L;
-		when(mockTableManagerSupport.getViewTypeMask(idAndVersion)).thenReturn(viewTypeMask);
+		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		String originalSchemaMD5Hex = "startMD5";
 		when(mockTableManagerSupport.getSchemaMD5Hex(idAndVersion)).thenReturn(originalSchemaMD5Hex);
 		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(viewSchema);
 		Set<Long> scope = Sets.newHashSet(124L, 455L);
-		when(mockTableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewTypeMask)).thenReturn(scope);
+		when(mockTableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, scopeType)).thenReturn(scope);
 		viewCRC = 987L;
-		when(mockIndexManager.populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask, scope, viewSchema)).thenReturn(viewCRC);
+		when(mockIndexManager.populateViewFromEntityReplication(idAndVersion.getId(), scopeType, scope, viewSchema)).thenReturn(viewCRC);
 		
 		// call under test
 		manager.createOrRebuildViewHoldingLock(idAndVersion);
 
 		verify(mockTableManagerSupport).isIndexWorkRequired(idAndVersion);
 		verify(mockTableManagerSupport).startTableProcessing(idAndVersion);
-		verify(mockTableManagerSupport).getViewTypeMask(idAndVersion);
+		verify(mockTableManagerSupport).getViewScopeType(idAndVersion);
 		verify(mockConnectionFactory).connectToTableIndex(idAndVersion);
 		verify(mockIndexManager).deleteTableIndex(idAndVersion);
 		verify(mockTableManagerSupport).getSchemaMD5Hex(idAndVersion);
 		verify(mockColumnModelManager).getColumnModelsForObject(idAndVersion);
-		verify(mockTableManagerSupport).getAllContainerIdsForViewScope(idAndVersion, viewTypeMask);
+		verify(mockTableManagerSupport).getAllContainerIdsForViewScope(idAndVersion, scopeType);
 		boolean isTableView = true;
 		verify(mockIndexManager).setIndexSchema(idAndVersion, isTableView, viewSchema);
 		verify(mockTableManagerSupport).attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L,
 				1L);
-		verify(mockIndexManager).populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask, scope,
+		verify(mockIndexManager).populateViewFromEntityReplication(idAndVersion.getId(), scopeType, scope,
 				viewSchema);
 		verify(mockIndexManager, never()).populateViewFromSnapshot(any(IdAndVersion.class), any());
 		verify(mockIndexManager).optimizeTableIndices(idAndVersion);
@@ -886,7 +904,7 @@ public class TableViewManagerImplTest {
 		verify(mockIndexManager).setIndexSchema(idAndVersion, isTableView, viewSchema);
 		verify(mockTableManagerSupport).attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L,
 				1L);
-		verify(mockIndexManager, never()).populateViewFromEntityReplication(any(Long.class), any(Long.class), any(), any());
+		verify(mockIndexManager, never()).populateViewFromEntityReplication(any(Long.class), any(), any(), any());
 		verify(mockViewSnapshotDao).getSnapshot(idAndVersion);
 		verify(mockS3Client).getObject(new GetObjectRequest("bucket", "key"), mockFile);
 		verify(mockIndexManager).populateViewFromSnapshot(eq(idAndVersion), any());
@@ -949,15 +967,15 @@ public class TableViewManagerImplTest {
 		String token = "the token";
 		when(mockTableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
 		Long viewTypeMask = 1L;
-		when(mockTableManagerSupport.getViewTypeMask(idAndVersion)).thenReturn(viewTypeMask);
+		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		String originalSchemaMD5Hex = "startMD5";
 		when(mockTableManagerSupport.getSchemaMD5Hex(idAndVersion)).thenReturn(originalSchemaMD5Hex);
 		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(viewSchema);
 		Set<Long> scope = Sets.newHashSet(124L, 455L);
-		when(mockTableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewTypeMask)).thenReturn(scope);
+		when(mockTableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, scopeType)).thenReturn(scope);
 		viewCRC = 987L;
-		when(mockIndexManager.populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask, scope, viewSchema))
+		when(mockIndexManager.populateViewFromEntityReplication(idAndVersion.getId(), scopeType, scope, viewSchema))
 				.thenReturn(viewCRC);
 		
 		// conflict is thrown if the state has changed since the process was started.
@@ -1014,13 +1032,13 @@ public class TableViewManagerImplTest {
 		when(mockConfig.getViewSnapshotBucketName()).thenReturn(bucket);
 		
 		// call under test
-		BucketAndKey bucketAndKey = manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
+		BucketAndKey bucketAndKey = manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema, scopeIds);
 		
 		verify(mockFileProvider).createTempFile("ViewSnapshot",	".csv");
 		verify(mockFileProvider).createFileOutputStream(mockFile);
 		verify(mockFileProvider).createGZIPOutputStream(mockOutStream);
 		verify(mockFileProvider).createWriter(mockGzipOutStream, StandardCharsets.UTF_8);
-		verify(mockIndexManager).createViewSnapshot(eq(idAndVersion.getId()), eq(viewType), eq(scopeIds), eq(viewSchema), any(CSVWriterStream.class));
+		verify(mockIndexManager).createViewSnapshot(eq(idAndVersion.getId()), eq(scopeType), eq(scopeIds), eq(viewSchema), any(CSVWriterStream.class));
 		assertNotNull(bucketAndKey);
 		verify(mockS3Client).putObject(putRequestCaptor.capture());
 		PutObjectRequest putRequest = putRequestCaptor.getValue();
@@ -1043,11 +1061,11 @@ public class TableViewManagerImplTest {
 	
 		Throwable cause = assertThrows(RuntimeException.class, ()->{
 			// call under test
-			manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
+			manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema, scopeIds);
 		}).getCause();
 		assertEquals(exception, cause);
 		
-		verify(mockIndexManager, never()).createViewSnapshot(anyLong(), anyLong(), any(), any(), any(CSVWriterStream.class));
+		verify(mockIndexManager, never()).createViewSnapshot(anyLong(), any(), any(), any(), any(CSVWriterStream.class));
 		// the temp file must be deleted even if there is an error
 		verify(mockFile).delete();	
 	}
@@ -1057,16 +1075,16 @@ public class TableViewManagerImplTest {
 		idAndVersion = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
+			manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema, scopeIds);
 		});
 	}
 	
 	@Test
 	public void testCreateViewSnapshotAndUploadToS3NullViewType() throws IOException {
-		viewType = null;
+		scopeType = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
+			manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema, scopeIds);
 		});
 	}
 	
@@ -1075,7 +1093,7 @@ public class TableViewManagerImplTest {
 		viewSchema = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
+			manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema, scopeIds);
 		});
 	}
 	
@@ -1084,15 +1102,15 @@ public class TableViewManagerImplTest {
 		scopeIds = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
+			manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema, scopeIds);
 		});
 	}
 	
 	@Test
 	public void testCreateSnapshot() throws IOException {
-		when(mockTableManagerSupport.getViewTypeMask(idAndVersion)).thenReturn(viewType);
+		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
 		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(viewSchema);
-		when(mockTableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewType)).thenReturn(scopeIds);
+		when(mockTableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, scopeType)).thenReturn(scopeIds);
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
 		setupWriter();
@@ -1214,12 +1232,12 @@ public class TableViewManagerImplTest {
 		setupApplyChanges();
 		Set<Long> rowsToUpdate = Collections.emptySet();
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
-		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, viewTypeMask, allContainersInScope,
+		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, scopeType, allContainersInScope,
 				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(rowsToUpdate);
 		// call under test
 		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
 		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
-		verify(mockIndexManager, never()).updateViewRowsInTransaction(any(IdAndVersion.class), anySet(), anyLong(),
+		verify(mockIndexManager, never()).updateViewRowsInTransaction(any(IdAndVersion.class), anySet(), any(),
 				anySet(), anyList());
 		verifyNoMoreInteractions(mockTableManagerSupport);
 	}
@@ -1229,11 +1247,11 @@ public class TableViewManagerImplTest {
 		setupApplyChanges();
 		Set<Long> rowsToUpdate = Sets.newHashSet(101L,102L);
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
-		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, viewTypeMask, allContainersInScope,
+		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, scopeType, allContainersInScope,
 				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(rowsToUpdate);
 		// call under test
 		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
-		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, rowsToUpdate, viewTypeMask,
+		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, rowsToUpdate, scopeType,
 				allContainersInScope, viewSchema);
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
@@ -1274,13 +1292,13 @@ public class TableViewManagerImplTest {
 		Set<Long> pageOne = Sets.newHashSet(101L,102L);
 		Set<Long> pageTwo = Sets.newHashSet(103L,104L);
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
-		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, viewTypeMask, allContainersInScope,
+		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, scopeType, allContainersInScope,
 				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(pageOne, pageTwo);
 		// call under test
 		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
-		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageOne, viewTypeMask,
+		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageOne, scopeType,
 				allContainersInScope, viewSchema);
-		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageTwo, viewTypeMask,
+		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageTwo, scopeType,
 				allContainersInScope, viewSchema);
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
@@ -1294,14 +1312,14 @@ public class TableViewManagerImplTest {
 		Set<Long> pageTwo = Sets.newHashSet(103L,104L);
 		// Status starts as available but changes to processing which stop the updates.
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE), Optional.of(TableState.PROCESSING));
-		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, viewTypeMask, allContainersInScope,
+		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, scopeType, allContainersInScope,
 				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(pageOne, pageTwo);
 		// call under test
 		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
-		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageOne, viewTypeMask,
+		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageOne, scopeType,
 				allContainersInScope, viewSchema);
 		// page two should not be updated becuase of the swith to processing.
-		verify(mockIndexManager, never()).updateViewRowsInTransaction(idAndVersion, pageTwo, viewTypeMask,
+		verify(mockIndexManager, never()).updateViewRowsInTransaction(idAndVersion, pageTwo, scopeType,
 				allContainersInScope, viewSchema);
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
@@ -1317,14 +1335,14 @@ public class TableViewManagerImplTest {
 		Set<Long> pageOne = Sets.newHashSet(101L,102L);
 		Set<Long> pageTwo = Sets.newHashSet(102L,103L);
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
-		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, viewTypeMask, allContainersInScope,
+		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, scopeType, allContainersInScope,
 				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(pageOne, pageTwo);
 		// call under test
 		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
-		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageOne, viewTypeMask,
+		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageOne, scopeType,
 				allContainersInScope, viewSchema);
 		// page two should be ignored since it overlaps with page one.
-		verify(mockIndexManager, never()).updateViewRowsInTransaction(idAndVersion, pageTwo, viewTypeMask,
+		verify(mockIndexManager, never()).updateViewRowsInTransaction(idAndVersion, pageTwo, scopeType,
 				allContainersInScope, viewSchema);
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
@@ -1339,17 +1357,17 @@ public class TableViewManagerImplTest {
 		setupApplyChanges();
 		Set<Long> pageOne = Sets.newHashSet(101L,102L);
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
-		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, viewTypeMask, allContainersInScope,
+		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, scopeType, allContainersInScope,
 				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(pageOne);
 		// setup a failure
 		IllegalArgumentException exception = new IllegalArgumentException("Something is wrong...");
-		doThrow(exception).when(mockIndexManager).updateViewRowsInTransaction(any(IdAndVersion.class), anySet(), anyLong(),
+		doThrow(exception).when(mockIndexManager).updateViewRowsInTransaction(any(IdAndVersion.class), anySet(), any(),
 				anySet(), anyList());
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
 		});
-		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageOne, viewTypeMask,
+		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageOne, scopeType,
 				allContainersInScope, viewSchema);
 		// should fail and change the table status.
 		verify(mockTableManagerSupport).attemptToSetTableStatusToFailed(idAndVersion, exception);
@@ -1360,8 +1378,8 @@ public class TableViewManagerImplTest {
 	 */
 	void setupApplyChanges() {
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
-		when(mockTableManagerSupport.getViewTypeMask(idAndVersion)).thenReturn(viewTypeMask);
-		when(mockTableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewTypeMask))
+		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
+		when(mockTableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, scopeType))
 				.thenReturn(allContainersInScope);
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(viewSchema);
 	}

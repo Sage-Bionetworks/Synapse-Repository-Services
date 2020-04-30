@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -43,6 +44,7 @@ public class EntityViewMetadataProvider implements TypeSpecificCreateProvider<En
 	
 	public static ViewScope createViewScope(EntityView view) {
 		ViewScope scope = new ViewScope();
+		scope.setObjectType(ObjectType.ENTITY);
 		scope.setScope(view.getScopeIds());
 		scope.setViewType(view.getType());
 		scope.setViewTypeMask(view.getViewTypeMask());

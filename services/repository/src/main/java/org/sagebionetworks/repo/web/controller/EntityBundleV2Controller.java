@@ -1,17 +1,21 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import org.sagebionetworks.repo.model.ACLInheritanceException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -54,15 +58,16 @@ public class EntityBundleV2Controller {
 	 * @throws ACLInheritanceException
 	 * @throws ParseException - Thrown if the childCount query failed
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE_V2, method = RequestMethod.POST)
 	public @ResponseBody
 	EntityBundle getEntityBundle(
-			UserInfo userInfo,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id,
 			@RequestBody EntityBundleRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().getEntityBundle(userInfo, id, request);
+		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, request);
 	}
 
 	/**
@@ -79,16 +84,17 @@ public class EntityBundleV2Controller {
 	 * @throws ACLInheritanceException
 	 * @throws ParseException - Thrown if the childCount query failed
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_NUMBER_BUNDLE_V2, method = RequestMethod.POST)
 	public @ResponseBody
 	EntityBundle getEntityBundle(
-			UserInfo userInfo,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id,
 			@PathVariable Long versionNumber,
 			@RequestBody EntityBundleRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().getEntityBundle(userInfo, id, versionNumber, request);
+		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, versionNumber, request);
 	}
 
 	/**
@@ -99,7 +105,7 @@ public class EntityBundleV2Controller {
 	 * Upon successful creation, an EntityBundle is returned containing the
 	 * requested components, as defined by the partsMask in the request object.
 	 *
-	 * @param userInfo
+	 * @param userId
 	 * @param ebc - the EntityBundleCreate object containing the Entity and Annotations to create.
 	 * @return
 	 * @throws ConflictingUpdateException
@@ -110,16 +116,17 @@ public class EntityBundleV2Controller {
 	 * @throws ACLInheritanceException
 	 * @throws ParseException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_BUNDLE_V2_CREATE, method = RequestMethod.POST)
 	public @ResponseBody
 	EntityBundle createEntityBundle(
-			UserInfo userInfo,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@RequestBody EntityBundleCreate ebc)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().createEntityBundle(userInfo, ebc, generatedBy);
+		return serviceProvider.getEntityBundleService().createEntityBundle(userId, ebc, generatedBy);
 	}
 
 	/**
@@ -141,17 +148,18 @@ public class EntityBundleV2Controller {
 	 * @throws ParseException
 	 * @throws ACLInheritanceException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE_V2, method = RequestMethod.PUT)
 	public @ResponseBody
 	EntityBundle updateEntityBundle(
-			UserInfo userInfo,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@PathVariable String id,
 			@RequestBody EntityBundleCreate ebc)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().updateEntityBundle(userInfo, id, ebc, generatedBy);
+		return serviceProvider.getEntityBundleService().updateEntityBundle(userId, id, ebc, generatedBy);
 	}
 
 }

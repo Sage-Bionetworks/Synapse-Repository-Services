@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -37,6 +38,7 @@ public class DockerRegistryEventController {
 	 * 
 	 * @param registryEvents
 	 */
+	@RequiredScope({})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.DOCKER_REGISTRY_EVENTS, method = RequestMethod.POST)
 	public void registryEvents(@RequestBody DockerRegistryEventList registryEvents)  {

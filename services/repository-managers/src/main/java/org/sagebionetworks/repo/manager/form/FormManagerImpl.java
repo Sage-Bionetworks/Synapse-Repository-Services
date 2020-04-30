@@ -149,7 +149,7 @@ public class FormManagerImpl implements FormManager {
 		// must have submit on the group.
 		aclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT).checkAuthorizationOrElseThrow();
 		// Must own the fileHandle
-		authManager.canAccessRawFileHandleById(user, request.getFileHandleId(), ACCESS_TYPE.CREATE).checkAuthorizationOrElseThrow();
+		authManager.canAccessRawFileHandleById(user, request.getFileHandleId()).checkAuthorizationOrElseThrow();
 		return formDao.createFormData(user.getId(), groupId, request.getName(), request.getFileHandleId());
 	}
 
@@ -227,7 +227,7 @@ public class FormManagerImpl implements FormManager {
 		validateGroupPermission(user, formDataId, ACCESS_TYPE.SUBMIT);
 
 		// Must own the fileHandle
-		authManager.canAccessRawFileHandleById(user, request.getFileHandleId(), ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
+		authManager.canAccessRawFileHandleById(user, request.getFileHandleId()).checkAuthorizationOrElseThrow();
 		if (request.getName() != null) {
 			formDao.updateFormData(formDataId, request.getName(), request.getFileHandleId());
 		} else {

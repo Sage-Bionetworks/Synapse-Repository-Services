@@ -3,6 +3,9 @@
  */
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Count;
@@ -11,6 +14,7 @@ import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -64,6 +68,7 @@ public class MembershipInvitationController {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.MEMBERSHIP_INVITATION, method = RequestMethod.POST)
 	public @ResponseBody
@@ -92,6 +97,7 @@ public class MembershipInvitationController {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OPEN_MEMBERSHIP_INVITATION_BY_USER, method = RequestMethod.GET)
 	public @ResponseBody
@@ -117,6 +123,7 @@ public class MembershipInvitationController {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OPEN_MEMBERSHIP_INVITATION_BY_TEAM, method = RequestMethod.GET)
 	public @ResponseBody
@@ -138,6 +145,7 @@ public class MembershipInvitationController {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MEMBERSHIP_INVITATION_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -155,6 +163,7 @@ public class MembershipInvitationController {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MEMBERSHIP_INVITATION_ID, method = RequestMethod.POST)
 	public @ResponseBody
@@ -172,6 +181,7 @@ public class MembershipInvitationController {
 	 * @param userId
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.MEMBERSHIP_INVITATION_ID, method = RequestMethod.DELETE)
 	public void deleteInvitation(
@@ -186,6 +196,7 @@ public class MembershipInvitationController {
 	 * @param userId
 	 * @return
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OPEN_MEMBERSHIP_INVITATION_COUNT, method = RequestMethod.GET)
 	public @ResponseBody Count getOpenInvitationCount(
@@ -205,6 +216,7 @@ public class MembershipInvitationController {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MEMBERSHIP_INVITATION_VERIFY_INVITEE, method = RequestMethod.GET)
 	public @ResponseBody InviteeVerificationSignedToken getInviteeVerificationSignedToken(
@@ -225,6 +237,7 @@ public class MembershipInvitationController {
 	 * @param userId
 	 * @param token
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MEMBERSHIP_INVITATION_UPDATE_INVITEE_ID, method = RequestMethod.PUT)
 	public void updateInviteeId(

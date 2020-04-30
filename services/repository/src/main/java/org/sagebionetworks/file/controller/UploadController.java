@@ -1,5 +1,9 @@
 package org.sagebionetworks.file.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.download;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import java.io.IOException;
 import java.net.URL;
 import java.util.List;
@@ -49,6 +53,7 @@ import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.RedirectUtils;
@@ -189,6 +194,7 @@ public class UploadController {
 	 * @throws ServiceUnavailableException
 	 * @throws JSONObjectAdapterException
 	 */
+	@RequiredScope({view,download})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.FILE_HANDLE_BATCH, method = RequestMethod.POST)
 	public @ResponseBody BatchFileResult getFileHandleAndUrlBatch(
@@ -214,6 +220,7 @@ public class UploadController {
 	 * @throws ServiceUnavailableException
 	 * @throws JSONObjectAdapterException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.FILE_HANDLE_COPY, method = RequestMethod.POST)
 	public @ResponseBody S3FileHandle copyS3FileHandle(
@@ -245,6 +252,7 @@ public class UploadController {
 	 * @throws ServiceUnavailableException
 	 * @throws JSONObjectAdapterException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.FILE_HANDLE_HANDLE_ID, method = RequestMethod.GET)
 	public @ResponseBody FileHandle getFileHandle(
@@ -274,9 +282,10 @@ public class UploadController {
 	 * @throws ServiceUnavailableException
 	 * @throws JSONObjectAdapterException
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.FILE_HANDLE_HANDLE_ID, method = RequestMethod.DELETE)
-	public @ResponseBody void deleteFileHandle(
+	public void deleteFileHandle(
 			@PathVariable String handleId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws FileUploadException,
 			IOException, DatastoreException, NotFoundException,
@@ -299,9 +308,10 @@ public class UploadController {
 	 * @throws ServiceUnavailableException
 	 * @throws JSONObjectAdapterException
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.FILE_HANDLE_PREVIEW, method = RequestMethod.DELETE)
-	public @ResponseBody void clearPreview(
+	public void clearPreview(
 			@PathVariable String handleId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws FileUploadException,
 			IOException, DatastoreException, NotFoundException,
@@ -324,6 +334,7 @@ public class UploadController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EXTERNAL_FILE_HANDLE, method = RequestMethod.POST)
 	public @ResponseBody ExternalFileHandleInterface createExternalFileHandle(
@@ -352,6 +363,7 @@ public class UploadController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EXTERNAL_FILE_HANDLE_S3, method = RequestMethod.POST)
 	public @ResponseBody S3FileHandle createExternalFileHandle(
@@ -380,6 +392,7 @@ public class UploadController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EXTERNAL_FILE_HANDLE_GOOGLE_CLOUD, method = RequestMethod.POST)
 	public @ResponseBody
@@ -408,6 +421,7 @@ public class UploadController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EXTERNAL_FILE_HANDLE_PROXY, method = RequestMethod.POST)
 	@Deprecated
@@ -435,6 +449,7 @@ public class UploadController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@Deprecated
 	// replaced with multi-part upload V2
 	@ResponseStatus(HttpStatus.CREATED)
@@ -463,6 +478,7 @@ public class UploadController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({view,modify})
 	@Deprecated
 	// replaced with multi-part upload V2
 	@ResponseStatus(HttpStatus.CREATED)
@@ -491,6 +507,7 @@ public class UploadController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@Deprecated
 	// replaced with multi-part upload V2
 	@ResponseStatus(HttpStatus.CREATED)
@@ -514,6 +531,7 @@ public class UploadController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@Deprecated
 	// replaced with multi-part upload V2
 	@ResponseStatus(HttpStatus.OK)
@@ -536,6 +554,7 @@ public class UploadController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID + "/uploadDestinations", method = RequestMethod.GET)
@@ -559,6 +578,7 @@ public class UploadController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID
 			+ "/uploadDestinationLocations", method = RequestMethod.GET)
@@ -582,6 +602,7 @@ public class UploadController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID
 			+ "/uploadDestination/{storageLocationId}", method = RequestMethod.GET)
@@ -608,6 +629,7 @@ public class UploadController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID + "/uploadDestination", method = RequestMethod.GET)
 	public @ResponseBody UploadDestination getDefaultUploadDestination(
@@ -642,8 +664,9 @@ public class UploadController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({download})
 	@RequestMapping(value = "/fileHandle/{handleId}/url", method = RequestMethod.GET)
-	public @ResponseBody void getFileHandleURL(
+	public void getFileHandleURL(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String handleId,
 			@RequestParam(required = false) Boolean redirect,
@@ -686,6 +709,7 @@ public class UploadController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({download})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.BULK_FILE_DOWNLOAD_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody AsyncJobId startBulkFileDownloadJob(
@@ -717,6 +741,7 @@ public class UploadController {
 	 * @throws NotFoundException
 	 * @throws AsynchJobFailedException
 	 */
+	@RequiredScope({download})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.BULK_FILE_DOWNLOAD_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody BulkFileDownloadResponse getBulkFileDownloadResults(
@@ -753,6 +778,7 @@ public class UploadController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.FILE_DOWNLOAD, method = RequestMethod.GET)
 	public void fileRedirectURLForAffiliate(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -782,6 +808,7 @@ public class UploadController {
 	 *            upload will be started.
 	 * @return
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.FILE_MULTIPART, method = RequestMethod.POST)
 	public @ResponseBody MultipartUploadStatus startMultipartUpload(
@@ -804,6 +831,7 @@ public class UploadController {
 	 * @param request
 	 * @return
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.FILE_MULTIPART_UPLOAD_ID_PRESIGNED, method = RequestMethod.POST)
 	public @ResponseBody BatchPresignedUploadUrlResponse getPresignedUrlBatch(
@@ -836,6 +864,7 @@ public class UploadController {
 	 * @return The response will indicate if add succeeded or failed. When an
 	 *         add fails, the response will include an error message.
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.FILE_MULTIPART_UPLOAD_ID_ADD_PART, method = RequestMethod.PUT)
 	public @ResponseBody AddPartResponse addPart(
@@ -856,6 +885,7 @@ public class UploadController {
 	 * @return If successful, the response will include the ID of the new file
 	 *         handle.
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.FILE_MULTIPART_UPLOAD_ID_COMPLETE, method = RequestMethod.PUT)
 	public @ResponseBody MultipartUploadStatus completeMultipartUpload(
@@ -889,6 +919,7 @@ public class UploadController {
 	 * @throws HttpStatus.BAD_REQUEST for request with duplicated FileHandleId.
 	 * @return
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.FILE_HANDLES_COPY, method = RequestMethod.POST)
 	public @ResponseBody BatchFileHandleCopyResult copyFileHandles(
@@ -915,6 +946,7 @@ public class UploadController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({view,modify,download})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_ADD_START_ASYNCH, method = RequestMethod.POST)
 	public @ResponseBody AsyncJobId startAddFileToDownloadList(
@@ -942,6 +974,7 @@ public class UploadController {
 	 * @return
 	 * @throws Throwable
 	 */
+	@RequiredScope({view,download})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_ADD_GET_ASYNCH, method = RequestMethod.GET)
 	public @ResponseBody AddFileToDownloadListResponse getAddFileToDownloadListResults(
@@ -965,6 +998,7 @@ public class UploadController {
 	 * @return
 	 * @throws Throwable
 	 */
+	@RequiredScope({view,modify,download})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_ADD, method = RequestMethod.POST)
 	public @ResponseBody DownloadList addFilesToDownloadList(
@@ -981,6 +1015,7 @@ public class UploadController {
 	 * @return
 	 * @throws Throwable
 	 */
+	@RequiredScope({view,modify,download})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_REMOVE, method = RequestMethod.POST)
 	public @ResponseBody DownloadList removeFilesFromDownloadList(
@@ -996,6 +1031,7 @@ public class UploadController {
 	 * @param request
 	 * @throws Throwable
 	 */
+	@RequiredScope({view,modify,download})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST, method = RequestMethod.DELETE)
 	public @ResponseBody void clearUsersDownloadList(
@@ -1009,6 +1045,7 @@ public class UploadController {
 	 * @param userId
 	 * @throws Throwable
 	 */
+	@RequiredScope({view,download})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST, method = RequestMethod.GET)
 	public @ResponseBody DownloadList getDownloadList(
@@ -1038,6 +1075,7 @@ public class UploadController {
 	 * @return
 	 * @throws Throwable
 	 */
+	@RequiredScope({view,modify,download})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_ORDER, method = RequestMethod.POST)
 	public @ResponseBody DownloadOrder createDownloadOrder(
@@ -1055,6 +1093,7 @@ public class UploadController {
 	 * @return
 	 * @throws Throwable
 	 */
+	@RequiredScope({view,download})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_ORDER_ID, method = RequestMethod.GET)
 	public @ResponseBody DownloadOrder getDownloadOrder(
@@ -1071,6 +1110,7 @@ public class UploadController {
 	 * @return A single page of download order summaries.
 	 * @throws Throwable
 	 */
+	@RequiredScope({view,download})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_ORDER_HISTORY, method = RequestMethod.POST)
 	public @ResponseBody DownloadOrderSummaryResponse getDownloadOrderHistory(

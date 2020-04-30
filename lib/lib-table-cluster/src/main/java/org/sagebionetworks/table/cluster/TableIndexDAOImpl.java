@@ -51,6 +51,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -64,11 +65,12 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
-import org.sagebionetworks.repo.model.table.AnnotationDTO;
+import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -714,8 +716,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void addObjectData(ObjectType objectType, List<EntityDTO> objectDtos) {
-		final List<EntityDTO> sorted = new ArrayList<EntityDTO>(objectDtos);
+	public void addObjectData(ObjectType objectType, List<ObjectDataDTO> objectDtos) {
+		final List<ObjectDataDTO> sorted = new ArrayList<ObjectDataDTO>(objectDtos);
 		Collections.sort(sorted);
 		// batch update the entity table
 		template.batchUpdate(TableConstants.OBJECT_REPLICATION_INSERT, new BatchPreparedStatementSetter(){
@@ -723,7 +725,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			@Override
 			public void setValues(PreparedStatement ps, int i)
 					throws SQLException {
-				EntityDTO dto = sorted.get(i);
+				ObjectDataDTO dto = sorted.get(i);
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, objectType.name());
 				ps.setLong(parameterIndex++, dto.getId());
@@ -732,7 +734,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				ps.setLong(parameterIndex++, dto.getCreatedOn().getTime());
 				ps.setString(parameterIndex++, dto.getEtag());
 				ps.setString(parameterIndex++, dto.getName());
-				ps.setString(parameterIndex++, dto.getType().name());
+				ps.setString(parameterIndex++, dto.getSubType().name());
 				if(dto.getParentId() != null){
 					ps.setLong(parameterIndex++, dto.getParentId());
 				}else{
@@ -777,9 +779,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				return sorted.size();
 			}});
 		// map the entities with annotations
-		final List<AnnotationDTO> annotations = new ArrayList<AnnotationDTO>();
+		final List<ObjectAnnotationDTO> annotations = new ArrayList<ObjectAnnotationDTO>();
 		for(int i=0; i<sorted.size(); i++){
-			EntityDTO dto = sorted.get(i);
+			ObjectDataDTO dto = sorted.get(i);
 			if(dto.getAnnotations() != null && !dto.getAnnotations().isEmpty()){
 				// this index has annotations.
 				annotations.addAll(dto.getAnnotations());
@@ -791,7 +793,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			@Override
 			public void setValues(PreparedStatement ps, int i)
 					throws SQLException {
-				AnnotationDTO dto = annotations.get(i);
+				ObjectAnnotationDTO dto = annotations.get(i);
 				SQLUtils.writeAnnotationDtoToPreparedStatement(objectType, ps, dto);
 			}
 
@@ -803,19 +805,19 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public EntityDTO getObjectData(ObjectType objectType, Long objectId) {
+	public ObjectDataDTO getObjectData(ObjectType objectType, Long objectId) {
 		// query for the template.
-		EntityDTO dto;
+		ObjectDataDTO dto;
 		try {
 			dto = template.queryForObject(TableConstants.OBJECT_REPLICATION_GET, (ResultSet rs, int rowNum) -> {
-				EntityDTO dto1 = new EntityDTO();
+				ObjectDataDTO dto1 = new ObjectDataDTO();
 				dto1.setId(rs.getLong(OBJECT_REPLICATION_COL_OBJECT_ID));
 				dto1.setCurrentVersion(rs.getLong(OBJECT_REPLICATION_COL_VERSION));
 				dto1.setCreatedBy(rs.getLong(OBJECT_REPLICATION_COL_CREATED_BY));
 				dto1.setCreatedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_CREATED_ON)));
 				dto1.setEtag(rs.getString(OBEJCT_REPLICATION_COL_ETAG));
 				dto1.setName(rs.getString(OBJECT_REPLICATION_COL_NAME));
-				dto1.setType(EntityType.valueOf(rs.getString(OBJECT_REPLICATION_COL_SUBTYPE)));
+				dto1.setSubType(EntityType.valueOf(rs.getString(OBJECT_REPLICATION_COL_SUBTYPE)));
 				dto1.setParentId(rs.getLong(OBJECT_REPLICATION_COL_PARENT_ID));
 				if (rs.wasNull()) {
 					dto1.setParentId(null);
@@ -850,9 +852,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return null;
 		}
 		// get the annotations.
-		List<AnnotationDTO> annotations = template.query(TableConstants.ANNOTATION_REPLICATION_GET, (ResultSet rs, int rowNum) -> {
-			AnnotationDTO dto1 = new AnnotationDTO();
-			dto1.setEntityId(rs.getLong(ANNOTATION_REPLICATION_COL_OBJECT_ID));
+		List<ObjectAnnotationDTO> annotations = template.query(TableConstants.ANNOTATION_REPLICATION_GET, (ResultSet rs, int rowNum) -> {
+			ObjectAnnotationDTO dto1 = new ObjectAnnotationDTO();
+			dto1.setObjectId(rs.getLong(ANNOTATION_REPLICATION_COL_OBJECT_ID));
 			dto1.setKey(rs.getString(ANNOTATION_REPLICATION_COL_KEY));
 			dto1.setType(AnnotationType.valueOf(rs.getString(ANNOTATION_REPLICATION_COL_TYPE)));
 			dto1.setValue((List<String>) (List<?>) new JSONArray(rs.getString(ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE))
@@ -920,7 +922,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		// Filter by rows only if provided.
 		boolean filterByRows = rowIdsToCopy != null;
 		MapSqlParameterSource param = getMapSqlParameterSourceForCopyToView(objectType, allContainersInScope, rowIdsToCopy, filterByRows);
-		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, viewTypeMask, currentSchema, filterByRows);
+		List<ColumnMetadata> metadata = translateSchema(objectType, currentSchema);
+		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, viewTypeMask, filterByRows);
 		namedTemplate.update(sql, param);
 	}
 
@@ -948,7 +951,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		param.addValue(OBJECT_TYPE_PARAM_NAME, objectType.name());
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = false;
-		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, viewId, viewTypeMask, currentSchema, filterByRows);
+		List<ColumnMetadata> metadata = translateSchema(objectType, currentSchema);
+		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, metadata, viewTypeMask, filterByRows);
 		// push the headers to the stream
 		outputStream.writeNext(headers.toArray(new String[headers.size()]));
 		namedTemplate.query(builder.toString(), param, (ResultSet rs) -> {
@@ -959,6 +963,37 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			}
 			outputStream.writeNext(row);
 		});
+	}
+	
+	// Translates the Column Model schema into a column metadata schema, that maps to the object/annotation replication index
+	List<ColumnMetadata> translateSchema(ObjectType objectType, List<ColumnModel> schema) {
+		return schema.stream()
+			.map((ColumnModel columnModel) -> translateColumnModel(objectType, columnModel))
+			.collect(Collectors.toList());
+	}
+	
+	ColumnMetadata translateColumnModel(ObjectType objectType, ColumnModel model) {
+		// First determine if this an object column or an annotation
+		Optional<ObjectField> entityField = findObjectField(objectType, model);
+		
+		String selectColumnForId = SQLUtils.getColumnNameForId(model.getId());
+		boolean isObjectReplicationField;
+		String selectColumnName;
+		
+		if (entityField.isPresent()) {
+			isObjectReplicationField = true;
+			selectColumnName = entityField.get().getDatabaseColumnName();
+		} else {
+			isObjectReplicationField = false;
+			selectColumnName = SQLUtils.translateColumnTypeToAnnotationValueName(model.getColumnType());
+		}
+		
+		return new ColumnMetadata(model, selectColumnName, selectColumnForId, isObjectReplicationField);
+	}
+	
+	Optional<ObjectField> findObjectField(ObjectType objectType, ColumnModel model) {
+		// TODO move this to a class that uses some type of provider according to the objectType
+		return Optional.ofNullable(ObjectField.findMatch(model));
 	}
 
 	@Override

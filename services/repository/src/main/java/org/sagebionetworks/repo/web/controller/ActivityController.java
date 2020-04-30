@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import java.io.IOException;
 
 import javax.servlet.http.HttpServletRequest;
@@ -14,6 +17,7 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -129,6 +133,7 @@ public class ActivityController{
 	 *             Thrown if there is a failure to read the header.
 	 * @throws JSONObjectAdapterException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { 
 			UrlHelpers.ACTIVITY
@@ -165,6 +170,7 @@ public class ActivityController{
 	 *             Thrown if specified user is unauthorized to access this
 	 *             activity.
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { 
 			UrlHelpers.ACTIVITY_ID
@@ -210,6 +216,7 @@ public class ActivityController{
 	 *             There is a problem reading the contents.
 	 * @throws JSONObjectAdapterException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { 
 			UrlHelpers.ACTIVITY_ID
@@ -242,6 +249,7 @@ public class ActivityController{
 	 *             Thrown when the user is not allowed to access or delete the
 	 *             specified activity.
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = { 			
 			UrlHelpers.ACTIVITY_ID
@@ -279,6 +287,7 @@ public class ActivityController{
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {
 			UrlHelpers.ACTIVITY_GENERATED

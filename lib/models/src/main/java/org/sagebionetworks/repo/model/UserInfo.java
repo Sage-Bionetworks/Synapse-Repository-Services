@@ -2,13 +2,7 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Date;
 import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
-
-import org.sagebionetworks.repo.model.oauth.OAuthScope;
-import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
-import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 
 /**
  *  Contains both a user and the groups to which she belongs.
@@ -21,10 +15,6 @@ public class UserInfo {
 	private Set<Long> groups;
 	
 	private final boolean isAdmin;
-	
-	private List<OAuthScope> scopes;
-
-	private Map<OIDCClaimName, OIDCClaimsRequestDetails>  oidcClaims;
 
 	public UserInfo(boolean isAdmin) {
 		this.isAdmin = isAdmin;
@@ -86,33 +76,11 @@ public class UserInfo {
 		return isAdmin;
 	}
 
-	
-	public List<OAuthScope> getScopes() {
-		return scopes;
-	}
-
-	public void setScopes(List<OAuthScope> scopes) {
-		this.scopes = scopes;
-	}
-
-	public Map<OIDCClaimName, OIDCClaimsRequestDetails> getOidcClaims() {
-		return oidcClaims;
-	}
-
-	public void setOidcClaims(Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims) {
-		this.oidcClaims = oidcClaims;
-	}
-
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((creationDate == null) ? 0 : creationDate.hashCode());
-		result = prime * result + ((groups == null) ? 0 : groups.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + (isAdmin ? 1231 : 1237);
-		result = prime * result + ((oidcClaims == null) ? 0 : oidcClaims.hashCode());
-		result = prime * result + ((scopes == null) ? 0 : scopes.hashCode());
 		return result;
 	}
 
@@ -125,32 +93,10 @@ public class UserInfo {
 		if (getClass() != obj.getClass())
 			return false;
 		UserInfo other = (UserInfo) obj;
-		if (creationDate == null) {
-			if (other.creationDate != null)
-				return false;
-		} else if (!creationDate.equals(other.creationDate))
-			return false;
-		if (groups == null) {
-			if (other.groups != null)
-				return false;
-		} else if (!groups.equals(other.groups))
-			return false;
 		if (id == null) {
 			if (other.id != null)
 				return false;
 		} else if (!id.equals(other.id))
-			return false;
-		if (isAdmin != other.isAdmin)
-			return false;
-		if (oidcClaims == null) {
-			if (other.oidcClaims != null)
-				return false;
-		} else if (!oidcClaims.equals(other.oidcClaims))
-			return false;
-		if (scopes == null) {
-			if (other.scopes != null)
-				return false;
-		} else if (!scopes.equals(other.scopes))
 			return false;
 		return true;
 	}

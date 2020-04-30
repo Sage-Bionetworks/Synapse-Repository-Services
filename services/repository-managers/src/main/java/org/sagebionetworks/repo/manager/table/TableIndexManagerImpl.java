@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewScope;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
@@ -386,14 +387,17 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// delete
 		tableIndexDao.deleteTemporaryTable(tableId);
 	}
+	
 	@Override
-	public long populateViewFromEntityReplication(final Long viewId, final Long viewTypeMask,
+	public long populateViewFromEntityReplication(final Long viewId, final ViewScopeType scopeType,
 			final Set<Long> allContainersInScope, final List<ColumnModel> currentSchema) {
-		ValidateArgument.required(viewTypeMask, "viewTypeMask");
+		ValidateArgument.required(scopeType, "scopeType");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 		ValidateArgument.required(currentSchema, "currentSchema");
 
-		ObjectType objectType = getViewObjectType(viewId);
+		ObjectType objectType = scopeType.getObjectType();
+		Long typeMask = scopeType.getTypeMask();
+
 
 		// before updating. verify that all rows that would be changed won't exceed the user-specified maxListLength,
 		// which is used for query row size estimation
@@ -401,10 +405,10 @@ public class TableIndexManagerImpl implements TableIndexManager {
 
 		// copy the data from the entity replication tables to table's index
 		try {
-			tableIndexDao.copyEntityReplicationToView(objectType, viewId, viewTypeMask, allContainersInScope, currentSchema);
+			tableIndexDao.copyEntityReplicationToView(objectType, viewId, typeMask, allContainersInScope, currentSchema);
 		} catch (Exception e) {
 			// if the copy failed. Attempt to determine the cause.
-			determineCauseOfReplicationFailure(e, objectType, currentSchema,  allContainersInScope, viewTypeMask);
+			determineCauseOfReplicationFailure(e, scopeType, currentSchema,  allContainersInScope);
 		}
 		// calculate the new CRC32;
 		return tableIndexDao.calculateCRC32ofTableView(viewId);
@@ -445,10 +449,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param currentSchema
 	 * @throws Exception 
 	 */
-	public void determineCauseOfReplicationFailure(Exception exception, ObjectType objectType, List<ColumnModel> currentSchema, Set<Long> containersInScope, Long viewTypeMask) {
+	public void determineCauseOfReplicationFailure(Exception exception, ViewScopeType scopeType, List<ColumnModel> currentSchema, Set<Long> containersInScope) {
+		ObjectType objectType = scopeType.getObjectType();
+		Long typeMask = scopeType.getTypeMask();		
 		// Calculate the schema from the annotations
-		List<ColumnModel> schemaFromAnnotations = tableIndexDao.getPossibleColumnModelsForContainers(objectType, containersInScope, viewTypeMask, Long.MAX_VALUE, 0L);
-		// check the 
+		List<ColumnModel> schemaFromAnnotations = tableIndexDao.getPossibleColumnModelsForContainers(objectType, containersInScope, typeMask, Long.MAX_VALUE, 0L);
+		// TODO: Should use a provider that given the object type skips the column models that are mapped to the object replication table
 		SQLUtils.determineCauseOfException(exception, currentSchema, schemaFromAnnotations);
 		// Have not determined the cause so throw the original exception
 		if(exception instanceof RuntimeException) {
@@ -463,10 +469,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			final Long viewId, String nextPageToken) {
 		ValidateArgument.required(viewId, "viewId");
 		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(viewId).build();
-		ObjectType objectType = getViewObjectType(viewId);
-		Long type = tableManagerSupport.getViewTypeMask(idAndVersion);
-		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, type);
-		return getPossibleAnnotationDefinitionsForContainerIds(objectType, containerIds, type, nextPageToken);
+		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(idAndVersion);
+		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, scopeType);
+		return getPossibleAnnotationDefinitionsForContainerIds(scopeType, containerIds, nextPageToken);
 	}
 	
 	@Override
@@ -475,13 +480,19 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ValidateArgument.required(scope, "scope");
 		ValidateArgument.required(scope.getScope(), "scope.scopeIds");
 		
-		ObjectType objectType = getViewObjectType(null);
+		ObjectType objectType = scope.getObjectType();
+		
+		// When the scope does not specify the object type we defaults to ENTITY as not to break the API
+		if (objectType == null) {
+			objectType = ObjectType.ENTITY;
+		}
 		
 		long viewTypeMask = ViewTypeMask.getViewTypeMask(scope);
+		ViewScopeType scopeType = new ViewScopeType(objectType, viewTypeMask);
 		// lookup the containers for the given scope
 		Set<Long> scopeSet = new HashSet<Long>(KeyFactory.stringToKey(scope.getScope()));
-		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForScope(scopeSet, viewTypeMask);
-		return getPossibleAnnotationDefinitionsForContainerIds(objectType, containerIds, viewTypeMask, nextPageToken);
+		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForScope(scopeSet, scopeType);
+		return getPossibleAnnotationDefinitionsForContainerIds(scopeType, containerIds, nextPageToken);
 	}
 	
 	
@@ -492,8 +503,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param nextPageToken Optional: Controls pagination.
 	 * @return
 	 */
-	ColumnModelPage getPossibleAnnotationDefinitionsForContainerIds(ObjectType objectType,
-			Set<Long> containerIds, Long viewTypeMask, String nextPageToken) {
+	ColumnModelPage getPossibleAnnotationDefinitionsForContainerIds(ViewScopeType viewScopeType,
+			Set<Long> containerIds, String nextPageToken) {
 		ValidateArgument.required(containerIds, "containerIds");
 		NextPageToken token =  new NextPageToken(nextPageToken);
 		ColumnModelPage results = new ColumnModelPage();
@@ -502,8 +513,10 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			results.setNextPageToken(null);
 			return results;
 		}
+		ObjectType objectType = viewScopeType.getObjectType();
+		Long typeMask = viewScopeType.getTypeMask();
 		// request one page with a limit one larger than the passed limit.
-		List<ColumnModel> columns = tableIndexDao.getPossibleColumnModelsForContainers(objectType, containerIds, viewTypeMask, token.getLimitForQuery(), token.getOffset());
+		List<ColumnModel> columns = tableIndexDao.getPossibleColumnModelsForContainers(objectType, containerIds, typeMask, token.getLimitForQuery(), token.getOffset());
 		results.setNextPageToken(token.getNextPageTokenForCurrentResults(columns));
 		results.setResults(columns);
 		return results;
@@ -684,10 +697,13 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public void createViewSnapshot(Long viewId, Long viewTypeMask, Set<Long> allContainersInScope,
+	public void createViewSnapshot(Long viewId, ViewScopeType scopeType, Set<Long> allContainersInScope,
 			List<ColumnModel> viewSchema, CSVWriterStream writter) {
-		ObjectType objectType = getViewObjectType(viewId);
-		tableIndexDao.createViewSnapshotFromEntityReplication(objectType, viewId, viewTypeMask, allContainersInScope, viewSchema, writter);
+		
+		ObjectType objectType = scopeType.getObjectType();
+		Long typeMask = scopeType.getTypeMask();
+		
+		tableIndexDao.createViewSnapshotFromEntityReplication(objectType, viewId, typeMask, allContainersInScope, viewSchema, writter);
 	}
 	@Override
 	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input) {
@@ -695,25 +711,28 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 
 	@Override
-	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, long viewTypeMask, Set<Long> allContainersInScope,
+	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, ViewScopeType scopeType, Set<Long> allContainersInScope,
 			long limit) {
-		ObjectType objectType = getViewObjectType(viewId.getId());
-		return tableIndexDao.getOutOfDateRowsForView(objectType, viewId, viewTypeMask, allContainersInScope, limit);
+		ObjectType objectType = scopeType.getObjectType();
+		Long typeMask = scopeType.getTypeMask();
+		
+		return tableIndexDao.getOutOfDateRowsForView(objectType, viewId, typeMask, allContainersInScope, limit);
 	}
 	
 	@Override
-	public void updateViewRowsInTransaction(IdAndVersion viewId, Set<Long> rowsIdsWithChanges, Long viewTypeMask,
+	public void updateViewRowsInTransaction(IdAndVersion viewId, Set<Long> rowsIdsWithChanges, ViewScopeType scopeType,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema) {
 		ValidateArgument.required(viewId, "viewId");
 		ValidateArgument.required(rowsIdsWithChanges, "rowsIdsWithChanges");
-		ValidateArgument.required(viewTypeMask, "viewTypeMask");
+		ValidateArgument.required(scopeType, "scopeType");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 		ValidateArgument.required(currentSchema, "currentSchema");
 		
-		ObjectType objectType = getViewObjectType(viewId.getId());
+		ObjectType objectType = scopeType.getObjectType();
+		Long typeMask = scopeType.getTypeMask();
+
 		// before updating. verify that all rows that would be changed won't exceed the user-specified maxListLength,
 		// which is used for query row size estimation
-		//TODO: test
 		validateMaxListLengthInAnnotationReplication(objectType,viewId.getId(),viewTypeMask,allContainersInScope,currentSchema,rowsIdsWithChanges);
 
 		// all calls are in a single transaction.
@@ -723,19 +742,14 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			tableIndexDao.deleteRowsFromViewBatch(viewId, rowsIdsArray);
 			try {
 				// Apply any updates to the view for the given Ids
-				tableIndexDao.copyEntityReplicationToView(objectType, viewId.getId(), viewTypeMask, allContainersInScope, currentSchema, rowsIdsWithChanges);
+				tableIndexDao.copyEntityReplicationToView(objectType, viewId.getId(), typeMask, allContainersInScope, currentSchema, rowsIdsWithChanges);
 				populateListColumnIndexTables(viewId, currentSchema, rowsIdsWithChanges);
 			} catch (Exception e) {
 				// if the copy failed. Attempt to determine the cause.  This will always throw an exception.
-				determineCauseOfReplicationFailure(e, objectType, currentSchema,  allContainersInScope, viewTypeMask);
+				determineCauseOfReplicationFailure(e, scopeType, currentSchema,  allContainersInScope);
 			}
 			return null;
 		});
-	}
-	
-	private ObjectType getViewObjectType(Long viewId) {
-		// TODO: This should get stored along with the scope
-		return ObjectType.ENTITY;
 	}
 
 }

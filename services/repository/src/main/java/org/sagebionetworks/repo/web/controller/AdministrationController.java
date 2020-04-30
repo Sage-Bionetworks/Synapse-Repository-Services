@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import java.io.IOException;
 
 import javax.servlet.http.HttpServletRequest;
@@ -23,6 +26,7 @@ import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,6 +56,7 @@ public class AdministrationController {
 	/**
 	 * @return the current status of the stack
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {
 			UrlHelpers.ADMIN_STACK_STATUS,
@@ -76,6 +81,7 @@ public class AdministrationController {
 	 * @throws IOException
 	 * @throws ConflictingUpdateException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { 
 			UrlHelpers.ADMIN_STACK_STATUS
@@ -89,6 +95,7 @@ public class AdministrationController {
 		return serviceProvider.getAdministrationService().updateStatusStackStatus(userId, header, request);
 	}
 	
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.CHANGE_MESSAGES }, method = RequestMethod.GET)
 	public @ResponseBody
@@ -106,6 +113,7 @@ public class AdministrationController {
 		return serviceProvider.getAdministrationService().listChangeMessages(userId, startChangeNumber, typeEnum, limit);
 	}
 	
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.REBROADCAST_MESSAGES }, method = RequestMethod.POST)
 	public @ResponseBody
@@ -127,6 +135,7 @@ public class AdministrationController {
 	/**
 	 * Refires all the change messages
 	 **/
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.REFIRE_MESSAGES }, method = RequestMethod.GET)
 	public @ResponseBody
@@ -142,6 +151,7 @@ public class AdministrationController {
 	/**
 	 * Get current change message number
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.CURRENT_NUMBER }, method = RequestMethod.GET)
 	public @ResponseBody
@@ -158,6 +168,7 @@ public class AdministrationController {
 	 * @throws NotFoundException 
 	 * @throws UnauthorizedException 
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.CREATE_OR_UPDATE }, method = RequestMethod.POST)
 	public @ResponseBody
@@ -170,6 +181,7 @@ public class AdministrationController {
 	/**
 	 * Clears the Synapse DOI table.
 	 */
+	@RequiredScope({modify})
 	@RequestMapping(value = {UrlHelpers.ADMIN_DOI_CLEAR}, method = RequestMethod.DELETE)
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void
@@ -182,6 +194,7 @@ public class AdministrationController {
 	 * Creates a user with specific state to be used for integration testing.
 	 * If the user already exists, just returns the existing one.
 	 */
+	@RequiredScope({view,modify})
 	@RequestMapping(value = {UrlHelpers.ADMIN_USER}, method = RequestMethod.POST)
 	@ResponseStatus(HttpStatus.OK)
 	public @ResponseBody EntityId createOrGetIntegrationTestUser(
@@ -194,6 +207,7 @@ public class AdministrationController {
 	/**
 	 * Deletes a user.  All FKs must be deleted before this will succeed
 	 */
+	@RequiredScope({modify})
 	@RequestMapping(value = {UrlHelpers.ADMIN_USER_ID}, method = RequestMethod.DELETE)
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void deleteUser(
@@ -203,6 +217,7 @@ public class AdministrationController {
 		serviceProvider.getAdministrationService().deleteUser(userId, id);
 	}
 	
+	@RequiredScope({modify})
 	@RequestMapping(value = { UrlHelpers.ADMIN_TABLE_REBUILD }, method = RequestMethod.GET)
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void rebuildTable(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -210,6 +225,7 @@ public class AdministrationController {
 		serviceProvider.getAdministrationService().rebuildTable(userId, tableId);
 	}
 
+	@RequiredScope({modify})
 	@RequestMapping(value = {UrlHelpers.ADMIN_CLEAR_LOCKS}, method = RequestMethod.DELETE)
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void clearLocks(
@@ -226,6 +242,7 @@ public class AdministrationController {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ADMIN_ASYNCHRONOUS_JOB, method = RequestMethod.POST)
 	public @ResponseBody
@@ -244,6 +261,7 @@ public class AdministrationController {
 	 * @throws AsynchJobFailedException
 	 * @throws NotReadyException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ADMIN_ASYNCHRONOUS_JOB_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -262,6 +280,7 @@ public class AdministrationController {
 	 * @throws AsynchJobFailedException
 	 * @throws NotReadyException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ADMIN_ID_GEN_EXPORT, method = RequestMethod.GET)
 	public @ResponseBody
@@ -281,6 +300,7 @@ public class AdministrationController {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ADMIN_OAUTH_CLIENT_VERIFICATION, method = RequestMethod.PUT)
 	public @ResponseBody OAuthClient updateOAuthClientVerifiedStatus(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -296,6 +316,7 @@ public class AdministrationController {
 	 * @param userId Principal ID of the caller. Must be an administrator
 	 * @param principalId The principal ID of the user whose information should be cleared
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ADMIN_REDACT_USER, method = RequestMethod.POST)
 	public @ResponseBody void clearUserProfile(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,

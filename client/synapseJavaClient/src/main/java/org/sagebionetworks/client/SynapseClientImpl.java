@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -121,6 +122,9 @@ import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionInfo;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
@@ -234,6 +238,9 @@ import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
 import org.sagebionetworks.repo.model.report.StorageReportType;
 import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
+import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
+import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -611,6 +618,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	public static final String STORAGE_REPORT = "/storageReport";
 	public static final String ANNOTATIONS_V2 = "/annotations2";
+	
+	public static final String SCHEMA_TYPE_CREATE = "/schema/type/create/";
 
 	/**
 	 * Default constructor uses the default repository and file services endpoints.
@@ -5237,6 +5246,17 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
+	public SubmissionInfoPage listApprovedSubmissionInfo(String requirementId, String nextPageToken) throws SynapseException {
+		ValidateArgument.required(requirementId, "requirementId");
+		SubmissionInfoPageRequest request = new SubmissionInfoPageRequest();
+		request.setAccessRequirementId(requirementId);
+		request.setNextPageToken(nextPageToken);
+		String url = ACCESS_REQUIREMENT + "/" + requirementId + "/approvedSubmissionInfo";
+		return postJSONEntity(getRepoEndpoint(), url, request, SubmissionInfoPage.class);
+		
+	}
+	
+	@Override
 	public AccessRequirementStatus getAccessRequirementStatus(String requirementId) throws SynapseException {
 		ValidateArgument.required(requirementId, "requirementId");
 		String url = ACCESS_REQUIREMENT + "/" + requirementId + "/status";
@@ -5521,6 +5541,57 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(toUpdate, "AccessControlList");
 		String url = "/schema/organization/"+id+"/acl";
 		return putJSONEntity(getRepoEndpoint(), url, toUpdate, AccessControlList.class);
+	}
+
+	@Override
+	public String startCreateSchemaJob(CreateSchemaRequest request) throws SynapseException {
+		return startAsynchJob(AsynchJobType.CreateJsonSchema, request);
+	}
+
+	@Override
+	public CreateSchemaResponse getCreateSchemaJobResult(String asyncJobToken)
+			throws SynapseException, SynapseResultNotReadyException {
+		String url = SCHEMA_TYPE_CREATE + ASYNC_GET + asyncJobToken;
+		return (CreateSchemaResponse) getAsynchJobResponse(url, CreateSchemaResponse.class, getRepoEndpoint());
+	}
+
+	@Override
+	public JsonSchema getJsonSchema(String organizationName, String schemaName, String semanticVersion) throws SynapseException {
+		ValidateArgument.required(organizationName, "organizationName");
+		ValidateArgument.required(schemaName, "schemaName");
+		StringJoiner joiner = new StringJoiner("/");
+		joiner.add("/schema/type/registered");
+		joiner.add(organizationName);
+		joiner.add(schemaName);
+		if(semanticVersion != null) {
+			joiner.add(semanticVersion);
+		}
+		return getJSONEntity(getRepoEndpoint(), joiner.toString(), JsonSchema.class);
+	}
+
+	@Override
+	public void deleteSchema(String organizationName, String schemaName) throws SynapseException {
+		ValidateArgument.required(organizationName, "organizationName");
+		ValidateArgument.required(schemaName, "schemaName");
+		StringJoiner joiner = new StringJoiner("/");
+		joiner.add("/schema/type/registered");
+		joiner.add(organizationName);
+		joiner.add(schemaName);
+		deleteUri(getRepoEndpoint(), joiner.toString());
+	}
+
+	@Override
+	public void deleteSchemaVersion(String organizationName, String schemaName, String semanticVersion)
+			throws SynapseException {
+		ValidateArgument.required(organizationName, "organizationName");
+		ValidateArgument.required(schemaName, "schemaName");
+		ValidateArgument.required(semanticVersion, "semanticVersion");
+		StringJoiner joiner = new StringJoiner("/");
+		joiner.add("/schema/type/registered");
+		joiner.add(organizationName);
+		joiner.add(schemaName);
+		joiner.add(semanticVersion);
+		deleteUri(getRepoEndpoint(), joiner.toString());
 	}
 
 }

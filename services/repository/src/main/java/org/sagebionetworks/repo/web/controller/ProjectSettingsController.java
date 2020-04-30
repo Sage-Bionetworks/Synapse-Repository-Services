@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import java.io.IOException;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -11,6 +14,7 @@ import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -70,6 +74,7 @@ public class ProjectSettingsController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.PROJECT_SETTINGS_BY_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -98,6 +103,7 @@ public class ProjectSettingsController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.PROJECT_SETTINGS_BY_PROJECT_ID_AND_TYPE, method = RequestMethod.GET)
 	public @ResponseBody
@@ -141,6 +147,7 @@ public class ProjectSettingsController {
 	 * @throws UnauthorizedException
 	 * @throws InvalidModelException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.PROJECT_SETTINGS }, method = RequestMethod.POST)
 	public @ResponseBody
@@ -188,6 +195,7 @@ public class ProjectSettingsController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.PROJECT_SETTINGS }, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -210,10 +218,10 @@ public class ProjectSettingsController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = { UrlHelpers.PROJECT_SETTINGS_BY_ID }, method = RequestMethod.DELETE)
-	public @ResponseBody
-	void deleteProjectSetting(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
+	public void deleteProjectSetting(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
 		serviceProvider.getProjectSettingsService().deleteProjectSetting(userId, id);
 	}
 
@@ -238,6 +246,7 @@ public class ProjectSettingsController {
 	 * @throws InvalidModelException
 	 * @throws IOException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.STORAGE_LOCATION }, method = RequestMethod.POST)
 	public @ResponseBody
@@ -259,6 +268,7 @@ public class ProjectSettingsController {
 	 * @throws UnauthorizedException
 	 * @throws InvalidModelException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.STORAGE_LOCATION }, method = RequestMethod.GET)
 	@Deprecated
@@ -279,6 +289,7 @@ public class ProjectSettingsController {
 	 * @throws UnauthorizedException
 	 * @throws InvalidModelException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.STORAGE_LOCATION_BY_ID }, method = RequestMethod.GET)
 	public @ResponseBody

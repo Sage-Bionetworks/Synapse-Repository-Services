@@ -1,5 +1,9 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.download;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,6 +39,7 @@ import org.sagebionetworks.repo.model.principal.AliasList;
 import org.sagebionetworks.repo.model.principal.TypeFilter;
 import org.sagebionetworks.repo.model.principal.UserGroupHeaderResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -69,6 +74,7 @@ public class UserProfileController {
 	 * @param userId
 	 *             The user who is making the request.
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USER_PROFILE, method = RequestMethod.GET)
 	public @ResponseBody
@@ -97,6 +103,7 @@ public class UserProfileController {
 	 * </p>
 	 *
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USER_BUNDLE, method = RequestMethod.GET)
 	public @ResponseBody
@@ -113,6 +120,7 @@ public class UserProfileController {
 	 * @param userId The user who is making the request.
 	 * @param profileId The target profile owner ID (the "id" field returned in the "/user" request).
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USER_PROFILE_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -142,6 +150,7 @@ public class UserProfileController {
 	 * </p>
 	 *
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USER_BUNDLE_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -165,6 +174,7 @@ public class UserProfileController {
 	 * @param ascending
 	 *        Used to indicate whether the sort direction is ascending or not.  <p><i>Default is true</i></p>
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USER, method = RequestMethod.GET)
 	public @ResponseBody
@@ -186,6 +196,7 @@ public class UserProfileController {
 	 * 		The user that is making the request.
 	 * @return The updated <a href="${org.sagebionetworks.repo.model.UserProfile}">UserProfile</a>
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USER_PROFILE, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -207,6 +218,7 @@ public class UserProfileController {
 	 * 	
 	 * @return A success message, if successful.
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.NOTIFICATION_SETTINGS, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -223,6 +235,7 @@ public class UserProfileController {
 	 * 
 	 * @param ids IDs are specified as request parameters at the end of the URL, separated by commas.  <p>For example: <pre class="prettyprint">ids=1001,819</pre></p>
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USER_GROUP_HEADERS_BATCH, method = RequestMethod.GET)
 	public @ResponseBody
@@ -248,6 +261,7 @@ public class UserProfileController {
 	 *
 	 * @param ids IDs are specified as request parameters at the end of the URL, separated by commas. <p>For example: <pre class="prettyprint">ids=1001,819</pre></p>
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USER_PROFILE, method = RequestMethod.POST)
 	public @ResponseBody
@@ -277,6 +291,7 @@ public class UserProfileController {
 	 *            <i>Default is 10</i>
 	 *            </p>
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USER_GROUP_HEADERS, method = RequestMethod.GET)
 	public @ResponseBody
@@ -299,6 +314,7 @@ public class UserProfileController {
 	 *         does not match an existing user name or team name then no header
 	 *         will be returned.
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USER_GROUP_HEADERS_BY_ALIASES, method = RequestMethod.POST)
 	public @ResponseBody
@@ -326,6 +342,7 @@ public class UserProfileController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.USER_PROFILE_IMAGE, method = RequestMethod.GET)
 	public @ResponseBody
 	void imageRedirectURLForUser(
@@ -357,6 +374,7 @@ public class UserProfileController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.USER_PROFILE_IMAGE_PREVIEW, method = RequestMethod.GET)
 	public @ResponseBody
 	void imagePreviewRedirectURLForUser(
@@ -375,6 +393,7 @@ public class UserProfileController {
 	 * @param id
 	 *        Entity ID of the favorite <a href="${org.sagebionetworks.repo.model.Entity}">Entity</a>
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { 
 			UrlHelpers.FAVORITE_ID
@@ -394,12 +413,12 @@ public class UserProfileController {
 	 * @param id
 	 *       Entity ID of the <a href="${org.sagebionetworks.repo.model.Entity}">Entity</a> that should be removed as a favorite
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = { 
 			UrlHelpers.FAVORITE_ID
 			}, method = RequestMethod.DELETE)
-	public @ResponseBody
-	void removeFavorite(
+	public void removeFavorite(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request)
@@ -416,6 +435,7 @@ public class UserProfileController {
 	 * @param limit
 	 *          Limits the number of items that will be fetched for this page. <p><i>Default is 10</i></p>
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {
 			UrlHelpers.FAVORITE
@@ -453,6 +473,7 @@ public class UserProfileController {
 	}
 
 	@Deprecated
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.PROJECTS_DEPRECATED }, method = RequestMethod.GET)
 	public @ResponseBody
@@ -475,6 +496,7 @@ public class UserProfileController {
 	}
 	
 	@Deprecated
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.PROJECTS_TEAM_DEPRECATED }, method = RequestMethod.GET)
 	public @ResponseBody
@@ -496,6 +518,7 @@ public class UserProfileController {
 	}
 
 	@Deprecated
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.PROJECTS_USER_DEPRECATED }, method = RequestMethod.GET)
 	public @ResponseBody
@@ -552,6 +575,7 @@ public class UserProfileController {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.PROJECTS }, method = RequestMethod.GET)
 	public @ResponseBody
@@ -600,6 +624,7 @@ public class UserProfileController {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.PROJECTS_USER }, method = RequestMethod.GET)
 	public @ResponseBody

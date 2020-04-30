@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,6 +39,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -94,7 +94,6 @@ public class EntityReplicationReconciliationWorkerTest {
 	IdAndEtag replicaOne;
 	IdAndEtag replicaTwo;
 	IdAndEtag replicaFour;
-	Long viewTypeMask;
 	
 	Map<Long, Long> truthCRCs;
 	Map<Long, Long> replicaCRCs;
@@ -102,6 +101,8 @@ public class EntityReplicationReconciliationWorkerTest {
 	ChangeMessage message;
 	long nowMS;
 	ObjectType objectType;
+	
+	ViewScopeType viewScopeType;
 	
 	@BeforeEach
 	public void before() throws JSONObjectAdapterException{
@@ -153,7 +154,7 @@ public class EntityReplicationReconciliationWorkerTest {
 		expiredContainers = Lists.newArrayList(firstParentId);
 		nowMS = 101L;
 		
-		viewTypeMask = ViewTypeMask.File.getMask();
+		viewScopeType = new ViewScopeType(objectType, ViewTypeMask.File.getMask());
 	}
 	
 
@@ -187,10 +188,10 @@ public class EntityReplicationReconciliationWorkerTest {
 	@Test
 	public void testCreateChange(){
 		IdAndEtag idAndEtag = new IdAndEtag(111L, "anEtag",444L);
-		ChangeMessage message = worker.createChange(idAndEtag, ChangeType.DELETE);
+		ChangeMessage message = worker.createChange(objectType, idAndEtag.getId(), ChangeType.DELETE);
 		assertNotNull(message);
 		assertEquals(""+idAndEtag.getId(), message.getObjectId());
-		assertEquals(ObjectType.ENTITY, message.getObjectType());
+		assertEquals(objectType, message.getObjectType());
 		assertEquals(ChangeType.DELETE, message.getChangeType());
 		assertNotNull(message.getChangeNumber());
 		assertNotNull(message.getTimestamp());
@@ -314,8 +315,8 @@ public class EntityReplicationReconciliationWorkerTest {
 		when(mockNodeDao.getAvailableNodes(expiredContainers)).thenReturn(Sets.newHashSet(1L,2L,4L,5L));
 		when(mockNodeDao.getChildren(firstParentId)).thenReturn(Lists.newArrayList(truthOne,truthTwo,truthThree));
 		when(mockIndexDao.getObjectChildren(objectType, firstParentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
-		when(mockTableManagerSupport.getViewTypeMask(viewId)).thenReturn(viewTypeMask);
-		when(mockTableManagerSupport.getAllContainerIdsForViewScope(viewId, viewTypeMask)).thenReturn(new HashSet<>(parentIds));
+		when(mockTableManagerSupport.getViewScopeType(viewId)).thenReturn(viewScopeType);
+		when(mockTableManagerSupport.getAllContainerIdsForViewScope(viewId, viewScopeType)).thenReturn(new HashSet<>(parentIds));
 		when(mockIndexDao.getExpiredContainerIds(objectType, parentIds)).thenReturn(expiredContainers);
 		when(mockClock.currentTimeMillis()).thenReturn(nowMS);
 		// call under test
@@ -351,8 +352,8 @@ public class EntityReplicationReconciliationWorkerTest {
 		when(mockReplicationMessageManager.getApproximateNumberOfMessageOnReplicationQueue())
 				.thenReturn(EntityReplicationReconciliationWorker.MAX_MESSAGE_TO_RUN_RECONCILIATION - 1L);
 		
-		when(mockTableManagerSupport.getViewTypeMask(viewId)).thenReturn(viewTypeMask);
-		when(mockTableManagerSupport.getAllContainerIdsForViewScope(viewId, viewTypeMask)).thenReturn(new HashSet<>(parentIds));
+		when(mockTableManagerSupport.getViewScopeType(viewId)).thenReturn(viewScopeType);
+		when(mockTableManagerSupport.getAllContainerIdsForViewScope(viewId, viewScopeType)).thenReturn(new HashSet<>(parentIds));
 
 		Exception exception = new RuntimeException("Something went wrong");
 		when(mockIndexDao.getExpiredContainerIds(eq(objectType), any())).thenThrow(exception);
@@ -366,42 +367,21 @@ public class EntityReplicationReconciliationWorkerTest {
 	
 	@Test
 	public void testGetContainersToReconcile_Project() {
-		viewTypeMask = ViewTypeMask.Project.getMask();
-		when(mockTableManagerSupport.getViewTypeMask(viewId)).thenReturn(viewTypeMask);
+		viewScopeType = new ViewScopeType(objectType, ViewTypeMask.Project.getMask());
 		// call under test
-		List<Long> containers = worker.getContainersToReconcile(viewId);
+		List<Long> containers = worker.getContainersToReconcile(viewId, viewScopeType);
 		Long root = KeyFactory.stringToKey(NodeUtils.ROOT_ENTITY_ID);
 		assertEquals(Lists.newArrayList(root), containers);
 	}
 	
 	@Test
 	public void testGetContainersToReconcile_File() {
-		viewTypeMask = ViewTypeMask.File.getMask();
-		when(mockTableManagerSupport.getViewTypeMask(viewId)).thenReturn(viewTypeMask);
+		viewScopeType = new ViewScopeType(objectType, ViewTypeMask.File.getMask());
 		Set<Long> allContainers = Sets.newHashSet(111L,222L);
-		when(mockTableManagerSupport.getAllContainerIdsForViewScope(viewId, viewTypeMask)).thenReturn(allContainers);
+		when(mockTableManagerSupport.getAllContainerIdsForViewScope(viewId, viewScopeType)).thenReturn(allContainers);
 		// call under test
-		List<Long> containers = worker.getContainersToReconcile(viewId);
+		List<Long> containers = worker.getContainersToReconcile(viewId, viewScopeType);
 		assertEquals(new ArrayList<Long>(allContainers), containers);
-	}
-	
-	
-	/**
-	 * Helper to create some messages.
-	 * @param count
-	 * @return
-	 */
-	public List<ChangeMessage> createMessages(int count){
-		List<ChangeMessage> list = new LinkedList<ChangeMessage>();
-		for(int i=0; i<count; i++){
-			ChangeMessage message = new ChangeMessage();
-			message.setChangeNumber(new Long(i));
-			message.setChangeType(ChangeType.UPDATE);
-			message.setObjectId("id"+i);
-			message.setObjectType(ObjectType.ENTITY);
-			list.add(message);
-		}
-		return list;
 	}
 
 }

@@ -1,10 +1,12 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import java.io.IOException;
 
 import javax.servlet.http.HttpServletResponse;
 
-import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.repo.manager.doi.DoiManagerImpl;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -17,6 +19,7 @@ import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.web.DeprecatedServiceException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -26,7 +29,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -51,9 +53,10 @@ public class DoiController {
 	 * @throws DeprecatedServiceException This service is deprecated.
 	 */
 	@Deprecated
+	@RequiredScope({modify})
 	@RequestMapping(value = {UrlHelpers.ENTITY_DOI}, method = RequestMethod.PUT)
 	@ResponseStatus(HttpStatus.ACCEPTED)
-	public @ResponseBody void createDoi() throws DeprecatedServiceException {
+	public void createDoi() throws DeprecatedServiceException {
 		throw new DeprecatedServiceException(DEPRECATED_MESSAGE);
 	}
 
@@ -62,9 +65,10 @@ public class DoiController {
 	 * @throws DeprecatedServiceException This service is deprecated.
 	 */
 	@Deprecated
+	@RequiredScope({modify})
 	@RequestMapping(value = {UrlHelpers.ENTITY_VERSION_DOI}, method = RequestMethod.PUT)
 	@ResponseStatus(HttpStatus.ACCEPTED)
-	public @ResponseBody void createDoiForVersion() throws DeprecatedServiceException {
+	public void createDoiForVersion() throws DeprecatedServiceException {
 		throw new DeprecatedServiceException(DEPRECATED_MESSAGE);
 	}
 
@@ -74,9 +78,10 @@ public class DoiController {
 	 * @throws DeprecatedServiceException This service is deprecated.
 	 */
 	@Deprecated
+	@RequiredScope({view})
 	@RequestMapping(value = {UrlHelpers.ENTITY_DOI}, method = RequestMethod.GET)
 	@ResponseStatus(HttpStatus.OK)
-	public @ResponseBody void getDoi() throws DeprecatedServiceException {
+	public void getDoi() throws DeprecatedServiceException {
 		throw new DeprecatedServiceException(DEPRECATED_MESSAGE);
 	}
 
@@ -86,9 +91,10 @@ public class DoiController {
 	 * @throws DeprecatedServiceException This service is deprecated.
 	 */
 	@Deprecated
+	@RequiredScope({view})
 	@RequestMapping(value = {UrlHelpers.ENTITY_VERSION_DOI}, method = RequestMethod.GET)
 	@ResponseStatus(HttpStatus.OK)
-	public @ResponseBody void getDoiForVersion() throws DeprecatedServiceException {
+	public void getDoiForVersion() throws DeprecatedServiceException {
 		throw new DeprecatedServiceException(DEPRECATED_MESSAGE);
 	}
 
@@ -103,6 +109,7 @@ public class DoiController {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
+	@RequiredScope({view})
 	@RequestMapping(value = {UrlHelpers.DOI}, method = RequestMethod.GET)
 	@ResponseStatus(HttpStatus.OK)
 	public @ResponseBody Doi
@@ -123,6 +130,7 @@ public class DoiController {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
+	@RequiredScope({view})
 	@RequestMapping(value = {UrlHelpers.DOI_ASSOCIATION}, method = RequestMethod.GET)
 	@ResponseStatus(HttpStatus.OK)
 	public @ResponseBody
@@ -144,6 +152,7 @@ public class DoiController {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
+	@RequiredScope({view,modify})
 	@RequestMapping(value = {UrlHelpers.DOI_ASYNC_START}, method = RequestMethod.POST)
 	@ResponseStatus(HttpStatus.CREATED)
 	public @ResponseBody
@@ -164,6 +173,7 @@ public class DoiController {
 	 * @return The results of the call
 	 * @throws Throwable
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DOI_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
@@ -187,9 +197,9 @@ public class DoiController {
 	 * @return The URL of the object in Synapse.
 	 * @throws IOException
 	 */
+	@RequiredScope({view})
 	@RequestMapping(value = {DoiManagerImpl.LOCATE_RESOURCE_PATH}, method = RequestMethod.GET)
-	public @ResponseBody
-	void locate(@RequestParam(value = DoiManagerImpl.OBJECT_ID_PATH_PARAM) String objectId,
+	public void locate(@RequestParam(value = DoiManagerImpl.OBJECT_ID_PATH_PARAM) String objectId,
 		   @RequestParam(value = DoiManagerImpl.OBJECT_TYPE_PATH_PARAM) ObjectType objectType,
 		   @RequestParam(value = DoiManagerImpl.OBJECT_VERSION_PATH_PARAM, required = false) Long versionNumber,
 		   @RequestParam(value = "redirect", required = false, defaultValue = "true") Boolean redirect,

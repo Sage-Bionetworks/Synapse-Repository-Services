@@ -1,5 +1,9 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.authorize;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.form.FormChangeRequest;
@@ -8,6 +12,7 @@ import org.sagebionetworks.repo.model.form.FormGroup;
 import org.sagebionetworks.repo.model.form.FormRejection;
 import org.sagebionetworks.repo.model.form.ListRequest;
 import org.sagebionetworks.repo.model.form.ListResponse;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -64,6 +69,7 @@ public class FormController {
 	 *               256 characters.
 	 * @return
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.FORM_GROUP }, method = RequestMethod.POST)
 	public @ResponseBody FormGroup createGroup(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -83,6 +89,7 @@ public class FormController {
 	 * @param id     The identifier of the FormGroup.
 	 * @return
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_GROUP_ACL }, method = RequestMethod.GET)
 	public @ResponseBody AccessControlList getGroupAcl(
@@ -126,6 +133,7 @@ public class FormController {
 	 * @param acl    The updated ACL.
 	 * @return
 	 */
+	@RequiredScope({view,modify,authorize})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_GROUP_ACL }, method = RequestMethod.PUT)
 	public @ResponseBody AccessControlList updateGroupAcl(
@@ -147,6 +155,7 @@ public class FormController {
 	 *                         Required.
 	 * @return
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA }, method = RequestMethod.POST)
 	public @ResponseBody FormData createFormData(
@@ -170,6 +179,7 @@ public class FormController {
 	 * @param id               The identifier of the FormData to update.
 	 * @return
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA_ID }, method = RequestMethod.PUT)
 	public @ResponseBody FormData updateFormData(
@@ -191,6 +201,7 @@ public class FormController {
 	 * @param id     Id of the FormData object to delete
 	 * @return
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA_ID }, method = RequestMethod.DELETE)
 	public void deleteFormData(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -209,6 +220,7 @@ public class FormController {
 	 * @param id
 	 * @return
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA_SUBMIT }, method = RequestMethod.POST)
 	public @ResponseBody FormData submitFormData(
@@ -226,6 +238,7 @@ public class FormController {
 	 * @param request
 	 * @return
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_LIST }, method = RequestMethod.POST)
 	public @ResponseBody ListResponse listFormStatus(
@@ -247,6 +260,7 @@ public class FormController {
 	 * @param request
 	 * @return
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_LIST_REVIEWER }, method = RequestMethod.POST)
 	public @ResponseBody ListResponse listFormStatusReviewer(
@@ -265,6 +279,7 @@ public class FormController {
 	 * @param id     Identifier of the FormData to accept.
 	 * @return
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA_ACCEPT }, method = RequestMethod.PUT)
 	public @ResponseBody FormData reviewerAcceptForm(
@@ -284,6 +299,7 @@ public class FormController {
 	 * @param id     Identifier of the FormData to accept.
 	 * @return
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA_REJECT }, method = RequestMethod.PUT)
 	public @ResponseBody FormData reviewerRejectForm(

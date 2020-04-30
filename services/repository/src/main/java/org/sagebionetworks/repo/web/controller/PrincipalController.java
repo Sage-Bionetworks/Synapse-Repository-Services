@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import org.sagebionetworks.auth.DeprecatedUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -14,6 +17,7 @@ import org.sagebionetworks.repo.model.principal.NotificationEmail;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -68,6 +72,7 @@ public class PrincipalController {
 	 *            The request should include both the type and alias.
 	 * @return
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.PRINCIPAL_AVAILABLE }, method = RequestMethod.POST)
 	public @ResponseBody
@@ -86,6 +91,7 @@ public class PrincipalController {
 	 *        a list of ampersand (&) separated request parameters, must become a well formed URL. The concatenated
 	 *        string must be included with the <a href="${POST.account}">POST /account</a> request.
 	 */
+	@RequiredScope({})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.ACCOUNT_EMAIL_VALIDATION }, method = RequestMethod.POST)
 	public void newAccountEmailValidation(
@@ -105,6 +111,7 @@ public class PrincipalController {
 	 * @return a session token, allowing the client to begin making authenticated requests
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.ACCOUNT }, method = RequestMethod.POST)
 	@ResponseBody
@@ -128,6 +135,7 @@ public class PrincipalController {
 	 *        string must be included with the <a href="${POST.email}">POST /email</a> request.
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.ACCOUNT_ID_EMAIL_VALIDATION }, method = RequestMethod.POST)
 	public void additionalEmailValidation(
@@ -154,6 +162,7 @@ public class PrincipalController {
 	 * @param emailValidationSignedToken the validation token sent by email
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.EMAIL }, method = RequestMethod.POST)
 	public void addEmail(
@@ -174,6 +183,7 @@ public class PrincipalController {
 	 * @param email the email address to remove
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.EMAIL }, method = RequestMethod.DELETE)
 	public void removeEmail(
@@ -193,6 +203,7 @@ public class PrincipalController {
 	 * @param email the email address to use for notifications
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.NOTIFICATION_EMAIL }, method = RequestMethod.PUT)
 	public void setNotificationEmail(
@@ -211,6 +222,7 @@ public class PrincipalController {
 	 * @return the email address to use for notifications
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.NOTIFICATION_EMAIL }, method = RequestMethod.GET)
 	public @ResponseBody
@@ -226,6 +238,7 @@ public class PrincipalController {
 	 * @throws NotFoundException
 	 *             If the given alias is not assigned to a principal.
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.PRINCIPAL_ALIAS }, method = RequestMethod.POST)
 	public @ResponseBody

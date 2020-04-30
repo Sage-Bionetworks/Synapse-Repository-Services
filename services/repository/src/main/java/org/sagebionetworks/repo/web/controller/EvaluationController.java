@@ -1,5 +1,10 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.authorize;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.download;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -8,7 +13,6 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
 
-import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Submission;
@@ -29,11 +33,11 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.DeprecatedServiceException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -43,7 +47,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -118,6 +121,7 @@ public class EvaluationController {
 	 * @throws NotFoundException
 	 * @throws JSONObjectAdapterException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.EVALUATION, method = RequestMethod.POST)
 	public @ResponseBody
@@ -144,6 +148,7 @@ public class EvaluationController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WITH_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -177,6 +182,7 @@ public class EvaluationController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WITH_CONTENT_SOURCE, method = RequestMethod.GET)
 	public @ResponseBody
@@ -212,6 +218,7 @@ public class EvaluationController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION, method = RequestMethod.GET)
 	public @ResponseBody
@@ -249,6 +256,7 @@ public class EvaluationController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_AVAILABLE, method = RequestMethod.GET)
 	public @ResponseBody
@@ -292,6 +300,7 @@ public class EvaluationController {
 	 * @throws NotFoundException
 	 * @throws UnsupportedEncodingException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WITH_NAME, method = RequestMethod.GET)
 	public @ResponseBody
@@ -334,6 +343,7 @@ public class EvaluationController {
 	 * @throws NotFoundException
 	 * @throws JSONObjectAdapterException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WITH_ID, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -362,10 +372,10 @@ public class EvaluationController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WITH_ID, method = RequestMethod.DELETE)
-	public @ResponseBody
-	void deleteEvaluation(
+	public void deleteEvaluation(
 			@PathVariable String evalId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws DatastoreException, UnauthorizedException, NotFoundException
 	{
@@ -384,6 +394,7 @@ public class EvaluationController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.TEAM_SUBMISSION_ELIGIBILITY, method = RequestMethod.GET)
 	public @ResponseBody
@@ -441,11 +452,12 @@ public class EvaluationController {
 	 * @throws ACLInheritanceException
 	 * @throws ParseException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.SUBMISSION, method = RequestMethod.POST)
 	public @ResponseBody
 	Submission createSubmission(
-			UserInfo userInfo,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = AuthorizationConstants.ETAG_PARAM, required = false) String entityEtag,
 			@RequestParam(value = AuthorizationConstants.SUBMISSION_ELIGIBILITY_HASH_PARAM, required = false) String submissionEligibilityHash,
 			@RequestParam(value = AuthorizationConstants.CHALLENGE_ENDPOINT_PARAM, defaultValue = ServiceConstants.CHALLENGE_ENDPOINT) String challengeEndpoint,
@@ -454,10 +466,11 @@ public class EvaluationController {
 			) throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException, UnauthorizedException, ACLInheritanceException, ParseException
 	{
 		return serviceProvider.getEvaluationService().createSubmission(
-				userInfo, submission, entityEtag, submissionEligibilityHash, challengeEndpoint, notificationUnsubscribeEndpoint);
+				userId, submission, entityEtag, submissionEligibilityHash, challengeEndpoint, notificationUnsubscribeEndpoint);
 	}
 
 	@Deprecated
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.GONE)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_CONTRIBUTOR, method = RequestMethod.POST)
 	public @ResponseBody
@@ -477,6 +490,7 @@ public class EvaluationController {
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
+	@RequiredScope({view,modify})
 	@RequestMapping(value = UrlHelpers.ADMIN + UrlHelpers.SUBMISSION_CONTRIBUTOR, method = RequestMethod.POST)
 	public @ResponseBody
 	SubmissionContributor addSubmissionContributor(
@@ -503,6 +517,7 @@ public class EvaluationController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -545,6 +560,7 @@ public class EvaluationController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_STATUS, method = RequestMethod.GET)
 	public @ResponseBody
@@ -598,6 +614,7 @@ public class EvaluationController {
 	 * @throws NotFoundException
 	 * @throws JSONObjectAdapterException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_STATUS, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -644,6 +661,7 @@ public class EvaluationController {
 	 * @throws NotFoundException
 	 * @throws JSONObjectAdapterException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_STATUS_BATCH, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -673,10 +691,10 @@ public class EvaluationController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_ID, method = RequestMethod.DELETE)
-	public @ResponseBody
-	void deleteSubmission(
+	public void deleteSubmission(
 			@PathVariable String subId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws DatastoreException, UnauthorizedException, NotFoundException
 	{
@@ -707,6 +725,7 @@ public class EvaluationController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_EVAL_ID_ADMIN, method = RequestMethod.GET)
 	public @ResponseBody
@@ -752,6 +771,7 @@ public class EvaluationController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_STATUS_WITH_EVAL_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -794,6 +814,7 @@ public class EvaluationController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_EVAL_ID_ADMIN_BUNDLE, method = RequestMethod.GET)
 	public @ResponseBody
@@ -830,6 +851,7 @@ public class EvaluationController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_EVAL_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -863,6 +885,7 @@ public class EvaluationController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_EVAL_ID_BUNDLE, method = RequestMethod.GET)
 	public @ResponseBody
@@ -891,9 +914,9 @@ public class EvaluationController {
 	 * @throws NotFoundException
 	 * @throws IOException 
 	 */
+	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.SUBMISSION_FILE, method = RequestMethod.GET)
-	public @ResponseBody
-	void redirectURLForFileHandle(
+	public void redirectURLForFileHandle(
 			@PathVariable String subId,
 			@PathVariable String fileHandleId,
 			@RequestParam (required = false) Boolean redirect,
@@ -917,6 +940,7 @@ public class EvaluationController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_COUNT, method = RequestMethod.GET)
 	public @ResponseBody
@@ -941,6 +965,7 @@ public class EvaluationController {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException 
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value={UrlHelpers.EVALUATION_WITH_ID+UrlHelpers.ACCESS}, method=RequestMethod.GET)
 	public @ResponseBody BooleanResult hasAccess(
@@ -959,6 +984,7 @@ public class EvaluationController {
 	 * @return        The ACL created.
 	 */
 	@Deprecated
+	@RequiredScope({view,modify,authorize})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ACL, method = RequestMethod.POST)
 	public @ResponseBody AccessControlList
@@ -980,6 +1006,7 @@ public class EvaluationController {
 	 * @param acl     The ACL being updated.
 	 * @return        The updated ACL.
 	 */
+	@RequiredScope({view,modify,authorize})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ACL, method = RequestMethod.PUT)
 	public @ResponseBody AccessControlList
@@ -999,6 +1026,7 @@ public class EvaluationController {
 	 *
 	 */
 	@Deprecated
+	@RequiredScope({view,modify,authorize})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ID_ACL, method = RequestMethod.DELETE)
 	public void deleteAcl()
@@ -1016,6 +1044,7 @@ public class EvaluationController {
 	 * @param evalId  The ID of the evaluation whose ACL is being retrieved.
 	 * @return        The ACL requested.
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ID_ACL, method = RequestMethod.GET)
 	public @ResponseBody AccessControlList
@@ -1034,6 +1063,7 @@ public class EvaluationController {
 	 * @param evalId  The ID of the evaluation over which the user permission are being retrieved.
 	 * @return  The requested user permissions.
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ID_PERMISSIONS, method = RequestMethod.GET)
 	public @ResponseBody UserEvaluationPermissions
@@ -1120,6 +1150,7 @@ public class EvaluationController {
 	 * @throws ParseException 
 	 * @throws  
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_QUERY, method = RequestMethod.GET)
 	public @ResponseBody 
@@ -1138,6 +1169,7 @@ public class EvaluationController {
 	 * @param userId
 	 * @param subId
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.EVALUATION_SUBMISSION_CANCALLATION, method = RequestMethod.PUT)
 	public @ResponseBody void requestToCancelSubmission(

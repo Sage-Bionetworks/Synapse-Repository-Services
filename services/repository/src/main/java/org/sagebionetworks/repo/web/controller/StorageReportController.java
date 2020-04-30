@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
@@ -7,6 +9,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportRequest;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -42,6 +45,7 @@ public class StorageReportController {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
+	@RequiredScope({view})
 	@RequestMapping(value = {UrlHelpers.STORAGE_REPORT_ASYNC_START}, method = RequestMethod.POST)
 	@ResponseStatus(HttpStatus.ACCEPTED)
 	public @ResponseBody
@@ -62,6 +66,7 @@ public class StorageReportController {
 	 * @return The results of the call, including a pre-signed URL to download the report.
 	 * @throws Throwable
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.STORAGE_REPORT_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody

@@ -1,6 +1,9 @@
 package org.sagebionetworks.auth.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.authorize;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.openid;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 
 import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientNotVerifiedException;
@@ -17,9 +20,9 @@ import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.controller.RequiredScope;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,6 +59,7 @@ public class OpenIDConnectController {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.WELL_KNOWN_OPENID_CONFIGURATION, method = RequestMethod.GET)
 	public @ResponseBody
@@ -70,6 +74,7 @@ public class OpenIDConnectController {
 	 * 
 	 * @return the JSON Web Key Set
 	 */
+	@RequiredScope({})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_JWKS, method = RequestMethod.GET)
 	public @ResponseBody
@@ -87,6 +92,7 @@ public class OpenIDConnectController {
 	 * @throws NotFoundException
 	 * @throws ServiceUnavailableException if a sector identifer URI is registered but the file cannot be read
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT, method = RequestMethod.POST)
 	public @ResponseBody
@@ -110,6 +116,7 @@ public class OpenIDConnectController {
 	 * @param clientId the ID of the client whose secret is to be generated
 	 * @return
 	 */
+	@RequiredScope({view,modify,authorize})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_SECRET, method = RequestMethod.POST)
 	public @ResponseBody 
@@ -130,6 +137,7 @@ public class OpenIDConnectController {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -151,6 +159,7 @@ public class OpenIDConnectController {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT, method = RequestMethod.GET)
 	public @ResponseBody
@@ -172,6 +181,7 @@ public class OpenIDConnectController {
 	 * @throws NotFoundException
 	 * @throws ServiceUnavailableException 
 	 */
+	@RequiredScope({view,modify,authorize})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_ID, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -189,6 +199,7 @@ public class OpenIDConnectController {
 	 * @param id the ID of the client to delete
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify,authorize})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_ID, method = RequestMethod.DELETE)
 	public void deleteOpenIDClient(
@@ -207,6 +218,7 @@ public class OpenIDConnectController {
 	 * @param authorizationRequest The request to be described
 	 * @return
 	 */
+	@RequiredScope({})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_AUTH_REQUEST_DESCRIPTION, method = RequestMethod.POST)
 	public @ResponseBody
@@ -224,6 +236,7 @@ public class OpenIDConnectController {
 	 * @param authorizationRequest The client, scope and claims for which the user may grant consent
 	 * @return
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CONSENT_CHECK, method = RequestMethod.POST)
 	public @ResponseBody
@@ -251,6 +264,7 @@ public class OpenIDConnectController {
 	 * @throws NotFoundException
 	 * @throws OAuthClientNotVerifiedException if the client is not verified
 	 */
+	@RequiredScope({view,modify,authorize})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CONSENT, method = RequestMethod.POST)
 	public @ResponseBody
@@ -280,6 +294,7 @@ public class OpenIDConnectController {
 	 * @throws NotFoundException
 	 * @throws OAuthClientNotVerifiedException if the client is not verified
 	 */
+	@RequiredScope({})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_TOKEN, method = RequestMethod.POST)
 	public @ResponseBody

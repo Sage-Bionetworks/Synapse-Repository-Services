@@ -14,7 +14,7 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.util.Callback;
@@ -358,7 +358,7 @@ public interface TableIndexDAO {
 	 * @param objectType TODO
 	 * @param objectDtos
 	 */
-	void addObjectData(ObjectType objectType, List<EntityDTO> objectDtos);
+	void addObjectData(ObjectType objectType, List<ObjectDataDTO> objectDtos);
 	
 	/**
 	 * Get the entity DTO for a given entity ID.
@@ -366,7 +366,7 @@ public interface TableIndexDAO {
 	 * @param objectId
 	 * @return
 	 */
-	EntityDTO getObjectData(ObjectType objectType, Long objectId);
+	ObjectDataDTO getObjectData(ObjectType objectType, Long objectId);
 
 	/***
 	 * Get the maximum number of elements in a list for each annotation column

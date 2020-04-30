@@ -17,7 +17,6 @@ import org.sagebionetworks.repo.manager.oauth.ClaimsJsonUtil;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
-import org.sagebionetworks.repo.web.controller.RequiredScope;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
@@ -36,15 +35,6 @@ import io.jsonwebtoken.Jwt;
  * (default to full scope) and 403 status is returned if the required scope is not present.
  */
 public class OAuthScopeInterceptor implements HandlerInterceptor {
-
-	/*
-	 * If a handler is not annotated with RequiredScope then, by default, it requires the following
-	 */
-	private static final Set<OAuthScope> DEFAULT_SCOPES;
-	static {
-		DEFAULT_SCOPES = new HashSet<OAuthScope>(Arrays.asList(OAuthScope.values()));
-		DEFAULT_SCOPES.remove(OAuthScope.openid);
-	}
 
 	private static final String ERROR_MESSAGE_PREFIX  = "Request lacks scope(s) required by this service: ";
 	
@@ -93,14 +83,13 @@ public class OAuthScopeInterceptor implements HandlerInterceptor {
 		if (!hasUserIdParameterOrAccessTokenHeader(handlerMethod)) {
 			return true;
 		}
-
-		// if no scopes are specified by an annotation on the method, then we use these defaults
-		Set<OAuthScope> requiredScopes = new TreeSet<OAuthScope>(DEFAULT_SCOPES);
 		
 		RequiredScope requiredScopeAnnotation = handlerMethod.getMethodAnnotation(RequiredScope.class);
-		if (requiredScopeAnnotation != null) {
-			requiredScopes = new HashSet<OAuthScope>(Arrays.asList(requiredScopeAnnotation.value()));
+		if (requiredScopeAnnotation == null) {
+			throw new IllegalStateException("Service lacks RequiredScope annotation.");
 		}
+		
+		Set<OAuthScope> requiredScopes = new HashSet<OAuthScope>(Arrays.asList(requiredScopeAnnotation.value()));
 
 		List<OAuthScope> requestScopes = Collections.EMPTY_LIST;
 		String synapseAuthorizationHeader = request.getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME);

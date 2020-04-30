@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -9,6 +11,7 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -36,6 +39,7 @@ public class UserGroupController {
 	 * @return The UserGroups for individuals
 	 * @throws DatastoreException - Thrown when there is a server-side problem.
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USERGROUP, method = RequestMethod.GET)
 	public @ResponseBody

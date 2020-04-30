@@ -5,6 +5,8 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
@@ -47,6 +49,14 @@ public interface SubmissionManager {
 	 * @return
 	 */
 	public SubmissionPage listSubmission(UserInfo userInfo, SubmissionPageRequest request);
+
+	/**
+	 * List the submission info for approved submissions.
+	 * 
+	 * @param request
+	 * @return
+	 */
+	public SubmissionInfoPage listInfoForApprovedSubmissions(SubmissionInfoPageRequest request);
 
 	/**
 	 * Retrieve the status of a user meeting an access requirement

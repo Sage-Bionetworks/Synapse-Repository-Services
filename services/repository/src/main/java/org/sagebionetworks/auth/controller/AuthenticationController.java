@@ -1,5 +1,9 @@
 package org.sagebionetworks.auth.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.authorize;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.auth.DeprecatedUtils;
@@ -19,6 +23,7 @@ import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,8 +64,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * culminating with this request to retrieve an access token:
  * <a href="${POST.oauth2.token}">POST /oauth2/token</a>
  * which is then included as a Bearer token in the Authorization header of 
- * subsequent requests.  Note:  At this time only selected services recognize the OAuth 2.0
- * token and they are documented accordingly.
+ * subsequent requests.  Note: The access token has a set of 'scopes' and
+ * each service lists the scopes which the access token must include in order 
+ * to use that service.
  * </p>
  * <p>
  * To authenticate using an API Key, include the following three headers in
@@ -88,6 +94,7 @@ public class AuthenticationController {
 	 * Use {@link #login(LoginRequest)}.
 	 */
 	@Deprecated
+	@RequiredScope({})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.POST)
 	public @ResponseBody
@@ -104,6 +111,7 @@ public class AuthenticationController {
 	 * invalidated. The user must accept the terms of use before a session token
 	 * is issued.
 	 */
+	@RequiredScope({})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_LOGIN, method = RequestMethod.POST)
 	public @ResponseBody
@@ -114,6 +122,7 @@ public class AuthenticationController {
 	/**
 	 * Refresh a session token to render it usable for another 24 hours.
 	 */
+	@RequiredScope({})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.PUT)
 	public void revalidate(
@@ -126,6 +135,7 @@ public class AuthenticationController {
 	 * Deauthenticate a session token. This will sign out all active sessions
 	 * using the session token.
 	 */
+	@RequiredScope({})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.DELETE)
 	public void deauthenticate(HttpServletRequest request) {
@@ -138,6 +148,7 @@ public class AuthenticationController {
 	 * Sends an email for resetting a user's password. <br/>
 	 * @param passwordResetEndpoint the Portal's url prefix for handling password resets.
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_RESET, method = RequestMethod.POST)
 	public void sendPasswordResetEmail(
@@ -149,6 +160,7 @@ public class AuthenticationController {
 	/**
 	 * Change the current user's password. This will invalidate existing session tokens.
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_USER_CHANGE_PASSWORD, method = RequestMethod.POST)
 	public void changePassword(
@@ -160,6 +172,7 @@ public class AuthenticationController {
 	/**
 	 * Identifies a user by a session token and signs that user's terms of use
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE, method = RequestMethod.POST)
 	public void signTermsOfUse(
@@ -171,6 +184,7 @@ public class AuthenticationController {
 	/**
 	 * Retrieves the API key associated with the current authenticated user.
 	 */
+	@RequiredScope({modify,authorize})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_SECRET_KEY, method = RequestMethod.GET)
 	public @ResponseBody
@@ -187,6 +201,7 @@ public class AuthenticationController {
 	 * It is not recommended to use this service unless your key has been
 	 * compromised.
 	 */
+	@RequiredScope({modify,authorize})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_SECRET_KEY, method = RequestMethod.DELETE)
 	public void invalidateSecretKey(
@@ -213,6 +228,7 @@ public class AuthenticationController {
 	 * the OAuth standard.)
 	 * 
 	 */
+	@RequiredScope({})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_AUTH_URL, method = RequestMethod.POST)
 	public @ResponseBody
@@ -238,6 +254,7 @@ public class AuthenticationController {
 	 * @return
 	 * @throws Exception
 	 */
+	@RequiredScope({})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_SESSION, method = RequestMethod.POST)
 	public @ResponseBody
@@ -261,6 +278,7 @@ public class AuthenticationController {
 	 * @return
 	 * @throws Exception
 	 */
+	@RequiredScope({view,modify,authorize})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_ALIAS, method = RequestMethod.POST)
 	public @ResponseBody
@@ -288,6 +306,7 @@ public class AuthenticationController {
 	 * @return 
 	 * @throws Exception
 	 */
+	@RequiredScope({})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_ACCOUNT, method = RequestMethod.POST)
 	public @ResponseBody
@@ -304,10 +323,10 @@ public class AuthenticationController {
 	 * @param alias the alias for the user given by the provider
 	 * @throws Exception
 	 */
+	@RequiredScope({modify,authorize})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_ALIAS, method = RequestMethod.DELETE)
-	public @ResponseBody
-	void unbindExternalAliasFromAccount(
+	public void unbindExternalAliasFromAccount(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required=true) String provider,
 			@RequestParam(required=true) String alias

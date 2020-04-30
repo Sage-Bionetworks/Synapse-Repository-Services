@@ -1,7 +1,6 @@
 package org.sagebionetworks.authutil;
 
 import java.io.IOException;
-import java.util.Enumeration;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -31,7 +30,9 @@ public class SimpleCORSFilter implements Filter {
 	public static final String ACCESS_CONTROL_REQUEST_METHOD = "Access-Control-Request-Method";
 	public static final String ALL_ORIGINS = "*";
 	public static final String METHODS = "POST, GET, PUT, DELETE";
-	public static final String HEADERS = "Origin, X-Requested-With, Content-Type, Accept, " + AuthorizationConstants.SESSION_TOKEN_PARAM;
+	public static final String HEADERS = "Origin, X-Requested-With, Content-Type, Accept, " + 
+			AuthorizationConstants.SESSION_TOKEN_PARAM +
+		", "+AuthorizationConstants.AUTHORIZATION_HEADER_NAME;
 	public static final String MAX_AGE = "600";
 	public static final String ACCESS_CONTROL_ALLOW_CREDENTIALS = "Access-Control-Allow-Credentials";
 	public static final String ACCESS_CONTROL_ALLOW_METHODS = "Access-Control-Allow-Methods";

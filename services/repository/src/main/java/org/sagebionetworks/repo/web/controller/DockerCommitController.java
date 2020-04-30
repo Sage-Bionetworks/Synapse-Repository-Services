@@ -1,10 +1,14 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -45,10 +49,10 @@ public class DockerCommitController {
 	 * @param entityId the ID of the Docker repository entity
 	 * @param dockerCommit the new tag/digest pair for the repository
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.ENITY_ID_DOCKER_COMMIT, method = RequestMethod.POST)
-	public @ResponseBody
-	void addDockerCommit(
+	public void addDockerCommit(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId,
 			@RequestBody DockerCommit dockerCommit) {
@@ -68,6 +72,7 @@ public class DockerCommitController {
 	 * @param sortBy TAG or CREATED_ON, optional (default is CREATED_ON)
 	 * @param ascending, optional (default is false)
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_DOCKER_TAG, method = RequestMethod.GET)
 	public @ResponseBody

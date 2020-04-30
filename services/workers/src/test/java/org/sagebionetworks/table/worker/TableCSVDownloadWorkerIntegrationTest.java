@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
@@ -51,7 +52,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
-import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
@@ -228,7 +229,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		assertEquals(4, results.size());
 		String[] headers = results.get(0);
 		String headerString = Arrays.toString(headers);
-		String[] expected = new String[]{ROW_ID, ROW_VERSION, EntityField.name.name()};
+		String[] expected = new String[]{ROW_ID, ROW_VERSION, ObjectField.name.name()};
 		String expectedString = Arrays.toString(expected);
 		assertEquals(expectedString, headerString);
 	}
@@ -247,7 +248,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		assertEquals(4, results.size());
 		String[] headers = results.get(0);
 		String headerString = Arrays.toString(headers);
-		String[] expected = new String[]{ROW_ID, ROW_VERSION, ROW_ETAG, EntityField.name.name()};
+		String[] expected = new String[]{ROW_ID, ROW_VERSION, ROW_ETAG, ObjectField.name.name()};
 		String expectedString = Arrays.toString(expected);
 		assertEquals(expectedString, headerString);
 	}
@@ -278,7 +279,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		}
 		toDelete.addAll(projectIds);
 		// Create a projectView
-		ColumnModel nameColumn  = columnManager.createColumnModel(adminUserInfo, EntityField.name.getColumnModel());
+		ColumnModel nameColumn  = columnManager.createColumnModel(adminUserInfo, ObjectField.name.getColumnModel());
 		schema = Lists.newArrayList(nameColumn);
 		headers = TableModelUtils.getIds(schema);
 		EntityView view = new EntityView();
@@ -289,6 +290,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		tableId = entityManager.createEntity(adminUserInfo, view, null);
 		toDelete.add(tableId);
 		ViewScope scope = new ViewScope();
+		scope.setObjectType(ObjectType.ENTITY);
 		scope.setScope(projectIds);
 		scope.setViewType(ViewType.project);
 		tableViewManager.setViewSchemaAndScope(adminUserInfo, headers, scope, tableId);

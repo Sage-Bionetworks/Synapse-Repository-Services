@@ -1,11 +1,15 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -55,6 +59,7 @@ public class AsynchronousJobController {
 	 * @return Each new job launched will have a unique jobId that can be use to monitor the status of the job with
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ASYNCHRONOUS_JOB, method = RequestMethod.POST)
 	public @ResponseBody
@@ -75,6 +80,7 @@ public class AsynchronousJobController {
 	 * @throws NotReadyException
 	 * @throws AsynchJobFailedException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ASYNCHRONOUS_JOB_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -93,6 +99,7 @@ public class AsynchronousJobController {
 	 * @throws NotReadyException
 	 * @throws AsynchJobFailedException
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.ASYNCHRONOUS_JOB_CANCEL, method = RequestMethod.GET)
 	public void stopJob(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String jobId)

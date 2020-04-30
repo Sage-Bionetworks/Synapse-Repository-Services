@@ -1,19 +1,18 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
@@ -24,27 +23,20 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
 import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
-import org.springframework.beans.factory.annotation.Autowired;
 
-public class SubscriptionControllerAutowiredTest extends AbstractAutowiredControllerJunit5TestBase {
+public class SubscriptionControllerAutowiredTest extends AbstractAutowiredControllerTestBase{
 
-	@Autowired
-	private OIDCTokenHelper oidcTokenHelper;
-		
-	private String accessToken;
 	private Entity project;
 	private Long adminUserId;
 	private Forum forum;
 	private Topic toSubscribe;
 
-	@BeforeEach
+	@Before
 	public void before() throws Exception {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
-
 		project = new Project();
 		project.setName(UUID.randomUUID().toString());
-		project = servletTestHelper.createEntity(dispatchServlet, project, accessToken);
+		project = servletTestHelper.createEntity(dispatchServlet, project, adminUserId);
 
 		CreateDiscussionThread createThread = new CreateDiscussionThread();
 		createThread.setTitle("title");
@@ -59,7 +51,7 @@ public class SubscriptionControllerAutowiredTest extends AbstractAutowiredContro
 		servletTestHelper.unsubscribeAll(dispatchServlet, adminUserId);
 	}
 
-	@AfterEach
+	@After
 	public void cleanup() throws Exception {
 		servletTestHelper.unsubscribeAll(dispatchServlet, adminUserId);
 		try {

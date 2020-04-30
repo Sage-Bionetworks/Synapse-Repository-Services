@@ -14,6 +14,8 @@ import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
@@ -82,14 +84,20 @@ public class DataAccessServiceImpl implements DataAccessService{
 	}
 
 	@Override
+	public SubmissionInfoPage listInfoForApprovedSubmissions(SubmissionInfoPageRequest request) {
+		return dataAccessSubmissionManager.listInfoForApprovedSubmissions(request);
+	}
+
+	@Override
 	public AccessRequirementStatus getAccessRequirementStatus(Long userId, String requirementId) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return dataAccessSubmissionManager.getAccessRequirementStatus(user, requirementId);
 	}
 
 	@Override
-	public RestrictionInformationResponse getRestrictionInformation(UserInfo userInfo, RestrictionInformationRequest request) {
-		return accessRequirementManager.getRestrictionInformation(userInfo, request);
+	public RestrictionInformationResponse getRestrictionInformation(Long userId, RestrictionInformationRequest request) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return accessRequirementManager.getRestrictionInformation(user, request);
 	}
 
 	@Override

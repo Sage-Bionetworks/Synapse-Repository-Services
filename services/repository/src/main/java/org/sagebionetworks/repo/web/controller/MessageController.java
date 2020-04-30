@@ -1,5 +1,9 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.download;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +24,7 @@ import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.cloudmailin.AuthorizationCheckHeader;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -88,6 +93,7 @@ public class MessageController {
 	 * apply if you are a member of the Trusted Message Senders Team.
 	 * </p>
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.MESSAGE, method = RequestMethod.POST)
 	public @ResponseBody
@@ -106,6 +112,7 @@ public class MessageController {
 	 * @param notificationUnsubscribeEndpoint
 	 * @throws Exception 
 	 */
+	@RequiredScope({})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.CLOUDMAILIN_MESSAGE, method = RequestMethod.POST)
 	public void createCloudMailInMessage(
@@ -122,6 +129,7 @@ public class MessageController {
 	 * @param toAuthorize the header of the CloudMailIn message in JSON format
 	 * @throws IllegalArgumentException if not valid
 	 */
+	@RequiredScope({})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.CLOUDMAILIN_AUTHORIZATION, method = RequestMethod.POST)
 	public void authorizeCloudMailInMessage(
@@ -140,6 +148,7 @@ public class MessageController {
 	 * To retrieve messages that have been read or archived, set the "inboxFilter" parameter to 
 	 *   a comma-separated list of values defined in the <a href="${org.sagebionetworks.repo.model.message.MessageStatusType}">MessageStatusType enumeration</a>.
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MESSAGE_INBOX, method = RequestMethod.GET)
 	public @ResponseBody
@@ -172,6 +181,7 @@ public class MessageController {
 	 * To change the way the messages are ordered, set the "orderBy" parameter to 
 	 *   either "SEND_DATE" or "SUBJECT".
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MESSAGE_OUTBOX, method = RequestMethod.GET)
 	public @ResponseBody
@@ -191,6 +201,7 @@ public class MessageController {
 	 * Fetches the specified message.  
 	 * The authenticated user must be either the sender or receiver of the message.  
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MESSAGE_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -204,6 +215,7 @@ public class MessageController {
 	 * Forwards a message to the specified set of recipients.
 	 * The authenticated user must be either the sender or receiver of the forwarded message.  
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.MESSAGE_ID_FORWARD, method = RequestMethod.POST)
 	public @ResponseBody
@@ -223,6 +235,7 @@ public class MessageController {
 	 * To change the way the messages are ordered, set the "orderBy" parameter to 
 	 *   either "SEND_DATE" or "SUBJECT".
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MESSAGE_ID_CONVERSATION, method = RequestMethod.GET)
 	public @ResponseBody
@@ -243,6 +256,7 @@ public class MessageController {
 	 * Updates the current status of a message relative to the current authenticated user.
 	 * Note: the "recipientId" field of the request body will be ignored.
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MESSAGE_STATUS, method = RequestMethod.PUT)
 	public void updateMessageStatus(
@@ -252,6 +266,7 @@ public class MessageController {
 	}
 
 	@Deprecated
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.GONE)
 	@RequestMapping(value = UrlHelpers.MESSAGE_ID, method = RequestMethod.DELETE)
 	public @ResponseBody String deleteMessage() throws NotFoundException {
@@ -261,6 +276,7 @@ public class MessageController {
 	/**
 	 * Deletes a message.  Only accessible to administrators.
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ADMIN + UrlHelpers.MESSAGE_ID, method = RequestMethod.DELETE)
 	public void deleteMessage(
@@ -279,9 +295,9 @@ public class MessageController {
 	 *            When set to false, the URL will be returned as text/plain
 	 *            instead of redirecting.
 	 */
+	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.MESSAGE_ID_FILE, method = RequestMethod.GET)
-	public @ResponseBody
-	void fileRedirectForMessage(
+	public void fileRedirectForMessage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable("messageId") String messageId,
 			@RequestParam(required = false) Boolean redirect,
@@ -296,6 +312,7 @@ public class MessageController {
 	 * 
 	 * Afterwards, behavior is identical to <a href="${POST.message}">POST /message</a>
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_MESSAGE, method = RequestMethod.POST)
 	public @ResponseBody

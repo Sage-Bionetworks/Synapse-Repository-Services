@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -9,6 +12,7 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -42,6 +46,7 @@ public class TrashController {
 	 *
 	 * @param id The ID of the entity being moved to the trash can.
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_TRASH}, method = RequestMethod.PUT)
 	public void moveToTrash(
@@ -61,6 +66,7 @@ public class TrashController {
 	 *
 	 * @param id The ID of the entity being restored out of the trash can.
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_RESTORE}, method = RequestMethod.PUT)
 	public void restoreFromTrash(
@@ -83,6 +89,7 @@ public class TrashController {
 	 * @param id        The ID of the entity being restored out of the trash can.
 	 * @param parentId  The ID of the new parent entity.
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_RESTORE_TO_PARENT}, method = RequestMethod.PUT)
 	public void restoreFromTrash(
@@ -101,6 +108,7 @@ public class TrashController {
 	 * @param limit  The maximum number of entities to retrieve per page.
 	 * @return The paginated list of trash entities.
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_VIEW}, method = RequestMethod.GET)
 	public @ResponseBody PaginatedResults<TrashedEntity> viewTrashForUser(
@@ -117,6 +125,7 @@ public class TrashController {
 	 *
 	 * @param id  The ID of the entity to be purged.
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_PURGE_ENTITY}, method = RequestMethod.PUT)
 	public void flagForPurge(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,

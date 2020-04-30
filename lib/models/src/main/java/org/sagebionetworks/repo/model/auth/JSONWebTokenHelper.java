@@ -26,7 +26,9 @@ public class JSONWebTokenHelper {
 	
 	/**
 	 * Given a signed JSON Web Token (JWT) and a list of signature verification public keys,
-	 * parse the token and check the signature.  The JWT will have a key ID in its header which 
+	 * parse the token and check the signature and expiration date.  The JWT will have a key 
+	 * ID in its header which indicates which public key to use to validate the signature.
+	 * 
 	 * @param token
 	 * @param jsonWebKeySet
 	 * @return

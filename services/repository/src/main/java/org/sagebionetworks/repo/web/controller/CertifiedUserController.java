@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -9,6 +11,7 @@ import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -41,6 +44,7 @@ public class CertifiedUserController {
 	 * @param userId
 	 * @return
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_TEST, method = RequestMethod.GET)
 	public @ResponseBody
@@ -57,6 +61,7 @@ public class CertifiedUserController {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_TEST_RESPONSE, method = RequestMethod.POST)
 	public @ResponseBody
@@ -68,6 +73,7 @@ public class CertifiedUserController {
 				submitCertificationQuizResponse(userId, response);
 	}
 
+	@RequiredScope({view})
 	@Deprecated
 	@ResponseStatus(HttpStatus.GONE)
 	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_TEST_RESPONSE, method = RequestMethod.GET)
@@ -85,6 +91,7 @@ public class CertifiedUserController {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_TEST_RESPONSE, method = RequestMethod.GET)
 	public @ResponseBody 
@@ -98,6 +105,7 @@ public class CertifiedUserController {
 	}
 
 	@Deprecated
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.GONE)
 	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_TEST_RESPONSE_WITH_ID, method = RequestMethod.DELETE)
 	public @ResponseBody String deleteQuizResponse() throws NotFoundException {
@@ -110,6 +118,7 @@ public class CertifiedUserController {
 	 * @param responseId
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_TEST_RESPONSE_WITH_ID, method = RequestMethod.DELETE)
 	public void deleteQuizResponse(
@@ -126,6 +135,7 @@ public class CertifiedUserController {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_PASSING_RECORD_WITH_ID, method = RequestMethod.GET)
 	public  @ResponseBody PassingRecord getPassingRecord(
@@ -135,6 +145,7 @@ public class CertifiedUserController {
 		return serviceProvider.getCertifiedUserService().getPassingRecord(userId, id);
 	}
 
+	@RequiredScope({view})
 	@Deprecated
 	@ResponseStatus(HttpStatus.GONE)
 	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_PASSING_RECORDS_WITH_ID, method = RequestMethod.GET)
@@ -146,6 +157,7 @@ public class CertifiedUserController {
 	 * Retrieve all the Passing Record on the User Certification test for the given user.
 	 * Note:  This service is available to Synapse administrators only.
 	 */
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_PASSING_RECORDS_WITH_ID, method = RequestMethod.GET)
 	public  @ResponseBody PaginatedResults<PassingRecord> getPassingRecords(
@@ -157,12 +169,14 @@ public class CertifiedUserController {
 		return serviceProvider.getCertifiedUserService().getPassingRecords(userId, id, limit, offset);
 	}
 
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.GONE)
 	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_STATUS, method = RequestMethod.PUT)
 	public @ResponseBody String setUserCertificationStatus()  {
 		return "This endpoint has been removed. The service has been moved to " + UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_STATUS + " and is only accessible to Synapse administrators";
 	}
 
+	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_STATUS, method = RequestMethod.PUT)
 	public void setUserCertificationStatus(

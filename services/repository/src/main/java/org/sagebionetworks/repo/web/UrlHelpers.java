@@ -386,9 +386,22 @@ public class UrlHelpers {
 	 * Schema API URIs
 	 * 
 	 */
-	public static final String ORGANIZATION = SCHEMA+"/organization";
+	public static final String JSON_SCHEMA = "/schema";
+	public static final String ORGANIZATION = JSON_SCHEMA+"/organization";
 	public static final String ORGANIZATION_ID = ORGANIZATION+"/{id}";
 	public static final String ORGANIZATION_ID_ACL = ORGANIZATION_ID+"/acl";
+	public static final String JSON_SCHEMA_TYPE = JSON_SCHEMA+"/type";
+	public static final String JSON_SCHEMA_TYPE_CREATE = JSON_SCHEMA_TYPE+"/create";
+	public static final String JSON_SCHEMA_TYPE_ASYNCH_START = JSON_SCHEMA_TYPE_CREATE+ASYNC_START_REQUEST;
+	public static final String JSON_SCHEMA_TYPE_ASYNCH_GET = JSON_SCHEMA_TYPE_CREATE+ASYNC_GET_REQUEST;
+	public static final String JSON_SCHEMA_TYPE_REG = JSON_SCHEMA_TYPE+"/registered";
+	/*
+	 * The regular expression is needed in the path variable due to:
+	 * https://stackoverflow.com/questions/3526523/spring-mvc-pathvariable-getting-
+	 * truncated
+	 */
+	public static final String JSON_SHCEMA_TYPE_REG_ORG_NAME = JSON_SCHEMA_TYPE_REG+"/{organizationName}/{schemaName:.+}";
+	public static final String JSON_SHCEMA_TYPE_REG_ORG_NAME_VER = JSON_SCHEMA_TYPE_REG+"/{organizationName}/{schemaName}/{semanticVersion:.+}";
 	
 	public static final String FORM_DATA_ACCEPT = FORM_DATA_ID+"/accept";
 	public static final String FORM_DATA_REJECT = FORM_DATA_ID+"/reject";
@@ -1044,6 +1057,8 @@ public class UrlHelpers {
 	public static final String DATA_ACCESS_SUBMISSION_ID_CANCEL = DATA_ACCESS_SUBMISSION_ID +"/cancellation";
 	public static final String ACCESS_REQUIREMENT_ID_LIST_SUBMISSION =
 			ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/submissions";
+	public static final String ACCESS_REQUIREMENT_ID_LIST_APPROVED_SUBMISISON_INFO =
+			ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/approvedSubmissionInfo";
 	public static final String ACCESS_REQUIREMENT_ID_STATUS =
 			ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/status";
 	public static final String RESTRICTION_INFORMATION = "/restrictionInformation";
