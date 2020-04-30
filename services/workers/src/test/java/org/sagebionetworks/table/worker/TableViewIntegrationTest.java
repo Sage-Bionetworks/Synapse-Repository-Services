@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -246,6 +247,7 @@ public class TableViewIntegrationTest {
 		stringListColumn = new ColumnModel();
 		stringListColumn.setName("stringList");
 		stringListColumn.setColumnType(ColumnType.STRING_LIST);
+		stringListColumn.setMaximumListLength(3L);
 		stringListColumn = columnModelManager.createColumnModel(adminUserInfo, stringListColumn);
 	}
 
@@ -1481,6 +1483,97 @@ public class TableViewIntegrationTest {
 		//check Annotations on entities are updated
 		assertEquals(Arrays.asList("newVal1", "newVal2"), entityManager.getAnnotations(adminUserInfo, firstChangeId).getAnnotations().get(stringListColumn.getName()).getValue());
 		assertEquals(Arrays.asList("newVal4", "newVal5", "newVal6"), entityManager.getAnnotations(adminUserInfo, secondChangeId).getAnnotations().get(stringListColumn.getName()).getValue());
+	}
+
+
+	@Test
+	public void testEntityView_multipleValueColumn_UpdatedAnnotationExceedListMaxSize() throws Exception {
+		defaultColumnIds.add(stringListColumn.getId());
+		createFileView();
+
+		assertTrue(fileCount >= 2, "setup() needs to create at least 2 entities for this test to work");
+
+		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
+
+		//set annotations for 2 files
+		Annotations fileAnnotation1 = entityManager.getAnnotations(adminUserInfo, fileIds.get(0));
+		//this annotation will exceed the limit
+		AnnotationsV2TestUtils.putAnnotations(fileAnnotation1, stringListColumn.getName(), Arrays.asList("val1", "val2"), AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileIds.get(0), fileAnnotation1);
+		waitForEntityReplication(fileViewId, fileIds.get(0));
+
+
+		assertEquals(fileCount, waitForConsistentQuery(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, fileCount).getQueryCount());
+
+		Annotations fileAnnotation2 = entityManager.getAnnotations(adminUserInfo, fileIds.get(1));
+		AnnotationsV2TestUtils.putAnnotations(fileAnnotation2, stringListColumn.getName(), Arrays.asList("val2", "val3", "val1", "val4"), AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileIds.get(1), fileAnnotation2);
+
+
+		waitForEntityReplication(fileViewId, fileIds.get(1));
+
+
+		String error = assertThrows(AsynchJobFailedException.class, () ->
+				waitForConsistentQuery(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, fileCount)
+		).getMessage();
+		assertEquals("maximumListLength for ColumnModel \"stringList\" must be at least: 4", error);
+
+	}
+
+	@Test
+	public void testEntityView_multipleValueColumnRoundTrip_changeMaxListLength() throws Exception {
+		defaultColumnIds.add(stringListColumn.getId());
+		createFileView();
+
+		assertTrue(fileCount >= 2, "setup() needs to create at least 2 entities for this test to work");
+
+		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
+
+		//set annotations for 2 files
+		Annotations fileAnnotation1 = entityManager.getAnnotations(adminUserInfo, fileIds.get(0));
+		AnnotationsV2TestUtils.putAnnotations(fileAnnotation1, stringListColumn.getName(), Arrays.asList("val1", "val2", "val3"), AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileIds.get(0), fileAnnotation1);
+
+		Annotations fileAnnotation2 = entityManager.getAnnotations(adminUserInfo, fileIds.get(1));
+		AnnotationsV2TestUtils.putAnnotations(fileAnnotation2, stringListColumn.getName(), Arrays.asList("val2", "val3"), AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileIds.get(1), fileAnnotation2);
+
+
+		waitForEntityReplication(fileViewId, fileIds.get(0));
+
+
+		assertEquals(fileCount, waitForConsistentQuery(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, fileCount).getQueryCount());
+
+		//now reduce the maxListSize
+
+		ColumnModel smallerStringListColumn = new ColumnModel();
+		smallerStringListColumn.setName("stringList");
+		smallerStringListColumn.setColumnType(ColumnType.STRING_LIST);
+		smallerStringListColumn.setMaximumListLength(2L);
+		smallerStringListColumn = columnModelManager.createColumnModel(adminUserInfo, smallerStringListColumn);
+
+		// change the schema as a transaction
+		ColumnChange remove = new ColumnChange();
+		remove.setOldColumnId(stringListColumn.getId());
+		remove.setNewColumnId(smallerStringListColumn.getId());
+		List<ColumnChange> changes = Lists.newArrayList(remove);
+		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
+		request.setEntityId(fileViewId);
+		request.setChanges(changes);
+
+		List<TableUpdateRequest> updates = new LinkedList<TableUpdateRequest>();
+		updates.add(request);
+		TableUpdateTransactionRequest transaction = new TableUpdateTransactionRequest();
+		transaction.setEntityId(fileViewId);
+		transaction.setChanges(updates);
+
+		// wait for the change to complete
+		startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
+
+		String error = assertThrows(AsynchJobFailedException.class, () ->
+				waitForConsistentQuery(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, fileCount)
+		).getMessage();
+		assertEquals("maximumListLength for ColumnModel \"stringList\" must be at least: 3", error);
 	}
 	
 	/**

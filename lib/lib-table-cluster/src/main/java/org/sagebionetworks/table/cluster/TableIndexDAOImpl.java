@@ -880,6 +880,27 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
+	public Map<String, Long> getMaxListSizeForAnnotations(ObjectType objectType, long viewId, long viewTypeMask, Set<Long> allContainersInScope,
+															Set<String> annotationNames, Set<Long> objectIdFilter){
+		ValidateArgument.required(allContainersInScope, "allContainersInScope");
+		ValidateArgument.required(annotationNames, "annotationNames");
+		if(allContainersInScope.isEmpty() || annotationNames.isEmpty()){
+			// nothing to do if the scope or annotation names are empty.
+			return Collections.emptyMap();
+		}
+		if(objectIdFilter != null && objectIdFilter.isEmpty()) {
+			throw new IllegalArgumentException("When objectIdFilter is provided (not null) it cannot be empty");
+		}
+
+
+		boolean filterByRows = objectIdFilter != null;
+		MapSqlParameterSource param = getMapSqlParameterSourceForCopyToView(objectType, allContainersInScope, objectIdFilter, filterByRows);
+		String sql = SQLUtils.createAnnotationMaxListLengthSQL(viewId,viewTypeMask, annotationNames, filterByRows);
+		return namedTemplate.queryForMap(sql, param).entrySet().stream()
+				.collect(Collectors.toMap(Map.Entry::getKey, entry -> (Long) entry.getValue()));
+	}
+
+	@Override
 	public void copyEntityReplicationToView(ObjectType objectType, Long viewId, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema) {
 		Set<Long> rowIdsToCopy = null;
@@ -896,21 +917,26 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return;
 		}
 		if(rowIdsToCopy != null && rowIdsToCopy.isEmpty()) {
-			throw new IllegalArgumentException("When rowIdsToCopy is provided (not null) it cannot be empty");
+			throw new IllegalArgumentException("When objectIdFilter is provided (not null) it cannot be empty");
 		}
 		// Filter by rows only if provided.
 		boolean filterByRows = rowIdsToCopy != null;
+		MapSqlParameterSource param = getMapSqlParameterSourceForCopyToView(objectType, allContainersInScope, rowIdsToCopy, filterByRows);
+		List<ColumnMetadata> metadata = translateSchema(objectType, currentSchema);
+		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, viewTypeMask, filterByRows);
+		namedTemplate.update(sql, param);
+	}
+
+	private MapSqlParameterSource getMapSqlParameterSourceForCopyToView(ObjectType objectType, Set<Long> allContainersInScope, Set<Long> rowIdsToCopy, boolean filterByRows) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PARENT_ID_PARAM_NAME, allContainersInScope);
 		param.addValue(OBJECT_TYPE_PARAM_NAME, objectType.name());
 		if(filterByRows) {
 			param.addValue(ID_PARAM_NAME, rowIdsToCopy);
 		}
-		List<ColumnMetadata> metadata = translateSchema(objectType, currentSchema);
-		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, viewTypeMask, filterByRows);
-		namedTemplate.update(sql, param);
+		return param;
 	}
-	
+
 	@Override
 	public void createViewSnapshotFromEntityReplication(ObjectType objectType, Long viewId, Long viewTypeMask, Set<Long> allContainersInScope,
 			List<ColumnModel> currentSchema, CSVWriterStream outputStream) {
@@ -1017,6 +1043,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				if(aggregation.getMaxListSize() > 1){
 					try {
 						type = ColumnTypeListMappings.listType(type);
+						model.setMaximumListLength(aggregation.getMaxListSize());
 					} catch (IllegalArgumentException e){
 						//do nothing because a list type mapping does not exist
 					}

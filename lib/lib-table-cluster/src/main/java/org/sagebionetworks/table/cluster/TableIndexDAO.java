@@ -368,6 +368,20 @@ public interface TableIndexDAO {
 	 */
 	ObjectDataDTO getObjectData(ObjectType objectType, Long objectId);
 
+	/***
+	 * Get the maximum number of elements in a list for each annotation column
+	 * @param objectType
+	 * @param viewId
+	 * @param viewTypeMask
+	 * @param allContainersInScope
+	 * @param objectIdFilter
+	 * @return Map where the key is the columnId found in curentSchema,
+	 * and value is the maximum number of list elements for that annotation
+	 */
+	Map<String, Long> getMaxListSizeForAnnotations(ObjectType objectType, long viewId, long viewTypeMask,
+													 Set<Long> allContainersInScope, Set<String> annotationNames,
+													 Set<Long> objectIdFilter);
+
 	/**
 	 * Copy the data from the entity replication tables to the given view.
 	 * 
