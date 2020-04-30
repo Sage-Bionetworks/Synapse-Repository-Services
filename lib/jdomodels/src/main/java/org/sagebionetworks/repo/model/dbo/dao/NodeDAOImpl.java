@@ -102,7 +102,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.QueryTools;
-import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
@@ -1725,20 +1725,20 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 
 	@Override
-	public List<EntityDTO> getEntityDTOs(List<String> ids,final int maxAnnotationSize) {
+	public List<ObjectDataDTO> getEntityDTOs(List<String> ids,final int maxAnnotationSize) {
 		ValidateArgument.required(ids, "ids");
 		if(ids.isEmpty()){
-			return new LinkedList<EntityDTO>();
+			return new LinkedList<ObjectDataDTO>();
 		}
 		List<Long> longIds = KeyFactory.stringToKey(ids);
 		Map<String, List<Long>> parameters = new HashMap<String, List<Long>>(1);
 		parameters.put(NODE_IDS_LIST_PARAM_NAME, longIds);
-		return namedParameterJdbcTemplate.query(SQL_SELECT_ENTITY_DTO , parameters, new RowMapper<EntityDTO>() {
+		return namedParameterJdbcTemplate.query(SQL_SELECT_ENTITY_DTO , parameters, new RowMapper<ObjectDataDTO>() {
 
 			@Override
-			public EntityDTO mapRow(ResultSet rs, int rowNum)
+			public ObjectDataDTO mapRow(ResultSet rs, int rowNum)
 					throws SQLException {
-				EntityDTO dto = new EntityDTO();
+				ObjectDataDTO dto = new ObjectDataDTO();
 				long entityId = rs.getLong(COL_NODE_ID);
 				dto.setId(entityId);
 				dto.setCurrentVersion(rs.getLong(COL_NODE_CURRENT_REV));
@@ -1746,7 +1746,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				dto.setCreatedOn(new Date(rs.getLong(COL_NODE_CREATED_ON)));
 				dto.setEtag(rs.getString(COL_NODE_ETAG));
 				dto.setName(rs.getString(COL_NODE_NAME));
-				dto.setType(EntityType.valueOf(rs.getString(COL_NODE_TYPE)));
+				dto.setSubType(EntityType.valueOf(rs.getString(COL_NODE_TYPE)));
 				dto.setParentId(rs.getLong(COL_NODE_PARENT_ID));
 				if(rs.wasNull()){
 					dto.setParentId(null);

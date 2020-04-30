@@ -67,8 +67,8 @@ import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.EntityDTO;
-import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.EntityUpdateResult;
 import org.sagebionetworks.repo.model.table.EntityUpdateResults;
 import org.sagebionetworks.repo.model.table.EntityView;
@@ -221,7 +221,7 @@ public class TableViewIntegrationTest {
 		
 		defaultColumnIds = new LinkedList<String>();
 		for(ColumnModel cm: defaultSchema){
-			if(EntityField.etag.name().equals(cm.getName())){
+			if(ObjectField.etag.name().equals(cm.getName())){
 				etagColumn = cm;
 			}
 			defaultColumnIds.add(cm.getId());
@@ -451,7 +451,7 @@ public class TableViewIntegrationTest {
 		// lookup the file
 		FileEntity file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
 		waitForEntityReplication(fileViewId, file.getId());
-		ColumnModel benefactorColumn = EntityField.findMatch(defaultSchema, EntityField.benefactorId);
+		ColumnModel benefactorColumn = ObjectField.findMatch(defaultSchema, ObjectField.benefactorId);
 		// change the schema as a transaction
 		ColumnChange remove = new ColumnChange();
 		remove.setOldColumnId(benefactorColumn.getId());
@@ -1492,8 +1492,8 @@ public class TableViewIntegrationTest {
 		createFileView();
 		String fileZero = fileIds.get(0);
 		waitForEntityReplication(fileViewId, fileZero);
-		String sql = "select " + EntityField.dataFileMD5Hex + "," + EntityField.dataFileSizeBytes + " from "
-				+ fileViewId + " where " + EntityField.id + " = '" + fileZero+"'";
+		String sql = "select " + ObjectField.dataFileMD5Hex + "," + ObjectField.dataFileSizeBytes + " from "
+				+ fileViewId + " where " + ObjectField.id + " = '" + fileZero+"'";
 		int rowCount = 1;
 		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql, rowCount);
 		List<Row> rows = extractRows(results);
@@ -1705,13 +1705,13 @@ public class TableViewIntegrationTest {
 	 * @return
 	 * @throws InterruptedException
 	 */
-	private EntityDTO waitForEntityReplication(String tableId, String entityId) throws InterruptedException{
+	private ObjectDataDTO waitForEntityReplication(String tableId, String entityId) throws InterruptedException{
 		Entity entity = entityManager.getEntity(adminUserInfo, entityId);
 		long start = System.currentTimeMillis();
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		while(true){
-			EntityDTO dto = indexDao.getObjectData(ObjectType.ENTITY, KeyFactory.stringToKey(entityId));
+			ObjectDataDTO dto = indexDao.getObjectData(ObjectType.ENTITY, KeyFactory.stringToKey(entityId));
 			if(dto == null || !dto.getEtag().equals(entity.getEtag())){
 				assertTrue((System.currentTimeMillis()-start) <  MAX_WAIT_MS, "Timed out waiting for table view status change.");
 				System.out.println("Waiting for entity replication. id: "+entityId+" etag: "+entity.getEtag());

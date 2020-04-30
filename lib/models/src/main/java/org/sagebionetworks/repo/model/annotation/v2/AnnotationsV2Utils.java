@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.annotation.v2.annotaitonvalidator.AnnotationsV2TypeToValidator;
 import org.sagebionetworks.repo.model.annotation.v2.annotaitonvalidator.AnnotationsV2ValueListValidator;
-import org.sagebionetworks.repo.model.table.AnnotationDTO;
+import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -78,14 +78,14 @@ public class AnnotationsV2Utils {
 	 * @param maxAnnotationChars the maximum number of characters for any annotation value.
 	 * @return
 	 */
-	public static List<AnnotationDTO> translate(Long entityId, Annotations annos, int maxAnnotationChars) {
-		LinkedHashMap<String, AnnotationDTO> map = new LinkedHashMap<>();
+	public static List<ObjectAnnotationDTO> translate(Long entityId, Annotations annos, int maxAnnotationChars) {
+		LinkedHashMap<String, ObjectAnnotationDTO> map = new LinkedHashMap<>();
 		if(annos != null){
 			// add additional
 			addAnnotations(entityId, maxAnnotationChars, map, annos);
 		}
 		// build the results from the map
-		List<AnnotationDTO> results = new LinkedList<AnnotationDTO>();
+		List<ObjectAnnotationDTO> results = new LinkedList<ObjectAnnotationDTO>();
 		for(String key: map.keySet()){
 			results.add(map.get(key));
 		}
@@ -93,7 +93,7 @@ public class AnnotationsV2Utils {
 	}
 
 	private static void addAnnotations(Long entityId, int maxAnnotationChars,
-									   LinkedHashMap<String, AnnotationDTO> map, Annotations additional) {
+									   LinkedHashMap<String, ObjectAnnotationDTO> map, Annotations additional) {
 		if (additional.getAnnotations() == null){
 			return;
 		}
@@ -117,7 +117,7 @@ public class AnnotationsV2Utils {
 				transferredValues.add(shortenedString);
 			}
 			if(!transferredValues.isEmpty()) {
-				map.put(key, new AnnotationDTO(entityId, key, AnnotationType.forAnnotationV2Type(annotationsV2Value.getType()), transferredValues));
+				map.put(key, new ObjectAnnotationDTO(entityId, key, AnnotationType.forAnnotationV2Type(annotationsV2Value.getType()), transferredValues));
 			}
 		}
 	}

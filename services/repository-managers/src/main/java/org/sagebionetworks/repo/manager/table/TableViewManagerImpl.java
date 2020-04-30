@@ -39,7 +39,7 @@ import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableState;
@@ -74,9 +74,9 @@ public class TableViewManagerImpl implements TableViewManager {
 	public static final String DEFAULT_ETAG = "DEFAULT";
 
 	public static final String PROJECT_TYPE_CANNOT_BE_COMBINED_WITH_ANY_OTHER_TYPE = "The Project type cannot be combined with any other type.";
-	public static final String ETG_COLUMN_MISSING = "The view schema must include '" + EntityField.etag.name()
+	public static final String ETG_COLUMN_MISSING = "The view schema must include '" + ObjectField.etag.name()
 			+ "' column.";
-	public static final String ETAG_MISSING_MESSAGE = "The '" + EntityField.etag.name()
+	public static final String ETAG_MISSING_MESSAGE = "The '" + ObjectField.etag.name()
 			+ "' must be included to update an Entity's annotations.";
 
 	/**
@@ -243,7 +243,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	 */
 	public static ColumnModel getEtagColumn(List<ColumnModel> schema) {
 		for (ColumnModel cm : schema) {
-			if (EntityField.etag.name().equals(cm.getName())) {
+			if (ObjectField.etag.name().equals(cm.getName())) {
 				return cm;
 			}
 		}
@@ -263,7 +263,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		boolean updated = false;
 		// process each column of the view
 		for (ColumnModel column : tableSchema) {
-			EntityField matchedField = EntityField.findMatch(column);
+			ObjectField matchedField = ObjectField.findMatch(column);
 			// Ignore all entity fields.
 			if (matchedField == null) {
 				// is this column included in the row?
