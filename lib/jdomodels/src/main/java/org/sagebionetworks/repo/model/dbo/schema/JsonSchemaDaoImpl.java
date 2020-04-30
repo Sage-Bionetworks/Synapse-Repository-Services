@@ -27,6 +27,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ORGANI
 
 import java.sql.ResultSet;
 import java.sql.Timestamp;
+import java.util.Optional;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.sagebionetworks.ids.IdGenerator;
@@ -39,7 +40,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -80,9 +80,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		}
 	};
 
-	@WriteTransaction
-	@Override
-	public String createSchemaIfDoesNotExist(String organizationId, String schemaName, Long createdBy) {
+	String createSchemaIfDoesNotExist(String organizationId, String schemaName, Long createdBy) {
 		ValidateArgument.required(organizationId, "organizationId");
 		ValidateArgument.required(schemaName, "schemaName");
 		ValidateArgument.required(createdBy, "createdBy");
@@ -102,8 +100,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		}
 	}
 
-	@Override
-	public String getSchemaInfoForUpdate(String organizationId, String schemaName) {
+	String getSchemaInfoForUpdate(String organizationId, String schemaName) {
 		ValidateArgument.required(organizationId, "organizationId");
 		ValidateArgument.required(schemaName, "schemaName");
 		try {
@@ -125,9 +122,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA);
 	}
 
-	@WriteTransaction
-	@Override
-	public String createJsonBlobIfDoesNotExist(JsonSchema schema) {
+	String createJsonBlobIfDoesNotExist(JsonSchema schema) {
 		ValidateArgument.required(schema, "schema");
 		String schemaJson = null;
 		try {
@@ -148,8 +143,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		}
 	}
 
-	@Override
-	public String getJsonBlobId(String sha256hex) {
+	String getJsonBlobId(String sha256hex) {
 		ValidateArgument.required(sha256hex, "sha256hex");
 		try {
 			return jdbcTemplate.queryForObject("SELECT " + COL_JSON_SCHEMA_BLOB_ID + " FROM " + TABLE_JSON_SCHEMA_BLOB
@@ -161,6 +155,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 
 	/**
 	 * Set the cached latest version for the given schema
+	 * 
 	 * @param schemaId
 	 * @param latestVersionId
 	 */
@@ -172,9 +167,8 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 						+ " = UUID(), " + COL_JSON_SCHEMA_LATEST_VER_VER_ID + " = ?",
 				schemaId, latestVersionId, latestVersionId);
 	}
-	
-	@Override
-	public String getLatestVersionEtag(String schemaId) {
+
+	String getLatestVersionEtag(String schemaId) {
 		return jdbcTemplate.queryForObject("SELECT " + COL_JSON_SCHEMA_LATEST_VER_ETAG + " FROM "
 				+ TABLE_JSON_SCHEMA_LATEST_VERSION + " WHERE " + COL_JSON_SCHEMA_LATEST_VER_SCHEMA_ID + " = ?",
 				String.class, schemaId);
@@ -190,10 +184,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 	 * @param blobId
 	 * @return
 	 */
-	@WriteTransaction
-	@Override
-	public JsonSchemaVersionInfo createNewVersion(String schemaId, String semanticVersion, Long createdBy,
-			String blobId) {
+	JsonSchemaVersionInfo createNewVersion(String schemaId, String semanticVersion, Long createdBy, String blobId) {
 		ValidateArgument.required(schemaId, "schemaId");
 		ValidateArgument.required(createdBy, "createdBy");
 		ValidateArgument.required(blobId, "blobId");
@@ -270,9 +261,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 				schemaId);
 	}
 
-	@WriteTransaction
-	@Override
-	public String getSchemaIdForUpdate(String versionId) {
+	String getSchemaIdForUpdate(String versionId) {
 		ValidateArgument.required(versionId, "versionId");
 		try {
 			return jdbcTemplate.queryForObject("SELECT " + COL_JSON_SCHEMA_VER_SCHEMA_ID + " FROM "
@@ -296,12 +285,12 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_VERSION + " WHERE " + COL_JSON_SCHEMA_VER_ID + " = ?",
 				versionId);
 		// find the latest version for the schema
-		Long latestVersionId = findLatestVersionId(schemaId);
-		if (latestVersionId == null) {
+		Optional<Long> latestVersionIdOptional = findLatestVersionId(schemaId);
+		if (latestVersionIdOptional.isPresent()) {
+			setLatestVersion(schemaId, latestVersionIdOptional.get());
+		} else {
 			// deleted the last version so delete the schema.
 			deleteSchema(schemaId);
-		} else {
-			setLatestVersion(schemaId, latestVersionId);
 		}
 	}
 
@@ -366,10 +355,10 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		return getVersionInfo(versionId);
 	}
 
-	@Override
-	public Long findLatestVersionId(String schemaId) {
+	Optional<Long> findLatestVersionId(String schemaId) {
 		ValidateArgument.required(schemaId, "schemaId");
-		return jdbcTemplate.queryForObject("SELECT MAX(" + COL_JSON_SCHEMA_VER_ID + ") FROM "
+		Long versionId = jdbcTemplate.queryForObject("SELECT MAX(" + COL_JSON_SCHEMA_VER_ID + ") FROM "
 				+ TABLE_JSON_SCHEMA_VERSION + " WHERE " + COL_JSON_SCHEMA_VER_SCHEMA_ID + " = ?", Long.class, schemaId);
+		return Optional.ofNullable(versionId);
 	}
 }

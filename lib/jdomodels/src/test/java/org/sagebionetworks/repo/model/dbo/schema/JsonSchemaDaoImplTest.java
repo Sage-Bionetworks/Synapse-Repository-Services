@@ -1,14 +1,16 @@
 package org.sagebionetworks.repo.model.dbo.schema;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.Optional;
+
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.checkerframework.checker.units.qual.s;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,7 +33,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 public class JsonSchemaDaoImplTest {
 
 	@Autowired
-	private JsonSchemaDao jsonSchemaDao;
+	private JsonSchemaDaoImpl jsonSchemaDao;
 
 	@Autowired
 	private OrganizationDao organizationDao;
@@ -604,18 +606,20 @@ public class JsonSchemaDaoImplTest {
 	public void testGetSchemaVersionSchemaNameNotFound() throws JSONObjectAdapterException {
 		int index = 0;
 		createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
-		assertThrows(NotFoundException.class, () -> {
+		String message = assertThrows(NotFoundException.class, () -> {
 			jsonSchemaDao.getVersionInfo("my.org.edu", "foo.bar.bar", "1.0.1");
-		});
+		}).getMessage();
+		assertEquals("JSON Schema not found for organizationName: 'my.org.edu' and schemaName: 'foo.bar.bar' and semanticVersion: '1.0.1'", message);
 	}
 
 	@Test
 	public void testGetVersionInfoWithVersionNotFound() throws JSONObjectAdapterException {
 		int index = 0;
 		createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
-		assertThrows(NotFoundException.class, () -> {
+		String message = assertThrows(NotFoundException.class, () -> {
 			jsonSchemaDao.getVersionInfo("my.org.edu", "foo.bar", "1.0.2");
-		});
+		}).getMessage();
+		assertEquals("JSON Schema not found for organizationName: 'my.org.edu' and schemaName: 'foo.bar' and semanticVersion: '1.0.2'", message);
 	}
 
 	@Test
@@ -653,6 +657,7 @@ public class JsonSchemaDaoImplTest {
 		int index = 0;
 		createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
 		createNewSchemaVersion("my.org.edu/foo.bar/1.0.2", index++);
+		JsonSchemaVersionInfo stillExists = createNewSchemaVersion("other.org/foo.bar/1.0.2", index++);
 		JsonSchemaVersionInfo lastInfo = createNewSchemaVersion("my.org.edu/foo.bar", index++);
 		String schemaName = "foo.bar";
 		String schemaId = jsonSchemaDao.getSchemaInfoForUpdate(lastInfo.getOrganizationId(), schemaName);
@@ -662,6 +667,8 @@ public class JsonSchemaDaoImplTest {
 		assertThrows(NotFoundException.class, () -> {
 			jsonSchemaDao.getSchemaInfoForUpdate(organizationName, schemaName);
 		});
+		// should still exist
+		assertEquals(stillExists, jsonSchemaDao.getVersionInfo(stillExists.getVersionId()));
 	}
 
 	@Test
@@ -689,21 +696,24 @@ public class JsonSchemaDaoImplTest {
 		JsonSchemaVersionInfo otherOrg = createNewSchemaVersion("another.org/foo.bar", index++);
 		JsonSchemaVersionInfo otherName = createNewSchemaVersion("my.org.edu/other.name", index++);
 		// Call under test
-		Long versionId = jsonSchemaDao.findLatestVersionId(one.getSchemaId());
-		assertEquals(three.getVersionId(), versionId.toString());
+		Optional<Long> versionIdOptional = jsonSchemaDao.findLatestVersionId(one.getSchemaId());
+		assertTrue(versionIdOptional.isPresent());
+		assertEquals(three.getVersionId(), versionIdOptional.get().toString());
 		// call under test
-		versionId = jsonSchemaDao.findLatestVersionId(otherOrg.getSchemaId());
-		assertEquals(otherOrg.getVersionId(), versionId.toString());
+		versionIdOptional = jsonSchemaDao.findLatestVersionId(otherOrg.getSchemaId());
+		assertTrue(versionIdOptional.isPresent());
+		assertEquals(otherOrg.getVersionId(), versionIdOptional.get().toString());
 		// call under test
-		versionId = jsonSchemaDao.findLatestVersionId(otherName.getSchemaId());
-		assertEquals(otherName.getVersionId(), versionId.toString());
+		versionIdOptional = jsonSchemaDao.findLatestVersionId(otherName.getSchemaId());
+		assertTrue(versionIdOptional.isPresent());
+		assertEquals(otherName.getVersionId(), versionIdOptional.get().toString());
 	}
 	
 	@Test
 	public void testFindLatestVersionDoesNotExist() {
 		String schemaId = "-1";
-		Long latestVerion = jsonSchemaDao.findLatestVersionId(schemaId);
-		assertNull(latestVerion);
+		Optional<Long> versionIdOptional = jsonSchemaDao.findLatestVersionId(schemaId);
+		assertFalse(versionIdOptional.isPresent());
 	}
 	
 	@Test
@@ -741,7 +751,7 @@ public class JsonSchemaDaoImplTest {
 		// call under test
 		jsonSchemaDao.deleteSchemaVersion(toDelete.getVersionId());
 		assertThrows(NotFoundException.class, () -> {
-			jsonSchemaDao.getVersionInfo("my.org.edu", "foo.bar", "1.0.2");
+			jsonSchemaDao.getVersionInfo(toDelete.getVersionId());
 		});
 		
 		// this version should still exist

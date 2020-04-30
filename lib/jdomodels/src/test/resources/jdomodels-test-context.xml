@@ -2,22 +2,29 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
 	xsi:schemaLocation="
 		                   http://www.springframework.org/schema/beans
 		                   http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
                            http://www.springframework.org/schema/context
-                           http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+                           http://www.springframework.org/schema/context/spring-context-3.0.xsd
+                           http://www.springframework.org/schema/aop
+                           http://www.springframework.org/schema/aop/spring-aop-3.0.xsd">
 
 	<context:annotation-config />
+
+	<!-- Enables CGLIB so tests can depend on DAO implementations to test methods 
+		that are not part of the interface. -->
+	<aop:config proxy-target-class="true" />
 
 	<import resource="classpath:jdomodels-import.xml" />
 	<import resource="stack-configuration.spb.xml" />
 	<import resource="id-generator.spb.xml" />
-	<import resource="table-cluster-spb.xml"/>
+	<import resource="table-cluster-spb.xml" />
 
 	<!-- Used to test node locking -->
 	<bean id="transactionValidator"
 		class=" org.sagebionetworks.repo.model.dbo.dao.transactions.TransactionValidatorImpl"
-		init-method="initialize" />	
+		init-method="initialize" />
 
 </beans>

@@ -24,7 +24,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -68,7 +67,6 @@ public class JsonSchemaManagerImplTest {
 
 	@InjectMocks
 	JsonSchemaManagerImpl manager;
-	JsonSchemaManagerImpl managerSpy;
 
 	Date now;
 	UserInfo user;
@@ -93,7 +91,6 @@ public class JsonSchemaManagerImplTest {
 
 	@BeforeEach
 	public void before() throws JSONObjectAdapterException {
-		managerSpy = Mockito.spy(manager);
 		boolean isAdmin = false;
 		user = new UserInfo(isAdmin, 123L);
 		isAdmin = true;
@@ -535,9 +532,8 @@ public class JsonSchemaManagerImplTest {
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockSchemaDao.createNewSchemaVersion(any())).thenReturn(versionInfo);
 		// call under test
-		CreateSchemaResponse response = managerSpy.createJsonSchema(user, createSchemaRequest);
+		CreateSchemaResponse response = manager.createJsonSchema(user, createSchemaRequest);
 		assertNotNull(response);
-		assertEquals(versionInfo, response.getNewVersionInfo());
 		assertEquals(versionInfo, response.getNewVersionInfo());
 		verify(mockOrganizationDao).getOrganizationByName(organizationName);
 		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.CREATE);
@@ -555,9 +551,8 @@ public class JsonSchemaManagerImplTest {
 		when(mockSchemaDao.createNewSchemaVersion(any())).thenReturn(versionInfo);
 		schema.set$id(organizationName + "/" + schemaName);
 		// call under test
-		CreateSchemaResponse response = managerSpy.createJsonSchema(user, createSchemaRequest);
+		CreateSchemaResponse response = manager.createJsonSchema(user, createSchemaRequest);
 		assertNotNull(response);
-		assertEquals(versionInfo, response.getNewVersionInfo());
 		assertEquals(versionInfo, response.getNewVersionInfo());
 		verify(mockOrganizationDao).getOrganizationByName(organizationName);
 		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.CREATE);
