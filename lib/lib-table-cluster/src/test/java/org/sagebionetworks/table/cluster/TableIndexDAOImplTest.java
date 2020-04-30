@@ -3442,7 +3442,7 @@ public class TableIndexDAOImplTest {
 			// call under test
 			tableIndexDAO.copyEntityReplicationToView(objectType, tableId.getId(), ViewTypeMask.File.getMask(), scope, schema, rowFilter);
 		}).getMessage();
-		assertEquals("When rowIdsToCopy is provided (not null) it cannot be empty", message);
+		assertEquals("When objectIdFilter is provided (not null) it cannot be empty", message);
 	}
 	
 	@Test
