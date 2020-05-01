@@ -244,7 +244,7 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 				if (backup.getResearchProjectId()==null) {
 					try {
 						Submission submission = (Submission)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, 
-								submissionSerialized);	
+								backup.getSubmissionSerialized());	
 						backup.setResearchProjectId(Long.parseLong(submission.getResearchProjectSnapshot().getId()));
 					} catch (IOException e) {
 						throw new RuntimeException(e);

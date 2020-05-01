@@ -161,6 +161,9 @@ public class DBOSubmissionDAOImplTest {
 		if (accessRequirement != null) {
 			accessRequirementDAO.delete(accessRequirement.getId().toString());
 		}
+		if (accessRequirement2 != null) {
+			accessRequirementDAO.delete(accessRequirement2.getId().toString());
+		}
 		if (node != null) {
 			nodeDao.delete(node.getId());
 			node = null;
@@ -379,7 +382,10 @@ public class DBOSubmissionDAOImplTest {
 		assertEquals(expected, actual);
 		
 		
-		// check that pagination works right:  If I get the second page of size *one*, I should just get dto4
+		// check that pagination works right:  If I get the first page of size *one*, I should just get dto3
+		actual = submissionDao.listInfoForApprovedSubmissions(accessRequirement.getId().toString(), 1, 0);
+		assertEquals(ImmutableList.of(dto3Info), actual);
+		// If I get the second page of size *one*, I should just get dto4
 		actual = submissionDao.listInfoForApprovedSubmissions(accessRequirement.getId().toString(), 1, 1);
 		assertEquals(ImmutableList.of(dto4Info), actual);
 	}

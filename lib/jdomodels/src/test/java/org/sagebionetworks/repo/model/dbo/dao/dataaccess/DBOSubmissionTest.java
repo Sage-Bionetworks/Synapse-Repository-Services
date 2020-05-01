@@ -30,7 +30,7 @@ public class DBOSubmissionTest {
 		// Note, we have NOT set the research project id in backup
 		assertNull(backup.getResearchProjectId());
 		
-		DBOSubmission dbo = backup.getTranslator().createDatabaseObjectFromBackup(backup);
+		DBOSubmission dbo = (new DBOSubmission()).getTranslator().createDatabaseObjectFromBackup(backup);
 		
 		assertEquals(Long.parseLong(id), dbo.getResearchProjectId().longValue());
 		
