@@ -318,27 +318,12 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			throw new IllegalArgumentException("Cannot list research projects for an access requirement whose IDUs are not public.");
 		}
 		NextPageToken token = new NextPageToken(request.getNextPageToken());
-		List<Submission> submissionsInDescendingDateOrder = submissionDao.getSubmissions(
-				request.getAccessRequirementId(), SubmissionState.APPROVED, SubmissionOrder.CREATED_ON,
-				false, token.getLimitForQuery(), token.getOffset());
-		List<SubmissionInfo> submissionInfoList = new ArrayList<SubmissionInfo>();
-		Set<String> alreadySeen = new HashSet<String>();
-		for (Submission submission : submissionsInDescendingDateOrder) {
-			ResearchProject researchProject = submission.getResearchProjectSnapshot();
-			if (!alreadySeen.add(researchProject.getId())) {
-				continue;
-			}
-			SubmissionInfo submissionInfo = new SubmissionInfo();
-			submissionInfo.setInstitution(researchProject.getInstitution());
-			submissionInfo.setIntendedDataUseStatement(researchProject.getIntendedDataUseStatement());
-			submissionInfo.setProjectLead(researchProject.getProjectLead());
-			submissionInfo.setModifiedOn(submission.getModifiedOn());
-			// note, we append to beginning, not end, of list, to make the order of the returned list AScending
-			submissionInfoList.add(0, submissionInfo);
-		}
+		List<SubmissionInfo> submissionInfoList = submissionDao.listInfoForApprovedSubmissions(
+				request.getAccessRequirementId(), token.getLimitForQuery(), token.getOffset());
+		
 		SubmissionInfoPage pageResult = new SubmissionInfoPage();
 		pageResult.setResults(submissionInfoList);
-		pageResult.setNextPageToken(token.getNextPageTokenForCurrentResults(submissionsInDescendingDateOrder));
+		pageResult.setNextPageToken(token.getNextPageTokenForCurrentResults(submissionInfoList));
 		return pageResult;
 	}
 
