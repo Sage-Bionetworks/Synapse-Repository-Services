@@ -1417,7 +1417,7 @@ public class TableIndexDAOImplTest {
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
-				tableIndexDAO.getMaxListSizeForAnnotations(objectType, tableId.getId(),
+				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, tableId.getId(),
 						ViewTypeMask.File.getMask(), nullScope, annotationNames, null)
 		).getMessage();
 
@@ -1433,7 +1433,7 @@ public class TableIndexDAOImplTest {
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
 
 		assertEquals(Collections.emptyMap(),
-				tableIndexDAO.getMaxListSizeForAnnotations(objectType, tableId.getId(),
+				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, tableId.getId(),
 						ViewTypeMask.File.getMask(), emptyScope, annotationNames, null));
 
 	}
@@ -1446,7 +1446,7 @@ public class TableIndexDAOImplTest {
 		Set<String> nullAnnotationNames = null;
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
-				tableIndexDAO.getMaxListSizeForAnnotations(objectType, tableId.getId(),
+				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, tableId.getId(),
 						ViewTypeMask.File.getMask(), scope, nullAnnotationNames, null)
 		).getMessage();
 
@@ -1464,7 +1464,7 @@ public class TableIndexDAOImplTest {
 		Set<Long> emptyObjectIdFilter = Collections.emptySet();
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
-				tableIndexDAO.getMaxListSizeForAnnotations(objectType, tableId.getId(),
+				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, tableId.getId(),
 						ViewTypeMask.File.getMask(), scope, annotationNames, emptyObjectIdFilter)
 		).getMessage();
 
@@ -1479,7 +1479,7 @@ public class TableIndexDAOImplTest {
 		Set<String> emptyAnnotationNames = Collections.emptySet();
 
 		assertEquals(Collections.emptyMap(),
-				tableIndexDAO.getMaxListSizeForAnnotations(objectType, tableId.getId(),
+				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, tableId.getId(),
 						ViewTypeMask.File.getMask(), scope, emptyAnnotationNames, null));
 
 	}
@@ -1532,7 +1532,7 @@ public class TableIndexDAOImplTest {
 		createOrUpdateTable(schema, tableId, isView);
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
 		// method under test
-		Map<String, Long> listSizes = tableIndexDAO.getMaxListSizeForAnnotations(objectType, tableId.getId(), ViewTypeMask.File.getMask(), scope, annotationNames, null);
+		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, tableId.getId(), ViewTypeMask.File.getMask(), scope, annotationNames, null);
 		HashMap<String,Long> expected = new HashMap<>();
 		expected.put("foo",3L);
 		expected.put("bar",5L);
@@ -1566,11 +1566,8 @@ public class TableIndexDAOImplTest {
 		// method under test
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
 
-		Map<String, Long> listSizes = tableIndexDAO.getMaxListSizeForAnnotations(objectType, tableId.getId(), ViewTypeMask.File.getMask(), scope, annotationNames, null);
-		HashMap<String,Long> expected = new HashMap<>();
-		expected.put("foo",0L);
-		expected.put("bar",0L);
-		assertEquals(expected, listSizes);
+		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, tableId.getId(), ViewTypeMask.File.getMask(), scope, annotationNames, null);
+		assertEquals(Collections.emptyMap(), listSizes);
 	}
 
 	@Test
@@ -1623,7 +1620,7 @@ public class TableIndexDAOImplTest {
 
 		Set<Long> objectIdFilter = Sets.newHashSet(2L);
 		// method under test
-		Map<String, Long> listSizes = tableIndexDAO.getMaxListSizeForAnnotations(objectType, tableId.getId(), ViewTypeMask.File.getMask(), scope, annotationNames, objectIdFilter);
+		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, tableId.getId(), ViewTypeMask.File.getMask(), scope, annotationNames, objectIdFilter);
 		HashMap<String,Long> expected = new HashMap<>();
 		expected.put("foo",3L);
 		expected.put("bar",3L);
@@ -3461,6 +3458,7 @@ public class TableIndexDAOImplTest {
 		multiValue.setColumnType(ColumnType.STRING_LIST);
 		multiValue.setName("multiValue");
 		multiValue.setMaximumSize(100L);
+		multiValue.setMaximumListLength(53L);
 		List<ColumnModel> schema = Lists.newArrayList(multiValue);
 		createOrUpdateTable(schema, tableId, isView);
 		
@@ -3498,6 +3496,7 @@ public class TableIndexDAOImplTest {
 		multiValue.setColumnType(ColumnType.STRING_LIST);
 		multiValue.setName("multiValue");
 		multiValue.setMaximumSize(100L);
+		multiValue.setMaximumListLength(22L);
 		List<ColumnModel> schema = Lists.newArrayList(multiValue);
 		createOrUpdateTable(schema, tableId, isView);
 		

@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.cluster;
 
 import static org.sagebionetworks.repo.model.table.ColumnConstants.isTableTooLargeForFourByteUtf8;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_KEYS_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_ALIAS;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_DOUBLE_ABSTRACT;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
@@ -1456,9 +1457,13 @@ public class SQLUtils {
 		ValidateArgument.requiredNotEmpty(annotationNames,"annotationNames");
 
 		StringBuilder builder = new StringBuilder();
-		builder.append("SELECT ");
-		buildSelectListLength(builder, annotationNames);
+		builder.append("SELECT ")
+				.append(ANNOTATION_REPLICATION_ALIAS).append(".").append(ANNOTATION_REPLICATION_COL_KEY)
+				.append(", MAX(").append(ANNOTATION_REPLICATION_ALIAS).append(".").append(ANNOTATION_REPLICATION_COL_LIST_LENGTH).append(")");
 		objectReplicationJoinAnnotationReplicationFilter(builder, viewTypeMask, filterByRows);
+		builder.append(" AND ").append(ANNOTATION_REPLICATION_ALIAS).append(".").append(ANNOTATION_REPLICATION_COL_KEY)
+				.append(" IN (:").append(ANNOTATION_KEYS_PARAM_NAME).append(")");
+		builder.append(" GROUP BY ").append(ANNOTATION_REPLICATION_ALIAS).append(".").append(ANNOTATION_REPLICATION_COL_KEY);
 		return builder.toString();
 	}
 	
@@ -1503,30 +1508,6 @@ public class SQLUtils {
 			headers.addAll(buildSelectMetadata(builder, meta));
 		}
 		return headers;
-	}
-
-	/**
-	 * Build the select clause to retrieve list lengths for each annotation.
-	 * @param builder
-	 * @param currentSchema
-	 */
-	private static void buildSelectListLength(StringBuilder builder,
-										   Set<String> annotationNames) {
-
-		boolean first = true;
-		for(String annotation: annotationNames){
-			if(!first){
-				builder.append(", ");
-			}
-			builder.append(String.format("MAX(IF(%1$s.%2$s ='%3$s', %1$s.%4$s, 0)) AS %3$s",
-					ANNOTATION_REPLICATION_ALIAS,
-					ANNOTATION_REPLICATION_COL_KEY,
-					annotation,
-					ANNOTATION_REPLICATION_COL_LIST_LENGTH
-			));
-
-			first = false;
-		}
 	}
 	
 	/**

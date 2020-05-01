@@ -1935,7 +1935,7 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void createMaxListLengthValidationSQL_singleAnnotation(){
+	public void createMaxListLengthValidationSQL(){
 		Set<String> annotationNames = Sets.newHashSet("foo");
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		StringBuilder builder = new StringBuilder();
@@ -1943,7 +1943,7 @@ public class SQLUtilsTest {
 		String sql = SQLUtils.createAnnotationMaxListLengthSQL(viewId, viewTypeMask, annotationNames, filterByRows);
 
 		assertEquals("SELECT"
-				+ " MAX(IF(A.ANNO_KEY ='foo', A.LIST_LENGTH, 0)) AS foo"
+				+ " A.ANNO_KEY, MAX(A.LIST_LENGTH)"
 				+ " FROM"
 				+ " OBJECT_REPLICATION R"
 				+ " LEFT JOIN ANNOTATION_REPLICATION A"
@@ -1951,31 +1951,10 @@ public class SQLUtilsTest {
 				+ " WHERE"
 				+ " R.OBJECT_TYPE = :objectType"
 				+ " AND R.PARENT_ID IN (:parentIds)"
-				+ " AND R.SUBTYPE IN ('file')", sql);
+				+ " AND R.SUBTYPE IN ('file')"
+				+ " AND A.ANNO_KEY IN (:annotationKeys)"
+				+ " GROUP BY A.ANNO_KEY", sql);
 	}
-
-	@Test
-	public void createMaxListLengthValidationSQL_multipleAnnotations(){
-		Set<String> annotationNames = Sets.newLinkedHashSet(Arrays.asList("foo", "bar","baz"));
-		Long viewTypeMask = ViewTypeMask.File.getMask();
-		StringBuilder builder = new StringBuilder();
-		boolean filterByRows = false;
-		String sql = SQLUtils.createAnnotationMaxListLengthSQL(viewId, viewTypeMask, annotationNames, filterByRows);
-
-		assertEquals("SELECT"
-				+ " MAX(IF(A.ANNO_KEY ='foo', A.LIST_LENGTH, 0)) AS foo"
-				+ ", MAX(IF(A.ANNO_KEY ='bar', A.LIST_LENGTH, 0)) AS bar"
-				+ ", MAX(IF(A.ANNO_KEY ='baz', A.LIST_LENGTH, 0)) AS baz"
-				+ " FROM"
-				+ " OBJECT_REPLICATION R"
-				+ " LEFT JOIN ANNOTATION_REPLICATION A"
-				+ " ON(R.OBJECT_TYPE = A.OBJECT_TYPE AND R.OBJECT_ID = A.OBJECT_ID)"
-				+ " WHERE"
-				+ " R.OBJECT_TYPE = :objectType"
-				+ " AND R.PARENT_ID IN (:parentIds)"
-				+ " AND R.SUBTYPE IN ('file')", sql);
-	}
-
 
 	@Test
 	public void createMaxListLengthValidationSQL_nullAnnotationNames(){

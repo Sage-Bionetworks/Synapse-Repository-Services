@@ -125,6 +125,7 @@ public class TableConstants {
 	public static final String REPLICATION_SYNC_EXP_COL_OBJECT_ID 			= "OBJECT_ID";
 	public static final String REPLICATION_SYNC_EXP_COL_EXPIRES				= "EXPIRES_MS";
 	
+	public static final String ANNOTATION_KEYS_PARAM_NAME = "annotationKeys";
 
 	public static final String TYPE_PARAM_NAME = "typeParam";
 	public static final String OBJECT_TYPE_PARAM_NAME = "objectType";
