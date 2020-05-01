@@ -140,20 +140,17 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO{
 	private static final String OFFSET = "OFFSET";
 
 	/*
-	select s.submission_serialized, ss.modified_on
-	from s, ss
-	where s.id=ss.s_id and
-	s.ar_id=? and
-	ss.state='approved' and
-	ss.modified_on = 
-	select(max(ss2.modified_on)
-	from s2, ss2
-	where 
-	s2.ar_id=s.ar_id and s2.rp_id=s.rp_id
-	and s2.id=ss2.s_id and ss2.state=approved
-	group by s2.ar_id, s2.rp_id)
-	order by ss.modified_on asc;
-	*/
+	 * SELECT s.SUBMISSION_SERIALIZED, ss.MODIFIED_ON 
+	 * FROM DATA_ACCESS_SUBMISSION s, DATA_ACCESS_SUBMISSION_STATUS ss  
+	 * WHERE s.ID = ss.SUBMISSION_ID AND s.ACCESS_REQUIREMENT_ID = ? 
+	 * AND ss.STATE = 'APPROVED' AND ss.MODIFIED_ON = (
+	 * 		SELECT MAX(ss2.MODIFIED_ON) 
+	 * 		FROM DATA_ACCESS_SUBMISSION s2, DATA_ACCESS_SUBMISSION_STATUS ss2  
+	 * 		WHERE s2.ID = ss2.SUBMISSION_ID AND s2.ACCESS_REQUIREMENT_ID = s.ACCESS_REQUIREMENT_ID AND 
+	 * 		s2.RESEARCH_PROJECT_ID = s.RESEARCH_PROJECT_ID AND ss2.STATE = 'APPROVED' 
+	 * 		GROUP BY s2.ACCESS_REQUIREMENT_ID, s2.RESEARCH_PROJECT_ID ) 
+	 * ORDER BY ss.MODIFIED_ON;
+	 */
 	private static final String SQL_LIST_SUBMISSION_INFO = 
 			"SELECT s."+COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED+", ss."+COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON
 			+ " FROM "+TABLE_DATA_ACCESS_SUBMISSION+" s, "+ TABLE_DATA_ACCESS_SUBMISSION_STATUS+" ss "
