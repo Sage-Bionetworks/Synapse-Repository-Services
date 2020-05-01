@@ -14,6 +14,7 @@ import org.apache.commons.io.IOUtils;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.FORMAT;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.ObjectSchemaImpl;
 import org.sagebionetworks.schema.TYPE;
@@ -25,11 +26,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class SchemaTranslatorImp implements SchemaTranslator {
 
+	public static final String CURRENT_$SCHEMA = "http://json-schema.org/draft-07/schema#";
 	public static final String DELIMITER = "/";
 	public static final String SYNAPSE_ORGANIZATION_NAME = "org.sagebionetworks";
 
 	@Override
-	public ObjectSchemaImpl loadSchemaFromClasspath(String id) throws IOException, JSONObjectAdapterException {
+	public ObjectSchemaImpl loadSchemaFromClasspath(String id) {
 		ValidateArgument.required(id, "id");
 		String fileName = "schema/" + id.replaceAll("\\.", DELIMITER) + ".json";
 		try (InputStream input = SynapseSchemaBootstrapImpl.class.getClassLoader().getResourceAsStream(fileName);) {
@@ -44,6 +46,8 @@ public class SchemaTranslatorImp implements SchemaTranslator {
 				schema.setId(id);
 			}
 			return schema;
+		} catch (IOException | JSONObjectAdapterException e) {
+			throw new IllegalStateException(e);
 		}
 	}
 
@@ -133,17 +137,35 @@ public class SchemaTranslatorImp implements SchemaTranslator {
 		return resultMap;
 	}
 	
+	/**
+	 * Translate from the ObjectSchema FORMAT.
+	 * @param format
+	 * @return
+	 */
+	public String translateFormat(FORMAT format) {
+		if(format == null) {
+			return null;
+		}
+		return format.getJSONValue();
+	}
+	
 	@Override
 	public JsonSchema translate(ObjectSchema objectSchema) {
-		ValidateArgument.required(objectSchema, "objectSchema");
+		if(objectSchema == null) {
+			return null;
+		}
 		JsonSchema jsonSchema = new JsonSchema();
+		jsonSchema.set$schema(CURRENT_$SCHEMA);
 		jsonSchema.set$id(convertFromInternalIdToExternalId(objectSchema.getId()));
 		// implements maps to allOf.
 		jsonSchema.setAllOf(translateArray(objectSchema.getImplements()));
 		jsonSchema.set$ref(convertFromInternalIdToExternalId(objectSchema.getRef()));
 		jsonSchema.setProperties(translateMap(objectSchema.getProperties()));
 		jsonSchema.setType(translateType(objectSchema.getType()));
+		jsonSchema.setTitle(objectSchema.getTitle());
 		jsonSchema.setDescription(objectSchema.getDescription());
+		jsonSchema.setItems(translate(objectSchema.getItems()));
+		jsonSchema.setFormat(translateFormat(objectSchema.getFormat()));
 		return jsonSchema;
 	}
 }

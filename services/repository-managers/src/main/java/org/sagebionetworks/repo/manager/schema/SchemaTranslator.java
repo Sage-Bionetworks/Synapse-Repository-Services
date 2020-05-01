@@ -18,7 +18,7 @@ public interface SchemaTranslator {
 	 * @throws IOException
 	 * @throws JSONObjectAdapterException
 	 */
-	ObjectSchemaImpl loadSchemaFromClasspath(String id) throws IOException, JSONObjectAdapterException;
+	ObjectSchemaImpl loadSchemaFromClasspath(String id);
 
 	/**
 	 * Translate from an ObjectSchema to a JsonSchema;

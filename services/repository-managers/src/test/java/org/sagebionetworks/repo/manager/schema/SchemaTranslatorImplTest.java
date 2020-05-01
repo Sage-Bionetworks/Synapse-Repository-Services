@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.FORMAT;
 import org.sagebionetworks.schema.LinkDescription;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.ObjectSchemaImpl;
@@ -247,6 +248,22 @@ public class SchemaTranslatorImplTest {
 		assertNull(result);
 	}
 	
+	@Test
+	public void testTranslateFormat() {
+		FORMAT format = FORMAT.DATE_TIME;
+		// call under test
+		String result = translator.translateFormat(format);
+		assertEquals(FORMAT.DATE_TIME.getJSONValue(), result);
+	}
+	
+	@Test
+	public void testTranslateFormtWithNull() {
+		FORMAT format = null;
+		// call under test
+		String result = translator.translateFormat(format);
+		assertEquals(FORMAT.DATE_TIME.getJSONValue(), result);
+	}
+	
 	//
 	// Test on public translate.
 	//
@@ -254,9 +271,9 @@ public class SchemaTranslatorImplTest {
 	@Test
 	public void testTranslateWithNullObjectSchema() {
 		ObjectSchemaImpl objectSchema = null;
-		assertThrows(IllegalArgumentException.class, ()->{
-			translator.translate(objectSchema);
-		});
+		// call under test
+		JsonSchema result = translator.translate(objectSchema);
+		assertNull(result);
 	}
 	
 	@Test
@@ -267,6 +284,7 @@ public class SchemaTranslatorImplTest {
 		JsonSchema resultSchema = translator.translate(objectSchema);
 		assertNotNull(resultSchema);
 		assertEquals("org.sagebionetworks/repo.model.FileEntity", resultSchema.get$id());
+		assertEquals(SchemaTranslatorImp.CURRENT_$SCHEMA, resultSchema.get$schema());
 	}
 	
 	@Test
@@ -338,6 +356,31 @@ public class SchemaTranslatorImplTest {
 	}
 	
 	@Test
+	public void testTranslateItems() {
+		ObjectSchemaImpl arrayOfStrings = new ObjectSchemaImpl(TYPE.ARRAY);
+		arrayOfStrings.setItems(new ObjectSchemaImpl(TYPE.STRING));
+		// call under test
+		JsonSchema result = translator.translate(arrayOfStrings);
+		assertNotNull(result);
+		assertEquals(Type.array, result.getType());
+		JsonSchema items = result.getItems();
+		assertNotNull(items);
+		assertEquals(Type.string, items.getType());
+	}
+	
+	@Test
+	public void testTransalteTitle() {
+		ObjectSchemaImpl hasTitle = new ObjectSchemaImpl(TYPE.STRING);
+		hasTitle.setTitle("The Boss");
+		// call under test
+		JsonSchema result = translator.translate(hasTitle);
+		assertNotNull(result);
+		assertEquals(hasTitle.getTitle(), result.getTitle());
+	}
+	
+
+	
+	@Test
 	public void testTranslateWithFileEntity() throws IOException, JSONObjectAdapterException {
 		ObjectSchemaImpl fileEntityObjecSchema = translator.loadSchemaFromClasspath("org.sagebionetworks.repo.model.FileEntity");
 		// Call under test
@@ -345,5 +388,7 @@ public class SchemaTranslatorImplTest {
 		assertNotNull(resultSchema);
 		assertEquals("org.sagebionetworks/repo.model.FileEntity", resultSchema.get$id());
 	}
+	
+
 
 }
