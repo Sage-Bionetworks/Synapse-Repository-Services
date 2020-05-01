@@ -23,7 +23,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -96,7 +96,7 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 	@Test
 	public void testRoundTrip() throws InterruptedException{
 		// wait for the child to be replicated
-		EntityDTO replicatedChild = waitForEntityDto(child.getId());
+		ObjectDataDTO replicatedChild = waitForEntityDto(child.getId());
 		assertNotNull(replicatedChild);
 		assertEquals(KeyFactory.stringToKey(project.getId()), replicatedChild.getBenefactorId());
 		// Delete the replicated data
@@ -118,10 +118,10 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 	 * @return
 	 * @throws InterruptedException
 	 */
-	public EntityDTO waitForEntityDto(String entityId) throws InterruptedException{
+	public ObjectDataDTO waitForEntityDto(String entityId) throws InterruptedException{
 		long startTimeMS = System.currentTimeMillis();
 		while(true){
-			EntityDTO entityDto = indexDao.getObjectData(ObjectType.ENTITY, KeyFactory.stringToKey(entityId));
+			ObjectDataDTO entityDto = indexDao.getObjectData(ObjectType.ENTITY, KeyFactory.stringToKey(entityId));
 			if(entityDto != null){
 				return entityDto;
 			}

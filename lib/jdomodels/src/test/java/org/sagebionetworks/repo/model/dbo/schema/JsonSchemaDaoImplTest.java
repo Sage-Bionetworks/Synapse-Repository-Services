@@ -1,12 +1,16 @@
 package org.sagebionetworks.repo.model.dbo.schema;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.Optional;
+
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,10 +19,11 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.Organization;
-import org.sagebionetworks.repo.model.schema.SchemaInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.schema.id.SchemaId;
+import org.sagebionetworks.schema.parser.SchemaIdParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -28,35 +33,45 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 public class JsonSchemaDaoImplTest {
 
 	@Autowired
-	private JsonSchemaDao jsonSchemaDao;
+	private JsonSchemaDaoImpl jsonSchemaDao;
 
 	@Autowired
 	private OrganizationDao organizationDao;
 
 	private Organization organization;
 	private String organizationName;
-	private NewSchemaRequest newSchemaRequest;
-	private SchemaInfo schemaInfo;
+	private String organizationId;
+	private String schemaName;
 	private JsonSchema schema;
 	private String schemaJson;
 	private String schemaJsonSha256Hex;
 	private String semanticVersion;
+	private Long createdBy;
+	private String schemaId;
+	private String blobId;
+	private NewSchemaVersionRequest newSchemaVersionRequest;
 
 	private Long adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
 	@BeforeEach
 	public void before() throws JSONObjectAdapterException {
+		createdBy = adminUserId;
 		organizationName = "Foo.baR";
 		organization = organizationDao.createOrganization(organizationName, adminUserId);
+		organizationId = organization.getId();
 
-		newSchemaRequest = new NewSchemaRequest().withSchemaName("path.Name").withOrganizationId(organization.getId())
-				.withCreatedBy(adminUserId);
+		schemaName = "path.Name";
 		semanticVersion = "1.2.3";
 
 		schema = new JsonSchema();
-		schema.set$id(newSchemaRequest.getOrganizationId() + "/" + newSchemaRequest.getSchemaName());
+		schema.set$id(organizationName + "/" + schemaName);
 		schemaJson = EntityFactory.createJSONStringForEntity(schema);
 		schemaJsonSha256Hex = DigestUtils.sha256Hex(schemaJson);
+
+		newSchemaVersionRequest = new NewSchemaVersionRequest().withCreatedBy(createdBy)
+				.withOrganizationId(organizationId).withJsonSchema(schema).withSchemaName(schemaName)
+				.withSemanticVersion(semanticVersion);
+
 	}
 
 	@AfterEach
@@ -68,89 +83,72 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testCreateSchemaIfDoesNotExist() {
 		// call under test
-		SchemaInfo result = jsonSchemaDao.createSchemaIfDoesNotExist(newSchemaRequest);
-		assertNotNull(result);
-		assertNotNull(result.getNumericId());
-		assertEquals(newSchemaRequest.getSchemaName(), result.getName());
-		assertEquals(newSchemaRequest.getOrganizationId(), result.getOrganizationId());
-		assertEquals(newSchemaRequest.getCreatedBy().toString(), result.getCreatedBy());
-		assertNotNull(result.getCreatedOn());
+		String schemaId = jsonSchemaDao.createSchemaIfDoesNotExist(organizationId, schemaName, createdBy);
+		assertNotNull(schemaId);
 	}
 
 	@Test
 	public void testCreateSchemaIfDoesNotExistDuplicate() {
 		// call under test
-		SchemaInfo first = jsonSchemaDao.createSchemaIfDoesNotExist(newSchemaRequest);
-		SchemaInfo second = jsonSchemaDao.createSchemaIfDoesNotExist(newSchemaRequest);
+		String first = jsonSchemaDao.createSchemaIfDoesNotExist(organizationId, schemaName, createdBy);
+		String second = jsonSchemaDao.createSchemaIfDoesNotExist(organizationId, schemaName, createdBy);
 		assertEquals(first, second);
 	}
 
 	@Test
-	public void testCreateSchemaIfDoesNotExistNull() {
-		newSchemaRequest = null;
-		assertThrows(IllegalArgumentException.class, () -> {
-			jsonSchemaDao.createSchemaIfDoesNotExist(newSchemaRequest);
-		});
-	}
-
-	@Test
 	public void testCreateSchemaIfDoesNotExistNullOrganization() {
-		newSchemaRequest.withOrganizationId(null);
+		organizationId = null;
 		assertThrows(IllegalArgumentException.class, () -> {
-			jsonSchemaDao.createSchemaIfDoesNotExist(newSchemaRequest);
+			jsonSchemaDao.createSchemaIfDoesNotExist(organizationId, schemaName, createdBy);
 		});
 	}
 
 	@Test
 	public void testCreateSchemaIfDoesNotExistNullName() {
-		newSchemaRequest.withSchemaName(null);
+		schemaName = null;
 		assertThrows(IllegalArgumentException.class, () -> {
-			jsonSchemaDao.createSchemaIfDoesNotExist(newSchemaRequest);
+			jsonSchemaDao.createSchemaIfDoesNotExist(organizationId, schemaName, createdBy);
 		});
 	}
 
 	@Test
 	public void testCreateSchemaIfDoesNotExistNullCreatedBy() {
-		newSchemaRequest.withCreatedBy(null);
+		createdBy = null;
 		assertThrows(IllegalArgumentException.class, () -> {
-			jsonSchemaDao.createSchemaIfDoesNotExist(newSchemaRequest);
+			jsonSchemaDao.createSchemaIfDoesNotExist(organizationId, schemaName, createdBy);
 		});
 	}
 
 	@Test
 	public void testGetSchemaInfoForUpdate() {
-		SchemaInfo result = jsonSchemaDao.createSchemaIfDoesNotExist(newSchemaRequest);
-		assertNotNull(result);
+		String schemaId = jsonSchemaDao.createSchemaIfDoesNotExist(organizationId, schemaName, createdBy);
+		assertNotNull(schemaId);
 		// call under test
-		SchemaInfo fromGet = jsonSchemaDao.getSchemaInfoForUpdate(newSchemaRequest.getOrganizationId(),
-				newSchemaRequest.getSchemaName());
-		assertEquals(result, fromGet);
+		String fetchedSchemaId = jsonSchemaDao.getSchemaInfoForUpdate(organizationId, schemaName);
+		assertEquals(schemaId, fetchedSchemaId);
 	}
 
 	@Test
 	public void testGetSchemaInfoForUpdateNullOrganizationId() {
-		newSchemaRequest.withOrganizationId(null);
+		organizationId = null;
 		assertThrows(IllegalArgumentException.class, () -> {
-			jsonSchemaDao.getSchemaInfoForUpdate(newSchemaRequest.getOrganizationId(),
-					newSchemaRequest.getSchemaName());
+			jsonSchemaDao.getSchemaInfoForUpdate(organizationId, schemaName);
 		});
 	}
 
 	@Test
 	public void testGetSchemaInfoForUpdateNullName() {
-		newSchemaRequest.withSchemaName(null);
+		schemaName = null;
 		assertThrows(IllegalArgumentException.class, () -> {
-			jsonSchemaDao.getSchemaInfoForUpdate(newSchemaRequest.getOrganizationId(),
-					newSchemaRequest.getSchemaName());
+			jsonSchemaDao.getSchemaInfoForUpdate(organizationId, schemaName);
 		});
 	}
 
 	@Test
 	public void testGetSchemaInfoForUpdateNotFound() {
-		newSchemaRequest.withOrganizationId("-1");
+		organizationId = "-1";
 		String message = assertThrows(NotFoundException.class, () -> {
-			jsonSchemaDao.getSchemaInfoForUpdate(newSchemaRequest.getOrganizationId(),
-					newSchemaRequest.getSchemaName());
+			jsonSchemaDao.getSchemaInfoForUpdate(organizationId, schemaName);
 		}).getMessage();
 		assertEquals("JsonSchema not found for organizationId: '-1' and schemaName: 'path.Name'", message);
 	}
@@ -158,30 +156,22 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testCreateJsonBlobIfDoesNotExist() {
 		// call under test
-		String blobIdOne = jsonSchemaDao.createJsonBlobIfDoesNotExist(schemaJson, schemaJsonSha256Hex);
-		String blobIdTwo = jsonSchemaDao.createJsonBlobIfDoesNotExist(schemaJson, schemaJsonSha256Hex);
+		String blobIdOne = jsonSchemaDao.createJsonBlobIfDoesNotExist(schema);
+		String blobIdTwo = jsonSchemaDao.createJsonBlobIfDoesNotExist(schema);
 		assertEquals(blobIdOne, blobIdTwo);
 	}
 
 	@Test
 	public void testCreateJsonBlobIfDoesNotExistNullJson() {
-		schemaJson = null;
+		schema = null;
 		assertThrows(IllegalArgumentException.class, () -> {
-			jsonSchemaDao.createJsonBlobIfDoesNotExist(schemaJson, schemaJsonSha256Hex);
-		});
-	}
-
-	@Test
-	public void testCreateJsonBlobIfDoesNotExistNullSchemaJsonSha256Hex() {
-		schemaJsonSha256Hex = null;
-		assertThrows(IllegalArgumentException.class, () -> {
-			jsonSchemaDao.createJsonBlobIfDoesNotExist(schemaJson, schemaJsonSha256Hex);
+			jsonSchemaDao.createJsonBlobIfDoesNotExist(schema);
 		});
 	}
 
 	@Test
 	public void testGetJsonBlobId() {
-		String blobIdOne = jsonSchemaDao.createJsonBlobIfDoesNotExist(schemaJson, schemaJsonSha256Hex);
+		String blobIdOne = jsonSchemaDao.createJsonBlobIfDoesNotExist(schema);
 		// call under test
 		String blobIdTwo = jsonSchemaDao.getJsonBlobId(schemaJsonSha256Hex);
 		assertEquals(blobIdOne, blobIdTwo);
@@ -204,23 +194,20 @@ public class JsonSchemaDaoImplTest {
 		assertEquals("JSON blob does not exist for sha256Hex: fffeee111", message);
 	}
 
-	public NewVersionRequest setupValidNewVersionRequest() {
-		schemaInfo = jsonSchemaDao.createSchemaIfDoesNotExist(newSchemaRequest);
-		assertNotNull(schemaInfo);
-		String blobId = jsonSchemaDao.createJsonBlobIfDoesNotExist(schemaJson, schemaJsonSha256Hex);
-		return new NewVersionRequest().withSchemaId(schemaInfo.getNumericId()).withSemanticVersion(semanticVersion)
-				.withCreatedBy(adminUserId).withBlobId(blobId);
+	public void setupSchemaIdAndBlobId() {
+		schemaId = jsonSchemaDao.createSchemaIfDoesNotExist(organizationId, schemaName, adminUserId);
+		blobId = jsonSchemaDao.createJsonBlobIfDoesNotExist(schema);
 	}
 
 	@Test
 	public void testCreateNewVersion() {
-		NewVersionRequest request = setupValidNewVersionRequest();
+		setupSchemaIdAndBlobId();
 
 		// call under test
-		JsonSchemaVersionInfo info = jsonSchemaDao.createNewVersion(request);
+		JsonSchemaVersionInfo info = jsonSchemaDao.createNewVersion(schemaId, semanticVersion, createdBy, blobId);
 		assertNotNull(info);
 		assertNotNull(info.getVersionId());
-		assertEquals(request.getCreatedBy().toString(), info.getCreatedBy());
+		assertEquals(createdBy.toString(), info.getCreatedBy());
 		assertNotNull(info.getCreatedOn());
 		assertEquals(schemaJsonSha256Hex, info.getJsonSHA256Hex());
 		assertEquals(semanticVersion, info.getSemanticVersion());
@@ -228,76 +215,81 @@ public class JsonSchemaDaoImplTest {
 
 	@Test
 	public void testCreateNewVersionDuplicate() {
-		NewVersionRequest request = setupValidNewVersionRequest();
-		jsonSchemaDao.createNewVersion(request);
+		setupSchemaIdAndBlobId();
+
+		jsonSchemaDao.createNewVersion(schemaId, semanticVersion, createdBy, blobId);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			jsonSchemaDao.createNewVersion(request);
+			jsonSchemaDao.createNewVersion(schemaId, semanticVersion, createdBy, blobId);
 		}).getMessage();
 		assertEquals("Semantic version: '1.2.3' already exists for this JSON schema", message);
 	}
-	
+
 	@Test
 	public void testCreateNewVersionDuplicateNullVersion() {
 		// can have as many null versions as desired.
-		NewVersionRequest request = setupValidNewVersionRequest();
-		request.withSemanticVersion(null);
-		JsonSchemaVersionInfo one = jsonSchemaDao.createNewVersion(request);
-		JsonSchemaVersionInfo two = jsonSchemaDao.createNewVersion(request);
+		setupSchemaIdAndBlobId();
+
+		semanticVersion = null;
+		JsonSchemaVersionInfo one = jsonSchemaDao.createNewVersion(schemaId, semanticVersion, createdBy, blobId);
+		String firstEtag = jsonSchemaDao.getLatestVersionEtag(one.getSchemaId());
+		assertNotNull(firstEtag);
+		JsonSchemaVersionInfo two = jsonSchemaDao.createNewVersion(schemaId, semanticVersion, createdBy, blobId);
+		String secondEtag = jsonSchemaDao.getLatestVersionEtag(one.getSchemaId());
+		assertNotNull(secondEtag);
 		// two versions are not the same
 		assertFalse(one.getVersionId().equals(two.getVersionId()));
-	}
-
-	@Test
-	public void testCreateNewVersionNullRequest() {
-		NewVersionRequest request = null;
-		assertThrows(IllegalArgumentException.class, () -> {
-			jsonSchemaDao.createNewVersion(request);
-		});
+		// The latest version etag should have changed
+		assertFalse(firstEtag.equals(secondEtag));
 	}
 
 	@Test
 	public void testCreateNewVersionNullSchemaId() {
-		NewVersionRequest request = setupValidNewVersionRequest();
-		request.withSchemaId(null);
+		setupSchemaIdAndBlobId();
+		schemaId = null;
 		assertThrows(IllegalArgumentException.class, () -> {
-			jsonSchemaDao.createNewVersion(request);
+			jsonSchemaDao.createNewVersion(schemaId, semanticVersion, createdBy, blobId);
 		});
 	}
 
 	@Test
 	public void testCreateNewVersionNullBlobId() {
-		NewVersionRequest request = setupValidNewVersionRequest();
-		request.withBlobId(null);
+		setupSchemaIdAndBlobId();
+		blobId = null;
 		assertThrows(IllegalArgumentException.class, () -> {
-			jsonSchemaDao.createNewVersion(request);
+			jsonSchemaDao.createNewVersion(schemaId, semanticVersion, createdBy, blobId);
 		});
 	}
 
 	@Test
 	public void testCreateNewVersionNullCreatedBy() {
-		NewVersionRequest request = setupValidNewVersionRequest();
-		request.withCreatedBy(null);
+		setupSchemaIdAndBlobId();
+		createdBy = null;
 		assertThrows(IllegalArgumentException.class, () -> {
-			jsonSchemaDao.createNewVersion(request);
+			jsonSchemaDao.createNewVersion(schemaId, semanticVersion, createdBy, blobId);
 		});
 	}
 
 	@Test
 	public void testCreateNewVersionNullSemanticVersion() {
-		NewVersionRequest request = setupValidNewVersionRequest();
-		request.withSemanticVersion(null);
-		JsonSchemaVersionInfo info = jsonSchemaDao.createNewVersion(request);
+		setupSchemaIdAndBlobId();
+		semanticVersion = null;
+		JsonSchemaVersionInfo info = jsonSchemaDao.createNewVersion(schemaId, semanticVersion, createdBy, blobId);
 		assertNotNull(info);
 		assertNull(info.getSemanticVersion());
 	}
 
 	@Test
-	public void testGetVersionInfo() {
-		NewVersionRequest request = setupValidNewVersionRequest();
-		JsonSchemaVersionInfo info = jsonSchemaDao.createNewVersion(request);
+	public void testGetVersionInfo() throws JSONObjectAdapterException {
+		JsonSchemaVersionInfo info = createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", 1);
 		// call under test
 		JsonSchemaVersionInfo getInfo = jsonSchemaDao.getVersionInfo(info.getVersionId());
+		assertNotNull(getInfo.getOrganizationId());
+		assertEquals("my.org.edu", getInfo.getOrganizationName());
+		assertNotNull(getInfo.getSchemaId());
+		assertEquals("foo.bar", getInfo.getSchemaName());
+		assertNotNull(getInfo.getVersionId());
+		assertEquals("1.0.1", getInfo.getSemanticVersion());
 		assertEquals(info, getInfo);
 	}
 
@@ -315,6 +307,542 @@ public class JsonSchemaDaoImplTest {
 		String versionId = null;
 		assertThrows(IllegalArgumentException.class, () -> {
 			jsonSchemaDao.getVersionInfo(versionId);
+		});
+	}
+
+	@Test
+	public void testCreateNewSchemaVersion() {
+		// Call under test
+		JsonSchemaVersionInfo info = jsonSchemaDao.createNewSchemaVersion(newSchemaVersionRequest);
+		assertNotNull(info);
+		assertEquals(organizationId, info.getOrganizationId());
+		assertEquals(organizationName, info.getOrganizationName());
+		assertNotNull(info.getSchemaId());
+		assertEquals(schemaName, info.getSchemaName());
+		assertEquals(createdBy.toString(), info.getCreatedBy());
+		assertEquals(semanticVersion, info.getSemanticVersion());
+		assertNotNull(info.getVersionId());
+		assertEquals(schemaJsonSha256Hex ,info.getJsonSHA256Hex());
+	}
+	
+	@Test
+	public void testCreateNewSchemaVersionSchemaNameAtLimit() {
+		String schemaName = StringUtils.repeat("a", JsonSchemaDaoImpl.MAX_SCHEMA_NAME_CHARS);
+		newSchemaVersionRequest.withSchemaName(schemaName);
+		JsonSchemaVersionInfo info = jsonSchemaDao.createNewSchemaVersion(newSchemaVersionRequest);
+		assertNotNull(info);
+		assertEquals(schemaName, info.getSchemaName());
+	}
+	
+	@Test
+	public void testCreateNewSchemaVersionSchemaNameOverLimit() {
+		String schemaName = StringUtils.repeat("a", JsonSchemaDaoImpl.MAX_SCHEMA_NAME_CHARS+1);
+		newSchemaVersionRequest.withSchemaName(schemaName);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			jsonSchemaDao.createNewSchemaVersion(newSchemaVersionRequest);
+		}).getMessage();
+		assertEquals("Schema name must be "+JsonSchemaDaoImpl.MAX_SCHEMA_NAME_CHARS+" characters or less", message);
+	}
+	
+	@Test
+	public void testCreateNewSchemaVersionSemanticVersionAtLimit() {
+		semanticVersion = StringUtils.repeat("a", JsonSchemaDaoImpl.MAX_SEMANTIC_VERSION_CHARS);
+		newSchemaVersionRequest.withSemanticVersion(semanticVersion);
+		JsonSchemaVersionInfo info = jsonSchemaDao.createNewSchemaVersion(newSchemaVersionRequest);
+		assertNotNull(info);
+		assertEquals(semanticVersion, info.getSemanticVersion());
+	}
+	
+	@Test
+	public void testCreateNewSchemaVersionSemanticVersionOverLimit() {
+		semanticVersion = StringUtils.repeat("a", JsonSchemaDaoImpl.MAX_SEMANTIC_VERSION_CHARS+1);
+		newSchemaVersionRequest.withSemanticVersion(semanticVersion);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			jsonSchemaDao.createNewSchemaVersion(newSchemaVersionRequest);
+		}).getMessage();
+		assertEquals("Semantic version must be "+JsonSchemaDaoImpl.MAX_SEMANTIC_VERSION_CHARS+" characters or less", message);
+	}
+	
+	@Test
+	public void testCreateNewSchemaVerionNullRequest() {
+		newSchemaVersionRequest = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			jsonSchemaDao.createNewSchemaVersion(newSchemaVersionRequest);
+		});
+	}
+	
+	@Test
+	public void testCreateNewSchemaVerionNullRequestNullOrganizationId() {
+		newSchemaVersionRequest.withOrganizationId(null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			jsonSchemaDao.createNewSchemaVersion(newSchemaVersionRequest);
+		});
+	}
+	
+	@Test
+	public void testCreateNewSchemaVerionNullRequestNullSchemaName() {
+		newSchemaVersionRequest.withSchemaName(null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			jsonSchemaDao.createNewSchemaVersion(newSchemaVersionRequest);
+		});
+	}
+	
+	@Test
+	public void testCreateNewSchemaVerionNullRequestNullCreatedBy() {
+		newSchemaVersionRequest.withCreatedBy(null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			jsonSchemaDao.createNewSchemaVersion(newSchemaVersionRequest);
+		});
+	}
+	
+	@Test
+	public void testCreateNewSchemaVersionNullSemanticVersion() {
+		semanticVersion = null;
+		newSchemaVersionRequest.withSemanticVersion(semanticVersion);
+		JsonSchemaVersionInfo info = jsonSchemaDao.createNewSchemaVersion(newSchemaVersionRequest);
+		assertNotNull(info);
+		assertEquals(semanticVersion, info.getSemanticVersion());
+	}
+	
+	@Test
+	public void testCreateNewSchemaVerionNullSchema() {
+		newSchemaVersionRequest.withJsonSchema(null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			jsonSchemaDao.createNewSchemaVersion(newSchemaVersionRequest);
+		});
+	}
+
+	/**
+	 * Helper to create a new JSON schema with the given $id
+	 * 
+	 * @param schema
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 */
+	JsonSchemaVersionInfo createNewSchemaVersion(String id, int index) throws JSONObjectAdapterException {
+		SchemaId schemaId = SchemaIdParser.parseSchemaId(id);
+		String organizationName = schemaId.getOrganizationName().toString();
+		String schemaName = schemaId.getSchemaName().toString();
+		String semanticVersion = null;
+		if (schemaId.getSemanticVersion() != null) {
+			semanticVersion = schemaId.getSemanticVersion().toString();
+		}
+		Organization organization = null;
+		try {
+			organization = organizationDao.getOrganizationByName(organizationName);
+		} catch (NotFoundException e) {
+			organization = organizationDao.createOrganization(organizationName, adminUserId);
+		}
+		schema = new JsonSchema();
+		schema.set$id(id);
+		schema.setDescription("index:" + index);
+		return jsonSchemaDao.createNewSchemaVersion(
+				new NewSchemaVersionRequest().withOrganizationId(organization.getId()).withCreatedBy(createdBy)
+						.withJsonSchema(schema).withSchemaName(schemaName).withSemanticVersion(semanticVersion));
+	}
+
+	/**
+	 * Helper to get the SHA-256 hex string for a given schema.
+	 * 
+	 * @param schema
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 */
+	static String getSchemaSHA256Hex(JsonSchema schema) throws JSONObjectAdapterException {
+		String json = EntityFactory.createJSONStringForEntity(schema);
+		return DigestUtils.sha256Hex(json);
+	}
+
+	@Test
+	public void testGetLatestVersion() throws JSONObjectAdapterException {
+		int index = 0;
+		createNewSchemaVersion("my.org.edu/foo.bar", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		JsonSchemaVersionInfo lastVersion = createNewSchemaVersion("my.org.edu/foo.bar", index++);
+		createNewSchemaVersion("other.org/foo.bar", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar.other", index++);
+		// Call under test
+		String versionId = jsonSchemaDao.getLatestVersionId("my.org.edu", "foo.bar");
+		assertEquals(lastVersion.getVersionId(), versionId);
+	}
+
+	@Test
+	public void testGetLatestVersionOrganziationNotFound() throws JSONObjectAdapterException {
+		int index = 0;
+		createNewSchemaVersion("my.org.edu/foo.bar", index++);
+		String message = assertThrows(NotFoundException.class, () -> {
+			jsonSchemaDao.getLatestVersionId("other.org", "foo.bar");
+		}).getMessage();
+		assertEquals("JSON Schema not found for organizationName: 'other.org' and schemaName: 'foo.bar'", message);
+	}
+
+	@Test
+	public void testGetLatestVersionSchemaNameNotFound() throws JSONObjectAdapterException {
+		int index = 0;
+		createNewSchemaVersion("my.org.edu/foo.bar", index++);
+		String message = assertThrows(NotFoundException.class, () -> {
+			jsonSchemaDao.getLatestVersionId("my.org.edu", "other.schema.name");
+		}).getMessage();
+		assertEquals("JSON Schema not found for organizationName: 'my.org.edu' and schemaName: 'other.schema.name'",
+				message);
+	}
+
+	@Test
+	public void testGetSchemaLatestVersionNullOrganization() {
+		String organizationName = null;
+		String schemaName = "other.schema.name";
+		assertThrows(IllegalArgumentException.class, () -> {
+			jsonSchemaDao.getLatestVersionId(organizationName, schemaName);
+		});
+	}
+
+	@Test
+	public void testGetSchemaLatestVersionNullSchema() {
+		String organizationName = "my.org.edu";
+		String schemaName = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			jsonSchemaDao.getLatestVersionId(organizationName, schemaName);
+		});
+	}
+
+	@Test
+	public void testGetVersionId() throws JSONObjectAdapterException {
+		int index = 0;
+		createNewSchemaVersion("my.org.edu/foo.bar/0.0.1", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar", index++);
+		JsonSchemaVersionInfo expected = createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar", index++);
+		createNewSchemaVersion("other.org/foo.bar", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar.other", index++);
+
+		String organizationName = "my.org.edu";
+		String schemaName = "foo.bar";
+		String semanticVersion = "1.0.1";
+		// call under test
+		String versionId = jsonSchemaDao.getVersionId(organizationName, schemaName, semanticVersion);
+		assertNotNull(versionId);
+		assertEquals(expected.getVersionId(), versionId);
+	}
+
+	@Test
+	public void testGetVersionIdNotFound() throws JSONObjectAdapterException {
+		int index = 0;
+		createNewSchemaVersion("my.org.edu/foo.bar/0.0.1", index++);
+
+		String organizationName = "my.org.edu";
+		String schemaName = "foo.bar";
+		String semanticVersion = "1.0.1";
+		// call under test
+		String message = assertThrows(NotFoundException.class, () -> {
+			jsonSchemaDao.getVersionId(organizationName, schemaName, semanticVersion);
+		}).getMessage();
+		assertEquals(
+				"JSON Schema not found for organizationName: 'my.org.edu' and schemaName: 'foo.bar' and semanticVersion: '1.0.1'",
+				message);
+	}
+
+	@Test
+	public void testGetVersionIdNullOrgName() throws JSONObjectAdapterException {
+		String organizationName = null;
+		String schemaName = "foo.bar";
+		String semanticVersion = "1.0.1";
+		// call under test
+		assertThrows(IllegalArgumentException.class, () -> {
+			jsonSchemaDao.getVersionId(organizationName, schemaName, semanticVersion);
+		});
+	}
+
+	@Test
+	public void testGetVersionIdNullSchemaName() throws JSONObjectAdapterException {
+		String organizationName = "my.org.edu";
+		String schemaName = null;
+		String semanticVersion = "1.0.1";
+		// call under test
+		assertThrows(IllegalArgumentException.class, () -> {
+			jsonSchemaDao.getVersionId(organizationName, schemaName, semanticVersion);
+		});
+	}
+
+	@Test
+	public void testGetVersionIdNullSemanticVersion() throws JSONObjectAdapterException {
+		String organizationName = "my.org.edu";
+		String schemaName = "foo.bar";
+		String semanticVersion = null;
+		// call under test
+		assertThrows(IllegalArgumentException.class, () -> {
+			jsonSchemaDao.getVersionId(organizationName, schemaName, semanticVersion);
+		});
+	}
+
+	@Test
+	public void testGetVersionInfoTripple() throws JSONObjectAdapterException {
+		int index = 0;
+		createNewSchemaVersion("my.org.edu/foo.bar/0.0.1", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar", index++);
+		JsonSchemaVersionInfo expected = createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar", index++);
+		createNewSchemaVersion("other.org/foo.bar", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar.other", index++);
+
+		// call under test
+		JsonSchemaVersionInfo resultInfo = jsonSchemaDao.getVersionInfo("my.org.edu", "foo.bar", "1.0.1");
+		assertEquals(expected, resultInfo);
+	}
+
+	@Test
+	public void testGetSchemaVersionOrganizationNotFound() throws JSONObjectAdapterException {
+		int index = 0;
+		createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		String message = assertThrows(NotFoundException.class, () -> {
+			jsonSchemaDao.getVersionInfo("other.org", "foo.bar", "1.0.1");
+		}).getMessage();
+		assertEquals(
+				"JSON Schema not found for organizationName: 'other.org' and schemaName: 'foo.bar' and semanticVersion: '1.0.1'",
+				message);
+	}
+
+	@Test
+	public void testGetSchemaVersionSchemaNameNotFound() throws JSONObjectAdapterException {
+		int index = 0;
+		createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		String message = assertThrows(NotFoundException.class, () -> {
+			jsonSchemaDao.getVersionInfo("my.org.edu", "foo.bar.bar", "1.0.1");
+		}).getMessage();
+		assertEquals("JSON Schema not found for organizationName: 'my.org.edu' and schemaName: 'foo.bar.bar' and semanticVersion: '1.0.1'", message);
+	}
+
+	@Test
+	public void testGetVersionInfoWithVersionNotFound() throws JSONObjectAdapterException {
+		int index = 0;
+		createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		String message = assertThrows(NotFoundException.class, () -> {
+			jsonSchemaDao.getVersionInfo("my.org.edu", "foo.bar", "1.0.2");
+		}).getMessage();
+		assertEquals("JSON Schema not found for organizationName: 'my.org.edu' and schemaName: 'foo.bar' and semanticVersion: '1.0.2'", message);
+	}
+
+	@Test
+	public void testGetVersionInfoWithVersionNullOrganization() throws JSONObjectAdapterException {
+		String organizationName = null;
+		String schemaName = "other.schema.name";
+		String semanticVersion = "1.0.2";
+		assertThrows(IllegalArgumentException.class, () -> {
+			jsonSchemaDao.getVersionInfo(organizationName, schemaName, semanticVersion);
+		});
+	}
+
+	@Test
+	public void testGetVersionInfoWithVersionNullSchema() throws JSONObjectAdapterException {
+		String organizationName = "my.org.edu";
+		String schemaName = null;
+		String semanticVersion = "1.0.2";
+		assertThrows(IllegalArgumentException.class, () -> {
+			jsonSchemaDao.getVersionInfo(organizationName, schemaName, semanticVersion);
+		});
+	}
+
+	@Test
+	public void testGetVersionInfoWithVersionNullVersion() throws JSONObjectAdapterException {
+		String organizationName = "my.org.edu";
+		String schemaName = "other.schema.name";
+		String semanticVersion = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			jsonSchemaDao.getVersionInfo(organizationName, schemaName, semanticVersion);
+		});
+	}
+
+	@Test
+	public void testDeleteSchema() throws JSONObjectAdapterException {
+		int index = 0;
+		createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar/1.0.2", index++);
+		JsonSchemaVersionInfo stillExists = createNewSchemaVersion("other.org/foo.bar/1.0.2", index++);
+		JsonSchemaVersionInfo lastInfo = createNewSchemaVersion("my.org.edu/foo.bar", index++);
+		String schemaName = "foo.bar";
+		String schemaId = jsonSchemaDao.getSchemaInfoForUpdate(lastInfo.getOrganizationId(), schemaName);
+		// call under test
+		int rowsUpdated = jsonSchemaDao.deleteSchema(schemaId);
+		assertEquals(1, rowsUpdated);
+		assertThrows(NotFoundException.class, () -> {
+			jsonSchemaDao.getSchemaInfoForUpdate(organizationName, schemaName);
+		});
+		// should still exist
+		assertEquals(stillExists, jsonSchemaDao.getVersionInfo(stillExists.getVersionId()));
+	}
+
+	@Test
+	public void testDeleteSchemaNotFound() throws JSONObjectAdapterException {
+		String schemaId = "-1";
+		// call under test
+		int rowsUpdated = jsonSchemaDao.deleteSchema(schemaId);
+		assertEquals(0, rowsUpdated);
+	}
+
+	@Test
+	public void testDeleteSchemaNullId() throws JSONObjectAdapterException {
+		String schemaId = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			jsonSchemaDao.deleteSchema(schemaId);
+		});
+	}
+	
+	@Test
+	public void testFindLatestVersion() throws JSONObjectAdapterException {
+		int index = 0;
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/foo.bar/1.0.2", index++);
+		JsonSchemaVersionInfo three = createNewSchemaVersion("my.org.edu/foo.bar", index++);
+		JsonSchemaVersionInfo otherOrg = createNewSchemaVersion("another.org/foo.bar", index++);
+		JsonSchemaVersionInfo otherName = createNewSchemaVersion("my.org.edu/other.name", index++);
+		// Call under test
+		Optional<Long> versionIdOptional = jsonSchemaDao.findLatestVersionId(one.getSchemaId());
+		assertTrue(versionIdOptional.isPresent());
+		assertEquals(three.getVersionId(), versionIdOptional.get().toString());
+		// call under test
+		versionIdOptional = jsonSchemaDao.findLatestVersionId(otherOrg.getSchemaId());
+		assertTrue(versionIdOptional.isPresent());
+		assertEquals(otherOrg.getVersionId(), versionIdOptional.get().toString());
+		// call under test
+		versionIdOptional = jsonSchemaDao.findLatestVersionId(otherName.getSchemaId());
+		assertTrue(versionIdOptional.isPresent());
+		assertEquals(otherName.getVersionId(), versionIdOptional.get().toString());
+	}
+	
+	@Test
+	public void testFindLatestVersionDoesNotExist() {
+		String schemaId = "-1";
+		Optional<Long> versionIdOptional = jsonSchemaDao.findLatestVersionId(schemaId);
+		assertFalse(versionIdOptional.isPresent());
+	}
+	
+	@Test
+	public void testFindLatestVersionNullSchemaId() {
+		String schemaId = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			jsonSchemaDao.findLatestVersionId(schemaId);
+		});
+	}
+	
+	@Test
+	public void testGetSchemaIdForUpdate() throws JSONObjectAdapterException {
+		int index = 0;
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		// call under test
+		String schemaId = jsonSchemaDao.getSchemaIdForUpdate(one.getVersionId());
+		assertEquals(one.getSchemaId(), schemaId);
+	}
+	
+	@Test
+	public void testGetSchemaIdForUpdateNotFound() throws JSONObjectAdapterException {
+		String versionId = "-1";
+		String message = assertThrows(NotFoundException.class, ()->{
+			jsonSchemaDao.getSchemaIdForUpdate(versionId);
+		}).getMessage();
+		assertEquals("JSON schema not found for versionId: -1", message);
+	}
+
+	@Test
+	public void testDeleteVersionNotLatest() throws JSONObjectAdapterException {
+		int index = 0;
+		JsonSchemaVersionInfo stillExists = createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		JsonSchemaVersionInfo toDelete = createNewSchemaVersion("my.org.edu/foo.bar/1.0.2", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar", index++);
+		// call under test
+		jsonSchemaDao.deleteSchemaVersion(toDelete.getVersionId());
+		assertThrows(NotFoundException.class, () -> {
+			jsonSchemaDao.getVersionInfo(toDelete.getVersionId());
+		});
+		
+		// this version should still exist
+		JsonSchemaVersionInfo existResult = jsonSchemaDao.getVersionInfo(stillExists.getVersionId());
+		assertEquals(stillExists, existResult);
+		// the schema should still exist
+		String schemaId = jsonSchemaDao.getSchemaInfoForUpdate(stillExists.getOrganizationId(), stillExists.getSchemaName());
+		assertEquals(stillExists.getSchemaId(), schemaId);
+	}
+	
+	@Test
+	public void testDeleteVersionLatest() throws JSONObjectAdapterException {
+		int index = 0;
+		JsonSchemaVersionInfo stillExists = createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		JsonSchemaVersionInfo toDelete = createNewSchemaVersion("my.org.edu/foo.bar/1.0.2", index++);
+
+		// call under test
+		jsonSchemaDao.deleteSchemaVersion(toDelete.getVersionId());
+		assertThrows(NotFoundException.class, () -> {
+			jsonSchemaDao.getVersionInfo("my.org.edu", "foo.bar", "1.0.2");
+		});
+		// the version that still exists should become the latest version.
+		String latestVersionId = jsonSchemaDao.getLatestVersionId("my.org.edu", "foo.bar");
+		assertEquals(stillExists.getVersionId(), latestVersionId);
+		// the schema should still exist
+		String schemaId = jsonSchemaDao.getSchemaInfoForUpdate(stillExists.getOrganizationId(), stillExists.getSchemaName());
+		assertEquals(stillExists.getSchemaId(), schemaId);
+	}
+	
+	/**
+	 * Case where the version to be deleted is the only version of that schema.
+	 * @throws JSONObjectAdapterException
+	 */
+	@Test
+	public void testDeleteVersionOnlyVersion() throws JSONObjectAdapterException {
+		int index = 0;
+		JsonSchemaVersionInfo onlyVersion = createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+
+		// call under test
+		jsonSchemaDao.deleteSchemaVersion(onlyVersion.getVersionId());
+		assertThrows(NotFoundException.class, () -> {
+			jsonSchemaDao.getVersionInfo("my.org.edu", "foo.bar", "1.0.2");
+		});
+		assertThrows(NotFoundException.class, () -> {
+			jsonSchemaDao.getSchemaInfoForUpdate(onlyVersion.getOrganizationId(), onlyVersion.getSchemaName());
+		});
+	}
+
+	@Test
+	public void testDeleteVersionNotFound() {
+		String versionId = "-1";
+		assertThrows(NotFoundException.class, ()->{
+			// call under test
+			jsonSchemaDao.deleteSchemaVersion(versionId);
+		});
+	}
+
+	@Test
+	public void testDeleteVersionNullVersionId() {
+		String versionId = null;
+		// call under test
+		assertThrows(IllegalArgumentException.class, () -> {
+			jsonSchemaDao.deleteSchemaVersion(versionId);
+		});
+	}
+
+	@Test
+	public void testGetSchema() throws JSONObjectAdapterException {
+		int index = 0;
+		JsonSchemaVersionInfo info = createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		assertNotNull(info);
+		JsonSchema schema = jsonSchemaDao.getSchema(info.getVersionId());
+		assertNotNull(schema);
+		assertEquals("my.org.edu/foo.bar/1.0.1", schema.get$id());
+		assertEquals("index:0", schema.getDescription());
+	}
+
+	@Test
+	public void testGetSchemaNotFound() {
+		String versionId = "-1";
+		String message = assertThrows(NotFoundException.class, () -> {
+			jsonSchemaDao.getSchema(versionId);
+		}).getMessage();
+		assertEquals("JSON Schema not found for versionId: '-1'", message);
+	}
+
+	@Test
+	public void testGetSchemaNullId() {
+		String versionId = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			jsonSchemaDao.getSchema(versionId);
 		});
 	}
 

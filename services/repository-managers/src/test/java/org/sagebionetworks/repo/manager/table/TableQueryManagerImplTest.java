@@ -58,7 +58,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
-import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
@@ -176,7 +176,7 @@ public class TableQueryManagerImplTest {
 		sort.setDirection(SortDirection.DESC);
 		sortList = Lists.newArrayList(sort);
 		
-		ColumnModel benefactorColumn = EntityField.benefactorId.getColumnModel();
+		ColumnModel benefactorColumn = ObjectField.benefactorId.getColumnModel();
 		benefactorColumn.setId("999");
 		benfactors = Sets.newHashSet(333L,444L);
 		subSet = Sets.newHashSet(444L);
@@ -1598,7 +1598,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testBuildBenefactorFilterPLFM_4036() throws ParseException, EmptyResultException{
 		// add benefactor to the schema
-		ColumnModel benefactorColumn = EntityField.benefactorId.getColumnModel();
+		ColumnModel benefactorColumn = ObjectField.benefactorId.getColumnModel();
 		benefactorColumn.setId("99");
 	
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId+" where i1 > 0 or i1 is not null").querySpecification();

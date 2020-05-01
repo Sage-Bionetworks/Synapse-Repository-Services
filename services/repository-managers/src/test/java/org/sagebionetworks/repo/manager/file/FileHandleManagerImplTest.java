@@ -345,7 +345,7 @@ public class FileHandleManagerImplTest {
 		String handleId = "123";
 		when(mockFileHandleDao.get(handleId)).thenReturn(validResults);
 		// denied!
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy(), ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationStatus.accessDenied(""));
 		assertThrows(UnauthorizedException.class, () -> manager.getRawFileHandle(mockUser, handleId));
 	}
 	
@@ -355,7 +355,7 @@ public class FileHandleManagerImplTest {
 		String handleId = "123";
 		when(mockFileHandleDao.get(handleId)).thenReturn(validResults);
 		// allow
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy(), ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationStatus.authorized());
 		FileHandle handle = manager.getRawFileHandle(mockUser, handleId);
 		assertEquals(validResults, handle, "failed to get the handle");
 	}
@@ -388,7 +388,7 @@ public class FileHandleManagerImplTest {
 		String handleId = "123";
 		when(mockFileHandleDao.get(handleId)).thenReturn(validResults);
 		// denied!
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy(), ACCESS_TYPE.DELETE)).thenReturn(AuthorizationStatus.accessDenied(""));
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationStatus.accessDenied(""));
 		assertThrows(UnauthorizedException.class, () -> manager.deleteFileHandle(mockUser, handleId));
 	}
 	
@@ -398,7 +398,7 @@ public class FileHandleManagerImplTest {
 		String handleId = "123";
 		when(mockFileHandleDao.get(handleId)).thenReturn(validResults);
 		// allow!
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy(), ACCESS_TYPE.DELETE)).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationStatus.authorized());
 		manager.deleteFileHandle(mockUser, handleId);
 		// The S3 file should get deleted.
 		verify(mockS3Client, times(1)).deleteObject(validResults.getBucketName(), validResults.getKey());
@@ -412,7 +412,7 @@ public class FileHandleManagerImplTest {
 		String handleId = "123";
 		when(mockFileHandleDao.get(handleId)).thenReturn(googleCloudFileHandle);
 		// allow!
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, googleCloudFileHandle.getCreatedBy(), ACCESS_TYPE.DELETE)).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, googleCloudFileHandle.getCreatedBy())).thenReturn(AuthorizationStatus.authorized());
 		manager.deleteFileHandle(mockUser, handleId);
 		// The S3 file should get deleted.
 		verify(mockGoogleCloudStorageClient, times(1)).deleteObject(googleCloudFileHandle.getBucketName(), googleCloudFileHandle.getKey());
@@ -426,7 +426,7 @@ public class FileHandleManagerImplTest {
 		// Deleting a file handle that has previews disabled should not StackOverflow :)
 		validResults.setPreviewId(validResults.getId());
 		when(mockFileHandleDao.get(validResults.getId())).thenReturn(validResults);
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getId(), validResults.getCreatedBy(), ACCESS_TYPE.DELETE)).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getId(), validResults.getCreatedBy())).thenReturn(AuthorizationStatus.authorized());
 		manager.deleteFileHandle(mockUser, validResults.getId());
 	}
 	
@@ -436,7 +436,7 @@ public class FileHandleManagerImplTest {
 		String handleId = "123";
 		when(mockFileHandleDao.get(handleId)).thenReturn(validResults);
 		// denied!
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy(), ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.accessDenied(""));
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationStatus.accessDenied(""));
 		assertThrows(UnauthorizedException.class, () -> manager.clearPreview(mockUser, handleId));
 	}
 	
@@ -446,7 +446,7 @@ public class FileHandleManagerImplTest {
 		String handleId = "123";
 		when(mockFileHandleDao.get(handleId)).thenReturn(validResults);
 		// allow!
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy(), ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationStatus.authorized());
 		manager.clearPreview(mockUser, handleId);
 		// The database reference to the preview handle should be cleared
 		verify(mockFileHandleDao, times(1)).setPreviewId(eq(handleId), eq((String)null));
@@ -466,7 +466,7 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.get(validResults.getId())).thenReturn(validResults);
 		when(mockFileHandleDao.get(preview.getId())).thenReturn(preview);
 		// Allow all calls
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(any(UserInfo.class), anyString(), any(String.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(any(UserInfo.class), anyString(), any(String.class))).thenReturn(AuthorizationStatus.authorized());
 		// Now deleting the original handle should trigger the delete of the previews.
 		manager.deleteFileHandle(mockUser, validResults.getId());
 		// The S3 file should get deleted.
@@ -1402,7 +1402,7 @@ public class FileHandleManagerImplTest {
 	@Test
 	public void testCreateS3FileHandleCopy() {
 		when(mockFileHandleDao.get("123")).thenReturn(createS3FileHandle());
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "987", ACCESS_TYPE.CREATE))
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "987"))
 				.thenReturn(AuthorizationStatus.authorized());
 
 		manager.createS3FileHandleCopy(mockUser, "123", "newname.png", "image");
@@ -1420,7 +1420,7 @@ public class FileHandleManagerImplTest {
 	@Test
 	public void testCreateS3FileHandleCopyOnlyName() {
 		when(mockFileHandleDao.get("123")).thenReturn(createS3FileHandle());
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "987", ACCESS_TYPE.CREATE))
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "987"))
 				.thenReturn(AuthorizationStatus.authorized());
 
 		manager.createS3FileHandleCopy(mockUser, "123", "newname.png", null);
@@ -1438,7 +1438,7 @@ public class FileHandleManagerImplTest {
 	@Test
 	public void testCreateS3FileHandleCopyOnlyContentType() {
 		when(mockFileHandleDao.get("123")).thenReturn(createS3FileHandle());
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "987", ACCESS_TYPE.CREATE))
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "987"))
 				.thenReturn(AuthorizationStatus.authorized());
 
 		manager.createS3FileHandleCopy(mockUser, "123", null, "image");
@@ -1457,7 +1457,7 @@ public class FileHandleManagerImplTest {
 	public void testCreateS3FileHandleNewPreview() {
 		when(mockFileHandleDao.get("123")).thenReturn(createS3FileHandle(), createS3FileHandle(), createS3FileHandle(),
 				createS3FileHandle(), createS3FileHandle());
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "987", ACCESS_TYPE.CREATE))
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "987"))
 				.thenReturn(AuthorizationStatus.authorized());
 
 		ArgumentCaptor<S3FileHandle> copy = ArgumentCaptor.forClass(S3FileHandle.class);
@@ -1509,7 +1509,7 @@ public class FileHandleManagerImplTest {
 		S3FileHandle originalFileHandle = createS3FileHandle();
 		originalFileHandle.setCreatedBy("000");
 		when(mockFileHandleDao.get("123")).thenReturn(originalFileHandle);
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "000", ACCESS_TYPE.CREATE)).thenReturn(
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "000")).thenReturn(
 				AuthorizationStatus.accessDenied(""));
 
 		assertThrows(UnauthorizedException.class, () -> manager.createS3FileHandleCopy(mockUser, "123", null, "image"));

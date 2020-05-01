@@ -173,8 +173,9 @@ public class DiscussionServiceImpl implements DiscussionService{
 	}
 
 	@Override
-	public EntityThreadCounts getThreadCounts(UserInfo userInfo, EntityIdList entityIds) {
-		return threadManager.getEntityThreadCounts(userInfo, entityIds);
+	public EntityThreadCounts getThreadCounts(Long userId, EntityIdList entityIds) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return threadManager.getEntityThreadCounts(user, entityIds);
 	}
 
 	@Override

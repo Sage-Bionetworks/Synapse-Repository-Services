@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -35,6 +36,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.sagebionetworks.repo.web.RequiredScope;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.*;
 
 /**
  * Proin ornare ligula eu tellus tempus elementum. Aenean bibendum iaculis mi,
@@ -221,6 +224,7 @@ public class ExampleController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/multiple/params", method = RequestMethod.GET)
 	public @ResponseBody
@@ -368,16 +372,18 @@ public class ExampleController {
 			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME) String authorizationHeader) {
 		return null;
 	}
-	/**
-	 * including a UserInfo param
-	 * 
-	 * @param userInfo
-	 * @return
-	 */
+	
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = "/someOther/authorized/service", method = RequestMethod.POST)
-	public @ResponseBody Long userInfoAuthorizedService(
-			UserInfo userInfo) {
+	@RequestMapping(value = "/someOther/{id:.+}/{secondId:\\w}", method = RequestMethod.POST)
+	public @ResponseBody Long pathIncludesRegEx(
+			UserInfo userInfo, @PathVariable(required = true, name = "id") String id) {
+		return null;
+	}
+	
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = "/someOther/{*id}", method = RequestMethod.POST)
+	public @ResponseBody Long pathIncludesStar(
+			UserInfo userInfo, @PathVariable(required = true, name = "id") String id) {
 		return null;
 	}
 }

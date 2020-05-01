@@ -1,6 +1,22 @@
 {
 	"description": "Information about a single version of a JSON schema.",
 	"properties": {
+		"organizationId": {
+			"type": "string",
+			"description": "The Synapse issued numeric identifier for the organization."
+		},
+		"organizationName": {
+			"type": "string",
+			"description": "The name of the organization to which this schema belongs."
+		},
+		"schemaId": {
+			"type": "string",
+			"description": "The Synapse issued numeric identifier for the schema."
+		},
+		"schemaName": {
+			"type": "string",
+			"description": "The name of the this schema."
+		},
 		"versionId": {
 			"type": "string",
 			"description": "The Synapse issued numeric identifier for this version."

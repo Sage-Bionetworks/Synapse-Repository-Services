@@ -252,6 +252,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		// we introduce the 'Synapse OAuth client ID' for internal use only,
 		// when we construct a token corresponding to a (total access) session token.
 		// when treating a subject in the context of this client, we skip encryption/decryption
+		validateClientVerificationStatus(clientId);
 		if (AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID.equals(clientId)) {
 			return ppid;
 		}
@@ -360,22 +361,11 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	}
 	
 	@Override
-	public UserInfo getUserAuthorization(String oauthToken) {
-		Jwt<JwsHeader,Claims> accessToken = null;
-		try {
-			accessToken = oidcTokenHelper.parseJWT(oauthToken);
-		} catch (IllegalArgumentException e) {
-			throw new UnauthenticatedException("Could not interpret access token.", e);
-		}
+	public Object getUserInfo(String accessTokenParam, String oauthEndpoint) {
+		Jwt<JwsHeader,Claims> accessToken = oidcTokenHelper.parseJWT(accessTokenParam);
 		Claims accessTokenClaims = accessToken.getBody();
 		String oauthClientId = accessTokenClaims.getAudience();
-		
-		if (oauthClientId == null) {
-			throw new IllegalArgumentException("Missing 'audience' value in the OAuth Access Token.");
-		}
 
-		validateClientVerificationStatus(oauthClientId);
-		
 		List<OAuthScope> scopes = ClaimsJsonUtil.getScopeFromClaims(accessTokenClaims);
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = ClaimsJsonUtil.getOIDCClaimsFromClaimSet(accessTokenClaims);
 
@@ -383,29 +373,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		// userId is used to retrieve the user info
 		String userId = getUserIdFromPPID(ppid, oauthClientId);
-		// If the user belongs to the admin group they are an admin
-		Set<Long> groups = userManager.getUserGroups(Long.parseLong(userId));
-		
-		// Check to see if the user is an Admin
-		boolean isAdmin = groups.contains(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId());
-		// we don't let clients besides Synapse itself have admin access
-		boolean adminAccessAllowed = oauthClientId.equals(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID);
-		boolean hasAllScopes = scopes.containsAll(Arrays.asList(OAuthScope.values()));
 
-		UserInfo result = new UserInfo(isAdmin && hasAllScopes && adminAccessAllowed);
-		result.setId(Long.parseLong(userId));
-		result.setGroups(groups);
-		result.setOidcClaims(oidcClaims);
-		result.setScopes(scopes);
-		return result;
-	}	
-	
-	@Override
-	public Object getUserInfo(UserInfo userAuthorization, String oauthClientId, String oauthEndpoint) {
-		Long userId = userAuthorization.getId();
-		Date authTime = authDao.getSessionValidatedOn(userId);
-
-		Map<OIDCClaimName,Object> userInfo = getUserInfo(userId.toString(), userAuthorization.getScopes(), userAuthorization.getOidcClaims());
+		Map<OIDCClaimName,Object> userInfo = getUserInfo(userId.toString(), scopes, oidcClaims);
 
 		// From https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
 		// "If [a signing algorithm] is specified, the response will be JWT serialized, and signed using JWS. 
@@ -422,12 +391,14 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			OAuthClient oauthClient = oauthClientDao.getOAuthClient(oauthClientId);
 			returnJson = oauthClient.getUserinfo_signed_response_alg()==null;
 		}		
-		String ppid = ppid(userId.toString(), oauthClientId);
+
 		if (returnJson) {
 			// https://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse
 			userInfo.put(OIDCClaimName.sub, ppid);
 			return userInfo;
 		} else {
+			Date authTime = authDao.getSessionValidatedOn(Long.parseLong(userId));
+
 			String jwtIdToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, clock.currentTimeMillis(), null,
 					authTime, UUID.randomUUID().toString(), userInfo);
 
@@ -442,6 +413,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	 * @throws NotFoundException               If a client with the given id does not exist
 	 */
 	protected void validateClientVerificationStatus(String clientId) throws NotFoundException, OAuthClientNotVerifiedException {
+		ValidateArgument.required(clientId, "OAuth Client ID");
 		if (clientId.equals(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID)) {
 			// Since the reserved Synapse Oauth Client is not present in the database, we simply return
 			return;

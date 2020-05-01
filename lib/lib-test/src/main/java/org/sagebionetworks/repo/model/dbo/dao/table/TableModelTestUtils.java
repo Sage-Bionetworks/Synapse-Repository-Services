@@ -34,6 +34,7 @@ import com.google.common.collect.Maps;
 
 import au.com.bytecode.opencsv.CSVReader;
 import au.com.bytecode.opencsv.CSVWriter;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 
 /**
  * Utilities for working with Tables and Row data.
@@ -78,6 +79,10 @@ public class TableModelTestUtils {
 			
 			if(type == ColumnType.INTEGER){
 				cm.setFacetType(FacetType.range);
+			}
+
+			if (ColumnTypeListMappings.isList(type)){
+				cm.setMaximumListLength(45L);
 			}
 			
 			if (hasDefaults) {
@@ -509,6 +514,9 @@ public class TableModelTestUtils {
 		cm.setColumnType(type);
 		if (type == ColumnType.STRING || type == ColumnType.STRING_LIST) {
 			cm.setMaximumSize(50L);
+		}
+		if(ColumnTypeListMappings.isList(type)){
+			cm.setMaximumListLength(24L);
 		}
 		return cm;
 	}

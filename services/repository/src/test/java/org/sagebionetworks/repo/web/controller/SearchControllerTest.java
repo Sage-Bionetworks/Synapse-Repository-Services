@@ -1,26 +1,27 @@
 package org.sagebionetworks.repo.web.controller;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.UUID;
 
+import org.junit.After;
 import org.junit.Assume;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
-import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
 import org.sagebionetworks.repo.manager.search.SearchManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
@@ -31,6 +32,7 @@ import org.sagebionetworks.search.CloudSearchClientProvider;
 import org.sagebionetworks.search.SearchConstants;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.google.common.base.Predicate;
 
@@ -39,7 +41,8 @@ import com.google.common.base.Predicate;
  * @author John
  *
  */
-public class SearchControllerTest extends AbstractAutowiredControllerJunit5TestBase {	
+@RunWith(SpringJUnit4ClassRunner.class)
+public class SearchControllerTest extends AbstractAutowiredControllerTestBase {	
 	private Long adminUserId;
 
 	@Autowired
@@ -53,20 +56,11 @@ public class SearchControllerTest extends AbstractAutowiredControllerJunit5TestB
 
 	private Project project;
 
-	@Autowired
-	private OIDCTokenHelper oidcTokenHelper;
+
 	
-	@Autowired
-	private OpenIDConnectManager oidcManager;
-	
-	private UserInfo userInfo;
-	
-	
-	@BeforeEach
+	@Before
 	public void before() throws Exception {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-		String accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
-		userInfo = oidcManager.getUserAuthorization(accessToken);
 		
 		// Only run this test if search is enabled.
 		Assume.assumeTrue(cloudSearchClientProvider.isSearchEnabled());
@@ -89,7 +83,7 @@ public class SearchControllerTest extends AbstractAutowiredControllerJunit5TestB
 		// Create an project
 		project = new Project();
 		project.setName("SearchControllerTest" + UUID.randomUUID());
-		project = entityService.createEntity(userInfo, project, null);
+		project = entityService.createEntity(adminUserId, project, null);
 		// Push this to the search index
 		ChangeMessage changeMessage = new ChangeMessage();
 		changeMessage.setChangeNumber(1L);
@@ -112,7 +106,7 @@ public class SearchControllerTest extends AbstractAutowiredControllerJunit5TestB
 		}));
 	}
 	
-	@AfterEach
+	@After
 	public void after()  throws Exception{
 		if(project != null){
 			entityService.deleteEntity(adminUserId, project.getId());

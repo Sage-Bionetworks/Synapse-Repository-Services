@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_TYPE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_TYPE_VIEW_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_TYPE_VIEW_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_TYPE_VIEW_TYPE_MASK;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_VIEW_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VIEW_TYPE;
@@ -10,7 +11,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -23,11 +26,69 @@ public class DBOViewType implements MigratableDatabaseObject<DBOViewType, DBOVie
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("viewId", COL_VIEW_TYPE_VIEW_ID, true).withIsBackupId(true),
+		new FieldColumn("viewObjectType", COL_VIEW_TYPE_VIEW_OBJECT_TYPE),
 		new FieldColumn("viewTypeMask", COL_VIEW_TYPE_VIEW_TYPE_MASK),
 		new FieldColumn("etag", COL_VIEW_TYPE_ETAG).withIsEtag(true),
 	};
+
+	private static final TableMapping<DBOViewType> TABLE_MAPPING = new TableMapping<DBOViewType>() {
+
+		@Override
+		public DBOViewType mapRow(ResultSet rs, int rowNum) throws SQLException {
+			DBOViewType dbo = new DBOViewType();
+			dbo.setViewId(rs.getLong(COL_VIEW_TYPE_VIEW_ID));
+			dbo.setViewObjectType(rs.getString(COL_VIEW_TYPE_VIEW_OBJECT_TYPE));
+			// removed with PLFM-4956
+			dbo.setViewType(null);
+			dbo.setEtag(rs.getString(COL_VIEW_TYPE_ETAG));
+			dbo.setViewTypeMask(rs.getLong(COL_VIEW_TYPE_VIEW_TYPE_MASK));
+			return dbo;
+		}
+
+		@Override
+		public String getTableName() {
+			return TABLE_VIEW_TYPE;
+		}
+
+		@Override
+		public String getDDLFileName() {
+			return DDL_VIEW_TYPE;
+		}
+
+		@Override
+		public FieldColumn[] getFieldColumns() {
+			return FIELDS;
+		}
+
+		@Override
+		public Class<? extends DBOViewType> getDBOClass() {
+			return DBOViewType.class;
+		}
+	};
+	
+	private static final MigratableTableTranslation<DBOViewType, DBOViewType> MIGRATION_TRANSLATOR = new MigratableTableTranslation<DBOViewType, DBOViewType>() {
+
+		@Override
+		public DBOViewType createDatabaseObjectFromBackup(DBOViewType backup) {
+			// PLFM-4956 - changed from enumeration to mask.
+			if (backup.getViewType() != null) {
+				backup.viewTypeMask = ViewTypeMask.getMaskForDepricatedType(ViewType.valueOf(backup.getViewType()));
+				backup.viewType = null;
+			}
+			if (backup.getViewObjectType() == null) {
+				backup.setViewObjectType(ObjectType.ENTITY.name());
+			}
+			return backup;
+		}
+
+		@Override
+		public DBOViewType createBackupFromDatabaseObject(DBOViewType dbo) {
+			return dbo;
+		}
+	};
 	
 	Long viewId;
+	String viewObjectType;
 	String viewType;
 	String etag;
 	Long viewTypeMask;
@@ -40,6 +101,14 @@ public class DBOViewType implements MigratableDatabaseObject<DBOViewType, DBOVie
 		this.viewId = viewId;
 	}
 
+	public String getViewObjectType() {
+		return viewObjectType;
+	}
+	
+	public void setViewObjectType(String viewObjectType) {
+		this.viewObjectType = viewObjectType;
+	}
+	
 	public String getViewType() {
 		return viewType;
 	}
@@ -63,87 +132,10 @@ public class DBOViewType implements MigratableDatabaseObject<DBOViewType, DBOVie
 	public void setViewTypeMask(Long viewTypeMask) {
 		this.viewTypeMask = viewTypeMask;
 	}
-	
-	
-
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
-		result = prime * result + ((viewId == null) ? 0 : viewId.hashCode());
-		result = prime * result + ((viewType == null) ? 0 : viewType.hashCode());
-		result = prime * result + ((viewTypeMask == null) ? 0 : viewTypeMask.hashCode());
-		return result;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		DBOViewType other = (DBOViewType) obj;
-		if (etag == null) {
-			if (other.etag != null)
-				return false;
-		} else if (!etag.equals(other.etag))
-			return false;
-		if (viewId == null) {
-			if (other.viewId != null)
-				return false;
-		} else if (!viewId.equals(other.viewId))
-			return false;
-		if (viewType == null) {
-			if (other.viewType != null)
-				return false;
-		} else if (!viewType.equals(other.viewType))
-			return false;
-		if (viewTypeMask == null) {
-			if (other.viewTypeMask != null)
-				return false;
-		} else if (!viewTypeMask.equals(other.viewTypeMask))
-			return false;
-		return true;
-	}
 
 	@Override
 	public TableMapping<DBOViewType> getTableMapping() {
-		return new TableMapping<DBOViewType>(){
-
-			@Override
-			public DBOViewType mapRow(ResultSet rs, int rowNum)
-					throws SQLException {
-				DBOViewType dbo = new DBOViewType();
-				dbo.setViewId(rs.getLong(COL_VIEW_TYPE_VIEW_ID));
-				// removed with PLFM-4956
-				dbo.setViewType(null);
-				dbo.setEtag(rs.getString(COL_VIEW_TYPE_ETAG));
-				dbo.setViewTypeMask(rs.getLong(COL_VIEW_TYPE_VIEW_TYPE_MASK));
-				return dbo;
-			}
-
-			@Override
-			public String getTableName() {
-				return TABLE_VIEW_TYPE;
-			}
-
-			@Override
-			public String getDDLFileName() {
-				return DDL_VIEW_TYPE;
-			}
-
-			@Override
-			public FieldColumn[] getFieldColumns() {
-				return FIELDS;
-			}
-
-			@Override
-			public Class<? extends DBOViewType> getDBOClass() {
-				return DBOViewType.class;
-			}};
+		return TABLE_MAPPING;
 	}
 
 	@Override
@@ -153,23 +145,7 @@ public class DBOViewType implements MigratableDatabaseObject<DBOViewType, DBOVie
 
 	@Override
 	public MigratableTableTranslation<DBOViewType, DBOViewType> getTranslator() {
-		return new MigratableTableTranslation<DBOViewType, DBOViewType>(){
-
-			@Override
-			public DBOViewType createDatabaseObjectFromBackup(DBOViewType backup) {
-				// PLFM-4956 - changed from enumeration to mask.
-				if(backup.getViewType() != null) {
-					backup.viewTypeMask = ViewTypeMask.getMaskForDepricatedType(ViewType.valueOf(backup.getViewType()));
-					backup.viewType = null;
-				}
-				return backup;
-			}
-
-			@Override
-			public DBOViewType createBackupFromDatabaseObject(DBOViewType dbo) {
-				return dbo;
-			}
-			};
+		return MIGRATION_TRANSLATOR;
 	}
 
 	@Override
@@ -188,5 +164,29 @@ public class DBOViewType implements MigratableDatabaseObject<DBOViewType, DBOVie
 		secondary.add(new DBOViewScope());
 		return secondary;
 	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(etag, viewId, viewObjectType, viewType, viewTypeMask);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		DBOViewType other = (DBOViewType) obj;
+		return Objects.equals(etag, other.etag) && Objects.equals(viewId, other.viewId)
+				&& Objects.equals(viewObjectType, other.viewObjectType) && Objects.equals(viewType, other.viewType)
+				&& Objects.equals(viewTypeMask, other.viewTypeMask);
+	}
+	
+	
 
 }

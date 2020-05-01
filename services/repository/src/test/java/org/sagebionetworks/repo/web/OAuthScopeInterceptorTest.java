@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.manager.oauth.ClaimsJsonUtil;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
-import org.sagebionetworks.repo.web.controller.RequiredScope;
 import org.springframework.core.MethodParameter;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;

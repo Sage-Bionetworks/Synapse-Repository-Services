@@ -99,7 +99,7 @@ public class V2WikiManagerTest {
 		markdown.setCreatedBy(user.getId().toString());
 		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
 		page.setMarkdownFileHandleId(markdown.getId());
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, markdown.getId(), user.getId().toString(), ACCESS_TYPE.CREATE)).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, markdown.getId(), user.getId().toString())).thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthManager.canCreateWiki(any(UserInfo.class), any(String.class), any(ObjectType.class))).thenReturn(AuthorizationStatus.authorized());
 		wikiManager.createWikiPage(user, "123", ObjectType.ENTITY, page);
 		// Was it passed to the DAO?
@@ -135,8 +135,8 @@ public class V2WikiManagerTest {
 		page.setMarkdownFileHandleId(markdown.getId());
 		
 		// Allow one but deny the other.
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), user.getId().toString(), ACCESS_TYPE.CREATE)).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), "007", ACCESS_TYPE.CREATE)).thenReturn(AuthorizationStatus.accessDenied(""));
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), user.getId().toString())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), "007")).thenReturn(AuthorizationStatus.accessDenied(""));
 		// Allow access to the owner.
 		when(mockAuthManager.canCreateWiki(any(UserInfo.class), any(String.class), any(ObjectType.class))).thenReturn(AuthorizationStatus.authorized());
 		wikiManager.createWikiPage(user, "syn123", ObjectType.ENTITY, page);
@@ -155,7 +155,7 @@ public class V2WikiManagerTest {
 		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
 		page.setMarkdownFileHandleId(markdown.getId());
 
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, markdown.getId(), user.getId().toString(), ACCESS_TYPE.CREATE)).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, markdown.getId(), user.getId().toString())).thenReturn(AuthorizationStatus.authorized());
 		V2WikiPage result = wikiManager.createWikiPage(user, "123", ObjectType.ENTITY, page);
 		assertNotNull(result);
 		assertEquals("CreatedBy should have set", user.getId().toString(), result.getCreatedBy());
@@ -185,7 +185,7 @@ public class V2WikiManagerTest {
 		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
 		page.setMarkdownFileHandleId(markdown.getId());
 		// setup allow
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, markdown.getId(), user.getId().toString(), ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, markdown.getId(), user.getId().toString())).thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		// No versions to delete
 		when(mockWikiDao.getWikiVersionByRank(any(WikiPageKey.class), eq(100L))).thenReturn(105L);
@@ -252,9 +252,9 @@ public class V2WikiManagerTest {
 		allMarkdownFileHandleIds.add(new Long(markdown.getId()));
 		when(mockWikiDao.getMarkdownFileHandleIdsForWiki(key)).thenReturn(allMarkdownFileHandleIds);
 		
-		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq(user.getId().toString()), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq(markdown.getCreatedBy()), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.accessDenied(""));
-		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq(ownerId), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.accessDenied(""));
+		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq(user.getId().toString()))).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq(markdown.getCreatedBy()))).thenReturn(AuthorizationStatus.accessDenied(""));
+		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq(ownerId))).thenReturn(AuthorizationStatus.accessDenied(""));
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		
 	    wikiManager.updateWikiPage(user, ownerId, ownerType, page);
@@ -558,8 +558,8 @@ public class V2WikiManagerTest {
 		page.setMarkdownFileHandleId(markdown.getId());
 		
 		// Allow one but deny the other.
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), user.getId().toString(), ACCESS_TYPE.CREATE)).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), "007", ACCESS_TYPE.CREATE)).thenReturn(AuthorizationStatus.accessDenied(""));
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), user.getId().toString())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), "007")).thenReturn(AuthorizationStatus.accessDenied(""));
 		// Allow access to the owner.
 		when(mockAuthManager.canCreateWiki(any(UserInfo.class), any(String.class), any(ObjectType.class))).thenReturn(AuthorizationStatus.authorized());
 		wikiManager.createWikiPage(user, "syn123", ObjectType.ENTITY, page);
@@ -613,8 +613,8 @@ public class V2WikiManagerTest {
 		newFileHandleIds.add(two.getId());
 		
 		// Allow one but deny the other.
-		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq(user.getId().toString()), eq(ACCESS_TYPE.CREATE))).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq("007"), eq(ACCESS_TYPE.CREATE))).thenReturn(AuthorizationStatus.accessDenied(""));
+		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq(user.getId().toString()))).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq("007"))).thenReturn(AuthorizationStatus.accessDenied(""));
 		// Allow access to the owner.
 		when(mockAuthManager.canCreateWiki(any(UserInfo.class), any(String.class), any(ObjectType.class))).thenReturn(AuthorizationStatus.authorized());
 		wikiManager.createWikiPage(user, "syn123", ObjectType.ENTITY, page);
@@ -670,8 +670,8 @@ public class V2WikiManagerTest {
 		when(mockWikiDao.getMarkdownFileHandleIdsForWiki(key)).thenReturn(allMarkdownFileHandleIds);
 		
 		// Allow one but deny the other.
-		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq(user.getId().toString()), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq("007"), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.accessDenied(""));
+		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq(user.getId().toString()))).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq("007"))).thenReturn(AuthorizationStatus.accessDenied(""));
 		// Allow access to the owner.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		wikiManager.updateWikiPage(user, ownerId, ownerType, page);
@@ -739,8 +739,8 @@ public class V2WikiManagerTest {
 		
 		when(mockWikiDao.lockForUpdate(wikiId)).thenReturn("etag");
 		// Allow one but deny the other.
-		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq(user.getId().toString()), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq("007"), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.accessDenied(""));
+		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq(user.getId().toString()))).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq("007"))).thenReturn(AuthorizationStatus.accessDenied(""));
 		// Allow access to the owner.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		wikiManager.updateWikiPage(user, ownerId, ownerType, page);
@@ -822,7 +822,7 @@ public class V2WikiManagerTest {
 		S3FileHandle markdown = new S3FileHandle();
 		markdown.setId("1");
 		markdown.setCreatedBy(user.getId().toString());
-		when(mockAuthManager.canAccessRawFileHandleByCreator(any(UserInfo.class), eq(markdown.getId()), any(String.class), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandleByCreator(any(UserInfo.class), eq(markdown.getId()), any(String.class))).thenReturn(AuthorizationStatus.authorized());
 		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
 		
 		// Set up what will be returned in the restore method
@@ -923,8 +923,8 @@ public class V2WikiManagerTest {
 		fileHandleIdsToRestore.add(one.getId());
 		
 		// None of these should be checked since all the attachments already exist in the reservation
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), user.getId().toString(), ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), "007", ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.accessDenied(""));
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), user.getId().toString())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), "007")).thenReturn(AuthorizationStatus.accessDenied(""));
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		when(mockWikiDao.lockForUpdate(wikiId)).thenReturn("etag");
 		

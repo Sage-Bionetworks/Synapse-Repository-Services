@@ -17,10 +17,13 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,12 +33,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.table.AnnotationDTO;
+import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -50,6 +53,7 @@ import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 @ExtendWith(MockitoExtension.class)
@@ -62,7 +66,7 @@ public class SQLUtilsTest {
 
 	Map<Long, ColumnModel> schemaIdToModelMap;
 
-	AnnotationDTO annotationDto;
+	ObjectAnnotationDTO annotationDto;
 
 	boolean isFirst;
 
@@ -97,8 +101,8 @@ public class SQLUtilsTest {
 
 		schemaIdToModelMap = TableModelUtils.createIDtoColumnModelMap(simpleSchema);
 
-		annotationDto = new AnnotationDTO();
-		annotationDto.setEntityId(123L);
+		annotationDto = new ObjectAnnotationDTO();
+		annotationDto.setObjectId(123L);
 		annotationDto.setType(AnnotationType.STRING);
 		annotationDto.setKey("someKey");
 		annotationDto.setValue("someString");
@@ -1642,42 +1646,6 @@ public class SQLUtilsTest {
 		assertEquals("DROP TABLE IF EXISTS TEMPT999", sql);
 	}
 
-
-	@Test
-	public void testTranslateColumnsEntityField(){
-		ColumnModel cm = EntityField.benefactorId.getColumnModel();
-		cm.setId("123");
-		int index = 4;
-		// call under test
-		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
-		assertEquals(cm, meta.getColumnModel());
-		assertEquals(index, meta.getColumnIndex());
-		assertEquals("_C123_", meta.getColumnNameForId());
-		assertEquals(EntityField.benefactorId, meta.getEntityField());
-		assertEquals(TableConstants.OBJECT_REPLICATION_ALIAS, meta.getTableAlias());
-		assertEquals(EntityField.benefactorId.getDatabaseColumnName(), meta.getSelectColumnName());
-		assertEquals(null, meta.getAnnotationType());
-	}
-
-	@Test
-	public void testTranslateColumnsAnnotation(){
-		ColumnModel cm = new ColumnModel();
-		cm.setName("foo");
-		cm.setColumnType(ColumnType.STRING);
-		cm.setMaximumSize(50L);
-		cm.setId("123");
-		int index = 4;
-		// call under test.
-		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
-		assertEquals(cm, meta.getColumnModel());
-		assertEquals(index, meta.getColumnIndex());
-		assertEquals("_C123_", meta.getColumnNameForId());
-		assertEquals(null, meta.getEntityField());
-		assertEquals("A4", meta.getTableAlias());
-		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_STRING_VALUE, meta.getSelectColumnName());
-		assertEquals(AnnotationType.STRING, meta.getAnnotationType());
-	}
-
 	@Test
 	public void testTranslateColumnTypeToAnnotationType(){
 		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.STRING));
@@ -1712,15 +1680,10 @@ public class SQLUtilsTest {
 
 	@Test
 	public void testbuildInsertValues(){
-		ColumnModel one = EntityField.benefactorId.getColumnModel();
-		one.setId("1");
-		ColumnModel two = TableModelTestUtils.createColumn(2L);
-		ColumnModel three = new ColumnModel();
-		three.setId("3");
-		three.setColumnType(ColumnType.DOUBLE);
-		three.setName("three");
-		List<ColumnModel> schema = Lists.newArrayList(one, two, three);
-		List<ColumnMetadata> metaList = SQLUtils.translateColumns(schema);
+		ColumnMetadata one = createMetadataForAnnotation(ColumnType.ENTITYID, 1);
+		ColumnMetadata two = createMetadataForAnnotation(ColumnType.STRING, 2);
+		ColumnMetadata three = createMetadataForAnnotation(ColumnType.DOUBLE, 3);
+		List<ColumnMetadata> metaList = ImmutableList.of(one, two, three);
 		StringBuilder builder = new StringBuilder();
 		// call under test
 		SQLUtils.buildInsertValues(builder, metaList);
@@ -1730,18 +1693,14 @@ public class SQLUtilsTest {
 	@Test
 	public void testBuildSelectEachColumnType(){
 		// Build a select for each type.
-		List<ColumnModel> allTypes = new LinkedList<>();
+		List<ColumnMetadata> metaList = new LinkedList<>();
 		int i = 0;
 		for(ColumnType type: ColumnType.values()){
-			ColumnModel cm = new ColumnModel();
-			cm.setName(type.name().toLowerCase());
-			cm.setColumnType(type);
-			cm.setId(""+i);
-			allTypes.add(cm);
+			ColumnMetadata cm = createMetadataForAnnotation(type, i);
+			metaList.add(cm);
 			i++;
 		}
 
-		List<ColumnMetadata> metaList = SQLUtils.translateColumns(allTypes);
 		StringBuilder builder = new StringBuilder();
 		// call under test
 		List<String> headers = SQLUtils.buildSelect(builder, metaList);
@@ -1773,15 +1732,13 @@ public class SQLUtilsTest {
 	@Test
 	public void testBuildSelectEachEntityType(){
 		// Build a select for each type.
-		List<ColumnModel> allTypes = new LinkedList<>();
+		List<ColumnMetadata> metaList = new LinkedList<>();
 		int i = 0;
-		for(EntityField field: EntityField.values()){
-			ColumnModel cm = field.getColumnModel();
-			cm.setId(""+i);
-			allTypes.add(cm);
+		for(ObjectField field: ObjectField.values()){
+			ColumnMetadata cm = createMetadataForEntityField(field, i);
+			metaList.add(cm);
 			i++;
 		}
-		List<ColumnMetadata> metaList = SQLUtils.translateColumns(allTypes);
 		StringBuilder builder = new StringBuilder();
 		// call under test
 		SQLUtils.buildSelect(builder, metaList);
@@ -1806,6 +1763,19 @@ public class SQLUtilsTest {
 				+ " MAX(R.FILE_SIZE_BYTES) AS FILE_SIZE_BYTES,"
 				+ " MAX(R.FILE_MD5) AS FILE_MD5"
 				, builder.toString());
+	}
+	
+	
+	private ColumnMetadata createMetadataForEntityField(ObjectField field, int id) {
+		return new ColumnMetadata(field.getColumnModel(), field.getDatabaseColumnName(), SQLUtils.getColumnNameForId("" + id), true);
+	}
+	
+	private ColumnMetadata createMetadataForAnnotation(ColumnType type, int id) {
+		ColumnModel model = new ColumnModel();
+		model.setId(String.valueOf(id));
+		model.setName(type.name().toLowerCase());
+		model.setColumnType(type);
+		return new ColumnMetadata(model, SQLUtils.translateColumnTypeToAnnotationValueName(model.getColumnType()), SQLUtils.getColumnNameForId("" + id), false);
 	}
 
 	@Test
@@ -1839,58 +1809,39 @@ public class SQLUtilsTest {
 	@Test
 	public void testBuildAnnotationSelectString() {
 		StringBuilder builder = new StringBuilder();
-		ColumnModel cm = new ColumnModel();
-		cm.setName("bar");
-		cm.setColumnType(ColumnType.STRING);
-		cm.setMaximumSize(50L);
-		cm.setId("123");
-		int index = 4;
-		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
+		ColumnMetadata meta = createMetadataForAnnotation(ColumnType.STRING, 123);
 		boolean isDoubleAbstract = false;
 		// call under test
 		SQLUtils.buildAnnotationSelect(builder, meta, isDoubleAbstract);
-		assertEquals(", MAX(IF(A.ANNO_KEY ='bar', A.STRING_VALUE, NULL)) AS _C123_", builder.toString());
+		assertEquals(", MAX(IF(A.ANNO_KEY ='string', A.STRING_VALUE, NULL)) AS _C123_", builder.toString());
 	}
 
 	@Test
 	public void testBuildAnnotationSelectDoubleAbstract() {
 		StringBuilder builder = new StringBuilder();
-		ColumnModel cm = new ColumnModel();
-		cm.setName("foo");
-		cm.setColumnType(ColumnType.DOUBLE);
-		cm.setId("123");
-		int index = 4;
-		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
+		ColumnMetadata meta = createMetadataForAnnotation(ColumnType.DOUBLE, 123);
 		boolean isDoubleAbstract = true;
 		// call under test
 		String header = SQLUtils.buildAnnotationSelect(builder, meta, isDoubleAbstract);
-		assertEquals(", MAX(IF(A.ANNO_KEY ='foo', A.DOUBLE_ABSTRACT, NULL)) AS _DBL_C123_", builder.toString());
+		assertEquals(", MAX(IF(A.ANNO_KEY ='double', A.DOUBLE_ABSTRACT, NULL)) AS _DBL_C123_", builder.toString());
 		assertEquals("_DBL_C123_", header);
 	}
 
 	@Test
 	public void testBuildAnnotationSelectDoubleNotAbstract() {
 		StringBuilder builder = new StringBuilder();
-		ColumnModel cm = new ColumnModel();
-		cm.setName("foo");
-		cm.setColumnType(ColumnType.DOUBLE);
-		cm.setId("123");
-		int index = 4;
-		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
+		ColumnMetadata meta = createMetadataForAnnotation(ColumnType.DOUBLE, 123);
 		boolean isDoubleAbstract = false;
 		// call under test
 		String header = SQLUtils.buildAnnotationSelect(builder, meta, isDoubleAbstract);
-		assertEquals(", MAX(IF(A.ANNO_KEY ='foo', A.DOUBLE_VALUE, NULL)) AS _C123_", builder.toString());
+		assertEquals(", MAX(IF(A.ANNO_KEY ='double', A.DOUBLE_VALUE, NULL)) AS _C123_", builder.toString());
 		assertEquals("_C123_", header);
 	}
 
 	@Test
 	public void testBuildSelectMetadataEntityField() {
 		StringBuilder builder = new StringBuilder();
-		ColumnModel cm = EntityField.createdOn.getColumnModel();
-		cm.setId("1");
-		int index = 2;
-		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
+		ColumnMetadata meta = createMetadataForEntityField(ObjectField.createdOn, 1);
 		// call under test
 		List<String> headers = SQLUtils.buildSelectMetadata(builder, meta);
 		assertEquals(", MAX(R.CREATED_ON) AS CREATED_ON", builder.toString());
@@ -1900,16 +1851,10 @@ public class SQLUtilsTest {
 	@Test
 	public void testBuildSelectMetadataStringAnnotation() {
 		StringBuilder builder = new StringBuilder();
-		ColumnModel cm = new ColumnModel();
-		cm.setName("bar");
-		cm.setColumnType(ColumnType.STRING);
-		cm.setMaximumSize(50L);
-		cm.setId("123");
-		int index = 4;
-		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
+		ColumnMetadata meta = createMetadataForAnnotation(ColumnType.STRING, 123);
 		// call under test
 		List<String> headers = SQLUtils.buildSelectMetadata(builder, meta);
-		assertEquals(", MAX(IF(A.ANNO_KEY ='bar', A.STRING_VALUE, NULL)) AS _C123_", builder.toString());
+		assertEquals(", MAX(IF(A.ANNO_KEY ='string', A.STRING_VALUE, NULL)) AS _C123_", builder.toString());
 		assertEquals(Lists.newArrayList("_C123_"), headers);
 	}
 
@@ -1917,17 +1862,13 @@ public class SQLUtilsTest {
 	public void testBuildSelectMetadataDoubleAnnotation() {
 		StringBuilder builder = new StringBuilder();
 		ColumnModel cm = new ColumnModel();
-		cm.setName("foo");
-		cm.setColumnType(ColumnType.DOUBLE);
-		cm.setId("456");
-		int index = 4;
-		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
+		ColumnMetadata meta = createMetadataForAnnotation(ColumnType.DOUBLE, 456);
 		// call under test
 		List<String> headers = SQLUtils.buildSelectMetadata(builder, meta);
 		// Should include two selects, one for the abstract double and the other for the double value.
 		assertEquals(
-				", MAX(IF(A.ANNO_KEY ='foo', A.DOUBLE_ABSTRACT, NULL)) AS _DBL_C456_"
-				+ ", MAX(IF(A.ANNO_KEY ='foo', A.DOUBLE_VALUE, NULL)) AS _C456_", builder.toString());
+				", MAX(IF(A.ANNO_KEY ='double', A.DOUBLE_ABSTRACT, NULL)) AS _DBL_C456_"
+				+ ", MAX(IF(A.ANNO_KEY ='double', A.DOUBLE_VALUE, NULL)) AS _C456_", builder.toString());
 		assertEquals(Lists.newArrayList("_DBL_C456_","_C456_"), headers);
 	}
 
@@ -1935,16 +1876,11 @@ public class SQLUtilsTest {
 	public void testBuildSelectMetadataListAnnotation() {
 		//list columns do not have an abstract column
 		StringBuilder builder = new StringBuilder();
-		ColumnModel cm = new ColumnModel();
-		cm.setName("foo");
-		cm.setColumnType(ColumnType.STRING_LIST);
-		cm.setId("456");
-		int index = 4;
-		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
+		ColumnMetadata meta = createMetadataForAnnotation(ColumnType.STRING_LIST, 456);
 		// call under test
 		List<String> headers = SQLUtils.buildSelectMetadata(builder, meta);
 		// Should include two selects, one for the abstract double and the other for the double value.
-		assertEquals(", MAX(IF(A.ANNO_KEY ='foo', A.STRING_LIST_VALUE, NULL)) AS _C456_", builder.toString());
+		assertEquals(", MAX(IF(A.ANNO_KEY ='string_list', A.STRING_LIST_VALUE, NULL)) AS _C456_", builder.toString());
 		assertEquals(Lists.newArrayList("_C456_"), headers);
 	}
 
@@ -1971,21 +1907,20 @@ public class SQLUtilsTest {
 
 	@Test
 	public void testCreateSelectFromObjectReplication(){
-		ColumnModel one = TableModelTestUtils.createColumn(1L);
-		ColumnModel id = EntityField.id.getColumnModel();
-		id.setId("2");
-		List<ColumnModel> schema = Lists.newArrayList(one, id);
+		ColumnMetadata one = createMetadataForAnnotation(ColumnType.STRING, 1);
+		ColumnMetadata id = createMetadataForEntityField(ObjectField.id, 2);
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = false;
-		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, viewId, viewTypeMask, schema, filterByRows);
+		List<ColumnMetadata> metadata = ImmutableList.of(one, id);
+		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, metadata, viewTypeMask, filterByRows);
 		String sql = builder.toString();
 		assertEquals("SELECT"
 				+ " R.OBJECT_ID,"
 				+ " MAX(R.CURRENT_VERSION) AS CURRENT_VERSION,"
 				+ " MAX(R.ETAG) AS ETAG,"
 				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
-				+ " MAX(IF(A.ANNO_KEY ='col_1', A.STRING_VALUE, NULL)) AS _C1_,"
+				+ " MAX(IF(A.ANNO_KEY ='string', A.STRING_VALUE, NULL)) AS _C1_,"
 				+ " MAX(R.OBJECT_ID) AS OBJECT_ID"
 				+ " FROM"
 				+ " OBJECT_REPLICATION R"
@@ -1998,25 +1933,72 @@ public class SQLUtilsTest {
 				+ " GROUP BY R.OBJECT_ID ORDER BY R.OBJECT_ID", sql);
 		assertEquals(Lists.newArrayList("ROW_ID", "ROW_VERSION","ROW_ETAG","ROW_BENEFACTOR","_C1_","_C2_"), headers);
 	}
+
+	@Test
+	public void createMaxListLengthValidationSQL(){
+		Set<String> annotationNames = Sets.newHashSet("foo");
+		Long viewTypeMask = ViewTypeMask.File.getMask();
+		StringBuilder builder = new StringBuilder();
+		boolean filterByRows = false;
+		String sql = SQLUtils.createAnnotationMaxListLengthSQL(viewId, viewTypeMask, annotationNames, filterByRows);
+
+		assertEquals("SELECT"
+				+ " A.ANNO_KEY, MAX(A.LIST_LENGTH)"
+				+ " FROM"
+				+ " OBJECT_REPLICATION R"
+				+ " LEFT JOIN ANNOTATION_REPLICATION A"
+				+ " ON(R.OBJECT_TYPE = A.OBJECT_TYPE AND R.OBJECT_ID = A.OBJECT_ID)"
+				+ " WHERE"
+				+ " R.OBJECT_TYPE = :objectType"
+				+ " AND R.PARENT_ID IN (:parentIds)"
+				+ " AND R.SUBTYPE IN ('file')"
+				+ " AND A.ANNO_KEY IN (:annotationKeys)"
+				+ " GROUP BY A.ANNO_KEY", sql);
+	}
+
+	@Test
+	public void createMaxListLengthValidationSQL_nullAnnotationNames(){
+		Set<String> annotationNames = null;
+		Long viewTypeMask = ViewTypeMask.File.getMask();
+		StringBuilder builder = new StringBuilder();
+		boolean filterByRows = false;
+
+		assertThrows(IllegalArgumentException.class, () ->
+			SQLUtils.createAnnotationMaxListLengthSQL(viewId, viewTypeMask, annotationNames, filterByRows)
+		);
+
+	}
+
+	@Test
+	public void createMaxListLengthValidationSQL_emptyAnnotationNames(){
+		Set<String> annotationNames = Collections.emptySet();
+		Long viewTypeMask = ViewTypeMask.File.getMask();
+		StringBuilder builder = new StringBuilder();
+		boolean filterByRows = false;
+
+		assertThrows(IllegalArgumentException.class, () ->
+				SQLUtils.createAnnotationMaxListLengthSQL(viewId, viewTypeMask, annotationNames, filterByRows)
+		);
+
+	}
 	
 	@Test
 	public void testCreateSelectFromObjectReplicationFilterByRows(){
-		ColumnModel one = TableModelTestUtils.createColumn(1L);
-		ColumnModel id = EntityField.id.getColumnModel();
-		id.setId("2");
-		List<ColumnModel> schema = Lists.newArrayList(one, id);
+		ColumnMetadata one = createMetadataForAnnotation(ColumnType.STRING, 1);
+		ColumnMetadata id = createMetadataForEntityField(ObjectField.id, 2);
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = true;
+		List<ColumnMetadata> metadata = ImmutableList.of(one, id);
 		// call under test
-		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, viewId, viewTypeMask, schema, filterByRows);
+		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, metadata, viewTypeMask, filterByRows);
 		String sql = builder.toString();
 		assertEquals("SELECT"
 				+ " R.OBJECT_ID,"
 				+ " MAX(R.CURRENT_VERSION) AS CURRENT_VERSION,"
 				+ " MAX(R.ETAG) AS ETAG,"
 				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
-				+ " MAX(IF(A.ANNO_KEY ='col_1', A.STRING_VALUE, NULL)) AS _C1_,"
+				+ " MAX(IF(A.ANNO_KEY ='string', A.STRING_VALUE, NULL)) AS _C1_,"
 				+ " MAX(R.OBJECT_ID) AS OBJECT_ID"
 				+ " FROM"
 				+ " OBJECT_REPLICATION R"
@@ -2034,20 +2016,19 @@ public class SQLUtilsTest {
 
 	@Test
 	public void testCreateSelectInsertFromObjectReplication(){
-		ColumnModel one = TableModelTestUtils.createColumn(1L);
-		ColumnModel id = EntityField.id.getColumnModel();
-		id.setId("2");
-		List<ColumnModel> schema = Lists.newArrayList(one, id);
+		ColumnMetadata one = createMetadataForAnnotation(ColumnType.STRING, 1);
+		ColumnMetadata id = createMetadataForEntityField(ObjectField.id, 2);
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		boolean filterByRows = false;
-		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, viewTypeMask, schema, filterByRows);
+		List<ColumnMetadata> metadata = ImmutableList.of(one, id);
+		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, viewTypeMask, filterByRows);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_)"
 				+ " SELECT"
 				+ " R.OBJECT_ID,"
 				+ " MAX(R.CURRENT_VERSION) AS CURRENT_VERSION,"
 				+ " MAX(R.ETAG) AS ETAG,"
 				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
-				+ " MAX(IF(A.ANNO_KEY ='col_1', A.STRING_VALUE, NULL)) AS _C1_,"
+				+ " MAX(IF(A.ANNO_KEY ='string', A.STRING_VALUE, NULL)) AS _C1_,"
 				+ " MAX(R.OBJECT_ID) AS OBJECT_ID"
 				+ " FROM"
 				+ " OBJECT_REPLICATION R"
@@ -2062,20 +2043,19 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCreateSelectInsertFromObjectReplicationFilterByRows(){
-		ColumnModel one = TableModelTestUtils.createColumn(1L);
-		ColumnModel id = EntityField.id.getColumnModel();
-		id.setId("2");
-		List<ColumnModel> schema = Lists.newArrayList(one, id);
+		ColumnMetadata one = createMetadataForAnnotation(ColumnType.STRING, 1);
+		ColumnMetadata id = createMetadataForEntityField(ObjectField.id, 2);
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		boolean filterByRows = true;
-		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, viewTypeMask, schema, filterByRows);
+		List<ColumnMetadata> metadata = ImmutableList.of(one, id);
+		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, viewTypeMask, filterByRows);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_)"
 				+ " SELECT"
 				+ " R.OBJECT_ID,"
 				+ " MAX(R.CURRENT_VERSION) AS CURRENT_VERSION,"
 				+ " MAX(R.ETAG) AS ETAG,"
 				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
-				+ " MAX(IF(A.ANNO_KEY ='col_1', A.STRING_VALUE, NULL)) AS _C1_,"
+				+ " MAX(IF(A.ANNO_KEY ='string', A.STRING_VALUE, NULL)) AS _C1_,"
 				+ " MAX(R.OBJECT_ID) AS OBJECT_ID"
 				+ " FROM"
 				+ " OBJECT_REPLICATION R"
@@ -2091,20 +2071,19 @@ public class SQLUtilsTest {
 
 	@Test
 	public void testCreateSelectInsertFromObjectReplicationProjectView(){
-		ColumnModel one = TableModelTestUtils.createColumn(1L);
-		ColumnModel id = EntityField.id.getColumnModel();
-		id.setId("2");
-		List<ColumnModel> schema = Lists.newArrayList(one, id);
+		ColumnMetadata one = createMetadataForAnnotation(ColumnType.STRING, 1);
+		ColumnMetadata id = createMetadataForEntityField(ObjectField.id, 2);
 		Long viewTypeMask = ViewTypeMask.Project.getMask();
 		boolean filterByRows = false;
-		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, viewTypeMask, schema, filterByRows);
+		List<ColumnMetadata> metadata = ImmutableList.of(one, id);
+		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, viewTypeMask, filterByRows);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_)"
 				+ " SELECT"
 				+ " R.OBJECT_ID,"
 				+ " MAX(R.CURRENT_VERSION) AS CURRENT_VERSION,"
 				+ " MAX(R.ETAG) AS ETAG,"
 				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
-				+ " MAX(IF(A.ANNO_KEY ='col_1', A.STRING_VALUE, NULL)) AS _C1_,"
+				+ " MAX(IF(A.ANNO_KEY ='string', A.STRING_VALUE, NULL)) AS _C1_,"
 				+ " MAX(R.OBJECT_ID) AS OBJECT_ID"
 				+ " FROM"
 				+ " OBJECT_REPLICATION R"
@@ -2119,21 +2098,18 @@ public class SQLUtilsTest {
 
 	@Test
 	public void testCreateSelectInsertFromObjectReplicationWithDouble(){
-		ColumnModel doubleAnnotation = new ColumnModel();
-		doubleAnnotation.setColumnType(ColumnType.DOUBLE);
-		doubleAnnotation.setId("3");
-		doubleAnnotation.setName("doubleAnnotation");
-		List<ColumnModel> schema = Lists.newArrayList(doubleAnnotation);
+		ColumnMetadata one = createMetadataForAnnotation(ColumnType.DOUBLE, 3);
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		boolean filterByRows = false;
-		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, viewTypeMask, schema, filterByRows);
+		List<ColumnMetadata> metadata = ImmutableList.of(one);
+		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, viewTypeMask, filterByRows);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _DBL_C3_, _C3_)"
 				+ " SELECT"
 				+ " R.OBJECT_ID, MAX(R.CURRENT_VERSION) AS CURRENT_VERSION,"
 				+ " MAX(R.ETAG) AS ETAG,"
 				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
-				+ " MAX(IF(A.ANNO_KEY ='doubleAnnotation', A.DOUBLE_ABSTRACT, NULL)) AS _DBL_C3_,"
-				+ " MAX(IF(A.ANNO_KEY ='doubleAnnotation', A.DOUBLE_VALUE, NULL)) AS _C3_"
+				+ " MAX(IF(A.ANNO_KEY ='double', A.DOUBLE_ABSTRACT, NULL)) AS _DBL_C3_,"
+				+ " MAX(IF(A.ANNO_KEY ='double', A.DOUBLE_VALUE, NULL)) AS _C3_"
 				+ " FROM OBJECT_REPLICATION R"
 				+ " LEFT JOIN ANNOTATION_REPLICATION A"
 				+ " ON(R.OBJECT_TYPE = A.OBJECT_TYPE AND R.OBJECT_ID = A.OBJECT_ID)"
@@ -2646,7 +2622,7 @@ public class SQLUtilsTest {
 		SQLUtils.writeAnnotationDtoToPreparedStatement(ObjectType.ENTITY, mockPreparedStatement, annotationDto);
 		
 		verify(mockPreparedStatement).setString(1, ObjectType.ENTITY.name());
-		verify(mockPreparedStatement).setLong(2, annotationDto.getEntityId());
+		verify(mockPreparedStatement).setLong(2, annotationDto.getObjectId());
 		verify(mockPreparedStatement).setString(3, annotationDto.getKey());
 		verify(mockPreparedStatement).setString(4, annotationDto.getType().name());
 		verify(mockPreparedStatement).setString(5, annotationDto.getValue().get(0));
@@ -2665,7 +2641,7 @@ public class SQLUtilsTest {
 		SQLUtils.writeAnnotationDtoToPreparedStatement(ObjectType.ENTITY, mockPreparedStatement, annotationDto);
 		
 		verify(mockPreparedStatement).setString(1, ObjectType.ENTITY.name());
-		verify(mockPreparedStatement).setLong(2, annotationDto.getEntityId());
+		verify(mockPreparedStatement).setLong(2, annotationDto.getObjectId());
 		verify(mockPreparedStatement).setString(3, annotationDto.getKey());
 		verify(mockPreparedStatement).setString(4, annotationDto.getType().name());
 		verify(mockPreparedStatement).setString(5, annotationDto.getValue().get(0));
@@ -2679,6 +2655,7 @@ public class SQLUtilsTest {
 		verify(mockPreparedStatement).setString(11, null);
 		verify(mockPreparedStatement).setString(12, null);
 		verify(mockPreparedStatement).setLong(13, 4);
+		verify(mockPreparedStatement).setLong(14, 2);
 
 	}
 
@@ -2716,7 +2693,7 @@ public class SQLUtilsTest {
 		SQLUtils.writeAnnotationDtoToPreparedStatement(ObjectType.ENTITY, mockPreparedStatement, annotationDto);
 
 		verify(mockPreparedStatement).setString(1, ObjectType.ENTITY.name());
-		verify(mockPreparedStatement).setLong(2, annotationDto.getEntityId());
+		verify(mockPreparedStatement).setLong(2, annotationDto.getObjectId());
 		verify(mockPreparedStatement).setString(3, annotationDto.getKey());
 		verify(mockPreparedStatement).setString(4, annotationDto.getType().name());
 		verify(mockPreparedStatement).setString(5, annotationDto.getValue().get(0));
@@ -2731,6 +2708,7 @@ public class SQLUtilsTest {
 		verify(mockPreparedStatement).setString(11, null);
 		verify(mockPreparedStatement).setString(12, "[false,true,false]");
 		verify(mockPreparedStatement).setLong(13, 5);
+		verify(mockPreparedStatement).setLong(14, 3);
 	}
 
 	@Test
@@ -2781,7 +2759,7 @@ public class SQLUtilsTest {
 		SQLUtils.writeAnnotationDtoToPreparedStatement(ObjectType.ENTITY, mockPreparedStatement, annotationDto);
 		
 		verify(mockPreparedStatement).setString(1, ObjectType.ENTITY.name());
-		verify(mockPreparedStatement).setLong(2, annotationDto.getEntityId());
+		verify(mockPreparedStatement).setLong(2, annotationDto.getObjectId());
 		verify(mockPreparedStatement).setString(3, annotationDto.getKey());
 		verify(mockPreparedStatement).setString(4, annotationDto.getType().name());
 		verify(mockPreparedStatement).setString(5, annotationDto.getValue().get(0));
@@ -2796,6 +2774,7 @@ public class SQLUtilsTest {
 		verify(mockPreparedStatement).setString(11, "[123,4560,789]");
 		verify(mockPreparedStatement).setString(12, null);
 		verify(mockPreparedStatement).setLong(13, 4);
+		verify(mockPreparedStatement).setLong(14, 3);
 
 	}
 

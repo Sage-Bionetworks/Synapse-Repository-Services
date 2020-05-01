@@ -135,14 +135,16 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	public Submission createSubmission(UserInfo userInfo, Submission submission, String entityEtag, 
+	public Submission createSubmission(Long userId, Submission submission, String entityEtag, 
 			String submissionEligibilityHash, String challengeEndpoint, String notificationUnsubscribeEndpoint)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		
 		// fetch EntityBundle to be serialized
 		int mask = ServiceConstants.DEFAULT_ENTITYBUNDLE_MASK_FOR_SUBMISSIONS;
 		String entityId = submission.getEntityId();
 		Long versionNumber = submission.getVersionNumber();
-		EntityBundle bundle = serviceProvider.getEntityBundleService().getEntityBundle(userInfo, entityId, versionNumber, mask);
+		EntityBundle bundle = serviceProvider.getEntityBundleService().getEntityBundle(userId, entityId, versionNumber, mask);
 		Submission created = submissionManager.createSubmission(userInfo, submission, entityEtag, submissionEligibilityHash, bundle);
 		
 		List<MessageToUserAndBody> messages = submissionManager.

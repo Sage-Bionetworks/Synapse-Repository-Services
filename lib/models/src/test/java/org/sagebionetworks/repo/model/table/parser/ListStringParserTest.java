@@ -13,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ValueParser;
 
 class ListStringParserTest {
@@ -21,7 +22,7 @@ class ListStringParserTest {
 	@Test
 	public void testParseValueForDatabaseWrite_listTooLong(){
 		StringJoiner joiner = new StringJoiner(",", "[", "]");
-		for(int i = 0; i < ListStringParser.MAX_NUMBER_OF_ITEMS_IN_LIST + 1; i++){
+		for(int i = 0; i < ColumnConstants.MAX_ALLOWED_LIST_LENGTH + 1; i++){
 			joiner.add("str" + i);
 		}
 

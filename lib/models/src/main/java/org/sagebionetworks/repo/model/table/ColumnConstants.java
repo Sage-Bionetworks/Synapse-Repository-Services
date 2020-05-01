@@ -147,7 +147,12 @@ public class ColumnConstants {
 	 * The default maximum number of characters for string columns.
 	 */
 	public static final Long DEFAULT_STRING_SIZE = 50L;
-	
+
+	/**
+	 * The maximum number of elements allowed for list column types.
+	 */
+	public static final Long MAX_ALLOWED_LIST_LENGTH = 100L;
+
 	/**
 	 * Size of a 64 bit reference in bytes.
 	 */

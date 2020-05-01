@@ -65,7 +65,6 @@ import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.util.jrjc.CreatedIssue;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
 import org.sagebionetworks.repo.util.jrjc.ProjectInfo;
@@ -106,7 +105,6 @@ public class AccessRequirementManagerImplUnitTest {
 	@BeforeEach
 	public void setUp() throws Exception {
 		userInfo = new UserInfo(false, TEST_PRINCIPAL_ID);
-		userInfo.setScopes(Arrays.asList(OAuthScope.values()));
 	}
 
 	@Test

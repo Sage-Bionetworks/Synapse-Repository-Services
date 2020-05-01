@@ -329,13 +329,9 @@ public class AuthenticationServiceImplTest {
 	public void testHasUserAcceptedTermsOfUseJWT() {
 		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(userId)).thenReturn(true);
 		
-		String token = "jwt-token";
-		when(mockOidcManager.getUserId(token)).thenReturn(""+userId);
-		
 		// method under test
-		assertTrue(service.hasUserAcceptedTermsOfUse(token));
+		assertTrue(service.hasUserAcceptedTermsOfUse(userId));
 		
-		verify(mockOidcManager).getUserId(token);
 		verify(mockAuthenticationManager).hasUserAcceptedTermsOfUse(userId);
 
 		

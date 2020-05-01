@@ -112,51 +112,6 @@ public class UserManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testGetUserGroups() {
-		Long principalId = 111L;
-		UserGroup principal = new UserGroup();
-		principal.setId(principalId.toString());
-		principal.setIsIndividual(true);
-		when(mockUserGroupDAO.get(principalId)).thenReturn(principal);
-		
-		UserGroup someGroup = new UserGroup();
-		someGroup.setIsIndividual(false);
-		someGroup.setId("222");
-		when(mockGroupMembersDAO.getUsersGroups(principalId.toString())).thenReturn(Collections.singletonList(someGroup));
-		
-		// method under test
-		Set<Long> actual = userManager.getUserGroups(principalId);
-		
-		Set<Long> expected = new HashSet<Long>();
-		expected.add(Long.parseLong(someGroup.getId()));
-		expected.add(principalId);
-		expected.add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
-		expected.add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
-		
-		assertEquals(expected, actual);
-	}
-	
-	@Test
-	public void testGetAnonymousUserGroups() {
-		Long principalId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
-		UserGroup principal = new UserGroup();
-		principal.setId(principalId.toString());
-		principal.setIsIndividual(true);
-		when(mockUserGroupDAO.get(principalId)).thenReturn(principal);
-		
-		when(mockGroupMembersDAO.getUsersGroups(principalId.toString())).thenReturn(Collections.EMPTY_LIST);
-		
-		// method under test
-		Set<Long> actual = userManager.getUserGroups(principalId);
-		
-		Set<Long> expected = new HashSet<Long>();
-		expected.add(principalId);
-		expected.add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
-		
-		assertEquals(expected, actual);
-	}
-	
-	@Test
 	public void testGetUserInfo() {
 		Long principalId = 111L;
 		UserGroup principal = new UserGroup();
@@ -182,8 +137,6 @@ public class UserManagerImplUnitTest {
 
 		assertEquals(expectedUserGroupIds, userInfo.getGroups());
 		assertEquals(principalId, userInfo.getId());
-		assertTrue(userInfo.getOidcClaims().isEmpty());
-		assertEquals(Arrays.asList(OAuthScope.values()), userInfo.getScopes());
 	}
 	
 	@Test
@@ -212,8 +165,6 @@ public class UserManagerImplUnitTest {
 
 		assertEquals(expectedUserGroupIds, userInfo.getGroups());
 		assertEquals(principalId, userInfo.getId());
-		assertTrue(userInfo.getOidcClaims().isEmpty());
-		assertEquals(Arrays.asList(OAuthScope.values()), userInfo.getScopes());
 	}
 	
 	@Test

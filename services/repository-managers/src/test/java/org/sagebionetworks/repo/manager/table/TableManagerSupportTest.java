@@ -59,10 +59,11 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -116,11 +117,11 @@ public class TableManagerSupportTest {
 	Set<Long> scope;
 	Set<Long> containersInScope;
 	UserInfo userInfo;
-	Long viewType;
 	List<ColumnModel> columns;
 	List<String> columnIds;
 	
 	Integer callableReturn;
+	ViewScopeType scopeType;
 	
 	@BeforeEach
 	public void before() throws Exception {
@@ -131,7 +132,6 @@ public class TableManagerSupportTest {
 		idAndVersion = IdAndVersion.parse("syn123");
 		tableId = idAndVersion.getId().toString();
 		tableIdLong = KeyFactory.stringToKey(tableId);
-		viewType = ViewTypeMask.File.getMask();
 		
 		etag = "";
 		
@@ -152,6 +152,7 @@ public class TableManagerSupportTest {
 		scope = Sets.newHashSet(222L,333L);
 		
 		containersInScope = new LinkedHashSet<Long>(Arrays.asList(222L,333L,20L,21L,30L,31L));
+		scopeType = new ViewScopeType(ObjectType.ENTITY, ViewTypeMask.File.getMask());
 		
 	}
 	
@@ -508,7 +509,7 @@ public class TableManagerSupportTest {
 	public void testGetAllContainerIdsForViewScope() throws LimitExceededException{
 		when(mockNodeDao.getAllContainerIds(anyCollection(), anyInt())).thenReturn(containersInScope);
 		// call under test.
-		Set<Long> containers = manager.getAllContainerIdsForViewScope(idAndVersion, viewType);
+		Set<Long> containers = manager.getAllContainerIdsForViewScope(idAndVersion, scopeType);
 		assertEquals(containersInScope, containers);
 	}
 	
@@ -519,29 +520,26 @@ public class TableManagerSupportTest {
 		for(long i=0; i<countOverLimit; i++){
 			overLimit.add(i);
 		}
-		viewType = ViewTypeMask.File.getMask();
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test.
-			manager.getAllContainerIdsForScope(overLimit, viewType);
+			manager.getAllContainerIdsForScope(overLimit, scopeType);
 		});
 	}
 	
 	@Test
 	public void testgetAllContainerIdsForScopeFiewView() throws LimitExceededException{
 		when(mockNodeDao.getAllContainerIds(anyCollection(), anyInt())).thenReturn(containersInScope);
-
-		viewType = ViewTypeMask.File.getMask();
 		// call under test.
-		Set<Long> containers = manager.getAllContainerIdsForScope(scope, viewType);
+		Set<Long> containers = manager.getAllContainerIdsForScope(scope, scopeType);
 		assertEquals(containersInScope, containers);
 		verify(mockNodeDao).getAllContainerIds(scope, TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test
 	public void testGetAllContainerIdsForScopeProject() throws LimitExceededException{
-		viewType = ViewTypeMask.Project.getMask();
+		scopeType = new ViewScopeType(ObjectType.ENTITY, ViewTypeMask.Project.getMask());
 		// call under test.
-		Set<Long> containers = manager.getAllContainerIdsForScope(scope, viewType);
+		Set<Long> containers = manager.getAllContainerIdsForScope(scope, scopeType);
 		assertEquals(scope, containers);
 		verify(mockNodeDao, never()).getAllContainerIds(anySet(), anyInt());
 	}
@@ -557,7 +555,7 @@ public class TableManagerSupportTest {
 		}
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.getAllContainerIdsForScope(tooMany, viewType);
+			manager.getAllContainerIdsForScope(tooMany, scopeType);
 		});
 	}
 	
@@ -573,14 +571,14 @@ public class TableManagerSupportTest {
 		doThrow(exception).when(mockNodeDao).getAllContainerIds(anyCollection(), anyInt());
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.getAllContainerIdsForScope(scope, viewType);
+			manager.getAllContainerIdsForScope(scope, scopeType);
 		});
 	}
 	
 	@Test
 	public void testValidateScopeSize() throws LimitExceededException{
 		// call under test
-		manager.validateScopeSize(scope, viewType);
+		manager.validateScopeSize(scope, scopeType);
 		verify(mockNodeDao).getAllContainerIds(scope, TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
 	}
 	
@@ -589,7 +587,7 @@ public class TableManagerSupportTest {
 		// The scope can be null.
 		scope = null;
 		// call under test
-		manager.validateScopeSize(scope, viewType);
+		manager.validateScopeSize(scope, scopeType);
 		verify(mockNodeDao, never()).getAllContainerIds(anySet(), anyInt());
 	}
 	
@@ -767,11 +765,11 @@ public class TableManagerSupportTest {
 		ColumnModel cm = new ColumnModel();
 		cm.setId("123");
 		when(mockColumnModelManager.createColumnModel(any(ColumnModel.class))).thenReturn(cm);
-		ColumnModel result = manager.getColumnModel(EntityField.id);
+		ColumnModel result = manager.getColumnModel(ObjectField.id);
 		assertEquals(cm, result);
-		result = manager.getColumnModel(EntityField.id);
+		result = manager.getColumnModel(ObjectField.id);
 		assertEquals(cm, result);
-		result = manager.getColumnModel(EntityField.id);
+		result = manager.getColumnModel(ObjectField.id);
 		assertEquals(cm, result);
 		// The column should not be cached.
 		verify(mockColumnModelManager, times(3)).createColumnModel(any(ColumnModel.class));
@@ -782,7 +780,7 @@ public class TableManagerSupportTest {
 	public void testGetDefaultTableViewColumnsFileView() throws LimitExceededException{
 		setupCreateColumn();
 		List<ColumnModel> expected = new LinkedList<ColumnModel>();
-		for(EntityField field: EntityField.values()){
+		for(ObjectField field: ObjectField.values()){
 			expected.add(field.getColumnModel());
 		}
 		// call under test
@@ -794,7 +792,7 @@ public class TableManagerSupportTest {
 	public void testGetDefaultTableViewColumnsFileAndTableView(){
 		setupCreateColumn();
 		List<ColumnModel> expected = new LinkedList<ColumnModel>();
-		for(EntityField field: EntityField.values()){
+		for(ObjectField field: ObjectField.values()){
 			expected.add(field.getColumnModel());
 		}
 		// call under test
@@ -807,13 +805,13 @@ public class TableManagerSupportTest {
 	public void testGetDefaultTableViewColumnsProjectView(){
 		setupCreateColumn();
 		List<ColumnModel> expected = Lists.newArrayList(
-				EntityField.id.getColumnModel(),
-				EntityField.name.getColumnModel(),
-				EntityField.createdOn.getColumnModel(),
-				EntityField.createdBy.getColumnModel(),
-				EntityField.etag.getColumnModel(),
-				EntityField.modifiedOn.getColumnModel(),
-				EntityField.modifiedBy.getColumnModel()
+				ObjectField.id.getColumnModel(),
+				ObjectField.name.getColumnModel(),
+				ObjectField.createdOn.getColumnModel(),
+				ObjectField.createdBy.getColumnModel(),
+				ObjectField.etag.getColumnModel(),
+				ObjectField.modifiedOn.getColumnModel(),
+				ObjectField.modifiedBy.getColumnModel()
 				);
 		// call under test
 		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewTypeMask.Project.getMask());
@@ -830,13 +828,13 @@ public class TableManagerSupportTest {
 			}
 		}
 		List<ColumnModel> expected = Lists.newArrayList(
-				EntityField.id.getColumnModel(),
-				EntityField.name.getColumnModel(),
-				EntityField.createdOn.getColumnModel(),
-				EntityField.createdBy.getColumnModel(),
-				EntityField.etag.getColumnModel(),
-				EntityField.modifiedOn.getColumnModel(),
-				EntityField.modifiedBy.getColumnModel()
+				ObjectField.id.getColumnModel(),
+				ObjectField.name.getColumnModel(),
+				ObjectField.createdOn.getColumnModel(),
+				ObjectField.createdBy.getColumnModel(),
+				ObjectField.etag.getColumnModel(),
+				ObjectField.modifiedOn.getColumnModel(),
+				ObjectField.modifiedBy.getColumnModel()
 				);
 		// call under test
 		List<ColumnModel> results = manager.getDefaultTableViewColumns(typeMask);
@@ -851,7 +849,7 @@ public class TableManagerSupportTest {
 			typeMask |= type.getMask();
 		}
 		List<ColumnModel> expected = new LinkedList<ColumnModel>();
-		for(EntityField field: EntityField.values()){
+		for(ObjectField field: ObjectField.values()){
 			expected.add(field.getColumnModel());
 		}
 		// call under test

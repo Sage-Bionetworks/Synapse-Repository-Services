@@ -140,7 +140,7 @@ public class NodeManagerImpl implements NodeManager {
 		// Handle permission around file handles.
 		if(newNode.getFileHandleId() != null){
 			// To set the file handle on a create the caller must have permission 
-			authorizationManager.canAccessRawFileHandleById(userInfo, newNode.getFileHandleId(), ACCESS_TYPE.CREATE).checkAuthorizationOrElseThrow();
+			authorizationManager.canAccessRawFileHandleById(userInfo, newNode.getFileHandleId()).checkAuthorizationOrElseThrow();
 			
 			if (!authorizationManager.canAccess(userInfo, newNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD).isAuthorized()) {
 				throw new UnauthorizedException(userInfo.getId().toString()+" is not allowed to upload a file into the chosen folder.");
@@ -347,7 +347,7 @@ public class NodeManagerImpl implements NodeManager {
 			String currentHandleId = nodeDao.getFileHandleIdForVersion(updatedNode.getId(), null);
 			if(!updatedNode.getFileHandleId().equals(currentHandleId)) {
 				// This is a change so the user must be the creator of the new file handle
-				authorizationManager.canAccessRawFileHandleById(userInfo, updatedNode.getFileHandleId(), ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
+				authorizationManager.canAccessRawFileHandleById(userInfo, updatedNode.getFileHandleId()).checkAuthorizationOrElseThrow();
 				authorizationManager.canAccess(userInfo, updatedNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD).checkAuthorizationOrElseThrow();
 			}
 		}

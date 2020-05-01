@@ -39,11 +39,12 @@ import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.ViewScope;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -73,9 +74,9 @@ public class TableViewManagerImpl implements TableViewManager {
 	public static final String DEFAULT_ETAG = "DEFAULT";
 
 	public static final String PROJECT_TYPE_CANNOT_BE_COMBINED_WITH_ANY_OTHER_TYPE = "The Project type cannot be combined with any other type.";
-	public static final String ETG_COLUMN_MISSING = "The view schema must include '" + EntityField.etag.name()
+	public static final String ETG_COLUMN_MISSING = "The view schema must include '" + ObjectField.etag.name()
 			+ "' column.";
-	public static final String ETAG_MISSING_MESSAGE = "The '" + EntityField.etag.name()
+	public static final String ETAG_MISSING_MESSAGE = "The '" + ObjectField.etag.name()
 			+ "' must be included to update an Entity's annotations.";
 
 	/**
@@ -121,6 +122,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	public void setViewSchemaAndScope(UserInfo userInfo, List<String> schema, ViewScope scope, String viewIdString) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(scope, "scope");
+		ValidateArgument.required(scope.getObjectType(), "The scope objectType");
 		validateViewSchemaSize(schema);
 		Long viewId = KeyFactory.stringToKey(viewIdString);
 		IdAndVersion idAndVersion = IdAndVersion.parse(viewIdString);
@@ -128,17 +130,20 @@ public class TableViewManagerImpl implements TableViewManager {
 		if (scope.getScope() != null) {
 			scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scope.getScope()));
 		}
-		Long viewTypeMaks = ViewTypeMask.getViewTypeMask(scope);
-		if ((viewTypeMaks & ViewTypeMask.Project.getMask()) > 0) {
-			if (viewTypeMaks != ViewTypeMask.Project.getMask()) {
+		Long viewTypeMask = ViewTypeMask.getViewTypeMask(scope);
+		if ((viewTypeMask & ViewTypeMask.Project.getMask()) > 0) {
+			if (viewTypeMask != ViewTypeMask.Project.getMask()) {
 				throw new IllegalArgumentException(PROJECT_TYPE_CANNOT_BE_COMBINED_WITH_ANY_OTHER_TYPE);
 			}
 		}
-		// validate the scope size
-		tableManagerSupport.validateScopeSize(scopeIds, viewTypeMaks);
+		
+		ViewScopeType scopeType = new ViewScopeType(scope.getObjectType(), viewTypeMask);
 
+		// validate the scope size
+		tableManagerSupport.validateScopeSize(scopeIds, scopeType);
+		
 		// Define the scope of this view.
-		viewScopeDao.setViewScopeAndType(viewId, scopeIds, viewTypeMaks);
+		viewScopeDao.setViewScopeAndType(viewId, scopeIds, scopeType);
 		// Define the schema of this view.
 		columModelManager.bindColumnsToDefaultVersionOfObject(schema, viewIdString);
 		// trigger an update
@@ -238,7 +243,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	 */
 	public static ColumnModel getEtagColumn(List<ColumnModel> schema) {
 		for (ColumnModel cm : schema) {
-			if (EntityField.etag.name().equals(cm.getName())) {
+			if (ObjectField.etag.name().equals(cm.getName())) {
 				return cm;
 			}
 		}
@@ -258,7 +263,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		boolean updated = false;
 		// process each column of the view
 		for (ColumnModel column : tableSchema) {
-			EntityField matchedField = EntityField.findMatch(column);
+			ObjectField matchedField = ObjectField.findMatch(column);
 			// Ignore all entity fields.
 			if (matchedField == null) {
 				// is this column included in the row?
@@ -379,8 +384,8 @@ public class TableViewManagerImpl implements TableViewManager {
 	void applyChangesToAvailableViewHoldingLock(IdAndVersion viewId) {
 		try {
 			TableIndexManager indexManager = connectionFactory.connectToTableIndex(viewId);
-			Long viewTypeMask = tableManagerSupport.getViewTypeMask(viewId);
-			Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(viewId, viewTypeMask);
+			ViewScopeType scopeType = tableManagerSupport.getViewScopeType(viewId);
+			Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(viewId, scopeType);
 			List<ColumnModel> currentSchema = tableManagerSupport.getTableSchema(viewId);
 			Set<Long> rowsIdsWithChanges = null;
 			Set<Long> previousPageRowIdsWithChanges = Collections.emptySet();
@@ -391,7 +396,7 @@ public class TableViewManagerImpl implements TableViewManager {
 					// no point in continuing if the table is no longer available.
 					return;
 				}
-				rowsIdsWithChanges = indexManager.getOutOfDateRowsForView(viewId, viewTypeMask, allContainersInScope,  MAX_ROWS_PER_TRANSACTION);
+				rowsIdsWithChanges = indexManager.getOutOfDateRowsForView(viewId, scopeType, allContainersInScope,  MAX_ROWS_PER_TRANSACTION);
 				// Are thrashing on the same Ids?
 				Set<Long> intersectionWithPreviousPage = Sets.intersection(rowsIdsWithChanges,
 						previousPageRowIdsWithChanges);
@@ -404,7 +409,7 @@ public class TableViewManagerImpl implements TableViewManager {
 				
 				if (!rowsIdsWithChanges.isEmpty()) {
 					// update these rows in a new transaction.
-					indexManager.updateViewRowsInTransaction(viewId, rowsIdsWithChanges, viewTypeMask, allContainersInScope,
+					indexManager.updateViewRowsInTransaction(viewId, rowsIdsWithChanges, scopeType, allContainersInScope,
 							currentSchema);
 					previousPageRowIdsWithChanges = rowsIdsWithChanges;
 					tableManagerSupport.updateChangedOnIfAvailable(viewId);
@@ -500,12 +505,13 @@ public class TableViewManagerImpl implements TableViewManager {
 	long populateViewIndexFromReplication(IdAndVersion idAndVersion, TableIndexManager indexManager,
 			List<ColumnModel> viewSchema) {
 		// Look-up the type for this table.
-		Long viewTypeMask = tableManagerSupport.getViewTypeMask(idAndVersion);
+		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(idAndVersion);
+		
 		// Get the containers for this view.
 		Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion,
-				viewTypeMask);
-		return indexManager.populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask,
-				allContainersInScope, viewSchema);
+				scopeType);
+		
+		return indexManager.populateViewFromEntityReplication(idAndVersion.getId(), scopeType, allContainersInScope, viewSchema);
 	}
 
 	/**
@@ -547,10 +553,10 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * @throws FileNotFoundException
 	 * @throws UnsupportedEncodingException
 	 */
-	BucketAndKey createViewSnapshotAndUploadToS3(IdAndVersion idAndVersion, Long viewTypeMask,
+	BucketAndKey createViewSnapshotAndUploadToS3(IdAndVersion idAndVersion, ViewScopeType scopeType,
 			List<ColumnModel> viewSchema, Set<Long> allContainersInScope) {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
-		ValidateArgument.required(viewTypeMask, "viewTypeMask");
+		ValidateArgument.required(scopeType, "scopeType");
 		ValidateArgument.required(viewSchema, "viewSchema");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 
@@ -567,7 +573,7 @@ public class TableViewManagerImpl implements TableViewManager {
 					writer.writeNext(nextLine);
 				};
 				// write the snapshot to the temp file.
-				indexManager.createViewSnapshot(idAndVersion.getId(), viewTypeMask, allContainersInScope, viewSchema,
+				indexManager.createViewSnapshot(idAndVersion.getId(), scopeType, allContainersInScope, viewSchema,
 						writerAdapter);
 			}
 			// upload the resulting CSV to S3.
@@ -589,10 +595,10 @@ public class TableViewManagerImpl implements TableViewManager {
 	@Override
 	public long createSnapshot(UserInfo userInfo, String tableId, SnapshotRequest snapshotOptions) {
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
-		Long viewTypeMask = tableManagerSupport.getViewTypeMask(idAndVersion);
+		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(idAndVersion);
 		List<ColumnModel> viewSchema = getViewSchema(idAndVersion);
-		Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewTypeMask);
-		BucketAndKey bucketAndKey = createViewSnapshotAndUploadToS3(idAndVersion, viewTypeMask, viewSchema,
+		Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, scopeType);
+		BucketAndKey bucketAndKey = createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema,
 				allContainersInScope);
 		// create a new version
 		long snapshotVersion = nodeManager.createSnapshotAndVersion(userInfo, tableId, snapshotOptions);

@@ -8,7 +8,6 @@ import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.ANONYMOU
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
@@ -664,21 +663,6 @@ public class AuthorizationManagerImplTest {
 		// test access
 		boolean canAccess = authorizationManager.canAccessActivity(userInfo, activityId).isAuthorized();
 		assertTrue(canAccess);
-	}
-	
-	@Test
-	public void testCanAccessActivity_MissingRequiredScope() throws Exception {
-		// create an activity 
-		String activityId = activityManager.createActivity(userInfo, new Activity());
-		assertNotNull(activityId);
-		activitiesToDelete.add(activityId);
-		nodeCreatedByTestUser.setActivityId(activityId);
-		nodeManager.update(userInfo, nodeCreatedByTestUser, null, false);
-		userInfo.setScopes(Collections.EMPTY_LIST);
-		
-		// test access
-		boolean canAccess = authorizationManager.canAccessActivity(userInfo, activityId).isAuthorized();
-		assertFalse(canAccess);
 	}
 	
 	@Test

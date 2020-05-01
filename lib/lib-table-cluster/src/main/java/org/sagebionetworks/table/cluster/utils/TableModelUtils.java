@@ -233,16 +233,30 @@ public class TableModelUtils {
 			}
 			checkStringEnum(value, cm);
 			return value;
+		case INTEGER_LIST:
+		case DATE_LIST:
+		case BOOLEAN_LIST:
 		case STRING_LIST:
 			//make sure this is a valid JSON List (size limit, values
-			String listValue = (String) ColumnTypeInfo.STRING_LIST.parseValueForDatabaseWrite(value);
+			String listValue = (String) ColumnTypeInfo.getInfoForType(cm.getColumnType())
+					.parseValueForDatabaseWrite(value);
 
 			//validate values for each individual string in the list
-			for(Object listElem : new JSONArray(listValue)){
-				String strListElem = listElem.toString();
-				validateStringValueSize(strListElem, cm);
-				checkStringEnum(strListElem, cm);
+			JSONArray jsonArray = new JSONArray(listValue);
+			if (jsonArray.length() > cm.getMaximumListLength()) {
+				throw new IllegalArgumentException(
+						"Exceeds the maximum number of list elements defined in the ColumnModel ("+cm.getMaximumListLength()+"): \"" +
+								value + "\"");
 			}
+
+			if(cm.getColumnType() == ColumnType.STRING_LIST) {
+				for (Object listElem : jsonArray) {
+					String strListElem = listElem.toString();
+					validateStringValueSize(strListElem, cm);
+					checkStringEnum(strListElem, cm);
+				}
+			}
+			return listValue;
 		default:
 			// All other types are handled by the type specific parser.
 			ColumnTypeInfo info = ColumnTypeInfo.getInfoForType(cm.getColumnType());
@@ -681,7 +695,7 @@ public class TableModelUtils {
 		ValidateArgument.required(models, "models");
 		int size = 0;
 		for (ColumnModel cm : models) {
-			size += calculateMaxSizeForType(cm.getColumnType(), cm.getMaximumSize());
+			size += calculateMaxSizeForType(cm.getColumnType(), cm.getMaximumSize(), cm.getMaximumListLength());
 		}
 		return size;
 	}
@@ -700,7 +714,7 @@ public class TableModelUtils {
 				size += 64;
 			}else {
 				// we don't know the max size, now what?
-				size += calculateMaxSizeForType(scm.getColumnType(), ColumnConstants.MAX_ALLOWED_STRING_SIZE);
+				size += calculateMaxSizeForType(scm.getColumnType(), ColumnConstants.MAX_ALLOWED_STRING_SIZE, ColumnConstants.MAX_ALLOWED_LIST_LENGTH);
 			}
 		}
 		return size;
@@ -719,10 +733,14 @@ public class TableModelUtils {
 			// Lookup the column by name
 			ColumnModel column = nameToSchemaMap.get(scm.getName());
 			if(column != null){
-				size += calculateMaxSizeForType(column.getColumnType(), column.getMaximumSize());
+				size += calculateMaxSizeForType(column.getColumnType(),
+						column.getMaximumSize(),
+						column.getMaximumListLength());
 			}else{
 				// Since the size is unknown, the max allowed size is used.
-				size += calculateMaxSizeForType(scm.getColumnType(), ColumnConstants.MAX_ALLOWED_STRING_SIZE);
+				size += calculateMaxSizeForType(scm.getColumnType(),
+						ColumnConstants.MAX_ALLOWED_STRING_SIZE,
+						ColumnConstants.MAX_ALLOWED_LIST_LENGTH);
 			}
 		}
 		return size;
@@ -734,7 +752,7 @@ public class TableModelUtils {
 	 * @param cm
 	 * @return
 	 */
-	public static int calculateMaxSizeForType(ColumnType type, Long maxSize){
+	public static int calculateMaxSizeForType(ColumnType type, Long maxSize, Long maxListLength){
 		if(type == null) throw new IllegalArgumentException("ColumnType cannot be null");
 		switch (type) {
 			case STRING:
@@ -762,12 +780,22 @@ public class TableModelUtils {
 				if (maxSize == null) {
 					throw new IllegalArgumentException("maxSize cannot be null for String List types");
 				}
-				return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8 * maxSize * ListStringParser.MAX_NUMBER_OF_ITEMS_IN_LIST);
+				if(maxListLength == null){
+					throw new IllegalArgumentException("maxListLength cannot be null for List types");
+				}
+
+				return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8 * maxSize * maxListLength);
 			case INTEGER_LIST:
 			case DATE_LIST:
-				return ColumnConstants.MAX_INTEGER_BYTES_AS_STRING * ListStringParser.MAX_NUMBER_OF_ITEMS_IN_LIST;
+				if(maxListLength == null){
+					throw new IllegalArgumentException("maxListLength cannot be null for List types");
+				}
+				return (int) (ColumnConstants.MAX_INTEGER_BYTES_AS_STRING * maxListLength);
 			case BOOLEAN_LIST:
-				return ColumnConstants.MAX_BOOLEAN_BYTES_AS_STRING * ListStringParser.MAX_NUMBER_OF_ITEMS_IN_LIST;
+				if(maxListLength == null){
+					throw new IllegalArgumentException("maxListLength cannot be null for List types");
+				}
+				return (int) (ColumnConstants.MAX_BOOLEAN_BYTES_AS_STRING * maxListLength);
 		}
 		throw new IllegalArgumentException("Unknown ColumnType: " + type);
 		}

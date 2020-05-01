@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.table.AnnotationDTO;
+import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
@@ -252,14 +252,14 @@ class AnnotationsV2UtilsTest {
 		AnnotationsV2TestUtils.putAnnotations(annos, "aDouble", "1.22", AnnotationsValueType.DOUBLE);
 		AnnotationsV2TestUtils.putAnnotations(annos, "aDate", "444", AnnotationsValueType.TIMESTAMP_MS);
 
-		List<AnnotationDTO> expected = Lists.newArrayList(
-				new AnnotationDTO(entityId, "aString", AnnotationType.STRING, "someSt"),
-				new AnnotationDTO(entityId, "aLong", AnnotationType.LONG, "123"),
-				new AnnotationDTO(entityId, "aDouble", AnnotationType.DOUBLE, "1.22"),
-				new AnnotationDTO(entityId, "aDate", AnnotationType.DATE, "444")
+		List<ObjectAnnotationDTO> expected = Lists.newArrayList(
+				new ObjectAnnotationDTO(entityId, "aString", AnnotationType.STRING, "someSt"),
+				new ObjectAnnotationDTO(entityId, "aLong", AnnotationType.LONG, "123"),
+				new ObjectAnnotationDTO(entityId, "aDouble", AnnotationType.DOUBLE, "1.22"),
+				new ObjectAnnotationDTO(entityId, "aDate", AnnotationType.DATE, "444")
 		);
 
-		List<AnnotationDTO> results = AnnotationsV2Utils.translate(entityId, annos, maxAnnotationChars);
+		List<ObjectAnnotationDTO> results = AnnotationsV2Utils.translate(entityId, annos, maxAnnotationChars);
 		assertNotNull(results);
 
 		Assertions.assertEquals(expected, results);
@@ -274,7 +274,7 @@ class AnnotationsV2UtilsTest {
 		int maxAnnotationChars = 6;
 		Annotations annos = new Annotations();
 		AnnotationsV2TestUtils.putAnnotations(annos, "emptyList", Collections.emptyList(), AnnotationsValueType.STRING);
-		List<AnnotationDTO> results = AnnotationsV2Utils.translate(entityId, annos, maxAnnotationChars);
+		List<ObjectAnnotationDTO> results = AnnotationsV2Utils.translate(entityId, annos, maxAnnotationChars);
 		assertNotNull(results);
 		Assertions.assertEquals(0, results.size());
 	}
@@ -286,7 +286,7 @@ class AnnotationsV2UtilsTest {
 		Annotations annos = new Annotations();
 		AnnotationsV2TestUtils.putAnnotations(annos, "listWithNullValue", Collections.singletonList(null), AnnotationsValueType.STRING);
 
-		List<AnnotationDTO> results = AnnotationsV2Utils.translate(entityId, annos, maxAnnotationChars);
+		List<ObjectAnnotationDTO> results = AnnotationsV2Utils.translate(entityId, annos, maxAnnotationChars);
 		assertEquals(0, results.size());
 	}
 

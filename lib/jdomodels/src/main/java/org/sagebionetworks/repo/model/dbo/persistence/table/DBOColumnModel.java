@@ -7,24 +7,42 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_COLUMN_MODEL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_COLUMN_MODEL;
 
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
+import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.table.ColumnChange;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
+import org.sagebionetworks.util.TemporaryCode;
+
 /**
  * Database Object (DBO) for the Table Column Model.
  * @author John
  *
  */
 public class DBOColumnModel implements MigratableDatabaseObject<DBOColumnModel, DBOColumnModel> {
+
+	@TemporaryCode(author="ziming", comment = "one-time migration change. remove after stack 309")
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
+			.alias("ColumnModel", ColumnModel.class)
+			.alias("ColumnType", ColumnType.class)
+			.alias("ColumnChange", ColumnChange.class)
+			.allowTypes(ColumnModel.class, ColumnType.class, ColumnChange.class)
+			.build();
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_CM_ID, true).withIsBackupId(true),
@@ -116,7 +134,27 @@ public class DBOColumnModel implements MigratableDatabaseObject<DBOColumnModel, 
 
 	@Override
 	public MigratableTableTranslation<DBOColumnModel, DBOColumnModel> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOColumnModel>();
+		return new BasicMigratableTableTranslation<DBOColumnModel>(){
+			@TemporaryCode(author="ziming", comment = "one-time migration change. remove after stack 309")
+			@Override
+			public DBOColumnModel createDatabaseObjectFromBackup(DBOColumnModel backup) {
+				ColumnModel columnModel = ColumnModelUtils.createDTOFromDBO(backup);
+
+				if(ColumnTypeListMappings.isList(columnModel.getColumnType()) && columnModel.getMaximumListLength() == null){
+					columnModel.setId(null);
+					columnModel.setMaximumListLength(ColumnConstants.MAX_ALLOWED_LIST_LENGTH);
+					try {
+						backup.setBytes(JDOSecondaryPropertyUtils.compressObject(X_STREAM, columnModel));
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
+					String hash = ColumnModelUtils.calculateHash(columnModel);
+					backup.setHash(hash);
+				}
+
+				return backup;
+			}
+		};
 	}
 
 	@Override

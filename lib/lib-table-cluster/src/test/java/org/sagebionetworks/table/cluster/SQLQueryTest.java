@@ -646,7 +646,7 @@ public class SQLQueryTest {
 	@Test
 	public void testMaxRowSizeBytesCountStar() throws ParseException{
 		// the size is the size of an integer
-		int maxSizeSchema = TableModelUtils.calculateMaxSizeForType(ColumnType.INTEGER, null);
+		int maxSizeSchema = TableModelUtils.calculateMaxSizeForType(ColumnType.INTEGER, null, null);
 		SqlQuery translator = new SqlQueryBuilder("select count(*) from syn123", tableSchema).build();
 		assertEquals(maxSizeSchema, translator.getMaxRowSizeBytes());
 	}

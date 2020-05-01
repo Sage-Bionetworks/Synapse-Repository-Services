@@ -31,7 +31,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportRequest;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
 import org.sagebionetworks.repo.model.report.StorageReportType;
-import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.utils.ContentTypeUtil;
@@ -189,11 +189,11 @@ public class StorageReportCSVDownloadWorkerIntegrationTest {
 	 * @return
 	 * @throws InterruptedException
 	 */
-	private EntityDTO waitForEntityReplication(String entityId) throws InterruptedException{
+	private ObjectDataDTO waitForEntityReplication(String entityId) throws InterruptedException{
 		Entity entity = entityManager.getEntity(adminUserInfo, entityId);
 		TableIndexDAO indexDao = tableConnectionFactory.getFirstConnection();
 		while(true){
-			EntityDTO dto = indexDao.getObjectData(ObjectType.ENTITY, KeyFactory.stringToKey(entityId));
+			ObjectDataDTO dto = indexDao.getObjectData(ObjectType.ENTITY, KeyFactory.stringToKey(entityId));
 			if(dto == null || !dto.getEtag().equals(entity.getEtag())){
 				System.out.println("Waiting for entity replication. id: "+entityId+" etag: "+entity.getEtag());
 				Thread.sleep(1000);

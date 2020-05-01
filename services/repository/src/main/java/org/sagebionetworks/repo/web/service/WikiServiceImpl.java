@@ -147,9 +147,10 @@ public class WikiServiceImpl implements WikiService {
 	}
 
 	@Override
-	public WikiPageKey getRootWikiKey(UserInfo userInfo, String ownerId,
+	public WikiPageKey getRootWikiKey(Long userId, String ownerId,
 			ObjectType type) throws NotFoundException {
-		return v2WikiManager.getRootWikiKey(userInfo, ownerId, type);
+		UserInfo user = userManager.getUserInfo(userId);
+		return v2WikiManager.getRootWikiKey(user, ownerId, type);
 	}
 
 }

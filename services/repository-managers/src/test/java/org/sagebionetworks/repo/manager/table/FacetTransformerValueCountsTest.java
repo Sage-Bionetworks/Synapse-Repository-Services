@@ -62,6 +62,7 @@ public class FacetTransformerValueCountsTest {
 		stringListModel.setId("2");
 		stringListModel.setFacetType(FacetType.enumeration);
 		stringListModel.setMaximumSize(50L);
+		stringListModel.setMaximumListLength(24L);
 
 		schema = Arrays.asList(stringModel, stringListModel);
 
