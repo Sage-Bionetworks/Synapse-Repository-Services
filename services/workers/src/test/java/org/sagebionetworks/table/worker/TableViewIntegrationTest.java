@@ -1497,14 +1497,13 @@ public class TableViewIntegrationTest {
 
 		//set annotations for 2 files
 		Annotations fileAnnotation1 = entityManager.getAnnotations(adminUserInfo, fileIds.get(0));
-		//this annotation will exceed the limit
 		AnnotationsV2TestUtils.putAnnotations(fileAnnotation1, stringListColumn.getName(), Arrays.asList("val1", "val2"), AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileIds.get(0), fileAnnotation1);
 		waitForEntityReplication(fileViewId, fileIds.get(0));
 
 
 		assertEquals(fileCount, waitForConsistentQuery(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, fileCount).getQueryCount());
-
+		//this annotation will exceed the limit
 		Annotations fileAnnotation2 = entityManager.getAnnotations(adminUserInfo, fileIds.get(1));
 		AnnotationsV2TestUtils.putAnnotations(fileAnnotation2, stringListColumn.getName(), Arrays.asList("val2", "val3", "val1", "val4"), AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileIds.get(1), fileAnnotation2);
@@ -1574,6 +1573,45 @@ public class TableViewIntegrationTest {
 				waitForConsistentQuery(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, fileCount)
 		).getMessage();
 		assertEquals("maximumListLength for ColumnModel \"stringList\" must be at least: 3", error);
+	}
+
+
+	@Test
+	public void testEntityView_multipleValueColumnRoundTrip_updateRowGreaterThanMaxListLength() throws Exception {
+		defaultColumnIds.add(stringListColumn.getId());
+		createFileView();
+
+		assertTrue(fileCount >= 2, "setup() needs to create at least 2 entities for this test to work");
+
+		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
+
+		//set annotations for 2 files
+		Annotations fileAnnotation1 = entityManager.getAnnotations(adminUserInfo, fileIds.get(0));
+		AnnotationsV2TestUtils.putAnnotations(fileAnnotation1, stringListColumn.getName(), Arrays.asList("val1", "val2", "val3"), AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileIds.get(0), fileAnnotation1);
+
+		Annotations fileAnnotation2 = entityManager.getAnnotations(adminUserInfo, fileIds.get(1));
+		AnnotationsV2TestUtils.putAnnotations(fileAnnotation2, stringListColumn.getName(), Arrays.asList("val2", "val3"), AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileIds.get(1), fileAnnotation2);
+
+
+		waitForEntityReplication(fileViewId, fileIds.get(0));
+
+
+		QueryResultBundle result = waitForConsistentQuery(adminUserInfo, "select " + stringListColumn.getName() + " from " + fileViewId, fileCount);
+		assertEquals(fileCount, result.getQueryCount());
+
+		//update annotations via row changes to exceed maximumListLength
+		RowSet rowset = result.getQueryResult().getQueryResults();
+		rowset.getRows().get(0).setValues(Collections.singletonList("[\"val1\",\"val2\",\"val3\",\"val4\"]"));
+
+		// wait for the change to complete
+//		startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
+
+		String error = assertThrows(AsynchJobFailedException.class, () ->
+				updateView(rowset,fileViewId)
+		).getMessage();
+		assertEquals("Value at [0,16] was not a valid STRING_LIST. Exceeds the maximum number of list elements defined in the ColumnModel (3): \"[\"val1\",\"val2\",\"val3\",\"val4\"]\"", error);
 	}
 	
 	/**

@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_KEYS_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE;
@@ -86,6 +87,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
@@ -879,8 +881,17 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		return result;
 	}
 
-	@Override
-	public Map<String, Long> getMaxListSizeForAnnotations(ObjectType objectType, long viewId, long viewTypeMask, Set<Long> allContainersInScope,
+	/***
+	 * Get the maximum number of elements in a list for each annotation column
+	 * @param objectType
+	 * @param viewId
+	 * @param viewTypeMask
+	 * @param allContainersInScope
+	 * @param objectIdFilter
+	 * @return Map where the key is the columnId found in curentSchema,
+	 * and value is the maximum number of list elements for that annotation
+	 */
+	Map<String, Long> getMaxListSizeForAnnotations(ObjectType objectType, long viewId, long viewTypeMask, Set<Long> allContainersInScope,
 															Set<String> annotationNames, Set<Long> objectIdFilter){
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 		ValidateArgument.required(annotationNames, "annotationNames");
@@ -895,9 +906,44 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 		boolean filterByRows = objectIdFilter != null;
 		MapSqlParameterSource param = getMapSqlParameterSourceForCopyToView(objectType, allContainersInScope, objectIdFilter, filterByRows);
+		//additional param
+		param.addValue(ANNOTATION_KEYS_PARAM_NAME, annotationNames);
 		String sql = SQLUtils.createAnnotationMaxListLengthSQL(viewId,viewTypeMask, annotationNames, filterByRows);
-		return namedTemplate.queryForMap(sql, param).entrySet().stream()
-				.collect(Collectors.toMap(Map.Entry::getKey, entry -> (Long) entry.getValue()));
+		return namedTemplate.query(sql,param, resultSet -> {
+			Map<String, Long> result = new HashMap<>();
+			while(resultSet.next()){
+				result.put(resultSet.getString(1),resultSet.getLong(2));
+			}
+			return result;
+		});
+	}
+
+	void validateMaxListLengthInAnnotationReplication(ObjectType objectType, long viewId, long viewTypeMask,
+													  Set<Long> allContainersInScope, List<ColumnModel> currentSchema,
+													  Set<Long> objectIdFilter){
+		Map<String,Long> listAnnotationListLengthMaximum = currentSchema.stream()
+				.filter(cm -> ColumnTypeListMappings.isList(cm.getColumnType()))
+				.collect(Collectors.toMap(
+						ColumnModel::getName,
+						ColumnModel::getMaximumListLength
+				));
+		if(listAnnotationListLengthMaximum.isEmpty()){
+			//nothing to validate
+			return;
+		}
+
+		Map<String,Long> maxLengthsInReplication = this.getMaxListSizeForAnnotations(objectType, viewId,
+				viewTypeMask,allContainersInScope, listAnnotationListLengthMaximum.keySet(), objectIdFilter);
+
+		for(Map.Entry<String,Long> entry : listAnnotationListLengthMaximum.entrySet()){
+			String annotationName = entry.getKey();
+			long maxListLength = entry.getValue();
+			long maxLengthInReplication = maxLengthsInReplication.getOrDefault(annotationName,0L);
+			if(maxLengthInReplication > maxListLength){
+				throw new IllegalArgumentException("maximumListLength for ColumnModel \""
+						+ annotationName + "\" must be at least: " + maxLengthInReplication);
+			}
+		}
 	}
 
 	@Override
@@ -919,6 +965,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		if(rowIdsToCopy != null && rowIdsToCopy.isEmpty()) {
 			throw new IllegalArgumentException("When objectIdFilter is provided (not null) it cannot be empty");
 		}
+		// before updating. verify that all rows that would be changed won't exceed the user-specified maxListLength,
+		// which is used for query row size estimation
+		validateMaxListLengthInAnnotationReplication(objectType,viewId,viewTypeMask,allContainersInScope,currentSchema,rowIdsToCopy);
+
 		// Filter by rows only if provided.
 		boolean filterByRows = rowIdsToCopy != null;
 		MapSqlParameterSource param = getMapSqlParameterSourceForCopyToView(objectType, allContainersInScope, rowIdsToCopy, filterByRows);
