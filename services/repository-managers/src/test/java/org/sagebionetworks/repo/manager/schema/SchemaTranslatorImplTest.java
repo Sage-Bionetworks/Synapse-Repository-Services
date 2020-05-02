@@ -261,7 +261,7 @@ public class SchemaTranslatorImplTest {
 		FORMAT format = null;
 		// call under test
 		String result = translator.translateFormat(format);
-		assertEquals(FORMAT.DATE_TIME.getJSONValue(), result);
+		assertNull(result);
 	}
 	
 	//
