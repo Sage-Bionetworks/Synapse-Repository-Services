@@ -16,6 +16,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
@@ -882,51 +883,17 @@ public class SubmissionManagerImplTest {
 		});
 		verify(mockSubmissionDao, never()).getSubmissions(any(), any(), any(), any(), anyLong(), anyLong());
 	}
-	
-	private static ResearchProject createResearchProject(String id, String idu, String institution, String projectLead) {
-		ResearchProject result = new ResearchProject();
-		result.setId(id);
-		result.setIntendedDataUseStatement(idu);
-		result.setInstitution(institution);
-		result.setProjectLead(projectLead);
-		result.setModifiedOn(null); // note, there is no date info in one of these RPs!
-		result.setCreatedOn(null);
-		return result;
-	}
-	
-	private static Submission createSubmission(ResearchProject rp, Date modifiedOn) {
-		Submission result = new Submission();
-		result.setResearchProjectSnapshot(rp);
-		result.setModifiedOn(modifiedOn);
-		return result;
-	}
 
 	@Test
 	public void testListResearchProjectsForApprovedSubmissionsAuthorized() {
 		SubmissionInfoPageRequest request = new SubmissionInfoPageRequest();
 		request.setAccessRequirementId(accessRequirementId);
 		
-		ResearchProject rp1V1 = createResearchProject("id1", "idu1_v1", "inst1_v1", "lead1_v1");
-		long time1 = System.currentTimeMillis();
-		Submission s1 = createSubmission(rp1V1, new Date(time1));
+		List<SubmissionInfo> expected = new ArrayList<SubmissionInfo>();
+		expected.add(new SubmissionInfo());
 		
-		ResearchProject rp1V2 = createResearchProject("id1", "idu1_v2", "inst1_v2", "lead1_v2");
-		long time2 = time1+1000L;
-		Submission s2 = createSubmission(rp1V2, new Date(time2));
-		
-		ResearchProject rp2 = createResearchProject("id2", "idu2", "inst2", "lead2");
-		long time3 = time2+1;
-		Submission s3 = createSubmission(rp2, new Date(time3));
-		
-		// Note, they are returned from the DAO in the reverse order that
-		// the manager will return to the controller
-		List<Submission> list = ImmutableList.of(s3,s2,s1);
-		
-		
-		when(mockSubmissionDao.getSubmissions(accessRequirementId,
-				SubmissionState.APPROVED, SubmissionOrder.CREATED_ON,
-				false, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET)).thenReturn(list);
-		
+		when(mockSubmissionDao.listInfoForApprovedSubmissions(accessRequirementId, 
+				NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET)).thenReturn(expected);
 		
 		// call under test
 		SubmissionInfoPage page = manager.listInfoForApprovedSubmissions(request);
@@ -934,23 +901,12 @@ public class SubmissionManagerImplTest {
 		assertNotNull(page);
 		
 		List<SubmissionInfo> actual = page.getResults();
-		assertEquals(2, actual.size()); // s1 is left out because it has the same RP ID as s2
-		SubmissionInfo a1 = actual.get(0);
-		// 'a1' should have the info from 's2'
-		assertEquals(s2.getModifiedOn().getTime(), a1.getModifiedOn().getTime());
-		assertEquals(rp1V2.getIntendedDataUseStatement(), a1.getIntendedDataUseStatement());
-		assertEquals(rp1V2.getInstitution(), a1.getInstitution());
-		assertEquals(rp1V2.getProjectLead(), a1.getProjectLead());
-		// 'a2' should have the info from 's3'
-		SubmissionInfo a2 = actual.get(1);
-		assertEquals(s3.getModifiedOn().getTime(), a2.getModifiedOn().getTime());
-		assertEquals(rp2.getIntendedDataUseStatement(), a2.getIntendedDataUseStatement());
-		assertEquals(rp2.getInstitution(), a2.getInstitution());
-		assertEquals(rp2.getProjectLead(), a2.getProjectLead());
+		assertEquals(expected, actual);
+		// in this test we've returned the last page, so the next page token will be null
+		assertNull(page.getNextPageToken());
 
-		verify(mockSubmissionDao).getSubmissions(accessRequirementId,
-				SubmissionState.APPROVED, SubmissionOrder.CREATED_ON,
-				false, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET);
+		verify(mockSubmissionDao).listInfoForApprovedSubmissions(accessRequirementId,
+				NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET);
 	}
 
 	@Test
