@@ -876,10 +876,11 @@ public class JsonSchemaDaoImplTest {
 	public void testPropertyOrderPreserved() {
 		// Setup the schema with properties in a specific order
 		LinkedHashMap<String, JsonSchema> properties = new LinkedHashMap<String, JsonSchema>(4);
-		properties.put("a", createSchemaWithDescription("value of a"));
-		properties.put("b", createSchemaWithDescription("value of b"));
-		properties.put("c", createSchemaWithDescription("value of c"));
-		properties.put("d", createSchemaWithDescription("value of d"));
+		properties.put("one", createSchemaWithDescription("value of 1"));
+		properties.put("two", createSchemaWithDescription("value of 2"));
+		properties.put("three", createSchemaWithDescription("value of 3"));
+		properties.put("four", createSchemaWithDescription("value of 4"));
+		properties.put("five", createSchemaWithDescription("value of 5"));
 		JsonSchema schemaWihtOrderedProperties = new JsonSchema();
 		schemaWihtOrderedProperties.setProperties(properties);
 		String schemaName = "preservePropertyOrder";
@@ -898,7 +899,7 @@ public class JsonSchemaDaoImplTest {
 		String loadedSHA256 = new NormalizedJsonSchema(loaded).getSha256Hex();
 		assertEquals(startSHA256, loadedSHA256);
 		List<String> keyOrder = loaded.getProperties().keySet().stream().collect(Collectors.toList());
-		List<String> expectedKeyOrder = Lists.newArrayList("a","b","c","d");
+		List<String> expectedKeyOrder = Lists.newArrayList("one","two","three","four", "five");
 		assertEquals(expectedKeyOrder, keyOrder);
 	}
 
