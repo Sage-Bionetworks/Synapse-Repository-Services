@@ -15,7 +15,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
@@ -354,7 +354,7 @@ public interface TableManagerSupport {
 	 * @param field
 	 * @return
 	 */
-	ColumnModel getColumnModel(EntityField field);
+	ColumnModel getColumnModel(ObjectField field);
 
 	/**
 	 * Get the default ColumnModels for a view based on the viewTypeMask.

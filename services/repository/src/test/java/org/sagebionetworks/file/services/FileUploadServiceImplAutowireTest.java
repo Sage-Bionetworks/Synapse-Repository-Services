@@ -13,10 +13,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.file.MultipartManager;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -26,7 +24,6 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
@@ -83,9 +80,6 @@ public class FileUploadServiceImplAutowireTest {
 
 	@Autowired
 	private SynapseS3Client s3Client;
-	
-	@Autowired
-	private UserManager userManager;
 
 	private List<Entity> entitiesToDelete;
 	private List<S3FileHandle> fileHandlesToDelete;
@@ -95,7 +89,6 @@ public class FileUploadServiceImplAutowireTest {
 	private Long userId;
 	private String username;
 	private Long user2Id;
-	private UserInfo userInfo;
 
 	@BeforeEach
 	public void beforeEach() throws Exception {
@@ -121,14 +114,12 @@ public class FileUploadServiceImplAutowireTest {
 		EntityId user2EntityId = adminService.createOrGetTestUser(adminUserId, user2);
 		user2Id = Long.valueOf(user2EntityId.getId());
 		certifiedUserService.setUserCertificationStatus(adminUserId, user2Id, true);
-		
-		userInfo = userManager.getUserInfo(userId);
 
 		// Set up test project.
 		Project project = new Project();
 		String projectName = "project" + new Random().nextInt();
 		project.setName(projectName);
-		project = entityService.createEntity(userInfo, project, null);
+		project = entityService.createEntity(userId, project, null);
 		entitiesToDelete.add(project);
 		projectId = project.getId();
 
@@ -141,9 +132,9 @@ public class FileUploadServiceImplAutowireTest {
 		user2Access.setPrincipalId(user2Id);
 		user2Access.setAccessType(EnumSet.of(ACCESS_TYPE.CREATE, ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE));
 
-		AccessControlList acl = entityService.getEntityACL(projectId, userInfo);
+		AccessControlList acl = entityService.getEntityACL(projectId, userId);
 		acl.setResourceAccess(ImmutableSet.of(userAccess, user2Access));
-		entityService.updateEntityACL(userInfo, acl);
+		entityService.updateEntityACL(userId, acl);
 	}
 
 	@AfterEach
@@ -248,12 +239,12 @@ public class FileUploadServiceImplAutowireTest {
 		// Create folders for the project.
 		Folder synapseFolder = new Folder();
 		synapseFolder.setParentId(projectId);
-		synapseFolder = entityService.createEntity(userInfo, synapseFolder, null);
+		synapseFolder = entityService.createEntity(userId, synapseFolder, null);
 		entitiesToDelete.add(synapseFolder);
 
 		Folder externalS3Folder = new Folder();
 		externalS3Folder.setParentId(projectId);
-		externalS3Folder = entityService.createEntity(userInfo, externalS3Folder, null);
+		externalS3Folder = entityService.createEntity(userId, externalS3Folder, null);
 		entitiesToDelete.add(externalS3Folder);
 
 		// Add storage locations to the folders.
@@ -276,13 +267,13 @@ public class FileUploadServiceImplAutowireTest {
 		FileEntity synapseFileEntity = new FileEntity();
 		synapseFileEntity.setDataFileHandleId(synapseFileHandle.getId());
 		synapseFileEntity.setParentId(synapseFolder.getId());
-		synapseFileEntity = entityService.createEntity(userInfo, synapseFileEntity, null);
+		synapseFileEntity = entityService.createEntity(userId, synapseFileEntity, null);
 		entitiesToDelete.add(synapseFileEntity);
 
 		FileEntity externalS3FileEntity = new FileEntity();
 		externalS3FileEntity.setDataFileHandleId(externalS3FileHandle.getId());
 		externalS3FileEntity.setParentId(externalS3Folder.getId());
-		externalS3FileEntity = entityService.createEntity(userInfo, externalS3FileEntity, null);
+		externalS3FileEntity = entityService.createEntity(userId, externalS3FileEntity, null);
 		entitiesToDelete.add(externalS3FileEntity);
 
 		// Create a file handle and file entity in the default storage location (such as project root).
@@ -298,7 +289,7 @@ public class FileUploadServiceImplAutowireTest {
 		FileEntity nonStsFileEntity = new FileEntity();
 		nonStsFileEntity.setDataFileHandleId(nonStsFileHandle.getId());
 		nonStsFileEntity.setParentId(projectId);
-		nonStsFileEntity = entityService.createEntity(userInfo, nonStsFileEntity, null);
+		nonStsFileEntity = entityService.createEntity(userId, nonStsFileEntity, null);
 		entitiesToDelete.add(nonStsFileEntity);
 	}
 
@@ -308,12 +299,12 @@ public class FileUploadServiceImplAutowireTest {
 		// Create folders for the project.
 		Folder folderA = new Folder();
 		folderA.setParentId(projectId);
-		folderA = entityService.createEntity(userInfo, folderA, null);
+		folderA = entityService.createEntity(userId, folderA, null);
 		entitiesToDelete.add(folderA);
 
 		Folder folderB = new Folder();
 		folderB.setParentId(projectId);
-		folderB = entityService.createEntity(userInfo, folderB, null);
+		folderB = entityService.createEntity(userId, folderB, null);
 		entitiesToDelete.add(folderB);
 
 		// Create a file handle.
@@ -333,11 +324,11 @@ public class FileUploadServiceImplAutowireTest {
 		FileEntity fileEntity = new FileEntity();
 		fileEntity.setDataFileHandleId(fileHandle.getId());
 		fileEntity.setParentId(folderA.getId());
-		fileEntity = entityService.createEntity(userInfo, fileEntity, null);
+		fileEntity = entityService.createEntity(userId, fileEntity, null);
 		entitiesToDelete.add(fileEntity);
 
 		// User2 can move the FileEntity to Folder B.
 		fileEntity.setParentId(folderB.getId());
-		entityService.updateEntity(userInfo, fileEntity, false, null);
+		entityService.updateEntity(user2Id, fileEntity, false, null);
 	}
 }

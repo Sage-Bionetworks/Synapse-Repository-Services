@@ -15,7 +15,7 @@ import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -529,7 +529,7 @@ public interface NodeDAO {
 	 * @param maxAnnotationChars the maximum number of characters for any annotation value.
 	 * @return
 	 */
-	public List<EntityDTO> getEntityDTOs(List<String> ids, int maxAnnotationChars);
+	public List<ObjectDataDTO> getEntityDTOs(List<String> ids, int maxAnnotationChars);
 
 	/**
 	 * 

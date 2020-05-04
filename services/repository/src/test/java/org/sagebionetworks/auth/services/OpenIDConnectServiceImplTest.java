@@ -4,12 +4,8 @@ package org.sagebionetworks.auth.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -21,22 +17,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
-import org.sagebionetworks.repo.model.UnauthenticatedException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
 import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCSubjectIdentifierType;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
-
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Header;
-import io.jsonwebtoken.JwsHeader;
-import io.jsonwebtoken.Jwt;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.impl.DefaultJws;
-import io.jsonwebtoken.impl.DefaultJwsHeader;
 
 @ExtendWith(MockitoExtension.class)
 public class OpenIDConnectServiceImplTest {
@@ -91,45 +77,12 @@ public class OpenIDConnectServiceImplTest {
 	
 	@Test
 	public void testGetUserInfo() throws Exception {
-		when(oidcTokenHelper.parseJWT(any(String.class))).thenReturn(new DefaultJws<Claims>(null, null, null));
-
-		Claims claims = Jwts.claims();
-		claims.put("foo", "bar");
-		String clientId="101";
-		claims.setAudience(clientId);
-		String accessToken = Jwts.builder().setClaims(claims).
-				setHeaderParam(Header.TYPE, Header.JWT_TYPE).compact();
+		String accessToken = "acess token";
 		
-		Jwt<JwsHeader, Claims> parsedToken = new DefaultJws<Claims>(new DefaultJwsHeader(), claims, "signature");
-		when(oidcTokenHelper.parseJWT(accessToken)).thenReturn(parsedToken);
-		
-		UserInfo userAuthorization = new UserInfo(false);
-		when(oidcManager.getUserAuthorization(accessToken)).thenReturn(userAuthorization);
-
 		// method under test
 		oidcServiceImpl.getUserInfo(accessToken, OAUTH_ENDPOINT);
 		
-		verify(oidcManager).getUserAuthorization(accessToken);
-		verify(oidcTokenHelper).parseJWT(accessToken);
-		verify(oidcManager).getUserInfo(userAuthorization, clientId, OAUTH_ENDPOINT);
+		verify(oidcManager).getUserInfo(accessToken, OAUTH_ENDPOINT);
 	}
-	
-	@Test
-	public void testGetUserInfo_badToken() throws Exception {
-		Claims claims = Jwts.claims();
-		claims.put("foo", "bar");
-		String clientId="101";
-		claims.setAudience(clientId);
-		String accessToken = Jwts.builder().setClaims(claims).
-				setHeaderParam(Header.TYPE, Header.JWT_TYPE).compact();
 
-		UserInfo userAuthorization = new UserInfo(false);
-		when(oidcManager.getUserAuthorization(accessToken)).thenThrow(new UnauthenticatedException("bad token"));
-
-		assertThrows(UnauthenticatedException.class, ()->oidcServiceImpl.getUserInfo(accessToken, OAUTH_ENDPOINT));
-
-		verify(oidcManager).getUserAuthorization(accessToken);
-		verify(oidcTokenHelper, never()).parseJWT(accessToken);
-		verify(oidcManager, never()).getUserInfo(userAuthorization, clientId, OAUTH_ENDPOINT);
-	}
 }

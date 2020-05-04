@@ -33,11 +33,11 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.DeprecatedServiceException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -457,7 +457,7 @@ public class EvaluationController {
 	@RequestMapping(value = UrlHelpers.SUBMISSION, method = RequestMethod.POST)
 	public @ResponseBody
 	Submission createSubmission(
-			UserInfo userInfo,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = AuthorizationConstants.ETAG_PARAM, required = false) String entityEtag,
 			@RequestParam(value = AuthorizationConstants.SUBMISSION_ELIGIBILITY_HASH_PARAM, required = false) String submissionEligibilityHash,
 			@RequestParam(value = AuthorizationConstants.CHALLENGE_ENDPOINT_PARAM, defaultValue = ServiceConstants.CHALLENGE_ENDPOINT) String challengeEndpoint,
@@ -466,7 +466,7 @@ public class EvaluationController {
 			) throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException, UnauthorizedException, ACLInheritanceException, ParseException
 	{
 		return serviceProvider.getEvaluationService().createSubmission(
-				userInfo, submission, entityEtag, submissionEligibilityHash, challengeEndpoint, notificationUnsubscribeEndpoint);
+				userId, submission, entityEtag, submissionEligibilityHash, challengeEndpoint, notificationUnsubscribeEndpoint);
 	}
 
 	@Deprecated

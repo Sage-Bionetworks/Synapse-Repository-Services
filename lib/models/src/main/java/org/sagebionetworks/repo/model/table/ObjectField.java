@@ -19,12 +19,9 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import java.util.LinkedList;
 import java.util.List;
 /**
- * Enumeration that maps the columns of a ENTITY_REPLICATION to both the database and column model. 
- *
- *@deprecated We need to generalize this so that it works for any registered OBJECT_TYPE
+ * Enumeration that maps the columns of a OBJECT_REPLICATION to both the database and column model. 
  */
-@Deprecated
-public enum EntityField {
+public enum ObjectField {
 	
 	id					(OBJECT_REPLICATION_COL_OBJECT_ID, 		ColumnType.ENTITYID, 		null,	null),
 	name				(OBJECT_REPLICATION_COL_NAME,			ColumnType.STRING,			256L,	null),
@@ -42,10 +39,10 @@ public enum EntityField {
 	dataFileSizeBytes	(OBJECT_REPLICATION_COL_FILE_SIZE_BYTES,ColumnType.INTEGER,			null,	null),
 	dataFileMD5Hex		(OBJECT_REPLICATION_COL_FILE_MD5,		ColumnType.STRING,			100L,	null);
 	
-	String databaseColumnName;
-	ColumnType colunmType;
-	Long size;
-	FacetType facetType;
+	private String databaseColumnName;
+	private ColumnType colunmType;
+	private Long size;
+	private FacetType facetType;
 	
 	/**
 	 * Defines each enum value.
@@ -56,7 +53,7 @@ public enum EntityField {
 	 * @param size
 	 * @param facetType
 	 */
-	private EntityField(String columnName, ColumnType type, Long size, FacetType facetType){
+	private ObjectField(String columnName, ColumnType type, Long size, FacetType facetType){
 		this.databaseColumnName = columnName;
 		this.colunmType = type;
 		this.size = size;
@@ -90,7 +87,7 @@ public enum EntityField {
 	 */
 	public static List<ColumnModel> getAllColumnModels(){
 		List<ColumnModel> list = new LinkedList<ColumnModel>();
-		for(EntityField field: EntityField.values()){
+		for(ObjectField field: ObjectField.values()){
 			list.add(field.getColumnModel());
 		}
 		return list;
@@ -130,8 +127,8 @@ public enum EntityField {
 	 * @param cm
 	 * @return Returns null if there is no match.
 	 */
-	public static EntityField findMatch(ColumnModel cm){
-		for(EntityField field: EntityField.values()){
+	public static ObjectField findMatch(ColumnModel cm){
+		for(ObjectField field: ObjectField.values()){
 			if(field.isMatch(cm)){
 				return field;
 			}
@@ -146,7 +143,7 @@ public enum EntityField {
 	 * @param toMatch
 	 * @return Returns null if no match is found.
 	 */
-	public static ColumnModel findMatch(List<ColumnModel> columns, EntityField toMatch){
+	public static ColumnModel findMatch(List<ColumnModel> columns, ObjectField toMatch){
 		for(ColumnModel cm: columns){
 			if(toMatch.isMatch(cm)){
 				return cm;

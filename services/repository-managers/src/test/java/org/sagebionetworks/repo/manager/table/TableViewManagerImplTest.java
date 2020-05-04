@@ -75,7 +75,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
@@ -224,7 +224,7 @@ public class TableViewManagerImplTest {
 		intListColumn.setId("4");
 
 		
-		etagColumn = EntityField.etag.getColumnModel();
+		etagColumn = ObjectField.etag.getColumnModel();
 		etagColumn.setId("3");
 		
 		viewSchema = new LinkedList<ColumnModel>();
@@ -359,9 +359,9 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testGetViewSchemaWithRequiredColumnsNoAdditions(){
 		List<ColumnModel> rawSchema = Lists.newArrayList(
-				EntityField.benefactorId.getColumnModel(),
-				EntityField.createdBy.getColumnModel(),
-				EntityField.etag.getColumnModel()
+				ObjectField.benefactorId.getColumnModel(),
+				ObjectField.createdBy.getColumnModel(),
+				ObjectField.etag.getColumnModel()
 				);
 		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(rawSchema);
 		// call under test
@@ -372,18 +372,18 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testGetViewSchema(){
 		List<ColumnModel> rawSchema = Lists.newArrayList(
-				EntityField.createdBy.getColumnModel(),
-				EntityField.createdOn.getColumnModel(),
-				EntityField.benefactorId.getColumnModel()
+				ObjectField.createdBy.getColumnModel(),
+				ObjectField.createdOn.getColumnModel(),
+				ObjectField.benefactorId.getColumnModel()
 				);
 		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(rawSchema);
 		// call under test
 		List<ColumnModel> result = manager.getViewSchema(idAndVersion);
 		
 		List<ColumnModel> expected = Lists.newArrayList(
-				EntityField.createdBy.getColumnModel(),
-				EntityField.createdOn.getColumnModel(),
-				EntityField.benefactorId.getColumnModel()
+				ObjectField.createdBy.getColumnModel(),
+				ObjectField.createdOn.getColumnModel(),
+				ObjectField.benefactorId.getColumnModel()
 				);
 		assertEquals(expected, result);
 	}
@@ -394,7 +394,7 @@ public class TableViewManagerImplTest {
 		change.setOldColumnId(null);
 		change.setNewColumnId("456");
 		List<ColumnChange> changes = Lists.newArrayList(change);
-		ColumnModel model = EntityField.benefactorId.getColumnModel();
+		ColumnModel model = ObjectField.benefactorId.getColumnModel();
 		model.setId(change.getNewColumnId());
 		List<ColumnModel> schema = Lists.newArrayList(model);
 		List<String> newColumnIds = Lists.newArrayList(change.getNewColumnId());
@@ -419,7 +419,7 @@ public class TableViewManagerImplTest {
 		change.setOldColumnId(null);
 		change.setNewColumnId("456");
 		List<ColumnChange> changes = Lists.newArrayList(change);
-		ColumnModel model = EntityField.benefactorId.getColumnModel();
+		ColumnModel model = ObjectField.benefactorId.getColumnModel();
 		model.setId(change.getNewColumnId());
 		// the new schema should be over the limit
 		List<String> newSchemaColumnIds = new LinkedList<>();
@@ -442,7 +442,7 @@ public class TableViewManagerImplTest {
 	public void testUpdateAnnotationsFromValues(){
 		Annotations annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
 		Map<String, String> values = new HashMap<>();
-		values.put(EntityField.etag.name(), "anEtag");
+		values.put(ObjectField.etag.name(), "anEtag");
 		values.put(anno1.getId(), "aString");
 		values.put(anno2.getId(), "123");
 		// call under test
@@ -455,7 +455,7 @@ public class TableViewManagerImplTest {
 		assertEquals("123",AnnotationsV2Utils.getSingleValue(anno2Value));
 		assertEquals(AnnotationsValueType.LONG, anno2Value.getType());
 		// etag should not be included.
-		assertNull(AnnotationsV2Utils.getSingleValue(annos, EntityField.etag.name()));
+		assertNull(AnnotationsV2Utils.getSingleValue(annos, ObjectField.etag.name()));
 	}
 
 	@Test
@@ -466,7 +466,7 @@ public class TableViewManagerImplTest {
 
 		Annotations annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
 		Map<String, String> values = new HashMap<>();
-		values.put(EntityField.etag.name(), "anEtag");
+		values.put(ObjectField.etag.name(), "anEtag");
 		values.put(anno1.getId(), "[\"asdf\", \"qwerty\"]");
 		values.put(intListColumn.getId(), "[123, 456, 789]");
 		// call under test
@@ -479,7 +479,7 @@ public class TableViewManagerImplTest {
 		assertEquals(Arrays.asList("123", "456", "789"),intListValue.getValue());
 		assertEquals(AnnotationsValueType.LONG, intListValue.getType());
 		// etag should not be included.
-		assertNull(AnnotationsV2Utils.getSingleValue(annos, EntityField.etag.name()));
+		assertNull(AnnotationsV2Utils.getSingleValue(annos, ObjectField.etag.name()));
 	}
 
 	@Test
@@ -517,7 +517,7 @@ public class TableViewManagerImplTest {
 		AnnotationsV2TestUtils.putAnnotations(annos, anno2.getName(), "not a long", AnnotationsValueType.STRING);
 		// update the values.
 		Map<String, String> values = new HashMap<>();
-		values.put(EntityField.etag.name(), "anEtag");
+		values.put(ObjectField.etag.name(), "anEtag");
 		values.put(anno1.getId(), "aString");
 		values.put(anno2.getId(), "123");
 		// call under test
@@ -533,7 +533,7 @@ public class TableViewManagerImplTest {
 		assertEquals(AnnotationsValueType.LONG, anno2Value.getType());
 
 		// etag should not be included.
-		assertNull(AnnotationsV2Utils.getSingleValue(annos, EntityField.etag.name()));
+		assertNull(AnnotationsV2Utils.getSingleValue(annos, ObjectField.etag.name()));
 	}
 	
 	/**

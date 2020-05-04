@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -27,7 +25,6 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
-import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -184,37 +181,11 @@ public class UserManagerImpl implements UserManager {
 		return getUserInfo(principalId);
 	}
 
-	/**
-	 * Get UserInfo with full scope (no identity claims)
-	 * This is used by legacy services that are authorized with a full-scope session token
-	 * (rather than a limited scope OAuth access token)
-	 * 
-	 * @param principalId
-	 * @return
-	 * @throws NotFoundException
-	 */
 	@Override
 	public UserInfo getUserInfo(Long principalId) throws NotFoundException {
-		Set<Long> groups = getUserGroups(principalId);
-		// Check to see if the user is an Admin
-		boolean isAdmin = false;
-		// If the user belongs to the admin group they are an admin
-		if(groups.contains(TeamConstants.ADMINISTRATORS_TEAM_ID)){
-			isAdmin = true;
-		}
-		UserInfo ui = new UserInfo(isAdmin);
-		ui.setId(principalId);
-		// Put all the pieces together
-		ui.setGroups(groups);
-		ui.setScopes(Arrays.asList(OAuthScope.values())); // all scopes
-		ui.setOidcClaims(Collections.EMPTY_MAP); // no identity claims
-		return ui;
-	}
-	
-	public Set<Long> getUserGroups(Long principalId) throws NotFoundException {
 		UserGroup principal = userGroupDAO.get(principalId);
 		if(!principal.getIsIndividual()) throw new IllegalArgumentException("Principal: "+principalId+" is not a User");
-
+		// Lookup the user's name
 		// Check which group(s) of Anonymous, Public, or Authenticated the user belongs to  
 		Set<Long> groups = new HashSet<Long>();
 		boolean isUserAnonymous = AuthorizationUtils.isUserAnonymous(principalId);
@@ -234,7 +205,18 @@ public class UserManagerImpl implements UserManager {
 			groups.add(Long.parseLong(ug.getId()));
 		}
 
-		return groups;
+		// Check to see if the user is an Admin
+		boolean isAdmin = false;
+		// If the user belongs to the admin group they are an admin
+		if(groups.contains(TeamConstants.ADMINISTRATORS_TEAM_ID)){
+			isAdmin = true;
+		}
+		UserInfo ui = new UserInfo(isAdmin);
+		ui.setId(principalId);
+		ui.setCreationDate(principal.getCreationDate());
+		// Put all the pieces together
+		ui.setGroups(groups);
+		return ui;
 	}
 
 	@WriteTransaction

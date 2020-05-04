@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.table.parser;
 
-import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.sagebionetworks.util.doubles.DoubleUtils;
 
 

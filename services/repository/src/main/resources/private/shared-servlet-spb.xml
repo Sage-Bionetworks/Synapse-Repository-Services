@@ -44,11 +44,6 @@
 				<ref bean="objectTypeSerializer" />
 			</list>
 		</property>
-         <property name="customArgumentResolvers">
-         <list>
-             <bean id="userInfoMethodArgumentResolver" class="org.sagebionetworks.repo.web.UserInfoMethodArgumentResolver"/>           
-         </list>         
-         </property>
     </bean>
 	<!-- Setup our own JSON processing. -->
 	<bean id="platformExceptionHandlers"

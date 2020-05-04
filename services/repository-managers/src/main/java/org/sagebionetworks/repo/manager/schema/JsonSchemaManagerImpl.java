@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import java.util.Date;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.manager.PermissionsManagerUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -179,10 +180,9 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		Organization organization = organizationDao.getOrganizationByName(schemaId.getOrganizationName().toString());
 		aclDao.canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.CREATE)
 				.checkAuthorizationOrElseThrow();
-		
-		JsonSchemaVersionInfo info = jsonSchemaDao.createNewSchemaVersion(
-				new NewSchemaVersionRequest().withOrganizationId(organization.getId()).withCreatedBy(user.getId())
-						.withSchemaName(schemaNameString).withSemanticVersion(semanticVersionString).withJsonSchema(request.getSchema()));
+		NewSchemaVersionRequest newVersionRequest = new NewSchemaVersionRequest().withOrganizationId(organization.getId()).withCreatedBy(user.getId())
+				.withSchemaName(schemaNameString).withSemanticVersion(semanticVersionString).withJsonSchema(request.getSchema());
+		JsonSchemaVersionInfo info = jsonSchemaDao.createNewSchemaVersion(newVersionRequest);
 
 		CreateSchemaResponse response = new CreateSchemaResponse();
 		response.setNewVersionInfo(info);
@@ -195,11 +195,12 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		ValidateArgument.required(schemaName, "schemaName");
 		organizationName = organizationName.trim();
 		schemaName = schemaName.trim();
+		semanticVersion = StringUtils.trimToNull(semanticVersion);
 		String versionId = null;
-		if(semanticVersion == null || semanticVersion.trim().isEmpty()) {
+		if(semanticVersion == null) {
 			versionId = jsonSchemaDao.getLatestVersionId(organizationName, schemaName);
 		}else {
-			versionId = jsonSchemaDao.getVersionId(organizationName, schemaName, semanticVersion.trim());
+			versionId = jsonSchemaDao.getVersionId(organizationName, schemaName, semanticVersion);
 		}
 		return jsonSchemaDao.getSchema(versionId);
 	}

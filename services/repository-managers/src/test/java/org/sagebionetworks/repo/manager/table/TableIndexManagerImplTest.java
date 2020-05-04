@@ -1,4 +1,5 @@
 package org.sagebionetworks.repo.manager.table;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -19,6 +20,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -31,6 +33,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,7 +57,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -517,7 +520,7 @@ public class TableIndexManagerImplTest {
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		// call under test
-		Long resultCrc = manager.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
+		Long resultCrc = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
 		assertEquals(crc32, resultCrc);
 		verify(mockIndexDao).copyEntityReplicationToView(scopeType.getObjectType(), tableId.getId(), scopeType.getTypeMask(), scope, schema);
 		// the CRC should be calculated with the etag column.
@@ -531,7 +534,7 @@ public class TableIndexManagerImplTest {
 	public void testPopulateViewFromEntityReplicationMissingEtagColumn(){
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
-		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
+		ColumnModel etagColumn = ObjectField.findMatch(schema, ObjectField.etag);
 		// remove the etag column
 		schema.remove(etagColumn);
 		// call under test
@@ -545,7 +548,7 @@ public class TableIndexManagerImplTest {
 	public void testPopulateViewFromEntityReplicationMissingBenefactorColumn(){
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
-		ColumnModel benefactorColumn = EntityField.findMatch(schema, EntityField.benefactorId);
+		ColumnModel benefactorColumn = ObjectField.findMatch(schema, ObjectField.benefactorId);
 		// remove the benefactor column
 		schema.remove(benefactorColumn);
 		// call under test
@@ -590,7 +593,7 @@ public class TableIndexManagerImplTest {
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		// call under test
-		Long resultCrc = manager.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
+		Long resultCrc = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
 		assertEquals(crc32, resultCrc);
 		verify(mockIndexDao).copyEntityReplicationToView(scopeType.getObjectType(), tableId.getId(), scopeType.getTypeMask(), scope, schema);
 		// the CRC should be calculated with the etag column.
@@ -1787,6 +1790,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).deleteMultivalueColumnIndexTable(tableId, columnIdToRemove, alterTemp);
 	}
 
+
 	
 	@SuppressWarnings("unchecked")
 	public void setupExecuteInWriteTransaction() {
@@ -1853,7 +1857,7 @@ public class TableIndexManagerImplTest {
 	 * @return
 	 */
 	public static List<ColumnModel> createDefaultColumnsWithIds(){
-		List<ColumnModel> schema = EntityField.getAllColumnModels();
+		List<ColumnModel> schema = ObjectField.getAllColumnModels();
 		for(int i=0; i<schema.size(); i++){
 			ColumnModel cm = schema.get(i);
 			cm.setId(""+i);

@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionInfo;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
@@ -96,6 +97,15 @@ public interface SubmissionDAO {
 	public List<Submission> getSubmissions(String accessRequirementId, SubmissionState filterBy,
 			SubmissionOrder orderBy, Boolean isAscending, long limit, long offset);
 
+	/**
+	 * 
+	 * @param accessRequirementId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<SubmissionInfo> listInfoForApprovedSubmissions(String accessRequirementId, long limit, long offset);
+	
 	/**
 	 * Return true if userId is an accessor of submissionId
 	 * 

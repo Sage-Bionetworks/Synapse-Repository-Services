@@ -1,0 +1,101 @@
+package org.sagebionetworks.repo.model.table;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+
+/**
+ * Data transfer object (DTO) for an annotation of on a synapse object
+ * 
+ */
+public class ObjectAnnotationDTO {
+
+	private Long objectId;
+	private String key;
+	private AnnotationType type;
+	private List<String> value;
+
+	public ObjectAnnotationDTO() {
+	}
+
+	/**
+	 * All fields constructor.
+	 * 
+	 * @param key
+	 * @param type
+	 * @param value
+	 */
+	public ObjectAnnotationDTO(Long objectId, String key, AnnotationType type, List<String> value) {
+		this.objectId = objectId;
+		this.key = key;
+		this.type = type;
+		this.value = value;
+	}
+
+	public ObjectAnnotationDTO(Long objectId, String key, AnnotationType type, String value) {
+		this(objectId, key, type, Collections.singletonList(value));
+	}
+
+	public Long getObjectId() {
+		return objectId;
+	}
+
+	public void setObjectId(Long objectId) {
+		this.objectId = objectId;
+	}
+
+	public String getKey() {
+		return key;
+	}
+
+	public void setKey(String key) {
+		this.key = key;
+	}
+
+	public AnnotationType getType() {
+		return type;
+	}
+
+	public void setType(AnnotationType type) {
+		this.type = type;
+	}
+
+	public List<String> getValue() {
+		return value;
+	}
+
+	public void setValue(List<String> value) {
+		this.value = value;
+	}
+
+	public void setValue(String value) {
+		setValue(Collections.singletonList(value));
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(objectId, key, type, value);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		ObjectAnnotationDTO other = (ObjectAnnotationDTO) obj;
+		return Objects.equals(objectId, other.objectId) && Objects.equals(key, other.key) && type == other.type
+				&& Objects.equals(value, other.value);
+	}
+
+	@Override
+	public String toString() {
+		return "ObjectAnnotationDTO [objectId=" + objectId + ", key=" + key + ", type=" + type + ", value=" + value + "]";
+	}
+
+}

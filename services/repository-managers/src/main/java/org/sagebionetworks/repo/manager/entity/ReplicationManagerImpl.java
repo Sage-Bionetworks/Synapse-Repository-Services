@@ -10,7 +10,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.util.ValidateArgument;
@@ -47,7 +47,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 		allIds.addAll(KeyFactory.stringToKey(deleteIds));
 		
 		// Get a copy of the batch of data.
-		final List<EntityDTO> entityDTOs = nodeDao.getEntityDTOs(createOrUpdateIds,
+		final List<ObjectDataDTO> entityDTOs = nodeDao.getEntityDTOs(createOrUpdateIds,
 				MAX_ANNOTATION_CHARS);
 		validateEntityDtos(entityDTOs);
 		// Get the connections
@@ -87,8 +87,8 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	 * @param indexDaos
 	 * @throws RecoverableMessageException 
 	 */
-	public static void validateEntityDtos(List<EntityDTO> dtos) throws RecoverableMessageException{
-		for(EntityDTO dto: dtos){
+	public static void validateEntityDtos(List<ObjectDataDTO> dtos) throws RecoverableMessageException{
+		for(ObjectDataDTO dto: dtos){
 			// See PLFM-4497.
 			if(dto.getBenefactorId() == null){
 				if(dtos.size() > 1){
@@ -107,7 +107,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	@Override
 	public void replicate(String entityId) {
 		ValidateArgument.required(entityId, "EntityId");
-		final List<EntityDTO> entityDTOs = nodeDao.getEntityDTOs(Collections.singletonList(entityId),
+		final List<ObjectDataDTO> entityDTOs = nodeDao.getEntityDTOs(Collections.singletonList(entityId),
 				MAX_ANNOTATION_CHARS);
 		// Connect only to the index for this table
 		
@@ -122,7 +122,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	 * @param entityDTOs DTO to be created/updated
 	 * @param ids All of the ids to be created/updated/deleted.
 	 */
-	void replicateInIndex(final TableIndexDAO indexDao, final List<EntityDTO> entityDTOs, List<Long> ids) {
+	void replicateInIndex(final TableIndexDAO indexDao, final List<ObjectDataDTO> entityDTOs, List<Long> ids) {
 		indexDao.executeInWriteTransaction((TransactionStatus status) -> {
 			// TODO should get the object type in input
 			indexDao.deleteObjectData(ObjectType.ENTITY, ids);
