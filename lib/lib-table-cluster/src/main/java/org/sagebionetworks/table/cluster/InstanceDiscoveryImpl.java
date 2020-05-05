@@ -7,6 +7,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * Table's Database information now comes from the stack configuration.
@@ -14,12 +15,17 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author jmhill
  *
  */
+@Service
 public class InstanceDiscoveryImpl implements  InstanceDiscovery {
 	
-	Logger log = LogManager.getLogger(InstanceDiscoveryImpl.class);
+	private static final Logger log = LogManager.getLogger(InstanceDiscoveryImpl.class);
+	
+	private StackConfiguration config;
 	
 	@Autowired
-	StackConfiguration config;
+	public InstanceDiscoveryImpl(StackConfiguration config) {
+		this.config = config;
+	}
 	
 	/**
 	 * This method is designed to be called repeatedly over time to discover new instances and lost instances.

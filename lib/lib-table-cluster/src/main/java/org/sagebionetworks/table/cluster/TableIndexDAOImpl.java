@@ -1,42 +1,42 @@
 package org.sagebionetworks.table.cluster;
 
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_KEYS_PARAM_NAME;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.BATCH_INSERT_REPLICATION_SYNC_EXP;
 import static org.sagebionetworks.repo.model.table.TableConstants.CRC_ALIAS;
+import static org.sagebionetworks.repo.model.table.TableConstants.EXPIRES_PARAM_NAME;
+import static org.sagebionetworks.repo.model.table.TableConstants.ID_PARAM_NAME;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBEJCT_REPLICATION_COL_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_BENEFACTOR_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CREATED_BY;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CREATED_ON;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBEJCT_REPLICATION_COL_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_MD5;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_SIZE_BYTES;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_TYPE;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_NAME;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PARENT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PROJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_SUBTYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_TABLE;
-import static org.sagebionetworks.repo.model.table.TableConstants.EXPIRES_PARAM_NAME;
-import static org.sagebionetworks.repo.model.table.TableConstants.ID_PARAM_NAME;
-import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_TYPE_PARAM_NAME;
+import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.P_LIMIT;
 import static org.sagebionetworks.repo.model.table.TableConstants.P_OFFSET;
+import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_NON_EXPIRED_IDS;
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_OBJECT_CHILD_CRC;
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_OBJECT_CHILD_ID_ETAG;
-import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_NON_EXPIRED_IDS;
-import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE;
-import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_OBJECT_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_ANNOTATION_REPLICATION_TABLE;
+import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_OBJECT_REPLICATION_TABLE;
+import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -66,28 +66,30 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
-import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelProvider;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelProviderFactory;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.Callback;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
@@ -142,6 +144,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private TransactionTemplate readTransactionTemplate;
 	private JdbcTemplate template;
 	private NamedParameterJdbcTemplate namedTemplate;
+	
+	private ObjectFieldModelProviderFactory objectFieldModelProviderFactory;
+	
+	@Autowired
+	public TableIndexDAOImpl(ObjectFieldModelProviderFactory objectFieldModelPrroviderFactory) {
+		this.objectFieldModelProviderFactory = objectFieldModelPrroviderFactory;
+	}
 
 	@Override
 	public void setDataSource(DataSource dataSource) {
@@ -1017,14 +1026,17 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	
 	// Translates the Column Model schema into a column metadata schema, that maps to the object/annotation replication index
 	List<ColumnMetadata> translateSchema(ObjectType objectType, List<ColumnModel> schema) {
+		
+		ObjectFieldModelProvider objectFieldModelProvider = objectFieldModelProviderFactory.getObjectFieldModelProvider(objectType);
+		
 		return schema.stream()
-			.map((ColumnModel columnModel) -> translateColumnModel(objectType, columnModel))
+			.map((ColumnModel columnModel) -> translateColumnModel(columnModel, objectFieldModelProvider))
 			.collect(Collectors.toList());
 	}
 	
-	ColumnMetadata translateColumnModel(ObjectType objectType, ColumnModel model) {
+	ColumnMetadata translateColumnModel(ColumnModel model, ObjectFieldModelProvider objectFieldModelProvider) {
 		// First determine if this an object column or an annotation
-		Optional<ObjectField> entityField = findObjectField(objectType, model);
+		Optional<ObjectField> entityField = objectFieldModelProvider.findMatch(model);
 		
 		String selectColumnForId = SQLUtils.getColumnNameForId(model.getId());
 		boolean isObjectReplicationField;
@@ -1039,11 +1051,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 		
 		return new ColumnMetadata(model, selectColumnName, selectColumnForId, isObjectReplicationField);
-	}
-	
-	Optional<ObjectField> findObjectField(ObjectType objectType, ColumnModel model) {
-		// TODO move this to a class that uses some type of provider according to the objectType
-		return Optional.ofNullable(ObjectField.findMatch(model));
 	}
 
 	@Override

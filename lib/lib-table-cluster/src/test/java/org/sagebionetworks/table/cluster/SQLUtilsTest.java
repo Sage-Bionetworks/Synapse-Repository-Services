@@ -10,8 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.verify;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_TYPE;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_TYPE_PARAM_NAME;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -46,6 +44,9 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelProvider;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelProviderImpl;
+import org.sagebionetworks.table.cluster.metadata.TestObjectFieldTypeEntityMapper;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseChangeSet;
@@ -1767,7 +1768,16 @@ public class SQLUtilsTest {
 	
 	
 	private ColumnMetadata createMetadataForEntityField(ObjectField field, int id) {
-		return new ColumnMetadata(field.getColumnModel(), field.getDatabaseColumnName(), SQLUtils.getColumnNameForId("" + id), true);
+		return new ColumnMetadata(getColumnModel(field), field.getDatabaseColumnName(), SQLUtils.getColumnNameForId("" + id), true);
+	}
+	
+	private ColumnModel getColumnModel(ObjectField field) {
+		ColumnModel model = new ColumnModel();
+		model.setName(field.name());
+		model.setMaximumSize(field.getSize());
+		model.setFacetType(field.getFacetType());
+		model.setColumnType(field.getColumnType() == null ? ColumnType.ENTITYID : field.getColumnType());
+		return model;
 	}
 	
 	private ColumnMetadata createMetadataForAnnotation(ColumnType type, int id) {
