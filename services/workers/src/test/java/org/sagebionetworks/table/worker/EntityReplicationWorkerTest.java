@@ -25,7 +25,7 @@ import org.sagebionetworks.repo.manager.entity.ReplicationManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.worker.entity.EntityReplicationWorker;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.dao.CannotAcquireLockException;
@@ -158,10 +158,10 @@ public class EntityReplicationWorkerTest {
 	 * @param count
 	 * @return
 	 */
-	List<EntityDTO> createEntityDtos(int count){
-		List<EntityDTO> dtos = new LinkedList<>();
+	List<ObjectDataDTO> createEntityDtos(int count){
+		List<ObjectDataDTO> dtos = new LinkedList<>();
 		for(int i=0; i<count; i++){
-			EntityDTO dto = new EntityDTO();
+			ObjectDataDTO dto = new ObjectDataDTO();
 			dto.setId(new Long(i));
 			dto.setBenefactorId(new Long(i-1));
 			dtos.add(dto);

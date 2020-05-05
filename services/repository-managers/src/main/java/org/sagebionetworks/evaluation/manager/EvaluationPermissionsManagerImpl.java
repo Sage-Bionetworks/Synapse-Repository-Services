@@ -14,7 +14,6 @@ import java.util.Set;
 import org.apache.commons.collections.CollectionUtils;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
-import org.sagebionetworks.manager.util.OAuthPermissionUtils;
 import org.sagebionetworks.repo.manager.PermissionsManagerUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -158,10 +157,6 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 
 		if (isAnonymousWithNonReadAccess(userInfo, accessType))
 			return AuthorizationStatus.accessDenied("Anonymous user is not allowed to access Evaluation.");
-		
-		if (!OAuthPermissionUtils.scopeAllowsAccess(userInfo.getScopes(), accessType)) {
-			return OAuthPermissionUtils.accessDenied(accessType);
-		}
 		
 		if (!aclDAO.canAccess(userInfo.getGroups(), evalId, ObjectType.EVALUATION, accessType))
 			return AuthorizationStatus.accessDenied("User lacks "+accessType+" access to Evaluation "+evalId);

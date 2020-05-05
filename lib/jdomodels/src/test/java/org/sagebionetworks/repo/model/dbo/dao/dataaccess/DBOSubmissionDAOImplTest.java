@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
@@ -17,6 +18,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Node;
@@ -30,6 +32,7 @@ import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionInfo;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
@@ -43,6 +46,8 @@ import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
+
+import com.google.common.collect.ImmutableList;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -73,8 +78,25 @@ public class DBOSubmissionDAOImplTest {
 	private UserGroup user2 = null;
 	private Node node = null;
 	private ManagedACTAccessRequirement accessRequirement = null;
+	private ManagedACTAccessRequirement accessRequirement2 = null;
 	private ResearchProject researchProject = null;
+	private ResearchProject researchProject2 = null;
 	private Request request;
+	
+	private List<String> dtosToDelete;
+	
+	private static ManagedACTAccessRequirement createAccessRequirement(String userId, String entityId) {
+		ManagedACTAccessRequirement accessRequirement = new ManagedACTAccessRequirement();
+		accessRequirement.setCreatedBy(userId);
+		accessRequirement.setCreatedOn(new Date());
+		accessRequirement.setModifiedBy(userId);
+		accessRequirement.setModifiedOn(new Date());
+		accessRequirement.setEtag("10");
+		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(entityId);
+		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod, rod}));
+		return accessRequirement;
+	}
 
 	@Before
 	public void before() {
@@ -93,22 +115,21 @@ public class DBOSubmissionDAOImplTest {
 		node = NodeTestUtils.createNew("foo", Long.parseLong(user1.getId()));
 		node.setId(nodeDao.createNew(node));
 
-		// create an ACTAccessRequirement
-		accessRequirement = new ManagedACTAccessRequirement();
-		accessRequirement.setCreatedBy(user1.getId());
-		accessRequirement.setCreatedOn(new Date());
-		accessRequirement.setModifiedBy(user1.getId());
-		accessRequirement.setModifiedOn(new Date());
-		accessRequirement.setEtag("10");
-		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
-		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod, rod}));
+		// create two access requirements
+		accessRequirement = createAccessRequirement(user1.getId(), node.getId());
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
-
+		accessRequirement2 = createAccessRequirement(user1.getId(), node.getId());
+		accessRequirement2 = accessRequirementDAO.create(accessRequirement2);
+		
 		// create a ResearchProject
 		researchProject = ResearchProjectTestUtils.createNewDto();
 		researchProject.setAccessRequirementId(accessRequirement.getId().toString());
 		researchProject = researchProjectDao.create(researchProject);
+		
+		// create second researchProject
+		researchProject2 = ResearchProjectTestUtils.createNewDto("4", "projectLead2", "institution2", "idu2");
+		researchProject2.setAccessRequirementId(accessRequirement.getId().toString());
+		researchProject2 = researchProjectDao.create(researchProject2);
 
 		// create request
 		request = RequestTestUtils.createNewRequest();
@@ -119,18 +140,29 @@ public class DBOSubmissionDAOImplTest {
 		add.setType(AccessType.GAIN_ACCESS);
 		request.setAccessorChanges(Arrays.asList(add));
 		request = requestDao.create(request);
+		
+		dtosToDelete = new ArrayList<String>();
 	}
 
 	@After
 	public void after() {
+		for (String id: dtosToDelete) {
+			submissionDao.delete(id);
+		}
 		if (request != null) {
 			requestDao.delete(request.getId());
 		}
 		if (researchProject != null) {
 			researchProjectDao.delete(researchProject.getId());
 		}
+		if (researchProject2 != null) {
+			researchProjectDao.delete(researchProject2.getId());
+		}
 		if (accessRequirement != null) {
 			accessRequirementDAO.delete(accessRequirement.getId().toString());
+		}
+		if (accessRequirement2 != null) {
+			accessRequirementDAO.delete(accessRequirement2.getId().toString());
 		}
 		if (node != null) {
 			nodeDao.delete(node.getId());
@@ -145,6 +177,10 @@ public class DBOSubmissionDAOImplTest {
 	}
 
 	private Submission createSubmission(){
+		return createSubmission(accessRequirement, this.researchProject, System.currentTimeMillis());
+	}
+		
+	private Submission createSubmission(AccessRequirement accessRequirement, ResearchProject researchProject, long modifiedOn){
 		Submission dto = new Submission();
 		dto.setAccessRequirementId(accessRequirement.getId().toString());
 		dto.setRequestId(request.getId());
@@ -159,7 +195,7 @@ public class DBOSubmissionDAOImplTest {
 		dto.setSubmittedBy(user1.getId());
 		dto.setSubmittedOn(new Date());
 		dto.setModifiedBy(user1.getId());
-		dto.setModifiedOn(new Date());
+		dto.setModifiedOn(new Date(modifiedOn));
 		dto.setResearchProjectSnapshot(researchProject);
 		dto.setState(SubmissionState.SUBMITTED);
 		return dto;
@@ -261,8 +297,8 @@ public class DBOSubmissionDAOImplTest {
 	public void testListSubmissions() {
 		Submission dto1 = createSubmission();
 		Submission dto2 = createSubmission();
-		submissionDao.createSubmission(dto1);
-		submissionDao.createSubmission(dto2);
+		dtosToDelete.add( submissionDao.createSubmission(dto1).getSubmissionId() );
+		dtosToDelete.add( submissionDao.createSubmission(dto2).getSubmissionId() );
 
 		List<Submission> submissions = submissionDao.getSubmissions(accessRequirement.getId().toString(),
 				SubmissionState.SUBMITTED, SubmissionOrder.CREATED_ON,
@@ -281,9 +317,77 @@ public class DBOSubmissionDAOImplTest {
 				false, 10L, 0L);
 		assertNotNull(submissions);
 		assertEquals(0, submissions.size());
+	}
+	
+	private static SubmissionInfo createSubmissionInfo(ResearchProject rp, long modifiedOn) {
+		SubmissionInfo result = new SubmissionInfo();
+		result.setInstitution(rp.getInstitution());
+		result.setIntendedDataUseStatement(rp.getIntendedDataUseStatement());
+		result.setProjectLead(rp.getProjectLead());
+		result.setModifiedOn(new Date(modifiedOn));
+		return result;
+		
+	}
+	
+	@Test
+	public void testListInfoForApprovedSubmissions() {
+		// create a submission for research project 1
+		long modifiedOn = System.currentTimeMillis();
+		Submission dto1 = createSubmission(accessRequirement, researchProject, modifiedOn);
+		dtosToDelete.add( submissionDao.createSubmission(dto1).getSubmissionId() );
+		modifiedOn += 60000L;
+		submissionDao.updateSubmissionStatus(dto1.getId(), SubmissionState.APPROVED, null, user1.getId(), modifiedOn);
+			
+		// create a submission for research project 2
+		modifiedOn += 60000L;
+		Submission dto2 = createSubmission(accessRequirement, researchProject2, modifiedOn);
+		dtosToDelete.add( submissionDao.createSubmission(dto2).getSubmissionId() );	
+		modifiedOn += 60000L;
+		submissionDao.updateSubmissionStatus(dto2.getId(), SubmissionState.APPROVED, null, user1.getId(), modifiedOn);
+		
+		// now create another, later submission for research project 2
+		modifiedOn += 60000L;
+		Submission dto3 = createSubmission(accessRequirement, researchProject2, modifiedOn);
+		dtosToDelete.add( submissionDao.createSubmission(dto3).getSubmissionId() );	
+		modifiedOn += 60000L;
+		submissionDao.updateSubmissionStatus(dto3.getId(), SubmissionState.APPROVED, null, user1.getId(), modifiedOn);
+		SubmissionInfo dto3Info = createSubmissionInfo(researchProject2, modifiedOn);
+		
+		// now create another, later submission for research project 1
+		modifiedOn += 60000L;
+		Submission dto4 = createSubmission(accessRequirement, researchProject, modifiedOn);
+		dtosToDelete.add( submissionDao.createSubmission(dto4).getSubmissionId() );	
+		modifiedOn += 60000L;
+		submissionDao.updateSubmissionStatus(dto4.getId(), SubmissionState.APPROVED, null, user1.getId(), modifiedOn);
+		SubmissionInfo dto4Info = createSubmissionInfo(researchProject, modifiedOn);
+		
+		// create another submission for some other access requirement.  (Shouldn't see it in the results.)
+		modifiedOn += 60000L;
+		Submission dto5 = createSubmission(accessRequirement2, researchProject, modifiedOn);
+		dtosToDelete.add( submissionDao.createSubmission(dto5).getSubmissionId() );	
+		modifiedOn += 60000L;
+		submissionDao.updateSubmissionStatus(dto5.getId(), SubmissionState.APPROVED, null, user1.getId(), modifiedOn);
+		
+		// create a submission which is NOT approved.  (Shouldn't see it in the results.)
+		modifiedOn += 60000L;
+		Submission dto6 = createSubmission(accessRequirement, researchProject, modifiedOn);
+		dtosToDelete.add( submissionDao.createSubmission(dto6).getSubmissionId() );	
+		
+		// we should get back dto3 , then dto4, in that order
+		List<SubmissionInfo> expected = ImmutableList.of(dto3Info, dto4Info);
 
-		submissionDao.delete(dto1.getId());
-		submissionDao.delete(dto2.getId());
+		// method under test
+		List<SubmissionInfo> actual = submissionDao.listInfoForApprovedSubmissions(accessRequirement.getId().toString(), 10, 0);
+		
+		assertEquals(expected, actual);
+		
+		
+		// check that pagination works right:  If I get the first page of size *one*, I should just get dto3
+		actual = submissionDao.listInfoForApprovedSubmissions(accessRequirement.getId().toString(), 1, 0);
+		assertEquals(ImmutableList.of(dto3Info), actual);
+		// If I get the second page of size *one*, I should just get dto4
+		actual = submissionDao.listInfoForApprovedSubmissions(accessRequirement.getId().toString(), 1, 1);
+		assertEquals(ImmutableList.of(dto4Info), actual);
 	}
 
 	@Test (expected=NotFoundException.class)

@@ -1,20 +1,18 @@
 package org.sagebionetworks.repo.web.controller;
 
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.Collections;
 import java.util.UUID;
 
 import javax.servlet.ServletException;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
@@ -34,12 +32,8 @@ import junit.framework.Assert;
  * @author John
  *
  */
-public class AsynchronousJobControllerTest extends AbstractAutowiredControllerJunit5TestBase {
+public class AsynchronousJobControllerTest extends AbstractAutowiredControllerTestBase {
 	
-	@Autowired
-	private OIDCTokenHelper oidcTokenHelper;
-		
-	private String accessToken;
 	private Entity parent;
 	private TableEntity table;
 	private Long adminUserId;
@@ -50,26 +44,24 @@ public class AsynchronousJobControllerTest extends AbstractAutowiredControllerJu
 	private IdGenerator idGenerator;
 	private S3FileHandle fileHandle;
 
-	@BeforeEach
+	@Before
 	public void before() throws Exception {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
-
 		parent = new Project();
 		parent.setName(UUID.randomUUID().toString());
-		parent = servletTestHelper.createEntity(dispatchServlet, parent, accessToken);
+		parent = servletTestHelper.createEntity(dispatchServlet, parent, adminUserId);
 		Assert.assertNotNull(parent);
 		// Create a table
 		table = new TableEntity();
 		table.setName("TableEntity");
 		table.setParentId(parent.getId());
-		table = servletTestHelper.createEntity(dispatchServlet, table, accessToken);
+		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
 		// Create a file handle
 		fileHandle = TestUtils.createS3FileHandle(adminUserId.toString(), idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileHandle = (S3FileHandle) fileMetadataDao.createFile(fileHandle);
 	}
 	
-	@AfterEach
+	@After
 	public void after(){
 		if(parent != null){
 			try {

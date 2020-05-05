@@ -59,7 +59,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -765,11 +765,11 @@ public class TableManagerSupportTest {
 		ColumnModel cm = new ColumnModel();
 		cm.setId("123");
 		when(mockColumnModelManager.createColumnModel(any(ColumnModel.class))).thenReturn(cm);
-		ColumnModel result = manager.getColumnModel(EntityField.id);
+		ColumnModel result = manager.getColumnModel(ObjectField.id);
 		assertEquals(cm, result);
-		result = manager.getColumnModel(EntityField.id);
+		result = manager.getColumnModel(ObjectField.id);
 		assertEquals(cm, result);
-		result = manager.getColumnModel(EntityField.id);
+		result = manager.getColumnModel(ObjectField.id);
 		assertEquals(cm, result);
 		// The column should not be cached.
 		verify(mockColumnModelManager, times(3)).createColumnModel(any(ColumnModel.class));
@@ -780,7 +780,7 @@ public class TableManagerSupportTest {
 	public void testGetDefaultTableViewColumnsFileView() throws LimitExceededException{
 		setupCreateColumn();
 		List<ColumnModel> expected = new LinkedList<ColumnModel>();
-		for(EntityField field: EntityField.values()){
+		for(ObjectField field: ObjectField.values()){
 			expected.add(field.getColumnModel());
 		}
 		// call under test
@@ -792,7 +792,7 @@ public class TableManagerSupportTest {
 	public void testGetDefaultTableViewColumnsFileAndTableView(){
 		setupCreateColumn();
 		List<ColumnModel> expected = new LinkedList<ColumnModel>();
-		for(EntityField field: EntityField.values()){
+		for(ObjectField field: ObjectField.values()){
 			expected.add(field.getColumnModel());
 		}
 		// call under test
@@ -805,13 +805,13 @@ public class TableManagerSupportTest {
 	public void testGetDefaultTableViewColumnsProjectView(){
 		setupCreateColumn();
 		List<ColumnModel> expected = Lists.newArrayList(
-				EntityField.id.getColumnModel(),
-				EntityField.name.getColumnModel(),
-				EntityField.createdOn.getColumnModel(),
-				EntityField.createdBy.getColumnModel(),
-				EntityField.etag.getColumnModel(),
-				EntityField.modifiedOn.getColumnModel(),
-				EntityField.modifiedBy.getColumnModel()
+				ObjectField.id.getColumnModel(),
+				ObjectField.name.getColumnModel(),
+				ObjectField.createdOn.getColumnModel(),
+				ObjectField.createdBy.getColumnModel(),
+				ObjectField.etag.getColumnModel(),
+				ObjectField.modifiedOn.getColumnModel(),
+				ObjectField.modifiedBy.getColumnModel()
 				);
 		// call under test
 		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewTypeMask.Project.getMask());
@@ -828,13 +828,13 @@ public class TableManagerSupportTest {
 			}
 		}
 		List<ColumnModel> expected = Lists.newArrayList(
-				EntityField.id.getColumnModel(),
-				EntityField.name.getColumnModel(),
-				EntityField.createdOn.getColumnModel(),
-				EntityField.createdBy.getColumnModel(),
-				EntityField.etag.getColumnModel(),
-				EntityField.modifiedOn.getColumnModel(),
-				EntityField.modifiedBy.getColumnModel()
+				ObjectField.id.getColumnModel(),
+				ObjectField.name.getColumnModel(),
+				ObjectField.createdOn.getColumnModel(),
+				ObjectField.createdBy.getColumnModel(),
+				ObjectField.etag.getColumnModel(),
+				ObjectField.modifiedOn.getColumnModel(),
+				ObjectField.modifiedBy.getColumnModel()
 				);
 		// call under test
 		List<ColumnModel> results = manager.getDefaultTableViewColumns(typeMask);
@@ -849,7 +849,7 @@ public class TableManagerSupportTest {
 			typeMask |= type.getMask();
 		}
 		List<ColumnModel> expected = new LinkedList<ColumnModel>();
-		for(EntityField field: EntityField.values()){
+		for(ObjectField field: ObjectField.values()){
 			expected.add(field.getColumnModel());
 		}
 		// call under test

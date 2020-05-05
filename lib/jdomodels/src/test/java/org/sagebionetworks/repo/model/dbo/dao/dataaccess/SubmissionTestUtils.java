@@ -17,6 +17,7 @@ public class SubmissionTestUtils {
 		dto.setAccessRequirementId("2");
 		dto.setRequestId("3");
 		ResearchProject researchProjectSnapshot = ResearchProjectTestUtils.createNewDto();
+		researchProjectSnapshot.setId("101");
 		dto.setResearchProjectSnapshot(researchProjectSnapshot);
 		AccessorChange add = new AccessorChange();
 		add.setUserId("6");

@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -17,9 +17,10 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
@@ -31,8 +32,6 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
-import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
-import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -56,11 +55,6 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 	@Autowired
 	private IdGenerator idGenerator;
 
-	@Autowired
-	private OIDCTokenHelper oidcTokenHelper;
-
-	private String accessToken;
-	
 	private List<String> filesToDelete;
 	private List<String> toDelete;
 
@@ -80,8 +74,6 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		adminUserIdString = adminUserId.toString();
 		adminUserInfo = userManager.getUserInfo(adminUserId);
 		adminUserInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
-
-		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
 	}
 
 	@AfterEach
@@ -103,27 +95,27 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		// Create an entity
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
-		Project p2 = (Project) entityServletHelper.createEntity(p, accessToken, null);
+		Project p2 = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = p2.getId();
 		toDelete.add(id);
 
 		Folder s1 = new Folder();
 		s1.setName(DUMMY_STUDY_1);
 		s1.setParentId(id);
-		s1 = (Folder) entityServletHelper.createEntity(s1, accessToken, null);
+		s1 = (Folder) entityServletHelper.createEntity(s1, adminUserId, null);
 		toDelete.add(s1.getId());
 
 		Folder s2 = new Folder();
 		s2.setName(DUMMY_STUDY_2);
 		s2.setParentId(id);
-		s2 = (Folder) entityServletHelper.createEntity(s2, accessToken, null);
+		s2 = (Folder) entityServletHelper.createEntity(s2, adminUserId, null);
 		toDelete.add(s2.getId());
 
 		// Get/add/update annotations for this entity
-		Annotations a = entityServletHelper.getEntityAnnotationsV2(id, accessToken);
+		Annotations a = entityServletHelper.getEntityAnnotationsV2(id, adminUserId);
 		AnnotationsV2TestUtils.putAnnotations(a,"doubleAnno", "45.0001", AnnotationsValueType.DOUBLE);
 		AnnotationsV2TestUtils.putAnnotations(a, "string", "A string", AnnotationsValueType.STRING);
-		Annotations a2 = entityServletHelper.updateAnnotationsV2(a, accessToken);
+		Annotations a2 = entityServletHelper.updateAnnotationsV2(a, adminUserId);
 
 		// Get the bundle, verify contents
 		EntityBundleRequest request = new EntityBundleRequest();
@@ -135,31 +127,31 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		request.setIncludeAccessControlList(true);
 
 
-		EntityBundle eb = entityServletHelper.getEntityBundle(id, request, accessToken);
+		EntityBundle eb = entityServletHelper.getEntityBundle(id, request, adminUserId);
 		Project p3 = (Project) eb.getEntity();
-		assertFalse(p3.getEtag().equals(p2.getEtag()), "Etag should have been updated, but was not");
+		assertFalse("Etag should have been updated, but was not", p3.getEtag().equals(p2.getEtag()));
 		p2.setEtag(p3.getEtag());
 		p2.setModifiedOn(p3.getModifiedOn());
 		assertEquals(p2, p3);
 
 		Annotations a3 = eb.getAnnotations();
-		assertFalse(a3.getEtag().equals(a.getEtag()), "Etag should have been updated, but was not");
-		assertEquals(a2, a3, "Retrieved Annotations in bundle do not match original ones");
+		assertFalse("Etag should have been updated, but was not", a3.getEtag().equals(a.getEtag()));
+		assertEquals("Retrieved Annotations in bundle do not match original ones", a2, a3);
 
 		UserEntityPermissions uep = eb.getPermissions();
-		assertNotNull(uep, "Permissions were requested, but null in bundle");
-		assertTrue(uep.getCanEdit(), "Invalid Permissions");
+		assertNotNull("Permissions were requested, but null in bundle", uep);
+		assertTrue("Invalid Permissions", uep.getCanEdit());
 
 		EntityPath path = eb.getPath();
-		assertNotNull(path, "Path was requested, but null in bundle");
-		assertNotNull(path.getPath(), "Invalid path");
+		assertNotNull("Path was requested, but null in bundle", path);
+		assertNotNull("Invalid path", path.getPath());
 
 		Boolean hasChildren = eb.getHasChildren();
-		assertNotNull(hasChildren, "HasChildren was requested, but null in bundle");
-		assertEquals(Boolean.TRUE, hasChildren, "HasChildren incorrect");
+		assertNotNull("HasChildren was requested, but null in bundle", hasChildren);
+		assertEquals("HasChildren incorrect", Boolean.TRUE, hasChildren);
 
 		AccessControlList acl = eb.getAccessControlList();
-		assertNotNull(acl, "AccessControlList was requested, but null in bundle");
+		assertNotNull("AccessControlList was requested, but null in bundle", acl);
 	}
 
 	@Test
@@ -167,27 +159,27 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		// Create an entity
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
-		Project p2 = (Project) entityServletHelper.createEntity(p, accessToken, null);
+		Project p2 = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = p2.getId();
 		toDelete.add(id);
 
 		Folder s1 = new Folder();
 		s1.setName(DUMMY_STUDY_1);
 		s1.setParentId(id);
-		s1 = (Folder) entityServletHelper.createEntity(s1, accessToken, null);
+		s1 = (Folder) entityServletHelper.createEntity(s1, adminUserId, null);
 		toDelete.add(s1.getId());
 
 		// Get the bundle, verify contents
 		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeEntity(true);
 		request.setIncludeAccessControlList(true);
-		EntityBundle eb = entityServletHelper.getEntityBundle(s1.getId(), request, accessToken);
+		EntityBundle eb = entityServletHelper.getEntityBundle(s1.getId(), request, adminUserId);
 		Folder s2 = (Folder) eb.getEntity();
-		assertTrue(s2.getEtag().equals(s1.getEtag()), "Etags do not match.");
+		assertTrue("Etags do not match.", s2.getEtag().equals(s1.getEtag()));
 		assertEquals(s1, s2);
 
 		AccessControlList acl = eb.getAccessControlList();
-		assertNull(acl, "AccessControlList is inherited; should have been null in bundle.");
+		assertNull("AccessControlList is inherited; should have been null in bundle.", acl);
 	}
 
 	@Test
@@ -195,40 +187,40 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		// Create an entity
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
-		Project p2 = (Project) entityServletHelper.createEntity(p, accessToken, null);
+		Project p2 = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = p2.getId();
 		toDelete.add(id);
 
 		// Get/add/update annotations for this entity
-		Annotations a = entityServletHelper.getEntityAnnotationsV2(id, accessToken);
+		Annotations a = entityServletHelper.getEntityAnnotationsV2(id, adminUserId);
 		AnnotationsV2TestUtils.putAnnotations(a,"doubleAnno", "45.0001", AnnotationsValueType.DOUBLE);
 		AnnotationsV2TestUtils.putAnnotations(a, "string", "A string", AnnotationsValueType.STRING);
-		entityServletHelper.updateAnnotationsV2(a, accessToken);
+		entityServletHelper.updateAnnotationsV2(a, adminUserId);
 
 		// Get the bundle, verify contents
 		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeEntity(true);
-		EntityBundle eb = entityServletHelper.getEntityBundle(id, request, accessToken);
+		EntityBundle eb = entityServletHelper.getEntityBundle(id, request, adminUserId);
 		Project p3 = (Project) eb.getEntity();
-		assertFalse(p3.getEtag().equals(p2.getEtag()), "Etag should have been updated, but was not");
+		assertFalse("Etag should have been updated, but was not", p3.getEtag().equals(p2.getEtag()));
 		p2.setEtag(p3.getEtag());
 		p2.setModifiedOn(p3.getModifiedOn());
 		assertEquals(p2, p3);
 
 		Annotations a3 = eb.getAnnotations();
-		assertNull(a3, "Annotations were not requested, but were returned in bundle");
+		assertNull("Annotations were not requested, but were returned in bundle", a3);
 
 		UserEntityPermissions uep = eb.getPermissions();
-		assertNull(uep, "Permissions were not requested, but were returned in bundle");
+		assertNull("Permissions were not requested, but were returned in bundle", uep);
 
 		EntityPath path = eb.getPath();
-		assertNull(path, "Path was not requested, but were returned in bundle");
+		assertNull("Path was not requested, but were returned in bundle", path);
 
 		Boolean hasChildren = eb.getHasChildren();
-		assertNull(hasChildren, "HasChildren was not requested, but were returned in bundle");
+		assertNull("HasChildren was not requested, but were returned in bundle", hasChildren);
 
 		AccessControlList acl = eb.getAccessControlList();
-		assertNull(acl, "AccessControlList was not requested, but were returned in bundle");
+		assertNull("AccessControlList was not requested, but were returned in bundle", acl);
 	}
 
 	@Test
@@ -253,20 +245,20 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		// Create an entity
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
-		Project p2 = (Project) entityServletHelper.createEntity(p, accessToken, null);
+		Project p2 = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = p2.getId();
 		toDelete.add(id);
 
 		FileEntity file = new FileEntity();
 		file.setParentId(p2.getId());
 		file.setDataFileHandleId(handleOne.getId());
-		file = (FileEntity) entityServletHelper.createEntity(file, accessToken, null);
+		file = (FileEntity) entityServletHelper.createEntity(file, adminUserId, null);
 		toDelete.add(file.getId());
 
 		// Get the file handle in the bundle
 		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeFileHandles(true);
-		EntityBundle bundle = entityServletHelper.getEntityBundle(file.getId(), request, accessToken);
+		EntityBundle bundle = entityServletHelper.getEntityBundle(file.getId(), request, adminUserId);
 		assertNotNull(bundle);
 		assertNotNull(bundle.getFileHandles());
 		assertTrue(bundle.getFileHandles().size() > 0);
@@ -275,17 +267,17 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		// Same test with a verion number
 		// Update the file
 		file.setDataFileHandleId(handleTwo.getId());
-		file = (FileEntity) entityServletHelper.updateEntity(file, accessToken);
-		assertEquals(new Long(2), file.getVersionNumber(), "Changing the fileHandle should have created a new version");
+		file = (FileEntity) entityServletHelper.updateEntity(file, adminUserId);
+		assertEquals("Changing the fileHandle should have created a new version", new Long(2), file.getVersionNumber());
 		// Get version one.
-		bundle = entityServletHelper.getEntityBundleForVersion(file.getId(), new Long(1), request, accessToken);
+		bundle = entityServletHelper.getEntityBundleForVersion(file.getId(), new Long(1), request, adminUserId);
 		assertNotNull(bundle);
 		assertNotNull(bundle.getFileHandles());
 		assertTrue(bundle.getFileHandles().size() > 0);
 		assertNotNull(bundle.getFileHandles().get(0));
 		assertEquals(handleOne.getId(), bundle.getFileHandles().get(0).getId());
 		// Get version two
-		bundle = entityServletHelper.getEntityBundleForVersion(file.getId(), new Long(2), request, accessToken);
+		bundle = entityServletHelper.getEntityBundleForVersion(file.getId(), new Long(2), request, adminUserId);
 		assertNotNull(bundle);
 		assertNotNull(bundle.getFileHandles());
 		assertTrue(bundle.getFileHandles().size() > 0);

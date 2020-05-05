@@ -9,7 +9,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 
@@ -37,7 +37,7 @@ public interface AsynchronousJobWorkerHelper {
 	 * @return
 	 * @throws InterruptedException
 	 */
-	EntityDTO waitForEntityReplication(UserInfo user, String tableId, String entityId, long maxWaitMS)
+	ObjectDataDTO waitForEntityReplication(UserInfo user, String tableId, String entityId, long maxWaitMS)
 			throws InterruptedException;
 
 	/**

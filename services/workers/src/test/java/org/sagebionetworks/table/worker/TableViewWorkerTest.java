@@ -94,7 +94,7 @@ public class TableViewWorkerTest {
 		verify(mockTableViewManager).deleteViewIndex(any(IdAndVersion.class));
 		verifyZeroInteractions(mockLogger);
 	}
-	
+
 	@Test
 	public void testRunNotView() throws Exception {
 		change.setObjectType(ObjectType.ACTIVITY);

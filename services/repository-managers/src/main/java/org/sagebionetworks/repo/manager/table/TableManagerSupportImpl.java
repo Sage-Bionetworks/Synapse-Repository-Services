@@ -30,7 +30,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
@@ -59,32 +59,32 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public static final String SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW = "The view's scope exceeds the maximum number of "
 			+ MAX_CONTAINERS_PER_VIEW + " projects.";
 	
-	private static final List<EntityField> FILE_VIEW_DEFAULT_COLUMNS= Lists.newArrayList(
-			EntityField.id,
-			EntityField.name,
-			EntityField.createdOn,
-			EntityField.createdBy,
-			EntityField.etag,
-			EntityField.type,
-			EntityField.currentVersion,
-			EntityField.parentId,
-			EntityField.benefactorId,
-			EntityField.projectId,
-			EntityField.modifiedOn,
-			EntityField.modifiedBy,
-			EntityField.dataFileHandleId,
-			EntityField.dataFileSizeBytes,
-			EntityField.dataFileMD5Hex
+	private static final List<ObjectField> FILE_VIEW_DEFAULT_COLUMNS= Lists.newArrayList(
+			ObjectField.id,
+			ObjectField.name,
+			ObjectField.createdOn,
+			ObjectField.createdBy,
+			ObjectField.etag,
+			ObjectField.type,
+			ObjectField.currentVersion,
+			ObjectField.parentId,
+			ObjectField.benefactorId,
+			ObjectField.projectId,
+			ObjectField.modifiedOn,
+			ObjectField.modifiedBy,
+			ObjectField.dataFileHandleId,
+			ObjectField.dataFileSizeBytes,
+			ObjectField.dataFileMD5Hex
 			);
 	
-	private static final List<EntityField> BASIC_ENTITY_DEAFULT_COLUMNS = Lists.newArrayList(
-			EntityField.id,
-			EntityField.name,
-			EntityField.createdOn,
-			EntityField.createdBy,
-			EntityField.etag,
-			EntityField.modifiedOn,
-			EntityField.modifiedBy
+	private static final List<ObjectField> BASIC_ENTITY_DEAFULT_COLUMNS = Lists.newArrayList(
+			ObjectField.id,
+			ObjectField.name,
+			ObjectField.createdOn,
+			ObjectField.createdBy,
+			ObjectField.etag,
+			ObjectField.modifiedOn,
+			ObjectField.modifiedBy
 			);
 
 	@Autowired
@@ -478,7 +478,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 	
 	@Override
-	public ColumnModel getColumnModel(EntityField field){
+	public ColumnModel getColumnModel(ObjectField field){
 		ValidateArgument.required(field, "field");
 		/*
 		 * We no longer cache these columns in memory.  Caching has caused
@@ -520,9 +520,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * @param fields
 	 * @return
 	 */
-	public List<ColumnModel> getColumnModels(List<EntityField> fields){
+	public List<ColumnModel> getColumnModels(List<ObjectField> fields){
 		List<ColumnModel> results = new LinkedList<ColumnModel>();
-		for(EntityField field: fields){
+		for(ObjectField field: fields){
 			results.add(getColumnModel(field));
 		}
 		return results;

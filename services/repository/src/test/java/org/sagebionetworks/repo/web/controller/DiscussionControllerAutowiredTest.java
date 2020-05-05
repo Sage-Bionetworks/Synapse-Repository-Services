@@ -1,19 +1,18 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityIdList;
@@ -32,27 +31,20 @@ import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
-import org.springframework.beans.factory.annotation.Autowired;
 
-public class DiscussionControllerAutowiredTest extends AbstractAutowiredControllerJunit5TestBase {
+public class DiscussionControllerAutowiredTest extends AbstractAutowiredControllerTestBase{
 
-	@Autowired
-	private OIDCTokenHelper oidcTokenHelper;
-		
-	private String accessToken;
 	private Entity project;
 	private Long adminUserId;
 	private CreateDiscussionThread createThread;
 	private CreateDiscussionReply createReply;
 
-	@BeforeEach
+	@Before
 	public void before() throws Exception {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
-
 		project = new Project();
 		project.setName(UUID.randomUUID().toString());
-		project = servletTestHelper.createEntity(dispatchServlet, project, accessToken);
+		project = servletTestHelper.createEntity(dispatchServlet, project, adminUserId);
 
 		createThread = new CreateDiscussionThread();
 		createThread.setTitle("title");
@@ -62,7 +54,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		createReply.setMessageMarkdown("messageMardown");
 	}
 
-	@AfterEach
+	@After
 	public void cleanup() {
 		try {
 			servletTestHelper.deleteEntity(dispatchServlet, null, project.getId(), adminUserId,
@@ -335,7 +327,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		EntityIdList entityIdList = new EntityIdList();
 		entityIdList.setIdList(Arrays.asList(project.getId()));
-		EntityThreadCounts results = servletTestHelper.getEntityThreadCounts(dispatchServlet, accessToken, entityIdList);
+		EntityThreadCounts results = servletTestHelper.getEntityThreadCounts(dispatchServlet, adminUserId, entityIdList);
 		assertNotNull(results);
 		assertNotNull(results.getList());
 		assertTrue(results.getList().isEmpty());

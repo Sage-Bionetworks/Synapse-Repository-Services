@@ -23,6 +23,7 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
+import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
@@ -189,11 +190,11 @@ public class ITOpenIDConnectTest {
 		try {
 			synapseAnonymous.setBearerAuthorizationToken(tokenResponse.getAccess_token());
 			
-			ex = assertThrows(SynapseForbiddenException.class, () -> {
+			SynapseUnauthorizedException uex = assertThrows(SynapseUnauthorizedException.class, () -> {
 				synapseAnonymous.getUserInfoAsJSON();
 			});
 			
-			assertEquals("The OAuth client (" + client.getClient_id() + ") is not verified.", ex.getMessage());
+			assertEquals("The OAuth client (" + client.getClient_id() + ") is not verified.", uex.getMessage());
 			
 			// Verify the client once again
 			client = adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), client.getEtag(), true);

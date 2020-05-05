@@ -6,10 +6,12 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACC
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_DATA_ACCESS_REQUEST_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_DATA_ACCESS_SUBMISSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_SUBMISSION;
 
+import java.io.IOException;
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -17,11 +19,13 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
+import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DBOSubmission>{
@@ -33,7 +37,8 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 			new FieldColumn("createdBy", COL_DATA_ACCESS_SUBMISSION_CREATED_BY),
 			new FieldColumn("createdOn", COL_DATA_ACCESS_SUBMISSION_CREATED_ON),
 			new FieldColumn("etag", COL_DATA_ACCESS_SUBMISSION_ETAG).withIsEtag(true),
-			new FieldColumn("submissionSerialized", COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED)
+			new FieldColumn("submissionSerialized", COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED),
+			new FieldColumn("researchProjectId", COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_ID)
 		};
 
 	private Long id;
@@ -43,13 +48,14 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 	private Long createdOn;
 	private String etag;
 	private byte[] submissionSerialized;
+	private Long researchProjectId;
 
 	@Override
 	public String toString() {
-		return "DBOSubmission [id=" + id + ", accessRequirementId=" + accessRequirementId
-				+ ", dataAccessRequestId=" + dataAccessRequestId + ", createdBy=" + createdBy + ", createdOn="
-				+ createdOn + ", etag=" + etag + ", submissionSerialized=" + Arrays.toString(submissionSerialized)
-				+ "]";
+		return "DBOSubmission [id=" + id + ", accessRequirementId=" + accessRequirementId + ", dataAccessRequestId="
+				+ dataAccessRequestId + ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", etag=" + etag
+				+ ", submissionSerialized=" + Arrays.toString(submissionSerialized) + ", researchProjectId="
+				+ researchProjectId + "]";
 	}
 
 	@Override
@@ -62,6 +68,7 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 		result = prime * result + ((dataAccessRequestId == null) ? 0 : dataAccessRequestId.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + ((researchProjectId == null) ? 0 : researchProjectId.hashCode());
 		result = prime * result + Arrays.hashCode(submissionSerialized);
 		return result;
 	}
@@ -104,6 +111,11 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 			if (other.id != null)
 				return false;
 		} else if (!id.equals(other.id))
+			return false;
+		if (researchProjectId == null) {
+			if (other.researchProjectId != null)
+				return false;
+		} else if (!researchProjectId.equals(other.researchProjectId))
 			return false;
 		if (!Arrays.equals(submissionSerialized, other.submissionSerialized))
 			return false;
@@ -166,6 +178,14 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 		this.submissionSerialized = submissionSerialized;
 	}
 
+	public Long getResearchProjectId() {
+		return researchProjectId;
+	}
+
+	public void setResearchProjectId(Long researchProjectId) {
+		this.researchProjectId = researchProjectId;
+	}
+
 	@Override
 	public TableMapping<DBOSubmission> getTableMapping() {
 		return new TableMapping<DBOSubmission>(){
@@ -181,6 +201,7 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 				dbo.setEtag(rs.getString(COL_DATA_ACCESS_SUBMISSION_ETAG));
 				Blob blob = rs.getBlob(COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED);
 				dbo.setSubmissionSerialized(blob.getBytes(1, (int) blob.length()));
+				dbo.setResearchProjectId(rs.getLong(COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_ID));
 				return dbo;
 			}
 
@@ -212,9 +233,30 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 		return MigrationType.DATA_ACCESS_SUBMISSION;
 	}
 
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(Submission.class).build();
+
 	@Override
 	public MigratableTableTranslation<DBOSubmission, DBOSubmission> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOSubmission>();
+		return new MigratableTableTranslation<DBOSubmission,DBOSubmission>(){
+
+			@Override
+			public DBOSubmission createDatabaseObjectFromBackup(DBOSubmission backup) {
+				if (backup.getResearchProjectId()==null) {
+					try {
+						Submission submission = (Submission)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, 
+								backup.getSubmissionSerialized());	
+						backup.setResearchProjectId(Long.parseLong(submission.getResearchProjectSnapshot().getId()));
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
+				}
+				return backup;
+			}
+
+			@Override
+			public DBOSubmission createBackupFromDatabaseObject(DBOSubmission dbo) {
+				return dbo;
+			}};
 	}
 
 	@Override

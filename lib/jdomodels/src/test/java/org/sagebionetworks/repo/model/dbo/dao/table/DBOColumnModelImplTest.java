@@ -74,7 +74,7 @@ public class DBOColumnModelImplTest {
 	public void after(){
 		columnModelDao.truncateAllColumnData();
 	}
-	
+
 	@Test
 	public void testRoundTrip() throws Exception {
 		// To save

@@ -394,10 +394,10 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ValidateArgument.required(scopeType, "scopeType");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 		ValidateArgument.required(currentSchema, "currentSchema");
-		
+
 		ObjectType objectType = scopeType.getObjectType();
 		Long typeMask = scopeType.getTypeMask();
-		
+
 		// copy the data from the entity replication tables to table's index
 		try {
 			tableIndexDao.copyEntityReplicationToView(objectType, viewId, typeMask, allContainersInScope, currentSchema);
@@ -697,10 +697,10 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		
 		ObjectType objectType = scopeType.getObjectType();
 		Long typeMask = scopeType.getTypeMask();
-		
+
 		// all calls are in a single transaction.
 		tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
-			Long[] rowsIdsArray = rowsIdsWithChanges.stream().toArray(Long[] ::new); 
+			Long[] rowsIdsArray = rowsIdsWithChanges.stream().toArray(Long[] ::new);
  			// First delete the provided rows from the view
 			tableIndexDao.deleteRowsFromViewBatch(viewId, rowsIdsArray);
 			try {

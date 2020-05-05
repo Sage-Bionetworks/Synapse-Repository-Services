@@ -90,9 +90,9 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.provenance.Activity;
-import org.sagebionetworks.repo.model.table.AnnotationDTO;
+import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
-import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -3025,17 +3025,17 @@ public class NodeDAOImplTest {
 		int maxAnnotationChars = 10;
 		
 		// call under test
-		List<EntityDTO> results = nodeDao.getEntityDTOs(Lists.newArrayList(project.getId(),file.getId()), maxAnnotationChars);
+		List<ObjectDataDTO> results = nodeDao.getEntityDTOs(Lists.newArrayList(project.getId(),file.getId()), maxAnnotationChars);
 		assertNotNull(results);
 		assertEquals(2, results.size());
-		EntityDTO fileDto = results.get(1);
+		ObjectDataDTO fileDto = results.get(1);
 		assertEquals(KeyFactory.stringToKey(file.getId()), fileDto.getId());
 		assertEquals(file.getVersionNumber(), fileDto.getCurrentVersion());
 		assertEquals(file.getCreatedByPrincipalId(), fileDto.getCreatedBy());
 		assertEquals(file.getCreatedOn(), fileDto.getCreatedOn());
 		assertEquals(file.getETag(), fileDto.getEtag());
 		assertEquals(file.getName(), fileDto.getName());
-		assertEquals(file.getNodeType(), fileDto.getType());
+		assertEquals(file.getNodeType(), fileDto.getSubType());
 		assertEquals(KeyFactory.stringToKey(project.getId()), fileDto.getParentId());
 		assertEquals(KeyFactory.stringToKey(project.getId()), fileDto.getBenefactorId());
 		assertEquals(KeyFactory.stringToKey(project.getId()), fileDto.getProjectId());
@@ -3048,18 +3048,18 @@ public class NodeDAOImplTest {
 
 		assertNotNull(fileDto.getAnnotations());
 		assertEquals(4, fileDto.getAnnotations().size());
-		List<AnnotationDTO> expected = Lists.newArrayList(
-				new AnnotationDTO(fileIdLong, "aString", AnnotationType.STRING, "someString"),
-				new AnnotationDTO(fileIdLong, "aLong", AnnotationType.LONG, "123"),
-				new AnnotationDTO(fileIdLong, "aDouble", AnnotationType.DOUBLE, "1.22"),
-				new AnnotationDTO(fileIdLong, "aDouble2", AnnotationType.DOUBLE, "1.22")
+		List<ObjectAnnotationDTO> expected = Lists.newArrayList(
+				new ObjectAnnotationDTO(fileIdLong, "aString", AnnotationType.STRING, "someString"),
+				new ObjectAnnotationDTO(fileIdLong, "aLong", AnnotationType.LONG, "123"),
+				new ObjectAnnotationDTO(fileIdLong, "aDouble", AnnotationType.DOUBLE, "1.22"),
+				new ObjectAnnotationDTO(fileIdLong, "aDouble2", AnnotationType.DOUBLE, "1.22")
 		);
 		// Annotation order is not preserved by the JSON database column used to store annotations
-		for(AnnotationDTO expectedDto: expected) {
+		for(ObjectAnnotationDTO expectedDto: expected) {
 			assertTrue(fileDto.getAnnotations().contains(expectedDto));
 		}
 		// null checks on the project
-		EntityDTO projectDto = results.get(0);
+		ObjectDataDTO projectDto = results.get(0);
 		assertEquals(KeyFactory.stringToKey(project.getId()), projectDto.getId());
 		assertEquals(null, projectDto.getParentId());
 		assertEquals(projectDto.getId(), projectDto.getBenefactorId());
@@ -3095,10 +3095,10 @@ public class NodeDAOImplTest {
 		int maxAnnotationChars = 10;
 		
 		// call under test
-		List<EntityDTO> results = nodeDao.getEntityDTOs(Lists.newArrayList(project.getId(),file.getId()), maxAnnotationChars);
+		List<ObjectDataDTO> results = nodeDao.getEntityDTOs(Lists.newArrayList(project.getId(),file.getId()), maxAnnotationChars);
 		assertNotNull(results);
 		assertEquals(2, results.size());
-		EntityDTO fileDto = results.get(1);
+		ObjectDataDTO fileDto = results.get(1);
 		assertEquals(KeyFactory.stringToKey(file.getId()), fileDto.getId());
 		assertNotNull(fileDto.getAnnotations());
 		assertEquals(0, fileDto.getAnnotations().size());

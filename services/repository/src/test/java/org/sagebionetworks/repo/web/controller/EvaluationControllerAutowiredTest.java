@@ -1,11 +1,10 @@
 package org.sagebionetworks.repo.web.controller;
 
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,10 +14,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -29,7 +27,6 @@ import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -39,6 +36,7 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.Annotations;
@@ -51,7 +49,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class EvaluationControllerAutowiredTest extends AbstractAutowiredControllerJunit5TestBase {
+public class EvaluationControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
 	
 	@Autowired
 	private UserManager userManager;
@@ -77,11 +75,6 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 	@Autowired
 	private TeamManager teamManager;
 
-	@Autowired
-	private OIDCTokenHelper oidcTokenHelper;
-		
-	private String adminAccessToken;
-	private String testUserAccessToken;
 	private Long adminUserId;
 	private UserInfo adminUserInfo;
 	
@@ -100,7 +93,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 	private List<String> submissionsToDelete;
 	private List<String> nodesToDelete;
 	
-	@BeforeEach
+	@Before
 	public void before() throws Exception {
 		evaluationsToDelete = new ArrayList<String>();
 		submissionsToDelete = new ArrayList<String>();
@@ -109,13 +102,11 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		// get user IDs
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		adminUserInfo = userManager.getUserInfo(adminUserId);
-		adminAccessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
 		
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
 		testUserId = userManager.createUser(user);
-		testUserAccessToken = oidcTokenHelper.createTotalAccessToken(testUserId);
 		 groupMembersDAO.addMembers(
 		BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
 		 Collections.singletonList(testUserId.toString()));
@@ -154,7 +145,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
         sub2.setSubmitterAlias("Team Even Better!");
 	}
 	
-	@AfterEach
+	@After
 	public void after() throws Exception {
 		// clean up submissions
 		for (String id : submissionsToDelete) {
@@ -233,7 +224,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		// Update
 		fetched.setDescription(eval1.getDescription() + " (modified)");
 		Evaluation updated = entityServletHelper.updateEvaluation(fetched, adminUserId);
-		assertFalse(updated.getEtag().equals(fetched.getEtag()), "eTag was not updated");
+		assertFalse("eTag was not updated", updated.getEtag().equals(fetched.getEtag()));
 		fetched.setEtag(updated.getEtag());
 		assertEquals(fetched, updated);
 		assertEquals(initialCount + 1, entityServletHelper.getAvailableEvaluations(adminUserId).getTotalNumberOfResults());
@@ -257,6 +248,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		
 		// open the evaluation to join
 		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
+		accessSet.add(ACCESS_TYPE.PARTICIPATE);
 		accessSet.add(ACCESS_TYPE.SUBMIT);
 		accessSet.add(ACCESS_TYPE.READ);
 		ResourceAccess ra = new ResourceAccess();
@@ -278,7 +270,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		Node node = nodeManager.get(userInfo, nodeId);
 		sub1.setEvaluationId(eval1.getId());
 		sub1.setEntityId(nodeId);
-		sub1 = entityServletHelper.createSubmission(sub1, testUserAccessToken, node.getETag());
+		sub1 = entityServletHelper.createSubmission(sub1, testUserId, node.getETag());
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());
 		assertEquals(initialCount + 1, entityServletHelper.getSubmissionCount(adminUserId, eval1.getId()));
@@ -307,9 +299,9 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		status.setAnnotations(annots);
 		status.setCanCancel(true);
 		SubmissionStatus statusClone = entityServletHelper.updateSubmissionStatus(status, adminUserId);
-		assertFalse(status.getModifiedOn().equals(statusClone.getModifiedOn()), "Modified date was not updated");
+		assertFalse("Modified date was not updated", status.getModifiedOn().equals(statusClone.getModifiedOn()));
 		status.setModifiedOn(statusClone.getModifiedOn());
-		assertFalse(status.getEtag().equals(statusClone.getEtag()), "Etag was not updated");
+		assertFalse("Etag was not updated", status.getEtag().equals(statusClone.getEtag()));
 		status.setEtag(statusClone.getEtag());
 		status.setStatusVersion(statusClone.getStatusVersion());
 		assertEquals(status, statusClone);
@@ -332,7 +324,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		assertEquals(initialCount, entityServletHelper.getSubmissionCount(adminUserId, eval1.getId()));
 	}
 
-	@Test
+	@Test(expected=UnauthorizedException.class)
 	public void testSubmissionUnauthorized() throws Exception {
 		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = entityServletHelper.createEvaluation(eval1, adminUserId);
@@ -346,9 +338,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		// create
 		sub1.setEvaluationId(eval1.getId());
 		sub1.setEntityId(nodeId);
-		Assertions.assertThrows(UnauthorizedException.class, ()-> {
-			entityServletHelper.createSubmission(sub1, testUserAccessToken, node.getETag());
-		});
+		sub1 = entityServletHelper.createSubmission(sub1, testUserId, node.getETag());
 	}
 	
 	@Test
@@ -364,6 +354,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		
 		// open the evaluation to join
 		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
+		accessSet.add(ACCESS_TYPE.PARTICIPATE);
 		accessSet.add(ACCESS_TYPE.READ);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(accessSet);
@@ -387,14 +378,14 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		sub1.setEntityId(node1);
 		sub1.setVersionNumber(1L);
 		sub1.setUserId(adminUserId.toString());
-		sub1 = entityServletHelper.createSubmission(sub1, adminAccessToken, etag1);
+		sub1 = entityServletHelper.createSubmission(sub1, adminUserId, etag1);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());		
 		sub2.setEvaluationId(eval1.getId());
 		sub2.setEntityId(node2);
 		sub2.setVersionNumber(1L);
 		sub2.setUserId(adminUserId.toString());
-		sub2 = entityServletHelper.createSubmission(sub2, adminAccessToken, etag2);
+		sub2 = entityServletHelper.createSubmission(sub2, adminUserId, etag2);
 		assertNotNull(sub2.getId());
 		submissionsToDelete.add(sub2.getId());
 		
@@ -402,21 +393,21 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		PaginatedResults<Evaluation> evals = entityServletHelper.getEvaluationsPaginated(adminUserId, 10, 0);
 		assertEquals(2, evals.getTotalNumberOfResults());
 		for (Evaluation c : evals.getResults()) {
-			assertTrue(c.equals(eval1) || c.equals(eval2), "Unknown Evaluation returned: " + c.toString());
+			assertTrue("Unknown Evaluation returned: " + c.toString(), c.equals(eval1) || c.equals(eval2));
 		}
 		
 		// paginated evaluations by content source
 		evals = entityServletHelper.getEvaluationsByContentSourcePaginated(adminUserId, parentProjectId, 10, 0);
 		assertEquals(2, evals.getTotalNumberOfResults());
 		for (Evaluation c : evals.getResults()) {
-			assertTrue(c.equals(eval1) || c.equals(eval2), "Unknown Evaluation returned: " + c.toString());
+			assertTrue("Unknown Evaluation returned: " + c.toString(), c.equals(eval1) || c.equals(eval2));
 		}
 		
 		// paginated submissions
 		PaginatedResults<Submission> subs = entityServletHelper.getAllSubmissions(adminUserId, eval1.getId(), null);
 		assertEquals(2, subs.getTotalNumberOfResults());
 		for (Submission s : subs.getResults()) {
-			assertTrue(s.equals(sub1) || s.equals(sub2), "Unknown Submission returned: " + s.toString());
+			assertTrue("Unknown Submission returned: " + s.toString(), s.equals(sub1) || s.equals(sub2));
 		}
 		
 		subs = entityServletHelper.getAllSubmissions(adminUserId, eval1.getId(), SubmissionStatusEnum.SCORED);
@@ -453,6 +444,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		ResourceAccess ra = new ResourceAccess();
 		Set<ACCESS_TYPE> accessType = new HashSet<ACCESS_TYPE>();
 		accessType.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
+		accessType.add(ACCESS_TYPE.PARTICIPATE);
 		accessType.add(ACCESS_TYPE.READ);
 		ra.setAccessType(accessType);
 		ra.setPrincipalId(Long.parseLong(testUserInfo.getId().toString()));

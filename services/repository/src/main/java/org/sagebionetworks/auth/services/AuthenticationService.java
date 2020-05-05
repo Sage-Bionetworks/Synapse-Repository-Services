@@ -72,7 +72,7 @@ public interface AuthenticationService {
 	/**
 	 * Has the user accepted the terms of use?
 	 */
-	public boolean hasUserAcceptedTermsOfUse(String accessToken) throws NotFoundException;
+	public boolean hasUserAcceptedTermsOfUse(Long userId) throws NotFoundException;
 
 	/**
 	 * Sends a password reset email to the user identified by the given alias (username or email)

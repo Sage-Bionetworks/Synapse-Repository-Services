@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
@@ -10,6 +8,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.io.IOUtils;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
