@@ -3012,6 +3012,7 @@ public class NodeDAOImplTest {
 		AnnotationsV2TestUtils.putAnnotations(userAnnos, "aString", "someString", AnnotationsValueType.STRING);
 		AnnotationsV2TestUtils.putAnnotations(userAnnos, "aLong", "123", AnnotationsValueType.LONG);
 		AnnotationsV2TestUtils.putAnnotations(userAnnos, "aDouble", "1.22", AnnotationsValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(userAnnos, "aDouble2", "1.22", AnnotationsValueType.DOUBLE);
 		nodeDao.updateUserAnnotations(file.getId(), userAnnos);
 		//Ensure that entity property annotations are not included in the entity replication (PLFM-4601)
 
@@ -3046,13 +3047,17 @@ public class NodeDAOImplTest {
 		assertEquals(fileHandle.getContentMd5(), fileDto.getFileMD5());
 
 		assertNotNull(fileDto.getAnnotations());
-		assertEquals(3, fileDto.getAnnotations().size());
+		assertEquals(4, fileDto.getAnnotations().size());
 		List<ObjectAnnotationDTO> expected = Lists.newArrayList(
 				new ObjectAnnotationDTO(fileIdLong, "aString", AnnotationType.STRING, "someString"),
 				new ObjectAnnotationDTO(fileIdLong, "aLong", AnnotationType.LONG, "123"),
-				new ObjectAnnotationDTO(fileIdLong, "aDouble", AnnotationType.DOUBLE, "1.22")
+				new ObjectAnnotationDTO(fileIdLong, "aDouble", AnnotationType.DOUBLE, "1.22"),
+				new ObjectAnnotationDTO(fileIdLong, "aDouble2", AnnotationType.DOUBLE, "1.22")
 		);
-		assertEquals(expected, fileDto.getAnnotations());
+		// Annotation order is not preserved by the JSON database column used to store annotations
+		for(ObjectAnnotationDTO expectedDto: expected) {
+			assertTrue(fileDto.getAnnotations().contains(expectedDto));
+		}
 		// null checks on the project
 		ObjectDataDTO projectDto = results.get(0);
 		assertEquals(KeyFactory.stringToKey(project.getId()), projectDto.getId());

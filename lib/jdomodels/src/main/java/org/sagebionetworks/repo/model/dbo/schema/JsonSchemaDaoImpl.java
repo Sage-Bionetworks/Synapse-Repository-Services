@@ -29,11 +29,11 @@ import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.util.Optional;
 
-import org.apache.commons.codec.digest.DigestUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
+import org.sagebionetworks.repo.model.schema.NormalizedJsonSchema;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -124,22 +124,16 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 
 	String createJsonBlobIfDoesNotExist(JsonSchema schema) {
 		ValidateArgument.required(schema, "schema");
-		String schemaJson = null;
+		NormalizedJsonSchema normalized = new NormalizedJsonSchema(schema);
 		try {
-			schemaJson = EntityFactory.createJSONStringForEntity(schema);
-		} catch (JSONObjectAdapterException e) {
-			throw new IllegalArgumentException(e);
-		}
-		String sha256hex = DigestUtils.sha256Hex(schemaJson);
-		try {
-			return getJsonBlobId(sha256hex);
+			return getJsonBlobId(normalized.getSha256Hex());
 		} catch (NotFoundException e) {
 			Long blobId = idGenerator.generateNewId(IdType.JSON_SCHEMA_BLOB_ID);
 			jdbcTemplate.update(
 					"INSERT IGNORE INTO " + TABLE_JSON_SCHEMA_BLOB + " (" + COL_JSON_SCHEMA_BLOB_ID + ","
 							+ COL_JSON_SCHEMA_BLOB_BLOB + "," + COL_JSON_SCHEMA_BLOB_SHA256 + ") VALUES (?,?,?)",
-					blobId, schemaJson, sha256hex);
-			return getJsonBlobId(sha256hex);
+					blobId, normalized.getNormalizedSchemaJson(), normalized.getSha256Hex());
+			return getJsonBlobId(normalized.getSha256Hex());
 		}
 	}
 
