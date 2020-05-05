@@ -44,9 +44,10 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
-import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelProvider;
-import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelProviderImpl;
-import org.sagebionetworks.table.cluster.metadata.TestObjectFieldTypeEntityMapper;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
+import org.sagebionetworks.table.cluster.metadata.ScopeFilterProvider;
+import org.sagebionetworks.table.cluster.metadata.TestEntityMetadataIndexProvider;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseChangeSet;
@@ -75,6 +76,8 @@ public class SQLUtilsTest {
 
 	IdAndVersion tableId;
 	Long viewId;
+	
+	ScopeFilterProvider scopeFilterProvider;
 
 	@BeforeEach
 	public void before(){
@@ -113,6 +116,8 @@ public class SQLUtilsTest {
 
 		tableId = IdAndVersion.parse("syn999");
 		viewId = 123L;
+		
+		scopeFilterProvider = new TestEntityMetadataIndexProvider();
 	}
 
 
@@ -1789,34 +1794,6 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void testCreateViewTypeFilterFile(){
-		String result = SQLUtils.createViewTypeFilter(ViewTypeMask.getMaskForDepricatedType(ViewType.file));
-		assertEquals("R.SUBTYPE IN ('file')", result);
-	}
-
-	@Test
-	public void testCreateViewTypeFilterProject(){
-		String result = SQLUtils.createViewTypeFilter(ViewTypeMask.getMaskForDepricatedType(ViewType.project));
-		assertEquals("R.SUBTYPE IN ('project')", result);
-	}
-
-	@Test
-	public void testCreateViewTypeFilterFileAndTable(){
-		String result = SQLUtils.createViewTypeFilter(ViewTypeMask.getMaskForDepricatedType(ViewType.file_and_table));
-		assertEquals("R.SUBTYPE IN ('file', 'table')", result);
-	}
-
-	@Test
-	public void testCreateViewTypeFilterFileAndTableAllTypes(){
-		long typeMask = 0;
-		for(ViewTypeMask type: ViewTypeMask.values()) {
-			typeMask |= type.getMask();
-		}
-		String result = SQLUtils.createViewTypeFilter(typeMask);
-		assertEquals("R.SUBTYPE IN ('file', 'project', 'table', 'folder', 'entityview', 'dockerrepo')", result);
-	}
-
-	@Test
 	public void testBuildAnnotationSelectString() {
 		StringBuilder builder = new StringBuilder();
 		ColumnMetadata meta = createMetadataForAnnotation(ColumnType.STRING, 123);
@@ -1923,7 +1900,8 @@ public class SQLUtilsTest {
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = false;
 		List<ColumnMetadata> metadata = ImmutableList.of(one, id);
-		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, metadata, viewTypeMask, filterByRows);
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(viewTypeMask);
+		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, metadata, scopeFilter, filterByRows);
 		String sql = builder.toString();
 		assertEquals("SELECT"
 				+ " R.OBJECT_ID,"
@@ -1950,7 +1928,8 @@ public class SQLUtilsTest {
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = false;
-		String sql = SQLUtils.createAnnotationMaxListLengthSQL(viewId, viewTypeMask, annotationNames, filterByRows);
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(viewTypeMask);
+		String sql = SQLUtils.createAnnotationMaxListLengthSQL(scopeFilter, annotationNames, filterByRows);
 
 		assertEquals("SELECT"
 				+ " A.ANNO_KEY, MAX(A.LIST_LENGTH)"
@@ -1972,9 +1951,9 @@ public class SQLUtilsTest {
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = false;
-
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(viewTypeMask);
 		assertThrows(IllegalArgumentException.class, () ->
-			SQLUtils.createAnnotationMaxListLengthSQL(viewId, viewTypeMask, annotationNames, filterByRows)
+			SQLUtils.createAnnotationMaxListLengthSQL(scopeFilter, annotationNames, filterByRows)
 		);
 
 	}
@@ -1985,9 +1964,9 @@ public class SQLUtilsTest {
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = false;
-
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(viewTypeMask);
 		assertThrows(IllegalArgumentException.class, () ->
-				SQLUtils.createAnnotationMaxListLengthSQL(viewId, viewTypeMask, annotationNames, filterByRows)
+				SQLUtils.createAnnotationMaxListLengthSQL(scopeFilter, annotationNames, filterByRows)
 		);
 
 	}
@@ -2000,8 +1979,9 @@ public class SQLUtilsTest {
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = true;
 		List<ColumnMetadata> metadata = ImmutableList.of(one, id);
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(viewTypeMask);
 		// call under test
-		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, metadata, viewTypeMask, filterByRows);
+		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, metadata, scopeFilter, filterByRows);
 		String sql = builder.toString();
 		assertEquals("SELECT"
 				+ " R.OBJECT_ID,"
@@ -2031,7 +2011,8 @@ public class SQLUtilsTest {
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		boolean filterByRows = false;
 		List<ColumnMetadata> metadata = ImmutableList.of(one, id);
-		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, viewTypeMask, filterByRows);
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(viewTypeMask);
+		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, scopeFilter, filterByRows);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_)"
 				+ " SELECT"
 				+ " R.OBJECT_ID,"
@@ -2058,7 +2039,8 @@ public class SQLUtilsTest {
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		boolean filterByRows = true;
 		List<ColumnMetadata> metadata = ImmutableList.of(one, id);
-		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, viewTypeMask, filterByRows);
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(viewTypeMask);
+		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, scopeFilter, filterByRows);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_)"
 				+ " SELECT"
 				+ " R.OBJECT_ID,"
@@ -2086,7 +2068,8 @@ public class SQLUtilsTest {
 		Long viewTypeMask = ViewTypeMask.Project.getMask();
 		boolean filterByRows = false;
 		List<ColumnMetadata> metadata = ImmutableList.of(one, id);
-		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, viewTypeMask, filterByRows);
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(viewTypeMask);
+		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, scopeFilter, filterByRows);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_)"
 				+ " SELECT"
 				+ " R.OBJECT_ID,"
@@ -2112,7 +2095,8 @@ public class SQLUtilsTest {
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		boolean filterByRows = false;
 		List<ColumnMetadata> metadata = ImmutableList.of(one);
-		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, viewTypeMask, filterByRows);
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(viewTypeMask);
+		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, scopeFilter, filterByRows);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _DBL_C3_, _C3_)"
 				+ " SELECT"
 				+ " R.OBJECT_ID, MAX(R.CURRENT_VERSION) AS CURRENT_VERSION,"
@@ -2599,27 +2583,18 @@ public class SQLUtilsTest {
 		}
 	}
 
-
-	@Test
-	public void testGetViewScopeFilterColumnForType() {
-		assertEquals(TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID,
-				SQLUtils.getViewScopeFilterColumnForType(ViewTypeMask.Project.getMask()));
-		assertEquals(TableConstants.OBJECT_REPLICATION_COL_PARENT_ID,
-				SQLUtils.getViewScopeFilterColumnForType(ViewTypeMask.File.getMask()));
-		assertEquals(TableConstants.OBJECT_REPLICATION_COL_PARENT_ID,
-				SQLUtils.getViewScopeFilterColumnForType(ViewTypeMask.getMaskForDepricatedType(ViewType.file_and_table)));
-	}
-
 	@Test
 	public void testGetDistinctAnnotationColumnsSqlFileView(){
-		String sql = SQLUtils.getDistinctAnnotationColumnsSql(ViewTypeMask.File.getMask());
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(ViewTypeMask.File.getMask());
+		String sql = SQLUtils.getDistinctAnnotationColumnsSql(scopeFilter);
 		String expected = TableConstants.OBJECT_REPLICATION_COL_PARENT_ID+" IN (:parentIds)";
 		assertTrue(sql.contains(expected));
 	}
 
 	@Test
 	public void testGetDistinctAnnotationColumnsSqlProjectView(){
-		String sql = SQLUtils.getDistinctAnnotationColumnsSql(ViewTypeMask.Project.getMask());
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(ViewTypeMask.Project.getMask());
+		String sql = SQLUtils.getDistinctAnnotationColumnsSql(scopeFilter);
 		String expected = TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID+" IN (:parentIds)";
 		assertTrue(sql.contains(expected));
 	}
@@ -2989,8 +2964,9 @@ public class SQLUtilsTest {
 	@Test
 	public void testGetOutOfDateRowsForViewSqlFileView() {
 		long viewTypeMask = ViewTypeMask.File.getMask() ;
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(viewTypeMask);
 		// call under test
-		String sql = SQLUtils.getOutOfDateRowsForViewSql(tableId, viewTypeMask);
+		String sql = SQLUtils.getOutOfDateRowsForViewSql(tableId, scopeFilter);
 		String expected = "WITH DELTAS (ID, MISSING) AS ("
 				+ " SELECT R.OBJECT_ID, V.ROW_ID FROM OBJECT_REPLICATION R"
 				+ "    LEFT JOIN T999 V ON ("
@@ -3014,8 +2990,9 @@ public class SQLUtilsTest {
 	@Test
 	public void testGetOutOfDateRowsForViewSqlFileProject() {
 		long viewTypeMask = ViewTypeMask.Project.getMask();
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(viewTypeMask);
 		// call under test
-		String sql = SQLUtils.getOutOfDateRowsForViewSql(tableId, viewTypeMask);
+		String sql = SQLUtils.getOutOfDateRowsForViewSql(tableId, scopeFilter);
 		String expected = "WITH DELTAS (ID, MISSING) AS ("
 				+ " SELECT R.OBJECT_ID, V.ROW_ID FROM OBJECT_REPLICATION R"
 				+ "    LEFT JOIN T999 V ON ("
@@ -3041,5 +3018,9 @@ public class SQLUtilsTest {
 		// call under test
 		String sql = SQLUtils.getDeleteRowsFromViewSql(tableId);
 		assertEquals("DELETE FROM T999 WHERE ROW_ID = ?", sql);
+	}
+	
+	private SQLScopeFilter getSQLScopeFilter(Long typeMask) {
+		return new SQLScopeFilterBuilder(scopeFilterProvider, typeMask).build();
 	}
 }

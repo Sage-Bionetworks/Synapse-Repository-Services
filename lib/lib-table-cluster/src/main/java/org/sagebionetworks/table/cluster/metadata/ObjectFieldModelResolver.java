@@ -7,11 +7,11 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ObjectField;
 
 /**
- * Service to match column models to the default replication {@link ObjectField}s.
+ * Service to resolve column models for the default replication {@link ObjectField}s.
  * 
  * @author Marco Marasca
  */
-public interface ObjectFieldModelProvider {
+public interface ObjectFieldModelResolver {
 
 	/**
 	 * Given an object field returns the corresponding {@link ColumnModel}

@@ -99,7 +99,8 @@ public enum ObjectField {
 	public ColumnModel getColumnModel(){
 		ColumnModel cm = new ColumnModel();
 		cm.setName(name());
-		cm.setColumnType(this.columnType);
+		// For backwards compatibility until this is removed
+		cm.setColumnType(this.columnType == null ? ColumnType.ENTITYID : this.columnType);
 		cm.setMaximumSize(this.size);
 		cm.setFacetType(this.facetType);
 		return cm;
@@ -126,8 +127,10 @@ public enum ObjectField {
 		if(!fieldColumnModel.getName().equals(cm.getName())){
 			return false;
 		}
+		// For backwards compatibility until this is removed
+		ColumnType columnType = fieldColumnModel.getColumnType() == null ? ColumnType.ENTITYID : fieldColumnModel.getColumnType();
 		// type must match
-		if(fieldColumnModel.getColumnType() !=null && !fieldColumnModel.getColumnType().equals(cm.getColumnType())){
+		if(!columnType.equals(cm.getColumnType())){
 			return false;
 		}
 		// size must be greater than or equal

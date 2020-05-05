@@ -9,7 +9,7 @@ import org.sagebionetworks.repo.model.table.ObjectField;
  * 
  * @author Marco Marasca
  */
-public interface ObjectFieldTypeMapper extends ObjectTypeIndexProvider {
+public interface ObjectFieldTypeMapper {
 
 	/**
 	 * @return The {@link ColumnType} mapping for the id of the object

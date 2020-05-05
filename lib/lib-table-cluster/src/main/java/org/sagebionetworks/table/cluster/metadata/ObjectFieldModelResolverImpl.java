@@ -8,11 +8,11 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectField;
 
-public class ObjectFieldModelProviderImpl implements ObjectFieldModelProvider {
+public class ObjectFieldModelResolverImpl implements ObjectFieldModelResolver {
 
 	private ObjectFieldTypeMapper fieldTypeProvider;
 
-	public ObjectFieldModelProviderImpl(ObjectFieldTypeMapper fieldTypeProvider) {
+	public ObjectFieldModelResolverImpl(ObjectFieldTypeMapper fieldTypeProvider) {
 		this.fieldTypeProvider = fieldTypeProvider;
 	}
 	
@@ -67,7 +67,7 @@ public class ObjectFieldModelProviderImpl implements ObjectFieldModelProvider {
 			if (model.getMaximumSize() == null) {
 				return false;
 			}
-			if (field.getSize() < model.getMaximumSize()) {
+			if (model.getMaximumSize() < field.getSize()) {
 				return false;
 			}
 		}
