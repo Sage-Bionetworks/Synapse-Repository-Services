@@ -11,16 +11,15 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REP
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.FILE_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ID_PARAM_NAME;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_TYPE_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.INDEX_NUM;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBEJCT_REPLICATION_COL_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_ALIAS;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_BENEFACTOR_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_TYPE;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PARENT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_TABLE;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_TYPE_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_BENEFACTOR;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
@@ -48,14 +47,13 @@ import java.util.regex.Pattern;
 import org.json.JSONArray;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.model.table.parser.AllLongTypeParser;
 import org.sagebionetworks.repo.model.table.parser.BooleanParser;
 import org.sagebionetworks.repo.model.table.parser.DoubleParser;
@@ -1381,14 +1379,14 @@ public class SQLUtils {
 	 * @param currentSchema
 	 * @return
 	 */
-	public static String createSelectInsertFromObjectReplication(Long viewId, List<ColumnMetadata> metadata, Long viewTypeMask, boolean filterByRows) {
+	public static String createSelectInsertFromObjectReplication(Long viewId, List<ColumnMetadata> metadata, SQLScopeFilter scopeFilter, boolean filterByRows) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("INSERT INTO ");
 		builder.append(getTableNameForId(IdAndVersion.newBuilder().setId(viewId).build(), TableType.INDEX));
 		builder.append("(");
 		buildInsertValues(builder, metadata);
 		builder.append(") ");
-		createSelectFromObjectReplication(builder, metadata, viewTypeMask, filterByRows);
+		createSelectFromObjectReplication(builder, metadata, scopeFilter, filterByRows);
 		return builder.toString();
 	}
 	
@@ -1399,16 +1397,16 @@ public class SQLUtils {
 	 * @param currentSchema
 	 * @return
 	 */
-	public static List<String> createSelectFromObjectReplication(StringBuilder builder, List<ColumnMetadata> metadata, Long viewTypeMask, boolean filterByRows) {
+	public static List<String> createSelectFromObjectReplication(StringBuilder builder, List<ColumnMetadata> metadata, SQLScopeFilter scopeFilter, boolean filterByRows) {
 		builder.append("SELECT ");
 		List<String> headers = buildSelect(builder, metadata);
-		objectReplicationJoinAnnotationReplicationFilter(builder, viewTypeMask, filterByRows);
+		objectReplicationJoinAnnotationReplicationFilter(builder, scopeFilter, filterByRows);
 		builder.append(" GROUP BY ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID);
 		builder.append(" ORDER BY ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID);
 		return headers;
 	}
 
-	private static void objectReplicationJoinAnnotationReplicationFilter(StringBuilder builder, Long viewTypeMask, boolean filterByRows) {
+	private static void objectReplicationJoinAnnotationReplicationFilter(StringBuilder builder, SQLScopeFilter scopeFilter, boolean filterByRows) {
 		builder.append(" FROM ");
 		builder.append(OBJECT_REPLICATION_TABLE);
 		builder.append(" ");
@@ -1434,11 +1432,11 @@ public class SQLUtils {
 		builder.append(" AND ");
 		builder.append(OBJECT_REPLICATION_ALIAS);
 		builder.append(".");
-		builder.append(getViewScopeFilterColumnForType(viewTypeMask));
+		builder.append(scopeFilter.getViewScopeFilterColumn());
 		builder.append(" IN (:");
 		builder.append(PARENT_ID_PARAM_NAME);
 		builder.append(") AND ");
-		builder.append(createViewTypeFilter(viewTypeMask));
+		builder.append(scopeFilter.getViewTypeFilter());
 		if (filterByRows) {
 			builder.append(" AND ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID)
 					.append(" IN (:").append(ID_PARAM_NAME).append(")");
@@ -1452,47 +1450,17 @@ public class SQLUtils {
 	 * @param annotationNames
 	 * @return
 	 */
-	public static String createAnnotationMaxListLengthSQL(Long viewId, Long viewTypeMask,
-																 Set<String> annotationNames, boolean filterByRows) {
+	public static String createAnnotationMaxListLengthSQL(SQLScopeFilter scopeFilter, Set<String> annotationNames, boolean filterByRows) {
 		ValidateArgument.requiredNotEmpty(annotationNames,"annotationNames");
 
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT ")
 				.append(ANNOTATION_REPLICATION_ALIAS).append(".").append(ANNOTATION_REPLICATION_COL_KEY)
 				.append(", MAX(").append(ANNOTATION_REPLICATION_ALIAS).append(".").append(ANNOTATION_REPLICATION_COL_LIST_LENGTH).append(")");
-		objectReplicationJoinAnnotationReplicationFilter(builder, viewTypeMask, filterByRows);
+		objectReplicationJoinAnnotationReplicationFilter(builder, scopeFilter, filterByRows);
 		builder.append(" AND ").append(ANNOTATION_REPLICATION_ALIAS).append(".").append(ANNOTATION_REPLICATION_COL_KEY)
 				.append(" IN (:").append(ANNOTATION_KEYS_PARAM_NAME).append(")");
 		builder.append(" GROUP BY ").append(ANNOTATION_REPLICATION_ALIAS).append(".").append(ANNOTATION_REPLICATION_COL_KEY);
-		return builder.toString();
-	}
-	
-	/**
-	 * Filter for each view type.
-	 * @param type
-	 * @return
-	 */
-	public static String createViewTypeFilter(Long viewTypeMask){
-		ValidateArgument.required(viewTypeMask, "viewTypeMask");
-		StringBuilder builder = new StringBuilder();
-		builder.append(OBJECT_REPLICATION_ALIAS);
-		builder.append(".");
-		builder.append(TableConstants.OBJECT_REPLICATION_COL_SUBTYPE);
-		builder.append(" IN (");
-		// add all types that match the given mask
-		int count = 0;
-		for(ViewTypeMask type: ViewTypeMask.values()) {
-			if((type.getMask() & viewTypeMask) > 0) {
-				if(count > 0) {
-					builder.append(", ");
-				}
-				builder.append("'");
-				builder.append(type.getEntityType().name());
-				builder.append("'");
-				count++;
-			}
-		}
-		builder.append(")");
 		return builder.toString();
 	}
 	
@@ -1794,30 +1762,14 @@ public class SQLUtils {
 	}
 	
 	/**
-	 * Get the column used to filter the rows in a view. Project views scopes
-	 * are filtered by entityIds, while all other view types scopes are filtered
-	 * parentId.
-	 * 
-	 * @param type
-	 * @return
-	 */
-	public static String getViewScopeFilterColumnForType(Long viewTypeMask) {
-		if(ViewTypeMask.Project.getMask() == viewTypeMask) {
-			return OBJECT_REPLICATION_COL_OBJECT_ID;
-		}else {
-			return OBJECT_REPLICATION_COL_PARENT_ID;
-		}
-	}
-	
-	/**
 	 * Generate the SQL used to get the distinct annotations for a view
 	 * of the given type.
 	 * 
 	 * @param type
 	 * @return
 	 */
-	public static String getDistinctAnnotationColumnsSql(Long viewTypeMask){
-		String filterColumln = getViewScopeFilterColumnForType(viewTypeMask);
+	public static String getDistinctAnnotationColumnsSql(SQLScopeFilter scopeFilter){
+		String filterColumln = scopeFilter.getViewScopeFilterColumn();
 		return String.format(SELECT_DISTINCT_ANNOTATION_COLUMNS_TEMPLATE, filterColumln);
 	}
 	
@@ -2060,10 +2012,10 @@ public class SQLUtils {
 	 * @param viewTypeMask
 	 * @return
 	 */
-	public static String getOutOfDateRowsForViewSql(IdAndVersion viewId, long viewTypeMask) {
+	public static String getOutOfDateRowsForViewSql(IdAndVersion viewId, SQLScopeFilter scopeFilter) {
 		String viewName = SQLUtils.getTableNameForId(viewId, TableType.INDEX);
-		String scopeColumn = SQLUtils.getViewScopeFilterColumnForType(viewTypeMask);
-		String viewTypeFilter = createViewTypeFilter(viewTypeMask);
+		String scopeColumn = scopeFilter.getViewScopeFilterColumn();
+		String viewTypeFilter = scopeFilter.getViewTypeFilter();
 		return String.format(VIEW_ROWS_OUT_OF_DATE_TEMPLATE, viewName, scopeColumn, viewTypeFilter);
 	}
 	

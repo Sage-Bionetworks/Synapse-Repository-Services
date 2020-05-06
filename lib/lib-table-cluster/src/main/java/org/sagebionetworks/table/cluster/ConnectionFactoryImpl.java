@@ -4,6 +4,8 @@ import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.sql.DataSource;
 
 import org.apache.commons.dbcp2.BasicDataSource;
@@ -12,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * Note: For the first pass at this feature we are only using one database. This
@@ -20,12 +23,12 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author jmhill
  *
  */
+@Service
 public class ConnectionFactoryImpl implements ConnectionFactory {
 
-	Logger log = LogManager.getLogger(ConnectionFactoryImpl.class);
+	private static Logger log = LogManager.getLogger(ConnectionFactoryImpl.class);
 
-	@Autowired
-	InstanceDiscovery instanceDiscovery;
+	private InstanceDiscovery instanceDiscovery;
 	/**
 	 * Note: This field will be remove when we actually have more than one
 	 * connection. It is a simple way to get the functionality up and running
@@ -33,7 +36,6 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 	 */
 	private BasicDataSource singleConnectionPool;
 
-	@Autowired
 	private StackConfiguration stackConfig;
 
 	/**
@@ -41,8 +43,14 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 	 * need an alternate solution to support multiple database connections in the
 	 * future.
 	 */
-	@Autowired
 	private TableIndexDAO tableIndexDao;
+	
+	@Autowired
+	public ConnectionFactoryImpl(StackConfiguration config, InstanceDiscovery instanceDiscovery, TableIndexDAO tableIndexDao) {
+		this.stackConfig = config;
+		this.instanceDiscovery = instanceDiscovery;
+		this.tableIndexDao = tableIndexDao;
+	}
 
 	@Override
 	public TableIndexDAO getConnection(IdAndVersion tableId) {
@@ -53,6 +61,7 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 	/**
 	 * This is called when the Spring bean is initialized.
 	 */
+	@PostConstruct
 	public void initialize() {
 		// There is nothing to do if the table feature is not enabled.
 		// The features is enabled so we must find all database instances that we can
@@ -77,6 +86,7 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 	 * 
 	 * @throws SQLException
 	 */
+	@PreDestroy
 	public void close() throws SQLException {
 		if (singleConnectionPool != null) {
 			log.debug("Closing connection pool to: " + singleConnectionPool.getUrl());

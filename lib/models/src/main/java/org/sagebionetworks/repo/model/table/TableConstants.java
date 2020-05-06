@@ -366,7 +366,11 @@ public class TableConstants {
 	 * @return
 	 */
 	public static String joinEnumForSQL(Enum<?>[] values) {
-		return Stream.of(values).map( e -> "'" + e.name() + "'").collect(Collectors.joining(","));
+		return joinEnumForSQL(Stream.of(values));
+	}
+	
+	public static String joinEnumForSQL(Stream<Enum<?>> valuesStream) {
+		return valuesStream.map( e -> "'" + e.name() + "'").collect(Collectors.joining(","));
 	}
 	
 

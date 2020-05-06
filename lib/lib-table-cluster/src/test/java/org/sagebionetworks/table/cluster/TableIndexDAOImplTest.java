@@ -61,6 +61,10 @@ import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
+import org.sagebionetworks.table.cluster.metadata.MetadataIndexProviderFactory;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
+import org.sagebionetworks.table.cluster.metadata.TestEntityMetadataIndexProvider;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseChangeSet;
@@ -85,6 +89,9 @@ public class TableIndexDAOImplTest {
 	ConnectionFactory tableConnectionFactory;
 	@Autowired
 	StackConfiguration config;
+	@Autowired
+	MetadataIndexProviderFactory metadataIndexProviderFactory;
+	
 	// not a bean
 	TableIndexDAO tableIndexDAO;
 	
@@ -108,7 +115,7 @@ public class TableIndexDAOImplTest {
 		// First get a connection for this table
 		tableIndexDAO = tableConnectionFactory.getConnection(tableId);
 		tableIndexDAO.deleteTable(tableId);
-		tableIndexDAO.truncateIndex();
+		tableIndexDAO.truncateIndex();		
 		isView = false;
 	}
 
@@ -1408,6 +1415,10 @@ public class TableIndexDAOImplTest {
 		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, 1L);
 		assertEquals(file, fetched);
 	}
+	
+	private SQLScopeFilter getScopeFilter(ObjectType objectType, Long viewTypeMask) {
+		return new SQLScopeFilterBuilder(metadataIndexProviderFactory.getMetadataIndexProvider(objectType), viewTypeMask).build();
+	}
 
 	@Test
 	public void testGetMaxListSizeForAnnotations_nullScope() throws ParseException {
@@ -1415,10 +1426,12 @@ public class TableIndexDAOImplTest {
 		Set<Long> nullScope = null;
 
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
+		
+		SQLScopeFilter scopeFilter = getScopeFilter(objectType, ViewTypeMask.File.getMask());
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
-				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, tableId.getId(),
-						ViewTypeMask.File.getMask(), nullScope, annotationNames, null)
+				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType,
+						scopeFilter, nullScope, annotationNames, null)
 		).getMessage();
 
 		assertEquals("allContainersInScope is required.", errorMessage);
@@ -1431,10 +1444,12 @@ public class TableIndexDAOImplTest {
 		Set<Long> emptyScope = Collections.emptySet();
 
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
+		
+		SQLScopeFilter scopeFilter = getScopeFilter(objectType, ViewTypeMask.File.getMask());
 
 		assertEquals(Collections.emptyMap(),
-				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, tableId.getId(),
-						ViewTypeMask.File.getMask(), emptyScope, annotationNames, null));
+				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, 
+						scopeFilter, emptyScope, annotationNames, null));
 
 	}
 
@@ -1444,10 +1459,12 @@ public class TableIndexDAOImplTest {
 		Set<Long> scope = Sets.newHashSet(222L,333L);
 
 		Set<String> nullAnnotationNames = null;
+		
+		SQLScopeFilter scopeFilter = getScopeFilter(objectType, ViewTypeMask.File.getMask());
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
-				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, tableId.getId(),
-						ViewTypeMask.File.getMask(), scope, nullAnnotationNames, null)
+				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, 
+						scopeFilter, scope, nullAnnotationNames, null)
 		).getMessage();
 
 		assertEquals("annotationNames is required.", errorMessage);
@@ -1462,10 +1479,12 @@ public class TableIndexDAOImplTest {
 		Set<String> annotationNames = Sets.newHashSet("foo","bar");
 
 		Set<Long> emptyObjectIdFilter = Collections.emptySet();
+		
+		SQLScopeFilter scopeFilter = getScopeFilter(objectType, ViewTypeMask.File.getMask());
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
-				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, tableId.getId(),
-						ViewTypeMask.File.getMask(), scope, annotationNames, emptyObjectIdFilter)
+				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, 
+						scopeFilter, scope, annotationNames, emptyObjectIdFilter)
 		).getMessage();
 
 		assertEquals("When objectIdFilter is provided (not null) it cannot be empty", errorMessage);
@@ -1477,10 +1496,12 @@ public class TableIndexDAOImplTest {
 		Set<Long> scope = Sets.newHashSet(222L,333L);
 
 		Set<String> emptyAnnotationNames = Collections.emptySet();
+		
+		SQLScopeFilter scopeFilter = getScopeFilter(objectType, ViewTypeMask.File.getMask());
 
 		assertEquals(Collections.emptyMap(),
-				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, tableId.getId(),
-						ViewTypeMask.File.getMask(), scope, emptyAnnotationNames, null));
+				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, 
+						scopeFilter, scope, emptyAnnotationNames, null));
 
 	}
 
@@ -1527,12 +1548,15 @@ public class TableIndexDAOImplTest {
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		// Create the schema for this table
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, file2);
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
+		
+		SQLScopeFilter scopeFilter = getScopeFilter(objectType, ViewTypeMask.File.getMask());
+		
 		// method under test
-		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, tableId.getId(), ViewTypeMask.File.getMask(), scope, annotationNames, null);
+		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, scopeFilter, scope, annotationNames, null);
 		HashMap<String,Long> expected = new HashMap<>();
 		expected.put("foo",3L);
 		expected.put("bar",5L);
@@ -1559,14 +1583,16 @@ public class TableIndexDAOImplTest {
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		// Create the schema for this table
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, file2);
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
 		// method under test
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
+		
+		SQLScopeFilter scopeFilter = getScopeFilter(objectType, ViewTypeMask.File.getMask());
 
-		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, tableId.getId(), ViewTypeMask.File.getMask(), scope, annotationNames, null);
+		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, scopeFilter, scope, annotationNames, null);
 		assertEquals(Collections.emptyMap(), listSizes);
 	}
 
@@ -1613,14 +1639,17 @@ public class TableIndexDAOImplTest {
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		// Create the schema for this table
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, file2);
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
 
 		Set<Long> objectIdFilter = Sets.newHashSet(2L);
+		
+		SQLScopeFilter scopeFilter = getScopeFilter(objectType, ViewTypeMask.File.getMask());
+		
 		// method under test
-		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, tableId.getId(), ViewTypeMask.File.getMask(), scope, annotationNames, objectIdFilter);
+		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, scopeFilter, scope, annotationNames, objectIdFilter);
 		HashMap<String,Long> expected = new HashMap<>();
 		expected.put("foo",3L);
 		expected.put("bar",3L);
@@ -1645,7 +1674,7 @@ public class TableIndexDAOImplTest {
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		// Create the schema for this table
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, file2);
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
@@ -1687,7 +1716,7 @@ public class TableIndexDAOImplTest {
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		// Create the schema for this table
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, file2);
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
@@ -1863,7 +1892,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
 		
 		// Create the schema for this table
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, file2);
 
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
@@ -1915,7 +1944,7 @@ public class TableIndexDAOImplTest {
 		// both parents
 		Set<Long> scope = new HashSet<Long>();
 		// Create the schema for this table
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, file2);
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
@@ -2641,7 +2670,7 @@ public class TableIndexDAOImplTest {
 	 * @param dto
 	 * @return
 	 */
-	public static List<ColumnModel> createSchemaFromObjectDataDTO(ObjectDataDTO dto){
+	private List<ColumnModel> createSchemaFromObjectDataDTO(ObjectType objectType, ObjectDataDTO dto){
 		List<ColumnModel> schema = new LinkedList<>();
 		// add a column for each annotation
 		if(dto.getAnnotations() != null){
@@ -2659,8 +2688,9 @@ public class TableIndexDAOImplTest {
 				schema.add(cm);
 			}
 		}
-		// Add all of the default EntityFields
-		schema.addAll(ObjectField.getAllColumnModels());
+		ObjectFieldModelResolver fieldTypeProvider = metadataIndexProviderFactory.getObjectFieldModelResolver(objectType);
+		// Add all of the default ObjectFields
+		schema.addAll(fieldTypeProvider.getAllColumnModels());
 		// assign each column an ID
 		for(int i=0; i<schema.size(); i++){
 			ColumnModel cm = schema.get(i);
@@ -2912,7 +2942,7 @@ public class TableIndexDAOImplTest {
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		long limit = 100L;
@@ -2938,7 +2968,7 @@ public class TableIndexDAOImplTest {
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		
@@ -2971,7 +3001,7 @@ public class TableIndexDAOImplTest {
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		
@@ -3007,7 +3037,7 @@ public class TableIndexDAOImplTest {
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 
@@ -3043,7 +3073,7 @@ public class TableIndexDAOImplTest {
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 
@@ -3079,7 +3109,7 @@ public class TableIndexDAOImplTest {
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 
@@ -3106,7 +3136,7 @@ public class TableIndexDAOImplTest {
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		// all of the rows are out-of-date, but only the last should be returned with a limit of one.
@@ -3136,7 +3166,7 @@ public class TableIndexDAOImplTest {
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		long limit = 100L;
@@ -3168,7 +3198,7 @@ public class TableIndexDAOImplTest {
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		
@@ -3296,7 +3326,7 @@ public class TableIndexDAOImplTest {
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		tableIndexDAO.copyEntityReplicationToView(objectType, tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
 		long limit = 100;
@@ -3327,7 +3357,7 @@ public class TableIndexDAOImplTest {
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		tableIndexDAO.copyEntityReplicationToView(objectType, tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
 		long limit = 100;
@@ -3375,7 +3405,7 @@ public class TableIndexDAOImplTest {
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		
 		Long idThatDoesNotExist = 999L;
@@ -3407,7 +3437,7 @@ public class TableIndexDAOImplTest {
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		
 		// Null row filter will add all rows
@@ -3430,7 +3460,7 @@ public class TableIndexDAOImplTest {
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		
 		// Null row filter will add all rows

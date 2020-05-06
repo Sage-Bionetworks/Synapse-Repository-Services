@@ -6,24 +6,25 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
-import org.springframework.test.util.ReflectionTestUtils;
 
+@ExtendWith(MockitoExtension.class)
 public class InstanceDiscoveryImplTest {
 	
-	StackConfiguration mockConfiguration;
+	@Mock
+	private StackConfiguration mockConfiguration;
 
-	InstanceDiscoveryImpl discovery;
+	@InjectMocks
+	private InstanceDiscoveryImpl discovery;
 	
-	@Before
-	public void before(){
-		mockConfiguration = Mockito.mock(StackConfiguration.class);
-		discovery = new InstanceDiscoveryImpl();
-		ReflectionTestUtils.setField(discovery, "config", mockConfiguration);
-		
+	@BeforeEach
+	public void before(){		
 		when(mockConfiguration.getTablesDatabaseCount()).thenReturn(2);
 		when(mockConfiguration.getTablesDatabaseEndpointForIndex(0)).thenReturn("endpoint0");
 		when(mockConfiguration.getTablesDatabaseSchemaForIndex(0)).thenReturn("schema0");
