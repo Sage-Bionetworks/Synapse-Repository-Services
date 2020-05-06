@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
@@ -93,5 +94,15 @@ public interface JsonSchemaManager {
 	void deleteSchemaVersion(UserInfo user, String organizationName, String schemaName, String semanticVersion);
 
 	void truncateAll();
+
+	/**
+	 * Get the latest version of the given schema.
+	 * @param user
+	 * @param organizationName
+	 * @param schemaName
+	 * @return
+	 */
+	JsonSchemaVersionInfo getLatestVersion(String organizationName, String schemaName);
+
 
 }

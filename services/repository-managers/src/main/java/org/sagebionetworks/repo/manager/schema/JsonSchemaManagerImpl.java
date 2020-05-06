@@ -242,5 +242,13 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		jsonSchemaDao.deleteSchemaVersion(versionInfo.getVersionId());
 	}
 
+	@Override
+	public JsonSchemaVersionInfo getLatestVersion(String organizationName, String schemaName) {
+		ValidateArgument.required(organizationName, "organizationName");
+		ValidateArgument.required(schemaName, "schemaName");
+		String versionId =  jsonSchemaDao.getLatestVersionId(organizationName, schemaName);
+		return jsonSchemaDao.getVersionInfo(versionId);
+	}
+
 
 }

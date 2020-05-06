@@ -20,7 +20,6 @@ import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.FORMAT;
-import org.sagebionetworks.schema.LinkDescription;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.ObjectSchemaImpl;
 import org.sagebionetworks.schema.TYPE;
@@ -31,10 +30,7 @@ import com.google.common.collect.Lists;
 @ExtendWith(MockitoExtension.class)
 public class SchemaTranslatorImplTest {
 
-	@InjectMocks
 	SchemaTranslatorImp translator;
-	
-	SchemaTranslatorImp spyTranslator;
 	
 	@Test
 	public void testLoadSchemaFromClasspath() throws IOException, JSONObjectAdapterException {
