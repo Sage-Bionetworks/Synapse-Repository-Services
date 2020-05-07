@@ -13,6 +13,7 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
@@ -29,6 +30,7 @@ import com.google.common.collect.Lists;
 @ExtendWith(MockitoExtension.class)
 public class SchemaTranslatorImplTest {
 
+	@InjectMocks
 	SchemaTranslatorImp translator;
 	
 	@Test
