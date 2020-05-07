@@ -101,6 +101,7 @@ public class TableIndexDAOImplTest {
 	
 	ObjectFieldTypeMapper fieldTypeMapper;
 	
+	@SuppressWarnings("rawtypes")
 	Class<? extends Enum> objectSubType = EntityType.class;
 	
 	@BeforeEach
@@ -1455,7 +1456,7 @@ public class TableIndexDAOImplTest {
 				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(scopeFilter, annotationNames, null)
 		).getMessage();
 
-		assertEquals("allContainersInScope is required.", errorMessage);
+		assertEquals("scopeFilter.containerIds is required.", errorMessage);
 
 	}
 

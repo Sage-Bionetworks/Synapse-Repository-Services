@@ -10,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -1841,7 +1840,6 @@ public class SQLUtilsTest {
 	@Test
 	public void testBuildSelectMetadataDoubleAnnotation() {
 		StringBuilder builder = new StringBuilder();
-		ColumnModel cm = new ColumnModel();
 		ColumnMetadata meta = createMetadataForAnnotation(ColumnType.DOUBLE, 456);
 		// call under test
 		List<String> headers = SQLUtils.buildSelectMetadata(builder, meta);
@@ -1922,7 +1920,6 @@ public class SQLUtilsTest {
 		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
 		boolean filterByObjectId = false;
 		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
-		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = false;
 		String sql = SQLUtils.createAnnotationMaxListLengthSQL(scopeFilter, annotationNames, filterByRows);
 
@@ -1946,7 +1943,6 @@ public class SQLUtilsTest {
 		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
 		boolean filterByObjectId = false;
 		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
-		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = false;
 		assertThrows(IllegalArgumentException.class, () ->
 			SQLUtils.createAnnotationMaxListLengthSQL(scopeFilter, annotationNames, filterByRows)
@@ -1960,7 +1956,6 @@ public class SQLUtilsTest {
 		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
 		boolean filterByObjectId = false;
 		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
-		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = false;
 		assertThrows(IllegalArgumentException.class, () ->
 				SQLUtils.createAnnotationMaxListLengthSQL(scopeFilter, annotationNames, filterByRows)
