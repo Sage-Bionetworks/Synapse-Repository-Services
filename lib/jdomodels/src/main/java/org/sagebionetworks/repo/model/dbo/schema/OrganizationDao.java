@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.schema;
 
+import java.util.List;
+
 import org.sagebionetworks.repo.model.schema.Organization;
 
 public interface OrganizationDao {
@@ -32,5 +34,13 @@ public interface OrganizationDao {
 	 * Truncate all organization data.
 	 */
 	void truncateAll();
+
+	/**
+	 * List a single page of Organizations.
+	 * @param limitForQuery
+	 * @param offset
+	 * @return
+	 */
+	List<Organization> listOrganizations(long limit, long offset);
 
 }

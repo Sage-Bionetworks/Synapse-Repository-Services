@@ -13,7 +13,6 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.schema.JsonSchema;

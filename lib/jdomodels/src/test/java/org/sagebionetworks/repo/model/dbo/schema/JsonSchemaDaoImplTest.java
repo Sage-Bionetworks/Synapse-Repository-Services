@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.JsonSchemaInfo;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.NormalizedJsonSchema;
 import org.sagebionetworks.repo.model.schema.Organization;
@@ -884,10 +886,10 @@ public class JsonSchemaDaoImplTest {
 		JsonSchema schemaWihtOrderedProperties = new JsonSchema();
 		schemaWihtOrderedProperties.setProperties(properties);
 		String schemaName = "preservePropertyOrder";
-		schemaWihtOrderedProperties.set$id(organizationName + "/"+ schemaName);
+		schemaWihtOrderedProperties.set$id(organizationName + "/" + schemaName);
 		// the has must not change
 		String startSHA256 = new NormalizedJsonSchema(schemaWihtOrderedProperties).getSha256Hex();
-		
+
 		Organization organization = createOrganization(organizationName);
 		// save the schema
 		JsonSchemaVersionInfo resultInfo = jsonSchemaDao.createNewSchemaVersion(
@@ -899,7 +901,7 @@ public class JsonSchemaDaoImplTest {
 		String loadedSHA256 = new NormalizedJsonSchema(loaded).getSha256Hex();
 		assertEquals(startSHA256, loadedSHA256);
 		List<String> keyOrder = loaded.getProperties().keySet().stream().collect(Collectors.toList());
-		List<String> expectedKeyOrder = Lists.newArrayList("one","two","three","four", "five");
+		List<String> expectedKeyOrder = Lists.newArrayList("one", "two", "three", "four", "five");
 		assertEquals(expectedKeyOrder, keyOrder);
 	}
 
@@ -916,4 +918,91 @@ public class JsonSchemaDaoImplTest {
 		return schema;
 	}
 
+	@Test
+	public void testListSchemas() throws JSONObjectAdapterException {
+		int index = 0;
+		List<JsonSchemaVersionInfo> versions = new ArrayList<JsonSchemaVersionInfo>();
+		versions.add(createNewSchemaVersion("other.org.edu/b", index++));
+		versions.add(createNewSchemaVersion("my.org.edu/d", index++));
+		versions.add(createNewSchemaVersion("my.org.edu/c", index++));
+		versions.add(createNewSchemaVersion("my.org.edu/a", index++));
+		versions.add(createNewSchemaVersion("my.org.edu/b", index++));
+
+		long limit = 2;
+		long offset = 1;
+		String organizationName = "my.org.edu";
+		// Call under test
+		List<JsonSchemaInfo> page = jsonSchemaDao.listSchemas(organizationName, limit, offset);
+		assertNotNull(page);
+		assertEquals(2, page.size());
+		assertInfoMatch(versions.get(2), page.get(0));
+		assertInfoMatch(versions.get(3), page.get(1));
+	}
+
+	@Test
+	public void testListSchemasWithNullName() throws JSONObjectAdapterException {
+		String organizationName = null;
+		long limit = 2;
+		long offset = 1;
+		assertThrows(IllegalArgumentException.class, () -> {
+			jsonSchemaDao.listSchemas(organizationName, limit, offset);
+		});
+	}
+
+	public void assertInfoMatch(JsonSchemaVersionInfo versionInfo, JsonSchemaInfo schemaInfo) {
+		assertNotNull(versionInfo);
+		assertNotNull(schemaInfo);
+		assertEquals(versionInfo.getOrganizationId(), schemaInfo.getOrganizationId());
+		assertEquals(versionInfo.getOrganizationName(), schemaInfo.getOrganizationName());
+		assertEquals(versionInfo.getSchemaId(), schemaInfo.getSchemaId());
+		assertEquals(versionInfo.getSchemaName(), schemaInfo.getSchemaName());
+		assertNotNull(schemaInfo.getCreatedBy());
+		assertNotNull(schemaInfo.getCreatedOn());
+	}
+
+	@Test
+	public void testListSchemaVersions() throws JSONObjectAdapterException {
+		int index = 0;
+		List<JsonSchemaVersionInfo> versions = new ArrayList<JsonSchemaVersionInfo>();
+		versions.add(createNewSchemaVersion("other.org.edu/b", index++));
+		versions.add(createNewSchemaVersion("my.org.edu/c/1.0.0", index++));
+		versions.add(createNewSchemaVersion("my.org.edu/b/1.0.0", index++));
+		versions.add(createNewSchemaVersion("my.org.edu/b/1.0.1", index++));
+		versions.add(createNewSchemaVersion("my.org.edu/b/1.0.2", index++));
+		versions.add(createNewSchemaVersion("my.org.edu/b/1.0.3", index++));
+
+		long limit = 2;
+		long offset = 1;
+		String organizationName = "my.org.edu";
+		String schemaName = "b";
+		// Call under test
+		List<JsonSchemaVersionInfo> page = jsonSchemaDao.listSchemaVersions(organizationName, schemaName, limit,
+				offset);
+		assertNotNull(page);
+		assertEquals(2, page.size());
+		assertEquals(versions.get(3), page.get(0));
+		assertEquals(versions.get(4), page.get(1));
+	}
+
+	@Test
+	public void testListSchemaVersionsWithNullOrganizationName() {
+		long limit = 2;
+		long offset = 1;
+		String organizationName = null;
+		String schemaName = "b";
+		assertThrows(IllegalArgumentException.class, () -> {
+			jsonSchemaDao.listSchemaVersions(organizationName, schemaName, limit, offset);
+		});
+	}
+	
+	@Test
+	public void testListSchemaVersionsWithNullSchemaName() {
+		long limit = 2;
+		long offset = 1;
+		String organizationName = "my.org.edu";
+		String schemaName = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			jsonSchemaDao.listSchemaVersions(organizationName, schemaName, limit, offset);
+		});
+	}
 }

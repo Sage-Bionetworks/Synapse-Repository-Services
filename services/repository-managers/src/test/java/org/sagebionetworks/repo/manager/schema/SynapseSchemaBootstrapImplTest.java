@@ -1,7 +1,13 @@
 package org.sagebionetworks.repo.manager.schema;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.*;
 
 import java.util.List;
@@ -13,14 +19,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.NormalizedJsonSchema;
+import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.ObjectSchemaImpl;
@@ -49,11 +57,17 @@ public class SynapseSchemaBootstrapImplTest {
 	ObjectSchemaImpl objectSchema;
 
 	String organizationName;
+	Organization organziation;
 	String schemaName;
 	String jsonSHA256Hex;
 	JsonSchemaVersionInfo versionInfo;
 	JsonSchema jsonSchema;
+	JsonSchema jsonSchemaTwo;
 	UserInfo admin;
+	
+	ObjectSchema objectSchemaOne;
+	ObjectSchema objectSchemaTwo;
+	List<ObjectSchema> objectSchemas;
 
 	@BeforeEach
 	public void before() {
@@ -61,6 +75,10 @@ public class SynapseSchemaBootstrapImplTest {
 		boolean isAdmin = true;
 		admin = new UserInfo(isAdmin, 123L);
 		organizationName = "org.sagebionetworks";
+		
+		organziation = new Organization();
+		organziation.setName(organizationName);
+		
 		schemaName = "repo.model.Test.json";
 		
 		jsonSchema = new JsonSchema();
@@ -75,6 +93,15 @@ public class SynapseSchemaBootstrapImplTest {
 		versionInfo.setSchemaName(schemaName);
 		versionInfo.setJsonSHA256Hex(jsonSHA256Hex);
 		versionInfo.setSemanticVersion("1.0.25");
+		
+		objectSchemaOne = new ObjectSchemaImpl(TYPE.OBJECT);
+		objectSchemaOne.setId("one");
+		objectSchemaTwo = new ObjectSchemaImpl(TYPE.OBJECT);
+		objectSchemaTwo.setId("two");
+		
+		objectSchemas = Lists.newArrayList(objectSchemaOne, objectSchemaTwo);
+		jsonSchemaTwo = new JsonSchema();
+		jsonSchemaTwo.set$id("two");
 	}
 
 	@Test
@@ -230,6 +257,44 @@ public class SynapseSchemaBootstrapImplTest {
 		jsonSchema.set$id("org.sagebionetworks/repo.model.Test.json/1.0.101");
 		expected.setSchema(jsonSchema);
 		verify(mockJsonSchemaManager).createJsonSchema(admin, expected);
+	}
+	
+	@Test
+	public void testCreateOrganizationIfDoesNotExist() {
+		when(mockJsonSchemaManager.getOrganizationByName(any(), any())).thenReturn(organziation);
+		// call under test
+		bootstrap.createOrganizationIfDoesNotExist(admin);
+		verify(mockJsonSchemaManager).getOrganizationByName(admin, organizationName);
+		verifyZeroInteractions(mockJsonSchemaManager);
+	}
+	
+	@Test
+	public void testCreateOrganizationIfDoesNotExistWithNotFound() {
+		NotFoundException notFound = new NotFoundException("does not exist");
+		when(mockJsonSchemaManager.getOrganizationByName(any(), any())).thenThrow(notFound);
+		// call under test
+		bootstrap.createOrganizationIfDoesNotExist(admin);
+		verify(mockJsonSchemaManager).getOrganizationByName(admin, organizationName);
+		CreateOrganizationRequest expectedRequest = new CreateOrganizationRequest();
+		expectedRequest.setOrganizationName(organizationName);
+		verify(mockJsonSchemaManager).createOrganziation(admin, expectedRequest);
+	}
+	
+	@Test
+	public void testBootstrapSynapseSchemas() throws RecoverableMessageException {
+		when(mockUserManager.getUserInfo(any())).thenReturn(admin);
+		doReturn(objectSchemas).when(bootstrapSpy).loadAllSchemasAndReferences(any());
+		when(mockTranslator.translate(any())).thenReturn(jsonSchema, jsonSchemaTwo);
+		doNothing().when(bootstrapSpy).registerSchemaIfDoesNotExist(any(),any());
+		doNothing().when(bootstrapSpy).createOrganizationIfDoesNotExist(any());
+		// call under test
+		bootstrapSpy.bootstrapSynapseSchemas();
+		verify(mockUserManager).getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		verify(bootstrapSpy).createOrganizationIfDoesNotExist(admin);
+		verify(mockTranslator).translate(objectSchemaOne);
+		verify(mockTranslator).translate(objectSchemaTwo);
+		verify(bootstrapSpy).registerSchemaIfDoesNotExist(admin, jsonSchema);
+		verify(bootstrapSpy).registerSchemaIfDoesNotExist(admin, jsonSchemaTwo);
 	}
 
 }

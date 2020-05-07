@@ -141,14 +141,14 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testProcessAndValidateOrganizationName() {
 		String inputName = " A.b9.C.DEFG \n";
-		String processedName = JsonSchemaManagerImpl.processAndValidateOrganizationName(inputName);
+		String processedName = JsonSchemaManagerImpl.processAndValidateOrganizationName(user, inputName);
 		assertEquals("A.b9.C.DEFG", processedName);
 	}
 
 	@Test
 	public void testProcessAndValidateOrganizationNameMaxLength() {
 		String input = StringUtils.repeat("a", JsonSchemaManagerImpl.MAX_ORGANZIATION_NAME_CHARS);
-		String processedName = JsonSchemaManagerImpl.processAndValidateOrganizationName(input);
+		String processedName = JsonSchemaManagerImpl.processAndValidateOrganizationName(user, input);
 		assertNotNull(processedName);
 		assertEquals(JsonSchemaManagerImpl.MAX_ORGANZIATION_NAME_CHARS, processedName.length());
 	}
@@ -157,7 +157,7 @@ public class JsonSchemaManagerImplTest {
 	public void testProcessAndValidateOrganizationNameOverMaxLength() {
 		String input = StringUtils.repeat("a", JsonSchemaManagerImpl.MAX_ORGANZIATION_NAME_CHARS + 1);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			JsonSchemaManagerImpl.processAndValidateOrganizationName(input);
+			JsonSchemaManagerImpl.processAndValidateOrganizationName(user, input);
 		}).getMessage();
 		assertEquals("Organization name must be 250 characters or less", message);
 	}
@@ -165,7 +165,7 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testProcessAndValidateOrganizationNameMinLength() {
 		String input = StringUtils.repeat("a", JsonSchemaManagerImpl.MIN_ORGANZIATION_NAME_CHARS);
-		String processedName = JsonSchemaManagerImpl.processAndValidateOrganizationName(input);
+		String processedName = JsonSchemaManagerImpl.processAndValidateOrganizationName(user, input);
 		assertNotNull(processedName);
 		assertEquals(JsonSchemaManagerImpl.MIN_ORGANZIATION_NAME_CHARS, processedName.length());
 	}
@@ -174,7 +174,7 @@ public class JsonSchemaManagerImplTest {
 	public void testProcessAndValidateOrganizationNameUnderMinLength() {
 		String input = StringUtils.repeat("a", JsonSchemaManagerImpl.MIN_ORGANZIATION_NAME_CHARS - 1);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			JsonSchemaManagerImpl.processAndValidateOrganizationName(input);
+			JsonSchemaManagerImpl.processAndValidateOrganizationName(user, input);
 		}).getMessage();
 		assertEquals("Organization name must be at least 6 characters", message);
 	}
@@ -182,15 +182,22 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testProcessAndValidateOrganizationNameSagebionetworks() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			JsonSchemaManagerImpl.processAndValidateOrganizationName("sagebionetwork");
+			JsonSchemaManagerImpl.processAndValidateOrganizationName(user, "sagebionetwork");
 		}).getMessage();
 		assertEquals(JsonSchemaManagerImpl.SAGEBIONETWORKS_RESERVED_MESSAGE, message);
+	}
+	
+	@Test
+	public void testProcessAndValidateOrganizationWithNameSagebionetworksAdmin() {
+		// call under test
+		String name = JsonSchemaManagerImpl.processAndValidateOrganizationName(adminUser, "org.sagebionetworks");
+		assertEquals("org.sagebionetworks", name);
 	}
 
 	@Test
 	public void testProcessAndValidateOrganizationNameSagebionetworksUpper() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			JsonSchemaManagerImpl.processAndValidateOrganizationName("SageBionetwork");
+			JsonSchemaManagerImpl.processAndValidateOrganizationName(user, "SageBionetwork");
 		}).getMessage();
 		assertEquals(JsonSchemaManagerImpl.SAGEBIONETWORKS_RESERVED_MESSAGE, message);
 	}
@@ -198,7 +205,7 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testProcessAndValidateOrganizationNameStartWithDigit() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			JsonSchemaManagerImpl.processAndValidateOrganizationName("1abcdefg");
+			JsonSchemaManagerImpl.processAndValidateOrganizationName(user, "1abcdefg");
 		}).getMessage();
 		assertTrue(message.startsWith("Invalid 'organizationName'"));
 	}
@@ -206,7 +213,7 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testProcessAndValidateOrganizationNameStartWithDot() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			JsonSchemaManagerImpl.processAndValidateOrganizationName(".abcdefg");
+			JsonSchemaManagerImpl.processAndValidateOrganizationName(user, ".abcdefg");
 		}).getMessage();
 		assertTrue(message.startsWith("Invalid 'organizationName'"));
 	}
@@ -214,7 +221,7 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testProcessAndValidateOrganizationNameEndWithDot() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			JsonSchemaManagerImpl.processAndValidateOrganizationName("abcdefg.");
+			JsonSchemaManagerImpl.processAndValidateOrganizationName(user, "abcdefg.");
 		}).getMessage();
 		assertTrue(message.startsWith("Invalid 'organizationName'"));
 	}
@@ -222,7 +229,7 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testProcessAndValidateOrganizationNameContainsInvalidChars() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			JsonSchemaManagerImpl.processAndValidateOrganizationName("abc/defg");
+			JsonSchemaManagerImpl.processAndValidateOrganizationName(user, "abc/defg");
 		}).getMessage();
 		assertTrue(message.startsWith("Invalid 'organizationName'"));
 	}

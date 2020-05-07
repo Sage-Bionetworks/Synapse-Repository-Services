@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
@@ -29,10 +30,14 @@ import org.sagebionetworks.schema.parser.SchemaIdParser;
 import org.sagebionetworks.schema.semantic.version.SemanticVersion;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
 
+@Component
 public class SynapseSchemaBootstrapImpl implements SynapseSchemaBootstrap {
+
+	public static final String ORG_SAGEBIONETWORKS = "org.sagebionetworks";
 
 	/**
 	 * The Synapse objects that can be referenced in JSON schemas and therefore must
@@ -54,12 +59,30 @@ public class SynapseSchemaBootstrapImpl implements SynapseSchemaBootstrap {
 	public void bootstrapSynapseSchemas() throws RecoverableMessageException {
 		// The process is run as the Synapse admin
 		UserInfo adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		
+		createOrganizationIfDoesNotExist(adminUser);
 
 		List<ObjectSchema> allSchemasToBootstrap = loadAllSchemasAndReferences(OBJECTS_TO_BOOTSTRAP);
 
 		for (ObjectSchema objectSchema : allSchemasToBootstrap) {
 			JsonSchema jsonSchema = translator.translate(objectSchema);
 			registerSchemaIfDoesNotExist(adminUser, jsonSchema);
+		}
+	}
+
+	/**
+	 * Create the 'org.sagebionetworks' organization if it does not already exists
+	 * @param adminUser
+	 */
+	void createOrganizationIfDoesNotExist(UserInfo adminUser) {
+		try {
+			// attempt to get the organization to determine if it exists
+			jsonSchemaManager.getOrganizationByName(adminUser, ORG_SAGEBIONETWORKS);
+		} catch (NotFoundException e) {
+			// Need to create the organization
+			CreateOrganizationRequest request = new CreateOrganizationRequest();
+			request.setOrganizationName(ORG_SAGEBIONETWORKS);
+			jsonSchemaManager.createOrganziation(adminUser, request);
 		}
 	}
 

@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -15,6 +16,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.schema.JsonSchemaDao;
@@ -24,7 +26,14 @@ import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.JsonSchemaInfo;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoRequest;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoResponse;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoRequest;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
+import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
+import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -65,7 +74,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 
 		AuthorizationUtils.disallowAnonymous(user);
 
-		String processedOrganizationName = processAndValidateOrganizationName(request.getOrganizationName());
+		String processedOrganizationName = processAndValidateOrganizationName(user, request.getOrganizationName());
 		Organization org = organizationDao.createOrganization(processedOrganizationName, user.getId());
 
 		// Create an ACL for the
@@ -82,7 +91,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	 * @param name
 	 * @return
 	 */
-	public static String processAndValidateOrganizationName(String name) {
+	public static String processAndValidateOrganizationName(UserInfo user, String name) {
 		ValidateArgument.required(name, "organizationName");
 		OrganizationName orgName = SchemaIdParser.parseOrganizationName(name);
 		String processedName = orgName.toString();
@@ -94,8 +103,10 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 			throw new IllegalArgumentException(
 					"Organization name must be at least " + MIN_ORGANZIATION_NAME_CHARS + " characters");
 		}
-		if (processedName.toLowerCase().contains("sagebionetwork")) {
-			throw new IllegalArgumentException(SAGEBIONETWORKS_RESERVED_MESSAGE);
+		if (!user.isAdmin()) {
+			if (processedName.toLowerCase().contains("sagebionetwork")) {
+				throw new IllegalArgumentException(SAGEBIONETWORKS_RESERVED_MESSAGE);
+			}
 		}
 		return processedName;
 	}
@@ -155,7 +166,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	public Organization getOrganizationByName(UserInfo user, String name) {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(name, "name");
-		String processedOrganizationName = processAndValidateOrganizationName(name);
+		String processedOrganizationName = processAndValidateOrganizationName(user, name);
 		return organizationDao.getOrganizationByName(processedOrganizationName);
 	}
 
@@ -171,7 +182,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		SchemaId schemaId = SchemaIdParser.parseSchemaId(request.getSchema().get$id());
 
 		String semanticVersionString = null;
-		if(schemaId.getSemanticVersion() != null) {
+		if (schemaId.getSemanticVersion() != null) {
 			semanticVersionString = schemaId.getSemanticVersion().toString();
 		}
 		String schemaNameString = schemaId.getSchemaName().toString();
@@ -180,8 +191,9 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		Organization organization = organizationDao.getOrganizationByName(schemaId.getOrganizationName().toString());
 		aclDao.canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.CREATE)
 				.checkAuthorizationOrElseThrow();
-		NewSchemaVersionRequest newVersionRequest = new NewSchemaVersionRequest().withOrganizationId(organization.getId()).withCreatedBy(user.getId())
-				.withSchemaName(schemaNameString).withSemanticVersion(semanticVersionString).withJsonSchema(request.getSchema());
+		NewSchemaVersionRequest newVersionRequest = new NewSchemaVersionRequest()
+				.withOrganizationId(organization.getId()).withCreatedBy(user.getId()).withSchemaName(schemaNameString)
+				.withSemanticVersion(semanticVersionString).withJsonSchema(request.getSchema());
 		JsonSchemaVersionInfo info = jsonSchemaDao.createNewSchemaVersion(newVersionRequest);
 
 		CreateSchemaResponse response = new CreateSchemaResponse();
@@ -197,9 +209,9 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		schemaName = schemaName.trim();
 		semanticVersion = StringUtils.trimToNull(semanticVersion);
 		String versionId = null;
-		if(semanticVersion == null) {
+		if (semanticVersion == null) {
 			versionId = jsonSchemaDao.getLatestVersionId(organizationName, schemaName);
-		}else {
+		} else {
 			versionId = jsonSchemaDao.getVersionId(organizationName, schemaName, semanticVersion);
 		}
 		return jsonSchemaDao.getSchema(versionId);
@@ -219,9 +231,9 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		ValidateArgument.required(schemaName, "schemaName");
 		JsonSchemaVersionInfo versionInfo = jsonSchemaDao.getVersionLatestInfo(organizationName, schemaName);
 		// Must have delete on the organization
-		if(!user.isAdmin()) {
+		if (!user.isAdmin()) {
 			aclDao.canAccess(user, versionInfo.getOrganizationId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE)
-			.checkAuthorizationOrElseThrow();
+					.checkAuthorizationOrElseThrow();
 		}
 		jsonSchemaDao.deleteSchema(versionInfo.getSchemaId());
 	}
@@ -235,9 +247,9 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		ValidateArgument.required(semanticVersion, "semanticVersion");
 		JsonSchemaVersionInfo versionInfo = jsonSchemaDao.getVersionInfo(organizationName, schemaName, semanticVersion);
 		// Must have delete on the organization
-		if(!user.isAdmin()) {
+		if (!user.isAdmin()) {
 			aclDao.canAccess(user, versionInfo.getOrganizationId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE)
-			.checkAuthorizationOrElseThrow();
+					.checkAuthorizationOrElseThrow();
 		}
 		jsonSchemaDao.deleteSchemaVersion(versionInfo.getVersionId());
 	}
@@ -246,9 +258,47 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	public JsonSchemaVersionInfo getLatestVersion(String organizationName, String schemaName) {
 		ValidateArgument.required(organizationName, "organizationName");
 		ValidateArgument.required(schemaName, "schemaName");
-		String versionId =  jsonSchemaDao.getLatestVersionId(organizationName, schemaName);
+		String versionId = jsonSchemaDao.getLatestVersionId(organizationName, schemaName);
 		return jsonSchemaDao.getVersionInfo(versionId);
 	}
 
+	@Override
+	public ListOrganizationsResponse listOrganizations(ListOrganizationsRequest request) {
+		ValidateArgument.required(request, "ListOrganizationsRequest");
+		NextPageToken nextPageToken = new NextPageToken(request.getNextPageToken());
+		List<Organization> page = organizationDao.listOrganizations(nextPageToken.getLimitForQuery(),
+				nextPageToken.getOffset());
+		ListOrganizationsResponse response = new ListOrganizationsResponse();
+		response.setPage(page);
+		response.setNextPageToken(nextPageToken.getNextPageTokenForCurrentResults(page));
+		return response;
+	}
+
+	@Override
+	public ListJsonSchemaInfoResponse listSchemas(ListJsonSchemaInfoRequest request) {
+		ValidateArgument.required(request, "ListJsonSchemaInfoRequest");
+		ValidateArgument.required(request.getOrganizationName(), "organizationName");
+		NextPageToken nextPageToken = new NextPageToken(request.getNextPageToken());
+		List<JsonSchemaInfo> page = jsonSchemaDao.listSchemas(request.getOrganizationName(),
+				nextPageToken.getLimitForQuery(), nextPageToken.getOffset());
+		ListJsonSchemaInfoResponse response = new ListJsonSchemaInfoResponse();
+		response.setPage(page);
+		response.setNextPageToken(nextPageToken.getNextPageTokenForCurrentResults(page));
+		return response;
+	}
+
+	@Override
+	public ListJsonSchemaVersionInfoResponse listSchemaVersions(ListJsonSchemaVersionInfoRequest request) {
+		ValidateArgument.required(request, "ListJsonSchemaVersionInfoRequest");
+		ValidateArgument.required(request.getOrganizationName(), "organizationName");
+		ValidateArgument.required(request.getSchemaName(), "schemaName");
+		NextPageToken nextPageToken = new NextPageToken(request.getNextPageToken());
+		List<JsonSchemaVersionInfo> page = jsonSchemaDao.listSchemaVersions(request.getOrganizationName(),
+				request.getSchemaName(), nextPageToken.getLimitForQuery(), nextPageToken.getOffset());
+		ListJsonSchemaVersionInfoResponse response = new ListJsonSchemaVersionInfoResponse();
+		response.setPage(page);
+		response.setNextPageToken(nextPageToken.getNextPageTokenForCurrentResults(page));
+		return response;
+	}
 
 }
