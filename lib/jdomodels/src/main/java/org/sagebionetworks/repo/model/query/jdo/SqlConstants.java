@@ -980,6 +980,7 @@ public class SqlConstants {
 	public static final String COL_DATA_ACCESS_SUBMISSION_CREATED_ON = 				"CREATED_ON";
 	public static final String COL_DATA_ACCESS_SUBMISSION_ETAG = 					"ETAG";
 	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED = 	"SUBMISSION_SERIALIZED";
+	public static final String COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_ID = 	"RESEARCH_PROJECT_ID";
 
 	// DataAccessSubmissionStatus
 	public static final String DDL_DATA_ACCESS_SUBMISSION_STATUS = 					"schema/DataAccessSubmissionStatus-ddl.sql";

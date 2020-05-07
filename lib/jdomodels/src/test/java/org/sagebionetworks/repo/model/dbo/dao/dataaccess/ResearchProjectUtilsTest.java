@@ -10,7 +10,7 @@ public class ResearchProjectUtilsTest {
 	@Test
 	public void testRoundTrip() {
 		ResearchProject dto = ResearchProjectTestUtils.createNewDto();
-
+		dto.setId("101");
 		DBOResearchProject dbo = new DBOResearchProject();
 		ResearchProject newDto = new ResearchProject();
 		ResearchProjectUtils.copyDtoToDbo(dto, dbo);
