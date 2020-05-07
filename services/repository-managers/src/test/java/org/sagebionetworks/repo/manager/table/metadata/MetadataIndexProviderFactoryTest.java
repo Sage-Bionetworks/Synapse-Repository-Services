@@ -1,8 +1,7 @@
-package org.sagebionetworks.table.cluster.metadata;
+package org.sagebionetworks.repo.manager.table.metadata;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -10,6 +9,7 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.repo.manager.table.metadata.providers.EntityMetadataIndexProvider;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -18,11 +18,11 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import com.google.common.collect.ImmutableSet;
 
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(locations = { "classpath:table-cluster-spb.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MetadataIndexProviderFactoryTest {
 
 	@Autowired
-	private TestEntityMetadataIndexProvider testProvider;
+	private EntityMetadataIndexProvider testProvider;
 	
 	@Autowired
 	private MetadataIndexProviderFactory factory;
@@ -43,15 +43,6 @@ public class MetadataIndexProviderFactoryTest {
 			// Call under test
 			factory.getMetadataIndexProvider(ObjectType.ACCESS_APPROVAL);
 		});
-	}
-	
-	@Test
-	public void testGetObjectFieldModelResolver() {
-		// Call under test
-		ObjectFieldModelResolver resolver = factory.getObjectFieldModelResolver(ObjectType.ENTITY);
-	
-		assertNotNull(resolver);
-		assertEquals(ObjectFieldModelResolverImpl.class, resolver.getClass());
 	}
 	
 	@Test

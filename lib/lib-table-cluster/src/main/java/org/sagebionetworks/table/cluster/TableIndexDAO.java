@@ -16,6 +16,9 @@ import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.ViewScopeFilter;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.util.Callback;
 import org.sagebionetworks.util.csv.CSVWriterStream;
@@ -161,8 +164,7 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @param fileHandleIds
 	 */
-	void applyFileHandleIdsToTable(IdAndVersion tableId,
-			Set<Long> fileHandleIds);
+	void applyFileHandleIdsToTable(IdAndVersion tableId, Set<Long> fileHandleIds);
 	
 	/**
 	 * Given a set of FileHandleIds and a talbeId, get the sub-set of
@@ -171,8 +173,7 @@ public interface TableIndexDAO {
 	 * @param objectId
 	 * @return
 	 */
-	Set<Long> getFileHandleIdsAssociatedWithTable(
-			Set<Long> toTest, IdAndVersion tableId);
+	Set<Long> getFileHandleIdsAssociatedWithTable(Set<Long> toTest, IdAndVersion tableId);
 	
 	/**
 	 * Does the state of the index match the given data?
@@ -373,36 +374,31 @@ public interface TableIndexDAO {
 	 * Copy the data from the entity replication tables to the given view.
 	 * 
 	 * @param viewId
-	 * @param viewType
-	 * @param allContainersInScope
+	 * @param scopeFilter
 	 * @param currentSchema
 	 */
-	void copyEntityReplicationToView(ObjectType objectType, Long viewId, Long viewTypeMask,
-			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
+	void copyEntityReplicationToView(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper);
 	
 	/**
 	 * Copy the data from the entity replication tables to the given view.
 	 * 
 	 * @param viewId
-	 * @param viewTypeMask
-	 * @param allContainersInScope
+	 * @param scopeFilter
 	 * @param currentSchema
 	 * @param rowIdsToCopy Optional.  When included, copy rows with these Ids to the view.
 	 */
-	void copyEntityReplicationToView(ObjectType objectType, Long viewId, Long viewTypeMask, Set<Long> allContainersInScope,
-			List<ColumnModel> currentSchema, Set<Long> rowIdsToCopy);
+	void copyEntityReplicationToView(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper, Set<Long> rowIdsToCopy);
 	
 	/**
 	 * Copy the data from the entity replication tables to the given view's table.
 	 * 
 	 * @param viewId
-	 * @param viewType
-	 * @param allContainersInScope
+	 * @param scopeFilter
 	 * @param currentSchema
 	 */
-	void createViewSnapshotFromEntityReplication(ObjectType objectType, Long viewId, Long viewTypeMask,
-			Set<Long> allContainersInScope, List<ColumnModel> currentSchema, CSVWriterStream outStream);
+	void createViewSnapshotFromEntityReplication(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper, CSVWriterStream outStream);
 
+	
 	/**
 	 * Calculate the Cyclic-Redundancy-Check (CRC) of a table view's concatenation
 	 * of ROW_ID + ETAG.  Used to determine if a view is synchronized with the
@@ -421,18 +417,17 @@ public interface TableIndexDAO {
 	 * @param viewCRC
 	 * @param schemaMD5Hex
 	 */
-	void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC,
-			String schemaMD5Hex);
+	void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC, String schemaMD5Hex);
 
 	/**
-	 * Get the distinct possible ColumnModels for a given set of container ids.
-	 * @param containerIds
+	 * Get the distinct possible ColumnModels for the given scope filter
+	 * 
+	 * @param scopeFilter
 	 * @param limit
 	 * @param offset
 	 * @return
 	 */
-	List<ColumnModel> getPossibleColumnModelsForContainers(ObjectType objectType,
-			Set<Long> containerIds, Long viewTypeMask, Long limit, Long offset);
+	List<ColumnModel> getPossibleColumnModelsForContainers(ViewScopeFilter scopeFilter, Long limit, Long offset);
 	
 	/**
 	 * The process for synchronizing entity replication data with the truth is
@@ -532,12 +527,11 @@ public interface TableIndexDAO {
 	 * </ul>
 	 * 
 	 * @param viewId The id of the view to check.
-	 * @param viewTypeMask  The type of view.
-	 * @param allContainersInScope All of the containers that define the scope 
+	 * @param scopeFilter the filter to be applied to the view scope
 	 * @param limit Limit the number of rows returned. 
 	 * @return
 	 */
-	Set<Long> getOutOfDateRowsForView(ObjectType objectTpe, IdAndVersion viewId, long viewTypeMask, Set<Long> allContainersInScope, long limit);
+	Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, ViewScopeFilter scopeFilter, long limit);
 
 	/**
 	 * Delete a batch of rows from a view.
@@ -546,6 +540,12 @@ public interface TableIndexDAO {
 	 * @param idsToDelete
 	 */
 	void deleteRowsFromViewBatch(IdAndVersion viewId, Long...idsToDelete);
+	
+	/**
+	 * @param fieldTypeMapper
+	 * @return An instance of an {@link ObjectFieldModelResolver} that can be used to map default object fields
+	 */
+	ObjectFieldModelResolver getObjectFieldModelResolver(ObjectFieldTypeMapper fieldTypeMapper);
 	
 	// For testing:
 	

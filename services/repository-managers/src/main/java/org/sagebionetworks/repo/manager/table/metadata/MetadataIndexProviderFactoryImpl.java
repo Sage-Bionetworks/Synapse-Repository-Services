@@ -1,4 +1,4 @@
-package org.sagebionetworks.table.cluster.metadata;
+package org.sagebionetworks.repo.manager.table.metadata;
 
 import java.util.List;
 import java.util.Map;
@@ -42,12 +42,6 @@ public class MetadataIndexProviderFactoryImpl implements MetadataIndexProviderFa
 		}
 
 		return provider;
-	}
-	
-	@Override
-	public ObjectFieldModelResolver getObjectFieldModelResolver(ObjectType objectType) {
-		ObjectFieldTypeMapper fieldTypeMapper = getMetadataIndexProvider(objectType);
-		return new ObjectFieldModelResolverImpl(fieldTypeMapper);
 	}
 
 }

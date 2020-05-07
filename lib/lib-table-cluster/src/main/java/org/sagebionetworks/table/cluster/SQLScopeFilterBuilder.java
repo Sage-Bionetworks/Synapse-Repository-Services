@@ -7,22 +7,20 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import java.util.List;
 
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.table.cluster.metadata.ScopeFilterProvider;
+import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class SQLScopeFilterBuilder {
+
+	private ViewScopeFilter filter;
 	
-	private ScopeFilterProvider scopeFilterProvider;
-	private Long viewTypeMask;
-	
-	public SQLScopeFilterBuilder(ScopeFilterProvider scopeFilterProvider, Long viewTypeMask) {
-		this.scopeFilterProvider = scopeFilterProvider;
-		this.viewTypeMask = viewTypeMask;
+	public SQLScopeFilterBuilder(ViewScopeFilter filter) {
+		this.filter = filter;
 	}
 	
 	public SQLScopeFilter build() {
-		ValidateArgument.required(scopeFilterProvider, "scopeFilterProvider");
-		ValidateArgument.required(viewTypeMask, "viewTypeMask");
+		ValidateArgument.required(filter, "filter");
+		ValidateArgument.required(filter.getSubTypes(), "filter.subTypes");
 		
 		String viewTypeFilter = buildViewTypeFilter();
 		String viewScopeFilterColumn = buildViewScopeFilterColumn();
@@ -31,14 +29,14 @@ public class SQLScopeFilterBuilder {
 	}
 
 	private String buildViewScopeFilterColumn() {
-		if (scopeFilterProvider.isFilterScopeByObjectId(viewTypeMask)) {
+		if (filter.isFilterByObjectId()) {
 			return OBJECT_REPLICATION_COL_OBJECT_ID;
 		}
 		return OBJECT_REPLICATION_COL_PARENT_ID;
 	}
 
 	private String buildViewTypeFilter() {
-		List<Enum<?>> subTypes = scopeFilterProvider.getSubTypesForMask(viewTypeMask);
+		List<Enum<?>> subTypes = filter.getSubTypes();
 		
 		StringBuilder builder = new StringBuilder();
 		

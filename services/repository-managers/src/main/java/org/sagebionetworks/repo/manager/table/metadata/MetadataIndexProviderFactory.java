@@ -1,4 +1,4 @@
-package org.sagebionetworks.table.cluster.metadata;
+package org.sagebionetworks.repo.manager.table.metadata;
 
 import java.util.Set;
 
@@ -31,13 +31,5 @@ public interface MetadataIndexProviderFactory {
 	 *                                  registered for the given object type
 	 */
 	MetadataIndexProvider getMetadataIndexProvider(ObjectType objectType);
-
-	/**
-	 * @param objectType The object type
-	 * @return The {@link ObjectFieldModelResolver} mapped to the given object type
-	 * @throws IllegalArgumentException If no {@link MetadataIndexProvider} is
-	 *                                  registered for the given object type
-	 */
-	ObjectFieldModelResolver getObjectFieldModelResolver(ObjectType objectType);
 
 }

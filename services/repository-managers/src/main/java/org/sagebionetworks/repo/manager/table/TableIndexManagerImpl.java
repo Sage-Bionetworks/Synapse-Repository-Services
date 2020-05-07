@@ -17,6 +17,10 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.change.ListColumnIndexTableChange;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
+import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
+import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
+import org.sagebionetworks.repo.manager.table.metadata.ViewScopeFilterBuilder;
+import org.sagebionetworks.repo.manager.table.metadata.ViewScopeFilterProvider;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
@@ -26,6 +30,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewScope;
+import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -55,16 +60,21 @@ public class TableIndexManagerImpl implements TableIndexManager {
 
 	private final TableIndexDAO tableIndexDao;
 	private final TableManagerSupport tableManagerSupport;
+	private final MetadataIndexProviderFactory metadataIndexProviderFactory;
 
-	public TableIndexManagerImpl(TableIndexDAO dao, TableManagerSupport tableManagerSupport){
+	public TableIndexManagerImpl(TableIndexDAO dao, TableManagerSupport tableManagerSupport, MetadataIndexProviderFactory metadataIndexProviderFactory){
 		if(dao == null){
 			throw new IllegalArgumentException("TableIndexDAO cannot be null");
 		}
 		if(tableManagerSupport == null){
 			throw new IllegalArgumentException("TableManagerSupport cannot be null");
 		}
+		if(metadataIndexProviderFactory == null) {
+			throw new IllegalArgumentException("MetadataIndexProviderFactory cannot be null");
+		}
 		this.tableIndexDao = dao;
 		this.tableManagerSupport = tableManagerSupport;
+		this.metadataIndexProviderFactory = metadataIndexProviderFactory;
 	}
 	/*
 	 * (non-Javadoc)
@@ -394,16 +404,17 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ValidateArgument.required(scopeType, "scopeType");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 		ValidateArgument.required(currentSchema, "currentSchema");
-
-		ObjectType objectType = scopeType.getObjectType();
-		Long typeMask = scopeType.getTypeMask();
-
+		
+		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(scopeType.getObjectType());
+		
+		ViewScopeFilter scopeFilter = buildViewScopeFilter(provider, scopeType.getTypeMask(), allContainersInScope);
+		
 		// copy the data from the entity replication tables to table's index
 		try {
-			tableIndexDao.copyEntityReplicationToView(objectType, viewId, typeMask, allContainersInScope, currentSchema);
+			tableIndexDao.copyEntityReplicationToView(viewId, scopeFilter, currentSchema, provider);
 		} catch (Exception e) {
 			// if the copy failed. Attempt to determine the cause.
-			determineCauseOfReplicationFailure(e, scopeType, currentSchema,  allContainersInScope);
+			determineCauseOfReplicationFailure(e, scopeFilter, currentSchema);
 		}
 		// calculate the new CRC32;
 		return tableIndexDao.calculateCRC32ofTableView(viewId);
@@ -416,11 +427,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param currentSchema
 	 * @throws Exception 
 	 */
-	public void determineCauseOfReplicationFailure(Exception exception, ViewScopeType scopeType, List<ColumnModel> currentSchema, Set<Long> containersInScope) {
-		ObjectType objectType = scopeType.getObjectType();
-		Long typeMask = scopeType.getTypeMask();		
+	public void determineCauseOfReplicationFailure(Exception exception, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema) {
 		// Calculate the schema from the annotations
-		List<ColumnModel> schemaFromAnnotations = tableIndexDao.getPossibleColumnModelsForContainers(objectType, containersInScope, typeMask, Long.MAX_VALUE, 0L);
+		List<ColumnModel> schemaFromAnnotations = tableIndexDao.getPossibleColumnModelsForContainers(scopeFilter, Long.MAX_VALUE, 0L);
 		// TODO: Should use a provider that given the object type skips the column models that are mapped to the object replication table
 		SQLUtils.determineCauseOfException(exception, currentSchema, schemaFromAnnotations);
 		// Have not determined the cause so throw the original exception
@@ -475,15 +484,19 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ValidateArgument.required(containerIds, "containerIds");
 		NextPageToken token =  new NextPageToken(nextPageToken);
 		ColumnModelPage results = new ColumnModelPage();
+		
 		if(containerIds.isEmpty()){
 			results.setResults(new LinkedList<ColumnModel>());
 			results.setNextPageToken(null);
 			return results;
 		}
-		ObjectType objectType = viewScopeType.getObjectType();
-		Long typeMask = viewScopeType.getTypeMask();
+		
+		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(viewScopeType.getObjectType());
+		
+		ViewScopeFilter scopeFilter = buildViewScopeFilter(provider, viewScopeType.getTypeMask(), containerIds);
+		
 		// request one page with a limit one larger than the passed limit.
-		List<ColumnModel> columns = tableIndexDao.getPossibleColumnModelsForContainers(objectType, containerIds, typeMask, token.getLimitForQuery(), token.getOffset());
+		List<ColumnModel> columns = tableIndexDao.getPossibleColumnModelsForContainers(scopeFilter, token.getLimitForQuery(), token.getOffset());
 		results.setNextPageToken(token.getNextPageTokenForCurrentResults(columns));
 		results.setResults(columns);
 		return results;
@@ -666,11 +679,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	@Override
 	public void createViewSnapshot(Long viewId, ViewScopeType scopeType, Set<Long> allContainersInScope,
 			List<ColumnModel> viewSchema, CSVWriterStream writter) {
+
+		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(scopeType.getObjectType());
 		
-		ObjectType objectType = scopeType.getObjectType();
-		Long typeMask = scopeType.getTypeMask();
+		ViewScopeFilter scopeFilter = buildViewScopeFilter(provider, scopeType.getTypeMask(), allContainersInScope);
 		
-		tableIndexDao.createViewSnapshotFromEntityReplication(objectType, viewId, typeMask, allContainersInScope, viewSchema, writter);
+		tableIndexDao.createViewSnapshotFromEntityReplication(viewId, scopeFilter, viewSchema, provider, writter);
 	}
 	@Override
 	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input) {
@@ -680,10 +694,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	@Override
 	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, ViewScopeType scopeType, Set<Long> allContainersInScope,
 			long limit) {
-		ObjectType objectType = scopeType.getObjectType();
-		Long typeMask = scopeType.getTypeMask();
 		
-		return tableIndexDao.getOutOfDateRowsForView(objectType, viewId, typeMask, allContainersInScope, limit);
+		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(scopeType.getObjectType());
+		
+		ViewScopeFilter scopeFilter = buildViewScopeFilter(provider, scopeType.getTypeMask(), allContainersInScope);
+		
+		return tableIndexDao.getOutOfDateRowsForView(viewId, scopeFilter, limit);
 	}
 	
 	@Override
@@ -695,8 +711,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 		ValidateArgument.required(currentSchema, "currentSchema");
 		
-		ObjectType objectType = scopeType.getObjectType();
-		Long typeMask = scopeType.getTypeMask();
+		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(scopeType.getObjectType());
+		
+		ViewScopeFilter scopeFilter = buildViewScopeFilter(provider, scopeType.getTypeMask(), allContainersInScope);
 
 		// all calls are in a single transaction.
 		tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
@@ -705,14 +722,20 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			tableIndexDao.deleteRowsFromViewBatch(viewId, rowsIdsArray);
 			try {
 				// Apply any updates to the view for the given Ids
-				tableIndexDao.copyEntityReplicationToView(objectType, viewId.getId(), typeMask, allContainersInScope, currentSchema, rowsIdsWithChanges);
+				tableIndexDao.copyEntityReplicationToView(viewId.getId(), scopeFilter, currentSchema, provider, rowsIdsWithChanges);
 				populateListColumnIndexTables(viewId, currentSchema, rowsIdsWithChanges);
 			} catch (Exception e) {
 				// if the copy failed. Attempt to determine the cause.  This will always throw an exception.
-				determineCauseOfReplicationFailure(e, scopeType, currentSchema,  allContainersInScope);
+				determineCauseOfReplicationFailure(e, scopeFilter, currentSchema);
 			}
 			return null;
 		});
+	}
+	
+	private ViewScopeFilter buildViewScopeFilter(ViewScopeFilterProvider provider, Long viewTypeMask, Set<Long> containerIds) {
+		return new ViewScopeFilterBuilder(provider, viewTypeMask)
+				.withContainerIds(containerIds)
+				.build();
 	}
 
 }

@@ -1454,13 +1454,17 @@ public class SQLUtils {
 		ValidateArgument.requiredNotEmpty(annotationNames,"annotationNames");
 
 		StringBuilder builder = new StringBuilder();
+		
 		builder.append("SELECT ")
 				.append(ANNOTATION_REPLICATION_ALIAS).append(".").append(ANNOTATION_REPLICATION_COL_KEY)
 				.append(", MAX(").append(ANNOTATION_REPLICATION_ALIAS).append(".").append(ANNOTATION_REPLICATION_COL_LIST_LENGTH).append(")");
+		
 		objectReplicationJoinAnnotationReplicationFilter(builder, scopeFilter, filterByRows);
+		
 		builder.append(" AND ").append(ANNOTATION_REPLICATION_ALIAS).append(".").append(ANNOTATION_REPLICATION_COL_KEY)
 				.append(" IN (:").append(ANNOTATION_KEYS_PARAM_NAME).append(")");
 		builder.append(" GROUP BY ").append(ANNOTATION_REPLICATION_ALIAS).append(".").append(ANNOTATION_REPLICATION_COL_KEY);
+		
 		return builder.toString();
 	}
 	

@@ -21,33 +21,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.repo.model.table.ViewType;
-import org.sagebionetworks.repo.model.table.ViewTypeMask;
+import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
-import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
-import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
-import org.sagebionetworks.table.cluster.metadata.ScopeFilterProvider;
-import org.sagebionetworks.table.cluster.metadata.TestEntityMetadataIndexProvider;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseChangeSet;
@@ -57,6 +52,7 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class SQLUtilsTest {
@@ -76,8 +72,6 @@ public class SQLUtilsTest {
 
 	IdAndVersion tableId;
 	Long viewId;
-	
-	ScopeFilterProvider scopeFilterProvider;
 
 	@BeforeEach
 	public void before(){
@@ -116,8 +110,6 @@ public class SQLUtilsTest {
 
 		tableId = IdAndVersion.parse("syn999");
 		viewId = 123L;
-		
-		scopeFilterProvider = new TestEntityMetadataIndexProvider();
 	}
 
 
@@ -1896,11 +1888,12 @@ public class SQLUtilsTest {
 	public void testCreateSelectFromObjectReplication(){
 		ColumnMetadata one = createMetadataForAnnotation(ColumnType.STRING, 1);
 		ColumnMetadata id = createMetadataForEntityField(ObjectField.id, 2);
-		Long viewTypeMask = ViewTypeMask.File.getMask();
+		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		boolean filterByObjectId = false;
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);		
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = false;
 		List<ColumnMetadata> metadata = ImmutableList.of(one, id);
-		SQLScopeFilter scopeFilter = getSQLScopeFilter(viewTypeMask);
 		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, metadata, scopeFilter, filterByRows);
 		String sql = builder.toString();
 		assertEquals("SELECT"
@@ -1925,10 +1918,11 @@ public class SQLUtilsTest {
 	@Test
 	public void createMaxListLengthValidationSQL(){
 		Set<String> annotationNames = Sets.newHashSet("foo");
-		Long viewTypeMask = ViewTypeMask.File.getMask();
+		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		boolean filterByObjectId = false;
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = false;
-		SQLScopeFilter scopeFilter = getSQLScopeFilter(viewTypeMask);
 		String sql = SQLUtils.createAnnotationMaxListLengthSQL(scopeFilter, annotationNames, filterByRows);
 
 		assertEquals("SELECT"
@@ -1948,10 +1942,11 @@ public class SQLUtilsTest {
 	@Test
 	public void createMaxListLengthValidationSQL_nullAnnotationNames(){
 		Set<String> annotationNames = null;
-		Long viewTypeMask = ViewTypeMask.File.getMask();
+		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		boolean filterByObjectId = false;
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = false;
-		SQLScopeFilter scopeFilter = getSQLScopeFilter(viewTypeMask);
 		assertThrows(IllegalArgumentException.class, () ->
 			SQLUtils.createAnnotationMaxListLengthSQL(scopeFilter, annotationNames, filterByRows)
 		);
@@ -1961,10 +1956,11 @@ public class SQLUtilsTest {
 	@Test
 	public void createMaxListLengthValidationSQL_emptyAnnotationNames(){
 		Set<String> annotationNames = Collections.emptySet();
-		Long viewTypeMask = ViewTypeMask.File.getMask();
+		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		boolean filterByObjectId = false;
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = false;
-		SQLScopeFilter scopeFilter = getSQLScopeFilter(viewTypeMask);
 		assertThrows(IllegalArgumentException.class, () ->
 				SQLUtils.createAnnotationMaxListLengthSQL(scopeFilter, annotationNames, filterByRows)
 		);
@@ -1975,11 +1971,12 @@ public class SQLUtilsTest {
 	public void testCreateSelectFromObjectReplicationFilterByRows(){
 		ColumnMetadata one = createMetadataForAnnotation(ColumnType.STRING, 1);
 		ColumnMetadata id = createMetadataForEntityField(ObjectField.id, 2);
-		Long viewTypeMask = ViewTypeMask.File.getMask();
+		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		boolean filterByObjectId = false;
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = true;
 		List<ColumnMetadata> metadata = ImmutableList.of(one, id);
-		SQLScopeFilter scopeFilter = getSQLScopeFilter(viewTypeMask);
 		// call under test
 		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, metadata, scopeFilter, filterByRows);
 		String sql = builder.toString();
@@ -2008,10 +2005,11 @@ public class SQLUtilsTest {
 	public void testCreateSelectInsertFromObjectReplication(){
 		ColumnMetadata one = createMetadataForAnnotation(ColumnType.STRING, 1);
 		ColumnMetadata id = createMetadataForEntityField(ObjectField.id, 2);
-		Long viewTypeMask = ViewTypeMask.File.getMask();
+		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		boolean filterByObjectId = false;
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		boolean filterByRows = false;
 		List<ColumnMetadata> metadata = ImmutableList.of(one, id);
-		SQLScopeFilter scopeFilter = getSQLScopeFilter(viewTypeMask);
 		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, scopeFilter, filterByRows);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_)"
 				+ " SELECT"
@@ -2036,10 +2034,11 @@ public class SQLUtilsTest {
 	public void testCreateSelectInsertFromObjectReplicationFilterByRows(){
 		ColumnMetadata one = createMetadataForAnnotation(ColumnType.STRING, 1);
 		ColumnMetadata id = createMetadataForEntityField(ObjectField.id, 2);
-		Long viewTypeMask = ViewTypeMask.File.getMask();
+		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		boolean filterByObjectId = false;
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		boolean filterByRows = true;
 		List<ColumnMetadata> metadata = ImmutableList.of(one, id);
-		SQLScopeFilter scopeFilter = getSQLScopeFilter(viewTypeMask);
 		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, scopeFilter, filterByRows);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_)"
 				+ " SELECT"
@@ -2065,10 +2064,11 @@ public class SQLUtilsTest {
 	public void testCreateSelectInsertFromObjectReplicationProjectView(){
 		ColumnMetadata one = createMetadataForAnnotation(ColumnType.STRING, 1);
 		ColumnMetadata id = createMetadataForEntityField(ObjectField.id, 2);
-		Long viewTypeMask = ViewTypeMask.Project.getMask();
+		List<Enum<?>> subTypes = ImmutableList.of(EntityType.project);
+		boolean filterByObjectId = true;
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		boolean filterByRows = false;
 		List<ColumnMetadata> metadata = ImmutableList.of(one, id);
-		SQLScopeFilter scopeFilter = getSQLScopeFilter(viewTypeMask);
 		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, scopeFilter, filterByRows);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_)"
 				+ " SELECT"
@@ -2092,10 +2092,11 @@ public class SQLUtilsTest {
 	@Test
 	public void testCreateSelectInsertFromObjectReplicationWithDouble(){
 		ColumnMetadata one = createMetadataForAnnotation(ColumnType.DOUBLE, 3);
-		Long viewTypeMask = ViewTypeMask.File.getMask();
+		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		boolean filterByObjectId = false;
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		boolean filterByRows = false;
 		List<ColumnMetadata> metadata = ImmutableList.of(one);
-		SQLScopeFilter scopeFilter = getSQLScopeFilter(viewTypeMask);
 		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, scopeFilter, filterByRows);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _DBL_C3_, _C3_)"
 				+ " SELECT"
@@ -2585,7 +2586,9 @@ public class SQLUtilsTest {
 
 	@Test
 	public void testGetDistinctAnnotationColumnsSqlFileView(){
-		SQLScopeFilter scopeFilter = getSQLScopeFilter(ViewTypeMask.File.getMask());
+		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		boolean filterByObjectId = false;
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		String sql = SQLUtils.getDistinctAnnotationColumnsSql(scopeFilter);
 		String expected = TableConstants.OBJECT_REPLICATION_COL_PARENT_ID+" IN (:parentIds)";
 		assertTrue(sql.contains(expected));
@@ -2593,7 +2596,9 @@ public class SQLUtilsTest {
 
 	@Test
 	public void testGetDistinctAnnotationColumnsSqlProjectView(){
-		SQLScopeFilter scopeFilter = getSQLScopeFilter(ViewTypeMask.Project.getMask());
+		List<Enum<?>> subTypes = ImmutableList.of(EntityType.project);
+		boolean filterByObjectId = true;
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		String sql = SQLUtils.getDistinctAnnotationColumnsSql(scopeFilter);
 		String expected = TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID+" IN (:parentIds)";
 		assertTrue(sql.contains(expected));
@@ -2963,8 +2968,9 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testGetOutOfDateRowsForViewSqlFileView() {
-		long viewTypeMask = ViewTypeMask.File.getMask() ;
-		SQLScopeFilter scopeFilter = getSQLScopeFilter(viewTypeMask);
+		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		boolean filterByObjectId = false;
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		// call under test
 		String sql = SQLUtils.getOutOfDateRowsForViewSql(tableId, scopeFilter);
 		String expected = "WITH DELTAS (ID, MISSING) AS ("
@@ -2989,8 +2995,9 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testGetOutOfDateRowsForViewSqlFileProject() {
-		long viewTypeMask = ViewTypeMask.Project.getMask();
-		SQLScopeFilter scopeFilter = getSQLScopeFilter(viewTypeMask);
+		List<Enum<?>> subTypes = ImmutableList.of(EntityType.project);
+		boolean filterByObjectId = true;
+		SQLScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		// call under test
 		String sql = SQLUtils.getOutOfDateRowsForViewSql(tableId, scopeFilter);
 		String expected = "WITH DELTAS (ID, MISSING) AS ("
@@ -3020,7 +3027,8 @@ public class SQLUtilsTest {
 		assertEquals("DELETE FROM T999 WHERE ROW_ID = ?", sql);
 	}
 	
-	private SQLScopeFilter getSQLScopeFilter(Long typeMask) {
-		return new SQLScopeFilterBuilder(scopeFilterProvider, typeMask).build();
+	private SQLScopeFilter getSQLScopeFilter(List<Enum<?>> subTypes, boolean filterByObjectId) {
+		ViewScopeFilter filter = new ViewScopeFilter(ObjectType.ENTITY, subTypes, filterByObjectId, Collections.emptySet());
+		return new SQLScopeFilterBuilder(filter).build();
 	}
 }
