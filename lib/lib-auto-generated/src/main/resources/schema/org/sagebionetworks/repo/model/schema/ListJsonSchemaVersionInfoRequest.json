@@ -1,0 +1,17 @@
+{
+	"description": "Request to get a single page of schema version metadata for the given organization and schema name.",
+	"properties": {
+		"organizationName": {
+			"type": "string",
+			"description": "The name of the Organization."
+		},
+		"schemaName": {
+			"type": "string",
+			"description": "The name of the JsonSchema to list versions to list schemas for."
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "Forward the returned 'nextPageToken' to get the next page of results."
+		}
+	}
+}

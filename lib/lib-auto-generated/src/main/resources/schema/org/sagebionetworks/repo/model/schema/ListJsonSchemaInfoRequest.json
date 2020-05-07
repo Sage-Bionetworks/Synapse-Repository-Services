@@ -1,0 +1,13 @@
+{
+	"description": "Request to list a single page of JsonSchemaInfo for the given organization name.",
+	"properties": {
+		"organizationName": {
+			"type": "string",
+			"description": "The name of the Organization to list schemas for."
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "Forward the returned 'nextPageToken' to get the next page of results."
+		}
+	}
+}
