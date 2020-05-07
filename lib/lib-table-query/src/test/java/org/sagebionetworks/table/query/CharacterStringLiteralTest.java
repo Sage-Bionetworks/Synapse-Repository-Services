@@ -2,8 +2,11 @@ package org.sagebionetworks.table.query;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.google.common.base.Strings;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 
 public class CharacterStringLiteralTest {
@@ -19,6 +22,12 @@ public class CharacterStringLiteralTest {
 		assertEquals("This is a long string in quotes", element.toSqlWithoutQuotes());
 		assertEquals("'This is a long string in quotes'", element.toSql());
 		assertTrue(element.hasQuotes());
+	}
+
+	@Test
+	public void testCharacterStringLiteral_exeedSize() throws ParseException{
+		String maxString = Strings.repeat("a", ColumnConstants.MAX_ALLOWED_STRING_SIZE.intValue() + 1);
+		assertThrows(IllegalArgumentException.class, () -> new CharacterStringLiteral(maxString));
 	}
 
 	/**

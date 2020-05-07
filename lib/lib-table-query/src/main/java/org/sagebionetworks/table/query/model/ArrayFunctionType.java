@@ -16,7 +16,7 @@ public enum ArrayFunctionType {
 		d
 		e
 	 */
-	UNNEST(FunctionReturnType.MATCHES_PARAMETER);
+	UNNEST(FunctionReturnType.UNNEST_PARAMETER);
 
 	FunctionReturnType returnType;
 

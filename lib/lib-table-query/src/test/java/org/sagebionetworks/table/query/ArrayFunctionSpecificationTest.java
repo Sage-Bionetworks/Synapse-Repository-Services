@@ -14,7 +14,7 @@ public class ArrayFunctionSpecificationTest {
 		ArrayFunctionSpecification element =
 				new TableQueryParser("unnest(foo)").arrayFunctionSpecification();
 		assertEquals("UNNEST(foo)", element.toSql());
-		assertEquals(FunctionReturnType.MATCHES_PARAMETER, element.getFunctionReturnType());
+		assertEquals(FunctionReturnType.UNNEST_PARAMETER, element.getFunctionReturnType());
 	}
 
 	@Test

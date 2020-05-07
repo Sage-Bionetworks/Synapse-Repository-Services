@@ -2,6 +2,8 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.model.table.ColumnConstants;
+
 /**
  * 
  *  A CharacterStringLiteral is a string surrounded with single quotes.
@@ -13,6 +15,10 @@ public class CharacterStringLiteral extends SQLElement {
 
 	public CharacterStringLiteral(String characterStringLiteral) {
 		super();
+
+		if(characterStringLiteral.length() > ColumnConstants.MAX_ALLOWED_STRING_SIZE){
+			throw new IllegalArgumentException("String exceeds maximum allowed size: " + ColumnConstants.MAX_ALLOWED_STRING_SIZE);
+		}
 		this.characterStringLiteral = characterStringLiteral;
 	}
 
