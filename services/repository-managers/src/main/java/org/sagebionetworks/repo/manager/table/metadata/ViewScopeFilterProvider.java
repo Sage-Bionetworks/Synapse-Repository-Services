@@ -1,8 +1,8 @@
-package org.sagebionetworks.table.cluster.metadata;
+package org.sagebionetworks.repo.manager.table.metadata;
 
 import java.util.List;
 
-public interface ScopeFilterProvider {
+public interface ViewScopeFilterProvider extends HasObjectType {
 
 	/**
 	 * @return True if the object has a hierarchy of subtypes that filters can be

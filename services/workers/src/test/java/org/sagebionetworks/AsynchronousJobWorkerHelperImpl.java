@@ -18,6 +18,9 @@ import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
+import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
+import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
+import org.sagebionetworks.repo.manager.table.metadata.ViewScopeFilterBuilder;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
@@ -39,6 +42,7 @@ import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.ViewScope;
+import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -64,6 +68,8 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	FileHandleDao fileHandleDao;
 	@Autowired
 	SynapseS3Client s3Client;
+	@Autowired
+	MetadataIndexProviderFactory metadataProviderFactory;
 
 	@Override
 	public <R extends AsynchronousRequestBody, T extends AsynchronousResponseBody> T startAndWaitForJob(UserInfo user,
@@ -168,8 +174,14 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
 		ViewScopeType scopeType = tableMangerSupport.getViewScopeType(tableId);
 		Set<Long> allContainersInScope = tableMangerSupport.getAllContainerIdsForViewScope(tableId, scopeType);
+		
+		MetadataIndexProvider provider = metadataProviderFactory.getMetadataIndexProvider(scopeType.getObjectType());
+		
+		ViewScopeFilter scopeFilter = new ViewScopeFilterBuilder(provider, scopeType.getTypeMask())
+				.withContainerIds(allContainersInScope).build();
+		
 		long limit = 1L;
-		Set<Long> changes = indexDao.getOutOfDateRowsForView(scopeType.getObjectType(), tableId, scopeType.getTypeMask(), allContainersInScope,  limit);
+		Set<Long> changes = indexDao.getOutOfDateRowsForView(tableId, scopeFilter, limit);
 		return Optional.of(changes.isEmpty());
 	}
 	

@@ -1,8 +1,9 @@
-package org.sagebionetworks.table.cluster.metadata;
+package org.sagebionetworks.repo.manager.table.metadata;
 
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 
 /**
  * Factory for metadata index providers

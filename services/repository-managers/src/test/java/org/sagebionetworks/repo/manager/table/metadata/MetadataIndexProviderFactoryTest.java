@@ -1,4 +1,4 @@
-package org.sagebionetworks.table.cluster.metadata;
+package org.sagebionetworks.repo.manager.table.metadata;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -10,7 +10,10 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.repo.manager.table.metadata.providers.EntityMetadataIndexProvider;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -18,11 +21,11 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import com.google.common.collect.ImmutableSet;
 
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(locations = { "classpath:table-cluster-spb.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MetadataIndexProviderFactoryTest {
 
 	@Autowired
-	private TestEntityMetadataIndexProvider testProvider;
+	private EntityMetadataIndexProvider testProvider;
 	
 	@Autowired
 	private MetadataIndexProviderFactory factory;

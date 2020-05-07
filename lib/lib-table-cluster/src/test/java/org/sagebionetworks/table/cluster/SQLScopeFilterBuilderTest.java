@@ -4,15 +4,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+import java.util.Set;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.repo.model.table.ViewType;
-import org.sagebionetworks.repo.model.table.ViewTypeMask;
-import org.sagebionetworks.table.cluster.metadata.ScopeFilterProvider;
+import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 
 import com.google.common.collect.ImmutableList;
 
@@ -20,46 +21,47 @@ import com.google.common.collect.ImmutableList;
 public class SQLScopeFilterBuilderTest {
 	
 	@Mock
-	private ScopeFilterProvider scopeFilterProvider;
+	private ViewScopeFilter mockViewScopeFilter;
 	
 	@Test
-	public void testBuildWithNullProvider() {
-		scopeFilterProvider = null;
-		Long viewTypeMask = ViewTypeMask.File.getMask();
+	public void testBuildWithNullFilter() {
+		mockViewScopeFilter = null;
 		
-		SQLScopeFilterBuilder builder = new SQLScopeFilterBuilder(scopeFilterProvider, viewTypeMask);
+		SQLScopeFilterBuilder builder = new SQLScopeFilterBuilder(mockViewScopeFilter);
 		
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			builder.build();
 		}).getMessage();
 		
-		assertEquals("scopeFilterProvider is required.", errorMessage);
+		assertEquals("filter is required.", errorMessage);
 	}
 	
 	@Test
-	public void testBuildWithNullMask() {
-		Long viewTypeMask = null;
+	public void testBuildWithNullSubTypes() {
+		List<Enum<?>> subTypes = null;
 		
-		SQLScopeFilterBuilder builder = new SQLScopeFilterBuilder(scopeFilterProvider, viewTypeMask);
+		when(mockViewScopeFilter.getSubTypes()).thenReturn(subTypes);
+		
+		SQLScopeFilterBuilder builder = new SQLScopeFilterBuilder(mockViewScopeFilter);
 		
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			builder.build();
 		}).getMessage();
 		
-		assertEquals("viewTypeMask is required.", errorMessage);
+		assertEquals("filter.subTypes is required.", errorMessage);
 	}
-
+	
 	@Test
 	public void testBuildWithFileFilter(){
 		boolean filterByObjectId = false;
-		Long viewTypeMask = ViewTypeMask.File.getMask();
+		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
 	
-		when(scopeFilterProvider.isFilterScopeByObjectId(viewTypeMask)).thenReturn(filterByObjectId);
-		when(scopeFilterProvider.getSubTypesForMask(viewTypeMask)).thenReturn(ImmutableList.of(EntityType.file));
+		when(mockViewScopeFilter.isFilterByObjectId()).thenReturn(filterByObjectId);
+		when(mockViewScopeFilter.getSubTypes()).thenReturn(subTypes);
 		
-		SQLScopeFilterBuilder builder = new SQLScopeFilterBuilder(scopeFilterProvider, viewTypeMask);
+		SQLScopeFilterBuilder builder = new SQLScopeFilterBuilder(mockViewScopeFilter);
 		
 		SQLScopeFilter scopeFilter = builder.build();
 		
@@ -70,12 +72,12 @@ public class SQLScopeFilterBuilderTest {
 	@Test
 	public void testBuildWithObjectIdFilter(){
 		boolean filterByObjectId = true;
-		Long viewTypeMask = ViewTypeMask.File.getMask();
+		List<Enum<?>> subTypes = ImmutableList.of(EntityType.project);
 	
-		when(scopeFilterProvider.isFilterScopeByObjectId(viewTypeMask)).thenReturn(filterByObjectId);
-		when(scopeFilterProvider.getSubTypesForMask(viewTypeMask)).thenReturn(ImmutableList.of(EntityType.project));
+		when(mockViewScopeFilter.isFilterByObjectId()).thenReturn(filterByObjectId);
+		when(mockViewScopeFilter.getSubTypes()).thenReturn(subTypes);
 		
-		SQLScopeFilterBuilder builder = new SQLScopeFilterBuilder(scopeFilterProvider, viewTypeMask);
+		SQLScopeFilterBuilder builder = new SQLScopeFilterBuilder(mockViewScopeFilter);
 		
 		SQLScopeFilter scopeFilter = builder.build();
 		
@@ -86,12 +88,12 @@ public class SQLScopeFilterBuilderTest {
 	@Test
 	public void testBuildWithMultipleTypes(){
 		boolean filterByObjectId = false;
-		Long viewTypeMask = ViewTypeMask.getMaskForDepricatedType(ViewType.file_and_table);
+		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file, EntityType.table);
 	
-		when(scopeFilterProvider.isFilterScopeByObjectId(viewTypeMask)).thenReturn(filterByObjectId);
-		when(scopeFilterProvider.getSubTypesForMask(viewTypeMask)).thenReturn(ImmutableList.of(EntityType.file, EntityType.table));
+		when(mockViewScopeFilter.isFilterByObjectId()).thenReturn(filterByObjectId);
+		when(mockViewScopeFilter.getSubTypes()).thenReturn(subTypes);
 		
-		SQLScopeFilterBuilder builder = new SQLScopeFilterBuilder(scopeFilterProvider, viewTypeMask);
+		SQLScopeFilterBuilder builder = new SQLScopeFilterBuilder(mockViewScopeFilter);
 		
 		SQLScopeFilter scopeFilter = builder.build();
 		

@@ -1,4 +1,4 @@
-package org.sagebionetworks.table.cluster.metadata;
+package org.sagebionetworks.repo.manager.table.metadata;
 
 import java.util.List;
 import java.util.Map;
@@ -6,6 +6,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
