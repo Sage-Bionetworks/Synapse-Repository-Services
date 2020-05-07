@@ -895,9 +895,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	 * @return Map where the key is the columnId found in curentSchema,
 	 * and value is the maximum number of list elements for that annotation
 	 */
-	Map<String, Long> getMaxListSizeForAnnotations(ObjectType objectType, SQLScopeFilter scopeFilter, Set<Long> allContainersInScope, Set<String> annotationNames, Set<Long> objectIdFilter){
-		ValidateArgument.required(allContainersInScope, "allContainersInScope");
+	Map<String, Long> getMaxListSizeForAnnotations(ViewScopeFilter scopeFilter, Set<String> annotationNames, Set<Long> objectIdFilter){
+		ValidateArgument.required(scopeFilter, "scopeFilter");
+		ValidateArgument.required(scopeFilter.getContainerIds(), "scopeFilter.containerIds");
 		ValidateArgument.required(annotationNames, "annotationNames");
+		
+		Set<Long> allContainersInScope = scopeFilter.getContainerIds();
+		
 		if(allContainersInScope.isEmpty() || annotationNames.isEmpty()){
 			// nothing to do if the scope or annotation names are empty.
 			return Collections.emptyMap();
@@ -907,7 +911,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 
 		boolean filterByRows = objectIdFilter != null;
-		MapSqlParameterSource param = getMapSqlParameterSourceForCopyToView(objectType, allContainersInScope, objectIdFilter, filterByRows);
+		
+		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, objectIdFilter);
 
 		//additional param
 		param.addValue(ANNOTATION_KEYS_PARAM_NAME, annotationNames);
@@ -921,9 +926,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		});
 	}
 
-	void validateMaxListLengthInAnnotationReplication(ObjectType objectType, SQLScopeFilter scopeFilter,
-													  Set<Long> allContainersInScope, List<ColumnModel> currentSchema,
-													  Set<Long> objectIdFilter){
+	void validateMaxListLengthInAnnotationReplication(ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, Set<Long> objectIdFilter){
 		Map<String,Long> listAnnotationListLengthMaximum = currentSchema.stream()
 				.filter(cm -> ColumnTypeListMappings.isList(cm.getColumnType()))
 				.collect(Collectors.toMap(
@@ -935,7 +938,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return;
 		}
 
-		Map<String,Long> maxLengthsInReplication = this.getMaxListSizeForAnnotations(objectType, scopeFilter, allContainersInScope, listAnnotationListLengthMaximum.keySet(), objectIdFilter);
+		Map<String,Long> maxLengthsInReplication = this.getMaxListSizeForAnnotations(scopeFilter, listAnnotationListLengthMaximum.keySet(), objectIdFilter);
 
 		for(Entry<String,Long> entry : listAnnotationListLengthMaximum.entrySet()){
 			String annotationName = entry.getKey();
@@ -969,32 +972,21 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		if(rowIdsToCopy != null && rowIdsToCopy.isEmpty()) {
 			throw new IllegalArgumentException("When objectIdFilter is provided (not null) it cannot be empty");
 		}
-
-		SQLScopeFilter sqlScopeFilter = getScopeFilter(scopeFilter);
 		
 		// before updating. verify that all rows that would be changed won't exceed the user-specified maxListLength,
 		// which is used for query row size estimation
-		validateMaxListLengthInAnnotationReplication(scopeFilter.getObjectType(), sqlScopeFilter, allContainersInScope, currentSchema, rowIdsToCopy);
+		validateMaxListLengthInAnnotationReplication(scopeFilter, currentSchema, rowIdsToCopy);
 		
 		// Filter by rows only if provided.
 		boolean filterByRows = rowIdsToCopy != null;
-		MapSqlParameterSource param = getMapSqlParameterSourceForCopyToView(scopeFilter.getObjectType(), allContainersInScope, rowIdsToCopy, filterByRows);
+		
+		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, rowIdsToCopy);
 		
 		List<ColumnMetadata> metadata = translateSchema(currentSchema, fieldTypeMapper);
 		
-		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, sqlScopeFilter, filterByRows);
+		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, scopeFilter, filterByRows);
 		
 		namedTemplate.update(sql, param);
-	}
-
-	private MapSqlParameterSource getMapSqlParameterSourceForCopyToView(ObjectType objectType, Set<Long> allContainersInScope, Set<Long> rowIdsToCopy, boolean filterByRows) {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(PARENT_ID_PARAM_NAME, allContainersInScope);
-		param.addValue(OBJECT_TYPE_PARAM_NAME, objectType.name());
-		if(filterByRows) {
-			param.addValue(ID_PARAM_NAME, rowIdsToCopy);
-		}
-		return param;
 	}
 
 	@Override
@@ -1010,20 +1002,18 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			throw new IllegalArgumentException("Scope has not been defined for this view.");
 		}
 		
-		SQLScopeFilter sqlScopeFilter = getScopeFilter(scopeFilter);
+		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, null);
 		
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(PARENT_ID_PARAM_NAME, allContainersInScope);
-		param.addValue(OBJECT_TYPE_PARAM_NAME, scopeFilter.getObjectType().name());
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = false;
 		
 		List<ColumnMetadata> metadata = translateSchema(currentSchema, fieldTypeMapper);
 		
-		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, metadata, sqlScopeFilter, filterByRows);
+		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, metadata, scopeFilter, filterByRows);
 		
 		// push the headers to the stream
 		outputStream.writeNext(headers.toArray(new String[headers.size()]));
+		
 		namedTemplate.query(builder.toString(), param, (ResultSet rs) -> {
 			// Push each row to the callback
 			String[] row = new String[headers.size()];
@@ -1081,16 +1071,12 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return new LinkedList<>();
 		}
 		
-		SQLScopeFilter sqlScopeFilter = getScopeFilter(scopeFilter);
+		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, null);
 		
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		
-		param.addValue(OBJECT_TYPE_PARAM_NAME, scopeFilter.getObjectType().name());
-		param.addValue(PARENT_ID_PARAM_NAME, containerIds);
 		param.addValue(P_LIMIT, limit);
 		param.addValue(P_OFFSET, offset);
 		
-		String sql = SQLUtils.getDistinctAnnotationColumnsSql(sqlScopeFilter);
+		String sql = SQLUtils.getDistinctAnnotationColumnsSql(scopeFilter);
 		
 		List<ColumnAggregation> results = namedTemplate.query(sql, param, (ResultSet rs, int rowNum) -> {
 			ColumnAggregation aggregation = new ColumnAggregation();
@@ -1308,14 +1294,12 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return Collections.emptySet();
 		}
 		
-		SQLScopeFilter sqlScopeFilter = getScopeFilter(scopeFilter);
+		String sql = SQLUtils.getOutOfDateRowsForViewSql(viewId, scopeFilter);
 		
-		String sql = SQLUtils.getOutOfDateRowsForViewSql(viewId, sqlScopeFilter);
+		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, null);
 		
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(OBJECT_TYPE_PARAM_NAME, scopeFilter.getObjectType().name());
-		param.addValue("scopeIds", allContainersInScope);
-		param.addValue("limitParam", limit);
+		param.addValue(P_LIMIT, limit);
+		
 		List<Long> deltas = namedTemplate.queryForList(sql, param, Long.class);
 		return new LinkedHashSet<Long>(deltas);
 	}
@@ -1355,9 +1339,18 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		template.update(TRUNCATE_ANNOTATION_REPLICATION_TABLE);
 		template.update(TRUNCATE_OBJECT_REPLICATION_TABLE);
 	}
-
-	private SQLScopeFilter getScopeFilter(ViewScopeFilter scopeFilter) {
-		return new SQLScopeFilterBuilder(scopeFilter).build();
+	
+	private MapSqlParameterSource getMapSqlParameterSourceForScopeFilter(ViewScopeFilter scopeFilter, Set<Long> rowIdsToCopy) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		
+		param.addValue(OBJECT_TYPE_PARAM_NAME, scopeFilter.getObjectType().name());
+		param.addValue(PARENT_ID_PARAM_NAME, scopeFilter.getContainerIds());
+		
+		if (rowIdsToCopy != null) {
+			param.addValue(ID_PARAM_NAME, rowIdsToCopy);
+		}
+		
+		return param;
 	}
 	
 }

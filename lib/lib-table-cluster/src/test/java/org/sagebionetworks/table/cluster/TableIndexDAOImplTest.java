@@ -1451,11 +1451,8 @@ public class TableIndexDAOImplTest {
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, nullScope);
 		
-		SQLScopeFilter sqlScopeFilter = new SQLScopeFilterBuilder(scopeFilter).build();
-		
 		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
-				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType,
-						sqlScopeFilter, nullScope, annotationNames, null)
+				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(scopeFilter, annotationNames, null)
 		).getMessage();
 
 		assertEquals("allContainersInScope is required.", errorMessage);
@@ -1473,12 +1470,9 @@ public class TableIndexDAOImplTest {
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, emptyScope);
-		
-		SQLScopeFilter sqlScopeFilter = new SQLScopeFilterBuilder(scopeFilter).build();
-
+	
 		assertEquals(Collections.emptyMap(),
-				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, 
-						sqlScopeFilter, emptyScope, annotationNames, null));
+				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(scopeFilter, annotationNames, null));
 
 	}
 
@@ -1493,12 +1487,9 @@ public class TableIndexDAOImplTest {
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
-		
-		SQLScopeFilter sqlScopeFilter = new SQLScopeFilterBuilder(scopeFilter).build();
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
-				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, 
-						sqlScopeFilter, scope, nullAnnotationNames, null)
+				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(scopeFilter, nullAnnotationNames, null)
 		).getMessage();
 
 		assertEquals("annotationNames is required.", errorMessage);
@@ -1518,12 +1509,9 @@ public class TableIndexDAOImplTest {
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
-		
-		SQLScopeFilter sqlScopeFilter = new SQLScopeFilterBuilder(scopeFilter).build();
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
-				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, 
-						sqlScopeFilter, scope, annotationNames, emptyObjectIdFilter)
+				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(scopeFilter, annotationNames, emptyObjectIdFilter)
 		).getMessage();
 
 		assertEquals("When objectIdFilter is provided (not null) it cannot be empty", errorMessage);
@@ -1540,12 +1528,9 @@ public class TableIndexDAOImplTest {
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
-		
-		SQLScopeFilter sqlScopeFilter = new SQLScopeFilterBuilder(scopeFilter).build();
 
 		assertEquals(Collections.emptyMap(),
-				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, 
-						sqlScopeFilter, scope, emptyAnnotationNames, null));
+				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(scopeFilter, emptyAnnotationNames, null));
 
 	}
 
@@ -1602,10 +1587,8 @@ public class TableIndexDAOImplTest {
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
 		
-		SQLScopeFilter sqlScopeFilter = new SQLScopeFilterBuilder(scopeFilter).build();
-		
 		// method under test
-		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, sqlScopeFilter, scope, annotationNames, null);
+		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(scopeFilter, annotationNames, null);
 		HashMap<String,Long> expected = new HashMap<>();
 		expected.put("foo",3L);
 		expected.put("bar",5L);
@@ -1643,10 +1626,8 @@ public class TableIndexDAOImplTest {
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
-		
-		SQLScopeFilter sqlScopeFilter = new SQLScopeFilterBuilder(scopeFilter).build();
-
-		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, sqlScopeFilter, scope, annotationNames, null);
+	
+		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(scopeFilter, annotationNames, null);
 		assertEquals(Collections.emptyMap(), listSizes);
 	}
 
@@ -1704,10 +1685,8 @@ public class TableIndexDAOImplTest {
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
 		
-		SQLScopeFilter sqlScopeFilter = new SQLScopeFilterBuilder(scopeFilter).build();
-		
 		// method under test
-		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(objectType, sqlScopeFilter, scope, annotationNames, objectIdFilter);
+		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(scopeFilter, annotationNames, objectIdFilter);
 		HashMap<String,Long> expected = new HashMap<>();
 		expected.put("foo",3L);
 		expected.put("bar",3L);

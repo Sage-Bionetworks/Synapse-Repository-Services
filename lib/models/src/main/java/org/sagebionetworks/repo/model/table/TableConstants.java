@@ -7,7 +7,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 
 import com.google.common.collect.ImmutableMap;
@@ -135,9 +134,6 @@ public class TableConstants {
 	
 	// Dynamic string of all the object types, used to build the enum type in the replication table
 	private static final String OBJECT_TYPES_ENUM_STRING = joinEnumForSQL(ObjectType.values());
-	
-	// Dynamic string of all of the subtypes (currently only entity types), used to build the enum type in the replication table
-	private static final String ENTITY_TYPES_ENUM_STRING = joinEnumForSQL(EntityType.values());
 	
 	public final static String REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE = 
 			"CREATE TABLE IF NOT EXISTS "+REPLICATION_SYNC_EXPIRATION_TABLE+ "("
@@ -311,6 +307,25 @@ public class TableConstants {
 	public static final String P_OFFSET = "pOffset";
 
 	public static final String P_LIMIT = "pLimit";
+	
+	public static final String VIEW_ROWS_OUT_OF_DATE_TEMPLATE = 
+			"WITH DELTAS (ID, MISSING) AS ( " 
+			+ "SELECT R."+OBJECT_REPLICATION_COL_OBJECT_ID+", V."+ROW_ID+" FROM "+OBJECT_REPLICATION_TABLE+" R "
+			+ "   LEFT JOIN %1$s V ON ("
+			+ "		 R."+OBJECT_REPLICATION_COL_OBJECT_ID+" = V."+ROW_ID
+			+ "      AND R."+OBEJCT_REPLICATION_COL_ETAG+" = V."+ROW_ETAG
+			+ "      AND R."+OBJECT_REPLICATION_COL_BENEFACTOR_ID+" = V."+ROW_BENEFACTOR+")" 
+			+ "   WHERE R."+OBJECT_REPLICATION_COL_OBJECT_TYPE+" = :"+OBJECT_TYPE_PARAM_NAME+" AND R.%2$s IN (:"+PARENT_ID_PARAM_NAME+") AND %3$s" 
+			+ " UNION ALL"
+			+ " SELECT V."+ROW_ID+", R."+OBJECT_REPLICATION_COL_OBJECT_ID+" FROM "+OBJECT_REPLICATION_TABLE+" R "
+			+ "   RIGHT JOIN %1$s V ON ("
+			+ "      R."+OBJECT_REPLICATION_COL_OBJECT_TYPE+" = :"+OBJECT_TYPE_PARAM_NAME
+			+ "      AND R."+OBJECT_REPLICATION_COL_OBJECT_ID+" = V."+ROW_ID
+			+ "      AND R."+OBEJCT_REPLICATION_COL_ETAG+" = V."+ROW_ETAG
+			+ "      AND R."+OBJECT_REPLICATION_COL_BENEFACTOR_ID+" = V."+ROW_BENEFACTOR
+			+ "      AND R.%2$s IN (:" +PARENT_ID_PARAM_NAME+ ") AND %3$s)"
+			+ ")"
+			+ "SELECT ID FROM DELTAS WHERE MISSING IS NULL ORDER BY ID DESC LIMIT :"+P_LIMIT;
 	
 	public static final String SELECT_DISTINCT_ANNOTATION_COLUMNS_TEMPLATE = "SELECT "
 			+"A." + ANNOTATION_REPLICATION_COL_KEY
