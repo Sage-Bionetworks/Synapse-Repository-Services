@@ -385,11 +385,6 @@
 		scope="singleton" factory-method="newFixedThreadPool">
 		<constructor-arg value="100" />
 	</bean>
-	
-	<bean id="tableManagerSupport" class="org.sagebionetworks.repo.manager.table.TableManagerSupportImpl" scope="singleton" />
-    
-    <bean id="tableIndexConnectionFactory" class="org.sagebionetworks.repo.manager.table.TableIndexConnectionFactoryImpl" scope="singleton" >
-    </bean>
     
     <bean id="asynchJobQueuePublisher" class="org.sagebionetworks.repo.manager.asynch.AsynchJobQueuePublisherImpl"
         init-method="initialize" scope="singleton" >

@@ -1,12 +1,12 @@
-package org.sagebionetworks.repo.manager.table.metadata;
+package org.sagebionetworks.repo.manager.table.metadata.providers;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
-import org.sagebionetworks.table.cluster.metadata.MetadataIndexProvider;
 import org.springframework.stereotype.Service;
 
 @Service

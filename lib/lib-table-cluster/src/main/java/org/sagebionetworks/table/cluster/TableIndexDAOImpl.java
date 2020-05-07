@@ -52,6 +52,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -60,7 +61,6 @@ import javax.sql.DataSource;
 
 import org.json.JSONArray;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
@@ -75,17 +75,17 @@ import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
-import org.sagebionetworks.table.cluster.metadata.MetadataIndexProvider;
-import org.sagebionetworks.table.cluster.metadata.MetadataIndexProviderFactory;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.Callback;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.BadSqlGrammarException;
@@ -145,13 +145,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private TransactionTemplate readTransactionTemplate;
 	private JdbcTemplate template;
 	private NamedParameterJdbcTemplate namedTemplate;
-	
-	private MetadataIndexProviderFactory metadataIndexProviderFactory;
-	
-	@Autowired
-	public TableIndexDAOImpl(MetadataIndexProviderFactory metadataIndexProviderFactory) {
-		this.metadataIndexProviderFactory = metadataIndexProviderFactory;
-	}
 
 	@Override
 	public void setDataSource(DataSource dataSource) {
@@ -698,15 +691,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void createEntityReplicationTablesIfDoesNotExist(){
+	public void createObjectReplicationTablesIfDoesNotExist(){
 		template.update(TableConstants.OBJECT_REPLICATION_TABLE_CREATE);
 		template.update(TableConstants.ANNOTATION_REPLICATION_TABLE_CREATE);
 		template.update(TableConstants.REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE);
 	}
 
 	@Override
-	public void deleteObjectData(ObjectType objectsType, List<Long> entityIds) {
-		final List<Long> sorted = new ArrayList<Long>(entityIds);
+	public void deleteObjectData(ObjectType objectsType, List<Long> objectIds) {
+		final List<Long> sorted = new ArrayList<Long>(objectIds);
 		// sort to prevent deadlock.
 		Collections.sort(sorted);
 		// Batch delete.
@@ -731,7 +724,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	public void addObjectData(ObjectType objectType, List<ObjectDataDTO> objectDtos) {
 		final List<ObjectDataDTO> sorted = new ArrayList<ObjectDataDTO>(objectDtos);
 		Collections.sort(sorted);
-		// batch update the entity table
+		// batch update the object replication table
 		template.batchUpdate(TableConstants.OBJECT_REPLICATION_INSERT, new BatchPreparedStatementSetter(){
 
 			@Override
@@ -816,8 +809,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		
 	}
 
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
-	public ObjectDataDTO getObjectData(ObjectType objectType, Long objectId) {
+	public ObjectDataDTO getObjectData(ObjectType objectType, Long objectId, Class<? extends Enum> subTypeClass) {
 		// query for the template.
 		ObjectDataDTO dto;
 		try {
@@ -829,7 +823,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				dto1.setCreatedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_CREATED_ON)));
 				dto1.setEtag(rs.getString(OBEJCT_REPLICATION_COL_ETAG));
 				dto1.setName(rs.getString(OBJECT_REPLICATION_COL_NAME));
-				dto1.setSubType(EntityType.valueOf(rs.getString(OBJECT_REPLICATION_COL_SUBTYPE)));
+				dto1.setSubType(Enum.valueOf(subTypeClass, rs.getString(OBJECT_REPLICATION_COL_SUBTYPE)));
 				dto1.setParentId(rs.getLong(OBJECT_REPLICATION_COL_PARENT_ID));
 				if (rs.wasNull()) {
 					dto1.setParentId(null);
@@ -901,10 +895,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	 * @return Map where the key is the columnId found in curentSchema,
 	 * and value is the maximum number of list elements for that annotation
 	 */
-	Map<String, Long> getMaxListSizeForAnnotations(ObjectType objectType, SQLScopeFilter scopeFilter, Set<Long> allContainersInScope,
-															Set<String> annotationNames, Set<Long> objectIdFilter){
-		ValidateArgument.required(allContainersInScope, "allContainersInScope");
+	Map<String, Long> getMaxListSizeForAnnotations(ViewScopeFilter scopeFilter, Set<String> annotationNames, Set<Long> objectIdFilter){
+		ValidateArgument.required(scopeFilter, "scopeFilter");
+		ValidateArgument.required(scopeFilter.getContainerIds(), "scopeFilter.containerIds");
 		ValidateArgument.required(annotationNames, "annotationNames");
+		
+		Set<Long> allContainersInScope = scopeFilter.getContainerIds();
+		
 		if(allContainersInScope.isEmpty() || annotationNames.isEmpty()){
 			// nothing to do if the scope or annotation names are empty.
 			return Collections.emptyMap();
@@ -913,9 +910,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			throw new IllegalArgumentException("When objectIdFilter is provided (not null) it cannot be empty");
 		}
 
-
 		boolean filterByRows = objectIdFilter != null;
-		MapSqlParameterSource param = getMapSqlParameterSourceForCopyToView(objectType, allContainersInScope, objectIdFilter, filterByRows);
+		
+		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, objectIdFilter);
+
 		//additional param
 		param.addValue(ANNOTATION_KEYS_PARAM_NAME, annotationNames);
 		String sql = SQLUtils.createAnnotationMaxListLengthSQL(scopeFilter, annotationNames, filterByRows);
@@ -928,9 +926,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		});
 	}
 
-	void validateMaxListLengthInAnnotationReplication(ObjectType objectType, SQLScopeFilter scopeFilter,
-													  Set<Long> allContainersInScope, List<ColumnModel> currentSchema,
-													  Set<Long> objectIdFilter){
+	void validateMaxListLengthInAnnotationReplication(ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, Set<Long> objectIdFilter){
 		Map<String,Long> listAnnotationListLengthMaximum = currentSchema.stream()
 				.filter(cm -> ColumnTypeListMappings.isList(cm.getColumnType()))
 				.collect(Collectors.toMap(
@@ -942,9 +938,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return;
 		}
 
-		Map<String,Long> maxLengthsInReplication = this.getMaxListSizeForAnnotations(objectType, scopeFilter, allContainersInScope, listAnnotationListLengthMaximum.keySet(), objectIdFilter);
+		Map<String,Long> maxLengthsInReplication = this.getMaxListSizeForAnnotations(scopeFilter, listAnnotationListLengthMaximum.keySet(), objectIdFilter);
 
-		for(Map.Entry<String,Long> entry : listAnnotationListLengthMaximum.entrySet()){
+		for(Entry<String,Long> entry : listAnnotationListLengthMaximum.entrySet()){
 			String annotationName = entry.getKey();
 			long maxListLength = entry.getValue();
 			long maxLengthInReplication = maxLengthsInReplication.getOrDefault(annotationName,0L);
@@ -956,74 +952,68 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void copyEntityReplicationToView(ObjectType objectType, Long viewId, Long viewTypeMask,
-			Set<Long> allContainersInScope, List<ColumnModel> currentSchema) {
+	public void copyObjectReplicationToView(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper) {
 		Set<Long> rowIdsToCopy = null;
-		copyEntityReplicationToView(objectType, viewId, viewTypeMask, allContainersInScope, currentSchema, rowIdsToCopy);
+		copyObjectReplicationToView(viewId, scopeFilter, currentSchema, fieldTypeMapper, rowIdsToCopy);
 	}
 	
 	@Override
-	public void copyEntityReplicationToView(ObjectType objectType, Long viewId, Long viewTypeMask, Set<Long> allContainersInScope,
-			List<ColumnModel> currentSchema, Set<Long> rowIdsToCopy) {
-		ValidateArgument.required(viewTypeMask, "viewTypeMask");
-		ValidateArgument.required(allContainersInScope, "allContainersInScope");
-		if(allContainersInScope.isEmpty()){
+	public void copyObjectReplicationToView(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper, Set<Long> rowIdsToCopy) {
+		ValidateArgument.required(scopeFilter, "scopeFilter");
+		ValidateArgument.required(scopeFilter.getContainerIds(), "scopeFilter.containerIds");
+		
+		Set<Long> allContainersInScope = scopeFilter.getContainerIds();
+		
+		if (allContainersInScope.isEmpty()){
 			// nothing to do if the scope is empty.
 			return;
 		}
+		
 		if(rowIdsToCopy != null && rowIdsToCopy.isEmpty()) {
 			throw new IllegalArgumentException("When objectIdFilter is provided (not null) it cannot be empty");
 		}
-
-		SQLScopeFilter scopeFilter = getScopeFilter(objectType, viewTypeMask);
 		
 		// before updating. verify that all rows that would be changed won't exceed the user-specified maxListLength,
 		// which is used for query row size estimation
-		validateMaxListLengthInAnnotationReplication(objectType, scopeFilter,allContainersInScope,currentSchema,rowIdsToCopy);
+		validateMaxListLengthInAnnotationReplication(scopeFilter, currentSchema, rowIdsToCopy);
 		
 		// Filter by rows only if provided.
 		boolean filterByRows = rowIdsToCopy != null;
-		MapSqlParameterSource param = getMapSqlParameterSourceForCopyToView(objectType, allContainersInScope, rowIdsToCopy, filterByRows);
-		List<ColumnMetadata> metadata = translateSchema(objectType, currentSchema);
+		
+		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, rowIdsToCopy);
+		
+		List<ColumnMetadata> metadata = translateSchema(currentSchema, fieldTypeMapper);
 		
 		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, scopeFilter, filterByRows);
 		
 		namedTemplate.update(sql, param);
 	}
 
-	private MapSqlParameterSource getMapSqlParameterSourceForCopyToView(ObjectType objectType, Set<Long> allContainersInScope, Set<Long> rowIdsToCopy, boolean filterByRows) {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(PARENT_ID_PARAM_NAME, allContainersInScope);
-		param.addValue(OBJECT_TYPE_PARAM_NAME, objectType.name());
-		if(filterByRows) {
-			param.addValue(ID_PARAM_NAME, rowIdsToCopy);
-		}
-		return param;
-	}
-
 	@Override
-	public void createViewSnapshotFromEntityReplication(ObjectType objectType, Long viewId, Long viewTypeMask, Set<Long> allContainersInScope,
-			List<ColumnModel> currentSchema, CSVWriterStream outputStream) {
-		ValidateArgument.required(viewTypeMask, "viewTypeMask");
-		ValidateArgument.required(allContainersInScope, "allContainersInScope");
+	public void createViewSnapshotFromObjectReplication(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema,
+			ObjectFieldTypeMapper fieldTypeMapper, CSVWriterStream outputStream) {
+		ValidateArgument.required(scopeFilter, "scopeFilter");
+		ValidateArgument.required(scopeFilter.getContainerIds(), "scopeFilter.containerIds");
+		
+		Set<Long> allContainersInScope = scopeFilter.getContainerIds();
+		
 		if (allContainersInScope.isEmpty()) {
 			// nothing to do if the scope is empty.
 			throw new IllegalArgumentException("Scope has not been defined for this view.");
 		}
 		
-		SQLScopeFilter scopeFilter = getScopeFilter(objectType, viewTypeMask);
+		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, null);
 		
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(PARENT_ID_PARAM_NAME, allContainersInScope);
-		param.addValue(OBJECT_TYPE_PARAM_NAME, objectType.name());
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = false;
 		
-		List<ColumnMetadata> metadata = translateSchema(objectType, currentSchema);
+		List<ColumnMetadata> metadata = translateSchema(currentSchema, fieldTypeMapper);
+		
 		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, metadata, scopeFilter, filterByRows);
 		
 		// push the headers to the stream
 		outputStream.writeNext(headers.toArray(new String[headers.size()]));
+		
 		namedTemplate.query(builder.toString(), param, (ResultSet rs) -> {
 			// Push each row to the callback
 			String[] row = new String[headers.size()];
@@ -1035,26 +1025,32 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	// Translates the Column Model schema into a column metadata schema, that maps to the object/annotation replication index
-	List<ColumnMetadata> translateSchema(ObjectType objectType, List<ColumnModel> schema) {
+	List<ColumnMetadata> translateSchema(List<ColumnModel> schema, ObjectFieldTypeMapper fieldTypeMapper) {
+		ValidateArgument.required(schema, "schema");
+		ValidateArgument.required(fieldTypeMapper, "fieldTypeMapper");
 		
-		ObjectFieldModelResolver objectFieldModelResolver = metadataIndexProviderFactory.getObjectFieldModelResolver(objectType);
+		if (schema.isEmpty()) {
+			return Collections.emptyList();
+		}
+		
+		ObjectFieldModelResolver fieldModelResolver = getObjectFieldModelResolver(fieldTypeMapper);
 		
 		return schema.stream()
-			.map((ColumnModel columnModel) -> translateColumnModel(columnModel, objectFieldModelResolver))
+			.map((ColumnModel columnModel) -> translateColumnModel(columnModel, fieldModelResolver))
 			.collect(Collectors.toList());
 	}
 	
 	ColumnMetadata translateColumnModel(ColumnModel model, ObjectFieldModelResolver objectFieldModelResolver) {
 		// First determine if this an object column or an annotation
-		Optional<ObjectField> entityField = objectFieldModelResolver.findMatch(model);
+		Optional<ObjectField> objectField = objectFieldModelResolver.findMatch(model);
 		
 		String selectColumnForId = SQLUtils.getColumnNameForId(model.getId());
 		boolean isObjectReplicationField;
 		String selectColumnName;
 		
-		if (entityField.isPresent()) {
+		if (objectField.isPresent()) {
 			isObjectReplicationField = true;
-			selectColumnName = entityField.get().getDatabaseColumnName();
+			selectColumnName = objectField.get().getDatabaseColumnName();
 		} else {
 			isObjectReplicationField = false;
 			selectColumnName = SQLUtils.translateColumnTypeToAnnotationValueName(model.getColumnType());
@@ -1064,21 +1060,19 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public List<ColumnModel> getPossibleColumnModelsForContainers(ObjectType objectType,
-			Set<Long> containerIds, Long viewTypeMask, Long limit, Long offset) {
-		ValidateArgument.required(containerIds, "containerIds");
+	public List<ColumnModel> getPossibleColumnModelsForContainers(ViewScopeFilter scopeFilter, Long limit, Long offset) {
+		ValidateArgument.required(scopeFilter, "scopeFilter");
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
+		
+		Set<Long> containerIds = scopeFilter.getContainerIds();
+		
 		if(containerIds.isEmpty()){
 			return new LinkedList<>();
 		}
 		
-		SQLScopeFilter scopeFilter = getScopeFilter(objectType, viewTypeMask);
+		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, null);
 		
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		
-		param.addValue(OBJECT_TYPE_PARAM_NAME, objectType.name());
-		param.addValue(PARENT_ID_PARAM_NAME, containerIds);
 		param.addValue(P_LIMIT, limit);
 		param.addValue(P_OFFSET, offset);
 		
@@ -1289,24 +1283,23 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public Set<Long> getOutOfDateRowsForView(ObjectType objectType, IdAndVersion viewId, long viewTypeMask, Set<Long> allContainersInScope,
-			long limit) {
-		ValidateArgument.required(objectType, "objectType");
+	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, ViewScopeFilter scopeFilter, long limit) {
 		ValidateArgument.required(viewId, "viewId");
-		ValidateArgument.required(allContainersInScope, "allContainersInScope");
+		ValidateArgument.required(scopeFilter, "scopeFilter");
+		ValidateArgument.required(scopeFilter.getContainerIds(), "scopeFilter.containerIds");
+		
+		Set<Long> allContainersInScope = scopeFilter.getContainerIds();
 		
 		if(allContainersInScope.isEmpty()) {
 			return Collections.emptySet();
 		}
 		
-		SQLScopeFilter scopeFilter = getScopeFilter(objectType, viewTypeMask);
-		
 		String sql = SQLUtils.getOutOfDateRowsForViewSql(viewId, scopeFilter);
 		
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(OBJECT_TYPE_PARAM_NAME, objectType.name());
-		param.addValue("scopeIds", allContainersInScope);
-		param.addValue("limitParam", limit);
+		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, null);
+		
+		param.addValue(P_LIMIT, limit);
+		
 		List<Long> deltas = namedTemplate.queryForList(sql, param, Long.class);
 		return new LinkedHashSet<Long>(deltas);
 	}
@@ -1330,13 +1323,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		});
 	}
 	
-	private SQLScopeFilter getScopeFilter(ObjectType objectType, Long viewTypeMask) {
-		MetadataIndexProvider metadataIndexProvider = metadataIndexProviderFactory.getMetadataIndexProvider(objectType);
-		
-		return new SQLScopeFilterBuilder(metadataIndexProvider, viewTypeMask).build();
+	@Override
+	public ObjectFieldModelResolver getObjectFieldModelResolver(ObjectFieldTypeMapper fieldTypeMapper) {
+		return new ObjectFieldModelResolverImpl(fieldTypeMapper);
 	}
 	
-
 	@Override
 	public void truncateReplicationSyncExpiration() {
 		template.update(TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE);
@@ -1348,5 +1339,18 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		template.update(TRUNCATE_ANNOTATION_REPLICATION_TABLE);
 		template.update(TRUNCATE_OBJECT_REPLICATION_TABLE);
 	}
-
+	
+	private MapSqlParameterSource getMapSqlParameterSourceForScopeFilter(ViewScopeFilter scopeFilter, Set<Long> rowIdsToCopy) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		
+		param.addValue(OBJECT_TYPE_PARAM_NAME, scopeFilter.getObjectType().name());
+		param.addValue(PARENT_ID_PARAM_NAME, scopeFilter.getContainerIds());
+		
+		if (rowIdsToCopy != null) {
+			param.addValue(ID_PARAM_NAME, rowIdsToCopy);
+		}
+		
+		return param;
+	}
+	
 }

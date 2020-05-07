@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.cluster.metadata;
 
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectField;
 
@@ -10,6 +11,11 @@ import org.sagebionetworks.repo.model.table.ObjectField;
  * @author Marco Marasca
  */
 public interface ObjectFieldTypeMapper {
+	
+	/**
+	 * @return The object type this mapper applies to
+	 */
+	ObjectType getObjectType();
 
 	/**
 	 * @return The {@link ColumnType} mapping for the id of the object

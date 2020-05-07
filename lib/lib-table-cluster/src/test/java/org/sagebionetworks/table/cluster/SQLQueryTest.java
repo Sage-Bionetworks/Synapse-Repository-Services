@@ -1,46 +1,33 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.SelectColumn;
-import org.sagebionetworks.repo.model.table.SortDirection;
-import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.HasPredicate;
-import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.model.SelectList;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class SQLQueryTest {
-	
-	private static final String DATE1 = "11-11-11";
-	private static final String DATE1TIME = "1320969600000";
-
-	private static final String DATE2TIME = "1298332800000";
-	private static final String DATE2 = "11-02-22";
 
 	Map<String, ColumnModel> columnNameToModelMap;
 	List<ColumnModel> tableSchema;
@@ -53,7 +40,7 @@ public class SQLQueryTest {
 	List<ColumnModel> schema;
 	String sql;
 
-	@Before
+	@BeforeEach
 	public void before(){
 		columnNameToModelMap = Maps.newLinkedHashMap(); // retains order of values
 		columnNameToModelMap.put("foo", TableModelTestUtils.createColumn(111L, "foo", ColumnType.STRING));
@@ -75,10 +62,13 @@ public class SQLQueryTest {
 		sql = "select * from syn123";
 	}
 		
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testSelectStarEmtpySchema() throws ParseException{
 		tableSchema = new LinkedList<ColumnModel>();
-		SqlQuery translator = new SqlQueryBuilder("select * from syn123", tableSchema).build();
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			new SqlQueryBuilder("select * from syn123", tableSchema).build();
+		});
 	}
 	
 	@Test

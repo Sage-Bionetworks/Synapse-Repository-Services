@@ -1,12 +1,13 @@
-package org.sagebionetworks.repo.manager.table.metadata;
+package org.sagebionetworks.repo.manager.table.metadata.providers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
+import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
+import org.sagebionetworks.repo.manager.table.metadata.providers.EntityMetadataIndexProvider;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.table.cluster.metadata.MetadataIndexProvider;
-import org.sagebionetworks.table.cluster.metadata.MetadataIndexProviderFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;

@@ -45,9 +45,11 @@ import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import com.google.common.collect.Lists;
 
+@Service
 public class TableManagerSupportImpl implements TableManagerSupport {
 	
 	public static final long TABLE_PROCESSING_TIMEOUT_MS = 1000*60*10; // 10 mins

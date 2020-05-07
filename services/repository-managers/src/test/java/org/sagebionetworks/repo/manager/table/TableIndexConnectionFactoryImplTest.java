@@ -1,54 +1,63 @@
 package org.sagebionetworks.repo.manager.table;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
-import org.springframework.test.util.ReflectionTestUtils;
 
+@ExtendWith(MockitoExtension.class)
 public class TableIndexConnectionFactoryImplTest {
 	
 	@Mock
-	TableIndexDAO mockTableIndexDAO;
+	private TableIndexDAO mockTableIndexDAO;
 	@Mock
-	ConnectionFactory mockDaoConnectionFactory;
+	private ConnectionFactory mockDaoConnectionFactory;
 	@Mock
-	TableManagerSupport mockManagerSupport;
+	private TableManagerSupport mockManagerSupport;
+	@Mock
+	private MetadataIndexProviderFactory mockMetaDataIndexProviderFactory;
 	
+	@InjectMocks
 	private TableIndexConnectionFactoryImpl indexFactory;
+	
 	private IdAndVersion tableId;
 	
-	@Before
+	@BeforeEach
 	public void before(){
-		MockitoAnnotations.initMocks(this);
-		indexFactory = new TableIndexConnectionFactoryImpl();
-		ReflectionTestUtils.setField(indexFactory, "connectionFactory", mockDaoConnectionFactory);
-		ReflectionTestUtils.setField(indexFactory, "tableManagerSupport", mockManagerSupport);
 		tableId = IdAndVersion.parse("syn456");
-		when(mockDaoConnectionFactory.getConnection(tableId)).thenReturn(mockTableIndexDAO);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testConnectToTableIndex(){
-		indexFactory.connectToTableIndex(null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			indexFactory.connectToTableIndex(null);
+		});
 	}
 	
 	@Test
 	public void testConnectToTableIndexHappy(){
+		when(mockDaoConnectionFactory.getConnection(tableId)).thenReturn(mockTableIndexDAO);
 		TableIndexManager manager = indexFactory.connectToTableIndex(tableId);
 		assertNotNull(manager);
 	}
 	
-	@Test (expected=TableIndexConnectionUnavailableException.class)
+	@Test
 	public void testConnectToTableUnavailabl(){
 		when(mockDaoConnectionFactory.getConnection(tableId)).thenReturn(null);
-		indexFactory.connectToTableIndex(tableId);
+		
+		assertThrows(TableIndexConnectionUnavailableException.class, () -> {
+			indexFactory.connectToTableIndex(tableId);
+		});
 	}
 	
 	@Test
