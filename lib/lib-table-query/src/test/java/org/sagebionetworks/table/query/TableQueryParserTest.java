@@ -8,7 +8,10 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.List;
 
+import com.google.common.base.Strings;
 import org.junit.jupiter.api.Test;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
+import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -35,6 +38,24 @@ public class TableQueryParserTest {
 		assertNotNull(columnReference);
 		String sql = toSQL(columnReference);
 		assertEquals("foo", sql);
+	}
+
+	@Test
+	public void testCharacterStringLiteral_UnderStringSizeLimit() throws ParseException{
+		String maxString = "'" + Strings.repeat("a", ColumnConstants.MAX_ALLOWED_STRING_SIZE.intValue()) +  "'";
+		TableQueryParser parser = new TableQueryParser(maxString);
+		CharacterStringLiteral columnReference = parser.characterStringLiteral();
+		assertNotNull(columnReference);
+		String sql = toSQL(columnReference);
+		assertEquals(maxString, sql);
+	}
+
+	@Test
+	public void testCharacterStringLiteral_ExceedSizeLimit() throws ParseException{
+		String exceedMaxString = "'" + Strings.repeat("a", ColumnConstants.MAX_ALLOWED_STRING_SIZE.intValue() + 1) +  "'";
+		TableQueryParser parser = new TableQueryParser(exceedMaxString);
+		assertThrows(IllegalArgumentException.class, () -> parser.characterStringLiteral());
+
 	}
 	
 	@Test
