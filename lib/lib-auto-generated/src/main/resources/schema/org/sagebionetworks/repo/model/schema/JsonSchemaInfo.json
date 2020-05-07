@@ -1,0 +1,32 @@
+{
+	"description": "Information about a single JSON schema.",
+	"properties": {
+		"organizationId": {
+			"type": "string",
+			"description": "The Synapse identifier issued to the Organization to which this JsonSchema belongs."
+		},
+		"organizationName": {
+			"type": "string",
+			"description": "The name of the Organization to which this JsonSchema belongs."
+		},
+		"schemaId": {
+			"type": "string",
+			"description": "The Synapse identifier issued to the JsonSchema."
+		},
+		"schemaName": {
+			"type": "string",
+			"description": "The name of the JsonSchema."
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this JsonSchema was created.",
+			"title": "Created On"
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "The ID of the user that created this JsonSchema.",
+			"title": "Created By"
+		}
+	}
+}

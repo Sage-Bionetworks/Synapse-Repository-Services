@@ -20,6 +20,27 @@ public final class SemanticVersion extends Element {
 		this.build = build;
 	}
 
+	/**
+	 * @return the core
+	 */
+	public VersionCore getCore() {
+		return core;
+	}
+
+	/**
+	 * @return the prerelease
+	 */
+	public Prerelease getPrerelease() {
+		return prerelease;
+	}
+
+	/**
+	 * @return the build
+	 */
+	public Build getBuild() {
+		return build;
+	}
+
 	@Override
 	public void toString(StringBuilder builder) {
 		core.toString(builder);

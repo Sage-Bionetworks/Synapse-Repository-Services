@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.List;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +32,12 @@ public class OrganizationDaoImplTest {
 	@BeforeEach
 	public void before() {
 		name = "Foo.Bar";
+		organizationDao.truncateAll();
+	}
+	
+	@AfterEach
+	public void afterEach() {
+		organizationDao.truncateAll();
 	}
 
 	@Test
@@ -102,9 +110,20 @@ public class OrganizationDaoImplTest {
 		}).getMessage();
 		assertEquals("Organization with id: '-123' not found", message);
 	}
-
-	@AfterEach
-	public void afterEach() {
-		organizationDao.truncateAll();
+	
+	@Test
+	public void testListOrganizations() {
+		organizationDao.createOrganization("d", adminUserId);
+		organizationDao.createOrganization("c", adminUserId);
+		organizationDao.createOrganization("a", adminUserId);
+		organizationDao.createOrganization("b", adminUserId);
+		long limit = 2;
+		long offset = 1;
+		// Call under test
+		List<Organization> page = organizationDao.listOrganizations(limit, offset);
+		assertNotNull(page);
+		assertEquals(2, page.size());
+		assertEquals("b", page.get(0).getName());
+		assertEquals("c", page.get(1).getName());
 	}
 }

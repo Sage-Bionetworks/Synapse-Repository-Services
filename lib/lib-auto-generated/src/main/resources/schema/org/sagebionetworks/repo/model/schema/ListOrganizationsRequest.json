@@ -1,0 +1,9 @@
+{
+	"description": "Request to list a single page of the currently registered Organizations",
+	"properties": {
+		"nextPageToken": {
+			"type": "string",
+			"description": "Forward the returned 'nextPageToken' to get the next page of results."
+		}
+	}
+}

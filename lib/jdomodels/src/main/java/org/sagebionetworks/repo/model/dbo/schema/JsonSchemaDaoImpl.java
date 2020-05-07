@@ -27,11 +27,13 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ORGANI
 
 import java.sql.ResultSet;
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.Optional;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.JsonSchemaInfo;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.NormalizedJsonSchema;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -68,6 +70,17 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		info.setCreatedBy(rs.getString(COL_JSON_SCHEMA_VER_CREATED_BY));
 		info.setCreatedOn(rs.getTimestamp(COL_JSON_SCHEMA_VER_CREATED_ON));
 		info.setJsonSHA256Hex(rs.getString(COL_JSON_SCHEMA_BLOB_SHA256));
+		return info;
+	};
+
+	public static final RowMapper<JsonSchemaInfo> SCHEMA_INFO_MAPPER = (ResultSet rs, int rowNum) -> {
+		JsonSchemaInfo info = new JsonSchemaInfo();
+		info.setOrganizationId(rs.getString(COL_ORGANIZATION_ID));
+		info.setOrganizationName(rs.getString(COL_ORGANIZATION_NAME));
+		info.setSchemaId(rs.getString(COL_JSON_SCHEMA_ID));
+		info.setSchemaName(rs.getString(COL_JSON_SCHEMA_NAME));
+		info.setCreatedBy(rs.getString(COL_JSON_SCHEMA_CREATED_BY));
+		info.setCreatedOn(rs.getTimestamp(COL_JSON_SCHEMA_CREATED_ON));
 		return info;
 	};
 
@@ -354,5 +367,32 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		Long versionId = jdbcTemplate.queryForObject("SELECT MAX(" + COL_JSON_SCHEMA_VER_ID + ") FROM "
 				+ TABLE_JSON_SCHEMA_VERSION + " WHERE " + COL_JSON_SCHEMA_VER_SCHEMA_ID + " = ?", Long.class, schemaId);
 		return Optional.ofNullable(versionId);
+	}
+
+	@Override
+	public List<JsonSchemaInfo> listSchemas(String organizationName, long limit, long offset) {
+		ValidateArgument.required(organizationName, "organizationName");
+		return jdbcTemplate.query(
+				"SELECT * FROM " + TABLE_ORGANIZATION + " O JOIN " + TABLE_JSON_SCHEMA + " S ON (O."
+						+ COL_ORGANIZATION_ID + " = " + COL_JSON_SCHEMA_ORG_ID + ") WHERE O." + COL_ORGANIZATION_NAME
+						+ " = ? ORDER BY S." + COL_JSON_SCHEMA_ID + " LIMIT ? OFFSET ?",
+				SCHEMA_INFO_MAPPER, organizationName, limit, offset);
+	}
+
+	@Override
+	public List<JsonSchemaVersionInfo> listSchemaVersions(String organizationName, String schemaName, long limit,
+			long offset) {
+		ValidateArgument.required(organizationName, "organizationName");
+		ValidateArgument.required(schemaName, "schemaName");
+		return jdbcTemplate.query(
+				"SELECT O." + COL_ORGANIZATION_ID + ", O." + COL_ORGANIZATION_NAME + ", S." + COL_JSON_SCHEMA_ID
+						+ ", S." + COL_JSON_SCHEMA_NAME + ", V.*, B." + COL_JSON_SCHEMA_BLOB_SHA256 + " FROM "
+						+ TABLE_ORGANIZATION + " O JOIN " + TABLE_JSON_SCHEMA + " S ON (O." + COL_ORGANIZATION_ID
+						+ " = S." + COL_JSON_SCHEMA_ORG_ID + ") JOIN " + TABLE_JSON_SCHEMA_VERSION + " V ON (S."
+						+ COL_JSON_SCHEMA_ID + " = V." + COL_JSON_SCHEMA_VER_SCHEMA_ID + ") JOIN "
+						+ TABLE_JSON_SCHEMA_BLOB + " B ON (V." + COL_JSON_SCHEMA_VER_BLOB_ID + " = B."
+						+ COL_JSON_SCHEMA_BLOB_ID + ") WHERE O." + COL_ORGANIZATION_NAME + " = ? AND S."
+						+ COL_JSON_SCHEMA_NAME + " = ? ORDER BY V." + COL_JSON_SCHEMA_VER_ID + " LIMIT ? OFFSET ?",
+				SCHEMA_VERSION_INFO_MAPPER, organizationName, schemaName, limit, offset);
 	}
 }

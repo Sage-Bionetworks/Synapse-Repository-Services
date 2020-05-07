@@ -27,7 +27,7 @@ import org.springframework.stereotype.Component;
 public class SchemaTranslatorImp implements SchemaTranslator {
 
 	public static final String CURRENT_$SCHEMA = "http://json-schema.org/draft-07/schema#";
-	public static final String DELIMITER = "/";
+
 	public static final String SYNAPSE_ORGANIZATION_NAME = "org.sagebionetworks";
 
 	@Override
