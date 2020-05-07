@@ -549,7 +549,7 @@ public class TableIndexManagerImplTest {
 		// call under test
 		Long resultCrc = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
 		assertEquals(crc32, resultCrc);
-		verify(mockIndexDao).copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, mockMetadataProvider);
+		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, mockMetadataProvider);
 		// the CRC should be calculated with the etag column.
 		verify(mockIndexDao).calculateCRC32ofTableView(tableId.getId());
 	}
@@ -649,7 +649,7 @@ public class TableIndexManagerImplTest {
 		// call under test
 		Long resultCrc = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
 		assertEquals(crc32, resultCrc);
-		verify(mockIndexDao).copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, mockMetadataProvider);
+		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, mockMetadataProvider);
 		// the CRC should be calculated with the etag column.
 		verify(mockIndexDao).calculateCRC32ofTableView(tableId.getId());
 	}
@@ -669,7 +669,7 @@ public class TableIndexManagerImplTest {
 		
 		// setup a failure
 		IllegalArgumentException error = new IllegalArgumentException("Something went wrong");
-		doThrow(error).when(mockIndexDao).copyEntityReplicationToView(any(), any(), any(), any());
+		doThrow(error).when(mockIndexDao).copyObjectReplicationToView(any(), any(), any(), any());
 		try {
 			// call under test
 			manager.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
@@ -710,7 +710,7 @@ public class TableIndexManagerImplTest {
 		// setup a failure
 		IllegalArgumentException error = new IllegalArgumentException("Something went wrong");
 		
-		doThrow(error).when(mockIndexDao).copyEntityReplicationToView(any(), any(), any(), any());
+		doThrow(error).when(mockIndexDao).copyObjectReplicationToView(any(), any(), any(), any());
 		
 		IllegalArgumentException expected = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
@@ -1442,7 +1442,7 @@ public class TableIndexManagerImplTest {
 		
 		verify(mockIndexDao).executeInWriteTransaction(any());
 		verify(mockIndexDao).deleteRowsFromViewBatch(tableId, rowsIdsArray);
-		verify(mockIndexDao).copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, mockMetadataProvider, rowsIdsWithChanges);
+		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, mockMetadataProvider, rowsIdsWithChanges);
 		verify(managerSpy).populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
 		verify(managerSpy, never()).determineCauseOfReplicationFailure(any(), any(), any());
 	}
@@ -1463,7 +1463,7 @@ public class TableIndexManagerImplTest {
 		setupExecuteInWriteTransaction();
 		// setup an exception on copy
 		IllegalArgumentException exception = new IllegalArgumentException("something wrong");
-		doThrow(exception).when(mockIndexDao).copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, mockMetadataProvider, rowsIdsWithChanges);
+		doThrow(exception).when(mockIndexDao).copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, mockMetadataProvider, rowsIdsWithChanges);
 		
 		Long[] rowsIdsArray = rowsIdsWithChanges.stream().toArray(Long[] ::new); 
 		Exception thrown = assertThrows(IllegalArgumentException.class, ()->{
@@ -1474,7 +1474,7 @@ public class TableIndexManagerImplTest {
 
 		verify(mockIndexDao).executeInWriteTransaction(any());
 		verify(mockIndexDao).deleteRowsFromViewBatch(tableId, rowsIdsArray);
-		verify(mockIndexDao).copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, mockMetadataProvider, rowsIdsWithChanges);
+		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, mockMetadataProvider, rowsIdsWithChanges);
 		// must attempt to determine the type of exception.
 		verify(managerSpy).determineCauseOfReplicationFailure(exception, scopeFilter, schema);
 		verify(managerSpy, never()).populateListColumnIndexTables(any(), any(), any());

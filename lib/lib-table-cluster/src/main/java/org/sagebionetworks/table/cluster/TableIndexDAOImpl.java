@@ -61,7 +61,6 @@ import javax.sql.DataSource;
 
 import org.json.JSONArray;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
@@ -692,15 +691,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void createEntityReplicationTablesIfDoesNotExist(){
+	public void createObjectReplicationTablesIfDoesNotExist(){
 		template.update(TableConstants.OBJECT_REPLICATION_TABLE_CREATE);
 		template.update(TableConstants.ANNOTATION_REPLICATION_TABLE_CREATE);
 		template.update(TableConstants.REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE);
 	}
 
 	@Override
-	public void deleteObjectData(ObjectType objectsType, List<Long> entityIds) {
-		final List<Long> sorted = new ArrayList<Long>(entityIds);
+	public void deleteObjectData(ObjectType objectsType, List<Long> objectIds) {
+		final List<Long> sorted = new ArrayList<Long>(objectIds);
 		// sort to prevent deadlock.
 		Collections.sort(sorted);
 		// Batch delete.
@@ -725,7 +724,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	public void addObjectData(ObjectType objectType, List<ObjectDataDTO> objectDtos) {
 		final List<ObjectDataDTO> sorted = new ArrayList<ObjectDataDTO>(objectDtos);
 		Collections.sort(sorted);
-		// batch update the entity table
+		// batch update the object replication table
 		template.batchUpdate(TableConstants.OBJECT_REPLICATION_INSERT, new BatchPreparedStatementSetter(){
 
 			@Override
@@ -810,8 +809,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		
 	}
 
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
-	public ObjectDataDTO getObjectData(ObjectType objectType, Long objectId) {
+	public ObjectDataDTO getObjectData(ObjectType objectType, Long objectId, Class<? extends Enum> subTypeClass) {
 		// query for the template.
 		ObjectDataDTO dto;
 		try {
@@ -823,7 +823,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				dto1.setCreatedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_CREATED_ON)));
 				dto1.setEtag(rs.getString(OBEJCT_REPLICATION_COL_ETAG));
 				dto1.setName(rs.getString(OBJECT_REPLICATION_COL_NAME));
-				dto1.setSubType(EntityType.valueOf(rs.getString(OBJECT_REPLICATION_COL_SUBTYPE)));
+				dto1.setSubType(Enum.valueOf(subTypeClass, rs.getString(OBJECT_REPLICATION_COL_SUBTYPE)));
 				dto1.setParentId(rs.getLong(OBJECT_REPLICATION_COL_PARENT_ID));
 				if (rs.wasNull()) {
 					dto1.setParentId(null);
@@ -858,7 +858,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return null;
 		}
 		// get the annotations.
-		@SuppressWarnings("unchecked")
 		List<ObjectAnnotationDTO> annotations = template.query(TableConstants.ANNOTATION_REPLICATION_GET, (ResultSet rs, int rowNum) -> {
 			ObjectAnnotationDTO dto1 = new ObjectAnnotationDTO();
 			dto1.setObjectId(rs.getLong(ANNOTATION_REPLICATION_COL_OBJECT_ID));
@@ -950,13 +949,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void copyEntityReplicationToView(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper) {
+	public void copyObjectReplicationToView(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper) {
 		Set<Long> rowIdsToCopy = null;
-		copyEntityReplicationToView(viewId, scopeFilter, currentSchema, fieldTypeMapper, rowIdsToCopy);
+		copyObjectReplicationToView(viewId, scopeFilter, currentSchema, fieldTypeMapper, rowIdsToCopy);
 	}
 	
 	@Override
-	public void copyEntityReplicationToView(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper, Set<Long> rowIdsToCopy) {
+	public void copyObjectReplicationToView(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper, Set<Long> rowIdsToCopy) {
 		ValidateArgument.required(scopeFilter, "scopeFilter");
 		ValidateArgument.required(scopeFilter.getContainerIds(), "scopeFilter.containerIds");
 		
@@ -999,7 +998,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void createViewSnapshotFromEntityReplication(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema,
+	public void createViewSnapshotFromObjectReplication(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema,
 			ObjectFieldTypeMapper fieldTypeMapper, CSVWriterStream outputStream) {
 		ValidateArgument.required(scopeFilter, "scopeFilter");
 		ValidateArgument.required(scopeFilter.getContainerIds(), "scopeFilter.containerIds");
@@ -1053,15 +1052,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	
 	ColumnMetadata translateColumnModel(ColumnModel model, ObjectFieldModelResolver objectFieldModelResolver) {
 		// First determine if this an object column or an annotation
-		Optional<ObjectField> entityField = objectFieldModelResolver.findMatch(model);
+		Optional<ObjectField> objectField = objectFieldModelResolver.findMatch(model);
 		
 		String selectColumnForId = SQLUtils.getColumnNameForId(model.getId());
 		boolean isObjectReplicationField;
 		String selectColumnName;
 		
-		if (entityField.isPresent()) {
+		if (objectField.isPresent()) {
 			isObjectReplicationField = true;
-			selectColumnName = entityField.get().getDatabaseColumnName();
+			selectColumnName = objectField.get().getDatabaseColumnName();
 		} else {
 			isObjectReplicationField = false;
 			selectColumnName = SQLUtils.translateColumnTypeToAnnotationValueName(model.getColumnType());

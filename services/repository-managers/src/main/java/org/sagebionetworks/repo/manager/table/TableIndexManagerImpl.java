@@ -411,7 +411,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		
 		// copy the data from the entity replication tables to table's index
 		try {
-			tableIndexDao.copyEntityReplicationToView(viewId, scopeFilter, currentSchema, provider);
+			tableIndexDao.copyObjectReplicationToView(viewId, scopeFilter, currentSchema, provider);
 		} catch (Exception e) {
 			// if the copy failed. Attempt to determine the cause.
 			determineCauseOfReplicationFailure(e, scopeFilter, currentSchema);
@@ -684,7 +684,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		
 		ViewScopeFilter scopeFilter = buildViewScopeFilter(provider, scopeType.getTypeMask(), allContainersInScope);
 		
-		tableIndexDao.createViewSnapshotFromEntityReplication(viewId, scopeFilter, viewSchema, provider, writter);
+		tableIndexDao.createViewSnapshotFromObjectReplication(viewId, scopeFilter, viewSchema, provider, writter);
 	}
 	@Override
 	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input) {
@@ -722,7 +722,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			tableIndexDao.deleteRowsFromViewBatch(viewId, rowsIdsArray);
 			try {
 				// Apply any updates to the view for the given Ids
-				tableIndexDao.copyEntityReplicationToView(viewId.getId(), scopeFilter, currentSchema, provider, rowsIdsWithChanges);
+				tableIndexDao.copyObjectReplicationToView(viewId.getId(), scopeFilter, currentSchema, provider, rowsIdsWithChanges);
 				populateListColumnIndexTables(viewId, currentSchema, rowsIdsWithChanges);
 			} catch (Exception e) {
 				// if the copy failed. Attempt to determine the cause.  This will always throw an exception.

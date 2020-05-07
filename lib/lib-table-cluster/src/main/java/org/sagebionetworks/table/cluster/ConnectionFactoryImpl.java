@@ -77,7 +77,7 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 		singleConnectionPool = InstanceUtils.createNewDatabaseConnectionPool(stackConfig, instance);
 		// ensure the index has the correct tables
 		tableIndexDao.setDataSource(singleConnectionPool);
-		tableIndexDao.createEntityReplicationTablesIfDoesNotExist();
+		tableIndexDao.createObjectReplicationTablesIfDoesNotExist();
 	}
 
 	/**

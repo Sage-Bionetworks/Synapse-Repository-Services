@@ -1438,8 +1438,14 @@ public class SQLUtils {
 		builder.append(") AND ");
 		builder.append(scopeFilter.getViewTypeFilter());
 		if (filterByRows) {
-			builder.append(" AND ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID)
-					.append(" IN (:").append(ID_PARAM_NAME).append(")");
+			builder
+				.append(" AND ")
+				.append(OBJECT_REPLICATION_ALIAS)
+				.append(".")
+				.append(OBJECT_REPLICATION_COL_OBJECT_ID)
+				.append(" IN (:")
+				.append(ID_PARAM_NAME)
+				.append(")");
 		}
 	}
 

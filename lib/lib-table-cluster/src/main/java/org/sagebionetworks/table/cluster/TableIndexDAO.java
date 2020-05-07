@@ -344,7 +344,7 @@ public interface TableIndexDAO {
 	 * Create the entity replication tables if they do not exist.
 	 * 
 	 */
-	void createEntityReplicationTablesIfDoesNotExist();
+	void createObjectReplicationTablesIfDoesNotExist();
 
 	/**
 	 * Delete all object data with the given Ids.
@@ -360,14 +360,6 @@ public interface TableIndexDAO {
 	 * @param objectDtos
 	 */
 	void addObjectData(ObjectType objectType, List<ObjectDataDTO> objectDtos);
-	
-	/**
-	 * Get the entity DTO for a given entity ID.
-	 * @param objectType TODO
-	 * @param objectId
-	 * @return
-	 */
-	ObjectDataDTO getObjectData(ObjectType objectType, Long objectId);
 
 
 	/**
@@ -377,7 +369,7 @@ public interface TableIndexDAO {
 	 * @param scopeFilter
 	 * @param currentSchema
 	 */
-	void copyEntityReplicationToView(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper);
+	void copyObjectReplicationToView(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper);
 	
 	/**
 	 * Copy the data from the entity replication tables to the given view.
@@ -387,7 +379,7 @@ public interface TableIndexDAO {
 	 * @param currentSchema
 	 * @param rowIdsToCopy Optional.  When included, copy rows with these Ids to the view.
 	 */
-	void copyEntityReplicationToView(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper, Set<Long> rowIdsToCopy);
+	void copyObjectReplicationToView(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper, Set<Long> rowIdsToCopy);
 	
 	/**
 	 * Copy the data from the entity replication tables to the given view's table.
@@ -396,7 +388,7 @@ public interface TableIndexDAO {
 	 * @param scopeFilter
 	 * @param currentSchema
 	 */
-	void createViewSnapshotFromEntityReplication(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper, CSVWriterStream outStream);
+	void createViewSnapshotFromObjectReplication(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper, CSVWriterStream outStream);
 
 	
 	/**
@@ -558,5 +550,11 @@ public interface TableIndexDAO {
 	 * Cleanup all the index tables
 	 */
 	void truncateIndex();
+	
+	/**
+	 * @return the entity DTO for a given entity ID
+	 */
+	@SuppressWarnings("rawtypes")
+	ObjectDataDTO getObjectData(ObjectType objectType, Long objectId, Class<? extends Enum> subTypeClass);
 
 }

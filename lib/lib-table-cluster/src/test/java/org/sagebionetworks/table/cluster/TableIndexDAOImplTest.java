@@ -101,6 +101,8 @@ public class TableIndexDAOImplTest {
 	
 	ObjectFieldTypeMapper fieldTypeMapper;
 	
+	Class<? extends Enum> objectSubType = EntityType.class;
+	
 	@BeforeEach
 	public void before() {
 		objectType = ObjectType.ENTITY;
@@ -1330,11 +1332,11 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file, folder, project));
 
 		// lookup each
-		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, 1L);
+		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, 1L, objectSubType);
 		assertEquals(project, fetched);
-		fetched = tableIndexDAO.getObjectData(objectType, 2L);
+		fetched = tableIndexDAO.getObjectData(objectType, 2L, objectSubType);
 		assertEquals(folder, fetched);
-		fetched = tableIndexDAO.getObjectData(objectType, 3L);
+		fetched = tableIndexDAO.getObjectData(objectType, 3L, objectSubType);
 		assertEquals(file, fetched);
 	}
 
@@ -1380,7 +1382,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(objectType, Collections.singletonList(project));
 
 		// lookup each
-		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, id);
+		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, id, objectSubType);
 		assertEquals(project, fetched);
 	}
 	
@@ -1397,7 +1399,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(project));
 		
 		// lookup each
-		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, 1L);
+		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, 1L, objectSubType);
 		assertEquals(project, fetched);
 	}
 	
@@ -1429,7 +1431,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file));
 		
 		// lookup each
-		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, 1L);
+		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, 1L, objectSubType);
 		assertEquals(file, fetched);
 	}
 	
@@ -1740,7 +1742,7 @@ public class TableIndexDAOImplTest {
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
 		
 		// Copy the entity data to the table
-		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
 		
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
@@ -1790,7 +1792,7 @@ public class TableIndexDAOImplTest {
 		
 		// Copy the entity data to the table
 		// method under test
-		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
 
 		// This is our query
 		SqlQuery query = new SqlQueryBuilder("select foo from " + tableId, schema).build();
@@ -1847,7 +1849,7 @@ public class TableIndexDAOImplTest {
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
 		
 		// Copy the entity data to the table
-		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(2, count);
@@ -1892,7 +1894,7 @@ public class TableIndexDAOImplTest {
 		// capture the results of the stream
 		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
 		// call under test
-		tableIndexDAO.createViewSnapshotFromEntityReplication(tableId.getId(), scopeFilter, schema, fieldTypeMapper, stream);
+		tableIndexDAO.createViewSnapshotFromObjectReplication(tableId.getId(), scopeFilter, schema, fieldTypeMapper, stream);
 		List<String[]> rows = stream.getRows();
 		assertNotNull(rows);
 		assertEquals(3, rows.size());
@@ -1940,7 +1942,7 @@ public class TableIndexDAOImplTest {
 		// capture the results of the stream
 		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
 		// call under test
-		tableIndexDAO.createViewSnapshotFromEntityReplication(tableId.getId(), scopeFilter, schema, fieldTypeMapper, stream);
+		tableIndexDAO.createViewSnapshotFromObjectReplication(tableId.getId(), scopeFilter, schema, fieldTypeMapper, stream);
 		List<String[]> rows = stream.getRows();
 		assertNotNull(rows);
 		assertEquals(3, rows.size());
@@ -1991,7 +1993,7 @@ public class TableIndexDAOImplTest {
 		
 		// capture the results of the stream
 		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
-		tableIndexDAO.createViewSnapshotFromEntityReplication(tableId.getId(), scopeFilter, schema, fieldTypeMapper, stream);
+		tableIndexDAO.createViewSnapshotFromObjectReplication(tableId.getId(), scopeFilter, schema, fieldTypeMapper, stream);
 		List<String[]> rows = stream.getRows();
 		assertNotNull(rows);
 		assertEquals(3, rows.size());
@@ -2021,7 +2023,7 @@ public class TableIndexDAOImplTest {
 		
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			tableIndexDAO.createViewSnapshotFromEntityReplication(tableId.getId(), scopeFilter, schema,
+			tableIndexDAO.createViewSnapshotFromObjectReplication(tableId.getId(), scopeFilter, schema,
 					fieldTypeMapper, stream);
 		});
 	}
@@ -2053,7 +2055,7 @@ public class TableIndexDAOImplTest {
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
 		
 		// Copy the entity data to the table
-		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(0, count);
@@ -3112,7 +3114,7 @@ public class TableIndexDAOImplTest {
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
 		
 		// add all of the rows to the view.
-		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
 		
 		//delete the first row from replication
 		List<Long> toDelete = Lists.newArrayList(dtos.get(0).getId());
@@ -3150,7 +3152,7 @@ public class TableIndexDAOImplTest {
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
 		
 		// add all of the rows to the view.
-		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
 		
 		// move the entity out of scope
 		ObjectDataDTO first = dtos.get(0);
@@ -3191,7 +3193,7 @@ public class TableIndexDAOImplTest {
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
 
 		// add all of the rows to the view.
-		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
 		
 		// change the etag of the first entity
 		ObjectDataDTO first = dtos.get(0);
@@ -3232,7 +3234,7 @@ public class TableIndexDAOImplTest {
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
 
 		// add all of the rows to the view.
-		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
 		
 		// change the benefactor of the first entity
 		ObjectDataDTO first = dtos.get(0);
@@ -3273,7 +3275,7 @@ public class TableIndexDAOImplTest {
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
 		
 		// add all of the rows to the view.
-		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
 			
 		long limit = 100L;
 		// call under test
@@ -3379,7 +3381,7 @@ public class TableIndexDAOImplTest {
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
 		
 		// add all of the rows to the view.
-		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
 		
 		long limit = 100L;
 		// File only type used to indicate the new type is files-only.
@@ -3529,7 +3531,7 @@ public class TableIndexDAOImplTest {
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
 		
-		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
 		long limit = 100;
 		// All rows should be in the view.
 		Set<Long> deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
@@ -3566,7 +3568,7 @@ public class TableIndexDAOImplTest {
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
 		
-		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
 		long limit = 100;
 		// All rows should be in the view.
 		Set<Long> deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
@@ -3625,7 +3627,7 @@ public class TableIndexDAOImplTest {
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
 		
 		// call under test
-		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper, rowFilter);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper, rowFilter);
 		
 		Set<Long> expectedMissing = Sets.newHashSet(dtos.get(1).getId(), dtos.get(2).getId());
 		Set<Long> deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
@@ -3633,7 +3635,7 @@ public class TableIndexDAOImplTest {
 		// Add the remaining rows
 		rowFilter = Sets.newHashSet(dtos.get(1).getId(), dtos.get(2).getId());
 		// call under test
-		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper, rowFilter);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper, rowFilter);
 		deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
 		assertNotNull(deltas);
 		assertTrue(deltas.isEmpty());
@@ -3659,7 +3661,7 @@ public class TableIndexDAOImplTest {
 		// Null row filter will add all rows
 		Set<Long> rowFilter = null;
 		// call under test
-		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper, rowFilter);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper, rowFilter);
 		// all rows should be added
 		Set<Long> deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
 		assertNotNull(deltas);
@@ -3686,7 +3688,7 @@ public class TableIndexDAOImplTest {
 		Set<Long> rowFilter = Collections.emptySet();
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			tableIndexDAO.copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper, rowFilter);
+			tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper, rowFilter);
 		}).getMessage();
 		assertEquals("When objectIdFilter is provided (not null) it cannot be empty", message);
 	}
@@ -3717,7 +3719,7 @@ public class TableIndexDAOImplTest {
 		// Null row filter will add all rows
 		Set<Long> rowIdFilter = null;
 		// push all of the data to the view
-		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper, rowIdFilter);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper, rowIdFilter);
 		// call under test
 		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
 
@@ -3758,7 +3760,7 @@ public class TableIndexDAOImplTest {
 		// Null row filter will add all rows
 		Set<Long> rowIdFilter = null;
 		// push all of the data to the view
-		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper, rowIdFilter);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper, rowIdFilter);
 		// start will all of the data in the secondary table
 		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
 		// Should start with two row for each entity 
@@ -3772,7 +3774,7 @@ public class TableIndexDAOImplTest {
 		
 		// add the two rows back to the view
 		rowIdFilter = Sets.newHashSet(dtos.get(0).getId(), dtos.get(3).getId());
-		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper, rowIdFilter);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper, rowIdFilter);
 		// call under test
 		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
 		assertEquals(4 * 2,countRowsInMultiValueIndex(tableId, multiValue.getId()));
