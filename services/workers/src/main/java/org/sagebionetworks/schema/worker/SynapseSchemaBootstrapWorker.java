@@ -12,12 +12,11 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class SynapseSchemaBootstrapWorker implements ProgressingRunner {
 	
-	final private SynapseSchemaBootstrap bootstrap;
+	private final SynapseSchemaBootstrap bootstrap;
 	
 	
 	@Autowired
 	public SynapseSchemaBootstrapWorker(SynapseSchemaBootstrap bootstrap) {
-		super();
 		this.bootstrap = bootstrap;
 	}
 

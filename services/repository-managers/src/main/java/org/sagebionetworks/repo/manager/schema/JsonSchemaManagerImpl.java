@@ -93,6 +93,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	 */
 	public static String processAndValidateOrganizationName(UserInfo user, String name) {
 		ValidateArgument.required(name, "organizationName");
+		ValidateArgument.required(user, "user");
 		OrganizationName orgName = SchemaIdParser.parseOrganizationName(name);
 		String processedName = orgName.toString();
 		if (processedName.length() > MAX_ORGANZIATION_NAME_CHARS) {

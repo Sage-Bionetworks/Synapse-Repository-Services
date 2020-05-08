@@ -12,8 +12,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -30,6 +32,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -42,7 +45,14 @@ import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.JsonSchemaInfo;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoRequest;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoResponse;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoRequest;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
+import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
+import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -86,6 +96,10 @@ public class JsonSchemaManagerImplTest {
 
 	Organization organization;
 	JsonSchemaVersionInfo versionInfo;
+	
+	ListOrganizationsRequest listOrganizationsRequest;
+	ListJsonSchemaInfoRequest listJsonSchemaInfoRequest;
+	ListJsonSchemaVersionInfoRequest listJsonSchemaVersionInfoRequest;
 
 	AccessControlList acl;
 
@@ -136,6 +150,32 @@ public class JsonSchemaManagerImplTest {
 		versionInfo.setJsonSHA256Hex(schemaJsonSHA256Hex);
 		versionInfo.setSemanticVersion(semanticVersionString);
 		versionInfo.setVersionId(versionId);
+		
+		listOrganizationsRequest = new ListOrganizationsRequest();
+		
+		listJsonSchemaInfoRequest = new ListJsonSchemaInfoRequest();
+		listJsonSchemaInfoRequest.setOrganizationName(organizationName);
+		
+		listJsonSchemaVersionInfoRequest = new ListJsonSchemaVersionInfoRequest();
+		listJsonSchemaVersionInfoRequest.setOrganizationName(organizationName);
+		listJsonSchemaVersionInfoRequest.setSchemaName(schemaName);
+	}
+	
+	@Test
+	public void processAndValidateOrganizationNameWithNullUser() {
+		String inputName = " A.b9.C.DEFG \n";
+		user = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			JsonSchemaManagerImpl.processAndValidateOrganizationName(user, inputName);
+		});
+	}
+	
+	@Test
+	public void processAndValidateOrganizationNameWithNullInputName() {
+		String inputName = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			JsonSchemaManagerImpl.processAndValidateOrganizationName(user, inputName);
+		});
 	}
 
 	@Test
@@ -819,6 +859,106 @@ public class JsonSchemaManagerImplTest {
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			manager.deleteSchemaVersion(user, organizationName, schemaName, semanticVersionString);
+		});
+	}
+	
+	@Test
+	public void testListOrganizations() {
+		List<Organization> results = new ArrayList<Organization>();
+		for(int i=0; i<NextPageToken.MAX_LIMIT+1; i++) {
+			results.add(new Organization());
+		}
+		when(mockOrganizationDao.listOrganizations(anyLong(), anyLong())).thenReturn(results);
+		// call under test
+		ListOrganizationsResponse response = manager.listOrganizations(listOrganizationsRequest);
+		assertNotNull(response);
+		assertNotNull(response.getPage());
+		assertEquals("50a50", response.getNextPageToken());
+		long expectedLimit = 51;
+		long expectedOffset = 0;
+		verify(mockOrganizationDao).listOrganizations(expectedLimit, expectedOffset);
+	}
+	
+	
+	@Test
+	public void testListOrganizationsWithNullRequest() {
+		listOrganizationsRequest = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.listOrganizations(listOrganizationsRequest);
+		});
+	}
+	
+	@Test
+	public void testListSchemas() {
+		List<JsonSchemaInfo> results = new ArrayList<JsonSchemaInfo>();
+		for(int i=0; i<NextPageToken.MAX_LIMIT+1; i++) {
+			results.add(new JsonSchemaInfo());
+		}
+		when(mockSchemaDao.listSchemas(any(), anyLong(), anyLong())).thenReturn(results);
+		// call under test
+		ListJsonSchemaInfoResponse response = manager.listSchemas(listJsonSchemaInfoRequest);
+		assertNotNull(response);
+		assertNotNull(response.getPage());
+		assertEquals("50a50", response.getNextPageToken());
+		long expectedLimit = 51;
+		long expectedOffset = 0;
+		verify(mockSchemaDao).listSchemas(organizationName, expectedLimit, expectedOffset);
+	}
+	
+	@Test
+	public void testListSchemasWithNullRequest() {
+		listJsonSchemaInfoRequest = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.listSchemas(listJsonSchemaInfoRequest);
+		});
+	}
+	
+	@Test
+	public void testListSchemasWithNullOrganizationName() {
+		listJsonSchemaInfoRequest.setOrganizationName(null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.listSchemas(listJsonSchemaInfoRequest);
+		});
+	}
+	
+	@Test
+	public void testListSchemaVersions() {
+		List<JsonSchemaVersionInfo> results = new ArrayList<JsonSchemaVersionInfo>();
+		for(int i=0; i<NextPageToken.MAX_LIMIT+1; i++) {
+			results.add(new JsonSchemaVersionInfo());
+		}
+		when(mockSchemaDao.listSchemaVersions(any(), any(), anyLong(), anyLong())).thenReturn(results);
+		// call under test
+		ListJsonSchemaVersionInfoResponse response = manager.listSchemaVersions(listJsonSchemaVersionInfoRequest);
+		assertNotNull(response);
+		assertNotNull(response.getPage());
+		assertEquals("50a50", response.getNextPageToken());
+		long expectedLimit = 51;
+		long expectedOffset = 0;
+		verify(mockSchemaDao).listSchemaVersions(organizationName, schemaName, expectedLimit, expectedOffset);
+	}
+	
+	@Test
+	public void testListSchemaVersionsWithNullRequest() {
+		listJsonSchemaVersionInfoRequest = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.listSchemaVersions(listJsonSchemaVersionInfoRequest);
+		});
+	}
+	
+	@Test
+	public void testListSchemaVersionsWithNullOrganizationName() {
+		listJsonSchemaVersionInfoRequest.setOrganizationName(null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.listSchemaVersions(listJsonSchemaVersionInfoRequest);
+		});
+	}
+	
+	@Test
+	public void testListSchemaVersionsWithNullSchemaName() {
+		listJsonSchemaVersionInfoRequest.setSchemaName(null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.listSchemaVersions(listJsonSchemaVersionInfoRequest);
 		});
 	}
 }

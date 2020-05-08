@@ -13,9 +13,6 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy proxy-target-class="true" />
 
-	<bean id="clock" class="org.sagebionetworks.util.DefaultClock" />
-
-	<!-- This worker synchronizes changes with sent messages. -->
 	<bean id="schemaBootstrapWorker"
 		class="org.sagebionetworks.schema.worker.SynapseSchemaBootstrapWorker"
 		scope="singleton" />
