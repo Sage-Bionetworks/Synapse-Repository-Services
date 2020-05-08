@@ -2,7 +2,9 @@ package org.sagebionetworks.repo.manager.table.metadata;
 
 import java.util.List;
 
-public interface ViewScopeFilterProvider extends HasObjectType {
+import org.sagebionetworks.repo.model.table.HasViewObjectType;
+
+public interface ViewScopeFilterProvider extends HasViewObjectType {
 
 	/**
 	 * @return True if the object has a hierarchy of subtypes that filters can be

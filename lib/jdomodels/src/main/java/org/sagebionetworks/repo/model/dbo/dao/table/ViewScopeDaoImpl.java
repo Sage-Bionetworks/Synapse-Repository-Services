@@ -10,13 +10,12 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VIEW_S
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VIEW_TYPE;
 
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -24,7 +23,6 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 
 
 public class ViewScopeDaoImpl implements ViewScopeDao {
@@ -83,7 +81,7 @@ public class ViewScopeDaoImpl implements ViewScopeDao {
 		try {
 			return jdbcTemplate.queryForObject(SQL_SELECT_VIEW_SCOPE_TYPE, (ResultSet rs, int rowNum) -> {
 				
-				ObjectType objectType = ObjectType.valueOf(rs.getString(COL_VIEW_TYPE_VIEW_OBJECT_TYPE));
+				ViewObjectType objectType = ViewObjectType.valueOf(rs.getString(COL_VIEW_TYPE_VIEW_OBJECT_TYPE));
 				Long typeMask = rs.getLong(COL_VIEW_TYPE_VIEW_TYPE_MASK);
 				
 				return new ViewScopeType(objectType, typeMask);

@@ -40,7 +40,6 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdAndEtag;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
@@ -56,6 +55,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
@@ -96,8 +96,8 @@ public class TableIndexDAOImplTest {
 	ObjectDataDTO entityOne;
 	ObjectDataDTO entityTwo;
 	
-	ObjectType objectType;
-	ObjectType otherObjectType;
+	ViewObjectType objectType;
+	ViewObjectType otherObjectType;
 	
 	ObjectFieldTypeMapper fieldTypeMapper;
 	
@@ -106,8 +106,8 @@ public class TableIndexDAOImplTest {
 	
 	@BeforeEach
 	public void before() {
-		objectType = ObjectType.ENTITY;
-		otherObjectType = ObjectType.EVALUATION_SUBMISSIONS;
+		objectType = ViewObjectType.ENTITY;
+		otherObjectType = ViewObjectType.EVALUATION_SUBMISSIONS;
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 		tableId = IdAndVersion.parse("syn123");
 		// First get a connection for this table
@@ -118,7 +118,7 @@ public class TableIndexDAOImplTest {
 		fieldTypeMapper = new ObjectFieldTypeMapper() {
 			
 			@Override
-			public ObjectType getObjectType() {
+			public ViewObjectType getObjectType() {
 				return objectType;
 			}
 			
@@ -1436,7 +1436,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(file, fetched);
 	}
 	
-	private ViewScopeFilter getScopeFilter(ObjectType objectType, List<Enum<?>> subTypes, boolean filterByObjectId, Set<Long> containerIds) {
+	private ViewScopeFilter getScopeFilter(ViewObjectType objectType, List<Enum<?>> subTypes, boolean filterByObjectId, Set<Long> containerIds) {
 		return new ViewScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
 	}
 
@@ -1578,7 +1578,7 @@ public class TableIndexDAOImplTest {
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		// Create the schema for this table
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, file2);
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
@@ -1616,7 +1616,7 @@ public class TableIndexDAOImplTest {
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		// Create the schema for this table
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, file2);
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
@@ -1675,7 +1675,7 @@ public class TableIndexDAOImplTest {
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		// Create the schema for this table
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, file2);
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
@@ -1712,7 +1712,7 @@ public class TableIndexDAOImplTest {
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		// Create the schema for this table
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, file2);
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		
@@ -1761,7 +1761,7 @@ public class TableIndexDAOImplTest {
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		// Create the schema for this table
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, file2);
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 
@@ -1961,7 +1961,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
 		
 		// Create the schema for this table
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, file2);
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
 
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
@@ -2025,7 +2025,7 @@ public class TableIndexDAOImplTest {
 		// both parents
 		Set<Long> scope = new HashSet<Long>();
 		// Create the schema for this table
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, file2);
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		
@@ -2777,11 +2777,11 @@ public class TableIndexDAOImplTest {
 	
 	/**
 	 * Create a view schema using an ObjectDataDTO as a template.
-	 * 
 	 * @param dto
+	 * 
 	 * @return
 	 */
-	private List<ColumnModel> createSchemaFromObjectDataDTO(ObjectType objectType, ObjectDataDTO dto){
+	private List<ColumnModel> createSchemaFromObjectDataDTO(ObjectDataDTO dto){
 		List<ColumnModel> schema = new LinkedList<>();
 		// add a column for each annotation
 		if(dto.getAnnotations() != null){
@@ -3052,7 +3052,7 @@ public class TableIndexDAOImplTest {
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		long limit = 100L;
@@ -3084,7 +3084,7 @@ public class TableIndexDAOImplTest {
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		
@@ -3122,7 +3122,7 @@ public class TableIndexDAOImplTest {
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		
@@ -3163,7 +3163,7 @@ public class TableIndexDAOImplTest {
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		
@@ -3204,7 +3204,7 @@ public class TableIndexDAOImplTest {
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		
@@ -3245,7 +3245,7 @@ public class TableIndexDAOImplTest {
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 
@@ -3277,7 +3277,7 @@ public class TableIndexDAOImplTest {
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		// all of the rows are out-of-date, but only the last should be returned with a limit of one.
@@ -3312,7 +3312,7 @@ public class TableIndexDAOImplTest {
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		long limit = 100L;
@@ -3349,7 +3349,7 @@ public class TableIndexDAOImplTest {
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		
@@ -3446,7 +3446,7 @@ public class TableIndexDAOImplTest {
 		return createObjectDTOs(objectType, EntityType.file, count, includeMultiValue);
 	}
 	
-	List<ObjectDataDTO> createObjectDTOs(ObjectType objectType, EntityType subType, int count, boolean includeMultiValue){
+	List<ObjectDataDTO> createObjectDTOs(ViewObjectType objectType, EntityType subType, int count, boolean includeMultiValue){
 		List<Long> newIds = new ArrayList<Long>(count);
 		List<ObjectDataDTO> results = new ArrayList<ObjectDataDTO>(count);
 		for(int i=0; i<count; i++) {
@@ -3482,7 +3482,7 @@ public class TableIndexDAOImplTest {
 		return createObjectDTO(objectType, type, index, parentId);
 	}
 	
-	ObjectDataDTO createObjectDTO(ObjectType objectType, EntityType subtype, int index, long parentId) {
+	ObjectDataDTO createObjectDTO(ViewObjectType objectType, EntityType subtype, int index, long parentId) {
 		Long id = new Long(index+1);
 		ObjectDataDTO object = createObjectDataDTO(id, subtype, 3);
 		object.setParentId(parentId);
@@ -3503,7 +3503,7 @@ public class TableIndexDAOImplTest {
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		
 		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
@@ -3540,7 +3540,7 @@ public class TableIndexDAOImplTest {
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		
 		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
@@ -3594,7 +3594,7 @@ public class TableIndexDAOImplTest {
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		
 		Long idThatDoesNotExist = 999L;
@@ -3632,7 +3632,7 @@ public class TableIndexDAOImplTest {
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
 		boolean filterByObjectId = false;
@@ -3658,7 +3658,7 @@ public class TableIndexDAOImplTest {
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
 		
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(objectType, dtos.get(0));
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
 		boolean filterByObjectId = false;

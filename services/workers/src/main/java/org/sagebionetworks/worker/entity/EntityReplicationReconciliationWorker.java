@@ -25,7 +25,9 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
+import org.sagebionetworks.repo.model.table.ViewScopeUtils;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -125,7 +127,7 @@ public class EntityReplicationReconciliationWorker implements ChangeMessageDrive
 				// nothing to do.
 				return;
 			}
-			ObjectType objectType = viewScopeType.getObjectType();
+			ViewObjectType objectType = viewScopeType.getObjectType();
 			// get a connection to an index database.
 			TableIndexDAO indexDao = getRandomConnection();
 			// Determine which of the given container IDs have expired.
@@ -196,7 +198,7 @@ public class EntityReplicationReconciliationWorker implements ChangeMessageDrive
 	 * @param parentIds
 	 * @throws JSONObjectAdapterException
 	 */
-	public void findChildrenDeltas(ObjectType objectType,
+	public void findChildrenDeltas(ViewObjectType objectType,
 			TableIndexDAO indexDao, List<Long> parentIds,
 			Set<Long> trashedParents) throws JSONObjectAdapterException {
 		// Find the parents out-of-synch.
@@ -234,11 +236,17 @@ public class EntityReplicationReconciliationWorker implements ChangeMessageDrive
 	 * @param isParentInTrash
 	 * @return
 	 */
-	public List<ChangeMessage> findChangesForParentId(ObjectType objectType, TableIndexDAO firstIndex,
+	public List<ChangeMessage> findChangesForParentId(ViewObjectType viewObjectType, TableIndexDAO firstIndex,
 			Long outOfSynchParentId, boolean isParentInTrash) {
+		
+		ObjectType objectType = ViewScopeUtils.map(viewObjectType);
+		
 		List<ChangeMessage> changes = new LinkedList<>();
+		
 		Set<IdAndEtag> replicaChildren = new LinkedHashSet<>(
-				firstIndex.getObjectChildren(objectType, outOfSynchParentId));
+				firstIndex.getObjectChildren(viewObjectType, outOfSynchParentId)
+		);
+		
 		if (!isParentInTrash) {
 			// The parent is not in the trash so find entities that are
 			// out-of-synch
@@ -296,7 +304,7 @@ public class EntityReplicationReconciliationWorker implements ChangeMessageDrive
 	 * @param trashedParents
 	 * @return
 	 */
-	public Set<Long> compareCheckSums(ObjectType objectType,
+	public Set<Long> compareCheckSums(ViewObjectType objectType,
 			TableIndexDAO indexDao, List<Long> parentIds,
 			Set<Long> trashedParents) {
 		Map<Long, Long> truthCRCs = nodeDao

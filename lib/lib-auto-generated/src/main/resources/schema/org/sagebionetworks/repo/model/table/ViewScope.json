@@ -15,7 +15,7 @@
 		},
 		"objectType": {
 			"description": "The type of the objects in the rows of a view (E.g. ENTITY for entity views)",
-			"$ref": "org.sagebionetworks.repo.model.ObjectType"
+			"$ref": "org.sagebionetworks.repo.model.table.ViewObjectType"
 		},
 		"viewType": {
 			"description": "Deprecated. Use: 'viewTypeMask'",

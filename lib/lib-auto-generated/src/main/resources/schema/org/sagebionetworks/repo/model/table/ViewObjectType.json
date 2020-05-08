@@ -1,0 +1,14 @@
+{
+    "type": "string",
+    "description": "Enumeration of types supported by views, define the type of the objects in each row of a view",
+    "enum": [
+        {
+            "name": "ENTITY",
+            "description": "Used for views on entities"
+        },
+        {
+            "name": "EVALUATION_SUBMISSIONS",
+            "description": "Used for views on evaluation submissions"
+        }
+    ]
+}

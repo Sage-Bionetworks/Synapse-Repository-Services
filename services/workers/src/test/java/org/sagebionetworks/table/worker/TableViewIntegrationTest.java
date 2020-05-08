@@ -91,6 +91,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
@@ -167,6 +168,8 @@ public class TableViewIntegrationTest {
 	ColumnModel stringColumn;
 	ColumnModel entityIdColumn;
 	ColumnModel stringListColumn;
+	
+	ViewObjectType viewObjectType;
 	
 	@BeforeEach
 	public void before(){
@@ -250,6 +253,8 @@ public class TableViewIntegrationTest {
 		stringListColumn.setColumnType(ColumnType.STRING_LIST);
 		stringListColumn.setMaximumListLength(3L);
 		stringListColumn = columnModelManager.createColumnModel(adminUserInfo, stringListColumn);
+		
+		viewObjectType = ViewObjectType.ENTITY;
 	}
 
 	/**
@@ -280,7 +285,7 @@ public class TableViewIntegrationTest {
 		String viewId = entityManager.createEntity(adminUserInfo, view, null);
 		view = entityManager.getEntity(adminUserInfo, viewId, EntityView.class);
 		ViewScope viewScope = new ViewScope();
-		viewScope.setObjectType(ObjectType.ENTITY);
+		viewScope.setObjectType(viewObjectType);
 		viewScope.setScope(view.getScopeIds());
 		viewScope.setViewType(view.getType());
 		tableViewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), viewScope, viewId);
@@ -636,7 +641,7 @@ public class TableViewIntegrationTest {
 				stringColumn);
 		defaultColumnIds.add(stringColumn.getId());
 		ViewScope scope = new ViewScope();
-		scope.setObjectType(ObjectType.ENTITY);
+		scope.setObjectType(viewObjectType);
 		scope.setScope(Lists.newArrayList(project.getId()));
 		scope.setViewType(ViewType.file);
 		tableViewManager.setViewSchemaAndScope(adminUserInfo, defaultColumnIds,
@@ -677,7 +682,7 @@ public class TableViewIntegrationTest {
 				stringColumn);
 		defaultColumnIds.add(stringColumn.getId());
 		ViewScope scope = new ViewScope();
-		scope.setObjectType(ObjectType.ENTITY);
+		scope.setObjectType(viewObjectType);
 		scope.setScope(Lists.newArrayList(project.getId()));
 		scope.setViewTypeMask(ViewTypeMask.File.getMask());
 		tableViewManager.setViewSchemaAndScope(adminUserInfo, defaultColumnIds,
@@ -823,7 +828,7 @@ public class TableViewIntegrationTest {
 		// manually delete the replicated data the file to simulate a data loss.
 		IdAndVersion idAndVersion = IdAndVersion.parse(fileViewId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
-		indexDao.deleteObjectData(ObjectType.ENTITY, Lists.newArrayList(firtFileIdLong));
+		indexDao.deleteObjectData(viewObjectType, Lists.newArrayList(firtFileIdLong));
 		indexDao.truncateReplicationSyncExpiration();
 
 		// This query should trigger the reconciliation to repair the lost data.
@@ -856,7 +861,7 @@ public class TableViewIntegrationTest {
 		// manually delete the replicated data of the project to simulate a data loss.
 		IdAndVersion idAndVersion = IdAndVersion.parse(viewId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
-		indexDao.deleteObjectData(ObjectType.ENTITY, Lists.newArrayList(projectIdLong));
+		indexDao.deleteObjectData(viewObjectType, Lists.newArrayList(projectIdLong));
 		indexDao.truncateReplicationSyncExpiration();
 
 		// This query should trigger the reconciliation to repair the lost data.
@@ -1843,7 +1848,7 @@ public class TableViewIntegrationTest {
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		while(true){
-			ObjectDataDTO dto = indexDao.getObjectData(ObjectType.ENTITY, KeyFactory.stringToKey(entityId), EntityType.class);
+			ObjectDataDTO dto = indexDao.getObjectData(viewObjectType, KeyFactory.stringToKey(entityId), EntityType.class);
 			if(dto == null || !dto.getEtag().equals(entity.getEtag())){
 				assertTrue((System.currentTimeMillis()-start) <  MAX_WAIT_MS, "Timed out waiting for table view status change.");
 				System.out.println("Waiting for entity replication. id: "+entityId+" etag: "+entity.getEtag());

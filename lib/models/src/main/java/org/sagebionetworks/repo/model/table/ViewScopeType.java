@@ -2,25 +2,24 @@ package org.sagebionetworks.repo.model.table;
 
 import java.util.Objects;
 
-import org.sagebionetworks.repo.model.ObjectType;
-
 /**
  * DTO object that includes both the object type for the view and its subtype mask
  * 
  * @author Marco Marasca
  *
  */
-public class ViewScopeType {
+public class ViewScopeType implements HasViewObjectType {
 
-	private ObjectType objectType;
+	private ViewObjectType objectType;
 	private Long typeMask;
 	
-	public ViewScopeType(ObjectType objectType, Long typeMask) {
+	public ViewScopeType(ViewObjectType objectType, Long typeMask) {
 		this.objectType = objectType;
 		this.typeMask = typeMask;
 	}
 
-	public ObjectType getObjectType() {
+	@Override
+	public ViewObjectType getObjectType() {
 		return objectType;
 	}
 	

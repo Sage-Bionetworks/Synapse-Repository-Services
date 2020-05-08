@@ -11,8 +11,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 
@@ -27,7 +27,7 @@ public class EntityMetadataIndexProviderUnitTest {
 	@Test
 	public void testGetObjectType() {
 		// Call under test
-		assertEquals(ObjectType.ENTITY, provider.getObjectType());
+		assertEquals(ViewObjectType.ENTITY, provider.getObjectType());
 	}
 	
 	@Test

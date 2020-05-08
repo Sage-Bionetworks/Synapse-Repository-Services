@@ -49,7 +49,6 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
@@ -58,13 +57,13 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
-import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
 import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryOptions;
@@ -81,6 +80,7 @@ import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SqlQuery;
@@ -1765,7 +1765,7 @@ public class TableQueryManagerImplTest {
 		assertFalse(sum.getGreaterThan());
 		verify(mockTableIndexDAO).getRowIds(sqlCaptrue.capture(), any());
 		assertEquals("SELECT ROW_ID FROM T123 LIMIT 101", sqlCaptrue.getValue());
-		verify(mockTableIndexDAO).getSumOfFileSizes(eq(ObjectType.ENTITY), any());
+		verify(mockTableIndexDAO).getSumOfFileSizes(eq(ViewObjectType.ENTITY), any());
 	}
 	
 	@Test
@@ -1787,7 +1787,7 @@ public class TableQueryManagerImplTest {
 		// when over the limit
 		assertTrue(sum.getGreaterThan());
 		verify(mockTableIndexDAO).getRowIds(anyString(), any());
-		verify(mockTableIndexDAO).getSumOfFileSizes(eq(ObjectType.ENTITY), any());
+		verify(mockTableIndexDAO).getSumOfFileSizes(eq(ViewObjectType.ENTITY), any());
 	}
 
 	
@@ -1815,7 +1815,7 @@ public class TableQueryManagerImplTest {
 		assertEquals(new Long(0), sum.getSumFileSizesBytes());
 		assertFalse(sum.getGreaterThan());
 		verify(mockTableIndexDAO, never()).getRowIds(anyString(), any());
-		verify(mockTableIndexDAO, never()).getSumOfFileSizes(eq(ObjectType.ENTITY), any());
+		verify(mockTableIndexDAO, never()).getSumOfFileSizes(eq(ViewObjectType.ENTITY), any());
 	}
 	
 	private RowSet createRowSetForTest(List<String> headerNames, List<String>... rowValues){

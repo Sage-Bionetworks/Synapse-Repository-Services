@@ -28,7 +28,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -41,6 +40,7 @@ import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -2605,9 +2605,9 @@ public class SQLUtilsTest {
 		// string value
 		annotationDto.setValue("someString");
 		// Call under test
-		SQLUtils.writeAnnotationDtoToPreparedStatement(ObjectType.ENTITY, mockPreparedStatement, annotationDto);
+		SQLUtils.writeAnnotationDtoToPreparedStatement(ViewObjectType.ENTITY, mockPreparedStatement, annotationDto);
 		
-		verify(mockPreparedStatement).setString(1, ObjectType.ENTITY.name());
+		verify(mockPreparedStatement).setString(1, ViewObjectType.ENTITY.name());
 		verify(mockPreparedStatement).setLong(2, annotationDto.getObjectId());
 		verify(mockPreparedStatement).setString(3, annotationDto.getKey());
 		verify(mockPreparedStatement).setString(4, annotationDto.getType().name());
@@ -2624,9 +2624,9 @@ public class SQLUtilsTest {
 		// string value
 		annotationDto.setValue(Arrays.asList("abc", "defg"));
 		// Call under test
-		SQLUtils.writeAnnotationDtoToPreparedStatement(ObjectType.ENTITY, mockPreparedStatement, annotationDto);
+		SQLUtils.writeAnnotationDtoToPreparedStatement(ViewObjectType.ENTITY, mockPreparedStatement, annotationDto);
 		
-		verify(mockPreparedStatement).setString(1, ObjectType.ENTITY.name());
+		verify(mockPreparedStatement).setString(1, ViewObjectType.ENTITY.name());
 		verify(mockPreparedStatement).setLong(2, annotationDto.getObjectId());
 		verify(mockPreparedStatement).setString(3, annotationDto.getKey());
 		verify(mockPreparedStatement).setString(4, annotationDto.getType().name());
@@ -2650,7 +2650,7 @@ public class SQLUtilsTest {
 		// string value
 		annotationDto.setValue("True");
 		// Call under test
-		SQLUtils.writeAnnotationDtoToPreparedStatement(ObjectType.ENTITY, mockPreparedStatement, annotationDto);
+		SQLUtils.writeAnnotationDtoToPreparedStatement(ViewObjectType.ENTITY, mockPreparedStatement, annotationDto);
 		// type can be set as a boolean.
 		verify(mockPreparedStatement).setNull(6, Types.BIGINT);
 		verify(mockPreparedStatement).setNull(7, Types.DOUBLE);
@@ -2663,7 +2663,7 @@ public class SQLUtilsTest {
 		// string value
 		annotationDto.setValue("false");
 		// Call under test
-		SQLUtils.writeAnnotationDtoToPreparedStatement(ObjectType.ENTITY, mockPreparedStatement, annotationDto);
+		SQLUtils.writeAnnotationDtoToPreparedStatement(ViewObjectType.ENTITY, mockPreparedStatement, annotationDto);
 		// type can be set as a boolean.
 		verify(mockPreparedStatement).setNull(6, Types.BIGINT);
 		verify(mockPreparedStatement).setNull(7, Types.DOUBLE);
@@ -2676,9 +2676,9 @@ public class SQLUtilsTest {
 		// string value
 		annotationDto.setValue(Arrays.asList("false", "true", "false"));
 		// Call under test
-		SQLUtils.writeAnnotationDtoToPreparedStatement(ObjectType.ENTITY, mockPreparedStatement, annotationDto);
+		SQLUtils.writeAnnotationDtoToPreparedStatement(ViewObjectType.ENTITY, mockPreparedStatement, annotationDto);
 
-		verify(mockPreparedStatement).setString(1, ObjectType.ENTITY.name());
+		verify(mockPreparedStatement).setString(1, ViewObjectType.ENTITY.name());
 		verify(mockPreparedStatement).setLong(2, annotationDto.getObjectId());
 		verify(mockPreparedStatement).setString(3, annotationDto.getKey());
 		verify(mockPreparedStatement).setString(4, annotationDto.getType().name());
@@ -2702,7 +2702,7 @@ public class SQLUtilsTest {
 		// string value
 		annotationDto.setValue("syn123456");
 		// Call under test
-		SQLUtils.writeAnnotationDtoToPreparedStatement(ObjectType.ENTITY, mockPreparedStatement, annotationDto);
+		SQLUtils.writeAnnotationDtoToPreparedStatement(ViewObjectType.ENTITY, mockPreparedStatement, annotationDto);
 		// the synapse ID can be set as a long.
 		verify(mockPreparedStatement).setLong(6, 123456L);
 		verify(mockPreparedStatement).setNull(7, Types.DOUBLE);
@@ -2715,7 +2715,7 @@ public class SQLUtilsTest {
 		// string value
 		annotationDto.setValue("1970-1-1 00:00:00.123");
 		// Call under test
-		SQLUtils.writeAnnotationDtoToPreparedStatement(ObjectType.ENTITY, mockPreparedStatement, annotationDto);
+		SQLUtils.writeAnnotationDtoToPreparedStatement(ViewObjectType.ENTITY, mockPreparedStatement, annotationDto);
 		// the date string can be treated as a long.
 		verify(mockPreparedStatement).setLong(6, 123L);
 		verify(mockPreparedStatement).setNull(7, Types.DOUBLE);
@@ -2728,7 +2728,7 @@ public class SQLUtilsTest {
 		// string value
 		annotationDto.setValue("123");
 		// Call under test
-		SQLUtils.writeAnnotationDtoToPreparedStatement(ObjectType.ENTITY, mockPreparedStatement, annotationDto);
+		SQLUtils.writeAnnotationDtoToPreparedStatement(ViewObjectType.ENTITY, mockPreparedStatement, annotationDto);
 		// can be a long or a double
 		verify(mockPreparedStatement).setLong(6, 123L);
 		verify(mockPreparedStatement).setDouble(7, 123);
@@ -2742,9 +2742,9 @@ public class SQLUtilsTest {
 		// string value
 		annotationDto.setValue(Arrays.asList("123", "4560", "789"));
 		// Call under test
-		SQLUtils.writeAnnotationDtoToPreparedStatement(ObjectType.ENTITY, mockPreparedStatement, annotationDto);
+		SQLUtils.writeAnnotationDtoToPreparedStatement(ViewObjectType.ENTITY, mockPreparedStatement, annotationDto);
 		
-		verify(mockPreparedStatement).setString(1, ObjectType.ENTITY.name());
+		verify(mockPreparedStatement).setString(1, ViewObjectType.ENTITY.name());
 		verify(mockPreparedStatement).setLong(2, annotationDto.getObjectId());
 		verify(mockPreparedStatement).setString(3, annotationDto.getKey());
 		verify(mockPreparedStatement).setString(4, annotationDto.getType().name());
@@ -2769,7 +2769,7 @@ public class SQLUtilsTest {
 		// string value
 		annotationDto.setValue("123.456");
 		// Call under test
-		SQLUtils.writeAnnotationDtoToPreparedStatement(ObjectType.ENTITY, mockPreparedStatement, annotationDto);
+		SQLUtils.writeAnnotationDtoToPreparedStatement(ViewObjectType.ENTITY, mockPreparedStatement, annotationDto);
 		// value can be a double
 		verify(mockPreparedStatement).setNull(6, Types.BIGINT);
 		verify(mockPreparedStatement).setDouble(7, 123.456);
@@ -2783,7 +2783,7 @@ public class SQLUtilsTest {
 		// string value
 		annotationDto.setValue("NAN");
 		// Call under test
-		SQLUtils.writeAnnotationDtoToPreparedStatement(ObjectType.ENTITY, mockPreparedStatement, annotationDto);
+		SQLUtils.writeAnnotationDtoToPreparedStatement(ViewObjectType.ENTITY, mockPreparedStatement, annotationDto);
 		verify(mockPreparedStatement).setNull(6, Types.BIGINT);
 		// the approximation of NaN is null.
 		verify(mockPreparedStatement).setNull(7, Types.DOUBLE);
@@ -2797,7 +2797,7 @@ public class SQLUtilsTest {
 		// string value
 		annotationDto.setValue("+Infinity");
 		// Call under test
-		SQLUtils.writeAnnotationDtoToPreparedStatement(ObjectType.ENTITY, mockPreparedStatement, annotationDto);
+		SQLUtils.writeAnnotationDtoToPreparedStatement(ViewObjectType.ENTITY, mockPreparedStatement, annotationDto);
 		verify(mockPreparedStatement).setNull(6, Types.BIGINT);
 		verify(mockPreparedStatement).setDouble(7, AbstractDouble.POSITIVE_INFINITY.getApproximateValue());
 		verify(mockPreparedStatement).setString(8, AbstractDouble.POSITIVE_INFINITY.getEnumerationValue());
@@ -2809,7 +2809,7 @@ public class SQLUtilsTest {
 		// string value
 		annotationDto.setValue("-Infinity");
 		// Call under test
-		SQLUtils.writeAnnotationDtoToPreparedStatement(ObjectType.ENTITY, mockPreparedStatement, annotationDto);
+		SQLUtils.writeAnnotationDtoToPreparedStatement(ViewObjectType.ENTITY, mockPreparedStatement, annotationDto);
 		verify(mockPreparedStatement).setNull(6, Types.BIGINT);
 		verify(mockPreparedStatement).setDouble(7, AbstractDouble.NEGATIVE_INFINITY.getApproximateValue());
 		verify(mockPreparedStatement).setString(8, AbstractDouble.NEGATIVE_INFINITY.getEnumerationValue());
@@ -3083,6 +3083,6 @@ public class SQLUtilsTest {
 	}
 	
 	private ViewScopeFilter getSQLScopeFilter(List<Enum<?>> subTypes, boolean filterByObjectId) {
-		return new ViewScopeFilter(ObjectType.ENTITY, subTypes, filterByObjectId, Collections.emptySet());
+		return new ViewScopeFilter(ViewObjectType.ENTITY, subTypes, filterByObjectId, Collections.emptySet());
 	}
 }

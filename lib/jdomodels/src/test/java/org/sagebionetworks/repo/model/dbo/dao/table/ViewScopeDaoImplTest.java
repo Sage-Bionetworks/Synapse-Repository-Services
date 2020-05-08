@@ -12,8 +12,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -37,7 +37,7 @@ public class ViewScopeDaoImplTest {
 	
 	@BeforeEach
 	public void before() {
-		viewScopeType = new ViewScopeType(ObjectType.ENTITY, ViewTypeMask.File.getMask());
+		viewScopeType = new ViewScopeType(ViewObjectType.ENTITY, ViewTypeMask.File.getMask());
 	}
 	
 	@AfterEach

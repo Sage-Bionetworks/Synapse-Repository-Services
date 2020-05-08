@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.manager.table.metadata;
 
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 
 /**
  * Factory for metadata index providers
@@ -15,14 +15,14 @@ public interface MetadataIndexProviderFactory {
 	 * @return The set of object type for which a {@link MetadataIndexProvider} is
 	 *         registered
 	 */
-	Set<ObjectType> supportedObjectTypes();
+	Set<ViewObjectType> supportedObjectTypes();
 
 	/**
 	 * @param objectType The object type
 	 * @return Whether a {@link MetadataIndexProvider} is registered for the given
 	 *         object type
 	 */
-	boolean supports(ObjectType objectType);
+	boolean supports(ViewObjectType objectType);
 
 	/**
 	 * @param objectType The object type
@@ -30,6 +30,6 @@ public interface MetadataIndexProviderFactory {
 	 * @throws IllegalArgumentException If no {@link MetadataIndexProvider} is
 	 *                                  registered for the given object type
 	 */
-	MetadataIndexProvider getMetadataIndexProvider(ObjectType objectType);
+	MetadataIndexProvider getMetadataIndexProvider(ViewObjectType objectType);
 
 }

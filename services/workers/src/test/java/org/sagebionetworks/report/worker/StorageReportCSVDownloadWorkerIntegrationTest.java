@@ -1,6 +1,5 @@
 package org.sagebionetworks.report.worker;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -21,7 +20,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -33,6 +31,7 @@ import org.sagebionetworks.repo.model.report.DownloadStorageReportRequest;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
 import org.sagebionetworks.repo.model.report.StorageReportType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.utils.ContentTypeUtil;
@@ -194,7 +193,7 @@ public class StorageReportCSVDownloadWorkerIntegrationTest {
 		Entity entity = entityManager.getEntity(adminUserInfo, entityId);
 		TableIndexDAO indexDao = tableConnectionFactory.getFirstConnection();
 		while(true){
-			ObjectDataDTO dto = indexDao.getObjectData(ObjectType.ENTITY, KeyFactory.stringToKey(entityId), EntityType.class);
+			ObjectDataDTO dto = indexDao.getObjectData(ViewObjectType.ENTITY, KeyFactory.stringToKey(entityId), EntityType.class);
 			if(dto == null || !dto.getEtag().equals(entity.getEtag())){
 				System.out.println("Waiting for entity replication. id: "+entityId+" etag: "+entity.getEtag());
 				Thread.sleep(1000);

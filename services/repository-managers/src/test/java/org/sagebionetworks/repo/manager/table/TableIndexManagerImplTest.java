@@ -63,6 +63,7 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
@@ -129,7 +130,7 @@ public class TableIndexManagerImplTest {
 	Set<Long> scopeIds;
 	ViewScope scope;
 	
-	ObjectType objectType;
+	ViewObjectType objectType;
 	ColumnModel newColumn;
 	List<ColumnChangeDetails> columnChanges;
 	
@@ -142,7 +143,7 @@ public class TableIndexManagerImplTest {
 	@SuppressWarnings("unchecked")
 	@BeforeEach
 	public void before() throws Exception{
-		objectType = ObjectType.ENTITY;
+		objectType = ViewObjectType.ENTITY;
 		tableId = IdAndVersion.parse("syn123");
 		manager = new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory);
 		managerSpy = Mockito.spy(manager);
@@ -194,7 +195,7 @@ public class TableIndexManagerImplTest {
 		columnChanges = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
 		
 		rowsIdsWithChanges = Sets.newHashSet(444L,555L);
-		scopeType = new ViewScopeType(ObjectType.ENTITY, ViewTypeMask.File.getMask());
+		scopeType = new ViewScopeType(objectType, ViewTypeMask.File.getMask());
 	}
 
 	@Test
