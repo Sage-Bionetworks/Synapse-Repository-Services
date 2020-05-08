@@ -58,7 +58,6 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationManager;
 import org.sagebionetworks.repo.model.BucketAndKey;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
@@ -80,6 +79,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableState;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
@@ -167,8 +167,6 @@ public class TableViewManagerImplTest {
 	SparseRowDto row;
 	SnapshotRequest snapshotOptions;
 	Set<Long> allContainersInScope;
-	Long viewTypeMask;
-	
 	org.sagebionetworks.repo.model.Annotations annotations;
 	Annotations annotationsV2;
 	
@@ -188,7 +186,7 @@ public class TableViewManagerImplTest {
 		viewType =ViewTypeMask.File.getMask();
 		
 		viewScope = new ViewScope();
-		viewScope.setObjectType(ObjectType.ENTITY);
+		viewScope.setObjectType(ViewObjectType.ENTITY);
 		viewScope.setScope(scope);
 		viewScope.setViewTypeMask(viewType);
 		
@@ -244,8 +242,7 @@ public class TableViewManagerImplTest {
 		snapshotOptions = new SnapshotRequest();
 		snapshotOptions.setSnapshotComment("a comment");
 		allContainersInScope = Sets.newHashSet(123L, 456L);;
-		viewTypeMask = ViewTypeMask.File.getMask();
-		scopeType = new ViewScopeType(ObjectType.ENTITY, viewTypeMask);
+		scopeType = new ViewScopeType(ViewObjectType.ENTITY, ViewTypeMask.File.getMask());
 		
 		managerSpy = Mockito.spy(manager);
 	}
@@ -338,7 +335,7 @@ public class TableViewManagerImplTest {
 	public void testSetViewSchemaAndScopeWithProjectOnly(){
 		long mask = ViewTypeMask.Project.getMask();
 		viewScope.setViewTypeMask(mask);
-		ViewScopeType expectedScopeType = new ViewScopeType(ObjectType.ENTITY, mask);
+		ViewScopeType expectedScopeType = new ViewScopeType(ViewObjectType.ENTITY, mask);
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), expectedScopeType);

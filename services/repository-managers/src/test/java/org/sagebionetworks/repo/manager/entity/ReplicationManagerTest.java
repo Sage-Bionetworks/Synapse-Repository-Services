@@ -26,6 +26,7 @@ import org.mockito.quality.Strictness;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -56,6 +57,8 @@ public class ReplicationManagerTest {
 	ReplicationManagerImpl manager;
 	
 	List<ChangeMessage> changes;
+	
+	ViewObjectType viewObjectType;
 
 	@SuppressWarnings("unchecked")
 	@BeforeEach
@@ -85,6 +88,8 @@ public class ReplicationManagerTest {
 				callback.doInTransaction(transactionStatus);
 				return null;
 			}}).when(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
+		
+		viewObjectType = ViewObjectType.ENTITY;
 	}
 	
 	@Test
@@ -107,8 +112,8 @@ public class ReplicationManagerTest {
 		// call under test
 		manager.replicate(changes);
 		verify(mockNodeDao).getEntityDTOs(Lists.newArrayList("111", "222"), ReplicationManagerImpl.MAX_ANNOTATION_CHARS);
-		verify(mockIndexDao).deleteObjectData(ObjectType.ENTITY, Lists.newArrayList(111L,222L,333L));
-		verify(mockIndexDao).addObjectData(ObjectType.ENTITY, entityData);
+		verify(mockIndexDao).deleteObjectData(viewObjectType, Lists.newArrayList(111L,222L,333L));
+		verify(mockIndexDao).addObjectData(viewObjectType, entityData);
 	}
 
 	
@@ -165,8 +170,8 @@ public class ReplicationManagerTest {
 		// call under test
 		manager.replicate(entityId);
 		verify(mockNodeDao).getEntityDTOs(entityids, ReplicationManagerImpl.MAX_ANNOTATION_CHARS);
-		verify(mockIndexDao).deleteObjectData(ObjectType.ENTITY, Lists.newArrayList(123L));
-		verify(mockIndexDao).addObjectData(ObjectType.ENTITY, entityData);
+		verify(mockIndexDao).deleteObjectData(viewObjectType, Lists.newArrayList(123L));
+		verify(mockIndexDao).addObjectData(viewObjectType, entityData);
 	}
 	
 	/**

@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table.metadata;
 
+import org.sagebionetworks.repo.model.table.HasViewObjectType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 
 /**
@@ -10,6 +11,6 @@ import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
  * @author Marco Marasca
  *
  */
-public interface MetadataIndexProvider extends HasObjectType, ViewScopeFilterProvider, ObjectFieldTypeMapper {	
+public interface MetadataIndexProvider extends HasViewObjectType, ViewScopeFilterProvider, ObjectFieldTypeMapper {	
 
 }

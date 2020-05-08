@@ -62,7 +62,6 @@ import javax.sql.DataSource;
 import org.json.JSONArray;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.IdAndEtag;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
@@ -75,6 +74,7 @@ import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
@@ -698,7 +698,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void deleteObjectData(ObjectType objectsType, List<Long> objectIds) {
+	public void deleteObjectData(ViewObjectType objectsType, List<Long> objectIds) {
 		final List<Long> sorted = new ArrayList<Long>(objectIds);
 		// sort to prevent deadlock.
 		Collections.sort(sorted);
@@ -721,7 +721,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void addObjectData(ObjectType objectType, List<ObjectDataDTO> objectDtos) {
+	public void addObjectData(ViewObjectType objectType, List<ObjectDataDTO> objectDtos) {
 		final List<ObjectDataDTO> sorted = new ArrayList<ObjectDataDTO>(objectDtos);
 		Collections.sort(sorted);
 		// batch update the object replication table
@@ -739,7 +739,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				ps.setLong(parameterIndex++, dto.getCreatedOn().getTime());
 				ps.setString(parameterIndex++, dto.getEtag());
 				ps.setString(parameterIndex++, dto.getName());
-				ps.setString(parameterIndex++, dto.getSubType().name());
+				ps.setString(parameterIndex++, dto.getSubType());
 				if(dto.getParentId() != null){
 					ps.setLong(parameterIndex++, dto.getParentId());
 				}else{
@@ -809,9 +809,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		
 	}
 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
-	public ObjectDataDTO getObjectData(ObjectType objectType, Long objectId, Class<? extends Enum> subTypeClass) {
+	public ObjectDataDTO getObjectData(ViewObjectType objectType, Long objectId) {
 		// query for the template.
 		ObjectDataDTO dto;
 		try {
@@ -823,7 +822,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				dto1.setCreatedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_CREATED_ON)));
 				dto1.setEtag(rs.getString(OBEJCT_REPLICATION_COL_ETAG));
 				dto1.setName(rs.getString(OBJECT_REPLICATION_COL_NAME));
-				dto1.setSubType(Enum.valueOf(subTypeClass, rs.getString(OBJECT_REPLICATION_COL_SUBTYPE)));
+				dto1.setSubType(rs.getString(OBJECT_REPLICATION_COL_SUBTYPE));
 				dto1.setParentId(rs.getLong(OBJECT_REPLICATION_COL_PARENT_ID));
 				if (rs.wasNull()) {
 					dto1.setParentId(null);
@@ -858,6 +857,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return null;
 		}
 		// get the annotations.
+		@SuppressWarnings("unchecked")
 		List<ObjectAnnotationDTO> annotations = template.query(TableConstants.ANNOTATION_REPLICATION_GET, (ResultSet rs, int rowNum) -> {
 			ObjectAnnotationDTO dto1 = new ObjectAnnotationDTO();
 			dto1.setObjectId(rs.getLong(ANNOTATION_REPLICATION_COL_OBJECT_ID));
@@ -1127,7 +1127,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public Map<Long, Long> getSumOfChildCRCsForEachParent(ObjectType objectType, List<Long> parentIds) {
+	public Map<Long, Long> getSumOfChildCRCsForEachParent(ViewObjectType objectType, List<Long> parentIds) {
 		ValidateArgument.required(objectType, "objectType");
 		ValidateArgument.required(parentIds, "parentIds");
 		final Map<Long, Long> results = new HashMap<>();
@@ -1146,7 +1146,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public List<IdAndEtag> getObjectChildren(ObjectType objectType, Long parentId) {
+	public List<IdAndEtag> getObjectChildren(ViewObjectType objectType, Long parentId) {
 		ValidateArgument.required(objectType, "objectType");
 		ValidateArgument.required(parentId, "parentId");
 		return this.template.query(SELECT_OBJECT_CHILD_ID_ETAG, (ResultSet rs, int rowNum) -> {
@@ -1161,7 +1161,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public List<Long> getExpiredContainerIds(ObjectType objectType, List<Long> containerIds) {
+	public List<Long> getExpiredContainerIds(ViewObjectType objectType, List<Long> containerIds) {
 		ValidateArgument.required(containerIds, "entityContainerIds");
 		if(containerIds.isEmpty()){
 			return new LinkedList<Long>();
@@ -1185,7 +1185,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void setContainerSynchronizationExpiration(ObjectType objectType, final List<Long> toSet,
+	public void setContainerSynchronizationExpiration(ViewObjectType objectType, final List<Long> toSet,
 			final long newExpirationDateMS) {
 		ValidateArgument.required(objectType, "objectType");
 		ValidateArgument.required(toSet, "toSet");
@@ -1221,7 +1221,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public long getSumOfFileSizes(ObjectType objectType, List<Long> rowIds) {
+	public long getSumOfFileSizes(ViewObjectType objectType, List<Long> rowIds) {
 		ValidateArgument.required(rowIds, "rowIds");
 		if(rowIds.isEmpty()) {
 			return 0L;
@@ -1240,7 +1240,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void streamSynapseStorageStats(ObjectType objectType, Callback<SynapseStorageProjectStats> callback) {
+	public void streamSynapseStorageStats(ViewObjectType objectType, Callback<SynapseStorageProjectStats> callback) {
 		MapSqlParameterSource params = new MapSqlParameterSource(OBJECT_TYPE_PARAM_NAME, objectType.name());
 		
 		// We use spring to create create the prepared statement

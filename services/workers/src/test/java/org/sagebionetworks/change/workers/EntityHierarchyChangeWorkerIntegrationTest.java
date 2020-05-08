@@ -17,14 +17,13 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -60,6 +59,8 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 	Folder folder;
 	Folder child;
 	
+	ViewObjectType viewObjectType;
+	
 	@Before
 	public void before(){
 		
@@ -85,6 +86,8 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 		child.setParentId(folder.getId());
 		id = entityManager.createEntity(adminUser, child, null);
 		child = entityManager.getEntity(adminUser, id, Folder.class);
+		
+		viewObjectType = ViewObjectType.ENTITY;
 	}
 	
 	@After
@@ -101,7 +104,7 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 		assertNotNull(replicatedChild);
 		assertEquals(KeyFactory.stringToKey(project.getId()), replicatedChild.getBenefactorId());
 		// Delete the replicated data
-		indexDao.deleteObjectData(ObjectType.ENTITY, Lists.newArrayList(KeyFactory.stringToKey(child.getId())));
+		indexDao.deleteObjectData(viewObjectType, Lists.newArrayList(KeyFactory.stringToKey(child.getId())));
 		// Add an ACL to the folder to trigger a hierarchy change
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(folder.getId(), adminUser, new Date());
 		entityPermissionsManager.overrideInheritance(acl, adminUser);
@@ -122,7 +125,7 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 	public ObjectDataDTO waitForEntityDto(String entityId) throws InterruptedException{
 		long startTimeMS = System.currentTimeMillis();
 		while(true){
-			ObjectDataDTO entityDto = indexDao.getObjectData(ObjectType.ENTITY, KeyFactory.stringToKey(entityId), EntityType.class);
+			ObjectDataDTO entityDto = indexDao.getObjectData(viewObjectType, KeyFactory.stringToKey(entityId));
 			if(entityDto != null){
 				return entityDto;
 			}

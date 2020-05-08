@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.manager.message.ChangeMessageUtils;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.schema.adapter.JSONEntity;

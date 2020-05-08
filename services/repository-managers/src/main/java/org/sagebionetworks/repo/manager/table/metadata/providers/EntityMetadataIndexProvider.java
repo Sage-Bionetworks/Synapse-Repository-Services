@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.springframework.stereotype.Service;
 
@@ -13,8 +13,8 @@ import org.springframework.stereotype.Service;
 public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 	
 	@Override
-	public ObjectType getObjectType() {
-		return ObjectType.ENTITY;
+	public ViewObjectType getObjectType() {
+		return ViewObjectType.ENTITY;
 	}
 
 	@Override
@@ -38,11 +38,11 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 	}
 
 	@Override
-	public List<Enum<?>> getSubTypesForMask(Long typeMask) {
-		List<Enum<?>> typesFilter = new ArrayList<>();
+	public List<String> getSubTypesForMask(Long typeMask) {
+		List<String> typesFilter = new ArrayList<>();
 		for(ViewTypeMask type: ViewTypeMask.values()) {
 			if ((type.getMask() & typeMask) > 0) {
-				typesFilter.add(type.getEntityType());
+				typesFilter.add(type.getEntityType().name());
 			}
 		}
 		return typesFilter;

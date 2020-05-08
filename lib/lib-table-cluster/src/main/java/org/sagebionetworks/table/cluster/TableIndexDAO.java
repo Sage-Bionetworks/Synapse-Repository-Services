@@ -9,7 +9,7 @@ import javax.sql.DataSource;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.IdAndEtag;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
@@ -352,14 +352,14 @@ public interface TableIndexDAO {
 	 * @param objectIds
 	 * @param progressCallback 
 	 */
-	void deleteObjectData(ObjectType objectsType, List<Long> objectIds);
+	void deleteObjectData(ViewObjectType objectsType, List<Long> objectIds);
 
 	/**
 	 * Add the given object data to the index.
 	 * @param objectType TODO
 	 * @param objectDtos
 	 */
-	void addObjectData(ObjectType objectType, List<ObjectDataDTO> objectDtos);
+	void addObjectData(ViewObjectType objectType, List<ObjectDataDTO> objectDtos);
 
 
 	/**
@@ -437,7 +437,7 @@ public interface TableIndexDAO {
 	 * @param entityContainerIds
 	 * @return
 	 */
-	List<Long> getExpiredContainerIds(ObjectType objectType, List<Long> entityContainerIds);
+	List<Long> getExpiredContainerIds(ViewObjectType objectType, List<Long> entityContainerIds);
 	
 	/**
 	 * @see {@link #getExpiredContainerIds(List)}.
@@ -446,14 +446,14 @@ public interface TableIndexDAO {
 	 * 
 	 * @param expirations
 	 */
-	void setContainerSynchronizationExpiration(ObjectType objectType, List<Long> toSet, long newExpirationDateMS);
+	void setContainerSynchronizationExpiration(ViewObjectType objectType, List<Long> toSet, long newExpirationDateMS);
 
 	/**
 	 * For each parent, get the sum of CRCs of their children.
 	 *   
 	 * @return Map.key = parentId and map.value = sum of children CRCs.
 	 */
-	Map<Long, Long> getSumOfChildCRCsForEachParent(ObjectType objectType, List<Long> parentIds);
+	Map<Long, Long> getSumOfChildCRCsForEachParent(ViewObjectType objectType, List<Long> parentIds);
 
 	/**
 	 * Get the Id and Etag for each child of the given parentId.
@@ -461,7 +461,7 @@ public interface TableIndexDAO {
 	 * @param outOfSynchParentId
 	 * @return
 	 */
-	List<IdAndEtag> getObjectChildren(ObjectType objectType, Long parentId);
+	List<IdAndEtag> getObjectChildren(ViewObjectType objectType, Long parentId);
 
 	/**
 	 * Get the rowIds for the given query.
@@ -478,13 +478,13 @@ public interface TableIndexDAO {
 	 * @param rowIds
 	 * @return
 	 */
-	long getSumOfFileSizes(ObjectType objectType, List<Long> rowIds);
+	long getSumOfFileSizes(ViewObjectType objectType, List<Long> rowIds);
 
 	/**
 	 * Get the statistics about Synapse storage usage per-project.
 	 * @return
 	 */
-	void streamSynapseStorageStats(ObjectType objectType, Callback<SynapseStorageProjectStats> callback);
+	void streamSynapseStorageStats(ViewObjectType objectType, Callback<SynapseStorageProjectStats> callback);
 
 	/**
 	 * Populate a view from a snapshot.
@@ -554,7 +554,6 @@ public interface TableIndexDAO {
 	/**
 	 * @return the entity DTO for a given entity ID
 	 */
-	@SuppressWarnings("rawtypes")
-	ObjectDataDTO getObjectData(ObjectType objectType, Long objectId, Class<? extends Enum> subTypeClass);
+	ObjectDataDTO getObjectData(ViewObjectType objectType, Long objectId);
 
 }

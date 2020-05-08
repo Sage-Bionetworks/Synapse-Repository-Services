@@ -13,11 +13,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
+import org.sagebionetworks.util.EnumUtils;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 @ExtendWith(MockitoExtension.class)
@@ -28,11 +28,11 @@ public class ViewScopeFilterBuilderTest {
 	
 	@Test
 	public void testBuild() {
-		ObjectType objectType = ObjectType.ENTITY;
+		ViewObjectType objectType = ViewObjectType.ENTITY;
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		Set<Long> containerIds = ImmutableSet.of(1L, 2L);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		when(provider.getObjectType()).thenReturn(objectType);

@@ -24,7 +24,6 @@ import org.sagebionetworks.repo.manager.table.metadata.ViewScopeFilterBuilder;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -36,11 +35,12 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
@@ -112,7 +112,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		while(true){
-			ObjectDataDTO dto = indexDao.getObjectData(ObjectType.ENTITY, KeyFactory.stringToKey(entityId), EntityType.class);
+			ObjectDataDTO dto = indexDao.getObjectData(ViewObjectType.ENTITY, KeyFactory.stringToKey(entityId));
 			if(dto == null || !dto.getEtag().equals(entity.getEtag())){
 				assertTrue((System.currentTimeMillis()-start) <  maxWaitMS, "Timed out waiting for table view status change.");
 				System.out.println("Waiting for entity replication. id: "+entityId+" etag: "+entity.getEtag());
@@ -145,7 +145,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		String viewId = entityManager.createEntity(user, view, null);
 		view = entityManager.getEntity(user, viewId, EntityView.class);
 		ViewScope viewScope = new ViewScope();
-		viewScope.setObjectType(ObjectType.ENTITY);
+		viewScope.setObjectType(ViewObjectType.ENTITY);
 		viewScope.setScope(view.getScopeIds());
 		viewScope.setViewTypeMask(viewTypeMask);
 		tableViewManager.setViewSchemaAndScope(user, view.getColumnIds(), viewScope, viewId);

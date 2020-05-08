@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -14,7 +14,7 @@ import com.google.common.collect.ImmutableSet;
 @Service
 public class MetadataIndexProviderFactoryImpl implements MetadataIndexProviderFactory {
 
-	private Map<ObjectType, MetadataIndexProvider> providersMap;
+	private Map<ViewObjectType, MetadataIndexProvider> providersMap;
 
 	@Autowired
 	public MetadataIndexProviderFactoryImpl(List<MetadataIndexProvider> fieldTypeProviders) {
@@ -23,17 +23,17 @@ public class MetadataIndexProviderFactoryImpl implements MetadataIndexProviderFa
 	}
 
 	@Override
-	public Set<ObjectType> supportedObjectTypes() {
+	public Set<ViewObjectType> supportedObjectTypes() {
 		return ImmutableSet.copyOf(providersMap.keySet());
 	}
 
 	@Override
-	public boolean supports(ObjectType objectType) {
+	public boolean supports(ViewObjectType objectType) {
 		return providersMap.containsKey(objectType);
 	}
 
 	@Override
-	public MetadataIndexProvider getMetadataIndexProvider(ObjectType objectType) {
+	public MetadataIndexProvider getMetadataIndexProvider(ViewObjectType objectType) {
 		MetadataIndexProvider provider = providersMap.get(objectType);
 
 		if (provider == null) {

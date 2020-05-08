@@ -21,9 +21,7 @@ import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -31,6 +29,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -75,6 +74,8 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 	String projectId;
 	Long projectIdLong;
 	
+	ViewObjectType viewObjectType;
+	
 	@BeforeEach
 	public void before(){
 		
@@ -88,6 +89,8 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 		indexDao = tableConnectionFactory.getAllConnections().get(0);
 		// ensure a sycn can occur.
 		indexDao.truncateReplicationSyncExpiration();
+		
+		viewObjectType = ViewObjectType.ENTITY;
 	}
 	
 	@AfterEach
@@ -111,7 +114,7 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 		IdAndVersion viewId = IdAndVersion.parse(view.getId());
 		
 		// Simulate out-of-synch by deleting the project's replication data
-		indexDao.deleteObjectData(ObjectType.ENTITY, Lists.newArrayList(projectIdLong));
+		indexDao.deleteObjectData(viewObjectType, Lists.newArrayList(projectIdLong));
 			
 		// Getting the status of the view should trigger the reconciliation.
 		tableManagerSupport.getTableStatusOrCreateIfNotExists(viewId);
@@ -143,9 +146,9 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 		IdAndVersion viewId = IdAndVersion.parse(view.getId());
 		
 		// simulate a stale benefactor on the folder
-		indexDao.deleteObjectData(ObjectType.ENTITY, Lists.newArrayList(KeyFactory.stringToKey(folder.getId())));
+		indexDao.deleteObjectData(viewObjectType, Lists.newArrayList(KeyFactory.stringToKey(folder.getId())));
 		dto.setBenefactorId(dto.getParentId());
-		indexDao.addObjectData(ObjectType.ENTITY, Lists.newArrayList(dto));
+		indexDao.addObjectData(viewObjectType, Lists.newArrayList(dto));
 		
 		// Getting the status of the view should trigger the reconciliation.
 		tableManagerSupport.getTableStatusOrCreateIfNotExists(viewId);
@@ -168,7 +171,7 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 		String viewId = entityManager.createEntity(adminUserInfo, view, activityId);
 		view = entityManager.getEntity(adminUserInfo, viewId, EntityView.class);
 		ViewScope scope = new ViewScope();
-		scope.setObjectType(ObjectType.ENTITY);
+		scope.setObjectType(viewObjectType);
 		scope.setScope(view.getScopeIds());
 		scope.setViewType(view.getType());
 		scope.setViewTypeMask(view.getViewTypeMask());
@@ -220,7 +223,7 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 	public ObjectDataDTO waitForEntityDto(String entityId, Long expectedBenefactor) throws InterruptedException{
 		long startTimeMS = System.currentTimeMillis();
 		while(true){
-			ObjectDataDTO entityDto = indexDao.getObjectData(ObjectType.ENTITY, KeyFactory.stringToKey(entityId), EntityType.class);
+			ObjectDataDTO entityDto = indexDao.getObjectData(viewObjectType, KeyFactory.stringToKey(entityId));
 			if(entityDto != null){
 				if(expectedBenefactor == null || expectedBenefactor.equals(entityDto.getBenefactorId())) {
 					return entityDto;

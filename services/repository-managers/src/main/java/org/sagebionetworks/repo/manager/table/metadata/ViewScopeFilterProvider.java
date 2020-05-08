@@ -2,7 +2,9 @@ package org.sagebionetworks.repo.manager.table.metadata;
 
 import java.util.List;
 
-public interface ViewScopeFilterProvider extends HasObjectType {
+import org.sagebionetworks.repo.model.table.HasViewObjectType;
+
+public interface ViewScopeFilterProvider extends HasViewObjectType {
 
 	/**
 	 * @return True if the object has a hierarchy of subtypes that filters can be
@@ -17,7 +19,7 @@ public interface ViewScopeFilterProvider extends HasObjectType {
 	 * @param typeMask The subtype mask
 	 * @return The list of enum values that map to the given type mask
 	 */
-	List<Enum<?>> getSubTypesForMask(Long typeMask);
+	List<String> getSubTypesForMask(Long typeMask);
 
 	/**
 	 * Generally when a view is built from its scope the parent id is used to filter

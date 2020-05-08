@@ -50,7 +50,6 @@ import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFact
 import org.sagebionetworks.repo.manager.table.metadata.ViewScopeFilterBuilder;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NextPageToken;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -63,6 +62,7 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
@@ -78,12 +78,12 @@ import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
+import org.sagebionetworks.util.EnumUtils;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -129,7 +129,7 @@ public class TableIndexManagerImplTest {
 	Set<Long> scopeIds;
 	ViewScope scope;
 	
-	ObjectType objectType;
+	ViewObjectType objectType;
 	ColumnModel newColumn;
 	List<ColumnChangeDetails> columnChanges;
 	
@@ -138,11 +138,9 @@ public class TableIndexManagerImplTest {
 	ViewScopeFilterBuilder scopeFilterBuilder;
 	
 	
-	
-	@SuppressWarnings("unchecked")
 	@BeforeEach
 	public void before() throws Exception{
-		objectType = ObjectType.ENTITY;
+		objectType = ViewObjectType.ENTITY;
 		tableId = IdAndVersion.parse("syn123");
 		manager = new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory);
 		managerSpy = Mockito.spy(manager);
@@ -194,7 +192,7 @@ public class TableIndexManagerImplTest {
 		columnChanges = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
 		
 		rowsIdsWithChanges = Sets.newHashSet(444L,555L);
-		scopeType = new ViewScopeType(ObjectType.ENTITY, ViewTypeMask.File.getMask());
+		scopeType = new ViewScopeType(objectType, ViewTypeMask.File.getMask());
 	}
 
 	@Test
@@ -534,7 +532,7 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.calculateCRC32ofTableView(any(Long.class))).thenReturn(crc32);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		when(mockMetadataProvider.getObjectType()).thenReturn(objectType);
@@ -561,7 +559,7 @@ public class TableIndexManagerImplTest {
 	public void testPopulateViewFromEntityReplicationMissingEtagColumn() {
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
@@ -584,7 +582,7 @@ public class TableIndexManagerImplTest {
 	public void testPopulateViewFromEntityReplicationMissingBenefactorColumn(){
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
@@ -635,7 +633,7 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.calculateCRC32ofTableView(any(Long.class))).thenReturn(crc32);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		when(mockMetadataProvider.getObjectType()).thenReturn(objectType);
@@ -661,7 +659,7 @@ public class TableIndexManagerImplTest {
 		
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
@@ -687,7 +685,7 @@ public class TableIndexManagerImplTest {
 		
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
@@ -727,7 +725,7 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(schema);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		when(mockMetadataProvider.getObjectType()).thenReturn(objectType);
@@ -750,7 +748,7 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(schema);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		when(mockMetadataProvider.getObjectType()).thenReturn(objectType);
@@ -776,7 +774,7 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(pagePluseOne);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		when(mockMetadataProvider.getObjectType()).thenReturn(objectType);
@@ -838,7 +836,7 @@ public class TableIndexManagerImplTest {
 		when(mockManagerSupport.getAllContainerIdsForViewScope(tableId, scopeType)).thenReturn(containerIds);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
@@ -866,7 +864,7 @@ public class TableIndexManagerImplTest {
 		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds, scopeType)).thenReturn(containerIds);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
@@ -885,7 +883,7 @@ public class TableIndexManagerImplTest {
 		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds, scopeType)).thenReturn(containerIds);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		when(mockMetadataProvider.getObjectType()).thenReturn(objectType);
@@ -1426,7 +1424,7 @@ public class TableIndexManagerImplTest {
 	public void testUpdateViewRowsInTransaction() {
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		when(mockMetadataProvider.getObjectType()).thenReturn(objectType);
@@ -1451,7 +1449,7 @@ public class TableIndexManagerImplTest {
 	public void testUpdateViewRowsInTransaction_ExceptionDuringUpdate() {
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		when(mockMetadataProvider.getObjectType()).thenReturn(objectType);

@@ -4,32 +4,31 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.ObjectType;
-
 /**
  * DTO that specifies the scope filter to apply when working with a view
  * 
  * @author Marco Marasca
  */
-public class ViewScopeFilter {
+public class ViewScopeFilter implements HasViewObjectType {
 
-	private final ObjectType objectType;
-	private final List<Enum<?>> subTypes;
+	private final ViewObjectType objectType;
+	private final List<String> subTypes;
 	private final boolean filterByObjectId;
 	private final Set<Long> containerIds;
 
-	public ViewScopeFilter(ObjectType objectType, List<Enum<?>> subTypes, boolean filterByObjectId, Set<Long> containerIds) {
+	public ViewScopeFilter(ViewObjectType objectType, List<String> subTypes, boolean filterByObjectId, Set<Long> containerIds) {
 		this.objectType = objectType;
 		this.subTypes = subTypes;
 		this.filterByObjectId = filterByObjectId;
 		this.containerIds = containerIds;
 	}
 	
-	public ObjectType getObjectType() {
+	@Override
+	public ViewObjectType getObjectType() {
 		return objectType;
 	}
 
-	public List<Enum<?>> getSubTypes() {
+	public List<String> getSubTypes() {
 		return subTypes;
 	}
 

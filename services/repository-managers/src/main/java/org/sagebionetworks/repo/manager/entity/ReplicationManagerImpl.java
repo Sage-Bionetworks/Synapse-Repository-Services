@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.util.ValidateArgument;
@@ -24,12 +25,16 @@ public class ReplicationManagerImpl implements ReplicationManager {
 
 	public static final int MAX_ANNOTATION_CHARS = 500;
 	
-	@Autowired
-	NodeDAO nodeDao;
+	private NodeDAO nodeDao;
 
+	private ConnectionFactory connectionFactory;
+		
 	@Autowired
-	ConnectionFactory connectionFactory;
-	
+	public ReplicationManagerImpl(NodeDAO nodeDao, ConnectionFactory connectionFactory) {
+		this.nodeDao = nodeDao;
+		this.connectionFactory = connectionFactory;
+	}
+
 	/**
 	 * Replicate the data for the provided entities.
 	 * 
@@ -70,6 +75,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	public static void groupByChangeType(List<ChangeMessage> messages,
 			List<String> createOrUpdateIds, List<String> deleteIds) {
 		for (ChangeMessage change : messages) {
+			// TODO map to ViewObjectType
 			if (ObjectType.ENTITY.equals(change.getObjectType())) {
 				if (ChangeType.DELETE.equals(change.getChangeType())) {
 					// entity delete
@@ -123,10 +129,11 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	 * @param ids All of the ids to be created/updated/deleted.
 	 */
 	void replicateInIndex(final TableIndexDAO indexDao, final List<ObjectDataDTO> entityDTOs, List<Long> ids) {
+		// TODO should get the object type in input
+		ViewObjectType objectType = ViewObjectType.ENTITY;
 		indexDao.executeInWriteTransaction((TransactionStatus status) -> {
-			// TODO should get the object type in input
-			indexDao.deleteObjectData(ObjectType.ENTITY, ids);
-			indexDao.addObjectData(ObjectType.ENTITY, entityDTOs);
+			indexDao.deleteObjectData(objectType, ids);
+			indexDao.addObjectData(objectType, entityDTOs);
 			return null;
 		});
 	}

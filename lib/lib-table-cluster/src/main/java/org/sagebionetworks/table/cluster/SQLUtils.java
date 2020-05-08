@@ -47,7 +47,6 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.json.JSONArray;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -56,6 +55,7 @@ import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.repo.model.table.parser.AllLongTypeParser;
 import org.sagebionetworks.repo.model.table.parser.BooleanParser;
@@ -1793,7 +1793,7 @@ public class SQLUtils {
 	 * @param dto
 	 * @throws SQLException
 	 */
-	public static void writeAnnotationDtoToPreparedStatement(ObjectType objectType, PreparedStatement ps, ObjectAnnotationDTO dto) throws SQLException{
+	public static void writeAnnotationDtoToPreparedStatement(ViewObjectType objectType, PreparedStatement ps, ObjectAnnotationDTO dto) throws SQLException{
 		int parameterIndex = 1;
 		ps.setString(parameterIndex++, objectType.name());
 		ps.setLong(parameterIndex++, dto.getObjectId());
@@ -2033,7 +2033,7 @@ public class SQLUtils {
 	}
 	
 	public static String getViewScopeSubTypeFilter(ViewScopeFilter scopeFilter) {
-		List<Enum<?>> subTypes = scopeFilter.getSubTypes();
+		List<String> subTypes = scopeFilter.getSubTypes();
 		
 		StringBuilder builder = new StringBuilder();
 		
@@ -2041,7 +2041,7 @@ public class SQLUtils {
 		builder.append(".");
 		builder.append(TableConstants.OBJECT_REPLICATION_COL_SUBTYPE);
 		builder.append(" IN (");
-		builder.append(TableConstants.joinEnumForSQL(subTypes.stream()));
+		builder.append(TableConstants.joinStringForSQL(subTypes.stream()));
 		builder.append(")");
 		
 		return builder.toString();

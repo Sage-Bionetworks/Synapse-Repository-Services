@@ -63,6 +63,7 @@ import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
@@ -152,7 +153,7 @@ public class TableManagerSupportTest {
 		scope = Sets.newHashSet(222L,333L);
 		
 		containersInScope = new LinkedHashSet<Long>(Arrays.asList(222L,333L,20L,21L,30L,31L));
-		scopeType = new ViewScopeType(ObjectType.ENTITY, ViewTypeMask.File.getMask());
+		scopeType = new ViewScopeType(ViewObjectType.ENTITY, ViewTypeMask.File.getMask());
 		
 	}
 	
@@ -537,7 +538,7 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testGetAllContainerIdsForScopeProject() throws LimitExceededException{
-		scopeType = new ViewScopeType(ObjectType.ENTITY, ViewTypeMask.Project.getMask());
+		scopeType = new ViewScopeType(ViewObjectType.ENTITY, ViewTypeMask.Project.getMask());
 		// call under test.
 		Set<Long> containers = manager.getAllContainerIdsForScope(scope, scopeType);
 		assertEquals(scope, containers);

@@ -19,16 +19,16 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
+import org.sagebionetworks.util.EnumUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
@@ -48,10 +48,10 @@ public class TableIndexDAOImplUnitTest {
 	@InjectMocks
 	private TableIndexDAOImpl spyDao;
 
-	private ObjectType objectType = ObjectType.ENTITY;
+	private ViewObjectType objectType = ViewObjectType.ENTITY;
 
 	private ViewScopeFilter getScopeFilter(Set<Long> containerIds) {
-		return new ViewScopeFilter(objectType, ImmutableList.of(EntityType.file), false, containerIds);
+		return new ViewScopeFilter(objectType, EnumUtils.names(EntityType.file), false, containerIds);
 	}
 
 	@Test

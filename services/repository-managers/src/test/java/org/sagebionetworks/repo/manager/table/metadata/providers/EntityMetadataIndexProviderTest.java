@@ -6,8 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
-import org.sagebionetworks.repo.manager.table.metadata.providers.EntityMetadataIndexProvider;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -24,7 +23,7 @@ public class EntityMetadataIndexProviderTest {
 	
 	@Test
 	public void testWiring() {
-		MetadataIndexProvider provider = factory.getMetadataIndexProvider(ObjectType.ENTITY);
+		MetadataIndexProvider provider = factory.getMetadataIndexProvider(ViewObjectType.ENTITY);
 		
 		assertEquals(entityProvider, provider);
 	}

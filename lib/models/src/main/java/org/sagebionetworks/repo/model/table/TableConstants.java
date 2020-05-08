@@ -4,10 +4,9 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import org.sagebionetworks.repo.model.ObjectType;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -133,7 +132,7 @@ public class TableConstants {
 	public static final String EXPIRES_PARAM_NAME = "bExpires";
 	
 	// Dynamic string of all the object types, used to build the enum type in the replication table
-	private static final String OBJECT_TYPES_ENUM_STRING = joinEnumForSQL(ObjectType.values());
+	private static final String OBJECT_TYPES_ENUM_STRING = joinEnumForSQL(ViewObjectType.values());
 	
 	public final static String REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE = 
 			"CREATE TABLE IF NOT EXISTS "+REPLICATION_SYNC_EXPIRATION_TABLE+ "("
@@ -385,8 +384,15 @@ public class TableConstants {
 	}
 	
 	public static String joinEnumForSQL(Stream<Enum<?>> valuesStream) {
-		return valuesStream.map( e -> "'" + e.name() + "'").collect(Collectors.joining(","));
+		return joinValueForSQL(valuesStream, Enum::name);
 	}
 	
+	public static String joinStringForSQL(Stream<String> valuesStream) {
+		return joinValueForSQL(valuesStream, Function.identity());
+	}
+	
+	public static <T> String joinValueForSQL(Stream<T> valuesStream, Function<T, String> valueMapper) {
+		return valuesStream.map( e -> "'" + valueMapper.apply(e) + "'").collect(Collectors.joining(","));
+	}
 
 }
