@@ -169,7 +169,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		}
 		TableStatus status = tableMangerSupport.getTableStatusOrCreateIfNotExists(tableId);
 		if(!TableState.AVAILABLE.equals(status.getState())) {
-			return Optional.empty();
+			return Optional.of(false);
 		}
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
 		ViewScopeType scopeType = tableMangerSupport.getViewScopeType(tableId);
@@ -196,7 +196,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	@Override
 	public void waitForViewToBeUpToDate(IdAndVersion viewId, long maxWaitMS) throws InterruptedException, AsynchJobFailedException, TableFailedException {
 		long start = System.currentTimeMillis();
-		// only wait if the view is available but out-of-date.
+		// only wait if the view is not available or if it's available but but out-of-date.
 		while(!isViewAvailableAndUpToDate(viewId).orElse(true)) {
 			assertTrue((System.currentTimeMillis()-start) <  maxWaitMS, "Timed out waiting for table view to be up-to-date.");
 			System.out.println("Waiting for view "+viewId+" to be up-to-date");
