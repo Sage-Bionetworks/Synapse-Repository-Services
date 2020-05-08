@@ -54,6 +54,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -1788,6 +1789,98 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).createMultivalueColumnIndexTable(tableId, columnModel, alterTemp);
 		verify(mockIndexDao).populateListColumnIndexTable(tableId, columnModel, null, alterTemp);
 		verify(mockIndexDao).deleteMultivalueColumnIndexTable(tableId, columnIdToRemove, alterTemp);
+	}
+
+	@Test
+	public void testValidateTableMaximumListLengthChanges_noListTypes(){
+		ColumnModel oldCol = new ColumnModel();
+		oldCol.setId("5");
+		oldCol.setName("old");
+		oldCol.setColumnType(ColumnType.STRING);
+		ColumnModel newCol = new ColumnModel();
+		newCol.setId("56");
+		newCol.setName("new");
+		newCol.setColumnType(ColumnType.STRING);
+
+		ColumnChangeDetails change = new ColumnChangeDetails(oldCol, newCol);
+
+		// method under test
+		manager.validateTableMaximumListLengthChanges(tableId, change);
+
+		verify(mockIndexDao,never()).tempTableListColumnMaxLength(any(),any());
+	}
+
+	@Test
+	public void testValidateTableMaximumListLengthChanges_bothListTypes_ListLengthNewGreaterThanOrEqualOld(){
+		ColumnModel oldCol = new ColumnModel();
+		oldCol.setId("5");
+		oldCol.setName("old");
+		oldCol.setColumnType(ColumnType.STRING_LIST);
+		oldCol.setMaximumListLength(4L);
+		ColumnModel newCol = new ColumnModel();
+		newCol.setId("56");
+		newCol.setName("new");
+		newCol.setColumnType(ColumnType.STRING_LIST);
+		newCol.setMaximumListLength(14L);
+
+		ColumnChangeDetails change = new ColumnChangeDetails(oldCol, newCol);
+
+		// method under test
+		manager.validateTableMaximumListLengthChanges(tableId, change);
+
+		verify(mockIndexDao,never()).tempTableListColumnMaxLength(any(),any());
+	}
+
+	@Test
+	public void testValidateTableMaximumListLengthChanges_bothListTypes_ListLengthNewLessThanOld_underExistingTableMaxLength(){
+		ColumnModel oldCol = new ColumnModel();
+		oldCol.setId("5");
+		oldCol.setName("old");
+		oldCol.setColumnType(ColumnType.STRING_LIST);
+		oldCol.setMaximumListLength(4L);
+		ColumnModel newCol = new ColumnModel();
+		newCol.setId("56");
+		newCol.setName("new");
+		newCol.setColumnType(ColumnType.STRING_LIST);
+		newCol.setMaximumListLength(2L);
+
+		ColumnChangeDetails change = new ColumnChangeDetails(oldCol, newCol);
+
+		when(mockIndexDao.tempTableListColumnMaxLength(tableId, oldCol.getId())).thenReturn(2L);
+
+		// method under test
+		manager.validateTableMaximumListLengthChanges(tableId, change);
+
+		verify(mockIndexDao).tempTableListColumnMaxLength(tableId,oldCol.getId());
+	}
+
+
+	@Test
+	public void testValidateTableMaximumListLengthChanges_bothListTypes_ListLengthNewLessThanOld_aboveExistingTableMaxLength(){
+		ColumnModel oldCol = new ColumnModel();
+		oldCol.setId("5");
+		oldCol.setName("old");
+		oldCol.setColumnType(ColumnType.STRING_LIST);
+		oldCol.setMaximumListLength(4L);
+		ColumnModel newCol = new ColumnModel();
+		newCol.setId("56");
+		newCol.setName("new");
+		newCol.setColumnType(ColumnType.STRING_LIST);
+		newCol.setMaximumListLength(2L);
+
+		ColumnChangeDetails change = new ColumnChangeDetails(oldCol, newCol);
+
+		when(mockIndexDao.tempTableListColumnMaxLength(tableId, oldCol.getId())).thenReturn(3L);
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
+				// method under test
+				manager.validateTableMaximumListLengthChanges(tableId, change)
+		).getMessage();
+
+		assertEquals("maximumListLength for ColumnModel \"new\" must be at least: 3", errorMessage);
+
+
+		verify(mockIndexDao).tempTableListColumnMaxLength(tableId,oldCol.getId());
 	}
 
 

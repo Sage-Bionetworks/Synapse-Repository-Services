@@ -87,7 +87,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
@@ -944,6 +943,12 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 						+ annotationName + "\" must be at least: " + maxLengthInReplication);
 			}
 		}
+	}
+	@Override
+	public long tempTableListColumnMaxLength(IdAndVersion tableId, String columnId){
+		String sql = "SELECT IFNULL(MAX(JSON_LENGTH(" + SQLUtils.getColumnNameForId(columnId) + ")),0) " +
+				"FROM " + SQLUtils.getTemporaryTableName(tableId);
+		return template.queryForObject(sql, Long.class);
 	}
 
 	@Override
