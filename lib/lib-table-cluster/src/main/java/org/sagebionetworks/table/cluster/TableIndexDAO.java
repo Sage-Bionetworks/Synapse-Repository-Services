@@ -554,6 +554,6 @@ public interface TableIndexDAO {
 	/**
 	 * @return the entity DTO for a given entity ID
 	 */
-	ObjectDataDTO getObjectData(ViewObjectType objectType, Long objectId, Class<? extends Enum> subTypeClass);
+	ObjectDataDTO getObjectData(ViewObjectType objectType, Long objectId);
 
 }

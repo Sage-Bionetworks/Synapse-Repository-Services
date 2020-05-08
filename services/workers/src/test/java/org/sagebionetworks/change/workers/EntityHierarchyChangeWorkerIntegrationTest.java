@@ -18,7 +18,6 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -126,7 +125,7 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 	public ObjectDataDTO waitForEntityDto(String entityId) throws InterruptedException{
 		long startTimeMS = System.currentTimeMillis();
 		while(true){
-			ObjectDataDTO entityDto = indexDao.getObjectData(viewObjectType, KeyFactory.stringToKey(entityId), EntityType.class);
+			ObjectDataDTO entityDto = indexDao.getObjectData(viewObjectType, KeyFactory.stringToKey(entityId));
 			if(entityDto != null){
 				return entityDto;
 			}

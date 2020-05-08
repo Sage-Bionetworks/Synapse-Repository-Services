@@ -12,11 +12,11 @@ import java.util.Set;
 public class ViewScopeFilter implements HasViewObjectType {
 
 	private final ViewObjectType objectType;
-	private final List<Enum<?>> subTypes;
+	private final List<String> subTypes;
 	private final boolean filterByObjectId;
 	private final Set<Long> containerIds;
 
-	public ViewScopeFilter(ViewObjectType objectType, List<Enum<?>> subTypes, boolean filterByObjectId, Set<Long> containerIds) {
+	public ViewScopeFilter(ViewObjectType objectType, List<String> subTypes, boolean filterByObjectId, Set<Long> containerIds) {
 		this.objectType = objectType;
 		this.subTypes = subTypes;
 		this.filterByObjectId = filterByObjectId;
@@ -28,7 +28,7 @@ public class ViewScopeFilter implements HasViewObjectType {
 		return objectType;
 	}
 
-	public List<Enum<?>> getSubTypes() {
+	public List<String> getSubTypes() {
 		return subTypes;
 	}
 

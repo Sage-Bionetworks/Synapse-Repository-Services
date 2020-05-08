@@ -19,7 +19,7 @@ public interface ViewScopeFilterProvider extends HasViewObjectType {
 	 * @param typeMask The subtype mask
 	 * @return The list of enum values that map to the given type mask
 	 */
-	List<Enum<?>> getSubTypesForMask(Long typeMask);
+	List<String> getSubTypesForMask(Long typeMask);
 
 	/**
 	 * Generally when a view is built from its scope the parent id is used to filter

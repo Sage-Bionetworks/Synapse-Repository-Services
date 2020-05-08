@@ -38,11 +38,11 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 	}
 
 	@Override
-	public List<Enum<?>> getSubTypesForMask(Long typeMask) {
-		List<Enum<?>> typesFilter = new ArrayList<>();
+	public List<String> getSubTypesForMask(Long typeMask) {
+		List<String> typesFilter = new ArrayList<>();
 		for(ViewTypeMask type: ViewTypeMask.values()) {
 			if ((type.getMask() & typeMask) > 0) {
-				typesFilter.add(type.getEntityType());
+				typesFilter.add(type.getEntityType().name());
 			}
 		}
 		return typesFilter;

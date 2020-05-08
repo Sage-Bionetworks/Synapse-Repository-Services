@@ -47,6 +47,7 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
+import org.sagebionetworks.util.EnumUtils;
 import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
@@ -1887,7 +1888,7 @@ public class SQLUtilsTest {
 	public void testCreateSelectFromObjectReplication(){
 		ColumnMetadata one = createMetadataForAnnotation(ColumnType.STRING, 1);
 		ColumnMetadata id = createMetadataForEntityField(ObjectField.id, 2);
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);		
 		StringBuilder builder = new StringBuilder();
@@ -1917,7 +1918,7 @@ public class SQLUtilsTest {
 	@Test
 	public void createMaxListLengthValidationSQL(){
 		Set<String> annotationNames = Sets.newHashSet("foo");
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		boolean filterByRows = false;
@@ -1940,7 +1941,7 @@ public class SQLUtilsTest {
 	@Test
 	public void createMaxListLengthValidationSQL_nullAnnotationNames(){
 		Set<String> annotationNames = null;
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		boolean filterByRows = false;
@@ -1953,7 +1954,7 @@ public class SQLUtilsTest {
 	@Test
 	public void createMaxListLengthValidationSQL_emptyAnnotationNames(){
 		Set<String> annotationNames = Collections.emptySet();
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		boolean filterByRows = false;
@@ -1967,7 +1968,7 @@ public class SQLUtilsTest {
 	public void testCreateSelectFromObjectReplicationFilterByRows(){
 		ColumnMetadata one = createMetadataForAnnotation(ColumnType.STRING, 1);
 		ColumnMetadata id = createMetadataForEntityField(ObjectField.id, 2);
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		StringBuilder builder = new StringBuilder();
@@ -2001,7 +2002,7 @@ public class SQLUtilsTest {
 	public void testCreateSelectInsertFromObjectReplication(){
 		ColumnMetadata one = createMetadataForAnnotation(ColumnType.STRING, 1);
 		ColumnMetadata id = createMetadataForEntityField(ObjectField.id, 2);
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		boolean filterByRows = false;
@@ -2030,7 +2031,7 @@ public class SQLUtilsTest {
 	public void testCreateSelectInsertFromObjectReplicationFilterByRows(){
 		ColumnMetadata one = createMetadataForAnnotation(ColumnType.STRING, 1);
 		ColumnMetadata id = createMetadataForEntityField(ObjectField.id, 2);
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		boolean filterByRows = true;
@@ -2060,7 +2061,7 @@ public class SQLUtilsTest {
 	public void testCreateSelectInsertFromObjectReplicationProjectView(){
 		ColumnMetadata one = createMetadataForAnnotation(ColumnType.STRING, 1);
 		ColumnMetadata id = createMetadataForEntityField(ObjectField.id, 2);
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.project);
+		List<String> subTypes = EnumUtils.names(EntityType.project);
 		boolean filterByObjectId = true;
 		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		boolean filterByRows = false;
@@ -2088,7 +2089,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testCreateSelectInsertFromObjectReplicationWithDouble(){
 		ColumnMetadata one = createMetadataForAnnotation(ColumnType.DOUBLE, 3);
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		boolean filterByRows = false;
@@ -2582,7 +2583,7 @@ public class SQLUtilsTest {
 
 	@Test
 	public void testGetDistinctAnnotationColumnsSqlFileView(){
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		String sql = SQLUtils.getDistinctAnnotationColumnsSql(scopeFilter);
@@ -2592,7 +2593,7 @@ public class SQLUtilsTest {
 
 	@Test
 	public void testGetDistinctAnnotationColumnsSqlProjectView(){
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.project);
+		List<String> subTypes = EnumUtils.names(EntityType.project);
 		boolean filterByObjectId = true;
 		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		String sql = SQLUtils.getDistinctAnnotationColumnsSql(scopeFilter);
@@ -2964,7 +2965,7 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testGetOutOfDateRowsForViewSqlFileView() {
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		// call under test
@@ -2991,7 +2992,7 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testGetOutOfDateRowsForViewSqlFileProject() {
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.project);
+		List<String> subTypes = EnumUtils.names(EntityType.project);
 		boolean filterByObjectId = true;
 		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
 		// call under test
@@ -3025,7 +3026,7 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testGetViewScopeSubTypeFilterWithSingleType(){
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
@@ -3036,7 +3037,7 @@ public class SQLUtilsTest {
 
 	@Test
 	public void testGetViewScopeSubTypeFilterWithMultipleTypes(){
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file, EntityType.table);
+		List<String> subTypes = EnumUtils.names(EntityType.file, EntityType.table);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
@@ -3047,7 +3048,7 @@ public class SQLUtilsTest {
 
 	@Test
 	public void testGetViewScopeSubTypeFilterWithAllEntityTypes(){
-		List<Enum<?>> subTypes = Arrays.asList(EntityType.values());
+		List<String> subTypes = EnumUtils.names(EntityType.class);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
@@ -3058,7 +3059,7 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testGetViewScopeFilterColumn() {
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		
 		boolean filterByObjectId = false;
 		
@@ -3071,7 +3072,7 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testGetViewScopeFilterColumnWithFilterByObjectId() {
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		
 		boolean filterByObjectId = true;
 		
@@ -3082,7 +3083,7 @@ public class SQLUtilsTest {
 		assertEquals(TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID, result);
 	}
 	
-	private ViewScopeFilter getSQLScopeFilter(List<Enum<?>> subTypes, boolean filterByObjectId) {
+	private ViewScopeFilter getSQLScopeFilter(List<String> subTypes, boolean filterByObjectId) {
 		return new ViewScopeFilter(ViewObjectType.ENTITY, subTypes, filterByObjectId, Collections.emptySet());
 	}
 }

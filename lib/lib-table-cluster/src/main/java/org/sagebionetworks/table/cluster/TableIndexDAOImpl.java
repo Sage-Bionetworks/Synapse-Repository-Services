@@ -739,7 +739,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				ps.setLong(parameterIndex++, dto.getCreatedOn().getTime());
 				ps.setString(parameterIndex++, dto.getEtag());
 				ps.setString(parameterIndex++, dto.getName());
-				ps.setString(parameterIndex++, dto.getSubType().name());
+				ps.setString(parameterIndex++, dto.getSubType());
 				if(dto.getParentId() != null){
 					ps.setLong(parameterIndex++, dto.getParentId());
 				}else{
@@ -809,9 +809,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		
 	}
 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
-	public ObjectDataDTO getObjectData(ViewObjectType objectType, Long objectId, Class<? extends Enum> subTypeClass) {
+	public ObjectDataDTO getObjectData(ViewObjectType objectType, Long objectId) {
 		// query for the template.
 		ObjectDataDTO dto;
 		try {
@@ -823,7 +822,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				dto1.setCreatedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_CREATED_ON)));
 				dto1.setEtag(rs.getString(OBEJCT_REPLICATION_COL_ETAG));
 				dto1.setName(rs.getString(OBJECT_REPLICATION_COL_NAME));
-				dto1.setSubType(Enum.valueOf(subTypeClass, rs.getString(OBJECT_REPLICATION_COL_SUBTYPE)));
+				dto1.setSubType(rs.getString(OBJECT_REPLICATION_COL_SUBTYPE));
 				dto1.setParentId(rs.getLong(OBJECT_REPLICATION_COL_PARENT_ID));
 				if (rs.wasNull()) {
 					dto1.setParentId(null);
@@ -858,6 +857,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return null;
 		}
 		// get the annotations.
+		@SuppressWarnings("unchecked")
 		List<ObjectAnnotationDTO> annotations = template.query(TableConstants.ANNOTATION_REPLICATION_GET, (ResultSet rs, int rowNum) -> {
 			ObjectAnnotationDTO dto1 = new ObjectAnnotationDTO();
 			dto1.setObjectId(rs.getLong(ANNOTATION_REPLICATION_COL_OBJECT_ID));

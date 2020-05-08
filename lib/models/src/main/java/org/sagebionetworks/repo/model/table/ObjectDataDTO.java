@@ -16,7 +16,7 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 	private Date createdOn;
 	private String etag;
 	private String name;
-	private Enum<?> subType;
+	private String subType;
 	private Long parentId;
 	private Long benefactorId;
 	private Long projectId;
@@ -76,11 +76,11 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 		this.name = name;
 	}
 
-	public Enum<?> getSubType() {
+	public String getSubType() {
 		return subType;
 	}
 
-	public void setSubType(Enum<?> type) {
+	public void setSubType(String type) {
 		this.subType = type;
 	}
 
@@ -191,7 +191,7 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 				&& Objects.equals(isInSynapseStorage, other.isInSynapseStorage)
 				&& Objects.equals(modifiedBy, other.modifiedBy) && Objects.equals(modifiedOn, other.modifiedOn)
 				&& Objects.equals(name, other.name) && Objects.equals(parentId, other.parentId)
-				&& Objects.equals(projectId, other.projectId) && subType == other.subType;
+				&& Objects.equals(projectId, other.projectId) && Objects.equals(subType, other.subType);
 	}
 
 	@Override

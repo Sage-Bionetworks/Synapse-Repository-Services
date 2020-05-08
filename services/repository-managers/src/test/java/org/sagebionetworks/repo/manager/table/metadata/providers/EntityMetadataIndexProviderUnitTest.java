@@ -15,8 +15,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
-
-import com.google.common.collect.ImmutableList;
+import org.sagebionetworks.util.EnumUtils;
 
 @ExtendWith(MockitoExtension.class)
 public class EntityMetadataIndexProviderUnitTest {
@@ -75,7 +74,7 @@ public class EntityMetadataIndexProviderUnitTest {
 		Long viewTypeMask = 0L;
 		
 		// Call under test
-		List<Enum<?>> result = provider.getSubTypesForMask(viewTypeMask);
+		List<String> result = provider.getSubTypesForMask(viewTypeMask);
 
 		assertTrue(result.isEmpty());
 	}
@@ -84,10 +83,10 @@ public class EntityMetadataIndexProviderUnitTest {
 	public void testGetSubTypesForMaskWithFile() {
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		
-		List<Enum<?>> expected = ImmutableList.of(EntityType.file);
+		List<String> expected = EnumUtils.names(EntityType.file);
 		
 		// Call under test
-		List<Enum<?>> result = provider.getSubTypesForMask(viewTypeMask);
+		List<String> result = provider.getSubTypesForMask(viewTypeMask);
 		
 		assertEquals(expected, result);
 	}
@@ -96,10 +95,10 @@ public class EntityMetadataIndexProviderUnitTest {
 	public void testGetSubTypesForMaskWithMixed() {
 		Long viewTypeMask = ViewTypeMask.File.getMask() | ViewTypeMask.Project.getMask();
 		
-		List<Enum<?>> expected = ImmutableList.of(EntityType.file, EntityType.project);
+		List<String> expected = EnumUtils.names(EntityType.file, EntityType.project);
 		
 		// Call under test
-		List<Enum<?>> result = provider.getSubTypesForMask(viewTypeMask);
+		List<String> result = provider.getSubTypesForMask(viewTypeMask);
 		
 		assertEquals(expected, result);
 	}

@@ -3035,7 +3035,7 @@ public class NodeDAOImplTest {
 		assertEquals(file.getCreatedOn(), fileDto.getCreatedOn());
 		assertEquals(file.getETag(), fileDto.getEtag());
 		assertEquals(file.getName(), fileDto.getName());
-		assertEquals(file.getNodeType(), fileDto.getSubType());
+		assertEquals(file.getNodeType().name(), fileDto.getSubType());
 		assertEquals(KeyFactory.stringToKey(project.getId()), fileDto.getParentId());
 		assertEquals(KeyFactory.stringToKey(project.getId()), fileDto.getBenefactorId());
 		assertEquals(KeyFactory.stringToKey(project.getId()), fileDto.getProjectId());

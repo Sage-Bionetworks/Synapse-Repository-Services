@@ -18,7 +18,6 @@ import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -193,7 +192,7 @@ public class StorageReportCSVDownloadWorkerIntegrationTest {
 		Entity entity = entityManager.getEntity(adminUserInfo, entityId);
 		TableIndexDAO indexDao = tableConnectionFactory.getFirstConnection();
 		while(true){
-			ObjectDataDTO dto = indexDao.getObjectData(ViewObjectType.ENTITY, KeyFactory.stringToKey(entityId), EntityType.class);
+			ObjectDataDTO dto = indexDao.getObjectData(ViewObjectType.ENTITY, KeyFactory.stringToKey(entityId));
 			if(dto == null || !dto.getEtag().equals(entity.getEtag())){
 				System.out.println("Waiting for entity replication. id: "+entityId+" etag: "+entity.getEtag());
 				Thread.sleep(1000);

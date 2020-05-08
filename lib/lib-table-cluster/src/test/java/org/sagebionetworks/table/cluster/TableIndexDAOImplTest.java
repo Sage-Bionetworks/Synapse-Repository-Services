@@ -67,12 +67,12 @@ import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.Callback;
+import org.sagebionetworks.util.EnumUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -1333,11 +1333,11 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file, folder, project));
 
 		// lookup each
-		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, 1L, objectSubType);
+		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, 1L);
 		assertEquals(project, fetched);
-		fetched = tableIndexDAO.getObjectData(objectType, 2L, objectSubType);
+		fetched = tableIndexDAO.getObjectData(objectType, 2L);
 		assertEquals(folder, fetched);
-		fetched = tableIndexDAO.getObjectData(objectType, 3L, objectSubType);
+		fetched = tableIndexDAO.getObjectData(objectType, 3L);
 		assertEquals(file, fetched);
 	}
 
@@ -1383,7 +1383,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(objectType, Collections.singletonList(project));
 
 		// lookup each
-		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, id, objectSubType);
+		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, id);
 		assertEquals(project, fetched);
 	}
 	
@@ -1400,7 +1400,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(project));
 		
 		// lookup each
-		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, 1L, objectSubType);
+		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, 1L);
 		assertEquals(project, fetched);
 	}
 	
@@ -1432,11 +1432,11 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file));
 		
 		// lookup each
-		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, 1L, objectSubType);
+		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, 1L);
 		assertEquals(file, fetched);
 	}
 	
-	private ViewScopeFilter getScopeFilter(ViewObjectType objectType, List<Enum<?>> subTypes, boolean filterByObjectId, Set<Long> containerIds) {
+	private ViewScopeFilter getScopeFilter(ViewObjectType objectType, List<String> subTypes, boolean filterByObjectId, Set<Long> containerIds) {
 		return new ViewScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
 	}
 
@@ -1447,7 +1447,7 @@ public class TableIndexDAOImplTest {
 
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, nullScope);
@@ -1467,7 +1467,7 @@ public class TableIndexDAOImplTest {
 
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, emptyScope);
@@ -1484,7 +1484,7 @@ public class TableIndexDAOImplTest {
 
 		Set<String> nullAnnotationNames = null;
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -1506,7 +1506,7 @@ public class TableIndexDAOImplTest {
 
 		Set<Long> emptyObjectIdFilter = Collections.emptySet();
 
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -1525,7 +1525,7 @@ public class TableIndexDAOImplTest {
 
 		Set<String> emptyAnnotationNames = Collections.emptySet();
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -1583,7 +1583,7 @@ public class TableIndexDAOImplTest {
 		createOrUpdateTable(schema, tableId, isView);
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -1623,7 +1623,7 @@ public class TableIndexDAOImplTest {
 		// method under test
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -1681,7 +1681,7 @@ public class TableIndexDAOImplTest {
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
 
 		Set<Long> objectIdFilter = Sets.newHashSet(2L);
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -1716,7 +1716,7 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -1765,7 +1765,7 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -1823,7 +1823,7 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -1866,7 +1866,7 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils
 				.createColumn(1L, "foo", ColumnType.DOUBLE));
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -1914,7 +1914,7 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils
 				.createColumn(1L, "foo", ColumnType.INTEGER_LIST));
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -1966,7 +1966,7 @@ public class TableIndexDAOImplTest {
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -1996,7 +1996,7 @@ public class TableIndexDAOImplTest {
 		// capture the results of the stream
 		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -2029,7 +2029,7 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -2061,7 +2061,7 @@ public class TableIndexDAOImplTest {
 		long limit = 5;
 		long offset = 0;
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
@@ -2126,7 +2126,7 @@ public class TableIndexDAOImplTest {
 		long limit = 5;
 		long offset = 0;
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
@@ -2227,7 +2227,7 @@ public class TableIndexDAOImplTest {
 		long limit = 5;
 		long offset = 0;
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
@@ -2343,7 +2343,7 @@ public class TableIndexDAOImplTest {
 		long limit = 5;
 		long offset = 0;
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.project);
+		List<String> subTypes = EnumUtils.names(EntityType.project);
 		boolean filterByObjectId = true;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
@@ -2824,7 +2824,7 @@ public class TableIndexDAOImplTest {
 		ObjectDataDTO.setCreatedOn(new Date());
 		ObjectDataDTO.setEtag("etag"+id);
 		ObjectDataDTO.setName("name"+id);
-		ObjectDataDTO.setSubType(type);
+		ObjectDataDTO.setSubType(type.name());
 		ObjectDataDTO.setParentId(1L);
 		ObjectDataDTO.setBenefactorId(2L);
 		ObjectDataDTO.setProjectId(3L);
@@ -3057,7 +3057,7 @@ public class TableIndexDAOImplTest {
 		createOrUpdateTable(schema, tableId, isView);
 		long limit = 100L;
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -3088,7 +3088,7 @@ public class TableIndexDAOImplTest {
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -3126,7 +3126,7 @@ public class TableIndexDAOImplTest {
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -3167,7 +3167,7 @@ public class TableIndexDAOImplTest {
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -3208,7 +3208,7 @@ public class TableIndexDAOImplTest {
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -3249,7 +3249,7 @@ public class TableIndexDAOImplTest {
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -3283,7 +3283,7 @@ public class TableIndexDAOImplTest {
 		// all of the rows are out-of-date, but only the last should be returned with a limit of one.
 		long limit = 1L;
 
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -3317,7 +3317,7 @@ public class TableIndexDAOImplTest {
 		createOrUpdateTable(schema, tableId, isView);
 		long limit = 100L;
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -3355,7 +3355,7 @@ public class TableIndexDAOImplTest {
 		
 		// start including all types
 		
-		List<Enum<?>> subTypes = Arrays.asList(EntityType.values());
+		List<String> subTypes = EnumUtils.names(EntityType.class);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -3365,7 +3365,7 @@ public class TableIndexDAOImplTest {
 		
 		long limit = 100L;
 		// File only type used to indicate the new type is files-only.
-		subTypes = ImmutableList.of(EntityType.file);
+		subTypes = EnumUtils.names(EntityType.file);
 		scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
 		
 		// call under test
@@ -3389,7 +3389,7 @@ public class TableIndexDAOImplTest {
 		
 		long limit = 1L;
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -3405,7 +3405,7 @@ public class TableIndexDAOImplTest {
 		Set<Long> scope = Collections.emptySet();
 		long limit = 1L;
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -3421,7 +3421,7 @@ public class TableIndexDAOImplTest {
 		Set<Long> scope = null;
 		long limit = 1L;
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -3506,7 +3506,7 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -3543,7 +3543,7 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -3601,7 +3601,7 @@ public class TableIndexDAOImplTest {
 		// Only add the first and last row to the view and a row that does not exist
 		Set<Long> rowFilter = Sets.newHashSet(dtos.get(0).getId(), dtos.get(3).getId(), idThatDoesNotExist);
 		
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -3634,7 +3634,7 @@ public class TableIndexDAOImplTest {
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -3660,7 +3660,7 @@ public class TableIndexDAOImplTest {
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -3692,7 +3692,7 @@ public class TableIndexDAOImplTest {
 		multiValue.setMaximumListLength(53L);
 		List<ColumnModel> schema = Lists.newArrayList(multiValue);
 		createOrUpdateTable(schema, tableId, isView);
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
@@ -3733,7 +3733,7 @@ public class TableIndexDAOImplTest {
 		multiValue.setMaximumListLength(22L);
 		List<ColumnModel> schema = Lists.newArrayList(multiValue);
 		createOrUpdateTable(schema, tableId, isView);
-		List<Enum<?>> subTypes = ImmutableList.of(EntityType.file);
+		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);

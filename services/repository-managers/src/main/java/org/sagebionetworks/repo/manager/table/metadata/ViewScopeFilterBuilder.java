@@ -27,7 +27,7 @@ public class ViewScopeFilterBuilder {
 		ValidateArgument.required(provider, "provider");
 		ValidateArgument.required(viewTypeMask, "viewTypeMask");
 		
-		List<Enum<?>> subTypes = provider.getSubTypesForMask(viewTypeMask);
+		List<String> subTypes = provider.getSubTypesForMask(viewTypeMask);
 		boolean filterByObjectId = provider.isFilterScopeByObjectId(viewTypeMask);
 		Set<Long> containerIds = this.containerIds == null ? Collections.emptySet() : this.containerIds;
 		

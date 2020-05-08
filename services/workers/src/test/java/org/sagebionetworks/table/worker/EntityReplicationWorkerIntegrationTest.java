@@ -14,7 +14,6 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -76,7 +75,7 @@ public class EntityReplicationWorkerIntegrationTest {
 		TableIndexDAO indexDao = tableConnectionFactory.getAllConnections().get(0);
 		long startTimeMS = System.currentTimeMillis();
 		while(true){
-			ObjectDataDTO entityDto = indexDao.getObjectData(ViewObjectType.ENTITY, KeyFactory.stringToKey(entityId), EntityType.class);
+			ObjectDataDTO entityDto = indexDao.getObjectData(ViewObjectType.ENTITY, KeyFactory.stringToKey(entityId));
 			if(entityDto != null){
 				return entityDto;
 			}

@@ -2033,7 +2033,7 @@ public class SQLUtils {
 	}
 	
 	public static String getViewScopeSubTypeFilter(ViewScopeFilter scopeFilter) {
-		List<Enum<?>> subTypes = scopeFilter.getSubTypes();
+		List<String> subTypes = scopeFilter.getSubTypes();
 		
 		StringBuilder builder = new StringBuilder();
 		
@@ -2041,7 +2041,7 @@ public class SQLUtils {
 		builder.append(".");
 		builder.append(TableConstants.OBJECT_REPLICATION_COL_SUBTYPE);
 		builder.append(" IN (");
-		builder.append(TableConstants.joinEnumForSQL(subTypes.stream()));
+		builder.append(TableConstants.joinStringForSQL(subTypes.stream()));
 		builder.append(")");
 		
 		return builder.toString();

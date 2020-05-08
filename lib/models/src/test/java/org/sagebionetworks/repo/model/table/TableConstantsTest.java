@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
+import com.google.common.collect.ImmutableList;
+
 
 public class TableConstantsTest {
 	
@@ -48,5 +50,10 @@ public class TableConstantsTest {
 	@Test
 	public void testJoinEnumForSQL() {
 		assertEquals("'A','B','C'", TableConstants.joinEnumForSQL(TestEnum.values()));
+	}
+	
+	@Test
+	public void testJoinStringForSQL() {
+		assertEquals("'A','B','C'", TableConstants.joinStringForSQL(ImmutableList.of("A", "B", "C").stream()));
 	}
 }

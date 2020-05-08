@@ -1746,7 +1746,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				dto.setCreatedOn(new Date(rs.getLong(COL_NODE_CREATED_ON)));
 				dto.setEtag(rs.getString(COL_NODE_ETAG));
 				dto.setName(rs.getString(COL_NODE_NAME));
-				dto.setSubType(EntityType.valueOf(rs.getString(COL_NODE_TYPE)));
+				dto.setSubType(rs.getString(COL_NODE_TYPE));
 				dto.setParentId(rs.getLong(COL_NODE_PARENT_ID));
 				if(rs.wasNull()){
 					dto.setParentId(null);

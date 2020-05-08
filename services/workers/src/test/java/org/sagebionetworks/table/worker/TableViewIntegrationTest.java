@@ -42,7 +42,6 @@ import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -1848,7 +1847,7 @@ public class TableViewIntegrationTest {
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		while(true){
-			ObjectDataDTO dto = indexDao.getObjectData(viewObjectType, KeyFactory.stringToKey(entityId), EntityType.class);
+			ObjectDataDTO dto = indexDao.getObjectData(viewObjectType, KeyFactory.stringToKey(entityId));
 			if(dto == null || !dto.getEtag().equals(entity.getEtag())){
 				assertTrue((System.currentTimeMillis()-start) <  MAX_WAIT_MS, "Timed out waiting for table view status change.");
 				System.out.println("Waiting for entity replication. id: "+entityId+" etag: "+entity.getEtag());
