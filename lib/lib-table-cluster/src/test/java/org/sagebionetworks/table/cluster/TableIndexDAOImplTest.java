@@ -3719,4 +3719,52 @@ public class TableIndexDAOImplTest {
 		});
 	}
 
+	@Test
+	public void testTempTableListColumnMaxLength(){
+		ColumnModel strListCol = new ColumnModel();
+		strListCol.setId("12");
+		strListCol.setName("foo");
+		strListCol.setMaximumSize(50L);
+		strListCol.setColumnType(ColumnType.STRING_LIST);
+		strListCol.setMaximumListLength(25L);
+
+		List<ColumnModel> schema = Lists.newArrayList(strListCol);
+
+		createOrUpdateTable(schema, tableId, isView);
+		// create five rows.
+		List<Row> rows = TableModelTestUtils.createRows(schema, 5);
+		// add duplicate values
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getSelectColumns(schema));
+		set.setTableId(tableId.toString());
+
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(3L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+
+		createOrUpdateOrDeleteRows(tableId, set, schema);
+		//populate the column index table
+		tableIndexDAO.populateListColumnIndexTable(tableId, strListCol, null, false);
+
+		String columnId = strListCol.getId();
+
+		tableIndexDAO.deleteAllTemporaryMultiValueColumnIndexTable(tableId);
+		tableIndexDAO.deleteTemporaryTable(tableId);
+
+		// Create a copy of the table
+		tableIndexDAO.createTemporaryTable(tableId);
+
+		//method under test
+		// on an empty table without data, we should get back 0
+		assertEquals(0, tableIndexDAO.tempTableListColumnMaxLength(tableId,columnId));
+
+		tableIndexDAO.copyAllDataToTemporaryTable(tableId);
+
+		//method under test
+		assertEquals(2, tableIndexDAO.tempTableListColumnMaxLength(tableId,columnId));
+	}
+
 }
