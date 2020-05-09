@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
@@ -316,8 +317,33 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	@Override
 	public void alterTempTableSchmea(final IdAndVersion tableId, final List<ColumnChangeDetails> changes){
 		boolean alterTemp = true;
+		validateTableMaximumListLengthChanges(tableId,changes);
 		alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
 		alterListColumnIndexTableWithSchemaChange(tableId,changes, alterTemp);
+	}
+
+	void validateTableMaximumListLengthChanges(final IdAndVersion tableId, final List<ColumnChangeDetails> changes){
+		for(ColumnChangeDetails change: changes){
+			validateTableMaximumListLengthChanges(tableId, change);
+		}
+	}
+
+	void validateTableMaximumListLengthChanges(IdAndVersion tableId, ColumnChangeDetails change) {
+		ColumnModel oldColumn = change.getOldColumn();
+		ColumnType oldColumnType = oldColumn != null ? oldColumn.getColumnType() : null;
+		ColumnModel newColumn = change.getNewColumn();
+		ColumnType newColumnType = newColumn != null ? newColumn.getColumnType() : null;
+		if(ColumnTypeListMappings.isList(oldColumnType)
+				&& ColumnTypeListMappings.isList(newColumnType)
+				//we are decreasing the maximum list size
+				&& oldColumn.getMaximumListLength() > newColumn.getMaximumListLength()) {
+
+			long maximumListLengthInTable = tableIndexDao.tempTableListColumnMaxLength(tableId, oldColumn.getId());
+			if (newColumn.getMaximumListLength() < maximumListLengthInTable) {
+				throw new IllegalArgumentException("maximumListLength for ColumnModel \"" + newColumn.getName() +
+						"\" must be at least: " + maximumListLengthInTable);
+			}
+		}
 	}
 
 	/**

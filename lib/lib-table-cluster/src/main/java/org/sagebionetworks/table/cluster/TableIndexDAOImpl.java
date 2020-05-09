@@ -950,6 +950,12 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			}
 		}
 	}
+	@Override
+	public long tempTableListColumnMaxLength(IdAndVersion tableId, String columnId){
+		String sql = "SELECT IFNULL(MAX(JSON_LENGTH(" + SQLUtils.getColumnNameForId(columnId) + ")),0) " +
+				"FROM " + SQLUtils.getTemporaryTableName(tableId);
+		return template.queryForObject(sql, Long.class);
+	}
 
 	@Override
 	public void copyObjectReplicationToView(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper) {

@@ -361,6 +361,14 @@ public interface TableIndexDAO {
 	 */
 	void addObjectData(ViewObjectType objectType, List<ObjectDataDTO> objectDtos);
 
+	/**
+	 * Queries for max length of list values in a column in the temporary copy of the table
+	 * (created using {@link #createTemporaryTable(IdAndVersion)})
+	 * @param tableId
+	 * @param columnId
+	 * @return max list value length of the column
+	 */
+	long tempTableListColumnMaxLength(IdAndVersion tableId, String columnId);
 
 	/**
 	 * Copy the data from the entity replication tables to the given view.

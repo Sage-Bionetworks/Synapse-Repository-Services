@@ -2,6 +2,7 @@ package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -110,10 +111,12 @@ import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
+import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -2155,6 +2158,65 @@ public class TableWorkerIntegrationTest {
 		//result should not have changed
 		assertEquals(Arrays.asList("[\"1\", \"2\", \"3\"]"), result.getQueryResults().getRows().get(0).getValues());
 		assertEquals(Arrays.asList("[\"3\", \"4\", \"5\"]"), result.getQueryResults().getRows().get(1).getValues());
+	}
+
+	@Test
+	public void testChangeListColumnMaximumListLength_valueBelowMaxLists() throws Exception{
+		// setup an EntityId column.
+		ColumnModel startColumn = new ColumnModel();
+		startColumn.setColumnType(ColumnType.STRING_LIST);
+		startColumn.setName("startColumn");
+		startColumn = columnManager.createColumnModel(adminUserInfo, startColumn);
+		schema = Lists.newArrayList(startColumn);
+		// build a table with this column.
+		createTableWithSchema();
+		TableStatus status = waitForTableProcessing(tableId);
+		if(status.getErrorDetails() != null){
+			System.out.println(status.getErrorDetails());
+		}
+		assertTrue(TableState.AVAILABLE.equals(status.getState()));
+
+
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(
+				TableModelTestUtils.createRow(null, null, "[\"1\",\"2\",\"3\"]"),
+				TableModelTestUtils.createRow(null, null, "[\"3\",\"4\",\"5\"]")));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = appendRows(adminUserInfo, tableId,
+				rowSet, mockProgressCallback);
+
+		//query the column expecting the index table for it to be populated
+		QueryResult result = waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where startColumn has ('3')", null, null);
+
+		assertEquals(2, result.getQueryResults().getRows().size());
+		assertEquals(Arrays.asList("[\"1\", \"2\", \"3\"]"), result.getQueryResults().getRows().get(0).getValues());
+		assertEquals(Arrays.asList("[\"3\", \"4\", \"5\"]"), result.getQueryResults().getRows().get(1).getValues());
+
+
+		// now rename the column
+		ColumnModel updateColumn = new ColumnModel();
+		updateColumn.setColumnType(ColumnType.STRING_LIST);
+		updateColumn.setName("startColumn");
+		// set maximum list length below actual value
+		updateColumn.setMaximumListLength(2L);
+		updateColumn = columnManager.createColumnModel(adminUserInfo, updateColumn);
+		assertNotEquals(updateColumn.getId(), startColumn.getId());
+		TableSchemaChangeRequest schemaChangeRequest = new TableSchemaChangeRequest();
+		ColumnChange change = new ColumnChange();
+		change.setOldColumnId(startColumn.getId());
+		change.setNewColumnId(updateColumn.getId());
+		schemaChangeRequest.setChanges(Lists.newArrayList(change));
+		schemaChangeRequest.setEntityId(tableId);
+		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
+		transactionRequest.setChanges(Collections.singletonList(schemaChangeRequest));
+		transactionRequest.setEntityId(tableId);
+		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
+				asynchronousJobWorkerHelper.startAndWaitForJob(adminUserInfo, transactionRequest, MAX_WAIT_MS, TableSchemaChangeResponse.class)
+		).getMessage();
+
+		String expectedMessage = "maximumListLength for ColumnModel \"startColumn\" must be at least: 3";
+		assertEquals(expectedMessage, errorMessage);
 	}
 
 	@Test
