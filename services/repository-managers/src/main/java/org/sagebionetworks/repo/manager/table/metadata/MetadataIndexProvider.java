@@ -12,5 +12,7 @@ import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
  *
  */
 public interface MetadataIndexProvider extends HasViewObjectType, ViewScopeFilterProvider, ObjectFieldTypeMapper {	
+	
+	
 
 }

@@ -547,6 +547,15 @@ public interface TableIndexDAO {
 	 */
 	ObjectFieldModelResolver getObjectFieldModelResolver(ObjectFieldTypeMapper fieldTypeMapper);
 	
+	/**
+	 * Attempt to determine the cause of a replication failure.
+	 * 
+	 * @param exception The exception thrown during replication.
+	 * @param currentSchema
+	 * @throws Exception 
+	 */
+	void determineCauseOfReplicationFailure(Exception exception, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper);
+	
 	// For testing:
 	
 	/**

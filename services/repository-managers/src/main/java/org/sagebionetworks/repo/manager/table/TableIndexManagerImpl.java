@@ -39,6 +39,7 @@ import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
@@ -446,26 +447,6 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		return tableIndexDao.calculateCRC32ofTableView(viewId);
 	}
 	
-	/**
-	 * Attempt to determine the cause of a replication failure.
-	 * 
-	 * @param exception The exception thrown during replication.
-	 * @param currentSchema
-	 * @throws Exception 
-	 */
-	public void determineCauseOfReplicationFailure(Exception exception, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema) {
-		// Calculate the schema from the annotations
-		List<ColumnModel> schemaFromAnnotations = tableIndexDao.getPossibleColumnModelsForContainers(scopeFilter, Long.MAX_VALUE, 0L);
-		// TODO: Should use a provider that given the object type skips the column models that are mapped to the object replication table
-		SQLUtils.determineCauseOfException(exception, currentSchema, schemaFromAnnotations);
-		// Have not determined the cause so throw the original exception
-		if(exception instanceof RuntimeException) {
-			throw (RuntimeException)exception;
-		}else {
-			throw new RuntimeException(exception);
-		}
-	}
-	
 	@Override
 	public ColumnModelPage getPossibleColumnModelsForView(
 			final Long viewId, String nextPageToken) {
@@ -756,6 +737,19 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			}
 			return null;
 		});
+	}
+	
+	void determineCauseOfReplicationFailure(Exception exception, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema) {
+		ObjectFieldTypeMapper fieldTypeMapper = metadataIndexProviderFactory.getMetadataIndexProvider(scopeFilter.getObjectType());
+
+		tableIndexDao.determineCauseOfReplicationFailure(exception, scopeFilter, currentSchema, fieldTypeMapper);
+
+		// Have not determined the cause so throw the original exception
+		if (exception instanceof RuntimeException) {
+			throw (RuntimeException) exception;
+		} else {
+			throw new RuntimeException(exception);
+		}
 	}
 	
 	private ViewScopeFilter buildViewScopeFilter(ViewScopeFilterProvider provider, Long viewTypeMask, Set<Long> containerIds) {

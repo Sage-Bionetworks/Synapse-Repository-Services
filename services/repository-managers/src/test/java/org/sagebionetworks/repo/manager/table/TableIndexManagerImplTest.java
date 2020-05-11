@@ -54,7 +54,6 @@ import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -698,27 +697,22 @@ public class TableIndexManagerImplTest {
 		column.setColumnType(ColumnType.STRING);
 		column.setMaximumSize(10L);
 		schema.add(column);
-		// Setup an annotation that is larger than the columns.
-		ColumnModel annotation = new ColumnModel();
-		annotation.setName("foo");
-		annotation.setMaximumSize(11L);
-		annotation.setColumnType(ColumnType.STRING);
 		
-		// setup the annotations 
-		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(Lists.newArrayList(annotation));
 		// setup a failure
 		IllegalArgumentException error = new IllegalArgumentException("Something went wrong");
 		
 		doThrow(error).when(mockIndexDao).copyObjectReplicationToView(any(), any(), any(), any());
+
+		IllegalArgumentException sizeError = new IllegalArgumentException("The size of the column 'foo' is too small");
+		
+		doThrow(sizeError).when(mockIndexDao).determineCauseOfReplicationFailure(any(), any(), any(), any());
 		
 		IllegalArgumentException expected = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
 		});
-		
-		assertTrue(expected.getMessage().startsWith("The size of the column 'foo' is too small"));
-		// the cause should match the original error.
-		assertEquals(error, expected.getCause());
+
+		assertEquals(sizeError, expected);
 	}
 	
 	@Test
@@ -891,10 +885,13 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
 		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
 		
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
+		scope.setObjectType(null);
 
+		ViewScopeFilter scopeFilter = new ViewScopeFilter(ViewObjectType.ENTITY, subTypes, filterByObjectId, containerIds);
+		
 		// call under test
 		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString);
+		
 		assertNotNull(results);
 		// should default to file view.
 		verify(mockIndexDao).getPossibleColumnModelsForContainers(scopeFilter, nextPageToken.getLimitForQuery(), nextPageToken.getOffset());

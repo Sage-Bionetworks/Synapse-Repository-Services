@@ -1,17 +1,16 @@
 package org.sagebionetworks.table.cluster.columntranslation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.Arrays;
 import java.util.List;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 
-class ColumnTranslationReferenceLookupTest {
+public class ColumnTranslationReferenceLookupTest {
 
 	ColumnModel fooModel;
 	ColumnModel barModel;

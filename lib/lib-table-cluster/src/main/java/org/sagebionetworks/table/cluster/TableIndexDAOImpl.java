@@ -1331,7 +1331,28 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	
 	@Override
 	public ObjectFieldModelResolver getObjectFieldModelResolver(ObjectFieldTypeMapper fieldTypeMapper) {
+		// TODO We should create a factory and potentially cache the instance by objectType
 		return new ObjectFieldModelResolverImpl(fieldTypeMapper);
+	}
+	
+	@Override
+	public void determineCauseOfReplicationFailure(Exception exception, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper) {
+		// Calculate the schema from the annotations
+		List<ColumnModel> schemaFromAnnotations = getPossibleColumnModelsForContainers(scopeFilter, Long.MAX_VALUE, 0L);
+		
+		ObjectFieldModelResolver objectFieldModelResolver = getObjectFieldModelResolver(fieldTypeMapper);
+		
+		List<ColumnModel> filteredSchema = currentSchema.stream()
+				// Filter all the default object field column models
+				.filter( model -> !objectFieldModelResolver.findMatch(model).isPresent())
+				.collect(Collectors.toList());
+		
+		for (ColumnModel annotationModel : schemaFromAnnotations) {
+			for (ColumnModel schemaModel : filteredSchema) {
+				SQLUtils.determineCauseOfException(exception, schemaModel, annotationModel);
+			}
+		}
+		
 	}
 	
 	@Override

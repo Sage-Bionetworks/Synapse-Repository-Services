@@ -2531,57 +2531,6 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void testDetermineCauseOfExceptionLists() {
-		Exception oringal = new Exception("Some exception");
-		ColumnModel columnModel = new ColumnModel();
-		columnModel.setName("foo");
-		columnModel.setColumnType(ColumnType.STRING);
-		columnModel.setMaximumSize(10L);
-
-		ColumnModel annotationModel = new ColumnModel();
-		annotationModel.setName("foo");
-		annotationModel.setColumnType(ColumnType.STRING);
-		annotationModel.setMaximumSize(11L);
-		try {
-			// call under test
-			SQLUtils.determineCauseOfException(oringal, Lists.newArrayList(columnModel),
-					Lists.newArrayList(annotationModel));
-			fail("Should have failed.");
-		} catch (IllegalArgumentException expected) {
-			// the cause should be kept
-			assertEquals(oringal, expected.getCause());
-		}
-	}
-
-	@Test
-	public void testDetermineCauseOfExceptionListsMultipleValues() {
-		Exception oringal = new Exception("Some exception");
-		ColumnModel columnModel = new ColumnModel();
-		columnModel.setName("foo");
-		columnModel.setColumnType(ColumnType.STRING);
-		columnModel.setMaximumSize(10L);
-		// type does not match.
-		ColumnModel a1 = new ColumnModel();
-		a1.setName("foo");
-		a1.setColumnType(ColumnType.INTEGER);
-
-		ColumnModel a2 = new ColumnModel();
-		a2.setName("foo");
-		a2.setColumnType(ColumnType.STRING);
-		a2.setMaximumSize(11L);
-
-		try {
-			// call under test
-			SQLUtils.determineCauseOfException(oringal, Lists.newArrayList(columnModel),
-					Lists.newArrayList(a1, a2));
-			fail("Should have failed.");
-		} catch (IllegalArgumentException expected) {
-			// the cause should be kept
-			assertEquals(oringal, expected.getCause());
-		}
-	}
-
-	@Test
 	public void testGetDistinctAnnotationColumnsSqlFileView(){
 		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;

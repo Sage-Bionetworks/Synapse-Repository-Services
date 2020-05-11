@@ -52,7 +52,6 @@ import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
-import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
@@ -1707,28 +1706,6 @@ public class SQLUtils {
 	}
 
 	/**
-	 * Determine if an incompatibility between view's schema and the possible
-	 * annotations is the cause of the passed exception. If the cause is
-	 * determined an appropriate IllegalArgumentException will be thrown.
-	 * 
-	 * @param viewSchema
-	 *            The schema of the view.
-	 * @param possibleAnnotations
-	 *            The possible column models for the annotations within the
-	 *            view's scope.
-	 */
-	@Deprecated
-	public static void determineCauseOfException(Exception exception,
-			List<ColumnModel> viewSchema, List<ColumnModel> possibleAnnotations) {
-		// Find matches
-		for (ColumnModel annotation : possibleAnnotations) {
-			for (ColumnModel schemaModel : viewSchema) {
-				determineCauseOfException(exception, schemaModel, annotation);
-			}
-		}
-	}
-
-	/**
 	 * Determine if an incompatibility between the passed two columns is the
 	 * cause of the passed exception.
 	 * <p>
@@ -1743,14 +1720,8 @@ public class SQLUtils {
 	 * are strings, and the annotation value size is larger than the view column size.
 	 * No other case will throw an exception.
 	 */
-	@Deprecated
 	public static void determineCauseOfException(Exception exception,
 			ColumnModel columnModel, ColumnModel annotationModel) {
-		ObjectField entityField = ObjectField.findMatch(columnModel);
-		if(entityField != null){
-			// entity field are not matched to annotations.
-			return;
-		}
 		// lookup the annotation type that matches the column type.
 		AnnotationType columnModelAnnotationType = translateColumnTypeToAnnotationType(columnModel.getColumnType());
 		AnnotationType annotationType = translateColumnTypeToAnnotationType(annotationModel.getColumnType());
