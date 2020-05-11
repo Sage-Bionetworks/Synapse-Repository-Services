@@ -24,7 +24,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.manager.entity.ReplicationManager;
+import org.sagebionetworks.repo.manager.replication.ReplicationManager;
 import org.sagebionetworks.repo.model.BucketAndKey;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;

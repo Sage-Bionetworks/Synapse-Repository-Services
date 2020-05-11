@@ -1,6 +1,7 @@
-package org.sagebionetworks.repo.manager.entity;
+package org.sagebionetworks.repo.manager.replication;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -12,18 +13,18 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.message.ChangeMessageUtils;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.GetQueueAttributesRequest;
@@ -31,43 +32,44 @@ import com.amazonaws.services.sqs.model.GetQueueAttributesResult;
 import com.amazonaws.services.sqs.model.GetQueueUrlResult;
 import com.amazonaws.services.sqs.model.QueueAttributeName;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
-import com.google.common.collect.Lists;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class ReplicationMessageManagerImplTest {
 
 	@Mock
 	AmazonSQS mockSqsClient;
 
+	@Mock
+	StackConfiguration mockConfig;
+	
+	@InjectMocks
 	ReplicationMessageManagerImpl manager;
 
-	String replicationQueueName;
 	String replicationQueueUrl;
-
-	String reconciliationQueueName;
 	String reconciliationQueueUrl;
 	
 	long messageCount;
 	Map<String, String> queueAttributes;
 
-	@Before
+	@BeforeEach
 	public void before() {
-		manager = new ReplicationMessageManagerImpl();
-		ReflectionTestUtils.setField(manager, "sqsClient", mockSqsClient);
-
-		replicationQueueName = "replicationQueueName";
-		replicationQueueUrl = "replicationQueueUrl";
-		reconciliationQueueName = "reconciliationQueueName";
-		reconciliationQueueUrl = "reconciliationQueueUrl";
-
-		when(mockSqsClient.getQueueUrl(replicationQueueName)).thenReturn(
-				new GetQueueUrlResult().withQueueUrl(replicationQueueUrl));
+		String replicationQueueName = "replicationQueueName";
+		String reconciliationQueueName = "reconciliationQueueName";
 		
-		when(mockSqsClient.getQueueUrl(reconciliationQueueName)).thenReturn(
-				new GetQueueUrlResult().withQueueUrl(reconciliationQueueUrl));
+		replicationQueueUrl = "replicationQueueUrl";
+		reconciliationQueueUrl = "reconciliationQueueUrl";
+		
+		when(mockConfig.getQueueName(ReplicationMessageManagerImpl.REPLICATION_QUEUE_NAME))
+				.thenReturn(replicationQueueName);
+		when(mockConfig.getQueueName(ReplicationMessageManagerImpl.RECONCILIATION_QUEUE_NAME))
+				.thenReturn(reconciliationQueueName);
 
-		manager.setReplicationQueueName(replicationQueueName);
-		manager.setReconciliationQueueName(reconciliationQueueName);
+		when(mockSqsClient.getQueueUrl(replicationQueueName))
+				.thenReturn(new GetQueueUrlResult().withQueueUrl(replicationQueueUrl));
+
+		when(mockSqsClient.getQueueUrl(reconciliationQueueName))
+				.thenReturn(new GetQueueUrlResult().withQueueUrl(reconciliationQueueUrl));
+
 		manager.initialize();
 		
 		assertEquals(replicationQueueUrl, manager.replicationQueueUrl);
@@ -76,8 +78,6 @@ public class ReplicationMessageManagerImplTest {
 		messageCount = 99L;
 		queueAttributes = new HashMap<>(0);
 		queueAttributes.put(QueueAttributeName.ApproximateNumberOfMessages.name(), ""+ messageCount);
-		when(mockSqsClient.getQueueAttributes(any(GetQueueAttributesRequest.class)))
-				.thenReturn(new GetQueueAttributesResult().withAttributes(queueAttributes));
 	}
 	
 	@Test
@@ -110,25 +110,36 @@ public class ReplicationMessageManagerImplTest {
 		verify(mockSqsClient, never()).sendMessage(any(SendMessageRequest.class));
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testPushChangeMessagesToReplicationQueueNull(){
 		List<ChangeMessage> empty = null;
-		// call under test
-		manager.pushChangeMessagesToReplicationQueue(empty);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.pushChangeMessagesToReplicationQueue(empty);
+		});
 	}
 	
 	@Test
 	public void testGetApproximateNumberOfMessageOnReplicationQueue() {
+		when(mockSqsClient.getQueueAttributes(any(GetQueueAttributesRequest.class)))
+				.thenReturn(new GetQueueAttributesResult().withAttributes(queueAttributes));
 		// call under test
 		long count = manager.getApproximateNumberOfMessageOnReplicationQueue();
 		assertEquals(messageCount, count);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetApproximateNumberOfMessageOnReplicationQueueMissingAttribute() {
 		this.queueAttributes.clear();
-		// call under test
-		manager.getApproximateNumberOfMessageOnReplicationQueue();
+		
+		when(mockSqsClient.getQueueAttributes(any(GetQueueAttributesRequest.class)))
+				.thenReturn(new GetQueueAttributesResult().withAttributes(queueAttributes));
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.getApproximateNumberOfMessageOnReplicationQueue();
+		});
 	}
 	
 	/**

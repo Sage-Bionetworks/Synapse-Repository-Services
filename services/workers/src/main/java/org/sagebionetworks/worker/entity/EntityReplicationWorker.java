@@ -8,7 +8,7 @@ import org.sagebionetworks.asynchronous.workers.changes.BatchChangeMessageDriven
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.database.semaphore.LockReleaseFailedException;
-import org.sagebionetworks.repo.manager.entity.ReplicationManager;
+import org.sagebionetworks.repo.manager.replication.ReplicationManager;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;

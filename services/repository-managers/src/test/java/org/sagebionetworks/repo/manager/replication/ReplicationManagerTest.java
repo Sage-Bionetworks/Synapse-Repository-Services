@@ -1,11 +1,9 @@
-package org.sagebionetworks.repo.manager.entity;
+package org.sagebionetworks.repo.manager.replication;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyListOf;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -26,12 +24,11 @@ import org.mockito.quality.Strictness;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -84,7 +81,7 @@ public class ReplicationManagerTest {
 
 			@Override
 			public Void answer(InvocationOnMock invocation) throws Throwable {
-				TransactionCallback callback = (TransactionCallback) invocation.getArguments()[0];
+				TransactionCallback<?> callback = (TransactionCallback<?>) invocation.getArguments()[0];
 				callback.doInTransaction(transactionStatus);
 				return null;
 			}}).when(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
@@ -107,7 +104,7 @@ public class ReplicationManagerTest {
 	public void testRun() throws RecoverableMessageException, Exception{
 		int count = 5;
 		List<ObjectDataDTO> entityData = createEntityDtos(count);
-		when(mockNodeDao.getEntityDTOs(anyListOf(String.class), anyInt())).thenReturn(entityData);
+		when(mockNodeDao.getEntityDTOs(any(), anyInt())).thenReturn(entityData);
 		
 		// call under test
 		manager.replicate(changes);
@@ -128,7 +125,7 @@ public class ReplicationManagerTest {
 		List<ObjectDataDTO> entityData = createEntityDtos(count);
 		// set a benefactor ID to be null;
 		entityData.get(0).setBenefactorId(null);
-		when(mockNodeDao.getEntityDTOs(anyListOf(String.class), anyInt())).thenReturn(entityData);
+		when(mockNodeDao.getEntityDTOs(any(), anyInt())).thenReturn(entityData);
 		// Call under test.
 		assertThrows(IllegalArgumentException.class, () -> {
 			manager.replicate(changes);
@@ -149,7 +146,7 @@ public class ReplicationManagerTest {
 		List<ObjectDataDTO> entityData = createEntityDtos(count);
 		// set a benefactor ID to be null;
 		entityData.get(0).setBenefactorId(null);
-		when(mockNodeDao.getEntityDTOs(anyListOf(String.class), anyInt())).thenReturn(entityData);
+		when(mockNodeDao.getEntityDTOs(any(), anyInt())).thenReturn(entityData);
 		// Call under test.
 		assertThrows(RecoverableMessageException.class, () -> {
 			manager.replicate(changes);

@@ -15,7 +15,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
+import org.sagebionetworks.repo.manager.replication.ReplicationMessageManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.NodeDAO;

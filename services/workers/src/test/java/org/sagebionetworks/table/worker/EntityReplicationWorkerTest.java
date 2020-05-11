@@ -21,7 +21,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.database.semaphore.LockReleaseFailedException;
-import org.sagebionetworks.repo.manager.entity.ReplicationManager;
+import org.sagebionetworks.repo.manager.replication.ReplicationManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;

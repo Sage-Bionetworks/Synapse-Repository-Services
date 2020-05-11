@@ -16,7 +16,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
+import org.sagebionetworks.repo.manager.replication.ReplicationMessageManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;

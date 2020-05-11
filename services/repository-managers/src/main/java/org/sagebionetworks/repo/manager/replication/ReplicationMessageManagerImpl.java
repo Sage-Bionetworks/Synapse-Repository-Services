@@ -1,8 +1,11 @@
-package org.sagebionetworks.repo.manager.entity;
+package org.sagebionetworks.repo.manager.replication;
 
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.PostConstruct;
+
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
@@ -20,6 +23,9 @@ import com.google.common.collect.Lists;
 
 public class ReplicationMessageManagerImpl implements ReplicationMessageManager {
 
+	static final String REPLICATION_QUEUE_NAME = "TABLE_ENTITY_REPLICATION";
+	static final String RECONCILIATION_QUEUE_NAME = "ENTITY_REPLICATION_RECONCILIATION";
+	
 	/**
 	 * The maximum number of container ID that will be pushed to a single
 	 * reconciliation message. Note: This limit was lowered from 1000 to 10 as part
@@ -27,15 +33,41 @@ public class ReplicationMessageManagerImpl implements ReplicationMessageManager 
 	 */
 	static final int MAX_CONTAINERS_IDS_PER_RECONCILIATION_MESSAGE = 10;
 
-	@Autowired
-	AmazonSQS sqsClient;
+	private AmazonSQS sqsClient;
+	
+	private StackConfiguration config;
 
-	String replicationQueueName;
 	String replicationQueueUrl;
-
-	String reconciliationQueueName;
 	String reconciliationQueueUrl;
 
+	@Autowired
+	public ReplicationMessageManagerImpl(AmazonSQS sqsClient, StackConfiguration config) {
+		this.sqsClient = sqsClient;
+		this.config = config;
+	}
+	
+	/**
+	 * Called when the bean is initialized.
+	 */
+	@PostConstruct
+	public void initialize() {
+		String replicationQueueName = config.getQueueName(REPLICATION_QUEUE_NAME);
+		if (replicationQueueName == null) {
+			throw new IllegalStateException("Replication Queue name cannot be null");
+		}
+		String reconciliationQueueName = config.getQueueName(RECONCILIATION_QUEUE_NAME);
+		if (reconciliationQueueName == null) {
+			throw new IllegalStateException("Delta Queue name cannot be null");
+		}
+		if (this.sqsClient == null) {
+			throw new IllegalStateException("SQS client cannot be null");
+		}
+		// replication
+		this.replicationQueueUrl = this.sqsClient.getQueueUrl(replicationQueueName).getQueueUrl();
+		// delta
+		this.reconciliationQueueUrl = this.sqsClient.getQueueUrl(reconciliationQueueName).getQueueUrl();
+	}
+	
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -73,43 +105,6 @@ public class ReplicationMessageManagerImpl implements ReplicationMessageManager 
 			// this should not occur.
 			throw new RuntimeException(e);
 		}
-	}
-
-	/**
-	 * Called when the bean is initialized.
-	 */
-	public void initialize() {
-		if (replicationQueueName == null) {
-			throw new IllegalStateException("Replication Queue name cannot be null");
-		}
-		if (reconciliationQueueName == null) {
-			throw new IllegalStateException("Delta Queue name cannot be null");
-		}
-		if (this.sqsClient == null) {
-			throw new IllegalStateException("SQS client cannot be null");
-		}
-		// replication
-		this.replicationQueueUrl = this.sqsClient.getQueueUrl(replicationQueueName).getQueueUrl();
-		// delta
-		this.reconciliationQueueUrl = this.sqsClient.getQueueUrl(reconciliationQueueName).getQueueUrl();
-	}
-
-	/**
-	 * Injected.
-	 * 
-	 * @param replicationQueueName
-	 */
-	public void setReplicationQueueName(String replicationQueueName) {
-		this.replicationQueueName = replicationQueueName;
-	}
-
-	/**
-	 * Injected.
-	 * 
-	 * @param reconciliationQueueName
-	 */
-	public void setReconciliationQueueName(String reconciliationQueueName) {
-		this.reconciliationQueueName = reconciliationQueueName;
 	}
 
 	@Override
