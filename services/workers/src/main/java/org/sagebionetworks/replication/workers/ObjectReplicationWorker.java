@@ -1,4 +1,4 @@
-package org.sagebionetworks.worker.entity;
+package org.sagebionetworks.replication.workers;
 
 import java.util.List;
 
@@ -24,9 +24,9 @@ import com.amazonaws.AmazonServiceException;
  * @author John
  *
  */
-public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
+public class ObjectReplicationWorker implements BatchChangeMessageDrivenRunner {
 	
-	static private Logger log = LogManager.getLogger(EntityReplicationWorker.class);
+	static private Logger log = LogManager.getLogger(ObjectReplicationWorker.class);
 	
 	@Autowired
 	ReplicationManager replicationManager;
@@ -49,7 +49,7 @@ public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
 		} catch (Exception e) {
 			boolean willRetry = false;
 			workerLogger.logWorkerFailure(
-					EntityReplicationWorker.class.getName(), e, willRetry);
+					ObjectReplicationWorker.class.getName(), e, willRetry);
 			log.error("Failed while replicating:", e);
 		}
 	}

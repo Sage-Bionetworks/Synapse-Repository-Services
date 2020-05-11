@@ -1,4 +1,4 @@
-package org.sagebionetworks.worker.entity;
+package org.sagebionetworks.replication.workers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -29,6 +29,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.replication.workers.ObjectReplicationReconciliationWorker;
 import org.sagebionetworks.repo.manager.replication.ReplicationMessageManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.IdAndEtag;
@@ -56,7 +57,7 @@ import com.google.common.collect.Sets;
  *
  */
 @ExtendWith(MockitoExtension.class)
-public class EntityReplicationReconciliationWorkerTest {
+public class ObjectReplicationReconciliationWorkerTest {
 
 	@Mock
 	NodeDAO mockNodeDao;
@@ -83,7 +84,7 @@ public class EntityReplicationReconciliationWorkerTest {
 	TableManagerSupport mockTableManagerSupport;
 	
 	@InjectMocks
-	EntityReplicationReconciliationWorker worker;
+	ObjectReplicationReconciliationWorker worker;
 	
 	IdAndVersion viewId;
 	Long firstParentId;
@@ -312,7 +313,7 @@ public class EntityReplicationReconciliationWorkerTest {
 	public void testRun(){
 		when(mockConnectionFactory.getAllConnections()).thenReturn(Lists.newArrayList(mockIndexDao));
 		when(mockReplicationMessageManager.getApproximateNumberOfMessageOnReplicationQueue())
-				.thenReturn(EntityReplicationReconciliationWorker.MAX_MESSAGE_TO_RUN_RECONCILIATION - 1L);
+				.thenReturn(ObjectReplicationReconciliationWorker.MAX_MESSAGE_TO_RUN_RECONCILIATION - 1L);
 		when(mockNodeDao.getSumOfChildCRCsForEachParent(any())).thenReturn(truthCRCs);
 		when(mockIndexDao.getSumOfChildCRCsForEachParent(any(), any())).thenReturn(replicaCRCs);
 		when(mockNodeDao.getAvailableNodes(expiredContainers)).thenReturn(Sets.newHashSet(1L,2L,4L,5L));
@@ -325,7 +326,7 @@ public class EntityReplicationReconciliationWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, message);
 		// The expiration should be set for the first parent
-		long expectedExpires = nowMS + EntityReplicationReconciliationWorker.SYNCHRONIZATION_FEQUENCY_MS;
+		long expectedExpires = nowMS + ObjectReplicationReconciliationWorker.SYNCHRONIZATION_FEQUENCY_MS;
 		verify(mockIndexDao).setContainerSynchronizationExpiration(viewObjectType, Lists.newArrayList(firstParentId), expectedExpires);
 		verify(mockReplicationMessageManager).getApproximateNumberOfMessageOnReplicationQueue();
 		
@@ -336,7 +337,7 @@ public class EntityReplicationReconciliationWorkerTest {
 	@Test
 	public void testRunMessageCountOverMax(){
 		when(mockReplicationMessageManager.getApproximateNumberOfMessageOnReplicationQueue())
-		.thenReturn(EntityReplicationReconciliationWorker.MAX_MESSAGE_TO_RUN_RECONCILIATION + 1L);
+		.thenReturn(ObjectReplicationReconciliationWorker.MAX_MESSAGE_TO_RUN_RECONCILIATION + 1L);
 		// call under test
 		worker.run(mockProgressCallback, message);
 		// no work should occur when over the max.
@@ -353,7 +354,7 @@ public class EntityReplicationReconciliationWorkerTest {
 		
 		when(mockConnectionFactory.getAllConnections()).thenReturn(Lists.newArrayList(mockIndexDao));
 		when(mockReplicationMessageManager.getApproximateNumberOfMessageOnReplicationQueue())
-				.thenReturn(EntityReplicationReconciliationWorker.MAX_MESSAGE_TO_RUN_RECONCILIATION - 1L);
+				.thenReturn(ObjectReplicationReconciliationWorker.MAX_MESSAGE_TO_RUN_RECONCILIATION - 1L);
 		
 		when(mockTableManagerSupport.getViewScopeType(viewId)).thenReturn(viewScopeType);
 		when(mockTableManagerSupport.getAllContainerIdsForViewScope(viewId, viewScopeType)).thenReturn(new HashSet<>(parentIds));
@@ -365,7 +366,7 @@ public class EntityReplicationReconciliationWorkerTest {
 		
 		// the exception should be logged
 		boolean willRetry = false;
-		verify(mockWorkerLog).logWorkerFailure(EntityReplicationReconciliationWorker.class.getName(), exception, willRetry);
+		verify(mockWorkerLog).logWorkerFailure(ObjectReplicationReconciliationWorker.class.getName(), exception, willRetry);
 	}
 	
 	@Test

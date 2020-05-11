@@ -1,6 +1,6 @@
-package org.sagebionetworks.table.worker;
+package org.sagebionetworks.replication.workers;
 
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -12,12 +12,12 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.database.semaphore.LockReleaseFailedException;
@@ -26,7 +26,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
-import org.sagebionetworks.worker.entity.EntityReplicationWorker;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.DeadlockLoserDataAccessException;
@@ -35,8 +34,8 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.sqs.model.AmazonSQSException;
 import com.google.common.collect.Lists;
 
-@RunWith(MockitoJUnitRunner.class)
-public class EntityReplicationWorkerTest {
+@ExtendWith(MockitoExtension.class)
+public class ObjectReplicationWorkerTest {
 	
 	@Mock
 	ReplicationManager mockReplicationManager;
@@ -46,12 +45,11 @@ public class EntityReplicationWorkerTest {
 	WorkerLogger mockWorkerLog;
 	
 	@InjectMocks
-	EntityReplicationWorker worker;
+	ObjectReplicationWorker worker;
 	
 	List<ChangeMessage> changes;
 
-	@SuppressWarnings("unchecked")
-	@Before
+	@BeforeEach
 	public void before(){
 		ChangeMessage update = new ChangeMessage();
 		update.setChangeType(ChangeType.UPDATE);
@@ -85,7 +83,7 @@ public class EntityReplicationWorkerTest {
 		worker.run(mockPogressCallback, changes);
 		boolean willRetry = false;
 		// the exception should be logged.
-		verify(mockWorkerLog).logWorkerFailure(EntityReplicationWorker.class.getName(), exception, willRetry);
+		verify(mockWorkerLog).logWorkerFailure(ObjectReplicationWorker.class.getName(), exception, willRetry);
 	}
 	
 	@Test
@@ -93,13 +91,12 @@ public class EntityReplicationWorkerTest {
 		LockReleaseFailedException exception = new LockReleaseFailedException("something went wrong");
 		// setup an exception
 		doThrow(exception).when(mockReplicationManager).replicate(changes);
-		// call under test
-		try {
+
+		assertThrows(RecoverableMessageException.class, () -> {
+			// call under test
 			worker.run(mockPogressCallback, changes);
-			fail("Should have thrown RecoverableMessageException");
-		} catch (RecoverableMessageException e) {
-			// expected
-		}
+		});
+		
 		// the exception should not be logged.
 		verify(mockWorkerLog, never()).logWorkerFailure(anyString(), any(Exception.class), anyBoolean());
 	}
@@ -109,13 +106,12 @@ public class EntityReplicationWorkerTest {
 		CannotAcquireLockException exception = new CannotAcquireLockException("something went wrong");
 		// setup an exception
 		doThrow(exception).when(mockReplicationManager).replicate(changes);
-		// call under test
-		try {
+		
+		assertThrows(RecoverableMessageException.class, () -> {
+			// call under test
 			worker.run(mockPogressCallback, changes);
-			fail("Should have thrown RecoverableMessageException");
-		} catch (RecoverableMessageException e) {
-			// expected
-		}
+		});
+		
 		// the exception should not be logged.
 		verify(mockWorkerLog, never()).logWorkerFailure(anyString(), any(Exception.class), anyBoolean());
 	}
@@ -125,13 +121,12 @@ public class EntityReplicationWorkerTest {
 		DeadlockLoserDataAccessException exception = new DeadlockLoserDataAccessException("message", new RuntimeException());
 		// setup an exception
 		doThrow(exception).when(mockReplicationManager).replicate(changes);
-		// call under test
-		try {
+		
+		assertThrows(RecoverableMessageException.class, () -> {
+			// call under test
 			worker.run(mockPogressCallback, changes);
-			fail("Should have thrown RecoverableMessageException");
-		} catch (RecoverableMessageException e) {
-			// expected
-		}
+		});
+		
 		// the exception should not be logged.
 		verify(mockWorkerLog, never()).logWorkerFailure(anyString(), any(Exception.class), anyBoolean());
 	}
@@ -141,13 +136,12 @@ public class EntityReplicationWorkerTest {
 		AmazonServiceException exception = new AmazonSQSException("message");
 		// setup an exception
 		doThrow(exception).when(mockReplicationManager).replicate(changes);
-		// call under test
-		try {
+
+		assertThrows(RecoverableMessageException.class, () -> {
+			// call under test
 			worker.run(mockPogressCallback, changes);
-			fail("Should have thrown RecoverableMessageException");
-		} catch (RecoverableMessageException e) {
-			// expected
-		}
+		});
+		
 		// the exception should not be logged.
 		verify(mockWorkerLog, never()).logWorkerFailure(anyString(), any(Exception.class), anyBoolean());
 	}

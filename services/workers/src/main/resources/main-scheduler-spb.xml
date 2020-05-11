@@ -49,10 +49,10 @@
     <import resource="classpath:project-stats-v2-sqs-spb.xml"/>
     <import resource="classpath:table-view-worker-sqs-spb.xml"/>
     <import resource="classpath:table-update-transaction-worker-sqs-spb.xml"/>
-    <import resource="classpath:table-entity-replication-worker-spb.xml"/>
     <import resource="classpath:migration-sqs-spb.xml" />
     <import resource="classpath:entity-hierarchy-change-worker-spb.xml" />
-    <import resource="classpath:entity-replication-reconciliation-worker-spb.xml" />
+    <import resource="classpath:object-replication-worker-spb.xml"/>
+    <import resource="classpath:object-replication-reconciliation-worker-spb.xml" />
     <import resource="classpath:worker-profiler-spb.xml" />
     <import resource="classpath:id-generator-cleanup-worker-spb.xml" />
     <import resource="classpath:doi-worker-sqs-spb.xml" />
@@ -96,9 +96,9 @@
 		<ref bean="messagePublisherTrigger" />
 		<ref bean="tableViewWorkerTrigger" />
 		<ref bean="tableTransactionMessageTrigger" />
-		<ref bean="tableEntityReplicationWorkerTrigger" />
 		<ref bean="entityHierarchyChangeWorkerTrigger" />
-		<ref bean="entityReplicationReconciliationWorkerTrigger" />
+		<ref bean="objectReplicationWorkerTrigger" />
+		<ref bean="objectReplicationReconciliationWorkerTrigger" />
 		<!-- worker profiler -->
 		<ref bean="jobIntervalProcessorTrigger" />
 		<ref bean="idGeneratorCleanuSynchTrigger" />

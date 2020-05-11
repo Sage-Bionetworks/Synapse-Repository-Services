@@ -1,4 +1,4 @@
-package org.sagebionetworks.worker.entity;
+package org.sagebionetworks.replication.workers;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,30 +39,30 @@ import com.google.common.collect.Lists;
 
 /**
  * <p>
- * Entity replication data is normally kept in-synch with the truth by the
- * {@link EntityReplicationWorker} by listening to entity change events.
+ * Object replication data is normally kept in-synch with the truth by the
+ * {@link ObjectReplicationWorker} by listening to object change events.
  * However, message delivery is not guaranteed so a secondary process is needed
  * to ensure the entity replication data is kept up-to-date with the truth.
  * </p>
  * <p>
  * This worker reconciles discrepancies between the truth and the replicated data for
  * a given list of container IDs. This worker is driven by query events. Each time a query
- * is executed against the entity replication data, an event is generated that
+ * is executed against the object replication data, an event is generated that
  * includes the container IDs involved in the query. For example, when a query
  * is executed against a table view, an event is generated that includes that
  * IDs of the view's fully expanded scope. This worker 'listens' to these events
  * and performs delta checking for each container ID that has not been checked
  * in the past 1000 minutes. When deltas are detected, change events are generated
- * to trigger the {@link EntityReplicationWorker} to create, update, or deleted
- * entity replicated data as needed.
+ * to trigger the {@link ObjectReplicationWorker} to create, update, or deleted
+ * object replicated data as needed.
  * </p>
  */
-public class EntityReplicationReconciliationWorker implements ChangeMessageDrivenRunner {
+public class ObjectReplicationReconciliationWorker implements ChangeMessageDrivenRunner {
 
 	static final int MAX_MESSAGE_TO_RUN_RECONCILIATION = 100;
 
 	static private Logger log = LogManager
-			.getLogger(EntityReplicationReconciliationWorker.class);
+			.getLogger(ObjectReplicationReconciliationWorker.class);
 
 	/**
 	 * Each container can only be re-synchronized at this frequency.
@@ -151,7 +151,7 @@ public class EntityReplicationReconciliationWorker implements ChangeMessageDrive
 			log.error("Failed:", cause);
 			boolean willRetry = false;
 			workerLogger.logWorkerFailure(
-					EntityReplicationReconciliationWorker.class.getName(), cause,
+					ObjectReplicationReconciliationWorker.class.getName(), cause,
 					willRetry);
 		}
 	}

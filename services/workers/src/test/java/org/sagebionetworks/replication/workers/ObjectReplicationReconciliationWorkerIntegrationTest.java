@@ -1,4 +1,4 @@
-package org.sagebionetworks.worker.entity;
+package org.sagebionetworks.replication.workers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -42,7 +42,7 @@ import com.google.common.collect.Lists;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class EntityReplicationReconciliationWorkerIntegrationTest {
+public class ObjectReplicationReconciliationWorkerIntegrationTest {
 	
 	private static final int MAX_WAIT_MS = 30*1000;
 	
