@@ -181,6 +181,20 @@ public class SqlQuery {
 			SelectList expandedSelectList = SQLTranslatorUtils.createSelectListFromSchema(tableSchema);
 			this.model.replaceSelectList(expandedSelectList);
 		}
+
+
+		//Append additionalFilters onto the WHERE clause
+		if(!additionalFilters.isEmpty()) {
+			String additionalFilterSearchCondition = SQLUtils.appendAdditionalFilters(additionalFilters);
+			StringBuilder whereClauseBuilder = new StringBuilder();
+			FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(whereClauseBuilder,additionalFilterSearchCondition, this.model.getTableExpression().getWhereClause());
+			try {
+				this.model.getTableExpression().replaceWhere(new TableQueryParser(whereClauseBuilder.toString()).whereClause());
+			} catch (ParseException e) {
+				throw new IllegalArgumentException(e);
+			}
+		}
+
 		// Track if this is an aggregate query.
 		this.isAggregatedResult = model.hasAnyAggregateElements();
 		// Build headers that describe how the client should read the results of this query.
@@ -196,14 +210,6 @@ public class SqlQuery {
 		// Create a copy of the paginated model.
 		try {
 			transformedModel = new TableQueryParser(paginatedModel.toSql()).querySpecification();
-
-			//Append additionalFilters onto the WHERE clause
-			if(!additionalFilters.isEmpty()) {
-				String additionalFilterSearchCondition = SQLUtils.appendAdditionalFilters(additionalFilters);
-				StringBuilder whereClauseBuilder = new StringBuilder();
-				FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(whereClauseBuilder,additionalFilterSearchCondition, transformedModel.getTableExpression().getWhereClause());
-				transformedModel.getTableExpression().replaceWhere(new TableQueryParser(whereClauseBuilder.toString()).whereClause());
-			}
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
