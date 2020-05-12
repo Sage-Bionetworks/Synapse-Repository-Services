@@ -263,9 +263,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 				request.getCreatedBy());
 		String blobId = createJsonBlobIfDoesNotExist(request.getJsonSchema());
 		JsonSchemaVersionInfo info = createNewVersion(schemaId, request.getSemanticVersion(), request.getCreatedBy(), blobId);
-		if(request.getDependencies() != null) {
-			bindDependencies(info.getVersionId(), request.getDependencies());
-		}
+		bindDependencies(info.getVersionId(), request.getDependencies());
 		return info;
 	}
 
@@ -421,12 +419,11 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 	@WriteTransaction
 	void bindDependencies(String versionId, ArrayList<SchemaDependency> dependencies) {
 		ValidateArgument.required(versionId, "versionId");
-		ValidateArgument.required(dependencies, "dependencies");
-		if (dependencies.isEmpty()) {
+		if (dependencies == null || dependencies.isEmpty()) {
 			return;
 		}
 		jdbcTemplate.batchUpdate(
-				"INSERT INTO " + TABLE_JSON_SCHEMA_DEPENDENCY + " (" + COL_JSON_SCHEMA_DEPENDENCY_VERSION_ID + ","
+				"INSERT IGNORE INTO " + TABLE_JSON_SCHEMA_DEPENDENCY + " (" + COL_JSON_SCHEMA_DEPENDENCY_VERSION_ID + ","
 						+ COL_JSON_SCHEMA_DEPEPNDENCY_DEPENDS_ON_SCHEMA_ID + "," + COL_JSON_SCHEMA_DEPENDENCY_DEPENDS_ON_VERSION_ID + ") VALUES (?,?,?)",
 				new BatchPreparedStatementSetter() {
 

@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.schema;
 
+import java.util.Objects;
+
 public class SchemaDependency {
 	
 	String dependsOnSchemaId;
@@ -30,4 +32,27 @@ public class SchemaDependency {
 		this.dependsOnVersionId = dependsOnVersionId;
 		return this;
 	}
+	@Override
+	public int hashCode() {
+		return Objects.hash(dependsOnSchemaId, dependsOnVersionId);
+	}
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (!(obj instanceof SchemaDependency)) {
+			return false;
+		}
+		SchemaDependency other = (SchemaDependency) obj;
+		return Objects.equals(dependsOnSchemaId, other.dependsOnSchemaId)
+				&& Objects.equals(dependsOnVersionId, other.dependsOnVersionId);
+	}
+	@Override
+	public String toString() {
+		return "SchemaDependency [dependsOnSchemaId=" + dependsOnSchemaId + ", dependsOnVersionId=" + dependsOnVersionId
+				+ "]";
+	}
+	
+	
 }
