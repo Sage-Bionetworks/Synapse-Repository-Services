@@ -2,15 +2,35 @@ package org.sagebionetworks.repo.manager.table.metadata.providers;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
+import org.sagebionetworks.repo.model.LimitExceededException;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class EntityMetadataIndexProvider implements MetadataIndexProvider {
+	
+	private NodeDAO nodeDao;
+	
+	@Autowired
+	public EntityMetadataIndexProvider(NodeDAO nodeDao) {
+		this.nodeDao = nodeDao;
+	}
+	
+	@Override
+	public Set<Long> getAllContainerIdsForScope(Set<Long> scope, Long viewTypeMask, int containerLimit) throws LimitExceededException {
+		if(ViewTypeMask.Project.getMask() == viewTypeMask){
+			return scope;
+		}
+		// Expand the scope to include all sub-folders
+		return nodeDao.getAllContainerIds(scope, containerLimit);
+	}
 	
 	@Override
 	public ViewObjectType getObjectType() {

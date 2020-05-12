@@ -121,7 +121,7 @@ public enum ObjectField {
 	 * @return
 	 */
 	@Deprecated
-	public boolean isMatch(ColumnModel cm){
+	private boolean isMatch(ColumnModel cm){
 		ColumnModel fieldColumnModel = this.getColumnModel();
 		// name must match
 		if(!fieldColumnModel.getName().equals(cm.getName())){

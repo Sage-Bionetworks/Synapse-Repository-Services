@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anySet;
@@ -40,6 +39,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
+import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LimitExceededException;
@@ -103,6 +104,10 @@ public class TableManagerSupportTest {
 	ProgressCallback mockCallback;
 	@Mock
 	ViewSnapshotDao mockViewSnapshotDao;
+	@Mock
+	MetadataIndexProviderFactory mockMetadataIndexProviderFactory;
+	@Mock
+	MetadataIndexProvider mockMetadataIndexProvider;
 	
 	@InjectMocks
 	TableManagerSupportImpl manager;
@@ -507,11 +512,16 @@ public class TableManagerSupportTest {
 	
 	
 	@Test
-	public void testGetAllContainerIdsForViewScope() throws LimitExceededException{
-		when(mockNodeDao.getAllContainerIds(anyCollection(), anyInt())).thenReturn(containersInScope);
+	public void testGetAllContainerIdsForViewScope() throws LimitExceededException {
+		when(mockViewScopeDao.getViewScope(idAndVersion.getId())).thenReturn(scope);
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+		when(mockMetadataIndexProvider.getAllContainerIdsForScope(any(), any(), anyInt())).thenReturn(containersInScope);
 		// call under test.
 		Set<Long> containers = manager.getAllContainerIdsForViewScope(idAndVersion, scopeType);
 		assertEquals(containersInScope, containers);
+		verify(mockViewScopeDao).getViewScope(idAndVersion.getId());
+		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(scopeType.getObjectType());
+		verify(mockMetadataIndexProvider).getAllContainerIdsForScope(scope, scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test
@@ -529,20 +539,16 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testgetAllContainerIdsForScopeFiewView() throws LimitExceededException{
-		when(mockNodeDao.getAllContainerIds(anyCollection(), anyInt())).thenReturn(containersInScope);
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+		when(mockMetadataIndexProvider.getAllContainerIdsForScope(any(), any(), anyInt())).thenReturn(containersInScope);
+		
 		// call under test.
 		Set<Long> containers = manager.getAllContainerIdsForScope(scope, scopeType);
 		assertEquals(containersInScope, containers);
-		verify(mockNodeDao).getAllContainerIds(scope, TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
-	}
-	
-	@Test
-	public void testGetAllContainerIdsForScopeProject() throws LimitExceededException{
-		scopeType = new ViewScopeType(ViewObjectType.ENTITY, ViewTypeMask.Project.getMask());
-		// call under test.
-		Set<Long> containers = manager.getAllContainerIdsForScope(scope, scopeType);
-		assertEquals(scope, containers);
-		verify(mockNodeDao, never()).getAllContainerIds(anySet(), anyInt());
+		
+		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(scopeType.getObjectType());
+		verify(mockMetadataIndexProvider).getAllContainerIdsForScope(scope, scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
+		
 	}
 	
 	/**
@@ -567,9 +573,13 @@ public class TableManagerSupportTest {
 	 */
 	@Test
 	public void testGetAllContainerIdsForScopeExpandedOverLimit() throws LimitExceededException{
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+		
 		// setup limit exceeded.
 		LimitExceededException exception = new LimitExceededException("too many");
-		doThrow(exception).when(mockNodeDao).getAllContainerIds(anyCollection(), anyInt());
+
+		doThrow(exception).when(mockMetadataIndexProvider).getAllContainerIdsForScope(scope, scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
+		
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			manager.getAllContainerIdsForScope(scope, scopeType);
@@ -578,9 +588,12 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testValidateScopeSize() throws LimitExceededException{
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+		
 		// call under test
 		manager.validateScopeSize(scope, scopeType);
-		verify(mockNodeDao).getAllContainerIds(scope, TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
+		
+		verify(mockMetadataIndexProvider).getAllContainerIdsForScope(scope, scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test

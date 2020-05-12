@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -11,6 +12,8 @@ import java.util.Set;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
+import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -33,6 +36,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
@@ -111,6 +115,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	private AuthorizationManager authorizationManager;
 	@Autowired
 	private ViewSnapshotDao viewSnapshotDao;
+	@Autowired
+	private MetadataIndexProviderFactory metadataIndexProviderFactory;
 	
 	/*
 	 * (non-Javadoc)
@@ -372,6 +378,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		ValidateArgument.required(scope, "scope");
 		ValidateArgument.required(scopeType, "viewTypeMask");
 		
+		if (scope.isEmpty()) {
+			return Collections.emptySet();
+		}
+		
+		ViewObjectType objectType = scopeType.getObjectType();
 		Long viewTypeMask = scopeType.getTypeMask();
 		
 		// Validate the given scope is under the limit.
@@ -379,12 +390,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			throw new IllegalArgumentException(createViewOverLimitMessage(viewTypeMask));
 		}
 		
-		if(ViewTypeMask.Project.getMask() == viewTypeMask){
-			return scope;
-		}
+		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(objectType);
+		
 		// Expand the scope to include all sub-folders
 		try {
-			return nodeDao.getAllContainerIds(scope, MAX_CONTAINERS_PER_VIEW);
+			return provider.getAllContainerIdsForScope(scope, viewTypeMask, MAX_CONTAINERS_PER_VIEW);
 		} catch (LimitExceededException e) {
 			// Convert the generic exception to a specific exception.
 			throw new IllegalArgumentException(createViewOverLimitMessage(viewTypeMask));
