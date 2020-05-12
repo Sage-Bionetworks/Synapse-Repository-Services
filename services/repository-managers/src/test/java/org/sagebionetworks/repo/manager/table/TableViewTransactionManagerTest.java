@@ -413,6 +413,17 @@ public class TableViewTransactionManagerTest {
 	}
 	
 	@Test
+	public void testApplyRowChangeWithMismatchingTableId(){
+		rowSet.setTableId("some other table id");
+		appendAbleRowSetRequest.setToAppend(rowSet);
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.applyRowChange(mockProgressCallback, user, appendAbleRowSetRequest);
+		});
+		assertEquals("The table id in the rowSet must match the entity id in the request (Expected: syn213, Found: some other table id)", ex.getMessage());
+	}
+	
+	@Test
 	public void testApplyRowSet(){
 		when(mockTableManagerSupport.getViewScopeType(any())).thenReturn(viewScopeType);
 		when(mockStackConfig.getTableMaxBytesPerRequest()).thenReturn(Integer.MAX_VALUE);

@@ -506,7 +506,7 @@ public class TableViewIntegrationTest {
 		row.setValues(rowValues);
 		PartialRowSet rowSet = new PartialRowSet();
 		rowSet.setRows(Lists.newArrayList(row));
-		rowSet.setTableId(file.getId());
+		rowSet.setTableId(fileViewId);
 		
 		AppendableRowSetRequest appendRequest = new AppendableRowSetRequest();
 		appendRequest.setEntityId(fileViewId);
@@ -557,7 +557,7 @@ public class TableViewIntegrationTest {
 		row.setEtag(file.getEtag());
 		PartialRowSet rowSet = new PartialRowSet();
 		rowSet.setRows(Lists.newArrayList(row));
-		rowSet.setTableId(file.getId());
+		rowSet.setTableId(fileViewId);
 		
 		AppendableRowSetRequest appendRequest = new AppendableRowSetRequest();
 		appendRequest.setEntityId(fileViewId);
