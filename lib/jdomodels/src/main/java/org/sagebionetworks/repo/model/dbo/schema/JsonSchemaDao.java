@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.schema;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.schema.JsonSchema;
@@ -108,6 +109,5 @@ public interface JsonSchemaDao {
 	 */
 	List<JsonSchemaVersionInfo> listSchemaVersions(String organizationName, String schemaName, long limit,
 			long offset);
-
 
 }

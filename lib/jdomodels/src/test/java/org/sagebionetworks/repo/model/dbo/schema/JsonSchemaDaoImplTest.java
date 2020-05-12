@@ -9,10 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import org.apache.commons.codec.digest.DigestUtils;
@@ -66,6 +64,9 @@ public class JsonSchemaDaoImplTest {
 
 	@BeforeEach
 	public void before() throws JSONObjectAdapterException {
+		jsonSchemaDao.trunacteAll();
+		organizationDao.truncateAll();
+
 		createdBy = adminUserId;
 		organizationName = "Foo.baR";
 		organization = organizationDao.createOrganization(organizationName, adminUserId);
@@ -423,6 +424,18 @@ public class JsonSchemaDaoImplTest {
 			jsonSchemaDao.createNewSchemaVersion(newSchemaVersionRequest);
 		});
 	}
+	
+	/**
+	 * Helper to create a new JSON schema with the given $id
+	 * @param id
+	 * @param index
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 */
+	JsonSchemaVersionInfo createNewSchemaVersion(String id, int index) throws JSONObjectAdapterException {
+		ArrayList<SchemaDependency> dependencies = null;
+		return createNewSchemaVersion(id, index, dependencies);
+	}
 
 	/**
 	 * Helper to create a new JSON schema with the given $id
@@ -431,7 +444,7 @@ public class JsonSchemaDaoImplTest {
 	 * @return
 	 * @throws JSONObjectAdapterException
 	 */
-	JsonSchemaVersionInfo createNewSchemaVersion(String id, int index) throws JSONObjectAdapterException {
+	JsonSchemaVersionInfo createNewSchemaVersion(String id, int index, ArrayList<SchemaDependency> dependencies) throws JSONObjectAdapterException {
 		SchemaId schemaId = SchemaIdParser.parseSchemaId(id);
 		String organizationName = schemaId.getOrganizationName().toString();
 		String schemaName = schemaId.getSchemaName().toString();
@@ -445,7 +458,7 @@ public class JsonSchemaDaoImplTest {
 		schema.setDescription("index:" + index);
 		return jsonSchemaDao.createNewSchemaVersion(
 				new NewSchemaVersionRequest().withOrganizationId(organization.getId()).withCreatedBy(createdBy)
-						.withJsonSchema(schema).withSchemaName(schemaName).withSemanticVersion(semanticVersion));
+						.withJsonSchema(schema).withSchemaName(schemaName).withSemanticVersion(semanticVersion).withDependencies(dependencies));
 	}
 
 	/**
@@ -994,7 +1007,7 @@ public class JsonSchemaDaoImplTest {
 			jsonSchemaDao.listSchemaVersions(organizationName, schemaName, limit, offset);
 		});
 	}
-	
+
 	@Test
 	public void testListSchemaVersionsWithNullSchemaName() {
 		long limit = 2;
@@ -1004,5 +1017,70 @@ public class JsonSchemaDaoImplTest {
 		assertThrows(IllegalArgumentException.class, () -> {
 			jsonSchemaDao.listSchemaVersions(organizationName, schemaName, limit, offset);
 		});
+	}
+
+	@Test
+	public void testBindDependencies() throws JSONObjectAdapterException {
+		int index = 0;
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one", index++);
+		// two depends on one
+		ArrayList<SchemaDependency> dependencies = new ArrayList<SchemaDependency>();
+		dependencies.add(new SchemaDependency().withDependsOnSchemaId(one.getSchemaId()));
+		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/two", index++, dependencies);
+		// Three depends on one and two
+		dependencies = new ArrayList<SchemaDependency>();
+		dependencies.add(new SchemaDependency().withDependsOnSchemaId(one.getSchemaId()));
+		dependencies.add(new SchemaDependency().withDependsOnSchemaId(two.getSchemaId()));
+		JsonSchemaVersionInfo three = createNewSchemaVersion("my.org.edu/three", index++, dependencies);
+
+		// Should block delete of one and two
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			jsonSchemaDao.deleteSchema(one.getSchemaId());
+		}).getMessage();
+		assertEquals("Cannot delete a schema that is referenced by another schema", message);
+
+		message = assertThrows(IllegalArgumentException.class, () -> {
+			jsonSchemaDao.deleteSchema(two.getSchemaId());
+		}).getMessage();
+		assertEquals("Cannot delete a schema that is referenced by another schema", message);
+
+		// can delete three
+		jsonSchemaDao.deleteSchema(three.getSchemaId());
+		// can now delete two
+		jsonSchemaDao.deleteSchema(two.getSchemaId());
+		// can now delete one
+		jsonSchemaDao.deleteSchema(one.getSchemaId());
+	}
+
+	@Test
+	public void testBindDependenciesWithVersions() throws JSONObjectAdapterException {
+		int index = 0;
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one/1.0.0", index++);
+		// two depends on one
+		ArrayList<SchemaDependency> dependencies = new ArrayList<SchemaDependency>();
+		dependencies.add(new SchemaDependency().withDependsOnSchemaId(one.getSchemaId()).withDependsOnVersionId(one.getVersionId()));
+		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/two/1.0.0", index++, dependencies);
+		// Three depends on one and two
+		dependencies = new ArrayList<SchemaDependency>();
+		dependencies.add(new SchemaDependency().withDependsOnSchemaId(one.getSchemaId()).withDependsOnVersionId(one.getVersionId()));
+		dependencies.add(new SchemaDependency().withDependsOnSchemaId(two.getSchemaId()).withDependsOnVersionId(two.getVersionId()));
+		JsonSchemaVersionInfo three = createNewSchemaVersion("my.org.edu/three/1.0.0", index++, dependencies);
+
+		// Should block delete of one and two
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			jsonSchemaDao.deleteSchema(one.getSchemaId());
+		}).getMessage();
+		assertEquals("Cannot delete a schema that is referenced by another schema", message);
+		message = assertThrows(IllegalArgumentException.class, () -> {
+			jsonSchemaDao.deleteSchemaVersion(one.getVersionId());
+		}).getMessage();
+		assertEquals("Cannot delete a schema version that is referenced by another schema", message);
+
+		// can delete three
+		jsonSchemaDao.deleteSchema(three.getSchemaId());
+		// can now delete two
+		jsonSchemaDao.deleteSchema(two.getSchemaId());
+		// can now delete one
+		jsonSchemaDao.deleteSchema(one.getSchemaId());
 	}
 }

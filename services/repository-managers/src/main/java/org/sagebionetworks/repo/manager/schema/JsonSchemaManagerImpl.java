@@ -201,6 +201,8 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		response.setNewVersionInfo(info);
 		return response;
 	}
+	
+
 
 	@Override
 	public JsonSchema getSchema(String organizationName, String schemaName, String semanticVersion) {
