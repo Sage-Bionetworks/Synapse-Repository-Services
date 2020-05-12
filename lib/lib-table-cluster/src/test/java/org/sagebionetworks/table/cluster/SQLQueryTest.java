@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.LikeQueryFilter;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
@@ -824,6 +825,38 @@ public class SQLQueryTest {
 		.tableType(EntityType.table)
 		.build();
 		assertEquals("SELECT _C111_ AS `f`, SUM(_C888_) AS `i`` sum` FROM T123 GROUP BY `f` ORDER BY `i`` sum` DESC", query.getOutputSQL());
+	}
+
+	@Test
+	public void testAdditionalFilter_noExistingWHEREClause() throws ParseException {
+		sql = "select \"foo\" from syn123";
+
+		LikeQueryFilter filter = new LikeQueryFilter();
+		filter.setColumnName("foo");
+		filter.setLikeValues(Arrays.asList("myVal%"));
+
+		SqlQuery query = new SqlQueryBuilder(sql)
+				.tableSchema(tableSchema)
+				.tableType(EntityType.table)
+				.additionalFilters(Arrays.asList(filter))
+				.build();
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE ( _C111_ LIKE :b0 )", query.getOutputSQL());
+	}
+
+	@Test
+	public void testAdditionalFilter_hasExistingWHEREClause() throws ParseException {
+		sql = "select \"foo\" from syn123 WHERE \"bar\" = 5";
+
+		LikeQueryFilter filter = new LikeQueryFilter();
+		filter.setColumnName("foo");
+		filter.setLikeValues(Arrays.asList("myVal%"));
+
+		SqlQuery query = new SqlQueryBuilder(sql)
+				.tableSchema(tableSchema)
+				.tableType(EntityType.table)
+				.additionalFilters(Arrays.asList(filter))
+				.build();
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE ( _C333_ = :b0 ) AND ( ( _C111_ LIKE :b1 ) )", query.getOutputSQL());
 	}
 
 }

@@ -9,6 +9,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
+import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReferenceLookup;
@@ -17,6 +18,7 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.util.FacetUtils;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -113,7 +115,7 @@ public class SqlQuery {
 	 * @param columnNameToModelMap
 	 * @throws ParseException
 	 */
-	public SqlQuery(
+	SqlQuery(
 			QuerySpecification parsedModel,
 			List<ColumnModel> tableSchema,
 			Long overrideOffset,
@@ -124,7 +126,8 @@ public class SqlQuery {
 			Boolean includeEntityEtag,
 			Boolean includeRowIdAndRowVersion,
 			EntityType tableType,
-			List<FacetColumnRequest> selectedFacets
+			List<FacetColumnRequest> selectedFacets,
+			List<QueryFilter> additionalFilters
 			) {
 		ValidateArgument.required(tableSchema, "TableSchema");
 		if(tableSchema.isEmpty()){
@@ -193,6 +196,14 @@ public class SqlQuery {
 		// Create a copy of the paginated model.
 		try {
 			transformedModel = new TableQueryParser(paginatedModel.toSql()).querySpecification();
+
+			//Append additionalFilters onto the WHERE clause
+			if(!additionalFilters.isEmpty()) {
+				String additionalFilterSearchCondition = SQLUtils.appendAdditionalFilters(additionalFilters);
+				StringBuilder whereClauseBuilder = new StringBuilder();
+				FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(whereClauseBuilder,additionalFilterSearchCondition, transformedModel.getTableExpression().getWhereClause());
+				transformedModel.getTableExpression().replaceWhere(new TableQueryParser(whereClauseBuilder.toString()).whereClause());
+			}
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}

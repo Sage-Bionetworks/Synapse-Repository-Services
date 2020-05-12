@@ -43,6 +43,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -51,8 +52,10 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.LikeQueryFilter;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
+import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
@@ -62,6 +65,11 @@ import org.sagebionetworks.repo.model.table.parser.BooleanParser;
 import org.sagebionetworks.repo.model.table.parser.DoubleParser;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseRow;
+import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.LikePredicate;
+import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.doubles.AbstractDouble;
@@ -2046,4 +2054,63 @@ public class SQLUtils {
 		
 		return builder.toString();
 	}
+
+	public static String appendAdditionalFilters(List<QueryFilter> additionalFilters){
+		ValidateArgument.requiredNotEmpty(additionalFilters, "additionalFilters");
+
+		StringBuilder additionalSearchConditionBuilder = new StringBuilder();
+
+		boolean firstVal = true;
+
+		for(QueryFilter filter : additionalFilters){
+			if(!firstVal){
+				additionalSearchConditionBuilder.append(" AND ");
+			}
+			appendAdditionalFilters(additionalSearchConditionBuilder, filter);
+			firstVal=false;
+		}
+
+		return additionalSearchConditionBuilder.toString();
+	}
+
+	static void appendAdditionalFilters(StringBuilder builder, QueryFilter filter){
+		if(filter instanceof LikeQueryFilter){
+			appendLikeFilter(builder, (LikeQueryFilter) filter);
+		}else{
+			throw new IllegalArgumentException("Unknown QueryFilter type");
+		}
+	}
+
+	static void appendLikeFilter(StringBuilder builder, LikeQueryFilter filter){
+		ValidateArgument.requiredNotEmpty(filter.getColumnName(), "likeQueryFilter.columnName");
+		ValidateArgument.requiredNotEmpty(filter.getLikeValues(), "likeQueryFilter.likeValues");
+
+		builder.append("(");
+		boolean firstVal = true;
+		String columnName = filter.getColumnName();
+		for (String likeValue: filter.getLikeValues()){
+			if(!firstVal){
+				builder.append(" OR ");
+			}
+			builder.append("\"")
+					.append(columnName)
+					.append("\"")
+					.append(" LIKE ");
+			appendSingleQuotedValueToStringBuilder(builder, likeValue);
+
+			firstVal = false;
+		}
+		builder.append(")");
+	}
+
+	/**
+	 * Appends a value to the string builder
+	 * and places single quotes (') around it if the column type is String
+	 */
+	static void appendSingleQuotedValueToStringBuilder(StringBuilder builder, String value){
+		builder.append("'");
+		builder.append(value.replaceAll("'", "''"));
+		builder.append("'");
+	}
+
 }

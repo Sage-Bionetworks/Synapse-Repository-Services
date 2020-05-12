@@ -35,18 +35,24 @@ import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.LikeQueryFilter;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
+import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
+import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.EnumUtils;
 import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -3085,5 +3091,127 @@ public class SQLUtilsTest {
 	
 	private ViewScopeFilter getSQLScopeFilter(List<String> subTypes, boolean filterByObjectId) {
 		return new ViewScopeFilter(ViewObjectType.ENTITY, subTypes, filterByObjectId, Collections.emptySet());
+	}
+
+
+	@Test
+	public void testAppendAdditionalFilters_nullEmptyList() {
+		assertThrows(IllegalArgumentException.class, () ->
+				// method under test
+				SQLUtils.appendAdditionalFilters(null)
+		);
+
+		assertThrows(IllegalArgumentException.class, () ->
+				// method under test
+				SQLUtils.appendAdditionalFilters(Collections.emptyList())
+		);
+	}
+
+	@Test
+	public void testAppendAdditionalFilters_singleColumns() {
+		LikeQueryFilter filter = new LikeQueryFilter();
+		filter.setColumnName("myCol");
+		filter.setLikeValues(Arrays.asList("foo%", "%bar","%baz%"));
+
+		// method under test
+		String searchCondition = SQLUtils.appendAdditionalFilters(Arrays.asList(filter));
+		assertEquals("(\"myCol\" LIKE 'foo%' OR \"myCol\" LIKE '%bar' OR \"myCol\" LIKE '%baz%')", searchCondition);
+	}
+
+	@Test
+	public void testAppendAdditionalFilters_multipleColumns(){
+		LikeQueryFilter filter = new LikeQueryFilter();
+		filter.setColumnName("myCol");
+		filter.setLikeValues(Arrays.asList("foo%", "%bar","%baz%"));
+
+		LikeQueryFilter filter2 = new LikeQueryFilter();
+		filter2.setColumnName("otherCol");
+		filter2.setLikeValues(Arrays.asList("%asdf"));
+
+		// method under test
+		String searchCondition = SQLUtils.appendAdditionalFilters(Arrays.asList(filter, filter2));
+		assertEquals("(\"myCol\" LIKE 'foo%' OR \"myCol\" LIKE '%bar' OR \"myCol\" LIKE '%baz%') AND (\"otherCol\" LIKE '%asdf')", searchCondition);
+	}
+
+	@Test
+	public void testAppendAdditionalFilters_LikeFilter_singleValues(){
+		LikeQueryFilter filter = new LikeQueryFilter();
+		filter.setColumnName("myCol");
+		filter.setLikeValues(Arrays.asList("foo%"));
+
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLUtils.appendAdditionalFilters(builder, filter);
+		assertEquals("(\"myCol\" LIKE 'foo%')", builder.toString());
+	}
+
+	@Test
+	public void testAppendAdditionalFilters_LikeFilter_multipleValues(){
+		LikeQueryFilter filter = new LikeQueryFilter();
+		filter.setColumnName("myCol");
+		filter.setLikeValues(Arrays.asList("foo%", "%bar","%baz%"));
+
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLUtils.appendAdditionalFilters(builder, filter);
+		assertEquals("(\"myCol\" LIKE 'foo%' OR \"myCol\" LIKE '%bar' OR \"myCol\" LIKE '%baz%')", builder.toString());
+	}
+
+	@Test
+	public void testAppendAdditionalFilters_LikeFilter_nullEmptyColName(){
+		LikeQueryFilter filter = new LikeQueryFilter();
+		filter.setLikeValues(Arrays.asList("foo%", "%bar","%baz%"));
+		StringBuilder builder = new StringBuilder();
+
+		filter.setColumnName(null);
+		assertThrows(IllegalArgumentException.class, ()->
+			// method under test
+			SQLUtils.appendAdditionalFilters(builder, filter)
+		);
+
+		filter.setColumnName("");
+		assertThrows(IllegalArgumentException.class, ()->
+				// method under test
+				SQLUtils.appendAdditionalFilters(builder, filter)
+		);
+	}
+
+	@Test
+	public void testAppendAdditionalFilters_LikeFilter_nullEmptyValues(){
+		LikeQueryFilter filter = new LikeQueryFilter();
+		filter.setColumnName("myCol");
+		StringBuilder builder = new StringBuilder();
+
+		filter.setLikeValues(null);
+		assertThrows(IllegalArgumentException.class, ()->
+				// method under test
+				SQLUtils.appendAdditionalFilters(builder, filter)
+		);
+
+		filter.setLikeValues(Collections.emptyList());
+		assertThrows(IllegalArgumentException.class, ()->
+				// method under test
+				SQLUtils.appendAdditionalFilters(builder, filter)
+		);
+	}
+
+	@Test
+	public void testAppendAdditionalFilters_UnknownImplementation(){
+		QueryFilter filter = new QueryFilter(){
+			@Override
+			public JSONObjectAdapter initializeFromJSONObject(JSONObjectAdapter jsonObjectAdapter) throws JSONObjectAdapterException {
+				return null;
+			}
+
+			@Override
+			public JSONObjectAdapter writeToJSONObject(JSONObjectAdapter jsonObjectAdapter) throws JSONObjectAdapterException {
+				return null;
+			}
+		};
+
+		assertThrows(IllegalArgumentException.class, ()->
+			// method under test
+			SQLUtils.appendAdditionalFilters(new StringBuilder(), filter)
+		);
 	}
 }
