@@ -78,7 +78,7 @@ import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
-import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
@@ -86,6 +86,7 @@ import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.Callback;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.BadSqlGrammarException;
@@ -145,6 +146,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private TransactionTemplate readTransactionTemplate;
 	private JdbcTemplate template;
 	private NamedParameterJdbcTemplate namedTemplate;
+	private ObjectFieldModelResolverFactory objectFieldModelResolverFactory;
+	
+	
+	@Autowired
+	public TableIndexDAOImpl(ObjectFieldModelResolverFactory objectFieldModelResolverFactory) {
+		this.objectFieldModelResolverFactory = objectFieldModelResolverFactory;
+	}
 
 	@Override
 	public void setDataSource(DataSource dataSource) {
@@ -1039,7 +1047,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return Collections.emptyList();
 		}
 		
-		ObjectFieldModelResolver fieldModelResolver = getObjectFieldModelResolver(fieldTypeMapper);
+		ObjectFieldModelResolver fieldModelResolver = objectFieldModelResolverFactory.getObjectFieldModelResolver(fieldTypeMapper);
 		
 		return schema.stream()
 			.map((ColumnModel columnModel) -> translateColumnModel(columnModel, fieldModelResolver))
@@ -1330,17 +1338,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public ObjectFieldModelResolver getObjectFieldModelResolver(ObjectFieldTypeMapper fieldTypeMapper) {
-		// TODO We should create a factory and potentially cache the instance by objectType
-		return new ObjectFieldModelResolverImpl(fieldTypeMapper);
-	}
-	
-	@Override
 	public void determineCauseOfReplicationFailure(Exception exception, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper) {
 		// Calculate the schema from the annotations
 		List<ColumnModel> schemaFromAnnotations = getPossibleColumnModelsForContainers(scopeFilter, Long.MAX_VALUE, 0L);
 		
-		ObjectFieldModelResolver objectFieldModelResolver = getObjectFieldModelResolver(fieldTypeMapper);
+		ObjectFieldModelResolver objectFieldModelResolver = objectFieldModelResolverFactory.getObjectFieldModelResolver(fieldTypeMapper);
 		
 		List<ColumnModel> filteredSchema = currentSchema.stream()
 				// Filter all the default object field column models

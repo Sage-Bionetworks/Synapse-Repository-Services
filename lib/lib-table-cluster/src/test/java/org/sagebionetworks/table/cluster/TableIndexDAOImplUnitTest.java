@@ -3,7 +3,6 @@ package org.sagebionetworks.table.cluster;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
@@ -29,6 +28,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import org.sagebionetworks.util.EnumUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -38,7 +38,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
@@ -55,6 +54,8 @@ public class TableIndexDAOImplUnitTest {
 	private NamedParameterJdbcTemplate mockNamedTemplate;
 	@Mock
 	private ObjectFieldTypeMapper mockFieldTypeMapper;
+	@Mock
+	private ObjectFieldModelResolverFactory mockObjectFieldResolverFactory;
 	@Mock
 	private ObjectFieldModelResolver mockObjectFieldResolver;
 	
@@ -229,8 +230,8 @@ public class TableIndexDAOImplUnitTest {
 		ViewScopeFilter scopeFilter = getScopeFilter(Collections.emptySet());
 		
 		when(mockObjectFieldResolver.findMatch(any())).thenReturn(Optional.empty());
+		when(mockObjectFieldResolverFactory.getObjectFieldModelResolver(any())).thenReturn(mockObjectFieldResolver);
 		
-		doReturn(mockObjectFieldResolver).when(spyDao).getObjectFieldModelResolver(any());
 		doReturn(ImmutableList.of(annotationModel)).when(spyDao).getPossibleColumnModelsForContainers(any(), any(), any());
 		
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
@@ -262,8 +263,8 @@ public class TableIndexDAOImplUnitTest {
 		ViewScopeFilter scopeFilter = getScopeFilter(Collections.emptySet());
 		
 		when(mockObjectFieldResolver.findMatch(any())).thenReturn(Optional.empty());
+		when(mockObjectFieldResolverFactory.getObjectFieldModelResolver(any())).thenReturn(mockObjectFieldResolver);
 
-		doReturn(mockObjectFieldResolver).when(spyDao).getObjectFieldModelResolver(any());
 		doReturn(ImmutableList.of(a1, a2)).when(spyDao).getPossibleColumnModelsForContainers(any(), any(), any());
 		
 		

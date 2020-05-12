@@ -57,6 +57,8 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.replication.ReplicationManager;
+import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
+import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.BucketAndKey;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
@@ -85,6 +87,9 @@ import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -126,6 +131,11 @@ public class TableViewManagerImplTest {
 	@Mock
 	ViewSnapshotDao mockViewSnapshotDao;
 	@Mock
+	MetadataIndexProviderFactory mockMetadataIndexProviderFactory;
+	@Mock
+	ObjectFieldModelResolverFactory mockObjectFieldModelResolverFactory;
+	
+	@Mock
 	File mockFile;
 	@Mock
 	OutputStream mockOutStream;
@@ -135,10 +145,15 @@ public class TableViewManagerImplTest {
 	InputStream mockInputStream;
 	@Mock
 	GZIPInputStream mockGzipInputStream;
+	@Mock
+	MetadataIndexProvider mockMetadataIndexProvider;
+	
 	@Captor
 	ArgumentCaptor<PutObjectRequest> putRequestCaptor;
 	@Captor
 	ArgumentCaptor<ViewSnapshot> snapshotCaptor;
+	@Captor
+	ArgumentCaptor<Annotations> annotationsCaptor;
 	
 	@InjectMocks
 	TableViewManagerImpl manager;
@@ -172,9 +187,12 @@ public class TableViewManagerImplTest {
 	
 	ViewScopeType scopeType;
 	
+	ObjectFieldModelResolver objectFieldModelResolver;
 
 	@BeforeEach
 	public void before(){
+		objectFieldModelResolver = new ObjectFieldModelResolverImpl(mockMetadataIndexProvider);
+		
 		userInfo = new UserInfo(false, 888L);
 		schema = Lists.newArrayList("1","2","3");
 		scope = Lists.newArrayList("syn123", "syn456");
@@ -222,7 +240,7 @@ public class TableViewManagerImplTest {
 		intListColumn.setId("4");
 
 		
-		etagColumn = ObjectField.etag.getColumnModel();
+		etagColumn = objectFieldModelResolver.getColumnModel(ObjectField.etag);
 		etagColumn.setId("3");
 		
 		viewSchema = new LinkedList<ColumnModel>();
@@ -357,9 +375,9 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testGetViewSchemaWithRequiredColumnsNoAdditions(){
 		List<ColumnModel> rawSchema = Lists.newArrayList(
-				ObjectField.benefactorId.getColumnModel(),
-				ObjectField.createdBy.getColumnModel(),
-				ObjectField.etag.getColumnModel()
+				objectFieldModelResolver.getColumnModel(ObjectField.benefactorId),
+				objectFieldModelResolver.getColumnModel(ObjectField.createdBy),
+				objectFieldModelResolver.getColumnModel(ObjectField.etag)
 				);
 		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(rawSchema);
 		// call under test
@@ -370,18 +388,18 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testGetViewSchema(){
 		List<ColumnModel> rawSchema = Lists.newArrayList(
-				ObjectField.createdBy.getColumnModel(),
-				ObjectField.createdOn.getColumnModel(),
-				ObjectField.benefactorId.getColumnModel()
+				objectFieldModelResolver.getColumnModel(ObjectField.benefactorId),
+				objectFieldModelResolver.getColumnModel(ObjectField.createdBy),
+				objectFieldModelResolver.getColumnModel(ObjectField.etag)
 				);
 		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(rawSchema);
 		// call under test
 		List<ColumnModel> result = manager.getViewSchema(idAndVersion);
 		
 		List<ColumnModel> expected = Lists.newArrayList(
-				ObjectField.createdBy.getColumnModel(),
-				ObjectField.createdOn.getColumnModel(),
-				ObjectField.benefactorId.getColumnModel()
+				objectFieldModelResolver.getColumnModel(ObjectField.benefactorId),
+				objectFieldModelResolver.getColumnModel(ObjectField.createdBy),
+				objectFieldModelResolver.getColumnModel(ObjectField.etag)
 				);
 		assertEquals(expected, result);
 	}
@@ -392,7 +410,7 @@ public class TableViewManagerImplTest {
 		change.setOldColumnId(null);
 		change.setNewColumnId("456");
 		List<ColumnChange> changes = Lists.newArrayList(change);
-		ColumnModel model = ObjectField.benefactorId.getColumnModel();
+		ColumnModel model = objectFieldModelResolver.getColumnModel(ObjectField.benefactorId);
 		model.setId(change.getNewColumnId());
 		List<ColumnModel> schema = Lists.newArrayList(model);
 		List<String> newColumnIds = Lists.newArrayList(change.getNewColumnId());
@@ -417,7 +435,7 @@ public class TableViewManagerImplTest {
 		change.setOldColumnId(null);
 		change.setNewColumnId("456");
 		List<ColumnChange> changes = Lists.newArrayList(change);
-		ColumnModel model = ObjectField.benefactorId.getColumnModel();
+		ColumnModel model = objectFieldModelResolver.getColumnModel(ObjectField.benefactorId);
 		model.setId(change.getNewColumnId());
 		// the new schema should be over the limit
 		List<String> newSchemaColumnIds = new LinkedList<>();
@@ -438,13 +456,16 @@ public class TableViewManagerImplTest {
 
 	@Test
 	public void testUpdateAnnotationsFromValues(){
+		when(mockObjectFieldModelResolverFactory.getObjectFieldModelResolver(any())).thenReturn(objectFieldModelResolver);
+		when(mockMetadataIndexProvider.canUpdateAnnotation(any())).thenReturn(true);
+		
 		Annotations annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
 		Map<String, String> values = new HashMap<>();
 		values.put(ObjectField.etag.name(), "anEtag");
 		values.put(anno1.getId(), "aString");
 		values.put(anno2.getId(), "123");
 		// call under test
-		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, viewSchema, values);
+		boolean updated = manager.updateAnnotationsFromValues(annos, viewSchema, values, mockMetadataIndexProvider);
 		assertTrue(updated);
 		AnnotationsValue anno1Value = annos.getAnnotations().get(anno1.getName());
 		assertEquals("aString",AnnotationsV2Utils.getSingleValue(anno1Value));
@@ -458,6 +479,9 @@ public class TableViewManagerImplTest {
 
 	@Test
 	public void testUpdateAnnotations_ListValues(){
+		when(mockObjectFieldModelResolverFactory.getObjectFieldModelResolver(any())).thenReturn(objectFieldModelResolver);
+		when(mockMetadataIndexProvider.canUpdateAnnotation(any())).thenReturn(true);
+		
 		//make anno1 a list
 		anno1.setColumnType(ColumnType.STRING_LIST);
 
@@ -468,7 +492,8 @@ public class TableViewManagerImplTest {
 		values.put(anno1.getId(), "[\"asdf\", \"qwerty\"]");
 		values.put(intListColumn.getId(), "[123, 456, 789]");
 		// call under test
-		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, viewSchema, values);
+		boolean updated = manager.updateAnnotationsFromValues(annos, viewSchema, values, mockMetadataIndexProvider);
+		
 		assertTrue(updated);
 		AnnotationsValue anno1Value = annos.getAnnotations().get(anno1.getName());
 		assertEquals(Arrays.asList("asdf", "qwerty"), anno1Value.getValue());
@@ -510,6 +535,9 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testUpdateAnnotationsFromValuesSameNameDifferntType(){
+		when(mockObjectFieldModelResolverFactory.getObjectFieldModelResolver(any())).thenReturn(objectFieldModelResolver);
+		when(mockMetadataIndexProvider.canUpdateAnnotation(any())).thenReturn(true);
+		
 		Annotations annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
 		AnnotationsV2TestUtils.putAnnotations(annos, anno1.getName(), "456", AnnotationsValueType.LONG);
 		AnnotationsV2TestUtils.putAnnotations(annos, anno2.getName(), "not a long", AnnotationsValueType.STRING);
@@ -519,7 +547,7 @@ public class TableViewManagerImplTest {
 		values.put(anno1.getId(), "aString");
 		values.put(anno2.getId(), "123");
 		// call under test
-		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, viewSchema, values);
+		boolean updated = manager.updateAnnotationsFromValues(annos, viewSchema, values, mockMetadataIndexProvider);
 		// the resulting annotations must be valid.
 		AnnotationsV2Utils.validateAnnotations(annos);
 		assertTrue(updated);
@@ -540,6 +568,9 @@ public class TableViewManagerImplTest {
 	 */
 	@Test
 	public void testUpdateAnnotationsDate() throws IOException, JSONObjectAdapterException {
+		when(mockObjectFieldModelResolverFactory.getObjectFieldModelResolver(any())).thenReturn(objectFieldModelResolver);
+		when(mockMetadataIndexProvider.canUpdateAnnotation(any())).thenReturn(true);
+		
 		String date = "1509744902000";
 		viewSchema = Lists.newArrayList(dateColumn);
 		Annotations annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
@@ -547,7 +578,7 @@ public class TableViewManagerImplTest {
 		Map<String, String> values = new HashMap<>();
 		values.put(dateColumn.getId(), date);
 		// call under test
-		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, viewSchema, values);
+		boolean updated = manager.updateAnnotationsFromValues(annos, viewSchema, values, mockMetadataIndexProvider);
 		// the resulting annotations must be valid.
 		AnnotationsV2Utils.validateAnnotations(annos);
 		assertTrue(updated);
@@ -565,31 +596,39 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testUpdateAnnotationsFromValuesEmptyScheam(){
+		when(mockObjectFieldModelResolverFactory.getObjectFieldModelResolver(any())).thenReturn(objectFieldModelResolver);
+		
 		Annotations annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
 		Map<String, String> values = new HashMap<>();
 		// call under test
-		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, new LinkedList<ColumnModel>(), values);
+		boolean updated = manager.updateAnnotationsFromValues(annos, new LinkedList<ColumnModel>(), values, mockMetadataIndexProvider);
 		assertFalse(updated);
 	}
 	
 	@Test
 	public void testUpdateAnnotationsFromValuesEmptyValues(){
+		when(mockObjectFieldModelResolverFactory.getObjectFieldModelResolver(any())).thenReturn(objectFieldModelResolver);
+		when(mockMetadataIndexProvider.canUpdateAnnotation(any())).thenReturn(true);
+		
 		Annotations annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
 		Map<String, String> values = new HashMap<>();
 		// call under test
-		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, viewSchema, values);
+		boolean updated = manager.updateAnnotationsFromValues(annos, viewSchema, values, mockMetadataIndexProvider);
 		assertFalse(updated);
 	}
 	
 	@Test
 	public void testUpdateAnnotationsFromValuesDelete(){
+		when(mockObjectFieldModelResolverFactory.getObjectFieldModelResolver(any())).thenReturn(objectFieldModelResolver);
+		when(mockMetadataIndexProvider.canUpdateAnnotation(any())).thenReturn(true);
+		
 		Annotations annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
 		// start with an annotation.
 		AnnotationsV2TestUtils.putAnnotations(annos, anno1.getName(), "startValue", AnnotationsValueType.STRING);
 		Map<String, String> values = new HashMap<>();
 		values.put(anno1.getId(), null);
 		// call under test
-		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, viewSchema, values);
+		boolean updated = manager.updateAnnotationsFromValues(annos, viewSchema, values, mockMetadataIndexProvider);
 		assertTrue(updated);
 		assertFalse(annos.getAnnotations().containsKey(anno1.getName()));
 		assertEquals(null, AnnotationsV2Utils.getSingleValue(annos, anno1.getName()));
@@ -613,14 +652,18 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testUpdateEntityInView(){
-		when(mockNodeManager.getUserAnnotations(any(UserInfo.class), anyString())).thenReturn(annotationsV2);
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+		when(mockObjectFieldModelResolverFactory.getObjectFieldModelResolver(any())).thenReturn(objectFieldModelResolver);
+		when(mockMetadataIndexProvider.getAnnotations(any(), any())).thenReturn(annotationsV2);
+		when(mockMetadataIndexProvider.canUpdateAnnotation(any())).thenReturn(true);
 		
 		ViewObjectType objectType = scopeType.getObjectType();
 		
 		// call under test
 		manager.updateRowInView(userInfo, viewSchema, objectType, row);
+		
 		// this should trigger an update
-		verify(mockNodeManager).updateUserAnnotations(eq(userInfo), eq("syn111"), any(Annotations.class));
+		verify(mockMetadataIndexProvider).updateAnnotations(eq(userInfo), eq("syn111"), any(Annotations.class));
 		verify(mockReplicationManager).replicate(objectType, "syn111");
 	}
 	
@@ -671,9 +714,14 @@ public class TableViewManagerImplTest {
 		ViewObjectType objectType = scopeType.getObjectType();
 		row.getValues().remove(anno1.getId());
 		row.getValues().remove(anno2.getId());
-		when(mockNodeManager.getUserAnnotations(any(UserInfo.class), anyString())).thenReturn(annotationsV2);
+
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+		when(mockObjectFieldModelResolverFactory.getObjectFieldModelResolver(any())).thenReturn(objectFieldModelResolver);
+		when(mockMetadataIndexProvider.getAnnotations(any(), any())).thenReturn(annotationsV2);
+		
 		// call under test
 		manager.updateRowInView(userInfo, viewSchema, objectType, row);
+		
 		// this should not trigger an update
 		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(Annotations.class));
 		verify(mockReplicationManager, never()).replicate(any(), anyString());
@@ -691,6 +739,39 @@ public class TableViewManagerImplTest {
 		} catch (IllegalArgumentException e) {
 			assertEquals(TableViewManagerImpl.ETAG_MISSING_MESSAGE, e.getMessage());
 		}
+	}
+	
+	@Test
+	public void testUpdateEntityInViewSkipAnnotation(){
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+		when(mockObjectFieldModelResolverFactory.getObjectFieldModelResolver(any())).thenReturn(objectFieldModelResolver);
+		when(mockMetadataIndexProvider.getAnnotations(any(), any())).thenReturn(annotationsV2);
+		
+		ColumnModel skipModel = new ColumnModel();
+		skipModel.setName("customField");
+		skipModel.setColumnType(ColumnType.STRING);
+		
+		when(mockMetadataIndexProvider.canUpdateAnnotation(any())).thenReturn(true);
+		when(mockMetadataIndexProvider.canUpdateAnnotation(skipModel)).thenReturn(false);
+		
+		ViewObjectType objectType = scopeType.getObjectType();
+		
+		viewSchema.add(skipModel);
+		
+		// call under test
+		manager.updateRowInView(userInfo, viewSchema, objectType, row);
+		
+		// this should trigger an update
+		verify(mockMetadataIndexProvider).canUpdateAnnotation(skipModel);
+		verify(mockMetadataIndexProvider).updateAnnotations(eq(userInfo), eq("syn111"), annotationsCaptor.capture());
+		verify(mockReplicationManager).replicate(objectType, "syn111");
+		
+		Map<String, AnnotationsValue> annotations = annotationsCaptor.getValue().getAnnotations();
+		
+		assertEquals(2, annotations.size());
+		assertTrue(annotations.containsKey("foo"));
+		assertTrue(annotations.containsKey("bar"));
+		assertFalse(annotations.containsKey("customField"));
 	}
 
 	@Test
@@ -837,7 +918,6 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);
 		String token = "the token";
 		when(mockTableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
-		Long viewTypeMask = 1L;
 		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		String originalSchemaMD5Hex = "startMD5";
@@ -973,7 +1053,6 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);
 		String token = "the token";
 		when(mockTableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
-		Long viewTypeMask = 1L;
 		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		String originalSchemaMD5Hex = "startMD5";
@@ -1155,10 +1234,10 @@ public class TableViewManagerImplTest {
 		// call under test
 		managerSpy.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
 		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), eq(idAndVersion),
-				any(ProgressingCallable.class));
+				any());
 		String expectedKey = TableViewManagerImpl.VIEW_DELTA_KEY_PREFIX+idAndVersion.toString();
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedKey),
-				any(ProgressingCallable.class));
+				any());
 		verify(managerSpy).applyChangesToAvailableViewHoldingLock(idAndVersion);
 	}
 	
@@ -1166,57 +1245,55 @@ public class TableViewManagerImplTest {
 	 * Setup the tryRunWithTableNonexclusiveLock() to forward the call to the passed callback.
 	 * @throws Exception
 	 */
-	@SuppressWarnings("unchecked")
 	void setupNonexclusiveLockToForwardToCallack() throws Exception {
 		doAnswer((InvocationOnMock invocation) -> {
 			// Last argument is the callback
 			Object[] args = invocation.getArguments();
-			ProgressingCallable callable = (ProgressingCallable) args[args.length - 1];
+			ProgressingCallable<?> callable = (ProgressingCallable<?>) args[args.length - 1];
 			callable.call(mockProgressCallback);
 			return null;
 		}).when(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),
-				any(IdAndVersion.class), any(ProgressingCallable.class));
+				any(IdAndVersion.class), any());
 	}
 	
 	/**
 	 * Setup the tryRunWithTableExclusiveLock() to forward the call to the passed callback.
 	 * @throws Exception
 	 */
-	@SuppressWarnings("unchecked")
 	void setupExclusiveLockToForwardToCallack() throws Exception {
 		doAnswer((InvocationOnMock invocation) -> {
 			// Last argument is the callback
 			Object[] args = invocation.getArguments();
-			ProgressingCallable callable = (ProgressingCallable) args[args.length - 1];
+			ProgressingCallable<?> callable = (ProgressingCallable<?>) args[args.length - 1];
 			callable.call(mockProgressCallback);
 			return null;
 		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class),
-				anyString(), any(ProgressingCallable.class));
+				anyString(), any());
 	}
 	
 	@Test
 	public void testApplyChangesToAvailableView_ExcluisveLockUnavailable() throws Exception {
 		setupNonexclusiveLockToForwardToCallack();
 		LockUnavilableException exception = new LockUnavilableException("not now");
-		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(String.class), any(ProgressingCallable.class));
+		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(String.class), any());
 		String expectedKey = TableViewManagerImpl.VIEW_DELTA_KEY_PREFIX+idAndVersion.toString();
 		// call under test
 		manager.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedKey),
-				any(ProgressingCallable.class));
+				any());
 		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), eq(idAndVersion),
-				any(ProgressingCallable.class));
+				any());
 	}
 	
 	@Test
 	public void testApplyChangesToAvailableView_NonExcluisveLockUnavailable() throws Exception {
 		LockUnavilableException exception = new LockUnavilableException("not now");
 		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),
-				any(IdAndVersion.class), any(ProgressingCallable.class));
+				any(IdAndVersion.class), any());
 		// call under test
 		manager.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
 		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), eq(idAndVersion),
-				any(ProgressingCallable.class));
+				any());
 		verifyNoMoreInteractions(mockTableManagerSupport);
 	}
 	
@@ -1225,8 +1302,7 @@ public class TableViewManagerImplTest {
 		setupNonexclusiveLockToForwardToCallack();
 		IllegalArgumentException exception = new IllegalArgumentException("not now");
 		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class),
-				anyString(), any(ProgressingCallable.class));
-		String expectedKey = TableViewManagerImpl.VIEW_DELTA_KEY_PREFIX + idAndVersion.toString();
+				anyString(), any());
 		IllegalArgumentException result =assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
