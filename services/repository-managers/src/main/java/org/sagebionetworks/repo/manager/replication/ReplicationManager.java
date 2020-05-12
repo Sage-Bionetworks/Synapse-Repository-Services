@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.replication;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 /**
@@ -22,8 +23,11 @@ public interface ReplicationManager {
 	void replicate(List<ChangeMessage> messages) throws RecoverableMessageException;
 
 	/**
-	 * Replicate all data for a single entity.
-	 * @param entityId
+	 * Replicate all data for a single object.
+	 * 
+	 * @param objectType The type of object
+	 * @param objectId   The identifier of the object
+	 * 
 	 */
-	void replicate(String entityId);
+	void replicate(ViewObjectType objectType, String objectId);
 }

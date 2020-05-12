@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,11 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 		}
 		// Expand the scope to include all sub-folders
 		return nodeDao.getAllContainerIds(scope, containerLimit);
+	}
+	
+	@Override
+	public List<ObjectDataDTO> getObjectData(List<Long> objectIds, int maxAnnotationChars) {
+		return nodeDao.getEntityDTOs(objectIds, maxAnnotationChars);
 	}
 	
 	@Override

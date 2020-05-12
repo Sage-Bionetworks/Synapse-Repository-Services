@@ -242,6 +242,7 @@ public class TableViewManagerImplTest {
 		snapshotOptions = new SnapshotRequest();
 		snapshotOptions.setSnapshotComment("a comment");
 		allContainersInScope = Sets.newHashSet(123L, 456L);;
+		
 		scopeType = new ViewScopeType(ViewObjectType.ENTITY, ViewTypeMask.File.getMask());
 		
 		managerSpy = Mockito.spy(manager);
@@ -613,70 +614,79 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testUpdateEntityInView(){
 		when(mockNodeManager.getUserAnnotations(any(UserInfo.class), anyString())).thenReturn(annotationsV2);
+		
+		ViewObjectType objectType = scopeType.getObjectType();
+		
 		// call under test
-		manager.updateEntityInView(userInfo, viewSchema, row);
+		manager.updateRowInView(userInfo, viewSchema, objectType, row);
 		// this should trigger an update
 		verify(mockNodeManager).updateUserAnnotations(eq(userInfo), eq("syn111"), any(Annotations.class));
-		verify(mockReplicationManager).replicate("syn111");
+		verify(mockReplicationManager).replicate(objectType, "syn111");
 	}
 	
 	@Test
 	public void testUpdateEntityInViewNullRow(){
+		ViewObjectType objectType = scopeType.getObjectType();
 		row = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.updateEntityInView(userInfo, viewSchema, row);
+			manager.updateRowInView(userInfo, viewSchema, objectType, row);
 		});
 	}
 	
 	@Test
 	public void testUpdateEntityInViewNullRowId(){
+		ViewObjectType objectType = scopeType.getObjectType();
 		row.setRowId(null);
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.updateEntityInView(userInfo, viewSchema, row);
+			manager.updateRowInView(userInfo, viewSchema, objectType, row);
 		});
 	}
 	
 	@Test
 	public void testUpdateEntityInViewNullValues(){
+		ViewObjectType objectType = scopeType.getObjectType();
 		row.setValues(null);
 		// call under test
-		manager.updateEntityInView(userInfo, viewSchema, row);
+		manager.updateRowInView(userInfo, viewSchema, objectType, row);
 		// this should not trigger an update
 		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(Annotations.class));
-		verify(mockReplicationManager, never()).replicate(anyString());
+		verify(mockReplicationManager, never()).replicate(any(), anyString());
 	}
 	
 	@Test
 	public void testUpdateEntityInViewEmptyValues(){
+		ViewObjectType objectType = scopeType.getObjectType();
 		row.setValues(new HashMap<String, String>());
 		// call under test
-		manager.updateEntityInView(userInfo, viewSchema, row);
+		manager.updateRowInView(userInfo, viewSchema, objectType, row);
 		// this should not trigger an update
 		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(Annotations.class));
-		verify(mockReplicationManager, never()).replicate(anyString());
+		verify(mockReplicationManager, never()).replicate(any(), anyString());
 	}
 	
 	@Test
 	public void testUpdateEntityInViewNoChanges(){
+		ViewObjectType objectType = scopeType.getObjectType();
 		row.getValues().remove(anno1.getId());
 		row.getValues().remove(anno2.getId());
 		when(mockNodeManager.getUserAnnotations(any(UserInfo.class), anyString())).thenReturn(annotationsV2);
 		// call under test
-		manager.updateEntityInView(userInfo, viewSchema, row);
+		manager.updateRowInView(userInfo, viewSchema, objectType, row);
 		// this should not trigger an update
 		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(Annotations.class));
-		verify(mockReplicationManager, never()).replicate(anyString());
+		verify(mockReplicationManager, never()).replicate(any(), anyString());
 	}
 	
 	@Test
 	public void testUpdateEntityInViewMissingEtag(){
+		ViewObjectType objectType = scopeType.getObjectType();
 		// Each row must include the etag.
 		row.getValues().remove(etagColumn.getId());
 		// call under test
 		try {
-			manager.updateEntityInView(userInfo, viewSchema, row);
+			manager.updateRowInView(userInfo, viewSchema, objectType, row);
 			fail();
 		} catch (IllegalArgumentException e) {
 			assertEquals(TableViewManagerImpl.ETAG_MISSING_MESSAGE, e.getMessage());

@@ -4,12 +4,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -22,11 +25,13 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import org.sagebionetworks.util.EnumUtils;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 @ExtendWith(MockitoExtension.class)
@@ -167,6 +172,24 @@ public class EntityMetadataIndexProviderUnitTest {
 
 		assertEquals(limitEx, result);
 
+	}
+	
+	@Test
+	public void testGetObjectData() {
+		
+		List<ObjectDataDTO> expected = new ArrayList<>();
+		
+		List<Long> objectIds = ImmutableList.of(1L, 2L, 3L);
+		
+		int maxAnnotationChars = 5;
+
+		when(mockNodeDao.getEntityDTOs(any(), anyInt())).thenReturn(expected);
+		
+		// Call under test
+		List<ObjectDataDTO> result = provider.getObjectData(objectIds, maxAnnotationChars);
+	
+	    assertEquals(expected, result);
+		verify(mockNodeDao).getEntityDTOs(objectIds, maxAnnotationChars);
 	}
 
 }

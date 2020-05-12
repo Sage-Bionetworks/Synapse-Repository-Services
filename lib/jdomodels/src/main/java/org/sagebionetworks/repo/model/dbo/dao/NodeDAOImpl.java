@@ -1658,7 +1658,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public List<IdAndAlias> getAliasByNodeId(List<String> nodeIds)	{
 		ValidateArgument.required(nodeIds, "nodeIds");
-		if (nodeIds.isEmpty()) return Collections.EMPTY_LIST;
+		if (nodeIds.isEmpty()) {
+			return Collections.emptyList();
+		}
 		Set<Long> nodeIdLong = new HashSet<Long>();
 		for (String nodeId : nodeIds) {
 			nodeIdLong.add(KeyFactory.stringToKey(nodeId));
@@ -1725,14 +1727,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 
 	@Override
-	public List<ObjectDataDTO> getEntityDTOs(List<String> ids,final int maxAnnotationSize) {
+	public List<ObjectDataDTO> getEntityDTOs(List<Long> ids,final int maxAnnotationSize) {
 		ValidateArgument.required(ids, "ids");
 		if(ids.isEmpty()){
-			return new LinkedList<ObjectDataDTO>();
+			return Collections.emptyList();
 		}
-		List<Long> longIds = KeyFactory.stringToKey(ids);
 		Map<String, List<Long>> parameters = new HashMap<String, List<Long>>(1);
-		parameters.put(NODE_IDS_LIST_PARAM_NAME, longIds);
+		parameters.put(NODE_IDS_LIST_PARAM_NAME, ids);
 		return namedParameterJdbcTemplate.query(SQL_SELECT_ENTITY_DTO , parameters, new RowMapper<ObjectDataDTO>() {
 
 			@Override

@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableState;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
@@ -200,14 +201,16 @@ public class TableViewManagerImpl implements TableViewManager {
 	 */
 	@NewWriteTransaction
 	@Override
-	public void updateEntityInView(UserInfo user, List<ColumnModel> tableSchema, SparseRowDto row) {
+	public void updateRowInView(UserInfo user, List<ColumnModel> tableSchema, ViewObjectType objectType, SparseRowDto row) {
 		ValidateArgument.required(row, "SparseRowDto");
 		ValidateArgument.required(row.getRowId(), "row.rowId");
+		ValidateArgument.required(objectType, "objectType");
+		
 		if (row.getValues() == null || row.getValues().isEmpty()) {
 			// nothing to do for this row.
 			return;
 		}
-		String entityId = KeyFactory.keyToString(row.getRowId());
+		String objectId = KeyFactory.keyToString(row.getRowId());
 		Map<String, String> values = row.getValues();
 		String etag = row.getEtag();
 		if (etag == null) {
@@ -224,14 +227,15 @@ public class TableViewManagerImpl implements TableViewManager {
 			}
 		}
 		// Get the current annotations for this entity.
-		Annotations userAnnotations = nodeManager.getUserAnnotations(user, entityId);
+		// TODO use metadataIndexProvider
+		Annotations userAnnotations = nodeManager.getUserAnnotations(user, objectId);
 		userAnnotations.setEtag(etag);
 		boolean updated = updateAnnotationsFromValues(userAnnotations, tableSchema, values);
 		if (updated) {
 			// save the changes. validation of updated values will occur in this call
-			nodeManager.updateUserAnnotations(user, entityId, userAnnotations);
+			nodeManager.updateUserAnnotations(user, objectId, userAnnotations);
 			// Replicate the change
-			replicationManager.replicate(entityId);
+			replicationManager.replicate(objectType, objectId);
 		}
 	}
 
