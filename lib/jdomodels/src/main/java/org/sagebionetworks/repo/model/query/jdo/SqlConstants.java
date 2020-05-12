@@ -146,11 +146,11 @@ public class SqlConstants {
 	public static final String DDL_FILE_JSON_SCHEMA_LATEST_VERSION	="schema/JsonSchemaLatestVersion-ddl.sql";
 	
 	// Json-Schema-Dependency
-	public static final String TABLE_JSON_SCHEMA_DEPENDENCY		= "JSON_SCHEMA_DEPENDENCY";
-	public static final String COL_JSON_SCHEMA_DEP_VERSION_ID	= "VERSION_ID";
-	public static final String COL_JSON_SCHEMA_DEP_SCHEMA_ID	= "DEPENDS_ON_SCHEMA_ID";
-	public static final String COL_JSON_SCHEMA_DEP_SEM_VER		= "DEPENDS_ON_SEM_VER";
-	public static final String DDL_FILE_JSON_SCHEMA_DEPENDS		= "schema/JsonSchemaDependency-ddl.sql";
+	public static final String TABLE_JSON_SCHEMA_DEPENDENCY						= "JSON_SCHEMA_DEPENDENCY";
+	public static final String COL_JSON_SCHEMA_DEPENDENCY_VERSION_ID			= "VERSION_ID";
+	public static final String COL_JSON_SCHEMA_DEPEPNDENCY_DEPENDS_ON_SCHEMA_ID	= "DEPENDS_ON_SCHEMA_ID";
+	public static final String COL_JSON_SCHEMA_DEPENDENCY_DEPENDS_ON_VERSION_ID	= "DEPENDS_ON_VERSION_ID";
+	public static final String DDL_FILE_JSON_SCHEMA_DEPENDS						= "schema/JsonSchemaDependency-ddl.sql";
 
 	// The Project Stats table
 	public static final String TABLE_PROJECT_STAT				= "PROJECT_STAT";

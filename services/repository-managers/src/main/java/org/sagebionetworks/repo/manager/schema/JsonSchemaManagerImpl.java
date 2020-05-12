@@ -6,6 +6,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.DELETE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -22,6 +23,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.schema.JsonSchemaDao;
 import org.sagebionetworks.repo.model.dbo.schema.NewSchemaVersionRequest;
 import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
+import org.sagebionetworks.repo.model.dbo.schema.SchemaDependency;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
@@ -35,6 +37,7 @@ import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.model.schema.SubSchemaIterable;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.schema.id.OrganizationName;
@@ -93,6 +96,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	 */
 	public static String processAndValidateOrganizationName(UserInfo user, String name) {
 		ValidateArgument.required(name, "organizationName");
+		ValidateArgument.required(user, "user");
 		OrganizationName orgName = SchemaIdParser.parseOrganizationName(name);
 		String processedName = orgName.toString();
 		if (processedName.length() > MAX_ORGANZIATION_NAME_CHARS) {
@@ -191,9 +195,11 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		Organization organization = organizationDao.getOrganizationByName(schemaId.getOrganizationName().toString());
 		aclDao.canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.CREATE)
 				.checkAuthorizationOrElseThrow();
+		ArrayList<SchemaDependency> dependencies = findAllDependencies(request.getSchema());
 		NewSchemaVersionRequest newVersionRequest = new NewSchemaVersionRequest()
 				.withOrganizationId(organization.getId()).withCreatedBy(user.getId()).withSchemaName(schemaNameString)
-				.withSemanticVersion(semanticVersionString).withJsonSchema(request.getSchema());
+				.withSemanticVersion(semanticVersionString).withJsonSchema(request.getSchema())
+				.withDependencies(dependencies);
 		JsonSchemaVersionInfo info = jsonSchemaDao.createNewSchemaVersion(newVersionRequest);
 
 		CreateSchemaResponse response = new CreateSchemaResponse();
@@ -201,20 +207,80 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		return response;
 	}
 
+	/**
+	 * Find all of the dependencies for the given schema.
+	 * 
+	 * @param id
+	 * @param schema
+	 * @return
+	 */
+	ArrayList<SchemaDependency> findAllDependencies(JsonSchema schema) {
+		ValidateArgument.required(schema, "schema");
+		ArrayList<SchemaDependency> dependencies = new ArrayList<SchemaDependency>();
+		for (JsonSchema subSchema : SubSchemaIterable.depthFirstIterable(schema)) {
+			if (subSchema.get$ref() != null) {
+				JsonSchemaVersionInfo versionInfo = getVersionInfo(subSchema.get$ref());
+				SchemaId schemaId = SchemaIdParser.parseSchemaId(subSchema.get$ref());
+				String dependsOnVersionId = null;
+				if (schemaId.getSemanticVersion() != null) {
+					dependsOnVersionId = versionInfo.getVersionId();
+				}
+				String dependsOnSchemaId = versionInfo.getSchemaId();
+				dependencies.add(new SchemaDependency().withDependsOnSchemaId(dependsOnSchemaId)
+						.withDependsOnVersionId(dependsOnVersionId));
+			}
+		}
+		return dependencies;
+	}
+
+	/**
+	 * Get the versionId for the given $id
+	 * 
+	 * @param $id
+	 * @return
+	 */
+	public String getSchemaVersionId(String $id) {
+		ValidateArgument.required($id, "id");
+		SchemaId schemaId = SchemaIdParser.parseSchemaId($id);
+		String organizationName = schemaId.getOrganizationName().toString();
+		String schemaName = schemaId.getSchemaName().toString();
+		String semanticVersion = null;
+		if (schemaId.getSemanticVersion() != null) {
+			semanticVersion = schemaId.getSemanticVersion().toString();
+		}
+		return getSchemaVersionId(organizationName, schemaName, semanticVersion);
+	}
+
+	/**
+	 * Get the JsonSchemaVersionInfo for the given $id
+	 * 
+	 * @param $id
+	 * @return
+	 */
+	JsonSchemaVersionInfo getVersionInfo(String $id) {
+		String versionId = getSchemaVersionId($id);
+		return jsonSchemaDao.getVersionInfo(versionId);
+	}
+
 	@Override
 	public JsonSchema getSchema(String organizationName, String schemaName, String semanticVersion) {
+		ValidateArgument.required(organizationName, "organizationName");
+		ValidateArgument.required(schemaName, "schemaName");
+		String versionId = getSchemaVersionId(organizationName, schemaName, semanticVersion);
+		return jsonSchemaDao.getSchema(versionId);
+	}
+
+	public String getSchemaVersionId(String organizationName, String schemaName, String semanticVersion) {
 		ValidateArgument.required(organizationName, "organizationName");
 		ValidateArgument.required(schemaName, "schemaName");
 		organizationName = organizationName.trim();
 		schemaName = schemaName.trim();
 		semanticVersion = StringUtils.trimToNull(semanticVersion);
-		String versionId = null;
 		if (semanticVersion == null) {
-			versionId = jsonSchemaDao.getLatestVersionId(organizationName, schemaName);
+			return jsonSchemaDao.getLatestVersionId(organizationName, schemaName);
 		} else {
-			versionId = jsonSchemaDao.getVersionId(organizationName, schemaName, semanticVersion);
+			return jsonSchemaDao.getVersionId(organizationName, schemaName, semanticVersion);
 		}
-		return jsonSchemaDao.getSchema(versionId);
 	}
 
 	@Override
