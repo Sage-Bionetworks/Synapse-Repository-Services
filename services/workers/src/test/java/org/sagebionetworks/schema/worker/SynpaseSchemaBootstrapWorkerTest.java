@@ -17,7 +17,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class SynpaseSchemaBootstrapWorkerTest {
 	
-	public static final long MAX_WAIT_MS = 60*1000;
+	public static final long MAX_WAIT_MS = 60*1000*2;
 
 	@Autowired
 	private JsonSchemaManager jsonSchemaManager;

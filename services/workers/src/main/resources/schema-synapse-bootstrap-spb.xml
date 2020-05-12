@@ -53,8 +53,8 @@
 		</property>
 		<property name="startDelay" value="137" />
 		<!-- This delay determines the maximum amount of time before Synapse object 
-			schema changes will appear on a new production stack.  Currently set to one hour. -->
-		<property name="repeatInterval" value="3600000" />
+			schema changes will appear on a new production stack.  Currently set to two minutes. -->
+		<property name="repeatInterval" value="120000" />
 	</bean>
 
 </beans>
