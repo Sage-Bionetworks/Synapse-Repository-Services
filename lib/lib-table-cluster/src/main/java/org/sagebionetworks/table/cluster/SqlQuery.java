@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -184,7 +185,7 @@ public class SqlQuery {
 
 
 		//Append additionalFilters onto the WHERE clause
-		if(!additionalFilters.isEmpty()) {
+		if(additionalFilters != null && !additionalFilters.isEmpty()) {
 			String additionalFilterSearchCondition = SQLUtils.appendAdditionalFilters(additionalFilters);
 			StringBuilder whereClauseBuilder = new StringBuilder();
 			FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(whereClauseBuilder,additionalFilterSearchCondition, this.model.getTableExpression().getWhereClause());
