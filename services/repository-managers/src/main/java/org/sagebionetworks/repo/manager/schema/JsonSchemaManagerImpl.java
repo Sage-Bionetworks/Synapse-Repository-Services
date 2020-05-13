@@ -195,7 +195,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		Organization organization = organizationDao.getOrganizationByName(schemaId.getOrganizationName().toString());
 		aclDao.canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.CREATE)
 				.checkAuthorizationOrElseThrow();
-		ArrayList<SchemaDependency> dependencies = findAllDependencies(request.getSchema());
+		List<SchemaDependency> dependencies = findAllDependencies(request.getSchema());
 		NewSchemaVersionRequest newVersionRequest = new NewSchemaVersionRequest()
 				.withOrganizationId(organization.getId()).withCreatedBy(user.getId()).withSchemaName(schemaNameString)
 				.withSemanticVersion(semanticVersionString).withJsonSchema(request.getSchema())
@@ -214,7 +214,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	 * @param schema
 	 * @return
 	 */
-	ArrayList<SchemaDependency> findAllDependencies(JsonSchema schema) {
+	List<SchemaDependency> findAllDependencies(JsonSchema schema) {
 		ValidateArgument.required(schema, "schema");
 		ArrayList<SchemaDependency> dependencies = new ArrayList<SchemaDependency>();
 		for (JsonSchema subSchema : SubSchemaIterable.depthFirstIterable(schema)) {

@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.schema;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -13,7 +12,7 @@ public class NewSchemaVersionRequest {
 	private Long createdBy;
 	private String semanticVersion;
 	private JsonSchema jsonSchema;
-	private ArrayList<SchemaDependency> dependencies;
+	private List<SchemaDependency> dependencies;
 	
 	/**
 	 * @return the organizationId
@@ -93,14 +92,14 @@ public class NewSchemaVersionRequest {
 	/**
 	 * @return the dependencies
 	 */
-	public ArrayList<SchemaDependency> getDependencies() {
+	public List<SchemaDependency> getDependencies() {
 		return dependencies;
 	}
 
 	/**
 	 * @param dependencies the dependencies to set
 	 */
-	public NewSchemaVersionRequest withDependencies(ArrayList<SchemaDependency> dependencies) {
+	public NewSchemaVersionRequest withDependencies(List<SchemaDependency> dependencies) {
 		this.dependencies = dependencies;
 		return this;
 	}

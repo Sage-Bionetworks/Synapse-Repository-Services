@@ -22,9 +22,7 @@ public class SubSchemaIterable {
 	 */
 	public static Iterable<JsonSchema> depthFirstIterable(JsonSchema root) {
 		ValidateArgument.required(root, "JsonSchema");
-		return () -> {
-			return createDepthFirstList(root).iterator();
-		};
+		return () -> createDepthFirstList(root).iterator();
 	}
 
 	/**

@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.schema;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.schema.JsonSchema;

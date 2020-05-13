@@ -63,7 +63,6 @@ import org.sagebionetworks.schema.id.SchemaId;
 import org.sagebionetworks.schema.parser.SchemaIdParser;
 
 import com.google.common.collect.Lists;
-import com.mchange.v2.cfg.MConfig;
 
 @ExtendWith(MockitoExtension.class)
 public class JsonSchemaManagerImplTest {
@@ -634,9 +633,9 @@ public class JsonSchemaManagerImplTest {
 		when(mockSchemaDao.getVersionInfo(any())).thenReturn(versionInfo);
 
 		// call under test
-		ArrayList<SchemaDependency> actual = manager.findAllDependencies(two);
+		List<SchemaDependency> actual = manager.findAllDependencies(two);
 		assertNotNull(actual);
-		ArrayList<SchemaDependency> expected = Lists.newArrayList(new SchemaDependency().withDependsOnSchemaId("111"));
+		List<SchemaDependency> expected = Lists.newArrayList(new SchemaDependency().withDependsOnSchemaId("111"));
 		assertEquals(expected, actual);
 		verify(mockSchemaDao).getLatestVersionId(organizationName, schemaName);
 		verify(mockSchemaDao, never()).getVersionId(any(), any(), any());
@@ -666,7 +665,7 @@ public class JsonSchemaManagerImplTest {
 		when(mockSchemaDao.getVersionInfo(any())).thenReturn(versionInfo);
 
 		// call under test
-		ArrayList<SchemaDependency> actual = manager.findAllDependencies(two);
+		List<SchemaDependency> actual = manager.findAllDependencies(two);
 		assertNotNull(actual);
 		// depends on both the schemaId and versionId
 		ArrayList<SchemaDependency> expected = Lists
@@ -715,8 +714,8 @@ public class JsonSchemaManagerImplTest {
 		two.setItems(one);
 
 		// call under test
-		ArrayList<SchemaDependency> actual = manager.findAllDependencies(two);
-		ArrayList<SchemaDependency> expected = new ArrayList<SchemaDependency>();
+		List<SchemaDependency> actual = manager.findAllDependencies(two);
+		List<SchemaDependency> expected = new ArrayList<SchemaDependency>();
 		assertEquals(expected, actual);
 		
 		verify(mockSchemaDao, never()).getLatestVersionId(any(), any());
@@ -738,7 +737,7 @@ public class JsonSchemaManagerImplTest {
 		JsonSchema one = new JsonSchema();
 		one.set$id("org/one/1.1.1");
 		// call under test
-		ArrayList<SchemaDependency> actual = manager.findAllDependencies(one);
+		List<SchemaDependency> actual = manager.findAllDependencies(one);
 		assertNotNull(actual);
 		// depends on both the schemaId and versionId
 		ArrayList<SchemaDependency> expected = new ArrayList<SchemaDependency>();
