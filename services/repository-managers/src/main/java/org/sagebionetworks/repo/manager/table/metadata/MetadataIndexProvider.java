@@ -25,6 +25,19 @@ import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 public interface MetadataIndexProvider extends HasViewObjectType, ViewScopeFilterProvider, ObjectFieldTypeMapper {
 
 	/**
+	 * Returns the {@link DefaultColumnModel} for a view given the provided type
+	 * mask
+	 * 
+	 * @param viewTypeMask The view type mask
+	 * @return An instance of a {@link DefaultColumnModel} describing the fields
+	 *         that are suggested for a view
+	 */
+	DefaultColumnModel getDefaultColumnModel(Long viewTypeMask);
+	
+
+	// Used for replication
+	
+	/**
 	 * Fetch the {@link ObjectDataDTO} for the objects with the given ids, the DTO
 	 * will have to include the annotations on the object. The annotations might
 	 * contain any kind of property that should be indexed and exposed as a view
@@ -57,6 +70,19 @@ public interface MetadataIndexProvider extends HasViewObjectType, ViewScopeFilte
 	Set<Long> getContainerIdsForScope(Set<Long> scope, Long viewTypeMask, int containerLimit)
 			throws LimitExceededException;
 
+
+	/**
+	 * Provide a contextualized message when a view with the given type mask exceeds the given limit
+	 * 
+	 * @param viewTypeMask
+	 * @param containerLimit
+	 * @return
+	 */
+	String createViewOverLimitMessage(Long viewTypeMask, int containerLimit);
+	
+	
+	// Used for annotation updates from views
+	
 	/**
 	 * Returns the annotations for the given object
 	 * 
@@ -88,7 +114,10 @@ public interface MetadataIndexProvider extends HasViewObjectType, ViewScopeFilte
 	 *         updated, false otherwise
 	 */
 	boolean canUpdateAnnotation(ColumnModel model);
+	
 
+	// Used for reconciliation
+	
 	/**
 	 * In general should return the same result as
 	 * {@link #getContainerIdsForScope(Set, Long, int)} but used for reconciliation,
@@ -142,14 +171,5 @@ public interface MetadataIndexProvider extends HasViewObjectType, ViewScopeFilte
 	 */
 	Map<Long, Long> getSumOfChildCRCsForEachContainer(List<Long> containerIds);
 
-	/**
-	 * Returns the {@link DefaultColumnModel} for a view given the provided type
-	 * mask
-	 * 
-	 * @param viewTypeMask The view type mask
-	 * @return An instance of a {@link DefaultColumnModel} describing the fields
-	 *         that are suggested for a view
-	 */
-	DefaultColumnModel getDefaultColumnModel(Long viewTypeMask);
 
 }

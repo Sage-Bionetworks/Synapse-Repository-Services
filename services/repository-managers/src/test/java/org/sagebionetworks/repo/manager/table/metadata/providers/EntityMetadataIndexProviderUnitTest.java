@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -14,6 +15,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
@@ -24,19 +26,24 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import org.sagebionetworks.util.EnumUtils;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 @ExtendWith(MockitoExtension.class)
@@ -62,6 +69,9 @@ public class EntityMetadataIndexProviderUnitTest {
 
 	@Mock
 	private ColumnModel mockModel;
+
+	@Mock
+	private IdAndEtag mockIdAndEtag;
 
 	@Test
 	public void testGetObjectType() {
@@ -195,6 +205,37 @@ public class EntityMetadataIndexProviderUnitTest {
 	}
 
 	@Test
+	public void testcreateViewOverLimitMessageFileView() {
+		int limit = 10;
+		// call under test
+		String message = provider.createViewOverLimitMessage(ViewTypeMask.File.getMask(), limit);
+		assertEquals(
+				"The view's scope exceeds the maximum number of " + limit + " projects and/or folders. "
+						+ "Note: The sub-folders of each project and folder in the scope count towards the limit.",
+				message);
+	}
+
+	@Test
+	public void testcreateViewOverLimitMessageFileAndTableView() {
+		int limit = 10;
+		// call under test
+		String message = provider
+				.createViewOverLimitMessage(ViewTypeMask.getMaskForDepricatedType(ViewType.file_and_table), limit);
+		assertEquals(
+				"The view's scope exceeds the maximum number of " + limit + " projects and/or folders. "
+						+ "Note: The sub-folders of each project and folder in the scope count towards the limit.",
+				message);
+	}
+
+	@Test
+	public void testcreateViewOverLimitMessageProjectView() {
+		int limit = 10;
+		// call under test
+		String message = provider.createViewOverLimitMessage(ViewTypeMask.Project.getMask(), limit);
+		assertEquals("The view's scope exceeds the maximum number of " + limit + " projects.", message);
+	}
+
+	@Test
 	public void testGetObjectData() {
 
 		List<ObjectDataDTO> expected = Collections.singletonList(mockData);
@@ -260,7 +301,6 @@ public class EntityMetadataIndexProviderUnitTest {
 	@Test
 	public void testDefaultColumnModelWithFileMask() {
 		Long viewTypeMask = ViewTypeMask.File.getMask();
-		;
 
 		DefaultColumnModel expected = EntityMetadataIndexProvider.FILE_VIEW_DEFAULT_COLUMNS;
 		// Call under test
@@ -321,6 +361,83 @@ public class EntityMetadataIndexProviderUnitTest {
 		DefaultColumnModel model = provider.getDefaultColumnModel(viewTypeMask);
 
 		assertEquals(expected, model);
+	}
+
+	@Test
+	public void testGetContainerIdsForReconciliation() throws LimitExceededException {
+
+		Set<Long> scope = ImmutableSet.of(1L, 2L);
+		Long viewTypeMask = ViewTypeMask.File.getMask();
+		int containerLimit = 10;
+
+		Set<Long> expected = ImmutableSet.of(1L, 2L, 3L, 4L);
+
+		when(mockNodeDao.getAllContainerIds(anySet(), anyInt())).thenReturn(expected);
+
+		// Call under test
+		Set<Long> result = provider.getContainerIdsForReconciliation(scope, viewTypeMask, containerLimit);
+
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void testGetContainerIdsForReconciliationForProject() throws LimitExceededException {
+
+		Set<Long> scope = ImmutableSet.of(1L, 2L);
+		Long viewTypeMask = ViewTypeMask.Project.getMask();
+		int containerLimit = 10;
+
+		Set<Long> expected = ImmutableSet.of(KeyFactory.stringToKey(NodeUtils.ROOT_ENTITY_ID));
+
+		// Call under test
+		Set<Long> result = provider.getContainerIdsForReconciliation(scope, viewTypeMask, containerLimit);
+
+		assertEquals(expected, result);
+		verifyZeroInteractions(mockNodeDao);
+	}
+
+	@Test
+	public void testGetAvaliableContainers() {
+
+		List<Long> containerIds = ImmutableList.of(1L, 2L);
+		Set<Long> expectedIds = ImmutableSet.of(1L);
+
+		when(mockNodeDao.getAvailableNodes(any())).thenReturn(expectedIds);
+
+		// Call under test
+		Set<Long> result = provider.getAvailableContainers(containerIds);
+
+		assertEquals(expectedIds, result);
+		verify(mockNodeDao).getAvailableNodes(containerIds);
+	}
+
+	@Test
+	public void testGetChildren() {
+
+		Long containerId = 1L;
+		List<IdAndEtag> expected = ImmutableList.of(mockIdAndEtag, mockIdAndEtag);
+
+		when(mockNodeDao.getChildren(anyLong())).thenReturn(expected);
+
+		// Call under test
+		List<IdAndEtag> result = provider.getChildren(containerId);
+
+		assertEquals(expected, result);
+		verify(mockNodeDao).getChildren(containerId);
+	}
+
+	@Test
+	public void testGetSumOfChildCRCsForEachContainer() {
+		List<Long> containerIds = ImmutableList.of(1L, 2L);
+
+		Map<Long, Long> expected = ImmutableMap.of(1L, 10L, 2L, 30L);
+
+		when(mockNodeDao.getSumOfChildCRCsForEachParent(any())).thenReturn(expected);
+
+		Map<Long, Long> result = provider.getSumOfChildCRCsForEachContainer(containerIds);
+
+		assertEquals(expected, result);
+		verify(mockNodeDao).getSumOfChildCRCsForEachParent(containerIds);
 	}
 
 }

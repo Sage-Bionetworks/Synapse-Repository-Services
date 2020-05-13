@@ -214,6 +214,8 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	Set<Long> getAllContainerIdsForScope(Set<Long> scope, ViewScopeType scopeType);
+	
+	Set<Long> getAllContainerIdsForReconciliation(IdAndVersion idAndVersion);
 
 
 	/**

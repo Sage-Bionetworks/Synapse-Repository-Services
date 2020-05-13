@@ -38,7 +38,6 @@ import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
-import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -57,11 +56,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public static final long TABLE_PROCESSING_TIMEOUT_MS = 1000*60*10; // 10 mins
 	
 	public static final int MAX_CONTAINERS_PER_VIEW = 1000*10; // 10K;
-	public static final String SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW = "The view's scope exceeds the maximum number of "
-			+ MAX_CONTAINERS_PER_VIEW
-			+ " projects and/or folders. Note: The sub-folders of each project and folder in the scope count towards the limit.";
-	public static final String SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW = "The view's scope exceeds the maximum number of "
-			+ MAX_CONTAINERS_PER_VIEW + " projects.";
 
 	@Autowired
 	private TableStatusDAO tableStatusDAO;
@@ -333,6 +327,18 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		Set<Long> scope = viewScopeDao.getViewScope(idAndVersion.getId());
 		return getAllContainerIdsForScope(scope, scopeType);
 	}
+	
+	@Override
+	public Set<Long> getAllContainerIdsForReconciliation(IdAndVersion idAndVersion) {
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+		
+		Long viewId = idAndVersion.getId();
+		
+		ViewScopeType scopeType = viewScopeDao.getViewScopeType(viewId);
+		Set<Long> scope = viewScopeDao.getViewScope(viewId);
+		
+		return getContainerIds(scope, scopeType, true);
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -340,8 +346,12 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 */
 	@Override
 	public Set<Long> getAllContainerIdsForScope(Set<Long> scope, ViewScopeType scopeType) {
+		return getContainerIds(scope, scopeType, false);
+	}
+	
+	private Set<Long> getContainerIds(Set<Long> scope, ViewScopeType scopeType, boolean forReconciliation) {
 		ValidateArgument.required(scope, "scope");
-		ValidateArgument.required(scopeType, "viewTypeMask");
+		ValidateArgument.required(scopeType, "scopeType");
 		
 		if (scope.isEmpty()) {
 			return Collections.emptySet();
@@ -349,34 +359,25 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		
 		ViewObjectType objectType = scopeType.getObjectType();
 		Long viewTypeMask = scopeType.getTypeMask();
-		
-		// Validate the given scope is under the limit.
-		if(scope.size() > MAX_CONTAINERS_PER_VIEW){
-			throw new IllegalArgumentException(createViewOverLimitMessage(viewTypeMask));
-		}
-		
+	
 		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(objectType);
 		
-		// Expand the scope to include all sub-folders
+		// Validate the given scope is under the limit.
+		if(scope.size() > MAX_CONTAINERS_PER_VIEW) {
+			String errorMessage = provider.createViewOverLimitMessage(viewTypeMask, MAX_CONTAINERS_PER_VIEW);
+			throw new IllegalArgumentException(errorMessage);
+		}
+		
 		try {
-			return provider.getContainerIdsForScope(scope, viewTypeMask, MAX_CONTAINERS_PER_VIEW);
+			if (forReconciliation) {
+				return provider.getContainerIdsForReconciliation(scope, viewTypeMask, MAX_CONTAINERS_PER_VIEW);
+			} else {
+				return provider.getContainerIdsForScope(scope, viewTypeMask, MAX_CONTAINERS_PER_VIEW);
+			}
 		} catch (LimitExceededException e) {
 			// Convert the generic exception to a specific exception.
-			throw new IllegalArgumentException(createViewOverLimitMessage(viewTypeMask));
-		}
-	}
-	
-	/**
-	 * Throw an IllegalArgumentException that indicates the view is over the limit.
-	 * 
-	 * @param viewType
-	 */
-	public String createViewOverLimitMessage(Long viewTypeMask) throws IllegalArgumentException{
-		ValidateArgument.required(viewTypeMask, "viewTypeMask");
-		if(ViewTypeMask.Project.getMask() == viewTypeMask) {
-			return SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW;
-		}else {
-			return SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW;
+			String errorMessage = provider.createViewOverLimitMessage(viewTypeMask, MAX_CONTAINERS_PER_VIEW);
+			throw new IllegalArgumentException(errorMessage);
 		}
 	}
 	

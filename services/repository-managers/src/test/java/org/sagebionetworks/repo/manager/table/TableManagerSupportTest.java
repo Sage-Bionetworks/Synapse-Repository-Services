@@ -65,7 +65,6 @@ import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
-import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -527,20 +526,30 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testgetAllContainerIdsForScopeOverLimit(){
+	public void testGetAllContainerIdsForScopeOverLimit(){
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		Set<Long> overLimit = new HashSet<>();
 		int countOverLimit = TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW+1;
 		for(long i=0; i<countOverLimit; i++){
 			overLimit.add(i);
 		}
-		assertThrows(IllegalArgumentException.class, ()->{
+		String errMessage = "Some specific error message";
+		
+		when(mockMetadataIndexProvider.createViewOverLimitMessage(any(), anyInt())).thenReturn(errMessage);
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test.
 			manager.getAllContainerIdsForScope(overLimit, scopeType);
 		});
+		
+		assertEquals(errMessage, ex.getMessage());
+		
+		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(scopeType.getObjectType());
+		verify(mockMetadataIndexProvider).createViewOverLimitMessage(scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test
-	public void testgetAllContainerIdsForScopeFiewView() throws LimitExceededException{
+	public void testGetAllContainerIdsForScopeFiewView() throws LimitExceededException{
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		when(mockMetadataIndexProvider.getContainerIdsForScope(any(), any(), anyInt())).thenReturn(containersInScope);
 		
@@ -554,21 +563,6 @@ public class TableManagerSupportTest {
 	}
 	
 	/**
-	 * For this case the number of IDs in the scope is already over the limit.
-	 */
-	@Test
-	public void testGetAllContainerIdsForScopeOverLimit(){
-		Set<Long> tooMany = new HashSet<Long>();
-		for(long i=0; i<TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW+1; i++){
-			tooMany.add(i);
-		}
-		assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			manager.getAllContainerIdsForScope(tooMany, scopeType);
-		});
-	}
-	
-	/**
 	 * For this case the scope is under the limit, but the expanded containers
 	 * would go over the limit.
 	 * @throws LimitExceededException 
@@ -577,15 +571,23 @@ public class TableManagerSupportTest {
 	public void testGetAllContainerIdsForScopeExpandedOverLimit() throws LimitExceededException{
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		
+		String errMessage = "Some specific error message";
+		
+		when(mockMetadataIndexProvider.createViewOverLimitMessage(any(), anyInt())).thenReturn(errMessage);
+		
 		// setup limit exceeded.
 		LimitExceededException exception = new LimitExceededException("too many");
 
 		doThrow(exception).when(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
 		
-		assertThrows(IllegalArgumentException.class, ()->{
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			manager.getAllContainerIdsForScope(scope, scopeType);
 		});
+		
+		assertEquals(errMessage, ex.getMessage());
+		
+		verify(mockMetadataIndexProvider).createViewOverLimitMessage(scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test
@@ -605,27 +607,6 @@ public class TableManagerSupportTest {
 		// call under test
 		manager.validateScopeSize(scope, scopeType);
 		verify(mockNodeDao, never()).getAllContainerIds(anySet(), anyInt());
-	}
-	
-	@Test
-	public void testcreateViewOverLimitMessageFileView(){
-		// call under test
-		String message = manager.createViewOverLimitMessage(ViewTypeMask.File.getMask());
-		assertEquals(TableManagerSupportImpl.SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW, message);
-	}
-	
-	@Test
-	public void testcreateViewOverLimitMessageFileAndTableView(){
-		// call under test
-		String message = manager.createViewOverLimitMessage(ViewTypeMask.getMaskForDepricatedType(ViewType.file_and_table));
-		assertEquals(TableManagerSupportImpl.SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW, message);
-	}
-	
-	@Test
-	public void testcreateViewOverLimitMessageProjectView(){
-		// call under test
-		String message = manager.createViewOverLimitMessage(ViewTypeMask.Project.getMask());
-		assertEquals(TableManagerSupportImpl.SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW, message);
 	}
 	
 	@Test

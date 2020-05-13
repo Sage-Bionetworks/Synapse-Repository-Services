@@ -28,44 +28,49 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class EntityMetadataIndexProvider implements MetadataIndexProvider {
-	
+
 	private static final ViewObjectType OBJECT_TYPE = ViewObjectType.ENTITY;
-	
+
+	public static final String SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW = "The view's scope exceeds the maximum number of "
+			+ "%d projects and/or folders. Note: The sub-folders of each project and folder in the scope count towards the limit.";
+	public static final String SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW = "The view's scope exceeds the maximum number of "
+			+ "%d projects.";
+
+	// @formatter:off
 	static final DefaultColumnModel BASIC_ENTITY_DEAFULT_COLUMNS = DefaultColumnModel.builder(OBJECT_TYPE)
 			.withObjectField(
-					ObjectField.id,
-					ObjectField.name,
-					ObjectField.createdOn,
+					ObjectField.id, 
+					ObjectField.name, 
+					ObjectField.createdOn, 
 					ObjectField.createdBy,
-					ObjectField.etag,
-					ObjectField.modifiedOn,
+					ObjectField.etag, 
+					ObjectField.modifiedOn, 
 					ObjectField.modifiedBy
-					)
-			.build();
-	
+			).build();
+
 	static final DefaultColumnModel FILE_VIEW_DEFAULT_COLUMNS = DefaultColumnModel.builder(OBJECT_TYPE)
 			.withObjectField(
-					ObjectField.id,
-					ObjectField.name,
-					ObjectField.createdOn,
+					ObjectField.id, 
+					ObjectField.name, 
+					ObjectField.createdOn, 
 					ObjectField.createdBy,
-					ObjectField.etag,
-					ObjectField.type,
-					ObjectField.currentVersion,
+					ObjectField.etag, 
+					ObjectField.type, 
+					ObjectField.currentVersion, 
 					ObjectField.parentId,
-					ObjectField.benefactorId,
-					ObjectField.projectId,
-					ObjectField.modifiedOn,
+					ObjectField.benefactorId, 
+					ObjectField.projectId, 
+					ObjectField.modifiedOn, 
 					ObjectField.modifiedBy,
-					ObjectField.dataFileHandleId,
-					ObjectField.dataFileSizeBytes,
+					ObjectField.dataFileHandleId, 
+					ObjectField.dataFileSizeBytes, 
 					ObjectField.dataFileMD5Hex
-					)
-			.build();
-	
+			).build();
+	// @formatter:on
+
 	private NodeManager nodeManager;
 	private NodeDAO nodeDao;
-	
+
 	@Autowired
 	public EntityMetadataIndexProvider(NodeManager nodeManager, NodeDAO nodeDao) {
 		this.nodeManager = nodeManager;
@@ -76,27 +81,39 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 	public List<ObjectDataDTO> getObjectData(List<Long> objectIds, int maxAnnotationChars) {
 		return nodeDao.getEntityDTOs(objectIds, maxAnnotationChars);
 	}
-	
+
 	@Override
-	public Set<Long> getContainerIdsForScope(Set<Long> scope, Long viewTypeMask, int containerLimit) throws LimitExceededException {
-		if(ViewTypeMask.Project.getMask() == viewTypeMask){
+	public Set<Long> getContainerIdsForScope(Set<Long> scope, Long viewTypeMask, int containerLimit)
+			throws LimitExceededException {
+		if (ViewTypeMask.Project.getMask() == viewTypeMask) {
 			return scope;
 		}
+
 		// Expand the scope to include all sub-folders
 		return nodeDao.getAllContainerIds(scope, containerLimit);
 	}
-	
+
+	@Override
+	public String createViewOverLimitMessage(Long viewTypeMask, int containerLimit) {
+		ValidateArgument.required(viewTypeMask, "viewTypeMask");
+		if (ViewTypeMask.Project.getMask() == viewTypeMask) {
+			return String.format(SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW, containerLimit);
+		} else {
+			return String.format(SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW, containerLimit);
+		}
+	}
+
 	@Override
 	public boolean canUpdateAnnotation(ColumnModel model) {
 		// No additional field is indexed, so all the annotations can be updated
 		return true;
 	}
-	
+
 	@Override
 	public Annotations getAnnotations(UserInfo userInfo, String objectId) {
 		return nodeManager.getUserAnnotations(userInfo, objectId);
 	}
-	
+
 	@Override
 	public void updateAnnotations(UserInfo userInfo, String objectId, Annotations annotations) {
 		nodeManager.updateUserAnnotations(userInfo, objectId, annotations);
@@ -166,11 +183,11 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 	public boolean supportsSubtypeFiltering() {
 		return true;
 	}
-	
+
 	@Override
 	public List<String> getSubTypesForMask(Long typeMask) {
 		List<String> typesFilter = new ArrayList<>();
-		for(ViewTypeMask type: ViewTypeMask.values()) {
+		for (ViewTypeMask type : ViewTypeMask.values()) {
 			if ((type.getMask() & typeMask) > 0) {
 				typesFilter.add(type.getEntityType().name());
 			}
@@ -180,12 +197,10 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 
 	@Override
 	public boolean isFilterScopeByObjectId(Long typeMask) {
-		if(ViewTypeMask.Project.getMask() == typeMask) {
+		if (ViewTypeMask.Project.getMask() == typeMask) {
 			return true;
 		}
 		return false;
 	}
-	
-
 
 }
