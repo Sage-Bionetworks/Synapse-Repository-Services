@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
@@ -162,6 +163,11 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 	@Override
 	public ViewObjectType getObjectType() {
 		return OBJECT_TYPE;
+	}
+	
+	@Override
+	public ObjectType getBenefactorObjectType() {
+		return ObjectType.ENTITY;
 	}
 
 	@Override

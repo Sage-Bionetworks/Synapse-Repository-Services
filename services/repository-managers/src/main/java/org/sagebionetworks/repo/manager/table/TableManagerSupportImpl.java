@@ -456,8 +456,12 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	@Override
-	public Set<Long> getAccessibleBenefactors(UserInfo user, Set<Long> benefactorIds) {
-		return authorizationManager.getAccessibleBenefactors(user, benefactorIds);
+	public Set<Long> getAccessibleBenefactors(UserInfo user, ViewScopeType scopeType, Set<Long> benefactorIds) {
+		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(scopeType.getObjectType());
+		
+		ObjectType benefactorType = provider.getBenefactorObjectType();
+		
+		return authorizationManager.getAccessibleBenefactors(user, benefactorType, benefactorIds);
 	}
 
 	@Override

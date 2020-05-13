@@ -80,6 +80,8 @@ import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SqlQuery;
@@ -142,6 +144,8 @@ public class TableQueryManagerImplTest {
 	HashSet<Long> benfactors;
 	HashSet<Long> subSet;
 	
+	ViewScopeType scopeType;
+	
 	@BeforeEach
 	public void before() throws Exception {
 		tableId = "syn123";
@@ -198,6 +202,7 @@ public class TableQueryManagerImplTest {
 		
 		queryOptions = new QueryOptions().withRunQuery(true);
 		sumFilesizes = 9876L;
+		scopeType =  new ViewScopeType(ViewObjectType.ENTITY, ViewTypeMask.File.getMask());
 	}
 
 	void setupQueryCallback() {
@@ -424,7 +429,7 @@ public class TableQueryManagerImplTest {
 		// auth check should occur
 		verify(mockTableManagerSupport).validateTableReadAccess(user, idAndVersion);
 		// a benefactor check should not occur for TableEntities
-		verify(mockTableManagerSupport, never()).getAccessibleBenefactors(any(UserInfo.class), any());
+		verify(mockTableManagerSupport, never()).getAccessibleBenefactors(any(), any(), any());
 	}
 	
 	@Test
@@ -433,7 +438,8 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
 		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenReturn(benfactors);
-		when(mockTableManagerSupport.getAccessibleBenefactors(user, benfactors)).thenReturn(subSet);
+		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
+		when(mockTableManagerSupport.getAccessibleBenefactors(user, scopeType, benfactors)).thenReturn(subSet);
 		
 		// Setup a fileView
 		EntityType type = EntityType.entityview;
@@ -448,7 +454,7 @@ public class TableQueryManagerImplTest {
 		// auth check should occur
 		verify(mockTableManagerSupport).validateTableReadAccess(user, idAndVersion);
 		// a benefactor check must occur for FileViews
-		verify(mockTableManagerSupport).getAccessibleBenefactors(any(UserInfo.class), any());
+		verify(mockTableManagerSupport).getAccessibleBenefactors(any(), any(), any());
 		// validate the benefactor filter is applied
 		assertEquals("SELECT COUNT(*) FROM T123 WHERE ROW_BENEFACTOR IN ( :b0 )", results.getOutputSQL());
 	}
@@ -1070,7 +1076,8 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
 		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenReturn(benfactors);
-		when(mockTableManagerSupport.getAccessibleBenefactors(user, benfactors)).thenReturn(subSet);
+		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
+		when(mockTableManagerSupport.getAccessibleBenefactors(user, scopeType, benfactors)).thenReturn(subSet);
 		setupQueryCallback();
 		
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.entityview);
@@ -1667,7 +1674,8 @@ public class TableQueryManagerImplTest {
 	public void testAddRowLevelFilter() throws Exception {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenReturn(benfactors);
-		when(mockTableManagerSupport.getAccessibleBenefactors(user, benfactors)).thenReturn(subSet);
+		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
+		when(mockTableManagerSupport.getAccessibleBenefactors(user, scopeType, benfactors)).thenReturn(subSet);
 		
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
 		// call under test

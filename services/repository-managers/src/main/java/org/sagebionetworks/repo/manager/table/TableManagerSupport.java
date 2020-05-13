@@ -333,7 +333,7 @@ public interface TableManagerSupport {
 	 * @param benefactorIds
 	 * @return
 	 */
-	Set<Long> getAccessibleBenefactors(UserInfo user, Set<Long> benefactorIds);
+	Set<Long> getAccessibleBenefactors(UserInfo user, ViewScopeType scopeType, Set<Long> benefactorIds);
 
 	/**
 	 * Get the default ColumnModels for a view based on the object type and the viewTypeMask.

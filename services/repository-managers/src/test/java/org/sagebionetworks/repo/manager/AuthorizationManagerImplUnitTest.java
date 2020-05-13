@@ -806,7 +806,7 @@ public class AuthorizationManagerImplUnitTest {
 	public void testCanReadBenefactorsAdmin(){
 		Set<Long> benefactors = Sets.newHashSet(1L,2L);
 		// call under test
-		Set<Long> results = authorizationManager.getAccessibleBenefactors(adminUser, benefactors);
+		Set<Long> results = authorizationManager.getAccessibleBenefactors(adminUser, ObjectType.ENTITY, benefactors);
 		assertEquals(benefactors, results);
 		verify(mockAclDAO, never()).getAccessibleBenefactors(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE.class));
 	}
@@ -815,7 +815,7 @@ public class AuthorizationManagerImplUnitTest {
 	public void testCanReadBenefactorsNonAdmin(){
 		Set<Long> benefactors = Sets.newHashSet(1L,2L);
 		// call under test
-		authorizationManager.getAccessibleBenefactors(userInfo, benefactors);
+		authorizationManager.getAccessibleBenefactors(userInfo, ObjectType.ENTITY, benefactors);
 		verify(mockAclDAO, times(1)).getAccessibleBenefactors(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE.class));
 	}
 	
@@ -823,7 +823,7 @@ public class AuthorizationManagerImplUnitTest {
 	public void testCanReadBenefactorsTrashAdmin(){
 		Set<Long> benefactors = Sets.newHashSet(AuthorizationManagerImpl.TRASH_FOLDER_ID);
 		// call under test
-		Set<Long> results = authorizationManager.getAccessibleBenefactors(adminUser, benefactors);
+		Set<Long> results = authorizationManager.getAccessibleBenefactors(adminUser, ObjectType.ENTITY, benefactors);
 		assertNotNull(results);
 		assertEquals(0, results.size());
 	}
@@ -833,7 +833,7 @@ public class AuthorizationManagerImplUnitTest {
 		Set<Long> benefactors = Sets.newHashSet(AuthorizationManagerImpl.TRASH_FOLDER_ID);
 		when(mockAclDAO.getAccessibleBenefactors(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(benefactors);
 		// call under test
-		Set<Long> results = authorizationManager.getAccessibleBenefactors(userInfo, benefactors);
+		Set<Long> results = authorizationManager.getAccessibleBenefactors(userInfo, ObjectType.ENTITY, benefactors);
 		assertNotNull(results);
 		assertEquals(0, results.size());
 	}
