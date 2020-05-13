@@ -33,7 +33,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -417,11 +416,12 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 	}
 
 	@WriteTransaction
-	void bindDependencies(String versionId, ArrayList<SchemaDependency> dependencies) {
+	void bindDependencies(String versionId, List<SchemaDependency> dependencies) {
 		ValidateArgument.required(versionId, "versionId");
 		if (dependencies == null || dependencies.isEmpty()) {
 			return;
 		}
+		SchemaDependency[] dependenciesArray = dependencies.toArray(new SchemaDependency[dependencies.size()]);
 		jdbcTemplate.batchUpdate(
 				"INSERT IGNORE INTO " + TABLE_JSON_SCHEMA_DEPENDENCY + " (" + COL_JSON_SCHEMA_DEPENDENCY_VERSION_ID + ","
 						+ COL_JSON_SCHEMA_DEPEPNDENCY_DEPENDS_ON_SCHEMA_ID + "," + COL_JSON_SCHEMA_DEPENDENCY_DEPENDS_ON_VERSION_ID + ") VALUES (?,?,?)",
@@ -429,7 +429,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 
 					@Override
 					public void setValues(PreparedStatement ps, int i) throws SQLException {
-						SchemaDependency depend = dependencies.get(i);
+						SchemaDependency depend = dependenciesArray[i];
 						ps.setString(1, versionId);
 						ps.setString(2, depend.getDependsOnSchemaId());
 						ps.setString(3, depend.getDependsOnVersionId());
@@ -437,7 +437,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 
 					@Override
 					public int getBatchSize() {
-						return dependencies.size();
+						return dependenciesArray.length;
 					}
 				});
 	}

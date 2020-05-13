@@ -27,4 +27,10 @@
 	<!-- During the integration tests we do not want to run the status watcher worker -->
 	<bean id="statisticsMonthlyStatusWatcherWorker" class="org.sagebionetworks.statistics.workers.StatisticsMonthlyStatusWatcherWorkerStub"></bean>
 
+	<!-- The original value for this interval is one hour. For testing, we need a shorter interval. -->
+	<bean id="schemaBoostrapTriggerRepeatInterval"
+		class="java.lang.Long">
+		<constructor-arg index="0" value="2000" />
+	</bean>
+
 </beans>
