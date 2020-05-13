@@ -9,6 +9,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.auth.UserNameAndPassword;
@@ -24,11 +25,11 @@ import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 @Component("dockerClientAuthFilter")
-public class DockerClientAuthFilter extends BasicAuthenticationFilter {
-	
+public class DockerClientAuthFilter extends BasicAuthenticationFilter {	
 	private AuthenticationService authenticationService;
 	
 	private OIDCTokenHelper oidcTokenHelper;
@@ -61,13 +62,10 @@ public class DockerClientAuthFilter extends BasicAuthenticationFilter {
 
 	@Override
 	protected boolean validCredentials(UserNameAndPassword credentials) {
-
 		try {
 			// is the password actually an access token?
-			String userId = oidcManager.getUserId(credentials.getPassword());
-			// it is!  does the user id match the user name?
-			PrincipalAlias alias = authenticationService.lookupUserForAuthentication(credentials.getUserName());
-			return alias.getPrincipalId().equals(userId);
+			oidcManager.getUserId(credentials.getPassword());
+			return true;
 		} catch (IllegalArgumentException iae) {
 			// the password is NOT a (valid) access token,
 			// but maybe it's a password
@@ -83,7 +81,6 @@ public class DockerClientAuthFilter extends BasicAuthenticationFilter {
 				return false;
 			}
 		}
-
 	}
 	
 	@Override
@@ -91,32 +88,32 @@ public class DockerClientAuthFilter extends BasicAuthenticationFilter {
 		
 		Long userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 		
+		Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(request);
+		
 		if (credentials != null) {
+			String accessToken = null;
 			try {
-				String username = credentials.getUserName();
-				PrincipalAlias alias = authenticationService.lookupUserForAuthentication(username);
-				userId = alias.getPrincipalId();
-			} catch (NotFoundException e) {
-				rejectRequest(response, getInvalidCredentialsMessage());
+				// is the password actually an access token?
+				accessToken = credentials.getPassword();
+				userId = Long.parseLong(oidcManager.getUserId(accessToken));
+			} catch (IllegalArgumentException iae) {
+				try {
+					String username = credentials.getUserName();
+					PrincipalAlias alias = authenticationService.lookupUserForAuthentication(username);
+					userId = alias.getPrincipalId();
+					accessToken = oidcTokenHelper.createTotalAccessToken(userId);
+				} catch (NotFoundException e) {
+					rejectRequest(response, getInvalidCredentialsMessage());
+					return;
+				}
+			}
+			HttpAuthUtil.setBearerTokenHeader(modHeaders, accessToken);
+			if (!authenticationService.hasUserAcceptedTermsOfUse(userId)) {
+				HttpAuthUtil.reject((HttpServletResponse) response, HttpAuthUtil.TOU_UNSIGNED_REASON, HttpStatus.FORBIDDEN);
 				return;
 			}
 		}
 		
-		Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(request);
-		
-		if (!userId.equals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())) {
-
-			String accessToken;
-			try {
-				accessToken=credentials.getPassword();
-				oidcTokenHelper.parseJWT(accessToken);
-			} catch (IllegalArgumentException iae) {
-				accessToken = oidcTokenHelper.createTotalAccessToken(userId);
-			}
-			
-			HttpAuthUtil.setBearerTokenHeader(modHeaders, accessToken);
-		}
-
 		Map<String, String[]> modParams = new HashMap<String, String[]>(request.getParameterMap());
 		modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
 		HttpServletRequest modRqst = new ModHttpServletRequest(request, modHeaders, modParams);

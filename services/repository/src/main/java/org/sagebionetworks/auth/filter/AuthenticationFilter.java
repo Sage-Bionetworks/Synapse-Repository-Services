@@ -50,7 +50,6 @@ public class AuthenticationFilter implements Filter {
 	private static final Log log = LogFactory.getLog(AuthenticationFilter.class);
 	
 	private static final ThreadLocal<Long> currentUserIdThreadLocal = ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class);
-	private static final String TOU_UNSIGNED_REASON = "Terms of use have not been signed.";
 
 	@Autowired
 	private AuthenticationService authenticationService;
@@ -132,14 +131,8 @@ public class AuthenticationFilter implements Filter {
 
 		// If the user is not anonymous, check if they have accepted the terms of use
 		if (!BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(userId)) {
-			try {
-				if (!authenticationService.hasUserAcceptedTermsOfUse(userId)) {
-					HttpAuthUtil.reject((HttpServletResponse) servletResponse, TOU_UNSIGNED_REASON, HttpStatus.FORBIDDEN);
-					return;
-				}
-			} catch (Exception e) {
-				String message = StringUtils.isBlank(e.getMessage()) ? TOU_UNSIGNED_REASON : e.getMessage();
-				HttpAuthUtil.reject((HttpServletResponse) servletResponse, message, HttpStatus.FORBIDDEN);
+			if (!authenticationService.hasUserAcceptedTermsOfUse(userId)) {
+				HttpAuthUtil.reject((HttpServletResponse) servletResponse, HttpAuthUtil.TOU_UNSIGNED_REASON, HttpStatus.FORBIDDEN);
 				return;
 			}
 		}

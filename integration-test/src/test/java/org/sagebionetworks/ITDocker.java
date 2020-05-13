@@ -69,6 +69,8 @@ public class ITDocker {
 	StackConfiguration config;
 
 	private static SimpleHttpClient simpleClient;
+	
+	private String synapseDockerAuthorizationUrl;
 
 	@BeforeAll
 	public static void beforeClass() throws Exception {
@@ -96,6 +98,14 @@ public class ITDocker {
 		Project project = new Project();
 		project = synapseOne.createEntity(project);
 		projectId = project.getId();
+		
+		String service = "docker.synapse.org";
+		String repoPath = projectId+"/reponame";
+		String scope = TYPE+":"+repoPath+":"+ACCESS_TYPES_STRING;
+		synapseDockerAuthorizationUrl = config.getDockerServiceEndpoint() + DOCKER_AUTHORIZATION;
+		synapseDockerAuthorizationUrl += "?" + SERVICE_PARAM + "=" + URLEncoder.encode(service, "UTF-8");
+		synapseDockerAuthorizationUrl += "&" + SCOPE_PARAM + "=" + URLEncoder.encode(scope, "UTF-8");
+
 	}
 	
 	@AfterEach
@@ -120,15 +130,26 @@ public class ITDocker {
 		requestHeaders.put(
 				AuthorizationConstants.AUTHORIZATION_HEADER_NAME,
 				ClientUtils.createBasicAuthorizationHeader(username, password));
-		String service = "docker.synapse.org";
-		String repoPath = projectId+"/reponame";
-		String scope = TYPE+":"+repoPath+":"+ACCESS_TYPES_STRING;
-		String urlString = config.getDockerServiceEndpoint() + DOCKER_AUTHORIZATION;
-		urlString += "?" + SERVICE_PARAM + "=" + URLEncoder.encode(service, "UTF-8");
-		urlString += "&" + SCOPE_PARAM + "=" + URLEncoder.encode(scope, "UTF-8");
 		
 		SimpleHttpRequest request = new SimpleHttpRequest();
-		request.setUri(urlString);
+		request.setUri(synapseDockerAuthorizationUrl);
+		request.setHeaders(requestHeaders);
+		SimpleHttpResponse response = simpleClient.get(request);
+		assertNotNull(response.getContent());
+		assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+	}
+
+	@Test
+	public void testDockerClientAuthorizationWithAccessToken() throws Exception {
+		Map<String, String> requestHeaders = new HashMap<String, String>();
+		// Note, without this header  we get a 415 response code
+		requestHeaders.put("Content-Type", "application/json"); 
+		requestHeaders.put(
+				AuthorizationConstants.AUTHORIZATION_HEADER_NAME,
+				ClientUtils.createBasicAuthorizationHeader(username, accessToken));
+		
+		SimpleHttpRequest request = new SimpleHttpRequest();
+		request.setUri(synapseDockerAuthorizationUrl);
 		request.setHeaders(requestHeaders);
 		SimpleHttpResponse response = simpleClient.get(request);
 		assertNotNull(response.getContent());
