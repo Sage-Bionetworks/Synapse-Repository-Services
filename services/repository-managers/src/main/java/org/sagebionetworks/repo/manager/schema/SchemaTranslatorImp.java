@@ -83,9 +83,10 @@ public class SchemaTranslatorImp implements SchemaTranslator {
 		if (array == null) {
 			return null;
 		}
+		boolean isRoot = false;
 		List<JsonSchema> newList = new ArrayList<JsonSchema>(array.length);
 		for (ObjectSchema sub : array) {
-			newList.add(translate(sub));
+			newList.add(translate(sub, isRoot));
 		}
 		return newList;
 	}
@@ -129,10 +130,11 @@ public class SchemaTranslatorImp implements SchemaTranslator {
 		if (inputMap == null) {
 			return null;
 		}
+		boolean isRoot = false;
 		LinkedHashMap<String, JsonSchema> resultMap = new LinkedHashMap<String, JsonSchema>(inputMap.size());
 		for (String key : inputMap.keySet()) {
 			ObjectSchema objectSchema = inputMap.get(key);
-			resultMap.put(key, translate(objectSchema));
+			resultMap.put(key, translate(objectSchema, isRoot));
 		}
 		return resultMap;
 	}
@@ -149,13 +151,15 @@ public class SchemaTranslatorImp implements SchemaTranslator {
 		return format.getJSONValue();
 	}
 	
-	@Override
-	public JsonSchema translate(ObjectSchema objectSchema) {
+	JsonSchema translate(ObjectSchema objectSchema, boolean isRoot) {
 		if(objectSchema == null) {
 			return null;
 		}
 		JsonSchema jsonSchema = new JsonSchema();
-		jsonSchema.set$schema(CURRENT_$SCHEMA);
+		if(isRoot) {
+			// only the root can have a $schema
+			jsonSchema.set$schema(CURRENT_$SCHEMA);
+		}
 		jsonSchema.set$id(convertFromInternalIdToExternalId(objectSchema.getId()));
 		// implements maps to allOf.
 		jsonSchema.setAllOf(translateArray(objectSchema.getImplements()));
@@ -164,8 +168,14 @@ public class SchemaTranslatorImp implements SchemaTranslator {
 		jsonSchema.setType(translateType(objectSchema.getType()));
 		jsonSchema.setTitle(objectSchema.getTitle());
 		jsonSchema.setDescription(objectSchema.getDescription());
-		jsonSchema.setItems(translate(objectSchema.getItems()));
+		jsonSchema.setItems(translate(objectSchema.getItems(), false /*not a root*/));
 		jsonSchema.setFormat(translateFormat(objectSchema.getFormat()));
 		return jsonSchema;
+	}
+
+	@Override
+	public JsonSchema translate(ObjectSchema objectSchema) {
+		boolean isRoot = true;
+		return translate(objectSchema, isRoot);
 	}
 }
