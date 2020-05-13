@@ -350,13 +350,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		}
 	}
 	
-	
-	@Override
-	public Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion) {
-		ViewScopeType viewScopeType = getViewScopeType(idAndVersion);
-		return getAllContainerIdsForViewScope(idAndVersion, viewScopeType);
-	}
-
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.table.TableViewTruthManager#getAllContainerIdsForViewScope(java.lang.String)

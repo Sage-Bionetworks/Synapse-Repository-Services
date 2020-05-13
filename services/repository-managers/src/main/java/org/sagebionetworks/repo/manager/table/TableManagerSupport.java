@@ -190,19 +190,6 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	Long getViewStateNumber(IdAndVersion table);
-	
-	/**
-	 * Get the set of container ids (Projects and Folders) for a view's scope.
-	 * The resulting set will include the scope containers plus all folders
-	 * contained within each scope.
-	 * 
-	 * All FileEntities within the the given view will have a parentId from the
-	 * returned set.
-	 * 
-	 * @param idAndVersion
-	 * @return
-	 */
-	Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion);
 
 	/**
 	 * Get the set of container ids (Projects and Folders) for a view's scope.
