@@ -10,9 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class TableFileHandleAssociationProvider implements FileHandleAssociationProvider {
 	
-
 	@Autowired
-	TableEntityManager tableEntityManager;
+	private TableEntityManager tableEntityManager;
 	
 	/*
 	 * (non-Javadoc)

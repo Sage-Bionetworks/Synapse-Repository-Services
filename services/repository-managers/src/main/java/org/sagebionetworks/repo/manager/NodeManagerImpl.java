@@ -72,8 +72,7 @@ public class NodeManagerImpl implements NodeManager {
 	@Autowired
 	private AccessControlListDAO aclDAO;	
 	@Autowired
-	private EntityBootstrapper entityBootstrapper;	
-
+	private EntityBootstrapper entityBootstrapper;
 	@Autowired 
 	private ActivityManager activityManager;
 	@Autowired
