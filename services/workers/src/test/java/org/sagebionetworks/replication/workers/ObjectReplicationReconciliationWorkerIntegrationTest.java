@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.manager.replication.ReplicationMessageManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
+import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
@@ -27,10 +28,10 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
-import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -62,6 +63,8 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 	TableManagerSupport tableManagerSupport;
 	@Autowired
 	TableViewManager viewManager;
+	@Autowired
+	DefaultColumnModelMapper modelMapper;
 	
 	@Mock
 	ProgressCallback mockProgressCallback;
@@ -165,8 +168,8 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 		view.setScopeIds(scopeIds);
 		view.setViewTypeMask(viewTypeMask);
 		view.setParentId(projectId);
-		ColumnModel cm = tableManagerSupport.getColumnModel(ObjectField.name);
-		view.setColumnIds(Lists.newArrayList(cm.getId()));
+		List<ColumnModel> cm = modelMapper.getColumnModels(viewObjectType, ObjectField.name);
+		view.setColumnIds(Lists.newArrayList(cm.get(0).getId()));
 		String activityId = null;
 		String viewId = entityManager.createEntity(adminUserInfo, view, activityId);
 		view = entityManager.getEntity(adminUserInfo, viewId, EntityView.class);

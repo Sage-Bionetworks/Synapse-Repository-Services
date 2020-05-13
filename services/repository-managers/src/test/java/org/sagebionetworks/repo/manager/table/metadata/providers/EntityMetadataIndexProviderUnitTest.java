@@ -22,6 +22,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -43,22 +44,22 @@ public class EntityMetadataIndexProviderUnitTest {
 
 	@Mock
 	private NodeManager mockNodeManager;
-	
+
 	@Mock
 	private NodeDAO mockNodeDao;
 
 	@InjectMocks
 	private EntityMetadataIndexProvider provider;
-	
+
 	@Mock
 	private ObjectDataDTO mockData;
-	
+
 	@Mock
 	private UserInfo mockUser;
-	
+
 	@Mock
 	private Annotations mockAnnotations;
-	
+
 	@Mock
 	private ColumnModel mockModel;
 
@@ -192,58 +193,134 @@ public class EntityMetadataIndexProviderUnitTest {
 		assertEquals(limitEx, result);
 
 	}
-	
+
 	@Test
 	public void testGetObjectData() {
-		
+
 		List<ObjectDataDTO> expected = Collections.singletonList(mockData);
-		
+
 		List<Long> objectIds = ImmutableList.of(1L, 2L, 3L);
-		
+
 		int maxAnnotationChars = 5;
 
 		when(mockNodeDao.getEntityDTOs(any(), anyInt())).thenReturn(expected);
-		
+
 		// Call under test
 		List<ObjectDataDTO> result = provider.getObjectData(objectIds, maxAnnotationChars);
-	
-	    assertEquals(expected, result);
+
+		assertEquals(expected, result);
 		verify(mockNodeDao).getEntityDTOs(objectIds, maxAnnotationChars);
 	}
-	
+
 	@Test
 	public void testGetAnnotations() {
 		String objectId = "syn123";
-		
+
 		when(mockNodeManager.getUserAnnotations(any(), any())).thenReturn(mockAnnotations);
-		
+
 		// Call under test
 		Annotations result = provider.getAnnotations(mockUser, objectId);
-		
+
 		assertEquals(mockAnnotations, result);
-		
+
 		verify(mockNodeManager).getUserAnnotations(mockUser, objectId);
 	}
-	
+
 	@Test
 	public void testUpdateAnnotations() {
 		String objectId = "syn123";
-		
+
 		when(mockNodeManager.updateUserAnnotations(any(), any(), any())).thenReturn(mockAnnotations);
-		
+
 		// Call under test
 		provider.updateAnnotations(mockUser, objectId, mockAnnotations);
-		
+
 		verify(mockNodeManager).updateUserAnnotations(mockUser, objectId, mockAnnotations);
 	}
-	
+
 	@Test
 	public void testCanUpdateAnnotation() {
-		
+
 		// Call under test
 		boolean result = provider.canUpdateAnnotation(mockModel);
-		
+
 		assertTrue(result);
+	}
+
+	@Test
+	public void testDefaultColumnModelWithNullMask() {
+		Long viewTypeMask = null;
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			provider.getDefaultColumnModel(viewTypeMask);
+		});
+	}
+
+	@Test
+	public void testDefaultColumnModelWithFileMask() {
+		Long viewTypeMask = ViewTypeMask.File.getMask();
+		;
+
+		DefaultColumnModel expected = EntityMetadataIndexProvider.FILE_VIEW_DEFAULT_COLUMNS;
+		// Call under test
+		DefaultColumnModel model = provider.getDefaultColumnModel(viewTypeMask);
+
+		assertEquals(expected, model);
+	}
+
+	@Test
+	public void testDefaultColumnModelWithFileAndTableMask() {
+		Long viewTypeMask = ViewTypeMask.File.getMask() | ViewTypeMask.Table.getMask();
+
+		DefaultColumnModel expected = EntityMetadataIndexProvider.FILE_VIEW_DEFAULT_COLUMNS;
+		// Call under test
+		DefaultColumnModel model = provider.getDefaultColumnModel(viewTypeMask);
+
+		assertEquals(expected, model);
+	}
+
+	@Test
+	public void testDefaultColumnModelWithProjectMask() {
+		Long viewTypeMask = ViewTypeMask.Project.getMask();
+
+		DefaultColumnModel expected = EntityMetadataIndexProvider.BASIC_ENTITY_DEAFULT_COLUMNS;
+		// Call under test
+		DefaultColumnModel model = provider.getDefaultColumnModel(viewTypeMask);
+
+		assertEquals(expected, model);
+	}
+
+	@Test
+	public void testDefaultColumnModelExcludingFileMask() {
+		Long viewTypeMask = 0L;
+
+		for (ViewTypeMask type : ViewTypeMask.values()) {
+			if (type != ViewTypeMask.File) {
+				viewTypeMask |= type.getMask();
+			}
+		}
+
+		DefaultColumnModel expected = EntityMetadataIndexProvider.BASIC_ENTITY_DEAFULT_COLUMNS;
+		// Call under test
+		DefaultColumnModel model = provider.getDefaultColumnModel(viewTypeMask);
+
+		assertEquals(expected, model);
+	}
+
+	@Test
+	public void testDefaultColumnModelincludingFileMask() {
+		Long viewTypeMask = 0L;
+
+		for (ViewTypeMask type : ViewTypeMask.values()) {
+			viewTypeMask |= type.getMask();
+		}
+
+		DefaultColumnModel expected = EntityMetadataIndexProvider.FILE_VIEW_DEFAULT_COLUMNS;
+		// Call under test
+		DefaultColumnModel model = provider.getDefaultColumnModel(viewTypeMask);
+
+		assertEquals(expected, model);
 	}
 
 }

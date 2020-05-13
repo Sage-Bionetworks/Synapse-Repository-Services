@@ -4,7 +4,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Collections;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -12,6 +11,8 @@ import java.util.Set;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
+import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -33,7 +34,6 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
@@ -51,8 +51,6 @@ import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.google.common.collect.Lists;
-
 @Service
 public class TableManagerSupportImpl implements TableManagerSupport {
 	
@@ -64,34 +62,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			+ " projects and/or folders. Note: The sub-folders of each project and folder in the scope count towards the limit.";
 	public static final String SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW = "The view's scope exceeds the maximum number of "
 			+ MAX_CONTAINERS_PER_VIEW + " projects.";
-	
-	private static final List<ObjectField> FILE_VIEW_DEFAULT_COLUMNS= Lists.newArrayList(
-			ObjectField.id,
-			ObjectField.name,
-			ObjectField.createdOn,
-			ObjectField.createdBy,
-			ObjectField.etag,
-			ObjectField.type,
-			ObjectField.currentVersion,
-			ObjectField.parentId,
-			ObjectField.benefactorId,
-			ObjectField.projectId,
-			ObjectField.modifiedOn,
-			ObjectField.modifiedBy,
-			ObjectField.dataFileHandleId,
-			ObjectField.dataFileSizeBytes,
-			ObjectField.dataFileMD5Hex
-			);
-	
-	private static final List<ObjectField> BASIC_ENTITY_DEAFULT_COLUMNS = Lists.newArrayList(
-			ObjectField.id,
-			ObjectField.name,
-			ObjectField.createdOn,
-			ObjectField.createdBy,
-			ObjectField.etag,
-			ObjectField.modifiedOn,
-			ObjectField.modifiedBy
-			);
 
 	@Autowired
 	private TableStatusDAO tableStatusDAO;
@@ -117,6 +87,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	private ViewSnapshotDao viewSnapshotDao;
 	@Autowired
 	private MetadataIndexProviderFactory metadataIndexProviderFactory;
+	@Autowired
+	private DefaultColumnModelMapper defaultColumnMapper;
 	
 	/*
 	 * (non-Javadoc)
@@ -481,20 +453,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		authorizationManager.canAccess(userInfo, idAndVersion.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)
 				.checkAuthorizationOrElseThrow();
 	}
-	
-	@Override
-	public ColumnModel getColumnModel(ObjectField field){
-		ValidateArgument.required(field, "field");
-		/*
-		 * We no longer cache these columns in memory.  Caching has caused
-		 * numerous issues such as PLFM-5249 and PLFM-5902.
-		 */
-		return columnModelManager.createColumnModel(field.getColumnModel());
-	}
 
 	@Override
-	public Set<Long> getAccessibleBenefactors(UserInfo user,
-			Set<Long> benefactorIds) {
+	public Set<Long> getAccessibleBenefactors(UserInfo user, Set<Long> benefactorIds) {
 		return authorizationManager.getAccessibleBenefactors(user, benefactorIds);
 	}
 
@@ -509,28 +470,23 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	@Override
-	public List<ColumnModel> getDefaultTableViewColumns(Long viewTypeMaks) {
-		ValidateArgument.required(viewTypeMaks, "viewTypeMaks");
-		if((viewTypeMaks & ViewTypeMask.File.getMask())> 0) {
-			// mask includes files so return file columns.
-			return getColumnModels(FILE_VIEW_DEFAULT_COLUMNS);
-		}else {
-			// mask does not include files so return basic entity columns.
-			return getColumnModels(BASIC_ENTITY_DEAFULT_COLUMNS);
+	public List<ColumnModel> getDefaultTableViewColumns(ViewScopeType viewScopeType) {
+		ValidateArgument.required(viewScopeType, "viewScopeType");
+		ValidateArgument.required(viewScopeType.getTypeMask(), "viewScopeType.typeMask");
+		
+		Long viewTypeMask = viewScopeType.getTypeMask();
+		ViewObjectType objectType = viewScopeType.getObjectType();
+		
+		if (objectType == null) {
+			// To avoid breaking API changes we fallback to ENTITY
+			objectType = ViewObjectType.ENTITY;
 		}
-	}
-	
-	/**
-	 * Get the ColumnModels for the given entity fields.
-	 * @param fields
-	 * @return
-	 */
-	public List<ColumnModel> getColumnModels(List<ObjectField> fields){
-		List<ColumnModel> results = new LinkedList<ColumnModel>();
-		for(ObjectField field: fields){
-			results.add(getColumnModel(field));
-		}
-		return results;
+		
+		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(objectType);
+		
+		DefaultColumnModel defaultColumns = provider.getDefaultColumnModel(viewTypeMask);
+		
+		return defaultColumnMapper.map(defaultColumns);
 	}
 
 	@WriteTransaction

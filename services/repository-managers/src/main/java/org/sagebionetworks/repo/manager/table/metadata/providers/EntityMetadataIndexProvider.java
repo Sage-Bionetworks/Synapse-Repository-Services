@@ -29,7 +29,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 	
-	private static final DefaultColumnModel BASIC_ENTITY_DEAFULT_COLUMNS = DefaultColumnModel.builder()
+	private static final ViewObjectType OBJECT_TYPE = ViewObjectType.ENTITY;
+	
+	static final DefaultColumnModel BASIC_ENTITY_DEAFULT_COLUMNS = DefaultColumnModel.builder(OBJECT_TYPE)
 			.withObjectField(
 					ObjectField.id,
 					ObjectField.name,
@@ -41,7 +43,7 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 					)
 			.build();
 	
-	private static final DefaultColumnModel FILE_VIEW_DEFAULT_COLUMNS = DefaultColumnModel.builder()
+	static final DefaultColumnModel FILE_VIEW_DEFAULT_COLUMNS = DefaultColumnModel.builder(OBJECT_TYPE)
 			.withObjectField(
 					ObjectField.id,
 					ObjectField.name,
@@ -142,7 +144,7 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 
 	@Override
 	public ViewObjectType getObjectType() {
-		return ViewObjectType.ENTITY;
+		return OBJECT_TYPE;
 	}
 
 	@Override

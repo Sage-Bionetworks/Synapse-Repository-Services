@@ -14,7 +14,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -22,7 +21,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -39,6 +37,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
+import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -60,7 +60,6 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -108,13 +107,16 @@ public class TableManagerSupportTest {
 	MetadataIndexProviderFactory mockMetadataIndexProviderFactory;
 	@Mock
 	MetadataIndexProvider mockMetadataIndexProvider;
+	@Mock
+	DefaultColumnModelMapper mockDefaultColumnModelMapper;
 	
 	@InjectMocks
 	TableManagerSupportImpl manager;
 	
-	String schemaMD5Hex;
+	@Mock
+	DefaultColumnModel mockDefaultModel;
 	
-
+	String schemaMD5Hex;
 	String tableId;
 	IdAndVersion idAndVersion;
 	Long tableIdLong;
@@ -775,113 +777,52 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testGetColumModelNotCached(){
-		ColumnModel cm = new ColumnModel();
-		cm.setId("123");
-		when(mockColumnModelManager.createColumnModel(any(ColumnModel.class))).thenReturn(cm);
-		ColumnModel result = manager.getColumnModel(ObjectField.id);
-		assertEquals(cm, result);
-		result = manager.getColumnModel(ObjectField.id);
-		assertEquals(cm, result);
-		result = manager.getColumnModel(ObjectField.id);
-		assertEquals(cm, result);
-		// The column should not be cached.
-		verify(mockColumnModelManager, times(3)).createColumnModel(any(ColumnModel.class));
+	public void testGetDefaultTableViewColumnsNullScopeType(){
+		ViewScopeType scopeType = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.getDefaultTableViewColumns(scopeType);
+		});
 	}
-	
-	
-	@Test
-	public void testGetDefaultTableViewColumnsFileView() throws LimitExceededException{
-		setupCreateColumn();
-		List<ColumnModel> expected = new LinkedList<ColumnModel>();
-		for(ObjectField field: ObjectField.values()){
-			expected.add(field.getColumnModel());
-		}
-		// call under test
-		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewTypeMask.File.getMask());
-		assertEquals(expected, results);
-	}
-	
-	@Test
-	public void testGetDefaultTableViewColumnsFileAndTableView(){
-		setupCreateColumn();
-		List<ColumnModel> expected = new LinkedList<ColumnModel>();
-		for(ObjectField field: ObjectField.values()){
-			expected.add(field.getColumnModel());
-		}
-		// call under test
-		Long viewTypeMaks = ViewTypeMask.File.getMask() | ViewTypeMask.Table.getMask();
-		List<ColumnModel> results = manager.getDefaultTableViewColumns(viewTypeMaks);
-		assertEquals(expected, results);
-	}
-	
-	@Test
-	public void testGetDefaultTableViewColumnsProjectView(){
-		setupCreateColumn();
-		List<ColumnModel> expected = Lists.newArrayList(
-				ObjectField.id.getColumnModel(),
-				ObjectField.name.getColumnModel(),
-				ObjectField.createdOn.getColumnModel(),
-				ObjectField.createdBy.getColumnModel(),
-				ObjectField.etag.getColumnModel(),
-				ObjectField.modifiedOn.getColumnModel(),
-				ObjectField.modifiedBy.getColumnModel()
-				);
-		// call under test
-		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewTypeMask.Project.getMask());
-		assertEquals(expected, results);
-	}
-	
-	@Test
-	public void testGetDefaultTableViewColumnsMaskExcludesFiles(){
-		setupCreateColumn();
-		long typeMask = 0;
-		for(ViewTypeMask type: ViewTypeMask.values()) {
-			if(type != ViewTypeMask.File) {
-				typeMask |= type.getMask();
-			}
-		}
-		List<ColumnModel> expected = Lists.newArrayList(
-				ObjectField.id.getColumnModel(),
-				ObjectField.name.getColumnModel(),
-				ObjectField.createdOn.getColumnModel(),
-				ObjectField.createdBy.getColumnModel(),
-				ObjectField.etag.getColumnModel(),
-				ObjectField.modifiedOn.getColumnModel(),
-				ObjectField.modifiedBy.getColumnModel()
-				);
-		// call under test
-		List<ColumnModel> results = manager.getDefaultTableViewColumns(typeMask);
-		assertEquals(expected, results);
-	}
-	
-	@Test
-	public void testGetDefaultTableViewColumnsMaskIncludeFiles(){
-		setupCreateColumn();
-		long typeMask = 0;
-		for(ViewTypeMask type: ViewTypeMask.values()) {
-			typeMask |= type.getMask();
-		}
-		List<ColumnModel> expected = new LinkedList<ColumnModel>();
-		for(ObjectField field: ObjectField.values()){
-			expected.add(field.getColumnModel());
-		}
-		// call under test
-		List<ColumnModel> results = manager.getDefaultTableViewColumns(typeMask);
-		assertEquals(expected, results);
-	}
-
-
-
 	
 	@Test
 	public void testGetDefaultTableViewColumnsNullMask(){
-		Long typeMask = null;
+		scopeType = new ViewScopeType(ViewObjectType.ENTITY, null);
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.getDefaultTableViewColumns(typeMask);
+			manager.getDefaultTableViewColumns(scopeType);
 		});
 	}
+	
+	@Test
+	public void testGetDefaultTableViewColumnsNullObjectType(){
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+		when(mockMetadataIndexProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultModel);
+		
+		scopeType = new ViewScopeType(null, 1L);
+
+		// call under test
+		manager.getDefaultTableViewColumns(scopeType);
+
+		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(ViewObjectType.ENTITY);
+		verify(mockMetadataIndexProvider).getDefaultColumnModel(scopeType.getTypeMask());
+		verify(mockDefaultColumnModelMapper).map(mockDefaultModel);
+	}
+	
+	@Test
+	public void testGetDefaultTableViewColumns(){
+		
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+		when(mockMetadataIndexProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultModel);
+
+		// call under test
+		manager.getDefaultTableViewColumns(scopeType);
+		
+		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(scopeType.getObjectType());
+		verify(mockMetadataIndexProvider).getDefaultColumnModel(scopeType.getTypeMask());
+		verify(mockDefaultColumnModelMapper).map(mockDefaultModel);
+	}
+
 
 	@Test
 	public void testRebuildTableUnauthorized() throws Exception {

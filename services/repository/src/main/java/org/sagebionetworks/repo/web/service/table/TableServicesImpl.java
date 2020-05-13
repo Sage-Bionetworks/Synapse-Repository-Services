@@ -37,7 +37,9 @@ import org.sagebionetworks.repo.model.table.SqlTransformResponse;
 import org.sagebionetworks.repo.model.table.TableBundle;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.util.TableSqlProcessor;
@@ -230,8 +232,9 @@ public class TableServicesImpl implements TableServices {
 	}
 	
 	@Override
-	public List<ColumnModel> getDefaultViewColumnsForType(Long viewTypeMask) {
-		return tableManagerSupport.getDefaultTableViewColumns(viewTypeMask);
+	public List<ColumnModel> getDefaultViewColumnsForType(ViewObjectType objectType, Long viewTypeMask) {
+		ViewScopeType scopeType = new ViewScopeType(objectType, viewTypeMask);
+		return tableManagerSupport.getDefaultTableViewColumns(scopeType);
 	}
 	
 	@Override

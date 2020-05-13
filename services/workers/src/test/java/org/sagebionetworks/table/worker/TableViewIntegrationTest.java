@@ -92,6 +92,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
@@ -162,6 +163,7 @@ public class TableViewIntegrationTest {
 	List<ColumnModel> defaultSchema;
 	
 	ColumnModel etagColumn;
+	ColumnModel benefactorColumn;
 	ColumnModel anno1Column;
 	ColumnModel booleanColumn;
 	ColumnModel stringColumn;
@@ -169,7 +171,6 @@ public class TableViewIntegrationTest {
 	ColumnModel stringListColumn;
 	
 	ViewObjectType viewObjectType;
-	
 	@BeforeEach
 	public void before(){
 		mockProgressCallbackVoid= Mockito.mock(ProgressCallback.class);
@@ -214,8 +215,8 @@ public class TableViewIntegrationTest {
 			String fileId = entityManager.createEntity(adminUserInfo, file, null);
 			fileIds.add(fileId);
 		}
-		
-		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(ViewTypeMask.File.getMask());
+		ViewScopeType scopeType = new ViewScopeType(viewObjectType, ViewTypeMask.File.getMask());
+		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(scopeType);
 		// add an annotation column
 		anno1Column = new ColumnModel();
 		anno1Column.setColumnType(ColumnType.INTEGER);
@@ -227,6 +228,8 @@ public class TableViewIntegrationTest {
 		for(ColumnModel cm: defaultSchema){
 			if(ObjectField.etag.name().equals(cm.getName())){
 				etagColumn = cm;
+			}else if (ObjectField.benefactorId.name().equals(cm.getName())) {
+				benefactorColumn = cm;
 			}
 			defaultColumnIds.add(cm.getId());
 		}
@@ -458,7 +461,6 @@ public class TableViewIntegrationTest {
 		// lookup the file
 		FileEntity file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
 		waitForEntityReplication(fileViewId, file.getId());
-		ColumnModel benefactorColumn = ObjectField.findMatch(defaultSchema, ObjectField.benefactorId);
 		// change the schema as a transaction
 		ColumnChange remove = new ColumnChange();
 		remove.setOldColumnId(benefactorColumn.getId());
@@ -1108,8 +1110,9 @@ public class TableViewIntegrationTest {
 	 */
 	@Test
 	public void testViewWithFilesAndTables() throws Exception{
+		ViewScopeType scopeType = new ViewScopeType(ViewObjectType.ENTITY, ViewTypeMask.getMaskForDepricatedType(ViewType.file_and_table));
 		// use the default columns for this type.
-		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(ViewTypeMask.getMaskForDepricatedType(ViewType.file_and_table));
+		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(scopeType);
 		// Add a table to the project
 		TableEntity table = new TableEntity();
 		table.setName("someTable");
