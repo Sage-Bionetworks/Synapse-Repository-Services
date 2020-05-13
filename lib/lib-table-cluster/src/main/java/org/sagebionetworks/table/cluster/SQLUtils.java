@@ -1438,7 +1438,12 @@ public class SQLUtils {
 		builder.append(" IN (:");
 		builder.append(PARENT_ID_PARAM_NAME);
 		builder.append(") AND ");
-		builder.append(getViewScopeSubTypeFilter(scopeFilter));
+		builder.append(OBJECT_REPLICATION_ALIAS);
+		builder.append(".");
+		builder.append(TableConstants.OBJECT_REPLICATION_COL_SUBTYPE);
+		builder.append(" IN (:");
+		builder.append(TableConstants.SUBTYPE_PARAM_NAME);
+		builder.append(")");
 		if (filterByRows) {
 			builder
 				.append(" AND ")
@@ -1980,8 +1985,7 @@ public class SQLUtils {
 	public static String getOutOfDateRowsForViewSql(IdAndVersion viewId, ViewScopeFilter scopeFilter) {
 		String viewName = SQLUtils.getTableNameForId(viewId, TableType.INDEX);
 		String scopeColumn = getViewScopeFilterColumn(scopeFilter);
-		String viewTypeFilter = getViewScopeSubTypeFilter(scopeFilter);
-		return String.format(VIEW_ROWS_OUT_OF_DATE_TEMPLATE, viewName, scopeColumn, viewTypeFilter);
+		return String.format(VIEW_ROWS_OUT_OF_DATE_TEMPLATE, viewName, scopeColumn);
 	}
 	
 	public static final String DELETE_ROWS_FROM_VIEW_TEMPLATE = "DELETE FROM %1$s WHERE "+ROW_ID+" = ?";
@@ -2001,20 +2005,5 @@ public class SQLUtils {
 			return OBJECT_REPLICATION_COL_OBJECT_ID;
 		}
 		return OBJECT_REPLICATION_COL_PARENT_ID;
-	}
-	
-	public static String getViewScopeSubTypeFilter(ViewScopeFilter scopeFilter) {
-		List<String> subTypes = scopeFilter.getSubTypes();
-		
-		StringBuilder builder = new StringBuilder();
-		
-		builder.append(OBJECT_REPLICATION_ALIAS);
-		builder.append(".");
-		builder.append(TableConstants.OBJECT_REPLICATION_COL_SUBTYPE);
-		builder.append(" IN (");
-		builder.append(TableConstants.joinStringForSQL(subTypes.stream()));
-		builder.append(")");
-		
-		return builder.toString();
 	}
 }

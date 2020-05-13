@@ -29,6 +29,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_TYPE_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAM_NAME;
+import static org.sagebionetworks.repo.model.table.TableConstants.SUBTYPE_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.P_LIMIT;
 import static org.sagebionetworks.repo.model.table.TableConstants.P_OFFSET;
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_NON_EXPIRED_IDS;
@@ -920,7 +921,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 		boolean filterByRows = objectIdFilter != null;
 		
-		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, objectIdFilter);
+		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, true, objectIdFilter);
 
 		//additional param
 		param.addValue(ANNOTATION_KEYS_PARAM_NAME, annotationNames);
@@ -994,7 +995,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		// Filter by rows only if provided.
 		boolean filterByRows = rowIdsToCopy != null;
 		
-		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, rowIdsToCopy);
+		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, true, rowIdsToCopy);
 		
 		List<ColumnMetadata> metadata = translateSchema(currentSchema, fieldTypeMapper);
 		
@@ -1016,7 +1017,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			throw new IllegalArgumentException("Scope has not been defined for this view.");
 		}
 		
-		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, null);
+		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, true, null);
 		
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = false;
@@ -1082,10 +1083,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		Set<Long> containerIds = scopeFilter.getContainerIds();
 		
 		if(containerIds.isEmpty()){
-			return new LinkedList<>();
+			return Collections.emptyList();
 		}
 		
-		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, null);
+		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, false, null);
 		
 		param.addValue(P_LIMIT, limit);
 		param.addValue(P_OFFSET, offset);
@@ -1310,7 +1311,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		
 		String sql = SQLUtils.getOutOfDateRowsForViewSql(viewId, scopeFilter);
 		
-		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, null);
+		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, true, null);
 		
 		param.addValue(P_LIMIT, limit);
 		
@@ -1369,7 +1370,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		template.update(TRUNCATE_OBJECT_REPLICATION_TABLE);
 	}
 	
-	private MapSqlParameterSource getMapSqlParameterSourceForScopeFilter(ViewScopeFilter scopeFilter, Set<Long> rowIdsToCopy) {
+	private MapSqlParameterSource getMapSqlParameterSourceForScopeFilter(ViewScopeFilter scopeFilter, boolean filterBySubTypes, Set<Long> rowIdsToCopy) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		
 		param.addValue(OBJECT_TYPE_PARAM_NAME, scopeFilter.getObjectType().name());
@@ -1377,6 +1378,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		
 		if (rowIdsToCopy != null) {
 			param.addValue(ID_PARAM_NAME, rowIdsToCopy);
+		}
+		
+		if (filterBySubTypes) {
+			param.addValue(SUBTYPE_PARAM_NAME, scopeFilter.getSubTypes());
 		}
 		
 		return param;

@@ -1910,7 +1910,7 @@ public class SQLUtilsTest {
 				+ " WHERE"
 				+ " R.OBJECT_TYPE = :objectType"
 				+ " AND R.PARENT_ID IN (:parentIds)"
-				+ " AND R.SUBTYPE IN ('file')"
+				+ " AND R.SUBTYPE IN (:subTypes)"
 				+ " GROUP BY R.OBJECT_ID ORDER BY R.OBJECT_ID", sql);
 		assertEquals(Lists.newArrayList("ROW_ID", "ROW_VERSION","ROW_ETAG","ROW_BENEFACTOR","_C1_","_C2_"), headers);
 	}
@@ -1933,7 +1933,7 @@ public class SQLUtilsTest {
 				+ " WHERE"
 				+ " R.OBJECT_TYPE = :objectType"
 				+ " AND R.PARENT_ID IN (:parentIds)"
-				+ " AND R.SUBTYPE IN ('file')"
+				+ " AND R.SUBTYPE IN (:subTypes)"
 				+ " AND A.ANNO_KEY IN (:annotationKeys)"
 				+ " GROUP BY A.ANNO_KEY", sql);
 	}
@@ -1991,7 +1991,7 @@ public class SQLUtilsTest {
 				+ " WHERE"
 				+ " R.OBJECT_TYPE = :objectType"
 				+ " AND R.PARENT_ID IN (:parentIds)"
-				+ " AND R.SUBTYPE IN ('file')"
+				+ " AND R.SUBTYPE IN (:subTypes)"
 				+ " AND R.OBJECT_ID IN (:ids)"
 				+ " GROUP BY R.OBJECT_ID ORDER BY R.OBJECT_ID", sql);
 		assertEquals(Lists.newArrayList("ROW_ID", "ROW_VERSION","ROW_ETAG","ROW_BENEFACTOR","_C1_","_C2_"), headers);
@@ -2023,7 +2023,7 @@ public class SQLUtilsTest {
 				+ " WHERE"
 				+ " R.OBJECT_TYPE = :objectType"
 				+ " AND R.PARENT_ID IN (:parentIds)"
-				+ " AND R.SUBTYPE IN ('file')"
+				+ " AND R.SUBTYPE IN (:subTypes)"
 				+ " GROUP BY R.OBJECT_ID ORDER BY R.OBJECT_ID", sql);
 	}
 	
@@ -2052,7 +2052,7 @@ public class SQLUtilsTest {
 				+ " WHERE"
 				+ " R.OBJECT_TYPE = :objectType"
 				+ " AND R.PARENT_ID IN (:parentIds)"
-				+ " AND R.SUBTYPE IN ('file')"
+				+ " AND R.SUBTYPE IN (:subTypes)"
 				+ " AND R.OBJECT_ID IN (:ids)"
 				+ " GROUP BY R.OBJECT_ID ORDER BY R.OBJECT_ID", sql);
 	}
@@ -2082,7 +2082,7 @@ public class SQLUtilsTest {
 				+ " WHERE"
 				+ " R.OBJECT_TYPE = :objectType"
 				+ " AND R.OBJECT_ID IN (:parentIds)"
-				+ " AND R.SUBTYPE IN ('project')"
+				+ " AND R.SUBTYPE IN (:subTypes)"
 				+ " GROUP BY R.OBJECT_ID ORDER BY R.OBJECT_ID", sql);
 	}
 
@@ -2108,7 +2108,7 @@ public class SQLUtilsTest {
 				+ " WHERE"
 				+ " R.OBJECT_TYPE = :objectType"
 				+ " AND R.PARENT_ID IN (:parentIds)"
-				+ " AND R.SUBTYPE IN ('file')"
+				+ " AND R.SUBTYPE IN (:subTypes)"
 				+ " GROUP BY R.OBJECT_ID ORDER BY R.OBJECT_ID", sql);
 	}
 
@@ -2925,7 +2925,9 @@ public class SQLUtilsTest {
 				+ "		 R.OBJECT_ID = V.ROW_ID"
 				+ "      AND R.ETAG = V.ROW_ETAG"
 				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR)"
-				+ "   WHERE R.OBJECT_TYPE = :objectType AND R.PARENT_ID IN (:parentIds) AND R.SUBTYPE IN ('file')"
+				+ "   WHERE R.OBJECT_TYPE = :objectType"
+				+ "      AND R.PARENT_ID IN (:parentIds)"
+				+ "      AND R.SUBTYPE IN (:subTypes)"
 				+ " UNION ALL"
 				+ " SELECT V.ROW_ID, R.OBJECT_ID FROM OBJECT_REPLICATION R"
 				+ "    RIGHT JOIN T999 V ON ("
@@ -2933,7 +2935,8 @@ public class SQLUtilsTest {
 				+ "      AND R.OBJECT_ID = V.ROW_ID"
 				+ "      AND R.ETAG = V.ROW_ETAG"
 				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR"
-				+ "      AND R.PARENT_ID IN (:parentIds) AND R.SUBTYPE IN ('file'))"
+				+ "      AND R.PARENT_ID IN (:parentIds)"
+				+ "      AND R.SUBTYPE IN (:subTypes))"
 				+ ")"
 				+ "SELECT ID FROM DELTAS WHERE MISSING IS NULL ORDER BY ID DESC LIMIT :pLimit";
 		assertEquals(expected, sql);
@@ -2952,7 +2955,9 @@ public class SQLUtilsTest {
 				+ "		 R.OBJECT_ID = V.ROW_ID"
 				+ "      AND R.ETAG = V.ROW_ETAG"
 				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR)"
-				+ "   WHERE R.OBJECT_TYPE = :objectType AND R.OBJECT_ID IN (:parentIds) AND R.SUBTYPE IN ('project')"
+				+ "   WHERE R.OBJECT_TYPE = :objectType"
+				+ "      AND R.OBJECT_ID IN (:parentIds)"
+				+ "      AND R.SUBTYPE IN (:subTypes)"
 				+ " UNION ALL"
 				+ " SELECT V.ROW_ID, R.OBJECT_ID FROM OBJECT_REPLICATION R"
 				+ "    RIGHT JOIN T999 V ON ("
@@ -2960,7 +2965,8 @@ public class SQLUtilsTest {
 				+ "      AND R.OBJECT_ID = V.ROW_ID"
 				+ "      AND R.ETAG = V.ROW_ETAG"
 				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR"
-				+ "      AND R.OBJECT_ID IN (:parentIds) AND R.SUBTYPE IN ('project'))"
+				+ "      AND R.OBJECT_ID IN (:parentIds)"
+				+ "      AND R.SUBTYPE IN (:subTypes))"
 				+ ")"
 				+ "SELECT ID FROM DELTAS WHERE MISSING IS NULL ORDER BY ID DESC LIMIT :pLimit";
 		assertEquals(expected, sql);
@@ -2971,39 +2977,6 @@ public class SQLUtilsTest {
 		// call under test
 		String sql = SQLUtils.getDeleteRowsFromViewSql(tableId);
 		assertEquals("DELETE FROM T999 WHERE ROW_ID = ?", sql);
-	}
-	
-	@Test
-	public void testGetViewScopeSubTypeFilterWithSingleType(){
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
-		
-		String result = SQLUtils.getViewScopeSubTypeFilter(scopeFilter);
-		assertEquals("R.SUBTYPE IN ('file')", result);
-	}
-
-	@Test
-	public void testGetViewScopeSubTypeFilterWithMultipleTypes(){
-		List<String> subTypes = EnumUtils.names(EntityType.file, EntityType.table);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
-		
-		String result = SQLUtils.getViewScopeSubTypeFilter(scopeFilter);
-		assertEquals("R.SUBTYPE IN ('file','table')", result);
-	}
-
-	@Test
-	public void testGetViewScopeSubTypeFilterWithAllEntityTypes(){
-		List<String> subTypes = EnumUtils.names(EntityType.class);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
-		
-		String result = SQLUtils.getViewScopeSubTypeFilter(scopeFilter);
-		assertEquals("R.SUBTYPE IN ('project','folder','file','table','link','entityview','dockerrepo')", result);
 	}
 	
 	@Test
