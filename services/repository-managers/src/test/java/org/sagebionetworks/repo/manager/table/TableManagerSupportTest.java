@@ -515,13 +515,13 @@ public class TableManagerSupportTest {
 	public void testGetAllContainerIdsForViewScope() throws LimitExceededException {
 		when(mockViewScopeDao.getViewScope(idAndVersion.getId())).thenReturn(scope);
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
-		when(mockMetadataIndexProvider.getAllContainerIdsForScope(any(), any(), anyInt())).thenReturn(containersInScope);
+		when(mockMetadataIndexProvider.getContainerIdsForScope(any(), any(), anyInt())).thenReturn(containersInScope);
 		// call under test.
 		Set<Long> containers = manager.getAllContainerIdsForViewScope(idAndVersion, scopeType);
 		assertEquals(containersInScope, containers);
 		verify(mockViewScopeDao).getViewScope(idAndVersion.getId());
 		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(scopeType.getObjectType());
-		verify(mockMetadataIndexProvider).getAllContainerIdsForScope(scope, scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
+		verify(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test
@@ -540,14 +540,14 @@ public class TableManagerSupportTest {
 	@Test
 	public void testgetAllContainerIdsForScopeFiewView() throws LimitExceededException{
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
-		when(mockMetadataIndexProvider.getAllContainerIdsForScope(any(), any(), anyInt())).thenReturn(containersInScope);
+		when(mockMetadataIndexProvider.getContainerIdsForScope(any(), any(), anyInt())).thenReturn(containersInScope);
 		
 		// call under test.
 		Set<Long> containers = manager.getAllContainerIdsForScope(scope, scopeType);
 		assertEquals(containersInScope, containers);
 		
 		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(scopeType.getObjectType());
-		verify(mockMetadataIndexProvider).getAllContainerIdsForScope(scope, scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
+		verify(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
 		
 	}
 	
@@ -578,7 +578,7 @@ public class TableManagerSupportTest {
 		// setup limit exceeded.
 		LimitExceededException exception = new LimitExceededException("too many");
 
-		doThrow(exception).when(mockMetadataIndexProvider).getAllContainerIdsForScope(scope, scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
+		doThrow(exception).when(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
 		
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
@@ -593,7 +593,7 @@ public class TableManagerSupportTest {
 		// call under test
 		manager.validateScopeSize(scope, scopeType);
 		
-		verify(mockMetadataIndexProvider).getAllContainerIdsForScope(scope, scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
+		verify(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test

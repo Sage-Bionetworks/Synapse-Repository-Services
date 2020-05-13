@@ -250,8 +250,7 @@ public class ObjectReplicationReconciliationWorker implements ChangeMessageDrive
 		if (!isParentInTrash) {
 			// The parent is not in the trash so find entities that are
 			// out-of-synch
-			List<IdAndEtag> truthChildren = nodeDao
-					.getChildren(outOfSynchParentId);
+			List<IdAndEtag> truthChildren = nodeDao.getChildren(outOfSynchParentId);
 			Set<Long> truthIds = new HashSet<Long>();
 			// find the create/updates
 			for (IdAndEtag test : truthChildren) {

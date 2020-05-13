@@ -394,7 +394,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		
 		// Expand the scope to include all sub-folders
 		try {
-			return provider.getAllContainerIdsForScope(scope, viewTypeMask, MAX_CONTAINERS_PER_VIEW);
+			return provider.getContainerIdsForScope(scope, viewTypeMask, MAX_CONTAINERS_PER_VIEW);
 		} catch (LimitExceededException e) {
 			// Convert the generic exception to a specific exception.
 			throw new IllegalArgumentException(createViewOverLimitMessage(viewTypeMask));

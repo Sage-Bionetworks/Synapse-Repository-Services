@@ -1,8 +1,10 @@
 package org.sagebionetworks.repo.manager.table.metadata;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
@@ -48,11 +50,11 @@ public interface MetadataIndexProvider extends HasViewObjectType, ViewScopeFilte
 	 *                       if there are more containers in the scope a
 	 *                       {@link LimitExceededException} should be thrown
 	 * 
-	 * @return The expaned set of ids including all the container ids in the scope
+	 * @return The expanded set of ids including all the container ids in the scope
 	 * @throws LimitExceededException If there are more than containerLimit
 	 *                                containers in the scope
 	 */
-	Set<Long> getAllContainerIdsForScope(Set<Long> scope, Long viewTypeMask, int containerLimit)
+	Set<Long> getContainerIdsForScope(Set<Long> scope, Long viewTypeMask, int containerLimit)
 			throws LimitExceededException;
 
 	/**
@@ -87,9 +89,67 @@ public interface MetadataIndexProvider extends HasViewObjectType, ViewScopeFilte
 	 */
 	boolean canUpdateAnnotation(ColumnModel model);
 
-	// TODO:
+	/**
+	 * In general should return the same result as
+	 * {@link #getContainerIdsForScope(Set, Long, int)} but used for reconciliation,
+	 * in some cases the containers to reconcile might differ from the containers
+	 * used for the scope computation (e.g. project views reconcile on the root
+	 * node)
+	 * 
+	 * @param scope          The set of ids defining the scope of a view
+	 * @param viewTypeMask   The type mask
+	 * @param containerLimit The maximum number of containers allowed for a scope,
+	 *                       if there are more containers in the scope a
+	 *                       {@link LimitExceededException} should be thrown
+	 * @return The set of container ids that are used for reconciliation
+	 * @throws LimitExceededException If there are more than containerLimit
+	 *                                containers in the scope
+	 */
+	Set<Long> getContainerIdsForReconciliation(Set<Long> scope, Long viewTypeMask, int containerLimit)
+			throws LimitExceededException;
 
-	// getDefaultColumnModel
-	// CRC computation
+	/**
+	 * Returns the sub-set of available containers, a container is available if it
+	 * exists and it's not trashed
+	 * 
+	 * @param containerIds
+	 * @return The
+	 */
+	Set<Long> getAvailableContainers(List<Long> containerIds);
+
+	/**
+	 * For the given container id return the <id, etag, benefactor> of the direct
+	 * children
+	 * 
+	 * @param containerId
+	 * @return The list of children metadata including the id, etag and benefactor
+	 */
+	List<IdAndEtag> getChildren(Long containerId);
+
+	/**
+	 * For each container id (e.g. ids that are allowed in the scope of the view)
+	 * get the sum of CRCs of their children.
+	 * 
+	 * <p>
+	 * In general this can be computed using the CRC32 of the CONCAT of ID, ETAG and
+	 * BENEFACTOR grouping by the container id:
+	 * <p>
+	 * SELECT PARENT_ID, SUM(CRC32(CONCAT(ID,'-',ETAG,'-', BENEFACTOR_ID))) AS 'CRC'
+	 * FROM TABLE WHERE PARENT_ID IN(:parentId) GROUP BY PARENT_ID
+	 * 
+	 * @param containerIds
+	 * @return Map.key = containerId and map.value = sum of children CRCs
+	 */
+	Map<Long, Long> getSumOfChildCRCsForEachContainer(List<Long> containerIds);
+
+	/**
+	 * Returns the {@link DefaultColumnModel} for a view given the provided type
+	 * mask
+	 * 
+	 * @param viewTypeMask The view type mask
+	 * @return An instance of a {@link DefaultColumnModel} describing the fields
+	 *         that are suggested for a view
+	 */
+	DefaultColumnModel getDefaultColumnModel(Long viewTypeMask);
 
 }

@@ -154,7 +154,7 @@ public class EntityMetadataIndexProviderUnitTest {
 		when(mockNodeDao.getAllContainerIds(anySet(), anyInt())).thenReturn(expected);
 
 		// Call under test
-		Set<Long> result = provider.getAllContainerIdsForScope(scope, viewTypeMask, containerLimit);
+		Set<Long> result = provider.getContainerIdsForScope(scope, viewTypeMask, containerLimit);
 
 		assertEquals(expected, result);
 	}
@@ -167,7 +167,7 @@ public class EntityMetadataIndexProviderUnitTest {
 		int containerLimit = 10;
 
 		// Call under test
-		Set<Long> result = provider.getAllContainerIdsForScope(scope, viewTypeMask, containerLimit);
+		Set<Long> result = provider.getContainerIdsForScope(scope, viewTypeMask, containerLimit);
 
 		assertEquals(scope, result);
 		verifyZeroInteractions(mockNodeDao);
@@ -186,7 +186,7 @@ public class EntityMetadataIndexProviderUnitTest {
 
 		LimitExceededException result = assertThrows(LimitExceededException.class, () -> {
 			// Call under test
-			provider.getAllContainerIdsForScope(scope, viewTypeMask, containerLimit);
+			provider.getContainerIdsForScope(scope, viewTypeMask, containerLimit);
 		});
 
 		assertEquals(limitEx, result);
