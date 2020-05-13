@@ -63,7 +63,6 @@ import org.sagebionetworks.repo.model.table.FacetColumnResult;
 import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
 import org.sagebionetworks.repo.model.table.FacetType;
-import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryOptions;
@@ -176,8 +175,6 @@ public class TableQueryManagerImplTest {
 		sort.setDirection(SortDirection.DESC);
 		sortList = Lists.newArrayList(sort);
 		
-		ColumnModel benefactorColumn = ObjectField.benefactorId.getColumnModel();
-		benefactorColumn.setId("999");
 		benfactors = Sets.newHashSet(333L,444L);
 		subSet = Sets.newHashSet(444L);
 		
@@ -1596,11 +1593,7 @@ public class TableQueryManagerImplTest {
 	 * @throws EmptyResultException
 	 */
 	@Test
-	public void testBuildBenefactorFilterPLFM_4036() throws ParseException, EmptyResultException{
-		// add benefactor to the schema
-		ColumnModel benefactorColumn = ObjectField.benefactorId.getColumnModel();
-		benefactorColumn.setId("99");
-	
+	public void testBuildBenefactorFilterPLFM_4036() throws ParseException, EmptyResultException {	
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId+" where i1 > 0 or i1 is not null").querySpecification();
 		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
 		benefactorIds.add(456L);

@@ -30,6 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -72,6 +73,7 @@ import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.ChangeData;
@@ -137,10 +139,11 @@ public class TableIndexManagerImplTest {
 	Set<Long> rowsIdsWithChanges;
 	ViewScopeType scopeType;
 	ViewScopeFilterBuilder scopeFilterBuilder;
-	
+	ObjectFieldModelResolver objectFieldModelResolver;
 	
 	@BeforeEach
 	public void before() throws Exception{
+		
 		objectType = ViewObjectType.ENTITY;
 		tableId = IdAndVersion.parse("syn123");
 		manager = new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory);
@@ -194,6 +197,8 @@ public class TableIndexManagerImplTest {
 		
 		rowsIdsWithChanges = Sets.newHashSet(444L,555L);
 		scopeType = new ViewScopeType(objectType, ViewTypeMask.File.getMask());
+		
+		objectFieldModelResolver = new ObjectFieldModelResolverImpl(mockMetadataProvider);
 	}
 
 	@Test
@@ -567,11 +572,8 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
 
 		Set<Long> scope = Sets.newHashSet(1L,2L);
-		List<ColumnModel> schema = createDefaultColumnsWithIds();
+		List<ColumnModel> schema = createDefaultColumnsWithIds(ObjectField.etag);
 		
-		ColumnModel etagColumn = ObjectField.findMatch(schema, ObjectField.etag);
-		// remove the etag column
-		schema.remove(etagColumn);
 		// call under test
 		manager.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
 	}
@@ -590,10 +592,7 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
 
 		Set<Long> scope = Sets.newHashSet(1L,2L);
-		List<ColumnModel> schema = createDefaultColumnsWithIds();
-		ColumnModel benefactorColumn = ObjectField.findMatch(schema, ObjectField.benefactorId);
-		// remove the benefactor column
-		schema.remove(benefactorColumn);
+		List<ColumnModel> schema = createDefaultColumnsWithIds(ObjectField.benefactorId);
 		// call under test
 		manager.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
 	}
@@ -2099,13 +2098,24 @@ public class TableIndexManagerImplTest {
 	 * 
 	 * @return
 	 */
-	public static List<ColumnModel> createDefaultColumnsWithIds() {
-		List<ColumnModel> schema = ObjectField.getAllColumnModels();
+	public List<ColumnModel> createDefaultColumnsWithIds() {
+		List<ColumnModel> schema = objectFieldModelResolver.getAllColumnModels();
+
 		for(int i=0; i<schema.size(); i++){
 			ColumnModel cm = schema.get(i);
 			cm.setId(""+i);
 		}
+		
 		return schema;
 	}
-
+	
+	public List<ColumnModel> createDefaultColumnsWithIds(ObjectField exclude) {
+		return createDefaultColumnsWithIds()
+			.stream()
+			.filter( model -> !model.getName().equals(exclude.name()))
+			.collect(Collectors.toList());
+	}
+	
+	
+	
 }

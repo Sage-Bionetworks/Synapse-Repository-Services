@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
+import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Project;
@@ -107,6 +108,8 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	TableViewManager tableViewManager;
 	@Autowired
 	TableTransactionDao tableTransactionDao;
+	@Autowired
+	DefaultColumnModelMapper columnModelMapper;
 	
 	private UserInfo adminUserInfo;
 	RowReferenceSet referenceSet;
@@ -278,8 +281,10 @@ public class TableCSVDownloadWorkerIntegrationTest {
 			projectIds.add(projectId);
 		}
 		toDelete.addAll(projectIds);
+		
 		// Create a projectView
-		ColumnModel nameColumn  = columnManager.createColumnModel(adminUserInfo, ObjectField.name.getColumnModel());
+		ColumnModel nameColumn = columnModelMapper.getColumnModels(ViewObjectType.ENTITY, ObjectField.name).get(0);
+
 		schema = Lists.newArrayList(nameColumn);
 		headers = TableModelUtils.getIds(schema);
 		EntityView view = new EntityView();
