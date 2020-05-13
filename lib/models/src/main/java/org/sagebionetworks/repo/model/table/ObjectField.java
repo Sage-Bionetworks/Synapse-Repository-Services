@@ -147,22 +147,6 @@ public enum ObjectField {
 	}
 	
 	/**
-	 * For a given ColumnModel find the matching EntityField.
-	 * 
-	 * @param cm
-	 * @return Returns null if there is no match.
-	 */
-	@Deprecated
-	public static ObjectField findMatch(ColumnModel cm){
-		for(ObjectField field: ObjectField.values()){
-			if(field.isMatch(cm)){
-				return field;
-			}
-		}
-		return null;
-	}
-	
-	/**
 	 * Given a list of ColumnModels find the ColumnModel that matches the given EntityField.
 	 * 
 	 * @param columns

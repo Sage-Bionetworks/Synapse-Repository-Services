@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.model.table;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -24,26 +22,6 @@ public class ObjectFieldTest {
 	public void testGetColumnModelWithSize(){
 		ColumnModel model = ObjectField.name.getColumnModel();
 		assertNotNull(model.getMaximumSize());
-	}
-	
-	@Test
-	public void testFindMatchNotFound(){
-		ColumnModel model = new ColumnModel();
-		model.setName("noMatch");
-		model.setColumnType(ColumnType.BOOLEAN);
-		model.setDefaultValue("someDefault");
-		ObjectField match = ObjectField.findMatch(model);
-		assertEquals(null, match);
-	}
-	
-	@Test
-	public void testFindMatchAll(){
-		// should find a match for all EntityFields
-		for(ObjectField field: ObjectField.values()){
-			ColumnModel model = field.getColumnModel();
-			ObjectField match = ObjectField.findMatch(model);
-			assertEquals(field, match);
-		}
 	}
 	
 	@Test
