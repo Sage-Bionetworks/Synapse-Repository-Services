@@ -3,7 +3,6 @@ package org.sagebionetworks.schema.worker;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
@@ -22,12 +21,7 @@ public class SynpaseSchemaBootstrapWorkerTest {
 
 	@Autowired
 	private JsonSchemaManager jsonSchemaManager;
-	
-	
-	@BeforeEach
-	public void before() throws InterruptedException {
-		jsonSchemaManager.truncateAll();
-	}
+
 	
 	@Test
 	public void testRun() throws InterruptedException {
