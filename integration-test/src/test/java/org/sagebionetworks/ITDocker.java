@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +41,7 @@ import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.docker.RegistryEventActor;
 import org.sagebionetworks.repo.model.docker.RegistryEventRequest;
 import org.sagebionetworks.repo.model.docker.RegistryEventTarget;
+import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
@@ -66,11 +68,13 @@ public class ITDocker {
 
 	private String projectId;
 	
-	StackConfiguration config;
+	private StackConfiguration config;
 
 	private static SimpleHttpClient simpleClient;
 	
 	private String synapseDockerAuthorizationUrl;
+	private OAuthClient oauthClient;
+	private String oauthClientSecret;
 
 	@BeforeAll
 	public static void beforeClass() throws Exception {
@@ -99,6 +103,15 @@ public class ITDocker {
 		project = synapseOne.createEntity(project);
 		projectId = project.getId();
 		
+		// create the OAuth client
+		oauthClient = new OAuthClient();
+		oauthClient.setClient_name(UUID.randomUUID().toString());
+		oauthClient.setRedirect_uris(Collections.singletonList("https://foo.bar.com"));
+		oauthClient = synapseOne.createOAuthClient(oauthClient);
+		// Sets the verified status of the client (only admins and ACT can do this)
+		oauthClient = adminSynapse.updateOAuthClientVerifiedStatus(oauthClient.getClient_id(), oauthClient.getEtag(), true);
+		oauthClientSecret = synapseOne.createOAuthClientSecret(oauthClient.getClient_id()).getClient_secret();
+
 		String service = "docker.synapse.org";
 		String repoPath = projectId+"/reponame";
 		String scope = TYPE+":"+repoPath+":"+ACCESS_TYPES_STRING;
@@ -141,6 +154,14 @@ public class ITDocker {
 
 	@Test
 	public void testDockerClientAuthorizationWithAccessToken() throws Exception {
+		String accessToken = OAuthHelper.getAccessToken(
+				synapseOne, 
+				synapseOne, 
+				oauthClient.getClient_id(), 
+				oauthClientSecret, 
+				oauthClient.getRedirect_uris().get(0),
+				"authorize"
+			);
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		// Note, without this header  we get a 415 response code
 		requestHeaders.put("Content-Type", "application/json"); 
