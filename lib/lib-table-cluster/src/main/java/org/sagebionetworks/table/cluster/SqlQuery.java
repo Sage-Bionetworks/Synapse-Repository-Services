@@ -1,6 +1,5 @@
 package org.sagebionetworks.table.cluster;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -19,7 +18,6 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
-import org.sagebionetworks.table.query.util.FacetUtils;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -186,9 +184,9 @@ public class SqlQuery {
 
 		//Append additionalFilters onto the WHERE clause
 		if(additionalFilters != null && !additionalFilters.isEmpty()) {
-			String additionalFilterSearchCondition = SQLUtils.appendAdditionalFilters(additionalFilters);
+			String additionalFilterSearchCondition = SQLTranslatorUtils.translateQueryFilters(additionalFilters);
 			StringBuilder whereClauseBuilder = new StringBuilder();
-			FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(whereClauseBuilder,additionalFilterSearchCondition, this.model.getTableExpression().getWhereClause());
+			SqlElementUntils.appendCombinedWhereClauseToStringBuilder(whereClauseBuilder,additionalFilterSearchCondition, this.model.getTableExpression().getWhereClause());
 			try {
 				this.model.getTableExpression().replaceWhere(new TableQueryParser(whereClauseBuilder.toString()).whereClause());
 			} catch (ParseException e) {

@@ -16,6 +16,8 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.LikeQueryFilter;
+import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
@@ -736,5 +738,63 @@ public class SQLTranslatorUtils {
 			throw new IllegalArgumentException(errorMessageFunctionName + " only works for columns that hold list values");
 		}
 		return schemaColumnTranslationReference;
+	}
+
+	public static String translateQueryFilters(List<QueryFilter> additionalFilters){
+		ValidateArgument.requiredNotEmpty(additionalFilters, "additionalFilters");
+
+		StringBuilder additionalSearchConditionBuilder = new StringBuilder();
+
+		boolean firstVal = true;
+
+		for(QueryFilter filter : additionalFilters){
+			if(!firstVal){
+				additionalSearchConditionBuilder.append(" AND ");
+			}
+			translateQueryFilters(additionalSearchConditionBuilder, filter);
+			firstVal=false;
+		}
+
+		return additionalSearchConditionBuilder.toString();
+	}
+
+	static void translateQueryFilters(StringBuilder builder, QueryFilter filter){
+		if(filter instanceof LikeQueryFilter){
+			appendLikeFilter(builder, (LikeQueryFilter) filter);
+		}else{
+			throw new IllegalArgumentException("Unknown QueryFilter type");
+		}
+	}
+
+	static void appendLikeFilter(StringBuilder builder, LikeQueryFilter filter){
+		ValidateArgument.requiredNotEmpty(filter.getColumnName(), "likeQueryFilter.columnName");
+		ValidateArgument.requiredNotEmpty(filter.getLikeValues(), "likeQueryFilter.likeValues");
+
+		builder.append("(");
+		boolean firstVal = true;
+		String columnName = filter.getColumnName();
+		for (String likeValue: filter.getLikeValues()){
+			if(!firstVal){
+				builder.append(" OR ");
+			}
+			builder.append("\"")
+					.append(columnName)
+					.append("\"")
+					.append(" LIKE ");
+			appendSingleQuotedValueToStringBuilder(builder, likeValue);
+
+			firstVal = false;
+		}
+		builder.append(")");
+	}
+
+	/**
+	 * Appends a value to the string builder
+	 * and places single quotes (') around it if the column type is String
+	 */
+	static void appendSingleQuotedValueToStringBuilder(StringBuilder builder, String value){
+		builder.append("'");
+		builder.append(value.replaceAll("'", "''"));
+		builder.append("'");
 	}
 }

@@ -44,41 +44,7 @@ public class FacetUtils {
 		builder.append(")");
 		return builder.toString();
 	}
-	
-	/**
-	 * Appends a WHERE clause to the String Builder if necessary
-	 * @param builder StringBuilder to append to
-	 * @param facetSearchConditionString SearchCondition string to append. pass null if none to append.
-	 * @param originalWhereClause the WHERE clause that was in the original query. pass null if not exist.
-	 */
-	public static void appendFacetWhereClauseToStringBuilderIfNecessary(StringBuilder builder, String facetSearchConditionString,
-			WhereClause originalWhereClause) {
-		ValidateArgument.required(builder, "builder");
-		
-		if(facetSearchConditionString != null || originalWhereClause != null){
-			builder.append(" WHERE ");
-			if(originalWhereClause != null){
-				if(facetSearchConditionString != null){
-					builder.append("(");
-				}
-				builder.append(originalWhereClause.getSearchCondition().toSql());
-				if(facetSearchConditionString != null){
-					builder.append(")");
-				}
-			}
-			if(facetSearchConditionString != null){
-				if(originalWhereClause != null){
-					builder.append(" AND ");
-					builder.append("(");
-				}
-				builder.append(facetSearchConditionString);
-				if(originalWhereClause != null){
-					builder.append(")");
-				}
-			}
-		}
-	}
-	
+
 	/**
 	 * Returns a new QuerySpecification object that is modified version of 
 	 * sqlModel having the original WHERE clause ANDed with 
@@ -95,7 +61,7 @@ public class FacetUtils {
 			String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facetRequestColumnModels, null);
 			
 			StringBuilder builder = new StringBuilder();
-			FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(builder, facetSearchConditionString, originalWhereClause);
+			SqlElementUntils.appendCombinedWhereClauseToStringBuilder(builder, facetSearchConditionString, originalWhereClause);
 			
 			// create the new where if necessary
 			if(builder.length() > 0){

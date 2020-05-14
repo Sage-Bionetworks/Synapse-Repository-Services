@@ -147,39 +147,6 @@ public class FacetUtilsTest {
 		assertEquals("(" + searchCondition1 + " AND " + searchCondition2 + ")", result);
 	}
 	
-	
-	////////////////////////////////////////////////////////////
-	// appendFacetWhereClauseToStringBuilderIfNecessary() tests
-	////////////////////////////////////////////////////////////
-	@Test (expected = IllegalArgumentException.class)
-	public void appendFacetWhereClauseToStringBuilderIfNecessaryNullBuilder(){
-		FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(null, facetSearchConditionString, whereClause);
-	}
-	
-	@Test
-	public void appendFacetWhereClauseToStringBuilderIfNecessaryNullFacetSearchConditionStringNullWhereClause(){
-		FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, null, null);
-		assertEquals(0, stringBuilder.length());
-	}
-	
-	@Test
-	public void appendFacetWhereClauseToStringBuilderIfNecessaryNullWhereClause(){
-		FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, facetSearchConditionString, null);
-		assertEquals(" WHERE "+ facetSearchConditionString , stringBuilder.toString());
-	}
-	
-	@Test
-	public void appendFacetWhereClauseToStringBuilderIfNecessaryNullFacetSearchConditionString(){
-		FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, null, whereClause);
-		assertEquals(" WHERE "+ whereClause.getSearchCondition().toSql(), stringBuilder.toString());
-	}
-	
-	@Test
-	public void appendFacetWhereClauseToStringBuilderIfNecessaryNoNulls(){
-		FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, facetSearchConditionString, whereClause);
-		assertEquals(" WHERE ("+ whereClause.getSearchCondition().toSql() + ") AND (" + facetSearchConditionString + ")", stringBuilder.toString());
-	}
-	
 	/////////////////////////////////////////////////////////
 	// appendFacetSearchConditionToQuerySpecification() test
 	/////////////////////////////////////////////////////////
