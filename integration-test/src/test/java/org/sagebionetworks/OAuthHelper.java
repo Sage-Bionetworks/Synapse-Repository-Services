@@ -28,7 +28,7 @@ public class OAuthHelper {
 		String nonce = UUID.randomUUID().toString();
 		authorizationRequest.setNonce(nonce);
 		
-		// Note that here we use "synapseClientForUser1" to create an access token
+		// Note that here we use the authenticated client to create an access token
 		// for User1
 		OAuthAuthorizationResponse oauthAuthorizationResponse = authenticatedClient.authorizeClient(authorizationRequest);
 
@@ -44,7 +44,5 @@ public class OAuthHelper {
 		}
 
 	}
-
-
-
+	
 }
