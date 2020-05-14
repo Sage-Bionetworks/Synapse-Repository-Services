@@ -35,6 +35,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -55,6 +57,8 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
@@ -63,11 +67,9 @@ import org.sagebionetworks.repo.model.table.FacetColumnResult;
 import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
 import org.sagebionetworks.repo.model.table.FacetType;
-import org.sagebionetworks.repo.model.table.LikeQueryFilter;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
-import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
@@ -95,9 +97,6 @@ import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.jdbc.BadSqlGrammarException;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class TableQueryManagerImplTest {
@@ -1002,9 +1001,10 @@ public class TableQueryManagerImplTest {
 		Query query = new Query();
 		query.setSql("select i2, i0 from "+tableId);
 
-		LikeQueryFilter likeFilter = new LikeQueryFilter();
+		ColumnSingleValueQueryFilter likeFilter = new ColumnSingleValueQueryFilter();
 		likeFilter.setColumnName("i0");
-		likeFilter.setLikeValues(Arrays.asList("foo%"));
+		likeFilter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		likeFilter.setValues(Arrays.asList("foo%"));
 		query.setAdditionalFilters(Arrays.asList(likeFilter));
 
 		Long maxBytesPerPage = null;
