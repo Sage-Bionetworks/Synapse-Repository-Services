@@ -13,14 +13,6 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy proxy-target-class="true" />
 
-	<!-- This delay determines the maximum amount of time before Synapse object 
-		schema changes will appear on a new production stack. Currently set to one 
-		hour. This value is in its own bean so it can be overridden in a test context-->
-	<bean id="schemaBoostrapTriggerRepeatInterval"
-		class="java.lang.Long">
-		<constructor-arg index="0" value="3600000" />
-	</bean>
-
 	<bean id="schemaBootstrapWorker"
 		class="org.sagebionetworks.schema.worker.SynapseSchemaBootstrapWorker"
 		scope="singleton" />
@@ -60,9 +52,10 @@
 			</bean>
 		</property>
 		<property name="startDelay" value="137" />
-
-		<property name="repeatInterval"
-			ref="schemaBoostrapTriggerRepeatInterval" />
+		<!-- This delay determines the maximum amount of time before Synapse object 
+			schema changes will appear on a new production stack. Currently set to one 
+			hour. -->
+		<property name="repeatInterval" value="3600000" />
 	</bean>
 
 </beans>

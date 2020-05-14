@@ -17,13 +17,12 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.NormalizedJsonSchema;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.ObjectSchemaImpl;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.id.SchemaId;
 import org.sagebionetworks.schema.parser.ParseException;
 import org.sagebionetworks.schema.parser.SchemaIdParser;
@@ -96,31 +95,24 @@ public class SynapseSchemaBootstrapImpl implements SynapseSchemaBootstrap {
 		SchemaId id = SchemaIdParser.parseSchemaId(schema.get$id());
 		String organizationName = id.getOrganizationName().toString();
 		String schemaName = id.getSchemaName().toString();
-		NormalizedJsonSchema normalizedJsonSchema = new NormalizedJsonSchema(schema);
 		// If we get a patch number then we need to create a new version.
 		Optional<Long> optionalPatchNumber = getNextPatchNumberIfNeeded(organizationName, schemaName,
-				normalizedJsonSchema.getSha256Hex());
+				schema);
 		if(!optionalPatchNumber.isPresent()) {
 			// the schema is already registered.
 			return;
 		}
 		StringBuilder builder = new StringBuilder();
 		builder.append(organizationName);
-		builder.append(SchemaTranslator.DELIMITER);
+		builder.append(JsonSchemaConstants.ID_DELIMITER);
 		builder.append(schemaName);
-		builder.append(SchemaTranslator.DELIMITER);
+		builder.append(JsonSchemaConstants.ID_DELIMITER);
 		builder.append("1.0.");
 		builder.append(optionalPatchNumber.get());
-		try {
-			JsonSchema clone = EntityFactory.createEntityFromJSONString(normalizedJsonSchema.getNormalizedSchemaJson(), JsonSchema.class);
-			clone.set$id(builder.toString());
-			CreateSchemaRequest request = new CreateSchemaRequest();
-			request.setSchema(clone);
-			jsonSchemaManager.createJsonSchema(admin, request);
-		} catch (JSONObjectAdapterException e) {
-			throw new IllegalStateException(e);
-		}
-
+		CreateSchemaRequest request = new CreateSchemaRequest();
+		schema.set$id(builder.toString());
+		request.setSchema(schema);
+		jsonSchemaManager.createJsonSchema(admin, request);
 	}
 
 	/**
@@ -135,10 +127,13 @@ public class SynapseSchemaBootstrapImpl implements SynapseSchemaBootstrap {
 	 * @param jsonSHA256Hex
 	 * @return
 	 */
-	Optional<Long> getNextPatchNumberIfNeeded(String organizationName, String schemaName, String jsonSHA256Hex) {
+	Optional<Long> getNextPatchNumberIfNeeded(String organizationName, String schemaName, JsonSchema testSchema) {
 		try {
 			JsonSchemaVersionInfo currentVersion = jsonSchemaManager.getLatestVersion(organizationName, schemaName);
-			if (currentVersion.getJsonSHA256Hex().equals(jsonSHA256Hex)) {
+			// would the two schemas match if they had the same id?
+			testSchema.set$id(currentVersion.get$id());
+			NormalizedJsonSchema normalizedJsonSchema = new NormalizedJsonSchema(testSchema);
+			if (currentVersion.getJsonSHA256Hex().equals(normalizedJsonSchema.getSha256Hex())) {
 				// this schema has already been registered. Empty patch number to signal no new
 				// version needed.
 				return Optional.empty();

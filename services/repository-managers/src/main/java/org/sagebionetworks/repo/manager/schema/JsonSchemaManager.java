@@ -131,5 +131,14 @@ public interface JsonSchemaManager {
 	 */
 	ListJsonSchemaVersionInfoResponse listSchemaVersions(ListJsonSchemaVersionInfoRequest request);
 
+	/**
+	 * A validation schema is a self-contained representation of a schema.
+	 * Specifically, each external '$ref' in the schema is loaded into the local
+	 * '$defs' map. Each '$ref' is then changed to reference the local '$defs' map.
+	 * @param id
+	 * @return
+	 */
+	JsonSchema getValidationSchema(String id);
+
 
 }

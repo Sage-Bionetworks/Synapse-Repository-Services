@@ -305,10 +305,14 @@ public class SchemaTranslatorImplTest {
 		// Call under test
 		JsonSchema resultSchema = translator.translate(objectSchema);
 		assertNotNull(resultSchema);
+		assertNotNull(resultSchema.get$schema());
 		assertEquals("org.sagebionetworks/repo.model.FileEntity", resultSchema.get$id());
 		assertNotNull(resultSchema.getAllOf());
 		assertEquals(1, resultSchema.getAllOf().size());
-		assertEquals("org.sagebionetworks/repo.model.Versionable", resultSchema.getAllOf().get(0).get$ref());
+		JsonSchema allOfItem = resultSchema.getAllOf().get(0);
+		assertEquals("org.sagebionetworks/repo.model.Versionable", allOfItem.get$ref());
+		// only the root should have a $schema
+		assertNull(allOfItem.get$schema());
 	}
 	
 	@Test
@@ -322,14 +326,18 @@ public class SchemaTranslatorImplTest {
 		// Call under test
 		JsonSchema result = translator.translate(inputSchema);
 		assertNotNull(result);
+		assertNotNull(result.get$schema());
 		assertNotNull(result.getProperties());
 		assertEquals(2, result.getProperties().size());
 		JsonSchema propA = result.getProperties().get("a");
+		// only the root should have a $schema
+		assertNull(propA.get$schema());
 		assertNotNull(propA);
 		assertEquals(Type.string, propA.getType());
 		JsonSchema propB = result.getProperties().get("b");
 		assertNotNull(propB);
 		assertEquals(Type.number, propB.getType());
+		assertNull(propB.get$schema());
 	}
 	
 	@Test
@@ -358,11 +366,14 @@ public class SchemaTranslatorImplTest {
 		arrayOfStrings.setItems(new ObjectSchemaImpl(TYPE.STRING));
 		// call under test
 		JsonSchema result = translator.translate(arrayOfStrings);
+		assertNotNull(result.get$schema());
 		assertNotNull(result);
 		assertEquals(Type.array, result.getType());
 		JsonSchema items = result.getItems();
 		assertNotNull(items);
 		assertEquals(Type.string, items.getType());
+		// only the root should have a $schema
+		assertNull(items.get$schema());
 	}
 	
 	@Test

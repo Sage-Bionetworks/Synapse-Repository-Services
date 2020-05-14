@@ -203,7 +203,7 @@ public class SynapseSchemaBootstrapImplTest {
 		when(mockJsonSchemaManager.getLatestVersion(any(), any())).thenThrow(new NotFoundException("does not exist"));
 		// call under test
 		Optional<Long> patchNumberOptional = bootstrap.getNextPatchNumberIfNeeded(organizationName, schemaName,
-				jsonSHA256Hex);
+				jsonSchema);
 		assertTrue(patchNumberOptional.isPresent());
 		assertEquals(new Long(0), patchNumberOptional.get());
 		verify(mockJsonSchemaManager).getLatestVersion(organizationName, schemaName);
@@ -213,10 +213,11 @@ public class SynapseSchemaBootstrapImplTest {
 	public void testGetNextPatchNumberIfNeededWithVersionExistsAndHashMatches() {
 		versionInfo.setJsonSHA256Hex(jsonSHA256Hex);
 		versionInfo.setSemanticVersion("1.0.25");
+		versionInfo.set$id(jsonSchema.get$id());
 		when(mockJsonSchemaManager.getLatestVersion(any(), any())).thenReturn(versionInfo);
 		// call under test
 		Optional<Long> patchNumberOptional = bootstrap.getNextPatchNumberIfNeeded(organizationName, schemaName,
-				jsonSHA256Hex);
+				jsonSchema);
 		assertFalse(patchNumberOptional.isPresent());
 		verify(mockJsonSchemaManager).getLatestVersion(organizationName, schemaName);
 	}
@@ -225,10 +226,11 @@ public class SynapseSchemaBootstrapImplTest {
 	public void testGetNextPatchNumberIfNeededWithVersionExistsAndHashDoesNotMatch() {
 		versionInfo.setJsonSHA256Hex("wrongHash");
 		versionInfo.setSemanticVersion("1.0.25");
+		versionInfo.set$id(jsonSchema.get$id());
 		when(mockJsonSchemaManager.getLatestVersion(any(), any())).thenReturn(versionInfo);
 		// call under test
 		Optional<Long> patchNumberOptional = bootstrap.getNextPatchNumberIfNeeded(organizationName, schemaName,
-				jsonSHA256Hex);
+				jsonSchema);
 		assertTrue(patchNumberOptional.isPresent());
 		// patch number should be bumped by one.
 		assertEquals(new Long(26), patchNumberOptional.get());
@@ -240,7 +242,7 @@ public class SynapseSchemaBootstrapImplTest {
 		doReturn(Optional.empty()).when(bootstrapSpy).getNextPatchNumberIfNeeded(any(), any(), any());
 		// Call under test
 		bootstrapSpy.registerSchemaIfDoesNotExist(admin, jsonSchema);
-		verify(bootstrapSpy).getNextPatchNumberIfNeeded(organizationName, schemaName, jsonSHA256Hex);
+		verify(bootstrapSpy).getNextPatchNumberIfNeeded(organizationName, schemaName, jsonSchema);
 		// empty optional signals there is no work to do.
 		verifyZeroInteractions(mockJsonSchemaManager);
 	}
@@ -251,7 +253,7 @@ public class SynapseSchemaBootstrapImplTest {
 		doReturn(Optional.of(101L)).when(bootstrapSpy).getNextPatchNumberIfNeeded(any(), any(), any());
 		// Call under test
 		bootstrapSpy.registerSchemaIfDoesNotExist(admin, jsonSchema);
-		verify(bootstrapSpy).getNextPatchNumberIfNeeded(organizationName, schemaName, jsonSHA256Hex);
+		verify(bootstrapSpy).getNextPatchNumberIfNeeded(organizationName, schemaName, jsonSchema);
 		
 		CreateSchemaRequest expected = new CreateSchemaRequest();
 		jsonSchema.set$id("org.sagebionetworks/repo.model.Test.json/1.0.101");
