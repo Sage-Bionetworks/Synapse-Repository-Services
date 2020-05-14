@@ -67,6 +67,8 @@ public class DBOAccessApprovalDAOImplTest {
 	private List<ACCESS_TYPE> downloadAccessType=null;
 	private List<ACCESS_TYPE> updateAccessType=null;
 	
+	private static final Long USER_ID = 8888L;
+
 	@Before
 	public void setUp() throws Exception {
 
@@ -160,14 +162,16 @@ public class DBOAccessApprovalDAOImplTest {
 	@Test
 	public void testCRUD() throws Exception {
 		// first of all, we should see the unmet requirement
-		List<Long> unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY, 
+		List<Long> unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(
+				Collections.singletonList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY, 
 				Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), downloadAccessType);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement.getId(), unmetARIds.iterator().next());
 		// while we're at it, check the edge cases:
 		// same result for ficticious principal ID
-		unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY, 
-				Arrays.asList(new Long[]{8888L}), downloadAccessType);
+		unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(
+				Collections.singletonList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY, 
+				Arrays.asList(new Long[]{USER_ID}), downloadAccessType);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement.getId(), unmetARIds.iterator().next());
 		Set<String> arSet = new HashSet<String>();
@@ -224,7 +228,7 @@ public class DBOAccessApprovalDAOImplTest {
 		
 		// ... but for a different (ficticious) user, the requirement isn't met...
 		unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY, 
-				Arrays.asList(new Long[]{8888L}), downloadAccessType);
+				Arrays.asList(new Long[]{USER_ID}), downloadAccessType);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement.getId(), unmetARIds.iterator().next());
 		// ... and it's still unmet for the second node
@@ -260,6 +264,20 @@ public class DBOAccessApprovalDAOImplTest {
 				accessRequirement.getId().toString(), individualGroup.getId().toString());
 		assertEquals(1, ars.size());
 		assertEquals(accessApproval2, ars.get(0));
+		
+		// revoke it
+		accessApprovalDAO.revokeBySubmitter(accessRequirement.getId().toString(), USER_ID.toString(), 
+				Collections.singletonList(USER_ID.toString()), USER_ID.toString());
+		
+		// now the "unmet" list includes it again
+		assertEquals(
+			Collections.singletonList(accessRequirement.getId()),
+			accessRequirementDAO.getAllUnmetAccessRequirements(
+				Collections.singletonList(KeyFactory.stringToKey(node.getId())), 
+				RestrictableObjectType.ENTITY, 
+				Collections.singletonList(USER_ID), 
+				downloadAccessType)
+		);
 
 		// Delete it
 		accessApprovalDAO.delete(id);
@@ -292,6 +310,15 @@ public class DBOAccessApprovalDAOImplTest {
 	public void testRevokeAccessApprovalsWithExistingAccessApproval() {
 		accessApproval = newAccessApproval(individualGroup, accessRequirement);
 		accessApproval = accessApprovalDAO.create(accessApproval);
+
+		// check that there are no unmet access requirements
+		assertTrue(accessRequirementDAO.getAllUnmetAccessRequirements(
+			Collections.singletonList(KeyFactory.stringToKey(node.getId())), 
+			RestrictableObjectType.ENTITY, 
+			Collections.singletonList(Long.parseLong(individualGroup.getId())), 
+			downloadAccessType).isEmpty()
+		);
+
 		accessApprovalDAO.revokeAll(accessRequirement.getId().toString(), individualGroup.getId(), individualGroup2.getId());
 		AccessApproval approval = accessApprovalDAO.get(accessApproval.getId().toString());
 		assertNotNull(approval);
@@ -303,6 +330,17 @@ public class DBOAccessApprovalDAOImplTest {
 		assertTrue(accessApprovalDAO.hasApprovalsSubmittedBy(
 				Sets.newHashSet(individualGroup.getId().toString()),
 				individualGroup.getId(), accessRequirement.getId().toString()));
+		
+		// now there is one unmet access requirement (the one that was revoked)
+		assertEquals(
+			Collections.singletonList(accessApproval.getRequirementId()), 
+			accessRequirementDAO.getAllUnmetAccessRequirements(
+				Collections.singletonList(KeyFactory.stringToKey(node.getId())), 
+				RestrictableObjectType.ENTITY, 
+				Collections.singletonList(Long.parseLong(individualGroup.getId())), 
+				downloadAccessType
+			)
+		);		
 	}
 
 	@Test
@@ -338,6 +376,14 @@ public class DBOAccessApprovalDAOImplTest {
 				accessApproval2.getAccessorId());
 		accessApproval2.setEtag(updated2.getEtag());
 		assertEquals(accessApproval2, updated2);
+		
+		// check that there are no unmet access requirements
+		assertTrue(accessRequirementDAO.getAllUnmetAccessRequirements(
+			Collections.singletonList(KeyFactory.stringToKey(node.getId())), 
+			RestrictableObjectType.ENTITY, 
+			Collections.singletonList(Long.parseLong(individualGroup.getId())), 
+			downloadAccessType).isEmpty()
+		);
 
 		// revoke
 		accessApproval.setState(ApprovalState.REVOKED);
@@ -352,6 +398,17 @@ public class DBOAccessApprovalDAOImplTest {
 				accessApproval.getSubmitterId(),
 				accessApproval.getAccessorId());
 		assertEquals(ApprovalState.REVOKED, updated.getState());
+		
+		// now there is one unmet access requirement (the one that was revoked)
+		assertEquals(
+			Collections.singletonList(accessApproval.getRequirementId()), 
+			accessRequirementDAO.getAllUnmetAccessRequirements(
+				Collections.singletonList(KeyFactory.stringToKey(node.getId())), 
+				RestrictableObjectType.ENTITY, 
+				Collections.singletonList(Long.parseLong(individualGroup.getId())), 
+				downloadAccessType
+			)
+		);
 
 		// renew
 		Date newExpirationDate = new Date();
@@ -396,6 +453,14 @@ public class DBOAccessApprovalDAOImplTest {
 		assertTrue(group.getAccessorIds().contains(individualGroup2.getId()));
 		assertEquals(new Date(DBOAccessApprovalDAOImpl.DEFAULT_NOT_EXPIRED), group.getExpiredOn());
 
+		// check that there are no unmet access requirements
+		assertTrue(accessRequirementDAO.getAllUnmetAccessRequirements(
+			Collections.singletonList(KeyFactory.stringToKey(node.getId())), 
+			RestrictableObjectType.ENTITY, 
+			Collections.singletonList(Long.parseLong(individualGroup.getId())), 
+			downloadAccessType).isEmpty()
+		);
+
 		// revoke the group
 		accessApprovalDAO.revokeGroup(accessRequirement.getId().toString(), individualGroup.getId(), individualGroup2.getId());
 		result = accessApprovalDAO.listAccessorGroup(accessRequirement.getId().toString(),
@@ -415,6 +480,17 @@ public class DBOAccessApprovalDAOImplTest {
 		assertNotNull(approval2);
 		assertEquals(ApprovalState.REVOKED, approval2.getState());
 		assertEquals(individualGroup2.getId(), approval2.getModifiedBy());
+		
+		// now there is one unmet access requirement (the one that was revoked)
+		assertEquals(
+			Collections.singletonList(accessApproval.getRequirementId()), 
+			accessRequirementDAO.getAllUnmetAccessRequirements(
+				Collections.singletonList(KeyFactory.stringToKey(node.getId())), 
+				RestrictableObjectType.ENTITY, 
+				Collections.singletonList(Long.parseLong(individualGroup.getId())), 
+				downloadAccessType
+			)
+		);
 	}
 
 	@Test
