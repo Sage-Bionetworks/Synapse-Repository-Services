@@ -1,6 +1,12 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -17,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.google.common.collect.Lists;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,8 +32,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.LikeQueryFilter;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -57,8 +65,6 @@ import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
-
-import com.google.common.collect.Lists;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 @ExtendWith(MockitoExtension.class)
@@ -1823,9 +1829,10 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testTranslateQueryFilters_singleColumns() {
-		LikeQueryFilter filter = new LikeQueryFilter();
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
 		filter.setColumnName("myCol");
-		filter.setLikeValues(Arrays.asList("foo%", "%bar","%baz%"));
+		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		filter.setValues(Arrays.asList("foo%", "%bar","%baz%"));
 
 		// method under test
 		String searchCondition = SQLTranslatorUtils.translateQueryFilters(Arrays.asList(filter));
@@ -1834,13 +1841,15 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testTranslateQueryFilters_multipleColumns(){
-		LikeQueryFilter filter = new LikeQueryFilter();
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
 		filter.setColumnName("myCol");
-		filter.setLikeValues(Arrays.asList("foo%", "%bar","%baz%"));
+		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		filter.setValues(Arrays.asList("foo%", "%bar","%baz%"));
 
-		LikeQueryFilter filter2 = new LikeQueryFilter();
+		ColumnSingleValueQueryFilter filter2 = new ColumnSingleValueQueryFilter();
 		filter2.setColumnName("otherCol");
-		filter2.setLikeValues(Arrays.asList("%asdf"));
+		filter2.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		filter2.setValues(Arrays.asList("%asdf"));
 
 		// method under test
 		String searchCondition = SQLTranslatorUtils.translateQueryFilters(Arrays.asList(filter, filter2));
@@ -1849,9 +1858,10 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testTranslateQueryFilters_LikeFilter_singleValues(){
-		LikeQueryFilter filter = new LikeQueryFilter();
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
 		filter.setColumnName("myCol");
-		filter.setLikeValues(Arrays.asList("foo%"));
+		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		filter.setValues(Arrays.asList("foo%"));
 
 		StringBuilder builder = new StringBuilder();
 		// method under test
@@ -1861,9 +1871,10 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testTranslateQueryFilters_LikeFilter_multipleValues(){
-		LikeQueryFilter filter = new LikeQueryFilter();
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
 		filter.setColumnName("myCol");
-		filter.setLikeValues(Arrays.asList("foo%", "%bar","%baz%"));
+		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		filter.setValues(Arrays.asList("foo%", "%bar","%baz%"));
 
 		StringBuilder builder = new StringBuilder();
 		// method under test
@@ -1873,8 +1884,9 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testTranslateQueryFilters_LikeFilter_nullEmptyColName(){
-		LikeQueryFilter filter = new LikeQueryFilter();
-		filter.setLikeValues(Arrays.asList("foo%", "%bar","%baz%"));
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
+		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		filter.setValues(Arrays.asList("foo%", "%bar","%baz%"));
 		StringBuilder builder = new StringBuilder();
 
 		filter.setColumnName(null);
@@ -1892,17 +1904,17 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testTranslateQueryFilters_LikeFilter_nullEmptyValues(){
-		LikeQueryFilter filter = new LikeQueryFilter();
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
 		filter.setColumnName("myCol");
 		StringBuilder builder = new StringBuilder();
-
-		filter.setLikeValues(null);
+		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		filter.setValues(null);
 		assertThrows(IllegalArgumentException.class, ()->
 				// method under test
 				SQLTranslatorUtils.translateQueryFilters(builder, filter)
 		);
 
-		filter.setLikeValues(Collections.emptyList());
+		filter.setValues(Collections.emptyList());
 		assertThrows(IllegalArgumentException.class, ()->
 				// method under test
 				SQLTranslatorUtils.translateQueryFilters(builder, filter)

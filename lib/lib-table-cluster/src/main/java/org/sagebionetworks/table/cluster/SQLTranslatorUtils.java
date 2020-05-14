@@ -16,7 +16,7 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.LikeQueryFilter;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -759,21 +759,32 @@ public class SQLTranslatorUtils {
 	}
 
 	static void translateQueryFilters(StringBuilder builder, QueryFilter filter){
-		if(filter instanceof LikeQueryFilter){
-			appendLikeFilter(builder, (LikeQueryFilter) filter);
+		if(filter instanceof ColumnSingleValueQueryFilter){
+			translateSingleValueFilters(builder, (ColumnSingleValueQueryFilter) filter);
 		}else{
 			throw new IllegalArgumentException("Unknown QueryFilter type");
 		}
 	}
 
-	static void appendLikeFilter(StringBuilder builder, LikeQueryFilter filter){
-		ValidateArgument.requiredNotEmpty(filter.getColumnName(), "likeQueryFilter.columnName");
-		ValidateArgument.requiredNotEmpty(filter.getLikeValues(), "likeQueryFilter.likeValues");
+	static void translateSingleValueFilters(StringBuilder builder, ColumnSingleValueQueryFilter filter){
+		ValidateArgument.required(filter.getOperator(), "ColumnSingleValueQueryFilter.operator");
+		switch (filter.getOperator()){
+			case LIKE:
+				appendLikeFilter(builder, filter);
+				break;
+			default:
+				throw new IllegalArgumentException("Unexpected operator: " + filter.getOperator());
+		}
+	}
+
+	static void appendLikeFilter(StringBuilder builder, ColumnSingleValueQueryFilter filter){
+		ValidateArgument.requiredNotEmpty(filter.getColumnName(), "ColumnSingleValueQueryFilter.columnName");
+		ValidateArgument.requiredNotEmpty(filter.getValues(), "ColumnSingleValueQueryFilter.likeValues");
 
 		builder.append("(");
 		boolean firstVal = true;
 		String columnName = filter.getColumnName();
-		for (String likeValue: filter.getLikeValues()){
+		for (String likeValue: filter.getValues()){
 			if(!firstVal){
 				builder.append(" OR ");
 			}

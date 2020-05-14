@@ -12,21 +12,21 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.LikeQueryFilter;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 public class SQLQueryTest {
 
@@ -831,9 +831,10 @@ public class SQLQueryTest {
 	public void testAdditionalFilter_noExistingWHEREClause() throws ParseException {
 		sql = "select \"foo\" from syn123";
 
-		LikeQueryFilter filter = new LikeQueryFilter();
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
 		filter.setColumnName("foo");
-		filter.setLikeValues(Arrays.asList("myVal%"));
+		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		filter.setValues(Arrays.asList("myVal%"));
 
 		SqlQuery query = new SqlQueryBuilder(sql)
 				.tableSchema(tableSchema)
@@ -847,9 +848,10 @@ public class SQLQueryTest {
 	public void testAdditionalFilter_hasExistingWHEREClause() throws ParseException {
 		sql = "select \"foo\" from syn123 WHERE \"bar\" = 5";
 
-		LikeQueryFilter filter = new LikeQueryFilter();
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
 		filter.setColumnName("foo");
-		filter.setLikeValues(Arrays.asList("myVal%"));
+		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		filter.setValues(Arrays.asList("myVal%"));
 
 		SqlQuery query = new SqlQueryBuilder(sql)
 				.tableSchema(tableSchema)
