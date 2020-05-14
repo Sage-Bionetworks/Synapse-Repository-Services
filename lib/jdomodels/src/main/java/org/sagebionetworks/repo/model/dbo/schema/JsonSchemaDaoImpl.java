@@ -35,10 +35,12 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
+import java.util.StringJoiner;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.model.schema.JsonSchemaInfo;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.NormalizedJsonSchema;
@@ -78,6 +80,13 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		info.setCreatedBy(rs.getString(COL_JSON_SCHEMA_VER_CREATED_BY));
 		info.setCreatedOn(rs.getTimestamp(COL_JSON_SCHEMA_VER_CREATED_ON));
 		info.setJsonSHA256Hex(rs.getString(COL_JSON_SCHEMA_BLOB_SHA256));
+		StringJoiner joiner = new StringJoiner(JsonSchemaConstants.ID_DELIMITER);
+		joiner.add(info.getOrganizationName());
+		joiner.add(info.getSchemaName());
+		if(info.getSemanticVersion() != null) {
+			joiner.add(info.getSemanticVersion());
+		}
+		info.set$id(joiner.toString());
 		return info;
 	};
 

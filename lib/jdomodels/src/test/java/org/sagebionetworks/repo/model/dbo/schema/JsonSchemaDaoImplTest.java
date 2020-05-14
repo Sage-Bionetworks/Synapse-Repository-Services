@@ -302,6 +302,22 @@ public class JsonSchemaDaoImplTest {
 		assertEquals("foo.bar", getInfo.getSchemaName());
 		assertNotNull(getInfo.getVersionId());
 		assertEquals("1.0.1", getInfo.getSemanticVersion());
+		assertEquals("my.org.edu/foo.bar/1.0.1", getInfo.get$id());
+		assertEquals(info, getInfo);
+	}
+	
+	@Test
+	public void testGetVersionInfoWithNullSemanticVersion() throws JSONObjectAdapterException {
+		JsonSchemaVersionInfo info = createNewSchemaVersion("my.org.edu/foo.bar", 1);
+		// call under test
+		JsonSchemaVersionInfo getInfo = jsonSchemaDao.getVersionInfo(info.getVersionId());
+		assertNotNull(getInfo.getOrganizationId());
+		assertEquals("my.org.edu", getInfo.getOrganizationName());
+		assertNotNull(getInfo.getSchemaId());
+		assertEquals("foo.bar", getInfo.getSchemaName());
+		assertNotNull(getInfo.getVersionId());
+		assertEquals(null, getInfo.getSemanticVersion());
+		assertEquals("my.org.edu/foo.bar", getInfo.get$id());
 		assertEquals(info, getInfo);
 	}
 

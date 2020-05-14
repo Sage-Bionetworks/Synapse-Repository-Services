@@ -8,7 +8,9 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -365,6 +367,60 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		response.setPage(page);
 		response.setNextPageToken(nextPageToken.getNextPageTokenForCurrentResults(page));
 		return response;
+	}
+	
+	/**
+
+	 * 
+	 * @param id
+	 * @return
+	 */
+	@Override
+	public JsonSchema getValidationSchema(String id) {
+		Map<String, JsonSchema> $defs = new HashMap<String, JsonSchema>();
+		// get the base schema
+		JsonSchema baseSchema = getSchema(id);
+		for (JsonSchema subSchema : SubSchemaIterable.depthFirstIterable(baseSchema)) {
+			if (subSchema.get$ref() != null) {
+				String local$defsId = createLocal$defsId(subSchema.get$ref());
+				if (!$defs.containsKey(local$defsId)) {
+					// Load the sub-schema's validation schema
+					JsonSchema validationSubSchema = getValidationSchema(subSchema.get$ref());
+					// Merge the $defs from the new schema with the current
+					if (validationSubSchema.get$defs() != null) {
+						$defs.putAll(validationSubSchema.get$defs());
+					}
+					validationSubSchema.set$defs(null);
+					$defs.put(local$defsId, validationSubSchema);
+				}
+				// replace the $ref to the local $def
+				subSchema.set$ref(local$defsId);
+			}
+		}
+		baseSchema.set$defs($defs);
+		return baseSchema;
+	}
+
+	/**
+	 * Create a $ref to the a local $refs map given an original $id
+	 * 
+	 * @param $id
+	 * @return
+	 */
+	public static String createLocal$defsId(String $id) {
+		return "#/$defs/" + $id;
+	}
+
+	/**
+	 * Get a JsonSchema given its $id;
+	 * 
+	 * @param $id
+	 * @return
+	 */
+	public JsonSchema getSchema(String $id) {
+		ValidateArgument.required($id, "id");
+		String versionId = getSchemaVersionId($id);
+		return jsonSchemaDao.getSchema(versionId);
 	}
 
 }

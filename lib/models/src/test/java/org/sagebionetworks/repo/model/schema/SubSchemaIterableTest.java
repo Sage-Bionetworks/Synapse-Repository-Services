@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.schema;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -37,6 +38,19 @@ public class SubSchemaIterableTest {
 			subSchemaIds.add(sub.get$id());
 		}
 		List<String> expected = Lists.newArrayList("child", "parent");
+		assertEquals(expected, subSchemaIds);
+	}
+	
+	@Test
+	public void testIteratorWithListsOfStrings() {
+		JsonSchema schema = new JsonSchema();
+		schema.set_enum(Lists.newArrayList("one","two"));
+		List<String> subSchemaIds = new LinkedList<String>();
+		// call under test
+		for (JsonSchema sub : SubSchemaIterable.depthFirstIterable(schema)) {
+			subSchemaIds.add(sub.get$id());
+		}
+		List<String> expected = Collections.emptyList();
 		assertEquals(expected, subSchemaIds);
 	}
 

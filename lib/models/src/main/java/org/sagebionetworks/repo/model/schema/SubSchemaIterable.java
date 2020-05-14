@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.schema;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -49,22 +50,29 @@ public class SubSchemaIterable {
 				}
 				// is it a list of schemas?
 				if (List.class == field.getType()) {
-					List<JsonSchema> schemaList = (List<JsonSchema>) field.get(root);
-					if (schemaList != null) {
-						for (JsonSchema schema : schemaList) {
-							if (schema != null) {
-								list.add(schema);
+					ParameterizedType paramType = (ParameterizedType) field.getGenericType();
+					if (JsonSchema.class == paramType.getActualTypeArguments()[0]) {
+						List<JsonSchema> schemaList = (List<JsonSchema>) field.get(root);
+						if (schemaList != null) {
+							for (JsonSchema schema : schemaList) {
+								if (schema != null) {
+									list.add(schema);
+								}
 							}
 						}
 					}
 				}
 				// is it a map of schemas
 				if (Map.class == field.getType()) {
-					Map<String, JsonSchema> schemaMap = (Map<String, JsonSchema>) field.get(root);
-					if (schemaMap != null) {
-						for (Entry<String, JsonSchema> entry : schemaMap.entrySet()) {
-							if (entry.getValue() != null) {
-								list.add(entry.getValue());
+					ParameterizedType paramType = (ParameterizedType) field.getGenericType();
+					if (String.class == paramType.getActualTypeArguments()[0]
+							&& JsonSchema.class == paramType.getActualTypeArguments()[1]) {
+						Map<String, JsonSchema> schemaMap = (Map<String, JsonSchema>) field.get(root);
+						if (schemaMap != null) {
+							for (Entry<String, JsonSchema> entry : schemaMap.entrySet()) {
+								if (entry.getValue() != null) {
+									list.add(entry.getValue());
+								}
 							}
 						}
 					}
