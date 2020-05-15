@@ -58,6 +58,7 @@ import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
@@ -80,6 +81,8 @@ import com.google.common.collect.Sets;
 @ContextConfiguration(locations = { "classpath:table-cluster-spb.xml" })
 public class TableIndexDAOImplTest {
 
+	@Autowired
+	ObjectFieldModelResolverFactory objectFieldModelResolverFactory;
 	@Autowired
 	ConnectionFactory tableConnectionFactory;
 	@Autowired
@@ -2800,7 +2803,7 @@ public class TableIndexDAOImplTest {
 			}
 		}
 		// Add all of the default ObjectFields
-		schema.addAll(tableIndexDAO.getObjectFieldModelResolver(fieldTypeMapper).getAllColumnModels());
+		schema.addAll(objectFieldModelResolverFactory.getObjectFieldModelResolver(fieldTypeMapper).getAllColumnModels());
 		// assign each column an ID
 		for(int i=0; i<schema.size(); i++){
 			ColumnModel cm = schema.get(i);

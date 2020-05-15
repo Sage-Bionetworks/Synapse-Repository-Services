@@ -29,6 +29,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_TYPE_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAM_NAME;
+import static org.sagebionetworks.repo.model.table.TableConstants.SUBTYPE_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.P_LIMIT;
 import static org.sagebionetworks.repo.model.table.TableConstants.P_OFFSET;
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_NON_EXPIRED_IDS;
@@ -78,7 +79,7 @@ import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
-import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
@@ -86,6 +87,7 @@ import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.Callback;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.BadSqlGrammarException;
@@ -145,6 +147,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private TransactionTemplate readTransactionTemplate;
 	private JdbcTemplate template;
 	private NamedParameterJdbcTemplate namedTemplate;
+	private ObjectFieldModelResolverFactory objectFieldModelResolverFactory;
+	
+	
+	@Autowired
+	public TableIndexDAOImpl(ObjectFieldModelResolverFactory objectFieldModelResolverFactory) {
+		this.objectFieldModelResolverFactory = objectFieldModelResolverFactory;
+	}
 
 	@Override
 	public void setDataSource(DataSource dataSource) {
@@ -912,7 +921,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 		boolean filterByRows = objectIdFilter != null;
 		
-		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, objectIdFilter);
+		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, true, objectIdFilter);
 
 		//additional param
 		param.addValue(ANNOTATION_KEYS_PARAM_NAME, annotationNames);
@@ -986,7 +995,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		// Filter by rows only if provided.
 		boolean filterByRows = rowIdsToCopy != null;
 		
-		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, rowIdsToCopy);
+		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, true, rowIdsToCopy);
 		
 		List<ColumnMetadata> metadata = translateSchema(currentSchema, fieldTypeMapper);
 		
@@ -1008,7 +1017,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			throw new IllegalArgumentException("Scope has not been defined for this view.");
 		}
 		
-		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, null);
+		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, true, null);
 		
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = false;
@@ -1039,7 +1048,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return Collections.emptyList();
 		}
 		
-		ObjectFieldModelResolver fieldModelResolver = getObjectFieldModelResolver(fieldTypeMapper);
+		ObjectFieldModelResolver fieldModelResolver = objectFieldModelResolverFactory.getObjectFieldModelResolver(fieldTypeMapper);
 		
 		return schema.stream()
 			.map((ColumnModel columnModel) -> translateColumnModel(columnModel, fieldModelResolver))
@@ -1074,10 +1083,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		Set<Long> containerIds = scopeFilter.getContainerIds();
 		
 		if(containerIds.isEmpty()){
-			return new LinkedList<>();
+			return Collections.emptyList();
 		}
 		
-		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, null);
+		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, false, null);
 		
 		param.addValue(P_LIMIT, limit);
 		param.addValue(P_OFFSET, offset);
@@ -1302,7 +1311,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		
 		String sql = SQLUtils.getOutOfDateRowsForViewSql(viewId, scopeFilter);
 		
-		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, null);
+		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, true, null);
 		
 		param.addValue(P_LIMIT, limit);
 		
@@ -1330,8 +1339,23 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public ObjectFieldModelResolver getObjectFieldModelResolver(ObjectFieldTypeMapper fieldTypeMapper) {
-		return new ObjectFieldModelResolverImpl(fieldTypeMapper);
+	public void determineCauseOfReplicationFailure(Exception exception, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper) {
+		// Calculate the schema from the annotations
+		List<ColumnModel> schemaFromAnnotations = getPossibleColumnModelsForContainers(scopeFilter, Long.MAX_VALUE, 0L);
+		
+		ObjectFieldModelResolver objectFieldModelResolver = objectFieldModelResolverFactory.getObjectFieldModelResolver(fieldTypeMapper);
+		
+		List<ColumnModel> filteredSchema = currentSchema.stream()
+				// Filter all the default object field column models
+				.filter( model -> !objectFieldModelResolver.findMatch(model).isPresent())
+				.collect(Collectors.toList());
+		
+		for (ColumnModel annotationModel : schemaFromAnnotations) {
+			for (ColumnModel schemaModel : filteredSchema) {
+				SQLUtils.determineCauseOfException(exception, schemaModel, annotationModel);
+			}
+		}
+		
 	}
 	
 	@Override
@@ -1346,7 +1370,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		template.update(TRUNCATE_OBJECT_REPLICATION_TABLE);
 	}
 	
-	private MapSqlParameterSource getMapSqlParameterSourceForScopeFilter(ViewScopeFilter scopeFilter, Set<Long> rowIdsToCopy) {
+	private MapSqlParameterSource getMapSqlParameterSourceForScopeFilter(ViewScopeFilter scopeFilter, boolean filterBySubTypes, Set<Long> rowIdsToCopy) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		
 		param.addValue(OBJECT_TYPE_PARAM_NAME, scopeFilter.getObjectType().name());
@@ -1354,6 +1378,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		
 		if (rowIdsToCopy != null) {
 			param.addValue(ID_PARAM_NAME, rowIdsToCopy);
+		}
+		
+		if (filterBySubTypes) {
+			param.addValue(SUBTYPE_PARAM_NAME, scopeFilter.getSubTypes());
 		}
 		
 		return param;

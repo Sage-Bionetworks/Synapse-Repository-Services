@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SqlQuery;
@@ -681,8 +682,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		} catch (BadSqlGrammarException e) { // table has not been created yet
 			tableBenefactors = Collections.emptySet();
 		}
+		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(idAndVersion);
 		// Get the sub-set of benefactors visible to the user.
-		Set<Long> accessibleBenefactors = tableManagerSupport.getAccessibleBenefactors(user, tableBenefactors);
+		Set<Long> accessibleBenefactors = tableManagerSupport.getAccessibleBenefactors(user, scopeType, tableBenefactors);
 		return buildBenefactorFilter(query, accessibleBenefactors);
 	}
 

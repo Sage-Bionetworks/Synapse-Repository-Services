@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anySet;
@@ -15,7 +14,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -23,7 +21,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -40,6 +37,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
+import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
+import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
+import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LimitExceededException;
@@ -59,13 +60,11 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
-import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -103,13 +102,20 @@ public class TableManagerSupportTest {
 	ProgressCallback mockCallback;
 	@Mock
 	ViewSnapshotDao mockViewSnapshotDao;
+	@Mock
+	MetadataIndexProviderFactory mockMetadataIndexProviderFactory;
+	@Mock
+	MetadataIndexProvider mockMetadataIndexProvider;
+	@Mock
+	DefaultColumnModelMapper mockDefaultColumnModelMapper;
 	
 	@InjectMocks
 	TableManagerSupportImpl manager;
 	
-	String schemaMD5Hex;
+	@Mock
+	DefaultColumnModel mockDefaultModel;
 	
-
+	String schemaMD5Hex;
 	String tableId;
 	IdAndVersion idAndVersion;
 	Long tableIdLong;
@@ -507,57 +513,53 @@ public class TableManagerSupportTest {
 	
 	
 	@Test
-	public void testGetAllContainerIdsForViewScope() throws LimitExceededException{
-		when(mockNodeDao.getAllContainerIds(anyCollection(), anyInt())).thenReturn(containersInScope);
+	public void testGetAllContainerIdsForViewScope() throws LimitExceededException {
+		when(mockViewScopeDao.getViewScope(idAndVersion.getId())).thenReturn(scope);
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+		when(mockMetadataIndexProvider.getContainerIdsForScope(any(), any(), anyInt())).thenReturn(containersInScope);
 		// call under test.
 		Set<Long> containers = manager.getAllContainerIdsForViewScope(idAndVersion, scopeType);
 		assertEquals(containersInScope, containers);
+		verify(mockViewScopeDao).getViewScope(idAndVersion.getId());
+		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(scopeType.getObjectType());
+		verify(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test
-	public void testgetAllContainerIdsForScopeOverLimit(){
+	public void testGetAllContainerIdsForScopeOverLimit(){
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		Set<Long> overLimit = new HashSet<>();
 		int countOverLimit = TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW+1;
 		for(long i=0; i<countOverLimit; i++){
 			overLimit.add(i);
 		}
-		assertThrows(IllegalArgumentException.class, ()->{
+		String errMessage = "Some specific error message";
+		
+		when(mockMetadataIndexProvider.createViewOverLimitMessage(any(), anyInt())).thenReturn(errMessage);
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test.
 			manager.getAllContainerIdsForScope(overLimit, scopeType);
 		});
+		
+		assertEquals(errMessage, ex.getMessage());
+		
+		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(scopeType.getObjectType());
+		verify(mockMetadataIndexProvider).createViewOverLimitMessage(scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test
-	public void testgetAllContainerIdsForScopeFiewView() throws LimitExceededException{
-		when(mockNodeDao.getAllContainerIds(anyCollection(), anyInt())).thenReturn(containersInScope);
+	public void testGetAllContainerIdsForScopeFiewView() throws LimitExceededException{
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+		when(mockMetadataIndexProvider.getContainerIdsForScope(any(), any(), anyInt())).thenReturn(containersInScope);
+		
 		// call under test.
 		Set<Long> containers = manager.getAllContainerIdsForScope(scope, scopeType);
 		assertEquals(containersInScope, containers);
-		verify(mockNodeDao).getAllContainerIds(scope, TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
-	}
-	
-	@Test
-	public void testGetAllContainerIdsForScopeProject() throws LimitExceededException{
-		scopeType = new ViewScopeType(ViewObjectType.ENTITY, ViewTypeMask.Project.getMask());
-		// call under test.
-		Set<Long> containers = manager.getAllContainerIdsForScope(scope, scopeType);
-		assertEquals(scope, containers);
-		verify(mockNodeDao, never()).getAllContainerIds(anySet(), anyInt());
-	}
-	
-	/**
-	 * For this case the number of IDs in the scope is already over the limit.
-	 */
-	@Test
-	public void testGetAllContainerIdsForScopeOverLimit(){
-		Set<Long> tooMany = new HashSet<Long>();
-		for(long i=0; i<TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW+1; i++){
-			tooMany.add(i);
-		}
-		assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			manager.getAllContainerIdsForScope(tooMany, scopeType);
-		});
+		
+		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(scopeType.getObjectType());
+		verify(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
+		
 	}
 	
 	/**
@@ -567,20 +569,35 @@ public class TableManagerSupportTest {
 	 */
 	@Test
 	public void testGetAllContainerIdsForScopeExpandedOverLimit() throws LimitExceededException{
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+		
+		String errMessage = "Some specific error message";
+		
+		when(mockMetadataIndexProvider.createViewOverLimitMessage(any(), anyInt())).thenReturn(errMessage);
+		
 		// setup limit exceeded.
 		LimitExceededException exception = new LimitExceededException("too many");
-		doThrow(exception).when(mockNodeDao).getAllContainerIds(anyCollection(), anyInt());
-		assertThrows(IllegalArgumentException.class, ()->{
+
+		doThrow(exception).when(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			manager.getAllContainerIdsForScope(scope, scopeType);
 		});
+		
+		assertEquals(errMessage, ex.getMessage());
+		
+		verify(mockMetadataIndexProvider).createViewOverLimitMessage(scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test
 	public void testValidateScopeSize() throws LimitExceededException{
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+		
 		// call under test
 		manager.validateScopeSize(scope, scopeType);
-		verify(mockNodeDao).getAllContainerIds(scope, TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
+		
+		verify(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test
@@ -590,27 +607,6 @@ public class TableManagerSupportTest {
 		// call under test
 		manager.validateScopeSize(scope, scopeType);
 		verify(mockNodeDao, never()).getAllContainerIds(anySet(), anyInt());
-	}
-	
-	@Test
-	public void testcreateViewOverLimitMessageFileView(){
-		// call under test
-		String message = manager.createViewOverLimitMessage(ViewTypeMask.File.getMask());
-		assertEquals(TableManagerSupportImpl.SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW, message);
-	}
-	
-	@Test
-	public void testcreateViewOverLimitMessageFileAndTableView(){
-		// call under test
-		String message = manager.createViewOverLimitMessage(ViewTypeMask.getMaskForDepricatedType(ViewType.file_and_table));
-		assertEquals(TableManagerSupportImpl.SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW, message);
-	}
-	
-	@Test
-	public void testcreateViewOverLimitMessageProjectView(){
-		// call under test
-		String message = manager.createViewOverLimitMessage(ViewTypeMask.Project.getMask());
-		assertEquals(TableManagerSupportImpl.SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW, message);
 	}
 	
 	@Test
@@ -762,113 +758,52 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testGetColumModelNotCached(){
-		ColumnModel cm = new ColumnModel();
-		cm.setId("123");
-		when(mockColumnModelManager.createColumnModel(any(ColumnModel.class))).thenReturn(cm);
-		ColumnModel result = manager.getColumnModel(ObjectField.id);
-		assertEquals(cm, result);
-		result = manager.getColumnModel(ObjectField.id);
-		assertEquals(cm, result);
-		result = manager.getColumnModel(ObjectField.id);
-		assertEquals(cm, result);
-		// The column should not be cached.
-		verify(mockColumnModelManager, times(3)).createColumnModel(any(ColumnModel.class));
+	public void testGetDefaultTableViewColumnsNullScopeType(){
+		ViewScopeType scopeType = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.getDefaultTableViewColumns(scopeType);
+		});
 	}
-	
-	
-	@Test
-	public void testGetDefaultTableViewColumnsFileView() throws LimitExceededException{
-		setupCreateColumn();
-		List<ColumnModel> expected = new LinkedList<ColumnModel>();
-		for(ObjectField field: ObjectField.values()){
-			expected.add(field.getColumnModel());
-		}
-		// call under test
-		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewTypeMask.File.getMask());
-		assertEquals(expected, results);
-	}
-	
-	@Test
-	public void testGetDefaultTableViewColumnsFileAndTableView(){
-		setupCreateColumn();
-		List<ColumnModel> expected = new LinkedList<ColumnModel>();
-		for(ObjectField field: ObjectField.values()){
-			expected.add(field.getColumnModel());
-		}
-		// call under test
-		Long viewTypeMaks = ViewTypeMask.File.getMask() | ViewTypeMask.Table.getMask();
-		List<ColumnModel> results = manager.getDefaultTableViewColumns(viewTypeMaks);
-		assertEquals(expected, results);
-	}
-	
-	@Test
-	public void testGetDefaultTableViewColumnsProjectView(){
-		setupCreateColumn();
-		List<ColumnModel> expected = Lists.newArrayList(
-				ObjectField.id.getColumnModel(),
-				ObjectField.name.getColumnModel(),
-				ObjectField.createdOn.getColumnModel(),
-				ObjectField.createdBy.getColumnModel(),
-				ObjectField.etag.getColumnModel(),
-				ObjectField.modifiedOn.getColumnModel(),
-				ObjectField.modifiedBy.getColumnModel()
-				);
-		// call under test
-		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewTypeMask.Project.getMask());
-		assertEquals(expected, results);
-	}
-	
-	@Test
-	public void testGetDefaultTableViewColumnsMaskExcludesFiles(){
-		setupCreateColumn();
-		long typeMask = 0;
-		for(ViewTypeMask type: ViewTypeMask.values()) {
-			if(type != ViewTypeMask.File) {
-				typeMask |= type.getMask();
-			}
-		}
-		List<ColumnModel> expected = Lists.newArrayList(
-				ObjectField.id.getColumnModel(),
-				ObjectField.name.getColumnModel(),
-				ObjectField.createdOn.getColumnModel(),
-				ObjectField.createdBy.getColumnModel(),
-				ObjectField.etag.getColumnModel(),
-				ObjectField.modifiedOn.getColumnModel(),
-				ObjectField.modifiedBy.getColumnModel()
-				);
-		// call under test
-		List<ColumnModel> results = manager.getDefaultTableViewColumns(typeMask);
-		assertEquals(expected, results);
-	}
-	
-	@Test
-	public void testGetDefaultTableViewColumnsMaskIncludeFiles(){
-		setupCreateColumn();
-		long typeMask = 0;
-		for(ViewTypeMask type: ViewTypeMask.values()) {
-			typeMask |= type.getMask();
-		}
-		List<ColumnModel> expected = new LinkedList<ColumnModel>();
-		for(ObjectField field: ObjectField.values()){
-			expected.add(field.getColumnModel());
-		}
-		// call under test
-		List<ColumnModel> results = manager.getDefaultTableViewColumns(typeMask);
-		assertEquals(expected, results);
-	}
-
-
-
 	
 	@Test
 	public void testGetDefaultTableViewColumnsNullMask(){
-		Long typeMask = null;
+		scopeType = new ViewScopeType(ViewObjectType.ENTITY, null);
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.getDefaultTableViewColumns(typeMask);
+			manager.getDefaultTableViewColumns(scopeType);
 		});
 	}
+	
+	@Test
+	public void testGetDefaultTableViewColumnsNullObjectType(){
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+		when(mockMetadataIndexProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultModel);
+		
+		scopeType = new ViewScopeType(null, 1L);
+
+		// call under test
+		manager.getDefaultTableViewColumns(scopeType);
+
+		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(ViewObjectType.ENTITY);
+		verify(mockMetadataIndexProvider).getDefaultColumnModel(scopeType.getTypeMask());
+		verify(mockDefaultColumnModelMapper).map(mockDefaultModel);
+	}
+	
+	@Test
+	public void testGetDefaultTableViewColumns(){
+		
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+		when(mockMetadataIndexProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultModel);
+
+		// call under test
+		manager.getDefaultTableViewColumns(scopeType);
+		
+		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(scopeType.getObjectType());
+		verify(mockMetadataIndexProvider).getDefaultColumnModel(scopeType.getTypeMask());
+		verify(mockDefaultColumnModelMapper).map(mockDefaultModel);
+	}
+
 
 	@Test
 	public void testRebuildTableUnauthorized() throws Exception {

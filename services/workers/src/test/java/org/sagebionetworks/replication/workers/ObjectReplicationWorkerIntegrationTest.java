@@ -1,14 +1,15 @@
-package org.sagebionetworks.table.worker;
+package org.sagebionetworks.replication.workers;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -23,11 +24,11 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class EntityReplicationWorkerIntegrationTest {
+public class ObjectReplicationWorkerIntegrationTest {
 	
 	private static final int MAX_WAIT_MS = 30*1000;
 	
@@ -45,7 +46,7 @@ public class EntityReplicationWorkerIntegrationTest {
 	UserInfo adminUserInfo;
 	Project project;
 	
-	@Before
+	@BeforeEach
 	public void before(){
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
@@ -55,7 +56,7 @@ public class EntityReplicationWorkerIntegrationTest {
 		project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
 	}
 	
-	@After
+	@AfterEach
 	public void after(){
 		if(project != null){
 			entityManager.deleteEntity(adminUserInfo, project.getId());
@@ -81,7 +82,7 @@ public class EntityReplicationWorkerIntegrationTest {
 			}
 			System.out.println("Waiting for entity data to be replicated for id: "+entityId);
 			Thread.sleep(2000);
-			assertTrue("Timed-out waiting for entity data to be replicated.",System.currentTimeMillis()-startTimeMS < MAX_WAIT_MS);
+			assertTrue(System.currentTimeMillis()-startTimeMS < MAX_WAIT_MS, "Timed-out waiting for entity data to be replicated.");
 		}
 	}
 }

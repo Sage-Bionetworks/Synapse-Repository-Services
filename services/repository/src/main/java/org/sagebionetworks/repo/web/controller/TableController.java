@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
@@ -398,12 +399,13 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.COLUMN_TABLE_VIEW_DEFAULT_TYPE, method = RequestMethod.GET)
 	public @ResponseBody
 	ListWrapper<ColumnModel> getDefaultColumnsForViewType(
-			@PathVariable String viewtype)
+			@PathVariable String viewtype,
+			@RequestParam(value = "objectType", required = false, defaultValue = "ENTITY") ViewObjectType objectType)
 			throws DatastoreException, NotFoundException {
 		ViewType type = ViewType.valueOf(viewtype);
 		Long viewTypeMaks = ViewTypeMask.getMaskForDepricatedType(type);
 		List<ColumnModel> results = serviceProvider.getTableServices()
-				.getDefaultViewColumnsForType(viewTypeMaks);
+				.getDefaultViewColumnsForType(objectType, viewTypeMaks);
 		return ListWrapper.wrap(results, ColumnModel.class);
 	}
 	
@@ -426,10 +428,10 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.COLUMN_TABLE_VIEW_DEFAULT, method = RequestMethod.GET)
 	public @ResponseBody
 	ListWrapper<ColumnModel> getDefaultColumnsForViewType(
-			@RequestParam(value = "viewTypeMask") Long viewTypeMask)
+			@RequestParam(value = "viewTypeMask") Long viewTypeMask, 
+			@RequestParam(value = "objectType", required = false, defaultValue = "ENTITY") ViewObjectType objectType)
 			throws DatastoreException, NotFoundException {
-		List<ColumnModel> results = serviceProvider.getTableServices()
-				.getDefaultViewColumnsForType(viewTypeMask);
+		List<ColumnModel> results = serviceProvider.getTableServices().getDefaultViewColumnsForType(objectType, viewTypeMask);
 		return ListWrapper.wrap(results, ColumnModel.class);
 	}
 	

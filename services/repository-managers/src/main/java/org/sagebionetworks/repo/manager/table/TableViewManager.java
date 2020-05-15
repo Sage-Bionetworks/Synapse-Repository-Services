@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 
 /**
@@ -63,8 +64,7 @@ public interface TableViewManager {
 	 * @param tableSchema
 	 * @param row
 	 */
-	void updateEntityInView(UserInfo user,
-			List<ColumnModel> tableSchema, SparseRowDto row);
+	void updateRowInView(UserInfo user, List<ColumnModel> tableSchema, ViewObjectType objectType, SparseRowDto row);
 
 	/**
 	 * Create a snapshot of the given view.

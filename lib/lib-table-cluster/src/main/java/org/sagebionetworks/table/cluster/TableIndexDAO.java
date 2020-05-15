@@ -9,15 +9,14 @@ import javax.sql.DataSource;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.IdAndEtag;
-import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
-import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.util.Callback;
@@ -542,10 +541,13 @@ public interface TableIndexDAO {
 	void deleteRowsFromViewBatch(IdAndVersion viewId, Long...idsToDelete);
 	
 	/**
-	 * @param fieldTypeMapper
-	 * @return An instance of an {@link ObjectFieldModelResolver} that can be used to map default object fields
+	 * Attempt to determine the cause of a replication failure.
+	 * 
+	 * @param exception The exception thrown during replication.
+	 * @param currentSchema
+	 * @throws Exception 
 	 */
-	ObjectFieldModelResolver getObjectFieldModelResolver(ObjectFieldTypeMapper fieldTypeMapper);
+	void determineCauseOfReplicationFailure(Exception exception, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper);
 	
 	// For testing:
 	

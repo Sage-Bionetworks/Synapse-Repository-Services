@@ -451,18 +451,19 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 
 
 	@Override
-	public Set<Long> getAccessibleBenefactors(UserInfo userInfo, Set<Long> benefactors) {
+	public Set<Long> getAccessibleBenefactors(UserInfo userInfo, ObjectType objectType, Set<Long> benefactors) {
 		Set<Long> results = null;
 		if (userInfo.isAdmin()){
 			// admin same as input
 			results = Sets.newHashSet(benefactors);
 		}else{
 			// non-adim run a query
-			results = this.aclDAO.getAccessibleBenefactors(userInfo.getGroups(), benefactors,
-					ObjectType.ENTITY, ACCESS_TYPE.READ);
+			results = this.aclDAO.getAccessibleBenefactors(userInfo.getGroups(), benefactors, objectType, ACCESS_TYPE.READ);
 		}
-		// The trash folder should not be in the results
-		results.remove(TRASH_FOLDER_ID);
+		if (ObjectType.ENTITY.equals(objectType)) {
+			// The trash folder should not be in the results
+			results.remove(TRASH_FOLDER_ID);
+		}
 		return results;
 	}
 

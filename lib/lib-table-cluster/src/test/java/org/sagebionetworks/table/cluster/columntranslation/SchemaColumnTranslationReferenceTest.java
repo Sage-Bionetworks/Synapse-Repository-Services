@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 
-class SchemaColumnTranslationReferenceTest {
+public class SchemaColumnTranslationReferenceTest {
 
 	ColumnModel columnModel;
 

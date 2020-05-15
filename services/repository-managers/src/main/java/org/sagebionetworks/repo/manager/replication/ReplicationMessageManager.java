@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.entity;
+package org.sagebionetworks.repo.manager.replication;
 
 import java.util.List;
 
