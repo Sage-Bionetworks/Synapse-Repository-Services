@@ -46,6 +46,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import org.json.JSONArray;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -66,9 +68,6 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 /**
  * Utilities for generating Table SQL, DML, and DDL.
@@ -2006,4 +2005,20 @@ public class SQLUtils {
 		}
 		return OBJECT_REPLICATION_COL_PARENT_ID;
 	}
+	
+	public static String getViewScopeSubTypeFilter(ViewScopeFilter scopeFilter) {
+		List<String> subTypes = scopeFilter.getSubTypes();
+		
+		StringBuilder builder = new StringBuilder();
+		
+		builder.append(OBJECT_REPLICATION_ALIAS);
+		builder.append(".");
+		builder.append(TableConstants.OBJECT_REPLICATION_COL_SUBTYPE);
+		builder.append(" IN (");
+		builder.append(TableConstants.joinStringForSQL(subTypes.stream()));
+		builder.append(")");
+		
+		return builder.toString();
+	}
+
 }

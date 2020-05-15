@@ -21,6 +21,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,10 +53,6 @@ import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.util.EnumUtils;
 import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class SQLUtilsTest {
@@ -3008,4 +3007,6 @@ public class SQLUtilsTest {
 	private ViewScopeFilter getSQLScopeFilter(List<String> subTypes, boolean filterByObjectId) {
 		return new ViewScopeFilter(ViewObjectType.ENTITY, subTypes, filterByObjectId, Collections.emptySet());
 	}
+
+
 }

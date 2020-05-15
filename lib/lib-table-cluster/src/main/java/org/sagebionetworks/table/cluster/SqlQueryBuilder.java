@@ -5,6 +5,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
+import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -23,6 +24,7 @@ public class SqlQueryBuilder {
 	Boolean includeRowIdAndRowVersion;
 	EntityType tableType;
 	List<FacetColumnRequest> selectedFacets;
+	List<QueryFilter> additionalFilters;
 	
 	/**
 	 * Start with the SQL.
@@ -102,8 +104,14 @@ public class SqlQueryBuilder {
 		return this;
 	}
 
+	public SqlQueryBuilder additionalFilters(List<QueryFilter> filters){
+		this.additionalFilters = filters;
+		return this;
+	}
+
 	public SqlQuery build(){
-		return new SqlQuery(model, tableSchema, overrideOffset, overrideLimit, maxBytesPerPage, sortList, isConsistent, includeEntityEtag, includeRowIdAndRowVersion, tableType, selectedFacets);
+		return new SqlQuery(model, tableSchema, overrideOffset, overrideLimit, maxBytesPerPage, sortList, isConsistent,
+				includeEntityEtag, includeRowIdAndRowVersion, tableType, selectedFacets, additionalFilters);
 	}
 
 

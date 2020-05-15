@@ -1,6 +1,12 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -11,11 +17,13 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.google.common.collect.Lists;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,9 +32,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReferenceLookup;
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.query.ParseException;
@@ -49,12 +62,9 @@ import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RegularIdentifier;
 import org.sagebionetworks.table.query.model.SelectList;
-import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
-
-import com.google.common.collect.Lists;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 @ExtendWith(MockitoExtension.class)
@@ -1801,6 +1811,133 @@ public class SQLTranslatorUtilsTest {
 			String message = e.getMessage();
 			assertTrue(message.contains("invalid"));
 			assertTrue(message.contains("Unknown column"));
+		}
 	}
+
+	@Test
+	public void testTranslateQueryFilters_nullEmptyList() {
+		assertThrows(IllegalArgumentException.class, () ->
+				// method under test
+				SQLTranslatorUtils.translateQueryFilters(null)
+		);
+
+		assertThrows(IllegalArgumentException.class, () ->
+				// method under test
+				SQLTranslatorUtils.translateQueryFilters(Collections.emptyList())
+		);
+	}
+
+	@Test
+	public void testTranslateQueryFilters_singleColumns() {
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
+		filter.setColumnName("myCol");
+		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		filter.setValues(Arrays.asList("foo%", "%bar","%baz%"));
+
+		// method under test
+		String searchCondition = SQLTranslatorUtils.translateQueryFilters(Arrays.asList(filter));
+		assertEquals("(\"myCol\" LIKE 'foo%' OR \"myCol\" LIKE '%bar' OR \"myCol\" LIKE '%baz%')", searchCondition);
+	}
+
+	@Test
+	public void testTranslateQueryFilters_multipleColumns(){
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
+		filter.setColumnName("myCol");
+		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		filter.setValues(Arrays.asList("foo%", "%bar","%baz%"));
+
+		ColumnSingleValueQueryFilter filter2 = new ColumnSingleValueQueryFilter();
+		filter2.setColumnName("otherCol");
+		filter2.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		filter2.setValues(Arrays.asList("%asdf"));
+
+		// method under test
+		String searchCondition = SQLTranslatorUtils.translateQueryFilters(Arrays.asList(filter, filter2));
+		assertEquals("(\"myCol\" LIKE 'foo%' OR \"myCol\" LIKE '%bar' OR \"myCol\" LIKE '%baz%') AND (\"otherCol\" LIKE '%asdf')", searchCondition);
+	}
+
+	@Test
+	public void testTranslateQueryFilters_LikeFilter_singleValues(){
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
+		filter.setColumnName("myCol");
+		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		filter.setValues(Arrays.asList("foo%"));
+
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, filter);
+		assertEquals("(\"myCol\" LIKE 'foo%')", builder.toString());
+	}
+
+	@Test
+	public void testTranslateQueryFilters_LikeFilter_multipleValues(){
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
+		filter.setColumnName("myCol");
+		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		filter.setValues(Arrays.asList("foo%", "%bar","%baz%"));
+
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, filter);
+		assertEquals("(\"myCol\" LIKE 'foo%' OR \"myCol\" LIKE '%bar' OR \"myCol\" LIKE '%baz%')", builder.toString());
+	}
+
+	@Test
+	public void testTranslateQueryFilters_LikeFilter_nullEmptyColName(){
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
+		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		filter.setValues(Arrays.asList("foo%", "%bar","%baz%"));
+		StringBuilder builder = new StringBuilder();
+
+		filter.setColumnName(null);
+		assertThrows(IllegalArgumentException.class, ()->
+				// method under test
+				SQLTranslatorUtils.translateQueryFilters(builder, filter)
+		);
+
+		filter.setColumnName("");
+		assertThrows(IllegalArgumentException.class, ()->
+				// method under test
+				SQLTranslatorUtils.translateQueryFilters(builder, filter)
+		);
+	}
+
+	@Test
+	public void testTranslateQueryFilters_LikeFilter_nullEmptyValues(){
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
+		filter.setColumnName("myCol");
+		StringBuilder builder = new StringBuilder();
+		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		filter.setValues(null);
+		assertThrows(IllegalArgumentException.class, ()->
+				// method under test
+				SQLTranslatorUtils.translateQueryFilters(builder, filter)
+		);
+
+		filter.setValues(Collections.emptyList());
+		assertThrows(IllegalArgumentException.class, ()->
+				// method under test
+				SQLTranslatorUtils.translateQueryFilters(builder, filter)
+		);
+	}
+
+	@Test
+	public void testTranslateQueryFilters_UnknownImplementation(){
+		QueryFilter filter = new QueryFilter(){
+			@Override
+			public JSONObjectAdapter initializeFromJSONObject(JSONObjectAdapter jsonObjectAdapter) throws JSONObjectAdapterException {
+				return null;
+			}
+
+			@Override
+			public JSONObjectAdapter writeToJSONObject(JSONObjectAdapter jsonObjectAdapter) throws JSONObjectAdapterException {
+				return null;
+			}
+		};
+
+		assertThrows(IllegalArgumentException.class, ()->
+				// method under test
+				SQLTranslatorUtils.translateQueryFilters(new StringBuilder(), filter)
+		);
 	}
 }

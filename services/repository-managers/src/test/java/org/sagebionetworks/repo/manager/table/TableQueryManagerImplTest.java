@@ -35,6 +35,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -55,6 +57,8 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
@@ -94,9 +98,6 @@ import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.jdbc.BadSqlGrammarException;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class TableQueryManagerImplTest {
@@ -993,6 +994,28 @@ public class TableQueryManagerImplTest {
 		SqlQuery result = manager.queryPreflight(user, query, maxBytesPerPage);
 		assertNotNull(result);
 		assertEquals("SELECT i2, i0 FROM syn123 ORDER BY \"i0\" DESC", result.getModel().toSql());
+	}
+
+	@Test
+	public void testQueryPreflight_AdditionalQueryFilters() throws Exception {
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
+
+		Query query = new Query();
+		query.setSql("select i2, i0 from "+tableId);
+
+		ColumnSingleValueQueryFilter likeFilter = new ColumnSingleValueQueryFilter();
+		likeFilter.setColumnName("i0");
+		likeFilter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		likeFilter.setValues(Arrays.asList("foo%"));
+		query.setAdditionalFilters(Arrays.asList(likeFilter));
+
+		Long maxBytesPerPage = null;
+
+		// call under test
+		SqlQuery result = manager.queryPreflight(user, query, maxBytesPerPage);
+		assertNotNull(result);
+		assertEquals("SELECT i2, i0 FROM syn123 WHERE ( \"i0\" LIKE 'foo%' )", result.getModel().toSql());
 	}
 	
 	@Test

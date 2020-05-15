@@ -168,7 +168,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		return new SqlQueryBuilder(model).tableSchema(columnModels).overrideOffset(query.getOffset())
 				.overrideLimit(query.getLimit()).maxBytesPerPage(maxBytesPerPage).isConsistent(query.getIsConsistent())
 				.includeEntityEtag(query.getIncludeEntityEtag()).selectedFacets(query.getSelectedFacets())
-				.sortList(query.getSort()).tableType(tableType).build();
+				.sortList(query.getSort()).additionalFilters(query.getAdditionalFilters()).tableType(tableType).build();
 	}
 
 	/**
