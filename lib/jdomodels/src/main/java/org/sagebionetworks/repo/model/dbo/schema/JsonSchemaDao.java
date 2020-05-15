@@ -109,5 +109,4 @@ public interface JsonSchemaDao {
 	List<JsonSchemaVersionInfo> listSchemaVersions(String organizationName, String schemaName, long limit,
 			long offset);
 
-
 }

@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.table.SqlTransformRequest;
 import org.sagebionetworks.repo.model.table.SqlTransformResponse;
 import org.sagebionetworks.repo.model.table.TableBundle;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.query.ParseException;
@@ -135,7 +136,7 @@ public interface TableServices {
 	 * @param viewTypeMask 
 	 * @return
 	 */
-	public List<ColumnModel> getDefaultViewColumnsForType(Long viewTypeMask);
+	public List<ColumnModel> getDefaultViewColumnsForType(ViewObjectType objectType, Long viewTypeMask);
 
 	/**
 	 * Get the possible ColumnModel definitions based on annotations for a given view.

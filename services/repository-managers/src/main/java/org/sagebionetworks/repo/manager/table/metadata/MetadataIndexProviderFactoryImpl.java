@@ -15,9 +15,29 @@ import com.google.common.collect.ImmutableSet;
 public class MetadataIndexProviderFactoryImpl implements MetadataIndexProviderFactory {
 
 	private Map<ViewObjectType, MetadataIndexProvider> providersMap;
-
+	
+	// We use setter injection here since we have a circular dependency:
+	//
+	// NodeManager -> AuthorizationManager -> FileHandleAssociationManager -> 
+	// TableFileHandleAssociationProvider -> TableEntityManager -> NodeManager
+	//
+	// Note that other FileHandleAssociationProvider in the FileHandleAssociationManager
+	// have dependencies that circle back to the NodeManager.
+	// 
+	// Also note that this introduces other circular dependencies, for example:
+	//
+	// MetadataIndexProviderFactory -> EntityMetadataIndexProvider -> NodeManager -> 
+	// AuthorizationManager -> FileHandleAssociationManager ->  TableFileHandleAssociationProvider -> 
+	// TableEntityManager -> TableManagerSupport -> MetadataIndexProviderFactory
+	//
+	// This used to work since most of this components used field injection which often hide the circular dependencies, 
+	// components should in general use constructor injection which also help in discovering circular dependencies 
+	// (since spring will throw a BeanCurrentlyInCreationException during initialization).
+	// 
+	// Note that spring bean resolution is not deterministic so it might work locally and fail in the build
+	// environment, the setter injection below allows to bypass the above circular dependency.
 	@Autowired
-	public MetadataIndexProviderFactoryImpl(List<MetadataIndexProvider> fieldTypeProviders) {
+	public void setProvidersMap(List<MetadataIndexProvider> fieldTypeProviders) {
 		providersMap = fieldTypeProviders.stream()
 				.collect(Collectors.toMap(MetadataIndexProvider::getObjectType, provider -> provider));
 	}

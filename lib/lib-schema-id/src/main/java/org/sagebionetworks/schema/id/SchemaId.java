@@ -7,7 +7,7 @@ import org.sagebionetworks.schema.semantic.version.SemanticVersion;
 
 public final class SchemaId extends Element {
 
-	private static final String SLASH = "/";
+	public static final String DELIMITER = "/";
 	private final OrganizationName organizationName;
 	private final SchemaName schemaName;
 	private final SemanticVersion semanticVersion;
@@ -54,10 +54,10 @@ public final class SchemaId extends Element {
 	@Override
 	public void toString(StringBuilder builder) {
 		organizationName.toString(builder);
-		builder.append(SLASH);
+		builder.append(DELIMITER);
 		schemaName.toString(builder);
 		if (semanticVersion != null) {
-			builder.append(SLASH);
+			builder.append(DELIMITER);
 			semanticVersion.toString(builder);
 		}
 	}

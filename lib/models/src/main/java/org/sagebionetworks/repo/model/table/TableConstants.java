@@ -125,7 +125,7 @@ public class TableConstants {
 	
 	public static final String ANNOTATION_KEYS_PARAM_NAME = "annotationKeys";
 
-	public static final String TYPE_PARAM_NAME = "typeParam";
+	public static final String SUBTYPE_PARAM_NAME = "subTypes";
 	public static final String OBJECT_TYPE_PARAM_NAME = "objectType";
 	public static final String PARENT_ID_PARAM_NAME = "parentIds";
 	public static final String ID_PARAM_NAME = "ids";
@@ -314,7 +314,9 @@ public class TableConstants {
 			+ "		 R."+OBJECT_REPLICATION_COL_OBJECT_ID+" = V."+ROW_ID
 			+ "      AND R."+OBEJCT_REPLICATION_COL_ETAG+" = V."+ROW_ETAG
 			+ "      AND R."+OBJECT_REPLICATION_COL_BENEFACTOR_ID+" = V."+ROW_BENEFACTOR+")" 
-			+ "   WHERE R."+OBJECT_REPLICATION_COL_OBJECT_TYPE+" = :"+OBJECT_TYPE_PARAM_NAME+" AND R.%2$s IN (:"+PARENT_ID_PARAM_NAME+") AND %3$s" 
+			+ "   WHERE R."+OBJECT_REPLICATION_COL_OBJECT_TYPE+" = :"+OBJECT_TYPE_PARAM_NAME+""
+			+ "      AND R.%2$s IN (:"+PARENT_ID_PARAM_NAME+")"
+			+ "      AND R."+OBJECT_REPLICATION_COL_SUBTYPE+" IN (:"+SUBTYPE_PARAM_NAME+")" 
 			+ " UNION ALL"
 			+ " SELECT V."+ROW_ID+", R."+OBJECT_REPLICATION_COL_OBJECT_ID+" FROM "+OBJECT_REPLICATION_TABLE+" R "
 			+ "   RIGHT JOIN %1$s V ON ("
@@ -322,7 +324,8 @@ public class TableConstants {
 			+ "      AND R."+OBJECT_REPLICATION_COL_OBJECT_ID+" = V."+ROW_ID
 			+ "      AND R."+OBEJCT_REPLICATION_COL_ETAG+" = V."+ROW_ETAG
 			+ "      AND R."+OBJECT_REPLICATION_COL_BENEFACTOR_ID+" = V."+ROW_BENEFACTOR
-			+ "      AND R.%2$s IN (:" +PARENT_ID_PARAM_NAME+ ") AND %3$s)"
+			+ "      AND R.%2$s IN (:" +PARENT_ID_PARAM_NAME+ ")"
+			+ "      AND R."+OBJECT_REPLICATION_COL_SUBTYPE+" IN (:"+SUBTYPE_PARAM_NAME+"))"
 			+ ")"
 			+ "SELECT ID FROM DELTAS WHERE MISSING IS NULL ORDER BY ID DESC LIMIT :"+P_LIMIT;
 	
@@ -385,10 +388,6 @@ public class TableConstants {
 	
 	public static String joinEnumForSQL(Stream<Enum<?>> valuesStream) {
 		return joinValueForSQL(valuesStream, Enum::name);
-	}
-	
-	public static String joinStringForSQL(Stream<String> valuesStream) {
-		return joinValueForSQL(valuesStream, Function.identity());
 	}
 	
 	public static <T> String joinValueForSQL(Stream<T> valuesStream, Function<T, String> valueMapper) {

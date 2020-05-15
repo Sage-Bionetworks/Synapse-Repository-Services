@@ -5,6 +5,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCH
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BLOB_SHA256;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_DEPENDENCY_DEPENDS_ON_VERSION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_DEPENDENCY_VERSION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_DEPEPNDENCY_DEPENDS_ON_SCHEMA_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_LATEST_VER_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_LATEST_VER_SCHEMA_ID;
@@ -21,18 +24,23 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ORGANIZA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ORGANIZATION_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_DEPENDENCY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_LATEST_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ORGANIZATION;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
+import java.util.StringJoiner;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.model.schema.JsonSchemaInfo;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.NormalizedJsonSchema;
@@ -42,8 +50,10 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
@@ -70,6 +80,13 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		info.setCreatedBy(rs.getString(COL_JSON_SCHEMA_VER_CREATED_BY));
 		info.setCreatedOn(rs.getTimestamp(COL_JSON_SCHEMA_VER_CREATED_ON));
 		info.setJsonSHA256Hex(rs.getString(COL_JSON_SCHEMA_BLOB_SHA256));
+		StringJoiner joiner = new StringJoiner(JsonSchemaConstants.ID_DELIMITER);
+		joiner.add(info.getOrganizationName());
+		joiner.add(info.getSchemaName());
+		if(info.getSemanticVersion() != null) {
+			joiner.add(info.getSemanticVersion());
+		}
+		info.set$id(joiner.toString());
 		return info;
 	};
 
@@ -129,6 +146,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 
 	@Override
 	public void trunacteAll() {
+		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_DEPENDENCY);
 		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_LATEST_VERSION);
 		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_VERSION);
 		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_BLOB);
@@ -252,7 +270,9 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		String schemaId = createSchemaIfDoesNotExist(request.getOrganizationId(), request.getSchemaName(),
 				request.getCreatedBy());
 		String blobId = createJsonBlobIfDoesNotExist(request.getJsonSchema());
-		return createNewVersion(schemaId, request.getSemanticVersion(), request.getCreatedBy(), blobId);
+		JsonSchemaVersionInfo info = createNewVersion(schemaId, request.getSemanticVersion(), request.getCreatedBy(), blobId);
+		bindDependencies(info.getVersionId(), request.getDependencies());
+		return info;
 	}
 
 	@WriteTransaction
@@ -261,11 +281,15 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		ValidateArgument.required(schemaId, "schemaId");
 		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_LATEST_VERSION + " WHERE "
 				+ COL_JSON_SCHEMA_LATEST_VER_SCHEMA_ID + " = ?", schemaId);
-		jdbcTemplate.update(
-				"DELETE FROM " + TABLE_JSON_SCHEMA_VERSION + " WHERE " + COL_JSON_SCHEMA_VER_SCHEMA_ID + " = ?",
-				schemaId);
-		return jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA + " WHERE " + COL_JSON_SCHEMA_ID + " = ?",
-				schemaId);
+		try {
+			jdbcTemplate.update(
+					"DELETE FROM " + TABLE_JSON_SCHEMA_VERSION + " WHERE " + COL_JSON_SCHEMA_VER_SCHEMA_ID + " = ?",
+					schemaId);
+			return jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA + " WHERE " + COL_JSON_SCHEMA_ID + " = ?",
+					schemaId);
+		} catch (DataIntegrityViolationException e) {
+			throw new IllegalArgumentException("Cannot delete a schema that is referenced by another schema");
+		}
 	}
 
 	String getSchemaIdForUpdate(String versionId) {
@@ -285,12 +309,16 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		ValidateArgument.required(versionId, "versionId");
 		// lock on the schema
 		String schemaId = getSchemaIdForUpdate(versionId);
-		// clear the latest version cache
-		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_LATEST_VERSION + " WHERE "
-				+ COL_JSON_SCHEMA_LATEST_VER_SCHEMA_ID + " = ?", schemaId);
-		// delete the requested version
-		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_VERSION + " WHERE " + COL_JSON_SCHEMA_VER_ID + " = ?",
-				versionId);
+		try {
+			// clear the latest version cache
+			jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_LATEST_VERSION + " WHERE "
+					+ COL_JSON_SCHEMA_LATEST_VER_SCHEMA_ID + " = ?", schemaId);
+			// delete the requested version
+			jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_VERSION + " WHERE " + COL_JSON_SCHEMA_VER_ID + " = ?",
+					versionId);
+		} catch (DataIntegrityViolationException e) {
+			throw new IllegalArgumentException("Cannot delete a schema version that is referenced by another schema");
+		}
 		// find the latest version for the schema
 		Optional<Long> latestVersionIdOptional = findLatestVersionId(schemaId);
 		if (latestVersionIdOptional.isPresent()) {
@@ -394,5 +422,32 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 						+ COL_JSON_SCHEMA_BLOB_ID + ") WHERE O." + COL_ORGANIZATION_NAME + " = ? AND S."
 						+ COL_JSON_SCHEMA_NAME + " = ? ORDER BY V." + COL_JSON_SCHEMA_VER_ID + " LIMIT ? OFFSET ?",
 				SCHEMA_VERSION_INFO_MAPPER, organizationName, schemaName, limit, offset);
+	}
+
+	@WriteTransaction
+	void bindDependencies(String versionId, List<SchemaDependency> dependencies) {
+		ValidateArgument.required(versionId, "versionId");
+		if (dependencies == null || dependencies.isEmpty()) {
+			return;
+		}
+		SchemaDependency[] dependenciesArray = dependencies.toArray(new SchemaDependency[dependencies.size()]);
+		jdbcTemplate.batchUpdate(
+				"INSERT IGNORE INTO " + TABLE_JSON_SCHEMA_DEPENDENCY + " (" + COL_JSON_SCHEMA_DEPENDENCY_VERSION_ID + ","
+						+ COL_JSON_SCHEMA_DEPEPNDENCY_DEPENDS_ON_SCHEMA_ID + "," + COL_JSON_SCHEMA_DEPENDENCY_DEPENDS_ON_VERSION_ID + ") VALUES (?,?,?)",
+				new BatchPreparedStatementSetter() {
+
+					@Override
+					public void setValues(PreparedStatement ps, int i) throws SQLException {
+						SchemaDependency depend = dependenciesArray[i];
+						ps.setString(1, versionId);
+						ps.setString(2, depend.getDependsOnSchemaId());
+						ps.setString(3, depend.getDependsOnVersionId());
+					}
+
+					@Override
+					public int getBatchSize() {
+						return dependenciesArray.length;
+					}
+				});
 	}
 }

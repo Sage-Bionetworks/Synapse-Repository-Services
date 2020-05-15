@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ACCESSOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_STATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ACCESS_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CONCRETE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER;
@@ -36,6 +37,7 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementInfoForUpdate;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
+import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
@@ -180,10 +182,12 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	// DEPRECATED SQL
 	private static final String UNMET_REQUIREMENTS_AR_COL_ID = "ar_id";
 	private static final String UNMET_REQUIREMENTS_AA_COL_ID = "aa_id";
+	private static final String UNMET_REQUIREMENTS_AA_STATE = "aa_state";
 
 	private static final String UNMET_REQUIREMENTS_SQL_PREFIX = "select"
 			+ " ar."+COL_ACCESS_REQUIREMENT_ID+" as "+UNMET_REQUIREMENTS_AR_COL_ID+","
-			+ " aa."+COL_ACCESS_APPROVAL_ID+" as "+UNMET_REQUIREMENTS_AA_COL_ID
+			+ " aa."+COL_ACCESS_APPROVAL_ID+" as "+UNMET_REQUIREMENTS_AA_COL_ID+","
+			+ " aa."+COL_ACCESS_APPROVAL_STATE+" as "+UNMET_REQUIREMENTS_AA_STATE
 			+ " FROM "+TABLE_ACCESS_REQUIREMENT+" ar ";
 	
 	private static final String UNMET_REQUIREMENTS_SQL_SUFFIX = 
@@ -237,7 +241,9 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			@Override
 			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
 				rs.getLong(UNMET_REQUIREMENTS_AA_COL_ID);
-				if (rs.wasNull()) { // no access approval, so this is one of the requirements we've been looking for
+				if (rs.wasNull() || // no access approval, so this is one of the requirements we've been looking for
+						rs.getString(UNMET_REQUIREMENTS_AA_STATE).equals(ApprovalState.REVOKED.name())) // there IS an approval but it's revoked
+				{ 
 					return rs.getLong(UNMET_REQUIREMENTS_AR_COL_ID);
 				} else {
 					return null; 

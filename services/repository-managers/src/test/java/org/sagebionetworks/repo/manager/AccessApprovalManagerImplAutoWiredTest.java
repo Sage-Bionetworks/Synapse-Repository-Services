@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,6 +22,7 @@ import org.sagebionetworks.repo.manager.dataaccess.RequestManager;
 import org.sagebionetworks.repo.manager.dataaccess.ResearchProjectManager;
 import org.sagebionetworks.repo.manager.dataaccess.SubmissionManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -37,6 +40,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
 import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
@@ -44,6 +48,9 @@ import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +60,15 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class AccessApprovalManagerImplAutoWiredTest {
+
+	@Autowired
+	private ResearchProjectDAO researchProjectDao;
+	
+	@Autowired
+	private RequestDAO requestDao;
+	
+	@Autowired
+	private SubmissionDAO submissionDao;
 
 	@Autowired
 	private UserManager userManager;
@@ -85,18 +101,27 @@ public class AccessApprovalManagerImplAutoWiredTest {
 
 	private List<String> nodesToDelete;
 	private List<String> approvalsToDelete;
+	private List<String> requirementIdsToDelete;
+	private List<String> researchProjectIdsToDelete;
+	private List<String> requestIdsToDelete;
+	private List<String> submissionIdsToDelete;
 
 	private String nodeAId;
 	private String nodeBId;
 
 	private TermsOfUseAccessRequirement ar;
+	private TermsOfUseAccessRequirement arB;
 	private ManagedACTAccessRequirement managedActAr;
 	
-	private TermsOfUseAccessRequirement arB;
-
+	
 	@Before
 	public void before() throws Exception {
 		approvalsToDelete = new LinkedList<String>();
+		requirementIdsToDelete = new LinkedList<String>();
+		researchProjectIdsToDelete = new LinkedList<String>();
+		requestIdsToDelete = new LinkedList<String>();
+		submissionIdsToDelete = new LinkedList<String>();
+		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		DBOCredential cred = new DBOCredential();
 		cred.setSecretKey("");
@@ -123,6 +148,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		nodeAId = nodeManager.createNewNode(node, adminUserInfo);
 		ar = newToUAccessRequirement(nodeAId);
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		requirementIdsToDelete.add(ar.getId().toString());
 		
 		node = new Node();
 		node.setName("B");
@@ -131,6 +157,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		nodeBId = nodeManager.createNewNode(node, adminUserInfo);
 		arB = newToUAccessRequirement(nodeBId);
 		arB = accessRequirementManager.createAccessRequirement(adminUserInfo, arB);
+		requirementIdsToDelete.add(arB.getId().toString());
 
 		// now give 'testUserInfo' READ access to the entity hierarchy
 		AccessControlList acl = entityPermissionsManager.getACL(rootId, adminUserInfo);
@@ -144,29 +171,27 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	
 	@After
 	public void after() throws Exception {
-		if(nodeManager != null && nodesToDelete != null){
+		for (String id: approvalsToDelete) {
+			accessApprovalManager.deleteAccessApproval(adminUserInfo, id);
+		}
+		for (String id: submissionIdsToDelete) { // submissions must be deleted before requests
+			submissionDao.delete(id);
+		}
+		for (String id: requestIdsToDelete) {
+			requestDao.delete(id);
+		}
+		for (String id : researchProjectIdsToDelete) { // research projects must be deleted before access requirements
+			researchProjectDao.delete(id);
+		}
+		for (String id: requirementIdsToDelete) {
+			accessRequirementManager.deleteAccessRequirement(adminUserInfo, id);
+		}
+		ar=null;
+		arB=null;
+		if (nodeManager != null && nodesToDelete != null){
 			for(String id: nodesToDelete){
-				try {
-					nodeManager.delete(adminUserInfo, id);
-				} catch (Exception e) {
-					e.printStackTrace();
-				} 				
+				nodeManager.delete(adminUserInfo, id);
 			}
-		}
-		if (accessRequirementManager!=null) {
-			if (ar!=null && ar.getId()!=null) {
-				accessRequirementManager.deleteAccessRequirement(adminUserInfo, ar.getId().toString());
-				ar=null;
-			}
-			if (arB!=null && arB.getId()!=null) {
-				accessRequirementManager.deleteAccessRequirement(adminUserInfo, arB.getId().toString());
-				arB=null;
-			}
-		}
-		for(String accessApprovalId: approvalsToDelete) {
-			try {
-				accessApprovalManager.deleteAccessApproval(adminUserInfo, accessApprovalId);
-			} catch (Exception e) {}
 		}
 		userManager.deletePrincipal(adminUserInfo, testUserInfo.getId());
 	}
@@ -211,7 +236,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	 * @return
 	 */
 	public AccessApproval createAccessApproval(UserInfo user, AccessApproval aa) {
-		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
+		aa = accessApprovalManager.createAccessApproval(user, aa);
 		this.approvalsToDelete.add(""+aa.getId());
 		return aa;
 	}
@@ -274,6 +299,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		managedActAr = newManagedACTAccessRequirement(nodeAId);
 		managedActAr.setExpirationPeriod(30*24*60*60*1000L);
 		managedActAr = accessRequirementManager.createAccessRequirement(adminUserInfo, managedActAr);
+		requirementIdsToDelete.add(managedActAr.getId().toString());
 
 		// create a research project
 		ResearchProject rp = new ResearchProject();
@@ -282,6 +308,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		rp.setIntendedDataUseStatement("for testing");
 		rp.setProjectLead("Bruce");
 		rp = researchProjectManager.create(testUserInfo, rp);
+		researchProjectIdsToDelete.add(rp.getId());
 		// create a request
 		AccessorChange ac = new AccessorChange();
 		ac.setUserId(testUserInfo.getId().toString());
@@ -292,6 +319,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		request.setAccessorChanges(accessorChanges);
 		request.setResearchProjectId(rp.getId());
 		request = requestManager.create(testUserInfo, (Request) request);
+		requestIdsToDelete.add(request.getId());
 
 		// submit
 		CreateSubmissionRequest csRequest = new CreateSubmissionRequest();
@@ -300,6 +328,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		csRequest.setSubjectId(nodeAId);
 		csRequest.setSubjectType(RestrictableObjectType.ENTITY);
 		SubmissionStatus status = submissionManager.create(testUserInfo, csRequest);
+		submissionIdsToDelete.add(status.getSubmissionId());
 
 		// approve
 		SubmissionStateChangeRequest sscr = new SubmissionStateChangeRequest();
@@ -332,6 +361,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		// submit
 		csRequest.setRequestEtag(request.getEtag());
 		status = submissionManager.create(testUserInfo, csRequest);
+		submissionIdsToDelete.add(status.getSubmissionId());		
 
 		// approve
 		sscr = new SubmissionStateChangeRequest();
@@ -352,5 +382,102 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		ag = agResponse.getResults().get(0);
 		assertNotNull(ag);
 		assertEquals(ag.getSubmitterId(), testUserInfo.getId().toString());
+	}
+	
+	@Test
+	public void testRevokeGroupStopsDownload() throws Exception {
+		// approve the Terms-Of-Use access approval
+		AccessApproval aa = newAccessApproval(ar.getId(),ar.getVersionNumber(), testUserInfo.getId().toString());
+		aa = createAccessApproval(testUserInfo, aa);
+
+		// create a managed access requirement
+		managedActAr = newManagedACTAccessRequirement(nodeAId);
+		managedActAr.setExpirationPeriod(30*24*60*60*1000L);
+		managedActAr = accessRequirementManager.createAccessRequirement(adminUserInfo, managedActAr);
+		requirementIdsToDelete.add(managedActAr.getId().toString());
+		
+		// show that entity can't be downloaded
+		assertFalse(entityPermissionsManager.hasAccess(nodeAId, ACCESS_TYPE.DOWNLOAD, testUserInfo).isAuthorized());
+
+		// create a research project
+		ResearchProject rp = new ResearchProject();
+		rp.setAccessRequirementId(managedActAr.getId().toString());
+		rp.setInstitution("sage");
+		rp.setIntendedDataUseStatement("for testing");
+		rp.setProjectLead("Jay");
+		rp = researchProjectManager.create(testUserInfo, rp);
+		researchProjectIdsToDelete.add(rp.getId());
+		// create a request
+		AccessorChange ac = new AccessorChange();
+		ac.setUserId(testUserInfo.getId().toString());
+		ac.setType(AccessType.GAIN_ACCESS);
+		List<AccessorChange> accessorChanges = Arrays.asList(ac);
+		RequestInterface request = new Request();
+		request.setAccessRequirementId(managedActAr.getId().toString());
+		request.setAccessorChanges(accessorChanges);
+		request.setResearchProjectId(rp.getId());
+		request = requestManager.create(testUserInfo, (Request) request);
+		requestIdsToDelete.add(request.getId());
+
+		// submit
+		CreateSubmissionRequest csRequest = new CreateSubmissionRequest();
+		csRequest.setRequestId(request.getId());
+		csRequest.setRequestEtag(request.getEtag());
+		csRequest.setSubjectId(nodeAId);
+		csRequest.setSubjectType(RestrictableObjectType.ENTITY);
+		SubmissionStatus status = submissionManager.create(testUserInfo, csRequest);
+		submissionIdsToDelete.add(status.getSubmissionId());
+
+		// approve
+		SubmissionStateChangeRequest sscr = new SubmissionStateChangeRequest();
+		sscr.setNewState(SubmissionState.APPROVED);
+		sscr.setSubmissionId(status.getSubmissionId());
+		submissionManager.updateStatus(adminUserInfo, sscr);
+		
+		// show that entity can be downloaded
+		assertTrue(entityPermissionsManager.hasAccess(nodeAId, ACCESS_TYPE.DOWNLOAD, testUserInfo).isAuthorized());
+		
+		// revoke access
+		AccessorGroupRevokeRequest agrr = new AccessorGroupRevokeRequest();
+		agrr.setAccessRequirementId(managedActAr.getId().toString());
+		agrr.setSubmitterId(testUserInfo.getId().toString());
+		accessApprovalManager.revokeGroup(adminUserInfo, agrr);
+		
+		// show that entity can't be downloaded (before PLFM-6209 this failed)
+		assertFalse(entityPermissionsManager.hasAccess(nodeAId, ACCESS_TYPE.DOWNLOAD, testUserInfo).isAuthorized());
+	}
+	
+	@Test
+	public void testRevokeACTAccessRequirementStopsDownload() throws Exception {
+		// approve the Terms-Of-Use access approval
+		AccessApproval aa = newAccessApproval(ar.getId(),ar.getVersionNumber(), testUserInfo.getId().toString());
+		aa = createAccessApproval(testUserInfo, aa);
+
+		// Add ACT AR
+		ACTAccessRequirement actAR = new ACTAccessRequirement();
+		
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(nodeAId);
+		rod.setType(RestrictableObjectType.ENTITY);
+		actAR.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
+
+		actAR.setConcreteType(actAR.getClass().getName());
+		actAR.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		actAR = accessRequirementManager.createAccessRequirement(adminUserInfo, actAR);
+		requirementIdsToDelete.add(actAR.getId().toString());
+
+		// approve
+		aa = newAccessApproval(actAR.getId(),ar.getVersionNumber(), testUserInfo.getId().toString());
+		aa.setAccessorId(testUserInfo.getId().toString());
+		aa = createAccessApproval(adminUserInfo, aa);
+		
+		// show that entity can be downloaded
+		assertTrue(entityPermissionsManager.hasAccess(nodeAId, ACCESS_TYPE.DOWNLOAD, testUserInfo).isAuthorized());
+		
+		// revoke access
+		accessApprovalManager.revokeAccessApprovals(adminUserInfo, actAR.getId().toString(), testUserInfo.getId().toString());
+		
+		// show that entity can't be downloaded (before PLFM-6209 this failed)
+		assertFalse(entityPermissionsManager.hasAccess(nodeAId, ACCESS_TYPE.DOWNLOAD, testUserInfo).isAuthorized());
 	}
 }

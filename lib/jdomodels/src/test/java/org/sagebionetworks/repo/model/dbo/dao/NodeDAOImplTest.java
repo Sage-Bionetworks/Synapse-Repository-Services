@@ -105,6 +105,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.UnexpectedRollbackException;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -3024,8 +3025,9 @@ public class NodeDAOImplTest {
 
 		int maxAnnotationChars = 10;
 		
+		List<Long> ids = KeyFactory.stringToKey(ImmutableList.of(project.getId(), file.getId()));
 		// call under test
-		List<ObjectDataDTO> results = nodeDao.getEntityDTOs(Lists.newArrayList(project.getId(),file.getId()), maxAnnotationChars);
+		List<ObjectDataDTO> results = nodeDao.getEntityDTOs(ids, maxAnnotationChars);
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		ObjectDataDTO fileDto = results.get(1);
@@ -3094,8 +3096,9 @@ public class NodeDAOImplTest {
 		
 		int maxAnnotationChars = 10;
 		
+		List<Long> ids = KeyFactory.stringToKey(ImmutableList.of(project.getId(), file.getId()));
 		// call under test
-		List<ObjectDataDTO> results = nodeDao.getEntityDTOs(Lists.newArrayList(project.getId(),file.getId()), maxAnnotationChars);
+		List<ObjectDataDTO> results = nodeDao.getEntityDTOs(ids, maxAnnotationChars);
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		ObjectDataDTO fileDto = results.get(1);

@@ -30,6 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,7 +55,6 @@ import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -73,6 +73,8 @@ import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
@@ -137,10 +139,11 @@ public class TableIndexManagerImplTest {
 	Set<Long> rowsIdsWithChanges;
 	ViewScopeType scopeType;
 	ViewScopeFilterBuilder scopeFilterBuilder;
-	
+	ObjectFieldModelResolver objectFieldModelResolver;
 	
 	@BeforeEach
 	public void before() throws Exception{
+		
 		objectType = ViewObjectType.ENTITY;
 		tableId = IdAndVersion.parse("syn123");
 		manager = new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory);
@@ -194,6 +197,8 @@ public class TableIndexManagerImplTest {
 		
 		rowsIdsWithChanges = Sets.newHashSet(444L,555L);
 		scopeType = new ViewScopeType(objectType, ViewTypeMask.File.getMask());
+		
+		objectFieldModelResolver = new ObjectFieldModelResolverImpl(mockMetadataProvider);
 	}
 
 	@Test
@@ -567,11 +572,8 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
 
 		Set<Long> scope = Sets.newHashSet(1L,2L);
-		List<ColumnModel> schema = createDefaultColumnsWithIds();
+		List<ColumnModel> schema = createDefaultColumnsWithIds(ObjectField.etag);
 		
-		ColumnModel etagColumn = ObjectField.findMatch(schema, ObjectField.etag);
-		// remove the etag column
-		schema.remove(etagColumn);
 		// call under test
 		manager.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
 	}
@@ -590,10 +592,7 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
 
 		Set<Long> scope = Sets.newHashSet(1L,2L);
-		List<ColumnModel> schema = createDefaultColumnsWithIds();
-		ColumnModel benefactorColumn = ObjectField.findMatch(schema, ObjectField.benefactorId);
-		// remove the benefactor column
-		schema.remove(benefactorColumn);
+		List<ColumnModel> schema = createDefaultColumnsWithIds(ObjectField.benefactorId);
 		// call under test
 		manager.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
 	}
@@ -698,27 +697,22 @@ public class TableIndexManagerImplTest {
 		column.setColumnType(ColumnType.STRING);
 		column.setMaximumSize(10L);
 		schema.add(column);
-		// Setup an annotation that is larger than the columns.
-		ColumnModel annotation = new ColumnModel();
-		annotation.setName("foo");
-		annotation.setMaximumSize(11L);
-		annotation.setColumnType(ColumnType.STRING);
 		
-		// setup the annotations 
-		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(Lists.newArrayList(annotation));
 		// setup a failure
 		IllegalArgumentException error = new IllegalArgumentException("Something went wrong");
 		
 		doThrow(error).when(mockIndexDao).copyObjectReplicationToView(any(), any(), any(), any());
+
+		IllegalArgumentException sizeError = new IllegalArgumentException("The size of the column 'foo' is too small");
+		
+		doThrow(sizeError).when(mockIndexDao).determineCauseOfReplicationFailure(any(), any(), any(), any());
 		
 		IllegalArgumentException expected = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
 		});
-		
-		assertTrue(expected.getMessage().startsWith("The size of the column 'foo' is too small"));
-		// the cause should match the original error.
-		assertEquals(error, expected.getCause());
+
+		assertEquals(sizeError, expected);
 	}
 	
 	@Test
@@ -891,10 +885,13 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
 		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
 		
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
+		scope.setObjectType(null);
 
+		ViewScopeFilter scopeFilter = new ViewScopeFilter(ViewObjectType.ENTITY, subTypes, filterByObjectId, containerIds);
+		
 		// call under test
 		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString);
+		
 		assertNotNull(results);
 		// should default to file view.
 		verify(mockIndexDao).getPossibleColumnModelsForContainers(scopeFilter, nextPageToken.getLimitForQuery(), nextPageToken.getOffset());
@@ -2101,13 +2098,24 @@ public class TableIndexManagerImplTest {
 	 * 
 	 * @return
 	 */
-	public static List<ColumnModel> createDefaultColumnsWithIds() {
-		List<ColumnModel> schema = ObjectField.getAllColumnModels();
+	public List<ColumnModel> createDefaultColumnsWithIds() {
+		List<ColumnModel> schema = objectFieldModelResolver.getAllColumnModels();
+
 		for(int i=0; i<schema.size(); i++){
 			ColumnModel cm = schema.get(i);
 			cm.setId(""+i);
 		}
+		
 		return schema;
 	}
-
+	
+	public List<ColumnModel> createDefaultColumnsWithIds(ObjectField exclude) {
+		return createDefaultColumnsWithIds()
+			.stream()
+			.filter( model -> !model.getName().equals(exclude.name()))
+			.collect(Collectors.toList());
+	}
+	
+	
+	
 }

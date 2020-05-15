@@ -57,6 +57,9 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.SparseChangeSet;
@@ -96,6 +99,7 @@ public class TableViewTransactionManagerTest {
 	UploadToTableResult uploadToTableResult;
 	SparseRowDto sparseRow;
 	List<String> orderedColumnIds;
+	ViewScopeType viewScopeType;
 	
 	@BeforeEach
 	public void beforeEach(){
@@ -143,6 +147,8 @@ public class TableViewTransactionManagerTest {
 		uploadToTableRequest.setTableId(viewId);
 		
 		uploadToTableResult = new UploadToTableResult();
+		
+		viewScopeType = new ViewScopeType(ViewObjectType.ENTITY, ViewTypeMask.File.getMask());
 	}
 	
 	@Test
@@ -159,23 +165,30 @@ public class TableViewTransactionManagerTest {
 	public void testApplyChangePartialRowSet(){
 		when(mockStackConfig.getTableMaxBytesPerRequest()).thenReturn(Integer.MAX_VALUE);
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(schema);
+		when(mockTableManagerSupport.getViewScopeType(any())).thenReturn(viewScopeType);
+		
+		ViewObjectType objectType = viewScopeType.getObjectType();
+		
 		appendAbleRowSetRequest.setToAppend(partialRowSet);
 		// call under test
 		TableUpdateResponse result = manager.applyChange(mockProgressCallback, user, appendAbleRowSetRequest);
 		assertNotNull(result);
-		verify(mockTableViewManger, times(2)).updateEntityInView(eq(user), eq(schema), any(SparseRowDto.class));
+		verify(mockTableViewManger, times(2)).updateRowInView(eq(user), eq(schema), eq(objectType), any(SparseRowDto.class));
 	}
 	
 	@Test
 	public void testApplyChangeRowSet(){
 		when(mockStackConfig.getTableMaxBytesPerRequest()).thenReturn(Integer.MAX_VALUE);
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(schema);
-	
+		when(mockTableManagerSupport.getViewScopeType(any())).thenReturn(viewScopeType);
+		
+		ViewObjectType objectType = viewScopeType.getObjectType();
+		
 		appendAbleRowSetRequest.setToAppend(rowSet);
 		// call under test
 		TableUpdateResponse result = manager.applyChange(mockProgressCallback, user, appendAbleRowSetRequest);
 		assertNotNull(result);
-		verify(mockTableViewManger, times(2)).updateEntityInView(eq(user), eq(schema), any(SparseRowDto.class));
+		verify(mockTableViewManger, times(2)).updateRowInView(eq(user), eq(schema), eq(objectType), any(SparseRowDto.class));
 	}
 	
 	@Test
@@ -189,10 +202,14 @@ public class TableViewTransactionManagerTest {
 				return processor.processRows(user, viewId, schema, sparseChangeSet.writeToDto().getRows().iterator(), null, mockProgressCallback);
 			}}).when(mockTableUploadManager).uploadCSV(any(ProgressCallback.class), any(UserInfo.class), any(UploadToTableRequest.class), any(UploadRowProcessor.class));
 		
+		when(mockTableManagerSupport.getViewScopeType(any())).thenReturn(viewScopeType);
+		
+		ViewObjectType objectType = viewScopeType.getObjectType();
+		
 		// call under test
 		TableUpdateResponse result = manager.applyChange(mockProgressCallback, user, uploadToTableRequest);
 		assertNotNull(result);
-		verify(mockTableViewManger, times(2)).updateEntityInView(eq(user), eq(schema), any(SparseRowDto.class));
+		verify(mockTableViewManger, times(2)).updateRowInView(eq(user), eq(schema), eq(objectType), any(SparseRowDto.class));
 	}
 	
 	@Test
@@ -340,6 +357,8 @@ public class TableViewTransactionManagerTest {
 	public void testApplyRowChangeParitalRowSet(){
 		when(mockStackConfig.getTableMaxBytesPerRequest()).thenReturn(Integer.MAX_VALUE);
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(schema);
+		when(mockTableManagerSupport.getViewScopeType(any())).thenReturn(viewScopeType);
+		
 		appendAbleRowSetRequest.setToAppend(partialRowSet);
 		// call under test
 		TableUpdateResponse result = manager.applyRowChange(mockProgressCallback, user, appendAbleRowSetRequest);
@@ -349,6 +368,7 @@ public class TableViewTransactionManagerTest {
 
 	@Test
 	public void testApplyRowChangeRowSet(){
+		when(mockTableManagerSupport.getViewScopeType(any())).thenReturn(viewScopeType);
 		appendAbleRowSetRequest.setToAppend(rowSet);
 		// call under test
 		TableUpdateResponse result = manager.applyRowChange(mockProgressCallback, user, appendAbleRowSetRequest);
@@ -393,7 +413,19 @@ public class TableViewTransactionManagerTest {
 	}
 	
 	@Test
+	public void testApplyRowChangeWithMismatchingTableId(){
+		rowSet.setTableId("some other table id");
+		appendAbleRowSetRequest.setToAppend(rowSet);
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.applyRowChange(mockProgressCallback, user, appendAbleRowSetRequest);
+		});
+		assertEquals("The table id in the rowSet must match the entity id in the request (Expected: syn213, Found: some other table id)", ex.getMessage());
+	}
+	
+	@Test
 	public void testApplyRowSet(){
+		when(mockTableManagerSupport.getViewScopeType(any())).thenReturn(viewScopeType);
 		when(mockStackConfig.getTableMaxBytesPerRequest()).thenReturn(Integer.MAX_VALUE);
 		// call under test
 		TableUpdateResponse results = manager.applyRowSet(mockProgressCallback, user, schema, rowSet);
@@ -430,6 +462,7 @@ public class TableViewTransactionManagerTest {
 	
 	@Test
 	public void testApplyPartialRowSet(){
+		when(mockTableManagerSupport.getViewScopeType(any())).thenReturn(viewScopeType);
 		when(mockStackConfig.getTableMaxBytesPerRequest()).thenReturn(Integer.MAX_VALUE);
 	
 		// call under test
@@ -467,8 +500,9 @@ public class TableViewTransactionManagerTest {
 	
 	@Test
 	public void testProcessRows(){
+		when(mockTableManagerSupport.getViewScopeType(any())).thenReturn(viewScopeType);
 		// call under test
-		TableUpdateResponse response =  manager.processRows(user,"tableId", schema, sparseChangeSet.writeToDto().getRows().iterator(), "etag", mockProgressCallback);
+		TableUpdateResponse response =  manager.processRows(user,"123", schema, sparseChangeSet.writeToDto().getRows().iterator(), "etag", mockProgressCallback);
 		assertNotNull(response);
 		assertTrue(response instanceof EntityUpdateResults);
 		EntityUpdateResults result = (EntityUpdateResults)response;
@@ -477,9 +511,11 @@ public class TableViewTransactionManagerTest {
 	}
 	
 	@Test
-	public void testProcessRow(){
+	public void testProcessRow() {
+		ViewObjectType objectType = viewScopeType.getObjectType();
+		
 		// call under test
-		EntityUpdateResult result = manager.processRow(user, schema, sparseRow, mockProgressCallback);
+		EntityUpdateResult result = manager.processRow(user, schema, objectType, sparseRow, mockProgressCallback);
 		assertNotNull(result);
 		assertEquals("syn123",result.getEntityId());
 		assertNull(result.getFailureCode());
@@ -488,9 +524,11 @@ public class TableViewTransactionManagerTest {
 	
 	@Test
 	public void testProcessRowNotFound(){
-		doThrow(new NotFoundException("not")).when(mockTableViewManger).updateEntityInView(user, schema, sparseRow);
+		ViewObjectType objectType = viewScopeType.getObjectType();
+		
+		doThrow(new NotFoundException("not")).when(mockTableViewManger).updateRowInView(any(), any(), any(), any());
 		// call under test
-		EntityUpdateResult result = manager.processRow(user, schema, sparseRow, mockProgressCallback);
+		EntityUpdateResult result = manager.processRow(user, schema, objectType, sparseRow, mockProgressCallback);
 		assertNotNull(result);
 		assertEquals("syn123",result.getEntityId());
 		assertEquals(EntityUpdateFailureCode.NOT_FOUND, result.getFailureCode());
@@ -499,9 +537,12 @@ public class TableViewTransactionManagerTest {
 	
 	@Test
 	public void testProcessRowConflict(){
-		doThrow(new ConflictingUpdateException("conflict")).when(mockTableViewManger).updateEntityInView(user, schema, sparseRow);
+		ViewObjectType objectType = viewScopeType.getObjectType();
+		
+		doThrow(new ConflictingUpdateException("conflict")).when(mockTableViewManger).updateRowInView(any(), any(), any(), any());
+		
 		// call under test
-		EntityUpdateResult result = manager.processRow(user, schema, sparseRow, mockProgressCallback);
+		EntityUpdateResult result = manager.processRow(user, schema, objectType, sparseRow, mockProgressCallback);
 		assertNotNull(result);
 		assertEquals("syn123",result.getEntityId());
 		assertEquals(EntityUpdateFailureCode.CONCURRENT_UPDATE, result.getFailureCode());
@@ -510,9 +551,11 @@ public class TableViewTransactionManagerTest {
 	
 	@Test
 	public void testProcessRowUnauthorized(){
-		doThrow(new UnauthorizedException("unathorized")).when(mockTableViewManger).updateEntityInView(user, schema, sparseRow);
+		ViewObjectType objectType = viewScopeType.getObjectType();
+		
+		doThrow(new UnauthorizedException("unathorized")).when(mockTableViewManger).updateRowInView(any(), any(), any(), any());
 		// call under test
-		EntityUpdateResult result = manager.processRow(user, schema, sparseRow, mockProgressCallback);
+		EntityUpdateResult result = manager.processRow(user, schema, objectType, sparseRow, mockProgressCallback);
 		assertNotNull(result);
 		assertEquals("syn123",result.getEntityId());
 		assertEquals(EntityUpdateFailureCode.UNAUTHORIZED, result.getFailureCode());
@@ -521,9 +564,11 @@ public class TableViewTransactionManagerTest {
 	
 	@Test
 	public void testProcessRowIllegalArgument(){
-		doThrow(new IllegalArgumentException("illegal")).when(mockTableViewManger).updateEntityInView(user, schema, sparseRow);
+		ViewObjectType objectType = viewScopeType.getObjectType();
+		
+		doThrow(new IllegalArgumentException("illegal")).when(mockTableViewManger).updateRowInView(any(), any(), any(), any());
 		// call under test
-		EntityUpdateResult result = manager.processRow(user, schema, sparseRow, mockProgressCallback);
+		EntityUpdateResult result = manager.processRow(user, schema, objectType, sparseRow, mockProgressCallback);
 		assertNotNull(result);
 		assertEquals("syn123",result.getEntityId());
 		assertEquals(EntityUpdateFailureCode.ILLEGAL_ARGUMENT, result.getFailureCode());
@@ -532,9 +577,11 @@ public class TableViewTransactionManagerTest {
 	
 	@Test
 	public void testProcessRowUnknown(){
-		doThrow(new RuntimeException("unknown")).when(mockTableViewManger).updateEntityInView(user, schema, sparseRow);
+		ViewObjectType objectType = viewScopeType.getObjectType();
+		
+		doThrow(new RuntimeException("unknown")).when(mockTableViewManger).updateRowInView(any(), any(), any(), any());
 		// call under test
-		EntityUpdateResult result = manager.processRow(user, schema, sparseRow, mockProgressCallback);
+		EntityUpdateResult result = manager.processRow(user, schema, objectType, sparseRow, mockProgressCallback);
 		assertNotNull(result);
 		assertEquals("syn123",result.getEntityId());
 		assertEquals(EntityUpdateFailureCode.UNKNOWN, result.getFailureCode());

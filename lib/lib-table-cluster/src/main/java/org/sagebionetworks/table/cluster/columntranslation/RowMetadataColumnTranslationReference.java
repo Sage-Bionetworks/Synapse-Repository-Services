@@ -11,7 +11,7 @@ public enum RowMetadataColumnTranslationReference implements ColumnTranslationRe
 	ROW_ID(TableConstants.ROW_ID, ColumnType.INTEGER),
 	ROW_VERSION(TableConstants.ROW_VERSION, ColumnType.INTEGER),
 	ROW_ETAG(TableConstants.ROW_ETAG, ColumnType.STRING),
-	ROW_BENEFACTOR(TableConstants.ROW_BENEFACTOR, ColumnType.ENTITYID);
+	ROW_BENEFACTOR(TableConstants.ROW_BENEFACTOR, ColumnType.INTEGER);
 
 	//the translated name and queried name are the same
 	private final String columnName;

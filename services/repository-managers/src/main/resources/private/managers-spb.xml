@@ -552,13 +552,6 @@
 		class="org.sagebionetworks.repo.manager.dataaccess.SubmissionManagerImpl"
 		scope="singleton" />
 
-	<bean id="replicationMessageManager"
-		class="org.sagebionetworks.repo.manager.entity.ReplicationMessageManagerImpl"
-		scope="singleton" init-method="initialize">
-		<property name="replicationQueueName" value="#{stackConfiguration.getQueueName('TABLE_ENTITY_REPLICATION')}" />
-		<property name="reconciliationQueueName" value="#{stackConfiguration.getQueueName('ENTITY_REPLICATION_RECONCILIATION')}" />
-	</bean>
-
 	<bean id="bulkDownloadManager"
 		class="org.sagebionetworks.repo.manager.file.download.BulkDownloadManagerImpl"
 		scope="singleton" />

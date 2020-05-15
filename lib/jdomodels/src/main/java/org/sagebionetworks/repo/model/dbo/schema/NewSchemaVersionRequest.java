@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.schema;
 
+import java.util.List;
 import java.util.Objects;
 
 import org.sagebionetworks.repo.model.schema.JsonSchema;
@@ -11,7 +12,8 @@ public class NewSchemaVersionRequest {
 	private Long createdBy;
 	private String semanticVersion;
 	private JsonSchema jsonSchema;
-
+	private List<SchemaDependency> dependencies;
+	
 	/**
 	 * @return the organizationId
 	 */
@@ -87,9 +89,24 @@ public class NewSchemaVersionRequest {
 		return this;
 	}
 
+	/**
+	 * @return the dependencies
+	 */
+	public List<SchemaDependency> getDependencies() {
+		return dependencies;
+	}
+
+	/**
+	 * @param dependencies the dependencies to set
+	 */
+	public NewSchemaVersionRequest withDependencies(List<SchemaDependency> dependencies) {
+		this.dependencies = dependencies;
+		return this;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(createdBy, jsonSchema, organizationId, schemaName, semanticVersion);
+		return Objects.hash(createdBy, dependencies, jsonSchema, organizationId, schemaName, semanticVersion);
 	}
 
 	@Override
@@ -101,8 +118,9 @@ public class NewSchemaVersionRequest {
 			return false;
 		}
 		NewSchemaVersionRequest other = (NewSchemaVersionRequest) obj;
-		return Objects.equals(createdBy, other.createdBy) && Objects.equals(jsonSchema, other.jsonSchema)
-				&& Objects.equals(organizationId, other.organizationId) && Objects.equals(schemaName, other.schemaName)
+		return Objects.equals(createdBy, other.createdBy) && Objects.equals(dependencies, other.dependencies)
+				&& Objects.equals(jsonSchema, other.jsonSchema) && Objects.equals(organizationId, other.organizationId)
+				&& Objects.equals(schemaName, other.schemaName)
 				&& Objects.equals(semanticVersion, other.semanticVersion);
 	}
 
@@ -110,7 +128,7 @@ public class NewSchemaVersionRequest {
 	public String toString() {
 		return "NewSchemaVersionRequest [organizationId=" + organizationId + ", schemaName=" + schemaName
 				+ ", createdBy=" + createdBy + ", semanticVersion=" + semanticVersion + ", jsonSchema=" + jsonSchema
-				+ "]";
+				+ ", dependencies=" + dependencies + "]";
 	}
 
 }

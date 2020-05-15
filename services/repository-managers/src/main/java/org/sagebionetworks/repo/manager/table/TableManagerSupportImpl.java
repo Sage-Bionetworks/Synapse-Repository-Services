@@ -2,8 +2,8 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Collections;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -11,6 +11,10 @@ import java.util.Set;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
+import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
+import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
+import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -30,11 +34,10 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
-import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -47,47 +50,12 @@ import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.google.common.collect.Lists;
-
 @Service
 public class TableManagerSupportImpl implements TableManagerSupport {
 	
 	public static final long TABLE_PROCESSING_TIMEOUT_MS = 1000*60*10; // 10 mins
 	
 	public static final int MAX_CONTAINERS_PER_VIEW = 1000*10; // 10K;
-	public static final String SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW = "The view's scope exceeds the maximum number of "
-			+ MAX_CONTAINERS_PER_VIEW
-			+ " projects and/or folders. Note: The sub-folders of each project and folder in the scope count towards the limit.";
-	public static final String SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW = "The view's scope exceeds the maximum number of "
-			+ MAX_CONTAINERS_PER_VIEW + " projects.";
-	
-	private static final List<ObjectField> FILE_VIEW_DEFAULT_COLUMNS= Lists.newArrayList(
-			ObjectField.id,
-			ObjectField.name,
-			ObjectField.createdOn,
-			ObjectField.createdBy,
-			ObjectField.etag,
-			ObjectField.type,
-			ObjectField.currentVersion,
-			ObjectField.parentId,
-			ObjectField.benefactorId,
-			ObjectField.projectId,
-			ObjectField.modifiedOn,
-			ObjectField.modifiedBy,
-			ObjectField.dataFileHandleId,
-			ObjectField.dataFileSizeBytes,
-			ObjectField.dataFileMD5Hex
-			);
-	
-	private static final List<ObjectField> BASIC_ENTITY_DEAFULT_COLUMNS = Lists.newArrayList(
-			ObjectField.id,
-			ObjectField.name,
-			ObjectField.createdOn,
-			ObjectField.createdBy,
-			ObjectField.etag,
-			ObjectField.modifiedOn,
-			ObjectField.modifiedBy
-			);
 
 	@Autowired
 	private TableStatusDAO tableStatusDAO;
@@ -111,6 +79,10 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	private AuthorizationManager authorizationManager;
 	@Autowired
 	private ViewSnapshotDao viewSnapshotDao;
+	@Autowired
+	private MetadataIndexProviderFactory metadataIndexProviderFactory;
+	@Autowired
+	private DefaultColumnModelMapper defaultColumnMapper;
 	
 	/*
 	 * (non-Javadoc)
@@ -344,13 +316,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		}
 	}
 	
-	
-	@Override
-	public Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion) {
-		ViewScopeType viewScopeType = getViewScopeType(idAndVersion);
-		return getAllContainerIdsForViewScope(idAndVersion, viewScopeType);
-	}
-
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.table.TableViewTruthManager#getAllContainerIdsForViewScope(java.lang.String)
@@ -362,6 +327,18 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		Set<Long> scope = viewScopeDao.getViewScope(idAndVersion.getId());
 		return getAllContainerIdsForScope(scope, scopeType);
 	}
+	
+	@Override
+	public Set<Long> getAllContainerIdsForReconciliation(IdAndVersion idAndVersion) {
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+		
+		Long viewId = idAndVersion.getId();
+		
+		ViewScopeType scopeType = viewScopeDao.getViewScopeType(viewId);
+		Set<Long> scope = viewScopeDao.getViewScope(viewId);
+		
+		return getContainerIds(scope, scopeType, true);
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -369,39 +346,38 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 */
 	@Override
 	public Set<Long> getAllContainerIdsForScope(Set<Long> scope, ViewScopeType scopeType) {
-		ValidateArgument.required(scope, "scope");
-		ValidateArgument.required(scopeType, "viewTypeMask");
-		
-		Long viewTypeMask = scopeType.getTypeMask();
-		
-		// Validate the given scope is under the limit.
-		if(scope.size() > MAX_CONTAINERS_PER_VIEW){
-			throw new IllegalArgumentException(createViewOverLimitMessage(viewTypeMask));
-		}
-		
-		if(ViewTypeMask.Project.getMask() == viewTypeMask){
-			return scope;
-		}
-		// Expand the scope to include all sub-folders
-		try {
-			return nodeDao.getAllContainerIds(scope, MAX_CONTAINERS_PER_VIEW);
-		} catch (LimitExceededException e) {
-			// Convert the generic exception to a specific exception.
-			throw new IllegalArgumentException(createViewOverLimitMessage(viewTypeMask));
-		}
+		return getContainerIds(scope, scopeType, false);
 	}
 	
-	/**
-	 * Throw an IllegalArgumentException that indicates the view is over the limit.
-	 * 
-	 * @param viewType
-	 */
-	public String createViewOverLimitMessage(Long viewTypeMask) throws IllegalArgumentException{
-		ValidateArgument.required(viewTypeMask, "viewTypeMask");
-		if(ViewTypeMask.Project.getMask() == viewTypeMask) {
-			return SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW;
-		}else {
-			return SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW;
+	private Set<Long> getContainerIds(Set<Long> scope, ViewScopeType scopeType, boolean forReconciliation) {
+		ValidateArgument.required(scope, "scope");
+		ValidateArgument.required(scopeType, "scopeType");
+		
+		if (scope.isEmpty()) {
+			return Collections.emptySet();
+		}
+		
+		ViewObjectType objectType = scopeType.getObjectType();
+		Long viewTypeMask = scopeType.getTypeMask();
+	
+		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(objectType);
+		
+		// Validate the given scope is under the limit.
+		if(scope.size() > MAX_CONTAINERS_PER_VIEW) {
+			String errorMessage = provider.createViewOverLimitMessage(viewTypeMask, MAX_CONTAINERS_PER_VIEW);
+			throw new IllegalArgumentException(errorMessage);
+		}
+		
+		try {
+			if (forReconciliation) {
+				return provider.getContainerIdsForReconciliation(scope, viewTypeMask, MAX_CONTAINERS_PER_VIEW);
+			} else {
+				return provider.getContainerIdsForScope(scope, viewTypeMask, MAX_CONTAINERS_PER_VIEW);
+			}
+		} catch (LimitExceededException e) {
+			// Convert the generic exception to a specific exception.
+			String errorMessage = provider.createViewOverLimitMessage(viewTypeMask, MAX_CONTAINERS_PER_VIEW);
+			throw new IllegalArgumentException(errorMessage);
 		}
 	}
 	
@@ -478,21 +454,14 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		authorizationManager.canAccess(userInfo, idAndVersion.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)
 				.checkAuthorizationOrElseThrow();
 	}
-	
-	@Override
-	public ColumnModel getColumnModel(ObjectField field){
-		ValidateArgument.required(field, "field");
-		/*
-		 * We no longer cache these columns in memory.  Caching has caused
-		 * numerous issues such as PLFM-5249 and PLFM-5902.
-		 */
-		return columnModelManager.createColumnModel(field.getColumnModel());
-	}
 
 	@Override
-	public Set<Long> getAccessibleBenefactors(UserInfo user,
-			Set<Long> benefactorIds) {
-		return authorizationManager.getAccessibleBenefactors(user, benefactorIds);
+	public Set<Long> getAccessibleBenefactors(UserInfo user, ViewScopeType scopeType, Set<Long> benefactorIds) {
+		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(scopeType.getObjectType());
+		
+		ObjectType benefactorType = provider.getBenefactorObjectType();
+		
+		return authorizationManager.getAccessibleBenefactors(user, benefactorType, benefactorIds);
 	}
 
 	@Override
@@ -506,28 +475,23 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	@Override
-	public List<ColumnModel> getDefaultTableViewColumns(Long viewTypeMaks) {
-		ValidateArgument.required(viewTypeMaks, "viewTypeMaks");
-		if((viewTypeMaks & ViewTypeMask.File.getMask())> 0) {
-			// mask includes files so return file columns.
-			return getColumnModels(FILE_VIEW_DEFAULT_COLUMNS);
-		}else {
-			// mask does not include files so return basic entity columns.
-			return getColumnModels(BASIC_ENTITY_DEAFULT_COLUMNS);
+	public List<ColumnModel> getDefaultTableViewColumns(ViewScopeType viewScopeType) {
+		ValidateArgument.required(viewScopeType, "viewScopeType");
+		ValidateArgument.required(viewScopeType.getTypeMask(), "viewScopeType.typeMask");
+		
+		Long viewTypeMask = viewScopeType.getTypeMask();
+		ViewObjectType objectType = viewScopeType.getObjectType();
+		
+		if (objectType == null) {
+			// To avoid breaking API changes we fallback to ENTITY
+			objectType = ViewObjectType.ENTITY;
 		}
-	}
-	
-	/**
-	 * Get the ColumnModels for the given entity fields.
-	 * @param fields
-	 * @return
-	 */
-	public List<ColumnModel> getColumnModels(List<ObjectField> fields){
-		List<ColumnModel> results = new LinkedList<ColumnModel>();
-		for(ObjectField field: fields){
-			results.add(getColumnModel(field));
-		}
-		return results;
+		
+		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(objectType);
+		
+		DefaultColumnModel defaultColumns = provider.getDefaultColumnModel(viewTypeMask);
+		
+		return defaultColumnMapper.map(defaultColumns);
 	}
 
 	@WriteTransaction

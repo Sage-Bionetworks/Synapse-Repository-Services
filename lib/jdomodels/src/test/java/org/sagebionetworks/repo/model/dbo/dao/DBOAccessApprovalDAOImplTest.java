@@ -292,6 +292,15 @@ public class DBOAccessApprovalDAOImplTest {
 	public void testRevokeAccessApprovalsWithExistingAccessApproval() {
 		accessApproval = newAccessApproval(individualGroup, accessRequirement);
 		accessApproval = accessApprovalDAO.create(accessApproval);
+
+		// check that there are no unmet access requirements
+		assertTrue(accessRequirementDAO.getAllUnmetAccessRequirements(
+			Collections.singletonList(KeyFactory.stringToKey(node.getId())), 
+			RestrictableObjectType.ENTITY, 
+			Collections.singletonList(Long.parseLong(individualGroup.getId())), 
+			downloadAccessType).isEmpty()
+		);
+
 		accessApprovalDAO.revokeAll(accessRequirement.getId().toString(), individualGroup.getId(), individualGroup2.getId());
 		AccessApproval approval = accessApprovalDAO.get(accessApproval.getId().toString());
 		assertNotNull(approval);
@@ -303,6 +312,17 @@ public class DBOAccessApprovalDAOImplTest {
 		assertTrue(accessApprovalDAO.hasApprovalsSubmittedBy(
 				Sets.newHashSet(individualGroup.getId().toString()),
 				individualGroup.getId(), accessRequirement.getId().toString()));
+		
+		// now there is one unmet access requirement (the one that was revoked)
+		assertEquals(
+			Collections.singletonList(accessApproval.getRequirementId()), 
+			accessRequirementDAO.getAllUnmetAccessRequirements(
+				Collections.singletonList(KeyFactory.stringToKey(node.getId())), 
+				RestrictableObjectType.ENTITY, 
+				Collections.singletonList(Long.parseLong(individualGroup.getId())), 
+				downloadAccessType
+			)
+		);		
 	}
 
 	@Test
@@ -338,6 +358,14 @@ public class DBOAccessApprovalDAOImplTest {
 				accessApproval2.getAccessorId());
 		accessApproval2.setEtag(updated2.getEtag());
 		assertEquals(accessApproval2, updated2);
+		
+		// check that there are no unmet access requirements
+		assertTrue(accessRequirementDAO.getAllUnmetAccessRequirements(
+			Collections.singletonList(KeyFactory.stringToKey(node.getId())), 
+			RestrictableObjectType.ENTITY, 
+			Collections.singletonList(Long.parseLong(individualGroup.getId())), 
+			downloadAccessType).isEmpty()
+		);
 
 		// revoke
 		accessApproval.setState(ApprovalState.REVOKED);
@@ -352,6 +380,17 @@ public class DBOAccessApprovalDAOImplTest {
 				accessApproval.getSubmitterId(),
 				accessApproval.getAccessorId());
 		assertEquals(ApprovalState.REVOKED, updated.getState());
+		
+		// now there is one unmet access requirement (the one that was revoked)
+		assertEquals(
+			Collections.singletonList(accessApproval.getRequirementId()), 
+			accessRequirementDAO.getAllUnmetAccessRequirements(
+				Collections.singletonList(KeyFactory.stringToKey(node.getId())), 
+				RestrictableObjectType.ENTITY, 
+				Collections.singletonList(Long.parseLong(individualGroup.getId())), 
+				downloadAccessType
+			)
+		);
 
 		// renew
 		Date newExpirationDate = new Date();
@@ -396,6 +435,14 @@ public class DBOAccessApprovalDAOImplTest {
 		assertTrue(group.getAccessorIds().contains(individualGroup2.getId()));
 		assertEquals(new Date(DBOAccessApprovalDAOImpl.DEFAULT_NOT_EXPIRED), group.getExpiredOn());
 
+		// check that there are no unmet access requirements
+		assertTrue(accessRequirementDAO.getAllUnmetAccessRequirements(
+			Collections.singletonList(KeyFactory.stringToKey(node.getId())), 
+			RestrictableObjectType.ENTITY, 
+			Collections.singletonList(Long.parseLong(individualGroup.getId())), 
+			downloadAccessType).isEmpty()
+		);
+
 		// revoke the group
 		accessApprovalDAO.revokeGroup(accessRequirement.getId().toString(), individualGroup.getId(), individualGroup2.getId());
 		result = accessApprovalDAO.listAccessorGroup(accessRequirement.getId().toString(),
@@ -415,6 +462,17 @@ public class DBOAccessApprovalDAOImplTest {
 		assertNotNull(approval2);
 		assertEquals(ApprovalState.REVOKED, approval2.getState());
 		assertEquals(individualGroup2.getId(), approval2.getModifiedBy());
+		
+		// now there is one unmet access requirement (the one that was revoked)
+		assertEquals(
+			Collections.singletonList(accessApproval.getRequirementId()), 
+			accessRequirementDAO.getAllUnmetAccessRequirements(
+				Collections.singletonList(KeyFactory.stringToKey(node.getId())), 
+				RestrictableObjectType.ENTITY, 
+				Collections.singletonList(Long.parseLong(individualGroup.getId())), 
+				downloadAccessType
+			)
+		);
 	}
 
 	@Test

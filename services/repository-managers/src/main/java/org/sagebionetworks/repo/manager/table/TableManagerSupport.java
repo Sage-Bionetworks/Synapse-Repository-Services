@@ -15,7 +15,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
@@ -190,19 +189,6 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	Long getViewStateNumber(IdAndVersion table);
-	
-	/**
-	 * Get the set of container ids (Projects and Folders) for a view's scope.
-	 * The resulting set will include the scope containers plus all folders
-	 * contained within each scope.
-	 * 
-	 * All FileEntities within the the given view will have a parentId from the
-	 * returned set.
-	 * 
-	 * @param idAndVersion
-	 * @return
-	 */
-	Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion);
 
 	/**
 	 * Get the set of container ids (Projects and Folders) for a view's scope.
@@ -228,6 +214,8 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	Set<Long> getAllContainerIdsForScope(Set<Long> scope, ViewScopeType scopeType);
+	
+	Set<Long> getAllContainerIdsForReconciliation(IdAndVersion idAndVersion);
 
 
 	/**
@@ -345,25 +333,16 @@ public interface TableManagerSupport {
 	 * @param benefactorIds
 	 * @return
 	 */
-	Set<Long> getAccessibleBenefactors(UserInfo user,
-			Set<Long> benefactorIds);
+	Set<Long> getAccessibleBenefactors(UserInfo user, ViewScopeType scopeType, Set<Long> benefactorIds);
 
 	/**
-	 * Get the ColumnModel for a given EntityField.
+	 * Get the default ColumnModels for a view based on the object type and the viewTypeMask.
 	 * 
-	 * @param field
-	 * @return
-	 */
-	ColumnModel getColumnModel(ObjectField field);
-
-	/**
-	 * Get the default ColumnModels for a view based on the viewTypeMask.
-	 * 
-	 * @param viewTypeMask Bit mask of the types included in the view.
+	 * @param scopeType
 	 * 
 	 * @return
 	 */
-	List<ColumnModel> getDefaultTableViewColumns(Long viewTypeMask);
+	List<ColumnModel> getDefaultTableViewColumns(ViewScopeType scopeType);
 
 	/**
 	 * Get the entity type for the given table.
