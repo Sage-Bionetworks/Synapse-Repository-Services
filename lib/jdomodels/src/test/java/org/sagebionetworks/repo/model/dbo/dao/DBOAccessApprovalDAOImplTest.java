@@ -67,8 +67,6 @@ public class DBOAccessApprovalDAOImplTest {
 	private List<ACCESS_TYPE> downloadAccessType=null;
 	private List<ACCESS_TYPE> updateAccessType=null;
 	
-	private static final Long USER_ID = 8888L;
-
 	@Before
 	public void setUp() throws Exception {
 
@@ -162,16 +160,14 @@ public class DBOAccessApprovalDAOImplTest {
 	@Test
 	public void testCRUD() throws Exception {
 		// first of all, we should see the unmet requirement
-		List<Long> unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(
-				Collections.singletonList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY, 
+		List<Long> unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY, 
 				Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), downloadAccessType);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement.getId(), unmetARIds.iterator().next());
 		// while we're at it, check the edge cases:
 		// same result for ficticious principal ID
-		unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(
-				Collections.singletonList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY, 
-				Arrays.asList(new Long[]{USER_ID}), downloadAccessType);
+		unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY, 
+				Arrays.asList(new Long[]{8888L}), downloadAccessType);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement.getId(), unmetARIds.iterator().next());
 		Set<String> arSet = new HashSet<String>();
@@ -228,7 +224,7 @@ public class DBOAccessApprovalDAOImplTest {
 		
 		// ... but for a different (ficticious) user, the requirement isn't met...
 		unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY, 
-				Arrays.asList(new Long[]{USER_ID}), downloadAccessType);
+				Arrays.asList(new Long[]{8888L}), downloadAccessType);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement.getId(), unmetARIds.iterator().next());
 		// ... and it's still unmet for the second node
@@ -264,20 +260,6 @@ public class DBOAccessApprovalDAOImplTest {
 				accessRequirement.getId().toString(), individualGroup.getId().toString());
 		assertEquals(1, ars.size());
 		assertEquals(accessApproval2, ars.get(0));
-		
-		// revoke it
-		accessApprovalDAO.revokeBySubmitter(accessRequirement.getId().toString(), USER_ID.toString(), 
-				Collections.singletonList(USER_ID.toString()), USER_ID.toString());
-		
-		// now the "unmet" list includes it again
-		assertEquals(
-			Collections.singletonList(accessRequirement.getId()),
-			accessRequirementDAO.getAllUnmetAccessRequirements(
-				Collections.singletonList(KeyFactory.stringToKey(node.getId())), 
-				RestrictableObjectType.ENTITY, 
-				Collections.singletonList(USER_ID), 
-				downloadAccessType)
-		);
 
 		// Delete it
 		accessApprovalDAO.delete(id);
