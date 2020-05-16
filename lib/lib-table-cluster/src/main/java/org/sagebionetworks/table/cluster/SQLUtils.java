@@ -2005,20 +2005,5 @@ public class SQLUtils {
 		}
 		return OBJECT_REPLICATION_COL_PARENT_ID;
 	}
-	
-	public static String getViewScopeSubTypeFilter(ViewScopeFilter scopeFilter) {
-		List<String> subTypes = scopeFilter.getSubTypes();
-		
-		StringBuilder builder = new StringBuilder();
-		
-		builder.append(OBJECT_REPLICATION_ALIAS);
-		builder.append(".");
-		builder.append(TableConstants.OBJECT_REPLICATION_COL_SUBTYPE);
-		builder.append(" IN (");
-		builder.append(TableConstants.joinStringForSQL(subTypes.stream()));
-		builder.append(")");
-		
-		return builder.toString();
-	}
 
 }
