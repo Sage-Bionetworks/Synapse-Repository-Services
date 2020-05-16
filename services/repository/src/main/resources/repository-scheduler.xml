@@ -9,6 +9,17 @@
        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
 	<aop:aspectj-autoproxy />
+	
+	<util:list id="repositoryTriggerslist">
+		<ref bean="repoLogSweeperTrigger" />
+		<ref bean="cloudwatchTrigger" />
+		<ref bean="accessRecorderTrigger" />
+		<ref bean="messagePublisherTrigger" />
+		<ref bean="throttleRulesCacheTrigger" />
+		<ref bean="objectRecordQueueTrigger" />
+		<ref bean="memoryLoggerTrigger" />
+		<ref bean="eventsQueueTrigger" />
+	</util:list>
 
 	<!-- This is a shared scheduler-->
 	<bean id="repoScheduler" class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
@@ -17,18 +28,7 @@
 				<prop key="org.quartz.threadPool.threadCount">10</prop>
 			</props>
 		</property>
-		<property name="triggers">
-			<list>
-	           	<ref bean="repoLogSweeperTrigger" />
-				<ref bean="cloudwatchTrigger" />
-				<ref bean="accessRecorderTrigger" />
-				<ref bean="messagePublisherTrigger" />
-				<ref bean="throttleRulesCacheTrigger" />
-				<ref bean="objectRecordQueueTrigger" />
-				<ref bean="memoryLoggerTrigger" />
-				<ref bean="eventsQueueTrigger" />
-			</list>
-		</property>
+		<property name="triggers" ref="repositoryTriggerslist"/>
 	</bean>
 
 </beans>
