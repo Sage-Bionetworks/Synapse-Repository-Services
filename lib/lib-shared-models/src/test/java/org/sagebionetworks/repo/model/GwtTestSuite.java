@@ -60,25 +60,6 @@ public class GwtTestSuite extends GWTTestCase {
 		assertEquals(annos, clone);		
 	}
 	
-	/**
-	 * Test that extra fields are preserved.
-	 * 
-	 * @throws JSONObjectAdapterException
-	 */
-	@Test
-	public void testExtraFields() throws JSONObjectAdapterException {
-		GwtAdapterFactory factory = new GwtAdapterFactory();
-		JSONObjectAdapter adapter = factory.createNew();
-		adapter.put("junk", "junkValue");
-		adapter.put("name", "columnName");
-		ColumnModel cm = new ColumnModel(adapter);
-		
-		JSONObjectAdapter cloneAdapter = factory.createNew();
-		cm.writeToJSONObject(cloneAdapter);
-		assertEquals("columnName", cloneAdapter.get("name"));
-		assertEquals("junkValue", cloneAdapter.get("junk"));
-	}
-	
 	@Test
 	public void testEntityBundleRoundTrip() throws JSONObjectAdapterException {
 		EntityBundle entityBundle = EntityBundleTest.createDummyEntityBundle();
