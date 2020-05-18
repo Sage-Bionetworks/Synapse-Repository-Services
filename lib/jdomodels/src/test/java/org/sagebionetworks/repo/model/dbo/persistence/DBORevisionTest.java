@@ -1,17 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -26,15 +19,9 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.annotation.v2.Annotations;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
-import org.sagebionetworks.repo.model.annotation.v2.TEMPORARYMigrationAnnotations;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
@@ -116,41 +103,6 @@ public class DBORevisionTest {
 		// Fetch the updated
 		DBORevision updatedClone = dboBasicDao.getObjectByPrimaryKey(DBORevision.class, params);
 		assertEquals(clone, updatedClone);
-	}
-
-	@Test
-	public void testUserAnnotationTranslator() throws IOException, JSONObjectAdapterException {
-		//create a new DBORevision just to get the translator. Since getTranslator is not static, this ensures that
-		// the translator is modifying passed in params instead of the fields of the DBORevision object that created it
-		MigratableTableTranslation<DBORevision,DBORevision> translator = new DBORevision().getTranslator();
-
-
-		TEMPORARYMigrationAnnotations migrationAnnotations = new TEMPORARYMigrationAnnotations();
-		migrationAnnotations.setAnnotations(new HashMap<>());
-		AnnotationsValue val1 = new AnnotationsValue();
-		val1.setType(AnnotationsValueType.DOUBLE);
-		val1.setValue(Collections.singletonList("1.2"));
-		migrationAnnotations.getAnnotations().put("anno1", val1);
-
-		DBORevision revision = new DBORevision();
-
-		String originalJSON = EntityFactory.createJSONStringForEntity(migrationAnnotations);
-		revision.setUserAnnotationsJSON(originalJSON);
-
-
-		DBORevision modified = translator.createDatabaseObjectFromBackup(revision);
-		String modifiedJSON = modified.getUserAnnotationsJSON();
-
-		assertNotEquals(originalJSON, modifiedJSON);
-		//should be same reference as translator only modified fields
-		assertSame(revision, modified);
-		assertNull(modified.getUserAnnotationsV1());
-
-		assertNull(modified.getUserAnnotationsV1());
-		assertNotNull(modified.getUserAnnotationsJSON());
-
-		Annotations newJsonFormatAnnotations = EntityFactory.createEntityFromJSONString(modified.getUserAnnotationsJSON(), Annotations.class);
-		assertEquals(migrationAnnotations.getAnnotations(), newJsonFormatAnnotations.getAnnotations());
 	}
 
 	@Test
