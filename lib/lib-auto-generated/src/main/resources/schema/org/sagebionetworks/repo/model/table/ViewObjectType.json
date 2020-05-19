@@ -7,7 +7,7 @@
             "description": "Used for views on entities"
         },
         {
-            "name": "EVALUATION_SUBMISSIONS",
+            "name": "SUBMISSION",
             "description": "Used for views on evaluation submissions"
         }
     ]

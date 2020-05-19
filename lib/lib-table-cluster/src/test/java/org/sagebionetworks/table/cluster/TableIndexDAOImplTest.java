@@ -110,7 +110,7 @@ public class TableIndexDAOImplTest {
 	@BeforeEach
 	public void before() {
 		objectType = ViewObjectType.ENTITY;
-		otherObjectType = ViewObjectType.EVALUATION_SUBMISSIONS;
+		otherObjectType = ViewObjectType.SUBMISSION;
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 		tableId = IdAndVersion.parse("syn123");
 		// First get a connection for this table
