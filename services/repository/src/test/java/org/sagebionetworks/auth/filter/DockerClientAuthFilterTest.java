@@ -118,14 +118,11 @@ public class DockerClientAuthFilterTest {
 		verify(mockAuthenticationService, never()).lookupUserForAuthentication(anyString());
 		verify(mockFilterChain, never()).doFilter(any(HttpServletRequest.class), eq(mockResponse));
 		verify(mockPrintWriter).println("{\"reason\":\"Invalid credentials.\"}");
-		verify(mockAuthenticationService, never()).hasUserAcceptedTermsOfUse(anyLong());
 	}
 
 	@Test
 	public void testDoFilterWithNotFoundUsername() throws Exception {
 		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
-		when(mockRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
-		when(mockRequest.getHeaders(AUTHORIZATION_HEADER_NAME)).thenReturn(Collections.enumeration(Collections.singleton(header)));
 		when(mockRequest.getHeader(AUTHORIZATION_HEADER_NAME)).thenReturn(header);
 		when(mockOidcManager.getUserId(PASSWORD)).thenThrow(new IllegalArgumentException()); // not an access token
 		LoginRequest loginCred = new LoginRequest();
@@ -137,12 +134,11 @@ public class DockerClientAuthFilterTest {
 		// method under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
-		verify(mockOidcManager, times(2)).getUserId(PASSWORD);
+		verify(mockOidcManager).getUserId(PASSWORD);
 		verify(mockAuthenticationService).login(loginCred);
 		verify(mockAuthenticationService).lookupUserForAuthentication(USERNAME);
 		verify(mockFilterChain, never()).doFilter(any(HttpServletRequest.class), eq(mockResponse));
 		verify(mockPrintWriter).println("{\"reason\":\"Invalid credentials.\"}");
-		verify(mockAuthenticationService, never()).hasUserAcceptedTermsOfUse(anyLong());
 	}
 
 	@Test
@@ -158,16 +154,14 @@ public class DockerClientAuthFilterTest {
 		loginCred.setPassword(PASSWORD);
 		when(mockAuthenticationService.lookupUserForAuthentication(USERNAME))
 				.thenReturn(mockPrincipalAlias);
-		when(mockAuthenticationService.hasUserAcceptedTermsOfUse(USERID)).thenReturn(true);
 		when(mockPrincipalAlias.getPrincipalId()).thenReturn(USERID);
 
 		// method under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
-		verify(mockOidcManager, times(2)).getUserId(PASSWORD);
+		verify(mockOidcManager).getUserId(PASSWORD);
 		verify(mockAuthenticationService).login(loginCred);
 		verify(mockAuthenticationService).lookupUserForAuthentication(anyString());
-		verify(mockAuthenticationService).hasUserAcceptedTermsOfUse(anyLong());
 		ArgumentCaptor<HttpServletRequest> requestCaptor = ArgumentCaptor.forClass(HttpServletRequest.class);
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), eq(mockResponse));
 		HttpServletRequest request = requestCaptor.getValue();
@@ -182,14 +176,12 @@ public class DockerClientAuthFilterTest {
 		when(mockRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
 		when(mockRequest.getHeaders(AUTHORIZATION_HEADER_NAME)).thenReturn(Collections.enumeration(Collections.singleton(header)));
 		when(mockOidcManager.getUserId(PASSWORD)).thenReturn(USERID.toString());
-		when(mockAuthenticationService.hasUserAcceptedTermsOfUse(USERID)).thenReturn(true);
 
 		// method under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
 		verify(mockAuthenticationService, never()).login(any());
-		verify(mockOidcManager, times(2)).getUserId(PASSWORD);
-		verify(mockAuthenticationService).hasUserAcceptedTermsOfUse(USERID);
+		verify(mockOidcManager).getUserId(PASSWORD);
 		
 		ArgumentCaptor<HttpServletRequest> requestCaptor = ArgumentCaptor.forClass(HttpServletRequest.class);
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), eq(mockResponse));
@@ -198,26 +190,6 @@ public class DockerClientAuthFilterTest {
 		assertEquals(request.getParameter(AuthorizationConstants.USER_ID_PARAM), USERID.toString());
 		assertEquals("Bearer "+PASSWORD, request.getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME));
 	}
-	
-	@Test
-	public void testHasntAcceptedTermsOfUse() throws Exception {
-		when(mockRequest.getHeader(AUTHORIZATION_HEADER_NAME)).thenReturn(header);
-		when(mockRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
-		when(mockRequest.getHeaders(AUTHORIZATION_HEADER_NAME)).thenReturn(Collections.enumeration(Collections.singleton(header)));
-		when(mockOidcManager.getUserId(PASSWORD)).thenReturn(USERID.toString());
-		when(mockAuthenticationService.hasUserAcceptedTermsOfUse(USERID)).thenReturn(false);
-		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
 
-		// method under test
-		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
-		
-		verify(mockPrintWriter).println("{\"reason\":\"Terms of use have not been signed.\"}");
-
-		verify(mockAuthenticationService, never()).login(any());
-		verify(mockOidcManager, times(2)).getUserId(PASSWORD);
-		verify(mockAuthenticationService).hasUserAcceptedTermsOfUse(USERID);
-		
-		verify(mockFilterChain, never()).doFilter(any(), any());
-	}
 
 }

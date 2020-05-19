@@ -1,16 +1,21 @@
 package org.sagebionetworks;
-import static org.junit.Assert.assertNotNull;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.HashSet;
 import java.util.Set;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -28,7 +33,7 @@ public class IT960TermsOfUse {
 	private static Project project;
 	private static FileEntity dataset;
 	
-	@BeforeClass 
+	@BeforeAll
 	public static void beforeClass() throws Exception {
 		// Create a user
 		adminSynapse = new SynapseAdminClientImpl();
@@ -70,7 +75,12 @@ public class IT960TermsOfUse {
 		dataset = adminSynapse.createEntity(dataset);
 	}
 	
-	@AfterClass
+	@BeforeEach
+	public void before() throws Exception {
+		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), true);
+	}
+	
+	@AfterAll
 	public static void afterClass() throws Exception {
 		adminSynapse.deleteEntity(project);
 		adminSynapse.deleteUser(userToDelete);
@@ -94,6 +104,18 @@ public class IT960TermsOfUse {
 		ds = adminSynapse.getEntity(idHolder.getId(), FileEntity.class);
 		assertNotNull(synapse.getFileEntityTemporaryUrlForCurrentVersion(idHolder.getId()));
 
+	}
+	
+	@Test
+	public void testRejectSynapseTermsOfUse() throws SynapseException, Exception {
+		// I can download a data file because I have agreed to the Synapse terms of use
+		assertNotNull(synapse.getFileEntityTemporaryUrlForCurrentVersion(dataset.getId()));
+		
+		// method under test
+		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), false);
+		
+		// I cannot download the file because I have rejected the TOU
+		assertThrows(SynapseForbiddenException.class, () -> synapse.getFileEntityTemporaryUrlForCurrentVersion(dataset.getId()));
 	}
 	
 

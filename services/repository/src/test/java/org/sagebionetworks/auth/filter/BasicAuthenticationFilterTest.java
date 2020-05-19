@@ -2,19 +2,24 @@ package org.sagebionetworks.auth.filter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -83,7 +88,8 @@ public class BasicAuthenticationFilterTest {
 		// Call under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
-		verify(mockFilterChain).doFilter(mockRequest, mockResponse);
+		verify(filter).validateCredentialsAndDoFilterInternal(
+				eq(mockRequest), eq(mockResponse), eq(mockFilterChain), eq(Optional.empty()));
 	}
 	
 	@Test
@@ -119,30 +125,15 @@ public class BasicAuthenticationFilterTest {
 	}
 	
 	@Test
-	public void testDoFilterWithInvalidCredentials() throws Exception {
-		
-		when(mockRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Basic " + ENCODED);
-		when(filter.credentialsRequired()).thenReturn(true);
-		when(filter.validCredentials(any())).thenReturn(false);
-		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
-		
-		// Call under test
-		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
-		
-		verifyRejectRequest("{\"reason\":\"Invalid credentials.\"}");
-	}
-	
-	@Test
 	public void testDoFilterWithValidCredentials() throws Exception {
 		
 		when(mockRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Basic " + ENCODED);
 		when(filter.credentialsRequired()).thenReturn(true);
-		when(filter.validCredentials(any())).thenReturn(true);
 		
 		// Call under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 
-		verify(mockFilterChain).doFilter(mockRequest, mockResponse);
+		verify(filter).validateCredentialsAndDoFilterInternal(eq(mockRequest), eq(mockResponse), eq(mockFilterChain), any());
 	}
 	
 	@Test
@@ -234,11 +225,11 @@ public class BasicAuthenticationFilterTest {
 		
 	}
 	
-	private void verifyRejectRequest(String message) {
+	private void verifyRejectRequest(String message) throws IOException, ServletException {
 		verify(filter).reportBadCredentialsMetric();
 		verify(mockResponse).setStatus(HttpStatus.SC_UNAUTHORIZED);
 		verify(mockPrintWriter).println(message);
-		verifyZeroInteractions(mockFilterChain);
+		verify(filter, never()).validateCredentialsAndDoFilterInternal(eq(mockRequest), eq(mockResponse), eq(mockFilterChain), any());
 	}
 	
 }

@@ -34,7 +34,6 @@ import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.util.ThreadLocalProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 /**
@@ -128,14 +127,6 @@ public class AuthenticationFilter implements Filter {
 		
 		// there are multiple paths to this point, but all require creating a userId
 		ValidateArgument.required(userId, "userId");
-
-		// If the user is not anonymous, check if they have accepted the terms of use
-		if (!BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(userId)) {
-			if (!authenticationService.hasUserAcceptedTermsOfUse(userId)) {
-				HttpAuthUtil.reject((HttpServletResponse) servletResponse, HttpAuthUtil.TOU_UNSIGNED_REASON, HttpStatus.FORBIDDEN);
-				return;
-			}
-		}
 
 		// Put the userId on thread local, so this thread always knows who is calling
 		currentUserIdThreadLocal.set(userId);
