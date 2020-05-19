@@ -1,20 +1,21 @@
 package org.sagebionetworks.evaluation.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -26,6 +27,10 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
@@ -35,9 +40,9 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class SubmissionStatusDAOImplTest {
  
@@ -61,7 +66,7 @@ public class SubmissionStatusDAOImplTest {
     private static final int NUMBER_OF_EVALUATIONS = 2;
     private static final int NUMBER_OF_SUBMISSIONS = 2;
     
-    @Before
+    @BeforeEach
     public void setUp() throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException {
     	evalIds = new ArrayList<String>();
     	submissionIds = new ArrayList<String>();
@@ -130,7 +135,7 @@ public class SubmissionStatusDAOImplTest {
     	return submission;
     }
     
-    @After
+    @AfterEach
     public void after() throws DatastoreException {
     	try {
     		nodeDAO.delete(nodeId);
@@ -176,6 +181,13 @@ public class SubmissionStatusDAOImplTest {
             assertEquals(new Long(0L), clone.getStatusVersion());
             status.setModifiedOn(clone.getModifiedOn());
             status.setEtag(clone.getEtag());
+
+            if (status.getSubmissionAnnotations() != null) {
+            	Annotations anno = status.getSubmissionAnnotations();
+            	anno.setId(clone.getId());
+            	anno.setEtag(clone.getEtag());
+            }
+            
             assertEquals(status, clone);
             clones.add(clone);
     	}
@@ -245,27 +257,38 @@ public class SubmissionStatusDAOImplTest {
     			);
     }
     
-    @Test(expected=IllegalArgumentException.class)
+    @Test
     public void testGetEvaluationsForBatchMultipleEvals() throws Exception {
         long initialCount = submissionStatusDAO.getCount();
     	List<SubmissionStatus> clones = createStatusesForSubmissions(initialCount);
     	clones.add(createStatus(rogueSubmissionId));
-    	submissionStatusDAO.getEvaluationIdForBatch(clones);
+    	IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+    		submissionStatusDAO.getEvaluationIdForBatch(clones);
+    	});
+		assertEquals("Submission batch must be for a single Evaluation queue.", ex.getMessage());
     }
     
-    @Test(expected=IllegalArgumentException.class)
+    @Test
     public void testGetEvaluationsForBatchEmptyList() throws Exception {
-		submissionStatusDAO.getEvaluationIdForBatch(new ArrayList<SubmissionStatus>());    	
+		IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			submissionStatusDAO.getEvaluationIdForBatch(new ArrayList<SubmissionStatus>());
+		});
+		assertEquals("SubmissionStatus batch has no Submission Ids.", ex.getMessage());
     }
     
     // note: this updates 'orig', so the caller shouldn't use 'orig' after passing it to this method
     private static void compare(SubmissionStatus orig, SubmissionStatus retrieved) {
-        assertFalse("eTag was not updated.", orig.getEtag().equals(retrieved.getEtag()));
-        assertEquals("status-version was not updated.", new Long(orig.getStatusVersion()+1L), retrieved.getStatusVersion());
-        assertFalse("Modified date was not updated", orig.getModifiedOn().equals(retrieved.getModifiedOn()));
+        assertFalse(orig.getEtag().equals(retrieved.getEtag()), "eTag was not updated.");
+        assertEquals(new Long(orig.getStatusVersion()+1L), retrieved.getStatusVersion(), "status-version was not updated.");
+        assertFalse(orig.getModifiedOn().equals(retrieved.getModifiedOn()), "Modified date was not updated");
+        if (retrieved.getSubmissionAnnotations() != null) {
+        	assertEquals(retrieved.getId(), retrieved.getSubmissionAnnotations().getId());
+        	assertEquals(retrieved.getEtag(), retrieved.getSubmissionAnnotations().getEtag());
+        }
         orig.setModifiedOn(retrieved.getModifiedOn());
         orig.setEtag(retrieved.getEtag());
         orig.setStatusVersion(retrieved.getStatusVersion());
+        orig.setSubmissionAnnotations(retrieved.getSubmissionAnnotations());
         assertEquals(orig, retrieved);
     }
     
@@ -285,11 +308,43 @@ public class SubmissionStatusDAOImplTest {
     	subStatusDTO.setStatusVersion(5L);
     	subStatusDTO.setCanCancel(true);
     	subStatusDTO.setCancelRequested(false);
+    	
+    	Annotations annotations = AnnotationsV2Utils.emptyAnnotations();
+    	AnnotationsV2TestUtils.putAnnotations(annotations, "myKey", "myValue", AnnotationsValueType.DOUBLE);
+    	annotations.setId(subStatusDTO.getId());
+    	annotations.setEtag(subStatusDTO.getEtag());
+    	
+    	subStatusDTO.setSubmissionAnnotations(annotations);
     	    	
     	subStatusDBO = SubmissionUtils.convertDtoToDbo(subStatusDTO);
     	subStatusDTOclone = SubmissionUtils.convertDboToDto(subStatusDBO);
     	subStatusDBOclone = SubmissionUtils.convertDtoToDbo(subStatusDTOclone);
     	
+    	assertEquals(subStatusDTO, subStatusDTOclone);
+    	assertEquals(subStatusDBO, subStatusDBOclone);
+    }
+    
+    @Test
+    public void testDtoToDboWithEmptySubmissionAnnotations() {
+    	SubmissionStatus subStatusDTO = new SubmissionStatus();
+    	SubmissionStatus subStatusDTOclone = new SubmissionStatus();
+    	SubmissionStatusDBO subStatusDBO = new SubmissionStatusDBO();
+    	SubmissionStatusDBO subStatusDBOclone = new SubmissionStatusDBO();
+    	
+    	subStatusDTO.setEtag("eTag");
+    	subStatusDTO.setId("123");
+    	subStatusDTO.setModifiedOn(new Date());
+    	subStatusDTO.setScore(0.42);
+    	subStatusDTO.setStatus(SubmissionStatusEnum.SCORED);
+    	subStatusDTO.setReport("lorem ipsum");
+    	subStatusDTO.setStatusVersion(5L);
+    	subStatusDTO.setCanCancel(true);
+    	subStatusDTO.setCancelRequested(false);
+    	
+    	subStatusDBO = SubmissionUtils.convertDtoToDbo(subStatusDTO);
+    	subStatusDTOclone = SubmissionUtils.convertDboToDto(subStatusDBO);
+    	subStatusDBOclone = SubmissionUtils.convertDtoToDbo(subStatusDTOclone);
+    	    	
     	assertEquals(subStatusDTO, subStatusDTOclone);
     	assertEquals(subStatusDBO, subStatusDBOclone);
     }

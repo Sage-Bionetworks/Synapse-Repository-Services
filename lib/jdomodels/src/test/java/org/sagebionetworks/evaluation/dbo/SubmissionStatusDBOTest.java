@@ -1,13 +1,14 @@
 package org.sagebionetworks.evaluation.dbo;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.ids.IdGenerator;
@@ -22,9 +23,9 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class SubmissionStatusDBOTest {
  
@@ -43,7 +44,7 @@ public class SubmissionStatusDBOTest {
     private String name = "test submission";
     private String eTag = "foo";
     
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
     	userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
     	
@@ -76,7 +77,7 @@ public class SubmissionStatusDBOTest {
         dboBasicDao.createNew(submission);
     }
     
-    @After
+    @AfterEach
     public void after() throws DatastoreException {
         if(dboBasicDao != null) {            
             // delete submission
@@ -104,6 +105,7 @@ public class SubmissionStatusDBOTest {
         status.setStatusEnum(SubmissionStatusEnum.RECEIVED);
         status.setScore(0.0);
         status.setSerializedEntity("foo".getBytes());
+        status.setAnnotations("{}");
         
         // Create it
         SubmissionStatusDBO clone = dboBasicDao.createNew(status);
@@ -125,7 +127,7 @@ public class SubmissionStatusDBOTest {
 
     	// Delete it
         boolean result = dboBasicDao.deleteObjectByPrimaryKey(SubmissionStatusDBO.class,  params);
-        assertTrue("Failed to delete the entry created", result); 
+        assertTrue(result, "Failed to delete the entry created"); 
     }
     
     // PLFM-3751
@@ -153,7 +155,7 @@ public class SubmissionStatusDBOTest {
         
     	// Delete it
         boolean result = dboBasicDao.deleteObjectByPrimaryKey(SubmissionStatusDBO.class,  params);
-        assertTrue("Failed to delete the entry created", result); 
+        assertTrue(result, "Failed to delete the entry created"); 
     }
  
 }

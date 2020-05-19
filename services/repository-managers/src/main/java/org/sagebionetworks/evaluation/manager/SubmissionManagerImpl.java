@@ -32,7 +32,6 @@ import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.EmailUtils;
-import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
@@ -43,10 +42,10 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DockerCommitDao;
 import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -57,6 +56,8 @@ import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
@@ -69,7 +70,9 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -91,8 +94,6 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	@Autowired
 	private EvaluationSubmissionsDAO evaluationSubmissionsDAO;
 	@Autowired
-	private EntityManager entityManager;
-	@Autowired
 	private NodeManager nodeManager;
 	@Autowired
 	private FileHandleManager fileHandleManager;
@@ -108,6 +109,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	private EvaluationDAO evaluationDAO;
 	@Autowired
 	private DockerCommitDao dockerCommitDao;
+	@Autowired
+	private TransactionalMessenger transactionalMessenger;
 	
 	public static final long MAX_LIMIT = 100L;
 
@@ -137,13 +140,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		validateEvaluationAccess(userInfo, evaluationId, ACCESS_TYPE.READ);
 		// only authorized users can view private Annotations 
 		SubmissionStatus result = bundle.getSubmissionStatus();
-		boolean includePrivateAnnos = evaluationPermissionsManager.hasAccess(
-				userInfo, evaluationId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).isAuthorized();
+		boolean includePrivateAnnos = evaluationPermissionsManager.hasAccess(userInfo, evaluationId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).isAuthorized();
 		if (!includePrivateAnnos) {
-			Annotations annos = result.getAnnotations();
-			if (annos != null) {
-				result.setAnnotations(removePrivateAnnos(annos));
-			}
+			removePrivateAnnotations(result);
 		}
 		return result;
 	}
@@ -274,6 +273,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		Long evalIdLong = KeyFactory.stringToKey(submission.getEvaluationId());
 		evaluationSubmissionsDAO.updateEtagForEvaluation(evalIdLong, true, ChangeType.CREATE);
 		
+		// Send out a message for the new submission status
+		sendSubmissionMessage(userInfo, ChangeType.CREATE, submissionId);
+		
 		// return the Submission
 		return submissionDAO.get(submissionId);
 	}
@@ -385,10 +387,12 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		Long evalIdLong = KeyFactory.stringToKey(evalId);
 		evaluationSubmissionsDAO.updateEtagForEvaluation(evalIdLong, true, ChangeType.UPDATE);
 		
+		sendSubmissionMessage(userInfo, ChangeType.UPDATE, submissionStatus.getId());
+		
 		return submissionStatusDAO.get(submissionStatus.getId());
 	}
 	
-	private static void validateContent(SubmissionStatus submissionStatus, String evalId) {
+	static void validateContent(SubmissionStatus submissionStatus, String evalId) {
 		// validate score, if any
 		Double score = submissionStatus.getScore();
 		if (score != null) {
@@ -398,13 +402,25 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		
 		// validate Annotations, if any
 		Annotations annos = submissionStatus.getAnnotations();
+		
 		if (annos != null) {
 			AnnotationsUtils.validateAnnotations(annos);
 			// populate missing fields, specifically make sure 'isPrivate' is filled in
 			AnnotationsUtils.populateMissingFields(annos);
 			annos.setObjectId(submissionStatus.getId());
 			annos.setScopeId(evalId);
-		}	
+			
+			// If supplied translates the old annotations in the new V2 model, does not override supplied annotations
+			if (AnnotationsV2Utils.isEmpty(submissionStatus.getSubmissionAnnotations())) {
+				org.sagebionetworks.repo.model.annotation.v2.Annotations annotationsV2 = AnnotationsV2Translator.toAnnotationsV2(annos);
+				submissionStatus.setSubmissionAnnotations(annotationsV2);
+			}
+		}
+		
+		// Validate the new annotations V2
+		if (submissionStatus.getSubmissionAnnotations() != null) {
+			AnnotationsV2Utils.validateAnnotations(submissionStatus.getSubmissionAnnotations());
+		}
 	}
 	
 	@Override
@@ -445,6 +461,10 @@ public class SubmissionManagerImpl implements SubmissionManager {
 
 		// update the Submissions
 		submissionStatusDAO.update(batch.getStatuses());
+		
+		batch.getStatuses().forEach( status-> {
+			sendSubmissionMessage(userInfo, ChangeType.UPDATE, status.getId());
+		});
 		
 		String newEvaluationSubmissionsEtag = 
 				evaluationSubmissionsDAO.updateEtagForEvaluation(evalIdLong, batch.getIsLastBatch(), ChangeType.UPDATE);
@@ -488,6 +508,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		// the associated SubmissionStatus object will be deleted via cascade
 		Long evalIdLong = KeyFactory.stringToKey(evalId);
 		evaluationSubmissionsDAO.updateEtagForEvaluation(evalIdLong, true, ChangeType.UPDATE);
+		
+		sendSubmissionMessage(userInfo, ChangeType.DELETE, submissionId);
+		
 		submissionDAO.delete(submissionId);
 	}
 
@@ -526,13 +549,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			bundles = submissionDAO.getAllBundlesByEvaluationAndStatus(evalId, status, limit, offset);
 		}
 		if (!includePrivateAnnos) {
-			for (SubmissionBundle bundle : bundles) {
-				SubmissionStatus subStatus = bundle.getSubmissionStatus();
-				Annotations annos = subStatus.getAnnotations();
-				if (annos != null) {
-					subStatus.setAnnotations(removePrivateAnnos(annos));
-				}
-			}
+			bundles.forEach(SubmissionManagerImpl::removePrivateAnnotations);
 		}
 		return bundles;
 	}
@@ -593,17 +610,13 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
 		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
 
-		boolean haveReadPrivateAccess = evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).isAuthorized();
+		boolean includePrivateAnnotations = evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).isAuthorized();
 
 		String principalId = userInfo.getId().toString();
 		List<SubmissionBundle> result = submissionDAO.getAllBundlesByEvaluationAndUser(evalId, principalId, limit, offset);
-		if (!haveReadPrivateAccess) {
-			for (SubmissionBundle bundle : result) {
-				Annotations annos = bundle.getSubmissionStatus().getAnnotations();
-				if (annos != null) {
-					bundle.getSubmissionStatus().setAnnotations(removePrivateAnnos(annos));
-				}
-			}
+		
+		if (!includePrivateAnnotations) {
+			result.forEach(SubmissionManagerImpl::removePrivateAnnotations);
 		}
 
 		return result;
@@ -651,6 +664,19 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			throws NotFoundException {
 		evaluationPermissionsManager.hasAccess(userInfo, evalId, accessType).checkAuthorizationOrElseThrow();
 	}
+	
+	static void removePrivateAnnotations(SubmissionBundle bundle) {
+		removePrivateAnnotations(bundle.getSubmissionStatus());
+	}
+	
+	static void removePrivateAnnotations(SubmissionStatus status) {
+		Annotations annotationsV1 = status.getAnnotations();
+		if (annotationsV1 != null) {
+			status.setAnnotations(removePrivateAnnotations(annotationsV1));
+		}
+		// By default only who has private access can read the submission (V2) annotations
+		status.setSubmissionAnnotations(null);
+	}
 
 	/**
 	 * Remove all Annotations with [isPrivate == true] from an Annotations object
@@ -658,7 +684,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	 * @param annos
 	 * @return
 	 */
-	protected static Annotations removePrivateAnnos(Annotations annos) {
+	static Annotations removePrivateAnnotations(Annotations annos) {
 		EvaluationUtils.ensureNotNull(annos, "Annotations");
 
 		List<StringAnnotation> oldStringAnnos = annos.getStringAnnos();
@@ -713,5 +739,16 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		submissionStatusDAO.update(Arrays.asList(status));
 		String evalId = submissionDAO.get(submissionId).getEvaluationId();
 		evaluationSubmissionsDAO.updateEtagForEvaluation(KeyFactory.stringToKey(evalId), true, ChangeType.UPDATE);
+	}
+	
+	private void sendSubmissionMessage(UserInfo userInfo, ChangeType changeType, String submissionId) {
+		
+		MessageToSend message = new MessageToSend()
+			.withObjectType(ObjectType.SUBMISSION)
+			.withObjectId(submissionId)
+			.withChangeType(changeType)
+			.withUserId(userInfo.getId());
+		
+		transactionalMessenger.sendMessageAfterCommit(message);
 	}
 }

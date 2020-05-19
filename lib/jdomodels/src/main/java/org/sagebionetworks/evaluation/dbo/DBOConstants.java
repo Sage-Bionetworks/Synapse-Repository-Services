@@ -38,6 +38,7 @@ public class DBOConstants {
 	public static final String PARAM_SUBSTATUS_ETAG 				= "eTag";
 	public static final String PARAM_SUBSTATUS_VERSION 				= "version";
 	public static final String PARAM_SUBSTATUS_STATUS 				= "status";
+	public static final String PARAM_SUBSTATUS_ANNOTATIONS			= "annotations";
 	public static final String PARAM_SUBSTATUS_SCORE 				= "score";
 	public static final String PARAM_SUBSTATUS_MODIFIED_ON 			= "modifiedOn";
 	public static final String PARAM_SUBSTATUS_SERIALIZED_ENTITY 	= "serializedEntity";

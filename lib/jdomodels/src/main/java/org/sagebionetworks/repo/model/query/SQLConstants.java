@@ -74,6 +74,7 @@ public class SQLConstants {
 	public static final String COL_SUBSTATUS_MODIFIED_ON 		= "MODIFIED_ON";
 	public static final String COL_SUBSTATUS_SCORE		 		= "SCORE";
 	public static final String COL_SUBSTATUS_STATUS 			= "STATUS";
+	public static final String COL_SUBSTATUS_ANNOTATIONS		= "ANNOTATIONS";
 	public static final String COL_SUBSTATUS_SERIALIZED_ENTITY	= "SERIALIZED_ENTITY";
 	
 	// SubmissionFile table constants

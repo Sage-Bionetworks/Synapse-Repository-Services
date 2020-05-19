@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 
-class AnnotationsTypeToValidatorTest {
+public class AnnotationsTypeToValidatorTest {
 	@Test
 	public void testValidatorFor(){
 		assertTrue(AnnotationsV2TypeToValidator.validatorFor(AnnotationsValueType.STRING) instanceof StringValueListValidator);

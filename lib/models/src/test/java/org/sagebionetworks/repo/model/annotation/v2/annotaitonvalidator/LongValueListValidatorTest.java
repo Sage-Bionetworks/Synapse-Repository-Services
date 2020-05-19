@@ -1,15 +1,13 @@
 package org.sagebionetworks.repo.model.annotation.v2.annotaitonvalidator;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 
-class LongValueListValidatorTest {
+public class LongValueListValidatorTest {
 
 	LongValueListValidator valueValidator = new LongValueListValidator(AnnotationsValueType.LONG);
 	String key = "myKey";

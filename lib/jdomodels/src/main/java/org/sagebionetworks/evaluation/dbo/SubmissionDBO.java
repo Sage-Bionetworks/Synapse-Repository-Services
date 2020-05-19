@@ -33,8 +33,6 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -309,15 +307,6 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.SUBMISSION;
-	}
-	
-	
-	private static Object getFromJSONIfPresent(JSONObject jsonObject, String key) throws JSONException {
-		if (jsonObject.has(key)) {
-			return jsonObject.get(key);
-		} else {
-			return null;
-		}
 	}
 	
 	@Override

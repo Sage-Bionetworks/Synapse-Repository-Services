@@ -355,10 +355,14 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertFalse("Modified date was not updated", status.getModifiedOn().equals(statusClone.getModifiedOn()));
 		status.setModifiedOn(statusClone.getModifiedOn());
 		assertFalse("Etag was not updated", status.getEtag().equals(statusClone.getEtag()));
+		assertNotNull(statusClone.getSubmissionAnnotations())
+		;
 		status.setEtag(statusClone.getEtag());
 		status.setStatusVersion(statusClone.getStatusVersion());
 		status.getAnnotations().setObjectId(sub1.getId());
 		status.getAnnotations().setScopeId(sub1.getEvaluationId());
+		status.setSubmissionAnnotations(statusClone.getSubmissionAnnotations());
+		
 		assertEquals(status, statusClone);
 		assertEquals(newCount, synapseOne.getAllSubmissions(eval1.getId(), 0, 100).getResults().size());
 		

@@ -1,6 +1,7 @@
 package org.sagebionetworks.evaluation.manager;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -56,15 +57,20 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.annotation.AnnotationBase;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
@@ -77,10 +83,13 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.MessageToSend;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.util.Pair;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -130,6 +139,8 @@ public class SubmissionManagerTest {
 	private EvaluationDAO mockEvaluationDAO;
 	@Mock
 	private DockerCommitDao mockDockerCommitDao;
+	@Mock
+	private TransactionalMessenger mockTransactionalMessenger;
 	
 	@InjectMocks
 	private SubmissionManagerImpl submissionManager;	
@@ -254,7 +265,7 @@ public class SubmissionManagerTest {
         subStatus.setModifiedOn(new Date());
         subStatus.setScore(0.0);
         subStatus.setStatus(SubmissionStatusEnum.RECEIVED);
-        subStatus.setAnnotations(createDummyAnnotations());
+        subStatus.setAnnotations(createDummyAnnotations().getFirst());
         
         submissionBundle = new SubmissionBundle();
         submissionBundle.setSubmission(subWithId);
@@ -309,7 +320,9 @@ public class SubmissionManagerTest {
 		verify(mockSubmissionDAO).create(any(Submission.class));
 		verify(mockSubmissionDAO).delete(eq(SUB_ID));
 		verify(mockSubmissionStatusDAO).create(any(SubmissionStatus.class));
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(getSubmissionMessage(userInfo, SUB_ID, ChangeType.CREATE));
 		verify(mockSubmissionStatusDAO, times(2)).update(any(List.class));
+		verify(mockTransactionalMessenger, times(2)).sendMessageAfterCommit(getSubmissionMessage(ownerInfo, SUB_ID, ChangeType.UPDATE));
 		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle1.getId()));
 		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle2.getId()));
 		verify(mockEvaluationSubmissionsDAO, times(1)).lockAndGetForEvaluation(EVAL_ID_LONG);
@@ -380,6 +393,7 @@ public class SubmissionManagerTest {
 		verify(mockSubmissionDAO).create(any(Submission.class));
 		verify(mockSubmissionDAO, never()).delete(eq(SUB_ID));
 		verify(mockSubmissionStatusDAO).create(any(SubmissionStatus.class));
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(getSubmissionMessage(userInfo, SUB_ID, ChangeType.CREATE));
 		verify(mockSubmissionStatusDAO, never()).update(any(List.class));
 	}
 	
@@ -830,7 +844,7 @@ public class SubmissionManagerTest {
 		verify(mockSubmissionDAO).getBundle(SUB_ID);
 	}
 	
-	private static Annotations createDummyAnnotations() {		
+	private static Pair<Annotations, org.sagebionetworks.repo.model.annotation.v2.Annotations> createDummyAnnotations() {		
 		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
 		StringAnnotation sa = new StringAnnotation();
 		sa.setIsPrivate(false);
@@ -852,11 +866,18 @@ public class SubmissionManagerTest {
 		doa.setValue(3.14);
 		doubleAnnos.add(doa);
 		
-		Annotations annos = new Annotations();
+		org.sagebionetworks.repo.model.annotation.Annotations annos = new org.sagebionetworks.repo.model.annotation.Annotations();
 		annos.setStringAnnos(stringAnnos);
 		annos.setLongAnnos(longAnnos);
 		annos.setDoubleAnnos(doubleAnnos);
-		return annos;
+		
+		org.sagebionetworks.repo.model.annotation.v2.Annotations expected = AnnotationsV2Utils.emptyAnnotations();
+		
+		AnnotationsV2TestUtils.putAnnotations(expected, "sa", "foo", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(expected, "la", "42", AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(expected, "doa", "3.14", AnnotationsValueType.DOUBLE);
+		
+		return Pair.create(annos, expected);
 	}
 
 	@Test
@@ -1249,7 +1270,103 @@ public class SubmissionManagerTest {
 		});
 	}
 
+	@Test
+	public void testValidateContentWithEmptyAnnotationsV2() {
+		
+		Pair<Annotations, org.sagebionetworks.repo.model.annotation.v2.Annotations> annos = createDummyAnnotations();
+		
+		subStatus.setAnnotations(annos.getFirst());
+		
+		// Call under test
+		SubmissionManagerImpl.validateContent(subStatus, EVAL_ID);
+		
+		// Verifies that the submission annotations were set
+		assertEquals(annos.getSecond(), subStatus.getSubmissionAnnotations());
+		
+	}
 
-
+	@Test
+	public void testValidateContentWithoutAnnotationV1AndWithAnnotationsV2() {
+		
+		Pair<Annotations, org.sagebionetworks.repo.model.annotation.v2.Annotations> annos = createDummyAnnotations();
+		
+		subStatus.setAnnotations(null);
+		subStatus.setSubmissionAnnotations(annos.getSecond());
+		
+		// Call under test
+		SubmissionManagerImpl.validateContent(subStatus, EVAL_ID);
+		
+		assertNull(subStatus.getAnnotations());
+		assertEquals(annos.getSecond(), subStatus.getSubmissionAnnotations());
+		
+	}
+	
+	@Test
+	public void testValidateContentWithAnnotationV1AndWithAnnotationsV2() {
+		
+		Pair<Annotations, org.sagebionetworks.repo.model.annotation.v2.Annotations> annos = createDummyAnnotations();
+		
+		org.sagebionetworks.repo.model.annotation.v2.Annotations annotationsV2 = annos.getSecond();
+		
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "additional", "addionalValue", AnnotationsValueType.STRING);
+		
+		subStatus.setAnnotations(annos.getFirst());
+		subStatus.setSubmissionAnnotations(annotationsV2);
+		
+		// Call under test
+		SubmissionManagerImpl.validateContent(subStatus, EVAL_ID);
+		
+		assertEquals(annos.getFirst(), subStatus.getAnnotations());
+		assertEquals(annotationsV2, subStatus.getSubmissionAnnotations());
+		
+	}
+	
+	@Test
+	public void testRemovePrivateAnnotationsFromBundle() {
+		Pair<Annotations, org.sagebionetworks.repo.model.annotation.v2.Annotations> annos = createDummyAnnotations();
+		
+		subStatus.setSubmissionAnnotations(annos.getSecond());
+		
+		submissionBundle.setSubmissionStatus(subStatus);
+		
+		// Call under test
+		SubmissionManagerImpl.removePrivateAnnotations(submissionBundle);
+		
+		assertNotPrivate(subStatus.getAnnotations());
+		assertNull(subStatus.getSubmissionAnnotations());
+	}
+	
+	@Test
+	public void testRemovePrivateAnnotationsFromStatus() {
+		Pair<Annotations, org.sagebionetworks.repo.model.annotation.v2.Annotations> annos = createDummyAnnotations();
+		
+		subStatus.setSubmissionAnnotations(annos.getSecond());
+		
+		// Call under test
+		SubmissionManagerImpl.removePrivateAnnotations(subStatus);
+		
+		assertNotPrivate(subStatus.getAnnotations());
+		assertNull(subStatus.getSubmissionAnnotations());
+	}
+	
+	private static void assertNotPrivate(Annotations annos) {
+		assertNotPrivate(annos.getStringAnnos());
+		assertNotPrivate(annos.getLongAnnos());
+		assertNotPrivate(annos.getDoubleAnnos());
+	}
+	
+	private static void assertNotPrivate(List<? extends AnnotationBase> annos) {
+		annos.forEach( anno -> {
+			assertFalse(anno.getIsPrivate());
+		});
+	}
+	
+	private static MessageToSend getSubmissionMessage(UserInfo user, String submissionId, ChangeType changeType) {
+		return new MessageToSend()
+				.withObjectType(ObjectType.SUBMISSION)
+				.withChangeType(changeType)
+				.withObjectId(submissionId)
+				.withUserId(user.getId());
+	}
 
 }

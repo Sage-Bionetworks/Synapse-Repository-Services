@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -14,9 +14,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -36,7 +36,6 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.Annotations;
@@ -49,7 +48,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class EvaluationControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
+public class EvaluationControllerAutowiredTest extends AbstractAutowiredControllerJunit5TestBase {
 	
 	@Autowired
 	private UserManager userManager;
@@ -93,7 +92,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 	private List<String> submissionsToDelete;
 	private List<String> nodesToDelete;
 	
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		evaluationsToDelete = new ArrayList<String>();
 		submissionsToDelete = new ArrayList<String>();
@@ -145,7 +144,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
         sub2.setSubmitterAlias("Team Even Better!");
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		// clean up submissions
 		for (String id : submissionsToDelete) {
@@ -196,23 +195,18 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		// Read
 		Evaluation fetched = entityServletHelper.getEvaluation(adminUserId, eval1.getId());
 		assertEquals(eval1, fetched);
-		try {
-			fetched = entityServletHelper.getEvaluation(testUserId, eval1.getId());
-			fail();
-		} catch (UnauthorizedException e) {
-			// Expected
-		}
+		
+		assertThrows(UnauthorizedException.class, ()-> {
+			entityServletHelper.getEvaluation(testUserId, eval1.getId());
+		});
 
 		// Find
 		fetched = entityServletHelper.findEvaluation(adminUserId, eval1.getName());
 		assertEquals(eval1, fetched);
-		try {
-			fetched = entityServletHelper.findEvaluation(testUserId, eval1.getName());
-			assertEquals(eval1, fetched);
-			fail();
-		} catch (NotFoundException e) {
-			// Expected
-		}
+		
+		assertThrows(NotFoundException.class, ()-> {
+			entityServletHelper.findEvaluation(testUserId, eval1.getName());
+		});
 		
 		//can update
 		Boolean canUpdate = entityServletHelper.canAccess(adminUserId, eval1.getId(), ACCESS_TYPE.UPDATE);
@@ -224,19 +218,17 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		// Update
 		fetched.setDescription(eval1.getDescription() + " (modified)");
 		Evaluation updated = entityServletHelper.updateEvaluation(fetched, adminUserId);
-		assertFalse("eTag was not updated", updated.getEtag().equals(fetched.getEtag()));
+		assertFalse(updated.getEtag().equals(fetched.getEtag()), "eTag was not updated");
 		fetched.setEtag(updated.getEtag());
 		assertEquals(fetched, updated);
 		assertEquals(initialCount + 1, entityServletHelper.getAvailableEvaluations(adminUserId).getTotalNumberOfResults());
 		
 		// Delete
 		entityServletHelper.deleteEvaluation(eval1.getId(), adminUserId);
-		try {
+		
+		assertThrows(NotFoundException.class, ()-> {
 			entityServletHelper.getEvaluation(adminUserId, eval1.getId());
-			fail("Delete failed");
-		} catch (NotFoundException e) {
-			// expected
-		}
+		});
 		assertEquals(initialCount, entityServletHelper.getAvailableEvaluations(adminUserId).getTotalNumberOfResults());
 	}
 	
@@ -299,11 +291,14 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		status.setAnnotations(annots);
 		status.setCanCancel(true);
 		SubmissionStatus statusClone = entityServletHelper.updateSubmissionStatus(status, adminUserId);
-		assertFalse("Modified date was not updated", status.getModifiedOn().equals(statusClone.getModifiedOn()));
+		assertFalse(status.getModifiedOn().equals(statusClone.getModifiedOn()), "Modified date was not updated");
 		status.setModifiedOn(statusClone.getModifiedOn());
-		assertFalse("Etag was not updated", status.getEtag().equals(statusClone.getEtag()));
+		assertFalse(status.getEtag().equals(statusClone.getEtag()), "Etag was not updated");
+		assertNotNull(statusClone.getSubmissionAnnotations());
+		
 		status.setEtag(statusClone.getEtag());
 		status.setStatusVersion(statusClone.getStatusVersion());
+		status.setSubmissionAnnotations(statusClone.getSubmissionAnnotations());
 		assertEquals(status, statusClone);
 		// make sure NaNs can make the round trip
 		assertTrue(Double.isNaN(statusClone.getAnnotations().getDoubleAnnos().get(0).getValue()));
@@ -315,16 +310,15 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		
 		// delete
 		entityServletHelper.deleteSubmission(sub1.getId(), adminUserId);
-		try {
+
+		assertThrows(NotFoundException.class, () -> {
 			entityServletHelper.deleteSubmission(sub1.getId(), adminUserId);
-			fail("Failed to delete Submission " + sub1.toString());
-		} catch (NotFoundException e) {
-			// expected
-		}
+		});
+		
 		assertEquals(initialCount, entityServletHelper.getSubmissionCount(adminUserId, eval1.getId()));
 	}
 
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testSubmissionUnauthorized() throws Exception {
 		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = entityServletHelper.createEvaluation(eval1, adminUserId);
@@ -338,7 +332,9 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		// create
 		sub1.setEvaluationId(eval1.getId());
 		sub1.setEntityId(nodeId);
-		sub1 = entityServletHelper.createSubmission(sub1, testUserId, node.getETag());
+		assertThrows(UnauthorizedException.class, ()-> {
+			sub1 = entityServletHelper.createSubmission(sub1, testUserId, node.getETag());
+		});
 	}
 	
 	@Test
@@ -393,21 +389,21 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		PaginatedResults<Evaluation> evals = entityServletHelper.getEvaluationsPaginated(adminUserId, 10, 0);
 		assertEquals(2, evals.getTotalNumberOfResults());
 		for (Evaluation c : evals.getResults()) {
-			assertTrue("Unknown Evaluation returned: " + c.toString(), c.equals(eval1) || c.equals(eval2));
+			assertTrue(c.equals(eval1) || c.equals(eval2), "Unknown Evaluation returned: " + c.toString());
 		}
 		
 		// paginated evaluations by content source
 		evals = entityServletHelper.getEvaluationsByContentSourcePaginated(adminUserId, parentProjectId, 10, 0);
 		assertEquals(2, evals.getTotalNumberOfResults());
 		for (Evaluation c : evals.getResults()) {
-			assertTrue("Unknown Evaluation returned: " + c.toString(), c.equals(eval1) || c.equals(eval2));
+			assertTrue(c.equals(eval1) || c.equals(eval2), "Unknown Evaluation returned: " + c.toString());
 		}
 		
 		// paginated submissions
 		PaginatedResults<Submission> subs = entityServletHelper.getAllSubmissions(adminUserId, eval1.getId(), null);
 		assertEquals(2, subs.getTotalNumberOfResults());
 		for (Submission s : subs.getResults()) {
-			assertTrue("Unknown Submission returned: " + s.toString(), s.equals(sub1) || s.equals(sub2));
+			assertTrue(s.equals(sub1) || s.equals(sub2), "Unknown Submission returned: " + s.toString());
 		}
 		
 		subs = entityServletHelper.getAllSubmissions(adminUserId, eval1.getId(), SubmissionStatusEnum.SCORED);

@@ -1,12 +1,19 @@
 package org.sagebionetworks.repo.model.annotation.v2;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import org.sagebionetworks.repo.model.annotation.AnnotationBase;
+import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
+import org.sagebionetworks.repo.model.annotation.LongAnnotation;
+import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 
 public class AnnotationsV2Translator {
 
@@ -60,6 +67,82 @@ public class AnnotationsV2Translator {
 		return annotationsV2;
 	}
 
+	public static Annotations toAnnotationsV2(org.sagebionetworks.repo.model.annotation.Annotations annotations) {
+		if (annotations == null) {
+			return null;
+		}
+		
+		Map<String, AnnotationsValue> v2AnnotationEntries = new HashMap<>();
+		
+		v2AnnotationEntries.putAll(mapStringAnnotations(annotations.getStringAnnos()));
+		v2AnnotationEntries.putAll(mapDoubleAnnotations(annotations.getDoubleAnnos()));
+		v2AnnotationEntries.putAll(mapLongAnnotations(annotations.getLongAnnos()));
+				
+		Annotations annotationsV2 = new Annotations();
+		annotationsV2.setAnnotations(v2AnnotationEntries);
+		return annotationsV2;
+	}
+	
+	static Map<String, AnnotationsValue> mapStringAnnotations(List<StringAnnotation> annotations) {
+		Function<StringAnnotation, String> valueSupplier = (annotation) -> annotation.getValue();
+		return map(annotations, AnnotationsValueType.STRING, valueSupplier);
+	}
+	
+	static Map<String, AnnotationsValue> mapLongAnnotations(List<LongAnnotation> annotations) {
+		Function<LongAnnotation, String> valueSupplier = (annotation) -> {
+			return annotation.getValue() == null ? null : annotation.getValue().toString();
+		};
+		return map(annotations, AnnotationsValueType.LONG, valueSupplier);
+	}
+	
+	static Map<String, AnnotationsValue> mapDoubleAnnotations(List<DoubleAnnotation> annotations) {
+		Function<DoubleAnnotation, String> valueSupplier = (annotation) -> {
+			return annotation.getValue() == null ? null : annotation.getValue().toString();
+		};
+		return map(annotations, AnnotationsValueType.DOUBLE, valueSupplier);
+	}
+	
+	static <T extends AnnotationBase> Map<String, AnnotationsValue> map(List<T> annotations, AnnotationsValueType valueType, Function<T, String> valueSupplier) {
+		if (annotations == null || annotations.isEmpty()) {
+			return Collections.emptyMap();
+		}
+		
+		Map<String, AnnotationsValue> mapped = new HashMap<>(annotations.size());
+		
+		annotations.forEach(annotation-> {
+			AnnotationsValue mappedValue = mapped.computeIfAbsent(annotation.getKey(), (key) -> {
+				AnnotationsValue emptyValue = new AnnotationsValue();
+				emptyValue.setType(valueType);
+				emptyValue.setValue(new ArrayList<>());
+				return emptyValue;
+			});
+			
+			String value = valueSupplier.apply(annotation);
+			
+			if (value != null) {
+				mappedValue.getValue().add(value);
+			}
+			
+		});
+		
+		return mapped;
+	}
+	
+	static <T> Map<String, List<T>> map(List<? extends AnnotationBase> annotations, Class<T> clazz, Function<AnnotationBase, T> valueSupplier) {
+		if (annotations == null || annotations.isEmpty()) {
+			return Collections.emptyMap();
+		}
+		
+		Map<String, List<T>> mapped = new HashMap<>(annotations.size());
+		
+		annotations.forEach(annotation-> {
+			List<T> values = mapped.computeIfAbsent(annotation.getKey(), (key) -> new ArrayList<>());
+			values.add(valueSupplier.apply(annotation));
+		});
+		
+		return mapped;
+	}
+	
 	static <T> Map<String, AnnotationsValue> changeToAnnotationV2Values(Map<String, List<T>> originalMap, Class<T> clazz){
 		if(originalMap == null || originalMap.isEmpty()){
 			return Collections.emptyMap();

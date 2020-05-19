@@ -838,24 +838,18 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 *
 	 */
 	private static final RowMapper<Annotations> ANNOTATIONS_V2_ROW_MAPPER = (ResultSet rs, int roNum) ->{
-		Annotations annos;
 		String jsonString = rs.getString(COL_REVISION_USER_ANNOS_JSON);
-		if(jsonString != null){
-			try {
-				annos = EntityFactory.createEntityFromJSONString(jsonString, Annotations.class);
-			} catch (JSONObjectAdapterException e) {
-				throw new DatastoreException(e);
-			}
-		}else{
-			// If there is no annotations then create a new one.
-			annos = new Annotations();
+		Annotations annos = AnnotationsV2Utils.fromJSONString(jsonString);
+		
+		// Always return empty annotations if not set
+		if (annos == null) {
+			annos = AnnotationsV2Utils.emptyAnnotations();
 		}
+		
 		// Pull out the rest of the data.
 		annos.setEtag(rs.getString(COL_NODE_ETAG));
 		annos.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
-		if(annos.getAnnotations() == null){
-			annos.setAnnotations(new HashMap<>());
-		}
+		
 		return annos;
 	};
 
@@ -957,13 +951,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 		final Long nodeIdLong = KeyFactory.stringToKey(id);
 		final Long currRevision = getCurrentRevisionNumber(id);
-		try {
-			// Compress the annotations.
-			String annotationAsJSON = AnnotationsV2Utils.toJSONStringForStorage(annotationsV2);
-			this.jdbcTemplate.update(SQL_UPDATE_USER_ANNOTATIONS, annotationAsJSON, nodeIdLong, currRevision);
-		} catch (JSONObjectAdapterException e) {
-			throw new DatastoreException(e);
-		}
+		// Compress the annotations.
+		String annotationAsJSON = AnnotationsV2Utils.toJSONStringForStorage(annotationsV2);
+		this.jdbcTemplate.update(SQL_UPDATE_USER_ANNOTATIONS, annotationAsJSON, nodeIdLong, currRevision);
 	}
 
 	@Override
