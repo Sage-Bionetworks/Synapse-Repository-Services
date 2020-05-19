@@ -1,7 +1,7 @@
 package org.sagebionetworks.table.cluster;
 
 import java.sql.SQLException;
-import java.util.LinkedList;
+import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.PostConstruct;
@@ -96,9 +96,7 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 
 	@Override
 	public List<TableIndexDAO> getAllConnections() {
-		List<TableIndexDAO> results = new LinkedList<>();
-		results.add(tableIndexDao);
-		return results;
+		return Collections.singletonList(tableIndexDao);
 	}
 
 	@Override

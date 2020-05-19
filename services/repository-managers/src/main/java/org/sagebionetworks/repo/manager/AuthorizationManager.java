@@ -184,7 +184,7 @@ public interface AuthorizationManager {
 	 * @param originalBenefactors
 	 * @return
 	 */
-	Set<Long> getAccessibleBenefactors(UserInfo userInfo, Set<Long> originalBenefactors);
+	Set<Long> getAccessibleBenefactors(UserInfo userInfo, ObjectType objectType, Set<Long> originalBenefactors);
 
 	/**
 	 * Check user access to an subscribable object

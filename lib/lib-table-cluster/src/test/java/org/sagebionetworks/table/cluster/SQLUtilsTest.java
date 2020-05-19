@@ -21,6 +21,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,10 +53,6 @@ import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.util.EnumUtils;
 import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class SQLUtilsTest {
@@ -1910,7 +1909,7 @@ public class SQLUtilsTest {
 				+ " WHERE"
 				+ " R.OBJECT_TYPE = :objectType"
 				+ " AND R.PARENT_ID IN (:parentIds)"
-				+ " AND R.SUBTYPE IN ('file')"
+				+ " AND R.SUBTYPE IN (:subTypes)"
 				+ " GROUP BY R.OBJECT_ID ORDER BY R.OBJECT_ID", sql);
 		assertEquals(Lists.newArrayList("ROW_ID", "ROW_VERSION","ROW_ETAG","ROW_BENEFACTOR","_C1_","_C2_"), headers);
 	}
@@ -1933,7 +1932,7 @@ public class SQLUtilsTest {
 				+ " WHERE"
 				+ " R.OBJECT_TYPE = :objectType"
 				+ " AND R.PARENT_ID IN (:parentIds)"
-				+ " AND R.SUBTYPE IN ('file')"
+				+ " AND R.SUBTYPE IN (:subTypes)"
 				+ " AND A.ANNO_KEY IN (:annotationKeys)"
 				+ " GROUP BY A.ANNO_KEY", sql);
 	}
@@ -1991,7 +1990,7 @@ public class SQLUtilsTest {
 				+ " WHERE"
 				+ " R.OBJECT_TYPE = :objectType"
 				+ " AND R.PARENT_ID IN (:parentIds)"
-				+ " AND R.SUBTYPE IN ('file')"
+				+ " AND R.SUBTYPE IN (:subTypes)"
 				+ " AND R.OBJECT_ID IN (:ids)"
 				+ " GROUP BY R.OBJECT_ID ORDER BY R.OBJECT_ID", sql);
 		assertEquals(Lists.newArrayList("ROW_ID", "ROW_VERSION","ROW_ETAG","ROW_BENEFACTOR","_C1_","_C2_"), headers);
@@ -2023,7 +2022,7 @@ public class SQLUtilsTest {
 				+ " WHERE"
 				+ " R.OBJECT_TYPE = :objectType"
 				+ " AND R.PARENT_ID IN (:parentIds)"
-				+ " AND R.SUBTYPE IN ('file')"
+				+ " AND R.SUBTYPE IN (:subTypes)"
 				+ " GROUP BY R.OBJECT_ID ORDER BY R.OBJECT_ID", sql);
 	}
 	
@@ -2052,7 +2051,7 @@ public class SQLUtilsTest {
 				+ " WHERE"
 				+ " R.OBJECT_TYPE = :objectType"
 				+ " AND R.PARENT_ID IN (:parentIds)"
-				+ " AND R.SUBTYPE IN ('file')"
+				+ " AND R.SUBTYPE IN (:subTypes)"
 				+ " AND R.OBJECT_ID IN (:ids)"
 				+ " GROUP BY R.OBJECT_ID ORDER BY R.OBJECT_ID", sql);
 	}
@@ -2082,7 +2081,7 @@ public class SQLUtilsTest {
 				+ " WHERE"
 				+ " R.OBJECT_TYPE = :objectType"
 				+ " AND R.OBJECT_ID IN (:parentIds)"
-				+ " AND R.SUBTYPE IN ('project')"
+				+ " AND R.SUBTYPE IN (:subTypes)"
 				+ " GROUP BY R.OBJECT_ID ORDER BY R.OBJECT_ID", sql);
 	}
 
@@ -2108,7 +2107,7 @@ public class SQLUtilsTest {
 				+ " WHERE"
 				+ " R.OBJECT_TYPE = :objectType"
 				+ " AND R.PARENT_ID IN (:parentIds)"
-				+ " AND R.SUBTYPE IN ('file')"
+				+ " AND R.SUBTYPE IN (:subTypes)"
 				+ " GROUP BY R.OBJECT_ID ORDER BY R.OBJECT_ID", sql);
 	}
 
@@ -2531,57 +2530,6 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void testDetermineCauseOfExceptionLists() {
-		Exception oringal = new Exception("Some exception");
-		ColumnModel columnModel = new ColumnModel();
-		columnModel.setName("foo");
-		columnModel.setColumnType(ColumnType.STRING);
-		columnModel.setMaximumSize(10L);
-
-		ColumnModel annotationModel = new ColumnModel();
-		annotationModel.setName("foo");
-		annotationModel.setColumnType(ColumnType.STRING);
-		annotationModel.setMaximumSize(11L);
-		try {
-			// call under test
-			SQLUtils.determineCauseOfException(oringal, Lists.newArrayList(columnModel),
-					Lists.newArrayList(annotationModel));
-			fail("Should have failed.");
-		} catch (IllegalArgumentException expected) {
-			// the cause should be kept
-			assertEquals(oringal, expected.getCause());
-		}
-	}
-
-	@Test
-	public void testDetermineCauseOfExceptionListsMultipleValues() {
-		Exception oringal = new Exception("Some exception");
-		ColumnModel columnModel = new ColumnModel();
-		columnModel.setName("foo");
-		columnModel.setColumnType(ColumnType.STRING);
-		columnModel.setMaximumSize(10L);
-		// type does not match.
-		ColumnModel a1 = new ColumnModel();
-		a1.setName("foo");
-		a1.setColumnType(ColumnType.INTEGER);
-
-		ColumnModel a2 = new ColumnModel();
-		a2.setName("foo");
-		a2.setColumnType(ColumnType.STRING);
-		a2.setMaximumSize(11L);
-
-		try {
-			// call under test
-			SQLUtils.determineCauseOfException(oringal, Lists.newArrayList(columnModel),
-					Lists.newArrayList(a1, a2));
-			fail("Should have failed.");
-		} catch (IllegalArgumentException expected) {
-			// the cause should be kept
-			assertEquals(oringal, expected.getCause());
-		}
-	}
-
-	@Test
 	public void testGetDistinctAnnotationColumnsSqlFileView(){
 		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
@@ -2976,7 +2924,9 @@ public class SQLUtilsTest {
 				+ "		 R.OBJECT_ID = V.ROW_ID"
 				+ "      AND R.ETAG = V.ROW_ETAG"
 				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR)"
-				+ "   WHERE R.OBJECT_TYPE = :objectType AND R.PARENT_ID IN (:parentIds) AND R.SUBTYPE IN ('file')"
+				+ "   WHERE R.OBJECT_TYPE = :objectType"
+				+ "      AND R.PARENT_ID IN (:parentIds)"
+				+ "      AND R.SUBTYPE IN (:subTypes)"
 				+ " UNION ALL"
 				+ " SELECT V.ROW_ID, R.OBJECT_ID FROM OBJECT_REPLICATION R"
 				+ "    RIGHT JOIN T999 V ON ("
@@ -2984,7 +2934,8 @@ public class SQLUtilsTest {
 				+ "      AND R.OBJECT_ID = V.ROW_ID"
 				+ "      AND R.ETAG = V.ROW_ETAG"
 				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR"
-				+ "      AND R.PARENT_ID IN (:parentIds) AND R.SUBTYPE IN ('file'))"
+				+ "      AND R.PARENT_ID IN (:parentIds)"
+				+ "      AND R.SUBTYPE IN (:subTypes))"
 				+ ")"
 				+ "SELECT ID FROM DELTAS WHERE MISSING IS NULL ORDER BY ID DESC LIMIT :pLimit";
 		assertEquals(expected, sql);
@@ -3003,7 +2954,9 @@ public class SQLUtilsTest {
 				+ "		 R.OBJECT_ID = V.ROW_ID"
 				+ "      AND R.ETAG = V.ROW_ETAG"
 				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR)"
-				+ "   WHERE R.OBJECT_TYPE = :objectType AND R.OBJECT_ID IN (:parentIds) AND R.SUBTYPE IN ('project')"
+				+ "   WHERE R.OBJECT_TYPE = :objectType"
+				+ "      AND R.OBJECT_ID IN (:parentIds)"
+				+ "      AND R.SUBTYPE IN (:subTypes)"
 				+ " UNION ALL"
 				+ " SELECT V.ROW_ID, R.OBJECT_ID FROM OBJECT_REPLICATION R"
 				+ "    RIGHT JOIN T999 V ON ("
@@ -3011,7 +2964,8 @@ public class SQLUtilsTest {
 				+ "      AND R.OBJECT_ID = V.ROW_ID"
 				+ "      AND R.ETAG = V.ROW_ETAG"
 				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR"
-				+ "      AND R.OBJECT_ID IN (:parentIds) AND R.SUBTYPE IN ('project'))"
+				+ "      AND R.OBJECT_ID IN (:parentIds)"
+				+ "      AND R.SUBTYPE IN (:subTypes))"
 				+ ")"
 				+ "SELECT ID FROM DELTAS WHERE MISSING IS NULL ORDER BY ID DESC LIMIT :pLimit";
 		assertEquals(expected, sql);
@@ -3022,39 +2976,6 @@ public class SQLUtilsTest {
 		// call under test
 		String sql = SQLUtils.getDeleteRowsFromViewSql(tableId);
 		assertEquals("DELETE FROM T999 WHERE ROW_ID = ?", sql);
-	}
-	
-	@Test
-	public void testGetViewScopeSubTypeFilterWithSingleType(){
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
-		
-		String result = SQLUtils.getViewScopeSubTypeFilter(scopeFilter);
-		assertEquals("R.SUBTYPE IN ('file')", result);
-	}
-
-	@Test
-	public void testGetViewScopeSubTypeFilterWithMultipleTypes(){
-		List<String> subTypes = EnumUtils.names(EntityType.file, EntityType.table);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
-		
-		String result = SQLUtils.getViewScopeSubTypeFilter(scopeFilter);
-		assertEquals("R.SUBTYPE IN ('file','table')", result);
-	}
-
-	@Test
-	public void testGetViewScopeSubTypeFilterWithAllEntityTypes(){
-		List<String> subTypes = EnumUtils.names(EntityType.class);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
-		
-		String result = SQLUtils.getViewScopeSubTypeFilter(scopeFilter);
-		assertEquals("R.SUBTYPE IN ('project','folder','file','table','link','entityview','dockerrepo')", result);
 	}
 	
 	@Test
@@ -3086,4 +3007,6 @@ public class SQLUtilsTest {
 	private ViewScopeFilter getSQLScopeFilter(List<String> subTypes, boolean filterByObjectId) {
 		return new ViewScopeFilter(ViewObjectType.ENTITY, subTypes, filterByObjectId, Collections.emptySet());
 	}
+
+
 }

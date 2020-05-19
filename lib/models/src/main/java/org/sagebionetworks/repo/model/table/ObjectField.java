@@ -1,23 +1,20 @@
 package org.sagebionetworks.repo.model.table;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.OBEJCT_REPLICATION_COL_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_BENEFACTOR_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CREATED_BY;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CREATED_ON;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBEJCT_REPLICATION_COL_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_MD5;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_SIZE_BYTES;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_NAME;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PARENT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PROJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_SUBTYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_VERSION;
-
-import java.util.LinkedList;
-import java.util.List;
 
 /**
  * Enumeration that maps the columns of a OBJECT_REPLICATION to both the database and column model. 
@@ -89,94 +86,6 @@ public enum ObjectField {
 	 */
 	public FacetType getFacetType() {
 		return facetType;
-	}
-	
-	/**
-	 * Get the ColumnModel that represents this column.
-	 * @return
-	 */
-	@Deprecated
-	public ColumnModel getColumnModel(){
-		ColumnModel cm = new ColumnModel();
-		cm.setName(name());
-		// For backwards compatibility until this is removed
-		cm.setColumnType(this.columnType == null ? ColumnType.ENTITYID : this.columnType);
-		cm.setMaximumSize(this.size);
-		cm.setFacetType(this.facetType);
-		return cm;
-	}
-	
-	@Deprecated
-	public static List<ColumnModel> getAllColumnModels(){
-		List<ColumnModel> list = new LinkedList<ColumnModel>();
-		for(ObjectField field: ObjectField.values()){
-			list.add(field.getColumnModel());
-		}
-		return list;
-	}
-
-	/**
-	 * Does the given ColumnModel match this EntityField?
-	 * @param cm
-	 * @return
-	 */
-	@Deprecated
-	public boolean isMatch(ColumnModel cm){
-		ColumnModel fieldColumnModel = this.getColumnModel();
-		// name must match
-		if(!fieldColumnModel.getName().equals(cm.getName())){
-			return false;
-		}
-		// For backwards compatibility until this is removed
-		ColumnType columnType = fieldColumnModel.getColumnType() == null ? ColumnType.ENTITYID : fieldColumnModel.getColumnType();
-		// type must match
-		if(!columnType.equals(cm.getColumnType())){
-			return false;
-		}
-		// size must be greater than or equal
-		if(fieldColumnModel.getMaximumSize() != null){
-			if(cm.getMaximumSize() == null){
-				return false;
-			}
-			if(cm.getMaximumSize() < fieldColumnModel.getMaximumSize()){
-				return false;
-			}
-		}
-		// name and type match, and size is than greater or equal
-		return true;
-	}
-	
-	/**
-	 * For a given ColumnModel find the matching EntityField.
-	 * 
-	 * @param cm
-	 * @return Returns null if there is no match.
-	 */
-	@Deprecated
-	public static ObjectField findMatch(ColumnModel cm){
-		for(ObjectField field: ObjectField.values()){
-			if(field.isMatch(cm)){
-				return field;
-			}
-		}
-		return null;
-	}
-	
-	/**
-	 * Given a list of ColumnModels find the ColumnModel that matches the given EntityField.
-	 * 
-	 * @param columns
-	 * @param toMatch
-	 * @return Returns null if no match is found.
-	 */
-	@Deprecated
-	public static ColumnModel findMatch(List<ColumnModel> columns, ObjectField toMatch){
-		for(ColumnModel cm: columns){
-			if(toMatch.isMatch(cm)){
-				return cm;
-			}
-		}
-		return null;
 	}
 
 }

@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.schema;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_DEP_SCHEMA_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_DEP_SEM_VER;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_DEP_VERSION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_DEPEPNDENCY_DEPENDS_ON_SCHEMA_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_DEPENDENCY_VERSION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_DEPENDENCY_DEPENDS_ON_VERSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_JSON_SCHEMA_DEPENDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_DEPENDENCY;
 
@@ -21,22 +21,22 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 public class DBOJsonSchemaDependency implements MigratableDatabaseObject<DBOJsonSchemaDependency, DBOJsonSchemaDependency> {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn("versionId", COL_JSON_SCHEMA_DEP_VERSION_ID, true).withIsBackupId(true),
-			new FieldColumn("dependsOnSchemaId", COL_JSON_SCHEMA_DEP_SCHEMA_ID, true),
-			new FieldColumn("dependsOnSemanticVersion", COL_JSON_SCHEMA_DEP_SEM_VER, true)};
+			new FieldColumn("versionId", COL_JSON_SCHEMA_DEPENDENCY_VERSION_ID, true).withIsBackupId(true),
+			new FieldColumn("dependsOnSchemaId", COL_JSON_SCHEMA_DEPEPNDENCY_DEPENDS_ON_SCHEMA_ID, true),
+			new FieldColumn("dependsOnVersionId", COL_JSON_SCHEMA_DEPENDENCY_DEPENDS_ON_VERSION_ID, true)};
 	
 	private Long versionId;
 	private Long dependsOnSchemaId;
-	private String dependsOnSemanticVersion;
+	private Long dependsOnVersionId;
 	
 	public static final TableMapping<DBOJsonSchemaDependency> MAPPING = new TableMapping<DBOJsonSchemaDependency>() {
 
 		@Override
 		public DBOJsonSchemaDependency mapRow(ResultSet rs, int rowNum) throws SQLException {
 			DBOJsonSchemaDependency dbo = new DBOJsonSchemaDependency();
-			dbo.setVersionId(rs.getLong(COL_JSON_SCHEMA_DEP_VERSION_ID));
-			dbo.setDependsOnSchemaId(rs.getLong(COL_JSON_SCHEMA_DEP_SCHEMA_ID));
-			dbo.setDependsOnSemanticVersion(rs.getString(COL_JSON_SCHEMA_DEP_SEM_VER));
+			dbo.setVersionId(rs.getLong(COL_JSON_SCHEMA_DEPENDENCY_VERSION_ID));
+			dbo.setDependsOnSchemaId(rs.getLong(COL_JSON_SCHEMA_DEPEPNDENCY_DEPENDS_ON_SCHEMA_ID));
+			dbo.setDependsOnVersionId(rs.getLong(COL_JSON_SCHEMA_DEPENDENCY_DEPENDS_ON_VERSION_ID));
 			return dbo;
 		}
 
@@ -108,17 +108,23 @@ public class DBOJsonSchemaDependency implements MigratableDatabaseObject<DBOJson
 		this.dependsOnSchemaId = dependsOnSchemaId;
 	}
 
-	public String getDependsOnSemanticVersion() {
-		return dependsOnSemanticVersion;
+	/**
+	 * @return the dependsOnVersionId
+	 */
+	public Long getDependsOnVersionId() {
+		return dependsOnVersionId;
 	}
 
-	public void setDependsOnSemanticVersion(String dependsOnSemanticVersion) {
-		this.dependsOnSemanticVersion = dependsOnSemanticVersion;
+	/**
+	 * @param dependsOnVersionId the dependsOnVersionId to set
+	 */
+	public void setDependsOnVersionId(Long dependsOnVersionId) {
+		this.dependsOnVersionId = dependsOnVersionId;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(dependsOnSchemaId, dependsOnSemanticVersion, versionId);
+		return Objects.hash(dependsOnSchemaId, dependsOnVersionId, versionId);
 	}
 
 	@Override
@@ -131,14 +137,15 @@ public class DBOJsonSchemaDependency implements MigratableDatabaseObject<DBOJson
 		}
 		DBOJsonSchemaDependency other = (DBOJsonSchemaDependency) obj;
 		return Objects.equals(dependsOnSchemaId, other.dependsOnSchemaId)
-				&& Objects.equals(dependsOnSemanticVersion, other.dependsOnSemanticVersion)
+				&& Objects.equals(dependsOnVersionId, other.dependsOnVersionId)
 				&& Objects.equals(versionId, other.versionId);
 	}
 
 	@Override
 	public String toString() {
 		return "DBOJsonSchemaDependency [versionId=" + versionId + ", dependsOnSchemaId=" + dependsOnSchemaId
-				+ ", dependsOnSemanticVersion=" + dependsOnSemanticVersion + "]";
+				+ ", dependsOnVersionId=" + dependsOnVersionId + "]";
 	}
+
 
 }

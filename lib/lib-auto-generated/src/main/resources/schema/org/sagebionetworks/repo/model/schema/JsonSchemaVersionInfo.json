@@ -21,6 +21,10 @@
 			"type": "string",
 			"description": "The Synapse issued numeric identifier for this version."
 		},
+		"$id": {
+			"type": "string",
+			"description": "The full '$id' of this schema version"
+		},
 		"semanticVersion": {
 			"type": "string",
 			"description": "The semantic version label provided when this version was created.  Can be null if a semantic version was not provided when this version was created."

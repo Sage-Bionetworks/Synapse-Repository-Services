@@ -24,7 +24,9 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.manager.entity.ReplicationManager;
+import org.sagebionetworks.repo.manager.replication.ReplicationManager;
+import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
+import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.BucketAndKey;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
@@ -43,12 +45,15 @@ import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableState;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.SQLUtils;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
@@ -108,6 +113,10 @@ public class TableViewManagerImpl implements TableViewManager {
 	private StackConfiguration config;
 	@Autowired
 	private ViewSnapshotDao viewSnapshotDao;
+	@Autowired
+	private MetadataIndexProviderFactory metadataIndexProviderFactory;
+	@Autowired
+	private ObjectFieldModelResolverFactory objectFieldModelResolverFactory;
 
 	/*
 	 * (non-Javadoc)
@@ -200,14 +209,16 @@ public class TableViewManagerImpl implements TableViewManager {
 	 */
 	@NewWriteTransaction
 	@Override
-	public void updateEntityInView(UserInfo user, List<ColumnModel> tableSchema, SparseRowDto row) {
+	public void updateRowInView(UserInfo user, List<ColumnModel> tableSchema, ViewObjectType objectType, SparseRowDto row) {
 		ValidateArgument.required(row, "SparseRowDto");
 		ValidateArgument.required(row.getRowId(), "row.rowId");
+		ValidateArgument.required(objectType, "objectType");
+		
 		if (row.getValues() == null || row.getValues().isEmpty()) {
 			// nothing to do for this row.
 			return;
 		}
-		String entityId = KeyFactory.keyToString(row.getRowId());
+		String objectId = KeyFactory.keyToString(row.getRowId());
 		Map<String, String> values = row.getValues();
 		String etag = row.getEtag();
 		if (etag == null) {
@@ -223,15 +234,20 @@ public class TableViewManagerImpl implements TableViewManager {
 				throw new IllegalArgumentException(ETAG_MISSING_MESSAGE);
 			}
 		}
-		// Get the current annotations for this entity.
-		Annotations userAnnotations = nodeManager.getUserAnnotations(user, entityId);
+		
+		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(objectType);
+		
+		Annotations userAnnotations = provider.getAnnotations(user, objectId);
 		userAnnotations.setEtag(etag);
-		boolean updated = updateAnnotationsFromValues(userAnnotations, tableSchema, values);
+		
+		boolean updated = updateAnnotationsFromValues(userAnnotations, tableSchema, values, provider);
+		
 		if (updated) {
 			// save the changes. validation of updated values will occur in this call
-			nodeManager.updateUserAnnotations(user, entityId, userAnnotations);
+			provider.updateAnnotations(user, objectId, userAnnotations);	
 			// Replicate the change
-			replicationManager.replicate(entityId);
+			replicationManager.replicate(objectType, objectId);
+			
 		}
 	}
 
@@ -258,33 +274,38 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * @param values
 	 * @return
 	 */
-	public static boolean updateAnnotationsFromValues(Annotations additional, List<ColumnModel> tableSchema,
-			Map<String, String> values) {
+	boolean updateAnnotationsFromValues(Annotations additional, List<ColumnModel> tableSchema, Map<String, String> values, MetadataIndexProvider provider) {
 		boolean updated = false;
+		ObjectFieldModelResolver fieldModelResolver = objectFieldModelResolverFactory.getObjectFieldModelResolver(provider);
 		// process each column of the view
 		for (ColumnModel column : tableSchema) {
-			ObjectField matchedField = ObjectField.findMatch(column);
-			// Ignore all entity fields.
-			if (matchedField == null) {
-				// is this column included in the row?
-				if (values.containsKey(column.getId())) {
-					updated = true;
-					// Match the column type to an annotation type.
-					AnnotationType type = SQLUtils.translateColumnTypeToAnnotationType(column.getColumnType());
-					String value = values.get(column.getId());
-					// Unconditionally remove a current annotation.
-					Map<String, AnnotationsValue> annotationsMap = additional.getAnnotations();
-					annotationsMap.remove(column.getName());
-					// Add back the annotation if the value is not null
-					if(value != null){
-						List<String> annoStringValues = toAnnotationValuesList(column, value);
-						AnnotationsValue annotationsV2Value = new AnnotationsValue();
-						annotationsV2Value.setValue(annoStringValues);
-						annotationsV2Value.setType(type.getAnnotationsV2ValueType());
-						annotationsMap.put(column.getName(), annotationsV2Value);
-					}
+			// Ignore all default object fields.
+			if (fieldModelResolver.findMatch(column).isPresent()) {
+				continue;
+			}
+			// Ignore annotations that cannot be updated
+			if (!provider.canUpdateAnnotation(column)) {
+				continue;
+			}
+			// is this column included in the row?
+			if (values.containsKey(column.getId())) {
+				updated = true;
+				// Match the column type to an annotation type.
+				AnnotationType type = SQLUtils.translateColumnTypeToAnnotationType(column.getColumnType());
+				String value = values.get(column.getId());
+				// Unconditionally remove a current annotation.
+				Map<String, AnnotationsValue> annotationsMap = additional.getAnnotations();
+				annotationsMap.remove(column.getName());
+				// Add back the annotation if the value is not null
+				if (value != null) {
+					List<String> annoStringValues = toAnnotationValuesList(column, value);
+					AnnotationsValue annotationsV2Value = new AnnotationsValue();
+					annotationsV2Value.setValue(annoStringValues);
+					annotationsV2Value.setType(type.getAnnotationsV2ValueType());
+					annotationsMap.put(column.getName(), annotationsV2Value);
 				}
 			}
+			
 		}
 		return updated;
 	}

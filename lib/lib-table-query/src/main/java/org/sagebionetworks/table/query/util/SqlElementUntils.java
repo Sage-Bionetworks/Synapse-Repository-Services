@@ -757,4 +757,38 @@ public class SqlElementUntils {
 		builder.append("\"");
 		return builder.toString();
 	}
+
+	/**
+	 * Appends a WHERE clause to the String Builder if necessary
+	 * @param builder StringBuilder to append to
+	 * @param searchConditionString SearchCondition string to append. pass null if none to append.
+	 * @param originalWhereClause the WHERE clause that was in the original query. pass null if not exist.
+	 */
+	public static void appendCombinedWhereClauseToStringBuilder(StringBuilder builder, String searchConditionString,
+																WhereClause originalWhereClause) {
+		ValidateArgument.required(builder, "builder");
+
+		if(searchConditionString != null || originalWhereClause != null){
+			builder.append(" WHERE ");
+			if(originalWhereClause != null){
+				if(searchConditionString != null){
+					builder.append("(");
+				}
+				builder.append(originalWhereClause.getSearchCondition().toSql());
+				if(searchConditionString != null){
+					builder.append(")");
+				}
+			}
+			if(searchConditionString != null){
+				if(originalWhereClause != null){
+					builder.append(" AND ");
+					builder.append("(");
+				}
+				builder.append(searchConditionString);
+				if(originalWhereClause != null){
+					builder.append(")");
+				}
+			}
+		}
+	}
 }

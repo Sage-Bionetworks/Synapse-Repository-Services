@@ -9,6 +9,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
+import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReferenceLookup;
@@ -113,7 +114,7 @@ public class SqlQuery {
 	 * @param columnNameToModelMap
 	 * @throws ParseException
 	 */
-	public SqlQuery(
+	SqlQuery(
 			QuerySpecification parsedModel,
 			List<ColumnModel> tableSchema,
 			Long overrideOffset,
@@ -124,7 +125,8 @@ public class SqlQuery {
 			Boolean includeEntityEtag,
 			Boolean includeRowIdAndRowVersion,
 			EntityType tableType,
-			List<FacetColumnRequest> selectedFacets
+			List<FacetColumnRequest> selectedFacets,
+			List<QueryFilter> additionalFilters
 			) {
 		ValidateArgument.required(tableSchema, "TableSchema");
 		if(tableSchema.isEmpty()){
@@ -178,6 +180,20 @@ public class SqlQuery {
 			SelectList expandedSelectList = SQLTranslatorUtils.createSelectListFromSchema(tableSchema);
 			this.model.replaceSelectList(expandedSelectList);
 		}
+
+
+		//Append additionalFilters onto the WHERE clause
+		if(additionalFilters != null && !additionalFilters.isEmpty()) {
+			String additionalFilterSearchCondition = SQLTranslatorUtils.translateQueryFilters(additionalFilters);
+			StringBuilder whereClauseBuilder = new StringBuilder();
+			SqlElementUntils.appendCombinedWhereClauseToStringBuilder(whereClauseBuilder,additionalFilterSearchCondition, this.model.getTableExpression().getWhereClause());
+			try {
+				this.model.getTableExpression().replaceWhere(new TableQueryParser(whereClauseBuilder.toString()).whereClause());
+			} catch (ParseException e) {
+				throw new IllegalArgumentException(e);
+			}
+		}
+
 		// Track if this is an aggregate query.
 		this.isAggregatedResult = model.hasAnyAggregateElements();
 		// Build headers that describe how the client should read the results of this query.

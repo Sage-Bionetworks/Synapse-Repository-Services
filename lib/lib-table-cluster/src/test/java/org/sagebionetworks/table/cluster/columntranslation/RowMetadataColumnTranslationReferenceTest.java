@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.Test;
 
-class RowMetadataColumnTranslationReferenceTest {
+public class RowMetadataColumnTranslationReferenceTest {
 
 	@Test
 	public void testEnums(){

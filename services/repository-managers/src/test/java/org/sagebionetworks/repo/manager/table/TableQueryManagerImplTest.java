@@ -35,6 +35,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -55,6 +57,8 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
@@ -63,7 +67,6 @@ import org.sagebionetworks.repo.model.table.FacetColumnResult;
 import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
 import org.sagebionetworks.repo.model.table.FacetType;
-import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryOptions;
@@ -81,6 +84,8 @@ import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SqlQuery;
@@ -93,9 +98,6 @@ import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.jdbc.BadSqlGrammarException;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class TableQueryManagerImplTest {
@@ -143,6 +145,8 @@ public class TableQueryManagerImplTest {
 	HashSet<Long> benfactors;
 	HashSet<Long> subSet;
 	
+	ViewScopeType scopeType;
+	
 	@BeforeEach
 	public void before() throws Exception {
 		tableId = "syn123";
@@ -176,8 +180,6 @@ public class TableQueryManagerImplTest {
 		sort.setDirection(SortDirection.DESC);
 		sortList = Lists.newArrayList(sort);
 		
-		ColumnModel benefactorColumn = ObjectField.benefactorId.getColumnModel();
-		benefactorColumn.setId("999");
 		benfactors = Sets.newHashSet(333L,444L);
 		subSet = Sets.newHashSet(444L);
 		
@@ -201,6 +203,7 @@ public class TableQueryManagerImplTest {
 		
 		queryOptions = new QueryOptions().withRunQuery(true);
 		sumFilesizes = 9876L;
+		scopeType =  new ViewScopeType(ViewObjectType.ENTITY, ViewTypeMask.File.getMask());
 	}
 
 	void setupQueryCallback() {
@@ -427,7 +430,7 @@ public class TableQueryManagerImplTest {
 		// auth check should occur
 		verify(mockTableManagerSupport).validateTableReadAccess(user, idAndVersion);
 		// a benefactor check should not occur for TableEntities
-		verify(mockTableManagerSupport, never()).getAccessibleBenefactors(any(UserInfo.class), any());
+		verify(mockTableManagerSupport, never()).getAccessibleBenefactors(any(), any(), any());
 	}
 	
 	@Test
@@ -436,7 +439,8 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
 		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenReturn(benfactors);
-		when(mockTableManagerSupport.getAccessibleBenefactors(user, benfactors)).thenReturn(subSet);
+		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
+		when(mockTableManagerSupport.getAccessibleBenefactors(user, scopeType, benfactors)).thenReturn(subSet);
 		
 		// Setup a fileView
 		EntityType type = EntityType.entityview;
@@ -451,7 +455,7 @@ public class TableQueryManagerImplTest {
 		// auth check should occur
 		verify(mockTableManagerSupport).validateTableReadAccess(user, idAndVersion);
 		// a benefactor check must occur for FileViews
-		verify(mockTableManagerSupport).getAccessibleBenefactors(any(UserInfo.class), any());
+		verify(mockTableManagerSupport).getAccessibleBenefactors(any(), any(), any());
 		// validate the benefactor filter is applied
 		assertEquals("SELECT COUNT(*) FROM T123 WHERE ROW_BENEFACTOR IN ( :b0 )", results.getOutputSQL());
 	}
@@ -991,6 +995,28 @@ public class TableQueryManagerImplTest {
 		assertNotNull(result);
 		assertEquals("SELECT i2, i0 FROM syn123 ORDER BY \"i0\" DESC", result.getModel().toSql());
 	}
+
+	@Test
+	public void testQueryPreflight_AdditionalQueryFilters() throws Exception {
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
+
+		Query query = new Query();
+		query.setSql("select i2, i0 from "+tableId);
+
+		ColumnSingleValueQueryFilter likeFilter = new ColumnSingleValueQueryFilter();
+		likeFilter.setColumnName("i0");
+		likeFilter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		likeFilter.setValues(Arrays.asList("foo%"));
+		query.setAdditionalFilters(Arrays.asList(likeFilter));
+
+		Long maxBytesPerPage = null;
+
+		// call under test
+		SqlQuery result = manager.queryPreflight(user, query, maxBytesPerPage);
+		assertNotNull(result);
+		assertEquals("SELECT i2, i0 FROM syn123 WHERE ( \"i0\" LIKE 'foo%' )", result.getModel().toSql());
+	}
 	
 	@Test
 	public void testQueryPreflightEmptySchema() throws Exception {
@@ -1073,7 +1099,8 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
 		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenReturn(benfactors);
-		when(mockTableManagerSupport.getAccessibleBenefactors(user, benfactors)).thenReturn(subSet);
+		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
+		when(mockTableManagerSupport.getAccessibleBenefactors(user, scopeType, benfactors)).thenReturn(subSet);
 		setupQueryCallback();
 		
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.entityview);
@@ -1596,11 +1623,7 @@ public class TableQueryManagerImplTest {
 	 * @throws EmptyResultException
 	 */
 	@Test
-	public void testBuildBenefactorFilterPLFM_4036() throws ParseException, EmptyResultException{
-		// add benefactor to the schema
-		ColumnModel benefactorColumn = ObjectField.benefactorId.getColumnModel();
-		benefactorColumn.setId("99");
-	
+	public void testBuildBenefactorFilterPLFM_4036() throws ParseException, EmptyResultException {	
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId+" where i1 > 0 or i1 is not null").querySpecification();
 		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
 		benefactorIds.add(456L);
@@ -1674,7 +1697,8 @@ public class TableQueryManagerImplTest {
 	public void testAddRowLevelFilter() throws Exception {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenReturn(benfactors);
-		when(mockTableManagerSupport.getAccessibleBenefactors(user, benfactors)).thenReturn(subSet);
+		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
+		when(mockTableManagerSupport.getAccessibleBenefactors(user, scopeType, benfactors)).thenReturn(subSet);
 		
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
 		// call under test

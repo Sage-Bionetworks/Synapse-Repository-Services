@@ -1,0 +1,13 @@
+{
+	"title": "Cat Breed",
+	"$id": "my.organization/pets.cat.Breed",
+	"description": "Enumeration of possible cat breeds.",
+	"type": "string",
+	"_enum": [
+		"Siamese",
+		"Persian",
+		"Maine Coon",
+		"Ragdoll",
+		"American Shorthair"
+	]
+}

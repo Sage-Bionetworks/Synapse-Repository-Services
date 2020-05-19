@@ -1,0 +1,29 @@
+{
+	"implements": [{"$ref":"org.sagebionetworks.repo.model.table.QueryFilter"}],
+	"description": "A filter using a single value against a column. Values within the values list have an OR relationship",
+	"properties": {
+		"columnName":{
+			"type": "string",
+			"description": "name of the column to filter"
+		},
+		"operator": {
+			"type": "string",
+			"description": "Determines the filter operation to perform",
+			"name": "ColumnSingleValueFilterOperator",
+			"id": "org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator",
+			"enum": [
+				{
+					"name": "LIKE",
+					"description": "The LIKE operation. Use wildcard '%' in value sting for prefix/suffix matching."
+				}
+			]
+		},
+		"values":{
+			"description": "Values to used with the filter. Multiple values will be joined in an OR relationship.",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}

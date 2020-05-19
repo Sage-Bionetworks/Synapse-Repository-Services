@@ -14,6 +14,7 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 import org.sagebionetworks.table.query.util.FacetUtils;
+import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class FacetTransformerRange implements FacetTransformer {
@@ -70,7 +71,7 @@ public class FacetTransformerRange implements FacetTransformer {
 		builder.append(" ");
 		builder.append(tableExpressionFromModel.getFromClause().toSql());
 		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, columnName);
-		FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(builder, facetSearchConditionString, tableExpressionFromModel.getWhereClause());
+		SqlElementUntils.appendCombinedWhereClauseToStringBuilder(builder, facetSearchConditionString, tableExpressionFromModel.getWhereClause());
 		
 		try {
 			return new SqlQueryBuilder(builder.toString(), originalQuery.getTableSchema()).build();

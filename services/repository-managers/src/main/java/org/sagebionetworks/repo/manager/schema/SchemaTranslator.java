@@ -9,8 +9,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 public interface SchemaTranslator {
 	
-	public static final String DELIMITER = "/";
-	
 	/**
 	 * Load an ObjectSchemaImpl from the auto-generated project via the classpath.
 	 * 

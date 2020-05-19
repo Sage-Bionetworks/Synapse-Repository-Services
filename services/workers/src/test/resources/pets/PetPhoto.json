@@ -1,0 +1,13 @@
+{
+	"title": "Pet Photo",
+	"$id": "my.organization/pets.PetPhoto",
+	"description": "...",
+	"oneOf": [
+		{
+			"$ref": "my.organization/pets.cat.Cat"
+		},
+		{
+			"$ref": "my.organization/pets.dog.Dog"
+		}
+	]
+}

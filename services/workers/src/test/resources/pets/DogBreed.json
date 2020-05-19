@@ -1,0 +1,13 @@
+{
+	"title": "Dog Breed",
+	"$id": "my.organization/pets.dog.Breed",
+	"description": "Enumeration of possible dog breeds.",
+	"type": "string",
+	"_enum": [
+		"Labrador Retriever",
+		"German Shepherd",
+		"Golden Retriever",
+		"Bulldog",
+		"Beagle"
+	]
+}
