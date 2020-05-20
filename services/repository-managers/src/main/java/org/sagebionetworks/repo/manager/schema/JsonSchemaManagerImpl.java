@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -377,27 +378,47 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	 */
 	@Override
 	public JsonSchema getValidationSchema(String id) {
-		Map<String, JsonSchema> $defs = new HashMap<String, JsonSchema>();
+		Map<String, JsonSchema> visitedSchemas = new LinkedHashMap<String, JsonSchema>();
+		return getValidationSchema(visitedSchemas, id);
+	}
+	
+	/**
+	 * Recursively 
+	 * @param visitedSchemas
+	 * @param id
+	 * @return
+	 */
+	JsonSchema getValidationSchema(Map<String, JsonSchema> visitedSchemas, String id) {
+		// cycle detection
+		if(visitedSchemas.containsKey(id)) {
+			return visitedSchemas.get(id);
+		}
 		// get the base schema
 		JsonSchema baseSchema = getSchema(id);
+		if(baseSchema.get$defs() == null) {
+			baseSchema.set$defs(new LinkedHashMap<String, JsonSchema>());
+		}
+		visitedSchemas.put(id, baseSchema);
 		for (JsonSchema subSchema : SubSchemaIterable.depthFirstIterable(baseSchema)) {
 			if (subSchema.get$ref() != null) {
 				String local$defsId = createLocal$defsId(subSchema.get$ref());
-				if (!$defs.containsKey(local$defsId)) {
+				if (!baseSchema.get$defs().containsKey(local$defsId)) {
 					// Load the sub-schema's validation schema
-					JsonSchema validationSubSchema = getValidationSchema(subSchema.get$ref());
+					JsonSchema validationSubSchema = getValidationSchema(visitedSchemas, subSchema.get$ref());
 					// Merge the $defs from the new schema with the current
 					if (validationSubSchema.get$defs() != null) {
-						$defs.putAll(validationSubSchema.get$defs());
+						baseSchema.get$defs().putAll(validationSubSchema.get$defs());
 					}
 					validationSubSchema.set$defs(null);
-					$defs.put(local$defsId, validationSubSchema);
+					baseSchema.get$defs().put(local$defsId, validationSubSchema);
 				}
 				// replace the $ref to the local $def
 				subSchema.set$ref(local$defsId);
 			}
 		}
-		baseSchema.set$defs($defs);
+		if(baseSchema.get$defs().isEmpty()) {
+			baseSchema.set$defs(null);
+		}
 		return baseSchema;
 	}
 

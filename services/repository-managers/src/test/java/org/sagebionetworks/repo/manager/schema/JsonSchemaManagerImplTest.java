@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.schema;
 
+import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -8,14 +9,17 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -26,6 +30,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -55,6 +60,7 @@ import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -81,6 +87,8 @@ public class JsonSchemaManagerImplTest {
 
 	@InjectMocks
 	JsonSchemaManagerImpl manager;
+	
+	JsonSchemaManagerImpl managerSpy;
 
 	Date now;
 	UserInfo user;
@@ -109,6 +117,7 @@ public class JsonSchemaManagerImplTest {
 
 	@BeforeEach
 	public void before() throws JSONObjectAdapterException {
+		managerSpy = Mockito.spy(manager);
 		boolean isAdmin = false;
 		user = new UserInfo(isAdmin, 123L);
 		isAdmin = true;
@@ -1177,5 +1186,222 @@ public class JsonSchemaManagerImplTest {
 		});
 		verify(mockSchemaDao, never()).getLatestVersionId(any(), any());
 		verify(mockSchemaDao, never()).getVersionInfo(any());
+	}
+	
+	@Test
+	public void testCreateLocal$defsId() {
+		// call under test
+		String result = JsonSchemaManagerImpl.createLocal$defsId("foo/bar");
+		assertEquals("#/$defs/foo/bar", result);
+	}
+	
+	@Test
+	public void testGetValidationSchema() throws JSONObjectAdapterException {
+		JsonSchema one = createSchema("one");
+		one.setDescription("about one");
+		Map<String, JsonSchema> one$defs = new HashMap<String, JsonSchema>();
+		JsonSchema aString = new JsonSchema();
+		aString.setType(Type.string);
+		one$defs.put("#/$defs/foo/bar", aString);
+		one.set$defs(one$defs);
+		JsonSchema refToOne = create$RefSchema(one);
+		JsonSchema two = createSchema("two");
+		two.setItems(refToOne);
+		JsonSchema refToTwo = create$RefSchema(two);
+		JsonSchema three = createSchema("three");
+		three.setItems(refToTwo);
+		
+		Mockito.doReturn(cloneSchema(one)).when(managerSpy).getSchema(one.get$id());
+		Mockito.doReturn(cloneSchema(two)).when(managerSpy).getSchema(two.get$id());
+		Mockito.doReturn(cloneSchema(three)).when(managerSpy).getSchema(three.get$id());
+		
+		// call under test
+		JsonSchema validationSchema = managerSpy.getValidationSchema(three.get$id());
+		assertNotNull(validationSchema);
+		Map<String, JsonSchema> validation$defs = validationSchema.get$defs();
+		assertNotNull(validation$defs);
+		assertEquals("three", validationSchema.get$id());
+		assertNotNull(validationSchema.getItems());
+		assertEquals("#/$defs/two", validationSchema.getItems().get$ref());
+		// two fetched from three's $defs
+		JsonSchema twoFrom$defs = validation$defs.get("#/$defs/two");
+		assertNotNull(twoFrom$defs);
+		assertNotNull(twoFrom$defs.getItems());
+		assertEquals("#/$defs/one", twoFrom$defs.getItems().get$ref());
+		assertNull(twoFrom$defs.get$defs());
+		// one fetched from three's $defs
+		JsonSchema oneFrom$defs = validation$defs.get("#/$defs/one");
+		assertNotNull(oneFrom$defs);
+		assertEquals(one.getDescription(), oneFrom$defs.getDescription());
+		assertNull(oneFrom$defs.get$defs());
+		// $defs from one fetched form three's $defs
+		JsonSchema fooBar = validation$defs.get("#/$defs/foo/bar");
+		assertNotNull(fooBar);
+		assertEquals(Type.string, fooBar.getType());
+		
+		verify(managerSpy).getSchema(one.get$id());
+		verify(managerSpy).getSchema(two.get$id());
+		verify(managerSpy).getSchema(three.get$id());
+	}
+	
+	@Test
+	public void testGetValidationSchemaWithLeafWithNull$defs() throws JSONObjectAdapterException {
+		JsonSchema one = createSchema("one");
+		one.setDescription("about one");
+		one.set$defs(null);
+		JsonSchema refToOne = create$RefSchema(one);
+		JsonSchema two = createSchema("two");
+		two.setItems(refToOne);
+		
+		Mockito.doReturn(cloneSchema(one)).when(managerSpy).getSchema(one.get$id());
+		Mockito.doReturn(cloneSchema(two)).when(managerSpy).getSchema(two.get$id());
+		
+		// call under test
+		JsonSchema validationSchema = managerSpy.getValidationSchema(two.get$id());
+		assertNotNull(validationSchema);
+		Map<String, JsonSchema> validation$defs = validationSchema.get$defs();
+		assertNotNull(validation$defs);
+		assertEquals("two", validationSchema.get$id());
+		assertNotNull(validationSchema.getItems());
+		assertEquals("#/$defs/one", validationSchema.getItems().get$ref());
+
+		// one fetched from three's $defs
+		JsonSchema oneFrom$defs = validation$defs.get("#/$defs/one");
+		assertNotNull(oneFrom$defs);
+		assertEquals(one.getDescription(), oneFrom$defs.getDescription());
+		assertNull(oneFrom$defs.get$defs());
+	
+		verify(managerSpy).getSchema(one.get$id());
+		verify(managerSpy).getSchema(two.get$id());
+	}
+	
+	@Test
+	public void testGetValidationSchemaWithDuplicates() throws JSONObjectAdapterException {
+		JsonSchema one = createSchema("one");
+		one.setDescription("about one");
+		one.set$defs(null);
+		JsonSchema refToOne = create$RefSchema(one);
+		JsonSchema two = createSchema("two");
+		two.setItems(refToOne);
+		two.setProperties(new LinkedHashMap<String, JsonSchema>());
+		two.getProperties().put("secondRefToOne", refToOne);
+		
+		Mockito.doReturn(cloneSchema(one)).when(managerSpy).getSchema(one.get$id());
+		Mockito.doReturn(cloneSchema(two)).when(managerSpy).getSchema(two.get$id());
+		
+		// call under test
+		JsonSchema validationSchema = managerSpy.getValidationSchema(two.get$id());
+		assertNotNull(validationSchema);
+		Map<String, JsonSchema> validation$defs = validationSchema.get$defs();
+		assertNotNull(validation$defs);
+		assertEquals("two", validationSchema.get$id());
+		assertNotNull(validationSchema.getItems());
+		assertEquals("#/$defs/one", validationSchema.getItems().get$ref());
+
+		// one fetched from three's $defs
+		JsonSchema oneFrom$defs = validation$defs.get("#/$defs/one");
+		assertNotNull(oneFrom$defs);
+		assertEquals(one.getDescription(), oneFrom$defs.getDescription());
+		assertNull(oneFrom$defs.get$defs());
+	
+		// one should only get fetched once
+		verify(managerSpy).getSchema(one.get$id());
+		verify(managerSpy).getSchema(two.get$id());
+	}
+	
+	@Test
+	public void testGetValidationSchemaWithCycles() throws JSONObjectAdapterException {
+		JsonSchema one = createSchema("one");
+		one.setDescription("about one");
+		JsonSchema refToOne = create$RefSchema(one);
+		JsonSchema two = createSchema("two");
+		two.setItems(refToOne);
+		JsonSchema refToTwo = create$RefSchema(two);
+		JsonSchema three = createSchema("three");
+		three.setItems(refToTwo);
+		JsonSchema refToThree = create$RefSchema(three);
+		// one refs to three creates a cycle
+		one.setItems(refToThree);
+		
+		Mockito.doReturn(cloneSchema(one)).when(managerSpy).getSchema(one.get$id());
+		Mockito.doReturn(cloneSchema(two)).when(managerSpy).getSchema(two.get$id());
+		Mockito.doReturn(cloneSchema(three)).when(managerSpy).getSchema(three.get$id());
+		
+		// call under test
+		JsonSchema validationSchema = managerSpy.getValidationSchema(three.get$id());
+		assertNotNull(validationSchema);
+		Map<String, JsonSchema> validation$defs = validationSchema.get$defs();
+		assertNotNull(validation$defs);
+		assertEquals("three", validationSchema.get$id());
+		assertNotNull(validationSchema.getItems());
+		assertEquals("#/$defs/two", validationSchema.getItems().get$ref());
+		// two fetched from three's $defs
+		JsonSchema twoFrom$defs = validation$defs.get("#/$defs/two");
+		assertNotNull(twoFrom$defs);
+		assertNotNull(twoFrom$defs.getItems());
+		assertEquals("#/$defs/one", twoFrom$defs.getItems().get$ref());
+		assertNull(twoFrom$defs.get$defs());
+		// one fetched from three's $defs
+		JsonSchema oneFrom$defs = validation$defs.get("#/$defs/one");
+		assertNotNull(oneFrom$defs);
+		assertEquals(one.getDescription(), oneFrom$defs.getDescription());
+		assertNull(oneFrom$defs.get$defs());
+		// $defs from one fetched form three's $defs
+		JsonSchema fooBar = validation$defs.get("#/$defs/foo/bar");
+		assertNotNull(fooBar);
+		assertEquals(Type.string, fooBar.getType());
+		
+		verify(managerSpy).getSchema(one.get$id());
+		verify(managerSpy).getSchema(two.get$id());
+		verify(managerSpy).getSchema(three.get$id());
+	}
+	
+	@Test
+	public void testGetValidationWithSchemaNoReferences() throws JSONObjectAdapterException {
+		JsonSchema one = createSchema("one");
+		one.setDescription("about one");
+		
+		Mockito.doReturn(cloneSchema(one)).when(managerSpy).getSchema(one.get$id());
+		
+		// call under test
+		JsonSchema validationSchema = managerSpy.getValidationSchema(one.get$id());
+		assertNotNull(validationSchema);
+		assertNull(validationSchema.get$defs());
+		assertEquals("one", validationSchema.get$id());
+		
+		verify(managerSpy).getSchema(one.get$id());
+	}
+	
+	/**
+	 * Helper to create a schema with the given $id.
+	 * @param $id
+	 * @return
+	 */
+	public JsonSchema createSchema(String $id) {
+		JsonSchema schema = new JsonSchema();
+		schema.set$id($id);
+		return schema;
+	}
+	
+	/**
+	 * Helper to create a $ref to the given schema
+	 * @param toRef
+	 * @return
+	 */
+	public JsonSchema create$RefSchema(JsonSchema toRef) {
+		JsonSchema schema = new JsonSchema();
+		schema.set$ref(toRef.get$id());
+		return schema;
+	}
+	
+	/**
+	 * Helper to clone a JsonSchema
+	 * @param toClone
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 */
+	public JsonSchema cloneSchema(JsonSchema toClone) throws JSONObjectAdapterException {
+		String json = EntityFactory.createJSONStringForEntity(toClone);
+		return EntityFactory.createEntityFromJSONString(json, JsonSchema.class);
 	}
 }
