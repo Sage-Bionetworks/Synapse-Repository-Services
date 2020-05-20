@@ -135,6 +135,30 @@
 	</filter-mapping>
 	
 	<filter>
+		<filter-name>acceptTermsOfUseFilter</filter-name>
+		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+		<init-param>
+			<!-- Make sure the init-params are passed through the proxy to the bean -->
+			<param-name>targetFilterLifecycle</param-name>
+			<param-value>true</param-value>
+		</init-param>
+	</filter>
+
+	<!-- This applies to all paths that authenticate a Synapse user -->
+	<filter-mapping>
+		<filter-name>acceptTermsOfUseFilter</filter-name>
+		<url-pattern>/auth/v1/secretKey</url-pattern>
+		<url-pattern>/auth/v1/oauth2/alias</url-pattern>
+		<url-pattern>/auth/v1/oauth2/client/*</url-pattern>
+		<url-pattern>/auth/v1/oauth2/consent</url-pattern>
+		<url-pattern>/auth/v1/oauth2/consentcheck</url-pattern>
+		<url-pattern>/auth/v1/oauth2/userinfo</url-pattern>
+		<url-pattern>/repo/v1/*</url-pattern>
+		<url-pattern>/file/v1/*</url-pattern>
+		<url-pattern>/docker/v1/*</url-pattern>
+	</filter-mapping>
+
+	<filter>
 		<filter-name>dockerRegistryAuthFilter</filter-name>
 		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
 		<init-param>

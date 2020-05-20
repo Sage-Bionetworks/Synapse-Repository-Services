@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -78,6 +77,7 @@ public class AuthenticationFilterTest {
 
 	@Mock
 	private AuthenticationService mockAuthService;
+	
 	@Mock
 	private UserManager mockUserManager;
 	
@@ -157,7 +157,6 @@ public class AuthenticationFilterTest {
 	@Test
 	public void testSessionToken_asHeader() throws Exception {
 		when(mockAuthService.revalidate(eq(sessionToken), eq(false))).thenReturn(userId);
-		when(mockAuthService.hasUserAcceptedTermsOfUse(anyLong())).thenReturn(true);
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.addHeader(AuthorizationConstants.SESSION_TOKEN_PARAM, sessionToken);
@@ -172,7 +171,6 @@ public class AuthenticationFilterTest {
 		
 		// Session token should be recognized
 		verify(mockAuthService, times(1)).revalidate(eq(sessionToken), eq(false));
-		verify(mockAuthService).hasUserAcceptedTermsOfUse(userId);
 		ServletRequest modRequest = filterChain.getRequest();
 		assertNotNull(modRequest);
 		String sessionUserId = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
@@ -182,7 +180,6 @@ public class AuthenticationFilterTest {
 	@Test
 	public void testSessionToken_asParameter() throws Exception {
 		when(mockAuthService.revalidate(eq(sessionToken), eq(false))).thenReturn(userId);
-		when(mockAuthService.hasUserAcceptedTermsOfUse(anyLong())).thenReturn(true);
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.addParameter(AuthorizationConstants.SESSION_TOKEN_PARAM, sessionToken);
@@ -197,7 +194,6 @@ public class AuthenticationFilterTest {
 
 		// Session token should be recognized
 		verify(mockAuthService, times(1)).revalidate(eq(sessionToken), eq(false));
-		verify(mockAuthService).hasUserAcceptedTermsOfUse(userId);
 		ServletRequest modRequest = filterChain.getRequest();
 		assertNotNull(modRequest);
 		String sessionUserId = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
@@ -223,7 +219,6 @@ public class AuthenticationFilterTest {
 	@Test
 	public void testHmac() throws Exception {
 		when(mockAuthService.getSecretKey(eq(userId))).thenReturn(secretKey);
-		when(mockAuthService.hasUserAcceptedTermsOfUse(anyLong())).thenReturn(true);
 		when(mockUserManager.lookupUserByUsernameOrEmail(eq(username))).thenReturn(pa);
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
@@ -240,7 +235,6 @@ public class AuthenticationFilterTest {
 
 		// Signature should match
 		verify(mockAuthService, times(1)).getSecretKey(eq(userId));
-		verify(mockAuthService).hasUserAcceptedTermsOfUse(userId);
 		ServletRequest modRequest = filterChain.getRequest();
 		assertNotNull(modRequest);
 		String passedAlongUsername = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
@@ -292,7 +286,6 @@ public class AuthenticationFilterTest {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BEARER_TOKEN_HEADER);
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
 		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.enumeration(Collections.singletonList(BEARER_TOKEN_HEADER)));
-		when(mockAuthService.hasUserAcceptedTermsOfUse(anyLong())).thenReturn(true);
 		when(mockOidcManager.getUserId(anyString())).thenReturn(""+userId);
 
 		// by default the mocked oidcTokenHelper.validateJWT(bearerToken) won't throw any exception, so the token is deemed valid
@@ -302,7 +295,6 @@ public class AuthenticationFilterTest {
 		
 		verify(mockOidcManager).getUserId(BEARER_TOKEN);
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
-		verify(mockAuthService).hasUserAcceptedTermsOfUse(userId);
 		
 		assertEquals(""+userId, requestCaptor.getValue().getParameter(AuthorizationConstants.USER_ID_PARAM));
 		assertEquals("Bearer "+BEARER_TOKEN, requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME));
@@ -322,7 +314,6 @@ public class AuthenticationFilterTest {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BEARER_TOKEN_HEADER);
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
 		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.enumeration(Collections.singletonList(BEARER_TOKEN_HEADER)));
-		when(mockAuthService.hasUserAcceptedTermsOfUse(anyLong())).thenReturn(true);
 		when(mockOidcManager.getUserId(anyString())).thenReturn(""+userId);
 
 		// method under test
@@ -352,7 +343,6 @@ public class AuthenticationFilterTest {
 		filter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
 		
 		verify(mockOidcManager).getUserId(BEARER_TOKEN);
-		verify(mockAuthService, never()).hasUserAcceptedTermsOfUse(userId);
 		verify(mockFilterChain, never()).doFilter((ServletRequest)any(), (ServletResponse)any());
 		verify(mockHttpResponse).setStatus(401);
 		verify(mockHttpResponse).setContentType("application/json");
@@ -374,7 +364,6 @@ public class AuthenticationFilterTest {
 		
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
 		verify(mockOidcManager, never()).getUserId(BEARER_TOKEN);
-		verify(mockAuthService, never()).hasUserAcceptedTermsOfUse(userId);
 		
 		assertEquals("273950", requestCaptor.getValue().getParameter(AuthorizationConstants.USER_ID_PARAM));
 		assertNull(requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME));

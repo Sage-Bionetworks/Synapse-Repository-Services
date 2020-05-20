@@ -374,7 +374,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		// userId is used to retrieve the user info
 		String userId = getUserIdFromPPID(ppid, oauthClientId);
 
-		Map<OIDCClaimName,Object> userInfo = getUserInfo(userId.toString(), scopes, oidcClaims);
+		Map<OIDCClaimName,Object> userInfo = getUserInfo(userId, scopes, oidcClaims);
 
 		// From https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
 		// "If [a signing algorithm] is specified, the response will be JWT serialized, and signed using JWS. 

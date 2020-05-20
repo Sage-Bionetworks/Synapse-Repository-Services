@@ -17,7 +17,6 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.http.HttpStatus;
 
 public class HttpAuthUtil {
-	
 	private static final Decoder BASE64_DECODER = Base64.getDecoder();
 	private static final String INVALID_AUTH_MSG_FORMAT = "Invalid Authorization header for basic authentication (%s)"; 
 
