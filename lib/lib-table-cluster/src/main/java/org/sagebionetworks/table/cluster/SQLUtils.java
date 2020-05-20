@@ -1353,6 +1353,8 @@ public class SQLUtils {
 		case DATE:
 		case INTEGER:
 		case ENTITYID:
+		case SUBMISSIONID:
+		case EVALUATIONID:
 		case FILEHANDLEID:
 		case USERID:
 			return TableConstants.ANNOTATION_REPLICATION_COL_LONG_VALUE;

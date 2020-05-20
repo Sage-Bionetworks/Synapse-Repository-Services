@@ -8,13 +8,11 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -150,6 +148,8 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 			//booleans, userIds, and entityIds can only be faceted by enumeration
 			case USERID:
 			case ENTITYID:
+			case SUBMISSIONID:
+			case EVALUATIONID:
 			case BOOLEAN:
 			case BOOLEAN_LIST:
 			case STRING_LIST:

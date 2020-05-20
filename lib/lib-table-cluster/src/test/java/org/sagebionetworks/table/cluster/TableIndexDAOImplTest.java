@@ -295,7 +295,7 @@ public class TableIndexDAOImplTest {
 		// We should be able to update all of the rows
 		rows.get(4).setValues(
 				Arrays.asList("update", "99.99", "3", "false", "123", "123",
-						"syn123", "link2", "largeText", "42"));
+						"syn123", "456", "789", "link2", "largeText", "42"));
 		rows.get(4).setVersionNumber(5L);
 		rows.get(0).setVersionNumber(5L);
 		// This should not fail
@@ -318,8 +318,11 @@ public class TableIndexDAOImplTest {
 		assertEquals(123L, row.get("_C4_"));
 		assertEquals(123L, row.get("_C5_"));
 		assertEquals(new Long(123), row.get("_C6_"));
-		assertEquals("largeText", row.get("_C8_"));
-		assertEquals(42L, row.get("_C9_"));
+		assertEquals(456L, row.get("_C7_"));
+		assertEquals(789L, row.get("_C8_"));
+		assertEquals("link2", row.get("_C9_"));
+		assertEquals("largeText", row.get("_C10_"));
+		assertEquals(42L, row.get("_C11_"));
 	}
 
 	@Test
@@ -443,8 +446,8 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(100), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
 		List<String> expectedValues = Arrays.asList("string0", "341003.12",
-				"203000", "false", "404000", "505000", "syn606000",
-				"link708000", "largeText804000", "903000", "[\"string1000000\", \"otherstring1000000\"]", "[1103000]", "[false]", "[1304000]");
+				"203000", "false", "404000", "505000", "syn606000", "703000", "803000",
+				"link908000", "largeText1004000", "1103000", "[\"string1200000\", \"otherstring1200000\"]", "[1303000]", "[false]", "[1504000]");
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
@@ -452,8 +455,8 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(101), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
 		expectedValues = Arrays.asList("string1", "341006.53", "203001",
-				"true", "404001", "505001", "syn606001", 
-				"link708001", "largeText804001", "903001", "[\"string1000001\", \"otherstring1000001\"]", "[1103001]", "[true]", "[1304001]");
+				"true", "404001", "505001", "syn606001", "703001", "803001",
+				"link908001", "largeText1004001", "1103001", "[\"string1200001\", \"otherstring1200001\"]", "[1303001]", "[true]", "[1504001]");
 		assertEquals(expectedValues, row.getValues());
 		// must also be able to run the query with a null callback
 		mockProgressCallback = null;
@@ -576,7 +579,7 @@ public class TableIndexDAOImplTest {
 		assertNotNull(row);
 		assertEquals(new Long(100), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		List<String> expectedValues = Arrays.asList(null, null, null, null,
+		List<String> expectedValues = Arrays.asList(null, null, null, null, null, null,
 				null, null, null, null,  null, null, null, null, null, null);
 		assertEquals(expectedValues, row.getValues());
 		// Second row
@@ -584,7 +587,7 @@ public class TableIndexDAOImplTest {
 		assertNotNull(row);
 		assertEquals(new Long(101), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		expectedValues = Arrays.asList(null, null, null, null, null, null,
+		expectedValues = Arrays.asList(null, null, null, null, null, null, null, null,
 				null, null, null, null, null, null, null, null);
 		assertEquals(expectedValues, row.getValues());
 	}
