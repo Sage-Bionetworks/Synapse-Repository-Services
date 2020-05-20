@@ -41,4 +41,24 @@
 			<ref bean="objectReplicationReconciliationWorkerTrigger" />
 		</util:list>
 	</beans>
+	
+	<!-- Profile with a subset of workers for replication only (Use with @ActiveProfiles("test-replication-workers") -->
+	<beans profile="test-replication-workers">
+		<util:list id="workerTriggersList">
+			<!-- workers publish messages too -->
+			<ref bean="messagePublisherTrigger" />
+			<ref bean="objectReplicationWorkerTrigger" />
+		</util:list>
+	</beans>
+	
+	<!-- Profile with a subset of workers for reconciliation only (Use with @ActiveProfiles("test-reconciliation-workers") -->
+	<beans profile="test-reconciliation-workers">
+		<util:list id="workerTriggersList">
+			<!-- workers publish messages too -->
+			<ref bean="messagePublisherTrigger" />
+			<ref bean="tableViewWorkerTrigger" />
+			<ref bean="objectReplicationWorkerTrigger" />
+			<ref bean="objectReplicationReconciliationWorkerTrigger" />
+		</util:list>
+	</beans>
 </beans>
