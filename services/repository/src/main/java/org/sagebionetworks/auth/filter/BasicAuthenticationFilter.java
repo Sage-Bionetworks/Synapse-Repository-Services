@@ -81,14 +81,26 @@ public abstract class BasicAuthenticationFilter implements Filter {
 			return;
 		}
 
-		if (credentials.isPresent() && !validCredentials(credentials.get())) {
-			rejectRequest(httpResponse, getInvalidCredentialsMessage());
-			return;
-		}
-
-		doFilterInternal(httpRequest, httpResponse, filterChain, credentials.orElse(null));
+		validateCredentialsAndDoFilterInternal(httpRequest, httpResponse, filterChain, credentials);
 	}
-
+	
+	/**
+	 * Validates the credentials (if required and present) and proceeds with the request invoking the
+	 * {@link FilterChain#doFilter(javax.servlet.ServletRequest, javax.servlet.ServletResponse)}
+	 * method.
+	 * 
+	 * @param httpRequest
+	 * @param httpResponse
+	 * @param filterChain
+	 * @param credentials The credentials extracted from the Authorization header,
+	 *                    might be missing, if credentials are not required
+	 * @throws IOException
+	 * @throws ServletException
+	 */
+	protected abstract void validateCredentialsAndDoFilterInternal(
+			HttpServletRequest httpRequest, HttpServletResponse httpResponse, 
+			FilterChain filterChain, Optional<UserNameAndPassword> credentials) throws IOException, ServletException;
+	
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException {
 
@@ -137,31 +149,6 @@ public abstract class BasicAuthenticationFilter implements Filter {
 
 		HttpAuthUtil.reject(response, message);
 	}
-
-	/**
-	 * Proceeds with the request invoking the
-	 * {@link FilterChain#doFilter(javax.servlet.ServletRequest, javax.servlet.ServletResponse)}
-	 * method. Can be overridden to alter the behavior in the filter chain.
-	 * 
-	 * @param request
-	 * @param response
-	 * @param filterChain
-	 * @param credentials
-	 * @throws ServletException
-	 * @throws IOException
-	 */
-	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain, UserNameAndPassword credentials) throws ServletException, IOException {
-		filterChain.doFilter(request, response);
-	}
-
-	/**
-	 * @param credentials The credentials extracted from the Authorization header,
-	 *                    always present. If the {@link #credentialsRequired()} is
-	 *                    false and the credentials are not present this check will
-	 *                    be skipped
-	 * @return True if the given credentials are valid, false otherwise
-	 */
-	protected abstract boolean validCredentials(UserNameAndPassword credentials);
 
 	/**
 	 * @return True if the credentials are required, false otherwise (e.g. anonymous
