@@ -254,6 +254,9 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		" and acl."+COL_ACL_OWNER_TYPE+"='"+ObjectType.EVALUATION+"'"+
 		" and ra."+COL_RESOURCE_ACCESS_GROUP_ID+" in (:"+COL_RESOURCE_ACCESS_GROUP_ID+") "+
 		" and at."+COL_RESOURCE_ACCESS_TYPE_ELEMENT+"=:"+COL_RESOURCE_ACCESS_TYPE_ELEMENT;
+	
+	private static final String SELECT_EVALUATION_ID = "SELECT " + COL_SUBMISSION_EVAL_ID 
+			+ " FROM " + TABLE_SUBMISSION + " WHERE " + COL_SUBMISSION_ID + "=?";
 
 	//------    end Submission eligibility related query strings -----
 
@@ -733,6 +736,16 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 
 		return 0<namedTemplate.queryForObject(
 				SUBMISSIONS_WITH_DOCKER_REPO_AND_PERMISSION_SQL, param, Long.class);
+	}
+
+	@Override
+	public Long getEvaluationId(String submissionId) {
+		ValidateArgument.required(submissionId, "submissionId");
+		try {
+			return jdbcTemplate.queryForObject(SELECT_EVALUATION_ID, Long.class, submissionId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("Could not find a submission with id " + submissionId);
+		}
 	}
 
 }

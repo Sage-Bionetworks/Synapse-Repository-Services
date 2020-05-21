@@ -134,15 +134,21 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	@Override
 	public SubmissionStatus getSubmissionStatus(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
 		EvaluationUtils.ensureNotNull(submissionId, "Submission ID");
-		SubmissionBundle bundle = submissionDAO.getBundle(submissionId);
-		String evaluationId = bundle.getSubmission().getEvaluationId();
+		UserInfo.validateUserInfo(userInfo);
+		
+		String evaluationId = submissionDAO.getEvaluationId(submissionId).toString();
+		
 		validateEvaluationAccess(userInfo, evaluationId, ACCESS_TYPE.READ);
-		// only authorized users can view private Annotations 
-		SubmissionStatus result = bundle.getSubmissionStatus();
-		boolean includePrivateAnnos = evaluationPermissionsManager.hasAccess(userInfo, evaluationId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).isAuthorized();
+		
+		boolean includePrivateAnnos = evaluationPermissionsManager
+				.hasAccess(userInfo, evaluationId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).isAuthorized();
+		
+		SubmissionStatus result = submissionStatusDAO.get(submissionId);
+		
 		if (!includePrivateAnnos) {
 			removePrivateAnnotations(result);
 		}
+		
 		return result;
 	}
 	
@@ -372,18 +378,22 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	public SubmissionStatus updateSubmissionStatus(UserInfo userInfo, SubmissionStatus submissionStatus) throws NotFoundException {
 		EvaluationUtils.ensureNotNull(submissionStatus, "SubmissionStatus");
 		UserInfo.validateUserInfo(userInfo);
+		ValidateArgument.required(submissionStatus.getId(), "submissionStatus.id");
 		
-		// ensure Submission exists and validate access rights
-		String evalId = getSubmission(userInfo, submissionStatus.getId()).getEvaluationId();		
-		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.UPDATE_SUBMISSION);
+		String submissionId = submissionStatus.getId();
 		
-		validateContent(submissionStatus, evalId);
+		String evaluationId = submissionDAO.getEvaluationId(submissionId).toString();
+		
+		validateEvaluationAccess(userInfo, evaluationId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		validateEvaluationAccess(userInfo, evaluationId, ACCESS_TYPE.UPDATE_SUBMISSION);
+		
+		validateContent(submissionStatus, evaluationId);
 		
 		// update and return the new Submission
 		submissionStatusDAO.update(Collections.singletonList(submissionStatus));
 		
 		// update the EvaluationSubmissions etag
-		Long evalIdLong = KeyFactory.stringToKey(evalId);
+		Long evalIdLong = KeyFactory.stringToKey(evaluationId);
 		evaluationSubmissionsDAO.updateEtagForEvaluation(evalIdLong, true, ChangeType.UPDATE);
 		
 		sendSubmissionMessage(userInfo, ChangeType.UPDATE, submissionStatus.getId());

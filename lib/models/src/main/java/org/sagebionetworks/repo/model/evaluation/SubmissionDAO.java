@@ -205,5 +205,12 @@ public interface SubmissionDAO {
 	List<SubmissionBundle> getAllBundlesByEvaluationAndUser(String evalId,
 			String principalId, long limit, long offset)
 			throws DatastoreException, NotFoundException;
+	
+	/**
+	 * @param submissionId
+	 * @return The id of the evaluation for the given submission
+	 * @throws NotFoundException if the submission does not exist
+	 */
+	Long getEvaluationId(String submissionId);
 
 }

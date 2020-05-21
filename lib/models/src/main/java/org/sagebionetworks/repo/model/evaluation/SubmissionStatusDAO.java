@@ -17,8 +17,7 @@ public interface SubmissionStatusDAO {
 	 * @return the ID of the SubmissionStatus
 	 * @throws DatastoreException
 	 */
-	public String create(SubmissionStatus dto)
-			throws DatastoreException;
+	String create(SubmissionStatus dto) throws DatastoreException;
 
 	/**
 	 * Get a SubmissionStatus object, by Submission ID
@@ -28,19 +27,7 @@ public interface SubmissionStatusDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public SubmissionStatus get(String id) throws DatastoreException,
-			NotFoundException;
-	
-	/**
-	 * 
-	 * @param batch
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws NotFoundException
-	 * @throws ConflictingUpdateException
-	 */
-	public Long getEvaluationIdForBatch(List<SubmissionStatus> batch) throws DatastoreException,
-				InvalidModelException, NotFoundException, ConflictingUpdateException;
+	SubmissionStatus get(String id) throws DatastoreException, NotFoundException;
 
 	/**
 	 * 
@@ -50,8 +37,19 @@ public interface SubmissionStatusDAO {
 	 * @throws NotFoundException
 	 * @throws ConflictingUpdateException
 	 */
-	public void update(List<SubmissionStatus> batch) throws DatastoreException,
-			InvalidModelException, NotFoundException, ConflictingUpdateException;
+	Long getEvaluationIdForBatch(List<SubmissionStatus> batch)
+			throws DatastoreException, InvalidModelException, NotFoundException, ConflictingUpdateException;
+
+	/**
+	 * 
+	 * @param batch
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 * @throws ConflictingUpdateException
+	 */
+	void update(List<SubmissionStatus> batch)
+			throws DatastoreException, InvalidModelException, NotFoundException, ConflictingUpdateException;
 
 	/**
 	 * Delete a SubmissionStatus object.
@@ -60,7 +58,7 @@ public interface SubmissionStatusDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public void delete(String id) throws DatastoreException, NotFoundException;
+	void delete(String id) throws DatastoreException, NotFoundException;
 
 	long getCount() throws DatastoreException;
 

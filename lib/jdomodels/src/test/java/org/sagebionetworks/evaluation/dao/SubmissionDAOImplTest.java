@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.sagebionetworks.evaluation.model.SubmissionStatusEnum.REJECTED;
 
 import java.util.Arrays;
@@ -916,5 +917,27 @@ public class SubmissionDAOImplTest {
 				Collections.EMPTY_SET, ACCESS_TYPE.READ));
 
 
+	}
+	
+	@Test
+	public void testGetEvaluationId() {
+
+		submissionDAO.create(submission);
+		
+		// Call under test
+		String evaluationId = submissionDAO.getEvaluationId(SUBMISSION_ID).toString();
+		
+		assertEquals(evalId, evaluationId);
+	}
+	
+	@Test
+	public void testGetEvaluationIdWithNonExistingEvaluation() {
+
+		String errorMessage = assertThrows(NotFoundException.class, () -> {
+			// Call under test
+			submissionDAO.getEvaluationId(SUBMISSION_ID);
+		}).getMessage();
+		
+		assertEquals("Could not find a submission with id " + SUBMISSION_ID, errorMessage);
 	}
 }
