@@ -4,8 +4,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+
 /**
- * Data transfer object (DTO) for an annotation of on a synapse object
+ * Data transfer object (DTO) for an annotation of on a synapse object, note
+ * that this can contain both {@link Annotations} of an object as well as
+ * additional properties that should be added to the index. If additional
+ * properties are included make sure the respective {@link ColumnModel} is
+ * included in default columns set returned by the service, additionally these
+ * custom properties should not end up in the {@link Annotations} of the object
+ * when a view is updated.
  * 
  */
 public class ObjectAnnotationDTO {
@@ -95,7 +103,8 @@ public class ObjectAnnotationDTO {
 
 	@Override
 	public String toString() {
-		return "ObjectAnnotationDTO [objectId=" + objectId + ", key=" + key + ", type=" + type + ", value=" + value + "]";
+		return "ObjectAnnotationDTO [objectId=" + objectId + ", key=" + key + ", type=" + type + ", value=" + value
+				+ "]";
 	}
 
 }
