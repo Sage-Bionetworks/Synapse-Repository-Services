@@ -56,7 +56,6 @@ import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
@@ -409,15 +408,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			AnnotationsUtils.populateMissingFields(annos);
 			annos.setObjectId(submissionStatus.getId());
 			annos.setScopeId(evalId);
-			
-			// If supplied translates the old annotations in the new V2 model, does not override supplied annotations
-			if (AnnotationsV2Utils.isEmpty(submissionStatus.getSubmissionAnnotations())) {
-				org.sagebionetworks.repo.model.annotation.v2.Annotations annotationsV2 = AnnotationsV2Translator.toAnnotationsV2(annos);
-				submissionStatus.setSubmissionAnnotations(annotationsV2);
-			}
 		}
 		
-		// Validate the new annotations V2
+		// Validate the new annotations V2 if present
 		if (submissionStatus.getSubmissionAnnotations() != null) {
 			AnnotationsV2Utils.validateAnnotations(submissionStatus.getSubmissionAnnotations());
 		}

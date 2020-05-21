@@ -26,19 +26,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-import org.sagebionetworks.evaluation.dao.SubmissionUtils;
-import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
-import org.sagebionetworks.repo.model.annotation.v2.Annotations;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.util.TemporaryCode;
 
 /**
  * The database object for the score and status of a Submission to a Synapse Evaluation
@@ -47,28 +41,7 @@ import org.sagebionetworks.util.TemporaryCode;
  */
 public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionStatusDBO, SubmissionStatusDBO> {
 	
-	private static final MigratableTableTranslation<SubmissionStatusDBO, SubmissionStatusDBO> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<SubmissionStatusDBO>() {
-		
-		@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "Can be removed after the next sucessful migration")
-		@Override
-		public SubmissionStatusDBO createDatabaseObjectFromBackup(SubmissionStatusDBO backup) {
-			// If no annotations are set we check if there is something in the serialized entries
-			if (backup.getAnnotations() == null) {
-				SubmissionStatus deserialized = SubmissionUtils.copyFromSerializedField(backup);
-				org.sagebionetworks.repo.model.annotation.Annotations annotationsV1 = deserialized.getAnnotations();
-				if (annotationsV1 != null) {
-					Annotations annotationsV2 = AnnotationsV2Translator.toAnnotationsV2(annotationsV1);
-					
-					// Perform validation so that if we have incompatibilities migration will break
-					AnnotationsV2Utils.validateAnnotations(annotationsV2);
-					
-					backup.setAnnotations(AnnotationsV2Utils.toJSONStringForStorage(annotationsV2));
-				}
-			}
-			
-			return backup;
-		}
-	};
+	private static final MigratableTableTranslation<SubmissionStatusDBO, SubmissionStatusDBO> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<SubmissionStatusDBO>();
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn(PARAM_SUBMISSION_ID, COL_SUBSTATUS_SUBMISSION_ID, true).withIsBackupId(true),

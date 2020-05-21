@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -1280,8 +1281,8 @@ public class SubmissionManagerTest {
 		// Call under test
 		SubmissionManagerImpl.validateContent(subStatus, EVAL_ID);
 		
-		// Verifies that the submission annotations were set
-		assertEquals(annos.getSecond(), subStatus.getSubmissionAnnotations());
+		// Verifies that the submission annotations were not set
+		assertNull(subStatus.getSubmissionAnnotations());
 		
 	}
 
@@ -1318,6 +1319,26 @@ public class SubmissionManagerTest {
 		
 		assertEquals(annos.getFirst(), subStatus.getAnnotations());
 		assertEquals(annotationsV2, subStatus.getSubmissionAnnotations());
+		
+	}
+	
+	@Test
+	public void testValidateContentWithMalformedAnnotationsV2() {
+		
+		Pair<Annotations, org.sagebionetworks.repo.model.annotation.v2.Annotations> annos = createDummyAnnotations();
+		
+		org.sagebionetworks.repo.model.annotation.v2.Annotations annotationsV2 = annos.getSecond();
+		
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "additional", "wrongValue", AnnotationsValueType.LONG);
+		
+		subStatus.setSubmissionAnnotations(annotationsV2);
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, ()->{
+			// Call under test
+			SubmissionManagerImpl.validateContent(subStatus, EVAL_ID);
+		}).getMessage();
+		
+		assertEquals("Value associated with key=additional is not valid for type=LONG: wrongValue", errorMessage);
 		
 	}
 	

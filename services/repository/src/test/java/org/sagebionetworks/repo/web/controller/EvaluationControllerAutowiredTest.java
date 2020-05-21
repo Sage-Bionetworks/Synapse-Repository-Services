@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -40,6 +41,9 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
@@ -294,11 +298,11 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		assertFalse(status.getModifiedOn().equals(statusClone.getModifiedOn()), "Modified date was not updated");
 		status.setModifiedOn(statusClone.getModifiedOn());
 		assertFalse(status.getEtag().equals(statusClone.getEtag()), "Etag was not updated");
-		assertNotNull(statusClone.getSubmissionAnnotations());
+		assertNull(statusClone.getSubmissionAnnotations());
 		
 		status.setEtag(statusClone.getEtag());
 		status.setStatusVersion(statusClone.getStatusVersion());
-		status.setSubmissionAnnotations(statusClone.getSubmissionAnnotations());
+
 		assertEquals(status, statusClone);
 		// make sure NaNs can make the round trip
 		assertTrue(Double.isNaN(statusClone.getAnnotations().getDoubleAnnos().get(0).getValue()));
@@ -316,6 +320,80 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		});
 		
 		assertEquals(initialCount, entityServletHelper.getSubmissionCount(adminUserId, eval1.getId()));
+	}
+	
+	@Test
+	public void testSubmissionWithAnnotationsV2() throws Exception {
+		eval1.setStatus(EvaluationStatus.OPEN);
+		eval1 = entityServletHelper.createEvaluation(eval1, adminUserId);
+		evaluationsToDelete.add(eval1.getId());
+		
+		// open the evaluation to join
+		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
+		accessSet.add(ACCESS_TYPE.PARTICIPATE);
+		accessSet.add(ACCESS_TYPE.SUBMIT);
+		accessSet.add(ACCESS_TYPE.READ);
+		ResourceAccess ra = new ResourceAccess();
+		ra.setAccessType(accessSet);
+		ra.setPrincipalId(Long.valueOf(submittingTeamId));
+		AccessControlList acl = entityServletHelper.getEvaluationAcl(adminUserId, eval1.getId());
+		acl.getResourceAccess().add(ra);
+		acl = entityServletHelper.updateEvaluationAcl(adminUserId, acl);
+		assertNotNull(acl);
+		
+		UserInfo userInfo = userManager.getUserInfo(testUserId);
+		String nodeId = createNode("An entity", userInfo);
+		assertNotNull(nodeId);
+		nodesToDelete.add(nodeId);
+		
+		long initialCount = entityServletHelper.getSubmissionCount(adminUserId, eval1.getId());
+		
+		// create
+		Node node = nodeManager.get(userInfo, nodeId);
+		sub1.setEvaluationId(eval1.getId());
+		sub1.setEntityId(nodeId);
+		sub1 = entityServletHelper.createSubmission(sub1, testUserId, node.getETag());
+		
+		assertNotNull(sub1.getId());
+		submissionsToDelete.add(sub1.getId());
+		assertEquals(initialCount + 1, entityServletHelper.getSubmissionCount(adminUserId, eval1.getId()));
+		
+		SubmissionStatus status = entityServletHelper.getSubmissionStatus(adminUserId, sub1.getId());
+		assertNotNull(status);
+		assertEquals(sub1.getId(), status.getId());
+		assertEquals(SubmissionStatusEnum.RECEIVED, status.getStatus());
+		
+		status.setScore(0.5);
+		status.setStatus(SubmissionStatusEnum.SCORED);
+		
+		org.sagebionetworks.repo.model.annotation.v2.Annotations annotations = AnnotationsV2Utils.emptyAnnotations();
+		
+		AnnotationsV2TestUtils.putAnnotations(annotations, "foo", "bar", AnnotationsValueType.STRING);
+		
+		status.setSubmissionAnnotations(annotations);
+
+		SubmissionStatus statusClone = entityServletHelper.updateSubmissionStatus(status, adminUserId);
+		assertFalse(status.getModifiedOn().equals(statusClone.getModifiedOn()), "Modified date was not updated");
+		status.setModifiedOn(statusClone.getModifiedOn());
+		assertFalse(status.getEtag().equals(statusClone.getEtag()), "Etag was not updated");
+		assertNotNull(statusClone.getSubmissionAnnotations());
+		
+		status.setEtag(statusClone.getEtag());
+		status.setStatusVersion(statusClone.getStatusVersion());
+		
+		annotations.setId(sub1.getId());
+		annotations.setEtag(statusClone.getEtag());
+
+		assertEquals(status, statusClone);
+		
+		// delete
+		entityServletHelper.deleteSubmission(sub1.getId(), adminUserId);
+
+		assertThrows(NotFoundException.class, () -> {
+			entityServletHelper.deleteSubmission(sub1.getId(), adminUserId);
+		});
+		
+		assertEquals(initialCount, entityServletHelper.getSubmissionCount(adminUserId, eval1.getId()));		
 	}
 
 	@Test

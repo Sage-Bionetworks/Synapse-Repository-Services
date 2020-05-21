@@ -1,11 +1,11 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -20,11 +20,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
@@ -53,8 +53,6 @@ import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
-import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
@@ -66,6 +64,11 @@ import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -115,7 +118,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 	private static final String MOCK_NOTIFICATION_UNSUB_ENDPOINT = "https://www.synapse.org#unsub:";
 	private static final String MOCK_CHALLENGE_ENDPOINT = "https://synapse.org/#ENTITY:";
 	
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() throws Exception {
 		// Create 2 users
 		adminSynapse = new SynapseAdminClientImpl();
@@ -130,7 +133,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo);
 	}
 	
-	@Before
+	@BeforeEach
 	public void before() throws DatastoreException, NotFoundException, SynapseException, IOException {
 		adminSynapse.clearAllLocks();
 		evaluationsToDelete = new ArrayList<String>();
@@ -201,7 +204,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		challenge = adminSynapse.createChallenge(challenge);
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		if (challenge!=null) {
 			adminSynapse.deleteChallenge(challenge.getId());
@@ -241,7 +244,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		dataSourceFile=null;
 	}
 	
-	@AfterClass
+	@AfterAll
 	public static void afterClass() throws Exception {
 		try {
 			adminSynapse.deleteUser(user1ToDelete);
@@ -277,18 +280,17 @@ public class IT520SynapseJavaClientEvaluationTest {
 		fetched.setDescription(eval1.getDescription() + " (modified)");
 		fetched.setSubmissionInstructionsMessage("foobar2");
 		Evaluation updated = synapseOne.updateEvaluation(fetched);
-		assertFalse("eTag was not updated", updated.getEtag().equals(fetched.getEtag()));
+		assertFalse(updated.getEtag().equals(fetched.getEtag()), "eTag was not updated");
 		fetched.setEtag(updated.getEtag());
 		assertEquals(fetched, updated);
 		
 		// Delete
 		synapseOne.deleteEvaluation(eval1.getId());
-		try {
+		
+		assertThrows(SynapseException.class, () -> {
 			synapseOne.getEvaluation(eval1.getId());
-			fail("Delete failed");
-		} catch (SynapseException e) {
-			// expected
-		}
+		});
+		
 		assertEquals(initialCount, synapseOne.getAvailableEvaluationsPaginated(100, 0).getResults().size());
 	}
 	
@@ -352,16 +354,14 @@ public class IT520SynapseJavaClientEvaluationTest {
 		status.setCanCancel(true);
 		
 		SubmissionStatus statusClone = synapseOne.updateSubmissionStatus(status);
-		assertFalse("Modified date was not updated", status.getModifiedOn().equals(statusClone.getModifiedOn()));
+		assertFalse(status.getModifiedOn().equals(statusClone.getModifiedOn()), "Modified date was not updated");
 		status.setModifiedOn(statusClone.getModifiedOn());
-		assertFalse("Etag was not updated", status.getEtag().equals(statusClone.getEtag()));
-		assertNotNull(statusClone.getSubmissionAnnotations())
-		;
+		assertFalse(status.getEtag().equals(statusClone.getEtag()), "Etag was not updated");
+		
 		status.setEtag(statusClone.getEtag());
 		status.setStatusVersion(statusClone.getStatusVersion());
 		status.getAnnotations().setObjectId(sub1.getId());
 		status.getAnnotations().setScopeId(sub1.getEvaluationId());
-		status.setSubmissionAnnotations(statusClone.getSubmissionAnnotations());
 		
 		assertEquals(status, statusClone);
 		assertEquals(newCount, synapseOne.getAllSubmissions(eval1.getId(), 0, 100).getResults().size());
@@ -383,12 +383,73 @@ public class IT520SynapseJavaClientEvaluationTest {
 		
 		// delete
 		synapseOne.deleteSubmission(sub1.getId());
-		try {
+		
+		assertThrows(SynapseException.class, () -> {
 			synapseOne.deleteSubmission(sub1.getId());
-			fail("Failed to delete Submission " + sub1.toString());
-		} catch (SynapseException e) {
-			// expected
-		}
+		});
+		
+		assertEquals(initialCount, synapseOne.getAllSubmissions(eval1.getId(), 100, 0).getResults().size());
+	}
+	
+	@Test
+	public void testSubmissionWithAnnotationsV2() throws SynapseException, NotFoundException, InterruptedException, IOException {
+		eval1.setStatus(EvaluationStatus.OPEN);
+		eval1 = synapseOne.createEvaluation(eval1);
+		evaluationsToDelete.add(eval1.getId());
+		String entityId = fileEntity.getId();
+		String entityEtag = fileEntity.getEtag();
+		
+		assertNotNull(entityId);
+		
+		int initialCount = synapseOne.getAllSubmissions(eval1.getId(), 0, 100).getResults().size();
+		
+		// create
+		sub1.setEvaluationId(eval1.getId());
+		sub1.setEntityId(entityId);
+		sub1 = synapseOne.createIndividualSubmission(sub1, entityEtag, MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		assertNotNull(sub1.getId());
+		submissionsToDelete.add(sub1.getId());
+		int newCount = initialCount + 1;
+		assertEquals(newCount, synapseOne.getAllSubmissions(eval1.getId(), 0, 100).getResults().size());
+		
+		SubmissionStatus status = synapseOne.getSubmissionStatus(sub1.getId());
+				
+		org.sagebionetworks.repo.model.annotation.v2.Annotations annotations = AnnotationsV2Utils.emptyAnnotations();
+		
+		AnnotationsValue bar = new AnnotationsValue();
+		
+		bar.setType(AnnotationsValueType.STRING);
+		bar.setValue(Collections.singletonList("bar"));
+		
+		annotations.getAnnotations().put("foo", bar);
+		
+		status.setScore(0.5);
+		status.setStatus(SubmissionStatusEnum.SCORED);
+		status.setReport("Lorem ipsum");
+		status.setSubmissionAnnotations(annotations);
+		
+		SubmissionStatus statusClone = synapseOne.updateSubmissionStatus(status);
+		
+		assertFalse(status.getModifiedOn().equals(statusClone.getModifiedOn()), "Modified date was not updated");
+		status.setModifiedOn(statusClone.getModifiedOn());
+		assertFalse(status.getEtag().equals(statusClone.getEtag()), "Etag was not updated");
+		
+		status.setEtag(statusClone.getEtag());
+		status.setStatusVersion(statusClone.getStatusVersion());
+		
+		assertNull(statusClone.getAnnotations());
+		assertNotNull(statusClone.getSubmissionAnnotations());
+		
+		annotations.setId(eval1.getId());
+		annotations.setEtag(statusClone.getEtag());
+		
+		// delete
+		synapseOne.deleteSubmission(sub1.getId());
+		
+		assertThrows(SynapseException.class, () -> {
+			synapseOne.deleteSubmission(sub1.getId());
+		});
+		
 		assertEquals(initialCount, synapseOne.getAllSubmissions(eval1.getId(), 100, 0).getResults().size());
 	}
 	
@@ -574,12 +635,11 @@ public class IT520SynapseJavaClientEvaluationTest {
 		
 		// delete
 		synapseOne.deleteSubmission(sub1.getId());
-		try {
+		
+		assertThrows(SynapseException.class, () -> {
 			synapseOne.deleteSubmission(sub1.getId());
-			fail("Failed to delete Submission " + sub1.toString());
-		} catch (SynapseException e) {
-			// expected
-		}
+		});
+		
 		assertEquals(initialCount, synapseOne.getAllSubmissions(eval1.getId(), 100, 0).getResults().size());
 	}
 	
@@ -633,19 +693,18 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertEquals(2, subBundles.getTotalNumberOfResults());
 		assertEquals(2, subs.getResults().size());
 		for (Submission s : subs.getResults()) {
-			assertTrue("Unknown Submission returned: " + s.toString(), s.equals(sub1) || s.equals(sub2));
+			assertTrue(s.equals(sub1) || s.equals(sub2), "Unknown Submission returned: " + s.toString());
 		}
 		assertEquals(2, subStatuses.getResults().size());
 		for (SubmissionStatus status : subStatuses.getResults()) {
-			assertTrue("Unknown SubmissionStatus returned: " + status.toString(),
-					status.getId().equals(sub1.getId()) || status.getId().equals(sub2.getId()));
+			assertTrue(status.getId().equals(sub1.getId()) || status.getId().equals(sub2.getId()), "Unknown SubmissionStatus returned: " + status.toString());
 		}
 		assertEquals(2, subBundles.getResults().size());
 		for (SubmissionBundle bundle : subBundles.getResults()) {
 			Submission sub = bundle.getSubmission();
 			SubmissionStatus status = bundle.getSubmissionStatus();
-			assertTrue("Unknown Submission returned: " + bundle.toString(), sub.equals(sub1) || sub.equals(sub2));
-			assertTrue("SubmissionBundle contents do not match: " + bundle.toString(), sub.getId().equals(status.getId()));
+			assertTrue(sub.equals(sub1) || sub.equals(sub2), "Unknown Submission returned: " + bundle.toString());
+			assertTrue(sub.getId().equals(status.getId()), "SubmissionBundle contents do not match: " + bundle.toString());
 		}
 				
 		subs = synapseOne.getAllSubmissionsByStatus(eval1.getId(), SubmissionStatusEnum.RECEIVED, 0, 10);
@@ -655,19 +714,18 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertEquals(2, subBundles.getTotalNumberOfResults());
 		assertEquals(2, subs.getResults().size());
 		for (Submission s : subs.getResults()) {
-			assertTrue("Unknown Submission returned: " + s.toString(), s.equals(sub1) || s.equals(sub2));
+			assertTrue(s.equals(sub1) || s.equals(sub2), "Unknown Submission returned: " + s.toString());
 		}
 		assertEquals(2, subStatuses.getResults().size());
 		for (SubmissionStatus status : subStatuses.getResults()) {
-			assertTrue("Unknown SubmissionStatus returned: " + status.toString(),
-					status.getId().equals(sub1.getId()) || status.getId().equals(sub2.getId()));
+			assertTrue(status.getId().equals(sub1.getId()) || status.getId().equals(sub2.getId()), "Unknown SubmissionStatus returned: " + status.toString());
 		}
 		assertEquals(2, subBundles.getResults().size());
 		for (SubmissionBundle bundle : subBundles.getResults()) {
 			Submission sub = bundle.getSubmission();
 			SubmissionStatus status = bundle.getSubmissionStatus();
-			assertTrue("Unknown Submission returned: " + bundle.toString(), sub.equals(sub1) || sub.equals(sub2));
-			assertTrue("SubmissionBundle contents do not match: " + bundle.toString(), sub.getId().equals(status.getId()));
+			assertTrue(sub.equals(sub1) || sub.equals(sub2), "Unknown Submission returned: " + bundle.toString());
+			assertTrue(sub.getId().equals(status.getId()), "SubmissionBundle contents do not match: " + bundle.toString());
 		}
 		
 		// verify url in PaginatedResults object contains eval ID (PLFM-1774)
@@ -681,7 +739,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertEquals(2, subBundles.getTotalNumberOfResults());
 		assertEquals(2, subs.getResults().size());
 		for (Submission s : subs.getResults()) {
-			assertTrue("Unknown Submission returned: " + s.toString(), s.equals(sub1) || s.equals(sub2));
+			assertTrue(s.equals(sub1) || s.equals(sub2), "Unknown Submission returned: " + s.toString());
 		}
 		
 		subs = synapseOne.getAllSubmissionsByStatus(eval1.getId(), SubmissionStatusEnum.SCORED, 0, 10);
@@ -753,7 +811,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		PaginatedResults<Submission> subs = synapseOne.getMySubmissions(eval1.getId(), 0, 10);
 		assertEquals(1, subs.getTotalNumberOfResults());
 		for (Submission s : subs.getResults())
-			assertTrue("Unknown Submission returned: " + s.toString(), s.equals(sub1));
+			assertTrue(s.equals(sub1), "Unknown Submission returned: " + s.toString());
 
 	}
 	
@@ -785,7 +843,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		expected = expected.substring(0, expected.indexOf(timeSensitiveParameterStart));
 		actual = actual.substring(0, actual.indexOf(timeSensitiveParameterStart));
 		
-		assertEquals("invalid URL returned", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	private FileEntity createTestFileEntity(Entity parent) throws SynapseException, FileNotFoundException, IOException {
@@ -964,8 +1022,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		long start = System.currentTimeMillis();
 		while (results.getTotalNumberOfResults() < 1) {
 			long elapsed = System.currentTimeMillis() - start;
-			assertTrue("Timed out waiting for annotations to be published for query: " + queryString,
-					elapsed < RDS_WORKER_TIMEOUT);
+			assertTrue(elapsed < RDS_WORKER_TIMEOUT, "Timed out waiting for annotations to be published for query: " + queryString);
 			System.out.println("Waiting for annotations to be published... " + elapsed + "ms");		
 			Thread.sleep(1000);
 			results = synapseOne.queryEvaluation(queryString);
@@ -981,10 +1038,10 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertTrue(rows.get(1).getValues().get(index).contains(sub2.getId()));
 		
 		int nanColumnIndex = headers.indexOf(doubleHeader);
-		assertTrue("Expected NaN but found: "+rows.get(0).getValues().get(nanColumnIndex).toString(), 
-				rows.get(0).getValues().get(nanColumnIndex).contains(""+doubleValue));
-		assertTrue("Expected NaN but found: "+rows.get(1).getValues().get(nanColumnIndex).toString(), 
-				rows.get(1).getValues().get(nanColumnIndex).contains(""+doubleValue));
+		assertTrue(rows.get(0).getValues().get(nanColumnIndex).contains(""+doubleValue),
+				"Expected NaN but found: "+rows.get(0).getValues().get(nanColumnIndex).toString());
+		assertTrue(rows.get(1).getValues().get(nanColumnIndex).contains(""+doubleValue),
+				"Expected NaN but found: "+rows.get(1).getValues().get(nanColumnIndex).toString());
 		
 		
 		// now check that if you delete the submission it stops appearing in the query
@@ -997,8 +1054,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		start = System.currentTimeMillis();
 		while (results.getTotalNumberOfResults() > 1) {
 			long elapsed = System.currentTimeMillis() - start;
-			assertTrue("Timed out waiting for annotations to be deleted for query: " + queryString,
-					elapsed < RDS_WORKER_TIMEOUT);
+			assertTrue(elapsed < RDS_WORKER_TIMEOUT, "Timed out waiting for annotations to be deleted for query: " + queryString);
 			System.out.println("Waiting for annotations to be deleted... " + elapsed + "ms");
 			Thread.sleep(1000);
 			results = synapseOne.queryEvaluation(queryString);
