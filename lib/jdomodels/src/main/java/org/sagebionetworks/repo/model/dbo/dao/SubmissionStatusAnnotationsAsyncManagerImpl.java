@@ -21,14 +21,15 @@ import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
-import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionStatusAnnotationsAsyncManager {
 	
 	public static final String REPOSITORY_NAME = "repositoryName";
@@ -38,20 +39,11 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 	private static final String BUNDLE_ENTITY_FIELD = "entity";	
 	public static final boolean SYSTEM_GENERATED_ANNO_IS_PRIVATE = false;
 
-	@Autowired
-	private AnnotationsDAO annotationsDAO;	
-	@Autowired
-	private EvaluationSubmissionsDAO evaluationSubmissionsDAO;
+	private AnnotationsDAO annotationsDAO;
 
-	public SubmissionStatusAnnotationsAsyncManagerImpl() {};
-
-	/**
-	 * Constructor for testing.
-	 */
-	public SubmissionStatusAnnotationsAsyncManagerImpl(AnnotationsDAO annotationsDAO,  
-			EvaluationSubmissionsDAO evaluationSubmissionsDAO) {
+	@Autowired
+	public SubmissionStatusAnnotationsAsyncManagerImpl(AnnotationsDAO annotationsDAO) {
 		this.annotationsDAO = annotationsDAO;
-		this.evaluationSubmissionsDAO=evaluationSubmissionsDAO;
 	}
 
 	@WriteTransaction

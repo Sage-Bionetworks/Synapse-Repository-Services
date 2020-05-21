@@ -1,11 +1,12 @@
 package org.sagebionetworks.repo.model.query;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -18,10 +19,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -32,30 +33,24 @@ import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
-import org.sagebionetworks.repo.model.dbo.dao.SubmissionStatusAnnotationsAsyncManagerImpl;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
-import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class QueryDAOImplTest {
 	
 	private static final int NUM_SUBMISSIONS = 30;
 	
 	@Autowired
-	QueryDAO queryDAO;
+	private QueryDAO queryDAO;
 	@Autowired
 	private AnnotationsDAO annotationsDAO;
-	@Autowired
-	private EvaluationSubmissionsDAO evaluationSubmissionsDAO;
-
-	SubmissionStatusAnnotationsAsyncManagerImpl ssAnnoAsyncManager;
 	
 	private static final String EVAL_ID1 = "42";
 	private static final String EVAL_ID2 = "99";
@@ -64,9 +59,8 @@ public class QueryDAOImplTest {
     private UserInfo mockUserInfo;
     private Map<String, Object> annoMap;
     	
-	@Before
+	@BeforeEach
 	public void setUp() throws DatastoreException, JSONObjectAdapterException, NotFoundException {
-		ssAnnoAsyncManager = new SubmissionStatusAnnotationsAsyncManagerImpl(annotationsDAO, evaluationSubmissionsDAO);
 		// create Annotations
 		Annotations annos;
 		submissionIds = new HashSet<String>();
@@ -97,10 +91,10 @@ public class QueryDAOImplTest {
 		// set up mocks
 		mockUserInfo = mock(UserInfo.class);
 		mockAclDAO = mock(AccessControlListDAO.class);
-		when(mockAclDAO.canAccess(any(Set.class), eq(EVAL_ID1), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ))).thenReturn(true);
-		when(mockAclDAO.canAccess(any(Set.class), eq(EVAL_ID1), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
-		when(mockAclDAO.canAccess(any(Set.class), eq(EVAL_ID2), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ))).thenReturn(true);
-		when(mockAclDAO.canAccess(any(Set.class), eq(EVAL_ID2), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(false);
+		when(mockAclDAO.canAccess(anySet(), eq(EVAL_ID1), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ))).thenReturn(true);
+		when(mockAclDAO.canAccess(anySet(), eq(EVAL_ID1), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
+		when(mockAclDAO.canAccess(anySet(), eq(EVAL_ID2), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ))).thenReturn(true);
+		when(mockAclDAO.canAccess(anySet(), eq(EVAL_ID2), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(false);
 		queryDAO.setAclDAO(mockAclDAO);
 	}
 	
@@ -112,7 +106,7 @@ public class QueryDAOImplTest {
 		return scopeAnno;
 	}
 	
-	@After
+	@AfterEach
 	public void tearDown() {
 		annotationsDAO.deleteAnnotationsByScope(Long.parseLong(EVAL_ID1));
 		annotationsDAO.deleteAnnotationsByScope(Long.parseLong(EVAL_ID2));
@@ -153,11 +147,13 @@ public class QueryDAOImplTest {
 		}
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testQueryMissingId() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
 		BasicQuery query = new BasicQuery();
 		query.setFrom("evaluation");
-		queryDAO.executeQuery(query, mockUserInfo);
+		assertThrows(IllegalArgumentException.class, () -> {
+			queryDAO.executeQuery(query, mockUserInfo);
+		});
 	}
 	
 	@Test
@@ -282,7 +278,7 @@ public class QueryDAOImplTest {
 		assertEquals(0, results.getRows().size());
 		
 		// if we have private read access we CAN see the results
-		when(mockAclDAO.canAccess(any(Set.class), eq(EVAL_ID2),
+		when(mockAclDAO.canAccess(anySet(), eq(EVAL_ID2),
 				eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
 		results = queryDAO.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
@@ -312,7 +308,7 @@ public class QueryDAOImplTest {
 		assertFalse(noPrivateObjectIdIndex==-1);
 		
 		// if we have private read access we CAN see the results
-		when(mockAclDAO.canAccess(any(Set.class), eq(EVAL_ID2),
+		when(mockAclDAO.canAccess(anySet(), eq(EVAL_ID2),
 				eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
 		QueryTableResults privateAccessResults = queryDAO.executeQuery(query, mockUserInfo);
 		assertNotNull(privateAccessResults);
@@ -354,7 +350,7 @@ public class QueryDAOImplTest {
 		assertEquals(0, results.getRows().size());
 		
 		// if we have private read access we CAN see the results
-		when(mockAclDAO.canAccess(any(Set.class), eq(EVAL_ID2),
+		when(mockAclDAO.canAccess(anySet(), eq(EVAL_ID2),
 				eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
 		results = queryDAO.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
@@ -388,7 +384,7 @@ public class QueryDAOImplTest {
 		assertEquals(0, results.getRows().size());
 		
 		// if we have private read access we CAN see the results
-		when(mockAclDAO.canAccess(any(Set.class), eq(EVAL_ID2),
+		when(mockAclDAO.canAccess(anySet(), eq(EVAL_ID2),
 				eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
 		results = queryDAO.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
@@ -601,7 +597,7 @@ public class QueryDAOImplTest {
 		}
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testQueryNullAttribute() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
 		// SELECT * FROM evaluation_1 WHERE null="foo 3"
 		BasicQuery query = new BasicQuery();
@@ -613,7 +609,9 @@ public class QueryDAOImplTest {
 		filters.add(exp);
 		query.setFilters(filters);		
 		
-		queryDAO.executeQuery(query, mockUserInfo);
+		assertThrows(IllegalArgumentException.class, () -> {
+			queryDAO.executeQuery(query, mockUserInfo);
+		});
 	}
 	
 	@Test
@@ -678,7 +676,7 @@ public class QueryDAOImplTest {
 		}
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testQueryBadComparator() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
 		// SELECT * FROM evaluation_1 WHERE "string_anno"<"foo 3"
 		BasicQuery query = new BasicQuery();
@@ -690,7 +688,9 @@ public class QueryDAOImplTest {
 		filters.add(exp);
 		query.setFilters(filters);		
 		
-		queryDAO.executeQuery(query, mockUserInfo);
+		assertThrows(IllegalArgumentException.class, () -> {
+			queryDAO.executeQuery(query, mockUserInfo);
+		});
 	}
 	
 	@Test
@@ -851,7 +851,7 @@ public class QueryDAOImplTest {
 			// validate ordering
 			Long current = Long.parseLong(values.get(index));
 			if (previous != null) {
-				assertTrue(""+current+" should be bigger than "+previous+" but it's not.", current.compareTo(previous) >= 0);
+				assertTrue(current.compareTo(previous) >= 0, current+" should be bigger than "+previous+" but it's not.");
 			}
 			previous = current;
 		}
@@ -884,8 +884,7 @@ public class QueryDAOImplTest {
 			String thisRowValue = values.get(1);
 			if (thisRowValue!=null) {
 				if (previous!=null) {
-					assertTrue("Expected "+previous+" to come before "+thisRowValue+" lexigraphically.", 
-							previous.compareTo(thisRowValue)<0);
+					assertTrue(previous.compareTo(thisRowValue)<0, "Expected "+previous+" to come before "+thisRowValue+" lexigraphically.");
 				}
 				previous=thisRowValue;
 			}
