@@ -137,7 +137,7 @@ public class AnnotationsV2Utils {
 					continue;
 				}
 				//make sure values are under the maxAnnotationChars limit
-				String shortenedString = value.substring(0, Math.min(value.length(), maxAnnotationChars));
+				String shortenedString = StringUtils.truncate(value, maxAnnotationChars);
 				transferredValues.add(shortenedString);
 			}
 			if(!transferredValues.isEmpty()) {

@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFact
 import org.sagebionetworks.repo.model.BucketAndKey;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
@@ -237,7 +238,9 @@ public class TableViewManagerImpl implements TableViewManager {
 		
 		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(objectType);
 		
-		Annotations userAnnotations = provider.getAnnotations(user, objectId);
+		Annotations userAnnotations = provider.getAnnotations(user, objectId).orElse(AnnotationsV2Utils.emptyAnnotations());
+		
+		userAnnotations.setId(objectId);
 		userAnnotations.setEtag(etag);
 		
 		boolean updated = updateAnnotationsFromValues(userAnnotations, tableSchema, values, provider);

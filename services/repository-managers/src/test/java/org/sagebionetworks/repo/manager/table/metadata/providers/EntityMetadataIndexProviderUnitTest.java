@@ -16,6 +16,7 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
@@ -88,12 +89,6 @@ public class EntityMetadataIndexProviderUnitTest {
 		assertEquals(ColumnType.ENTITYID, mapper.getIdColumnType());
 		assertEquals(ColumnType.ENTITYID, mapper.getParentIdColumnType());
 		assertEquals(ColumnType.ENTITYID, mapper.getBenefactorIdColumnType());
-	}
-
-	@Test
-	public void testSupportsSubTypeFiltering() {
-		// Call under test
-		assertTrue(provider.supportsSubtypeFiltering());
 	}
 
 	@Test
@@ -261,9 +256,10 @@ public class EntityMetadataIndexProviderUnitTest {
 		when(mockNodeManager.getUserAnnotations(any(), any())).thenReturn(mockAnnotations);
 
 		// Call under test
-		Annotations result = provider.getAnnotations(mockUser, objectId);
+		Optional<Annotations> result = provider.getAnnotations(mockUser, objectId);
 
-		assertEquals(mockAnnotations, result);
+		assertTrue(result.isPresent());
+		assertEquals(mockAnnotations, result.get());
 
 		verify(mockNodeManager).getUserAnnotations(mockUser, objectId);
 	}

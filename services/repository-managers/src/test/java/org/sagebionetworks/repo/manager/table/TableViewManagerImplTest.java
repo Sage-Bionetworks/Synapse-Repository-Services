@@ -654,7 +654,7 @@ public class TableViewManagerImplTest {
 	public void testUpdateEntityInView(){
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		when(mockObjectFieldModelResolverFactory.getObjectFieldModelResolver(any())).thenReturn(objectFieldModelResolver);
-		when(mockMetadataIndexProvider.getAnnotations(any(), any())).thenReturn(annotationsV2);
+		when(mockMetadataIndexProvider.getAnnotations(any(), any())).thenReturn(Optional.of(annotationsV2));
 		when(mockMetadataIndexProvider.canUpdateAnnotation(any())).thenReturn(true);
 		
 		ViewObjectType objectType = scopeType.getObjectType();
@@ -717,7 +717,7 @@ public class TableViewManagerImplTest {
 
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		when(mockObjectFieldModelResolverFactory.getObjectFieldModelResolver(any())).thenReturn(objectFieldModelResolver);
-		when(mockMetadataIndexProvider.getAnnotations(any(), any())).thenReturn(annotationsV2);
+		when(mockMetadataIndexProvider.getAnnotations(any(), any())).thenReturn(Optional.of(annotationsV2));
 		
 		// call under test
 		manager.updateRowInView(userInfo, viewSchema, objectType, row);
@@ -745,7 +745,7 @@ public class TableViewManagerImplTest {
 	public void testUpdateEntityInViewSkipAnnotation(){
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		when(mockObjectFieldModelResolverFactory.getObjectFieldModelResolver(any())).thenReturn(objectFieldModelResolver);
-		when(mockMetadataIndexProvider.getAnnotations(any(), any())).thenReturn(annotationsV2);
+		when(mockMetadataIndexProvider.getAnnotations(any(), any())).thenReturn(Optional.of(annotationsV2));
 		
 		ColumnModel skipModel = new ColumnModel();
 		skipModel.setName("customField");
