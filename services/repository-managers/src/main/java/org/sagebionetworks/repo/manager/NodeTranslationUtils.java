@@ -52,7 +52,6 @@ public class NodeTranslationUtils {
 
 	static {
 		Set<String> temp = new HashSet<>();
-		temp.add(ObjectSchema.EXTRA_FIELDS);
 		ignoredNodeFields = Collections.unmodifiableSet(temp);
 	}
 

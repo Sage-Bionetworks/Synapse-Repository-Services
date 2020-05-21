@@ -3,11 +3,11 @@
 	"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.4.2.1\">Instance Data Model</a>",
 	"enum": [
 		{
-			"name": "_null",
+			"name": "null",
             "description":"A JSON \"null\" production"
 		},
 		{
-			"name": "_boolean",
+			"name": "boolean",
             "description":"A \"true\" or \"false\" value, from the JSON \"true\" or \"false\" productions"
 		},
 		{

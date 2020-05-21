@@ -4,7 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.refEq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -167,8 +167,8 @@ public class TransactionalMessengerImplTest {
 		// Simulate the after commit
 		stubProxy.getSynchronizations().get(0).afterCommit();
 		// The second message should get sent but not the first
-		verify(mockObserver, times(1)).fireChangeMessage(refEq(second));
-		verify(mockObserver, never()).fireChangeMessage(refEq(first));
+		verify(mockObserver, times(1)).fireChangeMessage(same(second));
+		verify(mockObserver, never()).fireChangeMessage(same(first));
 	}
 	
 	@Test
