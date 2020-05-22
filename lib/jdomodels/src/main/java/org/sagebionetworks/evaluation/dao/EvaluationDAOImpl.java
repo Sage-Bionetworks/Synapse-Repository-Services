@@ -20,8 +20,12 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
 
+import java.sql.ResultSet;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
@@ -42,6 +46,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -103,6 +108,9 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 														TABLE_EVALUATION +" WHERE ID = ?";
 	
 	private static final String SQL_ETAG_FOR_UPDATE = SQL_ETAG_WITHOUT_LOCK + " FOR UPDATE";
+	
+	private static final String SQL_SELECT_AVAILABLE = "SELECT " + COL_EVALUATION_ID 
+			+ " FROM " + TABLE_EVALUATION + " WHERE " + COL_EVALUATION_ID + " IN (:" + ID + ")";
 	
 	private static final RowMapper<EvaluationDBO> rowMapper = ((new EvaluationDBO()).getTableMapping());
 
@@ -263,6 +271,24 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		}
 	}
 
+	@Override
+	public Set<Long> getAvailableEvaluations(List<Long> ids) {
+		ValidateArgument.required(ids, "ids");
+		
+		if (ids.isEmpty()) {
+			return Collections.emptySet();
+		}
+		
+		MapSqlParameterSource param = new MapSqlParameterSource(ID, ids);
+		
+		Set<Long> result = new HashSet<>(ids.size());
+		
+		namedJdbcTemplate.query(SQL_SELECT_AVAILABLE, param, (ResultSet rs) -> {
+			result.add(rs.getLong(COL_EVALUATION_ID));
+		});
+		
+		return result;
+	}
 
 
 	private String lockAndGenerateEtag(String id, String eTag, ChangeType changeType)
