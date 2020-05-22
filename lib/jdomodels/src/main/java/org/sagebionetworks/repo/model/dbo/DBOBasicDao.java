@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -81,9 +82,8 @@ public interface DBOBasicDao {
 	 * @param id
 	 * @return
 	 * @throws DatastoreException
-	 * @throws RecordNotFoundException
 	 */
-	public <T extends DatabaseObject<T>> T getObjectByPrimaryKeyIfExists(Class<? extends T> clazz, SqlParameterSource namedParameters)
+	public <T extends DatabaseObject<T>> Optional<T> getObjectByPrimaryKeyIfExists(Class<? extends T> clazz, SqlParameterSource namedParameters)
 			throws DatastoreException;
 
 	/**

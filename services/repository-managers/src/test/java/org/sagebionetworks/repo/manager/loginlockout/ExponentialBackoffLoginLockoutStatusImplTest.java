@@ -6,6 +6,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Optional;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,7 +35,7 @@ public class ExponentialBackoffLoginLockoutStatusImplTest {
 	public void setUp() throws Exception {
 		unsuccessfulLoginLockoutInfo = new UnsuccessfulLoginLockoutDTO(userId);
 		when(mockUnsuccessfulLoginLockoutDAO.getDatabaseTimestampMillis()).thenReturn(databaseTimestampMillis);
-		when(mockUnsuccessfulLoginLockoutDAO.getUnsuccessfulLoginLockoutInfoIfExist(userId)).thenReturn(unsuccessfulLoginLockoutInfo);
+		when(mockUnsuccessfulLoginLockoutDAO.getUnsuccessfulLoginLockoutInfoIfExist(userId)).thenReturn(Optional.ofNullable(unsuccessfulLoginLockoutInfo));
 	}
 
 	@Test

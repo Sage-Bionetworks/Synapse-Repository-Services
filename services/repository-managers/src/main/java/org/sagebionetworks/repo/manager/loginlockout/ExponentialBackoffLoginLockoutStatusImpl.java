@@ -16,11 +16,8 @@ public class ExponentialBackoffLoginLockoutStatusImpl implements LoginLockoutSta
 	public LoginAttemptResultReporter checkIsLockedOut(long userId) {
 		// Use database's unix timestamp for expiration check
 		// instead of this machine's timestamp to avoid time sync issues across all machines
-		UnsuccessfulLoginLockoutDTO lockoutInfo = unsuccessfulLoginLockoutDAO.getUnsuccessfulLoginLockoutInfoIfExist(userId);
-
-		if (lockoutInfo == null){
-			lockoutInfo = new UnsuccessfulLoginLockoutDTO(userId);
-		}
+		UnsuccessfulLoginLockoutDTO lockoutInfo = unsuccessfulLoginLockoutDAO.getUnsuccessfulLoginLockoutInfoIfExist(userId)
+				.orElseGet(() -> new UnsuccessfulLoginLockoutDTO(userId));
 
 		final long databaseTime = unsuccessfulLoginLockoutDAO.getDatabaseTimestampMillis();
 		if (databaseTime < lockoutInfo.getLockoutExpiration()){

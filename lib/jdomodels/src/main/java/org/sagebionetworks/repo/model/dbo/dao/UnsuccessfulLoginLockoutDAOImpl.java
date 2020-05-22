@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CREDENTIAL;
 
+import java.util.Optional;
+
 import org.sagebionetworks.repo.model.UnsuccessfulLoginLockoutDAO;
 import org.sagebionetworks.repo.model.UnsuccessfulLoginLockoutDTO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -25,11 +27,12 @@ public class UnsuccessfulLoginLockoutDAOImpl implements UnsuccessfulLoginLockout
 
 	@MandatoryWriteTransaction
 	@Override
-	public UnsuccessfulLoginLockoutDTO getUnsuccessfulLoginLockoutInfoIfExist(long userId) {
+	public Optional<UnsuccessfulLoginLockoutDTO> getUnsuccessfulLoginLockoutInfoIfExist(long userId) {
 		// lock credentials table because we need to guarantee there exists an entry to lock per user.
 		// The unsuccessful login table is not guaranteed to have a row for every user.
 		jdbcTemplate.queryForObject(LOCK_FOR_UPDATE, Long.class, userId);
-		return translateDBOToDTO(basicDao.getObjectByPrimaryKeyIfExists(DBOUnsuccessfulLoginLockout.class, new SinglePrimaryKeySqlParameterSource(userId)));
+		Optional<DBOUnsuccessfulLoginLockout> dbo = basicDao.getObjectByPrimaryKeyIfExists(DBOUnsuccessfulLoginLockout.class, new SinglePrimaryKeySqlParameterSource(userId));
+		return dbo.map(UnsuccessfulLoginLockoutDAOImpl::translateDBOToDTO);
 	}
 
 	public long getDatabaseTimestampMillis() {
