@@ -1,11 +1,10 @@
 package org.sagebionetworks.evaluation.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.sagebionetworks.evaluation.model.SubmissionStatusEnum.REJECTED;
 
@@ -19,10 +18,11 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+
 import org.sagebionetworks.evaluation.dbo.SubmissionDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -64,9 +65,11 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+import com.google.common.collect.ImmutableList;
+
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class SubmissionDAOImplTest {
  
@@ -117,6 +120,7 @@ public class SubmissionDAOImplTest {
 	private String userId2;
 	
     private String evalId;
+    private String evalId2;
     private AccessControlList acl;
     private String fileHandleId;
     private Submission submission;
@@ -169,7 +173,7 @@ public class SubmissionDAOImplTest {
         return submission;
 	}
 
-    @Before
+    @BeforeEach
     public void setUp() throws DatastoreException, InvalidModelException, NotFoundException {
     	userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
     	userId2 = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString();
@@ -204,6 +208,17 @@ public class SubmissionDAOImplTest {
         acl = Util.createACL(evalId, Long.parseLong(userId), ModelConstants.EVALUATION_ADMIN_ACCESS_PERMISSIONS, new Date());
         acl.setId(aclDAO.create(acl, ObjectType.EVALUATION));
         
+        // Create a second evaluation
+        Evaluation evaluation2 = new Evaluation();
+        evaluation2.setId("5678");
+        evaluation2.setEtag("etag");
+        evaluation2.setName("name2");
+        evaluation2.setOwnerId(userId);
+        evaluation2.setCreatedOn(new Date());
+        evaluation2.setContentSource(nodeId);
+        evaluation2.setStatus(EvaluationStatus.PLANNED);
+        evalId2 = evaluationDAO.create(evaluation2, Long.parseLong(userId));
+        
         // Initialize Submissions
         // submission has no team and no contributors
         submission = newSubmission(SUBMISSION_ID, userId, nodeId, new Date(CREATION_TIME_STAMP));
@@ -235,7 +250,7 @@ public class SubmissionDAOImplTest {
         
     }
     
-    @After
+    @AfterEach
     public void tearDown() throws DatastoreException, NotFoundException  {
     	for (String id : new String[]{SUBMISSION_ID, SUBMISSION_2_ID, SUBMISSION_3_ID, SUBMISSION_4_ID}) {
     		try {
@@ -259,6 +274,10 @@ public class SubmissionDAOImplTest {
 		
 		try {
 			evaluationDAO.delete(evalId);
+		} catch (NotFoundException e) {};
+		
+		try {
+			evaluationDAO.delete(evalId2);
 		} catch (NotFoundException e) {};
 		
     	try {
@@ -294,13 +313,12 @@ public class SubmissionDAOImplTest {
         
         // delete it
         submissionDAO.delete(SUBMISSION_ID);
-        try {
-        	clone = submissionDAO.get(SUBMISSION_ID);
-            fail("Failed to delete Submission");
-       } catch (NotFoundException e) {
-        	// expected
-        }
-    	assertEquals(initialCount+1, submissionDAO.getCount());
+        
+		assertThrows(NotFoundException.class, () -> {
+			submissionDAO.get(SUBMISSION_ID);
+		});
+
+		assertEquals(initialCount+1, submissionDAO.getCount());
     }
     
     @Test
@@ -318,9 +336,11 @@ public class SubmissionDAOImplTest {
      	assertEquals(submission.getVersionNumber(), status.getVersionNumber());
     }
 
-    @Test(expected = NotFoundException.class)
+    @Test
 	public void testGetBundleNotFound() throws Exception {
-		SubmissionBundle bundle = submissionDAO.getBundle("notfound");
+    	assertThrows(NotFoundException.class, () -> {
+    		submissionDAO.getBundle("notfound");
+    	});
 	}
     
     @Test
@@ -347,13 +367,12 @@ public class SubmissionDAOImplTest {
         
         // delete it
         submissionDAO.delete(SUBMISSION_2_ID);
-        try {
-        	clone = submissionDAO.get(SUBMISSION_2_ID);
-            fail("Failed to delete Submission");
-       } catch (NotFoundException e) {
-        	// expected
-        }
-    	assertEquals(initialCount, submissionDAO.getCount());
+        
+        assertThrows(NotFoundException.class, () -> {
+        	submissionDAO.get(SUBMISSION_2_ID);
+        });
+    	
+        assertEquals(initialCount, submissionDAO.getCount());
     }
     
     @Test
@@ -368,12 +387,9 @@ public class SubmissionDAOImplTest {
         submissionDAO.addSubmissionContributor(SUBMISSION_ID, sc);
         
         // test that you can't add it twice
-        try {
+        assertThrows(IllegalArgumentException.class, () -> {
         	submissionDAO.addSubmissionContributor(SUBMISSION_ID, sc);
-        	fail("IllegalArgumentException expected");
-        } catch (IllegalArgumentException e) {
-        	// as expected
-        }
+        });
                 
         // fetch it
         Submission clone = submissionDAO.get(SUBMISSION_ID);
@@ -652,10 +668,13 @@ public class SubmissionDAOImplTest {
     	assertNull(subDTOclone.getDockerDigest());
     }
     
-    @Test(expected=IllegalArgumentException.class)
+    @Test
     public void testMissingVersionNumber() throws DatastoreException, JSONObjectAdapterException {
         submission.setVersionNumber(null);
-        submissionDAO.create(submission);
+        
+        assertThrows(IllegalArgumentException.class, () -> {
+        	submissionDAO.create(submission);
+        });
     }
     
     // Should be able to have null entity bundle
@@ -848,14 +867,18 @@ public class SubmissionDAOImplTest {
     			Long.parseLong(userId2), startDateIncl, endDateExcl, statuses));
     }
 
-    @Test(expected=IllegalArgumentException.class)
+    @Test
     public void testGetCreatedByWithNullSubId(){
-    	submissionDAO.getCreatedBy(null);
+    	assertThrows(IllegalArgumentException.class, () -> {
+    		submissionDAO.getCreatedBy(null);
+    	});
     }
 
-    @Test(expected=NotFoundException.class)
+    @Test
     public void testGetCreatedByWithNotExistingSubmission(){
-    	submissionDAO.getCreatedBy(submission.getId());
+    	assertThrows(NotFoundException.class, () -> {
+    		submissionDAO.getCreatedBy(submission.getId());
+    	});
     }
 
     @Test
@@ -940,4 +963,94 @@ public class SubmissionDAOImplTest {
 		
 		assertEquals("Could not find a submission with id " + SUBMISSION_ID, errorMessage);
 	}
+	
+	@Test
+	public void testGetSubmissionIdAndEtag() {
+
+		String subId1 = submissionDAO.create(submission);
+		createSubmissionStatus(subId1, SubmissionStatusEnum.SCORED);
+		String etag1 = submissionStatusDAO.get(subId1).getEtag();
+		String subId2 = submissionDAO.create(submission2);
+		createSubmissionStatus(subId2, SubmissionStatusEnum.SCORED);
+		String etag2 = submissionStatusDAO.get(subId2).getEtag();
+		String subId3 = submissionDAO.create(submission3);
+		createSubmissionStatus(subId3, SubmissionStatusEnum.SCORED);
+		String etag3 = submissionStatusDAO.get(subId3).getEtag();
+		
+		Long evaluationId = Long.valueOf(evalId);
+		
+		List<IdAndEtag> expected = ImmutableList.of(
+			new IdAndEtag(Long.valueOf(subId1), etag1, evaluationId),
+			new IdAndEtag(Long.valueOf(subId2), etag2, evaluationId),
+			new IdAndEtag(Long.valueOf(subId3), etag3, evaluationId)
+		);
+		
+		// Call under test
+		List<IdAndEtag> result = submissionDAO.getSubmissionIdAndEtag(evaluationId);
+		
+		assertEquals(expected, result);
+		
+	}
+	
+	@Test
+	public void testGetSubmissionIdAndEtagWithNullInput() {
+		
+		Long evaluationId = null;
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			submissionDAO.getSubmissionIdAndEtag(evaluationId);
+			
+		}).getMessage();
+		
+		assertEquals("evaluationId is required.", errorMessage);
+		
+	}
+	
+	@Test
+	public void testGetSumOfSubmissionCRCsForEachEvaluation() {
+		Long evaluationId1 = Long.valueOf(evalId);
+		Long evaluationId2 = Long.valueOf(evalId2);
+		
+		// Creates 3 submissions for evalId
+		submissionDAO.create(submission);
+		createSubmissionStatus(SUBMISSION_ID, SubmissionStatusEnum.SCORED);
+		submissionDAO.create(submission2);
+		createSubmissionStatus(SUBMISSION_2_ID, SubmissionStatusEnum.SCORED);
+		submissionDAO.create(submission3);
+		createSubmissionStatus(SUBMISSION_3_ID, SubmissionStatusEnum.SCORED);
+		
+		List<Long> ids = ImmutableList.of(evaluationId1, evaluationId2);
+		
+		Map<Long, Long> result = submissionDAO.getSumOfSubmissionCRCsForEachEvaluation(ids);
+		
+		assertEquals(1L, result.size());
+		assertNotNull(result.get(evaluationId1));
+	}
+	
+	@Test
+	public void testGetSumOfSubmissionCRCsForEachEvaluationWithNullInput() {
+		
+		List<Long> ids = null;
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			submissionDAO.getSumOfSubmissionCRCsForEachEvaluation(ids);
+		}).getMessage();
+		
+		assertEquals("evaluationIds is required.", errorMessage);
+		
+	}
+	
+	@Test
+	public void testGetSumOfSubmissionCRCsForEachEvaluationWithEmptyInput() {
+		
+		List<Long> ids = Collections.emptyList();
+		
+		Map<Long, Long> result = submissionDAO.getSumOfSubmissionCRCsForEachEvaluation(ids);
+		
+		assertTrue(result.isEmpty());
+		
+	}
+	
+	
 }

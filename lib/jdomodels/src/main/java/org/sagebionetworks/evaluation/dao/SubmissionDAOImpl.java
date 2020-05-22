@@ -8,6 +8,7 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_E
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_USER_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ETAG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_STATUS;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBMISSION;
@@ -54,6 +55,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
@@ -88,6 +90,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	private static final String USER_ID = DBOConstants.PARAM_SUBMISSION_USER_ID;
 	private static final String EVAL_ID = DBOConstants.PARAM_SUBMISSION_EVAL_ID;
 	private static final String STATUS = DBOConstants.PARAM_SUBSTATUS_STATUS;
+	private static final String CRC = "CRC";
 
 	private static final String SELECT_ALL = "SELECT *";
 	private static final String SELECT_COUNT = "SELECT COUNT(*)";
@@ -257,6 +260,16 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	
 	private static final String SELECT_EVALUATION_ID = "SELECT " + COL_SUBMISSION_EVAL_ID 
 			+ " FROM " + TABLE_SUBMISSION + " WHERE " + COL_SUBMISSION_ID + "=?";
+	
+	private static final String SELECT_SUBMISSION_ID_AND_ETAG = "SELECT s." + COL_SUBMISSION_ID + ", r." + COL_SUBSTATUS_ETAG 
+			+ BUNDLES_BY_EVALUATION_SQL;
+	
+	private static final String SELECT_SUM_CRC_SUBMISSIONS = "SELECT "+COL_SUBMISSION_EVAL_ID+","
+			+ " SUM(CRC32(CONCAT(s."+COL_SUBMISSION_ID + ",'-', r."+COL_SUBSTATUS_ETAG + "))) AS " + CRC
+			+ " FROM "+ TABLE_SUBMISSION + " s INNER JOIN " + TABLE_SUBSTATUS + " r"
+			+ " ON (s." + COL_SUBMISSION_ID + " = r."+ COL_SUBSTATUS_SUBMISSION_ID +") "
+			+ " WHERE s."+ COL_SUBMISSION_EVAL_ID + " IN (:"+ EVAL_ID +")"
+			+ " GROUP BY "+COL_SUBMISSION_EVAL_ID;
 
 	//------    end Submission eligibility related query strings -----
 
@@ -728,14 +741,15 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		ValidateArgument.required(accessType, "accessType");
 		if (principalIds.isEmpty()) return false;
 		
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 		MapSqlParameterSource param = new MapSqlParameterSource();
+		
 		param.addValue(COL_SUBMISSION_DOCKER_REPO_NAME, dockerRepoName);
 		param.addValue(COL_RESOURCE_ACCESS_GROUP_ID, principalIds);
 		param.addValue(COL_RESOURCE_ACCESS_TYPE_ELEMENT, accessType.name());
 
-		return 0<namedTemplate.queryForObject(
-				SUBMISSIONS_WITH_DOCKER_REPO_AND_PERMISSION_SQL, param, Long.class);
+		Long count = namedJdbcTemplate.queryForObject(SUBMISSIONS_WITH_DOCKER_REPO_AND_PERMISSION_SQL, param, Long.class);
+		
+		return count > 0;
 	}
 
 	@Override
@@ -746,6 +760,46 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("Could not find a submission with id " + submissionId);
 		}
+	}
+	
+	@Override
+	public List<IdAndEtag> getSubmissionIdAndEtag(Long evaluationId) {
+		ValidateArgument.required(evaluationId, "evaluationId");
+		
+		MapSqlParameterSource param = new MapSqlParameterSource(EVAL_ID, evaluationId);
+		
+		List<IdAndEtag> result = new ArrayList<>();
+		
+		namedJdbcTemplate.query(SELECT_SUBMISSION_ID_AND_ETAG, param, (ResultSet rs) -> {
+			Long id = rs.getLong(COL_SUBMISSION_ID);
+			String etag = rs.getString(COL_SUBSTATUS_ETAG);
+			
+			result.add(new IdAndEtag(id, etag, evaluationId));
+		});
+
+		return result;
+	}
+	
+	
+	@Override
+	public Map<Long, Long> getSumOfSubmissionCRCsForEachEvaluation(List<Long> evaluationIds) {
+		ValidateArgument.required(evaluationIds, "evaluationIds");
+		
+		if (evaluationIds.isEmpty()) {
+			return Collections.emptyMap();
+		}
+		
+		MapSqlParameterSource param = new MapSqlParameterSource(EVAL_ID, evaluationIds);
+		
+		Map<Long, Long> result = new HashMap<>(evaluationIds.size());
+		
+		namedJdbcTemplate.query(SELECT_SUM_CRC_SUBMISSIONS, param, (ResultSet rs) -> {
+			Long evaluationId = rs.getLong(COL_SUBMISSION_EVAL_ID);
+			Long sumCRC = rs.getLong(CRC);
+			result.put(evaluationId, sumCRC);
+		});
+		
+		return result;
 	}
 
 }
