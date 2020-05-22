@@ -1,16 +1,28 @@
 package org.sagebionetworks.evaluation.dao;
 
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_CONTENT_SOURCE;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_CONTRIBUTOR_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_DOCKER_DIGEST;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_DOCKER_REPO_NAME;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ENTITY_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ENTITY_VERSION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_EVAL_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_NAME;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_SUBMITTER_ALIAS;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_USER_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNOTATIONS;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ETAG;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_STATUS;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_VERSION;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBMISSION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBMISSION_CONTRIBUTOR;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS;
@@ -36,10 +48,12 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.dbo.SubmissionContributorDBO;
@@ -57,9 +71,15 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.query.SQLConstants;
+import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
+import org.sagebionetworks.repo.model.table.ViewScopeUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -91,6 +111,9 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	private static final String EVAL_ID = DBOConstants.PARAM_SUBMISSION_EVAL_ID;
 	private static final String STATUS = DBOConstants.PARAM_SUBSTATUS_STATUS;
 	private static final String CRC = "CRC";
+	private static final String PROJECT_ID = "PROJECT_ID";
+	private static final String CREATED_BY = "CREATED_BY";
+	private static final String MODIFIED_BY = "MODIFIED_BY";
 
 	private static final String SELECT_ALL = "SELECT *";
 	private static final String SELECT_COUNT = "SELECT COUNT(*)";
@@ -298,6 +321,8 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 
 	private static final RowMapper<SubmissionContributorDBO> SUBMISSION_CONTRIBUTOR_ROW_MAPPER = 
 			(new SubmissionContributorDBO()).getTableMapping();
+	
+	private static final String SUBTYPE_SUBMISSION = ViewScopeUtils.defaultSubType(ViewObjectType.SUBMISSION);
 	
 	@Override
 	@WriteTransaction
@@ -801,5 +826,116 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		
 		return result;
 	}
+	
+	private static final String SELECT_SUBMISSION_DATA = "SELECT"
+			+ " s." + COL_SUBMISSION_ID
+			+ ", s." + COL_SUBMISSION_NAME
+			+ ", r." + COL_SUBSTATUS_ETAG
+			+ ", s." + COL_SUBMISSION_EVAL_ID + " AS " + SubmissionField.evaluationid.getColumnAlias()
+			+ ", e." + COL_EVALUATION_CONTENT_SOURCE + " AS " + PROJECT_ID
+			+ ", r." + COL_SUBSTATUS_VERSION
+			+ ", s." + COL_SUBMISSION_CREATED_ON
+			+ ", s. " + COL_SUBMISSION_USER_ID + " AS " + CREATED_BY
+			+ ", r." + COL_SUBSTATUS_MODIFIED_ON
+			// We do not store who modified a status, just use the owner of the evaluation queue
+			+ ", e." + COL_EVALUATION_OWNER_ID + " AS " + MODIFIED_BY
+			// Computes the submitter either as the team if present or the user
+			+ ", IFNULL(s." + COL_SUBMISSION_TEAM_ID + ", s." + COL_SUBMISSION_USER_ID + ") AS " + SubmissionField.submitterid.getColumnAlias()
+			+ ", s." + COL_SUBMISSION_SUBMITTER_ALIAS + " AS " + SubmissionField.submitteralias.getColumnAlias()
+			+ ", s." + COL_SUBMISSION_ENTITY_ID + " AS " + SubmissionField.entityid.getColumnAlias()
+			+ ", s." + COL_SUBMISSION_ENTITY_VERSION + " AS " + SubmissionField.entityversion.getColumnAlias()
+			+ ", r." + COL_SUBSTATUS_STATUS + " AS " + SubmissionField.status.getColumnAlias()
+			+ ", s." + COL_SUBMISSION_DOCKER_REPO_NAME + " AS " + SubmissionField.dockerrepositoryname.getColumnAlias()
+			+ ", s." + COL_SUBMISSION_DOCKER_DIGEST + " AS " + SubmissionField.dockerdigest.getColumnAlias()
+			+ ", r." + COL_SUBSTATUS_ANNOTATIONS
+			+ " FROM " + TABLE_SUBMISSION +" s JOIN " + TABLE_SUBSTATUS + " r JOIN " + TABLE_EVALUATION + " e"
+			+ " ON (s."+COL_SUBMISSION_ID + " = r." + COL_SUBSTATUS_SUBMISSION_ID 
+			+ " AND s." + COL_SUBMISSION_EVAL_ID + " = e." + COL_EVALUATION_ID + ")"
+			+ " WHERE s."+COL_SUBMISSION_ID + " IN (:"+ID+ ")";
+	
+	@Override
+	public List<ObjectDataDTO> getSubmissionData(List<Long> submissionIds, int maxAnnotationChars) {
+		ValidateArgument.required(submissionIds, "submissionsIds");
+		
+		if (submissionIds.isEmpty()) {
+			return Collections.emptyList();
+		}
+		
+		MapSqlParameterSource param = new MapSqlParameterSource(ID, submissionIds);
+		
+		return namedJdbcTemplate.query(SELECT_SUBMISSION_DATA, param, (ResultSet rs, int index) -> {
+			return mapSubmissionDataRow(rs, index, maxAnnotationChars);
+		});
+	}
+	
+	@WriteTransaction
+	@Override
+	public void truncateAll() {
+		jdbcTemplate.update("DELETE FROM " + TABLE_SUBMISSION);
+		jdbcTemplate.update("DELETE FROM " + TABLE_EVALUATION);
+	}
+	
+	private static ObjectDataDTO mapSubmissionDataRow(ResultSet rs, int index, int maxAnnotationChars) throws SQLException {
+		ObjectDataDTO data = new ObjectDataDTO();
+		
+		data.setId(rs.getLong(COL_SUBMISSION_ID));
+		data.setName(rs.getString(COL_SUBMISSION_NAME));
+		data.setEtag(rs.getString(COL_SUBSTATUS_ETAG));
+		data.setParentId(rs.getLong(SubmissionField.evaluationid.getColumnAlias()));
+		data.setBenefactorId(rs.getLong(SubmissionField.evaluationid.getColumnAlias()));
+		data.setProjectId(rs.getLong(PROJECT_ID));
+		data.setCreatedOn(new Date(rs.getLong(COL_SUBMISSION_CREATED_ON)));
+		data.setCreatedBy(rs.getLong(CREATED_BY));
+		data.setModifiedOn(new Date(rs.getLong(COL_SUBSTATUS_MODIFIED_ON)));
+		data.setModifiedBy(rs.getLong(MODIFIED_BY));
+		data.setCurrentVersion(rs.getLong(COL_SUBSTATUS_VERSION));
+		data.setSubType(SUBTYPE_SUBMISSION);
+	
+		List<ObjectAnnotationDTO> annotations = fetchAnnotations(rs, data.getId(), maxAnnotationChars);
+		
+		data.setAnnotations(annotations);
+	
+		return data;
+		
+	}
+	
+	private static List<ObjectAnnotationDTO> fetchAnnotations(ResultSet rs, Long submissionId, int maxAnnotationChars) throws SQLException {
+		
+		Annotations annotations = AnnotationsV2Utils.fromJSONString(rs.getString(COL_SUBSTATUS_ANNOTATIONS));
+		
+		if (annotations == null) {
+			annotations = AnnotationsV2Utils.emptyAnnotations();
+		}
+		
+		// Translates the annotations on the object itself first
+		List<ObjectAnnotationDTO> objectAnnotations = AnnotationsV2Utils.translate(submissionId, annotations, maxAnnotationChars);
+		
+		// Merge the custom default fields from the result set and return the complete list
+		return mergeCustomFields(submissionId, objectAnnotations, rs);
+	}
+
+	private static List<ObjectAnnotationDTO> mergeCustomFields(Long submissionId, List<ObjectAnnotationDTO> objectAnnotations, ResultSet rs) throws SQLException {
+		// Turn the list into a map so that we can override the keys
+		Map<String, ObjectAnnotationDTO> map = new LinkedHashMap<>(objectAnnotations.size());
+		
+		objectAnnotations.forEach((annotation) ->  map.put(annotation.getKey(), annotation));
+		
+		// Now add the custom fields, they will override any annotation with the same name
+		for (SubmissionField field : SubmissionField.values()) {
+			String value = field.getValue(rs);
+
+			ObjectAnnotationDTO annotationValue = new ObjectAnnotationDTO();
+			
+			annotationValue.setObjectId(submissionId);
+			annotationValue.setKey(field.getColumnName());
+			annotationValue.setType(field.getAnnotationType());
+			annotationValue.setValue(value);
+			
+			map.put(field.getColumnName(), annotationValue);
+		}
+		
+		return map.values().stream().collect(Collectors.toList());
+	}
+
 
 }

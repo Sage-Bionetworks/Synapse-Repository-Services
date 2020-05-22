@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.sagebionetworks.evaluation.model.SubmissionStatusEnum.REJECTED;
 
 import java.util.Arrays;
@@ -17,12 +17,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
 import org.sagebionetworks.evaluation.dbo.SubmissionDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -50,6 +51,10 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
@@ -57,7 +62,13 @@ import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
+import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
+import org.sagebionetworks.repo.model.table.ViewScopeUtils;
 import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -175,6 +186,8 @@ public class SubmissionDAOImplTest {
 
     @BeforeEach
     public void setUp() throws DatastoreException, InvalidModelException, NotFoundException {
+    	submissionDAO.truncateAll();
+    	
     	userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
     	userId2 = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString();
     	
@@ -289,6 +302,9 @@ public class SubmissionDAOImplTest {
     	try {
     		nodeDAO.delete(dockerNodeId);
     	} catch (NotFoundException e) {};
+    	
+    	submissionDAO.truncateAll();
+    	
     }
     
     @Test
@@ -499,11 +515,16 @@ public class SubmissionDAOImplTest {
     }
     
     private void createSubmissionStatus(String id, SubmissionStatusEnum status) {
+    	createSubmissionStatus(id, status, null);
+    }
+    
+    private void createSubmissionStatus(String id, SubmissionStatusEnum status, Annotations annotations) {
     	// create a SubmissionStatus object
     	SubmissionStatus subStatus = new SubmissionStatus();
     	subStatus.setId(id);
     	subStatus.setStatus(status);
     	subStatus.setModifiedOn(new Date());
+    	subStatus.setSubmissionAnnotations(annotations);
     	submissionStatusDAO.create(subStatus);
     }
     
@@ -1051,6 +1072,170 @@ public class SubmissionDAOImplTest {
 		assertTrue(result.isEmpty());
 		
 	}
+
+	@Test
+	public void testGetSubmissionData() {
+
+		Annotations annotations = AnnotationsV2Utils.emptyAnnotations();
+
+		AnnotationsV2TestUtils.putAnnotations(annotations, "foo", "fooValue", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "bar", "42", AnnotationsValueType.LONG);
+
+		// Creates 3 submissions for evalId
+		submissionDAO.create(submission);
+		createSubmissionStatus(SUBMISSION_ID, SubmissionStatusEnum.SCORED);
+		submissionDAO.create(submission2);
+		createSubmissionStatus(SUBMISSION_2_ID, SubmissionStatusEnum.EVALUATION_IN_PROGRESS);
+		submissionDAO.create(submission3);
+		createSubmissionStatus(SUBMISSION_3_ID, SubmissionStatusEnum.RECEIVED);
+
+		// Make a submission to the another evaluation
+		Submission submission = newSubmission(SUBMISSION_4_ID, userId2, nodeId, new Date(CREATION_TIME_STAMP));
+		submission.setEvaluationId(evalId2);
+
+		submissionDAO.create(submission);
+
+		String nonExistingId = "100000";
+
+		List<Long> ids = ImmutableList.of(SUBMISSION_ID, SUBMISSION_2_ID, SUBMISSION_3_ID, nonExistingId).stream()
+				.map(Long::valueOf).collect(Collectors.toList());
+
+		int maxAnnotationChars = 500;
+
+		// Call under test
+		List<ObjectDataDTO> result = submissionDAO.getSubmissionData(ids, maxAnnotationChars);
+
+		assertNotNull(result);
+		assertEquals(3L, result.size());
+
+		Map<String, ObjectDataDTO> map = result.stream()
+				.collect(Collectors.toMap((v) -> v.getId().toString(), Function.identity()));
+
+		assertFalse(map.containsKey(nonExistingId));
+
+		verifyObjectData(map.get(SUBMISSION_ID));
+		verifyObjectData(map.get(SUBMISSION_2_ID));
+		verifyObjectData(map.get(SUBMISSION_3_ID));
+	}
 	
+	@Test
+	public void testGetSubmissionDataWithAnnotations() {
+
+		Annotations annotations = AnnotationsV2Utils.emptyAnnotations();
+
+		AnnotationsV2TestUtils.putAnnotations(annotations, "foo", "fooValue", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "bar", "42", AnnotationsValueType.LONG);
+
+		// Creates 3 submissions for evalId
+		submissionDAO.create(submission);
+		createSubmissionStatus(SUBMISSION_ID, SubmissionStatusEnum.SCORED, annotations);
+
+		List<Long> ids = ImmutableList.of(SUBMISSION_ID).stream()
+				.map(Long::valueOf).collect(Collectors.toList());
+
+		int maxAnnotationChars = 500;
+
+		// Call under test
+		List<ObjectDataDTO> result = submissionDAO.getSubmissionData(ids, maxAnnotationChars);
+
+		assertNotNull(result);
+		assertEquals(1L, result.size());
+
+		Map<String, ObjectAnnotationDTO> annotationsMap = verifyObjectData(result.stream().findFirst().get());
+		
+		assertAnnotationValue("fooValue", AnnotationType.STRING, annotationsMap.get("foo"));
+		assertAnnotationValue("42", AnnotationType.LONG, annotationsMap.get("bar"));
+	}
+	
+	@Test
+	public void testGetSubmissionDataWithAnnotationsOverride() {
+
+		Annotations annotations = AnnotationsV2Utils.emptyAnnotations();
+
+		AnnotationsV2TestUtils.putAnnotations(annotations, "foo", "fooValue", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "bar", "42", AnnotationsValueType.LONG);
+		
+		// This should not be indexed, as the status is a submission field
+		AnnotationsV2TestUtils.putAnnotations(annotations, "status", "OVERRIDEN_STATUS", AnnotationsValueType.STRING);
+
+		// Creates 3 submissions for evalId
+		submissionDAO.create(submission);
+		createSubmissionStatus(SUBMISSION_ID, SubmissionStatusEnum.SCORED, annotations);
+
+		List<Long> ids = ImmutableList.of(SUBMISSION_ID).stream()
+				.map(Long::valueOf).collect(Collectors.toList());
+
+		int maxAnnotationChars = 500;
+
+		// Call under test
+		List<ObjectDataDTO> result = submissionDAO.getSubmissionData(ids, maxAnnotationChars);
+
+		assertNotNull(result);
+		assertEquals(1L, result.size());
+
+		Map<String, ObjectAnnotationDTO> annotationsMap = verifyObjectData(result.stream().findFirst().get());
+		
+		assertAnnotationValue("fooValue", AnnotationType.STRING, annotationsMap.get("foo"));
+		assertAnnotationValue("42", AnnotationType.LONG, annotationsMap.get("bar"));
+	}
+
+	private Map<String, ObjectAnnotationDTO> verifyObjectData(ObjectDataDTO data) {
+		String submissionId = data.getId().toString();
+
+		Submission submission = submissionDAO.get(submissionId);
+		Evaluation evaluation = evaluationDAO.get(submission.getEvaluationId());
+		SubmissionStatus status = submissionStatusDAO.get(submissionId);
+
+		assertEquals(status.getEtag(), data.getEtag());
+		assertEquals(submission.getEvaluationId(), data.getParentId().toString());
+		assertEquals(submission.getEvaluationId(), data.getBenefactorId().toString());
+		assertEquals(evaluation.getContentSource(), KeyFactory.keyToString(data.getProjectId()));
+		assertEquals(submission.getName(), data.getName());
+		assertEquals(ViewScopeUtils.defaultSubType(ViewObjectType.SUBMISSION), data.getSubType());
+		assertNotNull(data.getAnnotations());
+
+		Map<String, ObjectAnnotationDTO> annotations = data.getAnnotations().stream()
+				.collect(Collectors.toMap(ObjectAnnotationDTO::getKey, Function.identity()));
+
+		for (SubmissionField field : SubmissionField.values()) {
+			ObjectAnnotationDTO fieldAnnotation = annotations.get(field.getColumnName());
+			assertNotNull(fieldAnnotation);
+			assertEquals(submissionId, fieldAnnotation.getObjectId().toString());
+			assertEquals(field.getAnnotationType(), fieldAnnotation.getType());
+			assertFalse(fieldAnnotation.getValue().isEmpty());
+		}
+
+		assertAnnotationValue(KeyFactory.stringToKey(submission.getEntityId()).toString(),
+				SubmissionField.entityid.getAnnotationType(),
+				annotations.get(SubmissionField.entityid.getColumnName()));
+		assertAnnotationValue(submission.getVersionNumber().toString(),
+				SubmissionField.entityversion.getAnnotationType(),
+				annotations.get(SubmissionField.entityversion.getColumnName()));
+		assertAnnotationValue(submission.getEvaluationId(),
+				SubmissionField.evaluationid.getAnnotationType(),
+				annotations.get(SubmissionField.evaluationid.getColumnName()));
+		assertAnnotationValue(submission.getDockerRepositoryName(),
+				SubmissionField.dockerrepositoryname.getAnnotationType(),
+				annotations.get(SubmissionField.dockerrepositoryname.getColumnName()));
+		assertAnnotationValue(submission.getDockerDigest(),
+				SubmissionField.dockerdigest.getAnnotationType(),
+				annotations.get(SubmissionField.dockerdigest.getColumnName()));
+		assertAnnotationValue(submission.getSubmitterAlias(),
+				SubmissionField.submitteralias.getAnnotationType(),
+				annotations.get(SubmissionField.submitteralias.getColumnName()));
+		assertAnnotationValue(status.getStatus().name(), 
+				SubmissionField.status.getAnnotationType(),
+				annotations.get(SubmissionField.status.getColumnName()));
+		assertAnnotationValue(submission.getTeamId() == null ? submission.getUserId() : submission.getTeamId(),
+				SubmissionField.submitterid.getAnnotationType(),
+				annotations.get(SubmissionField.submitterid.getColumnName()));
+		
+		return annotations;
+	}
+
+	private void assertAnnotationValue(String expectedValue, AnnotationType annotationType, ObjectAnnotationDTO annotation) {
+		assertEquals(expectedValue, annotation.getValue().iterator().next());
+		assertEquals(annotationType, annotation.getType());
+	}
 	
 }

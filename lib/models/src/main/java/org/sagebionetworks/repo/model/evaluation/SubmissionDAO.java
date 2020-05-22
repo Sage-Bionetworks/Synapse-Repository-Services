@@ -12,6 +12,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.IdAndEtag;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface SubmissionDAO {
@@ -226,5 +227,15 @@ public interface SubmissionDAO {
 	 * @return For each of the evaluation id, computes the sum of the CRC for each submission in the evaluation
 	 */
 	Map<Long, Long> getSumOfSubmissionCRCsForEachEvaluation(List<Long> evaluationIds);
+
+	/**
+	 * @param submissionIds
+	 * @param maxAnnotationChars
+	 * @return The data to be indexed in the replication
+	 */
+	List<ObjectDataDTO> getSubmissionData(List<Long> submissionIds, int maxAnnotationChars);
+	
+	// For testing
+	void truncateAll();
 
 }

@@ -1,13 +1,14 @@
 package org.sagebionetworks.repo.model.annotation.v2;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -103,47 +104,44 @@ public class AnnotationsV2Utils {
 	 * @return
 	 */
 	public static List<ObjectAnnotationDTO> translate(Long entityId, Annotations annos, int maxAnnotationChars) {
-		LinkedHashMap<String, ObjectAnnotationDTO> map = new LinkedHashMap<>();
-		if(annos != null){
+		Map<String, ObjectAnnotationDTO> map;
+		
+		if (annos == null || annos.getAnnotations() == null) {
+			map = Collections.emptyMap();
+		} else {
+			map = new LinkedHashMap<>(annos.getAnnotations().size());
 			// add additional
-			addAnnotations(entityId, maxAnnotationChars, map, annos);
+			addAnnotations(entityId, maxAnnotationChars, map, annos.getAnnotations());
 		}
 		// build the results from the map
-		List<ObjectAnnotationDTO> results = new LinkedList<ObjectAnnotationDTO>();
-		for(String key: map.keySet()){
-			results.add(map.get(key));
-		}
-		return results;
+		return map.values().stream().collect(Collectors.toList());
 	}
 
-	private static void addAnnotations(Long entityId, int maxAnnotationChars,
-									   LinkedHashMap<String, ObjectAnnotationDTO> map, Annotations additional) {
-		if (additional.getAnnotations() == null){
-			return;
-		}
-		for(Map.Entry<String, AnnotationsValue> entry: additional.getAnnotations().entrySet()){
-			String key = entry.getKey();
-			AnnotationsValue annotationsV2Value = entry.getValue();
-
+	private static void addAnnotations(Long entityId, int maxAnnotationChars, Map<String, ObjectAnnotationDTO> map, Map<String, AnnotationsValue> additional) {
+		
+		additional.forEach((String key, AnnotationsValue annotationsV2Value) -> {
 			//ignore empty list or null list for values
-			if(annotationsV2Value.getValue() == null || annotationsV2Value.getValue().isEmpty()){
-				continue;
+			if (annotationsV2Value.getValue() == null || annotationsV2Value.getValue().isEmpty()){
+				return;
 			}
 
-			//enforce value max character limit
-			List<String> transferredValues = new ArrayList<>();
+			List<String> transferredValues = new ArrayList<>(annotationsV2Value.getValue().size());
+
+			//enforce value max character limit			
 			for (String value : annotationsV2Value.getValue()) {
-				if(value == null){
+				if (value == null) {
 					continue;
 				}
 				//make sure values are under the maxAnnotationChars limit
 				String shortenedString = StringUtils.truncate(value, maxAnnotationChars);
 				transferredValues.add(shortenedString);
 			}
+			
 			if(!transferredValues.isEmpty()) {
-				map.put(key, new ObjectAnnotationDTO(entityId, key, AnnotationType.forAnnotationV2Type(annotationsV2Value.getType()), transferredValues));
+				AnnotationType annotationType = AnnotationType.forAnnotationV2Type(annotationsV2Value.getType());
+				map.put(key, new ObjectAnnotationDTO(entityId, key, annotationType, transferredValues));
 			}
-		}
+		});
 	}
 
 	/**
