@@ -328,7 +328,8 @@ public class TeamManagerImpl implements TeamManager {
 		switch (memberType) {
 			case ADMIN:
 				if (adminIds.isEmpty()) { // No team admins is possible at the DAO level
-					return new PaginatedResults<>();
+					results = Collections.EMPTY_LIST;
+					break;
 				}
 				results = teamDAO.getMembersInRange(teamId, adminIds, null, limit, offset);
 				results.forEach(tm -> tm.setIsAdmin(true));
