@@ -192,8 +192,10 @@ public interface SubmissionDAO {
 	 */
 	boolean isDockerRepoNameInAnyEvaluationWithAccess(String dockerRepoName, Set<Long> principalIds, ACCESS_TYPE accessType);
 
+	// Include contributors
 	SubmissionBundle getBundle(String id);
-
+	
+	SubmissionBundle getBundle(String submissionId, boolean includeContributors);
 
 	List<SubmissionBundle> getAllBundlesByEvaluation(String evalId, long limit,
 			long offset) throws DatastoreException, NotFoundException;
@@ -207,13 +209,6 @@ public interface SubmissionDAO {
 	List<SubmissionBundle> getAllBundlesByEvaluationAndUser(String evalId,
 			String principalId, long limit, long offset)
 			throws DatastoreException, NotFoundException;
-	
-	/**
-	 * @param submissionId
-	 * @return The id of the evaluation for the given submission
-	 * @throws NotFoundException if the submission does not exist
-	 */
-	Long getEvaluationId(String submissionId);
 
 	/**
 	 * @param evaluationId The id of an evaluation

@@ -351,6 +351,24 @@ public class SubmissionDAOImplTest {
      	assertEquals(submission.getEntityId(), status.getEntityId());
      	assertEquals(submission.getVersionNumber(), status.getVersionNumber());
     }
+    
+    @Test
+    public void testGetBundleWithNoContributors() throws Exception {
+    	submissionDAO.create(submission2);
+     	createSubmissionStatus(SUBMISSION_2_ID, SubmissionStatusEnum.RECEIVED);
+     	
+     	boolean includeContributors = true;
+     	
+     	SubmissionBundle bundle = submissionDAO.getBundle(SUBMISSION_2_ID, includeContributors);
+    	
+     	assertFalse(bundle.getSubmission().getContributors().isEmpty());
+     	
+     	includeContributors = false;
+     	
+     	bundle = submissionDAO.getBundle(SUBMISSION_2_ID, includeContributors);
+    	
+     	assertNull(bundle.getSubmission().getContributors());
+    }
 
     @Test
 	public void testGetBundleNotFound() throws Exception {
@@ -961,28 +979,6 @@ public class SubmissionDAOImplTest {
 				Collections.EMPTY_SET, ACCESS_TYPE.READ));
 
 
-	}
-	
-	@Test
-	public void testGetEvaluationId() {
-
-		submissionDAO.create(submission);
-		
-		// Call under test
-		String evaluationId = submissionDAO.getEvaluationId(SUBMISSION_ID).toString();
-		
-		assertEquals(evalId, evaluationId);
-	}
-	
-	@Test
-	public void testGetEvaluationIdWithNonExistingEvaluation() {
-
-		String errorMessage = assertThrows(NotFoundException.class, () -> {
-			// Call under test
-			submissionDAO.getEvaluationId(SUBMISSION_ID);
-		}).getMessage();
-		
-		assertEquals("Could not find a submission with id " + SUBMISSION_ID, errorMessage);
 	}
 	
 	@Test

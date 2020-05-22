@@ -281,9 +281,6 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		" and ra."+COL_RESOURCE_ACCESS_GROUP_ID+" in (:"+COL_RESOURCE_ACCESS_GROUP_ID+") "+
 		" and at."+COL_RESOURCE_ACCESS_TYPE_ELEMENT+"=:"+COL_RESOURCE_ACCESS_TYPE_ELEMENT;
 	
-	private static final String SELECT_EVALUATION_ID = "SELECT " + COL_SUBMISSION_EVAL_ID 
-			+ " FROM " + TABLE_SUBMISSION + " WHERE " + COL_SUBMISSION_ID + "=?";
-	
 	private static final String SELECT_SUBMISSION_ID_AND_ETAG = "SELECT s." + COL_SUBMISSION_ID + ", r." + COL_SUBSTATUS_ETAG 
 			+ BUNDLES_BY_EVALUATION_SQL;
 	
@@ -436,11 +433,18 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	
 	@Override
 	public SubmissionBundle getBundle(String id) {
+		return getBundle(id, true);
+	}
+	
+	@Override
+	public SubmissionBundle getBundle(String id, boolean includeContributors) {
 		try {
 			MapSqlParameterSource param = new MapSqlParameterSource();
 			param.addValue(ID, id);
 			SubmissionBundle dto = namedJdbcTemplate.queryForObject(SELECT_BUNDLE_SQL, param, BUNDLE_ROW_MAPPER);
-			insertContributorsInBundles(Collections.singletonList(dto));
+			if (includeContributors) {
+				insertContributorsInBundles(Collections.singletonList(dto));
+			}
 			return dto;
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("Cannot find submission or status for id " + id);
@@ -775,16 +779,6 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		Long count = namedJdbcTemplate.queryForObject(SUBMISSIONS_WITH_DOCKER_REPO_AND_PERMISSION_SQL, param, Long.class);
 		
 		return count > 0;
-	}
-
-	@Override
-	public Long getEvaluationId(String submissionId) {
-		ValidateArgument.required(submissionId, "submissionId");
-		try {
-			return jdbcTemplate.queryForObject(SELECT_EVALUATION_ID, Long.class, submissionId);
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("Could not find a submission with id " + submissionId);
-		}
 	}
 	
 	@Override
