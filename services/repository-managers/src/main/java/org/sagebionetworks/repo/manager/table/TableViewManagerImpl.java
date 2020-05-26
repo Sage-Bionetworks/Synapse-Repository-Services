@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.manager.replication.ReplicationManager;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.BucketAndKey;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
@@ -49,6 +50,7 @@ import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
+import org.sagebionetworks.repo.model.table.ViewScopeUtils;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -132,7 +134,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	public void setViewSchemaAndScope(UserInfo userInfo, List<String> schema, ViewScope scope, String viewIdString) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(scope, "scope");
-		ValidateArgument.required(scope.getObjectType(), "The scope objectType");
+		ValidateArgument.required(scope.getViewEntityType(), "The scope entity type");
 		validateViewSchemaSize(schema);
 		Long viewId = KeyFactory.stringToKey(viewIdString);
 		IdAndVersion idAndVersion = IdAndVersion.parse(viewIdString);
@@ -147,7 +149,10 @@ public class TableViewManagerImpl implements TableViewManager {
 			}
 		}
 		
-		ViewScopeType scopeType = new ViewScopeType(scope.getObjectType(), viewTypeMask);
+		EntityType entityType = scope.getViewEntityType();
+		ViewObjectType objectType = ViewScopeUtils.map(entityType);
+		
+		ViewScopeType scopeType = new ViewScopeType(objectType, viewTypeMask);
 
 		// validate the scope size
 		tableManagerSupport.validateScopeSize(scopeIds, scopeType);

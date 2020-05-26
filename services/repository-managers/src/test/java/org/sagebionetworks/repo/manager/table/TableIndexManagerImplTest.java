@@ -188,7 +188,7 @@ public class TableIndexManagerImplTest {
 		scope = new ViewScope();
 		scope.setScope(scopeSynIds);
 		scope.setViewTypeMask(ViewTypeMask.File.getMask());
-		scope.setObjectType(objectType);
+		scope.setViewEntityType(EntityType.entityview);
 		
 		ColumnModel oldColumn = null;
 		newColumn = new ColumnModel();
@@ -885,7 +885,7 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
 		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
 		
-		scope.setObjectType(null);
+		scope.setViewEntityType(null);
 
 		ViewScopeFilter scopeFilter = new ViewScopeFilter(ViewObjectType.ENTITY, subTypes, filterByObjectId, containerIds);
 		

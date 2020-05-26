@@ -2,7 +2,6 @@ package org.sagebionetworks;
 
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -29,7 +28,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
@@ -43,6 +41,7 @@ import org.sagebionetworks.client.exceptions.UnknownSynapseServerException;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Project;
@@ -56,7 +55,6 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
@@ -68,7 +66,6 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.TableEntity;
@@ -548,8 +545,22 @@ public class IT100TableControllerTest {
 	
 	@Test
 	public void testgetDefaultColumnsForViewTypeMask() throws SynapseException{
+		EntityType viewEntityType = EntityType.entityview;
 		Long mask = ViewTypeMask.File.getMask();
-		List<ColumnModel> defaults = synapse.getDefaultColumnsForView(mask);
+		List<ColumnModel> defaults = synapse.getDefaultColumnsForView(viewEntityType, mask);
+		assertNotNull(defaults);
+		assertTrue(defaults.size() > 1);
+		ColumnModel cm = defaults.get(0);
+		assertNotNull(cm);
+		assertNotNull(cm.getName());
+		assertNotNull(cm.getId());
+	}
+	
+	@Test
+	public void testgetDefaultColumnsForSubmissionView() throws SynapseException{
+		EntityType viewEntityType = EntityType.submissionview;
+		Long mask = null;
+		List<ColumnModel> defaults = synapse.getDefaultColumnsForView(viewEntityType, mask);
 		assertNotNull(defaults);
 		assertTrue(defaults.size() > 1);
 		ColumnModel cm = defaults.get(0);

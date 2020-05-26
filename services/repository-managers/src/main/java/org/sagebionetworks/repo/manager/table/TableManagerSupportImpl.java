@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
+import org.sagebionetworks.repo.model.table.ViewScopeUtils;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -473,17 +474,13 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	@Override
-	public List<ColumnModel> getDefaultTableViewColumns(ViewScopeType viewScopeType) {
-		ValidateArgument.required(viewScopeType, "viewScopeType");
-		ValidateArgument.required(viewScopeType.getTypeMask(), "viewScopeType.typeMask");
-		
-		Long viewTypeMask = viewScopeType.getTypeMask();
-		ViewObjectType objectType = viewScopeType.getObjectType();
-		
-		if (objectType == null) {
+	public List<ColumnModel> getDefaultTableViewColumns(EntityType viewEntityType, Long viewTypeMask) {				
+		if (viewEntityType == null) {
 			// To avoid breaking API changes we fallback to ENTITY
-			objectType = ViewObjectType.ENTITY;
+			viewEntityType = EntityType.entityview;
 		}
+		
+		ViewObjectType objectType = ViewScopeUtils.map(viewEntityType);
 		
 		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(objectType);
 		

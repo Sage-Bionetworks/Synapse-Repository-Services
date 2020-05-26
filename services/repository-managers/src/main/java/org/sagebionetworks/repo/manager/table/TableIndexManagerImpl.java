@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.manager.table.metadata.ViewScopeFilterBuilder;
 import org.sagebionetworks.repo.manager.table.metadata.ViewScopeFilterProvider;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -33,6 +34,7 @@ import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
+import org.sagebionetworks.repo.model.table.ViewScopeUtils;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
@@ -463,12 +465,14 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ValidateArgument.required(scope, "scope");
 		ValidateArgument.required(scope.getScope(), "scope.scopeIds");
 		
-		ViewObjectType objectType = scope.getObjectType();
-		
+		EntityType viewType = scope.getViewEntityType();
+
 		// When the scope does not specify the object type we defaults to ENTITY as not to break the API
-		if (objectType == null) {
-			objectType = ViewObjectType.ENTITY;
+		if (viewType == null) {
+			viewType = EntityType.entityview;
 		}
+		
+		ViewObjectType objectType = ViewScopeUtils.map(viewType);
 		
 		long viewTypeMask = ViewTypeMask.getViewTypeMask(scope);
 		ViewScopeType scopeType = new ViewScopeType(objectType, viewTypeMask);

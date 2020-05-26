@@ -767,32 +767,15 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testGetDefaultTableViewColumnsNullScopeType(){
-		ViewScopeType scopeType = null;
-		assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			manager.getDefaultTableViewColumns(scopeType);
-		});
-	}
-	
-	@Test
-	public void testGetDefaultTableViewColumnsNullMask(){
-		scopeType = new ViewScopeType(ViewObjectType.ENTITY, null);
-		assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			manager.getDefaultTableViewColumns(scopeType);
-		});
-	}
-	
-	@Test
 	public void testGetDefaultTableViewColumnsNullObjectType(){
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		when(mockMetadataIndexProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultModel);
-		
-		scopeType = new ViewScopeType(null, 1L);
+
+		EntityType viewEntityType = null;
+		Long viewTypeMask = 1L;
 
 		// call under test
-		manager.getDefaultTableViewColumns(scopeType);
+		manager.getDefaultTableViewColumns(viewEntityType, viewTypeMask);
 
 		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(ViewObjectType.ENTITY);
 		verify(mockMetadataIndexProvider).getDefaultColumnModel(scopeType.getTypeMask());
@@ -805,8 +788,11 @@ public class TableManagerSupportTest {
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		when(mockMetadataIndexProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultModel);
 
+		EntityType viewEntityType = EntityType.entityview;
+		Long viewTypeMask = 1L;
+		
 		// call under test
-		manager.getDefaultTableViewColumns(scopeType);
+		manager.getDefaultTableViewColumns(viewEntityType, viewTypeMask);
 		
 		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(scopeType.getObjectType());
 		verify(mockMetadataIndexProvider).getDefaultColumnModel(scopeType.getTypeMask());

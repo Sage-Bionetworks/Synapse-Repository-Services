@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -92,7 +93,6 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
-import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
@@ -173,6 +173,7 @@ public class TableViewIntegrationTest {
 	ColumnModel stringListColumn;
 	
 	ViewObjectType viewObjectType;
+	
 	@BeforeEach
 	public void before(){
 		mockProgressCallbackVoid= Mockito.mock(ProgressCallback.class);
@@ -217,8 +218,7 @@ public class TableViewIntegrationTest {
 			String fileId = entityManager.createEntity(adminUserInfo, file, null);
 			fileIds.add(fileId);
 		}
-		ViewScopeType scopeType = new ViewScopeType(viewObjectType, ViewTypeMask.File.getMask());
-		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(scopeType);
+		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(EntityType.entityview, ViewTypeMask.File.getMask());
 		// add an annotation column
 		anno1Column = new ColumnModel();
 		anno1Column.setColumnType(ColumnType.INTEGER);
@@ -289,7 +289,7 @@ public class TableViewIntegrationTest {
 		String viewId = entityManager.createEntity(adminUserInfo, view, null);
 		view = entityManager.getEntity(adminUserInfo, viewId, EntityView.class);
 		ViewScope viewScope = new ViewScope();
-		viewScope.setObjectType(viewObjectType);
+		viewScope.setViewEntityType(EntityType.entityview);
 		viewScope.setScope(view.getScopeIds());
 		viewScope.setViewType(view.getType());
 		tableViewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), viewScope, viewId);
@@ -644,7 +644,7 @@ public class TableViewIntegrationTest {
 				stringColumn);
 		defaultColumnIds.add(stringColumn.getId());
 		ViewScope scope = new ViewScope();
-		scope.setObjectType(viewObjectType);
+		scope.setViewEntityType(EntityType.entityview);
 		scope.setScope(Lists.newArrayList(project.getId()));
 		scope.setViewType(ViewType.file);
 		tableViewManager.setViewSchemaAndScope(adminUserInfo, defaultColumnIds,
@@ -685,7 +685,7 @@ public class TableViewIntegrationTest {
 				stringColumn);
 		defaultColumnIds.add(stringColumn.getId());
 		ViewScope scope = new ViewScope();
-		scope.setObjectType(viewObjectType);
+		scope.setViewEntityType(EntityType.entityview);
 		scope.setScope(Lists.newArrayList(project.getId()));
 		scope.setViewTypeMask(ViewTypeMask.File.getMask());
 		tableViewManager.setViewSchemaAndScope(adminUserInfo, defaultColumnIds,
@@ -1112,9 +1112,8 @@ public class TableViewIntegrationTest {
 	 */
 	@Test
 	public void testViewWithFilesAndTables() throws Exception{
-		ViewScopeType scopeType = new ViewScopeType(ViewObjectType.ENTITY, ViewTypeMask.getMaskForDepricatedType(ViewType.file_and_table));
 		// use the default columns for this type.
-		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(scopeType);
+		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(EntityType.entityview, ViewTypeMask.getMaskForDepricatedType(ViewType.file_and_table));
 		// Add a table to the project
 		TableEntity table = new TableEntity();
 		table.setName("someTable");

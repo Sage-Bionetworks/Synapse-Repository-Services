@@ -60,6 +60,7 @@ import org.sagebionetworks.repo.manager.replication.ReplicationManager;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.BucketAndKey;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
@@ -204,7 +205,7 @@ public class TableViewManagerImplTest {
 		viewType =ViewTypeMask.File.getMask();
 		
 		viewScope = new ViewScope();
-		viewScope.setObjectType(ViewObjectType.ENTITY);
+		viewScope.setViewEntityType(EntityType.entityview);
 		viewScope.setScope(scope);
 		viewScope.setViewTypeMask(viewType);
 		
@@ -362,14 +363,14 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testSetViewSchemaAndScopeWithNullObjectType(){
-		viewScope.setObjectType(null);
+		viewScope.setViewEntityType(null);
 		
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 		});
 		
-		assertEquals("The scope objectType is required.", ex.getMessage());
+		assertEquals("The scope entity type is required.", ex.getMessage());
 	}
 	
 	@Test

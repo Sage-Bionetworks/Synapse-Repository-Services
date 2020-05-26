@@ -342,7 +342,7 @@ public interface TableManagerSupport {
 	 * 
 	 * @return
 	 */
-	List<ColumnModel> getDefaultTableViewColumns(ViewScopeType scopeType);
+	List<ColumnModel> getDefaultTableViewColumns(EntityType entityType, Long viewTypeMask);
 
 	/**
 	 * Get the entity type for the given table.
