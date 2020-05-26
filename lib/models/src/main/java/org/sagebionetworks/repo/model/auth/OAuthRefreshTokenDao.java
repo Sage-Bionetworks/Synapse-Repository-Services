@@ -1,0 +1,67 @@
+package org.sagebionetworks.repo.model.auth;
+
+import java.util.Optional;
+
+import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
+import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
+
+public interface OAuthRefreshTokenDao {
+
+	/**
+	 * Retrieve a matching token, if it exists.
+	 * @param hash The hash of the token
+	 * @param clientId The client that the token is associated with
+	 * @return an {@link Optional} that contains the token metadata, if it exists.
+	 */
+	Optional<OAuthRefreshTokenInformation> getMatchingTokenByHash(String hash, String clientId);
+
+	/**
+	 * Retrieve the refresh token metadata, if that refresh token exists
+	 * @param tokenId the unique ID of the token to retrieve
+	 * @return an {@link Optional} containing the refresh token, if it exists
+	 */
+	Optional<OAuthRefreshTokenInformation> getRefreshTokenMetadata(String tokenId);
+
+	/**
+	 * Store a refresh token
+	 * @param hashedToken the token hash to store
+	 * @param metadata token information to store, including the client and user associated with the token
+	 * @return the stored refresh token
+	 */
+	OAuthRefreshTokenInformation createRefreshToken(String hashedToken, OAuthRefreshTokenInformation metadata);
+
+	/**
+	 * Update the metadata for a refresh token based on the specified token ID
+	 * Fields that are currently mutable are
+	 * {@link OAuthRefreshTokenInformation#getName()} ()}
+	 * {@link OAuthRefreshTokenInformation#getModifiedOn()} ()}
+	 * {@link OAuthRefreshTokenInformation#getLastUsed()} ()}
+	 * {@link OAuthRefreshTokenInformation#getEtag()}
+	 *
+	 * @param metadata the object to update
+	 */
+	void updateRefreshTokenMetadata(OAuthRefreshTokenInformation metadata);
+
+	/**
+	 * Get the active refresh tokens between a user and a client
+	 * @param userId the user whose resources can be accessed using refresh tokens
+	 * @param clientId the client whom can use tokens to access resources
+	 * @param nextPageToken pagination token
+	 * @param maxLeaseLengthInDays do not retrieve refresh tokens that have been unused for this many days.
+	 * @return a paginated list of active refresh tokens between the specified user and client
+	 */
+	OAuthRefreshTokenInformationList getActiveTokenInformation(String userId, String clientId, String nextPageToken, Long maxLeaseLengthInDays);
+
+	/**
+	 * Deletes a token by its unique token ID
+	 * @param tokenId
+	 */
+	void deleteToken(String tokenId);
+
+	/**
+	 * Delete all refresh tokens associated with both the specified user and specified client
+	 * @param userId
+	 * @param clientId
+	 */
+	void deleteAllTokensForUserClientPair(String userId, String clientId);
+}

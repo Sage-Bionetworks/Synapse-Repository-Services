@@ -1,0 +1,16 @@
+{
+	"description": "Metadata for a paginated list of refresh token metadata that give OAuth 2.0 clients access to access a user's resources in Synapse.",
+	"properties": {
+		"results":{
+			"type": "array",
+			"items":{
+				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation"
+			}
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "The token to get the next page of results."
+		}
+	}
+}
+

@@ -6,12 +6,18 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CL
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_IS_VERIFIED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_SECRET_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_SECTOR_IDENTIFIER_URI;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_REFRESH_TOKEN_CLIENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_REFRESH_TOKEN_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_REFRESH_TOKEN_LAST_USED;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_REFRESH_TOKEN_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_SECTOR_IDENTIFIER_SECRET;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_SECTOR_IDENTIFIER_URI;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OAUTH_CLIENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OAUTH_REFRESH_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OAUTH_SECTOR_IDENTIFIER;
 
 import java.io.IOException;
+import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -29,6 +35,8 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSectorIdentifier;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorization;
+import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationList;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -42,6 +50,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 public class OAuthClientDaoImpl implements OAuthClientDao {
+
+	private static final String INTERMEDIATE_COL_OVERALL_LAST_USED = "OVERALL_LAST_USED";
+	private static final String INTERMEDIATE_COL_FIRST_AUTHORIZED_ON = "FIRST_AUTHORIZED_ON";
 
 	private static final String SECTOR_IDENTIFIER_SQL_SELECT = "SELECT COUNT(*) FROM "+TABLE_OAUTH_SECTOR_IDENTIFIER			
 			+" WHERE "+COL_OAUTH_SECTOR_IDENTIFIER_URI+" = ?";
@@ -75,7 +86,21 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	private static final String CLIENT_VERIFIED_SQL_SELECT = "SELECT " + COL_OAUTH_CLIENT_IS_VERIFIED +
 			" FROM " + TABLE_OAUTH_CLIENT
 			+ " WHERE " + COL_OAUTH_CLIENT_ID + " = ?";
-	
+
+	private static final String SELECT_CLIENTS_WITH_ACTIVE_TOKENS_FOR_PRINCIPAL =
+			"SELECT rt." + COL_OAUTH_REFRESH_TOKEN_CLIENT_ID + ", "
+					+ " MAX(rt." + COL_OAUTH_REFRESH_TOKEN_LAST_USED + ") AS " + INTERMEDIATE_COL_OVERALL_LAST_USED
+					+ ", MIN(rt." + COL_OAUTH_REFRESH_TOKEN_CREATED_ON + ") AS " + INTERMEDIATE_COL_FIRST_AUTHORIZED_ON
+					+ ", c.*"
+					+ " FROM " + TABLE_OAUTH_REFRESH_TOKEN + " rt, "
+					+ TABLE_OAUTH_CLIENT + " c "
+					+ "WHERE rt." + COL_OAUTH_REFRESH_TOKEN_CLIENT_ID + " = c." + COL_OAUTH_CLIENT_ID
+					+ " AND " + COL_OAUTH_REFRESH_TOKEN_PRINCIPAL_ID + " = ?"
+					+ " AND " + COL_OAUTH_REFRESH_TOKEN_LAST_USED + " > (NOW() - INTERVAL ? DAY) "
+					+ " GROUP BY rt." + COL_OAUTH_REFRESH_TOKEN_CLIENT_ID
+					+ " LIMIT ? OFFSET ?";
+
+
 	@Autowired
 	private DBOBasicDao basicDao;	
 
@@ -301,6 +326,28 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		} catch (EmptyResultDataAccessException e) {
 			throw clientNotFoundException(clientId);
 		}
+	}
+
+	@Override
+	public OAuthClientAuthorizationList getAuthorizedClients(String userId, String nextPageToken, Long maxLeaseLengthInDays) {
+		NextPageToken nextPage = new NextPageToken(nextPageToken);
+
+		List<OAuthClientAuthorization> authorizations = jdbcTemplate.query(
+				SELECT_CLIENTS_WITH_ACTIVE_TOKENS_FOR_PRINCIPAL,
+				(ResultSet rs, int rowNum) -> {
+					OAuthClientAuthorization authorization = new OAuthClientAuthorization();
+					DBOOAuthClient dbo = new DBOOAuthClient();
+					dbo = dbo.getTableMapping().mapRow(rs, rowNum);
+					authorization.setClient(clientDboToDto(dbo));
+					authorization.setLastUsed(rs.getTimestamp(INTERMEDIATE_COL_OVERALL_LAST_USED));
+					authorization.setAuthorizedOn(rs.getTimestamp(INTERMEDIATE_COL_FIRST_AUTHORIZED_ON));
+					return authorization;
+				},
+				userId, maxLeaseLengthInDays, nextPage.getLimitForQuery(), nextPage.getOffset());
+		OAuthClientAuthorizationList result = new OAuthClientAuthorizationList();
+		result.setNextPageToken(nextPage.getNextPageTokenForCurrentResults(authorizations));
+		result.setResults(authorizations);
+		return result;
 	}
 
 	private NotFoundException clientNotFoundException(String clientId) {

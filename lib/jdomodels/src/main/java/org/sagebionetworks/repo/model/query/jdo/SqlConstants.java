@@ -1033,6 +1033,19 @@ public class SqlConstants {
 	public static final String COL_AUTHORIZATION_CONSENT_SCOPE_HASH = 					"SCOPE_HASH";
 	public static final String COL_AUTHORIZATION_CONSENT_GRANTED_ON = 					"GRANTED_ON";
 
+	public static final String DDL_OAUTH_REFRESH_TOKEN = 								"schema/OAuthRefreshToken-ddl.sql";
+	public static final String TABLE_OAUTH_REFRESH_TOKEN = 								"OAUTH_REFRESH_TOKEN";
+	public static final String COL_OAUTH_REFRESH_TOKEN_ID =								"ID";
+	public static final String COL_OAUTH_REFRESH_TOKEN_HASH =							"TOKEN_HASH";
+	public static final String COL_OAUTH_REFRESH_TOKEN_NAME =							"NAME";
+	public static final String COL_OAUTH_REFRESH_TOKEN_PRINCIPAL_ID =					"PRINCIPAL_ID";
+	public static final String COL_OAUTH_REFRESH_TOKEN_CLIENT_ID =						"CLIENT_ID";
+	public static final String COL_OAUTH_REFRESH_TOKEN_SCOPE =							"SCOPE";
+	public static final String COL_OAUTH_REFRESH_TOKEN_LAST_USED =						"LAST_USED";
+	public static final String COL_OAUTH_REFRESH_TOKEN_CREATED_ON =						"CREATED_ON";
+	public static final String COL_OAUTH_REFRESH_TOKEN_MODIFIED_ON =					"MODIFIED_ON";
+	public static final String COL_OAUTH_REFRESH_TOKEN_ETAG =							"ETAG";
+
 	// Status table for monthly statistics
 	public static final String TABLE_STATISTICS_MONTHLY_STATUS =						"STATISTICS_MONTHLY_STATUS";
 	public static final String DDL_STATISTICS_MONTHLY_STATUS =							"schema/statistics/StatisticsMonthlyStatus-ddl.sql";

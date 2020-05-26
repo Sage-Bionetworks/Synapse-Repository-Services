@@ -142,6 +142,7 @@
 
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSectorIdentifier"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthRefreshToken" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAuthorizationConsent" />
 				<!-- Statistics -->
 				<bean class="org.sagebionetworks.repo.model.dbo.statistics.DBOStatisticsMonthlyStatus" />
@@ -253,6 +254,7 @@
 			
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSectorIdentifier"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthRefreshToken" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAuthorizationConsent" />
 				
 				<!-- SES Notifications -->
