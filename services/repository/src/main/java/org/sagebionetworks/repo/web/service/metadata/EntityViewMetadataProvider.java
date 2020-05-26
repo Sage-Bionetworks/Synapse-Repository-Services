@@ -1,48 +1,22 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
-import java.util.List;
-
 import org.sagebionetworks.repo.manager.table.TableViewManager;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.ViewScope;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-public class EntityViewMetadataProvider implements TypeSpecificCreateProvider<EntityView>, TypeSpecificUpdateProvider<EntityView>, TypeSpecificMetadataProvider<EntityView> {
+@Service("entityViewMetadataProvider")
+public class EntityViewMetadataProvider extends ViewMetadataProvider<EntityView> {
 
-	
 	@Autowired
-	TableViewManager fileViewManager;
-
-	@Override
-	public void entityUpdated(UserInfo userInfo, EntityView entityView, boolean wasNewVersionCreated) {
-		if(wasNewVersionCreated) {
-			throw new IllegalArgumentException("A view version can only be created by creating a view snapshot.");
-		}
-		ViewScope scope = createViewScope(entityView);
-		fileViewManager.setViewSchemaAndScope(userInfo, entityView.getColumnIds(), scope, entityView.getId());
-	}
-
-	@Override
-	public void entityCreated(UserInfo userInfo, EntityView entityView) {
-		ViewScope scope = createViewScope(entityView);
-		fileViewManager.setViewSchemaAndScope(userInfo, entityView.getColumnIds(), scope,  entityView.getId());
-	}
-
-	@Override
-	public void addTypeSpecificMetadata(EntityView entity, UserInfo user, EventType eventType)
-			throws DatastoreException, NotFoundException, UnauthorizedException {
-		List<String> tableSchema = fileViewManager
-				.getViewSchemaIds(KeyFactory.idAndVersion(entity.getId(), entity.getVersionNumber()));
-		entity.setColumnIds(tableSchema);
+	public EntityViewMetadataProvider(TableViewManager viewManager) {
+		super(viewManager);
 	}
 	
-	public static ViewScope createViewScope(EntityView view) {
+	public ViewScope createViewScope(UserInfo userInfo, EntityView view) {
 		ViewScope scope = new ViewScope();
 		scope.setViewEntityType(EntityType.entityview);
 		scope.setScope(view.getScopeIds());

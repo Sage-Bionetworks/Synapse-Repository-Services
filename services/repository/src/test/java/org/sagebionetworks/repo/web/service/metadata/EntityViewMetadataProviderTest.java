@@ -57,7 +57,7 @@ public class EntityViewMetadataProviderTest {
 		
 		userInfo = new UserInfo(false, 55L);
 		
-		scope = EntityViewMetadataProvider.createViewScope(table);
+		scope = provider.createViewScope(userInfo, table);
 	}
 
 	@Test
@@ -89,7 +89,7 @@ public class EntityViewMetadataProviderTest {
 	
 	@Test
 	public void testCreateViewScopeWithType() {
-		ViewScope scope = EntityViewMetadataProvider.createViewScope(table);
+		ViewScope scope = provider.createViewScope(userInfo, table);
 		assertNotNull(scope);
 		assertEquals(viewType, scope.getViewType());
 		assertEquals(scopeIds, scope.getScope());
@@ -102,7 +102,7 @@ public class EntityViewMetadataProviderTest {
 		Long mask = new Long(0x10);
 		table.setViewTypeMask(mask);
 		table.setType(null);
-		ViewScope scope = EntityViewMetadataProvider.createViewScope(table);
+		ViewScope scope = provider.createViewScope(userInfo, table);
 		assertNotNull(scope);
 		assertEquals(null, scope.getViewType());
 		assertEquals(scopeIds, scope.getScope());
