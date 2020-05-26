@@ -122,13 +122,8 @@ public class StatisticsMonthlyProjectFilesDAOImpl implements StatisticsMonthlyPr
 
 		SqlParameterSource params = getPrimaryKeyParams(projectId, month, eventType);
 
-		DBOStatisticsMonthlyProjectFiles dbo = basicDao.getObjectByPrimaryKeyIfExists(DBOStatisticsMonthlyProjectFiles.class, params);
-
-		if (dbo == null) {
-			return Optional.empty();
-		}
-
-		return Optional.of(map(dbo));
+		Optional<DBOStatisticsMonthlyProjectFiles> dbo = basicDao.getObjectByPrimaryKeyIfExists(DBOStatisticsMonthlyProjectFiles.class, params);
+		return dbo.map(StatisticsMonthlyProjectFilesDAOImpl::map);
 	}
 
 	@Override

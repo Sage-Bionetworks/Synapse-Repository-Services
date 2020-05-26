@@ -88,15 +88,15 @@
     },
     {
       "name": "validated_email",
-      "description": "The validated email, if the user is validated.  https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+      "description": "The validated email, if the user is validated.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
     },
     {
       "name": "validated_company",
-      "description": "The validated company/organization, if the user is validated.  https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+      "description": "The validated company/organization, if the user is validated.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
     },
     {
       "name": "validated_orcid",
-      "description": "The validated ORCID, if the user is validated.  https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+      "description": "The validated ORCID, if the user is validated.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
     },
     {
       "name": "validated_at",

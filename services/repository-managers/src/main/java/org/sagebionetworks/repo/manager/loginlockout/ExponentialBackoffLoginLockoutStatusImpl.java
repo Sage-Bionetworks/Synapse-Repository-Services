@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.loginlockout;
 
+import java.util.Optional;
+
 import org.sagebionetworks.repo.model.UnsuccessfulLoginLockoutDAO;
 import org.sagebionetworks.repo.model.UnsuccessfulLoginLockoutDTO;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
@@ -16,9 +18,11 @@ public class ExponentialBackoffLoginLockoutStatusImpl implements LoginLockoutSta
 	public LoginAttemptResultReporter checkIsLockedOut(long userId) {
 		// Use database's unix timestamp for expiration check
 		// instead of this machine's timestamp to avoid time sync issues across all machines
-		UnsuccessfulLoginLockoutDTO lockoutInfo = unsuccessfulLoginLockoutDAO.getUnsuccessfulLoginLockoutInfoIfExist(userId);
-
-		if (lockoutInfo == null){
+		Optional<UnsuccessfulLoginLockoutDTO> dtoOptional = unsuccessfulLoginLockoutDAO.getUnsuccessfulLoginLockoutInfoIfExist(userId);
+		UnsuccessfulLoginLockoutDTO lockoutInfo;
+		if (dtoOptional.isPresent()) {
+			lockoutInfo = dtoOptional.get();
+		} else {
 			lockoutInfo = new UnsuccessfulLoginLockoutDTO(userId);
 		}
 

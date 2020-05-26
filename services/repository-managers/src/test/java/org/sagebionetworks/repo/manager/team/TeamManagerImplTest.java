@@ -872,6 +872,15 @@ public class TeamManagerImplTest {
 		verify(mockTeamDAO, times(1)).listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Arrays.asList(adminMemberId, nonAdminMemberId));
 		assertEquals(Arrays.asList(adminMember, nonAdminMember), actual);
 	}
+	
+	@Test
+	public void testNoAdmins() {
+		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(Collections.EMPTY_LIST);
+		
+		List<TeamMember> actual = teamManagerImpl.listMembers(TEAM_ID, TeamMemberTypeFilterOptions.ADMIN, 10L, 0L).getResults();
+		
+		assertTrue(actual.isEmpty());
+	}
 
 	@Test
 	public void testListAdminMembers() {

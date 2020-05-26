@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertFalse;
 
 import org.junit.After;
 import org.junit.Before;
@@ -61,18 +61,18 @@ public class UnsuccessfulLoginLockoutDAOImplAutowiredTest {
 	@Test
 	public void testRoundTrip(){
 		//try to get DTO before creation
-		assertNull(dao.getUnsuccessfulLoginLockoutInfoIfExist(userId));
+		assertFalse(dao.getUnsuccessfulLoginLockoutInfoIfExist(userId).isPresent());
 
 		//create new DTO and fetch it from database
 		UnsuccessfulLoginLockoutDTO dto = new UnsuccessfulLoginLockoutDTO(userId)
 				.withUnsuccessfulLoginCount(42)
 				.withLockoutExpiration(134560984923L);
 		dao.createOrUpdateUnsuccessfulLoginLockoutInfo(dto);
-		assertEquals(dto, dao.getUnsuccessfulLoginLockoutInfoIfExist(userId));
+		assertEquals(dto, dao.getUnsuccessfulLoginLockoutInfoIfExist(userId).get());
 
 		//update the DTO
 		dto.withLockoutExpiration(128).withLockoutExpiration(2L);
 		dao.createOrUpdateUnsuccessfulLoginLockoutInfo(dto);
-		assertEquals(dto, dao.getUnsuccessfulLoginLockoutInfoIfExist(userId));
+		assertEquals(dto, dao.getUnsuccessfulLoginLockoutInfoIfExist(userId).get());
 	}
 }

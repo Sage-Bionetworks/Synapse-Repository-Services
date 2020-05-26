@@ -34,7 +34,6 @@ import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.util.ThreadLocalProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 /**
@@ -50,7 +49,6 @@ public class AuthenticationFilter implements Filter {
 	private static final Log log = LogFactory.getLog(AuthenticationFilter.class);
 	
 	private static final ThreadLocal<Long> currentUserIdThreadLocal = ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class);
-	private static final String TOU_UNSIGNED_REASON = "Terms of use have not been signed.";
 
 	@Autowired
 	private AuthenticationService authenticationService;
@@ -129,20 +127,6 @@ public class AuthenticationFilter implements Filter {
 		
 		// there are multiple paths to this point, but all require creating a userId
 		ValidateArgument.required(userId, "userId");
-
-		// If the user is not anonymous, check if they have accepted the terms of use
-		if (!BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(userId)) {
-			try {
-				if (!authenticationService.hasUserAcceptedTermsOfUse(userId)) {
-					HttpAuthUtil.reject((HttpServletResponse) servletResponse, TOU_UNSIGNED_REASON, HttpStatus.FORBIDDEN);
-					return;
-				}
-			} catch (Exception e) {
-				String message = StringUtils.isBlank(e.getMessage()) ? TOU_UNSIGNED_REASON : e.getMessage();
-				HttpAuthUtil.reject((HttpServletResponse) servletResponse, message, HttpStatus.FORBIDDEN);
-				return;
-			}
-		}
 
 		// Put the userId on thread local, so this thread always knows who is calling
 		currentUserIdThreadLocal.set(userId);

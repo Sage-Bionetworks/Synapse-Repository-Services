@@ -2,6 +2,7 @@ package org.sagebionetworks.auth.filter;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -48,7 +49,18 @@ public class OAuthClientAuthFilter extends BasicAuthenticationFilter {
 	}
 
 	@Override
-	protected boolean validCredentials(UserNameAndPassword credentials) {
+	protected void validateCredentialsAndDoFilterInternal(
+			HttpServletRequest httpRequest, HttpServletResponse httpResponse, 
+			FilterChain filterChain, Optional<UserNameAndPassword> credentials) throws IOException, ServletException {
+		if (credentials.isPresent() && !validCredentials(credentials.get())) {
+			rejectRequest(httpResponse, getInvalidCredentialsMessage());
+			return;
+		}
+
+		doFilterInternal(httpRequest, httpResponse, filterChain, credentials.orElse(null));
+	}
+
+	private boolean validCredentials(UserNameAndPassword credentials) {
 		OAuthClientIdAndSecret clientCreds = new OAuthClientIdAndSecret();
 
 		clientCreds.setClient_id(credentials.getUserName());
@@ -57,8 +69,7 @@ public class OAuthClientAuthFilter extends BasicAuthenticationFilter {
 		return oauthClientManager.validateClientCredentials(clientCreds);
 	}
 
-	@Override
-	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain, UserNameAndPassword credentials) throws ServletException, IOException {
+	private void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain, UserNameAndPassword credentials) throws ServletException, IOException {
 		
 		if (credentials == null) {
 			throw new IllegalStateException("Credentials were expected but not supplied");
