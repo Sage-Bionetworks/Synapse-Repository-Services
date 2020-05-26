@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -253,12 +254,12 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	}
 
 	@Override
-	public <T extends DatabaseObject<T>> T getObjectByPrimaryKeyIfExists(Class<? extends T> clazz, SqlParameterSource namedParameters)
+	public <T extends DatabaseObject<T>> Optional<T> getObjectByPrimaryKeyIfExists(Class<? extends T> clazz, SqlParameterSource namedParameters)
 			throws DatastoreException {
 		try {
-			return doGetObjectByPrimaryKey(clazz, namedParameters, false);
+			return Optional.of(doGetObjectByPrimaryKey(clazz, namedParameters, false));
 		} catch (EmptyResultDataAccessException e) {
-			return null;
+			return Optional.empty();
 		}
 	}
 	

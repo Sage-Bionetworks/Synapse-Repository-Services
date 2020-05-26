@@ -96,7 +96,7 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 	public void afterPropertiesSet() throws Exception {
 		SinglePrimaryKeySqlParameterSource params = new SinglePrimaryKeySqlParameterSource(
 				DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID);
-		if (basicDao.getObjectByPrimaryKeyIfExists(DBOStorageLocation.class, params) == null) {
+		if (!basicDao.getObjectByPrimaryKeyIfExists(DBOStorageLocation.class, params).isPresent()) {
 			try {
 				// make sure we skip the first couple of IDs
 				idGenerator.generateNewId(IdType.STORAGE_LOCATION_ID);

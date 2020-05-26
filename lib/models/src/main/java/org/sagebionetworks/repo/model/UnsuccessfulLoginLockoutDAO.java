@@ -1,12 +1,14 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.Optional;
+
 public interface UnsuccessfulLoginLockoutDAO {
 	/**
 	 *
 	 * @param userId principal ID of the user
 	 * @return UnsuccessfulLoginLockoutDTO of the given userId. null if it does not exist
 	 */
-	UnsuccessfulLoginLockoutDTO getUnsuccessfulLoginLockoutInfoIfExist(long userId);
+	Optional<UnsuccessfulLoginLockoutDTO> getUnsuccessfulLoginLockoutInfoIfExist(long userId);
 
 	/**
 	 *
