@@ -13,14 +13,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.model.table.ViewType;
-import org.sagebionetworks.repo.model.table.ViewTypeMask;
 
 public class DBOViewType implements MigratableDatabaseObject<DBOViewType, DBOViewType> {
 
@@ -66,26 +64,7 @@ public class DBOViewType implements MigratableDatabaseObject<DBOViewType, DBOVie
 		}
 	};
 	
-	private static final MigratableTableTranslation<DBOViewType, DBOViewType> MIGRATION_TRANSLATOR = new MigratableTableTranslation<DBOViewType, DBOViewType>() {
-
-		@Override
-		public DBOViewType createDatabaseObjectFromBackup(DBOViewType backup) {
-			// PLFM-4956 - changed from enumeration to mask.
-			if (backup.getViewType() != null) {
-				backup.viewTypeMask = ViewTypeMask.getMaskForDepricatedType(ViewType.valueOf(backup.getViewType()));
-				backup.viewType = null;
-			}
-			if (backup.getViewObjectType() == null) {
-				backup.setViewObjectType(ObjectType.ENTITY.name());
-			}
-			return backup;
-		}
-
-		@Override
-		public DBOViewType createBackupFromDatabaseObject(DBOViewType dbo) {
-			return dbo;
-		}
-	};
+	private static final MigratableTableTranslation<DBOViewType, DBOViewType> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<>();
 	
 	Long viewId;
 	String viewObjectType;
