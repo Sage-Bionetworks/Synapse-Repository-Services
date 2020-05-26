@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -289,15 +290,12 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * @return
 	 */
 	public static ObjectType getObjectTypeForEntityType(EntityType type) {
-		switch (type) {
-		case table:
+		if (EntityType.table.equals(type)) {
 			return ObjectType.TABLE;
-		case entityview:
+		} else if (EntityTypeUtils.isViewType(type)) {
 			return ObjectType.ENTITY_VIEW;
-		default:
-			throw new IllegalArgumentException("unknown table type: " + type);
 		}
-
+		throw new IllegalArgumentException("unknown table type: " + type);
 	}
 	
 	

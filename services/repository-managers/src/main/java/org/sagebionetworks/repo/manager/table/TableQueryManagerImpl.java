@@ -11,6 +11,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -160,7 +161,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 
 		// 4. Add row level filter as needed.
-		if (EntityType.entityview.equals(tableType)) {
+		if (EntityTypeUtils.isViewType(tableType)) {
 			// Table views must have a row level filter applied to the query
 			model = addRowLevelFilter(user, model);
 		}

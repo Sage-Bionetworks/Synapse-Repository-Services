@@ -29,6 +29,10 @@
         {
             "name": "dockerrepo",
             "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "submissionview",
+            "description": "Type for entities that define evaluation submission views"
         }
     ]
 }

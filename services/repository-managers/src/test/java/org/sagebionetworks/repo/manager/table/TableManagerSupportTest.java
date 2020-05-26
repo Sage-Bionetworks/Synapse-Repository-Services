@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -474,15 +475,23 @@ public class TableManagerSupportTest {
 	@Test
 	public void testGetObjectTypeForEntityType(){
 		assertEquals(ObjectType.TABLE, TableManagerSupportImpl.getObjectTypeForEntityType(EntityType.table));
-		assertEquals(ObjectType.ENTITY_VIEW, TableManagerSupportImpl.getObjectTypeForEntityType(EntityType.entityview));
+		for (EntityType type : EntityType.values()) {
+			if (EntityTypeUtils.isViewType(type)) {
+				assertEquals(ObjectType.ENTITY_VIEW, TableManagerSupportImpl.getObjectTypeForEntityType(type));
+			}
+		}
 	}
 	
 	@Test
 	public void testGetObjectTypeForEntityTypeUnknownType(){
-		assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			TableManagerSupportImpl.getObjectTypeForEntityType(EntityType.project);
-		});
+		for (EntityType type : EntityType.values()) {
+			if (!EntityTypeUtils.isViewType(type) && !EntityType.table.equals(type)) {
+				assertThrows(IllegalArgumentException.class, ()->{
+					// call under test
+					TableManagerSupportImpl.getObjectTypeForEntityType(EntityType.project);
+				});
+			}
+		}
 	}
 	
 	@Test

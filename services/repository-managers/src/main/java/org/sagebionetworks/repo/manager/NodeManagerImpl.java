@@ -584,7 +584,7 @@ public class NodeManagerImpl implements NodeManager {
 			UnauthorizedException, DatastoreException {
 		validateReadAccess(userInfo, entityId);
 		EntityType type = nodeDao.getNodeTypeById(entityId);
-		if(EntityType.table.equals(type) || EntityType.entityview.equals(type)) {
+		if(EntityType.table.equals(type) || EntityTypeUtils.isViewType(type)) {
 			/*
 			 * Snapshots do not exist for the current version of tables/views. Therefore the
 			 * current version is excluded from the results by incrementing the offset by

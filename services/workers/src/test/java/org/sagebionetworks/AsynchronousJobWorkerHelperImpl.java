@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.manager.table.metadata.ViewScopeFilterBuilder;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -168,7 +169,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	@Override
 	public Optional<Boolean> isViewAvailableAndUpToDate(IdAndVersion tableId) throws TableFailedException {
 		EntityType type = tableMangerSupport.getTableEntityType(tableId);
-		if(!EntityType.entityview.equals(type)) {
+		if(!EntityTypeUtils.isViewType(type)) {
 			// not a view
 			return Optional.empty();
 		}

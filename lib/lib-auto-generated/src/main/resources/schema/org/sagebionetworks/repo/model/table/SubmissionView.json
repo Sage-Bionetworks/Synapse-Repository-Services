@@ -1,0 +1,8 @@
+{
+	"description": "A view of evaluation submissions whose scope is defined by the evaluation ids the submissions are part of",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.table.View"
+		}
+	]
+}
