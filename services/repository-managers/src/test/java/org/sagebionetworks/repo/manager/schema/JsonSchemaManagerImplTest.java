@@ -1327,33 +1327,12 @@ public class JsonSchemaManagerImplTest {
 		Mockito.doReturn(cloneSchema(two)).when(managerSpy).getSchema(two.get$id());
 		Mockito.doReturn(cloneSchema(three)).when(managerSpy).getSchema(three.get$id());
 		
-		// call under test
-		JsonSchema validationSchema = managerSpy.getValidationSchema(three.get$id());
-		assertNotNull(validationSchema);
-		Map<String, JsonSchema> validation$defs = validationSchema.get$defs();
-		assertNotNull(validation$defs);
-		assertEquals("three", validationSchema.get$id());
-		assertNotNull(validationSchema.getItems());
-		assertEquals("#/$defs/two", validationSchema.getItems().get$ref());
-		// two fetched from three's $defs
-		JsonSchema twoFrom$defs = validation$defs.get("#/$defs/two");
-		assertNotNull(twoFrom$defs);
-		assertNotNull(twoFrom$defs.getItems());
-		assertEquals("#/$defs/one", twoFrom$defs.getItems().get$ref());
-		assertNull(twoFrom$defs.get$defs());
-		// one fetched from three's $defs
-		JsonSchema oneFrom$defs = validation$defs.get("#/$defs/one");
-		assertNotNull(oneFrom$defs);
-		assertEquals(one.getDescription(), oneFrom$defs.getDescription());
-		assertNull(oneFrom$defs.get$defs());
-		// $defs from one fetched form three's $defs
-		JsonSchema fooBar = validation$defs.get("#/$defs/foo/bar");
-		assertNotNull(fooBar);
-		assertEquals(Type.string, fooBar.getType());
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			managerSpy.getValidationSchema(three.get$id());
+		}).getMessage();
 		
-		verify(managerSpy).getSchema(one.get$id());
-		verify(managerSpy).getSchema(two.get$id());
-		verify(managerSpy).getSchema(three.get$id());
+		assertEquals("Circular dependencies are not supported", message);
 	}
 	
 	@Test

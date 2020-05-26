@@ -391,7 +391,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	JsonSchema getValidationSchema(Map<String, JsonSchema> visitedSchemas, String id) {
 		// cycle detection
 		if(visitedSchemas.containsKey(id)) {
-			return visitedSchemas.get(id);
+			throw new IllegalArgumentException("Circular dependencies are not supported");
 		}
 		// get the base schema
 		JsonSchema baseSchema = getSchema(id);
