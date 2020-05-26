@@ -9,6 +9,10 @@
 		"newVersionInfo": {
 			"description": "The JsonSchema definition to be created.",
 			"$ref": "org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo"
+		},
+		"validationSchema": {
+			"description": "The self contained validation JsonSchema for the new schema.",
+			"$ref": "org.sagebionetworks.repo.model.schema.JsonSchema"
 		}
 	}
 }

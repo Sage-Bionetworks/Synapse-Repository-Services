@@ -114,6 +114,7 @@ public class JsonSchemaManagerImplTest {
 	ListJsonSchemaVersionInfoRequest listJsonSchemaVersionInfoRequest;
 
 	AccessControlList acl;
+	JsonSchema validationSchema;
 
 	@BeforeEach
 	public void before() throws JSONObjectAdapterException {
@@ -172,6 +173,10 @@ public class JsonSchemaManagerImplTest {
 		listJsonSchemaVersionInfoRequest = new ListJsonSchemaVersionInfoRequest();
 		listJsonSchemaVersionInfoRequest.setOrganizationName(organizationName);
 		listJsonSchemaVersionInfoRequest.setSchemaName(schemaName);
+		
+		validationSchema = new JsonSchema();
+		validationSchema.set$id(schema.get$id());
+		validationSchema.setDescription("validation schema");
 	}
 
 	@Test
@@ -763,10 +768,12 @@ public class JsonSchemaManagerImplTest {
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockSchemaDao.createNewSchemaVersion(any())).thenReturn(versionInfo);
+		doReturn(validationSchema).when(managerSpy).getValidationSchema(schema.get$id());
 		// call under test
-		CreateSchemaResponse response = manager.createJsonSchema(user, createSchemaRequest);
+		CreateSchemaResponse response = managerSpy.createJsonSchema(user, createSchemaRequest);
 		assertNotNull(response);
 		assertEquals(versionInfo, response.getNewVersionInfo());
+		assertEquals(validationSchema, response.getValidationSchema());
 		verify(mockOrganizationDao).getOrganizationByName(organizationName);
 		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.CREATE);
 		NewSchemaVersionRequest expectedNewSchemaRequest = new NewSchemaVersionRequest()
@@ -774,6 +781,7 @@ public class JsonSchemaManagerImplTest {
 				.withJsonSchema(schema).withSemanticVersion(semanticVersionString)
 				.withDependencies(new ArrayList<SchemaDependency>());
 		verify(mockSchemaDao).createNewSchemaVersion(expectedNewSchemaRequest);
+		verify(managerSpy).getValidationSchema(schema.get$id());
 	}
 
 	@Test
@@ -783,8 +791,9 @@ public class JsonSchemaManagerImplTest {
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockSchemaDao.createNewSchemaVersion(any())).thenReturn(versionInfo);
 		schema.set$id(organizationName + "/" + schemaName);
+		doReturn(validationSchema).when(managerSpy).getValidationSchema(schema.get$id());
 		// call under test
-		CreateSchemaResponse response = manager.createJsonSchema(user, createSchemaRequest);
+		CreateSchemaResponse response = managerSpy.createJsonSchema(user, createSchemaRequest);
 		assertNotNull(response);
 		assertEquals(versionInfo, response.getNewVersionInfo());
 		verify(mockOrganizationDao).getOrganizationByName(organizationName);
@@ -1277,36 +1286,36 @@ public class JsonSchemaManagerImplTest {
 	
 	@Test
 	public void testGetValidationSchemaWithDuplicates() throws JSONObjectAdapterException {
+		// one
 		JsonSchema one = createSchema("one");
 		one.setDescription("about one");
 		one.set$defs(null);
 		JsonSchema refToOne = create$RefSchema(one);
+		// two
 		JsonSchema two = createSchema("two");
 		two.setItems(refToOne);
-		two.setProperties(new LinkedHashMap<String, JsonSchema>());
-		two.getProperties().put("secondRefToOne", refToOne);
+		JsonSchema refToTwo = create$RefSchema(two);
+		// three
+		JsonSchema three = createSchema("three");
+		three.setItems(refToOne);
+		three.setProperties(new LinkedHashMap<String, JsonSchema>());
+		three.getProperties().put("threeRefToTwo", refToTwo);
 		
 		Mockito.doReturn(cloneSchema(one)).when(managerSpy).getSchema(one.get$id());
 		Mockito.doReturn(cloneSchema(two)).when(managerSpy).getSchema(two.get$id());
+		Mockito.doReturn(cloneSchema(three)).when(managerSpy).getSchema(three.get$id());
 		
 		// call under test
-		JsonSchema validationSchema = managerSpy.getValidationSchema(two.get$id());
+		JsonSchema validationSchema = managerSpy.getValidationSchema(three.get$id());
 		assertNotNull(validationSchema);
 		Map<String, JsonSchema> validation$defs = validationSchema.get$defs();
 		assertNotNull(validation$defs);
-		assertEquals("two", validationSchema.get$id());
+		assertEquals("three", validationSchema.get$id());
 		assertNotNull(validationSchema.getItems());
 		assertEquals("#/$defs/one", validationSchema.getItems().get$ref());
-
-		// one fetched from three's $defs
-		JsonSchema oneFrom$defs = validation$defs.get("#/$defs/one");
-		assertNotNull(oneFrom$defs);
-		assertEquals(one.getDescription(), oneFrom$defs.getDescription());
-		assertNull(oneFrom$defs.get$defs());
-	
-		// one should only get fetched once
-		verify(managerSpy).getSchema(one.get$id());
-		verify(managerSpy).getSchema(two.get$id());
+		assertNotNull(validationSchema.getProperties());
+		assertEquals(1, validationSchema.getProperties().size());
+		assertEquals("#/$defs/two", validationSchema.getProperties().get("threeRefToTwo").get$ref());
 	}
 	
 	@Test
@@ -1332,7 +1341,7 @@ public class JsonSchemaManagerImplTest {
 			managerSpy.getValidationSchema(three.get$id());
 		}).getMessage();
 		
-		assertEquals("Circular dependencies are not supported", message);
+		assertEquals("Schema $id: 'three' has a circular dependency", message);
 	}
 	
 	@Test
