@@ -241,9 +241,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			@Override
 			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
 				rs.getLong(UNMET_REQUIREMENTS_AA_COL_ID);
-				if (rs.wasNull() || // no access approval, so this is one of the requirements we've been looking for
-						rs.getString(UNMET_REQUIREMENTS_AA_STATE).equals(ApprovalState.REVOKED.name())) // there IS an approval but it's revoked
-				{ 
+				if (rs.wasNull()) { // no access approval, so this is one of the requirements we've been looking for				{ 
 					return rs.getLong(UNMET_REQUIREMENTS_AR_COL_ID);
 				} else {
 					return null; 
