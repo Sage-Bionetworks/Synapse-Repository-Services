@@ -28,6 +28,8 @@
 	<!-- During the integration tests we do not want to run the status watcher worker -->
 	<bean id="statisticsMonthlyStatusWatcherWorker" class="org.sagebionetworks.statistics.workers.StatisticsMonthlyStatusWatcherWorkerStub"></bean>
 
+	<bean id="testHelper" class="org.sagebionetworks.worker.TestHelper"/>
+	
 	<!-- Profile with a subset of workers for views (Use with @ActiveProfiles("test-view-workers") -->
 	<beans profile="test-view-workers">
 		<util:list id="workerTriggersList">

@@ -3,6 +3,7 @@ package org.sagebionetworks;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -10,6 +11,10 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryOptions;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
@@ -66,6 +71,18 @@ public interface AsynchronousJobWorkerHelper {
 	 */
 	EntityView createView(UserInfo user, String name, String parentId, List<String> scope, long viewTypeMask);
 
+
+	/**
+	 * Creates a submission view with the default columns
+	 * 
+	 * @param user
+	 * @param name
+	 * @param parentId
+	 * @param scope
+	 * @return
+	 */
+	SubmissionView createSubmissionView(UserInfo user, String name, String parentId, List<String> scope);
+	
 	/**
 	 * If the view available and up-to-date.
 	 * @param tableId
@@ -104,5 +121,12 @@ public interface AsynchronousJobWorkerHelper {
 	 * @throws IOException
 	 */
 	String downloadFileHandleFromS3(String fileHandleId) throws IOException;
+
+	QueryResultBundle waitForConsistentQuery(UserInfo user, String sql, Predicate<QueryResultBundle> resultMatcher,
+			int maxWaitTime) throws Exception;
+
+	QueryResultBundle waitForConsistentQuery(UserInfo user, Query query, QueryOptions options,
+			Predicate<QueryResultBundle> resultMatcher, int maxWaitTime) throws Exception;
+
 
 }
