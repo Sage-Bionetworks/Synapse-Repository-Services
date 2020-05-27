@@ -460,21 +460,22 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public ColumnModelPage getPossibleColumnModelsForScope(
-			ViewScope scope, String nextPageToken) {
+	public ColumnModelPage getPossibleColumnModelsForScope(ViewScope scope, String nextPageToken) {
 		ValidateArgument.required(scope, "scope");
 		ValidateArgument.required(scope.getScope(), "scope.scopeIds");
 		
 		EntityType viewType = scope.getViewEntityType();
-
+		Long viewTypeMask = scope.getViewTypeMask();
+		
 		// When the scope does not specify the object type we defaults to ENTITY as not to break the API
-		if (viewType == null) {
+		if (viewType == null || EntityType.entityview == viewType) {
 			viewType = EntityType.entityview;
+			// Entity views require a mask 
+			viewTypeMask = ViewTypeMask.getViewTypeMask(scope);
 		}
 		
-		ViewObjectType objectType = ViewScopeUtils.map(viewType);
+		ViewObjectType objectType = ViewScopeUtils.map(viewType);		
 		
-		long viewTypeMask = ViewTypeMask.getViewTypeMask(scope);
 		ViewScopeType scopeType = new ViewScopeType(objectType, viewTypeMask);
 		// lookup the containers for the given scope
 		Set<Long> scopeSet = new HashSet<Long>(KeyFactory.stringToKey(scope.getScope()));

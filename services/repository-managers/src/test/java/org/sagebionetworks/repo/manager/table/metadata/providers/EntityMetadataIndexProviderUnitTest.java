@@ -446,5 +446,19 @@ public class EntityMetadataIndexProviderUnitTest {
 		assertEquals(ObjectType.ENTITY, objectType);
 		
 	}
+	
+	@Test
+	public void testValidateScopeWithProjectCombinedWithOtherType() {
+		
+		long viewTypeMask = ViewTypeMask.Project.getMask() | ViewTypeMask.File.getMask();
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			provider.validateTypeMask(viewTypeMask);
+		}).getMessage();
+		
+		assertEquals(EntityMetadataIndexProvider.PROJECT_TYPE_CANNOT_BE_COMBINED_WITH_ANY_OTHER_TYPE, message);
+	
+	}
 
 }

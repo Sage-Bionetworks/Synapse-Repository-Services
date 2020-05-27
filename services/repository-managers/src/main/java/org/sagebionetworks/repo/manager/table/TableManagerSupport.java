@@ -371,11 +371,10 @@ public interface TableManagerSupport {
 
 	/**
 	 * Validate that the given scope is within the size limit.
-	 * 
 	 * @param scopeIds
 	 * @param type
 	 */
-	void validateScopeSize(Set<Long> scopeIds, ViewScopeType scopeType);
+	void validateScope(ViewScopeType scopeType, Set<Long> scopeIds);
 
 	/**
 	 * Does the given table exist?  If the table is in the trash then this will

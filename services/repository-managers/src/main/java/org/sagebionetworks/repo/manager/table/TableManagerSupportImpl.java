@@ -508,8 +508,17 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	@Override
-	public void validateScopeSize(Set<Long> scopeIds, ViewScopeType scopeType) {
-		if(scopeIds != null){
+	public void validateScope(ViewScopeType scopeType, Set<Long> scopeIds) {
+		ValidateArgument.required(scopeType, "scopeType");
+		ValidateArgument.required(scopeType.getObjectType(), "scopeType.objectType");
+		
+		ViewObjectType objectType = scopeType.getObjectType();
+		
+		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(objectType);
+		
+		provider.validateTypeMask(scopeType.getTypeMask());
+		
+		if(scopeIds != null && !scopeIds.isEmpty()) {
 			// Validation is built into getAllContainerIdsForScope() call
 			getAllContainerIdsForScope(scopeIds, scopeType);
 		}

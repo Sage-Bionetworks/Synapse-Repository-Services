@@ -270,7 +270,7 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testSetViewSchemaAndScopeOverLimit(){
 		IllegalArgumentException overLimit = new IllegalArgumentException("Over limit");
-		doThrow(overLimit).when(mockTableManagerSupport).validateScopeSize(anySet(), any());
+		doThrow(overLimit).when(mockTableManagerSupport).validateScope(any(), anySet());
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
@@ -282,7 +282,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 		// the size should be validated
-		verify(mockTableManagerSupport).validateScopeSize(scopeIds, scopeType);
+		verify(mockTableManagerSupport).validateScope(scopeType, scopeIds);
 		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), scopeType);
 		verify(mockColumnModelManager).bindColumnsToDefaultVersionOfObject(schema, viewId);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
@@ -332,20 +332,6 @@ public class TableViewManagerImplTest {
 			// call under test
 			manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 		});		
-	}
-	
-	/**
-	 * Project cannot be combined with anything else.
-	 */
-	@Test
-	public void testSetViewSchemaAndScopeWithProjectCombinedWithOtherTypes(){
-		long mask = ViewTypeMask.Project.getMask() | ViewTypeMask.File.getMask();
-		viewScope.setViewTypeMask(mask);
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
-		}).getMessage();	
-		assertEquals(TableViewManagerImpl.PROJECT_TYPE_CANNOT_BE_COMBINED_WITH_ANY_OTHER_TYPE, message);
 	}
 	
 	/**

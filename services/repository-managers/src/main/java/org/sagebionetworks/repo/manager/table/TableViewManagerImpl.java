@@ -81,11 +81,8 @@ public class TableViewManagerImpl implements TableViewManager {
 
 	public static final String DEFAULT_ETAG = "DEFAULT";
 
-	public static final String PROJECT_TYPE_CANNOT_BE_COMBINED_WITH_ANY_OTHER_TYPE = "The Project type cannot be combined with any other type.";
-	public static final String ETG_COLUMN_MISSING = "The view schema must include '" + ObjectField.etag.name()
-			+ "' column.";
-	public static final String ETAG_MISSING_MESSAGE = "The '" + ObjectField.etag.name()
-			+ "' must be included to update an Entity's annotations.";
+	public static final String ETG_COLUMN_MISSING = "The view schema must include '" + ObjectField.etag.name() + "' column.";
+	public static final String ETAG_MISSING_MESSAGE = "The '" + ObjectField.etag.name() + "' must be included to update an Entity's annotations.";
 
 	/**
 	 * Max columns per view is now the same as the max per table.
@@ -139,23 +136,20 @@ public class TableViewManagerImpl implements TableViewManager {
 		Long viewId = KeyFactory.stringToKey(viewIdString);
 		IdAndVersion idAndVersion = IdAndVersion.parse(viewIdString);
 		Set<Long> scopeIds = null;
+		
 		if (scope.getScope() != null) {
 			scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scope.getScope()));
 		}
+		
 		Long viewTypeMask = ViewTypeMask.getViewTypeMask(scope);
-		if ((viewTypeMask & ViewTypeMask.Project.getMask()) > 0) {
-			if (viewTypeMask != ViewTypeMask.Project.getMask()) {
-				throw new IllegalArgumentException(PROJECT_TYPE_CANNOT_BE_COMBINED_WITH_ANY_OTHER_TYPE);
-			}
-		}
 		
 		EntityType entityType = scope.getViewEntityType();
 		ViewObjectType objectType = ViewScopeUtils.map(entityType);
 		
 		ViewScopeType scopeType = new ViewScopeType(objectType, viewTypeMask);
 
-		// validate the scope size
-		tableManagerSupport.validateScopeSize(scopeIds, scopeType);
+		// validate the scope
+		tableManagerSupport.validateScope(scopeType, scopeIds);
 		
 		// Define the scope of this view.
 		viewScopeDao.setViewScopeAndType(viewId, scopeIds, scopeType);

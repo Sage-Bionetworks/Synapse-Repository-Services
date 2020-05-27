@@ -11,7 +11,6 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.model.IdAndEtag;
-import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
@@ -117,8 +116,7 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 	}
 
 	@Override
-	public Set<Long> getContainerIdsForScope(Set<Long> scope, Long viewTypeMask, int containerLimit)
-			throws LimitExceededException {
+	public Set<Long> getContainerIdsForScope(Set<Long> scope, Long viewTypeMask, int containerLimit) {
 		// The submissions are not hierarchical, so the scope cannot be expanded
 		return scope;
 	}
@@ -155,8 +153,7 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 	}
 
 	@Override
-	public Set<Long> getContainerIdsForReconciliation(Set<Long> scope, Long viewTypeMask, int containerLimit)
-			throws LimitExceededException {
+	public Set<Long> getContainerIdsForReconciliation(Set<Long> scope, Long viewTypeMask, int containerLimit) {
 		// Always reconcile on the scope
 		return getContainerIdsForScope(scope, viewTypeMask, containerLimit);
 	}
@@ -176,4 +173,8 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 		return submissionDao.getSumOfSubmissionCRCsForEachEvaluation(containerIds);
 	}
 
+	@Override
+	public void validateTypeMask(Long viewTypeMask) {
+		// Nothing to validate, the mask is not used
+	}
 }

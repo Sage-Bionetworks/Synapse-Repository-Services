@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -604,18 +603,21 @@ public class TableManagerSupportTest {
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		
 		// call under test
-		manager.validateScopeSize(scope, scopeType);
+		manager.validateScope(scopeType, scope);
 		
+		verify(mockMetadataIndexProvider).validateTypeMask(scopeType.getTypeMask());
 		verify(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test
-	public void testValidateScopeSizeNullScope() throws LimitExceededException{
+	public void testValidateScopeSizeNullScope() throws LimitExceededException {
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		// The scope can be null.
 		scope = null;
 		// call under test
-		manager.validateScopeSize(scope, scopeType);
-		verify(mockNodeDao, never()).getAllContainerIds(anySet(), anyInt());
+		manager.validateScope(scopeType, scope);
+
+		verify(mockMetadataIndexProvider).validateTypeMask(scopeType.getTypeMask());
 	}
 	
 	@Test

@@ -37,6 +37,8 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 			+ "%d projects and/or folders. Note: The sub-folders of each project and folder in the scope count towards the limit.";
 	public static final String SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW = "The view's scope exceeds the maximum number of "
 			+ "%d projects.";
+	public static final String PROJECT_TYPE_CANNOT_BE_COMBINED_WITH_ANY_OTHER_TYPE = "The Project type cannot be combined with any other type.";
+	
 
 	// @formatter:off
 	static final DefaultColumnModel BASIC_ENTITY_DEAFULT_COLUMNS = DefaultColumnModel.builder(OBJECT_TYPE)
@@ -205,4 +207,15 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 		return false;
 	}
 
+	@Override
+	public void validateTypeMask(Long viewTypeMask) {
+		ValidateArgument.required(viewTypeMask, "viewTypeMask");
+		
+		if ((viewTypeMask & ViewTypeMask.Project.getMask()) > 0) {
+			if (viewTypeMask != ViewTypeMask.Project.getMask()) {
+				throw new IllegalArgumentException(PROJECT_TYPE_CANNOT_BE_COMBINED_WITH_ANY_OTHER_TYPE);
+			}
+		}
+		
+	}
 }
