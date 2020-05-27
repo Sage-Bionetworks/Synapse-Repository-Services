@@ -6,11 +6,12 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.DELETE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
+import java.util.Deque;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -203,9 +204,13 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 				.withSemanticVersion(semanticVersionString).withJsonSchema(request.getSchema())
 				.withDependencies(dependencies);
 		JsonSchemaVersionInfo info = jsonSchemaDao.createNewSchemaVersion(newVersionRequest);
+		
+		// Ensure we can create the validation schema
+		JsonSchema validationSchema = getValidationSchema(schemaId.toString());
 
 		CreateSchemaResponse response = new CreateSchemaResponse();
 		response.setNewVersionInfo(info);
+		response.setValidationSchema(validationSchema);
 		return response;
 	}
 
@@ -377,27 +382,48 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	 */
 	@Override
 	public JsonSchema getValidationSchema(String id) {
-		Map<String, JsonSchema> $defs = new HashMap<String, JsonSchema>();
+		Deque<String> visitedStack = new ArrayDeque<String>();
+		return getValidationSchema(visitedStack, id);
+	}
+	
+	/**
+	 * Recursively 
+	 * @param visitedSchemas
+	 * @param id
+	 * @return
+	 */
+	JsonSchema getValidationSchema(Deque<String> visitedStack, String id) {
+		// duplicates are allowed but cycles are not
+		if(visitedStack.contains(id)) {
+			throw new IllegalArgumentException("Schema $id: '"+id+"' has a circular dependency");
+		}
+		visitedStack.push(id);
 		// get the base schema
 		JsonSchema baseSchema = getSchema(id);
+		if(baseSchema.get$defs() == null) {
+			baseSchema.set$defs(new LinkedHashMap<String, JsonSchema>());
+		}
 		for (JsonSchema subSchema : SubSchemaIterable.depthFirstIterable(baseSchema)) {
 			if (subSchema.get$ref() != null) {
 				String local$defsId = createLocal$defsId(subSchema.get$ref());
-				if (!$defs.containsKey(local$defsId)) {
+				if (!baseSchema.get$defs().containsKey(local$defsId)) {
 					// Load the sub-schema's validation schema
-					JsonSchema validationSubSchema = getValidationSchema(subSchema.get$ref());
+					JsonSchema validationSubSchema = getValidationSchema(visitedStack, subSchema.get$ref());
 					// Merge the $defs from the new schema with the current
 					if (validationSubSchema.get$defs() != null) {
-						$defs.putAll(validationSubSchema.get$defs());
+						baseSchema.get$defs().putAll(validationSubSchema.get$defs());
 					}
 					validationSubSchema.set$defs(null);
-					$defs.put(local$defsId, validationSubSchema);
+					baseSchema.get$defs().put(local$defsId, validationSubSchema);
 				}
 				// replace the $ref to the local $def
 				subSchema.set$ref(local$defsId);
 			}
 		}
-		baseSchema.set$defs($defs);
+		if(baseSchema.get$defs().isEmpty()) {
+			baseSchema.set$defs(null);
+		}
+		visitedStack.pop();
 		return baseSchema;
 	}
 

@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -68,7 +69,8 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 		createOrgRequest.setOrganizationName(organizationName);
 		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createOrgRequest);
 		basicSchema = new JsonSchema();
-		basicSchema.set$id(organizationName + "/" + schemaName + "/" + semanticVersion);
+		basicSchema.set$id(organizationName + JsonSchemaConstants.ID_DELIMITER + schemaName
+				+ JsonSchemaConstants.ID_DELIMITER + semanticVersion);
 		basicSchema.setDescription("basic schema for integration test");
 	}
 
@@ -91,6 +93,36 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 		assertThrows(NotFoundException.class, () -> {
 			jsonSchemaManager.deleteSchemaAllVersion(adminUserInfo, organizationName, schemaName);
 		});
+	}
+
+	@Test
+	public void testCreateSchemaCycle() throws InterruptedException {
+		// one
+		JsonSchema one = createSchema(organizationName, "one");
+		one.setDescription("no cycle yet");
+		CreateSchemaRequest request = new CreateSchemaRequest();
+		request.setSchema(one);
+		asynchronousJobWorkerHelper.startAndWaitForJob(adminUserInfo, request, MAX_WAIT_MS, CreateSchemaResponse.class);
+		
+		// two
+		JsonSchema refToOne = create$RefSchema(one);
+		JsonSchema two = createSchema(organizationName, "two");
+		two.setDescription("depends on one");
+		two.setItems(refToOne);
+		request = new CreateSchemaRequest();
+		request.setSchema(two);
+		asynchronousJobWorkerHelper.startAndWaitForJob(adminUserInfo, request, MAX_WAIT_MS, CreateSchemaResponse.class);
+		
+		// update one to depend on two
+		one.setItems(create$RefSchema(two));
+		one.setDescription("now has a cycle");
+		CreateSchemaRequest cycleRequest = new CreateSchemaRequest();
+		cycleRequest.setSchema(one);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			asynchronousJobWorkerHelper.startAndWaitForJob(adminUserInfo, cycleRequest, MAX_WAIT_MS, CreateSchemaResponse.class);
+		}).getMessage();
+		assertEquals("Schema $id: 'my.org.net/one' has a circular dependency", message);
 	}
 
 	public void registerSchemaFromClasspath(String name) throws Exception {
@@ -143,5 +175,29 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 	public void printJson(JSONEntity entity) throws JSONException, JSONObjectAdapterException {
 		JSONObject object = new JSONObject(EntityFactory.createJSONStringForEntity(entity));
 		System.out.println(object.toString(5));
+	}
+
+	/**
+	 * Helper to create a schema with the given $id.
+	 * 
+	 * @param $id
+	 * @return
+	 */
+	public JsonSchema createSchema(String organizationName, String schemaName) {
+		JsonSchema schema = new JsonSchema();
+		schema.set$id(organizationName + JsonSchemaConstants.ID_DELIMITER + schemaName);
+		return schema;
+	}
+
+	/**
+	 * Helper to create a $ref to the given schema
+	 * 
+	 * @param toRef
+	 * @return
+	 */
+	public JsonSchema create$RefSchema(JsonSchema toRef) {
+		JsonSchema schema = new JsonSchema();
+		schema.set$ref(toRef.get$id());
+		return schema;
 	}
 }
