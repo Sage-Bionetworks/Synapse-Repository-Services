@@ -16,6 +16,7 @@ import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.dataaccess.RequestManager;
@@ -384,6 +385,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		assertEquals(ag.getSubmitterId(), testUserInfo.getId().toString());
 	}
 	
+	@Ignore // remove this as part of PLFM-6209
 	@Test
 	public void testRevokeGroupStopsDownload() throws Exception {
 		// approve the Terms-Of-Use access approval
@@ -447,6 +449,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		assertFalse(entityPermissionsManager.hasAccess(nodeAId, ACCESS_TYPE.DOWNLOAD, testUserInfo).isAuthorized());
 	}
 	
+	@Ignore // remove this as part of PLFM-6209
 	@Test
 	public void testRevokeACTAccessRequirementStopsDownload() throws Exception {
 		// approve the Terms-Of-Use access approval
