@@ -1,12 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CURRENT_REV;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_MAX_REV;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CURRENT_REV;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_MAX_REV;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
@@ -17,7 +17,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
@@ -30,7 +29,6 @@ import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslat
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.util.TemporaryCode;
 import org.springframework.jdbc.core.RowMapper;
 
 /**
@@ -84,18 +82,7 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 		}
 	};
 	
-	private static final MigratableTableTranslation<DBONode, DBONode> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<DBONode>() {
-		
-		@Override
-		@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "PLFM-3781: This can be removed after stack-294")
-		public DBONode createDatabaseObjectFromBackup(DBONode backup) {
-			if (backup.getMaxRevNumber() == null) {
-				// If the max revision was not recorded yet we just use the current revision number
-				backup.setMaxRevNumber(backup.getCurrentRevNumber());
-			}
-			return backup;
-		}
-	};
+	private static final MigratableTableTranslation<DBONode, DBONode> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<DBONode>();
 	
 	private static final List<MigratableDatabaseObject<?,?>> SECONDARY_TYPES = Collections.singletonList(new DBORevision());
 	

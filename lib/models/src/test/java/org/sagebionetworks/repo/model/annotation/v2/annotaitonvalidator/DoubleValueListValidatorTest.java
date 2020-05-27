@@ -1,15 +1,13 @@
 package org.sagebionetworks.repo.model.annotation.v2.annotaitonvalidator;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 
-class DoubleValueListValidatorTest {
+public class DoubleValueListValidatorTest {
 
 	DoubleValueListValidator valueValidator = new DoubleValueListValidator(AnnotationsValueType.DOUBLE);
 	String key = "myKey";

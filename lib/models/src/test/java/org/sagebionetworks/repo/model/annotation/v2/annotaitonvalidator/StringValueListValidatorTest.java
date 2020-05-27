@@ -1,16 +1,16 @@
 package org.sagebionetworks.repo.model.annotation.v2.annotaitonvalidator;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
 
-import com.google.common.base.Strings;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 
-class StringValueListValidatorTest {
+import com.google.common.base.Strings;
+
+public class StringValueListValidatorTest {
 
 	StringValueListValidator valueValidator = new StringValueListValidator(AnnotationsValueType.STRING);
 	String key = "myKey";

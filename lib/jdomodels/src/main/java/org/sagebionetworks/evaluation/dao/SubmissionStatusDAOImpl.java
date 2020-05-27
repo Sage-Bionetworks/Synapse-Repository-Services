@@ -57,11 +57,6 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 			"SELECT DISTINCT s."+COL_SUBMISSION_EVAL_ID+" FROM "+TABLE_SUBMISSION+
 			" s WHERE s."+COL_SUBMISSION_ID+" IN (:"+COL_SUBMISSION_ID+")";
 
-	private static final String SELECT_BY_IDS = "SELECT * FROM "+SQLConstants.TABLE_SUBSTATUS+" WHERE "+
-			COL_SUBSTATUS_SUBMISSION_ID+" IN (:"+COL_SUBSTATUS_SUBMISSION_ID+")";
-	
-	private RowMapper<SubmissionStatusDBO> SUBSTATUS_ROW_MAPPER = (new SubmissionStatusDBO()).getTableMapping();
-
 	@Override
 	@WriteTransaction
 	public String create(SubmissionStatus dto) throws DatastoreException {

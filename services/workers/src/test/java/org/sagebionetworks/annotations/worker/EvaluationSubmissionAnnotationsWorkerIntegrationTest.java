@@ -202,27 +202,27 @@ public class EvaluationSubmissionAnnotationsWorkerIntegrationTest {
 		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
 		StringAnnotation sa = new StringAnnotation();
 		sa.setIsPrivate(false);
-		sa.setKey("string anno");
+		sa.setKey("string_anno");
 		sa.setValue("foo ");
 		stringAnnos.add(sa);
 		
 		StringAnnotation sa2 = new StringAnnotation();
 		sa2.setIsPrivate(false);
-		sa2.setKey("string anno_null");
+		sa2.setKey("string_anno_null");
 		sa2.setValue(null);
 		stringAnnos.add(sa2);
 		
 		List<LongAnnotation> longAnnos = new ArrayList<LongAnnotation>();
 		LongAnnotation la = new LongAnnotation();
 		la.setIsPrivate(true);
-		la.setKey("long anno");
+		la.setKey("long_anno");
 		la.setValue(10L);
 		longAnnos.add(la);
 		
 		List<DoubleAnnotation> doubleAnnos = new ArrayList<DoubleAnnotation>();
 		DoubleAnnotation da = new DoubleAnnotation();
 		da.setIsPrivate(false);
-		da.setKey("double anno");
+		da.setKey("double_anno");
 		da.setValue(0.5);
 		doubleAnnos.add(da);
 		

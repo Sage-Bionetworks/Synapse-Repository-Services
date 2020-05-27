@@ -25,19 +25,25 @@
 		},
 		"score": {
 			"type": "number",
-			"description": "This field is deprecated and should not be used. Use the 'annotations' field instead.",
+			"description": "This field is deprecated and should not be used. Use the 'submissionAnnotations' field instead.",
 			"transient": true
 		},
 		"report": {
 			"type": "string",
-			"description": "This field is deprecated and should not be used. Use the 'annotations' field instead.",
+			"description": "This field is deprecated and should not be used. Use the 'submissionAnnotations' field instead.",
 			"transient": true
 		},
 		"annotations": {
 			"type": "object",
-			"description": "Annotations on this Submission. Each Annotation may be marked as private or public.",
+			"description": "This field is deprecated and should not be used. Use the 'submissionAnnotations' field instead.",
 			"name": "Annotations",
 			"$ref": "org.sagebionetworks.repo.model.annotation.Annotations"
+		},
+		"submissionAnnotations": {
+			"type": "object",
+			"description": "Annotations on the submission that are indexed and allow to create submission views",
+			"name": "Annotations",
+			"$ref": "org.sagebionetworks.repo.model.annotation.v2.Annotations"
 		},
 		"entityId": {
 			"type": "string",

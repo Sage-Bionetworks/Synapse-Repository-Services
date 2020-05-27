@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.annotation.v2;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -8,6 +9,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.annotation.v2.annotaitonvalidator.AnnotationsV2TypeToValidator;
 import org.sagebionetworks.repo.model.annotation.v2.annotaitonvalidator.AnnotationsV2ValueListValidator;
@@ -57,10 +60,10 @@ public class AnnotationsV2Utils {
 	 * Serializes ONLY the annotations, ignoring ID and Etag.
 	 * @param annotationsV2
 	 * @return JSON String of annotationsV2 if any annotations exist. Null otherwise
-	 * @throws JSONObjectAdapterException
+	 * @throws DatastoreException If the annotations could not be serialized to json
 	 */
-	public static String toJSONStringForStorage(Annotations annotationsV2) throws JSONObjectAdapterException {
-		if(annotationsV2 == null || annotationsV2.getAnnotations() == null || annotationsV2.getAnnotations().isEmpty()){
+	public static String toJSONStringForStorage(Annotations annotationsV2) {
+		if (isEmpty(annotationsV2)) {
 			return null;
 		}
 
@@ -68,7 +71,29 @@ public class AnnotationsV2Utils {
 		Annotations annotationsV2ShallowCopy = new Annotations();
 		annotationsV2ShallowCopy.setAnnotations(annotationsV2.getAnnotations());
 
-		return EntityFactory.createJSONStringForEntity(annotationsV2ShallowCopy);
+		try {
+			return EntityFactory.createJSONStringForEntity(annotationsV2ShallowCopy);
+		} catch (JSONObjectAdapterException e) {
+			throw new DatastoreException("Could not serialize annotations: " + e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Deserialize the given json string to an instance of an {@link Annotations}. 
+	 * If the input is null or empty return null
+	 * 
+	 * @param jsonAnnotations The serialized annotations
+	 * @return An instance of {@link Annotations} deserialized from the given json string
+	 */
+	public static Annotations fromJSONString(String jsonAnnotations) {
+		if (StringUtils.isEmpty(jsonAnnotations)) {
+			return null;
+		}
+		try {
+			return EntityFactory.createEntityFromJSONString(jsonAnnotations, Annotations.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new DatastoreException(e);
+		}
 	}
 
 	/**
@@ -185,5 +210,18 @@ public class AnnotationsV2Utils {
 			checkKeyName(key);
 			checkValue(key, entry.getValue());
 		}
+	}
+	
+	public static Annotations emptyAnnotations() {
+		Annotations annotations = new Annotations();
+		annotations.setAnnotations(new HashMap<>());
+		return annotations;
+	}
+	
+	public static boolean isEmpty(Annotations annotations) {
+		if (annotations == null || annotations.getAnnotations() == null || annotations.getAnnotations().isEmpty()) {
+			return true;
+		}
+		return false;
 	}
 }

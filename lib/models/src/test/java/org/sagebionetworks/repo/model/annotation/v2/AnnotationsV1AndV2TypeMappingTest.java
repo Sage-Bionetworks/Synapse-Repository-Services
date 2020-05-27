@@ -6,7 +6,7 @@ import java.util.Date;
 
 import org.junit.jupiter.api.Test;
 
-class AnnotationsV1AndV2TypeMappingTest {
+public class AnnotationsV1AndV2TypeMappingTest {
 
 	@Test
 	public void testForClass(){

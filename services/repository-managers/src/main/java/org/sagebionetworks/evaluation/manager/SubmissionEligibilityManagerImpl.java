@@ -20,7 +20,6 @@ import java.util.Set;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.MemberSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.SubmissionEligibility;
-import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.repo.model.Challenge;
@@ -249,7 +248,6 @@ public class SubmissionEligibilityManagerImpl implements
 	@Override
 	public AuthorizationStatus isIndividualEligible(String evalId, UserInfo userInfo, Date now) throws DatastoreException, NotFoundException {
 		Evaluation evaluation = evaluationDAO.get(evalId);
-		SubmissionQuota quota = evaluation.getQuota();
 		String principalId = userInfo.getId().toString();
 		// check whether registered
 		{

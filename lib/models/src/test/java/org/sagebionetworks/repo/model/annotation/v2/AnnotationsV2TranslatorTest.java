@@ -1,15 +1,26 @@
 package org.sagebionetworks.repo.model.annotation.v2;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
+import org.sagebionetworks.repo.model.annotation.LongAnnotation;
+import org.sagebionetworks.repo.model.annotation.StringAnnotation;
+import org.sagebionetworks.util.Pair;
 
-class AnnotationsV2TranslatorTest {
+@ExtendWith(MockitoExtension.class)
+public class AnnotationsV2TranslatorTest {
 
 	Annotations annotationsV2;
 	org.sagebionetworks.repo.model.Annotations annotationsV1;
@@ -177,8 +188,9 @@ class AnnotationsV2TranslatorTest {
 
 	@Test
 	public void testToAnnotationsV2_null(){
+		org.sagebionetworks.repo.model.Annotations annotationsV1 = null;
 		//method under test
-		Annotations translated = AnnotationsV2Translator.toAnnotationsV2(null);
+		Annotations translated = AnnotationsV2Translator.toAnnotationsV2(annotationsV1);
 
 		assertEquals(null, translated);
 	}
@@ -230,6 +242,112 @@ class AnnotationsV2TranslatorTest {
 		annotationsV2.getAnnotations().remove(stringKey1);
 		annotationsV2.getAnnotations().remove(stringKey2);
 		assertEquals(annotationsV2, translated);
+	}
+	
+	@Test
+	public void testToAnnotationsV2FromSubmissionAnnotations() {
+		Pair<org.sagebionetworks.repo.model.annotation.Annotations, Annotations> subAnnotations = createSubmissionAnnotations();
+	
+		org.sagebionetworks.repo.model.annotation.Annotations toTranslate = subAnnotations.getFirst();
+		Annotations expected = subAnnotations.getSecond();
+		
+		// Call under test
+		Annotations translated = AnnotationsV2Translator.toAnnotationsV2(toTranslate);
+		
+		assertNotNull(translated);
+		assertEquals(expected, translated);
+	}
+	
+	@Test
+	public void testToAnnotationsV2FromSubmissionAnnotationsWithNull() {
+		org.sagebionetworks.repo.model.annotation.Annotations subAnnotations = null;
+		
+		// Call under test
+		Annotations translated = AnnotationsV2Translator.toAnnotationsV2(subAnnotations);
+		
+		assertNull(translated);
+	}
+	
+	@Test
+	public void testToAnnotationsV2FromSubmissionAnnotationsWithMultipleValues() {
+		Pair<org.sagebionetworks.repo.model.annotation.Annotations, Annotations> subAnnotations = createSubmissionAnnotations();
+		
+		org.sagebionetworks.repo.model.annotation.Annotations toTranslate = subAnnotations.getFirst();
+		Annotations expected = subAnnotations.getSecond();
+		
+		StringAnnotation sa = new StringAnnotation();
+		sa.setIsPrivate(false);
+		sa.setKey("sa2");
+		sa.setValue("someOtherValue");
+		
+		toTranslate.getStringAnnos().add(sa);
+		
+		AnnotationsV2TestUtils.putAnnotations(expected, "sa2", "someOtherValue", AnnotationsValueType.STRING);
+		
+		// Call under test
+		Annotations translated = AnnotationsV2Translator.toAnnotationsV2(toTranslate);
+		
+		assertNotNull(translated);
+		assertEquals(expected, translated);
+	}
+	
+	@Test
+	public void testToAnnotationsV2FromSubmissionAnnotationsWithNullValue() {
+		Pair<org.sagebionetworks.repo.model.annotation.Annotations, Annotations> subAnnotations = createSubmissionAnnotations();
+		
+		org.sagebionetworks.repo.model.annotation.Annotations toTranslate = subAnnotations.getFirst();
+		Annotations expected = subAnnotations.getSecond();
+		
+		StringAnnotation sa = new StringAnnotation();
+		sa.setIsPrivate(false);
+		sa.setKey("sa2");
+		sa.setValue(null);
+		
+		toTranslate.getStringAnnos().add(sa);
+		
+		AnnotationsV2TestUtils.putAnnotations(expected, "sa2", Collections.emptyList(), AnnotationsValueType.STRING);
+		
+		// Call under test
+		Annotations translated = AnnotationsV2Translator.toAnnotationsV2(toTranslate);
+		
+		assertNotNull(translated);
+		assertEquals(expected, translated);
+	}
+	
+	private static Pair<org.sagebionetworks.repo.model.annotation.Annotations, Annotations> createSubmissionAnnotations() {
+		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
+		StringAnnotation sa = new StringAnnotation();
+		sa.setIsPrivate(false);
+		sa.setKey("sa");
+		sa.setValue("foo");
+		stringAnnos.add(sa);
+		
+		List<LongAnnotation> longAnnos = new ArrayList<LongAnnotation>();
+		LongAnnotation la = new LongAnnotation();
+		la.setIsPrivate(true);
+		la.setKey("la");
+		la.setValue(42L);
+		longAnnos.add(la);
+		
+		List<DoubleAnnotation> doubleAnnos = new ArrayList<DoubleAnnotation>();
+		DoubleAnnotation doa = new DoubleAnnotation();
+		doa.setIsPrivate(false);
+		doa.setKey("doa");
+		doa.setValue(3.14);
+		doubleAnnos.add(doa);
+		
+		org.sagebionetworks.repo.model.annotation.Annotations annos = new org.sagebionetworks.repo.model.annotation.Annotations();
+		annos.setStringAnnos(stringAnnos);
+		annos.setLongAnnos(longAnnos);
+		annos.setDoubleAnnos(doubleAnnos);
+		
+		Annotations expected = AnnotationsV2Utils.emptyAnnotations();
+		
+		AnnotationsV2TestUtils.putAnnotations(expected, "sa", "foo", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(expected, "la", "42", AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(expected, "doa", "3.14", AnnotationsValueType.DOUBLE);
+		
+		return Pair.create(annos, expected);
 	}
 
 }

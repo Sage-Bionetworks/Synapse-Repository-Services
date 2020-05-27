@@ -12,12 +12,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.replication.ReplicationMessageManager;
-import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
@@ -36,6 +33,7 @@ import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -43,12 +41,11 @@ import com.google.common.collect.Lists;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
+@ActiveProfiles("test-reconciliation-workers")
 public class ObjectReplicationReconciliationWorkerIntegrationTest {
 	
 	private static final int MAX_WAIT_MS = 30*1000;
 	
-	@Autowired
-	StackConfiguration config;
 	@Autowired
 	EntityManager entityManager;
 	@Autowired
@@ -56,16 +53,12 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 	@Autowired
 	UserManager userManager;
 	@Autowired
-	ReplicationMessageManager replicationMessageManager;
-	@Autowired
-	ColumnModelManager columnModelManager;
-	@Autowired
 	TableManagerSupport tableManagerSupport;
 	@Autowired
 	TableViewManager viewManager;
 	@Autowired
 	DefaultColumnModelMapper modelMapper;
-	
+
 	@Mock
 	ProgressCallback mockProgressCallback;
 	
@@ -80,7 +73,7 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 	ViewObjectType viewObjectType;
 	
 	@BeforeEach
-	public void before(){
+	public void before() throws Exception {
 		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
