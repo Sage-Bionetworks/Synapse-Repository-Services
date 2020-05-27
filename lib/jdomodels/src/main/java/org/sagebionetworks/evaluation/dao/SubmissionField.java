@@ -21,21 +21,21 @@ import org.sagebionetworks.util.EnumUtils;
 public enum SubmissionField implements DefaultField {
 
 	// The status of the submission
-	status				("STATUS", 			ColumnType.STRING, 		 null, FacetType.enumeration, 	SubmissionStatusEnum.class, AnnotationType.STRING),
+	status				("STATUS", 			ColumnType.STRING, 		 null, FacetType.enumeration, 	SubmissionStatusEnum.class, AnnotationType.STRING, 	false),
 	// The id of the evaluation that the submission belongs to
-	evaluationid		("EVALUATION_ID", 	ColumnType.EVALUATIONID, null, FacetType.enumeration, 	null, AnnotationType.LONG),
+	evaluationid		("EVALUATION_ID", 	ColumnType.EVALUATIONID, null, FacetType.enumeration, 	null, 						AnnotationType.LONG,	false),
 	// The id of the submitter, can be the user or the team id
-	submitterid			("SUBMITTER_ID", 	ColumnType.USERID,		 null, FacetType.enumeration, 	null, AnnotationType.LONG),
+	submitterid			("SUBMITTER_ID", 	ColumnType.USERID,		 null, FacetType.enumeration, 	null, 						AnnotationType.LONG, 	false),
 	// The optional submitter alias
-	submitteralias		("SUBMITTER_ALIAS", ColumnType.STRING, 		 500L, FacetType.enumeration, 	null, AnnotationType.STRING),
+	submitteralias		("SUBMITTER_ALIAS", ColumnType.STRING, 		 500L, FacetType.enumeration, 	null, 						AnnotationType.STRING, 	true),
 	// The id of the submitted entity
-	entityid			("ENTITY_ID", 		ColumnType.ENTITYID, 	 null, FacetType.enumeration, 	null, AnnotationType.STRING),
+	entityid			("ENTITY_ID", 		ColumnType.ENTITYID, 	 null, FacetType.enumeration, 	null, 						AnnotationType.STRING, 	false),
 	// The version of the submitted entity
-	entityversion		("ENTITY_VERSION",	ColumnType.INTEGER, 	 null, FacetType.enumeration, 	null, AnnotationType.LONG),
+	entityversion		("ENTITY_VERSION",	ColumnType.INTEGER, 	 null, FacetType.enumeration, 	null, 						AnnotationType.LONG, 	false),
 	// The docker repository name for a docker submission
-	dockerrepositoryname("DOCKER_REPO", 	ColumnType.STRING, 		 400L, null, 					null, AnnotationType.STRING),
+	dockerrepositoryname("DOCKER_REPO", 	ColumnType.STRING, 		 400L, null, 					null, 						AnnotationType.STRING, 	true),
 	// The digest for a docker submission
-	dockerdigest		("DOCKER_DIGEST", 	ColumnType.STRING, 		 200L, null, 					null, AnnotationType.STRING);
+	dockerdigest		("DOCKER_DIGEST", 	ColumnType.STRING, 		 200L, null, 					null, 						AnnotationType.STRING, 	true);
 
 	// Note: The canCancel and cancellationRequests are stored in the serialized version DTO,
 	// we can consider including them in the index if we normalize the fields into the table
@@ -47,22 +47,18 @@ public enum SubmissionField implements DefaultField {
 	private FacetType facetType;
 	private List<String> enumValues;
 	private AnnotationType annotationType;
+	private boolean isNullable;
 	private Function<ResultSet, String> valueExtractor;
 
 	private SubmissionField(String columnAlias, ColumnType columnType, Long maximumSize, FacetType facetType,
-			Class<? extends Enum<?>> enumValues, AnnotationType annotationType) {
-		this(columnAlias, columnType, maximumSize, facetType, enumValues, annotationType, null);
-	}
-
-	private SubmissionField(String columnAlias, ColumnType columnType, Long maximumSize, FacetType facetType,
-			Class<? extends Enum<?>> enumValues, AnnotationType annotationType,
-			Function<ResultSet, String> valueExtractor) {
+			Class<? extends Enum<?>> enumValues, AnnotationType annotationType, boolean isNullable) {
 		this.columnAlias = columnAlias;
 		this.columnType = columnType;
 		this.maximumSize = maximumSize;
 		this.facetType = facetType;
 		this.enumValues = enumValues == null ? null : EnumUtils.names(enumValues);
 		this.annotationType = annotationType;
+		this.isNullable = isNullable;
 		if (enumValues == null) {
 			this.valueExtractor = stringExtractor(columnAlias);
 		} else {
@@ -104,6 +100,10 @@ public enum SubmissionField implements DefaultField {
 
 	public AnnotationType getAnnotationType() {
 		return annotationType;
+	}
+	
+	public boolean isNullable() {
+		return isNullable;
 	}
 
 	public String getValue(ResultSet rs) {

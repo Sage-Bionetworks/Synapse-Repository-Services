@@ -1195,43 +1195,40 @@ public class SubmissionDAOImplTest {
 
 		for (SubmissionField field : SubmissionField.values()) {
 			ObjectAnnotationDTO fieldAnnotation = annotations.get(field.getColumnName());
-			assertNotNull(fieldAnnotation);
-			assertEquals(submissionId, fieldAnnotation.getObjectId().toString());
-			assertEquals(field.getAnnotationType(), fieldAnnotation.getType());
-			assertFalse(fieldAnnotation.getValue().isEmpty());
+			if (fieldAnnotation == null) {
+				assertTrue(field.isNullable(), "No annotation found and the field was not nullable");
+			} else {
+				assertEquals(submissionId, fieldAnnotation.getObjectId().toString());
+				assertEquals(field.getAnnotationType(), fieldAnnotation.getType());
+				assertFalse(fieldAnnotation.getValue().isEmpty());
+			}
 		}
 
-		assertAnnotationValue(KeyFactory.stringToKey(submission.getEntityId()).toString(),
-				SubmissionField.entityid.getAnnotationType(),
-				annotations.get(SubmissionField.entityid.getColumnName()));
-		assertAnnotationValue(submission.getVersionNumber().toString(),
-				SubmissionField.entityversion.getAnnotationType(),
-				annotations.get(SubmissionField.entityversion.getColumnName()));
-		assertAnnotationValue(submission.getEvaluationId(),
-				SubmissionField.evaluationid.getAnnotationType(),
-				annotations.get(SubmissionField.evaluationid.getColumnName()));
-		assertAnnotationValue(submission.getDockerRepositoryName(),
-				SubmissionField.dockerrepositoryname.getAnnotationType(),
-				annotations.get(SubmissionField.dockerrepositoryname.getColumnName()));
-		assertAnnotationValue(submission.getDockerDigest(),
-				SubmissionField.dockerdigest.getAnnotationType(),
-				annotations.get(SubmissionField.dockerdigest.getColumnName()));
-		assertAnnotationValue(submission.getSubmitterAlias(),
-				SubmissionField.submitteralias.getAnnotationType(),
-				annotations.get(SubmissionField.submitteralias.getColumnName()));
-		assertAnnotationValue(status.getStatus().name(), 
-				SubmissionField.status.getAnnotationType(),
-				annotations.get(SubmissionField.status.getColumnName()));
-		assertAnnotationValue(submission.getTeamId() == null ? submission.getUserId() : submission.getTeamId(),
-				SubmissionField.submitterid.getAnnotationType(),
-				annotations.get(SubmissionField.submitterid.getColumnName()));
+		assertAnnotationValue(annotations, SubmissionField.entityid, KeyFactory.stringToKey(submission.getEntityId()).toString());
+		assertAnnotationValue(annotations, SubmissionField.entityversion, submission.getVersionNumber().toString());
+		assertAnnotationValue(annotations, SubmissionField.evaluationid, submission.getEvaluationId());
+		assertAnnotationValue(annotations, SubmissionField.dockerrepositoryname, submission.getDockerRepositoryName());
+		assertAnnotationValue(annotations, SubmissionField.dockerdigest, submission.getDockerDigest());
+		assertAnnotationValue(annotations, SubmissionField.submitteralias, submission.getSubmitterAlias());
+		assertAnnotationValue(annotations, SubmissionField.status, status.getStatus().name());
+		assertAnnotationValue(annotations, SubmissionField.submitterid, submission.getTeamId() == null ? submission.getUserId() : submission.getTeamId());
 		
 		return annotations;
 	}
 
+	private void assertAnnotationValue(Map<String, ObjectAnnotationDTO> annotations, SubmissionField field, String expectedValue) {
+		ObjectAnnotationDTO annotation = annotations.get(field.getColumnName());
+		assertAnnotationValue(expectedValue, field.getAnnotationType(), annotation);
+	}
+	
 	private void assertAnnotationValue(String expectedValue, AnnotationType annotationType, ObjectAnnotationDTO annotation) {
-		assertEquals(expectedValue, annotation.getValue().iterator().next());
-		assertEquals(annotationType, annotation.getType());
+		if (expectedValue == null) {
+			assertNull(annotation);
+		} else {
+			assertFalse(annotation.getValue().isEmpty());
+			assertEquals(expectedValue, annotation.getValue().iterator().next());
+			assertEquals(annotationType, annotation.getType());
+		}
 	}
 	
 }

@@ -55,6 +55,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.dbo.SubmissionContributorDBO;
 import org.sagebionetworks.evaluation.dbo.SubmissionDBO;
@@ -290,6 +291,33 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			+ " ON (s." + COL_SUBMISSION_ID + " = r."+ COL_SUBSTATUS_SUBMISSION_ID +") "
 			+ " WHERE s."+ COL_SUBMISSION_EVAL_ID + " IN (:"+ EVAL_ID +")"
 			+ " GROUP BY "+COL_SUBMISSION_EVAL_ID;
+	
+	private static final String SELECT_SUBMISSION_DATA = "SELECT"
+			+ " s." + COL_SUBMISSION_ID
+			+ ", s." + COL_SUBMISSION_NAME
+			+ ", r." + COL_SUBSTATUS_ETAG
+			+ ", s." + COL_SUBMISSION_EVAL_ID + " AS " + SubmissionField.evaluationid.getColumnAlias()
+			+ ", e." + COL_EVALUATION_CONTENT_SOURCE + " AS " + PROJECT_ID
+			+ ", r." + COL_SUBSTATUS_VERSION
+			+ ", s." + COL_SUBMISSION_CREATED_ON
+			+ ", s. " + COL_SUBMISSION_USER_ID + " AS " + CREATED_BY
+			+ ", r." + COL_SUBSTATUS_MODIFIED_ON
+			// We do not store who modified a status, just use the owner of the evaluation queue
+			+ ", e." + COL_EVALUATION_OWNER_ID + " AS " + MODIFIED_BY
+			// Computes the submitter either as the team if present or the user
+			+ ", IFNULL(s." + COL_SUBMISSION_TEAM_ID + ", s." + COL_SUBMISSION_USER_ID + ") AS " + SubmissionField.submitterid.getColumnAlias()
+			+ ", s." + COL_SUBMISSION_SUBMITTER_ALIAS + " AS " + SubmissionField.submitteralias.getColumnAlias()
+			+ ", s." + COL_SUBMISSION_ENTITY_ID + " AS " + SubmissionField.entityid.getColumnAlias()
+			+ ", s." + COL_SUBMISSION_ENTITY_VERSION + " AS " + SubmissionField.entityversion.getColumnAlias()
+			+ ", r." + COL_SUBSTATUS_STATUS + " AS " + SubmissionField.status.getColumnAlias()
+			+ ", s." + COL_SUBMISSION_DOCKER_REPO_NAME + " AS " + SubmissionField.dockerrepositoryname.getColumnAlias()
+			+ ", s." + COL_SUBMISSION_DOCKER_DIGEST + " AS " + SubmissionField.dockerdigest.getColumnAlias()
+			+ ", r." + COL_SUBSTATUS_ANNOTATIONS
+			+ " FROM " + TABLE_SUBMISSION +" s JOIN " + TABLE_SUBSTATUS + " r JOIN " + TABLE_EVALUATION + " e"
+			+ " ON (s."+COL_SUBMISSION_ID + " = r." + COL_SUBSTATUS_SUBMISSION_ID 
+			+ " AND s." + COL_SUBMISSION_EVAL_ID + " = e." + COL_EVALUATION_ID + ")"
+			+ " WHERE s."+COL_SUBMISSION_ID + " IN (:"+ID+ ")";
+	
 
 	//------    end Submission eligibility related query strings -----
 
@@ -821,32 +849,6 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		return result;
 	}
 	
-	private static final String SELECT_SUBMISSION_DATA = "SELECT"
-			+ " s." + COL_SUBMISSION_ID
-			+ ", s." + COL_SUBMISSION_NAME
-			+ ", r." + COL_SUBSTATUS_ETAG
-			+ ", s." + COL_SUBMISSION_EVAL_ID + " AS " + SubmissionField.evaluationid.getColumnAlias()
-			+ ", e." + COL_EVALUATION_CONTENT_SOURCE + " AS " + PROJECT_ID
-			+ ", r." + COL_SUBSTATUS_VERSION
-			+ ", s." + COL_SUBMISSION_CREATED_ON
-			+ ", s. " + COL_SUBMISSION_USER_ID + " AS " + CREATED_BY
-			+ ", r." + COL_SUBSTATUS_MODIFIED_ON
-			// We do not store who modified a status, just use the owner of the evaluation queue
-			+ ", e." + COL_EVALUATION_OWNER_ID + " AS " + MODIFIED_BY
-			// Computes the submitter either as the team if present or the user
-			+ ", IFNULL(s." + COL_SUBMISSION_TEAM_ID + ", s." + COL_SUBMISSION_USER_ID + ") AS " + SubmissionField.submitterid.getColumnAlias()
-			+ ", s." + COL_SUBMISSION_SUBMITTER_ALIAS + " AS " + SubmissionField.submitteralias.getColumnAlias()
-			+ ", s." + COL_SUBMISSION_ENTITY_ID + " AS " + SubmissionField.entityid.getColumnAlias()
-			+ ", s." + COL_SUBMISSION_ENTITY_VERSION + " AS " + SubmissionField.entityversion.getColumnAlias()
-			+ ", r." + COL_SUBSTATUS_STATUS + " AS " + SubmissionField.status.getColumnAlias()
-			+ ", s." + COL_SUBMISSION_DOCKER_REPO_NAME + " AS " + SubmissionField.dockerrepositoryname.getColumnAlias()
-			+ ", s." + COL_SUBMISSION_DOCKER_DIGEST + " AS " + SubmissionField.dockerdigest.getColumnAlias()
-			+ ", r." + COL_SUBSTATUS_ANNOTATIONS
-			+ " FROM " + TABLE_SUBMISSION +" s JOIN " + TABLE_SUBSTATUS + " r JOIN " + TABLE_EVALUATION + " e"
-			+ " ON (s."+COL_SUBMISSION_ID + " = r." + COL_SUBSTATUS_SUBMISSION_ID 
-			+ " AND s." + COL_SUBMISSION_EVAL_ID + " = e." + COL_EVALUATION_ID + ")"
-			+ " WHERE s."+COL_SUBMISSION_ID + " IN (:"+ID+ ")";
-	
 	@Override
 	public List<ObjectDataDTO> getSubmissionData(List<Long> submissionIds, int maxAnnotationChars) {
 		ValidateArgument.required(submissionIds, "submissionsIds");
@@ -916,13 +918,22 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		
 		// Now add the custom fields, they will override any annotation with the same name
 		for (SubmissionField field : SubmissionField.values()) {
+			
+			// Makes sure the annotation do not override a field
+			map.remove(field.getColumnName());
+			
 			String value = field.getValue(rs);
+			
+			// Skip empty fields
+			if (StringUtils.isBlank(value)) {
+				continue;
+			}
 
 			ObjectAnnotationDTO annotationValue = new ObjectAnnotationDTO();
 			
 			annotationValue.setObjectId(submissionId);
 			annotationValue.setKey(field.getColumnName());
-			annotationValue.setType(field.getAnnotationType());
+			annotationValue.setType(field.getAnnotationType());	
 			annotationValue.setValue(value);
 			
 			map.put(field.getColumnName(), annotationValue);
