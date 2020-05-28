@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Timestamp;
@@ -32,11 +33,13 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.transaction.IllegalTransactionStateException;
+import org.springframework.transaction.annotation.Transactional;
 
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = {"classpath:jdomodels-test-context.xml"})
-public class OAuthRefreshTokenDaoImplTest {
+public class OAuthRefreshTokenDaoAutowiredTest {
 
 	private List<String> tokenIdsToDelete;
 	private List<String> clientIdsToDelete;
@@ -244,14 +247,46 @@ public class OAuthRefreshTokenDaoImplTest {
 		assertNull(retrieved.getNextPageToken());
 	}
 
+	@Transactional
 	@Test
 	void getMatchingTokenByHash() {
 		String hashValue = "matching hash";
 		OAuthRefreshTokenInformation expected = createRefreshToken(hashValue, new Date());
 
 		// call under test
-		Optional<OAuthRefreshTokenInformation> actual = oauthRefreshTokenDao.getMatchingTokenByHash(hashValue, client.getClient_id());
+		Optional<OAuthRefreshTokenInformation> actual = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate(hashValue, client.getClient_id());
 		assertEquals(expected, actual.get());
+	}
+
+	@Test
+	void getMatchingTokenByHashForUpdate_noTransaction() {
+		assertThrows(IllegalTransactionStateException.class,() ->
+				oauthRefreshTokenDao.getMatchingTokenByHashForUpdate("hash", "clientid")
+
+		);
+	}
+
+	@Transactional
+	@Test
+	void updateTokenHash() {
+		String oldHash = "old hash";
+		String newHash = "new hash";
+		OAuthRefreshTokenInformation metadata = createRefreshToken(oldHash, new Date());
+
+		// call under test
+		oauthRefreshTokenDao.updateTokenHash(metadata.getTokenId(), newHash);
+
+		OAuthRefreshTokenInformation updated = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate(newHash, client.getClient_id()).get();
+		assertEquals(metadata.getTokenId(), updated.getTokenId());
+		assertNotNull(updated);
+	}
+
+	@Test
+	void updateTokenHash_noTransaction() {
+		assertThrows(IllegalTransactionStateException.class,() ->
+				oauthRefreshTokenDao.updateTokenHash("hash", "clientid")
+
+		);
 	}
 
 	@Test

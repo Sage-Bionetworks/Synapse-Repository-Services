@@ -14,6 +14,7 @@ import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -25,6 +26,7 @@ import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthRefreshToken;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
+import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,8 +51,14 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 			" SET "+
 			COL_OAUTH_REFRESH_TOKEN_NAME+" = :" + PARAM_NAME + ", "+
 			COL_OAUTH_REFRESH_TOKEN_ETAG+" = :" + PARAM_ETAG + ", " +
-			COL_OAUTH_REFRESH_TOKEN_MODIFIED_ON + " = :"+ PARAM_MODIFIED_ON + ", " +
-			COL_OAUTH_REFRESH_TOKEN_LAST_USED + " = :"+ PARAM_LAST_USED +
+			COL_OAUTH_REFRESH_TOKEN_MODIFIED_ON + " = :"+ PARAM_MODIFIED_ON +
+			" WHERE "+ COL_OAUTH_REFRESH_TOKEN_ID+" = :" + PARAM_TOKEN_ID;
+
+	private static final String UPDATE_REFRESH_TOKEN_HASH = "UPDATE "+TABLE_OAUTH_REFRESH_TOKEN+
+			" SET "+
+			COL_OAUTH_REFRESH_TOKEN_HASH+" = :" + PARAM_TOKEN_HASH + ", "+
+			COL_OAUTH_REFRESH_TOKEN_LAST_USED + " = :"+ PARAM_LAST_USED + ", " +
+			COL_OAUTH_REFRESH_TOKEN_ETAG+" = :" + PARAM_ETAG +
 			" WHERE "+ COL_OAUTH_REFRESH_TOKEN_ID+" = :" + PARAM_TOKEN_ID;
 
 	private static final String SELECT_TOKENS_FOR_CLIENT_AND_PRINCIPAL = "SELECT * FROM " + TABLE_OAUTH_REFRESH_TOKEN
@@ -61,9 +69,10 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 			+ " ORDER BY " + COL_OAUTH_REFRESH_TOKEN_LAST_USED + " DESC"
 			+ " LIMIT :" + PARAM_LIMIT + " OFFSET :" + PARAM_OFFSET;
 
-	private static final String GET_TOKEN_BY_HASH = "SELECT * FROM " + TABLE_OAUTH_REFRESH_TOKEN
+	private static final String SELECT_TOKEN_BY_HASH_FOR_UPDATE = "SELECT * FROM " + TABLE_OAUTH_REFRESH_TOKEN
 			+ " WHERE " + COL_OAUTH_REFRESH_TOKEN_HASH + " = :" + PARAM_TOKEN_HASH
-			+ " AND " + COL_OAUTH_REFRESH_TOKEN_CLIENT_ID + " = :" + PARAM_CLIENT_ID;
+			+ " AND " + COL_OAUTH_REFRESH_TOKEN_CLIENT_ID + " = :" + PARAM_CLIENT_ID
+			+ " FOR UPDATE";
 
 	private static final String DELETE_TOKEN_BY_ID = "DELETE FROM " + TABLE_OAUTH_REFRESH_TOKEN
 			+ " WHERE " + COL_OAUTH_REFRESH_TOKEN_ID + " = :" + PARAM_TOKEN_ID;
@@ -110,14 +119,30 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 		return dto;
 	}
 
+	@MandatoryWriteTransaction
 	@Override
-	public Optional<OAuthRefreshTokenInformation> getMatchingTokenByHash(String hash, String clientId) {
+	public void updateTokenHash(String tokenId, String newHash) {
+		ValidateArgument.required(tokenId, "Token ID");
+		ValidateArgument.required(newHash, "Token hash");
+
+		// Currently, the only mutable fields are NAME, ETAG, MODIFIED_ON
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(PARAM_TOKEN_HASH, newHash);
+		params.addValue(PARAM_ETAG, UUID.randomUUID().toString());
+		params.addValue(PARAM_LAST_USED, new Date());
+		params.addValue(PARAM_TOKEN_ID, tokenId);
+		namedParameterJdbcTemplate.update(UPDATE_REFRESH_TOKEN_HASH, params);
+	}
+
+	@MandatoryWriteTransaction
+	@Override
+	public Optional<OAuthRefreshTokenInformation> getMatchingTokenByHashForUpdate(String hash, String clientId) {
 		ValidateArgument.required(hash, "token hash");
 		ValidateArgument.required(clientId, "clientId");
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(PARAM_TOKEN_HASH, hash);
 		params.addValue(PARAM_CLIENT_ID, clientId);
-		Optional<DBOOAuthRefreshToken> dbo = Optional.ofNullable(namedParameterJdbcTemplate.queryForObject(GET_TOKEN_BY_HASH, params, (new DBOOAuthRefreshToken()).getTableMapping()));
+		Optional<DBOOAuthRefreshToken> dbo = Optional.ofNullable(namedParameterJdbcTemplate.queryForObject(SELECT_TOKEN_BY_HASH_FOR_UPDATE, params, (new DBOOAuthRefreshToken()).getTableMapping()));
 		return dbo.map(OAuthRefreshTokenDaoImpl::refreshTokenDboToDto);
 	}
 
@@ -158,7 +183,6 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(PARAM_NAME, metadata.getName());
 		params.addValue(PARAM_ETAG, metadata.getEtag());
-		params.addValue(PARAM_LAST_USED, metadata.getLastUsed());
 		params.addValue(PARAM_MODIFIED_ON, metadata.getModifiedOn());
 		params.addValue(PARAM_TOKEN_ID, metadata.getTokenId());
 		namedParameterJdbcTemplate.update(UPDATE_REFRESH_TOKEN_METADATA, params);

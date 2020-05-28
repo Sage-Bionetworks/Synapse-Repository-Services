@@ -8,12 +8,20 @@ import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
 public interface OAuthRefreshTokenDao {
 
 	/**
-	 * Retrieve a matching token, if it exists.
+	 * Update the stored hash for an existing token, This must only be called when the record is locked,
+	 * e.g. by calling {@link #getMatchingTokenByHashForUpdate}
+	 * @param tokenId the token to update
+	 * @param newHash the hash to store
+	 */
+	void updateTokenHash(String tokenId, String newHash);
+
+	/**
+	 * Retrieve a matching token, if it exists. Locks the row until released in an existing transaction.
 	 * @param hash The hash of the token
 	 * @param clientId The client that the token is associated with
 	 * @return an {@link Optional} that contains the token metadata, if it exists.
 	 */
-	Optional<OAuthRefreshTokenInformation> getMatchingTokenByHash(String hash, String clientId);
+	Optional<OAuthRefreshTokenInformation>  getMatchingTokenByHashForUpdate(String hash, String clientId);
 
 	/**
 	 * Retrieve the refresh token metadata, if that refresh token exists
@@ -35,7 +43,6 @@ public interface OAuthRefreshTokenDao {
 	 * Fields that are currently mutable are
 	 * {@link OAuthRefreshTokenInformation#getName()} ()}
 	 * {@link OAuthRefreshTokenInformation#getModifiedOn()} ()}
-	 * {@link OAuthRefreshTokenInformation#getLastUsed()} ()}
 	 * {@link OAuthRefreshTokenInformation#getEtag()}
 	 *
 	 * @param metadata the object to update
