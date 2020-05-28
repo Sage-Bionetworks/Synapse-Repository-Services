@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Predicate;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DefaultField;
@@ -23,15 +22,6 @@ import org.sagebionetworks.util.ValidateArgument;
  * @author Marco Marasca
  */
 public class DefaultColumnModel implements HasViewObjectType {
-
-	/**
-	 * @param columnName The column name to match
-	 * @return A matcher for the given column name
-	 */
-	public static Predicate<ColumnModel> columNameMatcher(String columnName) {
-		ValidateArgument.required(columnName, "columnName");
-		return (ColumnModel model) -> columnName.equals(model.getName());
-	}
 
 	private final ViewObjectType objectType;
 	private final List<ObjectField> defaultFields;
@@ -69,21 +59,13 @@ public class DefaultColumnModel implements HasViewObjectType {
 	 *         the given column name
 	 */
 	public Optional<ColumnModel> findCustomFieldByColumnName(String columnName) {
-		return findCustomField(columNameMatcher(columnName));
-	}
-
-	/**
-	 * 
-	 * @param matcher A matcher for the custom fields
-	 * @return An optional with the column model in the custom fields that matches
-	 *         the given predicate
-	 */
-	public Optional<ColumnModel> findCustomField(Predicate<ColumnModel> matcher) {
-		ValidateArgument.required(matcher, "matcher");
+		ValidateArgument.requiredNotBlank(columnName, "columnName");
 		if (customFields == null || customFields.isEmpty()) {
 			return Optional.empty();
 		}
-		return customFields.stream().filter(matcher).findFirst();
+		return customFields.stream()
+				.filter((model) -> columnName.equals(model.getName()))
+				.findFirst();
 	}
 
 	/**
