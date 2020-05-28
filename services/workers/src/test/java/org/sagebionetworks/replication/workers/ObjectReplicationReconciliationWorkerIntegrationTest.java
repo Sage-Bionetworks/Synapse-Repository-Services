@@ -45,7 +45,7 @@ import com.google.common.collect.Lists;
 @ActiveProfiles("test-reconciliation-workers")
 public class ObjectReplicationReconciliationWorkerIntegrationTest {
 	
-	private static final int MAX_WAIT_MS = 30*1000;
+	private static final int MAX_WAIT_MS = 2* 60 *1000;
 	
 	@Autowired
 	EntityManager entityManager;

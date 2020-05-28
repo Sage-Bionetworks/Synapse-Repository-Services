@@ -30,7 +30,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ActiveProfiles("test-replication-workers")
 public class ObjectReplicationWorkerIntegrationTest {
 	
-	private static final int MAX_WAIT_MS = 30*1000;
+	private static final int MAX_WAIT_MS = 2* 60 *1000;
 	
 	@Autowired
 	EntityManager entityManager;
