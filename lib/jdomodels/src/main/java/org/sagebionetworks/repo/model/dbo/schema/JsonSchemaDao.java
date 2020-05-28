@@ -46,6 +46,13 @@ public interface JsonSchemaDao {
 	 * @return
 	 */
 	String getLatestVersionId(String organizationName, String schemaName);
+	
+	/**
+	 * Get the latest versionId for a schemaId.
+	 * @param schemaId
+	 * @return
+	 */
+	String getLatestVersionId(String schemaId);
 
 	/**
 	 * Get the latest JsonSchemaVersionInfo for a schema.
@@ -124,4 +131,6 @@ public interface JsonSchemaDao {
 	 * @return
 	 */
 	JsonSchemaObjectBinding getSchemaBindingForObject(Long objectId, BoundObjectType objecType);
+
+
 }

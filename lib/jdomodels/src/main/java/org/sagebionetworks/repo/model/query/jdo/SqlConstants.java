@@ -161,7 +161,7 @@ public class SqlConstants {
 	public static final String COL_JSON_SCHEMA_BINDING_OBJECT_TYPE		= "OBJECT_TYPE";
 	public static final String COL_JSON_SCHEMA_BINDING_CREATED_BY		= "CREATED_BY";
 	public static final String COL_JSON_SCHEMA_BINDING_CREATED_ON		= "CREATED_ON";
-	public static final String DDL_FILE_JSON_SCHEMA_BINDING				= "JsonSchemaBindObject";
+	public static final String DDL_FILE_JSON_SCHEMA_BINDING				= "schema/JsonSchemaBindObject-ddl.sql";
 	
 	// The Project Stats table
 	public static final String TABLE_PROJECT_STAT				= "PROJECT_STAT";

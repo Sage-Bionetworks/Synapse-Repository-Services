@@ -37,6 +37,9 @@ public class DBOJsonSchemaDependency implements MigratableDatabaseObject<DBOJson
 			dbo.setVersionId(rs.getLong(COL_JSON_SCHEMA_DEPENDENCY_VERSION_ID));
 			dbo.setDependsOnSchemaId(rs.getLong(COL_JSON_SCHEMA_DEPEPNDENCY_DEPENDS_ON_SCHEMA_ID));
 			dbo.setDependsOnVersionId(rs.getLong(COL_JSON_SCHEMA_DEPENDENCY_DEPENDS_ON_VERSION_ID));
+			if(rs.wasNull()) {
+				dbo.setDependsOnVersionId(null);
+			}
 			return dbo;
 		}
 

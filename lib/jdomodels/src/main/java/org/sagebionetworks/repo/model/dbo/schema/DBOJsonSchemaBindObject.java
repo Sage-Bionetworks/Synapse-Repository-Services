@@ -6,6 +6,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCH
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_SCHEMA_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_VERSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_JSON_SCHEMA_BINDING;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_OBJECT_BINDING;
 
@@ -27,6 +28,7 @@ public class DBOJsonSchemaBindObject
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("bindId", COL_JSON_SCHEMA_BINDING_BIND_ID, true).withIsBackupId(true),
 			new FieldColumn("schemaId", COL_JSON_SCHEMA_BINDING_SCHEMA_ID),
+			new FieldColumn("versionId", COL_JSON_SCHEMA_BINDING_VERSION_ID),
 			new FieldColumn("objectId", COL_JONS_SCHEMA_BINDING_OBJECT_ID),
 			new FieldColumn("objectType", COL_JSON_SCHEMA_BINDING_OBJECT_TYPE),
 			new FieldColumn("createdBy", COL_JSON_SCHEMA_BINDING_CREATED_BY),
@@ -34,6 +36,7 @@ public class DBOJsonSchemaBindObject
 
 	private Long bindId;
 	private Long schemaId;
+	private Long versionId;
 	private Long objectId;
 	private String objectType;
 	private Long createdBy;
@@ -65,6 +68,20 @@ public class DBOJsonSchemaBindObject
 	 */
 	public void setSchemaId(Long schemaId) {
 		this.schemaId = schemaId;
+	}
+
+	/**
+	 * @return the versionId
+	 */
+	public Long getVersionId() {
+		return versionId;
+	}
+
+	/**
+	 * @param versionId the versionId to set
+	 */
+	public void setVersionId(Long versionId) {
+		this.versionId = versionId;
 	}
 
 	/**
@@ -123,13 +140,17 @@ public class DBOJsonSchemaBindObject
 		this.createdOn = createdOn;
 	}
 
-	public static final TableMapping<DBOJsonSchemaBindObject> MAPPING = new TableMapping<DBOJsonSchemaBindObject>() {
+	public static final TableMapping<DBOJsonSchemaBindObject> TABLE_MAPPING = new TableMapping<DBOJsonSchemaBindObject>() {
 
 		@Override
 		public DBOJsonSchemaBindObject mapRow(ResultSet rs, int rowNum) throws SQLException {
 			DBOJsonSchemaBindObject dbo = new DBOJsonSchemaBindObject();
 			dbo.setBindId(rs.getLong(COL_JSON_SCHEMA_BINDING_BIND_ID));
 			dbo.setSchemaId(rs.getLong(COL_JSON_SCHEMA_BINDING_SCHEMA_ID));
+			dbo.setVersionId(rs.getLong(COL_JSON_SCHEMA_BINDING_VERSION_ID));
+			if(rs.wasNull()) {
+				dbo.setVersionId(null);
+			}
 			dbo.setObjectId(rs.getLong(COL_JONS_SCHEMA_BINDING_OBJECT_ID));
 			dbo.setObjectType(rs.getString(COL_JSON_SCHEMA_BINDING_OBJECT_TYPE));
 			dbo.setCreatedBy(rs.getLong(COL_JSON_SCHEMA_BINDING_CREATED_BY));
@@ -160,7 +181,7 @@ public class DBOJsonSchemaBindObject
 
 	@Override
 	public TableMapping<DBOJsonSchemaBindObject> getTableMapping() {
-		return MAPPING;
+		return TABLE_MAPPING;
 	}
 
 	@Override
