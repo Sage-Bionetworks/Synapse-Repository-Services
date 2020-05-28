@@ -14,6 +14,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
@@ -209,6 +210,33 @@ public class DBOJsonSchemaBindObject
 	@Override
 	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
 		return null;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(bindId, createdBy, createdOn, objectId, objectType, schemaId, versionId);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (!(obj instanceof DBOJsonSchemaBindObject)) {
+			return false;
+		}
+		DBOJsonSchemaBindObject other = (DBOJsonSchemaBindObject) obj;
+		return Objects.equals(bindId, other.bindId) && Objects.equals(createdBy, other.createdBy)
+				&& Objects.equals(createdOn, other.createdOn) && Objects.equals(objectId, other.objectId)
+				&& Objects.equals(objectType, other.objectType) && Objects.equals(schemaId, other.schemaId)
+				&& Objects.equals(versionId, other.versionId);
+	}
+
+	@Override
+	public String toString() {
+		return "DBOJsonSchemaBindObject [bindId=" + bindId + ", schemaId=" + schemaId + ", versionId=" + versionId
+				+ ", objectId=" + objectId + ", objectType=" + objectType + ", createdBy=" + createdBy + ", createdOn="
+				+ createdOn + "]";
 	}
 
 }
