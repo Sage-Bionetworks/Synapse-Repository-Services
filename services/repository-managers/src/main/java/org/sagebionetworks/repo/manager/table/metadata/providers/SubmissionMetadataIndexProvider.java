@@ -45,8 +45,7 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 					ObjectField.createdOn, 
 					ObjectField.createdBy,
 					ObjectField.etag, 
-					ObjectField.modifiedOn, 
-					ObjectField.modifiedBy,
+					ObjectField.modifiedOn,
 					ObjectField.projectId
 			)
 			.withCustomField(SubmissionField.values())

@@ -318,7 +318,6 @@ public class SubmissionViewIntegrationTest {
 		values.add(bundle.getSubmission().getUserId());
 		values.add(eTag);
 		values.add(String.valueOf(bundle.getSubmissionStatus().getModifiedOn().getTime()));
-		values.add(evaluation.getOwnerId());
 		values.add(evaluation.getContentSource());
 		
 		// Custom submission fields

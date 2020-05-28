@@ -244,8 +244,7 @@ public class SubmissionMetadataIndexProviderUnitTest {
 				ObjectField.createdOn, 
 				ObjectField.createdBy,
 				ObjectField.etag, 
-				ObjectField.modifiedOn, 
-				ObjectField.modifiedBy,
+				ObjectField.modifiedOn,
 				ObjectField.projectId
 		);
 		
