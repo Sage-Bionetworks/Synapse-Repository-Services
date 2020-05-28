@@ -1,0 +1,10 @@
+{
+	"type": "string",
+	"description": "Object types that can be bound to a JSON schema.",
+	"enum": [
+		{
+			"name": "entity",
+			"description": "Used to bind a JSON schema to an object of type Entity."
+		}
+	]
+}

@@ -1,0 +1,28 @@
+{
+	"description": "Describes the binding of a JSON schema to an object",
+	"properties": {
+		"jsonSchemaVersionInfo": {
+			"$ref": "org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo",
+			"description": "Information about the JSON schema bound the object"
+		},
+		"objectId": {
+			"type": "integer",
+			"description": "The numeric identifier of the object bound to a JSON schema"
+		},
+		"objectType": {
+			"$ref": "org.sagebionetworks.repo.model.schema.BoundObjectType",
+			"description": "The object type of the object bound to a JSON schema"
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this binding was created.",
+			"title": "Created On"
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "The ID of the user that bound this object to the schema.",
+			"title": "Created By"
+		}
+	}
+}
