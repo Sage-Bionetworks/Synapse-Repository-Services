@@ -2,8 +2,10 @@ package org.sagebionetworks.repo.model.dbo.schema;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.model.schema.BoundObjectType;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaInfo;
+import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 
 public interface JsonSchemaDao {
@@ -44,6 +46,13 @@ public interface JsonSchemaDao {
 	 * @return
 	 */
 	String getLatestVersionId(String organizationName, String schemaName);
+	
+	/**
+	 * Get the latest versionId for a schemaId.
+	 * @param schemaId
+	 * @return
+	 */
+	String getLatestVersionId(String schemaId);
 
 	/**
 	 * Get the latest JsonSchemaVersionInfo for a schema.
@@ -108,5 +117,20 @@ public interface JsonSchemaDao {
 	 */
 	List<JsonSchemaVersionInfo> listSchemaVersions(String organizationName, String schemaName, long limit,
 			long offset);
+
+	/**
+	 * Bind a JsonSchema to the provided objectId-objectType pair.
+	 * @param request
+	 */
+	JsonSchemaObjectBinding bindSchemaToObject(BindSchemaRequest request);
+	
+	/**
+	 * Get the JSON schema bound to the given objectId and type.
+	 * @param objectId
+	 * @param objecType
+	 * @return
+	 */
+	JsonSchemaObjectBinding getSchemaBindingForObject(Long objectId, BoundObjectType objecType);
+
 
 }

@@ -20,8 +20,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.schema.BoundObjectType;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaInfo;
+import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.NormalizedJsonSchema;
 import org.sagebionetworks.repo.model.schema.Organization;
@@ -59,6 +61,7 @@ public class JsonSchemaDaoImplTest {
 	private String schemaId;
 	private String blobId;
 	private NewSchemaVersionRequest newSchemaVersionRequest;
+	private BindSchemaRequest bindSchemaRequest;
 
 	private Long adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
@@ -83,6 +86,9 @@ public class JsonSchemaDaoImplTest {
 		newSchemaVersionRequest = new NewSchemaVersionRequest().withCreatedBy(createdBy)
 				.withOrganizationId(organizationId).withJsonSchema(schema).withSchemaName(schemaName)
 				.withSemanticVersion(semanticVersion);
+
+		bindSchemaRequest = new BindSchemaRequest().withCreatedBy(adminUserId).withObjectId(123L)
+				.withObjectType(BoundObjectType.entity);
 
 	}
 
@@ -305,7 +311,7 @@ public class JsonSchemaDaoImplTest {
 		assertEquals("my.org.edu/foo.bar/1.0.1", getInfo.get$id());
 		assertEquals(info, getInfo);
 	}
-	
+
 	@Test
 	public void testGetVersionInfoWithNullSemanticVersion() throws JSONObjectAdapterException {
 		JsonSchemaVersionInfo info = createNewSchemaVersion("my.org.edu/foo.bar", 1);
@@ -555,6 +561,37 @@ public class JsonSchemaDaoImplTest {
 		String schemaName = null;
 		assertThrows(IllegalArgumentException.class, () -> {
 			jsonSchemaDao.getLatestVersionId(organizationName, schemaName);
+		});
+	}
+
+	@Test
+	public void testGetLatestVersionId() throws JSONObjectAdapterException {
+		int index = 0;
+		createNewSchemaVersion("my.org.edu/foo.bar", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		JsonSchemaVersionInfo lastVersion = createNewSchemaVersion("my.org.edu/foo.bar", index++);
+		createNewSchemaVersion("other.org/foo.bar", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar.other", index++);
+		// Call under test
+		String versionId = jsonSchemaDao.getLatestVersionId(lastVersion.getSchemaId());
+		assertEquals(lastVersion.getVersionId(), versionId);
+	}
+
+	@Test
+	public void testGetLatestVersionIdWithNotFound() throws JSONObjectAdapterException {
+		String schemaId = "-1";
+		String message = assertThrows(NotFoundException.class, () -> {
+			jsonSchemaDao.getLatestVersionId(schemaId);
+		}).getMessage();
+		assertEquals("JSON Schema not found for schemaId: '-1'", message);
+	}
+
+	@Test
+	public void testGetLatestVersionIdWithNullId() throws JSONObjectAdapterException {
+		String schemaId = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			jsonSchemaDao.getLatestVersionId(schemaId);
 		});
 	}
 
@@ -1085,7 +1122,12 @@ public class JsonSchemaDaoImplTest {
 				.withDependsOnVersionId(one.getVersionId()));
 		dependencies.add(new SchemaDependency().withDependsOnSchemaId(two.getSchemaId())
 				.withDependsOnVersionId(two.getVersionId()));
+		// call under test
 		JsonSchemaVersionInfo three = createNewSchemaVersion("my.org.edu/three/1.0.0", index++, dependencies);
+
+		List<DBOJsonSchemaDependency> dependencyResults = jsonSchemaDao.getDependencies(three.getVersionId());
+		assertNotNull(dependencyResults);
+		assertEquals(2, dependencyResults.size());
 
 		// Should block delete of one and two
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -1104,7 +1146,7 @@ public class JsonSchemaDaoImplTest {
 		// can now delete one
 		jsonSchemaDao.deleteSchema(one.getSchemaId());
 	}
-	
+
 	@Test
 	public void testBindDependenciesWithSameSchemaWithAndWithoutVersion() throws JSONObjectAdapterException {
 		int index = 0;
@@ -1132,7 +1174,7 @@ public class JsonSchemaDaoImplTest {
 		// can now delete one
 		jsonSchemaDao.deleteSchema(one.getSchemaId());
 	}
-	
+
 	@Test
 	public void testBindDependenciesWithSameSchemaWithDuplicate() throws JSONObjectAdapterException {
 		int index = 0;
@@ -1188,4 +1230,198 @@ public class JsonSchemaDaoImplTest {
 		});
 	}
 
+	@Test
+	public void testGetDependencies() throws JSONObjectAdapterException {
+		int index = 0;
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one/1.0.0", index++);
+		// two depends on one
+		ArrayList<SchemaDependency> dependencies = new ArrayList<SchemaDependency>();
+		dependencies.add(new SchemaDependency().withDependsOnSchemaId(one.getSchemaId())
+				.withDependsOnVersionId(one.getVersionId()));
+		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/two/1.0.0", index++, dependencies);
+
+		// call under test
+		List<DBOJsonSchemaDependency> result = jsonSchemaDao.getDependencies(two.getVersionId());
+		assertNotNull(result);
+		assertEquals(1, result.size());
+		DBOJsonSchemaDependency dbo = result.get(0);
+		assertNotNull(dbo.getDependsOnSchemaId());
+		assertEquals(one.getSchemaId(), dbo.getDependsOnSchemaId().toString());
+		assertNotNull(dbo.getVersionId());
+		assertEquals(one.getVersionId(), dbo.getDependsOnVersionId().toString());
+	}
+
+	@Test
+	public void testGetDependenciesWithNullVersionId() throws JSONObjectAdapterException {
+		int index = 0;
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one/1.0.0", index++);
+		// two depends on one with a null version Id
+		ArrayList<SchemaDependency> dependencies = new ArrayList<SchemaDependency>();
+		dependencies.add(new SchemaDependency().withDependsOnSchemaId(one.getSchemaId()).withDependsOnVersionId(null));
+		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/two/1.0.0", index++, dependencies);
+
+		// call under test
+		List<DBOJsonSchemaDependency> result = jsonSchemaDao.getDependencies(two.getVersionId());
+		assertNotNull(result);
+		assertEquals(1, result.size());
+		DBOJsonSchemaDependency dbo = result.get(0);
+		assertNotNull(dbo.getDependsOnSchemaId());
+		assertEquals(one.getSchemaId(), dbo.getDependsOnSchemaId().toString());
+		assertNull(dbo.getDependsOnVersionId());
+	}
+
+	@Test
+	public void testBindSchemaToObject() throws JSONObjectAdapterException {
+		int index = 0;
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one/1.0.0", index++);
+		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/one/2.0.0", index++);
+		bindSchemaRequest.withSchemaId(one.getSchemaId());
+		bindSchemaRequest.withVersionId(one.getVersionId());
+		// call under test
+		JsonSchemaObjectBinding result = jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
+		assertNotNull(result);
+		assertEquals(one, result.getJsonSchemaVersionInfo());
+		assertEquals(adminUserId.toString(), result.getCreatedBy());
+		assertNotNull(result.getCreatedOn());
+		assertEquals(bindSchemaRequest.getObjectId(), result.getObjectId());
+		assertEquals(bindSchemaRequest.getObjectType(), result.getObjectType());
+
+		// should be able to bind the object to another version
+		bindSchemaRequest.withSchemaId(two.getSchemaId());
+		bindSchemaRequest.withVersionId(two.getVersionId());
+		// call under test
+		result = jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
+		assertNotNull(result);
+		assertEquals(two, result.getJsonSchemaVersionInfo());
+		assertEquals(adminUserId.toString(), result.getCreatedBy());
+		assertNotNull(result.getCreatedOn());
+		assertEquals(bindSchemaRequest.getObjectId(), result.getObjectId());
+		assertEquals(bindSchemaRequest.getObjectType(), result.getObjectType());
+	}
+
+	@Test
+	public void testBindSchemaToObjectWithNullVersionId() throws JSONObjectAdapterException {
+		int index = 0;
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one", index++);
+		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/one", index++);
+		bindSchemaRequest.withSchemaId(one.getSchemaId());
+		bindSchemaRequest.withVersionId(null);
+		// call under test
+		JsonSchemaObjectBinding result = jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
+		assertNotNull(result);
+		assertEquals(two, result.getJsonSchemaVersionInfo());
+		assertEquals(adminUserId.toString(), result.getCreatedBy());
+		assertNotNull(result.getCreatedOn());
+		assertEquals(bindSchemaRequest.getObjectId(), result.getObjectId());
+		assertEquals(bindSchemaRequest.getObjectType(), result.getObjectType());
+
+	}
+
+	@Test
+	public void testBindSchemaToObjectWithNullRequest() throws JSONObjectAdapterException {
+		bindSchemaRequest = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
+		});
+	}
+
+	@Test
+	public void testBindSchemaToObjectWithNullCreatedBy() throws JSONObjectAdapterException {
+		bindSchemaRequest.withCreatedBy(null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
+		});
+	}
+
+	@Test
+	public void testBindSchemaToObjectWithNullObjectId() throws JSONObjectAdapterException {
+		bindSchemaRequest.withObjectId(null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
+		});
+	}
+
+	@Test
+	public void testBindSchemaToObjectWithNullObjectType() throws JSONObjectAdapterException {
+		bindSchemaRequest.withObjectType(null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
+		});
+	}
+
+	@Test
+	public void testBindSchemaToObjectWithNullSchemaId() throws JSONObjectAdapterException {
+		bindSchemaRequest.withSchemaId(null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
+		});
+	}
+
+	@Test
+	public void testGetSchemaBindingForObject() throws JSONObjectAdapterException {
+		int index = 0;
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one/1.0.0", index++);
+		bindSchemaRequest.withSchemaId(one.getSchemaId());
+		bindSchemaRequest.withVersionId(one.getVersionId());
+		JsonSchemaObjectBinding bindOne = jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
+
+		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/two/1.0.0", index++);
+		bindSchemaRequest.withSchemaId(two.getSchemaId());
+		bindSchemaRequest.withVersionId(two.getVersionId());
+		bindSchemaRequest.withObjectId(456L);
+		JsonSchemaObjectBinding bindTwo = jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
+
+		// call under test
+		JsonSchemaObjectBinding result = jsonSchemaDao.getSchemaBindingForObject(bindSchemaRequest.getObjectId(),
+				bindSchemaRequest.getObjectType());
+		assertEquals(bindTwo, result);
+	}
+
+	@Test
+	public void testGetSchemaBindingForObjectWithNullVersionId() throws JSONObjectAdapterException {
+		int index = 0;
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one/1.0.0", index++);
+		bindSchemaRequest.withSchemaId(one.getSchemaId());
+		bindSchemaRequest.withVersionId(null);
+		JsonSchemaObjectBinding bindOne = jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
+
+		// call under test
+		JsonSchemaObjectBinding result = jsonSchemaDao.getSchemaBindingForObject(bindSchemaRequest.getObjectId(),
+				bindSchemaRequest.getObjectType());
+		assertEquals(bindOne, result);
+	}
+
+	@Test
+	public void testGetSchemaBindingForObjectWithNotFound() throws JSONObjectAdapterException {
+		Long objectId = -1L;
+		BoundObjectType type = BoundObjectType.entity;
+
+		String message = assertThrows(NotFoundException.class, () -> {
+			jsonSchemaDao.getSchemaBindingForObject(objectId, type);
+		}).getMessage();
+		assertEquals("JSON Schema binding was not found for ObjectId: '-1' ObjectType: 'entity'", message);
+	}
+	
+	@Test
+	public void testGetSchemaBindingForObjectWithNullObjectId() throws JSONObjectAdapterException {
+		Long objectId = null;
+		BoundObjectType type = BoundObjectType.entity;
+		assertThrows(IllegalArgumentException.class, () -> {
+			jsonSchemaDao.getSchemaBindingForObject(objectId, type);
+		});
+	}
+	
+	@Test
+	public void testGetSchemaBindingForObjectWithNullObjectType() throws JSONObjectAdapterException {
+		Long objectId = -1L;
+		BoundObjectType type = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			jsonSchemaDao.getSchemaBindingForObject(objectId, type);
+		});
+	}
 }

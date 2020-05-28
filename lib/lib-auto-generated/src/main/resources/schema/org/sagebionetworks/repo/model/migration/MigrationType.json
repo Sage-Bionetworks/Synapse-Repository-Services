@@ -347,6 +347,10 @@
 			"description": "Version dependencies of user-defined JSON-schemas."
 		},
 		{
+			"name": "JSON_SCHEMA_OBJECT_BINDING",
+			"description": "Binds JSON-schemas to objects"
+		},
+		{
 			"name": "DOWNLOAD_LIST",
 			"description": "The root object for a user's download list."
 		},

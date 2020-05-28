@@ -151,7 +151,18 @@ public class SqlConstants {
 	public static final String COL_JSON_SCHEMA_DEPEPNDENCY_DEPENDS_ON_SCHEMA_ID	= "DEPENDS_ON_SCHEMA_ID";
 	public static final String COL_JSON_SCHEMA_DEPENDENCY_DEPENDS_ON_VERSION_ID	= "DEPENDS_ON_VERSION_ID";
 	public static final String DDL_FILE_JSON_SCHEMA_DEPENDS						= "schema/JsonSchemaDependency-ddl.sql";
-
+	
+	// Json-Schema Object binding
+	public static final String TABLE_JSON_SCHEMA_OBJECT_BINDING			= "JSON_SCHEMA_OBJECT_BINDING";
+	public static final String COL_JSON_SCHEMA_BINDING_BIND_ID			= "BIND_ID";
+	public static final String COL_JSON_SCHEMA_BINDING_SCHEMA_ID		= "SCHEMA_ID";
+	public static final String COL_JSON_SCHEMA_BINDING_VERSION_ID		= "VERSION_ID";
+	public static final String COL_JONS_SCHEMA_BINDING_OBJECT_ID		= "OBJECT_ID";
+	public static final String COL_JSON_SCHEMA_BINDING_OBJECT_TYPE		= "OBJECT_TYPE";
+	public static final String COL_JSON_SCHEMA_BINDING_CREATED_BY		= "CREATED_BY";
+	public static final String COL_JSON_SCHEMA_BINDING_CREATED_ON		= "CREATED_ON";
+	public static final String DDL_FILE_JSON_SCHEMA_BINDING				= "schema/JsonSchemaBindObject-ddl.sql";
+	
 	// The Project Stats table
 	public static final String TABLE_PROJECT_STAT				= "PROJECT_STAT";
 	public static final String COL_PROJECT_STAT_ID				= "ID";

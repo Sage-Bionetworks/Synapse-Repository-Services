@@ -1,5 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.schema;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JONS_SCHEMA_BINDING_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_BIND_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_SCHEMA_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_VERSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BLOB_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BLOB_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BLOB_SHA256;
@@ -26,6 +33,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_S
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_DEPENDENCY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_LATEST_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_OBJECT_BINDING;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ORGANIZATION;
 
@@ -39,9 +47,11 @@ import java.util.StringJoiner;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.schema.BoundObjectType;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.model.schema.JsonSchemaInfo;
+import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.NormalizedJsonSchema;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -83,7 +93,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		StringJoiner joiner = new StringJoiner(JsonSchemaConstants.ID_DELIMITER);
 		joiner.add(info.getOrganizationName());
 		joiner.add(info.getSchemaName());
-		if(info.getSemanticVersion() != null) {
+		if (info.getSemanticVersion() != null) {
 			joiner.add(info.getSemanticVersion());
 		}
 		info.set$id(joiner.toString());
@@ -109,6 +119,11 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 			throw new IllegalStateException(e);
 		}
 	};
+
+	public static final RowMapper<DBOJsonSchemaDependency> DEPENDENCY_MAPPER = new DBOJsonSchemaDependency()
+			.getTableMapping();
+	public static final RowMapper<DBOJsonSchemaBindObject> BIND_OBJECT_MAPPER = new DBOJsonSchemaBindObject()
+			.getTableMapping();
 
 	String createSchemaIfDoesNotExist(String organizationId, String schemaName, Long createdBy) {
 		ValidateArgument.required(organizationId, "organizationId");
@@ -146,6 +161,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 
 	@Override
 	public void trunacteAll() {
+		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_OBJECT_BINDING);
 		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_DEPENDENCY);
 		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_LATEST_VERSION);
 		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_VERSION);
@@ -270,7 +286,8 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		String schemaId = createSchemaIfDoesNotExist(request.getOrganizationId(), request.getSchemaName(),
 				request.getCreatedBy());
 		String blobId = createJsonBlobIfDoesNotExist(request.getJsonSchema());
-		JsonSchemaVersionInfo info = createNewVersion(schemaId, request.getSemanticVersion(), request.getCreatedBy(), blobId);
+		JsonSchemaVersionInfo info = createNewVersion(schemaId, request.getSemanticVersion(), request.getCreatedBy(),
+				blobId);
 		bindDependencies(info.getVersionId(), request.getDependencies());
 		return info;
 	}
@@ -314,7 +331,8 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 			jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_LATEST_VERSION + " WHERE "
 					+ COL_JSON_SCHEMA_LATEST_VER_SCHEMA_ID + " = ?", schemaId);
 			// delete the requested version
-			jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_VERSION + " WHERE " + COL_JSON_SCHEMA_VER_ID + " = ?",
+			jdbcTemplate.update(
+					"DELETE FROM " + TABLE_JSON_SCHEMA_VERSION + " WHERE " + COL_JSON_SCHEMA_VER_ID + " = ?",
 					versionId);
 		} catch (DataIntegrityViolationException e) {
 			throw new IllegalArgumentException("Cannot delete a schema version that is referenced by another schema");
@@ -361,6 +379,20 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("JSON Schema not found for organizationName: '" + organizationName
 					+ "' and schemaName: '" + schemaName + "'");
+		}
+	}
+
+	@Override
+	public String getLatestVersionId(String schemaId) {
+		ValidateArgument.required(schemaId, "schemaId");
+		try {
+			return jdbcTemplate
+					.queryForObject(
+							"SELECT " + COL_JSON_SCHEMA_LATEST_VER_VER_ID + " FROM " + TABLE_JSON_SCHEMA_LATEST_VERSION
+									+ " WHERE " + COL_JSON_SCHEMA_LATEST_VER_SCHEMA_ID + " = ?",
+							String.class, schemaId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("JSON Schema not found for schemaId: '" + schemaId + "'");
 		}
 	}
 
@@ -432,8 +464,9 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		}
 		SchemaDependency[] dependenciesArray = dependencies.toArray(new SchemaDependency[dependencies.size()]);
 		jdbcTemplate.batchUpdate(
-				"INSERT IGNORE INTO " + TABLE_JSON_SCHEMA_DEPENDENCY + " (" + COL_JSON_SCHEMA_DEPENDENCY_VERSION_ID + ","
-						+ COL_JSON_SCHEMA_DEPEPNDENCY_DEPENDS_ON_SCHEMA_ID + "," + COL_JSON_SCHEMA_DEPENDENCY_DEPENDS_ON_VERSION_ID + ") VALUES (?,?,?)",
+				"INSERT IGNORE INTO " + TABLE_JSON_SCHEMA_DEPENDENCY + " (" + COL_JSON_SCHEMA_DEPENDENCY_VERSION_ID
+						+ "," + COL_JSON_SCHEMA_DEPEPNDENCY_DEPENDS_ON_SCHEMA_ID + ","
+						+ COL_JSON_SCHEMA_DEPENDENCY_DEPENDS_ON_VERSION_ID + ") VALUES (?,?,?)",
 				new BatchPreparedStatementSetter() {
 
 					@Override
@@ -449,5 +482,67 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 						return dependenciesArray.length;
 					}
 				});
+	}
+
+	List<DBOJsonSchemaDependency> getDependencies(String versionId) {
+		ValidateArgument.required(versionId, "versionId");
+		return jdbcTemplate.query("SELECT * FROM " + TABLE_JSON_SCHEMA_DEPENDENCY + " WHERE "
+				+ COL_JSON_SCHEMA_DEPENDENCY_VERSION_ID + " = ?", DEPENDENCY_MAPPER, versionId);
+	}
+
+	@WriteTransaction
+	@Override
+	public JsonSchemaObjectBinding bindSchemaToObject(BindSchemaRequest request) {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getSchemaId(), "request.schemaId");
+		ValidateArgument.required(request.getObjectId(), "request.objectId");
+		ValidateArgument.required(request.getObjectType(), "request.objectType");
+		ValidateArgument.required(request.getCreatedBy(), "request.createdBy");
+		// remove any existing binding.
+		jdbcTemplate.update(
+				"DELETE FROM " + TABLE_JSON_SCHEMA_OBJECT_BINDING + " WHERE " + COL_JONS_SCHEMA_BINDING_OBJECT_ID
+						+ " = ? AND " + COL_JSON_SCHEMA_BINDING_OBJECT_TYPE + " = ?",
+				request.getObjectId(), request.getObjectType().name());
+
+		Timestamp now = new Timestamp(System.currentTimeMillis());
+		long bindId = idGenerator.generateNewId(IdType.JSON_SCHEMA_BIND_OBJECT_ID);
+		jdbcTemplate.update(
+				"INSERT INTO " + TABLE_JSON_SCHEMA_OBJECT_BINDING + "(" + COL_JSON_SCHEMA_BINDING_BIND_ID + ","
+						+ COL_JSON_SCHEMA_BINDING_SCHEMA_ID + "," + COL_JSON_SCHEMA_BINDING_VERSION_ID + ","
+						+ COL_JONS_SCHEMA_BINDING_OBJECT_ID + "," + COL_JSON_SCHEMA_BINDING_OBJECT_TYPE + ","
+						+ COL_JSON_SCHEMA_BINDING_CREATED_BY + "," + COL_JSON_SCHEMA_BINDING_CREATED_ON
+						+ ") VALUES (?,?,?,?,?,?,?)",
+				bindId, request.getSchemaId(), request.getVersionId(), request.getObjectId(),
+				request.getObjectType().name(), request.getCreatedBy(), now);
+		return getSchemaBindingForObject(request.getObjectId(), request.getObjectType());
+	}
+
+	@Override
+	public JsonSchemaObjectBinding getSchemaBindingForObject(Long objectId, BoundObjectType objecType) {
+		ValidateArgument.required(objectId, "objectId");
+		ValidateArgument.required(objecType, "objecType");
+		try {
+			DBOJsonSchemaBindObject dbo = jdbcTemplate.queryForObject(
+					"SELECT * FROM " + TABLE_JSON_SCHEMA_OBJECT_BINDING + " WHERE " + COL_JONS_SCHEMA_BINDING_OBJECT_ID
+							+ " = ? AND " + COL_JSON_SCHEMA_BINDING_OBJECT_TYPE + " = ?",
+					BIND_OBJECT_MAPPER, objectId, objecType.name());
+			String versionId = null;
+			if (dbo.getVersionId() == null) {
+				versionId = getLatestVersionId(dbo.getSchemaId().toString());
+			} else {
+				versionId = dbo.getVersionId().toString();
+			}
+			JsonSchemaVersionInfo versionInfo = getVersionInfo(versionId.toString());
+			JsonSchemaObjectBinding result = new JsonSchemaObjectBinding();
+			result.setJsonSchemaVersionInfo(versionInfo);
+			result.setObjectId(dbo.getObjectId());
+			result.setObjectType(BoundObjectType.valueOf(dbo.getObjectType()));
+			result.setCreatedBy(dbo.getCreatedBy().toString());
+			result.setCreatedOn(dbo.getCreatedOn());
+			return result;
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("JSON Schema binding was not found for ObjectId: '" + objectId
+					+ "' ObjectType: '" + objecType.name() + "'");
+		}
 	}
 }

@@ -59,7 +59,8 @@ public enum IdType {
 	ORGANIZATION_ID(null),
 	JSON_SCHEMA_ID(null),
 	JSON_SCHEMA_BLOB_ID(null),
-	JSON_SCHEMA_VERSION_ID(null)
+	JSON_SCHEMA_VERSION_ID(null),
+	JSON_SCHEMA_BIND_OBJECT_ID(null)
 	;
 	
 	Long startingId;
