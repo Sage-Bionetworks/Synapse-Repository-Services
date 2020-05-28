@@ -3,18 +3,14 @@ package org.sagebionetworks.repo.manager.table.metadata;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.table.HasViewObjectType;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 
 public interface ViewScopeFilterProvider extends HasViewObjectType {
 
 	/**
-	 * @return True if the object has a hierarchy of subtypes that filters can be
-	 *         applied to using a bit mask
-	 */
-	boolean supportsSubtypeFiltering();
-
-	/**
 	 * Given a subtype mask filter gets the enum values to be used in filtering out
-	 * the objects
+	 * the objects, the subtype value should match the one returned by the
+	 * {@link ObjectDataDTO#getSubType()}.
 	 * 
 	 * @param typeMask The subtype mask
 	 * @return The list of enum values that map to the given type mask
@@ -31,5 +27,5 @@ public interface ViewScopeFilterProvider extends HasViewObjectType {
 	 *         true if the object id itself should eb used instead
 	 */
 	boolean isFilterScopeByObjectId(Long typeMask);
-	
+
 }

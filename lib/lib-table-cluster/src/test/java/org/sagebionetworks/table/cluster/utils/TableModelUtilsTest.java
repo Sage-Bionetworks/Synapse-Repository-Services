@@ -690,6 +690,18 @@ public class TableModelUtilsTest {
 		int expected = Long.toString(-1111111111111111111l).getBytes(StandardCharsets.UTF_8).length;
 		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.USERID, null, null));
 	}
+	
+	@Test
+	public void testCalculateMaxSizeForTypeSubmissionID(){
+		int expected = Long.toString(-1111111111111111111l).getBytes(StandardCharsets.UTF_8).length;
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.SUBMISSIONID, null, null));
+	}
+	
+	@Test
+	public void testCalculateMaxSizeForTypeEvaluationID(){
+		int expected = Long.toString(-1111111111111111111l).getBytes(StandardCharsets.UTF_8).length;
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.EVALUATIONID, null, null));
+	}
 
 	@Test
 	public void testCalculateMaxSizeForTypeEntityId(){
@@ -844,7 +856,7 @@ public class TableModelUtilsTest {
 	public void testCalculateMaxRowSize() {
 		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
 		int allBytes = TableModelUtils.calculateMaxRowSize(all);
-		assertEquals(13146, allBytes);
+		assertEquals(13186, allBytes);
 	}
 
 	@Test

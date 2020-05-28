@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -755,11 +756,11 @@ public class SubmissionManagerTest {
 	@Test
 	public void testGetSubmissionStatus() throws DatastoreException, NotFoundException {
 		when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
-    	when(mockSubmissionDAO.getBundle(SUB_ID)).thenReturn(submissionBundle);
+    	when(mockSubmissionDAO.getBundle(any(), anyBoolean())).thenReturn(submissionBundle);
 		
 		SubmissionStatus status = submissionManager.getSubmissionStatus(ownerInfo, SUB_ID);
 		
-		verify(mockSubmissionDAO).getBundle(SUB_ID);
+		verify(mockSubmissionDAO).getBundle(SUB_ID, false);
 		Annotations annos = status.getAnnotations();
 		assertNotNull(annos);
 		
@@ -780,7 +781,7 @@ public class SubmissionManagerTest {
 	
 	@Test
 	public void testGetSubmissionStatusNoREADAccess() throws Exception {
-		when(mockSubmissionDAO.getBundle(SUB_ID)).thenReturn(submissionBundle);
+		when(mockSubmissionDAO.getBundle(any(), anyBoolean())).thenReturn(submissionBundle);
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.accessDenied(""));
     	Assertions.assertThrows(UnauthorizedException.class, ()-> {
     		submissionManager.getSubmissionStatus(userInfo, SUB_ID);
@@ -810,11 +811,11 @@ public class SubmissionManagerTest {
 	public void testGetSubmissionStatusNoPrivate() throws DatastoreException, NotFoundException {
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.authorized());
        	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(AuthorizationStatus.accessDenied(""));
-       	when(mockSubmissionDAO.getBundle(SUB_ID)).thenReturn(submissionBundle);
+       	when(mockSubmissionDAO.getBundle(any(), anyBoolean())).thenReturn(submissionBundle);
     	
 		SubmissionStatus status = submissionManager.getSubmissionStatus(userInfo, SUB_ID);
 
-		verify(mockSubmissionDAO).getBundle(SUB_ID);
+		verify(mockSubmissionDAO).getBundle(SUB_ID, false);
 		Annotations annos = status.getAnnotations();
 		assertNotNull(annos);
 		
@@ -835,14 +836,14 @@ public class SubmissionManagerTest {
 	public void testGetSubmissionStatusNoPrivateNoAnnot() throws DatastoreException, NotFoundException {
 		when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.authorized());
        	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(AuthorizationStatus.accessDenied(""));
-       	when(mockSubmissionDAO.getBundle(SUB_ID)).thenReturn(submissionBundle);
+       	when(mockSubmissionDAO.getBundle(any(), anyBoolean())).thenReturn(submissionBundle);
        	
  		Annotations annots = subStatus.getAnnotations();
 		annots.setStringAnnos(null); // this is the case in PLFM-2586
 		annots.setLongAnnos(null);
 		annots.setDoubleAnnos(null);
 		submissionManager.getSubmissionStatus(userInfo, SUB_ID);
-		verify(mockSubmissionDAO).getBundle(SUB_ID);
+		verify(mockSubmissionDAO).getBundle(SUB_ID, false);
 	}
 	
 	private static Pair<Annotations, org.sagebionetworks.repo.model.annotation.v2.Annotations> createDummyAnnotations() {		

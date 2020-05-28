@@ -134,7 +134,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	@Override
 	public SubmissionStatus getSubmissionStatus(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
 		EvaluationUtils.ensureNotNull(submissionId, "Submission ID");
-		SubmissionBundle bundle = submissionDAO.getBundle(submissionId);
+		SubmissionBundle bundle = submissionDAO.getBundle(submissionId, false);
 		String evaluationId = bundle.getSubmission().getEvaluationId();
 		validateEvaluationAccess(userInfo, evaluationId, ACCESS_TYPE.READ);
 		// only authorized users can view private Annotations 

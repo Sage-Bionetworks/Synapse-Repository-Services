@@ -29,4 +29,13 @@ public class ViewScopeUtils {
 		return ObjectType.valueOf(viewObjectType.name());
 	}
 
+	/**
+	 * @param viewObjectType The {@link ViewObjectType}
+	 * @return The default subtype value used for replication for the given object
+	 *         type (e.g. use when there is not subtype for the given type)
+	 */
+	public static String defaultSubType(ViewObjectType viewObjectType) {
+		return viewObjectType.name().toLowerCase();
+	}
+
 }

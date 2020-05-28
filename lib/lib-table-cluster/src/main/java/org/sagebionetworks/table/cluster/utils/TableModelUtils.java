@@ -766,6 +766,8 @@ public class TableModelUtils {
 			case BOOLEAN:
 				return ColumnConstants.MAX_BOOLEAN_BYTES_AS_STRING;
 			case INTEGER:
+			case SUBMISSIONID:
+			case EVALUATIONID:
 			case DATE:
 				return ColumnConstants.MAX_INTEGER_BYTES_AS_STRING;
 			case DOUBLE:

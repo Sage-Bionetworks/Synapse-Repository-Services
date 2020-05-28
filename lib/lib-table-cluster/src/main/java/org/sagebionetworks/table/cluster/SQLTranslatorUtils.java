@@ -202,6 +202,8 @@ public class SQLTranslatorUtils {
 		case DATE:
 		case FILEHANDLEID:
 		case USERID:
+		case SUBMISSIONID:
+		case EVALUATIONID:
 			return true;
 		default:
 			return false;

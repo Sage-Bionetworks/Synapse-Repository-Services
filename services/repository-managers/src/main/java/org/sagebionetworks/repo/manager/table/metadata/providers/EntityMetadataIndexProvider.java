@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.NodeManager;
@@ -111,8 +112,8 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 	}
 
 	@Override
-	public Annotations getAnnotations(UserInfo userInfo, String objectId) {
-		return nodeManager.getUserAnnotations(userInfo, objectId);
+	public Optional<Annotations> getAnnotations(UserInfo userInfo, String objectId) {
+		return Optional.ofNullable(nodeManager.getUserAnnotations(userInfo, objectId));
 	}
 
 	@Override
@@ -183,11 +184,6 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 	@Override
 	public ColumnType getBenefactorIdColumnType() {
 		return ColumnType.ENTITYID;
-	}
-
-	@Override
-	public boolean supportsSubtypeFiltering() {
-		return true;
 	}
 
 	@Override

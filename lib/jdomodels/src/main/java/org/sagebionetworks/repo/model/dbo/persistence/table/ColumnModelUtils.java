@@ -167,6 +167,8 @@ public class ColumnModelUtils {
 				}
 				break;
 			case ENTITYID:
+			case SUBMISSIONID:
+			case EVALUATIONID:
 			case FILEHANDLEID:
 			case USERID:
 			case LARGETEXT:
@@ -174,7 +176,7 @@ public class ColumnModelUtils {
 					defaultValue = null;
 				}
 				if (defaultValue != null) {
-					throw new IllegalArgumentException("Columns of type ENTITYID, FILEHANDLEID, USERID, and LARGETEXT cannot have default values.");
+					throw new IllegalArgumentException("Columns of type ENTITYID, SUBMISSIONID, EVALUATIONID, FILEHANDLEID, USERID, and LARGETEXT cannot have default values.");
 				}
 				break;
 			case INTEGER_LIST:

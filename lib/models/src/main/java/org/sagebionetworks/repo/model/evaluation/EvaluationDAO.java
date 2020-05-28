@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.evaluation;
 
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -58,5 +59,11 @@ public interface EvaluationDAO {
 	 * @param id the id of the object to be deleted
 	 */
 	public void delete(String id) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * @param ids
+	 * @return The subset of evaluation ids that still exists
+	 */
+	Set<Long> getAvailableEvaluations(List<Long> ids);
 
 }

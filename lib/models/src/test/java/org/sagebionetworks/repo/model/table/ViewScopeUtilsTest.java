@@ -49,5 +49,12 @@ public class ViewScopeUtilsTest {
 		}
 		
 	}
+	
+	@Test
+	public void testDefaultSubType() {
+		for (ViewObjectType viewObjectType : ViewObjectType.values()) {
+			assertEquals(viewObjectType.name().toLowerCase(), ViewScopeUtils.defaultSubType(viewObjectType));
+		}
+	}
 
 }

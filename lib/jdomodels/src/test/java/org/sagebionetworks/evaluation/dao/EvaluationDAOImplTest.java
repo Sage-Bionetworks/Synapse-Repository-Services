@@ -3,6 +3,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -36,6 +37,9 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 
 
@@ -321,5 +325,45 @@ public class EvaluationDAOImplTest {
 		assertFalse(evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, null).isEmpty());
 		assertTrue(evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.READ, null, 10, 0, null).isEmpty());
    }
+    
+    @Test
+    public void testGetAvailableEvaluations() {
+    	
+    	String evalId = evaluationDAO.create(eval, EVALUATION_OWNER_ID);
+
+		toDelete.add(evalId);
+    	
+		Long evaluationId = Long.valueOf(evalId);
+    	List<Long> ids = ImmutableList.of(evaluationId, 100L, 200L, 300L);
+    	
+    	Set<Long> result = evaluationDAO.getAvailableEvaluations(ids);
+   
+    	assertEquals(ImmutableSet.of(evaluationId), result);
+    }
+    
+    @Test
+    public void testGetAvailableEvaluationsWithEmptyInput() {
+    	
+    	List<Long> ids = Collections.emptyList();
+    	
+    	Set<Long> result = evaluationDAO.getAvailableEvaluations(ids);
+    	   
+    	assertEquals(Collections.emptySet(), result);
+   
+    }
+    
+    @Test
+    public void testGetAvailableEvaluationsWithNullInput() {
+    	
+    	List<Long> ids = null;
+    	
+    	String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+    		// Call under test
+    		evaluationDAO.getAvailableEvaluations(ids);
+    	}).getMessage();
+    	
+    	assertEquals("ids is required.", errorMessage);
+   
+    }
 
 }

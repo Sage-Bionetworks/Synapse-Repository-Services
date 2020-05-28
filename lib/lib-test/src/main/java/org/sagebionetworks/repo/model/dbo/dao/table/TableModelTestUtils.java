@@ -100,6 +100,8 @@ public class TableModelTestUtils {
 				case USERID:
 				case FILEHANDLEID:
 				case ENTITYID:
+				case SUBMISSIONID:
+				case EVALUATIONID:
 				case LARGETEXT:
 					defaultValue = null;
 					break;
@@ -357,6 +359,8 @@ public class TableModelTestUtils {
 				return (isUpdate ? "updatestring" : "string") + i;
 			case USERID:
 			case INTEGER:
+			case SUBMISSIONID:
+			case EVALUATIONID:
 				return "" + (i + 3000);
 			case DATE:
 				if (!isExpected && useDateStrings && i % 2 == 0) {

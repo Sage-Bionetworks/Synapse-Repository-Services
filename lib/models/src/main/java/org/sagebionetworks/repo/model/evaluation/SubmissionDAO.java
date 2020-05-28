@@ -11,6 +11,8 @@ import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.IdAndEtag;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface SubmissionDAO {
@@ -190,8 +192,10 @@ public interface SubmissionDAO {
 	 */
 	boolean isDockerRepoNameInAnyEvaluationWithAccess(String dockerRepoName, Set<Long> principalIds, ACCESS_TYPE accessType);
 
+	// Include contributors
 	SubmissionBundle getBundle(String id);
-
+	
+	SubmissionBundle getBundle(String submissionId, boolean includeContributors);
 
 	List<SubmissionBundle> getAllBundlesByEvaluation(String evalId, long limit,
 			long offset) throws DatastoreException, NotFoundException;
@@ -205,5 +209,28 @@ public interface SubmissionDAO {
 	List<SubmissionBundle> getAllBundlesByEvaluationAndUser(String evalId,
 			String principalId, long limit, long offset)
 			throws DatastoreException, NotFoundException;
+
+	/**
+	 * @param evaluationId The id of an evaluation
+	 * @return The list of {@link IdAndEtag} of the submissions associated with the evaluation with the given id
+	 */
+	List<IdAndEtag> getSubmissionIdAndEtag(Long evaluationId);
+
+	/**
+	 * 
+	 * @param evaluationIds The list of evaluation id
+	 * @return For each of the evaluation id, computes the sum of the CRC for each submission in the evaluation
+	 */
+	Map<Long, Long> getSumOfSubmissionCRCsForEachEvaluation(List<Long> evaluationIds);
+
+	/**
+	 * @param submissionIds
+	 * @param maxAnnotationChars
+	 * @return The data to be indexed in the replication
+	 */
+	List<ObjectDataDTO> getSubmissionData(List<Long> submissionIds, int maxAnnotationChars);
+	
+	// For testing
+	void truncateAll();
 
 }

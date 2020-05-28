@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyListOf;
-import static org.mockito.Mockito.times;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.dbo.dao.SubmissionStatusAnnotationsAsyncManagerImpl.CANCEL_CONTROL;
@@ -16,16 +14,16 @@ import java.util.Date;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.CancelControl;
-import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
@@ -38,7 +36,6 @@ import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
-import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -46,7 +43,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 	
 	private Submission submission;
@@ -54,23 +51,25 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 
 	@Mock
 	private AnnotationsDAO mockSubStatusAnnoDAO;
-	@Mock
-	private EvaluationSubmissionsDAO mockEvaluationSubmissionsDAO;
+	
+	@InjectMocks
 	private SubmissionStatusAnnotationsAsyncManagerImpl ssAnnoAsyncManager;
+	
 	private Annotations annosIn;
 	private Annotations expectedAnnosOut;
+	private SubmissionBundle bundle;
+	
 	@Captor
 	private ArgumentCaptor<List<Annotations>> annosCaptor;
 	
 	private static final String EVAL_ID = "456";
 	private static final Long EVAL_ID_AS_LONG = Long.parseLong(EVAL_ID);
-	private static final String EVAL_SUB_ETAG = "someEvalSubEtag-00000";
 	private static final Long STATUS_VERSION = 7L;
 	private static final String TEAM_ID = "1010101";
 	private static final String DOCKER_REPO_NAME = "docker.synapse.org/syn12345/my-repo";
 	private static final String DOCKER_DIGEST = "sha256:0123456789abcdef";
 	
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		
 		// Submission
@@ -114,16 +113,9 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		expectedAnnosOut.setVersion(STATUS_VERSION);
 		insertExpectedAnnos(expectedAnnosOut);
 		
-		EvaluationSubmissions evalSubs = new EvaluationSubmissions();
-		evalSubs.setEtag(EVAL_SUB_ETAG);
-		when(mockEvaluationSubmissionsDAO.getForEvaluationIfExists(EVAL_ID_AS_LONG)).thenReturn(evalSubs);
-		SubmissionBundle bundle = new SubmissionBundle();
+		bundle = new SubmissionBundle();
 		bundle.setSubmission(submission);
 		bundle.setSubmissionStatus(subStatus);
-		when(mockSubStatusAnnoDAO.getChangedSubmissions(Long.parseLong(EVAL_ID))).
-			thenReturn(Collections.singletonList(bundle));
-		
-		ssAnnoAsyncManager = new SubmissionStatusAnnotationsAsyncManagerImpl(mockSubStatusAnnoDAO, mockEvaluationSubmissionsDAO);
 	}
 	
 	private void insertExpectedAnnos(Annotations annos) throws Exception {
@@ -264,6 +256,8 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 
 	@Test
 	public void testCreateSubmissionStatus() throws NotFoundException, DatastoreException, JSONObjectAdapterException {
+		when(mockSubStatusAnnoDAO.getChangedSubmissions(Long.parseLong(EVAL_ID))).thenReturn(Collections.singletonList(bundle));
+		
 		// Annotations will initially be null when the SubmissionStatus object is created
 		subStatus.setAnnotations(null);
 		
@@ -282,6 +276,8 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 	
 	@Test
 	public void testUpdateSubmissionStatus() throws NotFoundException, DatastoreException, JSONObjectAdapterException {
+		when(mockSubStatusAnnoDAO.getChangedSubmissions(Long.parseLong(EVAL_ID))).thenReturn(Collections.singletonList(bundle));
+		
 		// Add some Annotations
 		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
 		StringAnnotation sa1 = new StringAnnotation();
@@ -314,6 +310,8 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 	
 	@Test
 	public void testUpdateSubmissionStatusOverwrite() throws NotFoundException, DatastoreException, JSONObjectAdapterException {
+		when(mockSubStatusAnnoDAO.getChangedSubmissions(Long.parseLong(EVAL_ID))).thenReturn(Collections.singletonList(bundle));
+		
 		// Add a user-defined Annotation that should be overwritten
 		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
 		StringAnnotation nameAnno = new StringAnnotation();
@@ -345,6 +343,8 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 	
 	@Test
 	public void testUpdateEvaluationSubmissionStatusSumbitterIdWhenNoTeam() throws Exception{
+		when(mockSubStatusAnnoDAO.getChangedSubmissions(Long.parseLong(EVAL_ID))).thenReturn(Collections.singletonList(bundle));
+		
 		//recalculate the expected annotations with teamID removed
 		submission.setTeamId(null);
 		insertExpectedAnnos(expectedAnnosOut);

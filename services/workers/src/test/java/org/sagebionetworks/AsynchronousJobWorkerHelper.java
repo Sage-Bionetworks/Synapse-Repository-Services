@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.TableFailedException;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 
 public interface AsynchronousJobWorkerHelper {
 
@@ -38,6 +39,19 @@ public interface AsynchronousJobWorkerHelper {
 	 * @throws InterruptedException
 	 */
 	ObjectDataDTO waitForEntityReplication(UserInfo user, String tableId, String entityId, long maxWaitMS)
+			throws InterruptedException;
+	
+	/**
+	 * Wait for the object with the given type and id to be replicated
+	 * 
+	 * @param objectType
+	 * @param objectId
+	 * @param etag
+	 * @param maxWaitMS
+	 * @return
+	 * @throws InterruptedException
+	 */
+	ObjectDataDTO waitForObjectReplication(ViewObjectType objectType, Long objectId, String etag, long maxWaitMS)
 			throws InterruptedException;
 
 	/**
@@ -90,4 +104,5 @@ public interface AsynchronousJobWorkerHelper {
 	 * @throws IOException
 	 */
 	String downloadFileHandleFromS3(String fileHandleId) throws IOException;
+
 }

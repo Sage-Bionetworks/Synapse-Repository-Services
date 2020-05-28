@@ -49,6 +49,14 @@
                     "description": "The ENTITYID type represents a reference to a Synapse Entity.  Values will include the 'syn' prefix, such as 'syn123'.  Each ENTITYID column counts as 44 bytes towards the total width of a table."
                 },
                 {
+                    "name": "SUBMISSIONID",
+                    "description": "The SUBMISSIONID type represents a reference to an evaluation submission. The value should be the ID of the referenced submission.  Each SUBMISSIONID column counts as 20 bytes towards the total width of a table."
+                },
+                {
+                    "name": "EVALUATIONID",
+                    "description": "The EVALUATIONID type represents a reference to an evaluation. The value should be the ID of the referenced evaluation.  Each EVALUATIONID column counts as 20 bytes towards the total width of a table."
+                },
+                {
                     "name": "LINK",
                     "description": "The LINK data type represents any URL with 1,000 characters or less.  Each LINK column counts as maxSize*4 (4 bytes per character) towards the total width of a table."
                 },

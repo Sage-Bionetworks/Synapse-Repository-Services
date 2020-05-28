@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.table.metadata;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.IdAndEtag;
@@ -24,7 +25,7 @@ import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
  *
  */
 public interface MetadataIndexProvider extends HasViewObjectType, ViewScopeFilterProvider, ObjectFieldTypeMapper {
-	
+
 	/**
 	 * @return The {@link ObjectType} of the benefactor of the rows of the view,
 	 *         this is used to add row level filtering according to the permissions
@@ -40,10 +41,9 @@ public interface MetadataIndexProvider extends HasViewObjectType, ViewScopeFilte
 	 *         that are suggested for a view
 	 */
 	DefaultColumnModel getDefaultColumnModel(Long viewTypeMask);
-	
 
 	// Used for replication
-	
+
 	/**
 	 * Fetch the {@link ObjectDataDTO} for the objects with the given ids, the DTO
 	 * will have to include the annotations on the object. The annotations might
@@ -77,30 +77,34 @@ public interface MetadataIndexProvider extends HasViewObjectType, ViewScopeFilte
 	Set<Long> getContainerIdsForScope(Set<Long> scope, Long viewTypeMask, int containerLimit)
 			throws LimitExceededException;
 
-
 	/**
-	 * Provide a contextualized message when a view with the given type mask exceeds the given limit
+	 * Provide a contextualized message when a view with the given type mask exceeds
+	 * the given limit
 	 * 
 	 * @param viewTypeMask
 	 * @param containerLimit
 	 * @return
 	 */
 	String createViewOverLimitMessage(Long viewTypeMask, int containerLimit);
-	
-	
+
 	// Used for annotation updates from views
-	
+
 	/**
-	 * Returns the annotations for the given object
+	 * Returns the {@link Annotations} currently associated with the the given
+	 * object
 	 * 
 	 * @param userInfo
 	 * @param objectId The object identifier
-	 * @return The annotations for the given object
+	 * @return An optional with the annotations for the given object
 	 */
-	Annotations getAnnotations(UserInfo userInfo, String objectId);
+	Optional<Annotations> getAnnotations(UserInfo userInfo, String objectId);
 
 	/**
-	 * Updates the annotations for the given object
+	 * Push an update to the {@link Annotations} on the given object, this will
+	 * contain the merged annotations on a view that might include additional
+	 * columns added to the index, the {@link #canUpdateAnnotation(ColumnModel)} is
+	 * invoked on each matching ColumnModel before merging the annotations and
+	 * invoking this method.
 	 * 
 	 * @param userInfo
 	 * @param objectId    The object identifier
@@ -114,17 +118,17 @@ public interface MetadataIndexProvider extends HasViewObjectType, ViewScopeFilte
 	 * column model that matches an {@link ObjectField}. Can be used to skip
 	 * updating fields that are indexed in the annotation index but are not stored
 	 * in the annotations (e.g. a field that is not a default object field but still
-	 * need to be indexed).
+	 * need to be indexed). This will be used when creating the annotations to be
+	 * update using the {@link #updateAnnotations(UserInfo, String, Annotations)}
 	 * 
 	 * @param model
 	 * @return True if an annotation that matches the given column model can be
 	 *         updated, false otherwise
 	 */
 	boolean canUpdateAnnotation(ColumnModel model);
-	
 
 	// Used for reconciliation
-	
+
 	/**
 	 * In general should return the same result as
 	 * {@link #getContainerIdsForScope(Set, Long, int)} but used for reconciliation,
@@ -177,6 +181,5 @@ public interface MetadataIndexProvider extends HasViewObjectType, ViewScopeFilte
 	 * @return Map.key = containerId and map.value = sum of children CRCs
 	 */
 	Map<Long, Long> getSumOfChildCRCsForEachContainer(List<Long> containerIds);
-
 
 }

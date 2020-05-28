@@ -1921,9 +1921,9 @@ public class TableWorkerIntegrationTest {
 			assertEquals(1, enumVal.getCount().longValue());
 			//each row list column has 2 values so first 2 rows will have row 1 and row 2
 			if(i < listEnumerationValues.size() / 2) {
-				assertEquals("otherstring100000" + i % (listEnumerationValues.size() / 2), enumVal.getValue());
+				assertEquals("otherstring120000" + i % (listEnumerationValues.size() / 2), enumVal.getValue());
 			}else{
-				assertEquals("string100000" + i % (listEnumerationValues.size() / 2), enumVal.getValue());
+				assertEquals("string120000" + i % (listEnumerationValues.size() / 2), enumVal.getValue());
 			}
 		}
 		
@@ -1990,16 +1990,16 @@ public class TableWorkerIntegrationTest {
 		// simply wrap the exact same non-list values values into a list.
 		// (e.g. column "i0" (non-list) has value "string0" and column "i10" (list) has value "[\"string0\"]")
 		assertEquals(4, enumListValues.size());
-		assertEquals("otherstring1000000", enumListValues.get(0).getValue());
+		assertEquals("otherstring1200000", enumListValues.get(0).getValue());
 		assertEquals((Long) 1L, enumListValues.get(0).getCount());
 
-		assertEquals("otherstring1000003", enumListValues.get(1).getValue());
+		assertEquals("otherstring1200003", enumListValues.get(1).getValue());
 		assertEquals((Long) 1L, enumListValues.get(1).getCount());
 
-		assertEquals("string1000000", enumListValues.get(2).getValue());
+		assertEquals("string1200000", enumListValues.get(2).getValue());
 		assertEquals((Long) 1L, enumListValues.get(2).getCount());
 
-		assertEquals("string1000003", enumListValues.get(3).getValue());
+		assertEquals("string1200003", enumListValues.get(3).getValue());
 		assertEquals((Long) 1L, enumListValues.get(3).getCount());
 	}
 
@@ -2011,7 +2011,7 @@ public class TableWorkerIntegrationTest {
 		facetTestSetup();
 		long expectedMin = 203000;
 		long expectedMax = 203005;
-		query.setSql("SELECT UNNEST(i10) from " + tableId);
+		query.setSql("SELECT UNNEST(i12) from " + tableId);
 		query.setLimit(25L);
 		query.setOffset(0L);
 		queryOptions.withReturnFacets(true);
@@ -2034,10 +2034,10 @@ public class TableWorkerIntegrationTest {
 		List<FacetColumnRequest> selectedFacets = new ArrayList<>();
 		FacetColumnRequest selectedColumn = new FacetColumnValuesRequest();
 		//select values on the list column
-		selectedColumn.setColumnName("i10");
+		selectedColumn.setColumnName("i12");
 		Set<String> facetValues = new HashSet<>();
-		facetValues.add("string1000000");
-		facetValues.add("otherstring1000003");
+		facetValues.add("string1200000");
+		facetValues.add("otherstring1200003");
 		((FacetColumnValuesRequest)selectedColumn).setFacetValues(facetValues);
 		selectedFacets.add(selectedColumn);
 
@@ -2089,9 +2089,9 @@ public class TableWorkerIntegrationTest {
 			assertEquals(1, enumVal.getCount().longValue());
 			//each row list column has 2 values so first 2 rows will have row 1 and row 2
 			if(i < listEnumerationValues.size() / 2) {
-				assertEquals("otherstring100000" + i % (listEnumerationValues.size() / 2), enumVal.getValue());
+				assertEquals("otherstring120000" + i % (listEnumerationValues.size() / 2), enumVal.getValue());
 			}else{
-				assertEquals("string100000" + i % (listEnumerationValues.size() / 2), enumVal.getValue());
+				assertEquals("string120000" + i % (listEnumerationValues.size() / 2), enumVal.getValue());
 			}
 		}
 

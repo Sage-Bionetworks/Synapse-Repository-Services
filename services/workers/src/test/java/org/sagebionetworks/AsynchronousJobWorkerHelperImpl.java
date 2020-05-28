@@ -108,14 +108,18 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	@Override
 	public ObjectDataDTO waitForEntityReplication(UserInfo user, String tableId, String entityId, long maxWaitMS) throws InterruptedException{
 		Entity entity = entityManager.getEntity(user, entityId);
+		return waitForObjectReplication(ViewObjectType.ENTITY, KeyFactory.stringToKey(entity.getId()), entity.getEtag(), maxWaitMS);
+	}
+	
+	@Override
+	public ObjectDataDTO waitForObjectReplication(ViewObjectType objectType, Long objectId, String etag, long maxWaitMS) throws InterruptedException {
+		TableIndexDAO indexDao = tableConnectionFactory.getFirstConnection();
 		long start = System.currentTimeMillis();
-		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		while(true){
-			ObjectDataDTO dto = indexDao.getObjectData(ViewObjectType.ENTITY, KeyFactory.stringToKey(entityId));
-			if(dto == null || !dto.getEtag().equals(entity.getEtag())){
-				assertTrue((System.currentTimeMillis()-start) <  maxWaitMS, "Timed out waiting for table view status change.");
-				System.out.println("Waiting for entity replication. id: "+entityId+" etag: "+entity.getEtag());
+			ObjectDataDTO dto = indexDao.getObjectData(objectType, objectId);
+			if(dto == null || !dto.getEtag().equals(etag)){
+				assertTrue((System.currentTimeMillis()-start) <  maxWaitMS, "Timed out waiting for object replication.");
+				System.out.println("Waiting for object replication. id: "+objectId+" etag: "+etag);
 				Thread.sleep(1000);
 			}else{
 				return dto;
