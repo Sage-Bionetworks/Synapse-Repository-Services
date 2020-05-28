@@ -1072,11 +1072,6 @@ public class SubmissionDAOImplTest {
 	@Test
 	public void testGetSubmissionData() {
 
-		Annotations annotations = AnnotationsV2Utils.emptyAnnotations();
-
-		AnnotationsV2TestUtils.putAnnotations(annotations, "foo", "fooValue", AnnotationsValueType.STRING);
-		AnnotationsV2TestUtils.putAnnotations(annotations, "bar", "42", AnnotationsValueType.LONG);
-
 		// Creates 3 submissions for evalId
 		submissionDAO.create(submission);
 		createSubmissionStatus(SUBMISSION_ID, SubmissionStatusEnum.SCORED);

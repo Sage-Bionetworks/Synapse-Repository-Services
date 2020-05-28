@@ -140,6 +140,20 @@ public class SQLUtilsTest {
 		Object objectValue = SQLUtils.parseValueForDB(ColumnType.ENTITYID, "syn123");
 		assertEquals(expected, objectValue);
 	}
+	
+	@Test
+	public void testparseValueForDBEvaluationId() {
+		Long expected = new Long(123);
+		Object objectValue = SQLUtils.parseValueForDB(ColumnType.EVALUATIONID, "123");
+		assertEquals(expected, objectValue);
+	}
+	
+	@Test
+	public void testparseValueForDBSubmissionId() {
+		Long expected = new Long(123);
+		Object objectValue = SQLUtils.parseValueForDB(ColumnType.SUBMISSIONID, "123");
+		assertEquals(expected, objectValue);
+	}
 
 	@Test
 	public void testparseValueForDBDate() {
@@ -1651,6 +1665,8 @@ public class SQLUtilsTest {
 		assertEquals(AnnotationType.DATE, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.DATE));
 		assertEquals(AnnotationType.DOUBLE, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.DOUBLE));
 		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.ENTITYID));
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.SUBMISSIONID));
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.EVALUATIONID));
 		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.FILEHANDLEID));
 		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.USERID));
 		assertEquals(AnnotationType.LONG, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.INTEGER));
@@ -1669,6 +1685,8 @@ public class SQLUtilsTest {
 		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_LONG_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.DATE));
 		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_DOUBLE_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.DOUBLE));
 		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_LONG_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.ENTITYID));
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_LONG_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.SUBMISSIONID));
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_LONG_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.EVALUATIONID));
 		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_LONG_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.FILEHANDLEID));
 		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_LONG_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.USERID));
 		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_LONG_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.INTEGER));
