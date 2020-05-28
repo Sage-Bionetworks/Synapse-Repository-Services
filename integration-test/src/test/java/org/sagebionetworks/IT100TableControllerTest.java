@@ -269,7 +269,7 @@ public class IT100TableControllerTest {
 		
 		// run a bundled query
 		int mask = 0x1 | 0x2 | 0x4 | 0x8;
-		QueryResultBundle bundle = waitForBundleQueryResults("select one from " + table.getId(), 0L, 2L, mask, tableId);
+		QueryResultBundle bundle = AsyncHelper.waitForBundleQueryResults(synapse, MAX_QUERY_TIMEOUT_MS, "select one from " + table.getId(), 0L, 2L, mask, tableId);
 		assertNotNull(bundle);
 		assertNotNull(bundle.getQueryResult().getQueryResults());
 		assertNotNull(bundle.getQueryResult().getQueryResults().getEtag());
@@ -281,7 +281,7 @@ public class IT100TableControllerTest {
 		assertNotNull(bundle.getMaxRowsPerPage());
 		assertTrue(bundle.getMaxRowsPerPage() > 0);
 
-		bundle = waitForBundleQueryResults("select one from " + table.getId(), 2L, 2L, mask, tableId);
+		bundle = AsyncHelper.waitForBundleQueryResults(synapse, MAX_QUERY_TIMEOUT_MS, "select one from " + table.getId(), 2L, 2L, mask, tableId);
 		assertNotNull(bundle);
 		assertNotNull(bundle.getQueryResult().getQueryResults());
 		assertNotNull(bundle.getQueryResult().getQueryResults().getEtag());
@@ -405,7 +405,7 @@ public class IT100TableControllerTest {
 	 * @throws Exception
 	 */
 	public RowSet waitForQueryResults(String sql, Long offset, Long limit, String tableId) throws Exception {
-		return waitForBundleQueryResults(sql, offset, limit, SynapseClient.QUERY_PARTMASK, tableId).getQueryResult().getQueryResults();
+		return AsyncHelper.waitForBundleQueryResults(synapse, MAX_QUERY_TIMEOUT_MS, sql, offset, limit, SynapseClient.QUERY_PARTMASK, tableId).getQueryResult().getQueryResults();
 	}
 
 	/**
@@ -417,30 +417,7 @@ public class IT100TableControllerTest {
 	 * @throws SynapseException
 	 */
 	public long waitForCountResults(String sql, String tableId) throws Exception {
-		return waitForBundleQueryResults(sql, null, null, SynapseClient.COUNT_PARTMASK, tableId).getQueryCount();
-	}
-	
-	/**
-	 * Wait for a consistent query results.
-	 * 
-	 * @param sql
-	 * @return
-	 * @throws InterruptedException
-	 * @throws SynapseException
-	 */
-	public QueryResultBundle waitForBundleQueryResults(String sql, Long offset, Long limit, int partsMask, final String tableId) throws Exception {
-		final String asyncToken = synapse.queryTableEntityBundleAsyncStart(sql, offset, limit, true, partsMask, tableId);
-		return TimeUtils.waitFor(MAX_QUERY_TIMEOUT_MS, 500L, new Callable<Pair<Boolean, QueryResultBundle>>() {
-			@Override
-			public Pair<Boolean, QueryResultBundle> call() throws Exception {
-				try {
-					QueryResultBundle result = synapse.queryTableEntityBundleAsyncGet(asyncToken, tableId);
-					return Pair.create(true, result);
-				} catch (SynapseResultNotReadyException e) {
-					return Pair.create(false, null);
-				}
-			}
-		});
+		return AsyncHelper.waitForBundleQueryResults(synapse, MAX_QUERY_TIMEOUT_MS, sql, null, null, SynapseClient.COUNT_PARTMASK, tableId).getQueryCount();
 	}
 
 	@Test

@@ -123,7 +123,6 @@ import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
-import org.sagebionetworks.repo.model.dataaccess.SubmissionInfo;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
@@ -269,6 +268,7 @@ import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
@@ -3705,21 +3705,35 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 				+ ROW_ID + "/" + row.getRowId() + ROW_VERSION + "/"
 				+ row.getVersionNumber();
 	}
+	
+	@Override
+	public String queryTableEntityBundleAsyncStart(Query query, QueryOptions queryOptions, String tableId)
+			throws SynapseException {
+		
+		QueryBundleRequest bundleRequest = new QueryBundleRequest();
+		
+		bundleRequest.setEntityId(tableId);
+		bundleRequest.setQuery(query);
+		bundleRequest.setPartMask(queryOptions.getPartMask());
+		
+		return startAsynchJob(AsynchJobType.TableQuery, bundleRequest);
+	}
 
 	@Override
 	public String queryTableEntityBundleAsyncStart(String sql, Long offset,
 			Long limit, boolean isConsistent, int partsMask, String tableId)
 			throws SynapseException {
+		
 		Query query = new Query();
+		
 		query.setSql(sql);
 		query.setIsConsistent(isConsistent);
 		query.setOffset(offset);
 		query.setLimit(limit);
-		QueryBundleRequest bundleRequest = new QueryBundleRequest();
-		bundleRequest.setEntityId(tableId);
-		bundleRequest.setQuery(query);
-		bundleRequest.setPartMask((long) partsMask);
-		return startAsynchJob(AsynchJobType.TableQuery, bundleRequest);
+		
+		QueryOptions queryOptions = new QueryOptions().withMask((long) partsMask);
+		
+		return queryTableEntityBundleAsyncStart(query, queryOptions, tableId);
 	}
 
 	@Override
