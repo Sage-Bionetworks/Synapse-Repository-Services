@@ -48,6 +48,17 @@
 				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthScope"
 			}
 		},
+		"claims": {
+			"type": "map",
+			"key": {
+				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimName"
+			},
+			"value": {
+				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails"
+			},
+			"description": "OIDC Claims that this refresh token grants access to"
+		},
+
 		"authorizedOn": {
 			"type": "string",
 			"format": "date-time",

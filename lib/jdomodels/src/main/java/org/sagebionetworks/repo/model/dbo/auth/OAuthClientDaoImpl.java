@@ -35,8 +35,8 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSectorIdentifier;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
-import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorization;
-import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationList;
+import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistory;
+import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -329,13 +329,13 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	}
 
 	@Override
-	public OAuthClientAuthorizationList getAuthorizedClients(String userId, String nextPageToken, Long maxLeaseLengthInDays) {
+	public OAuthClientAuthorizationHistoryList getAuthorizedClientHistory(String userId, String nextPageToken, Long maxLeaseLengthInDays) {
 		NextPageToken nextPage = new NextPageToken(nextPageToken);
 
-		List<OAuthClientAuthorization> authorizations = jdbcTemplate.query(
+		List<OAuthClientAuthorizationHistory> authorizations = jdbcTemplate.query(
 				SELECT_CLIENTS_WITH_ACTIVE_TOKENS_FOR_PRINCIPAL,
 				(ResultSet rs, int rowNum) -> {
-					OAuthClientAuthorization authorization = new OAuthClientAuthorization();
+					OAuthClientAuthorizationHistory authorization = new OAuthClientAuthorizationHistory();
 					DBOOAuthClient dbo = new DBOOAuthClient();
 					dbo = dbo.getTableMapping().mapRow(rs, rowNum);
 					authorization.setClient(clientDboToDto(dbo));
@@ -344,7 +344,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 					return authorization;
 				},
 				userId, maxLeaseLengthInDays, nextPage.getLimitForQuery(), nextPage.getOffset());
-		OAuthClientAuthorizationList result = new OAuthClientAuthorizationList();
+		OAuthClientAuthorizationHistoryList result = new OAuthClientAuthorizationHistoryList();
 		result.setNextPageToken(nextPage.getNextPageTokenForCurrentResults(authorizations));
 		result.setResults(authorizations);
 		return result;

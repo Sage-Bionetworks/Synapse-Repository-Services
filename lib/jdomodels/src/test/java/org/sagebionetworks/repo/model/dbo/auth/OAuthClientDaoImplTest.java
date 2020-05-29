@@ -29,10 +29,12 @@ import org.sagebionetworks.repo.model.auth.SectorIdentifier;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
-import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationList;
+import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
@@ -498,6 +500,7 @@ public class OAuthClientDaoImplTest {
 		token.setClientId(clientId);
 		token.setPrincipalId(userId);
 		token.setScopes(Collections.singletonList(OAuthScope.view));
+		token.setClaims(Collections.singletonMap(OIDCClaimName.email.name(), new OIDCClaimsRequestDetails()));
 		token.setAuthorizedOn(new Date());
 		token.setLastUsed(lastUsedDate);
 		token.setModifiedOn(new Date());
@@ -521,7 +524,7 @@ public class OAuthClientDaoImplTest {
 
 
 		// Call under test
-		OAuthClientAuthorizationList results = oauthClientDao.getAuthorizedClients(userId.toString(), null, 365L);
+		OAuthClientAuthorizationHistoryList results = oauthClientDao.getAuthorizedClientHistory(userId.toString(), null, 365L);
 
 		long FIVE_MINUTES_AGO = System.currentTimeMillis() - FIVE_MINUTES_MILLIS;
 		// We should only get back client 1, because no active tokens exist for client 2
@@ -537,7 +540,7 @@ public class OAuthClientDaoImplTest {
 		Long userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
 		// Call under test
-		OAuthClientAuthorizationList results = oauthClientDao.getAuthorizedClients(userId.toString(), null, ONE_YEAR_MILLIS);
+		OAuthClientAuthorizationHistoryList results = oauthClientDao.getAuthorizedClientHistory(userId.toString(), null, ONE_YEAR_MILLIS);
 		assertEquals(0, results.getResults().size());
 		assertNull(results.getNextPageToken());
 	}

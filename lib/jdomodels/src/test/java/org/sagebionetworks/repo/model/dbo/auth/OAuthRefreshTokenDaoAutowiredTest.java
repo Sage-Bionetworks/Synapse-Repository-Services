@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Timestamp;
@@ -11,7 +12,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,23 +23,29 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.OAuthRefreshTokenDao;
 import org.sagebionetworks.repo.model.auth.SectorIdentifier;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthRefreshToken;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.transaction.IllegalTransactionStateException;
+import org.springframework.transaction.annotation.Transactional;
 
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = {"classpath:jdomodels-test-context.xml"})
-public class OAuthRefreshTokenDaoImplTest {
+public class OAuthRefreshTokenDaoAutowiredTest {
 
 	private List<String> tokenIdsToDelete;
 	private List<String> clientIdsToDelete;
@@ -48,6 +57,8 @@ public class OAuthRefreshTokenDaoImplTest {
 	private static final String SECTOR_IDENTIFIER_URI = "https://client.uri.com/path/to/json/file";
 
 	private static final String userId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
+
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().build();
 
 	private static final Long ONE_HOUR_MILLIS = 1000L * 60 * 60;
 	private static final Long ONE_DAY_MILLIS = ONE_HOUR_MILLIS * 24;
@@ -124,6 +135,7 @@ public class OAuthRefreshTokenDaoImplTest {
 		metadata.setPrincipalId(userId);
 		metadata.setClientId(clientId);
 		metadata.setScopes(Collections.singletonList(OAuthScope.view));
+		metadata.setClaims(Collections.singletonMap(OIDCClaimName.email.name(), new OIDCClaimsRequestDetails()));
 		metadata.setModifiedOn(new Date());
 		metadata.setLastUsed(lastUsedDate);
 		metadata.setAuthorizedOn(new Date());
@@ -152,11 +164,16 @@ public class OAuthRefreshTokenDaoImplTest {
 
 
 	@Test
-	void testDtoToDbo() {
+	void testDtoToDboAndBack() {
 		OAuthRefreshTokenInformation dto = new OAuthRefreshTokenInformation();
 		dto.setName(UUID.randomUUID().toString());
 		dto.setTokenId("111111");
 		dto.setScopes(Arrays.asList(OAuthScope.modify, OAuthScope.authorize));
+		Map<String, OIDCClaimsRequestDetails> claims = new HashMap<>();
+		OIDCClaimsRequestDetails detail = new OIDCClaimsRequestDetails();
+		detail.setEssential(true);
+		claims.put(OIDCClaimName.userid.name(), detail);
+		dto.setClaims(claims);
 		dto.setClientId("888888");
 		dto.setPrincipalId("999999");
 		dto.setModifiedOn(new Date());
@@ -173,11 +190,16 @@ public class OAuthRefreshTokenDaoImplTest {
 	}
 
 	@Test
-	void testDboToDto() {
+	void testDboToDtoAndBack() throws Exception{
 		DBOOAuthRefreshToken dbo = new DBOOAuthRefreshToken();
 		dbo.setName(UUID.randomUUID().toString());
 		dbo.setId(11111L);
-		dbo.setScopes(Arrays.asList(OAuthScope.modify, OAuthScope.authorize));
+		dbo.setScopes(JDOSecondaryPropertyUtils.compressObject(X_STREAM, Arrays.asList(OAuthScope.modify, OAuthScope.authorize)));
+		Map<String, OIDCClaimsRequestDetails> claims = new HashMap<>();
+		OIDCClaimsRequestDetails detail = new OIDCClaimsRequestDetails();
+		detail.setEssential(true);
+		claims.put(OIDCClaimName.userid.name(), detail);
+		dbo.setClaims(JDOSecondaryPropertyUtils.compressObject(X_STREAM, claims));
 		dbo.setClientId(888888L);
 		dbo.setPrincipalId(999999L);
 		dbo.setModifiedOn(new Timestamp(System.currentTimeMillis()));
@@ -203,6 +225,7 @@ public class OAuthRefreshTokenDaoImplTest {
 		metadata.setPrincipalId(userId);
 		metadata.setClientId(client.getClient_id());
 		metadata.setScopes(Arrays.asList(OAuthScope.view, OAuthScope.download));
+		metadata.setClaims(Collections.singletonMap(OIDCClaimName.user_name.name(), new OIDCClaimsRequestDetails()));
 		metadata.setModifiedOn(new Date());
 		metadata.setLastUsed(new Date());
 		metadata.setAuthorizedOn(new Date());
@@ -244,14 +267,46 @@ public class OAuthRefreshTokenDaoImplTest {
 		assertNull(retrieved.getNextPageToken());
 	}
 
+	@Transactional
 	@Test
 	void getMatchingTokenByHash() {
 		String hashValue = "matching hash";
 		OAuthRefreshTokenInformation expected = createRefreshToken(hashValue, new Date());
 
 		// call under test
-		Optional<OAuthRefreshTokenInformation> actual = oauthRefreshTokenDao.getMatchingTokenByHash(hashValue, client.getClient_id());
+		Optional<OAuthRefreshTokenInformation> actual = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate(hashValue, client.getClient_id());
 		assertEquals(expected, actual.get());
+	}
+
+	@Test
+	void getMatchingTokenByHashForUpdate_noTransaction() {
+		assertThrows(IllegalTransactionStateException.class,() ->
+				oauthRefreshTokenDao.getMatchingTokenByHashForUpdate("hash", "clientid")
+
+		);
+	}
+
+	@Transactional
+	@Test
+	void updateTokenHash() {
+		String oldHash = "old hash";
+		String newHash = "new hash";
+		OAuthRefreshTokenInformation metadata = createRefreshToken(oldHash, new Date());
+
+		// call under test
+		oauthRefreshTokenDao.updateTokenHash(metadata.getTokenId(), newHash);
+
+		OAuthRefreshTokenInformation updated = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate(newHash, client.getClient_id()).get();
+		assertEquals(metadata.getTokenId(), updated.getTokenId());
+		assertNotNull(updated);
+	}
+
+	@Test
+	void updateTokenHash_noTransaction() {
+		assertThrows(IllegalTransactionStateException.class,() ->
+				oauthRefreshTokenDao.updateTokenHash("hash", "clientid")
+
+		);
 	}
 
 	@Test

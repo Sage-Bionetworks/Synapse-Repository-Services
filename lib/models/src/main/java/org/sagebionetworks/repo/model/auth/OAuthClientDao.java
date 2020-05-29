@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.model.auth;
 
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
-import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationList;
+import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -119,12 +119,13 @@ public interface OAuthClientDao {
 
 	/**
 	 * Retrieve all clients that a specified user has granted long-lived access to via OAuth refresh tokens.
-	 * Does not include clients where access has expired.
+	 * Does not include clients whose access has expired or has been revoked.
 	 * @param userId The user who has delegated access to clients via OAuth 2 refresh tokens
 	 * @param nextPageToken For pagination
-	 * @param maxLeaseLengthInDays Clients who have not used a refresh token in this many days will not be retrieved.
-	 *                               Semantically, this should be maximum lease length of a refresh token
-	 * @return a paginated list of clients with OAuth 2 access to a user's resources
+	 * @param maxLeaseLengthInDays The maximum lease length of a refresh token.
+	 *                                Clients having no refresh tokens used after this point in time are
+	 *                                omitted from the results.
+	 * @return a paginated list of clients which have been granted refresh token(s) for the given user.
 	 */
-	OAuthClientAuthorizationList getAuthorizedClients(String userId, String nextPageToken, Long maxLeaseLengthInDays);
+	OAuthClientAuthorizationHistoryList getAuthorizedClientHistory(String userId, String nextPageToken, Long maxLeaseLengthInDays);
 }
