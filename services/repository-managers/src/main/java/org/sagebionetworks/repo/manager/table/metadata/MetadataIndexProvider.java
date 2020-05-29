@@ -181,5 +181,12 @@ public interface MetadataIndexProvider extends HasViewObjectType, ViewScopeFilte
 	 * @return Map.key = containerId and map.value = sum of children CRCs
 	 */
 	Map<Long, Long> getSumOfChildCRCsForEachContainer(List<Long> containerIds);
+	
+	/**
+	 * Validate the view type mask
+	 * 
+	 * @param viewTypeMask The mask for the view, can be null
+	 */
+	void validateTypeMask(Long viewTypeMask);
 
 }

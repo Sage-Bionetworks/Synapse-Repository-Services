@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.registry.EntityTypeMetadata;
 import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.TableEntity;
 
 /**
@@ -50,9 +51,11 @@ public class EntityTypeUtils {
 				// link
 				buildMetadata(EntityType.link, Arrays.asList(Project.class.getName(), Folder.class.getName()), Link.class, "Link"),
 				// EntityView
-				buildMetadata(EntityType.entityview, Arrays.asList(Project.class.getName(), Folder.class.getName()), EntityView.class, "View"),
+				buildMetadata(EntityType.entityview, Arrays.asList(Project.class.getName(), Folder.class.getName()), EntityView.class, "Entity View"),
 				// dockerrepo
 				buildMetadata(EntityType.dockerrepo, Arrays.asList(Project.class.getName()), DockerRepository.class, "Docker Repository"),
+				// submission views
+				buildMetadata(EntityType.submissionview, Arrays.asList(Project.class.getName(), Folder.class.getName()), SubmissionView.class, "Submission View")
 		};
 
 		className = new HashMap<String, Class<? extends Entity>>();
@@ -63,6 +66,7 @@ public class EntityTypeUtils {
 		className.put(Link.class.getName(), Link.class);
 		className.put(EntityView.class.getName(), EntityView.class);
 		className.put(DockerRepository.class.getName(), DockerRepository.class);
+		className.put(SubmissionView.class.getName(), SubmissionView.class);
 	}
 
 	/**
@@ -220,5 +224,22 @@ public class EntityTypeUtils {
 	 */
 	public static String getDisplayName(EntityType type){
 		return getMetadata(type).getDisplayName();
+	}
+
+	/**
+	 * @param type
+	 * @return True if the type defines a view, false otherwise
+	 */
+	public static boolean isViewType(EntityType type) {
+		if (type == null) {
+			throw new IllegalArgumentException("The type cannot be null");
+		}
+		switch (type) {
+		case entityview:
+		case submissionview:
+			return true;
+		default:
+			return false;
+		}
 	}
 }

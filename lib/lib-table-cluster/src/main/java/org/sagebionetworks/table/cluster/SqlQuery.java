@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.QueryFilter;
@@ -155,7 +156,7 @@ public class SqlQuery {
 		}
 		
 		// only a view can include the etag
-		if(EntityType.entityview.equals(tableType) && includeEntityEtag != null){
+		if(EntityTypeUtils.isViewType(this.tableType) && includeEntityEtag != null){
 			this.includeEntityEtag = includeEntityEtag;
 		}else{
 			this.includeEntityEtag = false;

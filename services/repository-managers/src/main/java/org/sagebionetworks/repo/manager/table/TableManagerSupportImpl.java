@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -38,6 +39,7 @@ import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
+import org.sagebionetworks.repo.model.table.ViewScopeUtils;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -289,15 +291,12 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * @return
 	 */
 	public static ObjectType getObjectTypeForEntityType(EntityType type) {
-		switch (type) {
-		case table:
+		if (EntityType.table.equals(type)) {
 			return ObjectType.TABLE;
-		case entityview:
+		} else if (EntityTypeUtils.isViewType(type)) {
 			return ObjectType.ENTITY_VIEW;
-		default:
-			throw new IllegalArgumentException("unknown table type: " + type);
 		}
-
+		throw new IllegalArgumentException("unknown table type: " + type);
 	}
 	
 	
@@ -475,17 +474,13 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	@Override
-	public List<ColumnModel> getDefaultTableViewColumns(ViewScopeType viewScopeType) {
-		ValidateArgument.required(viewScopeType, "viewScopeType");
-		ValidateArgument.required(viewScopeType.getTypeMask(), "viewScopeType.typeMask");
-		
-		Long viewTypeMask = viewScopeType.getTypeMask();
-		ViewObjectType objectType = viewScopeType.getObjectType();
-		
-		if (objectType == null) {
+	public List<ColumnModel> getDefaultTableViewColumns(EntityType viewEntityType, Long viewTypeMask) {				
+		if (viewEntityType == null) {
 			// To avoid breaking API changes we fallback to ENTITY
-			objectType = ViewObjectType.ENTITY;
+			viewEntityType = EntityType.entityview;
 		}
+		
+		ViewObjectType objectType = ViewScopeUtils.map(viewEntityType);
 		
 		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(objectType);
 		
@@ -513,8 +508,17 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	@Override
-	public void validateScopeSize(Set<Long> scopeIds, ViewScopeType scopeType) {
-		if(scopeIds != null){
+	public void validateScope(ViewScopeType scopeType, Set<Long> scopeIds) {
+		ValidateArgument.required(scopeType, "scopeType");
+		ValidateArgument.required(scopeType.getObjectType(), "scopeType.objectType");
+		
+		ViewObjectType objectType = scopeType.getObjectType();
+		
+		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(objectType);
+		
+		provider.validateTypeMask(scopeType.getTypeMask());
+		
+		if(scopeIds != null && !scopeIds.isEmpty()) {
 			// Validation is built into getAllContainerIdsForScope() call
 			getAllContainerIdsForScope(scopeIds, scopeType);
 		}

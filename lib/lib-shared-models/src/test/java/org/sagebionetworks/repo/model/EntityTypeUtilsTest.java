@@ -5,7 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Set;
+
 import org.junit.jupiter.api.Test;
+
+import com.google.common.collect.ImmutableSet;
 
 public class EntityTypeUtilsTest {
 
@@ -41,6 +45,16 @@ public class EntityTypeUtilsTest {
 			assertEquals(expected, isValid);
 		}
 		
+	}
+	
+	@Test
+	public void testIsViewType() {
+		Set<EntityType> viewTypes = ImmutableSet.of(EntityType.entityview, EntityType.submissionview);
+
+		for (EntityType type : EntityType.values()) {
+			boolean result = EntityTypeUtils.isViewType(type);
+			assertEquals(viewTypes.contains(type), result);
+		}
 	}
 	
 	/**

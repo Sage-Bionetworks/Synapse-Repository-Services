@@ -62,6 +62,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
@@ -3842,10 +3843,22 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public List<ColumnModel> getDefaultColumnsForView(Long viewTypeMask)
+	public List<ColumnModel> getDefaultColumnsForView(EntityType viewEntityType, Long viewTypeMask)
 			throws SynapseException {
-		ValidateArgument.required(viewTypeMask, "viewTypeMask");
-		String url = COLUMN_VIEW_DEFAULT+"?viewTypeMask="+viewTypeMask;
+		StringBuilder builder = new StringBuilder(COLUMN_VIEW_DEFAULT);
+		if (viewEntityType != null || viewTypeMask != null) {
+			builder.append("?");
+		}
+		if (viewEntityType != null) {
+			builder.append("viewEntityType=").append(viewEntityType.name());
+		}
+		if (viewTypeMask != null) {
+			if (viewEntityType != null) {
+				builder.append("&");
+			}
+			builder.append("viewTypeMask=").append(viewTypeMask);
+		}
+		String url = builder.toString();
 		return getListOfJSONEntity(getRepoEndpoint(), url, ColumnModel.class);
 	}
 

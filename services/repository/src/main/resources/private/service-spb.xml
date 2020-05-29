@@ -137,10 +137,6 @@
 	<bean id="tableEntityMetadataProvider"
 		class="org.sagebionetworks.repo.web.service.metadata.TableEntityMetadataProvider"
 		scope="singleton" />
-	<bean id="entityiewMetadataProvider"
-		class="org.sagebionetworks.repo.web.service.metadata.EntityViewMetadataProvider"
-		scope="singleton" />	
-
 	<bean id="externalDockerRepoValidator"
 		class="org.sagebionetworks.repo.web.service.metadata.ExternalDockerRepoValidator"
 		scope="singleton" />	
@@ -165,10 +161,13 @@
 					<ref bean="tableEntityMetadataProvider"/>
 				</entry>
 				<entry key="entityview">
-					<ref bean="entityiewMetadataProvider"/>
+					<ref bean="entityViewMetadataProvider"/>
 				</entry>				
 				<entry key="dockerrepo">
 					<ref bean="externalDockerRepoValidator"/>
+				</entry>
+				<entry key="submissionview">
+					<ref bean="submissionViewMetadataProvider"/>
 				</entry>				
 			</map>
 		</property>

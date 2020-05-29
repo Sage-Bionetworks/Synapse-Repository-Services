@@ -60,6 +60,7 @@ import org.sagebionetworks.repo.manager.replication.ReplicationManager;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.BucketAndKey;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
@@ -204,7 +205,7 @@ public class TableViewManagerImplTest {
 		viewType =ViewTypeMask.File.getMask();
 		
 		viewScope = new ViewScope();
-		viewScope.setObjectType(ViewObjectType.ENTITY);
+		viewScope.setViewEntityType(EntityType.entityview);
 		viewScope.setScope(scope);
 		viewScope.setViewTypeMask(viewType);
 		
@@ -269,7 +270,7 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testSetViewSchemaAndScopeOverLimit(){
 		IllegalArgumentException overLimit = new IllegalArgumentException("Over limit");
-		doThrow(overLimit).when(mockTableManagerSupport).validateScopeSize(anySet(), any());
+		doThrow(overLimit).when(mockTableManagerSupport).validateScope(any(), anySet());
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
@@ -281,7 +282,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 		// the size should be validated
-		verify(mockTableManagerSupport).validateScopeSize(scopeIds, scopeType);
+		verify(mockTableManagerSupport).validateScope(scopeType, scopeIds);
 		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), scopeType);
 		verify(mockColumnModelManager).bindColumnsToDefaultVersionOfObject(schema, viewId);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
@@ -337,20 +338,6 @@ public class TableViewManagerImplTest {
 	 * Project cannot be combined with anything else.
 	 */
 	@Test
-	public void testSetViewSchemaAndScopeWithProjectCombinedWithOtherTypes(){
-		long mask = ViewTypeMask.Project.getMask() | ViewTypeMask.File.getMask();
-		viewScope.setViewTypeMask(mask);
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
-		}).getMessage();	
-		assertEquals(TableViewManagerImpl.PROJECT_TYPE_CANNOT_BE_COMBINED_WITH_ANY_OTHER_TYPE, message);
-	}
-	
-	/**
-	 * Project cannot be combined with anything else.
-	 */
-	@Test
 	public void testSetViewSchemaAndScopeWithProjectOnly(){
 		long mask = ViewTypeMask.Project.getMask();
 		viewScope.setViewTypeMask(mask);
@@ -362,14 +349,14 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testSetViewSchemaAndScopeWithNullObjectType(){
-		viewScope.setObjectType(null);
+		viewScope.setViewEntityType(null);
 		
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 		});
 		
-		assertEquals("The scope objectType is required.", ex.getMessage());
+		assertEquals("The scope entity type is required.", ex.getMessage());
 	}
 	
 	@Test

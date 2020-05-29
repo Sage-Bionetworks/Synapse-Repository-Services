@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -44,7 +45,7 @@ import com.google.common.collect.Lists;
 @ActiveProfiles("test-reconciliation-workers")
 public class ObjectReplicationReconciliationWorkerIntegrationTest {
 	
-	private static final int MAX_WAIT_MS = 30*1000;
+	private static final int MAX_WAIT_MS = 2* 60 *1000;
 	
 	@Autowired
 	EntityManager entityManager;
@@ -167,7 +168,7 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 		String viewId = entityManager.createEntity(adminUserInfo, view, activityId);
 		view = entityManager.getEntity(adminUserInfo, viewId, EntityView.class);
 		ViewScope scope = new ViewScope();
-		scope.setObjectType(viewObjectType);
+		scope.setViewEntityType(EntityType.entityview);
 		scope.setScope(view.getScopeIds());
 		scope.setViewType(view.getType());
 		scope.setViewTypeMask(view.getViewTypeMask());

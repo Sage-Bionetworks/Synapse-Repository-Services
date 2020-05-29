@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.manager.replication.ReplicationManager;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.BucketAndKey;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
@@ -49,6 +50,7 @@ import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
+import org.sagebionetworks.repo.model.table.ViewScopeUtils;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -79,11 +81,8 @@ public class TableViewManagerImpl implements TableViewManager {
 
 	public static final String DEFAULT_ETAG = "DEFAULT";
 
-	public static final String PROJECT_TYPE_CANNOT_BE_COMBINED_WITH_ANY_OTHER_TYPE = "The Project type cannot be combined with any other type.";
-	public static final String ETG_COLUMN_MISSING = "The view schema must include '" + ObjectField.etag.name()
-			+ "' column.";
-	public static final String ETAG_MISSING_MESSAGE = "The '" + ObjectField.etag.name()
-			+ "' must be included to update an Entity's annotations.";
+	public static final String ETG_COLUMN_MISSING = "The view schema must include '" + ObjectField.etag.name() + "' column.";
+	public static final String ETAG_MISSING_MESSAGE = "The '" + ObjectField.etag.name() + "' must be included to update an Entity's annotations.";
 
 	/**
 	 * Max columns per view is now the same as the max per table.
@@ -132,25 +131,25 @@ public class TableViewManagerImpl implements TableViewManager {
 	public void setViewSchemaAndScope(UserInfo userInfo, List<String> schema, ViewScope scope, String viewIdString) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(scope, "scope");
-		ValidateArgument.required(scope.getObjectType(), "The scope objectType");
+		ValidateArgument.required(scope.getViewEntityType(), "The scope entity type");
 		validateViewSchemaSize(schema);
 		Long viewId = KeyFactory.stringToKey(viewIdString);
 		IdAndVersion idAndVersion = IdAndVersion.parse(viewIdString);
 		Set<Long> scopeIds = null;
+		
 		if (scope.getScope() != null) {
 			scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scope.getScope()));
 		}
-		Long viewTypeMask = ViewTypeMask.getViewTypeMask(scope);
-		if ((viewTypeMask & ViewTypeMask.Project.getMask()) > 0) {
-			if (viewTypeMask != ViewTypeMask.Project.getMask()) {
-				throw new IllegalArgumentException(PROJECT_TYPE_CANNOT_BE_COMBINED_WITH_ANY_OTHER_TYPE);
-			}
-		}
 		
-		ViewScopeType scopeType = new ViewScopeType(scope.getObjectType(), viewTypeMask);
+		Long viewTypeMask = ViewTypeMask.getViewTypeMask(scope);
+		
+		EntityType entityType = scope.getViewEntityType();
+		ViewObjectType objectType = ViewScopeUtils.map(entityType);
+		
+		ViewScopeType scopeType = new ViewScopeType(objectType, viewTypeMask);
 
-		// validate the scope size
-		tableManagerSupport.validateScopeSize(scopeIds, scopeType);
+		// validate the scope
+		tableManagerSupport.validateScope(scopeType, scopeIds);
 		
 		// Define the scope of this view.
 		viewScopeDao.setViewScopeAndType(viewId, scopeIds, scopeType);

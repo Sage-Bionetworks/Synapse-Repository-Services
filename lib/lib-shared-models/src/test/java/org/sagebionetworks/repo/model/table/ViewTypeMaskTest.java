@@ -1,9 +1,13 @@
 package org.sagebionetworks.repo.model.table;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 public class ViewTypeMaskTest {
 
 	
@@ -25,12 +29,15 @@ public class ViewTypeMaskTest {
 		assertEquals(expected, ViewTypeMask.getMaskForDepricatedType(ViewType.file_and_table));
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetViewTypeMaskBothNull() {
 		ViewType viewType = null;
 		Long viewTypeMask = null;
-		// call under test
-		ViewTypeMask.getViewTypeMask(viewType, viewTypeMask);
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			ViewTypeMask.getViewTypeMask(viewType, viewTypeMask);
+		});
 	}
 	
 	@Test
@@ -70,10 +77,12 @@ public class ViewTypeMaskTest {
 		assertEquals(ViewTypeMask.Project.getMask(), result);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetViewTypeMaskViewScopeNull() {
 		ViewScope scope = null;
-		// call under test
-		ViewTypeMask.getViewTypeMask(scope);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			ViewTypeMask.getViewTypeMask(scope);
+		});
 	}
 }

@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
@@ -1384,17 +1385,19 @@ public interface SynapseClient extends BaseClient {
 	List<ColumnModel> getDefaultColumnsForView(ViewType viewType) throws SynapseException;
 	
 	/**
-	 * Get the default columns for a given view type mask.
+	 * Get the default columns for a given view entity type and type mask.
 	 * 
+	 * @param viewEntityType The view entity type, supports entityview and submissionview
 	 * @param viewTypeMask
 	 *            Bit mask representing the types to include in the view. The
-	 *            following are the possible types (type=<mask_hex>): File=0x01,
-	 *            Project=0x02, Table=0x04, Folder=0x08, View=0x10, Docker=0x20.
+	 *            following are the possible types when the viewEntityType is entityview: (type=<mask_hex>): File=0x01,
+	 *            Project=0x02, Table=0x04, Folder=0x08, View=0x10, Docker=0x20. For a viewEntityType of submissionview the mask 
+	 *            is not required
 
 	 * @return
 	 * @throws SynapseException
 	 */
-	List<ColumnModel> getDefaultColumnsForView(Long viewTypeMask) throws SynapseException;
+	List<ColumnModel> getDefaultColumnsForView(EntityType viewEntityType, Long viewTypeMask) throws SynapseException;
 	
 	// Team services
 	

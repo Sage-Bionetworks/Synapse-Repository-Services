@@ -59,6 +59,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -240,6 +241,12 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 					idList.add(columnModelOne.getId());
 					view.setColumnIds(idList);
 					view.setType(ViewType.file);
+				}
+				if (object instanceof SubmissionView) {
+					SubmissionView view = (SubmissionView)object;
+					List<String> idList = new LinkedList<String>();
+					idList.add(columnModelOne.getId());
+					view.setColumnIds(idList);
 				}
 				if(object instanceof DockerRepository){
 					DockerRepository dockerRepository = (DockerRepository)object;
@@ -538,7 +545,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		// Now update each
 		for(Entity entity: created){
 			// Cannot directly create version of tables or views
-			if(entity instanceof TableEntity || entity instanceof EntityView) {
+			if(entity instanceof TableEntity || entity instanceof EntityView || entity instanceof SubmissionView) {
 				continue;
 			}
 			// We can only create new versions for versionable entities.
@@ -570,7 +577,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		// Now update each
 		for(Entity entity: created){
 			// Cannot directly create version of tables or views
-			if(entity instanceof TableEntity || entity instanceof EntityView) {
+			if(entity instanceof TableEntity || entity instanceof EntityView || entity instanceof SubmissionView) {
 				continue;
 			}
 			// We can only create new versions for versionable entities.
@@ -614,7 +621,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 			// We can only create new versions for versionable entities.
 			if(entity instanceof VersionableEntity){
 				// Cannot directly create version of tables or views
-				if(entity instanceof TableEntity || entity instanceof EntityView) {
+				if(entity instanceof TableEntity || entity instanceof EntityView || entity instanceof SubmissionView) {
 					continue;
 				}
 				VersionableEntity versionableEntity = (VersionableEntity) entity;
@@ -666,7 +673,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		// Now update each
 		for(Entity entity: created){
 			// Cannot directly create version of tables or views
-			if(entity instanceof TableEntity || entity instanceof EntityView) {
+			if(entity instanceof TableEntity || entity instanceof EntityView || entity instanceof SubmissionView) {
 				continue;
 			}
 			// We can only create new versions for versionable entities.
@@ -724,7 +731,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		// Now update each
 		for(Entity entity: created){
 			// Cannot directly create version of tables or views
-			if(entity instanceof TableEntity || entity instanceof EntityView) {
+			if(entity instanceof TableEntity || entity instanceof EntityView || entity instanceof SubmissionView) {
 				continue;
 			}
 			// We can only create new versions for versionable entities.

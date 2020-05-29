@@ -1,11 +1,12 @@
 package org.sagebionetworks.repo.web.service;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import static org.mockito.Mockito.when;
 
@@ -18,10 +19,10 @@ import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.lang3.RandomUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -46,15 +47,14 @@ import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.repo.web.service.metadata.EventType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.Lists;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class EntityServiceImplAutowiredTest  {
 
@@ -70,7 +70,8 @@ public class EntityServiceImplAutowiredTest  {
 	@Autowired
 	private ColumnModelManager columnModelManager;
 	
-	@Autowired TableEntityManager tableEntityManager;
+	@Autowired 
+	private TableEntityManager tableEntityManager;
 
 	@Autowired
 	private IdGenerator idGenerator;
@@ -86,7 +87,7 @@ public class EntityServiceImplAutowiredTest  {
 	
 	private ColumnModel column;
 	
-	@Before
+	@BeforeEach
 	public void before() throws Exception{
 		toDelete = new LinkedList<String>();
 		// Map test objects to their urls
@@ -141,7 +142,7 @@ public class EntityServiceImplAutowiredTest  {
 		column.setName("anInteger");
 		column = columnModelManager.createColumnModel(adminUserInfo, column);
 	}
-	@After
+	@AfterEach
 	public void after(){
 		if(toDelete != null){
 			for(String id: toDelete){
@@ -162,11 +163,16 @@ public class EntityServiceImplAutowiredTest  {
 	 * PLFM-1754 "Disallow FileEntity with Null FileHandle"
 	 * @throws Exception
 	 */
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testPLFM_1754CreateNullFileHandleId() throws Exception {
 		FileEntity file = new FileEntity();
 		file.setParentId(project.getId());
-		file = entityService.createEntity(adminUserId, file, null);
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			entityService.createEntity(adminUserId, file, null);
+		}).getMessage();
+		
+		assertEquals("FileEntity.dataFileHandleId cannot be null", errorMessage);
 	}
 	
 	/**
@@ -189,7 +195,7 @@ public class EntityServiceImplAutowiredTest  {
 	 * PLFM-1754 "Disallow FileEntity with Null FileHandle"
 	 * @throws Exception
 	 */
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testPLFM_1754UpdateNull() throws Exception {
 		FileEntity file = new FileEntity();
 		file.setParentId(project.getId());
@@ -198,7 +204,14 @@ public class EntityServiceImplAutowiredTest  {
 		assertNotNull(file);
 		// Now try to set it to null
 		file.setDataFileHandleId(null);
-		file = entityService.updateEntity(adminUserId, file, false, null);
+		
+		final FileEntity finalFile = file;
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			entityService.updateEntity(adminUserId, finalFile, false, null);
+		}).getMessage();
+		
+		assertEquals("FileEntity.dataFileHandleId cannot be null", errorMessage);
 	}
 	
 	/**
@@ -215,16 +228,16 @@ public class EntityServiceImplAutowiredTest  {
 		file.setDataFileHandleId(fileHandle1.getId());
 		file = entityService.createEntity(adminUserId, file, null);
 		assertNotNull(file);
-		assertEquals("Should start off as version one",new Long(1), file.getVersionNumber());
+		assertEquals(new Long(1), file.getVersionNumber(), "Should start off as version one");
 		// Make sure we can update it 
 		file.setDataFileHandleId(fileHandle2.getId());
 		file = entityService.updateEntity(adminUserId, file, false, null);
 		// This should trigger a version change.
-		assertEquals("Changing the dataFileHandleId of a FileEntity should have created a new version",new Long(2), file.getVersionNumber());
+		assertEquals(new Long(2), file.getVersionNumber(), "Changing the dataFileHandleId of a FileEntity should have created a new version");
 		// Now make sure if we change the name but the file
 		file.setName("newName");
 		file = entityService.updateEntity(adminUserId, file, false, null);
-		assertEquals("A new version should not have been created when a name changed",new Long(2), file.getVersionNumber());
+		assertEquals(new Long(2), file.getVersionNumber(), "A new version should not have been created when a name changed");
 	}
 
 	@Test

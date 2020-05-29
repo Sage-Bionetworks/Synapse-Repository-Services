@@ -1,0 +1,8 @@
+{
+	"description": "A view of evaluation submissions whose scope is defined by the evaluation ids the submissions are part of. The user must have READ_PRIVATE_SUBMISSION access on each of the evaluations in the scope.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.table.View"
+		}
+	]
+}

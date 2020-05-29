@@ -15,11 +15,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.EntityView;
-import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 
@@ -57,7 +57,7 @@ public class EntityViewMetadataProviderTest {
 		
 		userInfo = new UserInfo(false, 55L);
 		
-		scope = EntityViewMetadataProvider.createViewScope(table);
+		scope = provider.createViewScope(userInfo, table);
 	}
 
 	@Test
@@ -89,12 +89,12 @@ public class EntityViewMetadataProviderTest {
 	
 	@Test
 	public void testCreateViewScopeWithType() {
-		ViewScope scope = EntityViewMetadataProvider.createViewScope(table);
+		ViewScope scope = provider.createViewScope(userInfo, table);
 		assertNotNull(scope);
 		assertEquals(viewType, scope.getViewType());
 		assertEquals(scopeIds, scope.getScope());
 		assertEquals(null, scope.getViewTypeMask());
-		assertEquals(ViewObjectType.ENTITY, scope.getObjectType());
+		assertEquals(EntityType.entityview, scope.getViewEntityType());
 	}
 	
 	@Test
@@ -102,12 +102,12 @@ public class EntityViewMetadataProviderTest {
 		Long mask = new Long(0x10);
 		table.setViewTypeMask(mask);
 		table.setType(null);
-		ViewScope scope = EntityViewMetadataProvider.createViewScope(table);
+		ViewScope scope = provider.createViewScope(userInfo, table);
 		assertNotNull(scope);
 		assertEquals(null, scope.getViewType());
 		assertEquals(scopeIds, scope.getScope());
 		assertEquals(mask, scope.getViewTypeMask());
-		assertEquals(ViewObjectType.ENTITY, scope.getObjectType());
+		assertEquals(EntityType.entityview, scope.getViewEntityType());
 	}
 	
 	@Test

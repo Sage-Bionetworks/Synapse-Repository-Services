@@ -2,20 +2,13 @@
 	"description": "A view of Entities within a defined scope.",
 	"implements": [
 		{
-			"$ref": "org.sagebionetworks.repo.model.table.Table"
+			"$ref": "org.sagebionetworks.repo.model.table.View"
 		},
 		{
 			"$ref": "org.sagebionetworks.repo.model.table.HasViewTypeMask"
 		}
 	],
 	"properties": {
-		"scopeIds": {
-			"description": "The list of container IDs (projects or folders) that define the scope of this view.",
-			"type": "array",
-			"items": {
-				"type": "string"
-			}
-		},
 		"type": {
 			"type": "string",
 			"description": "Deprecated. Use: 'viewTypeMask'",

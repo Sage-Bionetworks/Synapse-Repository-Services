@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
@@ -295,7 +296,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		tableId = entityManager.createEntity(adminUserInfo, view, null);
 		toDelete.add(tableId);
 		ViewScope scope = new ViewScope();
-		scope.setObjectType(ViewObjectType.ENTITY);
+		scope.setViewEntityType(EntityType.entityview);
 		scope.setScope(projectIds);
 		scope.setViewType(ViewType.project);
 		tableViewManager.setViewSchemaAndScope(adminUserInfo, headers, scope, tableId);

@@ -7,15 +7,15 @@
 	],
 	"properties": {
 		"scope": {
-			"description": "List of parent IDs that define a view scope.",
+			"description": "List of parent IDs that define a view scope. For an entityview the ids should point to entities, for a submissionview the ids should point to evaluation ids",
 			"type": "array",
 			"items": {
 				"type": "string"
 			}
 		},
-		"objectType": {
-			"description": "The type of the objects in the rows of a view (E.g. ENTITY for entity views)",
-			"$ref": "org.sagebionetworks.repo.model.table.ViewObjectType"
+		"viewEntityType": {
+			"description": "The entity type of the view, if not supplied defaults to entityview. Supported values are entityview and submissionview",
+			"$ref": "org.sagebionetworks.repo.model.EntityType"
 		},
 		"viewType": {
 			"description": "Deprecated. Use: 'viewTypeMask'",

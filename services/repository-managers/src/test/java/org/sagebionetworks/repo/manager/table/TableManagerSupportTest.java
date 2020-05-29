@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -43,6 +42,7 @@ import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -474,15 +474,23 @@ public class TableManagerSupportTest {
 	@Test
 	public void testGetObjectTypeForEntityType(){
 		assertEquals(ObjectType.TABLE, TableManagerSupportImpl.getObjectTypeForEntityType(EntityType.table));
-		assertEquals(ObjectType.ENTITY_VIEW, TableManagerSupportImpl.getObjectTypeForEntityType(EntityType.entityview));
+		for (EntityType type : EntityType.values()) {
+			if (EntityTypeUtils.isViewType(type)) {
+				assertEquals(ObjectType.ENTITY_VIEW, TableManagerSupportImpl.getObjectTypeForEntityType(type));
+			}
+		}
 	}
 	
 	@Test
 	public void testGetObjectTypeForEntityTypeUnknownType(){
-		assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			TableManagerSupportImpl.getObjectTypeForEntityType(EntityType.project);
-		});
+		for (EntityType type : EntityType.values()) {
+			if (!EntityTypeUtils.isViewType(type) && !EntityType.table.equals(type)) {
+				assertThrows(IllegalArgumentException.class, ()->{
+					// call under test
+					TableManagerSupportImpl.getObjectTypeForEntityType(EntityType.project);
+				});
+			}
+		}
 	}
 	
 	@Test
@@ -595,18 +603,21 @@ public class TableManagerSupportTest {
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		
 		// call under test
-		manager.validateScopeSize(scope, scopeType);
+		manager.validateScope(scopeType, scope);
 		
+		verify(mockMetadataIndexProvider).validateTypeMask(scopeType.getTypeMask());
 		verify(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test
-	public void testValidateScopeSizeNullScope() throws LimitExceededException{
+	public void testValidateScopeSizeNullScope() throws LimitExceededException {
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		// The scope can be null.
 		scope = null;
 		// call under test
-		manager.validateScopeSize(scope, scopeType);
-		verify(mockNodeDao, never()).getAllContainerIds(anySet(), anyInt());
+		manager.validateScope(scopeType, scope);
+
+		verify(mockMetadataIndexProvider).validateTypeMask(scopeType.getTypeMask());
 	}
 	
 	@Test
@@ -758,32 +769,15 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testGetDefaultTableViewColumnsNullScopeType(){
-		ViewScopeType scopeType = null;
-		assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			manager.getDefaultTableViewColumns(scopeType);
-		});
-	}
-	
-	@Test
-	public void testGetDefaultTableViewColumnsNullMask(){
-		scopeType = new ViewScopeType(ViewObjectType.ENTITY, null);
-		assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			manager.getDefaultTableViewColumns(scopeType);
-		});
-	}
-	
-	@Test
 	public void testGetDefaultTableViewColumnsNullObjectType(){
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		when(mockMetadataIndexProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultModel);
-		
-		scopeType = new ViewScopeType(null, 1L);
+
+		EntityType viewEntityType = null;
+		Long viewTypeMask = 1L;
 
 		// call under test
-		manager.getDefaultTableViewColumns(scopeType);
+		manager.getDefaultTableViewColumns(viewEntityType, viewTypeMask);
 
 		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(ViewObjectType.ENTITY);
 		verify(mockMetadataIndexProvider).getDefaultColumnModel(scopeType.getTypeMask());
@@ -796,8 +790,11 @@ public class TableManagerSupportTest {
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		when(mockMetadataIndexProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultModel);
 
+		EntityType viewEntityType = EntityType.entityview;
+		Long viewTypeMask = 1L;
+		
 		// call under test
-		manager.getDefaultTableViewColumns(scopeType);
+		manager.getDefaultTableViewColumns(viewEntityType, viewTypeMask);
 		
 		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(scopeType.getObjectType());
 		verify(mockMetadataIndexProvider).getDefaultColumnModel(scopeType.getTypeMask());

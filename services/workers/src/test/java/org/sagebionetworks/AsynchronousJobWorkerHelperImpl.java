@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import org.apache.commons.io.IOUtils;
 import org.sagebionetworks.aws.SynapseS3Client;
@@ -24,6 +25,7 @@ import org.sagebionetworks.repo.manager.table.metadata.ViewScopeFilterBuilder;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -37,6 +39,11 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryOptions;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -48,6 +55,8 @@ import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.TableQueryParser;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHelper {
@@ -139,8 +148,8 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	 */
 	@Override
 	public EntityView createView(UserInfo user, String name, String parentId, List<String> scope, long viewTypeMask) {
-		ViewScopeType scopeType = new ViewScopeType(ViewObjectType.ENTITY, viewTypeMask);
-		List<ColumnModel> defaultColumns = tableMangerSupport.getDefaultTableViewColumns(scopeType);
+		EntityType entityType = EntityType.entityview;
+		List<ColumnModel> defaultColumns = tableMangerSupport.getDefaultTableViewColumns(entityType, viewTypeMask);
 		EntityView view = new EntityView();
 		view.setName(name);
 		view.setViewTypeMask(viewTypeMask);
@@ -150,10 +159,33 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		String viewId = entityManager.createEntity(user, view, null);
 		view = entityManager.getEntity(user, viewId, EntityView.class);
 		ViewScope viewScope = new ViewScope();
-		viewScope.setObjectType(scopeType.getObjectType());
+		viewScope.setViewEntityType(entityType);
 		viewScope.setScope(view.getScopeIds());
 		viewScope.setViewTypeMask(viewTypeMask);
 		tableViewManager.setViewSchemaAndScope(user, view.getColumnIds(), viewScope, viewId);
+		return view;
+	}
+	
+	@Override
+	public SubmissionView createSubmissionView(UserInfo user, String name, String parentId, List<String> scope) {
+		EntityType entityType = EntityType.submissionview;
+		Long typeMask = 0L;
+		List<ColumnModel> defaultColumns = tableMangerSupport.getDefaultTableViewColumns(entityType, typeMask);
+		SubmissionView view = new SubmissionView();
+		view.setName(name);
+		view.setParentId(parentId);
+		view.setColumnIds(TableModelUtils.getIds(defaultColumns));
+		view.setScopeIds(scope);
+		String viewId = entityManager.createEntity(user, view, null);
+		view = entityManager.getEntity(user, viewId, SubmissionView.class);
+		
+		ViewScope viewScope = new ViewScope();
+		viewScope.setViewEntityType(entityType);
+		viewScope.setScope(view.getScopeIds());
+		viewScope.setViewTypeMask(typeMask);
+		
+		tableViewManager.setViewSchemaAndScope(user, view.getColumnIds(), viewScope, viewId);
+		
 		return view;
 	}
 	
@@ -168,7 +200,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	@Override
 	public Optional<Boolean> isViewAvailableAndUpToDate(IdAndVersion tableId) throws TableFailedException {
 		EntityType type = tableMangerSupport.getTableEntityType(tableId);
-		if(!EntityType.entityview.equals(type)) {
+		if(!EntityTypeUtils.isViewType(type)) {
 			// not a view
 			return Optional.empty();
 		}
@@ -188,6 +220,54 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		long limit = 1L;
 		Set<Long> changes = indexDao.getOutOfDateRowsForView(tableId, scopeFilter, limit);
 		return Optional.of(changes.isEmpty());
+	}
+	
+	@Override
+	public QueryResultBundle waitForConsistentQuery(UserInfo user, String sql, Predicate<QueryResultBundle> resultMatcher, int maxWaitTime) throws Exception {
+		Query query = new Query();
+		query.setSql(sql);
+		query.setIncludeEntityEtag(true);
+		QueryOptions options = new QueryOptions()
+				.withRunQuery(true)
+				.withRunCount(true)
+				.withReturnFacets(false)
+				.withReturnColumnModels(true);
+		return waitForConsistentQuery(user, query, options, resultMatcher, maxWaitTime);
+	}
+	
+	@Override
+	public QueryResultBundle waitForConsistentQuery(UserInfo user, Query query, QueryOptions options, Predicate<QueryResultBundle> resultMatcher, int maxWaitTime) throws Exception {
+		System.out.println("Submitting query: " + query.getSql());
+		long start = System.currentTimeMillis();
+		while(true) {
+			QueryResultBundle results = waitForConsistentQuery(user, query, options, maxWaitTime);
+			
+			if (resultMatcher.test(results)) {
+				return results;
+			}
+			
+			System.out.println("Waiting for matching result...");
+			assertTrue((System.currentTimeMillis()-start) <  maxWaitTime, "Timed out waiting for matching table results");
+			Thread.sleep(1000);
+		}
+	}
+	
+	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query, QueryOptions options, int maxWaitTime) throws Exception {
+		// Wait for the view to be up-to-date before running the query
+		IdAndVersion viewId = extractTableIdFromQuery(query.getSql());
+		waitForViewToBeUpToDate(viewId, maxWaitTime);
+		// The view is up-to-date so run the caller's query.
+		QueryBundleRequest request = new QueryBundleRequest();
+		request.setQuery(query);
+		request.setPartMask(options.getPartMask());
+		QueryResultBundle results =  startAndWaitForJob(user, request, maxWaitTime, QueryResultBundle.class);
+		// Keep running queries as long as a view out-of-date
+
+		return results;
+	}
+	
+	private IdAndVersion extractTableIdFromQuery(String sqlQuery) throws ParseException {
+		return IdAndVersion.parse(TableQueryParser.parserQuery(sqlQuery).getTableName());
 	}
 	
 	/**
