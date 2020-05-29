@@ -10,6 +10,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_RE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_REFRESH_TOKEN_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OAUTH_REFRESH_TOKEN;
 
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
@@ -20,10 +21,12 @@ import java.util.stream.Collectors;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.auth.OAuthRefreshTokenDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthRefreshToken;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
@@ -90,13 +93,30 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 	@Autowired
 	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
+	// Note, we do not serialize fields which are 'broken out' ino their own column in DBOOAuthRefreshToken
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
+			.allowTypes(OAuthRefreshTokenInformation.class)
+			.omitField(OAuthRefreshTokenInformation.class, "tokenId")
+			.omitField(OAuthRefreshTokenInformation.class, "clientId")
+			.omitField(OAuthRefreshTokenInformation.class, "principalId")
+			.omitField(OAuthRefreshTokenInformation.class, "name")
+			.omitField(OAuthRefreshTokenInformation.class, "authorizedOn")
+			.omitField(OAuthRefreshTokenInformation.class, "lastUsed")
+			.omitField(OAuthRefreshTokenInformation.class, "modifiedOn")
+			.omitField(OAuthRefreshTokenInformation.class, "etag")
+			.build();
+
 	public static DBOOAuthRefreshToken refreshTokenDtoToDbo(OAuthRefreshTokenInformation dto) {
 		DBOOAuthRefreshToken dbo = new DBOOAuthRefreshToken();
+		try {
+			dbo.setScopesAndClaims(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 		dbo.setId(Long.parseLong(dto.getTokenId()));
 		dbo.setName(dto.getName());
 		dbo.setPrincipalId(Long.parseLong(dto.getPrincipalId()));
 		dbo.setClientId(Long.parseLong(dto.getClientId()));
-		dbo.setScopes(dto.getScopes());
 		dbo.setCreatedOn(new Timestamp(dto.getAuthorizedOn().getTime()));
 		dbo.setModifiedOn(new Timestamp(dto.getModifiedOn().getTime()));
 		dbo.setLastUsed(new Timestamp(dto.getLastUsed().getTime()));
@@ -106,11 +126,15 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 
 	public static OAuthRefreshTokenInformation refreshTokenDboToDto(DBOOAuthRefreshToken dbo) {
 		OAuthRefreshTokenInformation dto = new OAuthRefreshTokenInformation();
+		try {
+			dto = (OAuthRefreshTokenInformation) JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getScopesAndClaims());
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 		dto.setTokenId(dbo.getId().toString());
 		dto.setName(dbo.getName());
 		dto.setPrincipalId(dbo.getPrincipalId().toString());
 		dto.setClientId(dbo.getClientId().toString());
-		dto.setScopes(dbo.getScopesAsList());
 		// Timestamp must be converted to Date for .equals to work on the DTO
 		dto.setAuthorizedOn(new Date(dbo.getCreatedOn().getTime()));
 		dto.setModifiedOn(new Date(dbo.getModifiedOn().getTime()));

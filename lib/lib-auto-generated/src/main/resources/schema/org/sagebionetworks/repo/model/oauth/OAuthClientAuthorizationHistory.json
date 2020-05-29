@@ -14,7 +14,7 @@
 		"authorizedOn": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The date that authorization was granted to the OAuth client."
+			"description": "The date that authorization was granted to the OAuth client, i.e. the oldest timestamp for an active refresh token for the given client and user."
 		},
 		"lastUsed": {
 			"type": "string",

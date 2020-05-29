@@ -4,7 +4,7 @@
 		"results":{
 			"type": "array",
 			"items":{
-				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthClientAuthorization"
+				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistory"
 			}
 		},
 		"nextPageToken": {

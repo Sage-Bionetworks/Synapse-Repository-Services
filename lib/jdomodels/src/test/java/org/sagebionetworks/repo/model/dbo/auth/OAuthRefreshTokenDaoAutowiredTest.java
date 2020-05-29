@@ -21,10 +21,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.OAuthRefreshTokenDao;
 import org.sagebionetworks.repo.model.auth.SectorIdentifier;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthRefreshToken;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
@@ -51,6 +53,8 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 	private static final String SECTOR_IDENTIFIER_URI = "https://client.uri.com/path/to/json/file";
 
 	private static final String userId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
+
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().build();
 
 	private static final Long ONE_HOUR_MILLIS = 1000L * 60 * 60;
 	private static final Long ONE_DAY_MILLIS = ONE_HOUR_MILLIS * 24;
@@ -155,7 +159,7 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 
 
 	@Test
-	void testDtoToDbo() {
+	void testDtoToDboAndBack() {
 		OAuthRefreshTokenInformation dto = new OAuthRefreshTokenInformation();
 		dto.setName(UUID.randomUUID().toString());
 		dto.setTokenId("111111");
@@ -176,11 +180,11 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 	}
 
 	@Test
-	void testDboToDto() {
+	void testDboToDtoAndBack() throws Exception{
 		DBOOAuthRefreshToken dbo = new DBOOAuthRefreshToken();
 		dbo.setName(UUID.randomUUID().toString());
 		dbo.setId(11111L);
-		dbo.setScopes(Arrays.asList(OAuthScope.modify, OAuthScope.authorize));
+		dbo.setScopesAndClaims(JDOSecondaryPropertyUtils.compressObject(X_STREAM, Arrays.asList(OAuthScope.modify, OAuthScope.authorize)));
 		dbo.setClientId(888888L);
 		dbo.setPrincipalId(999999L);
 		dbo.setModifiedOn(new Timestamp(System.currentTimeMillis()));

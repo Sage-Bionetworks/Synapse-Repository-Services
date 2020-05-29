@@ -1040,7 +1040,7 @@ public class SqlConstants {
 	public static final String COL_OAUTH_REFRESH_TOKEN_NAME =							"NAME";
 	public static final String COL_OAUTH_REFRESH_TOKEN_PRINCIPAL_ID =					"PRINCIPAL_ID";
 	public static final String COL_OAUTH_REFRESH_TOKEN_CLIENT_ID =						"CLIENT_ID";
-	public static final String COL_OAUTH_REFRESH_TOKEN_SCOPE =							"SCOPE";
+	public static final String COL_OAUTH_REFRESH_TOKEN_SCOPES_AND_CLAIMS =				"SCOPES_AND_CLAIMS";
 	public static final String COL_OAUTH_REFRESH_TOKEN_LAST_USED =						"LAST_USED";
 	public static final String COL_OAUTH_REFRESH_TOKEN_CREATED_ON =						"CREATED_ON";
 	public static final String COL_OAUTH_REFRESH_TOKEN_MODIFIED_ON =					"MODIFIED_ON";
