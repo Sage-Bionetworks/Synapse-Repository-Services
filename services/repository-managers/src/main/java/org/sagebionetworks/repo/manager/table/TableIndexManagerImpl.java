@@ -34,7 +34,6 @@ import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
-import org.sagebionetworks.repo.model.table.ViewScopeUtils;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
@@ -474,7 +473,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			viewTypeMask = ViewTypeMask.getViewTypeMask(scope);
 		}
 		
-		ViewObjectType objectType = ViewScopeUtils.map(viewType);		
+		ViewObjectType objectType = ViewObjectType.map(viewType);	
 		
 		ViewScopeType scopeType = new ViewScopeType(objectType, viewTypeMask);
 		// lookup the containers for the given scope

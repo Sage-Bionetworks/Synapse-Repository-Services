@@ -50,7 +50,6 @@ import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
-import org.sagebionetworks.repo.model.table.ViewScopeUtils;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -143,8 +142,8 @@ public class TableViewManagerImpl implements TableViewManager {
 		
 		Long viewTypeMask = ViewTypeMask.getViewTypeMask(scope);
 		
-		ViewEntityType entityType = scope.getViewEntityType();
-		ViewObjectType objectType = ViewScopeUtils.map(entityType);
+		ViewEntityType viewEntityType = scope.getViewEntityType();
+		ViewObjectType objectType = ViewObjectType.map(viewEntityType);
 		
 		ViewScopeType scopeType = new ViewScopeType(objectType, viewTypeMask);
 

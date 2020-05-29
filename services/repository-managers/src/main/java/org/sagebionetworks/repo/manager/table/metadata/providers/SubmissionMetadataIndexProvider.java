@@ -21,7 +21,6 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
-import org.sagebionetworks.repo.model.table.ViewScopeUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -73,7 +72,7 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 	@Override
 	public List<String> getSubTypesForMask(Long typeMask) {
 		// Submissions are not hierarchical
-		return ImmutableList.of(ViewScopeUtils.defaultSubType(OBJECT_TYPE));
+		return ImmutableList.of(OBJECT_TYPE.defaultSubType());
 	}
 
 	@Override

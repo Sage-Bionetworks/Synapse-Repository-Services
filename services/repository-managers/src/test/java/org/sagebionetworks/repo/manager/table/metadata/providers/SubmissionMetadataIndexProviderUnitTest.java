@@ -39,7 +39,6 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
-import org.sagebionetworks.repo.model.table.ViewScopeUtils;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 
 import com.google.common.collect.ImmutableList;
@@ -119,7 +118,7 @@ public class SubmissionMetadataIndexProviderUnitTest {
 		// Call under test
 		List<String> result = provider.getSubTypesForMask(mockViewTypeMask);
 
-		assertEquals(ImmutableList.of(ViewScopeUtils.defaultSubType(viewObjectType)), result);
+		assertEquals(ImmutableList.of(viewObjectType.defaultSubType()), result);
 
 	}
 

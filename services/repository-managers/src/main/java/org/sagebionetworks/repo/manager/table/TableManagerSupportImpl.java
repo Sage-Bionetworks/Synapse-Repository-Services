@@ -40,7 +40,6 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
-import org.sagebionetworks.repo.model.table.ViewScopeUtils;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -481,7 +480,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			viewEntityType = ViewEntityType.entityview;
 		}
 		
-		ViewObjectType objectType = ViewScopeUtils.map(viewEntityType);
+		ViewObjectType objectType = ViewObjectType.map(viewEntityType);
 		
 		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(objectType);
 		
