@@ -49,9 +49,7 @@ public class SubmissionViewMetadataProvider extends ViewMetadataProvider<Submiss
 		if (scope == null || scope.isEmpty()) {
 			return;
 		}
-		scope.forEach((evaluationId) -> {
-			evaluationPermissionManager.hasAccess(userInfo, evaluationId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
-		});
+		evaluationPermissionManager.hasAccess(userInfo, ACCESS_TYPE.READ_PRIVATE_SUBMISSION, scope);
 	}
 	
 }

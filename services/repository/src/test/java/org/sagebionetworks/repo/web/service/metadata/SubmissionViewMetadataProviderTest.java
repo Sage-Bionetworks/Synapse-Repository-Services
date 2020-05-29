@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.service.metadata;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -75,14 +76,12 @@ public class SubmissionViewMetadataProviderTest {
 	public void testValidateEntity() {
 		when(mockEntityEvent.getUserInfo()).thenReturn(mockUser);
 		when(mockSubmissionView.getScopeIds()).thenReturn(scope.getScope());
-		when(mockPermissionManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockPermissionManager.hasAccess(any(), any(), anyList())).thenReturn(AuthorizationStatus.authorized());
 		
 		// Call under test
 		provider.validateEntity(mockSubmissionView, mockEntityEvent);
 		
-		for (String evaluation : scope.getScope()) {
-			verify(mockPermissionManager).hasAccess(mockUser, evaluation, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);	
-		}
+		verify(mockPermissionManager).hasAccess(mockUser, ACCESS_TYPE.READ_PRIVATE_SUBMISSION, scope.getScope());	
 	}
 	
 	@Test
