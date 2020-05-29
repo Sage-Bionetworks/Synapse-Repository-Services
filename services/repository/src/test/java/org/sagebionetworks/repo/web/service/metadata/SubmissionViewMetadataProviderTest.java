@@ -18,10 +18,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.table.SubmissionView;
+import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 
 import com.google.common.collect.ImmutableList;
@@ -58,7 +58,7 @@ public class SubmissionViewMetadataProviderTest {
 		
 		scope.setViewTypeMask(viewTypeMask);
 		scope.setScope(viewScope);
-		scope.setViewEntityType(EntityType.submissionview);
+		scope.setViewEntityType(ViewEntityType.submissionview);
 	}
 	
 	@Test

@@ -6,11 +6,11 @@ import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.SubmissionView;
+import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +32,7 @@ public class SubmissionViewMetadataProvider extends ViewMetadataProvider<Submiss
 	public ViewScope createViewScope(UserInfo userInfo, SubmissionView view) {
 		ViewScope scope = new ViewScope();
 		
-		scope.setViewEntityType(EntityType.submissionview);
+		scope.setViewEntityType(ViewEntityType.submissionview);
 		scope.setScope(view.getScopeIds());
 		scope.setViewTypeMask(0L);
 		

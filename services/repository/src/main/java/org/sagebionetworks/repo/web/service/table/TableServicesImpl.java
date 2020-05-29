@@ -15,7 +15,6 @@ import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -38,6 +37,7 @@ import org.sagebionetworks.repo.model.table.SqlTransformResponse;
 import org.sagebionetworks.repo.model.table.TableBundle;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
+import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.query.ParseException;
@@ -231,7 +231,7 @@ public class TableServicesImpl implements TableServices {
 	}
 	
 	@Override
-	public List<ColumnModel> getDefaultViewColumnsForType(EntityType entityType, Long viewTypeMask) {
+	public List<ColumnModel> getDefaultViewColumnsForType(ViewEntityType entityType, Long viewTypeMask) {
 		return tableManagerSupport.getDefaultTableViewColumns(entityType, viewTypeMask);
 	}
 	

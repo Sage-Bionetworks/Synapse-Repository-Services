@@ -6,16 +6,14 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 
 public class ViewScopeUtils {
 	
-	private static final Map<EntityType, ViewObjectType> ENTITY_TYPE_MAP = Stream.of(EntityType.values())
-			.filter(EntityTypeUtils::isViewType)
+	private static final Map<ViewEntityType, ViewObjectType> ENTITY_TYPE_MAP = Stream.of(ViewEntityType.values())
 			.collect(Collectors.toMap(Function.identity(), (entityType) -> {
 				// entityview -> ENTITY
+				// submissionview -> SUBMISSION
 				return ViewObjectType.valueOf(entityType.name().toUpperCase().replace("VIEW", ""));
 			}));
 			
@@ -54,9 +52,9 @@ public class ViewScopeUtils {
 	
 	/**
 	 * @param type
-	 * @return The {@link ViewObjectType} mapped to the given {@link EntityType} (must be a {@link EntityTypeUtils#isViewType(EntityType) a view type})
+	 * @return The {@link ViewObjectType} mapped to the given {@link ViewEntityType}
 	 */
-	public static ViewObjectType map(EntityType type) {
+	public static ViewObjectType map(ViewEntityType type) {
 		ViewObjectType viewObjectType = ENTITY_TYPE_MAP.get(type);
 		if (viewObjectType == null) {
 			throw new IllegalArgumentException("Unsupported type " + type);

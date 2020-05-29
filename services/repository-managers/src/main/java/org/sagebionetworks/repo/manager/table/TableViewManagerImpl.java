@@ -28,7 +28,6 @@ import org.sagebionetworks.repo.manager.replication.ReplicationManager;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.BucketAndKey;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
@@ -47,6 +46,7 @@ import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableState;
+import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
@@ -143,7 +143,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		
 		Long viewTypeMask = ViewTypeMask.getViewTypeMask(scope);
 		
-		EntityType entityType = scope.getViewEntityType();
+		ViewEntityType entityType = scope.getViewEntityType();
 		ViewObjectType objectType = ViewScopeUtils.map(entityType);
 		
 		ViewScopeType scopeType = new ViewScopeType(objectType, viewTypeMask);

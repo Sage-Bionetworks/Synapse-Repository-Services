@@ -60,7 +60,6 @@ import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
@@ -87,6 +86,7 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SubmissionView;
+import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -330,7 +330,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		
 		submissionsToDelete.add(sub1.getId());
 		
-		List<ColumnModel> model = synapseOne.getDefaultColumnsForView(EntityType.submissionview, null);
+		List<ColumnModel> model = synapseOne.getDefaultColumnsForView(ViewEntityType.submissionview, null);
 		
 		// now create the view
 		SubmissionView view = new SubmissionView();

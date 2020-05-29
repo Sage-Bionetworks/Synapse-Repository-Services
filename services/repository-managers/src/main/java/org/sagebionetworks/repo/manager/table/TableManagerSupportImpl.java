@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewScopeUtils;
@@ -474,10 +475,10 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	@Override
-	public List<ColumnModel> getDefaultTableViewColumns(EntityType viewEntityType, Long viewTypeMask) {				
+	public List<ColumnModel> getDefaultTableViewColumns(ViewEntityType viewEntityType, Long viewTypeMask) {				
 		if (viewEntityType == null) {
 			// To avoid breaking API changes we fallback to ENTITY
-			viewEntityType = EntityType.entityview;
+			viewEntityType = ViewEntityType.entityview;
 		}
 		
 		ViewObjectType objectType = ViewScopeUtils.map(viewEntityType);

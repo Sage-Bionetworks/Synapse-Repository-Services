@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.table;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Optional;
@@ -11,8 +10,6 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 
 @ExtendWith(MockitoExtension.class)
@@ -63,16 +60,8 @@ public class ViewScopeUtilsTest {
 	
 	@Test
 	public void testMapFromEntityType() {
-		for (EntityType type : EntityType.values()) {
-			if (EntityTypeUtils.isViewType(type)) {
-				assertNotNull(ViewScopeUtils.map(type));
-			} else {
-				String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
-					ViewScopeUtils.map(type);
-				}).getMessage();
-				
-				assertEquals("Unsupported type " + type, errorMessage);
-			}
+		for (ViewEntityType type : ViewEntityType.values()) {
+			assertNotNull(ViewScopeUtils.map(type));
 		}
 	}
 

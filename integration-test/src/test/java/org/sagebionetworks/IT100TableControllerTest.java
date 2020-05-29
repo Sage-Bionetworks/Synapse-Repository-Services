@@ -41,7 +41,6 @@ import org.sagebionetworks.client.exceptions.UnknownSynapseServerException;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Project;
@@ -75,6 +74,7 @@ import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
+import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
@@ -522,7 +522,7 @@ public class IT100TableControllerTest {
 	
 	@Test
 	public void testgetDefaultColumnsForViewTypeMask() throws SynapseException{
-		EntityType viewEntityType = EntityType.entityview;
+		ViewEntityType viewEntityType = ViewEntityType.entityview;
 		Long mask = ViewTypeMask.File.getMask();
 		List<ColumnModel> defaults = synapse.getDefaultColumnsForView(viewEntityType, mask);
 		assertNotNull(defaults);
@@ -535,7 +535,7 @@ public class IT100TableControllerTest {
 	
 	@Test
 	public void testgetDefaultColumnsForSubmissionView() throws SynapseException{
-		EntityType viewEntityType = EntityType.submissionview;
+		ViewEntityType viewEntityType = ViewEntityType.submissionview;
 		Long mask = null;
 		List<ColumnModel> defaults = synapse.getDefaultColumnsForView(viewEntityType, mask);
 		assertNotNull(defaults);

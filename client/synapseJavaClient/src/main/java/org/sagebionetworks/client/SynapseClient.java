@@ -237,6 +237,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
@@ -1402,7 +1403,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	List<ColumnModel> getDefaultColumnsForView(EntityType viewEntityType, Long viewTypeMask) throws SynapseException;
+	List<ColumnModel> getDefaultColumnsForView(ViewEntityType viewEntityType, Long viewTypeMask) throws SynapseException;
 	
 	// Team services
 	
