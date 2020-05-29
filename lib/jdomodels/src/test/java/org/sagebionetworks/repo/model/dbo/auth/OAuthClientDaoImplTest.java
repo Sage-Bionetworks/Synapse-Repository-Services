@@ -33,6 +33,8 @@ import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
@@ -498,6 +500,7 @@ public class OAuthClientDaoImplTest {
 		token.setClientId(clientId);
 		token.setPrincipalId(userId);
 		token.setScopes(Collections.singletonList(OAuthScope.view));
+		token.setClaims(Collections.singletonMap(OIDCClaimName.email.name(), new OIDCClaimsRequestDetails()));
 		token.setAuthorizedOn(new Date());
 		token.setLastUsed(lastUsedDate);
 		token.setModifiedOn(new Date());

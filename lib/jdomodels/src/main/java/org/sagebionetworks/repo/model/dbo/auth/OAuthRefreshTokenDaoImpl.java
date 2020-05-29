@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -29,6 +30,8 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthRefreshToken;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
@@ -93,23 +96,14 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 	@Autowired
 	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-	// Note, we do not serialize fields which are 'broken out' ino their own column in DBOOAuthRefreshToken
-	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
-			.allowTypes(OAuthRefreshTokenInformation.class)
-			.omitField(OAuthRefreshTokenInformation.class, "tokenId")
-			.omitField(OAuthRefreshTokenInformation.class, "clientId")
-			.omitField(OAuthRefreshTokenInformation.class, "principalId")
-			.omitField(OAuthRefreshTokenInformation.class, "name")
-			.omitField(OAuthRefreshTokenInformation.class, "authorizedOn")
-			.omitField(OAuthRefreshTokenInformation.class, "lastUsed")
-			.omitField(OAuthRefreshTokenInformation.class, "modifiedOn")
-			.omitField(OAuthRefreshTokenInformation.class, "etag")
-			.build();
+	// We serialize explicitly chosen fields, not the entire DTO, so no need to omit fields in the builder
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().build();
 
 	public static DBOOAuthRefreshToken refreshTokenDtoToDbo(OAuthRefreshTokenInformation dto) {
 		DBOOAuthRefreshToken dbo = new DBOOAuthRefreshToken();
 		try {
-			dbo.setScopesAndClaims(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
+			dbo.setScopes(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto.getScopes()));
+			dbo.setClaims(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto.getClaims()));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -127,7 +121,8 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 	public static OAuthRefreshTokenInformation refreshTokenDboToDto(DBOOAuthRefreshToken dbo) {
 		OAuthRefreshTokenInformation dto = new OAuthRefreshTokenInformation();
 		try {
-			dto = (OAuthRefreshTokenInformation) JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getScopesAndClaims());
+			dto.setScopes((List<OAuthScope>) JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getScopes()));
+			dto.setClaims((Map<String, OIDCClaimsRequestDetails>) JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getClaims()));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -184,6 +179,7 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 		ValidateArgument.required(metadata.getClientId(), "Client ID");
 		ValidateArgument.required(metadata.getPrincipalId(), "Principal ID");
 		ValidateArgument.required(metadata.getScopes(), "Scope");
+		ValidateArgument.required(metadata.getClaims(), "Claims");
 		ValidateArgument.required(metadata.getAuthorizedOn(), "Authorized On");
 		ValidateArgument.required(metadata.getLastUsed(), "Last Used");
 		ValidateArgument.required(metadata.getModifiedOn(), "Modified On");
