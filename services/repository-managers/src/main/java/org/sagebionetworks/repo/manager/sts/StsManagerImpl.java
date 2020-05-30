@@ -146,6 +146,8 @@ public class StsManagerImpl implements StsManager {
 		// Convert credentials to our own home-made class, so that our service can marshall it to/from JSON.
 		Credentials awsCredentials = result.getCredentials();
 		StsCredentials stsCredentials = new StsCredentials();
+		stsCredentials.setBucket(bucket);
+		stsCredentials.setBaseKey(storageLocationSetting.getBaseKey());
 		stsCredentials.setAccessKeyId(awsCredentials.getAccessKeyId());
 		stsCredentials.setSecretAccessKey(awsCredentials.getSecretAccessKey());
 		stsCredentials.setSessionToken(awsCredentials.getSessionToken());
