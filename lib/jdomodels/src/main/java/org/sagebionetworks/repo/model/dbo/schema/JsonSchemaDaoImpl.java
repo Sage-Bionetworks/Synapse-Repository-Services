@@ -60,6 +60,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -160,7 +161,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 	}
 
 	@Override
-	public void trunacteAll() {
+	public void truncateAll() {
 		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_OBJECT_BINDING);
 		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_DEPENDENCY);
 		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_LATEST_VERSION);
@@ -306,6 +307,22 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 					schemaId);
 		} catch (DataIntegrityViolationException e) {
 			throw new IllegalArgumentException("Cannot delete a schema that is referenced by another schema");
+		}
+	}
+
+	@Override
+	public String getSchemaId(String organizationName, String schemaName) {
+		ValidateArgument.required(organizationName, "organizationName");
+		ValidateArgument.required(schemaName, "schemaName");
+		try {
+			return jdbcTemplate.queryForObject(
+					"SELECT " + COL_JSON_SCHEMA_ID + " FROM " + TABLE_JSON_SCHEMA + " S JOIN " + TABLE_ORGANIZATION
+							+ " O ON (S." + COL_JSON_SCHEMA_ORG_ID + " = O." + COL_ORGANIZATION_ID + ") WHERE O."
+							+ COL_ORGANIZATION_NAME + " = ? AND S." + COL_JSON_SCHEMA_NAME + " = ?",
+					String.class, organizationName, schemaName);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("JSON schema not found for organization name '" + organizationName
+					+ "' and schema name: '" + schemaName + "'");
 		}
 	}
 
@@ -545,4 +562,5 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 					+ "' ObjectType: '" + objecType.name() + "'");
 		}
 	}
+
 }

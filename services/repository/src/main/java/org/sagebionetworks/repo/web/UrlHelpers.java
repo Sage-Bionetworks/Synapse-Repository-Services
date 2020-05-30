@@ -232,6 +232,7 @@ public class UrlHelpers {
 	public static final String COPY = "/copy";
 	public static final String FILE_HANDLES_COPY = FILE_HANDLES + COPY;
 	public static final String ENTITY_DATA_TYPE = ENTITY_ID+"/datatype";
+	public static final String ENTITY_BIND_JSON_SCHEMA = ENTITY_ID+"/bound/json/schema";
 	
 	public static final String BULK_FILE_DOWNLOAD = FILE + "/bulk";
 	public static final String BULK_FILE_DOWNLOAD_ASYNC_START = BULK_FILE_DOWNLOAD + ASYNC_START_REQUEST;

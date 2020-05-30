@@ -372,4 +372,11 @@ public interface NodeManager {
 	 */
 	public String getNodeName(UserInfo userInfo, String nodeId);
 
+	/**
+	 * Find the first bound JSON schema for the given nodeId.
+	 * @param id
+	 * @return
+	 */
+	public Long findFirstBoundJsonSchema(Long nodeId);
+
 }
