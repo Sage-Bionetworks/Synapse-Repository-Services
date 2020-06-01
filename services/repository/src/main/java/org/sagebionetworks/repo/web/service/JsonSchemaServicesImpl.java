@@ -6,6 +6,12 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoRequest;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoResponse;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoRequest;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
+import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
+import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -63,6 +69,21 @@ public class JsonSchemaServicesImpl implements JsonSchemaServices {
 	public void deleteSchemaVersion(Long userId, String organizationName, String schemaName, String semanticVersion) {
 		UserInfo user = userManager.getUserInfo(userId);
 		schemaManager.deleteSchemaVersion(user, organizationName, schemaName, semanticVersion);
+	}
+
+	@Override
+	public ListOrganizationsResponse listOrganizations(ListOrganizationsRequest request) {
+		return schemaManager.listOrganizations(request);
+	}
+
+	@Override
+	public ListJsonSchemaInfoResponse listSchemas(ListJsonSchemaInfoRequest request) {
+		return schemaManager.listSchemas(request);
+	}
+
+	@Override
+	public ListJsonSchemaVersionInfoResponse listSchemasVersions(ListJsonSchemaVersionInfoRequest request) {
+		return schemaManager.listSchemaVersions(request);
 	}
 
 }

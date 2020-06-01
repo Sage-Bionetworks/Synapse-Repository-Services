@@ -705,4 +705,45 @@ public class EntityManagerImplUnitTest {
 			entityManager.getBoundSchema(mockUser, entityId);
 		});
 	}
+	
+	@Test
+	public void testClearBoundSchema() {
+		String entityId = "syn123";
+		when(mockPermissionsManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		// call under test
+		entityManager.clearBoundSchema(mockUser, entityId);
+		verify(mockPermissionsManager).hasAccess(entityId, ACCESS_TYPE.DELETE, mockUser);
+		verify(mockJsonSchemaManager).clearBoundSchema(123L, BoundObjectType.entity);
+	}
+	
+	@Test
+	public void testClearBoundSchemaWithUnauthorized() {
+		String entityId = "syn123";
+		when(mockPermissionsManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.accessDenied("nope"));
+		assertThrows(UnauthorizedException.class, ()->{
+			// call under test
+			entityManager.clearBoundSchema(mockUser, entityId);
+		});
+		verify(mockPermissionsManager).hasAccess(entityId, ACCESS_TYPE.DELETE, mockUser);
+		verify(mockJsonSchemaManager, never()).clearBoundSchema(any(), any());
+	}
+	
+	@Test
+	public void testClearBoundSchemaWithNullEntityId() {
+		String entityId = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			entityManager.clearBoundSchema(mockUser, entityId);
+		});
+	}
+	
+	@Test
+	public void testClearBoundSchemaWithNullUser() {
+		String entityId = "syn123";
+		mockUser = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			entityManager.clearBoundSchema(mockUser, entityId);
+		});
+	}
 }

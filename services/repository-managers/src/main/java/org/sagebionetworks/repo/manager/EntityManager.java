@@ -395,4 +395,12 @@ public interface EntityManager {
 	 * @return
 	 */
 	public JsonSchemaObjectBinding getBoundSchema(UserInfo userInfo, String id);
+
+	/**
+	 * Clear the bound JSON schema from an Entity.
+	 * @param userInfo
+	 * @param id
+	 * @return
+	 */
+	public void clearBoundSchema(UserInfo userInfo, String id);
 }

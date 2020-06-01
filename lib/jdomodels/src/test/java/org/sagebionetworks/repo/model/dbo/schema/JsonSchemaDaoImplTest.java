@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.core.Filter.Result;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -1445,6 +1446,44 @@ public class JsonSchemaDaoImplTest {
 		BoundObjectType type = null;
 		assertThrows(IllegalArgumentException.class, () -> {
 			jsonSchemaDao.getSchemaBindingForObject(objectId, type);
+		});
+	}
+	
+	@Test
+	public void testClearBoundSchema() throws JSONObjectAdapterException {
+		int index = 0;
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one/1.0.0", index++);
+		bindSchemaRequest.withSchemaId(one.getSchemaId());
+		bindSchemaRequest.withVersionId(null);
+		jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
+		JsonSchemaObjectBinding binding = jsonSchemaDao.getSchemaBindingForObject(bindSchemaRequest.getObjectId(),
+				bindSchemaRequest.getObjectType());
+		assertNotNull(binding);
+		// call under test
+		jsonSchemaDao.clearBoundSchema(binding.getObjectId(), binding.getObjectType());
+		assertThrows(NotFoundException.class, ()->{
+			jsonSchemaDao.getSchemaBindingForObject(bindSchemaRequest.getObjectId(),
+					bindSchemaRequest.getObjectType());
+		});
+	}
+	
+	@Test
+	public void testClearBoundSchemaWithNullObjectId() throws JSONObjectAdapterException {
+		Long objectId = null;
+		BoundObjectType objectType = BoundObjectType.entity;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			jsonSchemaDao.clearBoundSchema(objectId, objectType);
+		});
+	}
+	
+	@Test
+	public void testClearBoundSchemaWithNullObjectType() throws JSONObjectAdapterException {
+		Long objectId = 123L;
+		BoundObjectType objectType = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			jsonSchemaDao.clearBoundSchema(objectId, objectType);
 		});
 	}
 }

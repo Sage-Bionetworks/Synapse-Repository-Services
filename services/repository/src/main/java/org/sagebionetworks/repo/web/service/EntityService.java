@@ -645,4 +645,12 @@ public interface EntityService {
 	 * @return
 	 */
 	public JsonSchemaObjectBinding getBoundSchema(Long userId, String id);
+
+	/**
+	 * Clear the bound JSON schema from this Entity
+	 * @param userId
+	 * @param id
+	 * @return
+	 */
+	public void clearBoundSchema(Long userId, String id);
 }

@@ -552,4 +552,12 @@ public class EntityManagerImpl implements EntityManager {
 		Long boundEntityId = nodeManager.findFirstBoundJsonSchema(KeyFactory.stringToKey(id));
 		return jsonSchemaManager.getJsonSchemaObjectBinding(boundEntityId, BoundObjectType.entity);
 	}
+
+	@Override
+	public void clearBoundSchema(UserInfo userInfo, String id) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(id, "id");
+		entityPermissionsManager.hasAccess(id, ACCESS_TYPE.DELETE, userInfo).checkAuthorizationOrElseThrow();
+		jsonSchemaManager.clearBoundSchema(KeyFactory.stringToKey(id), BoundObjectType.entity);
+	}
 }

@@ -474,4 +474,9 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		return jsonSchemaDao.getSchemaBindingForObject(objectId, objectType);
 	}
 
+	@Override
+	public void clearBoundSchema(Long objectId, BoundObjectType objectType) {
+		jsonSchemaDao.clearBoundSchema(objectId, objectType);
+	}
+
 }

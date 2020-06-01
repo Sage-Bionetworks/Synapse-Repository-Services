@@ -160,6 +160,12 @@ public interface JsonSchemaManager {
 	 */
 	JsonSchemaObjectBinding getJsonSchemaObjectBinding(Long objectId, BoundObjectType objectType);
 
+	/**
+	 * Clear the bound schema from an object.
+	 * @param objectId
+	 * @param objectType
+	 */
+	void clearBoundSchema(Long objectId, BoundObjectType objectType);
 
 
 }

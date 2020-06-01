@@ -60,7 +60,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -516,10 +515,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		ValidateArgument.required(request.getObjectType(), "request.objectType");
 		ValidateArgument.required(request.getCreatedBy(), "request.createdBy");
 		// remove any existing binding.
-		jdbcTemplate.update(
-				"DELETE FROM " + TABLE_JSON_SCHEMA_OBJECT_BINDING + " WHERE " + COL_JONS_SCHEMA_BINDING_OBJECT_ID
-						+ " = ? AND " + COL_JSON_SCHEMA_BINDING_OBJECT_TYPE + " = ?",
-				request.getObjectId(), request.getObjectType().name());
+		clearBoundSchema(request.getObjectId(), request.getObjectType());
 
 		Timestamp now = new Timestamp(System.currentTimeMillis());
 		long bindId = idGenerator.generateNewId(IdType.JSON_SCHEMA_BIND_OBJECT_ID);
@@ -561,6 +557,17 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 			throw new NotFoundException("JSON Schema binding was not found for ObjectId: '" + objectId
 					+ "' ObjectType: '" + objecType.name() + "'");
 		}
+	}
+
+	@WriteTransaction
+	@Override
+	public void clearBoundSchema(Long objectId, BoundObjectType objectType) {
+		ValidateArgument.required(objectId, "objectId");
+		ValidateArgument.required(objectType, "objecType");
+		jdbcTemplate.update(
+				"DELETE FROM " + TABLE_JSON_SCHEMA_OBJECT_BINDING + " WHERE " + COL_JONS_SCHEMA_BINDING_OBJECT_ID
+						+ " = ? AND " + COL_JSON_SCHEMA_BINDING_OBJECT_TYPE + " = ?",
+						objectId, objectType.name());
 	}
 
 }

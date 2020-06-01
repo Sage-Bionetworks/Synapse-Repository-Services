@@ -140,5 +140,12 @@ public interface JsonSchemaDao {
 	 */
 	JsonSchemaObjectBinding getSchemaBindingForObject(Long objectId, BoundObjectType objectType);
 
+	/**
+	 * Clear the bound schema from an Object.
+	 * @param objectId
+	 * @param objectType
+	 */
+	void clearBoundSchema(Long objectId, BoundObjectType objectType);
+
 
 }

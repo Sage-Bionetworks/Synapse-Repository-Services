@@ -38,7 +38,6 @@ import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.dbo.schema.BindSchemaRequest;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -1562,9 +1561,10 @@ public class EntityController {
 	 * found in its hierarchy.
 	 * <p>
 	 * Note: The caller must be granted the
-	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.READ</a> permission on the Entity.
+	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.READ</a>
+	 * permission on the Entity.
 	 * </p>
+	 * 
 	 * @param userId
 	 * @param id     The ID of the entity.
 	 * @return
@@ -1576,5 +1576,26 @@ public class EntityController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(required = true) String id) {
 		return serviceProvider.getEntityService().getBoundSchema(userId, id);
+	}
+
+	/**
+	 * Clear the bound JSON schema from this Entity. The schema will no longer be
+	 * used to validate this Entity or its children.
+	 * <p>
+	 * Note: The caller must be granted the
+	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.DELETE</a>
+	 * permission on the Entity.
+	 * </p>
+	 * @param userId
+	 * @param id
+	 * @return
+	 */
+	@RequiredScope({ modify })
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = { UrlHelpers.ENTITY_BIND_JSON_SCHEMA }, method = RequestMethod.DELETE)
+	public void clearBoundSchema(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(required = true) String id) {
+		serviceProvider.getEntityService().clearBoundSchema(userId, id);
 	}
 }

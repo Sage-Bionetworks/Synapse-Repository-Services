@@ -704,4 +704,11 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return entityManager.getBoundSchema(userInfo, id);
 	}
+
+	@Override
+	public void clearBoundSchema(Long userId, String id) {
+		ValidateArgument.required(userId, "userId");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		entityManager.clearBoundSchema(userInfo, id);
+	}
 }
