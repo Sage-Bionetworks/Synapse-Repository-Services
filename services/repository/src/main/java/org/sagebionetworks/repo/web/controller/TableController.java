@@ -411,10 +411,10 @@ public class TableController {
 	/**
 	 * Get the list of default
 	 * <a href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModels
-	 * </a> for the given (view) entityType and viewTypeMask.
+	 * </a> for the given <a href="${org.sagebionetworks.repo.model.table.ViewEntityType}">viewEntityType</a> and viewTypeMask.
 	 * 
 	 * @param viewEntityType
-	 *            The entity type of the view, supported values are entityview and submissionview, by default use entityview
+	 *            The <a href="${org.sagebionetworks.repo.model.table.ViewEntityType}">entity type</a> of the view, if omitted use entityview
 	 * @param viewTypeMask
 	 *            Bit mask representing the types to include in the view. The
 	 *            following are the possible types when the selected entity type is entityview: (type=<mask_hex>): File=0x01,
@@ -429,10 +429,10 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.COLUMN_TABLE_VIEW_DEFAULT, method = RequestMethod.GET)
 	public @ResponseBody
 	ListWrapper<ColumnModel> getDefaultColumnsForViewType(
-			@RequestParam(value = "viewEntityType", required = false, defaultValue = "entityview") ViewEntityType entityType,
+			@RequestParam(value = "viewEntityType", required = false, defaultValue = "entityview") ViewEntityType viewEntityType,
 			@RequestParam(value = "viewTypeMask", required = false) Long viewTypeMask)
 			throws DatastoreException, NotFoundException {
-		List<ColumnModel> results = serviceProvider.getTableServices().getDefaultViewColumnsForType(entityType, viewTypeMask);
+		List<ColumnModel> results = serviceProvider.getTableServices().getDefaultViewColumnsForType(viewEntityType, viewTypeMask);
 		return ListWrapper.wrap(results, ColumnModel.class);
 	}
 	
