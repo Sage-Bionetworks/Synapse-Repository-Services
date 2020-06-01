@@ -23,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.OAuthRefreshTokenDao;
@@ -63,6 +64,7 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 	private static final Long ONE_HOUR_MILLIS = 1000L * 60 * 60;
 	private static final Long ONE_DAY_MILLIS = ONE_HOUR_MILLIS * 24;
 	private static final Long ONE_YEAR_MILLIS = ONE_DAY_MILLIS * 365;
+	private static final Long HALF_YEAR_DAYS = 180L;
 
 	@Autowired
 	private OAuthRefreshTokenDao oauthRefreshTokenDao;
@@ -259,13 +261,37 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		OAuthRefreshTokenInformation expiredToken = createRefreshToken(new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS));
 
 		// Call under test
-		OAuthRefreshTokenInformationList retrieved = oauthRefreshTokenDao.getActiveTokenInformation(userId, client.getClient_id(), null, 180L);
+		OAuthRefreshTokenInformationList retrieved = oauthRefreshTokenDao.getActiveTokenInformation(userId, client.getClient_id(), null, HALF_YEAR_DAYS);
 		assertEquals(2, retrieved.getResults().size());
-		// Should be in reverse chronological order always
+		// Tokens should be returned in reverse chronological order
 		assertEquals(activeToken1, retrieved.getResults().get(0));
 		assertEquals(activeToken2, retrieved.getResults().get(1));
 		assertNull(retrieved.getNextPageToken());
 	}
+
+	@Test
+	void getActiveTokenInformation_pagination() {
+		// Create 2 active refresh tokens between the client and user
+		OAuthRefreshTokenInformation activeToken1 = createRefreshToken(new Date(System.currentTimeMillis() - ONE_HOUR_MILLIS));
+		OAuthRefreshTokenInformation activeToken2 = createRefreshToken(new Date(System.currentTimeMillis() - ONE_DAY_MILLIS));
+
+		String firstPageNpt = new NextPageToken(1, 0).toToken();
+
+		// Call under test -- page 1
+		OAuthRefreshTokenInformationList pageOne = oauthRefreshTokenDao.getActiveTokenInformation(userId, client.getClient_id(), firstPageNpt, HALF_YEAR_DAYS);
+		assertEquals(1, pageOne.getResults().size());
+		assertNotNull(pageOne.getNextPageToken());
+
+		// Call under test -- page 2
+		OAuthRefreshTokenInformationList pageTwo = oauthRefreshTokenDao.getActiveTokenInformation(userId, client.getClient_id(), pageOne.getNextPageToken(), HALF_YEAR_DAYS);
+		assertEquals(1, pageTwo.getResults().size());
+		assertNull(pageTwo.getNextPageToken());
+
+		// Tokens should be returned in reverse chronological order
+		assertEquals(activeToken1, pageOne.getResults().get(0));
+		assertEquals(activeToken2, pageTwo.getResults().get(0));
+	}
+
 
 	@Transactional
 	@Test
