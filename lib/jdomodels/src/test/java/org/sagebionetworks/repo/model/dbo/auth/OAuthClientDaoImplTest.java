@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.auth.SectorIdentifier;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistory;
 import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
@@ -60,9 +61,9 @@ public class OAuthClientDaoImplTest {
 	
 	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().build();
 
-	private static final Long FIVE_MINUTES_MILLIS = 1000L * 60 * 5;
 	private static final Long ONE_YEAR_MILLIS = 1000L * 60 * 60 * 24 * 365;
 	private static final Long TWO_YEARS_MILLIS = ONE_YEAR_MILLIS * 2;
+	private static final Long ONE_YEAR_DAYS = 365L;
 
 	private List<String> idsToDelete;
 
@@ -494,15 +495,15 @@ public class OAuthClientDaoImplTest {
 		
 	}
 
-	private OAuthRefreshTokenInformation createRefreshToken(String clientId, String userId, Date lastUsedDate) {
+	private OAuthRefreshTokenInformation createRefreshToken(String clientId, String userId, Date authorizedOn, Date lastUsed) {
 		OAuthRefreshTokenInformation token = new OAuthRefreshTokenInformation();
 		token.setName(UUID.randomUUID().toString());
 		token.setClientId(clientId);
 		token.setPrincipalId(userId);
 		token.setScopes(Collections.singletonList(OAuthScope.view));
 		token.setClaims(Collections.singletonMap(OIDCClaimName.email.name(), new OIDCClaimsRequestDetails()));
-		token.setAuthorizedOn(new Date());
-		token.setLastUsed(lastUsedDate);
+		token.setAuthorizedOn(authorizedOn);
+		token.setLastUsed(lastUsed);
 		token.setModifiedOn(new Date());
 		token.setEtag(UUID.randomUUID().toString());
 		return oauthRefreshTokenDao.createRefreshToken("abcdef", token);
@@ -515,24 +516,75 @@ public class OAuthClientDaoImplTest {
 		String client1 = createSectorIdentifierAndClient();
 		String client2 = createSectorIdentifierAndClient(SECOND_SECTOR_IDENTIFIER, userId, "App 2");
 
-		// Valid token for client 1
-		OAuthRefreshTokenInformation token1 = createRefreshToken(client1, userId.toString(), new Date());
-		// Expired token for client 1
-		OAuthRefreshTokenInformation token2 = createRefreshToken(client1, userId.toString(), new Date(System.currentTimeMillis() - TWO_YEARS_MILLIS));
-		// Expired token for client 2
-		OAuthRefreshTokenInformation token3 = createRefreshToken(client2, userId.toString(), new Date(System.currentTimeMillis() - TWO_YEARS_MILLIS));
+		final Date EXPECTED_AUTHZ_ON = new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS * 5);// Earliest authorized on date
+		final Date EXPECTED_LAST_USED = new Date(System.currentTimeMillis() + ONE_YEAR_MILLIS * 5);// Latest last used date
+		// Valid tokens for client 1
+		createRefreshToken(client1, userId.toString(), EXPECTED_AUTHZ_ON, new Date());
+		createRefreshToken(client1, userId.toString(), new Date(), new Date());
+		createRefreshToken(client1, userId.toString(), new Date(), EXPECTED_LAST_USED);
 
+		// Expired token for client 1. The dates are set up such that the result "authorizedOn" will not match if this token is not filtered.
+		createRefreshToken(client1, userId.toString(), new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS * 10), new Date(System.currentTimeMillis() - TWO_YEARS_MILLIS));
+
+		// Valid token for client 2
+		final Date CLIENT_2_AUTHZ_ON = new Date(System.currentTimeMillis() - 542326L);
+		final Date CLIENT_2_LAST_USED = new Date(System.currentTimeMillis() - 54232L);
+		createRefreshToken(client2, userId.toString(), CLIENT_2_AUTHZ_ON, CLIENT_2_LAST_USED);
 
 		// Call under test
-		OAuthClientAuthorizationHistoryList results = oauthClientDao.getAuthorizedClientHistory(userId.toString(), null, 365L);
+		OAuthClientAuthorizationHistoryList results = oauthClientDao.getAuthorizedClientHistory(userId.toString(), null, ONE_YEAR_DAYS);
 
-		long FIVE_MINUTES_AGO = System.currentTimeMillis() - FIVE_MINUTES_MILLIS;
-		// We should only get back client 1, because no active tokens exist for client 2
-		assertEquals(1, results.getResults().size());
-		assertEquals( client1,results.getResults().get(0).getClient().getClient_id());
-		assertTrue(FIVE_MINUTES_AGO < results.getResults().get(0).getAuthorizedOn().getTime());
-		assertTrue(FIVE_MINUTES_AGO < results.getResults().get(0).getLastUsed().getTime());
+		assertEquals(2, results.getResults().size());
+		OAuthClientAuthorizationHistory result1;
+		OAuthClientAuthorizationHistory result2;
+		if (results.getResults().get(0).getClient().getClient_id().equals(client1)) {
+			result1 = results.getResults().get(0);
+			result2 = results.getResults().get(1);
+		} else {
+			result1 = results.getResults().get(1);
+			result2 = results.getResults().get(0);
+		}
+		assertEquals(client1, result1.getClient().getClient_id());
+		assertEquals(EXPECTED_AUTHZ_ON, result1.getAuthorizedOn());
+		assertEquals(EXPECTED_LAST_USED, result1.getLastUsed());
+
+		assertEquals(client2, result2.getClient().getClient_id());
+		assertEquals(CLIENT_2_AUTHZ_ON, result2.getAuthorizedOn());
+		assertEquals(CLIENT_2_LAST_USED, result2.getLastUsed());
+
 		assertNull(results.getNextPageToken());
+	}
+
+	@Test
+	public void testGetAuthorizedClients_pagination() {
+		NextPageToken firstResultNPT = new NextPageToken(1, 0);
+
+		Long userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+
+		String client1 = createSectorIdentifierAndClient();
+		String client2 = createSectorIdentifierAndClient(SECOND_SECTOR_IDENTIFIER, userId, "App 2");
+
+		// Valid tokens for client 1 and client 2
+		createRefreshToken(client1, userId.toString(), new Date(), new Date());
+		createRefreshToken(client2, userId.toString(), new Date(), new Date());
+
+		// Call under test -- first page
+		OAuthClientAuthorizationHistoryList firstPage = oauthClientDao.getAuthorizedClientHistory(userId.toString(), firstResultNPT.toToken(), ONE_YEAR_DAYS);
+		assertEquals(1, firstPage.getResults().size());
+		assertNotNull(firstPage.getNextPageToken());
+
+		// Call under test -- second page
+		OAuthClientAuthorizationHistoryList secondPage = oauthClientDao.getAuthorizedClientHistory(userId.toString(), firstPage.getNextPageToken(), ONE_YEAR_DAYS);
+		assertEquals(1, secondPage.getResults().size());
+		assertNull(secondPage.getNextPageToken());
+
+		if (firstPage.getResults().get(0).getClient().getClient_id().equals(client1)) {
+			assertEquals(client1, firstPage.getResults().get(0).getClient().getClient_id());
+			assertEquals(client2, secondPage.getResults().get(0).getClient().getClient_id());
+		} else {
+			assertEquals(client2, firstPage.getResults().get(0).getClient().getClient_id());
+			assertEquals(client1, secondPage.getResults().get(0).getClient().getClient_id());
+		}
 	}
 
 	@Test
