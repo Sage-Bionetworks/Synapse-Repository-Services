@@ -102,7 +102,7 @@ public class JsonSchemaController {
 	 */
 	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.ORGANIZATION_LIST }, method = RequestMethod.GET)
+	@RequestMapping(value = { UrlHelpers.ORGANIZATION_LIST }, method = RequestMethod.POST)
 	public @ResponseBody ListOrganizationsResponse listOrganizations(
 			@RequestBody(required = true) ListOrganizationsRequest request) {
 		return serviceProvider.getSchemaServices().listOrganizations(request);
@@ -318,7 +318,7 @@ public class JsonSchemaController {
 	 */
 	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.JSON_SCHEMA_LIST }, method = RequestMethod.GET)
+	@RequestMapping(value = { UrlHelpers.JSON_SCHEMA_LIST }, method = RequestMethod.POST)
 	public @ResponseBody ListJsonSchemaInfoResponse listJsonSchemas(@PathVariable String organizationName,
 			@RequestBody ListJsonSchemaInfoRequest request) {
 		return serviceProvider.getSchemaServices().listSchemas(request);
@@ -335,7 +335,7 @@ public class JsonSchemaController {
 	 */
 	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.JSON_SCHEMA_VERSIONS_LIST }, method = RequestMethod.GET)
+	@RequestMapping(value = { UrlHelpers.JSON_SCHEMA_VERSIONS_LIST }, method = RequestMethod.POST)
 	public @ResponseBody ListJsonSchemaVersionInfoResponse listJsonSchemasVersions(
 			@PathVariable String organizationName, @RequestBody ListJsonSchemaVersionInfoRequest request) {
 		return serviceProvider.getSchemaServices().listSchemasVersions(request);

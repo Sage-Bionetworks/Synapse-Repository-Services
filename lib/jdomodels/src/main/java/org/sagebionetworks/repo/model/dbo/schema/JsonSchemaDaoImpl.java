@@ -545,7 +545,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 			} else {
 				versionId = dbo.getVersionId().toString();
 			}
-			JsonSchemaVersionInfo versionInfo = getVersionInfo(versionId.toString());
+			JsonSchemaVersionInfo versionInfo = getVersionInfo(versionId);
 			JsonSchemaObjectBinding result = new JsonSchemaObjectBinding();
 			result.setJsonSchemaVersionInfo(versionInfo);
 			result.setObjectId(dbo.getObjectId());

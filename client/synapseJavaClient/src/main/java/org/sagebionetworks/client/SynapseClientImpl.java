@@ -152,6 +152,7 @@ import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
+import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
@@ -242,6 +243,13 @@ import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoRequest;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoResponse;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoRequest;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
+import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
+import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -5605,6 +5613,49 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		joiner.add(schemaName);
 		joiner.add(semanticVersion);
 		deleteUri(getRepoEndpoint(), joiner.toString());
+	}
+	
+	@Override
+	public ListOrganizationsResponse listOrganizations(ListOrganizationsRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		String url = "/schema/organization/list";
+		return postJSONEntity(getRepoEndpoint(), url, request, ListOrganizationsResponse.class);
+	}
+	
+	@Override
+	public ListJsonSchemaInfoResponse listSchemaInfo(ListJsonSchemaInfoRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		String url = "/schema/list";
+		return postJSONEntity(getRepoEndpoint(), url, request, ListJsonSchemaInfoResponse.class);
+	}
+	
+	@Override
+	public ListJsonSchemaVersionInfoResponse listSchemaVersions(ListJsonSchemaVersionInfoRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		String url = "/schema/version/list";
+		return postJSONEntity(getRepoEndpoint(), url, request, ListJsonSchemaVersionInfoResponse.class);
+	}
+	
+	@Override
+	public JsonSchemaObjectBinding bindJsonSchemaToEntity(BindSchemaToEntityRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getEntityId(), "request.entityId");
+		String url = "/entity/"+request.getEntityId()+"/bound/json/schema";
+		return putJSONEntity(getRepoEndpoint(), url, request, JsonSchemaObjectBinding.class);
+	}
+	
+	@Override
+	public JsonSchemaObjectBinding getJsonSchemaBindingForEntity(String entityId) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		String url = "/entity/"+entityId+"/bound/json/schema";
+		return getJSONEntity(getRepoEndpoint(), url, JsonSchemaObjectBinding.class);
+	}
+	
+	@Override
+	public void clearSchemaBindingForEntity(String entityId) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		String url = "/entity/"+entityId+"/bound/json/schema";
+		deleteUri(getRepoEndpoint(), url);
 	}
 
 }
