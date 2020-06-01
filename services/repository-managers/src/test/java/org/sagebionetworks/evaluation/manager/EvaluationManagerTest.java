@@ -153,10 +153,11 @@ public class EvaluationManagerTest {
 	@Test
 	public void testGetEvaluationByContentSource() throws Exception {
 
+		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
 		evaluations= Collections.singletonList(evalWithId);
-		when(mockEvaluationDAO.getAccessibleEvaluationsForProject(eq(EVALUATION_CONTENT_SOURCE), (List<Long>)any(), eq(ACCESS_TYPE.READ), eq(null), anyLong(), anyLong())).thenReturn(evaluations);
+		when(mockEvaluationDAO.getAccessibleEvaluationsForProject(eq(EVALUATION_CONTENT_SOURCE), (List<Long>)any(), eq(accessType), eq(null), anyLong(), anyLong())).thenReturn(evaluations);
 
-		List<Evaluation> qr = evaluationManager.getEvaluationByContentSource(ownerInfo, EVALUATION_CONTENT_SOURCE, false, 10L, 0L);
+		List<Evaluation> qr = evaluationManager.getEvaluationByContentSource(ownerInfo, EVALUATION_CONTENT_SOURCE, accessType, false, 10L, 0L);
 		assertEquals(evaluations, qr);
 		assertEquals(1L, qr.size());
 	}
@@ -164,14 +165,29 @@ public class EvaluationManagerTest {
 	@Test
 	public void testGetEvaluationByContentSourceActiveOnly() throws Exception {
 
+		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
 		evaluations= Collections.singletonList(evalWithId);
-		when(mockEvaluationDAO.getAccessibleEvaluationsForProject(eq(EVALUATION_CONTENT_SOURCE), (List<Long>)any(), eq(ACCESS_TYPE.READ), anyLong(), anyLong(), anyLong())).
+		when(mockEvaluationDAO.getAccessibleEvaluationsForProject(eq(EVALUATION_CONTENT_SOURCE), (List<Long>)any(), eq(accessType), anyLong(), anyLong(), anyLong())).
 		thenReturn(Collections.EMPTY_LIST);
 
-		List<Evaluation> qr = evaluationManager.getEvaluationByContentSource(ownerInfo, EVALUATION_CONTENT_SOURCE, true, 10L, 0L);
+		List<Evaluation> qr = evaluationManager.getEvaluationByContentSource(ownerInfo, EVALUATION_CONTENT_SOURCE, accessType, true, 10L, 0L);
 		assertTrue(qr.isEmpty());
 		verify(mockEvaluationDAO).getAccessibleEvaluationsForProject(
 				eq(EVALUATION_CONTENT_SOURCE), (List<Long>)any(), eq(ACCESS_TYPE.READ),  anyLong(), eq(10L), eq(0L));
+	}
+	
+	@Test
+	public void testGetEvaluationByContentSourceWithNullAccessType() throws Exception {
+
+		ACCESS_TYPE accessType = null;
+		evaluations= Collections.singletonList(evalWithId);
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			evaluationManager.getEvaluationByContentSource(ownerInfo, EVALUATION_CONTENT_SOURCE, accessType, true, 10L, 0L);
+		}).getMessage();
+		
+		assertEquals("The access type is required.", errorMessage);
 	}
 
 	@Test

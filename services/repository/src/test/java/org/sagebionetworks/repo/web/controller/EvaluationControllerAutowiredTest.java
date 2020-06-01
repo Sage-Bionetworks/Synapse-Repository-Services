@@ -477,6 +477,22 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 			assertTrue(c.equals(eval1) || c.equals(eval2), "Unknown Evaluation returned: " + c.toString());
 		}
 		
+		// Same result specifiying a different ACCESS TYPE
+		evals = entityServletHelper.getEvaluationsByContentSourcePaginated(adminUserId, parentProjectId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION, 10, 0);
+		assertEquals(2, evals.getTotalNumberOfResults());
+		for (Evaluation c : evals.getResults()) {
+			assertTrue(c.equals(eval1) || c.equals(eval2), "Unknown Evaluation returned: " + c.toString());
+		}
+		
+		// Submitter does not have READ_PRIVATE_SUBMISSION
+		evals = entityServletHelper.getEvaluationsByContentSourcePaginated(testUserId, parentProjectId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION, 10, 0);
+		assertEquals(0, evals.getTotalNumberOfResults());
+		
+		// ..but can read one of the evaluations
+		evals = entityServletHelper.getEvaluationsByContentSourcePaginated(testUserId, parentProjectId, ACCESS_TYPE.READ, 10, 0);
+		assertEquals(1, evals.getTotalNumberOfResults());
+		assertEquals(eval1, evals.getResults().get(0));
+		
 		// paginated submissions
 		PaginatedResults<Submission> subs = entityServletHelper.getAllSubmissions(adminUserId, eval1.getId(), null);
 		assertEquals(2, subs.getTotalNumberOfResults());
