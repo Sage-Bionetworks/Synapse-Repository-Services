@@ -88,8 +88,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 			+ " WHERE " + COL_OAUTH_CLIENT_ID + " = ?";
 
 	private static final String SELECT_CLIENTS_WITH_ACTIVE_TOKENS_FOR_PRINCIPAL =
-			"SELECT rt." + COL_OAUTH_REFRESH_TOKEN_CLIENT_ID + ", "
-					+ " MAX(rt." + COL_OAUTH_REFRESH_TOKEN_LAST_USED + ") AS " + INTERMEDIATE_COL_OVERALL_LAST_USED
+			"SELECT MAX(rt." + COL_OAUTH_REFRESH_TOKEN_LAST_USED + ") AS " + INTERMEDIATE_COL_OVERALL_LAST_USED
 					+ ", MIN(rt." + COL_OAUTH_REFRESH_TOKEN_CREATED_ON + ") AS " + INTERMEDIATE_COL_FIRST_AUTHORIZED_ON
 					+ ", c.*"
 					+ " FROM " + TABLE_OAUTH_REFRESH_TOKEN + " rt, "
@@ -97,7 +96,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 					+ "WHERE rt." + COL_OAUTH_REFRESH_TOKEN_CLIENT_ID + " = c." + COL_OAUTH_CLIENT_ID
 					+ " AND " + COL_OAUTH_REFRESH_TOKEN_PRINCIPAL_ID + " = ?"
 					+ " AND " + COL_OAUTH_REFRESH_TOKEN_LAST_USED + " > (NOW() - INTERVAL ? DAY) "
-					+ " GROUP BY rt." + COL_OAUTH_REFRESH_TOKEN_CLIENT_ID
+					+ " GROUP BY c." + COL_OAUTH_CLIENT_ID
 					+ " LIMIT ? OFFSET ?";
 
 
