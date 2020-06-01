@@ -300,6 +300,23 @@ public class StsManagerImplTest {
 		verify(mockAuthStatus).checkAuthorizationOrElseThrow();
 	}
 
+	@Test
+	public void getTemporaryCredentials_synapseStorageCantReadWrite() {
+		// Mock dependencies.
+		setupFolderWithProjectSetting(/*isSts*/ true, STS_STORAGE_LOCATION_ID);
+
+		S3StorageLocationSetting storageLocationSetting = new S3StorageLocationSetting();
+		storageLocationSetting.setBaseKey(BASE_KEY);
+		storageLocationSetting.setStsEnabled(true);
+		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
+				storageLocationSetting);
+
+		// Method under test - Throws.
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> stsManager.getTemporaryCredentials(USER_INFO, PARENT_ENTITY_ID, StsPermission.read_write));
+		assertEquals("STS write access is not allowed in Synapse storage", ex.getMessage());
+	}
+
 	private void mockSts() {
 		// Mock config needed to set up the call.
 		when(mockStackConfiguration.getTempCredentialsIamRoleArn()).thenReturn(AWS_ROLE_ARN);

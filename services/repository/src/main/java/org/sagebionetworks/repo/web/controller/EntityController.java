@@ -1517,6 +1517,12 @@ public class EntityController {
 	 * Gets the temporary S3 credentials from STS for the given entity. These credentials are only good for the bucket
 	 * and base key specified by the returned credentials and expire 12 hours after this API is called.
 	 *
+	 * <p>
+	 * The specified entity must be a folder with an STS-enabled storage location. If that storage location is external
+	 * storage, you may request read-only or read-write permissions. If that storage location is Synapse storage, you
+	 * must request read-only permissions.
+	 * </p>
+	 *
 	 * @param id         The ID of the entity to get credentials. This must be a folder with an STS-enabled storage location.
 	 * @param permission Read-only or read-write permissions. See {@link org.sagebionetworks.repo.model.sts.StsPermission}.
 	 */
