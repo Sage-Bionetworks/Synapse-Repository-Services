@@ -36,7 +36,6 @@ import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
-import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.common.collect.Sets;
 

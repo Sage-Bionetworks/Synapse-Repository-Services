@@ -319,8 +319,7 @@ public class JsonSchemaController {
 	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.JSON_SCHEMA_LIST }, method = RequestMethod.POST)
-	public @ResponseBody ListJsonSchemaInfoResponse listJsonSchemas(@PathVariable String organizationName,
-			@RequestBody ListJsonSchemaInfoRequest request) {
+	public @ResponseBody ListJsonSchemaInfoResponse listJsonSchemas(@RequestBody ListJsonSchemaInfoRequest request) {
 		return serviceProvider.getSchemaServices().listSchemas(request);
 	}
 
@@ -337,7 +336,7 @@ public class JsonSchemaController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.JSON_SCHEMA_VERSIONS_LIST }, method = RequestMethod.POST)
 	public @ResponseBody ListJsonSchemaVersionInfoResponse listJsonSchemasVersions(
-			@PathVariable String organizationName, @RequestBody ListJsonSchemaVersionInfoRequest request) {
+			@RequestBody ListJsonSchemaVersionInfoRequest request) {
 		return serviceProvider.getSchemaServices().listSchemasVersions(request);
 	}
 
