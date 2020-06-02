@@ -9,11 +9,17 @@ public interface OAuthRefreshTokenDao {
 
 	/**
 	 * Update the stored hash for an existing token, This must only be called when the record is locked,
-	 * e.g. by calling {@link #getMatchingTokenByHashForUpdate}
-	 * @param tokenId the token to update
+	 * e.g. by calling {@link #getMatchingTokenByHashForUpdate}.
+	 *
+	 * Note: This method only updates fields that should update on token rotation:
+	 * 		- the token hash
+	 * 		- the last used date
+	 * 		- the etag
+	 *
+	 * @param tokenInformation metadata of the token to update (updates by ID)
 	 * @param newHash the hash to store
 	 */
-	void updateTokenHash(String tokenId, String newHash);
+	void updateTokenHash(OAuthRefreshTokenInformation tokenInformation, String newHash);
 
 	/**
 	 * Retrieve a matching token, if it exists. Locks the row until released in an existing transaction.
@@ -40,10 +46,10 @@ public interface OAuthRefreshTokenDao {
 
 	/**
 	 * Update the metadata for a refresh token based on the specified token ID
-	 * Fields that are currently mutable are
-	 * {@link OAuthRefreshTokenInformation#getName()} ()}
-	 * {@link OAuthRefreshTokenInformation#getModifiedOn()} ()}
-	 * {@link OAuthRefreshTokenInformation#getEtag()}
+	 * Fields that can be updated with this method are:
+	 * - {@link OAuthRefreshTokenInformation#getName()} ()}
+	 * - {@link OAuthRefreshTokenInformation#getModifiedOn()} ()}
+	 * - {@link OAuthRefreshTokenInformation#getEtag()}
 	 *
 	 * @param metadata the object to update
 	 */
