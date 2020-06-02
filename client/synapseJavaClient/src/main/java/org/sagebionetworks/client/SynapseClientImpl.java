@@ -2874,12 +2874,23 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String url = createEntityUri(EVALUATION_URI_PATH, evalId);
 		return getJSONEntity(getRepoEndpoint(), url, Evaluation.class);
 	}
-
+	
 	@Override
 	public PaginatedResults<Evaluation> getEvaluationByContentSource(String id,
 			int offset, int limit) throws SynapseException {
+		return getEvaluationByContentSource(id, null, offset, limit);
+	}
+
+	@Override
+	public PaginatedResults<Evaluation> getEvaluationByContentSource(String id, ACCESS_TYPE accessType,
+			int offset, int limit) throws SynapseException {
 		String url = ENTITY_URI_PATH + "/" + id + EVALUATION_URI_PATH + "?"
 				+ OFFSET + "=" + offset + "&limit=" + limit;
+		
+		if (accessType != null) {
+			url += "&accessType=" + accessType.name();
+		}
+		
 		return getPaginatedResults(getRepoEndpoint(), url, Evaluation.class);
 	}
 

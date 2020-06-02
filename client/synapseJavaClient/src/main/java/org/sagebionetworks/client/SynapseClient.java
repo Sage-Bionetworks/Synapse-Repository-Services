@@ -919,8 +919,11 @@ public interface SynapseClient extends BaseClient {
 	public Evaluation createEvaluation(Evaluation eval) throws SynapseException;
 
 	public Evaluation getEvaluation(String evalId) throws SynapseException;
-
+	
 	public PaginatedResults<Evaluation> getEvaluationByContentSource(String id,
+			int offset, int limit) throws SynapseException;
+
+	public PaginatedResults<Evaluation> getEvaluationByContentSource(String id, ACCESS_TYPE accessType,
 			int offset, int limit) throws SynapseException;
 
 	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(int offset, int limit)
