@@ -18,8 +18,10 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -377,4 +379,28 @@ public interface EntityManager {
 	 * @return
 	 */
 	public DataTypeResponse changeEntityDataType(UserInfo userInfo, String id, DataType dataType);
+
+	/**
+	 * Bind a JSON schema to an Entity.
+	 * @param userInfo
+	 * @param request
+	 * @return
+	 */
+	public JsonSchemaObjectBinding bindSchemaToEntity(UserInfo userInfo, BindSchemaToEntityRequest request);
+
+	/**
+	 * Get metadata about a JSON schema bound to an Entity
+	 * @param userInfo
+	 * @param id
+	 * @return
+	 */
+	public JsonSchemaObjectBinding getBoundSchema(UserInfo userInfo, String id);
+
+	/**
+	 * Clear the bound JSON schema from an Entity.
+	 * @param userInfo
+	 * @param id
+	 * @return
+	 */
+	public void clearBoundSchema(UserInfo userInfo, String id);
 }

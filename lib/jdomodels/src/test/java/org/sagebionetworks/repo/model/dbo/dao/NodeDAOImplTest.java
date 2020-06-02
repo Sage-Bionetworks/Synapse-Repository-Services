@@ -78,6 +78,7 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
+import org.sagebionetworks.repo.model.dbo.schema.JsonSchemaTestHelper;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.entity.SortBy;
@@ -90,12 +91,16 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.provenance.Activity;
-import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
+import org.sagebionetworks.repo.model.schema.BoundObjectType;
+import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
+import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.UncategorizedSQLException;
@@ -146,6 +151,9 @@ public class NodeDAOImplTest {
 
 	@Autowired
 	private DBOBasicDao basicDao;
+	
+	@Autowired
+	private JsonSchemaTestHelper jsonSchemaTestHelper;
 
 	// the datasets that must be deleted at the end of each test.
 	List<String> toDelete = new ArrayList<String>();
@@ -4212,6 +4220,86 @@ public class NodeDAOImplTest {
 		assertThrows(NotFoundException.class, ()->{
 			// call under test
 			nodeDao.getNodeName("syn999999");
+		});
+	}
+	
+	@Test
+	public void testFindFirstBoundJsonSchema() throws JSONObjectAdapterException {
+		jsonSchemaTestHelper.truncateAll();
+		// Setup some hierarchy.
+		// grandparent
+		Node grandparent = NodeTestUtils.createNew("grandparent", creatorUserGroupId);
+		grandparent = nodeDao.createNewNode(grandparent);
+		Long grandId = KeyFactory.stringToKey(grandparent.getId());
+		toDelete.add(grandparent.getId());
+		// parent
+		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId);
+		parent.setParentId(grandparent.getId());
+		parent = nodeDao.createNewNode(parent);
+		Long parentId = KeyFactory.stringToKey(parent.getId());
+		toDelete.add(parent.getId());
+		// child
+		Node child = NodeTestUtils.createNew("child", creatorUserGroupId);
+		child.setParentId(parent.getId());
+		child = nodeDao.createNewNode(child);
+		Long childId = KeyFactory.stringToKey(child.getId());
+		toDelete.add(child.getId());
+
+		String schema$id = "my.org/foo.bar/1.2.3";
+		int index = 0;
+		JsonSchemaVersionInfo schemaInfo = jsonSchemaTestHelper.createNewSchemaVersion(creatorUserGroupId, schema$id,
+				index);
+		// bind the schema to the grand parent
+		JsonSchemaObjectBinding binding = jsonSchemaTestHelper.bindSchemaToObject(creatorUserGroupId, schema$id,
+				grandId, BoundObjectType.entity);
+
+		// call under test
+		Long boundId = nodeDao.findFirstBoundJsonSchema(childId);
+		assertEquals(grandId, boundId);
+		// call under test
+		boundId = nodeDao.findFirstBoundJsonSchema(parentId);
+		assertEquals(grandId, boundId);
+		// call under test
+		boundId = nodeDao.findFirstBoundJsonSchema(grandId);
+		assertEquals(grandId, boundId);
+
+		// override the schema at the parent level
+		binding = jsonSchemaTestHelper.bindSchemaToObject(creatorUserGroupId, schema$id, parentId,
+				BoundObjectType.entity);
+
+		// call under test
+		boundId = nodeDao.findFirstBoundJsonSchema(childId);
+		assertEquals(parentId, boundId);
+		// call under test
+		boundId = nodeDao.findFirstBoundJsonSchema(parentId);
+		assertEquals(parentId, boundId);
+		// call under test
+		boundId = nodeDao.findFirstBoundJsonSchema(grandId);
+		assertEquals(grandId, boundId);
+	}
+
+	@Test
+	public void testFindFirstBoundJsonSchemaWithNoMatch() {
+		jsonSchemaTestHelper.truncateAll();
+		// setup a node with no binding.
+		Node grandparent = NodeTestUtils.createNew("grandparent", creatorUserGroupId);
+		grandparent = nodeDao.createNewNode(grandparent);
+		Long grandId = KeyFactory.stringToKey(grandparent.getId());
+		toDelete.add(grandparent.getId());
+		String message = assertThrows(NotFoundException.class, () -> {
+			// call under test
+			nodeDao.findFirstBoundJsonSchema(grandId);
+		}).getMessage();
+		assertEquals("No JSON schema found for 'syn" + grandId + "'", message);
+	}
+
+	@Test
+	public void testFindFirstBoundJsonSchemaWithNullNodeId() {
+		jsonSchemaTestHelper.truncateAll();
+		Long nodeId = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			nodeDao.findFirstBoundJsonSchema(nodeId);
 		});
 	}
 }

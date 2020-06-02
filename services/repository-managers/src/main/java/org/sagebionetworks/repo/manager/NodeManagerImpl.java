@@ -757,4 +757,9 @@ public class NodeManagerImpl implements NodeManager {
 		return nodeDao.getNodeName(nodeId);
 	}
 
+	@Override
+	public Long findFirstBoundJsonSchema(Long nodeId) {
+		return nodeDao.findFirstBoundJsonSchema(nodeId);
+	}
+
 }

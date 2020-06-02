@@ -3,10 +3,10 @@ package org.sagebionetworks.repo.manager;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.collect.Lists;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.MultipartUtils;
+import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DataType;
@@ -29,18 +29,24 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.schema.BoundObjectType;
+import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.google.common.collect.Lists;
 
 /**
  *
@@ -63,11 +69,14 @@ public class EntityManagerImpl implements EntityManager {
 	UserManager userManager;
 	@Autowired
 	ObjectTypeManager objectTypeManager;
-	
+	@Autowired
+	JsonSchemaManager jsonSchemaManager;
+
 	boolean allowCreationOfOldEntities = true;
 
 	/**
 	 * Injected via spring.
+	 * 
 	 * @param allowOldEntityTypes
 	 */
 	public void setAllowCreationOfOldEntities(boolean allowCreationOfOldEntities) {
@@ -77,8 +86,7 @@ public class EntityManagerImpl implements EntityManager {
 	@WriteTransaction
 	@Override
 	public <T extends Entity> String createEntity(UserInfo userInfo, T newEntity, String activityId)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException {
+			throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
 		// First create a node the represent the entity
 		Node node = NodeTranslationUtils.createFromEntity(newEntity);
 		// Set the type for this object
@@ -94,44 +102,44 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public <T extends Entity> T getEntity(
-			UserInfo userInfo, String entityId, Class<? extends T> entityClass)
+	public <T extends Entity> T getEntity(UserInfo userInfo, String entityId, Class<? extends T> entityClass)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		ValidateArgument.required(entityId, "entityId");
 		// Get the annotations for this entity
-		org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations = nodeManager.getEntityPropertyAnnotations(userInfo, entityId);
+		org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations = nodeManager
+				.getEntityPropertyAnnotations(userInfo, entityId);
 		// Fetch the current node from the server
 		Node node = nodeManager.get(userInfo, entityId);
 		// Does the node type match the requested type?
-		validateType(EntityTypeUtils.getEntityTypeForClass(entityClass),
-				node.getNodeType(), entityId);
+		validateType(EntityTypeUtils.getEntityTypeForClass(entityClass), node.getNodeType(), entityId);
 		return populateEntityWithNodeAndAnnotations(entityClass, entityPropertyAnnotations, node);
 	}
-	
+
 	@Override
-	public Entity getEntity(UserInfo user, String entityId) throws DatastoreException, UnauthorizedException, NotFoundException {
+	public Entity getEntity(UserInfo user, String entityId)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
 		// Get the annotations for this entity
-		org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations = nodeManager.getEntityPropertyAnnotations(user, entityId);
+		org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations = nodeManager
+				.getEntityPropertyAnnotations(user, entityId);
 		// Fetch the current node from the server
 		Node node = nodeManager.get(user, entityId);
-		return populateEntityWithNodeAndAnnotations(EntityTypeUtils.getClassForType(node.getNodeType()), entityPropertyAnnotations, node);
+		return populateEntityWithNodeAndAnnotations(EntityTypeUtils.getClassForType(node.getNodeType()),
+				entityPropertyAnnotations, node);
 	}
 
 	/**
-	 * Validate that the requested entity type matches the actual entity type.
-	 * See http://sagebionetworks.jira.com/browse/PLFM-431.
+	 * Validate that the requested entity type matches the actual entity type. See
+	 * http://sagebionetworks.jira.com/browse/PLFM-431.
 	 * 
 	 * @param <T>
 	 * @param requestedType
 	 * @param acutalType
 	 * @param id
 	 */
-	private <T extends Entity> void validateType(EntityType requestedType,
-			EntityType acutalType, String id) {
+	private <T extends Entity> void validateType(EntityType requestedType, EntityType acutalType, String id) {
 		if (acutalType != requestedType) {
-			throw new IllegalArgumentException("The Entity: syn" + id
-					+ " has an entityType=" + EntityTypeUtils.getEntityTypeClassName(acutalType)
-					+ " and cannot be changed to entityType="
+			throw new IllegalArgumentException("The Entity: syn" + id + " has an entityType="
+					+ EntityTypeUtils.getEntityTypeClassName(acutalType) + " and cannot be changed to entityType="
 					+ EntityTypeUtils.getEntityTypeClassName(requestedType));
 		}
 	}
@@ -148,16 +156,13 @@ public class EntityManagerImpl implements EntityManager {
 	 * @throws UnauthorizedException
 	 */
 	@Override
-	public  <T extends Entity> T getEntityForVersion(
-			UserInfo userInfo, String entityId, Long versionNumber,
-			Class<? extends T> entityClass) throws NotFoundException,
-			DatastoreException, UnauthorizedException {
+	public <T extends Entity> T getEntityForVersion(UserInfo userInfo, String entityId, Long versionNumber,
+			Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Get the annotations for this entity
-		org.sagebionetworks.repo.model.Annotations annos = nodeManager.getEntityPropertyForVersion(userInfo,
-				entityId, versionNumber);
-		// Fetch the current node from the server
-		Node node = nodeManager.getNodeForVersionNumber(userInfo, entityId,
+		org.sagebionetworks.repo.model.Annotations annos = nodeManager.getEntityPropertyForVersion(userInfo, entityId,
 				versionNumber);
+		// Fetch the current node from the server
+		Node node = nodeManager.getNodeForVersionNumber(userInfo, entityId, versionNumber);
 		return populateEntityWithNodeAndAnnotations(entityClass, annos, node);
 	}
 
@@ -171,8 +176,8 @@ public class EntityManagerImpl implements EntityManager {
 	 * @param node
 	 * @return
 	 */
-	private <T extends Entity> T populateEntityWithNodeAndAnnotations(
-			Class<? extends T> entityClass, org.sagebionetworks.repo.model.Annotations entityProperties, Node node)
+	private <T extends Entity> T populateEntityWithNodeAndAnnotations(Class<? extends T> entityClass,
+			org.sagebionetworks.repo.model.Annotations entityProperties, Node node)
 			throws DatastoreException, NotFoundException {
 		// Return the new object from the dataEntity
 		T newEntity = createNewEntity(entityClass);
@@ -203,13 +208,10 @@ public class EntityManagerImpl implements EntityManager {
 		try {
 			newEntity = entityClass.newInstance();
 		} catch (InstantiationException e) {
-			throw new IllegalArgumentException(
-					"Class must have a no-argument constructor: "
-							+ Entity.class.getName());
+			throw new IllegalArgumentException("Class must have a no-argument constructor: " + Entity.class.getName());
 		} catch (IllegalAccessException e) {
 			throw new IllegalArgumentException(
-					"Class must have a public no-argument constructor: "
-							+ Entity.class.getName());
+					"Class must have a public no-argument constructor: " + Entity.class.getName());
 		}
 		return newEntity;
 	}
@@ -225,9 +227,8 @@ public class EntityManagerImpl implements EntityManager {
 
 	@WriteTransaction
 	@Override
-	public void deleteEntityVersion(UserInfo userInfo, String id,
-			Long versionNumber) throws NotFoundException, DatastoreException,
-			UnauthorizedException, ConflictingUpdateException {
+	public void deleteEntityVersion(UserInfo userInfo, String id, Long versionNumber)
+			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		nodeManager.deleteVersion(userInfo, id, versionNumber);
 	}
 
@@ -241,18 +242,16 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public Annotations getAnnotationsForVersion(UserInfo userInfo, String id,
-												Long versionNumber) throws NotFoundException, DatastoreException,
-			UnauthorizedException {
+	public Annotations getAnnotationsForVersion(UserInfo userInfo, String id, Long versionNumber)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Get all of the annotations.
 		return nodeManager.getUserAnnotationsForVersion(userInfo, id, versionNumber);
 	}
 
 	@WriteTransaction
 	@Override
-	public void updateAnnotations(UserInfo userInfo, String entityId,
-			Annotations updated) throws ConflictingUpdateException,
-			NotFoundException, DatastoreException, UnauthorizedException,
+	public void updateAnnotations(UserInfo userInfo, String entityId, Annotations updated)
+			throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException,
 			InvalidModelException {
 		if (updated == null)
 			throw new IllegalArgumentException("Annoations cannot be null");
@@ -262,20 +261,19 @@ public class EntityManagerImpl implements EntityManager {
 
 	@WriteTransaction
 	@Override
-	public <T extends Entity> boolean updateEntity(UserInfo userInfo, T updated,
-			boolean newVersion, String activityId) throws NotFoundException, DatastoreException,
-			UnauthorizedException, ConflictingUpdateException,
+	public <T extends Entity> boolean updateEntity(UserInfo userInfo, T updated, boolean newVersion, String activityId)
+			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException,
 			InvalidModelException {
 
 		Node node = nodeManager.get(userInfo, updated.getId());
 		// Now get the annotations for this node
-		org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations = nodeManager.getEntityPropertyAnnotations(userInfo,
-				updated.getId());
-		
+		org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations = nodeManager
+				.getEntityPropertyAnnotations(userInfo, updated.getId());
+
 		// Auto-version FileEntity See PLFM-1744
-		if(!newVersion && (updated instanceof FileEntity)){
+		if (!newVersion && (updated instanceof FileEntity)) {
 			FileEntity updatedFile = (FileEntity) updated;
-			if(!updatedFile.getDataFileHandleId().equals(node.getFileHandleId())){
+			if (!updatedFile.getDataFileHandleId().equals(node.getFileHandleId())) {
 				newVersion = true;
 				// setting this to null we cause the revision id to be used.
 				updatedFile.setVersionLabel(null);
@@ -283,7 +281,7 @@ public class EntityManagerImpl implements EntityManager {
 			}
 		}
 
-		if(updated instanceof TableEntity || updated instanceof EntityView) {
+		if (updated instanceof TableEntity || updated instanceof EntityView) {
 			/*
 			 * Fix for PLFM-5702. Creating a new version is fundamentally different than
 			 * creating a table/view snapshot. We cannot block callers from creating new
@@ -296,19 +294,21 @@ public class EntityManagerImpl implements EntityManager {
 		}
 
 		final boolean newVersionFinal = newVersion;
-		
-		if(newVersion) {
+
+		if (newVersion) {
 			long currentRevisionNumber = nodeManager.getCurrentRevisionNumber(updated.getId());
-			if(currentRevisionNumber + 1 > MAX_NUMBER_OF_REVISIONS) {
-				throw new IllegalArgumentException("Exceeded the maximum number of "+MAX_NUMBER_OF_REVISIONS+" versions for a single Entity");
+			if (currentRevisionNumber + 1 > MAX_NUMBER_OF_REVISIONS) {
+				throw new IllegalArgumentException(
+						"Exceeded the maximum number of " + MAX_NUMBER_OF_REVISIONS + " versions for a single Entity");
 			}
 		}
-		
-		// Set activityId if new version or if not changing versions and activityId is defined
-		if(newVersionFinal || (!newVersionFinal && activityId != null)) {
+
+		// Set activityId if new version or if not changing versions and activityId is
+		// defined
+		if (newVersionFinal || (!newVersionFinal && activityId != null)) {
 			node.setActivityId(activityId);
 		}
-		
+
 		updateNodeAndAnnotationsFromEntity(updated, node, entityPropertyAnnotations);
 		// Now update both at the same time
 		nodeManager.update(userInfo, node, entityPropertyAnnotations, newVersionFinal);
@@ -323,8 +323,8 @@ public class EntityManagerImpl implements EntityManager {
 	 * @param node
 	 * @param annos
 	 */
-	private <T extends Entity> void updateNodeAndAnnotationsFromEntity(
-			T entity, Node node, org.sagebionetworks.repo.model.Annotations annos) {
+	private <T extends Entity> void updateNodeAndAnnotationsFromEntity(T entity, Node node,
+			org.sagebionetworks.repo.model.Annotations annos) {
 		// Update the annotations from the entity
 		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(entity, annos);
 		// Update the node from the entity
@@ -349,18 +349,16 @@ public class EntityManagerImpl implements EntityManager {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		return nodeManager.getNodeHeader(userInfo, entityId);
 	}
-	
+
 	@Override
-	public List<EntityHeader> getEntityHeader(UserInfo userInfo,
-			List<Reference> references) throws NotFoundException,
-			DatastoreException, UnauthorizedException {
+	public List<EntityHeader> getEntityHeader(UserInfo userInfo, List<Reference> references)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
 		return nodeManager.getNodeHeader(userInfo, references);
 	}
 
 	@Override
-	public List<VersionInfo> getVersionsOfEntity(UserInfo userInfo, String entityId,
-			long offset, long limit) throws DatastoreException,
-			UnauthorizedException, NotFoundException {
+	public List<VersionInfo> getVersionsOfEntity(UserInfo userInfo, String entityId, long offset, long limit)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
 		// pass through
 		return nodeManager.getVersionsOfEntity(userInfo, entityId, offset, limit);
 	}
@@ -373,8 +371,8 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public String getEntityPathAsFilePath(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException,
-			UnauthorizedException {
+	public String getEntityPathAsFilePath(UserInfo userInfo, String entityId)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
 		List<EntityHeader> entityPath = getEntityPath(userInfo, entityId);
 
 		// we skip the root node
@@ -394,44 +392,40 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public List<EntityHeader> getEntityPathAsAdmin(String entityId)
-			throws NotFoundException, DatastoreException {
+	public List<EntityHeader> getEntityPathAsAdmin(String entityId) throws NotFoundException, DatastoreException {
 		// pass through
 		return nodeManager.getNodePathAsAdmin(entityId);
 	}
-	
+
 	@Override
 	public void validateReadAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
-		entityPermissionsManager.hasAccess(entityId,
-				ACCESS_TYPE.READ, userInfo).checkAuthorizationOrElseThrow();
-	}
-	
-	@Override
-	public void validateUpdateAccess(UserInfo userInfo, String entityId)
-			throws DatastoreException, NotFoundException, UnauthorizedException {
-		entityPermissionsManager.hasAccess(entityId,
-				ACCESS_TYPE.UPDATE, userInfo).checkAuthorizationOrElseThrow();
+		entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).checkAuthorizationOrElseThrow();
 	}
 
 	@Override
-	public boolean doesEntityHaveChildren(UserInfo userInfo, String entityId) throws DatastoreException, UnauthorizedException, NotFoundException {
+	public void validateUpdateAccess(UserInfo userInfo, String entityId)
+			throws DatastoreException, NotFoundException, UnauthorizedException {
+		entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, userInfo).checkAuthorizationOrElseThrow();
+	}
+
+	@Override
+	public boolean doesEntityHaveChildren(UserInfo userInfo, String entityId)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
 		validateReadAccess(userInfo, entityId);
 		return nodeManager.doesNodeHaveChildren(entityId);
 	}
 
 	@Override
-	public Activity getActivityForEntity(UserInfo userInfo, String entityId,
-			Long versionNumber) throws DatastoreException,
-			UnauthorizedException, NotFoundException {
-		return nodeManager.getActivityForNode(userInfo, entityId, versionNumber);		
+	public Activity getActivityForEntity(UserInfo userInfo, String entityId, Long versionNumber)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		return nodeManager.getActivityForNode(userInfo, entityId, versionNumber);
 	}
 
 	@WriteTransaction
-	@Override	
-	public Activity setActivityForEntity(UserInfo userInfo, String entityId,
-			String activityId) throws DatastoreException,
-			UnauthorizedException, NotFoundException {
+	@Override
+	public Activity setActivityForEntity(UserInfo userInfo, String entityId, String activityId)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
 		validateUpdateAccess(userInfo, entityId);
 		nodeManager.setActivityForNode(userInfo, entityId, activityId);
 		return nodeManager.getActivityForNode(userInfo, entityId, null);
@@ -463,35 +457,34 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public EntityChildrenResponse getChildren(UserInfo user,
-			EntityChildrenRequest request) {
+	public EntityChildrenResponse getChildren(UserInfo user, EntityChildrenRequest request) {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(request, "EntityChildrenRequest");
-		if(request.getParentId() == null){
+		if (request.getParentId() == null) {
 			// Null parentId is used to list projects.
 			request.setParentId(ROOT_ID);
 			request.setIncludeTypes(PROJECT_ONLY);
 		}
 		ValidateArgument.required(request.getIncludeTypes(), "EntityChildrenRequest.includeTypes");
-		if(request.getIncludeTypes().isEmpty()){
+		if (request.getIncludeTypes().isEmpty()) {
 			throw new IllegalArgumentException("EntityChildrenRequest.includeTypes must include at least one type");
 		}
-		if(request.getSortBy() == null){
+		if (request.getSortBy() == null) {
 			request.setSortBy(DEFAULT_SORT_BY);
 		}
-		if(request.getSortDirection() == null){
+		if (request.getSortDirection() == null) {
 			request.setSortDirection(DEFAULT_SORT_DIRECTION);
 		}
-		if(!ROOT_ID.equals(request.getParentId())){
+		if (!ROOT_ID.equals(request.getParentId())) {
 			// Validate the caller has read access to the parent
-			entityPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, user).checkAuthorizationOrElseThrow();
+			entityPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, user)
+					.checkAuthorizationOrElseThrow();
 		}
 
 		// Find the children of this entity that the caller cannot see.
 		Set<Long> childIdsToExclude = entityPermissionsManager.getNonvisibleChildren(user, request.getParentId());
 		NextPageToken nextPage = new NextPageToken(request.getNextPageToken());
-		List<EntityHeader> page = nodeManager.getChildren(
-				request.getParentId(), request.getIncludeTypes(),
+		List<EntityHeader> page = nodeManager.getChildren(request.getParentId(), request.getIncludeTypes(),
 				childIdsToExclude, request.getSortBy(), request.getSortDirection(), nextPage.getLimitForQuery(),
 				nextPage.getOffset());
 		// Gather count and size sum if requested.
@@ -513,17 +506,17 @@ public class EntityManagerImpl implements EntityManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getEntityName(), "EntityLookupRequest.entityName");
-		if(request.getParentId() == null){
+		if (request.getParentId() == null) {
 			// Null parentId is used to look up projects.
 			request.setParentId(ROOT_ID);
 		}
-		if(!ROOT_ID.equals(request.getParentId())){
-			if(!entityPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, userInfo).isAuthorized()){
+		if (!ROOT_ID.equals(request.getParentId())) {
+			if (!entityPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, userInfo).isAuthorized()) {
 				throw new UnauthorizedException("Lack of READ permission on the parent entity.");
 			}
 		}
 		String entityId = nodeManager.lookupChild(request.getParentId(), request.getEntityName());
-		if(!entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).isAuthorized()){
+		if (!entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).isAuthorized()) {
 			throw new UnauthorizedException("Lack of READ permission on the requested entity.");
 		}
 		EntityId result = new EntityId();
@@ -537,5 +530,34 @@ public class EntityManagerImpl implements EntityManager {
 		ValidateArgument.required(entityId, "id");
 		ValidateArgument.required(dataType, "DataType");
 		return objectTypeManager.changeObjectsDataType(userInfo, entityId, ObjectType.ENTITY, dataType);
+	}
+
+	@Override
+	public JsonSchemaObjectBinding bindSchemaToEntity(UserInfo userInfo, BindSchemaToEntityRequest request) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getEntityId(), "request.entityId");
+		ValidateArgument.required(request.getSchema$id(), "request.schema$id");
+		entityPermissionsManager.hasAccess(request.getEntityId(), ACCESS_TYPE.UPDATE, userInfo)
+				.checkAuthorizationOrElseThrow();
+		return jsonSchemaManager.bindSchemaToObject(userInfo.getId(), request.getSchema$id(),
+				KeyFactory.stringToKey(request.getEntityId()), BoundObjectType.entity);
+	}
+
+	@Override
+	public JsonSchemaObjectBinding getBoundSchema(UserInfo userInfo, String id) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(id, "id");
+		entityPermissionsManager.hasAccess(id, ACCESS_TYPE.READ, userInfo).checkAuthorizationOrElseThrow();
+		Long boundEntityId = nodeManager.findFirstBoundJsonSchema(KeyFactory.stringToKey(id));
+		return jsonSchemaManager.getJsonSchemaObjectBinding(boundEntityId, BoundObjectType.entity);
+	}
+
+	@Override
+	public void clearBoundSchema(UserInfo userInfo, String id) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(id, "id");
+		entityPermissionsManager.hasAccess(id, ACCESS_TYPE.DELETE, userInfo).checkAuthorizationOrElseThrow();
+		jsonSchemaManager.clearBoundSchema(KeyFactory.stringToKey(id), BoundObjectType.entity);
 	}
 }

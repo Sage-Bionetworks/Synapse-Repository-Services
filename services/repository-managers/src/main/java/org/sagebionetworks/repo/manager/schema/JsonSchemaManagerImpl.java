@@ -23,15 +23,18 @@ import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.schema.BindSchemaRequest;
 import org.sagebionetworks.repo.model.dbo.schema.JsonSchemaDao;
 import org.sagebionetworks.repo.model.dbo.schema.NewSchemaVersionRequest;
 import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
 import org.sagebionetworks.repo.model.dbo.schema.SchemaDependency;
+import org.sagebionetworks.repo.model.schema.BoundObjectType;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaInfo;
+import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoRequest;
 import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoResponse;
@@ -292,7 +295,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 
 	@Override
 	public void truncateAll() {
-		jsonSchemaDao.trunacteAll();
+		jsonSchemaDao.truncateAll();
 		organizationDao.truncateAll();
 	}
 
@@ -447,6 +450,33 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		ValidateArgument.required($id, "id");
 		String versionId = getSchemaVersionId($id);
 		return jsonSchemaDao.getSchema(versionId);
+	}
+
+	@Override
+	public JsonSchemaObjectBinding bindSchemaToObject(Long createdBy, String $id, Long objectId, BoundObjectType objectType) {
+		ValidateArgument.required(createdBy, "createdBy");
+		ValidateArgument.required($id, "$id");
+		ValidateArgument.required(objectId, "objectId");
+		ValidateArgument.required(objectType, "objectType");
+		SchemaId parsedId = SchemaIdParser.parseSchemaId($id);
+		String schemaId = jsonSchemaDao.getSchemaId(parsedId.getOrganizationName().toString(), parsedId.getSchemaName().toString());
+		// versionId is null unless a semantic version is provided in the $id.
+		String versionId = null;
+		if(parsedId.getSemanticVersion() != null) {
+			versionId = jsonSchemaDao.getVersionId(parsedId.getOrganizationName().toString(), parsedId.getSchemaName().toString(), parsedId.getSemanticVersion().toString());
+		}
+		return jsonSchemaDao.bindSchemaToObject(new BindSchemaRequest().withCreatedBy(createdBy).withObjectId(objectId)
+				.withObjectType(objectType).withSchemaId(schemaId).withVersionId(versionId));
+	}
+
+	@Override
+	public JsonSchemaObjectBinding getJsonSchemaObjectBinding(Long objectId, BoundObjectType objectType) {
+		return jsonSchemaDao.getSchemaBindingForObject(objectId, objectType);
+	}
+
+	@Override
+	public void clearBoundSchema(Long objectId, BoundObjectType objectType) {
+		jsonSchemaDao.clearBoundSchema(objectId, objectType);
 	}
 
 }

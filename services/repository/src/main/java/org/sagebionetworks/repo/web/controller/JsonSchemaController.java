@@ -12,6 +12,12 @@ import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoRequest;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoResponse;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoRequest;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
+import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
+import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -62,7 +68,7 @@ public class JsonSchemaController {
 	 * @param request
 	 * @return
 	 */
-	@RequiredScope({view,modify})
+	@RequiredScope({ view, modify })
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION }, method = RequestMethod.POST)
 	public @ResponseBody Organization createOrganziation(
@@ -78,13 +84,28 @@ public class JsonSchemaController {
 	 * @param name   The name of the Organization to lookup.
 	 * @return
 	 */
-	@RequiredScope({view})
+	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION }, method = RequestMethod.GET)
 	public @ResponseBody Organization getOrganizationByName(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = true) String name) {
 		return serviceProvider.getSchemaServices().getOrganizationByName(userId, name);
+	}
+
+	/**
+	 * List all organizations. Each call will return a single page of Organizations.
+	 * Forward the provided nextPageToken to get the next page.
+	 * 
+	 * @param request
+	 * @return
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ORGANIZATION_LIST }, method = RequestMethod.POST)
+	public @ResponseBody ListOrganizationsResponse listOrganizations(
+			@RequestBody(required = true) ListOrganizationsRequest request) {
+		return serviceProvider.getSchemaServices().listOrganizations(request);
 	}
 
 	/**
@@ -100,7 +121,7 @@ public class JsonSchemaController {
 	 * @param userId
 	 * @param id     The numeric identifier of the organization.
 	 */
-	@RequiredScope({modify})
+	@RequiredScope({ modify })
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION_ID }, method = RequestMethod.DELETE)
 	public void deleteOrganization(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -120,7 +141,7 @@ public class JsonSchemaController {
 	 * @param id     The numeric identifier of the organization.
 	 * @return
 	 */
-	@RequiredScope({view})
+	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION_ID_ACL }, method = RequestMethod.GET)
 	public @ResponseBody AccessControlList getOrganizationAcl(
@@ -142,7 +163,7 @@ public class JsonSchemaController {
 	 * @param acl    The updated ACL.
 	 * @return
 	 */
-	@RequiredScope({view,modify,authorize})
+	@RequiredScope({ view, modify, authorize })
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION_ID_ACL }, method = RequestMethod.PUT)
 	public @ResponseBody AccessControlList updateOrganizationAcl(
@@ -215,7 +236,7 @@ public class JsonSchemaController {
 	 * @return Use the resulting token to monitor the job's progress and to get the
 	 *         final results.
 	 */
-	@RequiredScope({modify})
+	@RequiredScope({ modify })
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.JSON_SCHEMA_TYPE_ASYNCH_START, method = RequestMethod.POST)
 	public @ResponseBody AsyncJobId createSchemaAsyncStart(
@@ -242,7 +263,7 @@ public class JsonSchemaController {
 	 * @return
 	 * @throws Throwable
 	 */
-	@RequiredScope({view, modify})
+	@RequiredScope({ view, modify })
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.JSON_SCHEMA_TYPE_ASYNCH_GET, method = RequestMethod.GET)
 	public @ResponseBody CreateSchemaResponse createSchemaAsyncGet(
@@ -261,7 +282,7 @@ public class JsonSchemaController {
 	 * @param id     The $if of the schema to get.
 	 * @return
 	 */
-	@RequiredScope({view})
+	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.JSON_SHCEMA_TYPE_REG_ORG_NAME }, method = RequestMethod.GET)
 	public @ResponseBody JsonSchema getJsonSchemaNoVersion(@PathVariable String organizationName,
@@ -279,12 +300,44 @@ public class JsonSchemaController {
 	 * @param semanticVersion
 	 * @return
 	 */
-	@RequiredScope({view})
+	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.JSON_SHCEMA_TYPE_REG_ORG_NAME_VER }, method = RequestMethod.GET)
 	public @ResponseBody JsonSchema getJsonSchemaWithVersion(@PathVariable String organizationName,
 			@PathVariable String schemaName, @PathVariable String semanticVersion) {
 		return serviceProvider.getSchemaServices().getSchema(organizationName, schemaName, semanticVersion);
+	}
+
+	/**
+	 * List all JSON schemas for an Organization. Each call will return a single
+	 * page of schemas. Forward the provided nextPageToken to get the next page.
+	 * 
+	 * @param organizationName
+	 * @param request
+	 * @return
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.JSON_SCHEMA_LIST }, method = RequestMethod.POST)
+	public @ResponseBody ListJsonSchemaInfoResponse listJsonSchemas(@RequestBody ListJsonSchemaInfoRequest request) {
+		return serviceProvider.getSchemaServices().listSchemas(request);
+	}
+
+	/**
+	 * List the version information for each version of a given schema. Each call
+	 * will return a single page of results. Forward the provide nextPageToken to
+	 * get the next page of results.
+	 * 
+	 * @param organizationName
+	 * @param request
+	 * @return
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.JSON_SCHEMA_VERSIONS_LIST }, method = RequestMethod.POST)
+	public @ResponseBody ListJsonSchemaVersionInfoResponse listJsonSchemasVersions(
+			@RequestBody ListJsonSchemaVersionInfoRequest request) {
+		return serviceProvider.getSchemaServices().listSchemasVersions(request);
 	}
 
 	/**
@@ -299,7 +352,7 @@ public class JsonSchemaController {
 	 * @param userId
 	 * @param id     The $id of the schema to delete.
 	 */
-	@RequiredScope({modify})
+	@RequiredScope({ modify })
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = { UrlHelpers.JSON_SHCEMA_TYPE_REG_ORG_NAME }, method = RequestMethod.DELETE)
 	public void deleteSchemaAllVersions(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -321,7 +374,7 @@ public class JsonSchemaController {
 	 * @param schemaName
 	 * @param semanticVersion
 	 */
-	@RequiredScope({modify})
+	@RequiredScope({ modify })
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = { UrlHelpers.JSON_SHCEMA_TYPE_REG_ORG_NAME_VER }, method = RequestMethod.DELETE)
 	public void deleteSchemaVersion(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
