@@ -20,11 +20,21 @@ import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoRequest;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoResponse;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoRequest;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
+import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
+import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
 
 import com.google.common.collect.Sets;
@@ -42,6 +52,7 @@ public class ITJsonSchemaControllerTest {
 	CreateOrganizationRequest createOrganizationRequest;
 
 	Organization organization;
+	Project project;
 
 	@BeforeAll
 	public static void beforeClass() throws Exception {
@@ -77,6 +88,9 @@ public class ITJsonSchemaControllerTest {
 
 	@AfterEach
 	public void afterEach() throws SynapseException {
+		if(project != null){
+			synapse.deleteEntity(project, true);
+		}
 		try {
 			adminSynapse.deleteSchema(organizationName, schemaName);
 		} catch (SynapseNotFoundException e) {
@@ -99,6 +113,18 @@ public class ITJsonSchemaControllerTest {
 		assertEquals(organizationName, organization.getName());
 		assertNotNull(organization.getId());
 		assertEquals("" + userId, organization.getCreatedBy());
+	}
+	
+	@Test
+	public void testListOrganization() throws SynapseException {
+		organization = synapse.createOrganization(createOrganizationRequest);
+		assertNotNull(organization);
+		ListOrganizationsRequest request = new ListOrganizationsRequest();
+		// call under test
+		ListOrganizationsResponse response = synapse.listOrganizations(request);
+		assertNotNull(response);
+		assertNotNull(response.getPage());
+		assertTrue(response.getPage().size() > 0);
 	}
 
 	@Test
@@ -174,6 +200,49 @@ public class ITJsonSchemaControllerTest {
 	}
 	
 	@Test
+	public void testListJsonSchemas() throws SynapseException, InterruptedException {
+		organization = synapse.createOrganization(createOrganizationRequest);
+		assertNotNull(organization);
+		JsonSchema schema = new JsonSchema();
+		schema.set$id(organizationName+"/"+schemaName);
+		schema.setDescription("test without a version");
+		CreateSchemaRequest request = new CreateSchemaRequest();
+		request.setSchema(schema);
+		CreateSchemaResponse response = waitForSchemaCreate(request);
+		assertNotNull(response);
+
+		ListJsonSchemaInfoRequest listRequest = new ListJsonSchemaInfoRequest();
+		listRequest.setOrganizationName(organizationName);
+		// call under test
+		ListJsonSchemaInfoResponse result = synapse.listSchemaInfo(listRequest);
+		assertNotNull(result);
+		assertNotNull(result.getPage());
+		assertTrue(result.getPage().size() > 0);
+	}
+	
+	@Test
+	public void testListJsonSchemaVersions() throws SynapseException, InterruptedException {
+		organization = synapse.createOrganization(createOrganizationRequest);
+		assertNotNull(organization);
+		JsonSchema schema = new JsonSchema();
+		schema.set$id(organizationName+"/"+schemaName);
+		schema.setDescription("test without a version");
+		CreateSchemaRequest request = new CreateSchemaRequest();
+		request.setSchema(schema);
+		CreateSchemaResponse response = waitForSchemaCreate(request);
+		assertNotNull(response);
+
+		ListJsonSchemaVersionInfoRequest listRequest = new ListJsonSchemaVersionInfoRequest();
+		listRequest.setOrganizationName(organizationName);
+		listRequest.setSchemaName(schemaName);
+		// call under test
+		ListJsonSchemaVersionInfoResponse result = synapse.listSchemaVersions(listRequest);
+		assertNotNull(result);
+		assertNotNull(result.getPage());
+		assertTrue(result.getPage().size() > 0);
+	}
+	
+	@Test
 	public void testCreateSchemaGetDeleteWithVersion() throws SynapseException, InterruptedException {
 		organization = synapse.createOrganization(createOrganizationRequest);
 		assertNotNull(organization);
@@ -213,6 +282,51 @@ public class ITJsonSchemaControllerTest {
 		assertEquals(schema, fetched);
 		// call under test
 		synapse.deleteSchemaVersion(organizationName, schemaName, semanticVersion);
+	}
+	
+	@Test
+	public void bindSchemaToEntity() throws Exception {
+		organization = synapse.createOrganization(createOrganizationRequest);
+		assertNotNull(organization);
+		JsonSchema schema = new JsonSchema();
+		schema.set$id(organizationName+"/"+schemaName);
+		schema.setDescription("schema to bind");
+		CreateSchemaRequest request = new CreateSchemaRequest();
+		request.setSchema(schema);
+		CreateSchemaResponse response = waitForSchemaCreate(request);
+		assertNotNull(response);
+		
+		// will bind the schema to the project
+		project = new Project();
+		project = synapse.createEntity(project);
+		
+		Folder folder = new Folder();
+		folder.setName("child");
+		folder.setParentId(project.getId());
+		folder = synapse.createEntity(folder);
+		
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(project.getId());
+		bindRequest.setSchema$id(schema.get$id());
+		// Call under test
+		JsonSchemaObjectBinding parentBinding = synapse.bindJsonSchemaToEntity(bindRequest);
+		assertNotNull(parentBinding);
+		assertEquals(response.getNewVersionInfo(), parentBinding.getJsonSchemaVersionInfo());
+		
+		// the folder should inherit the binding
+		// call under test
+		JsonSchemaObjectBinding childBinding = synapse.getJsonSchemaBindingForEntity(folder.getId());
+		assertNotNull(childBinding);
+		assertEquals(parentBinding.getJsonSchemaVersionInfo(), childBinding.getJsonSchemaVersionInfo());
+		
+		// clear the binding
+		// call under test
+		synapse.clearSchemaBindingForEntity(project.getId());
+		
+		String folderId = folder.getId();
+		assertThrows(SynapseNotFoundException.class, ()->{
+			synapse.getJsonSchemaBindingForEntity(folderId);
+		});
 	}
 	
 	/**

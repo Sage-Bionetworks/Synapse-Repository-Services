@@ -1,13 +1,16 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CURRENT_REV;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JONS_SCHEMA_BINDING_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_BIND_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CURRENT_REV;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
@@ -36,6 +39,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FUNCTION_GET
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_OBJECT_BINDING;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJECT_STAT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
@@ -102,6 +106,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.QueryTools;
+import org.sagebionetworks.repo.model.schema.BoundObjectType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
@@ -2032,6 +2037,30 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			return this.jdbcTemplate.queryForObject("SELECT "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" =? ", String.class, KeyFactory.stringToKey(nodeId));
 		}catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException();
+		}
+	}
+	
+
+	@Override
+	public Long findFirstBoundJsonSchema(Long nodeId) {
+		ValidateArgument.required(nodeId, "nodeId");
+		try {
+			return jdbcTemplate.queryForObject(
+					" WITH RECURSIVE PATH (ID, PARENT_ID, BIND_ID, DISTANCE) " + "AS (" + " SELECT N." + COL_NODE_ID
+							+ ", N." + COL_NODE_PARENT_ID + ", B." + COL_JSON_SCHEMA_BINDING_BIND_ID + ", 1 FROM "
+							+ TABLE_NODE + " N LEFT JOIN " + TABLE_JSON_SCHEMA_OBJECT_BINDING + " B ON (N." + COL_NODE_ID
+							+ " = B." + COL_JONS_SCHEMA_BINDING_OBJECT_ID + " AND B." + COL_JSON_SCHEMA_BINDING_OBJECT_TYPE
+							+ " = '" + BoundObjectType.entity.name() + "') WHERE N." + COL_NODE_ID + " = ? " + " UNION ALL "
+							+ " SELECT N." + COL_NODE_ID + ", N." + COL_NODE_PARENT_ID + ", B."
+							+ COL_JSON_SCHEMA_BINDING_BIND_ID + ", PATH.DISTANCE + 1 FROM " + TABLE_NODE
+							+ " N JOIN PATH ON (N." + COL_NODE_ID + " = PATH." + COL_NODE_PARENT_ID + ") LEFT JOIN "
+							+ TABLE_JSON_SCHEMA_OBJECT_BINDING + " B ON (N." + COL_NODE_ID + " = B."
+							+ COL_JONS_SCHEMA_BINDING_OBJECT_ID + " AND B." + COL_JSON_SCHEMA_BINDING_OBJECT_TYPE + " = '"
+							+ BoundObjectType.entity.name() + "') WHERE DISTANCE < 100" + ")"
+							+ " SELECT ID FROM PATH WHERE BIND_ID IS NOT NULL ORDER BY DISTANCE ASC LIMIT 1;",
+					Long.class, nodeId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("No JSON schema found for 'syn"+nodeId+"'");
 		}
 	}
 

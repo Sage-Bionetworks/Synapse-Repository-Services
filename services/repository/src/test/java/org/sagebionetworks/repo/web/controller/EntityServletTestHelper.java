@@ -491,6 +491,12 @@ public class EntityServletTestHelper {
 	public PaginatedResults<Evaluation> getEvaluationsByContentSourcePaginated(
 			Long userId, String id, long limit, long offset)
 			throws Exception {
+		return getEvaluationsByContentSourcePaginated(userId, id, null, limit, offset);
+	}
+	
+	public PaginatedResults<Evaluation> getEvaluationsByContentSourcePaginated(
+			Long userId, String id, ACCESS_TYPE accessType, long limit, long offset)
+			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.EVALUATION,
 				userId, token(userId), null);
@@ -498,7 +504,11 @@ public class EntityServletTestHelper {
 				+ offset);
 		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, ""
 				+ limit);
-
+		
+		if (accessType != null) {
+			request.setParameter(UrlHelpers.ACCESS_TYPE_PARAM, accessType.name());
+		}
+		
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 

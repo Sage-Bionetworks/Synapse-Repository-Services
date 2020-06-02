@@ -1,7 +1,6 @@
 package org.sagebionetworks.auth.filter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -27,6 +26,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -51,6 +51,9 @@ public class OAuthClientAuthFilterTest {
 	private FilterChain mockFilterChain;
 	
 	@Mock
+	private StackConfiguration mockConfig;
+
+	@Mock
 	private Consumer mockConsumer;
 	
 	@InjectMocks
@@ -66,7 +69,7 @@ public class OAuthClientAuthFilterTest {
 	public void setUp() throws Exception {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BASIC_HEADER);
 		assertTrue(oAuthClientAuthFilter.credentialsRequired());
-		assertFalse(oAuthClientAuthFilter.reportBadCredentialsMetric());
+		assertTrue(oAuthClientAuthFilter.reportBadCredentialsMetric());
 	}
 
 	@Test

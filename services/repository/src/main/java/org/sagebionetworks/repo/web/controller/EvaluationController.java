@@ -24,6 +24,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -85,6 +86,15 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <li> <a href="${org.sagebionetworks.evaluation.model.SubmissionBundle}">SubmissionBundle</a>: 
  * A convenience object to transport a Submission and its accompanying SubmissionStatus in a single
  * web service call.
+ * </li>
+ * <li> <a href="${org.sagebionetworks.repo.model.table.SubmissionView}">SubmissionView</a>: 
+ * A submission view can be created using the 
+ * <a href="${org.sagebionetworks.repo.web.controller.EntityController}">Entity Services</a> providing
+ * as scope a list of evaluation ids, in order to query the set of submissions through 
+ * the <a href="${POST.entity.id.table.query.async.start}">Table Query Services</a>.
+ * <a href="${org.sagebionetworks.repo.model.annotation.v2.Annotations}">Annotations</a> set in 
+ * the submissionAnnotations property of a <a href="${org.sagebionetworks.evaluation.model.SubmissionStatus}">SubmissionStatus</a> 
+ * can be exposed in the view.
  * </li>
  * </ul>
  * </p>
@@ -163,13 +173,12 @@ public class EvaluationController {
 	/**
 	 * Gets Evaluations tied to a project. 
 	 * 
-	 * <p>
-	 * <b>Note:</b> The caller must be granted the <a
-	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.READ</a> on the specified Evaluations.
-	 * </p>
+	 * <b>Note:</b> The response will contain only those Evaluations on which the caller is
+	 * granted the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}">ACCESS_TYPE.READ</a>
+	 * permission, unless specified otherwise with the accessType parameter.
 	 * 
 	 * @param id the ID of the project
+	 * @param accessType The type of access for the user to filter for, optional and defaults to <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}">ACCESS_TYPE.READ</a>
 	 * @param activeOnly If 'true' then return only those evaluations with rounds defined and for which the current time is in one of the rounds.
 	 * @param offset
 	 *            The offset index determines where this page will start from.
@@ -189,23 +198,25 @@ public class EvaluationController {
 	PaginatedResults<Evaluation> getEvaluationsByContentSourcePaginated(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, 
+			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM, required = false, defaultValue="READ") ACCESS_TYPE accessType,
 			@RequestParam(value = ServiceConstants.ACTIVE_ONLY_PARAM, required=false, defaultValue="false") boolean activeOnly,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit
 			) throws DatastoreException, NotFoundException
 	{
-		return serviceProvider.getEvaluationService().getEvaluationByContentSource(userId, id, activeOnly, limit, offset);
+		return serviceProvider.getEvaluationService().getEvaluationByContentSource(userId, id, accessType, activeOnly, limit, offset);
 	}
 	
 	/**
 	 * Gets a collection of Evaluations, within a given range.
 	 * 
 	 * <p>
-	 * <b>Note:</b> The response will contain only those Evaluations on which the caller must is
+	 * <b>Note:</b> The response will contain only those Evaluations on which the caller is
 	 * granted the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}">ACCESS_TYPE.READ</a>
-	 * permission.
+	 * permission, unless specified otherwise with the accessType parameter.
 	 * </p> 
 	 * 
+	 * @param accessType The type of access for the user to filter for, optional and defaults to <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}">ACCESS_TYPE.READ</a>
 	 * @param activeOnly If 'true' then return only those evaluations with rounds defined and for which the current time is in one of the rounds.
 	 * @param offset
 	 *            The offset index determines where this page will start from.
@@ -224,12 +235,15 @@ public class EvaluationController {
 	public @ResponseBody
 	PaginatedResults<Evaluation> getEvaluationsPaginated(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM, required = false, defaultValue="READ") ACCESS_TYPE accessType,
 			@RequestParam(value = ServiceConstants.ACTIVE_ONLY_PARAM, required=false, defaultValue="false") boolean activeOnly,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit
-			) throws DatastoreException, NotFoundException
-	{
-		return serviceProvider.getEvaluationService().getEvaluationsInRange(userId, activeOnly, limit, offset);
+			) throws DatastoreException, NotFoundException {
+		
+		
+		
+		return serviceProvider.getEvaluationService().getEvaluationsInRange(userId, accessType, activeOnly, limit, offset);
 	}
 	
 	/**
@@ -1153,6 +1167,7 @@ public class EvaluationController {
 	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_QUERY, method = RequestMethod.GET)
+	@Deprecated
 	public @ResponseBody 
 	QueryTableResults query(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,

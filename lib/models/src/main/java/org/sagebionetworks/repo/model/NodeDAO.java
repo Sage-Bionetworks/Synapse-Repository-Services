@@ -632,4 +632,11 @@ public interface NodeDAO {
 	 */
 	public String getNodeName(String nodeId);
 
+	/**
+	 * Walk the hierarchy to find the fist bound JSON schema for the provide entity Id.
+	 * @param nodeId
+	 * @return
+	 */
+	public Long findFirstBoundJsonSchema(Long nodeId);
+
 }

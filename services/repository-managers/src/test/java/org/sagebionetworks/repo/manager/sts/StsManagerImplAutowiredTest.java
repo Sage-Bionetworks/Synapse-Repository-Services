@@ -175,7 +175,8 @@ public class StsManagerImplAutowiredTest {
 		applyStorageLocationToFolder(storageLocationSetting.getStorageLocationId());
 
 		// Get read-only credentials.
-		AmazonS3 readOnlyTempClient = createS3ClientFromTempStsCredentials(StsPermission.read_only);
+		AmazonS3 readOnlyTempClient = createS3ClientFromTempStsCredentials(StsPermission.read_only,
+				EXTERNAL_S3_BUCKET, testFolderPath);
 
 		// Cannot list or read at the bucket root.
 		// Note that we call getObjectMetadata() instead of getObject(). This is because getObject() opens up an HTTP
@@ -203,7 +204,8 @@ public class StsManagerImplAutowiredTest {
 		assertEquals(403, ex.getStatusCode());
 
 		// Get read-write credentials.
-		AmazonS3 readWriteTempClient = createS3ClientFromTempStsCredentials(StsPermission.read_write);
+		AmazonS3 readWriteTempClient = createS3ClientFromTempStsCredentials(StsPermission.read_write,
+				EXTERNAL_S3_BUCKET, testFolderPath);
 
 		// Cannot list or read at the bucket root.
 		ex = assertThrows(AmazonServiceException.class, () -> readWriteTempClient.listObjects(
@@ -247,7 +249,8 @@ public class StsManagerImplAutowiredTest {
 				DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID);
 
 		// Get read-only credentials.
-		AmazonS3 readOnlyTempClient = createS3ClientFromTempStsCredentials(StsPermission.read_only);
+		AmazonS3 readOnlyTempClient = createS3ClientFromTempStsCredentials(StsPermission.read_only, SYNAPSE_BUCKET,
+				baseKey);
 
 		// Can list and read files inside of our base key.
 		readOnlyTempClient.listObjects(SYNAPSE_BUCKET, baseKey);
@@ -268,21 +271,10 @@ public class StsManagerImplAutowiredTest {
 		assertEquals(403, ex.getStatusCode());
 
 		// Get read-write credentials.
-		AmazonS3 readWriteTempClient = createS3ClientFromTempStsCredentials(StsPermission.read_write);
-
-		// Can list and read files inside of our base key.
-		readWriteTempClient.listObjects(SYNAPSE_BUCKET, baseKey);
-		readWriteTempClient.getObjectMetadata(SYNAPSE_BUCKET, stsFileHandle.getKey());
-
-		// Cannot list or read files outside of our base key.
-		ex = assertThrows(AmazonServiceException.class, () -> readWriteTempClient.listObjects(SYNAPSE_BUCKET));
-		assertEquals(403, ex.getStatusCode());
-		ex = assertThrows(AmazonServiceException.class, () -> readWriteTempClient.getObjectMetadata(SYNAPSE_BUCKET,
-				defaultFileHandle.getKey()));
-		assertEquals(403, ex.getStatusCode());
-
-		// Validate that we can write to S3. This call will not throw.
-		readWriteTempClient.putObject(SYNAPSE_BUCKET, baseKey + "/" + filenameToWrite, "lorem ipsum");
+		// Read-write credentials are not allowed for Synapse storage.
+		IllegalArgumentException synapseException = assertThrows(IllegalArgumentException.class,
+				() -> stsManager.getTemporaryCredentials(userInfo, folderId, StsPermission.read_write));
+		assertEquals("STS write access is not allowed in Synapse storage", synapseException.getMessage());
 	}
 
 	private void applyStorageLocationToFolder(long storageLocationId) {
@@ -293,8 +285,11 @@ public class StsManagerImplAutowiredTest {
 		projectSettingsManager.createProjectSetting(userInfo, projectSetting);
 	}
 
-	private AmazonS3 createS3ClientFromTempStsCredentials(StsPermission permission) {
+	private AmazonS3 createS3ClientFromTempStsCredentials(StsPermission permission, String expectedBucket,
+			String expectedBaseKey) {
 		StsCredentials stsCredentials = stsManager.getTemporaryCredentials(userInfo, folderId, permission);
+		assertEquals(expectedBucket, stsCredentials.getBucket());
+		assertEquals(expectedBaseKey, stsCredentials.getBaseKey());
 
 		AWSCredentials awsCredentials = new BasicSessionCredentials(stsCredentials.getAccessKeyId(),
 				stsCredentials.getSecretAccessKey(), stsCredentials.getSessionToken());

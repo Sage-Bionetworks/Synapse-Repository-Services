@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class EvaluationManagerImpl implements EvaluationManager {
@@ -100,22 +101,26 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	}
 	
 	@Override
-	public List<Evaluation> getEvaluationByContentSource(UserInfo userInfo, String id, boolean activeOnly, long limit, long offset)
+	public List<Evaluation> getEvaluationByContentSource(UserInfo userInfo, String id, ACCESS_TYPE accessType, boolean activeOnly, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		EvaluationUtils.ensureNotNull(id, "Entity ID");
-		if (userInfo == null) {
-			throw new IllegalArgumentException("User info cannot be null.");
-		}
+		ValidateArgument.required(userInfo, "User info");
+		ValidateArgument.required(accessType, "The access type");
 		
 		Long now = activeOnly ? System.currentTimeMillis() : null;
-		return evaluationDAO.getAccessibleEvaluationsForProject(id, new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.READ, now, limit, offset);
+		
+		return evaluationDAO.getAccessibleEvaluationsForProject(id, new ArrayList<Long>(userInfo.getGroups()), accessType, now, limit, offset);
 	}
 
 	@Override
-	public List<Evaluation> getInRange(UserInfo userInfo, boolean activeOnly, long limit, long offset)
+	public List<Evaluation> getInRange(UserInfo userInfo, ACCESS_TYPE accessType, boolean activeOnly, long limit, long offset)
 			throws DatastoreException, NotFoundException {
+		ValidateArgument.required(userInfo, "User info");
+		ValidateArgument.required(accessType, "The access type");
+		
 		Long now = activeOnly ? System.currentTimeMillis() : null;
-		return evaluationDAO.getAccessibleEvaluations(new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.READ, now,
+		
+		return evaluationDAO.getAccessibleEvaluations(new ArrayList<Long>(userInfo.getGroups()), accessType, now,
 				limit, offset, null);
 	}
 

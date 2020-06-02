@@ -417,6 +417,53 @@ public class IT520SynapseJavaClientEvaluationTest {
 		
 		return indexMap;
 	}
+
+	@Test
+	public void testGetEvaluationsByAccessType() throws Exception {
+		eval1 = synapseOne.createEvaluation(eval1);
+		
+		evaluationsToDelete.add(eval1.getId());
+		
+		ACCESS_TYPE accessType = ACCESS_TYPE.READ_PRIVATE_SUBMISSION;
+		
+		PaginatedResults<Evaluation> evals = synapseOne.getEvaluationByContentSource(project.getId(), accessType, 0, 10);
+		assertEquals(1, evals.getTotalNumberOfResults());
+		assertEquals(eval1, evals.getResults().get(0));
+		
+		// Another user cannot list it with READ_PRIVATE_SUBMISSION
+		evals = synapseTwo.getEvaluationByContentSource(project.getId(), accessType, 0, 10);
+		assertEquals(0, evals.getTotalNumberOfResults());
+		
+		// ..nor READ
+		evals = synapseTwo.getEvaluationByContentSource(project.getId(), 0, 10);
+		assertEquals(0, evals.getTotalNumberOfResults());
+
+		AccessControlList acl = synapseOne.getEvaluationAcl(eval1.getId());
+
+		// Update ACL
+		ResourceAccess ra = new ResourceAccess();
+		ra.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
+		UserSessionData session = synapseTwo.getUserSessionData();
+		Long user2Id = Long.parseLong(session.getProfile().getOwnerId());
+		ra.setPrincipalId(user2Id);
+		
+		acl.getResourceAccess().add(ra);
+		acl = synapseOne.updateEvaluationAcl(acl);
+		
+		// Now the user can read
+		evals = synapseTwo.getEvaluationByContentSource(project.getId(), 0, 10);
+		assertEquals(1, evals.getTotalNumberOfResults());
+		assertEquals(eval1, evals.getResults().get(0));
+		
+		// Same result specifying the accessType
+		evals = synapseTwo.getEvaluationByContentSource(project.getId(), ACCESS_TYPE.READ, 0, 10);
+		assertEquals(1, evals.getTotalNumberOfResults());
+		assertEquals(eval1, evals.getResults().get(0));
+		
+		// But still cannot list with READ_PRIVATE_SUBMISSION
+		evals = synapseTwo.getEvaluationByContentSource(project.getId(), accessType, 0, 10);
+		assertEquals(0, evals.getTotalNumberOfResults());
+	}
 	
 	@Test
 	public void testSubmissionRoundTrip() throws SynapseException, NotFoundException, InterruptedException, IOException {

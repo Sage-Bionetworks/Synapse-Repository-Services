@@ -62,11 +62,19 @@ public interface JsonSchemaDao {
 	 * @return
 	 */
 	JsonSchemaVersionInfo getVersionLatestInfo(String organizationName, String schemaName);
+	
+	/**
+	 * Get the schema ID for the given organization and name.
+	 * @param organizationName
+	 * @param schemaName
+	 * @return
+	 */
+	String getSchemaId(String organizationName, String schemaName);
 
 	/**
 	 * Truncate all data.
 	 */
-	void trunacteAll();
+	void truncateAll();
 
 	/**
 	 * Get the schema for the given version ID.
@@ -127,10 +135,17 @@ public interface JsonSchemaDao {
 	/**
 	 * Get the JSON schema bound to the given objectId and type.
 	 * @param objectId
-	 * @param objecType
+	 * @param objectType
 	 * @return
 	 */
-	JsonSchemaObjectBinding getSchemaBindingForObject(Long objectId, BoundObjectType objecType);
+	JsonSchemaObjectBinding getSchemaBindingForObject(Long objectId, BoundObjectType objectType);
+
+	/**
+	 * Clear the bound schema from an Object.
+	 * @param objectId
+	 * @param objectType
+	 */
+	void clearBoundSchema(Long objectId, BoundObjectType objectType);
 
 
 }
