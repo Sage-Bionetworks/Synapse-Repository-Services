@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.table.metadata;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
@@ -8,7 +9,6 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Predicate;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -175,8 +175,25 @@ public class DefaultColumnModelTest {
 	}
 	
 	@Test
-	public void testFindCustomFieldByNameMatcher() {
+	public void testFindCustomFieldByNameWithNoCustomFields() {
 		ViewObjectType objectType = ViewObjectType.ENTITY;
+		
+		DefaultColumnModel model = DefaultColumnModel.builder(objectType)
+				.withObjectField(ObjectField.id)
+				.build();
+		
+		String findColumn = "id";
+		
+		// Call under test
+		Optional<ColumnModel> match = model.findCustomFieldByColumnName(findColumn);
+		
+		assertFalse(match.isPresent());
+	}
+	
+	@Test
+	public void testFindCustomFieldByNameWithEmptyColumn() {
+		ViewObjectType objectType = ViewObjectType.ENTITY;
+		
 		String columnName = "myColumn";
 		ColumnType columnType = ColumnType.STRING;
 		
@@ -192,20 +209,20 @@ public class DefaultColumnModelTest {
 				.withCustomField(mockDefaultField)
 				.build();
 		
-		ColumnModel expected = new ColumnModel();
-		expected.setName(columnName);
-		expected.setColumnType(columnType);
+		String findColumn = " ";
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			model.findCustomFieldByColumnName(findColumn);
+		});
 		
-		// Call under test
-		Optional<ColumnModel> match = model.findCustomField(DefaultColumnModel.columNameMatcher(columnName));
-		
-		assertTrue(match.isPresent());
-		assertEquals(expected, match.get());
+
 	}
 	
 	@Test
-	public void testFindCustomFieldByCustomMatcher() {
+	public void testFindCustomFieldByNameWithNullColumn() {
 		ViewObjectType objectType = ViewObjectType.ENTITY;
+		
 		String columnName = "myColumn";
 		ColumnType columnType = ColumnType.STRING;
 		
@@ -221,28 +238,14 @@ public class DefaultColumnModelTest {
 				.withCustomField(mockDefaultField)
 				.build();
 		
-		ColumnModel expected = new ColumnModel();
-		expected.setName(columnName);
-		expected.setColumnType(columnType);
+		String findColumn = " ";
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			model.findCustomFieldByColumnName(findColumn);
+		});
 		
-		Predicate<ColumnModel> matcher = (m) -> m.getColumnType() == columnType;
-		
-		// Call under test
-		Optional<ColumnModel> match = model.findCustomField(matcher);
-		
-		assertTrue(match.isPresent());
-		assertEquals(expected, match.get());
-	}
-	
-	@Test
-	public void testColumnNameMatcherWithNullColumnName() {
-		String columnName = null;
-		
-		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
-			DefaultColumnModel.columNameMatcher(columnName);
-		}).getMessage();
-		
-		assertEquals("columnName is required.", errorMessage);
+
 	}
 
 }

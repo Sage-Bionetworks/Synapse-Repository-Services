@@ -36,11 +36,15 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -159,6 +163,62 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		} catch (NotFoundException e) {
 			assertTrue(true);
 		}
+	}
+	
+	@Test
+	public void testHasAccessWithMultipleEvaluations() throws Exception {
+		String projectId = createNode(UUID.randomUUID().toString(), EntityType.project, adminUserInfo);
+		
+		String evaluation1 = createEval(UUID.randomUUID().toString(), projectId, adminUserInfo);
+		String evaluation2 = createEval(UUID.randomUUID().toString(), projectId, adminUserInfo);
+	
+		List<String> evaluationIds = ImmutableList.of(evaluation1, evaluation2);
+		
+		ACCESS_TYPE accessType = ACCESS_TYPE.READ_PRIVATE_SUBMISSION;
+		
+		// Call under test
+		AuthorizationStatus status = evaluationPermissionsManager.hasAccess(userInfo, accessType, evaluationIds);
+	
+		assertFalse(status.isAuthorized());
+		assertEquals("User lacks "+accessType+" access to all the evaluations in the set.", status.getMessage());
+		
+		AccessControlList acl = evaluationPermissionsManager.getAcl(userInfo, evaluation1);
+		
+		ResourceAccess ra = new ResourceAccess();
+		ra.setAccessType(ImmutableSet.of(accessType));
+		ra.setPrincipalId(userInfo.getId());
+		
+		acl.getResourceAccess().add(ra);
+		
+		evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
+		
+		// Call under test
+		status = evaluationPermissionsManager.hasAccess(userInfo, accessType, evaluationIds);
+		
+		// Still no access as evaluation2 does not have permissions
+		assertFalse(status.isAuthorized());
+		assertEquals("User lacks "+accessType+" access to all the evaluations in the set.", status.getMessage());
+		
+		// Add access to evaluation 2 as well
+		acl = evaluationPermissionsManager.getAcl(userInfo, evaluation2);
+		acl.getResourceAccess().add(ra);
+		
+		evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
+		
+		// Call under test
+		status = evaluationPermissionsManager.hasAccess(userInfo, accessType, evaluationIds);
+		
+		// Gained access
+		assertTrue(status.isAuthorized());
+		
+		// Should still work with duplicates
+		evaluationIds = ImmutableList.of(evaluation1, evaluation1, evaluation2);
+		
+		// Call under test
+		status = evaluationPermissionsManager.hasAccess(userInfo, accessType, evaluationIds);
+		
+		assertTrue(status.isAuthorized());
+		
 	}
 
 	@Test

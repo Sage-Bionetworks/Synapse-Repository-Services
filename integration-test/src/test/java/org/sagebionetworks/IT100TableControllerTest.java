@@ -41,7 +41,6 @@ import org.sagebionetworks.client.exceptions.UnknownSynapseServerException;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Project;
@@ -75,6 +74,7 @@ import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
+import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
@@ -269,7 +269,7 @@ public class IT100TableControllerTest {
 		
 		// run a bundled query
 		int mask = 0x1 | 0x2 | 0x4 | 0x8;
-		QueryResultBundle bundle = waitForBundleQueryResults("select one from " + table.getId(), 0L, 2L, mask, tableId);
+		QueryResultBundle bundle = AsyncHelper.waitForBundleQueryResults(synapse, MAX_QUERY_TIMEOUT_MS, "select one from " + table.getId(), 0L, 2L, mask, tableId);
 		assertNotNull(bundle);
 		assertNotNull(bundle.getQueryResult().getQueryResults());
 		assertNotNull(bundle.getQueryResult().getQueryResults().getEtag());
@@ -281,7 +281,7 @@ public class IT100TableControllerTest {
 		assertNotNull(bundle.getMaxRowsPerPage());
 		assertTrue(bundle.getMaxRowsPerPage() > 0);
 
-		bundle = waitForBundleQueryResults("select one from " + table.getId(), 2L, 2L, mask, tableId);
+		bundle = AsyncHelper.waitForBundleQueryResults(synapse, MAX_QUERY_TIMEOUT_MS, "select one from " + table.getId(), 2L, 2L, mask, tableId);
 		assertNotNull(bundle);
 		assertNotNull(bundle.getQueryResult().getQueryResults());
 		assertNotNull(bundle.getQueryResult().getQueryResults().getEtag());
@@ -405,7 +405,7 @@ public class IT100TableControllerTest {
 	 * @throws Exception
 	 */
 	public RowSet waitForQueryResults(String sql, Long offset, Long limit, String tableId) throws Exception {
-		return waitForBundleQueryResults(sql, offset, limit, SynapseClient.QUERY_PARTMASK, tableId).getQueryResult().getQueryResults();
+		return AsyncHelper.waitForBundleQueryResults(synapse, MAX_QUERY_TIMEOUT_MS, sql, offset, limit, SynapseClient.QUERY_PARTMASK, tableId).getQueryResult().getQueryResults();
 	}
 
 	/**
@@ -417,30 +417,7 @@ public class IT100TableControllerTest {
 	 * @throws SynapseException
 	 */
 	public long waitForCountResults(String sql, String tableId) throws Exception {
-		return waitForBundleQueryResults(sql, null, null, SynapseClient.COUNT_PARTMASK, tableId).getQueryCount();
-	}
-	
-	/**
-	 * Wait for a consistent query results.
-	 * 
-	 * @param sql
-	 * @return
-	 * @throws InterruptedException
-	 * @throws SynapseException
-	 */
-	public QueryResultBundle waitForBundleQueryResults(String sql, Long offset, Long limit, int partsMask, final String tableId) throws Exception {
-		final String asyncToken = synapse.queryTableEntityBundleAsyncStart(sql, offset, limit, true, partsMask, tableId);
-		return TimeUtils.waitFor(MAX_QUERY_TIMEOUT_MS, 500L, new Callable<Pair<Boolean, QueryResultBundle>>() {
-			@Override
-			public Pair<Boolean, QueryResultBundle> call() throws Exception {
-				try {
-					QueryResultBundle result = synapse.queryTableEntityBundleAsyncGet(asyncToken, tableId);
-					return Pair.create(true, result);
-				} catch (SynapseResultNotReadyException e) {
-					return Pair.create(false, null);
-				}
-			}
-		});
+		return AsyncHelper.waitForBundleQueryResults(synapse, MAX_QUERY_TIMEOUT_MS, sql, null, null, SynapseClient.COUNT_PARTMASK, tableId).getQueryCount();
 	}
 
 	@Test
@@ -545,7 +522,7 @@ public class IT100TableControllerTest {
 	
 	@Test
 	public void testgetDefaultColumnsForViewTypeMask() throws SynapseException{
-		EntityType viewEntityType = EntityType.entityview;
+		ViewEntityType viewEntityType = ViewEntityType.entityview;
 		Long mask = ViewTypeMask.File.getMask();
 		List<ColumnModel> defaults = synapse.getDefaultColumnsForView(viewEntityType, mask);
 		assertNotNull(defaults);
@@ -558,7 +535,7 @@ public class IT100TableControllerTest {
 	
 	@Test
 	public void testgetDefaultColumnsForSubmissionView() throws SynapseException{
-		EntityType viewEntityType = EntityType.submissionview;
+		ViewEntityType viewEntityType = ViewEntityType.submissionview;
 		Long mask = null;
 		List<ColumnModel> defaults = synapse.getDefaultColumnsForView(viewEntityType, mask);
 		assertNotNull(defaults);

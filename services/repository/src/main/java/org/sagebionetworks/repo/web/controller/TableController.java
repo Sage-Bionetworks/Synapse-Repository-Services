@@ -12,7 +12,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -45,6 +44,7 @@ import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
@@ -404,7 +404,7 @@ public class TableController {
 		ViewType type = ViewType.valueOf(viewtype);
 		Long viewTypeMaks = ViewTypeMask.getMaskForDepricatedType(type);
 		List<ColumnModel> results = serviceProvider.getTableServices()
-				.getDefaultViewColumnsForType(EntityType.entityview, viewTypeMaks);
+				.getDefaultViewColumnsForType(ViewEntityType.entityview, viewTypeMaks);
 		return ListWrapper.wrap(results, ColumnModel.class);
 	}
 	
@@ -429,7 +429,7 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.COLUMN_TABLE_VIEW_DEFAULT, method = RequestMethod.GET)
 	public @ResponseBody
 	ListWrapper<ColumnModel> getDefaultColumnsForViewType(
-			@RequestParam(value = "viewEntityType", required = false, defaultValue = "entityview") EntityType entityType,
+			@RequestParam(value = "viewEntityType", required = false, defaultValue = "entityview") ViewEntityType entityType,
 			@RequestParam(value = "viewTypeMask", required = false) Long viewTypeMask)
 			throws DatastoreException, NotFoundException {
 		List<ColumnModel> results = serviceProvider.getTableServices().getDefaultViewColumnsForType(entityType, viewTypeMask);

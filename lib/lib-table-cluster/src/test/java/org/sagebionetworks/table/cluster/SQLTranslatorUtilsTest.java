@@ -136,6 +136,8 @@ public class SQLTranslatorUtilsTest {
 		assertTrue(SQLTranslatorUtils.isNumericType(ColumnType.DATE));
 		assertTrue(SQLTranslatorUtils.isNumericType(ColumnType.DOUBLE));
 		assertFalse(SQLTranslatorUtils.isNumericType(ColumnType.ENTITYID));
+		assertTrue(SQLTranslatorUtils.isNumericType(ColumnType.SUBMISSIONID));
+		assertTrue(SQLTranslatorUtils.isNumericType(ColumnType.EVALUATIONID));
 		assertTrue(SQLTranslatorUtils.isNumericType(ColumnType.FILEHANDLEID));
 		assertTrue(SQLTranslatorUtils.isNumericType(ColumnType.INTEGER));
 		assertFalse(SQLTranslatorUtils.isNumericType(ColumnType.LARGETEXT));

@@ -63,6 +63,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
@@ -773,7 +774,7 @@ public class TableManagerSupportTest {
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		when(mockMetadataIndexProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultModel);
 
-		EntityType viewEntityType = null;
+		ViewEntityType viewEntityType = null;
 		Long viewTypeMask = 1L;
 
 		// call under test
@@ -790,7 +791,7 @@ public class TableManagerSupportTest {
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		when(mockMetadataIndexProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultModel);
 
-		EntityType viewEntityType = EntityType.entityview;
+		ViewEntityType viewEntityType = ViewEntityType.entityview;
 		Long viewTypeMask = 1L;
 		
 		// call under test

@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
-import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
@@ -349,32 +348,12 @@ public class IT099AsynchronousJobTest {
 	}
 	
 	public RowSet waitForQuery(String sql, final String tableId) throws Exception {
-		final String asyncToken = synapse.queryTableEntityBundleAsyncStart(sql, null, null, true, SynapseClient.QUERY_PARTMASK, tableId);
-		return TimeUtils.waitFor(MAX_WAIT_MS, 500L, new Callable<Pair<Boolean, RowSet>>() {
-			@Override
-			public Pair<Boolean, RowSet> call() throws Exception {
-				try {
-					QueryResultBundle result = synapse.queryTableEntityBundleAsyncGet(asyncToken, tableId);
-					return Pair.create(true, result.getQueryResult().getQueryResults());
-				} catch (SynapseResultNotReadyException e) {
-					return Pair.create(false, null);
-				}
-			}
-		});
+		return AsyncHelper.waitForBundleQueryResults(synapse, MAX_WAIT_MS, sql, null, null, SynapseClient.QUERY_PARTMASK, tableId)
+				.getQueryResult().getQueryResults();
 	}
 
 	public Long waitForCount(String sql, final String tableId) throws Exception {
-		final String asyncToken = synapse.queryTableEntityBundleAsyncStart(sql, null, null, true, SynapseClient.COUNT_PARTMASK, tableId);
-		return TimeUtils.waitFor(MAX_WAIT_MS, 500L, new Callable<Pair<Boolean, Long>>() {
-			@Override
-			public Pair<Boolean, Long> call() throws Exception {
-				try {
-					QueryResultBundle result = synapse.queryTableEntityBundleAsyncGet(asyncToken, tableId);
-					return Pair.create(true, result.getQueryCount());
-				} catch (SynapseResultNotReadyException e) {
-					return Pair.create(false, null);
-				}
-			}
-		});
+		return AsyncHelper.waitForBundleQueryResults(synapse, MAX_WAIT_MS, sql, null, null, SynapseClient.COUNT_PARTMASK, tableId)
+				.getQueryCount();
 	}
 }

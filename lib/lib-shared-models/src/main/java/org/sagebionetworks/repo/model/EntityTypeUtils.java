@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
@@ -14,6 +15,7 @@ import org.sagebionetworks.repo.model.registry.EntityTypeMetadata;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.ViewEntityType;
 
 /**
  * Utilities for entity type.
@@ -234,12 +236,7 @@ public class EntityTypeUtils {
 		if (type == null) {
 			throw new IllegalArgumentException("The type cannot be null");
 		}
-		switch (type) {
-		case entityview:
-		case submissionview:
-			return true;
-		default:
-			return false;
-		}
+
+		return Stream.of(ViewEntityType.values()).anyMatch((viewType) -> viewType.name().equals(type.name()));
 	}
 }

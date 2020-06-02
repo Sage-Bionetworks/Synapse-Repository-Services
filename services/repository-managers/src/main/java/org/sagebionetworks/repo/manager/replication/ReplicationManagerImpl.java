@@ -24,7 +24,6 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
-import org.sagebionetworks.repo.model.table.ViewScopeUtils;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -172,7 +171,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 
 		for (ChangeMessage message : messages) {
 			// Skip messages that do not map to a view object type
-			ViewScopeUtils.map(message.getObjectType()).ifPresent(viewObjectType -> {
+			ViewObjectType.map(message.getObjectType()).ifPresent(viewObjectType -> {
 				ReplicationDataGroup group = data.computeIfAbsent(viewObjectType, ReplicationDataGroup::new);
 
 				Long id = KeyFactory.stringToKey(message.getObjectId());
@@ -240,8 +239,6 @@ public class ReplicationManagerImpl implements ReplicationManager {
 
 		ViewObjectType viewObjectType = provider.getObjectType();
 
-		ObjectType objectType = ViewScopeUtils.map(viewObjectType);
-
 		List<ChangeMessage> changes = new LinkedList<>();
 
 		Set<IdAndEtag> replicaChildren = new LinkedHashSet<>(
@@ -255,21 +252,21 @@ public class ReplicationManagerImpl implements ReplicationManager {
 			// find the create/updates
 			for (IdAndEtag test : truthChildren) {
 				if (!replicaChildren.contains(test)) {
-					changes.add(createChange(objectType, test.getId(), ChangeType.UPDATE));
+					changes.add(createChange(viewObjectType.getObjectType(), test.getId(), ChangeType.UPDATE));
 				}
 				truthIds.add(test.getId());
 			}
 			// find the deletes
 			for (IdAndEtag test : replicaChildren) {
 				if (!truthIds.contains(test.getId())) {
-					changes.add(createChange(objectType, test.getId(), ChangeType.DELETE));
+					changes.add(createChange(viewObjectType.getObjectType(), test.getId(), ChangeType.DELETE));
 				}
 			}
 		} else {
 			// the parent is the the trash so setup the delete of any children
 			// that appear in the replica.
 			for (IdAndEtag toDelete : replicaChildren) {
-				changes.add(createChange(objectType, toDelete.getId(), ChangeType.DELETE));
+				changes.add(createChange(viewObjectType.getObjectType(), toDelete.getId(), ChangeType.DELETE));
 			}
 		}
 		return changes;
