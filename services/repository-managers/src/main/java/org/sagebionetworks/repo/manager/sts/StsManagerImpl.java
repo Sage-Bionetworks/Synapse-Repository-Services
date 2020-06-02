@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StsStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
@@ -94,6 +95,10 @@ public class StsManagerImpl implements StsManager {
 		StsStorageLocationSetting storageLocationSetting = (StsStorageLocationSetting) projectSettingsManager
 				.getStorageLocationSetting(storageLocationId);
 
+		if (permission == StsPermission.read_write && storageLocationSetting instanceof S3StorageLocationSetting) {
+			throw new IllegalArgumentException("STS write access is not allowed in Synapse storage");
+		}
+
 		// Check auth. We always need at least download access.
 		authManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)
 				.checkAuthorizationOrElseThrow();
@@ -146,6 +151,8 @@ public class StsManagerImpl implements StsManager {
 		// Convert credentials to our own home-made class, so that our service can marshall it to/from JSON.
 		Credentials awsCredentials = result.getCredentials();
 		StsCredentials stsCredentials = new StsCredentials();
+		stsCredentials.setBucket(bucket);
+		stsCredentials.setBaseKey(storageLocationSetting.getBaseKey());
 		stsCredentials.setAccessKeyId(awsCredentials.getAccessKeyId());
 		stsCredentials.setSecretAccessKey(awsCredentials.getSecretAccessKey());
 		stsCredentials.setSessionToken(awsCredentials.getSessionToken());

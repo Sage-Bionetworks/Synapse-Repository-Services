@@ -34,6 +34,7 @@ import java.util.Date;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -129,6 +130,8 @@ public class StsManagerImplTest {
 		StsCredentials result = stsManager.getTemporaryCredentials(USER_INFO, PARENT_ENTITY_ID,
 				StsPermission.read_only);
 		assertStsCredentials(result);
+		assertEquals(BUCKET, result.getBucket());
+		assertNull(result.getBaseKey());
 
 		// Verify policy document.
 		ArgumentCaptor<AssumeRoleRequest> requestCaptor = ArgumentCaptor.forClass(
@@ -173,6 +176,8 @@ public class StsManagerImplTest {
 		StsCredentials result = stsManager.getTemporaryCredentials(USER_INFO, PARENT_ENTITY_ID,
 				StsPermission.read_write);
 		assertStsCredentials(result);
+		assertEquals(BUCKET, result.getBucket());
+		assertNull(result.getBaseKey());
 
 		// Verify policy document.
 		ArgumentCaptor<AssumeRoleRequest> requestCaptor = ArgumentCaptor.forClass(
@@ -220,6 +225,8 @@ public class StsManagerImplTest {
 		StsCredentials result = stsManager.getTemporaryCredentials(USER_INFO, PARENT_ENTITY_ID,
 				StsPermission.read_only);
 		assertStsCredentials(result);
+		assertEquals(BUCKET, result.getBucket());
+		assertEquals(BASE_KEY, result.getBaseKey());
 
 		// Verify policy document.
 		ArgumentCaptor<AssumeRoleRequest> requestCaptor = ArgumentCaptor.forClass(
@@ -260,10 +267,15 @@ public class StsManagerImplTest {
 
 		mockSts();
 
+		String expectedBucket = StackConfigurationSingleton.singleton().getS3Bucket();
+		String expectedBucketWithBaseKey = expectedBucket + "/" + BASE_KEY;
+
 		// Method under test - Does not throw.
 		StsCredentials result = stsManager.getTemporaryCredentials(USER_INFO, PARENT_ENTITY_ID,
 				StsPermission.read_only);
 		assertStsCredentials(result);
+		assertEquals(expectedBucket, result.getBucket());
+		assertEquals(BASE_KEY, result.getBaseKey());
 
 		// Verify policy document.
 		ArgumentCaptor<AssumeRoleRequest> requestCaptor = ArgumentCaptor.forClass(
@@ -273,9 +285,6 @@ public class StsManagerImplTest {
 		assertEquals(EXPECTED_STS_SESSION_NAME, request.getRoleSessionName());
 		assertEquals(StsManagerImpl.DURATION_SECONDS, request.getDurationSeconds());
 		assertEquals(AWS_ROLE_ARN, request.getRoleArn());
-
-		String expectedBucket = StackConfigurationSingleton.singleton().getS3Bucket();
-		String expectedBucketWithBaseKey = expectedBucket + "/" + BASE_KEY;
 
 		String policy = request.getPolicy();
 		assertTrue(policy.contains("\"arn:aws:s3:::" + expectedBucket + "\""));
@@ -289,6 +298,23 @@ public class StsManagerImplTest {
 		verify(mockAuthManager).canAccess(USER_INFO, PARENT_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
 		verifyNoMoreInteractions(mockAuthManager);
 		verify(mockAuthStatus).checkAuthorizationOrElseThrow();
+	}
+
+	@Test
+	public void getTemporaryCredentials_synapseStorageCantReadWrite() {
+		// Mock dependencies.
+		setupFolderWithProjectSetting(/*isSts*/ true, STS_STORAGE_LOCATION_ID);
+
+		S3StorageLocationSetting storageLocationSetting = new S3StorageLocationSetting();
+		storageLocationSetting.setBaseKey(BASE_KEY);
+		storageLocationSetting.setStsEnabled(true);
+		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
+				storageLocationSetting);
+
+		// Method under test - Throws.
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> stsManager.getTemporaryCredentials(USER_INFO, PARENT_ENTITY_ID, StsPermission.read_write));
+		assertEquals("STS write access is not allowed in Synapse storage", ex.getMessage());
 	}
 
 	private void mockSts() {
