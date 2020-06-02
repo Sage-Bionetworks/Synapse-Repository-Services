@@ -1692,6 +1692,13 @@ public class SQLUtilsTest {
 		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_LONG_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.INTEGER));
 		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_STRING_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.LARGETEXT));
 		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_STRING_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.LINK));
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.STRING_LIST));
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_LONG_LIST_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.ENTITYID_LIST));
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_LONG_LIST_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.USERID_LIST));
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_LONG_LIST_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.INTEGER_LIST));
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_LONG_LIST_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.DATE_LIST));
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_BOOLEAN_LIST_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.BOOLEAN_LIST));
+
 	}
 
 	@Test

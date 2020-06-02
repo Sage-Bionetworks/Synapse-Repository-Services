@@ -14,6 +14,8 @@ class ColumnTypeListMappingsTest {
 		assertEquals(ColumnTypeListMappings.INTEGER, ColumnTypeListMappings.forListType(ColumnType.INTEGER_LIST));
 		assertEquals(ColumnTypeListMappings.DATE, ColumnTypeListMappings.forListType(ColumnType.DATE_LIST));
 		assertEquals(ColumnTypeListMappings.BOOLEAN, ColumnTypeListMappings.forListType(ColumnType.BOOLEAN_LIST));
+		assertEquals(ColumnTypeListMappings.ENTITYID, ColumnTypeListMappings.forListType(ColumnType.ENTITYID_LIST));
+		assertEquals(ColumnTypeListMappings.USERID, ColumnTypeListMappings.forListType(ColumnType.USERID_LIST));
 	}
 
 	@Test
@@ -28,6 +30,8 @@ class ColumnTypeListMappingsTest {
 		assertEquals(ColumnTypeListMappings.INTEGER, ColumnTypeListMappings.forNonListType(ColumnType.INTEGER));
 		assertEquals(ColumnTypeListMappings.DATE, ColumnTypeListMappings.forNonListType(ColumnType.DATE));
 		assertEquals(ColumnTypeListMappings.BOOLEAN, ColumnTypeListMappings.forNonListType(ColumnType.BOOLEAN));
+		assertEquals(ColumnTypeListMappings.ENTITYID, ColumnTypeListMappings.forNonListType(ColumnType.ENTITYID));
+		assertEquals(ColumnTypeListMappings.USERID, ColumnTypeListMappings.forNonListType(ColumnType.USERID));
 	}
 
 	@Test

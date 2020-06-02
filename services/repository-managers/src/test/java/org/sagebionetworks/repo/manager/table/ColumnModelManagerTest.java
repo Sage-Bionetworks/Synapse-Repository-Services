@@ -1112,6 +1112,38 @@ public class ColumnModelManagerTest {
 			columnModelManager.validateFacetType(columnModel);
 		});
 	}
+
+	@Test
+	public void testValidateFacetType_EntityIdListColumn(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.ENTITYID_LIST);
+
+		//should pass for enumeration facets
+		columnModel.setFacetType(FacetType.enumeration);
+		columnModelManager.validateFacetType(columnModel);
+
+		//should throw exception for range facets
+		columnModel.setFacetType(FacetType.range);
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.validateFacetType(columnModel);
+		});
+	}
+
+	@Test
+	public void testValidateFacetType_UserIdListColumn(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.USERID_LIST);
+
+		//should pass for enumeration facets
+		columnModel.setFacetType(FacetType.enumeration);
+		columnModelManager.validateFacetType(columnModel);
+
+		//should throw exception for range facets
+		columnModel.setFacetType(FacetType.range);
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.validateFacetType(columnModel);
+		});
+	}
 	
 	@Test
 	public void testValidateFacetTypeOtherColumnTypeEnumerationFacet(){

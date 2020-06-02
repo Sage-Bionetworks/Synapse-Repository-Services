@@ -2220,6 +2220,47 @@ public class TableWorkerIntegrationTest {
 	}
 
 	@Test
+	public void testUserIdListAndEntityIdList() throws Exception{
+		// setup an EntityIdList and UserIdList column.
+		ColumnModel entityIdList = new ColumnModel();
+		entityIdList.setColumnType(ColumnType.ENTITYID_LIST);
+		entityIdList.setName("entityIdList");
+		entityIdList = columnManager.createColumnModel(adminUserInfo, entityIdList);
+		ColumnModel userIdList = new ColumnModel();
+		userIdList.setColumnType(ColumnType.USERID_LIST);
+		userIdList.setName("userIdList");
+		userIdList = columnManager.createColumnModel(adminUserInfo, userIdList);
+		schema = Lists.newArrayList(entityIdList, userIdList);
+		// build a table with this column.
+		createTableWithSchema();
+		TableStatus status = waitForTableProcessing(tableId);
+		if(status.getErrorDetails() != null){
+			System.out.println(status.getErrorDetails());
+		}
+		assertTrue(TableState.AVAILABLE.equals(status.getState()));
+
+
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(
+				//some values for entity id have syn prefix while others don't
+				TableModelTestUtils.createRow(null, null, "[\"syn1\",\"2\",\"syn3\"]", "[\"1\",\"2\",\"3\"]"),
+				TableModelTestUtils.createRow(null, null, "[\"3\",\"syn4\",\"5\"]", "[\"1\",\"2\",\"3\"]")));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = appendRows(adminUserInfo, tableId,
+				rowSet, mockProgressCallback);
+
+		//query the column expecting the index table for it to be populated
+		QueryResult result = waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where startColumn has ('3')", null, null);
+
+		assertEquals(2, result.getQueryResults().getRows().size());
+		assertEquals(Arrays.asList("[\"syn1\", \"syn2\", \"syn3\"]", "[\"1\", \"2\", \"3\"]"), result.getQueryResults().getRows().get(0).getValues());
+		assertEquals(Arrays.asList("[\"syn3\", \"syn4\", \"syn5\"]", "[\"1\", \"2\", \"3\"]"), result.getQueryResults().getRows().get(1).getValues());
+
+		//todo: write and re-query
+	}
+
+	@Test
 	public void testPLFM_4161() throws Exception{
 		ColumnModel cm = new ColumnModel();
 		cm.setName("5ormore");

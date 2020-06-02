@@ -176,9 +176,17 @@ public class ColumnModelUtils {
 					defaultValue = null;
 				}
 				if (defaultValue != null) {
-					throw new IllegalArgumentException("Columns of type ENTITYID, SUBMISSIONID, EVALUATIONID, FILEHANDLEID, USERID, and LARGETEXT cannot have default values.");
+					throw new IllegalArgumentException("Columns of type " + clone.getColumnType() + " cannot have default values.");
 				}
 				break;
+			case ENTITYID_LIST://TODO: refactor into reusable list of validator functions
+			case USERID_LIST:
+				if (StringUtils.isEmpty(defaultValue)) {
+					defaultValue = null;
+				}
+				if (defaultValue != null) {
+					throw new IllegalArgumentException("Columns of type " + clone.getColumnType() + " cannot have default values.");
+				}
 			case INTEGER_LIST:
 			case DATE_LIST:
 			case BOOLEAN_LIST:
@@ -286,13 +294,9 @@ public class ColumnModelUtils {
 	 * @throws IOException
 	 */
 	public static void writeSchemaChangeToGz(List<ColumnChange> changes, OutputStream out) throws IOException{
-		GZIPOutputStream zipOut = null;
-		try{
-			zipOut = new GZIPOutputStream(out);
+		try(GZIPOutputStream zipOut = new GZIPOutputStream(out);){
 			X_STREAM.toXML(changes, zipOut);
 			zipOut.flush();
-		}finally{
-			IOUtils.closeQuietly(zipOut);
 		}
 	}
 	
@@ -304,12 +308,8 @@ public class ColumnModelUtils {
 	 * @throws IOException
 	 */
 	public static List<ColumnChange> readSchemaChangeFromGz(InputStream input) throws IOException{
-		GZIPInputStream zipIn = null;
-		try{
-			zipIn = new GZIPInputStream(input);
+		try(GZIPInputStream zipIn = new GZIPInputStream(input);){
 			return (List<ColumnChange>) X_STREAM.fromXML(zipIn);
-		}finally{
-			IOUtils.closeQuietly(zipIn);
 		}
 	}
 }

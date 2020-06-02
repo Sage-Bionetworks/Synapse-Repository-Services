@@ -74,15 +74,23 @@
                 },
                 {
                     "name": "INTEGER_LIST",
-                    "description": "Multiple values of INTEGER. Currently only works on Entity Views"
+                    "description": "Multiple values of INTEGER."
                 },
                 {
                     "name": "BOOLEAN_LIST",
-                    "description": "Multiple values of BOOLEAN. Currently only works on Entity Views"
+                    "description": "Multiple values of BOOLEAN."
                 },
                 {
                     "name": "DATE_LIST",
-                    "description": "Multiple values of DATE. Currently only works on Entity Views"
+                    "description": "Multiple values of DATE."
+                },
+                {
+                    "name": "ENTITYID_LIST",
+                    "description": "Multiple values of ENTITYID."
+                },
+                {
+                    "name": "USERID_LIST",
+                    "description": "Multiple values of USERID."
                 }
             ]
         },
