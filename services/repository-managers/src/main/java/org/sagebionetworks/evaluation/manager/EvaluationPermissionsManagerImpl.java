@@ -9,7 +9,10 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.SUBMIT;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE_SUBMISSION;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -20,7 +23,6 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -29,6 +31,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -144,24 +147,61 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	@Override
 	public AuthorizationStatus hasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
 			throws NotFoundException, DatastoreException {
-		if (userInfo == null) {
-			throw new IllegalArgumentException("User info cannot be null.");
-		}
 		if (evalId == null || evalId.isEmpty()) {
 			throw new IllegalArgumentException("Evaluation ID cannot be null or empty.");
+		}
+
+		return hasAccess(userInfo, accessType).orElseGet(() -> {
+			if (!aclDAO.canAccess(userInfo.getGroups(), evalId, ObjectType.EVALUATION, accessType)) {
+				return AuthorizationStatus.accessDenied("User lacks "+accessType+" access to Evaluation "+evalId);
+			}
+			
+			return AuthorizationStatus.authorized();
+		});
+	}
+	
+	@Override
+	public AuthorizationStatus hasAccess(UserInfo userInfo, ACCESS_TYPE accessType, List<String> evaluationIds)
+			throws NotFoundException, DatastoreException {
+		if (evaluationIds == null || evaluationIds.isEmpty()) {
+			throw new IllegalArgumentException("The set of evaluation ids cannot be null or empty.");
+		}
+		
+		Set<Long> benefactorIds = evaluationIds.stream()
+				.map((id) -> KeyFactory.stringToKey(id))
+				.collect(Collectors.toSet());
+		
+		return hasAccess(userInfo, accessType).orElseGet(() -> {
+			Set<Long> accessibleSet = aclDAO.getAccessibleBenefactors(userInfo.getGroups(), benefactorIds, ObjectType.EVALUATION, accessType);
+			
+			if (accessibleSet.size() != benefactorIds.size()) {
+				return AuthorizationStatus.accessDenied("User lacks "+accessType+" access to all the evaluations in the set.");
+			}
+			
+			return AuthorizationStatus.authorized();
+		});
+		
+	}
+	
+	/**
+	 * Checks if the user is an admin and has unconditional access or if it's anonymous so without any access 
+	 */
+	private Optional<AuthorizationStatus> hasAccess(UserInfo userInfo, ACCESS_TYPE accessType) {
+		if (userInfo == null) {
+			throw new IllegalArgumentException("User info cannot be null.");
 		}
 		if (accessType == null) {
 			throw new IllegalArgumentException("Access type cannot be null.");
 		}
-		if (userInfo.isAdmin()) return AuthorizationStatus.authorized();
+		if (userInfo.isAdmin()) {
+			return Optional.of(AuthorizationStatus.authorized());
+		}
 
-		if (isAnonymousWithNonReadAccess(userInfo, accessType))
-			return AuthorizationStatus.accessDenied("Anonymous user is not allowed to access Evaluation.");
+		if (isAnonymousWithNonReadAccess(userInfo, accessType)) {
+			return Optional.of(AuthorizationStatus.accessDenied("Anonymous user is not allowed to access Evaluation."));
+		}
 		
-		if (!aclDAO.canAccess(userInfo.getGroups(), evalId, ObjectType.EVALUATION, accessType))
-			return AuthorizationStatus.accessDenied("User lacks "+accessType+" access to Evaluation "+evalId);
-		
-		return AuthorizationStatus.authorized();
+		return Optional.empty();
 	}
 
 	@Override

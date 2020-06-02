@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -342,7 +343,7 @@ public interface TableManagerSupport {
 	 * 
 	 * @return
 	 */
-	List<ColumnModel> getDefaultTableViewColumns(EntityType entityType, Long viewTypeMask);
+	List<ColumnModel> getDefaultTableViewColumns(ViewEntityType entityType, Long viewTypeMask);
 
 	/**
 	 * Get the entity type for the given table.

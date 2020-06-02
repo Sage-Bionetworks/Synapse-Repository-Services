@@ -1,0 +1,14 @@
+{
+	"description": "Request to bind an Entity to a JSON schema.",
+	"type": "object",
+	"properties": {
+		"entityId": {
+			"type": "string",
+			"description": "The ID of the the entity."
+		},
+		"schema$id": {
+			"type": "string",
+			"description": "The $id of the JSON schema to bind to the entity.  Note: If the $id includes a semantic version then entity will be bound to that specific version.  If the $id excludes the semantic version then the entity will be bound to the latest version of that schema."
+		}
+	}
+}

@@ -28,6 +28,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.query.QueryDAO;
@@ -99,30 +100,38 @@ public class EvaluationServiceTest {
 	
 	@Test
 	public void testGetEvaluationsInRange() {
-		evaluationService.getEvaluationsInRange(userId, false, limit, offset);
+		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
 		
-		verify(mockEvaluationManager).getInRange(userInfo, false, limit, offset);
+		evaluationService.getEvaluationsInRange(userId, accessType, false, limit, offset);
+		
+		verify(mockEvaluationManager).getInRange(userInfo, accessType, false, limit, offset);
 	}
 
 	@Test
 	public void testGetEvaluationsInRangeActiveOnly() {
-		evaluationService.getEvaluationsInRange(userId, true, limit, offset);
+		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
 		
-		verify(mockEvaluationManager).getInRange(userInfo, true, limit, offset);
+		evaluationService.getEvaluationsInRange(userId, accessType, true, limit, offset);
+		
+		verify(mockEvaluationManager).getInRange(userInfo, accessType, true, limit, offset);
 	}
 
 	@Test
 	public void testGetEvaluationByContentSource() {
-		evaluationService.getEvaluationByContentSource(userId, "syn123", false, limit, offset);
+		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
 		
-		verify(mockEvaluationManager).getEvaluationByContentSource(userInfo, "syn123", false, limit, offset);
+		evaluationService.getEvaluationByContentSource(userId, "syn123", accessType, false, limit, offset);
+		
+		verify(mockEvaluationManager).getEvaluationByContentSource(userInfo, "syn123", accessType, false, limit, offset);
 	}
 
 	@Test
 	public void testGetEvaluationByContentSourceActiveOnly() {
-		evaluationService.getEvaluationByContentSource(userId, "syn123", true, limit, offset);
+		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
 		
-		verify(mockEvaluationManager).getEvaluationByContentSource(userInfo, "syn123", true, limit, offset);
+		evaluationService.getEvaluationByContentSource(userId, "syn123", accessType, true, limit, offset);
+		
+		verify(mockEvaluationManager).getEvaluationByContentSource(userInfo, "syn123", accessType, true, limit, offset);
 	}
 
 	@Test

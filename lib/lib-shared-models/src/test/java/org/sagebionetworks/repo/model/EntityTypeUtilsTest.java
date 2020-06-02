@@ -6,10 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
-
-import com.google.common.collect.ImmutableSet;
+import org.sagebionetworks.repo.model.table.ViewEntityType;
 
 public class EntityTypeUtilsTest {
 
@@ -49,7 +50,9 @@ public class EntityTypeUtilsTest {
 	
 	@Test
 	public void testIsViewType() {
-		Set<EntityType> viewTypes = ImmutableSet.of(EntityType.entityview, EntityType.submissionview);
+		Set<EntityType> viewTypes = Stream.of(ViewEntityType.values())
+				.map((viewType) -> EntityType.valueOf(viewType.name()))
+				.collect(Collectors.toSet());
 
 		for (EntityType type : EntityType.values()) {
 			boolean result = EntityTypeUtils.isViewType(type);

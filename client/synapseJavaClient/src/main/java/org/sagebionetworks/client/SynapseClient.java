@@ -116,6 +116,7 @@ import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
+import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
@@ -199,6 +200,13 @@ import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoRequest;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoResponse;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoRequest;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
+import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
+import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -221,6 +229,8 @@ import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
@@ -235,6 +245,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
@@ -908,8 +919,11 @@ public interface SynapseClient extends BaseClient {
 	public Evaluation createEvaluation(Evaluation eval) throws SynapseException;
 
 	public Evaluation getEvaluation(String evalId) throws SynapseException;
-
+	
 	public PaginatedResults<Evaluation> getEvaluationByContentSource(String id,
+			int offset, int limit) throws SynapseException;
+
+	public PaginatedResults<Evaluation> getEvaluationByContentSource(String id, ACCESS_TYPE accessType,
 			int offset, int limit) throws SynapseException;
 
 	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(int offset, int limit)
@@ -1191,6 +1205,9 @@ public interface SynapseClient extends BaseClient {
 	public static final int COUNT_PARTMASK = 0x2;
 	public static final int COLUMNS_PARTMASK = 0x4;
 	public static final int MAXROWS_PARTMASK = 0x8;
+	
+	public String queryTableEntityBundleAsyncStart(Query query, QueryOptions queryOptions, String tableId)
+			throws SynapseException;
 
 	public String queryTableEntityBundleAsyncStart(String sql, Long offset, Long limit, boolean isConsistent, int partMask, String tableId)
 			throws SynapseException;
@@ -1397,7 +1414,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	List<ColumnModel> getDefaultColumnsForView(EntityType viewEntityType, Long viewTypeMask) throws SynapseException;
+	List<ColumnModel> getDefaultColumnsForView(ViewEntityType viewEntityType, Long viewTypeMask) throws SynapseException;
 	
 	// Team services
 	
@@ -3587,4 +3604,54 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	public void deleteSchemaVersion(String organizationName, String schemaName, String semanticVersion) throws SynapseException;
+
+	/**
+	 * Paginated list of Organizations.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	ListOrganizationsResponse listOrganizations(ListOrganizationsRequest request) throws SynapseException;
+
+	/**
+	 * Paginated list of JsonSchemaInfo for a given Organization.;
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	ListJsonSchemaInfoResponse listSchemaInfo(ListJsonSchemaInfoRequest request) throws SynapseException;
+
+	/**
+	 * Paginated list of JsonSchemaVersionInfo for a given schema.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	ListJsonSchemaVersionInfoResponse listSchemaVersions(ListJsonSchemaVersionInfoRequest request)
+			throws SynapseException;
+
+	/**
+	 * Bind a JSON schema to an Entity. The schema will be used to validate metadata
+	 * on the Entity and its children.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	JsonSchemaObjectBinding bindJsonSchemaToEntity(BindSchemaToEntityRequest request) throws SynapseException;
+
+	/**
+	 * Get the JSON schema bound to an Entity.
+	 * @param entityId
+	 * @return
+	 * @throws SynapseException
+	 */
+	JsonSchemaObjectBinding getJsonSchemaBindingForEntity(String entityId) throws SynapseException;
+
+	/**
+	 * Clear the JSON schema binding for an Entity.
+	 * @param entityId
+	 * @throws SynapseException
+	 */
+	void clearSchemaBindingForEntity(String entityId) throws SynapseException;
 }

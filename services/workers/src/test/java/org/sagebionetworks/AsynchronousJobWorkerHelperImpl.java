@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
@@ -148,7 +149,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	 */
 	@Override
 	public EntityView createView(UserInfo user, String name, String parentId, List<String> scope, long viewTypeMask) {
-		EntityType entityType = EntityType.entityview;
+		ViewEntityType entityType = ViewEntityType.entityview;
 		List<ColumnModel> defaultColumns = tableMangerSupport.getDefaultTableViewColumns(entityType, viewTypeMask);
 		EntityView view = new EntityView();
 		view.setName(name);
@@ -168,7 +169,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	
 	@Override
 	public SubmissionView createSubmissionView(UserInfo user, String name, String parentId, List<String> scope) {
-		EntityType entityType = EntityType.submissionview;
+		ViewEntityType entityType = ViewEntityType.submissionview;
 		Long typeMask = 0L;
 		List<ColumnModel> defaultColumns = tableMangerSupport.getDefaultTableViewColumns(entityType, typeMask);
 		SubmissionView view = new SubmissionView();

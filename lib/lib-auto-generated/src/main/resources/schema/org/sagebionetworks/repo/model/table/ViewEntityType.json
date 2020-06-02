@@ -1,0 +1,14 @@
+{
+    "type": "string",
+    "description": "Subset of EntityType for views",
+    "enum": [
+        {
+            "name": "entityview",
+            "description": "Type for entities that define entity views"
+        },
+        {
+            "name": "submissionview",
+            "description": "Type for entities that define evaluation submission views"
+        }
+    ]
+}

@@ -232,6 +232,7 @@ public class UrlHelpers {
 	public static final String COPY = "/copy";
 	public static final String FILE_HANDLES_COPY = FILE_HANDLES + COPY;
 	public static final String ENTITY_DATA_TYPE = ENTITY_ID+"/datatype";
+	public static final String ENTITY_BIND_JSON_SCHEMA = ENTITY_ID+"/bound/json/schema";
 	
 	public static final String BULK_FILE_DOWNLOAD = FILE + "/bulk";
 	public static final String BULK_FILE_DOWNLOAD_ASYNC_START = BULK_FILE_DOWNLOAD + ASYNC_START_REQUEST;
@@ -388,6 +389,7 @@ public class UrlHelpers {
 	 */
 	public static final String JSON_SCHEMA = "/schema";
 	public static final String ORGANIZATION = JSON_SCHEMA+"/organization";
+	public static final String ORGANIZATION_LIST = ORGANIZATION+"/list";
 	public static final String ORGANIZATION_ID = ORGANIZATION+"/{id}";
 	public static final String ORGANIZATION_ID_ACL = ORGANIZATION_ID+"/acl";
 	public static final String JSON_SCHEMA_TYPE = JSON_SCHEMA+"/type";
@@ -405,6 +407,9 @@ public class UrlHelpers {
 	
 	public static final String FORM_DATA_ACCEPT = FORM_DATA_ID+"/accept";
 	public static final String FORM_DATA_REJECT = FORM_DATA_ID+"/reject";
+	
+	public static final String JSON_SCHEMA_LIST = JSON_SCHEMA+"/list";
+	public static final String JSON_SCHEMA_VERSIONS_LIST = JSON_SCHEMA+"/version/list";
 
 	/**
 	 * Clears the Synapse DOI table (by administrators only).

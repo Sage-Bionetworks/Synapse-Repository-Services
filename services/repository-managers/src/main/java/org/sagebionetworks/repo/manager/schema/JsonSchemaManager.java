@@ -2,10 +2,12 @@ package org.sagebionetworks.repo.manager.schema;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.schema.BoundObjectType;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoRequest;
 import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoResponse;
@@ -139,6 +141,31 @@ public interface JsonSchemaManager {
 	 * @return
 	 */
 	JsonSchema getValidationSchema(String id);
+
+	/**
+	 * Bind a JSON schema to an object.
+	 * @param createdBy
+	 * @param $id
+	 * @param objectId
+	 * @param objectType
+	 * @return
+	 */
+	JsonSchemaObjectBinding bindSchemaToObject(Long createdBy, String $id, Long objectId, BoundObjectType objectType);
+
+	/**
+	 * Get the JsonSchemaObjectBinding for the given objectId and objectType 
+	 * @param objectId
+	 * @param objectType
+	 * @return
+	 */
+	JsonSchemaObjectBinding getJsonSchemaObjectBinding(Long objectId, BoundObjectType objectType);
+
+	/**
+	 * Clear the bound schema from an object.
+	 * @param objectId
+	 * @param objectType
+	 */
+	void clearBoundSchema(Long objectId, BoundObjectType objectType);
 
 
 }

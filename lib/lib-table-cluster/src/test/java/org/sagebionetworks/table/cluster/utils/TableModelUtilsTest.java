@@ -1,6 +1,12 @@
 package org.sagebionetworks.table.cluster.utils;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
@@ -46,11 +52,11 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
-import org.sagebionetworks.repo.model.table.parser.ListStringParser;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.ColumnTypeInfo;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -59,7 +65,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import au.com.bytecode.opencsv.CSVWriter;
-import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 
 /**
  * 
@@ -236,6 +241,40 @@ public class TableModelUtilsTest {
 		// Set the default to boolean
 		cm.setDefaultValue("syn345.6");
 		assertEquals("syn345.6", TableModelUtils.validateRowValue(null, cm, 2, 3));
+	}
+	
+	@Test
+	public void testValidateSubmissionId() {
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.SUBMISSIONID);
+		assertEquals("123", TableModelUtils.validateRowValue("123", cm, 0, 0));
+		try {
+			TableModelUtils.validateRowValue("true", cm, 1, 3);
+			fail("should have failed");
+		} catch (IllegalArgumentException e) {
+			assertEquals("Value at [1,3] was not a valid SUBMISSIONID. For input string: \"true\"", e.getMessage());
+		}
+		assertEquals(null, TableModelUtils.validateRowValue(null, cm, 2, 2));
+		// Set the default to boolean
+		cm.setDefaultValue("890");
+		assertEquals("890", TableModelUtils.validateRowValue(null, cm, 2, 3));
+	}
+	
+	@Test
+	public void testValidateEvaluationId() {
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.EVALUATIONID);
+		assertEquals("123", TableModelUtils.validateRowValue("123", cm, 0, 0));
+		try {
+			TableModelUtils.validateRowValue("true", cm, 1, 3);
+			fail("should have failed");
+		} catch (IllegalArgumentException e) {
+			assertEquals("Value at [1,3] was not a valid EVALUATIONID. For input string: \"true\"", e.getMessage());
+		}
+		assertEquals(null, TableModelUtils.validateRowValue(null, cm, 2, 2));
+		// Set the default to boolean
+		cm.setDefaultValue("890");
+		assertEquals("890", TableModelUtils.validateRowValue(null, cm, 2, 3));
 	}
 
 	@Test
@@ -552,7 +591,6 @@ public class TableModelUtilsTest {
 		List<String> ids = TableModelUtils.getIds(validModel);
 		String del = TableModelUtils.createDelimitedColumnModelIdString(ids);
 		assertNotNull(del);
-		System.out.println(del);
 		List<String> result = TableModelUtils.readColumnModelIdsFromDelimitedString(del);
 		assertEquals(ids, result);
 	}
@@ -1766,7 +1804,6 @@ public class TableModelUtilsTest {
 		ColumnModel newModel = null;
 		ColumnChangeDetails changeOne = new ColumnChangeDetails(oldModel, newModel);
 		assertEquals("ColumnChange [oldColumn=null, newColumn=null]", changeOne.toString());
-		System.out.println(changeOne.toString());
 		List<ColumnModel> results = TableModelUtils.createListOfAllColumnModels(Lists.newArrayList(changeOne));
 		assertNotNull(results);
 		assertTrue(results.isEmpty());

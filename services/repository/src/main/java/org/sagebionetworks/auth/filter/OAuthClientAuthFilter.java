@@ -40,7 +40,7 @@ public class OAuthClientAuthFilter extends BasicAuthenticationFilter {
 
 	@Override
 	protected boolean reportBadCredentialsMetric() {
-		return false;
+		return true;
 	}
 
 	@Override

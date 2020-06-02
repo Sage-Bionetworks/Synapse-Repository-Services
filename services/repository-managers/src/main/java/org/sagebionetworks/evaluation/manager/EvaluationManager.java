@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -28,14 +29,14 @@ public interface EvaluationManager {
 	/**
 	 * Gets all Synapse Evaluations tied to the given project
 	 */
-	public List<Evaluation> getEvaluationByContentSource(UserInfo userInfo, String id, boolean activeOnly, long limit, long offset)
+	public List<Evaluation> getEvaluationByContentSource(UserInfo userInfo, String id, ACCESS_TYPE accessType, boolean activeOnly, long limit, long offset)
 			throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get a collection of Evaluations, within a given range
 	 */
 	@Deprecated
-	public List<Evaluation> getInRange(UserInfo userInfo, boolean activeOnly, long limit, long offset) 
+	public List<Evaluation> getInRange(UserInfo userInfo, ACCESS_TYPE accessType, boolean activeOnly, long limit, long offset) 
 			throws DatastoreException, NotFoundException;
 
 	/**

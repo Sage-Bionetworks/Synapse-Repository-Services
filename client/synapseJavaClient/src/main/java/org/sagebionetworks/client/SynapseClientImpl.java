@@ -62,7 +62,6 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
@@ -123,7 +122,6 @@ import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
-import org.sagebionetworks.repo.model.dataaccess.SubmissionInfo;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
@@ -152,6 +150,7 @@ import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
+import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
@@ -242,6 +241,13 @@ import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoRequest;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoResponse;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoRequest;
+import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
+import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
+import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -269,6 +275,7 @@ import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
@@ -288,6 +295,7 @@ import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
@@ -2866,12 +2874,23 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String url = createEntityUri(EVALUATION_URI_PATH, evalId);
 		return getJSONEntity(getRepoEndpoint(), url, Evaluation.class);
 	}
-
+	
 	@Override
 	public PaginatedResults<Evaluation> getEvaluationByContentSource(String id,
 			int offset, int limit) throws SynapseException {
+		return getEvaluationByContentSource(id, null, offset, limit);
+	}
+
+	@Override
+	public PaginatedResults<Evaluation> getEvaluationByContentSource(String id, ACCESS_TYPE accessType,
+			int offset, int limit) throws SynapseException {
 		String url = ENTITY_URI_PATH + "/" + id + EVALUATION_URI_PATH + "?"
 				+ OFFSET + "=" + offset + "&limit=" + limit;
+		
+		if (accessType != null) {
+			url += "&accessType=" + accessType.name();
+		}
+		
 		return getPaginatedResults(getRepoEndpoint(), url, Evaluation.class);
 	}
 
@@ -3705,21 +3724,35 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 				+ ROW_ID + "/" + row.getRowId() + ROW_VERSION + "/"
 				+ row.getVersionNumber();
 	}
+	
+	@Override
+	public String queryTableEntityBundleAsyncStart(Query query, QueryOptions queryOptions, String tableId)
+			throws SynapseException {
+		
+		QueryBundleRequest bundleRequest = new QueryBundleRequest();
+		
+		bundleRequest.setEntityId(tableId);
+		bundleRequest.setQuery(query);
+		bundleRequest.setPartMask(queryOptions.getPartMask());
+		
+		return startAsynchJob(AsynchJobType.TableQuery, bundleRequest);
+	}
 
 	@Override
 	public String queryTableEntityBundleAsyncStart(String sql, Long offset,
 			Long limit, boolean isConsistent, int partsMask, String tableId)
 			throws SynapseException {
+		
 		Query query = new Query();
+		
 		query.setSql(sql);
 		query.setIsConsistent(isConsistent);
 		query.setOffset(offset);
 		query.setLimit(limit);
-		QueryBundleRequest bundleRequest = new QueryBundleRequest();
-		bundleRequest.setEntityId(tableId);
-		bundleRequest.setQuery(query);
-		bundleRequest.setPartMask((long) partsMask);
-		return startAsynchJob(AsynchJobType.TableQuery, bundleRequest);
+		
+		QueryOptions queryOptions = new QueryOptions().withMask((long) partsMask);
+		
+		return queryTableEntityBundleAsyncStart(query, queryOptions, tableId);
 	}
 
 	@Override
@@ -3843,7 +3876,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public List<ColumnModel> getDefaultColumnsForView(EntityType viewEntityType, Long viewTypeMask)
+	public List<ColumnModel> getDefaultColumnsForView(ViewEntityType viewEntityType, Long viewTypeMask)
 			throws SynapseException {
 		StringBuilder builder = new StringBuilder(COLUMN_VIEW_DEFAULT);
 		if (viewEntityType != null || viewTypeMask != null) {
@@ -5605,6 +5638,49 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		joiner.add(schemaName);
 		joiner.add(semanticVersion);
 		deleteUri(getRepoEndpoint(), joiner.toString());
+	}
+	
+	@Override
+	public ListOrganizationsResponse listOrganizations(ListOrganizationsRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		String url = "/schema/organization/list";
+		return postJSONEntity(getRepoEndpoint(), url, request, ListOrganizationsResponse.class);
+	}
+	
+	@Override
+	public ListJsonSchemaInfoResponse listSchemaInfo(ListJsonSchemaInfoRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		String url = "/schema/list";
+		return postJSONEntity(getRepoEndpoint(), url, request, ListJsonSchemaInfoResponse.class);
+	}
+	
+	@Override
+	public ListJsonSchemaVersionInfoResponse listSchemaVersions(ListJsonSchemaVersionInfoRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		String url = "/schema/version/list";
+		return postJSONEntity(getRepoEndpoint(), url, request, ListJsonSchemaVersionInfoResponse.class);
+	}
+	
+	@Override
+	public JsonSchemaObjectBinding bindJsonSchemaToEntity(BindSchemaToEntityRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getEntityId(), "request.entityId");
+		String url = "/entity/"+request.getEntityId()+"/bound/json/schema";
+		return putJSONEntity(getRepoEndpoint(), url, request, JsonSchemaObjectBinding.class);
+	}
+	
+	@Override
+	public JsonSchemaObjectBinding getJsonSchemaBindingForEntity(String entityId) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		String url = "/entity/"+entityId+"/bound/json/schema";
+		return getJSONEntity(getRepoEndpoint(), url, JsonSchemaObjectBinding.class);
+	}
+	
+	@Override
+	public void clearSchemaBindingForEntity(String entityId) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		String url = "/entity/"+entityId+"/bound/json/schema";
+		deleteUri(getRepoEndpoint(), url);
 	}
 
 }

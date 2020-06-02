@@ -39,7 +39,6 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
-import org.sagebionetworks.repo.model.table.ViewScopeUtils;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.util.Clock;
@@ -325,7 +324,7 @@ public class ReplicationManagerTest {
 	@Test
 	public void testCreateChange(){
 		IdAndEtag idAndEtag = new IdAndEtag(111L, "anEtag",444L);
-		ObjectType objectType = ViewScopeUtils.map(viewObjectType);
+		ObjectType objectType = viewObjectType.getObjectType();
 		ChangeMessage message = manager.createChange(objectType, idAndEtag.getId(), ChangeType.DELETE);
 		assertNotNull(message);
 		assertEquals(""+idAndEtag.getId(), message.getObjectId());

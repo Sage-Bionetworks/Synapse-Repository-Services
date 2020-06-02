@@ -2,14 +2,12 @@ package org.sagebionetworks.auth.filter;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -29,7 +27,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.auth.services.AuthenticationService;
+import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -62,6 +62,12 @@ public class DockerClientAuthFilterTest {
 	@Mock 
 	private OpenIDConnectManager mockOidcManager;
 
+	@Mock
+	private StackConfiguration mockConfig;
+
+	@Mock
+	private Consumer mockConsumer;
+	
 	@InjectMocks
 	private DockerClientAuthFilter filter;
 	
@@ -77,7 +83,7 @@ public class DockerClientAuthFilterTest {
 	public void before() {
 		header = AuthorizationConstants.BASIC_PREFIX + Base64.getEncoder().encodeToString((USERNAME+":"+PASSWORD).getBytes());
 		assertFalse(filter.credentialsRequired());
-		assertFalse(filter.reportBadCredentialsMetric());
+		assertTrue(filter.reportBadCredentialsMetric());
 	}
 
 	@Test

@@ -15,7 +15,7 @@
 		},
 		"viewEntityType": {
 			"description": "The entity type of the view, if not supplied defaults to entityview. Supported values are entityview and submissionview",
-			"$ref": "org.sagebionetworks.repo.model.EntityType"
+			"$ref": "org.sagebionetworks.repo.model.table.ViewEntityType"
 		},
 		"viewType": {
 			"description": "Deprecated. Use: 'viewTypeMask'",

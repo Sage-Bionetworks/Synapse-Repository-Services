@@ -160,7 +160,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 	}
 
 	@Override
-	public void trunacteAll() {
+	public void truncateAll() {
 		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_OBJECT_BINDING);
 		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_DEPENDENCY);
 		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_LATEST_VERSION);
@@ -306,6 +306,22 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 					schemaId);
 		} catch (DataIntegrityViolationException e) {
 			throw new IllegalArgumentException("Cannot delete a schema that is referenced by another schema");
+		}
+	}
+
+	@Override
+	public String getSchemaId(String organizationName, String schemaName) {
+		ValidateArgument.required(organizationName, "organizationName");
+		ValidateArgument.required(schemaName, "schemaName");
+		try {
+			return jdbcTemplate.queryForObject(
+					"SELECT " + COL_JSON_SCHEMA_ID + " FROM " + TABLE_JSON_SCHEMA + " S JOIN " + TABLE_ORGANIZATION
+							+ " O ON (S." + COL_JSON_SCHEMA_ORG_ID + " = O." + COL_ORGANIZATION_ID + ") WHERE O."
+							+ COL_ORGANIZATION_NAME + " = ? AND S." + COL_JSON_SCHEMA_NAME + " = ?",
+					String.class, organizationName, schemaName);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("JSON schema not found for organization name '" + organizationName
+					+ "' and schema name: '" + schemaName + "'");
 		}
 	}
 
@@ -499,10 +515,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		ValidateArgument.required(request.getObjectType(), "request.objectType");
 		ValidateArgument.required(request.getCreatedBy(), "request.createdBy");
 		// remove any existing binding.
-		jdbcTemplate.update(
-				"DELETE FROM " + TABLE_JSON_SCHEMA_OBJECT_BINDING + " WHERE " + COL_JONS_SCHEMA_BINDING_OBJECT_ID
-						+ " = ? AND " + COL_JSON_SCHEMA_BINDING_OBJECT_TYPE + " = ?",
-				request.getObjectId(), request.getObjectType().name());
+		clearBoundSchema(request.getObjectId(), request.getObjectType());
 
 		Timestamp now = new Timestamp(System.currentTimeMillis());
 		long bindId = idGenerator.generateNewId(IdType.JSON_SCHEMA_BIND_OBJECT_ID);
@@ -532,7 +545,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 			} else {
 				versionId = dbo.getVersionId().toString();
 			}
-			JsonSchemaVersionInfo versionInfo = getVersionInfo(versionId.toString());
+			JsonSchemaVersionInfo versionInfo = getVersionInfo(versionId);
 			JsonSchemaObjectBinding result = new JsonSchemaObjectBinding();
 			result.setJsonSchemaVersionInfo(versionInfo);
 			result.setObjectId(dbo.getObjectId());
@@ -545,4 +558,16 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 					+ "' ObjectType: '" + objecType.name() + "'");
 		}
 	}
+
+	@WriteTransaction
+	@Override
+	public void clearBoundSchema(Long objectId, BoundObjectType objectType) {
+		ValidateArgument.required(objectId, "objectId");
+		ValidateArgument.required(objectType, "objecType");
+		jdbcTemplate.update(
+				"DELETE FROM " + TABLE_JSON_SCHEMA_OBJECT_BINDING + " WHERE " + COL_JONS_SCHEMA_BINDING_OBJECT_ID
+						+ " = ? AND " + COL_JSON_SCHEMA_BINDING_OBJECT_TYPE + " = ?",
+						objectId, objectType.name());
+	}
+
 }
