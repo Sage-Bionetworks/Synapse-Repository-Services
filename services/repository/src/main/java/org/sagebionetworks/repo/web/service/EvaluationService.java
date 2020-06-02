@@ -13,6 +13,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -48,7 +49,7 @@ public interface EvaluationService {
 	/**
 	 * Gets all Synapse Evaluations tied to the given Project
 	 */
-	public PaginatedResults<Evaluation> getEvaluationByContentSource(Long userId, String id, boolean activeOnly, long limit, long offset)
+	public PaginatedResults<Evaluation> getEvaluationByContentSource(Long userId, String id, ACCESS_TYPE accessType, boolean activeOnly, long limit, long offset)
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -60,7 +61,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<Evaluation> getEvaluationsInRange(Long userId, boolean activeOnly, long limit, long offset) throws DatastoreException, NotFoundException;
+	public PaginatedResults<Evaluation> getEvaluationsInRange(Long userId, ACCESS_TYPE accessType, boolean activeOnly, long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get a collection of Evaluations in which the user has SUBMIT permission, within a given range
