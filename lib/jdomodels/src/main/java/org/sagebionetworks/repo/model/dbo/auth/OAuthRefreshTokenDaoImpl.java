@@ -14,9 +14,7 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -31,7 +29,7 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
-import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
@@ -122,7 +120,7 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 		OAuthRefreshTokenInformation dto = new OAuthRefreshTokenInformation();
 		try {
 			dto.setScopes((List<OAuthScope>) JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getScopes()));
-			dto.setClaims((Map<String, OIDCClaimsRequestDetails>) JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getClaims()));
+			dto.setClaims((OIDCClaimsRequest) JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getClaims()));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -140,16 +138,18 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 
 	@MandatoryWriteTransaction
 	@Override
-	public void updateTokenHash(String tokenId, String newHash) {
-		ValidateArgument.required(tokenId, "Token ID");
+	public void updateTokenHash(OAuthRefreshTokenInformation tokenInformation, String newHash) {
+		ValidateArgument.required(tokenInformation, "token information");
+		ValidateArgument.required(tokenInformation.getTokenId(), "Token ID");
+		ValidateArgument.required(tokenInformation.getEtag(), "etag");
+		ValidateArgument.required(tokenInformation.getLastUsed(), "Last used");
 		ValidateArgument.required(newHash, "Token hash");
 
-		// Currently, the only mutable fields are NAME, ETAG, MODIFIED_ON
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(PARAM_TOKEN_HASH, newHash);
-		params.addValue(PARAM_ETAG, UUID.randomUUID().toString());
-		params.addValue(PARAM_LAST_USED, new Date());
-		params.addValue(PARAM_TOKEN_ID, tokenId);
+		params.addValue(PARAM_ETAG, tokenInformation.getEtag());
+		params.addValue(PARAM_LAST_USED, tokenInformation.getLastUsed());
+		params.addValue(PARAM_TOKEN_ID, tokenInformation.getTokenId());
 		namedParameterJdbcTemplate.update(UPDATE_REFRESH_TOKEN_HASH, params);
 	}
 
