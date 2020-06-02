@@ -16,9 +16,15 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -31,6 +37,7 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.evaluation.dao.SubmissionField;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -70,12 +77,24 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryOptions;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SubmissionView;
+import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Exercise the Evaluation Services methods in the Synapse Java Client
@@ -292,6 +311,111 @@ public class IT520SynapseJavaClientEvaluationTest {
 		});
 		
 		assertEquals(initialCount, synapseOne.getAvailableEvaluationsPaginated(100, 0).getResults().size());
+	}
+	
+	@Test
+	public void testSubmissionView() throws Exception {
+		eval1.setStatus(EvaluationStatus.OPEN);
+		eval1 = synapseOne.createEvaluation(eval1);
+		evaluationsToDelete.add(eval1.getId());
+		String entityId = fileEntity.getId();
+		String entityEtag = fileEntity.getEtag();
+		
+		// create
+		sub1.setEvaluationId(eval1.getId());
+		sub1.setEntityId(entityId);
+		
+		sub1 = synapseOne.createIndividualSubmission(sub1, entityEtag, MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		SubmissionStatus submissionStatus = synapseOne.getSubmissionStatus(sub1.getId());
+		
+		submissionsToDelete.add(sub1.getId());
+		
+		List<ColumnModel> model = synapseOne.getDefaultColumnsForView(ViewEntityType.submissionview, null);
+		
+		// now create the view
+		SubmissionView view = new SubmissionView();
+		
+		view.setName("Submission View");
+		view.setColumnIds(TableModelUtils.getIds(model));
+		view.setScopeIds(ImmutableList.of(eval1.getId()));
+		view.setParentId(project.getId());
+		view = synapseOne.createEntity(view);
+
+		entitiesToDelete.add(view.getId());
+		
+		String sql = "select * from " + view.getId() + " order by id";
+		
+		final Long submissionId = KeyFactory.stringToKey(submissionStatus.getId());
+		final String submissionEtag = submissionStatus.getEtag();
+		final String evaluationId = KeyFactory.stringToKey(sub1.getEvaluationId()).toString();
+		final String status = submissionStatus.getStatus().name();
+		final String submitterId = sub1.getUserId();
+		final String submitterAlias = sub1.getSubmitterAlias();
+		
+		Predicate<QueryResultBundle> resultMatcher = (result) -> {
+			List<Row> rows = result.getQueryResult().getQueryResults().getRows();
+			
+			if (rows.isEmpty()) {
+				return false;
+			}
+			
+			if (rows.size() > 1) {
+				throw new IllegalStateException("Expected one row, got " + rows.size());
+			}
+			
+			Row submissionRow = rows.iterator().next();
+			
+			if (submissionRow.getRowId().equals(submissionId) && submissionRow.getEtag().equals(submissionEtag)) {
+				return true;
+			}
+			
+			return false;
+		};
+		
+		Query query = new Query();
+		
+		query.setSql(sql);
+		query.setIncludeEntityEtag(true);
+		query.setOffset(0L);
+		query.setLimit(1L);
+		
+		QueryOptions queryOptions = new QueryOptions()
+				.withRunQuery(true)
+				.withReturnSelectColumns(true);
+		
+		QueryResultBundle results = AsyncHelper.waitForBundleQueryResults(synapseOne, RDS_WORKER_TIMEOUT, query, queryOptions, view.getId(), resultMatcher);
+	
+		List<SelectColumn> columns = results.getQueryResult().getQueryResults().getHeaders();
+		
+		Map<SubmissionField, Integer> fieldIndexMap = getFieldsIndex(columns);
+	
+		Row submissionRow = results.getQueryResult().getQueryResults().getRows().iterator().next();
+		
+		assertEquals(status, submissionRow.getValues().get(fieldIndexMap.get(SubmissionField.status)));
+		assertEquals(evaluationId, submissionRow.getValues().get(fieldIndexMap.get(SubmissionField.evaluationid)));
+		assertEquals(submitterId, submissionRow.getValues().get(fieldIndexMap.get(SubmissionField.submitterid)));
+		assertEquals(submitterAlias, submissionRow.getValues().get(fieldIndexMap.get(SubmissionField.submitteralias)));
+		
+	}
+	
+	private static Map<SubmissionField, Integer> getFieldsIndex(List<SelectColumn> columns) {
+		Map<SubmissionField, Integer> indexMap = new HashMap<>(SubmissionField.values().length);
+		Map<String, SubmissionField> fieldsMap = Stream.of(SubmissionField.values())
+				.collect(Collectors.toMap(SubmissionField::getColumnName, Function.identity()));
+		
+		int index = 0;
+		
+		for (SelectColumn column : columns) {
+			SubmissionField matchedField = fieldsMap.get(column.getName());
+			
+			if (matchedField != null) {
+				indexMap.put(matchedField, index);
+			}
+			
+			index++;
+		}
+		
+		return indexMap;
 	}
 	
 	@Test

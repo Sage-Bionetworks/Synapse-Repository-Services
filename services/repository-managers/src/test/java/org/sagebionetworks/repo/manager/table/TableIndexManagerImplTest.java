@@ -63,6 +63,7 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
+import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
@@ -188,7 +189,7 @@ public class TableIndexManagerImplTest {
 		scope = new ViewScope();
 		scope.setScope(scopeSynIds);
 		scope.setViewTypeMask(ViewTypeMask.File.getMask());
-		scope.setViewEntityType(EntityType.entityview);
+		scope.setViewEntityType(ViewEntityType.entityview);
 		
 		ColumnModel oldColumn = null;
 		newColumn = new ColumnModel();

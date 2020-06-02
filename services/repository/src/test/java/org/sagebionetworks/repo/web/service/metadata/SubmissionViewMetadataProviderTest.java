@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.service.metadata;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -18,10 +19,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.table.SubmissionView;
+import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 
 import com.google.common.collect.ImmutableList;
@@ -58,7 +59,7 @@ public class SubmissionViewMetadataProviderTest {
 		
 		scope.setViewTypeMask(viewTypeMask);
 		scope.setScope(viewScope);
-		scope.setViewEntityType(EntityType.submissionview);
+		scope.setViewEntityType(ViewEntityType.submissionview);
 	}
 	
 	@Test
@@ -75,14 +76,12 @@ public class SubmissionViewMetadataProviderTest {
 	public void testValidateEntity() {
 		when(mockEntityEvent.getUserInfo()).thenReturn(mockUser);
 		when(mockSubmissionView.getScopeIds()).thenReturn(scope.getScope());
-		when(mockPermissionManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockPermissionManager.hasAccess(any(), any(), anyList())).thenReturn(AuthorizationStatus.authorized());
 		
 		// Call under test
 		provider.validateEntity(mockSubmissionView, mockEntityEvent);
 		
-		for (String evaluation : scope.getScope()) {
-			verify(mockPermissionManager).hasAccess(mockUser, evaluation, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);	
-		}
+		verify(mockPermissionManager).hasAccess(mockUser, ACCESS_TYPE.READ_PRIVATE_SUBMISSION, scope.getScope());	
 	}
 	
 	@Test

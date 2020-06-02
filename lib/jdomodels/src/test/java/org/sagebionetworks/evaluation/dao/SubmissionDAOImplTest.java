@@ -68,7 +68,6 @@ import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
-import org.sagebionetworks.repo.model.table.ViewScopeUtils;
 import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -1072,11 +1071,6 @@ public class SubmissionDAOImplTest {
 	@Test
 	public void testGetSubmissionData() {
 
-		Annotations annotations = AnnotationsV2Utils.emptyAnnotations();
-
-		AnnotationsV2TestUtils.putAnnotations(annotations, "foo", "fooValue", AnnotationsValueType.STRING);
-		AnnotationsV2TestUtils.putAnnotations(annotations, "bar", "42", AnnotationsValueType.LONG);
-
 		// Creates 3 submissions for evalId
 		submissionDAO.create(submission);
 		createSubmissionStatus(SUBMISSION_ID, SubmissionStatusEnum.SCORED);
@@ -1187,7 +1181,7 @@ public class SubmissionDAOImplTest {
 		assertEquals(submission.getEvaluationId(), data.getBenefactorId().toString());
 		assertEquals(evaluation.getContentSource(), KeyFactory.keyToString(data.getProjectId()));
 		assertEquals(submission.getName(), data.getName());
-		assertEquals(ViewScopeUtils.defaultSubType(ViewObjectType.SUBMISSION), data.getSubType());
+		assertEquals(ViewObjectType.SUBMISSION.defaultSubType(), data.getSubType());
 		assertNotNull(data.getAnnotations());
 
 		Map<String, ObjectAnnotationDTO> annotations = data.getAnnotations().stream()

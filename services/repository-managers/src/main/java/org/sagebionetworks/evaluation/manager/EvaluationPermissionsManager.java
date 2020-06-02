@@ -1,5 +1,6 @@
 package org.sagebionetworks.evaluation.manager;
 
+import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
@@ -49,6 +50,12 @@ public interface EvaluationPermissionsManager {
 	 * Whether the user has the access to the specified evaluation.
 	 */
 	public AuthorizationStatus hasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
+			throws NotFoundException, DatastoreException;
+	
+	/**
+	 * Whether the user has the access to the specified list of evaluations
+	 */
+	AuthorizationStatus hasAccess(UserInfo userInfo, ACCESS_TYPE accessType, List<String> evaluationIds)
 			throws NotFoundException, DatastoreException;
 
 	/**

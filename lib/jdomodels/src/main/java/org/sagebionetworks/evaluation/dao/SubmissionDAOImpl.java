@@ -80,7 +80,6 @@ import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
-import org.sagebionetworks.repo.model.table.ViewScopeUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -347,7 +346,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	private static final RowMapper<SubmissionContributorDBO> SUBMISSION_CONTRIBUTOR_ROW_MAPPER = 
 			(new SubmissionContributorDBO()).getTableMapping();
 	
-	private static final String SUBTYPE_SUBMISSION = ViewScopeUtils.defaultSubType(ViewObjectType.SUBMISSION);
+	private static final String SUBTYPE_SUBMISSION = ViewObjectType.SUBMISSION.defaultSubType();
 	
 	@Override
 	@WriteTransaction
