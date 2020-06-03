@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.manager.table.metadata;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -53,6 +55,11 @@ public class ViewScopeFilterBuilderTest {
 	
 	@Test
 	public void testBuildWithNullMask() {
+		
+		IllegalArgumentException ex = new IllegalArgumentException("viewTypeMask is required.");
+		
+		doThrow(ex).when(provider).getSubTypesForMask(any());
+		
 		Long viewTypeMask = null;
 		
 		ViewScopeFilterBuilder builder = new ViewScopeFilterBuilder(provider, viewTypeMask);
