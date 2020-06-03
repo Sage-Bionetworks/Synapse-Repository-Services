@@ -392,4 +392,52 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		assertTrue(oauthRefreshTokenDao.getRefreshTokenMetadata(tokenToNotRevoke2.getTokenId()).isPresent());
 	}
 
+	@Test
+	void getActiveTokenCount() {
+		// Call under test
+		assertEquals(0, oauthRefreshTokenDao.getActiveTokenCount(userId, client.getClient_id(), HALF_YEAR_DAYS));
+
+		// Add an expired token
+		createRefreshToken("abcd", new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS));
+
+		// Call under test
+		assertEquals(0, oauthRefreshTokenDao.getActiveTokenCount(userId, client.getClient_id(), HALF_YEAR_DAYS));
+
+		// Add an active token
+		createRefreshToken("abcd", new Date());
+
+		// Call under test
+		assertEquals(1, oauthRefreshTokenDao.getActiveTokenCount(userId, client.getClient_id(), HALF_YEAR_DAYS));
+	}
+
+	@Test
+	void getLeastRecentlyUsedActiveToken() {
+		// Note: this date is still in the "active" window (in this case, 180 days)
+		Date leastRecentlyUsedDate = new Date(System.currentTimeMillis() - ONE_DAY_MILLIS * 30);
+
+		// Create a bunch of tokens, one of which will be the "expected" retrieval based on date
+		OAuthRefreshTokenInformation expected = createRefreshToken("abcd", leastRecentlyUsedDate);
+		createRefreshToken("abcd", new Date());
+		createRefreshToken("abcd", new Date(System.currentTimeMillis() - 1000 * 5));
+		createRefreshToken("abcd", new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS)); // expired, should be filtered
+
+		// Call under test
+		assertEquals(expected, oauthRefreshTokenDao.getLeastRecentlyUsedToken(userId, client.getClient_id(), HALF_YEAR_DAYS));
+	}
+
+	@Test
+	void getLeastRecentlyUsedActiveToken_NFE() {
+		// With no tokens
+		// Call under test
+		assertThrows(NotFoundException.class, () ->
+				oauthRefreshTokenDao.getLeastRecentlyUsedToken(userId, client.getClient_id(), HALF_YEAR_DAYS)
+		);
+
+		// Only expired tokens exist
+		createRefreshToken("abcd", new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS));
+		// Call under test
+		assertThrows(NotFoundException.class, () ->
+				oauthRefreshTokenDao.getLeastRecentlyUsedToken(userId, client.getClient_id(), HALF_YEAR_DAYS)
+		);
+	}
 }
