@@ -12,6 +12,7 @@ import java.util.List;
 import org.apache.http.client.ClientProtocolException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
@@ -44,7 +45,6 @@ import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
@@ -245,6 +245,8 @@ import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.model.table.ViewColumnModelRequest;
+import org.sagebionetworks.repo.model.table.ViewColumnModelResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
@@ -1270,6 +1272,15 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 */
 	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId, String entityId) throws SynapseException, SynapseResultNotReadyException;
+
+	/**
+	 * Get the results of an Asynchronous job.
+	 * @param type The type of job.
+	 * @param jobId The JobId.
+	 * @throws SynapseResultNotReadyException if the job is not ready.
+	 * @return
+	 */
+	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId) throws SynapseException, SynapseResultNotReadyException;
 
 	/**
 	 * Get the result of an asynchronous queryTableEntityNextPage
@@ -3024,6 +3035,7 @@ public interface SynapseClient extends BaseClient {
 	 * Get the possible ColumnModel definitions based on annotation within a
 	 * given scope.
 	 * 
+	 * @deprecated This is replaced by an asynchronous job, see {@link #startGetPossibleColumnModelsForViewScope(ViewColumnModelRequest)}
 	 * @param scope
 	 *            List of parent IDs that define the scope.
 	 * @param nextPageToken
@@ -3032,10 +3044,23 @@ public interface SynapseClient extends BaseClient {
 	 * 
 	 * @return A ColumnModel for each distinct annotation for the given scope. A returned nextPageToken can be used to get subsequent pages
 	 * of ColumnModels for the given scope.  The nextPageToken will be null when there are no more pages of results.
+	 * 
 	 */
-	ColumnModelPage getPossibleColumnModelsForViewScope(ViewScope scope,
-			String nextPageToken) throws SynapseException;
+	@Deprecated
+	ColumnModelPage getPossibleColumnModelsForViewScope(ViewScope scope, String nextPageToken) throws SynapseException;
 
+	/**
+	 * Starts an asynchronous job that computes the possible {@link ColumnModel} definitions based on the annotations
+	 * within the scope in the request. The result of the job get be fetched using the {@link #getPossibleColumnModelsForViewScopeResult(String)}
+	 * 
+	 * @param request The request should include the scope and an optional nextPageToken to fetch subsequent pages
+	 * @return The async job token that can be used to fetch the result, {@link #getPossibleColumnModelsForViewScopeResult(String)}
+	 * @throws SynapseException
+	 */
+	String startGetPossibleColumnModelsForViewScope(ViewColumnModelRequest request) throws SynapseException;
+	
+	ViewColumnModelResponse getPossibleColumnModelsForViewScopeResult(String asyncJobToken) throws SynapseException;
+	
 	/**
 	 * Create new or update an existing ResearchProject.
 	 * 

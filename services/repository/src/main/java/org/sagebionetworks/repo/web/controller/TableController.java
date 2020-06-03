@@ -44,6 +44,8 @@ import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.model.table.ViewColumnModelRequest;
+import org.sagebionetworks.repo.model.table.ViewColumnModelResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
@@ -411,18 +413,21 @@ public class TableController {
 	/**
 	 * Get the list of default
 	 * <a href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModels
-	 * </a> for the given <a href="${org.sagebionetworks.repo.model.table.ViewEntityType}">viewEntityType</a> and viewTypeMask.
+	 * </a> for the given <a href=
+	 * "${org.sagebionetworks.repo.model.table.ViewEntityType}">viewEntityType</a>
+	 * and viewTypeMask.
 	 * 
-	 * @param viewEntityType
-	 *            The <a href="${org.sagebionetworks.repo.model.table.ViewEntityType}">entity type</a> of the view, if omitted use entityview
-	 * @param viewTypeMask
-	 *            Bit mask representing the types to include in the view. The
-	 *            following are the possible types when the selected entity type is entityview: (type=<mask_hex>): File=0x01,
-	 *            Project=0x02, Table=0x04, Folder=0x08, View=0x10, Docker=0x20. Not required for a submissionview.
+	 * @param viewEntityType The <a href=
+	 *                       "${org.sagebionetworks.repo.model.table.ViewEntityType}">entity
+	 *                       type</a> of the view, if omitted use entityview
+	 * @param viewTypeMask   Bit mask representing the types to include in the view.
+	 *                       Not required for a submission view. For an entity view
+	 *                       following are the possible types: (type=<mask_hex>):
+	 *                       File=0x01, Project=0x02, Table=0x04, Folder=0x08,
+	 *                       View=0x10, Docker=0x20.
 	 * 
 	 * @return -
-	 * @throws DatastoreException
-	 *             - Synapse error.
+	 * @throws DatastoreException - Synapse error.
 	 */
 	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
@@ -1322,6 +1327,7 @@ public class TableController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequiredScope({view})
 	@RequestMapping(value = UrlHelpers.TABLE_COLUMNS_OF_SCOPE, method = RequestMethod.POST)
+	@Deprecated
 	public @ResponseBody
 	ColumnModelPage getPossibleColumnModelsForView(
 			@RequestBody ViewScope viewScope,
@@ -1330,6 +1336,53 @@ public class TableController {
 		return serviceProvider.getTableServices()
 				.getPossibleColumnModelsForScopeIds(viewScope,
 						nextPageToken);
+	}
+	
+	/**
+	 * Starts an asynchronous job to compute a page of the possible <a href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModels</a>
+	 * based on the annotations within the provided scope. The result of the job can be fetched using the
+	 * <a href="${GET.column.view.scope.async.get.asyncToken}">GET /column/view/scope/async/get</a> service with the job token returned by this request.
+	 * 
+	 * @param request The request specifies the scope to compute the model against as well as the optional nextPageToken used to fetch subsequent pages
+	 * @return An object containing the id of the asynchronous job whose results can be fetched using the 
+	 * <a href="${GET.column.view.scope.async.get.asyncToken}">GET /column/view/scope/async/get</a> service
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.VIEW_COLUMNS_FROM_SCOPE_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody AsyncJobId getViewScopeColumnsAsyncStart(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody ViewColumnModelRequest request)
+			throws DatastoreException, NotFoundException, IOException {
+		AsynchronousJobStatus job = serviceProvider .getAsynchronousJobServices().startJob(userId, request);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+	
+	/**
+	 * Fetches the result of the <a href="${POST.column.view.scope.async.start}">POST /column/view/scope/async/start</a> service that'll contain
+	 * a page of possible <a href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModels</a> within the scope supplied in the original request.
+	 * 
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status
+	 * code of 202 (ACCEPTED) and the response body will be a <a
+	 * href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+	 * >AsynchronousJobStatus</a> object.
+	 * </p>
+	 * @param asyncToken
+	 * @return
+	 * @throws Throwable
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.VIEW_COLUMNS_FROM_SCOPE_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	ViewColumnModelResponse getViewScopeColumnsAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String asyncToken) throws Throwable {
+		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId, asyncToken);
+		return (ViewColumnModelResponse) jobStatus.getResponseBody();
 	}
 
 	/**

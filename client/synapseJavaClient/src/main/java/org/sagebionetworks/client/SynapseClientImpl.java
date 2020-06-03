@@ -295,6 +295,8 @@ import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.model.table.ViewColumnModelRequest;
+import org.sagebionetworks.repo.model.table.ViewColumnModelResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
@@ -629,6 +631,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String ANNOTATIONS_V2 = "/annotations2";
 	
 	public static final String SCHEMA_TYPE_CREATE = "/schema/type/create/";
+	public static final String VIEW_COLUMNS = "/column/view/scope/";
 
 	/**
 	 * Default constructor uses the default repository and file services endpoints.
@@ -2510,6 +2513,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String url = type.getResultUrl(jobId, entityId);
 		String endpoint = getEndpointForType(type.getRestEndpoint());
 		return getAsynchJobResponse(url, type.getReponseClass(), endpoint);
+	}
+	
+	@Override
+	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId)
+			throws SynapseException, SynapseClientException, SynapseResultNotReadyException {
+		return getAsyncResult(type, jobId, (String) null);
 	}
 
 	/**
@@ -5199,6 +5208,18 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			url.append(nextPageToken);
 		}
 		return postJSONEntity(getRepoEndpoint(), url.toString(), scope, ColumnModelPage.class);
+	}
+	
+	@Override
+	public String startGetPossibleColumnModelsForViewScope(ViewColumnModelRequest request) throws SynapseException {
+		return startAsynchJob(AsynchJobType.ViewColumnModelRequest, request);
+	}
+	
+	@Override
+	public ViewColumnModelResponse getPossibleColumnModelsForViewScopeResult(String asyncJobToken)
+			throws SynapseException {
+		ViewColumnModelResponse response = (ViewColumnModelResponse) getAsyncResult(AsynchJobType.ViewColumnModelRequest, asyncJobToken);
+		return response;
 	}
 	
 	@Override
