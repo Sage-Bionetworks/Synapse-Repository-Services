@@ -2042,7 +2042,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 
 	@Override
-	public Long findFirstBoundJsonSchema(Long nodeId) {
+	public Long getEntityIdOfFirstBoundSchema(Long nodeId, long maxDepth) {
 		ValidateArgument.required(nodeId, "nodeId");
 		try {
 			return jdbcTemplate.queryForObject(
@@ -2056,12 +2056,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 							+ " N JOIN PATH ON (N." + COL_NODE_ID + " = PATH." + COL_NODE_PARENT_ID + ") LEFT JOIN "
 							+ TABLE_JSON_SCHEMA_OBJECT_BINDING + " B ON (N." + COL_NODE_ID + " = B."
 							+ COL_JONS_SCHEMA_BINDING_OBJECT_ID + " AND B." + COL_JSON_SCHEMA_BINDING_OBJECT_TYPE + " = '"
-							+ BoundObjectType.entity.name() + "') WHERE DISTANCE < 100" + ")"
+							+ BoundObjectType.entity.name() + "') WHERE DISTANCE < ?" + ")"
 							+ " SELECT ID FROM PATH WHERE BIND_ID IS NOT NULL ORDER BY DISTANCE ASC LIMIT 1;",
-					Long.class, nodeId);
+					Long.class, nodeId, maxDepth);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("No JSON schema found for 'syn"+nodeId+"'");
 		}
+	}
+
+	@Override
+	public Long getEntityIdOfFirstBoundSchema(Long nodeId) {
+		return getEntityIdOfFirstBoundSchema(nodeId, MAX_PATH_DEPTH);
 	}
 
 }

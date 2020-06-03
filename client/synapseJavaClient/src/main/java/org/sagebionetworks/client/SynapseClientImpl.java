@@ -5665,21 +5665,21 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public JsonSchemaObjectBinding bindJsonSchemaToEntity(BindSchemaToEntityRequest request) throws SynapseException {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getEntityId(), "request.entityId");
-		String url = "/entity/"+request.getEntityId()+"/bound/json/schema";
+		String url = "/entity/"+request.getEntityId()+"/schema/binding";
 		return putJSONEntity(getRepoEndpoint(), url, request, JsonSchemaObjectBinding.class);
 	}
 	
 	@Override
 	public JsonSchemaObjectBinding getJsonSchemaBindingForEntity(String entityId) throws SynapseException {
 		ValidateArgument.required(entityId, "entityId");
-		String url = "/entity/"+entityId+"/bound/json/schema";
+		String url = "/entity/"+entityId+"/schema/binding";
 		return getJSONEntity(getRepoEndpoint(), url, JsonSchemaObjectBinding.class);
 	}
 	
 	@Override
 	public void clearSchemaBindingForEntity(String entityId) throws SynapseException {
 		ValidateArgument.required(entityId, "entityId");
-		String url = "/entity/"+entityId+"/bound/json/schema";
+		String url = "/entity/"+entityId+"/schema/binding";
 		deleteUri(getRepoEndpoint(), url);
 	}
 
