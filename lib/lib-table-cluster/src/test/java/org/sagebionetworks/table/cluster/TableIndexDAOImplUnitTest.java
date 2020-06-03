@@ -232,7 +232,7 @@ public class TableIndexDAOImplUnitTest {
 		when(mockObjectFieldResolver.findMatch(any())).thenReturn(Optional.empty());
 		when(mockObjectFieldResolverFactory.getObjectFieldModelResolver(any())).thenReturn(mockObjectFieldResolver);
 		
-		doReturn(ImmutableList.of(annotationModel)).when(spyDao).getPossibleColumnModelsForContainers(any(), any(), any());
+		doReturn(ImmutableList.of(annotationModel)).when(spyDao).getPossibleColumnModelsForContainers(any(), any(), any(), any());
 		
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
@@ -265,7 +265,7 @@ public class TableIndexDAOImplUnitTest {
 		when(mockObjectFieldResolver.findMatch(any())).thenReturn(Optional.empty());
 		when(mockObjectFieldResolverFactory.getObjectFieldModelResolver(any())).thenReturn(mockObjectFieldResolver);
 
-		doReturn(ImmutableList.of(a1, a2)).when(spyDao).getPossibleColumnModelsForContainers(any(), any(), any());
+		doReturn(ImmutableList.of(a1, a2)).when(spyDao).getPossibleColumnModelsForContainers(any(), any(), any(), any());
 		
 		
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
