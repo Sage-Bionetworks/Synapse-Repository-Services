@@ -1,0 +1,25 @@
+{
+    "description": "Stores OIDC claims and details in accordance with OIDC Core 1.0 Claims Request: https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter",
+ 	"properties": {
+		"userinfo":{
+			"type": "map",
+			"description":"",
+			"key": {
+				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimName"
+			},
+			"value": {
+				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails"
+			}
+		},
+		"id_token": {
+			"type": "map",
+			"description":"",
+			"key": {
+				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimName"
+			},
+			"value": {
+				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails"
+			}
+		}
+	}
+}

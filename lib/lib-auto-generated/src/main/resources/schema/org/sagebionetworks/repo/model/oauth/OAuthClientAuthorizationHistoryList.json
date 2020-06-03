@@ -1,0 +1,16 @@
+{
+	"description": "Metadata for a paginated list of OAuth 2.0 clients authorized to access a user's resources in Synapse.",
+	"properties": {
+		"results":{
+			"type": "array",
+			"items":{
+				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistory"
+			}
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "The token to get the next page of results."
+		}
+	}
+}
+

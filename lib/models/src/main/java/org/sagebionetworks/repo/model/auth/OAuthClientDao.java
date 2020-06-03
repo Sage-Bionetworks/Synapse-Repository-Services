@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.auth;
 
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -115,6 +116,16 @@ public interface OAuthClientDao {
 	 * @throws NotFoundException If a client with the given id does not exist
 	 */
 	boolean isOauthClientVerified(String clientId) throws NotFoundException;
-	
-	
+
+	/**
+	 * Retrieve all clients that a specified user has granted long-lived access to via OAuth refresh tokens.
+	 * Does not include clients whose access has expired or has been revoked.
+	 * @param userId The user who has delegated access to clients via OAuth 2 refresh tokens
+	 * @param nextPageToken For pagination
+	 * @param maxLeaseLengthInDays The maximum lease length of a refresh token.
+	 *                                Clients having no refresh tokens used after this point in time are
+	 *                                omitted from the results.
+	 * @return a paginated list of clients which have been granted refresh token(s) for the given user.
+	 */
+	OAuthClientAuthorizationHistoryList getAuthorizedClientHistory(String userId, String nextPageToken, Long maxLeaseLengthInDays);
 }
