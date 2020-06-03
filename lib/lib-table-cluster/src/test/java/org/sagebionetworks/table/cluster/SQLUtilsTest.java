@@ -21,9 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,6 +50,10 @@ import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.util.EnumUtils;
 import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class SQLUtilsTest {
@@ -2551,22 +2552,50 @@ public class SQLUtilsTest {
 
 	@Test
 	public void testGetDistinctAnnotationColumnsSqlFileView(){
+		boolean withEclusionList = false;
 		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
-		String sql = SQLUtils.getDistinctAnnotationColumnsSql(scopeFilter);
-		String expected = TableConstants.OBJECT_REPLICATION_COL_PARENT_ID+" IN (:parentIds)";
-		assertTrue(sql.contains(expected));
+		String sql = SQLUtils.getDistinctAnnotationColumnsSql(scopeFilter, withEclusionList);
+		String expected = "SELECT A.ANNO_KEY, GROUP_CONCAT(DISTINCT A.ANNO_TYPE), MAX(MAX_STRING_LENGTH), MAX(LIST_LENGTH) "
+				+ "FROM OBJECT_REPLICATION AS E INNER JOIN ANNOTATION_REPLICATION AS A "
+				+ "ON E.OBJECT_TYPE = A.OBJECT_TYPE AND E.OBJECT_ID = A.OBJECT_ID "
+				+ "WHERE E.OBJECT_TYPE=:objectType AND E.PARENT_ID IN (:parentIds) "
+				+ "AND E.SUBTYPE IN (:subTypes)  "
+				+ "GROUP BY A.ANNO_KEY LIMIT :pLimit OFFSET :pOffset";
+		assertEquals(expected, sql);
 	}
 
 	@Test
 	public void testGetDistinctAnnotationColumnsSqlProjectView(){
+		boolean withEclusionList = false;
 		List<String> subTypes = EnumUtils.names(EntityType.project);
 		boolean filterByObjectId = true;
 		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
-		String sql = SQLUtils.getDistinctAnnotationColumnsSql(scopeFilter);
-		String expected = TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID+" IN (:parentIds)";
-		assertTrue(sql.contains(expected));
+		String sql = SQLUtils.getDistinctAnnotationColumnsSql(scopeFilter, withEclusionList);
+		String expected = "SELECT A.ANNO_KEY, GROUP_CONCAT(DISTINCT A.ANNO_TYPE), MAX(MAX_STRING_LENGTH), MAX(LIST_LENGTH) "
+				+ "FROM OBJECT_REPLICATION AS E INNER JOIN ANNOTATION_REPLICATION AS A "
+				+ "ON E.OBJECT_TYPE = A.OBJECT_TYPE AND E.OBJECT_ID = A.OBJECT_ID "
+				+ "WHERE E.OBJECT_TYPE=:objectType AND E.OBJECT_ID IN (:parentIds) "
+				+ "AND E.SUBTYPE IN (:subTypes)  "
+				+ "GROUP BY A.ANNO_KEY LIMIT :pLimit OFFSET :pOffset";
+		assertEquals(expected, sql);
+	}
+	
+	@Test
+	public void testGetDistinctAnnotationColumnsSqlWithExclusionList(){
+		boolean withEclusionList = true;
+		List<String> subTypes = EnumUtils.names(EntityType.file);
+		boolean filterByObjectId = false;
+		ViewScopeFilter scopeFilter = getSQLScopeFilter(subTypes, filterByObjectId);
+		String sql = SQLUtils.getDistinctAnnotationColumnsSql(scopeFilter, withEclusionList);
+		String expected = "SELECT A.ANNO_KEY, GROUP_CONCAT(DISTINCT A.ANNO_TYPE), MAX(MAX_STRING_LENGTH), MAX(LIST_LENGTH) "
+				+ "FROM OBJECT_REPLICATION AS E INNER JOIN ANNOTATION_REPLICATION AS A "
+				+ "ON E.OBJECT_TYPE = A.OBJECT_TYPE AND E.OBJECT_ID = A.OBJECT_ID "
+				+ "WHERE E.OBJECT_TYPE=:objectType AND E.PARENT_ID IN (:parentIds) "
+				+ "AND E.SUBTYPE IN (:subTypes) AND A.ANNO_KEY NOT IN (:exclusionList) "
+				+ "GROUP BY A.ANNO_KEY LIMIT :pLimit OFFSET :pOffset";
+		assertEquals(expected, sql);
 	}
 
 	@Test

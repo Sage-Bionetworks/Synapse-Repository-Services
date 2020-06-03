@@ -190,6 +190,7 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 
 	@Override
 	public List<String> getSubTypesForMask(Long typeMask) {
+		ValidateArgument.required(typeMask, "viewTypeMask");
 		List<String> typesFilter = new ArrayList<>();
 		for (ViewTypeMask type : ViewTypeMask.values()) {
 			if ((type.getMask() & typeMask) > 0) {
@@ -201,6 +202,7 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 
 	@Override
 	public boolean isFilterScopeByObjectId(Long typeMask) {
+		ValidateArgument.required(typeMask, "viewTypeMask");
 		if (ViewTypeMask.Project.getMask() == typeMask) {
 			return true;
 		}

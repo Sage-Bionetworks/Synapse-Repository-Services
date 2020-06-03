@@ -2,9 +2,9 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -17,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.change.ListColumnIndexTableChange;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
+import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.manager.table.metadata.ViewScopeFilterBuilder;
@@ -497,17 +498,27 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ColumnModelPage results = new ColumnModelPage();
 		
 		if(containerIds.isEmpty()){
-			results.setResults(new LinkedList<ColumnModel>());
+			results.setResults(Collections.emptyList());
 			results.setNextPageToken(null);
 			return results;
 		}
 		
 		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(viewScopeType.getObjectType());
+		DefaultColumnModel defaultColumnModel = provider.getDefaultColumnModel(viewScopeType.getTypeMask());
+		
+		List<String> excludeKeys = null;
+		
+		// We exclude from the suggested column models the custom fields defined for the object (since thy are included in the default column model itself)
+		if (defaultColumnModel.getCustomFields() != null && !defaultColumnModel.getCustomFields().isEmpty()) {
+			excludeKeys = defaultColumnModel.getCustomFields()
+					.stream()
+					.map(ColumnModel::getName)
+					.collect(Collectors.toList());
+		}
 		
 		ViewScopeFilter scopeFilter = buildViewScopeFilter(provider, viewScopeType.getTypeMask(), containerIds);
-		
 		// request one page with a limit one larger than the passed limit.
-		List<ColumnModel> columns = tableIndexDao.getPossibleColumnModelsForContainers(scopeFilter, token.getLimitForQuery(), token.getOffset());
+		List<ColumnModel> columns = tableIndexDao.getPossibleColumnModelsForContainers(scopeFilter, excludeKeys, token.getLimitForQuery(), token.getOffset());
 		results.setNextPageToken(token.getNextPageTokenForCurrentResults(columns));
 		results.setResults(columns);
 		return results;

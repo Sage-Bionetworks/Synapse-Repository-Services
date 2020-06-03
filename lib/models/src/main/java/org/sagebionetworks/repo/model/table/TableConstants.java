@@ -130,6 +130,7 @@ public class TableConstants {
 	public static final String PARENT_ID_PARAM_NAME = "parentIds";
 	public static final String ID_PARAM_NAME = "ids";
 	public static final String EXPIRES_PARAM_NAME = "bExpires";
+	public static final String EXCLUSION_LIST_PARAM_NAME = "exclusionList";
 	
 	// Dynamic string of all the object types, used to build the enum type in the replication table
 	private static final String OBJECT_TYPES_ENUM_STRING = joinEnumForSQL(ViewObjectType.values());
@@ -342,9 +343,16 @@ public class TableConstants {
 			+ " WHERE E." + ANNOTATION_REPLICATION_COL_OBJECT_TYPE + "=:" + OBJECT_TYPE_PARAM_NAME
 			// This can be the object id or the parent id according to the view type filter (e.g. project filters on the object id)
 			+ " AND E.%1$s IN (:"+ PARENT_ID_PARAM_NAME + ")"
+			+ " AND E."+OBJECT_REPLICATION_COL_SUBTYPE+" IN (:"+SUBTYPE_PARAM_NAME+")"
+			// The following is replaced with a NOT IN of excluded keys if present
+			// e.g. AND A.ANNOTATION_REPLICATION_COL_KEY NOT IN (:exclusionList)
+			+ " %2$s"
 			+ " GROUP BY A." + ANNOTATION_REPLICATION_COL_KEY 
 			+ " LIMIT :" + P_LIMIT
 			+ " OFFSET :" + P_OFFSET;
+	
+	public static final String ANNOTATION_KEY_EXCLUSION_LIST = "AND A." + ANNOTATION_REPLICATION_COL_KEY 
+			+ " NOT IN (:" + EXCLUSION_LIST_PARAM_NAME + ")";
 	
 	public static final String CRC_ALIAS = "CRC";
 	
