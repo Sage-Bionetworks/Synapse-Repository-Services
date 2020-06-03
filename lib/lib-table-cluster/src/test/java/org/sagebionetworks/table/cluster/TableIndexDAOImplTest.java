@@ -74,6 +74,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -2071,8 +2072,9 @@ public class TableIndexDAOImplTest {
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
+		List<String> excludeKeys = null;
 		
-		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(scopeFilter, limit, offset);
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(scopeFilter, excludeKeys, limit, offset);
 		assertNotNull(columns);
 		assertEquals(limit, columns.size());
 		// one
@@ -2087,6 +2089,46 @@ public class TableIndexDAOImplTest {
 		assertEquals(null, cm.getMaximumSize());
 		// three
 		cm = columns.get(2);
+		assertEquals("key10", cm.getName());
+		assertEquals(ColumnType.DOUBLE, cm.getColumnType());
+		assertEquals(null, cm.getMaximumSize());
+	}
+	
+	@Test
+	public void testGetPossibleAnnotationsForContainersExcludingKeys(){
+		// delete all data
+		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		
+		// setup some hierarchy.
+		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 15);
+		file1.setParentId(333L);
+		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 12);
+		file2.setParentId(222L);
+		
+		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+		
+		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
+		long limit = 5;
+		long offset = 0;
+		
+		List<String> subTypes = EnumUtils.names(EntityType.file);
+		boolean filterByObjectId = false;
+		
+		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
+
+		List<String> excludeKeys = ImmutableList.of("key0");
+		
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(scopeFilter, excludeKeys, limit, offset);
+		
+		assertNotNull(columns);
+		assertEquals(limit, columns.size());
+		// one
+		ColumnModel cm = columns.get(0);
+		assertEquals("key1", cm.getName());
+		assertEquals(ColumnType.INTEGER, cm.getColumnType());
+		assertEquals(null, cm.getMaximumSize());
+		// two
+		cm = columns.get(1);
 		assertEquals("key10", cm.getName());
 		assertEquals(ColumnType.DOUBLE, cm.getColumnType());
 		assertEquals(null, cm.getMaximumSize());
@@ -2136,8 +2178,9 @@ public class TableIndexDAOImplTest {
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
+		List<String> excludeKeys = null;
 		
-		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(scopeFilter, limit, offset);
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(scopeFilter, excludeKeys, limit, offset);
 		assertNotNull(columns);
 		assertEquals(2, columns.size());
 		// expected
@@ -2237,8 +2280,9 @@ public class TableIndexDAOImplTest {
 		boolean filterByObjectId = false;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
+		List<String> excludeKeys = null;
 		
-		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(scopeFilter, limit, offset);
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(scopeFilter, excludeKeys, limit, offset);
 		assertNotNull(columns);
 		assertEquals(1, columns.size());
 
@@ -2353,8 +2397,9 @@ public class TableIndexDAOImplTest {
 		boolean filterByObjectId = true;
 		
 		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
+		List<String> excludeKeys = null;
 		
-		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(scopeFilter, limit, offset);
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(scopeFilter, excludeKeys, limit, offset);
 		assertNotNull(columns);
 		assertEquals(limit, columns.size());
 		// one

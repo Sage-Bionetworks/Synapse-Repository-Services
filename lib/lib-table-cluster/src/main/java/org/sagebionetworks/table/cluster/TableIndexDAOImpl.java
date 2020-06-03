@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REP
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.BATCH_INSERT_REPLICATION_SYNC_EXP;
 import static org.sagebionetworks.repo.model.table.TableConstants.CRC_ALIAS;
+import static org.sagebionetworks.repo.model.table.TableConstants.EXCLUSION_LIST_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.EXPIRES_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.ID_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBEJCT_REPLICATION_COL_ETAG;
@@ -29,12 +30,12 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_TYPE_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAM_NAME;
-import static org.sagebionetworks.repo.model.table.TableConstants.SUBTYPE_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.P_LIMIT;
 import static org.sagebionetworks.repo.model.table.TableConstants.P_OFFSET;
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_NON_EXPIRED_IDS;
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_OBJECT_CHILD_CRC;
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_OBJECT_CHILD_ID_ETAG;
+import static org.sagebionetworks.repo.model.table.TableConstants.SUBTYPE_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_ANNOTATION_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_OBJECT_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE;
@@ -1075,7 +1076,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public List<ColumnModel> getPossibleColumnModelsForContainers(ViewScopeFilter scopeFilter, Long limit, Long offset) {
+	public List<ColumnModel> getPossibleColumnModelsForContainers(ViewScopeFilter scopeFilter, List<String> excludeKeys, Long limit, Long offset) {
 		ValidateArgument.required(scopeFilter, "scopeFilter");
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
@@ -1086,12 +1087,19 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return Collections.emptyList();
 		}
 		
-		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, false, null);
+		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, true, null);
 		
 		param.addValue(P_LIMIT, limit);
 		param.addValue(P_OFFSET, offset);
 		
-		String sql = SQLUtils.getDistinctAnnotationColumnsSql(scopeFilter);
+		boolean withExclusionList = false;
+		
+		if (excludeKeys != null && !excludeKeys.isEmpty()) {
+			withExclusionList = true;
+			param.addValue(EXCLUSION_LIST_PARAM_NAME, excludeKeys);
+		}
+		
+		String sql = SQLUtils.getDistinctAnnotationColumnsSql(scopeFilter, withExclusionList);
 		
 		List<ColumnAggregation> results = namedTemplate.query(sql, param, (ResultSet rs, int rowNum) -> {
 			ColumnAggregation aggregation = new ColumnAggregation();
@@ -1341,7 +1349,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public void determineCauseOfReplicationFailure(Exception exception, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper) {
 		// Calculate the schema from the annotations
-		List<ColumnModel> schemaFromAnnotations = getPossibleColumnModelsForContainers(scopeFilter, Long.MAX_VALUE, 0L);
+		List<ColumnModel> schemaFromAnnotations = getPossibleColumnModelsForContainers(scopeFilter, null, Long.MAX_VALUE, 0L);
 		
 		ObjectFieldModelResolver objectFieldModelResolver = objectFieldModelResolverFactory.getObjectFieldModelResolver(fieldTypeMapper);
 		

@@ -426,7 +426,7 @@ public interface TableIndexDAO {
 	 * @param offset
 	 * @return
 	 */
-	List<ColumnModel> getPossibleColumnModelsForContainers(ViewScopeFilter scopeFilter, Long limit, Long offset);
+	List<ColumnModel> getPossibleColumnModelsForContainers(ViewScopeFilter scopeFilter, List<String> excludeKeys, Long limit, Long offset);
 	
 	/**
 	 * The process for synchronizing entity replication data with the truth is

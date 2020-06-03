@@ -2,6 +2,7 @@ package org.sagebionetworks.table.cluster;
 
 import static org.sagebionetworks.repo.model.table.ColumnConstants.isTableTooLargeForFourByteUtf8;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_KEYS_PARAM_NAME;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_KEY_EXCLUSION_LIST;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_ALIAS;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_DOUBLE_ABSTRACT;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
@@ -46,8 +47,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import org.json.JSONArray;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -68,6 +67,9 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /**
  * Utilities for generating Table SQL, DML, and DDL.
@@ -1756,11 +1758,16 @@ public class SQLUtils {
 	 * of the given type.
 	 * 
 	 * @param type
+	 * @param withExclusionList If true the SQL will include a NOT IN clause on the annotation key with the :exclusionList parameter
 	 * @return
 	 */
-	public static String getDistinctAnnotationColumnsSql(ViewScopeFilter scopeFilter){
+	public static String getDistinctAnnotationColumnsSql(ViewScopeFilter scopeFilter, boolean withExclusionList){
 		String filterColumn = getViewScopeFilterColumn(scopeFilter);
-		return String.format(SELECT_DISTINCT_ANNOTATION_COLUMNS_TEMPLATE, filterColumn);
+		String exclusionListReplace = "";
+		if (withExclusionList) {
+			exclusionListReplace = ANNOTATION_KEY_EXCLUSION_LIST;
+		}
+		return String.format(SELECT_DISTINCT_ANNOTATION_COLUMNS_TEMPLATE, filterColumn, exclusionListReplace);
 	}
 	
 	/**
