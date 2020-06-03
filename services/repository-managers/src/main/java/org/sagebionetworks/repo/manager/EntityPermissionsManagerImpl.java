@@ -10,6 +10,8 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -22,9 +24,11 @@ import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
+import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -36,6 +40,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
@@ -67,6 +72,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	private AccessControlListDAO aclDAO;
 	@Autowired
 	private AccessRequirementDAO  accessRequirementDAO;
+	@Autowired
+	private AccessApprovalDAO accessApprovalDAO;
 	@Autowired
 	private UserManager userManager;
 	@Autowired
@@ -452,15 +459,19 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		
 	}
 	
-	private AuthorizationStatus meetsAccessRequirements(final UserInfo userInfo, final String nodeId)
+	private AuthorizationStatus meetsAccessRequirements(final UserInfo userInfo, final String entityId)
 			throws DatastoreException, NotFoundException {
-		// if there are any unmet access requirements return false
-		List<Long> nodeAncestorIds = nodeDao.getEntityPathIds(nodeId, false);
-
-		List<Long> accessRequirementIds = AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(
-				userInfo, nodeId, nodeAncestorIds, nodeDao, accessRequirementDAO);
+		// if the user is the owner of the entity (and the entity is a File), then she automatically 
+		// has access to the object and therefore has no unmet access requirements
+		Long principalId = userInfo.getId();
+		Node node = nodeDao.getNode(entityId);
+		if (node.getCreatedByPrincipalId().equals(principalId) && EntityType.file.equals(node.getNodeType())) {
+			return AuthorizationStatus.authorized();
+		}
 		
-		if (!accessRequirementIds.isEmpty()) {		
+		List<Long> subjectIds = nodeDao.getEntityPathIds(entityId);
+		AccessRequirementStats stats = accessRequirementDAO.getAccessRequirementStats(subjectIds, RestrictableObjectType.ENTITY);
+		if (!stats.getRequirementIdSet().isEmpty() && accessApprovalDAO.hasUnmetAccessRequirement(stats.getRequirementIdSet(), userInfo.getId().toString())) {		
 			return AuthorizationStatus
 					.accessDenied("There are unmet access requirements that must be met to read content in the requested container.");
 		}

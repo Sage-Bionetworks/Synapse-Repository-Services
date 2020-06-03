@@ -385,7 +385,6 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		assertEquals(ag.getSubmitterId(), testUserInfo.getId().toString());
 	}
 	
-	@Ignore // remove this as part of PLFM-6209
 	@Test
 	public void testRevokeGroupStopsDownload() throws Exception {
 		// approve the Terms-Of-Use access approval
@@ -449,7 +448,6 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		assertFalse(entityPermissionsManager.hasAccess(nodeAId, ACCESS_TYPE.DOWNLOAD, testUserInfo).isAuthorized());
 	}
 	
-	@Ignore // remove this as part of PLFM-6209
 	@Test
 	public void testRevokeACTAccessRequirementStopsDownload() throws Exception {
 		// approve the Terms-Of-Use access approval
