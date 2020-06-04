@@ -69,7 +69,7 @@ public class DockerClientAuthFilter extends BasicAuthenticationFilter {
 		if (credentials.isPresent()) {
 			userIdAndAccessToken = getUserIdAndAccessToken(credentials.get());
 			if (!userIdAndAccessToken.isPresent()) {
-				rejectRequest(httpResponse, getInvalidCredentialsMessage());
+				filterHelper.rejectRequest(reportBadCredentialsMetric(), httpResponse, getInvalidCredentialsMessage());
 				return;
 			}
 		}

@@ -42,10 +42,9 @@ public class CloudMailInAuthFilter extends BasicAuthenticationFilter {
 			HttpServletRequest httpRequest, HttpServletResponse httpResponse, 
 			FilterChain filterChain, Optional<UserNameAndPassword> credentials) throws IOException, ServletException {
 		if (credentials.isPresent() && !validCredentials(credentials.get())) {
-			rejectRequest(httpResponse, getInvalidCredentialsMessage());
+			filterHelper.rejectRequest(reportBadCredentialsMetric(), httpResponse, getInvalidCredentialsMessage());
 			return;
 		}
-
 		filterChain.doFilter(httpRequest, httpResponse);
 	}
 

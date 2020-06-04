@@ -4,8 +4,12 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.servlet.Filter;
 import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -17,49 +21,27 @@ import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+/**
+ * Implements the client_secret_basic and client_secret_post protocols for authenticating an OAuth client
+ * See: https://tools.ietf.org/html/rfc6749#section-2.3.1
+ */
 @Component("oauthClientAuthFilter")
-public class OAuthClientAuthFilter extends BasicAuthenticationFilter {
+public class OAuthClientAuthFilter implements Filter {
+	private static final String INVALID_CREDENTIALS_MSG = "OAuth Client ID and secret must be passed via Basic Authentication. Credentials are missing or invalid.";
 
-	private static final String INVALID_CREDENTIAL_MSG = "OAuth Client ID and secret must be passed via Basic Authentication. Credentials are missing or invalid.";
-
+	private FilterHelper filterHelper;
+	
 	private OAuthClientManager oauthClientManager;
 
-	@Autowired
+	private static final boolean REPORT_BAD_CREDENTIALS_METRIC = true;
+
 	public OAuthClientAuthFilter(StackConfiguration config, Consumer consumer, OAuthClientManager oauthClientManager) {
-		super(config, consumer);
+		this.filterHelper = new FilterHelper(config, consumer);
 		this.oauthClientManager = oauthClientManager;
 	}
-
-	@Override
-	protected boolean credentialsRequired() {
-		return true;
-	}
-
-	@Override
-	protected boolean reportBadCredentialsMetric() {
-		return true;
-	}
-
-	@Override
-	protected String getInvalidCredentialsMessage() {
-		return INVALID_CREDENTIAL_MSG;
-	}
-
-	@Override
-	protected void validateCredentialsAndDoFilterInternal(
-			HttpServletRequest httpRequest, HttpServletResponse httpResponse, 
-			FilterChain filterChain, Optional<UserNameAndPassword> credentials) throws IOException, ServletException {
-		if (credentials.isPresent() && !validCredentials(credentials.get())) {
-			rejectRequest(httpResponse, getInvalidCredentialsMessage());
-			return;
-		}
-
-		doFilterInternal(httpRequest, httpResponse, filterChain, credentials.orElse(null));
-	}
-
+	
 	private boolean validCredentials(UserNameAndPassword credentials) {
 		OAuthClientIdAndSecret clientCreds = new OAuthClientIdAndSecret();
 
@@ -68,24 +50,61 @@ public class OAuthClientAuthFilter extends BasicAuthenticationFilter {
 
 		return oauthClientManager.validateClientCredentials(clientCreds);
 	}
+	
+	@Override
+	public final void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain)
+			throws IOException, ServletException {
 
-	private void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain, UserNameAndPassword credentials) throws ServletException, IOException {
-		
-		if (credentials == null) {
+		if (!(request instanceof HttpServletRequest) || !(response instanceof HttpServletResponse)) {
+			throw new ServletException("Only HTTP requests are supported");
+		}
+
+		HttpServletRequest httpRequest = (HttpServletRequest) request;
+		HttpServletResponse httpResponse = (HttpServletResponse) response;
+
+		Optional<UserNameAndPassword> credentials;
+
+		try {
+			credentials = HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest);
+		} catch (IllegalArgumentException e) {
+			filterHelper.rejectRequest(REPORT_BAD_CREDENTIALS_METRIC, httpResponse, e);
+			return;
+		}
+
+		if (!credentials.isPresent()) {
+			filterHelper.rejectRequest(REPORT_BAD_CREDENTIALS_METRIC, httpResponse, "Missing required credentials in the authorization header.");
+			return;
+		}
+
+		if (credentials.isPresent() && !validCredentials(credentials.get())) {
+			filterHelper.rejectRequest(REPORT_BAD_CREDENTIALS_METRIC, httpResponse, INVALID_CREDENTIALS_MSG);
+			return;
+		}
+
+		if (!credentials.isPresent()) {
 			throw new IllegalStateException("Credentials were expected but not supplied");
 		}
 
-		String oauthClientId = credentials.getUserName();
+		String oauthClientId = credentials.get().getUserName();
 
 		// get the current headers, but be sure to leave behind anything that might be
 		// mistaken for a valid
 		// authentication header 'down the filter chain'
 
-		Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(request);
+		Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(httpRequest);
 		modHeaders.put(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER, new String[] { oauthClientId });
-		HttpServletRequest modRqst = new ModHttpServletRequest(request, modHeaders, null);
+		HttpServletRequest modRqst = new ModHttpServletRequest(httpRequest, modHeaders, null);
 
-		filterChain.doFilter(modRqst, response);
+		filterChain.doFilter(modRqst, httpResponse);
+	}
+	
+	@Override
+	public void init(FilterConfig filterConfig) throws ServletException {
+
 	}
 
+	@Override
+	public void destroy() {
+
+	}
 }

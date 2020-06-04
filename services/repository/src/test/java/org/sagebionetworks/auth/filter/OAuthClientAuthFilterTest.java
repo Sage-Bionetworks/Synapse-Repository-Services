@@ -68,8 +68,6 @@ public class OAuthClientAuthFilterTest {
 	@BeforeEach
 	public void setUp() throws Exception {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BASIC_HEADER);
-		assertTrue(oAuthClientAuthFilter.credentialsRequired());
-		assertTrue(oAuthClientAuthFilter.reportBadCredentialsMetric());
 	}
 
 	@Test
