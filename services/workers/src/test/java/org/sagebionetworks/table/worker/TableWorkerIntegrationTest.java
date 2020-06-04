@@ -856,7 +856,7 @@ public class TableWorkerIntegrationTest {
 		queryResult = waitForConsistentQuery(adminUserInfo, query, queryOptions);
 		// we couldn't know the etag in advance
 		expectedRowSet.setEtag(queryResult.getQueryResults().getEtag());
-		assertEquals(expectedRowSet.toString(), queryResult.getQueryResults().toString());
+		assertEquals(expectedRowSet, queryResult.getQueryResults());
 		assertEquals(expectedRowSet, queryResult.getQueryResults());
 	}
 

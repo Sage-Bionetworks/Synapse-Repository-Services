@@ -401,7 +401,7 @@ public class TableModelTestUtils {
 			case DATE_LIST:
 				return "[" + (i + 4000 + (isUpdate ? 10000 : 0)) + "]";
 			case ENTITYID_LIST:
-				return "[syn" + (i + 6000 + (isUpdate ? 10000 : 0)) + "]";
+				return "[\"syn" + (i + 6000 + (isUpdate ? 10000 : 0)) + "\"]";
 		}
 		throw new IllegalArgumentException("Unknown ColumnType: " + cm.getColumnType());
 	}
