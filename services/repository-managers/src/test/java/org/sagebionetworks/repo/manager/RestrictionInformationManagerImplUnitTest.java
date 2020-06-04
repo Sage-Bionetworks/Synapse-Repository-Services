@@ -268,4 +268,34 @@ public class RestrictionInformationManagerImplUnitTest {
 		verify(nodeDao, never()).getEntityPath(TEST_ENTITY_ID);
 	}
 
+	// introduced for PLFM-6209
+	@Test
+	public void testGetRestrictionInformationForOwnerWithToU() {
+		Node entityOwnedByTestPrincipal = new Node();
+		entityOwnedByTestPrincipal.setCreatedByPrincipalId(Long.parseLong(TEST_PRINCIPAL_ID)); 
+		entityOwnedByTestPrincipal.setNodeType(EntityType.file);
+
+		when(nodeDao.getNode(TEST_ENTITY_ID)).thenReturn(entityOwnedByTestPrincipal);
+		when(nodeDao.getEntityPathIds(eq(TEST_ENTITY_ID))).thenReturn(Arrays.asList(KeyFactory.stringToKey(TEST_ENTITY_ID)));
+		RestrictionInformationRequest request = new RestrictionInformationRequest();
+		request.setObjectId(TEST_ENTITY_ID);
+		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
+		AccessRequirementStats stats = new AccessRequirementStats();
+		Set<String> set = new HashSet<String>();
+		set.add("1");
+		stats.setRequirementIdSet(set);
+		stats.setHasToU(true);
+		stats.setHasACT(false);
+		stats.setHasLock(false);
+		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(KeyFactory.stringToKey(TEST_ENTITY_ID)), RestrictableObjectType.ENTITY)).thenReturn(stats );
+		RestrictionInformationResponse info = arm.getRestrictionInformation(userInfo, request);
+		assertNotNull(info);
+		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, info.getRestrictionLevel());
+		assertFalse(info.getHasUnmetAccessRequirement());
+		verify(nodeDao).getEntityPathIds(TEST_ENTITY_ID);
+		// since the accessor is the creator, we never bother checking access requirements
+		verify(accessApprovalDAO, never()).hasUnmetAccessRequirement(set, userInfo.getId().toString());
+	}
+
+
 }

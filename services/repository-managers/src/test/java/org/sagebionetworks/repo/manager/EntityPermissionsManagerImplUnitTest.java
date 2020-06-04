@@ -210,8 +210,6 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(entityPermissionsManager.canCreate(project.getParentId(), project.getNodeType(), certifiedUserInfo).isAuthorized());
 		
 		assertTrue(entityPermissionsManager.canCreateWiki(projectId, certifiedUserInfo).isAuthorized());
-		
-		verify(mockRestrictionInformationManager).getRestrictionInformation(certifiedUserInfo, restrictionInfoRqst);
 	}
 	
 	@Test
@@ -254,9 +252,6 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(entityPermissionsManager.canCreate(project.getParentId(), project.getNodeType(), nonCertifiedUserInfo).isAuthorized());
 		
 		assertTrue(entityPermissionsManager.canCreateWiki(projectId, nonCertifiedUserInfo).isAuthorized());
-		restrictionInfoRqst.setObjectId(projectId);
-
-		verify(mockRestrictionInformationManager).getRestrictionInformation(nonCertifiedUserInfo, restrictionInfoRqst);
 	}
 
 	@Test
@@ -273,7 +268,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		restrictionInfoRqst.setObjectId(projectId);
 		when(mockRestrictionInformationManager.
 				getRestrictionInformation(certifiedUserInfo, restrictionInfoRqst)).
-					thenReturn(noUnmetAccessRqmtResponse);
+					thenReturn(hasUnmetAccessRqmtResponse);
 		
 		// show that user has access
 		
@@ -282,8 +277,6 @@ public class EntityPermissionsManagerImplUnitTest {
 				getUserPermissionsForEntity(certifiedUserInfo, projectId);
 		
 		assertTrue(uep.getCanUpload());
-
-		verify(mockRestrictionInformationManager).getRestrictionInformation(certifiedUserInfo, restrictionInfoRqst);
 	}
 	
 	@Test
@@ -326,8 +319,6 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(entityPermissionsManager.canCreate(folder.getParentId(), folder.getNodeType(), certifiedUserInfo).isAuthorized());
 		
 		assertTrue(entityPermissionsManager.canCreateWiki(folderId, certifiedUserInfo).isAuthorized());
-		
-		verify(mockRestrictionInformationManager).getRestrictionInformation(certifiedUserInfo, restrictionInfoRqst);
 	}
 	
 	@Test
@@ -420,8 +411,6 @@ public class EntityPermissionsManagerImplUnitTest {
 
 
 		assertFalse(entityPermissionsManager.canCreateWiki(folderId, nonCertifiedUserInfo).isAuthorized());
-		
-		verify(mockRestrictionInformationManager).getRestrictionInformation(nonCertifiedUserInfo, restrictionInfoRqst);
 	}
 	
 	@Test
@@ -821,7 +810,6 @@ public class EntityPermissionsManagerImplUnitTest {
 		verify(mockNodeDao).getNodeTypeById(nodeId);
 		verify(mockNodeDao).getBenefactor(nodeId);
 		verify(mockObjectTypeManager).getObjectsDataType(nodeId, ObjectType.ENTITY);
-		verify(mockRestrictionInformationManager).getRestrictionInformation(userInfo, restrictionInfoRqst);
 	}
 	
 	@Test
@@ -882,7 +870,6 @@ public class EntityPermissionsManagerImplUnitTest {
 		verify(mockNodeDao).getNodeTypeById(nodeId);
 		verify(mockNodeDao).getBenefactor(nodeId);
 		verify(mockObjectTypeManager).getObjectsDataType(nodeId, ObjectType.ENTITY);
-		verify(mockRestrictionInformationManager).getRestrictionInformation(userInfo, restrictionInfoRqst);
 	}
 	
 	@Test

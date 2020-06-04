@@ -88,6 +88,7 @@ public class MembershipRequestManagerImplTest {
 		adminInfo = new UserInfo(true);
 		adminInfo.setId(-1l);
 		restrictionInfoRqst = new RestrictionInformationRequest();
+		restrictionInfoRqst.setObjectId(TEAM_ID);
 		restrictionInfoRqst.setRestrictableObjectType(RestrictableObjectType.TEAM);
 		noUnmetAccessRqmtResponse = new RestrictionInformationResponse();
 		noUnmetAccessRqmtResponse.setHasUnmetAccessRequirement(false);
@@ -181,7 +182,6 @@ public class MembershipRequestManagerImplTest {
 	public void testCreate() throws Exception {
 		Team mockTeam = Mockito.mock(Team.class);
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(mockTeam);
-		restrictionInfoRqst.setObjectId(TEAM_ID);
 		when(mockRestrictionInformationManager.
 				getRestrictionInformation(userInfo, restrictionInfoRqst)).
 					thenReturn(noUnmetAccessRqmtResponse);
@@ -195,7 +195,6 @@ public class MembershipRequestManagerImplTest {
 	public void testCreateHasUnmetAccessRequirements() throws Exception {
 		MembershipRequest mrs = new MembershipRequest();
 		mrs.setTeamId(TEAM_ID);
-		restrictionInfoRqst.setObjectId(TEAM_ID);
 		when(mockRestrictionInformationManager.
 				getRestrictionInformation(userInfo, restrictionInfoRqst)).
 					thenReturn(hasUnmetAccessRqmtResponse);
@@ -464,7 +463,6 @@ public class MembershipRequestManagerImplTest {
 		Team team = new Team();
 		team.setCanPublicJoin(true);
 		when(mockTeamDAO.get(mrs.getTeamId())).thenReturn(team);
-		restrictionInfoRqst.setObjectId(TEAM_ID);
 		when(mockRestrictionInformationManager.
 				getRestrictionInformation(userInfo, restrictionInfoRqst)).
 					thenReturn(noUnmetAccessRqmtResponse);
