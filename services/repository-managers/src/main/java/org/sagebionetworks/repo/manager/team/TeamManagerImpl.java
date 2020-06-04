@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.ProjectStatsManager;
+import org.sagebionetworks.repo.manager.RestrictionInformationManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
@@ -34,7 +35,6 @@ import org.sagebionetworks.repo.manager.principal.PrincipalManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.Count;
@@ -50,6 +50,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedTeamIds;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
@@ -65,7 +66,6 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapTeam;
@@ -106,8 +106,6 @@ public class TeamManagerImpl implements TeamManager {
 	@Autowired
 	private MembershipRequestDAO membershipRequestDAO;
 	@Autowired
-	private AccessRequirementDAO accessRequirementDAO;
-	@Autowired
 	private PrincipalManager principalManager;
 	@Autowired
 	PrincipalPrefixDAO principalPrefixDAO;
@@ -117,6 +115,8 @@ public class TeamManagerImpl implements TeamManager {
 	private UserProfileManager userProfileManager;
 	@Autowired
 	private ProjectStatsManager projectStatsManager;
+	@Autowired
+	private RestrictionInformationManager restrictionInformationManager;
 
 	private static final String MSG_TEAM_MUST_HAVE_AT_LEAST_ONE_TEAM_MANAGER = "Team must have at least one team manager.";
 	private List<BootstrapTeam> teamsToBootstrap;
@@ -472,12 +472,12 @@ public class TeamManagerImpl implements TeamManager {
 	
 	
 	private boolean hasUnmetAccessRequirements(UserInfo memberUserInfo, String teamId) throws NotFoundException {
-		List<Long> unmetRequirements = accessRequirementDAO.getAllUnmetAccessRequirements(
-				Collections.singletonList(KeyFactory.stringToKey(teamId)), RestrictableObjectType.TEAM, memberUserInfo.getGroups(), 
-				Collections.singletonList(ACCESS_TYPE.PARTICIPATE));
-		return !unmetRequirements.isEmpty();
-
+		RestrictionInformationRequest request = new RestrictionInformationRequest();
+		request.setObjectId(teamId);
+		request.setRestrictableObjectType(RestrictableObjectType.TEAM);
+		return restrictionInformationManager.getRestrictionInformation(memberUserInfo, request).getHasUnmetAccessRequirement();
 	}
+	
 	/**
 	 * Either:
 		principalId is self and membership invitation has been extended (and not yet accepted), or

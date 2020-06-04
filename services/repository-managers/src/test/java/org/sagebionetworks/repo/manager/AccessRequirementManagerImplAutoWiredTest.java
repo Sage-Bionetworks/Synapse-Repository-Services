@@ -52,6 +52,9 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	private AccessRequirementManager accessRequirementManager;
 
 	@Autowired
+	private RestrictionInformationManager restrictionInformationManager;
+
+	@Autowired
 	private TeamManager teamManager;
 	
 	@Autowired
@@ -327,7 +330,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		RestrictionInformationRequest request = new RestrictionInformationRequest();
 		request.setObjectId(childId);
 		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
-		RestrictionInformationResponse info = accessRequirementManager.getRestrictionInformation(adminUserInfo, request);
+		RestrictionInformationResponse info = restrictionInformationManager.getRestrictionInformation(adminUserInfo, request);
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, info.getRestrictionLevel());
 	}

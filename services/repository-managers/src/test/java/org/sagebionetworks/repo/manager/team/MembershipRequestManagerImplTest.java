@@ -29,6 +29,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
+import org.sagebionetworks.repo.manager.RestrictionInformationManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -40,6 +41,8 @@ import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRequestDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.RestrictionInformationRequest;
+import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -63,6 +66,8 @@ public class MembershipRequestManagerImplTest {
 	private AccessRequirementDAO mockAccessRequirementDAO;
 	@Mock
 	private TokenGenerator mockTokenGenerator;
+	@Mock
+	private RestrictionInformationManager mockRestrictionInformationManager;
 	@InjectMocks
 	private MembershipRequestManagerImpl membershipRequestManagerImpl;
 	
@@ -70,6 +75,9 @@ public class MembershipRequestManagerImplTest {
 	private UserInfo adminInfo = null;
 	private static final String TEAM_ID = "111";
 	private static final String MEMBER_PRINCIPAL_ID = "999";
+	private RestrictionInformationRequest restrictionInfoRqst;
+	private RestrictionInformationResponse noUnmetAccessRqmtResponse;
+	private RestrictionInformationResponse hasUnmetAccessRqmtResponse;
 
 	@BeforeEach
 	public void setUp() throws Exception {
@@ -79,6 +87,13 @@ public class MembershipRequestManagerImplTest {
 		// admin
 		adminInfo = new UserInfo(true);
 		adminInfo.setId(-1l);
+		restrictionInfoRqst = new RestrictionInformationRequest();
+		restrictionInfoRqst.setRestrictableObjectType(RestrictableObjectType.TEAM);
+		noUnmetAccessRqmtResponse = new RestrictionInformationResponse();
+		noUnmetAccessRqmtResponse.setHasUnmetAccessRequirement(false);
+		hasUnmetAccessRqmtResponse = new RestrictionInformationResponse();
+		hasUnmetAccessRqmtResponse.setHasUnmetAccessRequirement(true);
+
 	}
 	
 	private void validateForCreateExpectFailure(MembershipRequest mrs, UserInfo userInfo) {
@@ -166,6 +181,10 @@ public class MembershipRequestManagerImplTest {
 	public void testCreate() throws Exception {
 		Team mockTeam = Mockito.mock(Team.class);
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(mockTeam);
+		restrictionInfoRqst.setObjectId(TEAM_ID);
+		when(mockRestrictionInformationManager.
+				getRestrictionInformation(userInfo, restrictionInfoRqst)).
+					thenReturn(noUnmetAccessRqmtResponse);
 		MembershipRequest mrs = new MembershipRequest();
 		mrs.setTeamId(TEAM_ID);
 		when(mockMembershipRequestDAO.create((MembershipRequest)any())).thenReturn(mrs);
@@ -176,13 +195,10 @@ public class MembershipRequestManagerImplTest {
 	public void testCreateHasUnmetAccessRequirements() throws Exception {
 		MembershipRequest mrs = new MembershipRequest();
 		mrs.setTeamId(TEAM_ID);
-		// now mock an unmet access requirement
-		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
-				eq(Collections.singletonList(KeyFactory.stringToKey(TEAM_ID))), 
-				eq(RestrictableObjectType.TEAM), 
-				eq(userInfo.getGroups()), 
-				eq(Collections.singletonList(ACCESS_TYPE.PARTICIPATE))))
-			.thenReturn(Collections.singletonList(77L));
+		restrictionInfoRqst.setObjectId(TEAM_ID);
+		when(mockRestrictionInformationManager.
+				getRestrictionInformation(userInfo, restrictionInfoRqst)).
+					thenReturn(hasUnmetAccessRqmtResponse);
 		
 		Assertions.assertThrows(UnauthorizedException.class, ()-> {
 			// should throw UnauthorizedException
@@ -448,6 +464,10 @@ public class MembershipRequestManagerImplTest {
 		Team team = new Team();
 		team.setCanPublicJoin(true);
 		when(mockTeamDAO.get(mrs.getTeamId())).thenReturn(team);
+		restrictionInfoRqst.setObjectId(TEAM_ID);
+		when(mockRestrictionInformationManager.
+				getRestrictionInformation(userInfo, restrictionInfoRqst)).
+					thenReturn(noUnmetAccessRqmtResponse);
 		
 		IllegalArgumentException e = Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			membershipRequestManagerImpl.create(userInfo, mrs);
