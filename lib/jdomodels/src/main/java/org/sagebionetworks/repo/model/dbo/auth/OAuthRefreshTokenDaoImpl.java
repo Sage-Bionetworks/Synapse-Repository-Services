@@ -51,6 +51,7 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 	private static final String PARAM_LIMIT = "limitParam";
 	private static final String PARAM_OFFSET = "offsetParam";
 	private static final String PARAM_DAYS = "days";
+	private static final String PARAM_MAX_NUM_TOKENS = "maxNumberOfTokens";
 
 	private static final String UPDATE_REFRESH_TOKEN_METADATA = "UPDATE "+TABLE_OAUTH_REFRESH_TOKEN+
 			" SET "+
@@ -86,20 +87,24 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 			+ " WHERE " + COL_OAUTH_REFRESH_TOKEN_PRINCIPAL_ID + " = :" + PARAM_PRINCIPAL_ID
 			+ " AND " + COL_OAUTH_REFRESH_TOKEN_CLIENT_ID + " = :" + PARAM_CLIENT_ID;
 
-	private static final String SELECT_ACTIVE_TOKEN_COUNT = "SELECT COUNT(*) FROM " + TABLE_OAUTH_REFRESH_TOKEN
-			+ " WHERE " + COL_OAUTH_REFRESH_TOKEN_PRINCIPAL_ID + " = :" + PARAM_PRINCIPAL_ID
-			+ " AND " + COL_OAUTH_REFRESH_TOKEN_CLIENT_ID + " = :" + PARAM_CLIENT_ID
-			+ " AND " + COL_OAUTH_REFRESH_TOKEN_LAST_USED + " > (NOW() - INTERVAL  :" + PARAM_DAYS + " DAY)";
-
-	private static final String DELETE_LEAST_RECENTLY_USED_ACTIVE_TOKEN = 
-			"DELETE FROM " + TABLE_OAUTH_REFRESH_TOKEN
+	/*
+	 * We use a JOIN because
+	 *   - MySQL doesn't support OFFSET when using DELETE
+	 *   - MySQL doesn't support LIMIT & IN/ALL/ANY/SOME subquery (so we can't do DELETE WHERE id IN (SELECT ... LIMIT x OFFSET y))
+	 *
+	 * https://stackoverflow.com/a/42030157
+	 */
+	private static final String DELETE_LEAST_RECENTLY_USED_ACTIVE_TOKEN = "DELETE t FROM " + TABLE_OAUTH_REFRESH_TOKEN + " t "
+			+ " JOIN ("
+				+ "SELECT tt." + COL_OAUTH_REFRESH_TOKEN_ID
+				+ " FROM " + TABLE_OAUTH_REFRESH_TOKEN + " tt "
 				+ " WHERE " + COL_OAUTH_REFRESH_TOKEN_PRINCIPAL_ID + " = :" + PARAM_PRINCIPAL_ID
 				+ " AND " + COL_OAUTH_REFRESH_TOKEN_CLIENT_ID + " = :" + PARAM_CLIENT_ID
 				+ " AND " + COL_OAUTH_REFRESH_TOKEN_LAST_USED
-				+ " > (NOW() - INTERVAL  :" + PARAM_DAYS + " DAY)"
-				+ " ORDER BY " + COL_OAUTH_REFRESH_TOKEN_LAST_USED + " ASC"
-				+ " LIMIT 1";
-
+					+ " > (NOW() - INTERVAL :" + PARAM_DAYS + " DAY)"
+				+ " ORDER BY " + COL_OAUTH_REFRESH_TOKEN_LAST_USED + " DESC "
+				+ " LIMIT 18446744073709551615 OFFSET :" + PARAM_MAX_NUM_TOKENS //Limit is still required even if you just want offset: https://stackoverflow.com/questions/255517/mysql-offset-infinite-rows
+			+ ") tt ON t." + COL_OAUTH_REFRESH_TOKEN_ID + " = tt." + COL_OAUTH_REFRESH_TOKEN_ID;
 
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -266,26 +271,16 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 	}
 
 	@Override
-	public Long getActiveTokenCount(String userId, String clientId, Long maxLeaseLengthInDays) {
-		ValidateArgument.required(userId, "userId");
-		ValidateArgument.required(clientId, "clientId");
-		ValidateArgument.required(maxLeaseLengthInDays, "maxLeaseLengthInDays");
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(PARAM_PRINCIPAL_ID, userId);
-		params.addValue(PARAM_CLIENT_ID, clientId);
-		params.addValue(PARAM_DAYS, maxLeaseLengthInDays);
-		return namedParameterJdbcTemplate.queryForObject(SELECT_ACTIVE_TOKEN_COUNT, params, Long.class);
-	}
-
-	@Override
-	public void deleteLeastRecentlyUsedToken(String userId, String clientId, Long maxLeaseLengthInDays) {
+	public void deleteLeastRecentlyUsedTokensIfOverLimit(String userId, String clientId, Long maxLeaseLengthInDays, Long maxNumberOfTokens) {
 		ValidateArgument.required(userId, "Principal ID");
 		ValidateArgument.required(clientId, "Client ID");
 		ValidateArgument.required(maxLeaseLengthInDays, "maxLeaseLengthInDays");
+		ValidateArgument.required(maxNumberOfTokens, "maxNumberOfTokens");
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(PARAM_PRINCIPAL_ID, userId);
 		params.addValue(PARAM_CLIENT_ID, clientId);
 		params.addValue(PARAM_DAYS, maxLeaseLengthInDays);
+		params.addValue(PARAM_MAX_NUM_TOKENS, maxNumberOfTokens);
 		namedParameterJdbcTemplate.update(DELETE_LEAST_RECENTLY_USED_ACTIVE_TOKEN, params);
 	}
 }

@@ -404,25 +404,7 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 	}
 
 	@Test
-	void getActiveTokenCount() {
-		// Call under test
-		assertEquals(0, oauthRefreshTokenDao.getActiveTokenCount(userId, client.getClient_id(), HALF_YEAR_DAYS));
-
-		// Add an expired token
-		createRefreshToken("abcd", new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS));
-
-		// Call under test
-		assertEquals(0, oauthRefreshTokenDao.getActiveTokenCount(userId, client.getClient_id(), HALF_YEAR_DAYS));
-
-		// Add an active token
-		createRefreshToken("abcd", new Date());
-
-		// Call under test
-		assertEquals(1, oauthRefreshTokenDao.getActiveTokenCount(userId, client.getClient_id(), HALF_YEAR_DAYS));
-	}
-
-	@Test
-	void deleteLeastRecentlyUsedActiveToken() {
+	void deleteLeastRecentlyUsedActiveTokens() {
 		// Note: this date is still in the "active" window (in this case, 180 days)
 		Date leastRecentlyUsedDate = new Date(System.currentTimeMillis() - ONE_DAY_MILLIS * 30);
 
@@ -433,7 +415,7 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		createRefreshToken("abcd", new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS)); // expired, should be filtered by SQL so `toRemove` gets deleted
 
 		// Call under test'
-		oauthRefreshTokenDao.deleteLeastRecentlyUsedToken(userId, client.getClient_id(), HALF_YEAR_DAYS);
+		oauthRefreshTokenDao.deleteLeastRecentlyUsedTokensIfOverLimit(userId, client.getClient_id(), HALF_YEAR_DAYS, 2L);
 		assertFalse(oauthRefreshTokenDao.getRefreshTokenMetadata(toRemove.getTokenId()).isPresent());
 		assertTrue(oauthRefreshTokenDao.getRefreshTokenMetadata(doNotRemove1.getTokenId()).isPresent());
 		assertTrue(oauthRefreshTokenDao.getRefreshTokenMetadata(doNotRemove2.getTokenId()).isPresent());
