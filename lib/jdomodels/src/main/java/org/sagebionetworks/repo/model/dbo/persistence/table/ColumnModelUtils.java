@@ -179,7 +179,7 @@ public class ColumnModelUtils {
 					throw new IllegalArgumentException("Columns of type " + clone.getColumnType() + " cannot have default values.");
 				}
 				break;
-			case ENTITYID_LIST://TODO: refactor into reusable list of validator functions
+			case ENTITYID_LIST:
 			case USERID_LIST:
 				if (StringUtils.isEmpty(defaultValue)) {
 					defaultValue = null;
