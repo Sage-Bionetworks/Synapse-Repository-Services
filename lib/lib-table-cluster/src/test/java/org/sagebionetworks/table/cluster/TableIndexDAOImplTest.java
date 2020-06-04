@@ -447,7 +447,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(3), row.getVersionNumber());
 		List<String> expectedValues = Arrays.asList("string0", "341003.12",
 				"203000", "false", "404000", "505000", "syn606000", "703000", "803000",
-				"link908000", "largeText1004000", "1103000", "[\"string1200000\", \"otherstring1200000\"]", "[1303000]", "[false]", "[1504000]", "[1606000]", "[1703000]");
+				"link908000", "largeText1004000", "1103000", "[\"string1200000\", \"otherstring1200000\"]", "[1303000]", "[false]", "[1504000]", "[\"syn1606000\"]", "[1703000]");
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
@@ -456,7 +456,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(3), row.getVersionNumber());
 		expectedValues = Arrays.asList("string1", "341006.53", "203001",
 				"true", "404001", "505001", "syn606001", "703001", "803001",
-				"link908001", "largeText1004001", "1103001", "[\"string1200001\", \"otherstring1200001\"]", "[1303001]", "[true]", "[1504001]", "[1606001]", "[1703001]");
+				"link908001", "largeText1004001", "1103001", "[\"string1200001\", \"otherstring1200001\"]", "[1303001]", "[true]", "[1504001]", "[\"syn1606001\"]", "[1703001]");
 		assertEquals(expectedValues, row.getValues());
 		// must also be able to run the query with a null callback
 		mockProgressCallback = null;
