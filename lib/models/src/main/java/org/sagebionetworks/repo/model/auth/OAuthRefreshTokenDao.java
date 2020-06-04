@@ -87,11 +87,10 @@ public interface OAuthRefreshTokenDao {
 	Long getActiveTokenCount(String userId, String clientId, Long maxLeaseLengthInDays);
 
 	/**
-	 * Get the metadata for the least-recently used refresh token between a particular user and particular client.
+	 * Delete the least-recently used refresh token between a particular user and particular client.
 	 * @param userId
 	 * @param clientId
-	 * @return
 	 */
-	OAuthRefreshTokenInformation getLeastRecentlyUsedToken(String userId, String clientId, Long maxLeaseLengthInDays);
+	void deleteLeastRecentlyUsedToken(String userId, String clientId, Long maxLeaseLengthInDays);
 
 }

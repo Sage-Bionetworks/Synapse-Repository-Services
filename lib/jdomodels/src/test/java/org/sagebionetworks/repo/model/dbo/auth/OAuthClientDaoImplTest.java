@@ -535,16 +535,24 @@ public class OAuthClientDaoImplTest {
 
 		assertEquals(2, results.getResults().size());
 
+		OAuthClientAuthorizationHistory actualHistory1 = null;
+		OAuthClientAuthorizationHistory actualHistory2 = null;
+
 		for (OAuthClientAuthorizationHistory result : results.getResults()) {
 			if (result.getClient().getClient_id().equals(client1)) {
-				assertEquals(client1ExpectedAuthzOn, result.getAuthorizedOn());
-				assertEquals(client1ExpectedLastUsed, result.getLastUsed());
-			}
-			if (result.getClient().getClient_id().equals(client2)) {
-				assertEquals(client2ExpectedAuthzOn, result.getAuthorizedOn());
-				assertEquals(client2ExpectedLastUsed, result.getLastUsed());
+				actualHistory1 = result;
+			} else if (result.getClient().getClient_id().equals(client2)) {
+				actualHistory2 = result;
+			} else {
+			 	fail("Retrieved an unexpected OAuthClientAuthorizationHistory result");
 			}
 		}
+		assertNotNull(actualHistory1);
+		assertNotNull(actualHistory2);
+		assertEquals(client1ExpectedAuthzOn, actualHistory1.getAuthorizedOn());
+		assertEquals(client1ExpectedLastUsed, actualHistory1.getLastUsed());
+		assertEquals(client2ExpectedAuthzOn, actualHistory2.getAuthorizedOn());
+		assertEquals(client2ExpectedLastUsed, actualHistory2.getLastUsed());
 
 		assertNull(results.getNextPageToken());
 	}

@@ -258,13 +258,24 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		metadata.setTokenId(createResult.getTokenId());
 		assertEquals(metadata, createResult);
 
+		// Update fields
 		String newTokenName = "A new token name";
+		String newEtag = UUID.randomUUID().toString();
+		Date newModifiedOn = new Date(System.currentTimeMillis() + 1000 * 60 * 60);
 		metadata.setName(newTokenName);
+		metadata.setEtag(newEtag);
+		metadata.setModifiedOn(newModifiedOn);
+		// Try to update a field that can't be updated
+		metadata.setAuthorizedOn(new Date(System.currentTimeMillis() - 1000 * 60 * 60));
 		// Call under test -- Update
 		oauthRefreshTokenDao.updateRefreshTokenMetadata(metadata);
 		// Call under test -- Get
 		Optional<OAuthRefreshTokenInformation> updated = oauthRefreshTokenDao.getRefreshTokenMetadata(metadata.getTokenId());
 		assertTrue(updated.isPresent());
+		// Authorized on shouldn't be updated
+		assertNotEquals(metadata, updated.get().getAuthorizedOn());
+		metadata.setAuthorizedOn(updated.get().getAuthorizedOn());
+		// Other fields should be updated
 		assertEquals(metadata, updated.get());
 
 		// Call under test -- Delete
@@ -411,33 +422,20 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 	}
 
 	@Test
-	void getLeastRecentlyUsedActiveToken() {
+	void deleteLeastRecentlyUsedActiveToken() {
 		// Note: this date is still in the "active" window (in this case, 180 days)
 		Date leastRecentlyUsedDate = new Date(System.currentTimeMillis() - ONE_DAY_MILLIS * 30);
 
 		// Create a bunch of tokens, one of which will be the "expected" retrieval based on date
-		OAuthRefreshTokenInformation expected = createRefreshToken("abcd", leastRecentlyUsedDate);
-		createRefreshToken("abcd", new Date());
-		createRefreshToken("abcd", new Date(System.currentTimeMillis() - 1000 * 5));
-		createRefreshToken("abcd", new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS)); // expired, should be filtered
+		OAuthRefreshTokenInformation toRemove = createRefreshToken("abcd", leastRecentlyUsedDate);
+		OAuthRefreshTokenInformation doNotRemove1 = createRefreshToken("abcd", new Date());
+		OAuthRefreshTokenInformation doNotRemove2 = createRefreshToken("abcd", new Date(System.currentTimeMillis() - 1000 * 5));
+		createRefreshToken("abcd", new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS)); // expired, should be filtered by SQL so `toRemove` gets deleted
 
-		// Call under test
-		assertEquals(expected, oauthRefreshTokenDao.getLeastRecentlyUsedToken(userId, client.getClient_id(), HALF_YEAR_DAYS));
-	}
-
-	@Test
-	void getLeastRecentlyUsedActiveToken_NFE() {
-		// With no tokens
-		// Call under test
-		assertThrows(NotFoundException.class, () ->
-				oauthRefreshTokenDao.getLeastRecentlyUsedToken(userId, client.getClient_id(), HALF_YEAR_DAYS)
-		);
-
-		// Only expired tokens exist
-		createRefreshToken("abcd", new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS));
-		// Call under test
-		assertThrows(NotFoundException.class, () ->
-				oauthRefreshTokenDao.getLeastRecentlyUsedToken(userId, client.getClient_id(), HALF_YEAR_DAYS)
-		);
+		// Call under test'
+		oauthRefreshTokenDao.deleteLeastRecentlyUsedToken(userId, client.getClient_id(), HALF_YEAR_DAYS);
+		assertFalse(oauthRefreshTokenDao.getRefreshTokenMetadata(toRemove.getTokenId()).isPresent());
+		assertTrue(oauthRefreshTokenDao.getRefreshTokenMetadata(doNotRemove1.getTokenId()).isPresent());
+		assertTrue(oauthRefreshTokenDao.getRefreshTokenMetadata(doNotRemove2.getTokenId()).isPresent());
 	}
 }

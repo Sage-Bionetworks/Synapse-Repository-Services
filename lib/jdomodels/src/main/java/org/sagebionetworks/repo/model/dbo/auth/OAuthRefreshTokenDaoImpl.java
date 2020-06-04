@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.auth.OAuthRefreshTokenDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
+import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthRefreshToken;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
@@ -32,10 +33,8 @@ import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
@@ -92,12 +91,14 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 			+ " AND " + COL_OAUTH_REFRESH_TOKEN_CLIENT_ID + " = :" + PARAM_CLIENT_ID
 			+ " AND " + COL_OAUTH_REFRESH_TOKEN_LAST_USED + " > (NOW() - INTERVAL  :" + PARAM_DAYS + " DAY)";
 
-	private static final String SELECT_LEAST_RECENTLY_USED_ACTIVE_TOKEN = "SELECT * FROM " + TABLE_OAUTH_REFRESH_TOKEN
-			+ " WHERE "+ COL_OAUTH_REFRESH_TOKEN_PRINCIPAL_ID + " = :" + PARAM_PRINCIPAL_ID
-			+ " AND " + COL_OAUTH_REFRESH_TOKEN_CLIENT_ID + " = :" + PARAM_CLIENT_ID
-			+ " AND " + COL_OAUTH_REFRESH_TOKEN_LAST_USED + " > (NOW() - INTERVAL  :" + PARAM_DAYS + " DAY)"
-			+ " ORDER BY " + COL_OAUTH_REFRESH_TOKEN_LAST_USED + " ASC LIMIT 1";
-
+	private static final String DELETE_LEAST_RECENTLY_USED_ACTIVE_TOKEN = 
+			"DELETE FROM " + TABLE_OAUTH_REFRESH_TOKEN
+				+ " WHERE " + COL_OAUTH_REFRESH_TOKEN_PRINCIPAL_ID + " = :" + PARAM_PRINCIPAL_ID
+				+ " AND " + COL_OAUTH_REFRESH_TOKEN_CLIENT_ID + " = :" + PARAM_CLIENT_ID
+				+ " AND " + COL_OAUTH_REFRESH_TOKEN_LAST_USED
+				+ " > (NOW() - INTERVAL  :" + PARAM_DAYS + " DAY)"
+				+ " ORDER BY " + COL_OAUTH_REFRESH_TOKEN_LAST_USED + " ASC"
+				+ " LIMIT 1";
 
 
 	@Autowired
@@ -109,6 +110,7 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 	@Autowired
 	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
+	private static final TableMapping<DBOOAuthRefreshToken> REFRESH_TOKEN_TABLE_MAPPING = (new DBOOAuthRefreshToken()).getTableMapping();
 	// We serialize explicitly chosen fields, not the entire DTO, so no need to omit fields in the builder
 	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().build();
 
@@ -176,7 +178,7 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(PARAM_TOKEN_HASH, hash);
 		params.addValue(PARAM_CLIENT_ID, clientId);
-		Optional<DBOOAuthRefreshToken> dbo = Optional.ofNullable(namedParameterJdbcTemplate.queryForObject(SELECT_TOKEN_BY_HASH_FOR_UPDATE, params, (new DBOOAuthRefreshToken()).getTableMapping()));
+		Optional<DBOOAuthRefreshToken> dbo = Optional.ofNullable(namedParameterJdbcTemplate.queryForObject(SELECT_TOKEN_BY_HASH_FOR_UPDATE, params, REFRESH_TOKEN_TABLE_MAPPING));
 		return dbo.map(OAuthRefreshTokenDaoImpl::refreshTokenDboToDto);
 	}
 
@@ -224,10 +226,7 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 	}
 
 	@Override
-	public OAuthRefreshTokenInformationList getActiveTokenInformation(String userId,
-																	  String clientId,
-																	  String nextPageToken,
-																	  Long maxLeaseLengthInDays) {
+	public OAuthRefreshTokenInformationList getActiveTokenInformation(String userId, String clientId, String nextPageToken, Long maxLeaseLengthInDays) {
 		NextPageToken nextPage = new NextPageToken(nextPageToken);
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(PARAM_PRINCIPAL_ID, userId);
@@ -237,13 +236,11 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 		params.addValue(PARAM_DAYS, maxLeaseLengthInDays);
 
 		List<DBOOAuthRefreshToken> tokenDbos = namedParameterJdbcTemplate.query(
-				SELECT_TOKENS_FOR_CLIENT_AND_PRINCIPAL, params, (new DBOOAuthRefreshToken()).getTableMapping());
+				SELECT_TOKENS_FOR_CLIENT_AND_PRINCIPAL, params, REFRESH_TOKEN_TABLE_MAPPING);
 		OAuthRefreshTokenInformationList result = new OAuthRefreshTokenInformationList();
 		result.setNextPageToken(nextPage.getNextPageTokenForCurrentResults(tokenDbos));
 		result.setResults(
-				tokenDbos.stream()
-						.map(OAuthRefreshTokenDaoImpl::refreshTokenDboToDto)
-						.collect(Collectors.toList())
+				tokenDbos.stream().map(OAuthRefreshTokenDaoImpl::refreshTokenDboToDto).collect(Collectors.toList())
 		);
 		return result;
 	}
@@ -281,7 +278,7 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 	}
 
 	@Override
-	public OAuthRefreshTokenInformation getLeastRecentlyUsedToken(String userId, String clientId, Long maxLeaseLengthInDays) {
+	public void deleteLeastRecentlyUsedToken(String userId, String clientId, Long maxLeaseLengthInDays) {
 		ValidateArgument.required(userId, "Principal ID");
 		ValidateArgument.required(clientId, "Client ID");
 		ValidateArgument.required(maxLeaseLengthInDays, "maxLeaseLengthInDays");
@@ -289,12 +286,6 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 		params.addValue(PARAM_PRINCIPAL_ID, userId);
 		params.addValue(PARAM_CLIENT_ID, clientId);
 		params.addValue(PARAM_DAYS, maxLeaseLengthInDays);
-		DBOOAuthRefreshToken dbo;
-		try {
-			dbo = namedParameterJdbcTemplate.queryForObject(SELECT_LEAST_RECENTLY_USED_ACTIVE_TOKEN, params, (new DBOOAuthRefreshToken()).getTableMapping());
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("Attempted to get least recently used token for user: " + userId + "and client: " + clientId + " when no token exists.");
-		}
-		return refreshTokenDboToDto(dbo);
+		namedParameterJdbcTemplate.update(DELETE_LEAST_RECENTLY_USED_ACTIVE_TOKEN, params);
 	}
 }
