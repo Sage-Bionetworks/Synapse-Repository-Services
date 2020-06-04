@@ -2243,21 +2243,28 @@ public class TableWorkerIntegrationTest {
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Lists.newArrayList(
 				//some values for entity id have syn prefix while others don't
-				TableModelTestUtils.createRow(null, null, "[\"syn1\",\"2\",\"syn3\"]", "[\"1\",\"2\",\"3\"]"),
-				TableModelTestUtils.createRow(null, null, "[\"3\",\"syn4\",\"5\"]", "[\"1\",\"2\",\"3\"]")));
+				TableModelTestUtils.createRow(null, null, "[\"syn1\",\"2\",\"syn3\"]", "[\"9\",\"8\",\"7\"]"),
+				TableModelTestUtils.createRow(null, null, "[\"3\",\"syn4\",\"5\"]", "[\"6\",\"5\",\"4\"]"),
+				TableModelTestUtils.createRow(null, null, "[\"6\",\"syn7\",\"8\"]", "[\"3\",\"2\",\"1\"]")));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		referenceSet = appendRows(adminUserInfo, tableId,
 				rowSet, mockProgressCallback);
 
 		//query the column expecting the index table for it to be populated
-		QueryResult result = waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where startColumn has ('3')", null, null);
+		QueryResult result = waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where entityIdList has ('8', 'syn1')", null, null);
 
 		assertEquals(2, result.getQueryResults().getRows().size());
-		assertEquals(Arrays.asList("[\"syn1\", \"syn2\", \"syn3\"]", "[\"1\", \"2\", \"3\"]"), result.getQueryResults().getRows().get(0).getValues());
-		assertEquals(Arrays.asList("[\"syn3\", \"syn4\", \"syn5\"]", "[\"1\", \"2\", \"3\"]"), result.getQueryResults().getRows().get(1).getValues());
+		assertEquals(Arrays.asList("[\"syn1\",\"syn2\",\"syn3\"]", "[9, 8, 7]"), result.getQueryResults().getRows().get(0).getValues());
+		assertEquals(Arrays.asList("[\"syn6\",\"syn7\",\"syn8\"]", "[3, 2, 1]"), result.getQueryResults().getRows().get(1).getValues());
 
-		//todo: write and re-query
+
+		//query the column expecting the index table for it to be populated
+		result = waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where userIdList has (8, 5)", null, null);
+
+		assertEquals(2, result.getQueryResults().getRows().size());
+		assertEquals(Arrays.asList("[\"syn1\",\"syn2\",\"syn3\"]", "[9, 8, 7]"), result.getQueryResults().getRows().get(0).getValues());
+		assertEquals(Arrays.asList("[\"syn3\",\"syn4\",\"syn5\"]", "[6, 5, 4]"), result.getQueryResults().getRows().get(1).getValues());
 	}
 
 	@Test
