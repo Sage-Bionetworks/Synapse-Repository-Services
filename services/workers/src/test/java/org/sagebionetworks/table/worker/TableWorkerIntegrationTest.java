@@ -2260,7 +2260,7 @@ public class TableWorkerIntegrationTest {
 
 
 		//query the column expecting the index table for it to be populated
-		result = waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where userIdList has (8, 5)", null, null);
+		result = waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where userIdList has (9, 5)", null, null);
 
 		assertEquals(2, result.getQueryResults().getRows().size());
 		assertEquals(Arrays.asList("[\"syn1\",\"syn2\",\"syn3\"]", "[9, 8, 7]"), result.getQueryResults().getRows().get(0).getValues());
