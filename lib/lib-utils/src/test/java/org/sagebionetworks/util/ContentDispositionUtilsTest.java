@@ -25,6 +25,12 @@ public class ContentDispositionUtilsTest {
 	}
 
 	@Test
+	public void testGetContentDispositionValueWithPercentCharacters(){
+		String result = ContentDispositionUtils.getContentDispositionValue("foo%bar%baz.txt");
+		assertEquals("attachment; filename=\"foo%bar%baz.txt\"; filename*=utf-8''foo%25bar%25baz.txt", result);
+	}
+
+	@Test
 	public void testGetContentDispositionValueWithISO_8859_1(){
 		String result = ContentDispositionUtils.getContentDispositionValue("fÖØ bær.txt");
 		assertEquals("attachment; filename=\"fÖØ bær.txt\"; filename*=utf-8''f%C3%96%C3%98%20b%C3%A6r.txt", result);
