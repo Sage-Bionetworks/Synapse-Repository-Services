@@ -635,8 +635,16 @@ public interface NodeDAO {
 	/**
 	 * Walk the hierarchy to find the fist bound JSON schema for the provide entity Id.
 	 * @param nodeId
+	 * @param maxDepth The maximum depth that should be recursively searched for a match.
 	 * @return
 	 */
-	public Long findFirstBoundJsonSchema(Long nodeId);
+	public Long getEntityIdOfFirstBoundSchema(Long nodeId, long maxDepth);
+
+	/**
+	 * Walk the hierarchy to find the fist bound JSON schema for the provide entity Id.
+	 * @param entityId
+	 * @return
+	 */
+	public Long getEntityIdOfFirstBoundSchema(Long entityId);
 
 }

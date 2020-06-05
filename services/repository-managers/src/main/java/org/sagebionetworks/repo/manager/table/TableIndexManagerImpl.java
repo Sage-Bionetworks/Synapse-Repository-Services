@@ -2,9 +2,9 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -17,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.change.ListColumnIndexTableChange;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
+import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.manager.table.metadata.ViewScopeFilterBuilder;
@@ -40,7 +41,8 @@ import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
-import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
@@ -64,8 +66,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	private final TableIndexDAO tableIndexDao;
 	private final TableManagerSupport tableManagerSupport;
 	private final MetadataIndexProviderFactory metadataIndexProviderFactory;
+	private final ObjectFieldModelResolverFactory objectFieldModelResolverFactory;
 
-	public TableIndexManagerImpl(TableIndexDAO dao, TableManagerSupport tableManagerSupport, MetadataIndexProviderFactory metadataIndexProviderFactory){
+	public TableIndexManagerImpl(TableIndexDAO dao, TableManagerSupport tableManagerSupport, MetadataIndexProviderFactory metadataIndexProviderFactory, ObjectFieldModelResolverFactory objectFieldModelResolverFactory){
 		if(dao == null){
 			throw new IllegalArgumentException("TableIndexDAO cannot be null");
 		}
@@ -75,9 +78,13 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		if(metadataIndexProviderFactory == null) {
 			throw new IllegalArgumentException("MetadataIndexProviderFactory cannot be null");
 		}
+		if (objectFieldModelResolverFactory == null) {
+			throw new IllegalArgumentException("ObjectFieldModelResolverFactory cannot be null");
+		}
 		this.tableIndexDao = dao;
 		this.tableManagerSupport = tableManagerSupport;
 		this.metadataIndexProviderFactory = metadataIndexProviderFactory;
+		this.objectFieldModelResolverFactory = objectFieldModelResolverFactory;
 	}
 	/*
 	 * (non-Javadoc)
@@ -442,7 +449,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			tableIndexDao.copyObjectReplicationToView(viewId, scopeFilter, currentSchema, provider);
 		} catch (Exception e) {
 			// if the copy failed. Attempt to determine the cause.
-			determineCauseOfReplicationFailure(e, scopeFilter, currentSchema);
+			determineCauseOfReplicationFailure(e, currentSchema, provider, scopeType.getTypeMask(), scopeFilter);
 		}
 		// calculate the new CRC32;
 		return tableIndexDao.calculateCRC32ofTableView(viewId);
@@ -497,17 +504,20 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ColumnModelPage results = new ColumnModelPage();
 		
 		if(containerIds.isEmpty()){
-			results.setResults(new LinkedList<ColumnModel>());
+			results.setResults(Collections.emptyList());
 			results.setNextPageToken(null);
 			return results;
 		}
 		
 		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(viewScopeType.getObjectType());
+		DefaultColumnModel defaultColumnModel = provider.getDefaultColumnModel(viewScopeType.getTypeMask());
+		
+		// We exclude from the suggested column models the custom fields defined for the object (since they are included in the default column model itself)
+		List<String> excludeKeys = getAnnotationKeysExcludeList(defaultColumnModel);
 		
 		ViewScopeFilter scopeFilter = buildViewScopeFilter(provider, viewScopeType.getTypeMask(), containerIds);
-		
 		// request one page with a limit one larger than the passed limit.
-		List<ColumnModel> columns = tableIndexDao.getPossibleColumnModelsForContainers(scopeFilter, token.getLimitForQuery(), token.getOffset());
+		List<ColumnModel> columns = tableIndexDao.getPossibleColumnModelsForContainers(scopeFilter, excludeKeys, token.getLimitForQuery(), token.getOffset());
 		results.setNextPageToken(token.getNextPageTokenForCurrentResults(columns));
 		results.setResults(columns);
 		return results;
@@ -737,16 +747,32 @@ public class TableIndexManagerImpl implements TableIndexManager {
 				populateListColumnIndexTables(viewId, currentSchema, rowsIdsWithChanges);
 			} catch (Exception e) {
 				// if the copy failed. Attempt to determine the cause.  This will always throw an exception.
-				determineCauseOfReplicationFailure(e, scopeFilter, currentSchema);
+				determineCauseOfReplicationFailure(e, currentSchema, provider, scopeType.getTypeMask(), scopeFilter);
 			}
 			return null;
 		});
 	}
 	
-	void determineCauseOfReplicationFailure(Exception exception, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema) {
-		ObjectFieldTypeMapper fieldTypeMapper = metadataIndexProviderFactory.getMetadataIndexProvider(scopeFilter.getObjectType());
+	void determineCauseOfReplicationFailure(Exception exception, List<ColumnModel> currentSchema, MetadataIndexProvider provider, Long viewTypeMask, ViewScopeFilter scopeFilter) {
+		DefaultColumnModel defaultColumnModel = provider.getDefaultColumnModel(viewTypeMask);
+		
+		List<String> excludeKeys = getAnnotationKeysExcludeList(defaultColumnModel);
 
-		tableIndexDao.determineCauseOfReplicationFailure(exception, scopeFilter, currentSchema, fieldTypeMapper);
+		// Calculate the schema from the annotations
+		List<ColumnModel> schemaFromAnnotations = tableIndexDao.getPossibleColumnModelsForContainers(scopeFilter, excludeKeys, Long.MAX_VALUE, 0L);
+		
+		ObjectFieldModelResolver objectFieldModelResolver = objectFieldModelResolverFactory.getObjectFieldModelResolver(provider);
+		
+		// Filter all the fields that are default object fields
+		List<ColumnModel> filteredSchema = currentSchema.stream()
+				.filter( model -> !objectFieldModelResolver.findMatch(model).isPresent())
+				.collect(Collectors.toList());
+		
+		for (ColumnModel annotationModel : schemaFromAnnotations) {
+			for (ColumnModel schemaModel : filteredSchema) {
+				SQLUtils.determineCauseOfException(exception, schemaModel, annotationModel);
+			}
+		}
 
 		// Have not determined the cause so throw the original exception
 		if (exception instanceof RuntimeException) {
@@ -754,6 +780,16 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		} else {
 			throw new RuntimeException(exception);
 		}
+	}
+	
+	private List<String> getAnnotationKeysExcludeList(DefaultColumnModel defaultColumnModel) {
+		if (defaultColumnModel.getCustomFields() == null || defaultColumnModel.getCustomFields().isEmpty()) {
+			return null;
+		}
+		return defaultColumnModel.getCustomFields()
+					.stream()
+					.map(ColumnModel::getName)
+					.collect(Collectors.toList());
 	}
 	
 	private ViewScopeFilter buildViewScopeFilter(ViewScopeFilterProvider provider, Long viewTypeMask, Set<Long> containerIds) {

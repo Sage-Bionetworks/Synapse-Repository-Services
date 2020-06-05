@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTimeout;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -15,7 +14,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.Writer;
 import java.net.URL;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -23,6 +21,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -52,7 +51,6 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
@@ -74,6 +72,8 @@ import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
+import org.sagebionetworks.repo.model.table.ViewColumnModelRequest;
+import org.sagebionetworks.repo.model.table.ViewColumnModelResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
@@ -509,7 +509,7 @@ public class IT100TableControllerTest {
 	}
 	
 	@Test
-	public void testgetDefaultColumnsForView() throws SynapseException{
+	public void testGetDefaultColumnsForView() throws SynapseException{
 		// test for the deprecated method.
 		List<ColumnModel> defaults = synapse.getDefaultColumnsForView(ViewType.file);
 		assertNotNull(defaults);
@@ -534,7 +534,7 @@ public class IT100TableControllerTest {
 	}
 	
 	@Test
-	public void testgetDefaultColumnsForSubmissionView() throws SynapseException{
+	public void testGetDefaultColumnsForSubmissionView() throws SynapseException{
 		ViewEntityType viewEntityType = ViewEntityType.submissionview;
 		Long mask = null;
 		List<ColumnModel> defaults = synapse.getDefaultColumnsForView(viewEntityType, mask);
@@ -828,58 +828,49 @@ public class IT100TableControllerTest {
 	
 	@Test
 	public void testGetPossibleColumnModelsForViewScope() throws Exception {
-		assertTimeout(Duration.ofSeconds(60), () -> {
-			// Create a project to contain it all
-			Project project = new Project();
-			project.setName(UUID.randomUUID().toString());
-			project = synapse.createEntity(project);
-			entitiesToDelete.add(project);
-			// Add an entity
-			Folder folder = new Folder();
-			folder.setName(UUID.randomUUID().toString());
-			folder.setParentId(project.getId());
-			folder = synapse.createEntity(folder);
-			Annotations annos = synapse.getAnnotationsV2(folder.getId());
-			AnnotationsV2TestUtils.putAnnotations(annos, "keyA", "someValue", AnnotationsValueType.STRING);
-			AnnotationsV2TestUtils.putAnnotations(annos, "keyB", "123456", AnnotationsValueType.STRING);
-			AnnotationsV2TestUtils.putAnnotations(annos, "keyC", "45678", AnnotationsValueType.STRING);
-			synapse.updateAnnotationsV2(folder.getId(), annos);
+		// Create a project to contain it all
+		Project project = new Project();
+		project.setName(UUID.randomUUID().toString());
+		project = synapse.createEntity(project);
+		entitiesToDelete.add(project);
+		// Add an entity
+		Folder folder = new Folder();
+		folder.setName(UUID.randomUUID().toString());
+		folder.setParentId(project.getId());
+		folder = synapse.createEntity(folder);
+		Annotations annos = synapse.getAnnotationsV2(folder.getId());
+		AnnotationsV2TestUtils.putAnnotations(annos, "keyA", "someValue", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos, "keyB", "123456", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos, "keyC", "45678", AnnotationsValueType.STRING);
+		synapse.updateAnnotationsV2(folder.getId(), annos);
 
-			// Now find the columns for this scope with mask
-			ViewScope scope = new ViewScope();
-			scope.setScope(Lists.newArrayList(project.getId()));
-			scope.setViewTypeMask(ViewTypeMask.File.getMask());
-			String nextPageToken = null;
-			ColumnModelPage page = waitForColumnModelPage(scope, nextPageToken, 3);
-			assertNotNull(page);
-			assertNotNull(page.getResults());
-			assertNull(page.getNextPageToken());
-			assertEquals(3, page.getResults().size());
+		// Now find the columns for this scope with mask
+		ViewScope scope = new ViewScope();
+		scope.setScope(Lists.newArrayList(project.getId()));
+		scope.setViewTypeMask(ViewTypeMask.Folder.getMask());
+		String nextPageToken = null;
+		
+		ViewColumnModelRequest request = new ViewColumnModelRequest();
+		request.setViewScope(scope);
+		
+		ViewColumnModelResponse page = waitForColumnModelPage(scope, nextPageToken, 3);
+		
+		assertNotNull(page);
+		assertNotNull(page.getResults());
+		assertNull(page.getNextPageToken());
+		assertEquals(3, page.getResults().size());
 
-			// find the scope with the old type
-			// Now find the columns for this scope
-			scope = new ViewScope();
-			scope.setScope(Lists.newArrayList(project.getId()));
-			scope.setViewType(ViewType.file);
-			nextPageToken = null;
-			page = waitForColumnModelPage(scope, nextPageToken, 3);
-			assertNotNull(page);
-			assertNotNull(page.getResults());
-			assertNull(page.getNextPageToken());
-			assertEquals(3, page.getResults().size());
-
-			// make another call with a next page token.
-			long limit = 1;
-			long offset = 1;
-			nextPageToken = new NextPageToken(limit, offset).toToken();
-			page = waitForColumnModelPage(scope, nextPageToken, 1);
-			assertNotNull(page);
-			assertNotNull(page.getResults());
-			assertNotNull(page.getNextPageToken());
-			assertEquals(1, page.getResults().size());
-			ColumnModel cm = page.getResults().get(0);
-			assertEquals("keyB", cm.getName());
-		});
+		// make another call with a next page token.
+		long limit = 1;
+		long offset = 1;
+		nextPageToken = new NextPageToken(limit, offset).toToken();
+		page = waitForColumnModelPage(scope, nextPageToken, 1);
+		assertNotNull(page);
+		assertNotNull(page.getResults());
+		assertNotNull(page.getNextPageToken());
+		assertEquals(1, page.getResults().size());
+		ColumnModel cm = page.getResults().get(0);
+		assertEquals("keyB", cm.getName());
 	}
 	
 	@Test
@@ -928,18 +919,43 @@ public class IT100TableControllerTest {
 	 * @param nextPageToken
 	 * @param expectedCount
 	 * @return
-	 * @throws SynapseException
-	 * @throws InterruptedException
 	 */
-	private ColumnModelPage waitForColumnModelPage(ViewScope scope, String nextPageToken, int expectedCount) throws SynapseException, InterruptedException{
-		while(true){
-			ColumnModelPage page = synapse.getPossibleColumnModelsForViewScope(scope, nextPageToken);
-			if(page.getResults().size() >= expectedCount){
-				return page;
+	private ViewColumnModelResponse waitForColumnModelPage(ViewScope scope, String nextPageToken, int expectedCount) throws Exception {
+		ViewColumnModelRequest request = new ViewColumnModelRequest();
+		
+		request.setViewScope(scope);
+		request.setNextPageToken(nextPageToken);
+
+		AtomicReference<String> tokenContainer = new AtomicReference<>();
+		
+		return TimeUtils.waitFor(MAX_QUERY_TIMEOUT_MS, 2000, () -> {
+			
+			try {
+				String token = tokenContainer.get();
+				
+				if (token == null) {
+					token = synapse.startGetPossibleColumnModelsForViewScope(request);
+					// Starts a new job
+					tokenContainer.set(token);
+				}
+				
+				ViewColumnModelResponse response = synapse.getPossibleColumnModelsForViewScopeResult(token);
+				
+				if (response.getResults().size() >= expectedCount) {
+					return Pair.create(true, response);
+				}
+				
+			} catch (SynapseResultNotReadyException e) {
+				return Pair.create(false, null);
 			}
+
+			// The job finished but not expected results, we need to start a new job
 			System.out.println("Wait for entity replication...");
-			Thread.sleep(2000);
-		}
+			
+			tokenContainer.set(null);
+			
+			return Pair.create(false, null);
+		});
 	}
 
 	private <T> T waitForAsync(final Callable<T> callable) throws Exception {

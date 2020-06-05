@@ -295,6 +295,8 @@ import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.model.table.ViewColumnModelRequest;
+import org.sagebionetworks.repo.model.table.ViewColumnModelResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
@@ -629,6 +631,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String ANNOTATIONS_V2 = "/annotations2";
 	
 	public static final String SCHEMA_TYPE_CREATE = "/schema/type/create/";
+	public static final String VIEW_COLUMNS = "/column/view/scope/";
 
 	/**
 	 * Default constructor uses the default repository and file services endpoints.
@@ -2510,6 +2513,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String url = type.getResultUrl(jobId, entityId);
 		String endpoint = getEndpointForType(type.getRestEndpoint());
 		return getAsynchJobResponse(url, type.getReponseClass(), endpoint);
+	}
+	
+	@Override
+	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId)
+			throws SynapseException, SynapseClientException, SynapseResultNotReadyException {
+		return getAsyncResult(type, jobId, (String) null);
 	}
 
 	/**
@@ -5202,6 +5211,18 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
+	public String startGetPossibleColumnModelsForViewScope(ViewColumnModelRequest request) throws SynapseException {
+		return startAsynchJob(AsynchJobType.ViewColumnModelRequest, request);
+	}
+	
+	@Override
+	public ViewColumnModelResponse getPossibleColumnModelsForViewScopeResult(String asyncJobToken)
+			throws SynapseException {
+		ViewColumnModelResponse response = (ViewColumnModelResponse) getAsyncResult(AsynchJobType.ViewColumnModelRequest, asyncJobToken);
+		return response;
+	}
+	
+	@Override
 	public String transformSqlRequest(SqlTransformRequest request) throws SynapseException {
 		SqlTransformResponse response = postJSONEntity(getRepoEndpoint(), "/table/sql/transform", request,
 				SqlTransformResponse.class);
@@ -5665,21 +5686,21 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public JsonSchemaObjectBinding bindJsonSchemaToEntity(BindSchemaToEntityRequest request) throws SynapseException {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getEntityId(), "request.entityId");
-		String url = "/entity/"+request.getEntityId()+"/bound/json/schema";
+		String url = "/entity/"+request.getEntityId()+"/schema/binding";
 		return putJSONEntity(getRepoEndpoint(), url, request, JsonSchemaObjectBinding.class);
 	}
 	
 	@Override
 	public JsonSchemaObjectBinding getJsonSchemaBindingForEntity(String entityId) throws SynapseException {
 		ValidateArgument.required(entityId, "entityId");
-		String url = "/entity/"+entityId+"/bound/json/schema";
+		String url = "/entity/"+entityId+"/schema/binding";
 		return getJSONEntity(getRepoEndpoint(), url, JsonSchemaObjectBinding.class);
 	}
 	
 	@Override
 	public void clearSchemaBindingForEntity(String entityId) throws SynapseException {
 		ValidateArgument.required(entityId, "entityId");
-		String url = "/entity/"+entityId+"/bound/json/schema";
+		String url = "/entity/"+entityId+"/schema/binding";
 		deleteUri(getRepoEndpoint(), url);
 	}
 

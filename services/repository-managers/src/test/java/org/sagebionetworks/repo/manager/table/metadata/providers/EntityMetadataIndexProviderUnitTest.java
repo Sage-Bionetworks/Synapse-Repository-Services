@@ -114,6 +114,18 @@ public class EntityMetadataIndexProviderUnitTest {
 		// Call under test
 		assertFalse(provider.isFilterScopeByObjectId(viewTypeMask));
 	}
+	
+	@Test
+	public void testIsFilterScopeByObjectIdWithNullMask() {
+		Long viewTypeMask = null;
+
+		String message = assertThrows(IllegalArgumentException.class, () -> { 
+			// Call under test
+			provider.isFilterScopeByObjectId(viewTypeMask);
+		}).getMessage();
+		
+		assertEquals("viewTypeMask is required.", message);
+	}
 
 	@Test
 	public void testGetSubTypesForMaskEmpty() {
@@ -123,6 +135,18 @@ public class EntityMetadataIndexProviderUnitTest {
 		List<String> result = provider.getSubTypesForMask(viewTypeMask);
 
 		assertTrue(result.isEmpty());
+	}
+	
+	@Test
+	public void testGetSubTypesForNullMask() {
+		Long viewTypeMask = null;
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			provider.getSubTypesForMask(viewTypeMask);
+		}).getMessage();
+
+		assertEquals("viewTypeMask is required.", message);
 	}
 
 	@Test

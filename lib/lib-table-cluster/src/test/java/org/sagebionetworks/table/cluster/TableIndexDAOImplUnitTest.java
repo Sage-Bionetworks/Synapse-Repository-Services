@@ -3,17 +3,13 @@ package org.sagebionetworks.table.cluster;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
@@ -36,7 +32,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
@@ -211,70 +206,6 @@ public class TableIndexDAOImplUnitTest {
 		spyDao.validateMaxListLengthInAnnotationReplication(scopeFilter, currentSchema, objectIdFilter));
 
 		verify(spyDao).getMaxListSizeForAnnotations(scopeFilter, listAnnotationNames, objectIdFilter);
-	}
-	
-
-	@Test
-	public void testDetermineCauseOfExceptionLists() {
-		Exception original = new Exception("Some exception");
-		ColumnModel columnModel = new ColumnModel();
-		columnModel.setName("foo");
-		columnModel.setColumnType(ColumnType.STRING);
-		columnModel.setMaximumSize(10L);
-
-		ColumnModel annotationModel = new ColumnModel();
-		annotationModel.setName("foo");
-		annotationModel.setColumnType(ColumnType.STRING);
-		annotationModel.setMaximumSize(11L);
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(Collections.emptySet());
-		
-		when(mockObjectFieldResolver.findMatch(any())).thenReturn(Optional.empty());
-		when(mockObjectFieldResolverFactory.getObjectFieldModelResolver(any())).thenReturn(mockObjectFieldResolver);
-		
-		doReturn(ImmutableList.of(annotationModel)).when(spyDao).getPossibleColumnModelsForContainers(any(), any(), any());
-		
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			spyDao.determineCauseOfReplicationFailure(original, scopeFilter, ImmutableList.of(columnModel), mockFieldTypeMapper);
-		});
-		
-		assertEquals(original, ex.getCause());
-		assertEquals("The size of the column 'foo' is too small.  The column size needs to be at least 11 characters.", ex.getMessage());
-	}
-
-	@Test
-	public void testDetermineCauseOfExceptionListsMultipleValues() {
-		Exception oringal = new Exception("Some exception");
-		ColumnModel columnModel = new ColumnModel();
-		columnModel.setName("foo");
-		columnModel.setColumnType(ColumnType.STRING);
-		columnModel.setMaximumSize(10L);
-		// type does not match.
-		ColumnModel a1 = new ColumnModel();
-		a1.setName("foo");
-		a1.setColumnType(ColumnType.INTEGER);
-
-		ColumnModel a2 = new ColumnModel();
-		a2.setName("foo");
-		a2.setColumnType(ColumnType.STRING);
-		a2.setMaximumSize(11L);
-
-		ViewScopeFilter scopeFilter = getScopeFilter(Collections.emptySet());
-		
-		when(mockObjectFieldResolver.findMatch(any())).thenReturn(Optional.empty());
-		when(mockObjectFieldResolverFactory.getObjectFieldModelResolver(any())).thenReturn(mockObjectFieldResolver);
-
-		doReturn(ImmutableList.of(a1, a2)).when(spyDao).getPossibleColumnModelsForContainers(any(), any(), any());
-		
-		
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			spyDao.determineCauseOfReplicationFailure(oringal, scopeFilter, ImmutableList.of(columnModel), mockFieldTypeMapper);
-		});
-		
-		assertEquals(oringal, ex.getCause());
-		assertEquals("The size of the column 'foo' is too small.  The column size needs to be at least 11 characters.", ex.getMessage());
 	}
 	
 }

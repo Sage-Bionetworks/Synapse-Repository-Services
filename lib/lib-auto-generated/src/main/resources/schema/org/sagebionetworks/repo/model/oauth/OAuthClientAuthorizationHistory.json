@@ -1,0 +1,25 @@
+{
+    "description": "An object representing an OAuth 2.0 client that has been authorized to request a user's resources and identity",
+ 	"properties": {
+		"client": {
+			"$ref": "org.sagebionetworks.repo.model.oauth.OAuthClient",
+			"description": "The OAuth 2.0 client that has been granted access",
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
+		},
+		"authorizedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date that authorization was granted to the OAuth client, i.e. the oldest timestamp for an active refresh token for the given client and user."
+		},
+		"lastUsed": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The most recent time the OAuth client has utilized its authorization by requesting an access token."
+		}
+	}
+}

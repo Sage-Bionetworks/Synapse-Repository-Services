@@ -20,6 +20,7 @@ import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
+import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
@@ -34,10 +35,14 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SubmissionView;
+import org.sagebionetworks.repo.model.table.ViewEntityType;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
+import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.worker.TestHelper;
@@ -72,6 +77,9 @@ public class SubmissionViewIntegrationTest {
 
 	@Autowired
 	private TableRowTruthDAO tableRowTruthDao;
+	
+	@Autowired
+	private TableIndexConnectionFactory connectionFactory;
 	
 	private UserInfo evaluationOwner;
 
@@ -120,7 +128,9 @@ public class SubmissionViewIntegrationTest {
 		
 		testHelper.cleanup();
 		
-		indexDao.deleteTable(IdAndVersion.parse(view.getId()));
+		if (view != null) {
+			indexDao.deleteTable(IdAndVersion.parse(view.getId()));
+		}
 	}
 	
 	@Test
@@ -317,6 +327,45 @@ public class SubmissionViewIntegrationTest {
 		
 		assertEquals(expectedRows, result.getQueryResult().getQueryResults().getRows());
 
+	}
+	
+	@Test
+	public void testSubmissionViewSuggestedSchema() throws Exception {
+		
+		Folder entity1 = testHelper.createFolder(submitter1, submitter1Project);
+
+		SubmissionBundle submission1 = testHelper.createSubmission(submitter1, evaluation, entity1);
+		
+		// Updates the status of the 1st submission adding the foo annotation
+		SubmissionStatus status = submissionManager.getSubmissionStatus(evaluationOwner, submission1.getSubmission().getId());
+		
+		Annotations annotations = AnnotationsV2Utils.emptyAnnotations();
+		AnnotationsV2TestUtils.putAnnotations(annotations, "foo", "bar", AnnotationsValueType.STRING);
+		
+		status.setSubmissionAnnotations(annotations);
+		status.setStatus(SubmissionStatusEnum.ACCEPTED);
+		
+		status = submissionManager.updateSubmissionStatus(evaluationOwner, status);
+		
+		submission1.setSubmissionStatus(status);
+		
+		Long submissionId = Long.valueOf(status.getId());
+		String etag = status.getEtag();
+		
+		// Wait for the replication to finish
+		asyncHelper.waitForObjectReplication(ViewObjectType.SUBMISSION, submissionId, etag, MAX_WAIT);
+		
+		ViewScope viewScope = new ViewScope();
+		viewScope.setScope(ImmutableList.of(evaluation.getId()));
+		viewScope.setViewEntityType(ViewEntityType.submissionview);
+		
+		ColumnModelPage page = connectionFactory.connectToFirstIndex().getPossibleColumnModelsForScope(viewScope, null);
+		
+		List<ColumnModel> model = page.getResults();
+
+		assertEquals(1, model.size());
+		assertEquals("foo", model.get(0).getName());
+		assertEquals(ColumnType.STRING, model.get(0).getColumnType());
 	}
 	
 	private static List<Row> mapSubmissions(Project evaluationProject, List<SubmissionBundle> submissions) {

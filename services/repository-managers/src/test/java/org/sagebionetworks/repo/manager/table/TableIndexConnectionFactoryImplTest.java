@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFact
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 
 @ExtendWith(MockitoExtension.class)
 public class TableIndexConnectionFactoryImplTest {
@@ -26,6 +27,8 @@ public class TableIndexConnectionFactoryImplTest {
 	private TableManagerSupport mockManagerSupport;
 	@Mock
 	private MetadataIndexProviderFactory mockMetaDataIndexProviderFactory;
+	@Mock
+	private ObjectFieldModelResolverFactory mockObjectFieldModelResolverFactory;
 	
 	@InjectMocks
 	private TableIndexConnectionFactoryImpl indexFactory;

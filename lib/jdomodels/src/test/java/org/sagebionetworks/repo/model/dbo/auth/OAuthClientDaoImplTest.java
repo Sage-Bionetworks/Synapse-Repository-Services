@@ -24,11 +24,17 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
+import org.sagebionetworks.repo.model.auth.OAuthRefreshTokenDao;
 import org.sagebionetworks.repo.model.auth.SectorIdentifier;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistory;
+import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
+import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
@@ -53,11 +59,18 @@ public class OAuthClientDaoImplTest {
 	private static final String SECTOR_IDENTIFIER_URI = "https://client.uri.com/path/to/json/file";
 	
 	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().build();
-	
+
+	private static final Long ONE_YEAR_MILLIS = 1000L * 60 * 60 * 24 * 365;
+	private static final Long TWO_YEARS_MILLIS = ONE_YEAR_MILLIS * 2;
+	private static final Long ONE_YEAR_DAYS = 365L;
+
 	private List<String> idsToDelete;
-	
+
 	@Autowired
 	private OAuthClientDao oauthClientDao;
+
+	@Autowired
+	private OAuthRefreshTokenDao oauthRefreshTokenDao;
 
 	@BeforeEach
 	public void setUp() throws Exception {
@@ -125,15 +138,20 @@ public class OAuthClientDaoImplTest {
 	}
 
 	private String createSectorIdentifierAndClient() {
-		SectorIdentifier sectorIdentifier = newSectorIdentifier();
+		return createSectorIdentifierAndClient(SECTOR_IDENTIFIER, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), CLIENT_NAME);
+	}
+
+	private String createSectorIdentifierAndClient(String sectorIdentifierUri, Long userId, String clientName) {
+		SectorIdentifier sectorIdentifier = newSectorIdentifier(sectorIdentifierUri);
 		oauthClientDao.createSectorIdentifier(sectorIdentifier);
-		OAuthClient oauthClient = newDTO();
+		OAuthClient oauthClient = newDTO(userId, clientName);
 		oauthClient = oauthClientDao.createOAuthClient(oauthClient);
 		assertNotNull(oauthClient.getClient_id());
 		idsToDelete.add(oauthClient.getClient_id());
 		return oauthClient.getClient_id();
 	}
-	
+
+
 	@Test
 	public void testClientDtoToDbo() throws Exception {
 		OAuthClient dto = newDTO();
@@ -476,4 +494,100 @@ public class OAuthClientDaoImplTest {
 		
 	}
 
+	private OAuthRefreshTokenInformation createRefreshToken(String clientId, String userId, Date authorizedOn, Date lastUsed) {
+		OAuthRefreshTokenInformation token = new OAuthRefreshTokenInformation();
+		token.setName(UUID.randomUUID().toString());
+		token.setClientId(clientId);
+		token.setPrincipalId(userId);
+		token.setScopes(Collections.singletonList(OAuthScope.view));
+		token.setClaims(new OIDCClaimsRequest());
+		token.setAuthorizedOn(authorizedOn);
+		token.setLastUsed(lastUsed);
+		token.setModifiedOn(new Date());
+		token.setEtag(UUID.randomUUID().toString());
+		return oauthRefreshTokenDao.createRefreshToken("abcdef", token);
+	}
+
+	@Test
+	public void testGetAuthorizedClients() {
+		Long userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+
+		String client1 = createSectorIdentifierAndClient();
+		String client2 = createSectorIdentifierAndClient(SECOND_SECTOR_IDENTIFIER, userId, "App 2");
+
+		final Date client1ExpectedAuthzOn = new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS * 5);// Earliest authorized on date
+		final Date client1ExpectedLastUsed = new Date(System.currentTimeMillis() + ONE_YEAR_MILLIS * 5);// Latest last used date
+		// Valid tokens for client 1
+		createRefreshToken(client1, userId.toString(), client1ExpectedAuthzOn, new Date());
+		createRefreshToken(client1, userId.toString(), new Date(), new Date());
+		createRefreshToken(client1, userId.toString(), new Date(), client1ExpectedLastUsed);
+
+		// Expired token for client 1. The dates are set up such that the result "authorizedOn" will not match if this token is not filtered.
+		createRefreshToken(client1, userId.toString(), new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS * 10), new Date(System.currentTimeMillis() - TWO_YEARS_MILLIS));
+
+		// Valid token for client 2
+		final Date client2ExpectedAuthzOn = new Date(System.currentTimeMillis() - 542326L);
+		final Date client2ExpectedLastUsed = new Date(System.currentTimeMillis() - 54232L);
+		createRefreshToken(client2, userId.toString(), client2ExpectedAuthzOn, client2ExpectedLastUsed);
+
+		// Call under test
+		OAuthClientAuthorizationHistoryList results = oauthClientDao.getAuthorizedClientHistory(userId.toString(), null, ONE_YEAR_DAYS);
+
+		assertEquals(2, results.getResults().size());
+
+		for (OAuthClientAuthorizationHistory result : results.getResults()) {
+			if (result.getClient().getClient_id().equals(client1)) {
+				assertEquals(client1ExpectedAuthzOn, result.getAuthorizedOn());
+				assertEquals(client1ExpectedLastUsed, result.getLastUsed());
+			}
+			if (result.getClient().getClient_id().equals(client2)) {
+				assertEquals(client2ExpectedAuthzOn, result.getAuthorizedOn());
+				assertEquals(client2ExpectedLastUsed, result.getLastUsed());
+			}
+		}
+
+		assertNull(results.getNextPageToken());
+	}
+
+	@Test
+	public void testGetAuthorizedClients_pagination() {
+		NextPageToken firstResultNPT = new NextPageToken(1, 0);
+
+		Long userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+
+		String client1 = createSectorIdentifierAndClient();
+		String client2 = createSectorIdentifierAndClient(SECOND_SECTOR_IDENTIFIER, userId, "App 2");
+
+		// Valid tokens for client 1 and client 2
+		createRefreshToken(client1, userId.toString(), new Date(), new Date());
+		createRefreshToken(client2, userId.toString(), new Date(), new Date());
+
+		// Call under test -- first page
+		OAuthClientAuthorizationHistoryList firstPage = oauthClientDao.getAuthorizedClientHistory(userId.toString(), firstResultNPT.toToken(), ONE_YEAR_DAYS);
+		assertEquals(1, firstPage.getResults().size());
+		assertNotNull(firstPage.getNextPageToken());
+
+		// Call under test -- second page
+		OAuthClientAuthorizationHistoryList secondPage = oauthClientDao.getAuthorizedClientHistory(userId.toString(), firstPage.getNextPageToken(), ONE_YEAR_DAYS);
+		assertEquals(1, secondPage.getResults().size());
+		assertNull(secondPage.getNextPageToken());
+
+		if (firstPage.getResults().get(0).getClient().getClient_id().equals(client1)) {
+			assertEquals(client1, firstPage.getResults().get(0).getClient().getClient_id());
+			assertEquals(client2, secondPage.getResults().get(0).getClient().getClient_id());
+		} else {
+			assertEquals(client2, firstPage.getResults().get(0).getClient().getClient_id());
+			assertEquals(client1, secondPage.getResults().get(0).getClient().getClient_id());
+		}
+	}
+
+	@Test
+	public void testGetAuthorizedClientsEmptyResult() {
+		Long userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+
+		// Call under test
+		OAuthClientAuthorizationHistoryList results = oauthClientDao.getAuthorizedClientHistory(userId.toString(), null, ONE_YEAR_MILLIS);
+		assertEquals(0, results.getResults().size());
+		assertNull(results.getNextPageToken());
+	}
 }

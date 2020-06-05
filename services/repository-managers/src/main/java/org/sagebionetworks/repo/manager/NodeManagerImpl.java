@@ -759,7 +759,7 @@ public class NodeManagerImpl implements NodeManager {
 
 	@Override
 	public Long findFirstBoundJsonSchema(Long nodeId) {
-		return nodeDao.findFirstBoundJsonSchema(nodeId);
+		return nodeDao.getEntityIdOfFirstBoundSchema(nodeId);
 	}
 
 }
