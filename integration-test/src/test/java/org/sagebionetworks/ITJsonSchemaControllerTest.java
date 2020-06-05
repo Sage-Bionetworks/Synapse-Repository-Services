@@ -6,17 +6,19 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.function.Consumer;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.sagebionetworks.client.AsynchJobType;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -29,6 +31,7 @@ import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
+import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoRequest;
 import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoResponse;
 import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoRequest;
@@ -186,11 +189,12 @@ public class ITJsonSchemaControllerTest {
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(schema);
 		// Call under test
-		CreateSchemaResponse response = waitForSchemaCreate(request);
-		assertNotNull(response);
-		assertNotNull(response.getNewVersionInfo());
-		assertEquals(organizationName, response.getNewVersionInfo().getOrganizationName());
-		assertEquals(schemaName, response.getNewVersionInfo().getSchemaName());
+		waitForSchemaCreate(request, (response) -> {
+			assertNotNull(response);
+			assertNotNull(response.getNewVersionInfo());
+			assertEquals(organizationName, response.getNewVersionInfo().getOrganizationName());
+			assertEquals(schemaName, response.getNewVersionInfo().getSchemaName());
+		});
 		String semanticVersion = null;
 		// call under test
 		JsonSchema fetched = synapse.getJsonSchema(organizationName, schemaName, semanticVersion);
@@ -208,8 +212,10 @@ public class ITJsonSchemaControllerTest {
 		schema.setDescription("test without a version");
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(schema);
-		CreateSchemaResponse response = waitForSchemaCreate(request);
-		assertNotNull(response);
+		
+		waitForSchemaCreate(request, (response) -> {
+			assertNotNull(response);
+		});
 
 		ListJsonSchemaInfoRequest listRequest = new ListJsonSchemaInfoRequest();
 		listRequest.setOrganizationName(organizationName);
@@ -229,8 +235,10 @@ public class ITJsonSchemaControllerTest {
 		schema.setDescription("test without a version");
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(schema);
-		CreateSchemaResponse response = waitForSchemaCreate(request);
-		assertNotNull(response);
+		
+		waitForSchemaCreate(request, (response) -> {
+			assertNotNull(response);
+		});
 
 		ListJsonSchemaVersionInfoRequest listRequest = new ListJsonSchemaVersionInfoRequest();
 		listRequest.setOrganizationName(organizationName);
@@ -252,12 +260,14 @@ public class ITJsonSchemaControllerTest {
 		schema.setDescription("test with a version");
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(schema);
+		
 		// Call under test
-		CreateSchemaResponse response = waitForSchemaCreate(request);
-		assertNotNull(response);
-		assertNotNull(response.getNewVersionInfo());
-		assertEquals(organizationName, response.getNewVersionInfo().getOrganizationName());
-		assertEquals(schemaName, response.getNewVersionInfo().getSchemaName());
+		waitForSchemaCreate(request, (response) -> {
+			assertNotNull(response);
+			assertNotNull(response.getNewVersionInfo());
+			assertEquals(organizationName, response.getNewVersionInfo().getOrganizationName());
+			assertEquals(schemaName, response.getNewVersionInfo().getSchemaName());
+		});
 
 		// call under test
 		JsonSchema fetched = synapse.getJsonSchema(organizationName, schemaName, semanticVersion);
@@ -276,8 +286,12 @@ public class ITJsonSchemaControllerTest {
 		schema.setDescription("test with a version");
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(schema);
-		CreateSchemaResponse response = waitForSchemaCreate(request);
-		assertNotNull(response);
+		
+		// Call under test
+		waitForSchemaCreate(request, (response) -> {
+			assertNotNull(response);
+		});
+		
 		JsonSchema fetched = synapse.getJsonSchema(organizationName, schemaName, semanticVersion);
 		assertEquals(schema, fetched);
 		// call under test
@@ -293,8 +307,11 @@ public class ITJsonSchemaControllerTest {
 		schema.setDescription("schema to bind");
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(schema);
-		CreateSchemaResponse response = waitForSchemaCreate(request);
-		assertNotNull(response);
+		
+		// Call under test
+		JsonSchemaVersionInfo versionInfo = waitForSchemaCreate(request, (response) -> {
+			assertNotNull(response);
+		}).getNewVersionInfo();
 		
 		// will bind the schema to the project
 		project = new Project();
@@ -311,7 +328,7 @@ public class ITJsonSchemaControllerTest {
 		// Call under test
 		JsonSchemaObjectBinding parentBinding = synapse.bindJsonSchemaToEntity(bindRequest);
 		assertNotNull(parentBinding);
-		assertEquals(response.getNewVersionInfo(), parentBinding.getJsonSchemaVersionInfo());
+		assertEquals(versionInfo, parentBinding.getJsonSchemaVersionInfo());
 		
 		// the folder should inherit the binding
 		// call under test
@@ -336,17 +353,7 @@ public class ITJsonSchemaControllerTest {
 	 * @throws SynapseException
 	 * @throws InterruptedException
 	 */
-	CreateSchemaResponse waitForSchemaCreate(CreateSchemaRequest request) throws SynapseException, InterruptedException {
-		String jobId = synapse.startCreateSchemaJob(request);
-		long start = System.currentTimeMillis();
-		while(true) {
-			try {
-				assertTrue(System.currentTimeMillis() - start < MAX_WAIT_MS, "Timed out waiting for job to finish");
-				return synapse.getCreateSchemaJobResult(jobId);
-			} catch (SynapseResultNotReadyException e) {
-				System.out.println("Waiting for CreateSchemaRequest job...");
-				Thread.sleep(2000L);
-			}
-		}
+	CreateSchemaResponse waitForSchemaCreate(CreateSchemaRequest request, Consumer<CreateSchemaResponse> resultConsumer) throws SynapseException, InterruptedException {
+		return AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.CreateJsonSchema, request, resultConsumer, MAX_WAIT_MS).getResponse();
 	}
 }
