@@ -1,13 +1,9 @@
 package org.sagebionetworks.util;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 
 import com.google.common.escape.Escaper;
 import com.google.common.net.PercentEscaper;
-import com.google.common.net.UrlEscapers;
 
 public class ContentDispositionUtils {
 	//only the dot character is unescaped
