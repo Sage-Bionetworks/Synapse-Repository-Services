@@ -68,15 +68,6 @@ public interface AccessRequirementManager {
 			ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
 
 	/**
-	 * Retrieve restriction information for a restrictable object
-	 * 
-	 * @param userInfo
-	 * @param request
-	 * @return
-	 */
-	public RestrictionInformationResponse getRestrictionInformation(UserInfo userInfo, RestrictionInformationRequest request);
-
-	/**
 	 * Convert an ACTAccessRequirement to a ManagedACTAccessRequirement
 	 * 
 	 * @param userInfo

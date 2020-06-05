@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.manager;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,10 +12,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -26,9 +26,6 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.RestrictionInformationRequest;
-import org.sagebionetworks.repo.model.RestrictionInformationResponse;
-import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -36,9 +33,9 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class AccessRequirementManagerImplAutoWiredTest {
 	
@@ -73,7 +70,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	
 	private AccessRequirement ar;
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
@@ -135,7 +132,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		team = teamManager.create(adminUserInfo, team);
 	}
 
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		if(nodeManager != null && nodesToDelete != null){
 			for(String id: nodesToDelete){
@@ -203,31 +200,39 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		assertNotNull(ar.getModifiedOn());
 	}
 
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testCreateAccessRequirementBadParam1() throws Exception {
 		ar = newEntityAccessRequirement(entityId);
 		ar.setSubjectIds(null);
-		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		assertThrows(IllegalArgumentException.class, ()-> {
+				ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+			});
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testCreateAccessRequirementBadParam2() throws Exception {
 		ar = newEntityAccessRequirement(entityId);
 		ar.setAccessType(null);
-		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		assertThrows(IllegalArgumentException.class, ()-> {
+			accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		});
 	}
 	
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testEntityCreateAccessRequirementForbidden() throws Exception {
 		ar = newEntityAccessRequirement(entityId2);
-		ar = accessRequirementManager.createAccessRequirement(testUserInfo, ar);
+		assertThrows(UnauthorizedException.class, ()-> {
+			accessRequirementManager.createAccessRequirement(testUserInfo, ar);
+		});
 	}
 
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testTeamCreateAccessRequirementForbidden() throws Exception {
 		ar = newTeamAccessRequirement(team.getId());
 		// this user will not have permission to add a restriction to the evaluation
-		ar = accessRequirementManager.createAccessRequirement(testUserInfo, ar);
+		assertThrows(UnauthorizedException.class, ()-> {
+			 accessRequirementManager.createAccessRequirement(testUserInfo, ar);
+		});
 	}
 	
 	@Test
@@ -318,17 +323,5 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setType(RestrictableObjectType.ENTITY);
 		List<AccessRequirement> ars = accessRequirementManager.getAllUnmetAccessRequirements(adminUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
 		assertEquals(0, ars.size());
-	}
-
-	@Test
-	public void testGetRestrictionInformationInherited() {
-		ar = newEntityAccessRequirement(entityId);
-		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
-		RestrictionInformationRequest request = new RestrictionInformationRequest();
-		request.setObjectId(childId);
-		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
-		RestrictionInformationResponse info = accessRequirementManager.getRestrictionInformation(adminUserInfo, request);
-		assertNotNull(info);
-		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, info.getRestrictionLevel());
 	}
 }
