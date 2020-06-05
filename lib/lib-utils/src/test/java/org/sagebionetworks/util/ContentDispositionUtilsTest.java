@@ -14,8 +14,20 @@ public class ContentDispositionUtilsTest {
 
 	@Test
 	public void testGetContentDispositionValueWithSpaceCharacters(){
-		String result = ContentDispositionUtils.getContentDispositionValue("foo bar,(baz).txt");
-		assertEquals("attachment; filename=\"foo bar,(baz).txt\"; filename*=utf-8''foo%20bar,(baz).txt", result);
+		String result = ContentDispositionUtils.getContentDispositionValue("foo bar(baz).txt");
+		assertEquals("attachment; filename=\"foo bar(baz).txt\"; filename*=utf-8''foo%20bar%28baz%29.txt", result);
+	}
+
+	@Test
+	public void testGetContentDispositionValueWithCommaCharacters(){
+		String result = ContentDispositionUtils.getContentDispositionValue("foo,bar,(baz).txt");
+		assertEquals("attachment; filename=\"foo,bar,(baz).txt\"; filename*=utf-8''foo%2Cbar%2C%28baz%29.txt", result);
+	}
+
+	@Test
+	public void testGetContentDispositionValueWithPercentCharacters(){
+		String result = ContentDispositionUtils.getContentDispositionValue("foo%bar%baz.txt");
+		assertEquals("attachment; filename=\"foo%bar%baz.txt\"; filename*=utf-8''foo%25bar%25baz.txt", result);
 	}
 
 	@Test

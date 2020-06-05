@@ -1,12 +1,14 @@
 package org.sagebionetworks.util;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.regex.Pattern;
 
-import com.google.common.net.UrlEscapers;
+import com.google.common.escape.Escaper;
+import com.google.common.net.PercentEscaper;
 
 public class ContentDispositionUtils {
+	//only the dot character is unescaped
+	private static final String SAFE_CHARACTERS = ".";
+	private static final Escaper ESCAPER = new PercentEscaper(SAFE_CHARACTERS, false);
 
 	//Amazon S3 does not expect characters that are not ISO-8859-1. Unicode characters must be URL encoded.
 	//matches characters that are not compliant with  ISO-8859-1 (https://en.wikipedia.org/wiki/ISO/IEC_8859-1). We use this to replace ISO-8859-1 characters with _
@@ -25,6 +27,6 @@ public class ContentDispositionUtils {
 	 * @return
 	 */
 	public static String getContentDispositionValue(String fileName){
-			return String.format(CONTENT_DISPOSITION_FORMAT_STRING, NON_ISO_8859_1_REGEX.matcher(fileName).replaceAll("_"), UrlEscapers.urlFragmentEscaper().escape(fileName));
+			return String.format(CONTENT_DISPOSITION_FORMAT_STRING, NON_ISO_8859_1_REGEX.matcher(fileName).replaceAll("_"), ESCAPER.escape(fileName));
 	}
 }
