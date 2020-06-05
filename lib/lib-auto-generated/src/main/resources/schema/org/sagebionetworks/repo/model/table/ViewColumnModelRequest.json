@@ -1,0 +1,20 @@
+{
+    "title":"ViewColumnModelRequest",
+    "description":"An asynchronous request to compute the column models from the annotations in a given scope, note that the result won't include the default column model.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	],
+	"properties": {
+		"viewScope": {
+			"description": "The scope of a potential view",
+			"$ref": "org.sagebionetworks.repo.model.table.ViewScope",
+			"required": true
+		},
+		"nextPageToken": {
+			"description": "Optional token used to retrieve subsequent pages, returned as part of the <a href=\"${org.sagebionetworks.repo.model.table.ViewColumnModelResponse}\">ViewColumnModelResponse</a>",
+			"type": "string"
+		}
+	}
+}

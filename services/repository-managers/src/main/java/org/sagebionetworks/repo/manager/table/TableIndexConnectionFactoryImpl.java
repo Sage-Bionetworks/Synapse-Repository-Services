@@ -4,6 +4,7 @@ import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFact
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -15,13 +16,16 @@ public class TableIndexConnectionFactoryImpl implements TableIndexConnectionFact
 	private TableManagerSupport tableManagerSupport;
 	
 	private MetadataIndexProviderFactory metaDataIndexProviderFactory;
+	
+	private ObjectFieldModelResolverFactory objectFieldModelResolverFactory;
 
 	@Autowired
 	public TableIndexConnectionFactoryImpl(ConnectionFactory connectionFactory, TableManagerSupport tableManagerSupport,
-			MetadataIndexProviderFactory metaDataIndexProviderFactory) {
+			MetadataIndexProviderFactory metaDataIndexProviderFactory, ObjectFieldModelResolverFactory objectFieldModelResolverFactory) {
 		this.connectionFactory = connectionFactory;
 		this.tableManagerSupport = tableManagerSupport;
 		this.metaDataIndexProviderFactory = metaDataIndexProviderFactory;
+		this.objectFieldModelResolverFactory = objectFieldModelResolverFactory;
 	}
 
 	@Override
@@ -33,13 +37,13 @@ public class TableIndexConnectionFactoryImpl implements TableIndexConnectionFact
 		if(dao == null){
 			throw new TableIndexConnectionUnavailableException("Cannot connect to table: "+tableId);
 		}
-		return new TableIndexManagerImpl(dao, tableManagerSupport, metaDataIndexProviderFactory);
+		return new TableIndexManagerImpl(dao, tableManagerSupport, metaDataIndexProviderFactory, objectFieldModelResolverFactory);
 	}
 	
 	@Override
 	public TableIndexManager connectToFirstIndex(){
 		TableIndexDAO dao = connectionFactory.getFirstConnection();
-		return new TableIndexManagerImpl(dao, tableManagerSupport, metaDataIndexProviderFactory);
+		return new TableIndexManagerImpl(dao, tableManagerSupport, metaDataIndexProviderFactory, objectFieldModelResolverFactory);
 	}
 
 }

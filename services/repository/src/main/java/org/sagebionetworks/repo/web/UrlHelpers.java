@@ -879,6 +879,9 @@ public class UrlHelpers {
 	public static final String TABLE_COLUMNS_OF_SCOPE = COLUMN+"/view/scope";
 	public static final String TABLE_SQL_TRANSFORM = TABLE+"/sql/transform";
 	public static final String TABLE_SNAPSHOT = ENTITY_TABLE+"/snapshot";
+	
+	public static final String VIEW_COLUMNS_FROM_SCOPE_ASYNC_START = TABLE_COLUMNS_OF_SCOPE + ASYNC_START_REQUEST;
+	public static final String VIEW_COLUMNS_FROM_SCOPE_ASYNC_GET = TABLE_COLUMNS_OF_SCOPE + ASYNC_GET_REQUEST;
 
 	public static final String ADMIN_TABLE_REBUILD = ADMIN + ENTITY_TABLE + "/rebuild";
 	public static final String ADMIN_TABLE_ADD_INDEXES = ADMIN + ENTITY_TABLE + "/addindexes";

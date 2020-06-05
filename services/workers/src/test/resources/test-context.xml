@@ -63,4 +63,13 @@
 			<ref bean="objectReplicationReconciliationWorkerTrigger" />
 		</util:list>
 	</beans>
+	
+	<!-- Profile with a subset of workers for ViewColumnModelRequestWorkerTrigger only (Use with @ActiveProfiles("test-view-column-model-request-worker") -->
+	<beans profile="test-view-column-model-request-worker">
+		<util:list id="workerTriggersList">
+			<ref bean="messagePublisherTrigger" />
+			<ref bean="objectReplicationWorkerTrigger" />
+			<ref bean="viewColumnModelRequestWorkerTrigger" />
+		</util:list>
+	</beans>
 </beans>

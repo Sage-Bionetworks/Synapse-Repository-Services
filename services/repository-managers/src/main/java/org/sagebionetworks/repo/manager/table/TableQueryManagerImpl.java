@@ -201,23 +201,18 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		if (query.isConsistent()) {
 			// run with the read lock
 			IdAndVersion idAndVersion = IdAndVersion.parse(query.getTableId());
-			return tryRunWithTableReadLock(progressCallback, idAndVersion,
-					new ProgressingCallable<QueryResultBundle>() {
-
-						@Override
-						public QueryResultBundle call(ProgressCallback callback) throws Exception {
-							// We can only run this query if the table is available.
-							final TableStatus status = validateTableIsAvailable(query.getTableId());
-							// run the query
-							QueryResultBundle bundle = queryAsStreamAfterAuthorization(progressCallback, query,
-									rowHandler, options);
-							// add the status to the result
-							if (rowHandler != null) {
-								// the etag is only returned for consistent queries.
-								bundle.getQueryResult().getQueryResults().setEtag(status.getLastTableChangeEtag());
-							}
-							return bundle;
+			return tryRunWithTableReadLock(progressCallback, idAndVersion, (ProgressCallback callback) -> {
+						// We can only run this query if the table is available.
+						final TableStatus status = validateTableIsAvailable(query.getTableId());
+						// run the query
+						QueryResultBundle bundle = queryAsStreamAfterAuthorization(progressCallback, query,
+								rowHandler, options);
+						// add the status to the result
+						if (rowHandler != null) {
+							// the etag is only returned for consistent queries.
+							bundle.getQueryResult().getQueryResults().setEtag(status.getLastTableChangeEtag());
 						}
+						return bundle;
 					});
 		} else {
 			// run without a read lock.

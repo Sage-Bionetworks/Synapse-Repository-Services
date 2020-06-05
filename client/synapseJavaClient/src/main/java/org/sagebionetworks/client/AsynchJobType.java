@@ -15,6 +15,7 @@ import static org.sagebionetworks.client.SynapseClientImpl.TABLE_QUERY_NEXTPAGE;
 import static org.sagebionetworks.client.SynapseClientImpl.TABLE_TRANSACTION;
 import static org.sagebionetworks.client.SynapseClientImpl.TABLE_UPLOAD_CSV;
 import static org.sagebionetworks.client.SynapseClientImpl.TABLE_UPLOAD_CSV_PREVIEW;
+import static org.sagebionetworks.client.SynapseClientImpl.VIEW_COLUMNS;
 
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
@@ -32,6 +33,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.model.table.ViewColumnModelResponse;
 /**
  * Maps job types to the URL prefix needed for each type.
  * 
@@ -51,7 +53,8 @@ public enum AsynchJobType {
 	Doi(DOI, DoiResponse .class, RestEndpointType.repo),
 	AddFileToDownloadList(DOWNLOAD_LIST_ADD, AddFileToDownloadListResponse.class,  RestEndpointType.file),
 	DownloadStorageReport(STORAGE_REPORT, DownloadStorageReportResponse.class, RestEndpointType.repo),
-	CreateJsonSchema(SCHEMA_TYPE_CREATE, CreateSchemaResponse.class, RestEndpointType.repo);
+	CreateJsonSchema(SCHEMA_TYPE_CREATE, CreateSchemaResponse.class, RestEndpointType.repo),
+	ViewColumnModelRequest(VIEW_COLUMNS, ViewColumnModelResponse.class, RestEndpointType.repo);
 
 	String prefix;
 	Class<? extends AsynchronousResponseBody> responseClass;
