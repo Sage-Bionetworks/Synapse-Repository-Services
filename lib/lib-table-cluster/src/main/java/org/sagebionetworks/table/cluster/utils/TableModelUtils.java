@@ -788,6 +788,7 @@ public class TableModelUtils {
 				return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8 * maxSize * maxListLength);
 			case INTEGER_LIST:
 			case DATE_LIST:
+			case USERID_LIST:
 				if(maxListLength == null){
 					throw new IllegalArgumentException("maxListLength cannot be null for List types");
 				}
@@ -797,6 +798,11 @@ public class TableModelUtils {
 					throw new IllegalArgumentException("maxListLength cannot be null for List types");
 				}
 				return (int) (ColumnConstants.MAX_BOOLEAN_BYTES_AS_STRING * maxListLength);
+			case ENTITYID_LIST:
+				if(maxListLength == null){
+					throw new IllegalArgumentException("maxListLength cannot be null for List types");
+				}
+				return (int) (ColumnConstants.MAX_ENTITY_ID_BYTES_AS_STRING * maxListLength);
 		}
 		throw new IllegalArgumentException("Unknown ColumnType: " + type);
 		}

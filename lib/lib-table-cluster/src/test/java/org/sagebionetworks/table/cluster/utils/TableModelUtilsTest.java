@@ -805,6 +805,39 @@ public class TableModelUtilsTest {
 	}
 
 	@Test
+	public void testCalculateMaxSizeForTypeUserIdList(){
+		long maxListLength = 52;
+		int expected = Long.toString(-1111111111111111111l).getBytes(StandardCharsets.UTF_8).length * 52;
+		assertEquals(expected,
+				TableModelUtils.calculateMaxSizeForType(ColumnType.USERID_LIST, null, maxListLength));
+	}
+
+	@Test
+	public void testCalculateMaxSizeForTypeUserIdList_nullMaxListLength(){
+		Long maxListLength = null;
+
+		assertThrows(IllegalArgumentException.class, () ->
+				TableModelUtils.calculateMaxSizeForType(ColumnType.USERID_LIST, null, maxListLength));
+	}
+
+	@Test
+	public void testCalculateMaxSizeForTypeEntityIdList(){
+		long maxListLength = 52;
+		int expected = ("syn" + -1111111111111111111l + "." + -1111111111111111111l)
+				.getBytes(StandardCharsets.UTF_8).length * 52;
+		assertEquals(expected,
+				TableModelUtils.calculateMaxSizeForType(ColumnType.ENTITYID_LIST, null, maxListLength));
+	}
+
+	@Test
+	public void testCalculateMaxSizeForTypeEntityIdList_nullMaxListLength(){
+		Long maxListLength = null;
+
+		assertThrows(IllegalArgumentException.class, () ->
+				TableModelUtils.calculateMaxSizeForType(ColumnType.ENTITYID_LIST, null, maxListLength));
+	}
+
+	@Test
 	public void testCalculateMaxSizeForTypeBooleanList(){
 		long maxListLength = 52;
 
@@ -894,7 +927,7 @@ public class TableModelUtilsTest {
 	public void testCalculateMaxRowSize() {
 		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
 		int allBytes = TableModelUtils.calculateMaxRowSize(all);
-		assertEquals(13186, allBytes);
+		assertEquals(16066, allBytes);
 	}
 
 	@Test

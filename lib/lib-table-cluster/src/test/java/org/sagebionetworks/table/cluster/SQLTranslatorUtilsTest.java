@@ -23,7 +23,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -796,6 +798,28 @@ public class SQLTranslatorUtilsTest {
 
 		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST NOT IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
 
+	}
+
+	//Test to ensure that a list of values containing 'syn' prefix are removed (e.g. ( ('syn123','syn456')  --->  ('123','456') )
+	@Test
+	public void testTranslate_Has_onEntityIdList() throws ParseException {
+		columnFoo.setColumnType(ColumnType.ENTITYID_LIST);
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has ('syn123', 456, 'syn789')");
+		HashMap<String, Object> parameters = new HashMap<>();
+
+		//method under test
+		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), parameters, columnMap);
+
+		//parameter mapping should have stripped out the "syn" prefixes
+		Map<String, Object> expected = new HashMap<String, Object>(){{
+				put("b0", 123L);
+				put("b1", 456L);
+				put("b2", 789L);
+		}};
+
+		assertEquals(expected, parameters);
 	}
 
 	@Test
@@ -1714,9 +1738,9 @@ public class SQLTranslatorUtilsTest {
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
 		assertEquals( "SELECT * FROM T123 WHERE ROW_ID IN ( SELECT ROW_ID_REF_C777_ FROM T123_INDEX_C777_ WHERE _C777__UNNEST IN ( :b0, :b1, :b2 ) ) AND ( ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_INDEX_C111_ WHERE _C111__UNNEST IN ( :b3 ) ) OR _C333_ = :b4 )",element.toSql());
-		assertEquals("1", parameters.get("b0"));
-		assertEquals("2", parameters.get("b1"));
-		assertEquals("3", parameters.get("b2"));
+		assertEquals(1L, parameters.get("b0"));
+		assertEquals(2L, parameters.get("b1"));
+		assertEquals(3L, parameters.get("b2"));
 		assertEquals("yah", parameters.get("b3"));
 		assertEquals("yeet", parameters.get("b4"));
 	}

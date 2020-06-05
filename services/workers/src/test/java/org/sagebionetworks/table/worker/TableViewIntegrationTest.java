@@ -1496,6 +1496,70 @@ public class TableViewIntegrationTest {
 		assertEquals(Arrays.asList("newVal4", "newVal5", "newVal6"), entityManager.getAnnotations(adminUserInfo, secondChangeId).getAnnotations().get(stringListColumn.getName()).getValue());
 	}
 
+	@Test
+	public void testEntityView_multipleValueUserIdListAndEntityIdListRoundTrip() throws Exception {
+		ColumnModel userIdList = new ColumnModel();
+		userIdList.setColumnType(ColumnType.USERID_LIST);
+		userIdList.setName("userIdList");
+		userIdList = columnModelManager.createColumnModel(userIdList);
+
+		ColumnModel entityIdList = new ColumnModel();
+		entityIdList.setColumnType(ColumnType.ENTITYID_LIST);
+		entityIdList.setName("entityIdList");
+		entityIdList = columnModelManager.createColumnModel(entityIdList);
+
+		defaultColumnIds.add(userIdList.getId());
+		defaultColumnIds.add(entityIdList.getId());
+		createFileView();
+
+		assertTrue(fileCount >= 2, "setup() needs to create at least 2 entities for this test to work");
+
+		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
+
+		//set annotations for 2 files
+		Annotations fileAnnotation1 = entityManager.getAnnotations(adminUserInfo, fileIds.get(0));
+		AnnotationsV2TestUtils.putAnnotations(fileAnnotation1, userIdList.getName(), Arrays.asList("111", "222"), AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(fileAnnotation1, entityIdList.getName(), Arrays.asList("999", "888"), AnnotationsValueType.LONG);
+		entityManager.updateAnnotations(adminUserInfo, fileIds.get(0), fileAnnotation1);
+
+		Annotations fileAnnotation2 = entityManager.getAnnotations(adminUserInfo, fileIds.get(1));
+		AnnotationsV2TestUtils.putAnnotations(fileAnnotation2, userIdList.getName(), Arrays.asList("333", "444"), AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(fileAnnotation2, entityIdList.getName(), Arrays.asList("777", "666"), AnnotationsValueType.LONG);
+		entityManager.updateAnnotations(adminUserInfo, fileIds.get(1), fileAnnotation2);
+
+
+		waitForEntityReplication(fileViewId, fileIds.get(0));
+
+
+		QueryResultBundle results  = waitForConsistentQuery(adminUserInfo, "select id, etag, "+ userIdList.getName() + ", " + entityIdList.getName() +" from " + fileViewId, fileCount);
+
+		// expecting all rows
+		assertEquals(fileCount, results.getQueryCount());
+
+		//change multiValueKey to new values
+		RowSet rowsets = results.getQueryResult().getQueryResults();
+
+		List<Row> rows = rowsets.getRows();
+		assertEquals(Arrays.asList("[111, 222]", "[\"syn999\",\"syn888\"]"),rows.get(0).getValues().subList(2,4));
+		assertEquals(Arrays.asList("[333, 444]", "[\"syn777\",\"syn666\"]"),rows.get(1).getValues().subList(2,4));
+
+
+		String firstChangeId = "syn" + rowsets.getRows().get(0).getRowId();
+		//change user Id
+		rowsets.getRows().get(0).getValues().set(2, "[\"123\", \"456\"]");
+		String secondChangeId = "syn" + rowsets.getRows().get(1).getRowId();
+		//change Entity Id
+		rowsets.getRows().get(1).getValues().set(3, "[\"syn314\", \"159\", \"syn265\"]");
+		//push modified values to view
+		List<EntityUpdateResult> updateResults = updateView(rowsets, fileViewId);
+
+		//check view is updated
+		assertEquals(2, waitForConsistentQuery(adminUserInfo, "select * from "+ fileViewId + " where "+ userIdList.getName() +" HAS ('123', '333')", 2).getQueryCount());
+		//check Annotations on entities are updated
+		assertEquals(Arrays.asList("123", "456"), entityManager.getAnnotations(adminUserInfo, firstChangeId).getAnnotations().get(userIdList.getName()).getValue());
+		assertEquals(Arrays.asList("314", "159", "265"), entityManager.getAnnotations(adminUserInfo, secondChangeId).getAnnotations().get(entityIdList.getName()).getValue());
+	}
+
 
 	@Test
 	public void testEntityView_multipleValueColumn_UpdatedAnnotationExceedListMaxSize() throws Exception {
