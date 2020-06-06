@@ -2023,6 +2023,47 @@ public class TableWorkerIntegrationTest {
 		assertEquals(12, rows.size());
 	}
 
+	//reproduces PLFM-6235
+	@Test
+	public void testUnnest_nullColumns() throws Exception{
+		// setup an string list column.
+		ColumnModel strListColumn = new ColumnModel();
+		strListColumn.setColumnType(ColumnType.STRING_LIST);
+		strListColumn.setName("strList");
+		strListColumn = columnManager.createColumnModel(adminUserInfo, strListColumn);
+		schema = Lists.newArrayList(strListColumn);
+		// build a table with this column.
+		createTableWithSchema();
+		TableStatus status = waitForTableProcessing(tableId);
+		if(status.getErrorDetails() != null){
+			System.out.println(status.getErrorDetails());
+		}
+		assertTrue(TableState.AVAILABLE.equals(status.getState()));
+
+
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(
+				TableModelTestUtils.createRow(null, null, "[\"asdf1\",\"asdf2\",\"asdf3\"]"),
+				TableModelTestUtils.createRow(null, null, "[\"qwer1\",\"qwer2\"]"),
+				TableModelTestUtils.createRow(null, null, (String) null)));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = appendRows(adminUserInfo, tableId,
+				rowSet, mockProgressCallback);
+
+		//query the column expecting the index table for it to be populated
+		QueryResult result = waitForConsistentQuery(adminUserInfo, "select ROW_ID, UNNEST("+strListColumn.getName()+") from " + tableId, null, null);
+
+		//UNNEST() should expand into 6 rows accounting for the null row
+		assertEquals(6, result.getQueryResults().getRows().size());
+		Row expectedNullRow = new Row();
+		expectedNullRow.setRowId(3L);
+		expectedNullRow.setVersionNumber(1L);
+		// ROWID, UNNEST(strListColumn)
+		expectedNullRow.setValues(Arrays.asList("3", null));
+		assertTrue(result.getQueryResults().getRows().contains(expectedNullRow));
+	}
+
 
 	@Test
 	public void testFacet_ListColumnValueSelected() throws Exception{
