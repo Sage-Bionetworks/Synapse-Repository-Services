@@ -41,6 +41,7 @@
 			<ref bean="tableViewWorkerTrigger" />
 			<ref bean="objectReplicationWorkerTrigger" />
 			<ref bean="objectReplicationReconciliationWorkerTrigger" />
+			<ref bean="entityHierarchyChangeWorkerTrigger" />
 		</util:list>
 	</beans>
 	
@@ -61,6 +62,7 @@
 			<ref bean="tableViewWorkerTrigger" />
 			<ref bean="objectReplicationWorkerTrigger" />
 			<ref bean="objectReplicationReconciliationWorkerTrigger" />
+			<ref bean="entityHierarchyChangeWorkerTrigger" />
 		</util:list>
 	</beans>
 	

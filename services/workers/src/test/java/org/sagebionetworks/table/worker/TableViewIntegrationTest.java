@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,18 +42,17 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -76,7 +76,6 @@ import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
-import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
@@ -99,8 +98,6 @@ import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
-import org.sagebionetworks.table.query.ParseException;
-import org.sagebionetworks.table.query.TableQueryParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
@@ -143,7 +140,7 @@ public class TableViewIntegrationTest {
 	@Autowired
 	DBOChangeDAO changeDAO;
 	@Autowired
-	AsynchronousJobWorkerHelper asynchronousJobWorkerHelper;
+	AsynchronousJobWorkerHelper asyncHelper;
 	
 	
 	ProgressCallback mockProgressCallbackVoid;
@@ -328,23 +325,29 @@ public class TableViewIntegrationTest {
 		waitForEntityReplication(fileViewId, fileViewId);
 		// query the view as a user that does not permission
 		String sql = "select * from "+fileViewId;
-		try {
-			waitForConsistentQuery(userInfo, sql);
-			fail("Should have failed.");
-		} catch (AsynchJobFailedException e) {
-			assertTrue(e.getMessage().contains("permission"));
-		}
+
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class, () -> {
+			waitForConsistentQuery(userInfo, sql, (response) -> {
+				fail("Should have failed");
+			});
+		});
+		
+		assertEquals("You do not have READ permission for the requested entity.", ex.getMessage());
+
 		// grant the user read access to the view
 		AccessControlList acl = AccessControlListUtil.createACL(fileViewId, userInfo, Sets.newHashSet(ACCESS_TYPE.READ), new Date(System.currentTimeMillis()));
 		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
 		// wait for replication
 		waitForEntityReplication(fileViewId, fileViewId);
+		
 		// run the query again
-		QueryResultBundle results = waitForConsistentQuery(userInfo, sql);
-		List<Row> rows  = extractRows(results);
-		assertTrue(rows.isEmpty(), "The user has no access to the files in the project so the view should appear empty");
-		// since the user has no access to files the results should be empty
-		assertEquals(new Long(0), results.getQueryCount());
+		waitForConsistentQuery(userInfo, sql, (results) -> {
+			List<Row> rows  = extractRows(results);
+			assertTrue(rows.isEmpty(), "The user has no access to the files in the project so the view should appear empty");
+			// since the user has no access to files the results should be empty
+			assertEquals(new Long(0), results.getQueryCount());
+		});
+		
 		
 		// grant the user read permission the project
 		AccessControlList projectAcl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
@@ -355,15 +358,16 @@ public class TableViewIntegrationTest {
 		entityPermissionsManager.updateACL(projectAcl, adminUserInfo);
 		// wait for replication
 		waitForEntityReplication(fileViewId, fileViewId);
+		
 		// run the query again
-		results = waitForConsistentQuery(userInfo, sql);
-		assertNotNull(results);
-		assertEquals(new Long(fileCount), results.getQueryCount());
-		assertNotNull(results.getQueryResult());
-		assertNotNull(results.getQueryResult().getQueryResults());
-		assertNotNull(results.getQueryResult().getQueryResults().getRows());
-		rows = results.getQueryResult().getQueryResults().getRows();
-		assertEquals(fileCount, rows.size());
+		waitForConsistentQuery(userInfo, sql, (results) -> {			
+			assertNotNull(results);
+			assertEquals(new Long(fileCount), results.getQueryCount());
+			assertNotNull(results.getQueryResult());
+			assertNotNull(results.getQueryResult().getQueryResults());
+			assertNotNull(results.getQueryResult().getQueryResults().getRows());
+			assertEquals(fileCount, results.getQueryResult().getQueryResults().getRows().size());
+		});
 	}
 	
 	@Test
@@ -376,16 +380,16 @@ public class TableViewIntegrationTest {
 		query.setIncludeEntityEtag(true);
 
 		// run the query again
-		int expectedRowCount = fileCount;
-		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, query, expectedRowCount);
-		assertNotNull(results);
-		assertEquals(new Long(fileCount), results.getQueryCount());
-		assertNotNull(results.getQueryResult());
-		assertNotNull(results.getQueryResult().getQueryResults());
-		assertNotNull(results.getQueryResult().getQueryResults().getRows());
-		List<Row> rows = results.getQueryResult().getQueryResults().getRows();
-		assertEquals(fileCount, rows.size());
-		validateRowsMatchFiles(rows);
+		waitForConsistentQuery(adminUserInfo, query, (results) -> {			
+			assertNotNull(results);
+			assertEquals(new Long(fileCount), results.getQueryCount());
+			assertNotNull(results.getQueryResult());
+			assertNotNull(results.getQueryResult().getQueryResults());
+			assertNotNull(results.getQueryResult().getQueryResults().getRows());
+			List<Row> rows = results.getQueryResult().getQueryResults().getRows();
+			assertEquals(fileCount, rows.size());
+			validateRowsMatchFiles(rows);
+		});
 	}
 	
 	@Test
@@ -395,16 +399,15 @@ public class TableViewIntegrationTest {
 		waitForEntityReplication(fileViewId, fileViewId);
 		Query query = new Query();
 		query.setSql("select * from "+fileViewId);
-
-		// run the query again
-		int expectedRowCount = fileCount;
 		QueryOptions options = new QueryOptions().withRunSumFileSizes(true).withRunQuery(true);
-		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, query, options, expectedRowCount);
-		assertNotNull(results);
-		assertNotNull(results.getSumFileSizes());
-		assertFalse(results.getSumFileSizes().getGreaterThan());
-		assertNotNull(results.getSumFileSizes().getSumFileSizesBytes());
-		assertTrue(results.getSumFileSizes().getSumFileSizesBytes() > 0L);
+		
+		waitForConsistentQuery(adminUserInfo, query, options, (results) -> {			
+			assertNotNull(results);
+			assertNotNull(results.getSumFileSizes());
+			assertFalse(results.getSumFileSizes().getGreaterThan());
+			assertNotNull(results.getSumFileSizes().getSumFileSizesBytes());
+			assertTrue(results.getSumFileSizes().getSumFileSizesBytes() > 0L);
+		});
 	}
 	
 	/**
@@ -426,36 +429,39 @@ public class TableViewIntegrationTest {
 		createFileView();
 		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
 		// lookup the file
-		FileEntity file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
+		final FileEntity file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
 		waitForEntityReplication(fileViewId, file.getId());
 		// query the etag of the first file
 		String sql = "select etag from "+fileViewId+" where id = "+fileId;
-		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql);
-		assertNotNull(results);
-		assertEquals(new Long(1), results.getQueryCount());
-		assertNotNull(results.getQueryResult());
-		assertNotNull(results.getQueryResult().getQueryResults());
-		assertNotNull(results.getQueryResult().getQueryResults().getRows());
-		Row row = results.getQueryResult().getQueryResults().getRows().get(0);
-		assertEquals(fileId, row.getRowId());
-		String etag = row.getValues().get(0);
-		assertEquals(file.getEtag(), etag);
+		
+		waitForConsistentQuery(adminUserInfo, sql, (results) -> {			
+			assertNotNull(results);
+			assertEquals(new Long(1), results.getQueryCount());
+			assertNotNull(results.getQueryResult());
+			assertNotNull(results.getQueryResult().getQueryResults());
+			assertNotNull(results.getQueryResult().getQueryResults().getRows());
+			Row row = results.getQueryResult().getQueryResults().getRows().get(0);
+			assertEquals(fileId, row.getRowId());
+			String etag = row.getValues().get(0);
+			assertEquals(file.getEtag(), etag);
+		});
 		
 		// update the entity and run the query again
 		file.setName("newName");
+		
 		entityManager.updateEntity(adminUserInfo, file, false, null);
-		file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
 		// wait for the change to be replicated.
 		waitForEntityReplication(fileViewId, file.getId());
 		// run the query again
-		results = waitForConsistentQuery(adminUserInfo, sql);
-		assertNotNull(results);
-		assertEquals(new Long(1), results.getQueryCount());
-		assertNotNull(results.getQueryResult());
-		assertNotNull(results.getQueryResult().getQueryResults());
-		assertNotNull(results.getQueryResult().getQueryResults().getRows());
-		row = results.getQueryResult().getQueryResults().getRows().get(0);
-		assertEquals(fileId, row.getRowId());
+		waitForConsistentQuery(adminUserInfo, sql, (results) -> {			
+			assertNotNull(results);
+			assertEquals(new Long(1), results.getQueryCount());
+			assertNotNull(results.getQueryResult());
+			assertNotNull(results.getQueryResult().getQueryResults());
+			assertNotNull(results.getQueryResult().getQueryResults().getRows());
+			Row row = results.getQueryResult().getQueryResults().getRows().get(0);
+			assertEquals(fileId, row.getRowId());
+		});
 	}
 	
 	@Test
@@ -481,19 +487,23 @@ public class TableViewIntegrationTest {
 		transaction.setChanges(updates);
 	
 		// wait for the change to complete
-		startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
+		startAndWaitForJob(adminUserInfo, transaction, (response) -> {
+			assertNotNull(response);
+		});
 		// run the query again
 		String sql = "select etag from "+fileViewId+" where id = "+fileId;
-		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql);
-		assertNotNull(results);
-		assertEquals(new Long(1), results.getQueryCount());
-		assertNotNull(results.getQueryResult());
-		assertNotNull(results.getQueryResult().getQueryResults());
-		assertNotNull(results.getQueryResult().getQueryResults().getRows());
-		Row row = results.getQueryResult().getQueryResults().getRows().get(0);
-		assertEquals(fileId, row.getRowId());
-		String etag = row.getValues().get(0);
-		assertEquals(file.getEtag(), etag);
+		
+		waitForConsistentQuery(adminUserInfo, sql, (results) -> {			
+			assertNotNull(results);
+			assertEquals(new Long(1), results.getQueryCount());
+			assertNotNull(results.getQueryResult());
+			assertNotNull(results.getQueryResult().getQueryResults());
+			assertNotNull(results.getQueryResult().getQueryResults().getRows());
+			Row row = results.getQueryResult().getQueryResults().getRows().get(0);
+			assertEquals(fileId, row.getRowId());
+			String etag = row.getValues().get(0);
+			assertEquals(file.getEtag(), etag);
+		});
 	}
 	
 	@Test
@@ -523,22 +533,23 @@ public class TableViewIntegrationTest {
 		changes.add(appendRequest);
 		transactionRequest.setChanges(changes);
 		transactionRequest.setEntityId(fileViewId);
+		
 		//  start the job to update the table
-		TableUpdateTransactionResponse response = startAndWaitForJob(adminUserInfo, transactionRequest, TableUpdateTransactionResponse.class);
-		assertNotNull(response);
-		assertNotNull(response.getResults());
-		assertEquals(1, response.getResults().size());
-		TableUpdateResponse rep = response.getResults().get(0);
-		assertTrue(rep instanceof EntityUpdateResults);
-		EntityUpdateResults updateResults = (EntityUpdateResults)rep;
-		assertNotNull(updateResults.getUpdateResults());
-		assertEquals(1, updateResults.getUpdateResults().size());
-		EntityUpdateResult eur = updateResults.getUpdateResults().get(0);
-		assertNotNull(eur);
-		assertEquals(file.getId(), eur.getEntityId());
-		System.out.println(eur.getFailureMessage());
-		assertNull(eur.getFailureCode());
-		assertNull(eur.getFailureMessage());
+		startAndWaitForJob(adminUserInfo, transactionRequest, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+			assertNotNull(response.getResults());
+			assertEquals(1, response.getResults().size());
+			TableUpdateResponse rep = response.getResults().get(0);
+			assertTrue(rep instanceof EntityUpdateResults);
+			EntityUpdateResults updateResults = (EntityUpdateResults)rep;
+			assertNotNull(updateResults.getUpdateResults());
+			assertEquals(1, updateResults.getUpdateResults().size());
+			EntityUpdateResult eur = updateResults.getUpdateResults().get(0);
+			assertNotNull(eur);
+			assertEquals(file.getId(), eur.getEntityId());
+			assertNull(eur.getFailureCode());
+			assertNull(eur.getFailureMessage());
+		});		
 		
 		// is the annotation changed?
 		Annotations annos = entityManager.getAnnotations(adminUserInfo, file.getId());
@@ -575,21 +586,21 @@ public class TableViewIntegrationTest {
 		transactionRequest.setChanges(changes);
 		transactionRequest.setEntityId(fileViewId);
 		//  start the job to update the table
-		TableUpdateTransactionResponse response = startAndWaitForJob(adminUserInfo, transactionRequest, TableUpdateTransactionResponse.class);
-		assertNotNull(response);
-		assertNotNull(response.getResults());
-		assertEquals(1, response.getResults().size());
-		TableUpdateResponse rep = response.getResults().get(0);
-		assertTrue(rep instanceof EntityUpdateResults);
-		EntityUpdateResults updateResults = (EntityUpdateResults)rep;
-		assertNotNull(updateResults.getUpdateResults());
-		assertEquals(1, updateResults.getUpdateResults().size());
-		EntityUpdateResult eur = updateResults.getUpdateResults().get(0);
-		assertNotNull(eur);
-		assertEquals(file.getId(), eur.getEntityId());
-		System.out.println(eur.getFailureMessage());
-		assertNull(eur.getFailureCode());
-		assertNull(eur.getFailureMessage());
+		startAndWaitForJob(adminUserInfo, transactionRequest, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+			assertNotNull(response.getResults());
+			assertEquals(1, response.getResults().size());
+			TableUpdateResponse rep = response.getResults().get(0);
+			assertTrue(rep instanceof EntityUpdateResults);
+			EntityUpdateResults updateResults = (EntityUpdateResults)rep;
+			assertNotNull(updateResults.getUpdateResults());
+			assertEquals(1, updateResults.getUpdateResults().size());
+			EntityUpdateResult eur = updateResults.getUpdateResults().get(0);
+			assertNotNull(eur);
+			assertEquals(file.getId(), eur.getEntityId());
+			assertNull(eur.getFailureCode());
+			assertNull(eur.getFailureMessage());
+		});
 		
 		// is the annotation changed?
 		Annotations annos = entityManager.getAnnotations(adminUserInfo, file.getId());
@@ -613,17 +624,18 @@ public class TableViewIntegrationTest {
 		waitForEntityReplication(fileViewId, file.getId());
 		
 		String sql = "select id, parentId, projectId, benefactorId from "+fileViewId+" where id = '"+fileId+"'";
-		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql);
-		List<Row> rows  = extractRows(results);
-		assertEquals(1, rows.size());
-		Row row = rows.get(0);
-		assertNotNull(row);
-		assertNotNull(row.getValues());
-		assertEquals(4, row.getValues().size());
-		assertEquals(file.getId(), row.getValues().get(0));
-		assertEquals(file.getParentId(), row.getValues().get(1));
-		assertTrue(row.getValues().get(2).startsWith("syn"));
-		assertTrue(row.getValues().get(3).startsWith("syn"));
+		waitForConsistentQuery(adminUserInfo, sql, (results) -> {			
+			List<Row> rows  = extractRows(results);
+			assertEquals(1, rows.size());
+			Row row = rows.get(0);
+			assertNotNull(row);
+			assertNotNull(row.getValues());
+			assertEquals(4, row.getValues().size());
+			assertEquals(file.getId(), row.getValues().get(0));
+			assertEquals(file.getParentId(), row.getValues().get(1));
+			assertTrue(row.getValues().get(2).startsWith("syn"));
+			assertTrue(row.getValues().get(3).startsWith("syn"));
+		});
 	}
 	
 	/**
@@ -659,15 +671,18 @@ public class TableViewIntegrationTest {
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		waitForEntityReplication(fileViewId, fileId);
 
-		try {
-			String sql = "select * from " + fileViewId;
-			waitForConsistentQuery(adminUserInfo, sql);
-			fail("should have failed");
-		} catch (AsynchJobFailedException expected) {
-			assertEquals(
-					"The size of the column 'aString' is too small.  The column size needs to be at least 7 characters.",
-					expected.getStatus().getErrorMessage());
-		}
+		
+		String sql = "select * from " + fileViewId;
+		
+		AsynchJobFailedException e = assertThrows(AsynchJobFailedException.class, () -> {
+			waitForConsistentQuery(adminUserInfo, sql, (response) -> {
+				fail("Should eventually fail");
+			});
+		});
+		
+		assertEquals("The size of the column 'aString' is too small.  The column size needs to be at least 7 characters.",
+				e.getStatus().getErrorMessage());
+		
 	}
 
 	/**
@@ -719,14 +734,19 @@ public class TableViewIntegrationTest {
 		waitForEntityReplication(fileViewId, fileViewId);
 		// query the view as a user that does not permission
 		String sql = "select * from "+fileViewId;
-		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql);
-		assertNotNull(results);
+		waitForConsistentQuery(adminUserInfo, sql, (results) -> {			
+			assertNotNull(results);
+		});
+
 		IdAndVersion idAndVersion = IdAndVersion.parse(fileViewId);
+		
 		// Set the view to processing without making any real changes
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
+		
 		// The view should become available again.
-		results = waitForConsistentQuery(adminUserInfo, sql);
-		assertNotNull(results);
+		waitForConsistentQuery(adminUserInfo, sql, (results) -> {			
+			assertNotNull(results);
+		});
 	}
 
 	@Test
@@ -754,9 +774,11 @@ public class TableViewIntegrationTest {
 		waitForEntityReplication(viewId, lastProjectId);
 		// query the view as a user that does not permission
 		String sql = "select * from "+viewId;
-		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql, scope.size());
-		List<Row> rows  = extractRows(results);
-		assertEquals(scope.size(), rows.size(), "Should have one row for each scope.");
+		
+		waitForConsistentQuery(adminUserInfo, sql, (results) -> {			
+			List<Row> rows  = extractRows(results);
+			assertEquals(scope.size(), rows.size(), "Should have one row for each scope.");
+		});
 	}
 
 	/**
@@ -787,12 +809,13 @@ public class TableViewIntegrationTest {
 		waitForEntityReplication(fileViewId, fileViewId);
 		// query for the file that inherits from the folder.
 		String sql = "select * from "+fileViewId+" where benefactorId='"+folderId+"' and id = '"+fileId+"'";
-		int expectedRowCount = 1;
-		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql, expectedRowCount);
-		List<Row> rows  = extractRows(results);
-		assertEquals(1, rows.size());
-		Row row = rows.get(0);
-		assertEquals(fileIdLong, row.getRowId());
+		
+		waitForConsistentQuery(adminUserInfo, sql, (results) -> {			
+			List<Row> rows  = extractRows(results);
+			assertEquals(1, rows.size());
+			Row row = rows.get(0);
+			assertEquals(fileIdLong, row.getRowId());
+		});
 
 		/*
 		 * Removing the ACL on the folder should set the file's benefactor to be
@@ -802,12 +825,13 @@ public class TableViewIntegrationTest {
 
 		// Query for the the file with the project as its benefactor.
 		sql = "select * from "+fileViewId+" where benefactorId='"+project.getId()+"' and id = '"+fileId+"'";
-		expectedRowCount = 1;
-		results = waitForConsistentQuery(adminUserInfo, sql, expectedRowCount);
-		rows  = extractRows(results);
-		assertEquals(1, rows.size());
-		row = rows.get(0);
-		assertEquals(fileIdLong, row.getRowId());
+		
+		waitForConsistentQuery(adminUserInfo, sql, (results) -> {
+			List<Row> rows  = extractRows(results);
+			assertEquals(1, rows.size());
+			Row row = rows.get(0);
+			assertEquals(fileIdLong, row.getRowId());
+		});
 	}
 
 	/**
@@ -828,7 +852,7 @@ public class TableViewIntegrationTest {
 		// query the view as a user that does not permission
 		String sql = "select * from "+fileViewId+" where id ='"+firstFileId+"'";
 		int rowCount = 1;
-		waitForConsistentQuery(adminUserInfo, sql, rowCount);
+		waitForRowCount(adminUserInfo, sql, rowCount);
 
 		// manually delete the replicated data the file to simulate a data loss.
 		IdAndVersion idAndVersion = IdAndVersion.parse(fileViewId);
@@ -838,7 +862,7 @@ public class TableViewIntegrationTest {
 
 		// This query should trigger the reconciliation to repair the lost data.
 		// If the query returns a single row, then the deleted data was restored.
-		waitForConsistentQuery(adminUserInfo, sql, rowCount);
+		waitForRowCount(adminUserInfo, sql, rowCount);
 	}
 
 
@@ -861,7 +885,7 @@ public class TableViewIntegrationTest {
 		// query the view as a user that does not permission
 		String sql = "select * from "+viewId+" where id ='"+projectId+"'";
 		int rowCount = 1;
-		waitForConsistentQuery(adminUserInfo, sql, rowCount);
+		waitForRowCount(adminUserInfo, sql, rowCount);
 
 		// manually delete the replicated data of the project to simulate a data loss.
 		IdAndVersion idAndVersion = IdAndVersion.parse(viewId);
@@ -871,7 +895,7 @@ public class TableViewIntegrationTest {
 
 		// This query should trigger the reconciliation to repair the lost data.
 		// If the query returns a single row, then the deleted data was restored.
-		waitForConsistentQuery(adminUserInfo, sql, rowCount);
+		waitForRowCount(adminUserInfo, sql, rowCount);
 	}
 
 	/**
@@ -906,13 +930,14 @@ public class TableViewIntegrationTest {
 		// This query should trigger the reconciliation to repair the lost data.
 		// If the query returns a single row, then the deleted data was restored.
 		String sql = "select "+booleanColumn.getName()+" from "+fileViewId;
-		int rowCount = 3;
-		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql, rowCount);
-		List<Row> rows  = extractRows(results);
-		assertEquals(3, rows.size());
-		assertEquals("true", rows.get(0).getValues().get(0));
-		assertEquals("false", rows.get(1).getValues().get(0));
-		assertEquals(null, rows.get(2).getValues().get(0));
+		
+		waitForConsistentQuery(adminUserInfo, sql, (results) -> {			
+			List<Row> rows  = extractRows(results);
+			assertEquals(3, rows.size());
+			assertEquals("true", rows.get(0).getValues().get(0));
+			assertEquals("false", rows.get(1).getValues().get(0));
+			assertEquals(null, rows.get(2).getValues().get(0));
+		});
 	}
 
 	/**
@@ -948,13 +973,14 @@ public class TableViewIntegrationTest {
 		// This query should trigger the reconciliation to repair the lost data.
 		// If the query returns a single row, then the deleted data was restored.
 		String sql = "select "+stringColumn.getName()+" from "+fileViewId;
-		int rowCount = 3;
-		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql, rowCount);
-		List<Row> rows  = extractRows(results);
-		assertEquals(3, rows.size());
-		assertEquals("1.3", rows.get(0).getValues().get(0));
-		assertEquals("not a double", rows.get(1).getValues().get(0));
-		assertEquals("", rows.get(2).getValues().get(0));
+
+		waitForConsistentQuery(adminUserInfo, sql, (results) -> {			
+			List<Row> rows  = extractRows(results);
+			assertEquals(3, rows.size());
+			assertEquals("1.3", rows.get(0).getValues().get(0));
+			assertEquals("not a double", rows.get(1).getValues().get(0));
+			assertEquals("", rows.get(2).getValues().get(0));
+		});
 	}
 
 	/**
@@ -991,13 +1017,14 @@ public class TableViewIntegrationTest {
 		// This query should trigger the reconciliation to repair the lost data.
 		// If the query returns a single row, then the deleted data was restored.
 		String sql = "select "+entityIdColumn.getName()+" from "+fileViewId;
-		int rowCount = 3;
-		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql, rowCount);
-		List<Row> rows  = extractRows(results);
-		assertEquals(3, rows.size());
-		assertEquals("syn123", rows.get(0).getValues().get(0));
-		assertEquals("syn456", rows.get(1).getValues().get(0));
-		assertEquals(null, rows.get(2).getValues().get(0));
+		
+		waitForConsistentQuery(adminUserInfo, sql, (results) -> {			
+			List<Row> rows  = extractRows(results);
+			assertEquals(3, rows.size());
+			assertEquals("syn123", rows.get(0).getValues().get(0));
+			assertEquals("syn456", rows.get(1).getValues().get(0));
+			assertEquals(null, rows.get(2).getValues().get(0));
+		});
 	}
 
 	/**
@@ -1033,17 +1060,18 @@ public class TableViewIntegrationTest {
 		// Query for the values as strings.
 		String sql = "select "+stringColumn.getName()+", "+etagColumn.getName()+" from "+fileViewId;
 		int rowCount = 3;
-		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql, rowCount);
-
-		List<Row> rows  = extractRows(results);
-		assertEquals(3, rows.size());
-		assertEquals("1.23", rows.get(0).getValues().get(0));
-		assertEquals("456", rows.get(1).getValues().get(0));
-		assertEquals("789", rows.get(2).getValues().get(0));
+		
+		RowSet rowSet = waitForConsistentQuery(adminUserInfo, sql, (results) -> {
+			List<Row> rows  = extractRows(results);
+			assertEquals(3, rows.size());
+			assertEquals("1.23", rows.get(0).getValues().get(0));
+			assertEquals("456", rows.get(1).getValues().get(0));
+			assertEquals("789", rows.get(2).getValues().get(0));			
+		}).getQueryResult().getQueryResults();
 
 		// use the results to update the annotations.
-		RowSet rowSet = results.getQueryResult().getQueryResults();
 		List<EntityUpdateResult> updates = updateView(rowSet, fileViewId);
+
 		assertEquals(3, updates.size());
 		// all of the update should have succeeded.
 		for(EntityUpdateResult eur: updates){
@@ -1070,24 +1098,25 @@ public class TableViewIntegrationTest {
 		
 		// Query for the values as strings.
 		String sql = "select "+stringColumn.getName()+" from "+fileViewId+" where ROW_ID="+KeyFactory.stringToKey(fileId);
-		int rowCount = 1;
 		Query query = new Query();
 		query.setSql(sql);
 		query.setIncludeEntityEtag(true);
-		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, query, rowCount);
+		
+		final RowSet currentRowSet = waitForConsistentQuery(adminUserInfo, query, (results) -> {			
+			List<Row> rows  = extractRows(results);
+			assertEquals(1, rows.size());
+			Row row = rows.get(0);
+			assertNotNull(row.getEtag());
+			assertEquals("1", row.getValues().get(0));
+		}).getQueryResult().getQueryResults();
 
-		List<Row> rows  = extractRows(results);
-		assertEquals(1, rows.size());
-		Row row = rows.get(0);
-		assertNotNull(row.getEtag());
-		String oldEtag = row.getEtag();
-		assertEquals("1", row.getValues().get(0));
-		// change the value
-		row.setValues(Lists.newArrayList("111"));
+		// Saves the current row etag
+		final String currentEtag = currentRowSet.getRows().get(0).getEtag();
+		// change the value of the first row
+		currentRowSet.getRows().get(0).setValues(Lists.newArrayList("111"));
 			
 		// use the results to update the annotations.
-		RowSet rowSet = results.getQueryResult().getQueryResults();
-		List<EntityUpdateResult> updates = updateView(rowSet, fileViewId);
+		List<EntityUpdateResult> updates = updateView(currentRowSet, fileViewId);
 		assertEquals(1, updates.size());
 		// all of the update should have succeeded.
 		for(EntityUpdateResult eur: updates){
@@ -1097,15 +1126,17 @@ public class TableViewIntegrationTest {
 		
 		// wait for the view.
 		waitForEntityReplication(fileViewId, fileId);
+		
 		// Wait for the change to appear in the vie
-		results = waitForConsistentQuery(adminUserInfo, query, rowCount);
+		waitForConsistentQuery(adminUserInfo, query, (results) -> {			
+			List<Row> rows = extractRows(results);
+			assertEquals(1, rows.size());
+			Row row = rows.get(0);
+			assertNotNull(row.getEtag());
+			assertEquals("111", row.getValues().get(0));
+			assertFalse(currentEtag.equals(row.getEtag()));
+		});
 
-		rows  = extractRows(results);
-		assertEquals(1, rows.size());
-		row = rows.get(0);
-		assertNotNull(row.getEtag());
-		assertEquals("111", row.getValues().get(0));
-		assertFalse(oldEtag.equals(row.getEtag()));
 	}
 	
 	/**
@@ -1134,14 +1165,18 @@ public class TableViewIntegrationTest {
 		Query query = new Query();
 		query.setSql("select * from "+fileViewId);
 		query.setIncludeEntityEtag(true);
-		int rowCount = 4;
-		QueryResultBundle resuls = waitForConsistentQuery(adminUserInfo, query, rowCount);
-		List<Row> rows = extractRows(resuls);
-		assertEquals(4, rows.size());
-		// The last row should be the table
-		Row last = rows.get(3);
-		assertEquals(KeyFactory.stringToKey(table.getId()), last.getRowId());
-		assertEquals(table.getEtag(), last.getEtag());
+
+		final Long tableId = KeyFactory.stringToKey(table.getId());
+		final String tableEtag = table.getEtag();
+		
+		waitForConsistentQuery(adminUserInfo, query, (results) -> {			
+			List<Row> rows = extractRows(results);
+			assertEquals(4, rows.size());
+			// The last row should be the table
+			Row last = rows.get(3);
+			assertEquals(tableId, last.getRowId());
+			assertEquals(tableEtag, last.getEtag());
+		});
 		
 	}
 	
@@ -1167,12 +1202,9 @@ public class TableViewIntegrationTest {
 		fileViewId = createView(type, scope);
 		
 		// Query for the values as strings.
-		Query query = new Query();
-		query.setSql("select * from "+fileViewId);
-		query.setIncludeEntityEtag(true);
 		int rowCount = 3;
 		// query should work without failure.
-		waitForConsistentQuery(adminUserInfo, query, rowCount);
+		waitForRowCount(adminUserInfo, "select * from "+fileViewId, rowCount);
 		
 		// Try to add one more column should fail
 		ColumnModel cm = new ColumnModel();
@@ -1192,13 +1224,13 @@ public class TableViewIntegrationTest {
 		transactionRequest.setChanges(changes);
 		transactionRequest.setEntityId(fileViewId);
 		//  start the job to update the table
-		try {
-			startAndWaitForJob(adminUserInfo, transactionRequest, TableUpdateTransactionResponse.class);
-			fail();
-		} catch (AsynchJobFailedException e) {
-			// expected.
-			assertTrue(e.getMessage().contains(""+TableViewManagerImpl.MAX_COLUMNS_PER_VIEW));
-		}
+	 	IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+			startAndWaitForJob(adminUserInfo, transactionRequest, (response) -> {
+				fail("Should eventually fail");
+			});
+		});
+		assertTrue(e.getMessage().contains(""+TableViewManagerImpl.MAX_COLUMNS_PER_VIEW));
+		
 	}
 	
 	@Test
@@ -1242,20 +1274,21 @@ public class TableViewIntegrationTest {
 		// Start the job that will change the schema and annotations to each file and
 		// then snapshot the view.
 		// call under test
-		TableUpdateTransactionResponse response = startAndWaitForJob(adminUserInfo, transactionRequest,
-				TableUpdateTransactionResponse.class);
-		assertNotNull(response);
-		assertNotNull(response.getSnapshotVersionNumber());
+		Long snaphsotVersionNumber = startAndWaitForJob(adminUserInfo, transactionRequest, (TableUpdateTransactionResponse response) -> {				
+			assertNotNull(response);
+			assertNotNull(response.getSnapshotVersionNumber());
+		}).getSnapshotVersionNumber();
 
 		// Query the snapshot
 		Query query = new Query();
-		query.setSql("select * from " + fileViewId + "." + response.getSnapshotVersionNumber());
+		query.setSql("select * from " + fileViewId + "." + snaphsotVersionNumber);
 		query.setIncludeEntityEtag(true);
-		int rowCount = 3;
-		QueryResultBundle queryResults = waitForConsistentQuery(adminUserInfo, query, rowCount);
-		assertNotNull(queryResults);
-		List<Row> rows = extractRows(queryResults);
-		assertEquals(rowCount, rows.size());
+		
+		waitForConsistentQuery(adminUserInfo, query, (queryResults) -> {			
+			assertNotNull(queryResults);
+			List<Row> rows = extractRows(queryResults);
+			assertEquals(3, rows.size());
+		});
 	}
 	
 	/**
@@ -1277,17 +1310,12 @@ public class TableViewIntegrationTest {
 		// wait for the view.
 		waitForEntityReplication(fileViewId, fileId);
 		
-		// Query for the values as strings.
-		String sql = "select * from "+fileViewId+".1";
-		int rowCount = 1;
-		Query query = new Query();
-		query.setSql(sql);
-		query.setIncludeEntityEtag(true);
-		try {
-			waitForConsistentQuery(adminUserInfo, query, rowCount);
-		}catch(AsynchJobFailedException e) {
-			assertTrue(e.getMessage().contains("Snapshot not found"));
-		}
+		String message = assertThrows(AsynchJobFailedException.class, () -> {
+			waitForRowCount(adminUserInfo, "select * from "+fileViewId+".1", 1);
+		}).getMessage();
+		
+		assertTrue(message.contains("Snapshot not found"));
+		
 	}
 	
 	/**
@@ -1309,26 +1337,25 @@ public class TableViewIntegrationTest {
 		waitForEntityReplication(fileViewId, fileId);
 		
 		// Query for the values as strings.
-		String sql = "select * from "+fileViewId+".1";
 		int rowCount = fileIds.size();
-		Query query = new Query();
-		query.setSql(sql);
-		query.setIncludeEntityEtag(true);
-		try {
-			waitForConsistentQuery(adminUserInfo, query, rowCount);
-		}catch(AsynchJobFailedException e) {
-			assertTrue(e.getMessage().contains("Snapshot not found"));
-		}
+		String sql = "select * from "+fileViewId+".1";
+		
+		assertThrows(AsynchJobFailedException.class, () -> {
+			waitForRowCount(adminUserInfo, sql, rowCount);
+		});
+		
 		// Create a snapshot for this view
 		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
 		transactionRequest.setEntityId(fileViewId);
 		transactionRequest.setCreateSnapshot(true);
-		TableUpdateTransactionResponse response = startAndWaitForJob(adminUserInfo, transactionRequest,
-				TableUpdateTransactionResponse.class);
-		assertNotNull(response);
-		assertEquals(new Long(1), response.getSnapshotVersionNumber());
+		
+		startAndWaitForJob(adminUserInfo, transactionRequest, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+			assertEquals(new Long(1), response.getSnapshotVersionNumber());
+		});
+		
 		// run the query again, this time there should be 3 rows.
-		waitForConsistentQuery(adminUserInfo, query, rowCount);
+		waitForRowCount(adminUserInfo, sql, rowCount);
 	}
 
 	/**
@@ -1356,14 +1383,15 @@ public class TableViewIntegrationTest {
 		// This query should trigger the reconciliation to repair the lost data.
 		// If the query returns a single row, then the deleted data was restored.
 		String sql = "select UNNEST("+stringListColumn.getName()+") from "+fileViewId;
-		int rowCount = 4;
-		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql, rowCount);
-		List<Row> rows  = extractRows(results);
-		assertEquals(4, rows.size());
-		assertEquals("val1", rows.get(0).getValues().get(0));
-		assertEquals("val2", rows.get(1).getValues().get(0));
-		assertEquals("val3", rows.get(2).getValues().get(0));
-		assertEquals("val4", rows.get(3).getValues().get(0));
+		
+		waitForConsistentQuery(adminUserInfo, sql, (results) -> {			
+			List<Row> rows  = extractRows(results);
+			assertEquals(4, rows.size());
+			assertEquals("val1", rows.get(0).getValues().get(0));
+			assertEquals("val2", rows.get(1).getValues().get(0));
+			assertEquals("val3", rows.get(2).getValues().get(0));
+			assertEquals("val4", rows.get(3).getValues().get(0));
+		});
 	}
 	
 	/**
@@ -1381,13 +1409,15 @@ public class TableViewIntegrationTest {
 		// Wait for the 
 		Query query = new Query();
 		query.setSql("select * from "+fileViewId);
-		// run the query again
-		int expectedRowCount = fileCount;
+		
 		QueryOptions options = new QueryOptions().withRunQuery(true).withReturnLastUpdatedOn(true);
-		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, query, options, expectedRowCount);
-		assertNotNull(results);
-		Date startingLastUpdatedOn = results.getLastUpdatedOn();
-		assertNotNull(startingLastUpdatedOn);
+		
+		final Date lastUpdatedOn = waitForConsistentQuery(adminUserInfo, query, options, (results) -> {			
+			assertNotNull(results);
+			Date startingLastUpdatedOn = results.getLastUpdatedOn();
+			assertNotNull(startingLastUpdatedOn);
+		}).getLastUpdatedOn();
+		
 		// sleep to ensure lastUpdatedOnChanges
 		Thread.sleep(101);
 
@@ -1412,10 +1442,11 @@ public class TableViewIntegrationTest {
 		TableStatus viewStatus = tableManagerSupport.getTableStatusOrCreateIfNotExists(viewId);
 		assertEquals(TableState.AVAILABLE, viewStatus.getState());
 		// wait for the query results
-		results = waitForConsistentQuery(adminUserInfo, query, options, expectedRowCount);
-		assertNotNull(results.getLastUpdatedOn());
-		// The view should have been updated since the last query
-		assertTrue(results.getLastUpdatedOn().after(startingLastUpdatedOn));
+		waitForConsistentQuery(adminUserInfo, query, options, (results) -> {			
+			assertNotNull(results.getLastUpdatedOn());
+			// The view should have been updated since the last query
+			assertTrue(results.getLastUpdatedOn().after(lastUpdatedOn));
+		});
 	}
 
 	/**
@@ -1449,8 +1480,6 @@ public class TableViewIntegrationTest {
 
 		assertTrue(fileCount >= 2, "setup() needs to create at least 2 entities for this test to work");
 
-		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
-
 		//set annotations for 2 files
 		Annotations fileAnnotation1 = entityManager.getAnnotations(adminUserInfo, fileIds.get(0));
 		AnnotationsV2TestUtils.putAnnotations(fileAnnotation1, stringListColumn.getName(), Arrays.asList("val1", "val2"), AnnotationsValueType.STRING);
@@ -1464,20 +1493,18 @@ public class TableViewIntegrationTest {
 		waitForEntityReplication(fileViewId, fileIds.get(0));
 
 
-		assertEquals(fileCount, waitForConsistentQuery(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, fileCount).getQueryCount());
+		waitForRowCount(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, fileCount);
 		
 		//only 1 annotation has "val1" as a value
-		assertEquals(1, waitForConsistentQuery(adminUserInfo, "select * from "+ fileViewId + " where "+ stringListColumn.getName() +" HAS ('val1')").getQueryCount());
+		waitForRowCount(adminUserInfo, "select * from "+ fileViewId + " where "+ stringListColumn.getName() +" HAS ('val1')", 1);
 		//both annotations have "val2" as a value
-		assertEquals(2, waitForConsistentQuery(adminUserInfo, "select * from "+ fileViewId + " where "+ stringListColumn.getName() +" HAS ('val2')").getQueryCount());
+		waitForRowCount(adminUserInfo, "select * from "+ fileViewId + " where "+ stringListColumn.getName() +" HAS ('val2')", 2);
+		
 		//HAS "val1" or "val3" should also cover both values
-		assertEquals(2, waitForConsistentQuery(adminUserInfo, "select * from "+ fileViewId + " where "+ stringListColumn.getName() +" HAS ('val1', 'val3')").getQueryCount());
-
+		waitForRowCount(adminUserInfo, "select * from "+ fileViewId + " where "+ stringListColumn.getName() +" HAS ('val1', 'val3')", 2);
 
 		//modify annotation values by using updates to table view
-		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, fileCount);
-		//still expecting all rows
-		assertEquals(fileCount, results.getQueryCount());
+		QueryResultBundle results = waitForRowCount(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, fileCount);
 
 		//change multiValueKey to new values
 		RowSet rowsets = results.getQueryResult().getQueryResults();
@@ -1490,7 +1517,8 @@ public class TableViewIntegrationTest {
 		updateView(rowsets, fileViewId);
 
 		//check view is updated
-		assertEquals(2, waitForConsistentQuery(adminUserInfo, "select * from "+ fileViewId + " where "+ stringListColumn.getName() +" HAS ('newVal1', 'newVal6')", 2).getQueryCount());
+		waitForRowCount(adminUserInfo, "select * from "+ fileViewId + " where "+ stringListColumn.getName() +" HAS ('newVal1', 'newVal6')", 2);
+		
 		//check Annotations on entities are updated
 		assertEquals(Arrays.asList("newVal1", "newVal2"), entityManager.getAnnotations(adminUserInfo, firstChangeId).getAnnotations().get(stringListColumn.getName()).getValue());
 		assertEquals(Arrays.asList("newVal4", "newVal5", "newVal6"), entityManager.getAnnotations(adminUserInfo, secondChangeId).getAnnotations().get(stringListColumn.getName()).getValue());
@@ -1514,8 +1542,6 @@ public class TableViewIntegrationTest {
 
 		assertTrue(fileCount >= 2, "setup() needs to create at least 2 entities for this test to work");
 
-		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
-
 		//set annotations for 2 files
 		Annotations fileAnnotation1 = entityManager.getAnnotations(adminUserInfo, fileIds.get(0));
 		AnnotationsV2TestUtils.putAnnotations(fileAnnotation1, userIdList.getName(), Arrays.asList("111", "222"), AnnotationsValueType.LONG);
@@ -1530,11 +1556,10 @@ public class TableViewIntegrationTest {
 
 		waitForEntityReplication(fileViewId, fileIds.get(0));
 
-
-		QueryResultBundle results  = waitForConsistentQuery(adminUserInfo, "select id, etag, "+ userIdList.getName() + ", " + entityIdList.getName() +" from " + fileViewId, fileCount);
-
+		String query = "select id, etag, "+ userIdList.getName() + ", " + entityIdList.getName() +" from " + fileViewId;
+		
 		// expecting all rows
-		assertEquals(fileCount, results.getQueryCount());
+		QueryResultBundle results = waitForRowCount(adminUserInfo, query, fileCount);
 
 		//change multiValueKey to new values
 		RowSet rowsets = results.getQueryResult().getQueryResults();
@@ -1551,10 +1576,13 @@ public class TableViewIntegrationTest {
 		//change Entity Id
 		rowsets.getRows().get(1).getValues().set(3, "[\"syn314\", \"159\", \"syn265\"]");
 		//push modified values to view
-		List<EntityUpdateResult> updateResults = updateView(rowsets, fileViewId);
+		updateView(rowsets, fileViewId);
 
 		//check view is updated
-		assertEquals(2, waitForConsistentQuery(adminUserInfo, "select * from "+ fileViewId + " where "+ userIdList.getName() +" HAS ('123', '333')", 2).getQueryCount());
+		query = "select * from "+ fileViewId + " where "+ userIdList.getName() +" HAS ('123', '333')";
+		
+		waitForRowCount(adminUserInfo, query, 2);
+		
 		//check Annotations on entities are updated
 		assertEquals(Arrays.asList("123", "456"), entityManager.getAnnotations(adminUserInfo, firstChangeId).getAnnotations().get(userIdList.getName()).getValue());
 		assertEquals(Arrays.asList("314", "159", "265"), entityManager.getAnnotations(adminUserInfo, secondChangeId).getAnnotations().get(entityIdList.getName()).getValue());
@@ -1568,28 +1596,27 @@ public class TableViewIntegrationTest {
 
 		assertTrue(fileCount >= 2, "setup() needs to create at least 2 entities for this test to work");
 
-		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
-
 		//set annotations for 2 files
 		Annotations fileAnnotation1 = entityManager.getAnnotations(adminUserInfo, fileIds.get(0));
 		AnnotationsV2TestUtils.putAnnotations(fileAnnotation1, stringListColumn.getName(), Arrays.asList("val1", "val2"), AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileIds.get(0), fileAnnotation1);
 		waitForEntityReplication(fileViewId, fileIds.get(0));
 
-
-		assertEquals(fileCount, waitForConsistentQuery(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, fileCount).getQueryCount());
+		waitForRowCount(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, fileCount);
+		
 		//this annotation will exceed the limit
 		Annotations fileAnnotation2 = entityManager.getAnnotations(adminUserInfo, fileIds.get(1));
 		AnnotationsV2TestUtils.putAnnotations(fileAnnotation2, stringListColumn.getName(), Arrays.asList("val2", "val3", "val1", "val4"), AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileIds.get(1), fileAnnotation2);
 
-
 		waitForEntityReplication(fileViewId, fileIds.get(1));
-
-
+		
 		String error = assertThrows(AsynchJobFailedException.class, () ->
-				waitForConsistentQuery(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, fileCount)
+			waitForConsistentQuery(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, (results) -> {
+				fail("This should fail eventually");
+			})
 		).getMessage();
+		
 		assertEquals("maximumListLength for ColumnModel \"stringList\" must be at least: 4", error);
 
 	}
@@ -1601,8 +1628,6 @@ public class TableViewIntegrationTest {
 
 		assertTrue(fileCount >= 2, "setup() needs to create at least 2 entities for this test to work");
 
-		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
-
 		//set annotations for 2 files
 		Annotations fileAnnotation1 = entityManager.getAnnotations(adminUserInfo, fileIds.get(0));
 		AnnotationsV2TestUtils.putAnnotations(fileAnnotation1, stringListColumn.getName(), Arrays.asList("val1", "val2", "val3"), AnnotationsValueType.STRING);
@@ -1612,11 +1637,9 @@ public class TableViewIntegrationTest {
 		AnnotationsV2TestUtils.putAnnotations(fileAnnotation2, stringListColumn.getName(), Arrays.asList("val2", "val3"), AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileIds.get(1), fileAnnotation2);
 
-
 		waitForEntityReplication(fileViewId, fileIds.get(0));
 
-
-		assertEquals(fileCount, waitForConsistentQuery(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, fileCount).getQueryCount());
+		waitForRowCount(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, fileCount);
 
 		//now reduce the maxListSize
 
@@ -1642,11 +1665,16 @@ public class TableViewIntegrationTest {
 		transaction.setChanges(updates);
 
 		// wait for the change to complete
-		startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+		});
 
 		String error = assertThrows(AsynchJobFailedException.class, () ->
-				waitForConsistentQuery(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, fileCount)
+			waitForConsistentQuery(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, (result) -> {
+				fail("Should eventually fail");
+			})
 		).getMessage();
+		
 		assertEquals("maximumListLength for ColumnModel \"stringList\" must be at least: 3", error);
 	}
 
@@ -1657,8 +1685,6 @@ public class TableViewIntegrationTest {
 		createFileView();
 
 		assertTrue(fileCount >= 2, "setup() needs to create at least 2 entities for this test to work");
-
-		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
 
 		//set annotations for 2 files
 		Annotations fileAnnotation1 = entityManager.getAnnotations(adminUserInfo, fileIds.get(0));
@@ -1673,19 +1699,17 @@ public class TableViewIntegrationTest {
 		waitForEntityReplication(fileViewId, fileIds.get(0));
 
 
-		QueryResultBundle result = waitForConsistentQuery(adminUserInfo, "select " + stringListColumn.getName() + " from " + fileViewId, fileCount);
-		assertEquals(fileCount, result.getQueryCount());
+		QueryResultBundle result = waitForRowCount(adminUserInfo, "select " + stringListColumn.getName() + " from " + fileViewId, fileCount);
 
 		//update annotations via row changes to exceed maximumListLength
 		RowSet rowset = result.getQueryResult().getQueryResults();
 		rowset.getRows().get(0).setValues(Collections.singletonList("[\"val1\",\"val2\",\"val3\",\"val4\"]"));
 
 		// wait for the change to complete
-//		startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
-
-		String error = assertThrows(AsynchJobFailedException.class, () ->
+		String error = assertThrows(IllegalArgumentException.class, () ->
 				updateView(rowset,fileViewId)
 		).getMessage();
+		
 		assertEquals("Value at [0,16] was not a valid STRING_LIST. Exceeds the maximum number of list elements defined in the ColumnModel (3): \"[\"val1\",\"val2\",\"val3\",\"val4\"]\"", error);
 	}
 	
@@ -1700,17 +1724,18 @@ public class TableViewIntegrationTest {
 		waitForEntityReplication(fileViewId, fileZero);
 		String sql = "select " + ObjectField.dataFileMD5Hex + "," + ObjectField.dataFileSizeBytes + " from "
 				+ fileViewId + " where " + ObjectField.id + " = '" + fileZero+"'";
-		int rowCount = 1;
-		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql, rowCount);
-		List<Row> rows = extractRows(results);
-		assertNotNull(rows);
-		assertEquals(1, rows.size());
-		Row row = rows.get(0);
-		assertNotNull(row);
-		assertNotNull(row.getValues());
-		assertEquals(2, row.getValues().size());
-		assertEquals(sharedHandle.getContentMd5(), row.getValues().get(0));
-		assertEquals(sharedHandle.getContentSize().toString(), row.getValues().get(1));
+		
+		waitForConsistentQuery(adminUserInfo, sql, (results) -> {			
+			List<Row> rows = extractRows(results);
+			assertNotNull(rows);
+			assertEquals(1, rows.size());
+			Row row = rows.get(0);
+			assertNotNull(row);
+			assertNotNull(row.getValues());
+			assertEquals(2, row.getValues().size());
+			assertEquals(sharedHandle.getContentMd5(), row.getValues().get(0));
+			assertEquals(sharedHandle.getContentSize().toString(), row.getValues().get(1));
+		});
 	}
 	
 	/**
@@ -1765,13 +1790,16 @@ public class TableViewIntegrationTest {
 		TableUpdateTransactionRequest tutr = new TableUpdateTransactionRequest();
 		tutr.setEntityId(viewId);
 		tutr.setChanges(updates);
-		TableUpdateTransactionResponse response = startAndWaitForJob(adminUserInfo, tutr, TableUpdateTransactionResponse.class);
-		assertNotNull(response);
-		assertNotNull(response.getResults());
-		assertEquals(1, response.getResults().size());
-		EntityUpdateResults updateResults = (EntityUpdateResults)response.getResults().get(0);
-		assertNotNull(updateResults.getUpdateResults());
-		return updateResults.getUpdateResults();
+		
+		EntityUpdateResults results = (EntityUpdateResults) startAndWaitForJob(adminUserInfo, tutr, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+			assertNotNull(response.getResults());
+			assertEquals(1, response.getResults().size());
+			EntityUpdateResults updateResults = (EntityUpdateResults)response.getResults().get(0);
+			assertNotNull(updateResults.getUpdateResults());
+		}).getResults().get(0);
+		
+		return results.getUpdateResults();
 	}
 	
 	/**
@@ -1796,24 +1824,8 @@ public class TableViewIntegrationTest {
 	 * @throws InterruptedException 
 	 * @throws AsynchJobFailedException 
 	 */
-	@SuppressWarnings("unchecked")
-	public <T extends AsynchronousResponseBody> T  startAndWaitForJob(UserInfo user, AsynchronousRequestBody body, Class<? extends T> clazz) throws InterruptedException, AsynchJobFailedException{
-		long startTime = System.currentTimeMillis();
-		AsynchronousJobStatus status = asynchJobStatusManager.startJob(user, body);
-		while(true){
-			status = asynchJobStatusManager.getJobStatus(user, status.getJobId());
-			switch(status.getJobState()){
-			case FAILED:
-				throw new AsynchJobFailedException(status);
-			case PROCESSING:
-				assertTrue((System.currentTimeMillis()-startTime) < MAX_WAIT_MS, "Timed out waiting for job to complete");
-				System.out.println("Waiting for job: "+status.getProgressMessage());
-				Thread.sleep(1000);
-				break;
-			case COMPLETE:
-				return (T)status.getResponseBody();
-			}
-		}
+	public <T extends AsynchronousResponseBody> T  startAndWaitForJob(UserInfo user, AsynchronousRequestBody body, Consumer<T> responseConsumer) throws InterruptedException, AsynchJobFailedException{
+		return asyncHelper.assertJobResponse(user, body, responseConsumer, MAX_WAIT_MS).getResponse();
 	}
 	
 	/**
@@ -1824,39 +1836,21 @@ public class TableViewIntegrationTest {
 	 * @return
 	 * @throws Exception
 	 */
-	private QueryResultBundle waitForConsistentQuery(UserInfo user, String sql, int rowCount) throws Exception {
+	private QueryResultBundle waitForRowCount(UserInfo user, String sql, int rowCount) throws Exception {
 		Query query = new Query();
 		query.setSql(sql);
-		return waitForConsistentQuery(user, query, rowCount);
-	}
-	
-	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query, int rowCount) throws Exception {
-		QueryOptions options = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(false);
-		return waitForConsistentQuery(user, query, options, rowCount);
-	}
-	
-	/**
-	 * Wait for a query to return the expected number of rows.
-	 * @param user
-	 * @param sql
-	 * @param rowCount
-	 * @return
-	 * @throws Exception
-	 */
-	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query, QueryOptions options, int rowCount) throws Exception {
-		long start = System.currentTimeMillis();
-		while(true){
-			QueryResultBundle results = waitForConsistentQuery(user, query, options);
+		
+		QueryOptions options = new QueryOptions()
+				.withRunQuery(true)
+				.withRunCount(true)
+				.withReturnFacets(false);
+		
+		return waitForConsistentQuery(user, query, options, (results) -> {
 			List<Row> rows = extractRows(results);
-			if(rows.size() == rowCount){
-				return results;
-			}
-			System.out.println("Waiting for row count: "+rowCount+". Current count: "+rows.size());
-			assertTrue((System.currentTimeMillis()-start) <  MAX_WAIT_MS, "Timed out waiting for table view worker to make the table available.");
-			Thread.sleep(1000);
-		}
+			assertEquals(rowCount, rows.size());
+		});
 	}
-	
+
 	/**
 	 * Attempt to run a query. If the table is unavailable, it will continue to try until successful or the timeout is exceeded.
 	 * 
@@ -1867,39 +1861,19 @@ public class TableViewIntegrationTest {
 	 * @throws NotFoundException
 	 * @throws InterruptedException
 	 */
-	private QueryResultBundle waitForConsistentQuery(UserInfo user, String sql) throws Exception {
+	private QueryResultBundle waitForConsistentQuery(UserInfo user, String sql,  Consumer<QueryResultBundle> resultMatcher) throws Exception {
 		Query query = new Query();
 		query.setSql(sql);
-		return waitForConsistentQuery(user, query);
+		return waitForConsistentQuery(user, query, resultMatcher);
 	}
 	
-	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query) throws Exception {
+	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query, Consumer<QueryResultBundle> resultMatcher) throws Exception {
 		QueryOptions options = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(false);
-		return waitForConsistentQuery(user, query, options);
+		return waitForConsistentQuery(user, query, options, resultMatcher);
 	}
 	
-	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query, QueryOptions options) throws Exception {
-		// Wait for the view to be up-to-date before running the query
-		IdAndVersion viewId = extractTableIdFromQuery(query.getSql());
-		asynchronousJobWorkerHelper.waitForViewToBeUpToDate(viewId, MAX_WAIT_MS);
-		// The view is up-to-date so run the caller's query.
-		QueryBundleRequest request = new QueryBundleRequest();
-		request.setQuery(query);
-		request.setPartMask(options.getPartMask());
-		QueryResultBundle results =  startAndWaitForJob(user, request, QueryResultBundle.class);
-		// Keep running queries as long as a view out-of-date
-
-		return results;
-	}
-	
-	/**
-	 * Helper to extract a table's ID from a query.
-	 * @param sql
-	 * @return
-	 * @throws ParseException
-	 */
-	public IdAndVersion extractTableIdFromQuery(String sqlQuery) throws ParseException {
-		return IdAndVersion.parse(TableQueryParser.parserQuery(sqlQuery).getTableName());
+	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query, QueryOptions options, Consumer<QueryResultBundle> resultMatcher) throws Exception {
+		return asyncHelper.assertQueryResult(user, query, options, resultMatcher, MAX_WAIT_MS);
 	}
 	
 	/**
@@ -1912,20 +1886,7 @@ public class TableViewIntegrationTest {
 	 * @throws InterruptedException
 	 */
 	private ObjectDataDTO waitForEntityReplication(String tableId, String entityId) throws InterruptedException{
-		Entity entity = entityManager.getEntity(adminUserInfo, entityId);
-		long start = System.currentTimeMillis();
-		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
-		while(true){
-			ObjectDataDTO dto = indexDao.getObjectData(viewObjectType, KeyFactory.stringToKey(entityId));
-			if(dto == null || !dto.getEtag().equals(entity.getEtag())){
-				assertTrue((System.currentTimeMillis()-start) <  MAX_WAIT_MS, "Timed out waiting for table view status change.");
-				System.out.println("Waiting for entity replication. id: "+entityId+" etag: "+entity.getEtag());
-				Thread.sleep(1000);
-			}else{
-				return dto;
-			}
-		}
+		return asyncHelper.waitForEntityReplication(adminUserInfo, tableId, entityId, MAX_WAIT_MS);
 	}
 
 }

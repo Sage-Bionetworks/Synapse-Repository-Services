@@ -1,11 +1,11 @@
 package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -145,14 +145,9 @@ public class SubmissionViewIntegrationTest {
 		
 		List<SubmissionBundle> submissions = ImmutableList.of(submission1, submission2);		
 		
-		Predicate<QueryResultBundle> submissionMatcher = idAndEtagMatcher(submissions);
-		
 		// Wait for the results
-		QueryResultBundle result = asyncHelper.waitForConsistentQuery(evaluationOwner, "select * from " + view.getId() + " order by id", submissionMatcher, MAX_WAIT);
-
-		List<Row> expectedRows = mapSubmissions(evaluationProject, submissions);
+		assertSubmissionQueryResults(evaluationOwner, "select * from " + view.getId() + " order by id", submissions);
 		
-		assertEquals(expectedRows, result.getQueryResult().getQueryResults().getRows());
 	}
 	
 	@Test
@@ -171,14 +166,8 @@ public class SubmissionViewIntegrationTest {
 		
 		List<SubmissionBundle> submissions = ImmutableList.of(submission1, submission2);
 		
-		Predicate<QueryResultBundle> submissionMatcher = idAndEtagMatcher(submissions);
-		
 		// Wait for the results
-		QueryResultBundle result = asyncHelper.waitForConsistentQuery(evaluationOwner, "select * from " + view.getId() + " order by id", submissionMatcher, MAX_WAIT);
-
-		List<Row> expectedRows = mapSubmissions(evaluationProject, submissions);
-		
-		assertEquals(expectedRows, result.getQueryResult().getQueryResults().getRows());
+		assertSubmissionQueryResults(evaluationOwner, "select * from " + view.getId() + " order by id", submissions);
 	}
 	
 	@Test
@@ -191,14 +180,8 @@ public class SubmissionViewIntegrationTest {
 		
 		List<SubmissionBundle> submissions = ImmutableList.of(submission1);
 		
-		Predicate<QueryResultBundle> submissionMatcher = idAndEtagMatcher(submissions);
-		
 		// Wait for the results
-		QueryResultBundle result = asyncHelper.waitForConsistentQuery(evaluationOwner, "select * from " + view.getId() + " order by id", submissionMatcher, MAX_WAIT);
-
-		List<Row> expectedRows = mapSubmissions(evaluationProject, submissions);
-		
-		assertEquals(expectedRows, result.getQueryResult().getQueryResults().getRows());
+		assertSubmissionQueryResults(evaluationOwner, "select * from " + view.getId() + " order by id", submissions);
 	}
 	
 	@Test
@@ -211,30 +194,18 @@ public class SubmissionViewIntegrationTest {
 		view = createView(evaluationOwner, evaluationProject, evaluation);
 		
 		List<SubmissionBundle> submissions = ImmutableList.of(submission1);		
-		
-		Predicate<QueryResultBundle> submissionMatcher = idAndEtagMatcher(submissions);
-		
-		// Wait for the results
-		QueryResultBundle result = asyncHelper.waitForConsistentQuery(evaluationOwner, "select * from " + view.getId() + " order by id", submissionMatcher, MAX_WAIT);
 
-		List<Row> expectedRows = mapSubmissions(evaluationProject, submissions);
-		
-		assertEquals(expectedRows, result.getQueryResult().getQueryResults().getRows());
+		// Wait for the results
+		assertSubmissionQueryResults(evaluationOwner, "select * from " + view.getId() + " order by id", submissions);
 
 		// Add another submission
 		Folder entity2 = testHelper.createFolder(submitter2, submitter2Project);
 		SubmissionBundle submission2 = testHelper.createSubmission(submitter2, evaluation, entity2);
 		
 		submissions = ImmutableList.of(submission1, submission2);
-		
-		submissionMatcher = idAndEtagMatcher(submissions);
-		
-		// Wait for the results
-		result = asyncHelper.waitForConsistentQuery(evaluationOwner, "select * from " + view.getId() + " order by id", submissionMatcher, MAX_WAIT);
 
-		expectedRows = mapSubmissions(evaluationProject, submissions);
-		
-		assertEquals(expectedRows, result.getQueryResult().getQueryResults().getRows());
+		// Wait for the results
+		assertSubmissionQueryResults(evaluationOwner, "select * from " + view.getId() + " order by id", submissions);
 	}
 	
 	@Test
@@ -248,17 +219,11 @@ public class SubmissionViewIntegrationTest {
 		
 		view = createView(evaluationOwner, evaluationProject, evaluation);
 		
-		List<SubmissionBundle> submissions = ImmutableList.of(submission1, submission2);		
-		
-		Predicate<QueryResultBundle> submissionMatcher = idAndEtagMatcher(submissions);
+		List<SubmissionBundle> submissions = ImmutableList.of(submission1, submission2);
 		
 		// Wait for the results
-		QueryResultBundle result = asyncHelper.waitForConsistentQuery(evaluationOwner, "select * from " + view.getId() + " order by id", submissionMatcher, MAX_WAIT);
-
-		List<Row> expectedRows = mapSubmissions(evaluationProject, submissions);
+		assertSubmissionQueryResults(evaluationOwner, "select * from " + view.getId() + " order by id", submissions);
 		
-		assertEquals(expectedRows, result.getQueryResult().getQueryResults().getRows());
-
 		// Updates the status of the 1st submission
 		SubmissionStatus status = submissionManager.getSubmissionStatus(evaluationOwner, submission1.getSubmission().getId());
 		
@@ -267,13 +232,9 @@ public class SubmissionViewIntegrationTest {
 		status = submissionManager.updateSubmissionStatus(evaluationOwner, status);
 		
 		submission1.setSubmissionStatus(status);
-		
+
 		// Wait for the updated results
-		result = asyncHelper.waitForConsistentQuery(evaluationOwner, "select * from " + view.getId() + " order by id", submissionMatcher, MAX_WAIT);
-		
-		expectedRows = mapSubmissions(evaluationProject, submissions);
-		
-		assertEquals(expectedRows, result.getQueryResult().getQueryResults().getRows());
+		assertSubmissionQueryResults(evaluationOwner, "select * from " + view.getId() + " order by id", submissions);
 
 	}
 	
@@ -288,14 +249,8 @@ public class SubmissionViewIntegrationTest {
 		
 		List<SubmissionBundle> submissions = ImmutableList.of(submission1);
 		
-		Predicate<QueryResultBundle> submissionMatcher = idAndEtagMatcher(submissions);
-		
 		// Wait for the results
-		QueryResultBundle result = asyncHelper.waitForConsistentQuery(evaluationOwner, "select * from " + view.getId() + " order by id", submissionMatcher, MAX_WAIT);
-
-		List<Row> expectedRows = mapSubmissions(evaluationProject, submissions);
-		
-		assertEquals(expectedRows, result.getQueryResult().getQueryResults().getRows());
+		QueryResultBundle result = assertSubmissionQueryResults(evaluationOwner, "select * from " + view.getId() + " order by id", submissions);
 		
 		// Now add the "foo" column to the model
 		List<ColumnModel> columnModels = result.getColumnModels();
@@ -321,12 +276,7 @@ public class SubmissionViewIntegrationTest {
 		submission1.setSubmissionStatus(status);
 		
 		// Wait for the updated results
-		result = asyncHelper.waitForConsistentQuery(evaluationOwner, "select * from " + view.getId() + " order by id", submissionMatcher, MAX_WAIT);
-		
-		expectedRows = mapSubmissions(evaluationProject, submissions);
-		
-		assertEquals(expectedRows, result.getQueryResult().getQueryResults().getRows());
-
+		assertSubmissionQueryResults(evaluationOwner, "select * from " + view.getId() + " order by id", submissions);
 	}
 	
 	@Test
@@ -366,6 +316,31 @@ public class SubmissionViewIntegrationTest {
 		assertEquals(1, model.size());
 		assertEquals("foo", model.get(0).getName());
 		assertEquals(ColumnType.STRING, model.get(0).getColumnType());
+	}
+	
+	private QueryResultBundle assertSubmissionQueryResults(UserInfo user, String query, List<SubmissionBundle> submissions) throws Exception {
+		List<Row> expectedRows = mapSubmissions(evaluationProject, submissions);
+		
+		// Wait for the updated results
+		return asyncHelper.assertQueryResult(evaluationOwner, query, (QueryResultBundle result) -> {
+			
+			List<Row> rows = result.getQueryResult().getQueryResults().getRows();
+			
+			assertEquals(submissions.size(), rows.size());
+			
+			for (int i=0; i<rows.size(); i++) {
+				Row row = rows.get(i);
+				SubmissionStatus status = submissions.get(i).getSubmissionStatus();
+				Long id = KeyFactory.stringToKey(status.getId());
+				String etag = status.getEtag();
+				
+				assertEquals(id, row.getRowId());
+				assertEquals(etag, row.getEtag());
+			}
+			
+			assertEquals(expectedRows, result.getQueryResult().getQueryResults().getRows());
+			
+		}, MAX_WAIT);
 	}
 	
 	private static List<Row> mapSubmissions(Project evaluationProject, List<SubmissionBundle> submissions) {
@@ -420,31 +395,6 @@ public class SubmissionViewIntegrationTest {
 		row.setValues(values);
 		
 		return row;
-	}
-	
-	private static Predicate<QueryResultBundle> idAndEtagMatcher(final List<SubmissionBundle> submissions) {
-		return (QueryResultBundle result) -> {
-			List<Row> rows = result.getQueryResult().getQueryResults().getRows();
-			
-			if (rows.size() != submissions.size()) {
-				return false;
-			}
-			
-			for (int i=0; i<rows.size(); i++) {
-				Row row = rows.get(i);
-				SubmissionStatus status = submissions.get(i).getSubmissionStatus();
-				Long id = KeyFactory.stringToKey(status.getId());
-				String etag = status.getEtag();
-				
-				if (row.getRowId().equals(id) && row.getEtag().equals(etag)) {
-					continue;
-				}
-				
-				return false;
-			}
-			
-			return true;
-		};
 	}
 	
 	private SubmissionView createView(UserInfo user, Entity parent, Evaluation ...evaluations) {
