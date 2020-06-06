@@ -77,9 +77,9 @@ mysql -u${rds_user_name} -p${rds_password} -h ${org_sagebionetworks_table_cluste
 
 
 # create build container and run build
-docker run -i --rm --name ${build_container_name} \
+docker run --user "$(id -u):$(id -g)" -i --rm --name ${build_container_name} \
 -m 5500M \
--v ${m2_cache_parent_folder}/.m2:/root/.m2 \
+-v ${m2_cache_parent_folder}/.m2:/tmp/.m2 \
 -v ${src_folder}:/repo \
 -v /etc/localtime:/etc/localtime:ro \
 -e MAVEN_OPTS="-Xms256m -Xmx2048m -XX:MaxPermSize=512m" \
@@ -106,7 +106,7 @@ ${AWS_CREDS} \
 -Dorg.sagebionetworks.doi.datacite.api.endpoint=${org_sagebionetworks_doi_datacite_api_endpoint} \
 -Dorg.sagebionetworks.google.cloud.enabled=${org_sagebionetworks_google_cloud_enabled} \
 -Dorg.sagebionetworks.google.cloud.key="${org_sagebionetworks_google_cloud_key}" \
--Duser.home=/root"
+-Duser.home=/tmp"
 
 clean_up_container ${build_container_name}
 
