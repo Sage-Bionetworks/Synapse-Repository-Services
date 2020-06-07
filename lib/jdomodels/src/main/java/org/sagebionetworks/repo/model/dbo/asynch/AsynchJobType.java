@@ -26,6 +26,8 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
+import org.sagebionetworks.repo.model.table.ViewColumnModelRequest;
+import org.sagebionetworks.repo.model.table.ViewColumnModelResponse;
 
 /**
  * This enum maps types to classes.
@@ -55,7 +57,9 @@ public enum AsynchJobType  {
 
 	STORAGE_REPORT(DownloadStorageReportRequest.class, DownloadStorageReportResponse.class),
 	
-	JSON_SCHEMA_CREATE(CreateSchemaRequest.class, CreateSchemaResponse.class);
+	JSON_SCHEMA_CREATE(CreateSchemaRequest.class, CreateSchemaResponse.class),
+	
+	VIEW_COLUMN_MODEL_REQUEST(ViewColumnModelRequest.class, ViewColumnModelResponse.class);
 
 	private Class<? extends AsynchronousRequestBody> requestClass;
 	private Class<? extends AsynchronousResponseBody> responseClass;

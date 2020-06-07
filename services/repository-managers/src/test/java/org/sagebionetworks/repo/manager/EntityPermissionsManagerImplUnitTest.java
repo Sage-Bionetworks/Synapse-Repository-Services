@@ -14,11 +14,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -31,7 +29,6 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.EntityType;
@@ -40,11 +37,12 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.RestrictionInformationRequest;
+import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.project.ProjectCertificationSetting;
@@ -81,9 +79,7 @@ public class EntityPermissionsManagerImplUnitTest {
 	@Mock
 	private AccessControlListDAO mockAclDAO;
 	@Mock
-	private AccessRequirementDAO  mockAccessRequirementDAO;
-	@Mock
-	private UserManager mockUserManager;
+	private RestrictionInformationManager  mockRestrictionInformationManager;
 	@Mock
 	private AuthenticationManager mockAuthenticationManager;
 	@Mock
@@ -110,6 +106,10 @@ public class EntityPermissionsManagerImplUnitTest {
 	private Long userId;
 	
 	private String newEtag;
+
+	private RestrictionInformationRequest restrictionInfoRqst;
+	private RestrictionInformationResponse hasUnmetAccessRqmtResponse;
+	private RestrictionInformationResponse noUnmetAccessRqmtResponse;
 
 	// here we set up a certified and a non-certified user, a project and a non-project Node
 	@BeforeEach
@@ -160,6 +160,14 @@ public class EntityPermissionsManagerImplUnitTest {
 		nonvisibleIds = Sets.newHashSet(888L,999L);
 		entityId = "syn888";
 		newEtag = "newEtag";
+		
+		restrictionInfoRqst = new RestrictionInformationRequest();
+		restrictionInfoRqst.setRestrictableObjectType(RestrictableObjectType.ENTITY);
+		hasUnmetAccessRqmtResponse = new RestrictionInformationResponse();
+		hasUnmetAccessRqmtResponse.setHasUnmetAccessRequirement(true);
+		noUnmetAccessRqmtResponse = new RestrictionInformationResponse();
+		noUnmetAccessRqmtResponse.setHasUnmetAccessRequirement(false);
+
 	}
 
 	@Test
@@ -174,9 +182,10 @@ public class EntityPermissionsManagerImplUnitTest {
 				any(ACCESS_TYPE.class))).thenReturn(true);
 		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(certifiedUserInfo.getId())).thenReturn(true);
 
-		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
-				Collections.singletonList(KeyFactory.stringToKey(projectId)), RestrictableObjectType.ENTITY, certifiedUserInfo.getGroups(),
-				Collections.singletonList(ACCESS_TYPE.DOWNLOAD))).thenReturn(Collections.singletonList(77777L));
+		restrictionInfoRqst.setObjectId(projectId);
+		when(mockRestrictionInformationManager.
+				getRestrictionInformation(certifiedUserInfo, restrictionInfoRqst)).
+					thenReturn(hasUnmetAccessRqmtResponse);
 
 		// Method under test.
 		UserEntityPermissions uep = entityPermissionsManager.
@@ -215,9 +224,10 @@ public class EntityPermissionsManagerImplUnitTest {
 				any(ACCESS_TYPE.class))).thenReturn(true);
 		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(nonCertifiedUserInfo.getId())).thenReturn(true);
 
-		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
-				Collections.singletonList(KeyFactory.stringToKey(projectId)), RestrictableObjectType.ENTITY, nonCertifiedUserInfo.getGroups(),
-				Collections.singletonList(ACCESS_TYPE.DOWNLOAD))).thenReturn(Collections.singletonList(77777L));
+		restrictionInfoRqst.setObjectId(projectId);
+		when(mockRestrictionInformationManager.
+				getRestrictionInformation(nonCertifiedUserInfo, restrictionInfoRqst)).
+					thenReturn(hasUnmetAccessRqmtResponse);
 
 		// Method under test.
 		UserEntityPermissions uep = entityPermissionsManager.
@@ -255,10 +265,11 @@ public class EntityPermissionsManagerImplUnitTest {
 				any(ACCESS_TYPE.class))).thenReturn(true);
 		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(certifiedUserInfo.getId())).thenReturn(true);
 
-		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
-				Collections.singletonList(KeyFactory.stringToKey(projectId)), RestrictableObjectType.ENTITY, certifiedUserInfo.getGroups(),
-				Collections.singletonList(ACCESS_TYPE.DOWNLOAD))).thenReturn(Collections.singletonList(77777L));
-
+		restrictionInfoRqst.setObjectId(projectId);
+		when(mockRestrictionInformationManager.
+				getRestrictionInformation(certifiedUserInfo, restrictionInfoRqst)).
+					thenReturn(hasUnmetAccessRqmtResponse);
+		
 		// show that user has access
 		
 		// method under test
@@ -266,7 +277,6 @@ public class EntityPermissionsManagerImplUnitTest {
 				getUserPermissionsForEntity(certifiedUserInfo, projectId);
 		
 		assertTrue(uep.getCanUpload());
-
 	}
 	
 	@Test
@@ -280,6 +290,11 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockAclDAO.canAccess(eq(certifiedUserInfo.getGroups()), eq(benefactorId), eq(ObjectType.ENTITY),
 				any(ACCESS_TYPE.class))).thenReturn(true);
 		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(certifiedUserInfo.getId())).thenReturn(true);
+		
+		restrictionInfoRqst.setObjectId(folderId);
+		when(mockRestrictionInformationManager.
+				getRestrictionInformation(certifiedUserInfo, restrictionInfoRqst)).
+					thenReturn(noUnmetAccessRqmtResponse);
 
 		// Method under test.
 		UserEntityPermissions uep = entityPermissionsManager.
@@ -363,6 +378,11 @@ public class EntityPermissionsManagerImplUnitTest {
 				any(ACCESS_TYPE.class))).thenReturn(true);
 		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(nonCertifiedUserInfo.getId())).thenReturn(true);
 
+		restrictionInfoRqst.setObjectId(folderId);
+		when(mockRestrictionInformationManager.
+				getRestrictionInformation(nonCertifiedUserInfo, restrictionInfoRqst)).
+					thenReturn(noUnmetAccessRqmtResponse);
+
 		// Method under test.
 		UserEntityPermissions uep = entityPermissionsManager.
 				getUserPermissionsForEntity(nonCertifiedUserInfo, folderId);
@@ -412,6 +432,10 @@ public class EntityPermissionsManagerImplUnitTest {
 		
 		when(mockProjectSettingsManager.getProjectSettingForNode(nonCertifiedUserInfo, folderId, ProjectSettingsType.certification,
 				ProjectCertificationSetting.class)).thenReturn(Optional.of(projectSetting));
+		restrictionInfoRqst.setObjectId(folderId);
+		when(mockRestrictionInformationManager.
+				getRestrictionInformation(nonCertifiedUserInfo, restrictionInfoRqst)).
+					thenReturn(noUnmetAccessRqmtResponse);
 
 		// Method under test.
 		UserEntityPermissions uep = entityPermissionsManager.
@@ -449,10 +473,13 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockNodeDao.getNode(dockerRepoId)).thenReturn(dockerRepo);
 		when(mockNodeDao.getBenefactor(dockerRepoId)).thenReturn(benefactorId);
 		when(mockNodeDao.getNodeTypeById(dockerRepoId)).thenReturn(EntityType.dockerrepo);
-
 		when(mockAclDAO.canAccess(eq(certifiedUserInfo.getGroups()), eq(benefactorId), eq(ObjectType.ENTITY),
 				any(ACCESS_TYPE.class))).thenReturn(true);
 		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(certifiedUserInfo.getId())).thenReturn(true);
+		restrictionInfoRqst.setObjectId(dockerRepoId);
+		when(mockRestrictionInformationManager.
+				getRestrictionInformation(certifiedUserInfo, restrictionInfoRqst)).
+					thenReturn(noUnmetAccessRqmtResponse);
 
 		// Method under test.
 		UserEntityPermissions uep = entityPermissionsManager.
@@ -764,17 +791,15 @@ public class EntityPermissionsManagerImplUnitTest {
 		DataType dataType = DataType.OPEN_DATA;
 		String benefactorId = nodeId;
 		UserInfo userInfo = anonymousUser;
-		List<Long> unmetAccessRequirements = Collections.emptyList();
 		
 		when(mockNodeDao.getNodeTypeById(nodeId)).thenReturn(EntityType.file);
 		when(mockNodeDao.getBenefactor(nodeId)).thenReturn(benefactorId);
 		when(mockObjectTypeManager.getObjectsDataType(nodeId, ObjectType.ENTITY)).thenReturn(dataType);
 		when(mockAclDAO.canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
-		when(mockNodeDao.getEntityPathIds(nodeId, false)).thenReturn(Collections.emptyList());
-		when(mockNodeDao.getNode(nodeId)).thenReturn(file);
-		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
-				Collections.singletonList(KeyFactory.stringToKey(nodeId)), RestrictableObjectType.ENTITY, userInfo.getGroups(), 
-				Collections.singletonList(ACCESS_TYPE.DOWNLOAD))).thenReturn(unmetAccessRequirements);
+		restrictionInfoRqst.setObjectId(nodeId);
+		when(mockRestrictionInformationManager.
+				getRestrictionInformation(userInfo, restrictionInfoRqst)).
+					thenReturn(noUnmetAccessRqmtResponse);
 		
 		// Call under test
 		AuthorizationStatus status = entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
@@ -785,11 +810,6 @@ public class EntityPermissionsManagerImplUnitTest {
 		verify(mockNodeDao).getNodeTypeById(nodeId);
 		verify(mockNodeDao).getBenefactor(nodeId);
 		verify(mockObjectTypeManager).getObjectsDataType(nodeId, ObjectType.ENTITY);
-		verify(mockNodeDao).getEntityPathIds(nodeId, false);
-		verify(mockNodeDao).getNode(nodeId);
-		verify(mockAccessRequirementDAO).getAllUnmetAccessRequirements(
-				Collections.singletonList(KeyFactory.stringToKey(nodeId)), RestrictableObjectType.ENTITY, userInfo.getGroups(), 
-				Collections.singletonList(ACCESS_TYPE.DOWNLOAD));
 	}
 	
 	@Test
@@ -799,17 +819,15 @@ public class EntityPermissionsManagerImplUnitTest {
 		DataType dataType = DataType.OPEN_DATA;
 		String benefactorId = nodeId;
 		UserInfo userInfo = anonymousUser;
-		List<Long> unmetAccessRequirements = Arrays.asList(1L);
 		
 		when(mockNodeDao.getNodeTypeById(nodeId)).thenReturn(EntityType.file);
 		when(mockNodeDao.getBenefactor(nodeId)).thenReturn(benefactorId);
 		when(mockObjectTypeManager.getObjectsDataType(nodeId, ObjectType.ENTITY)).thenReturn(dataType);
 		when(mockAclDAO.canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
-		when(mockNodeDao.getEntityPathIds(nodeId, false)).thenReturn(Collections.emptyList());
-		when(mockNodeDao.getNode(nodeId)).thenReturn(file);
-		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
-				Collections.singletonList(KeyFactory.stringToKey(nodeId)), RestrictableObjectType.ENTITY, userInfo.getGroups(), 
-				Collections.singletonList(ACCESS_TYPE.DOWNLOAD))).thenReturn(unmetAccessRequirements);
+		restrictionInfoRqst.setObjectId(nodeId);
+		when(mockRestrictionInformationManager.
+				getRestrictionInformation(userInfo, restrictionInfoRqst)).
+					thenReturn(hasUnmetAccessRqmtResponse);
 		
 		// Call under test
 		AuthorizationStatus status = entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
@@ -821,11 +839,8 @@ public class EntityPermissionsManagerImplUnitTest {
 		verify(mockNodeDao).getNodeTypeById(nodeId);
 		verify(mockNodeDao).getBenefactor(nodeId);
 		verify(mockObjectTypeManager).getObjectsDataType(nodeId, ObjectType.ENTITY);
-		verify(mockNodeDao).getEntityPathIds(nodeId, false);
-		verify(mockNodeDao).getNode(nodeId);
-		verify(mockAccessRequirementDAO).getAllUnmetAccessRequirements(
-				Collections.singletonList(KeyFactory.stringToKey(nodeId)), RestrictableObjectType.ENTITY, userInfo.getGroups(), 
-				Collections.singletonList(ACCESS_TYPE.DOWNLOAD));
+		verify(mockRestrictionInformationManager).getRestrictionInformation(userInfo, restrictionInfoRqst);
+
 	}
 	
 	@Test
@@ -834,7 +849,6 @@ public class EntityPermissionsManagerImplUnitTest {
 		DataType dataType = DataType.OPEN_DATA;
 		String benefactorId = nodeId;
 		UserInfo userInfo = certifiedUserInfo;
-		List<Long> unmetAccessRequirements = Collections.emptyList();
 		boolean acceptedTermsOfUse = true;
 		
 		when(mockNodeDao.getNodeTypeById(nodeId)).thenReturn(EntityType.file);
@@ -842,11 +856,10 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(userInfo.getId())).thenReturn(acceptedTermsOfUse);
 		when(mockObjectTypeManager.getObjectsDataType(nodeId, ObjectType.ENTITY)).thenReturn(dataType);
 		when(mockAclDAO.canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
-		when(mockNodeDao.getEntityPathIds(nodeId, false)).thenReturn(Collections.emptyList());
-		when(mockNodeDao.getNode(nodeId)).thenReturn(file);
-		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
-				Collections.singletonList(KeyFactory.stringToKey(nodeId)), RestrictableObjectType.ENTITY, userInfo.getGroups(), 
-				Collections.singletonList(ACCESS_TYPE.DOWNLOAD))).thenReturn(unmetAccessRequirements);
+		restrictionInfoRqst.setObjectId(nodeId);
+		when(mockRestrictionInformationManager.
+				getRestrictionInformation(userInfo, restrictionInfoRqst)).
+					thenReturn(noUnmetAccessRqmtResponse);
 		
 		// Call under test
 		AuthorizationStatus status = entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
@@ -857,11 +870,6 @@ public class EntityPermissionsManagerImplUnitTest {
 		verify(mockNodeDao).getNodeTypeById(nodeId);
 		verify(mockNodeDao).getBenefactor(nodeId);
 		verify(mockObjectTypeManager).getObjectsDataType(nodeId, ObjectType.ENTITY);
-		verify(mockNodeDao).getEntityPathIds(nodeId, false);
-		verify(mockNodeDao).getNode(nodeId);
-		verify(mockAccessRequirementDAO).getAllUnmetAccessRequirements(
-				Collections.singletonList(KeyFactory.stringToKey(nodeId)), RestrictableObjectType.ENTITY, userInfo.getGroups(), 
-				Collections.singletonList(ACCESS_TYPE.DOWNLOAD));
 	}
 	
 	@Test

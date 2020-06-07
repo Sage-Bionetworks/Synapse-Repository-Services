@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,11 +14,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.dataaccess.RequestManager;
 import org.sagebionetworks.repo.manager.dataaccess.ResearchProjectManager;
 import org.sagebionetworks.repo.manager.dataaccess.SubmissionManager;
@@ -56,9 +55,9 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class AccessApprovalManagerImplAutoWiredTest {
 
@@ -115,7 +114,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	private ManagedACTAccessRequirement managedActAr;
 	
 	
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		approvalsToDelete = new LinkedList<String>();
 		requirementIdsToDelete = new LinkedList<String>();
@@ -170,7 +169,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		entityPermissionsManager.updateACL(acl, adminUserInfo);
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		for (String id: approvalsToDelete) {
 			accessApprovalManager.deleteAccessApproval(adminUserInfo, id);
@@ -385,7 +384,6 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		assertEquals(ag.getSubmitterId(), testUserInfo.getId().toString());
 	}
 	
-	@Ignore // remove this as part of PLFM-6209
 	@Test
 	public void testRevokeGroupStopsDownload() throws Exception {
 		// approve the Terms-Of-Use access approval
@@ -449,7 +447,6 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		assertFalse(entityPermissionsManager.hasAccess(nodeAId, ACCESS_TYPE.DOWNLOAD, testUserInfo).isAuthorized());
 	}
 	
-	@Ignore // remove this as part of PLFM-6209
 	@Test
 	public void testRevokeACTAccessRequirementStopsDownload() throws Exception {
 		// approve the Terms-Of-Use access approval

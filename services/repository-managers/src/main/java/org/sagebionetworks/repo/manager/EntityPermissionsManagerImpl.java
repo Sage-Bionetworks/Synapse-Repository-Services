@@ -12,7 +12,6 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
 
 import java.util.Date;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -24,8 +23,6 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AccessRequirementDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DataType;
@@ -36,6 +33,9 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.RestrictionInformationRequest;
+import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
@@ -66,10 +66,6 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Autowired
 	private AccessControlListDAO aclDAO;
 	@Autowired
-	private AccessRequirementDAO  accessRequirementDAO;
-	@Autowired
-	private UserManager userManager;
-	@Autowired
 	private AuthenticationManager authenticationManager;
 	@Autowired
 	private ProjectSettingsManager projectSettingsManager;
@@ -81,6 +77,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	private TransactionalMessenger transactionalMessenger;
 	@Autowired
 	private ObjectTypeManager objectTypeManager;
+	@Autowired
+	private RestrictionInformationManager restrictionInformationManager;
 
 	@Override
 	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, ACLInheritanceException {
@@ -454,13 +452,13 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	
 	private AuthorizationStatus meetsAccessRequirements(final UserInfo userInfo, final String nodeId)
 			throws DatastoreException, NotFoundException {
-		// if there are any unmet access requirements return false
-		List<Long> nodeAncestorIds = nodeDao.getEntityPathIds(nodeId, false);
-
-		List<Long> accessRequirementIds = AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(
-				userInfo, nodeId, nodeAncestorIds, nodeDao, accessRequirementDAO);
 		
-		if (!accessRequirementIds.isEmpty()) {		
+		RestrictionInformationRequest request = new RestrictionInformationRequest();
+		request.setObjectId(nodeId);
+		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
+		RestrictionInformationResponse response = restrictionInformationManager.getRestrictionInformation(userInfo, request);
+		
+		if (response.getHasUnmetAccessRequirement()) {	
 			return AuthorizationStatus
 					.accessDenied("There are unmet access requirements that must be met to read content in the requested container.");
 		}

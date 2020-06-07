@@ -540,15 +540,6 @@ public interface TableIndexDAO {
 	 */
 	void deleteRowsFromViewBatch(IdAndVersion viewId, Long...idsToDelete);
 	
-	/**
-	 * Attempt to determine the cause of a replication failure.
-	 * 
-	 * @param exception The exception thrown during replication.
-	 * @param currentSchema
-	 * @throws Exception 
-	 */
-	void determineCauseOfReplicationFailure(Exception exception, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper);
-	
 	// For testing:
 	
 	/**

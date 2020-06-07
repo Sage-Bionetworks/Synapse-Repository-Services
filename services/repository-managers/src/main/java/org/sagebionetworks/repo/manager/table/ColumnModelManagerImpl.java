@@ -155,6 +155,8 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 			case STRING_LIST:
 			case DATE_LIST:
 			case INTEGER_LIST:
+			case USERID_LIST:
+			case ENTITYID_LIST:
 					if(facetType != FacetType.enumeration)
 					throw new IllegalArgumentException(columnType + " columns can only be enumeration faceted");
 				break;

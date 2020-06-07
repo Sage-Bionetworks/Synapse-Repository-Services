@@ -10,7 +10,9 @@ public enum ColumnTypeListMappings {
 	STRING(ColumnType.STRING, ColumnType.STRING_LIST),
 	INTEGER(ColumnType.INTEGER, ColumnType.INTEGER_LIST),
 	BOOLEAN(ColumnType.BOOLEAN, ColumnType.BOOLEAN_LIST),
-	DATE(ColumnType.DATE, ColumnType.DATE_LIST);
+	DATE(ColumnType.DATE, ColumnType.DATE_LIST),
+	ENTITYID(ColumnType.ENTITYID, ColumnType.ENTITYID_LIST),
+	USERID(ColumnType.USERID, ColumnType.USERID_LIST);
 
 	ColumnType nonListType;
 	ColumnType listType;

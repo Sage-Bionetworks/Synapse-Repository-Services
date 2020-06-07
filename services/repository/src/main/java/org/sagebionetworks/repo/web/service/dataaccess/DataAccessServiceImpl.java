@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.web.service.dataaccess;
 
-import org.sagebionetworks.repo.manager.AccessRequirementManager;
+import org.sagebionetworks.repo.manager.RestrictionInformationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.dataaccess.RequestManager;
 import org.sagebionetworks.repo.manager.dataaccess.ResearchProjectManager;
@@ -33,7 +33,7 @@ public class DataAccessServiceImpl implements DataAccessService{
 	@Autowired
 	private SubmissionManager dataAccessSubmissionManager;
 	@Autowired
-	private AccessRequirementManager accessRequirementManager;
+	private RestrictionInformationManager restrictionInformationManager;
 
 	@Override
 	public ResearchProject createOrUpdate(Long userId, ResearchProject toCreateOrUpdate) {
@@ -97,7 +97,7 @@ public class DataAccessServiceImpl implements DataAccessService{
 	@Override
 	public RestrictionInformationResponse getRestrictionInformation(Long userId, RestrictionInformationRequest request) {
 		UserInfo user = userManager.getUserInfo(userId);
-		return accessRequirementManager.getRestrictionInformation(user, request);
+		return restrictionInformationManager.getRestrictionInformation(user, request);
 	}
 
 	@Override

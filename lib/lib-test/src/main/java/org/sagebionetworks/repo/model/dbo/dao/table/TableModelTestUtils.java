@@ -119,6 +119,8 @@ public class TableModelTestUtils {
 					break;
 				case DATE_LIST:
 				case INTEGER_LIST:
+				case ENTITYID_LIST:
+				case USERID_LIST:
 					defaultValue = "[12345]";
 					break;
 				case STRING_LIST:
@@ -392,11 +394,14 @@ public class TableModelTestUtils {
 			case STRING_LIST:
 				return "[\""+(isUpdate ? "updatestring" : "string") + i+"\", \"" +(isUpdate ? "otherupdatestring" : "otherstring") + i+"\"]";
 			case INTEGER_LIST:
+			case USERID_LIST:
 				return "[" + (i + 3000) + "]";
 			case BOOLEAN_LIST:
 				return "[" + ((i % 2 > 0 ^ isUpdate) ? "true" : "false") + "]";
 			case DATE_LIST:
 				return "[" + (i + 4000 + (isUpdate ? 10000 : 0)) + "]";
+			case ENTITYID_LIST:
+				return "[\"syn" + (i + 6000 + (isUpdate ? 10000 : 0)) + "\"]";
 		}
 		throw new IllegalArgumentException("Unknown ColumnType: " + cm.getColumnType());
 	}

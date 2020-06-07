@@ -128,7 +128,71 @@ public class ColumnModelUtlisTest {
 		assertNull(normalized.getEnumValues());
 	}
 
+	@Test
+	public void testNormalizedEntityIdListColumn_DefaultValueNotNull(){
+		//input
+		original.setName("name");
+		original.setEnumValues(null);
+		original.setDefaultValue("[\"1234\"]");
+		original.setMaximumListLength(32L);
+		original.setColumnType(ColumnType.ENTITYID_LIST);
+		// Setting this to null should result in the default size.
+		original.setMaximumSize(50L);
 
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		}).getMessage();
+
+		assertEquals("Columns of type ENTITYID_LIST cannot have default values.", message);
+	}
+
+	@Test
+	public void testNormalizedUserIdListColumn_DefaultValueNotNull(){
+		//input
+		original.setName("name");
+		original.setEnumValues(null);
+		original.setDefaultValue("[\"1234\"]");
+		original.setMaximumListLength(32L);
+		original.setColumnType(ColumnType.USERID_LIST);
+		// Setting this to null should result in the default size.
+		original.setMaximumSize(50L);
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		}).getMessage();
+
+		assertEquals("Columns of type USERID_LIST cannot have default values.", message);
+	}
+
+	@Test
+	public void testNormalizedEntityIdListColumn_DefaultValueEmpty(){
+		//input
+		original.setName("name");
+		original.setEnumValues(null);
+		original.setDefaultValue("");
+		original.setMaximumListLength(32L);
+		original.setColumnType(ColumnType.ENTITYID_LIST);
+		// Setting this to null should result in the default size.
+		original.setMaximumSize(50L);
+
+		ColumnModel normalized = ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		assertNull(normalized.getDefaultValue());
+	}
+
+	@Test
+	public void testNormalizedUserIdListColumn_DefaultValueEmpty(){
+		//input
+		original.setName("name");
+		original.setEnumValues(null);
+		original.setDefaultValue("");
+		original.setMaximumListLength(32L);
+		original.setColumnType(ColumnType.USERID_LIST);
+		// Setting this to null should result in the default size.
+		original.setMaximumSize(50L);
+
+		ColumnModel normalized = ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		assertNull(normalized.getDefaultValue());
+	}
 
 	@Test
 	public void testNormalizedStringListColumnNullSize(){

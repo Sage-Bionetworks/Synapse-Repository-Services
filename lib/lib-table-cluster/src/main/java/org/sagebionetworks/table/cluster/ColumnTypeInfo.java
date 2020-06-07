@@ -31,10 +31,14 @@ public enum ColumnTypeInfo {
 	BOOLEAN		(ColumnType.BOOLEAN,		MySqlColumnType.BOOLEAN,	new BooleanParser(),							null),
 	LARGETEXT	(ColumnType.LARGETEXT,		MySqlColumnType.MEDIUMTEXT,	new StringParser(),								null),
 	USERID		(ColumnType.USERID,			MySqlColumnType.BIGINT, 	new LongParser(),								20L),
-	STRING_LIST	(ColumnType.STRING_LIST,	MySqlColumnType.JSON,		new ListStringParser(new StringParser()),		null),
-	INTEGER_LIST(ColumnType.INTEGER_LIST,	MySqlColumnType.JSON,		new ListStringParser(new LongParser()),			null),
-	BOOLEAN_LIST(ColumnType.BOOLEAN_LIST,	MySqlColumnType.JSON,		new ListStringParser(new BooleanParser()),		null),
-	DATE_LIST	(ColumnType.DATE_LIST,		MySqlColumnType.JSON,		new ListStringParser(new DateToLongParser()),	null);
+	STRING_LIST	(ColumnType.STRING_LIST,	MySqlColumnType.JSON,		new ListStringParser(new StringParser(),false),		null),
+	INTEGER_LIST(ColumnType.INTEGER_LIST,	MySqlColumnType.JSON,		new ListStringParser(new LongParser(),false),			null),
+	BOOLEAN_LIST(ColumnType.BOOLEAN_LIST,	MySqlColumnType.JSON,		new ListStringParser(new BooleanParser(),false),			null),
+	DATE_LIST	(ColumnType.DATE_LIST,		MySqlColumnType.JSON,		new ListStringParser(new DateToLongParser(),false),			null),
+	// Entity id lists need to be re-parsed to prepend "syn" to its elements
+	ENTITYID_LIST(ColumnType.ENTITYID_LIST, MySqlColumnType.JSON,       new ListStringParser(new EntityIdParser(),true), null),
+	USERID_LIST (ColumnType.USERID_LIST,    MySqlColumnType.JSON,       new ListStringParser(new LongParser(),false), null)
+	;
 
 
 

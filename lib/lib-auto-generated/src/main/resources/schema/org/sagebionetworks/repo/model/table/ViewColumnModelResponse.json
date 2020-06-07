@@ -1,0 +1,22 @@
+{
+    "title":"ViewColumnModelResponse",
+    "description":"Response for the <a href=\"${org.sagebionetworks.repo.model.table.ViewColumnModelRequest}\">ViewColumnModelRequest</a> containing a page of suggested column models",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+		}
+	],
+	"properties": {
+		"results": {
+			"description":"A page of <a href=\"${org.sagebionetworks.repo.model.table.ColumnModel}\">ColumnModels</a>",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.ColumnModel"
+			}
+		},
+		"nextPageToken":{
+			"type":"string",
+			"description":"If there are more pages of results this token can be used to get the next page.  Null if this is the last page."
+		}
+	}
+}

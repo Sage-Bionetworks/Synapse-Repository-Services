@@ -11,7 +11,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -39,6 +38,7 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.ProjectStatsManager;
+import org.sagebionetworks.repo.manager.RestrictionInformationManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
@@ -46,7 +46,6 @@ import org.sagebionetworks.repo.manager.principal.PrincipalManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -60,8 +59,9 @@ import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedTeamIds;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.RestrictionInformationRequest;
+import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
@@ -78,7 +78,6 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapTeam;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -111,7 +110,7 @@ public class TeamManagerImplTest {
 	@Mock
 	private MembershipRequestDAO mockMembershipRequestDAO;
 	@Mock
-	private AccessRequirementDAO mockAccessRequirementDAO;
+	private RestrictionInformationManager mockRestrictionInformationManager;
 	@Mock
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
 	@Mock
@@ -133,6 +132,10 @@ public class TeamManagerImplTest {
 	private static final String MEMBER_PRINCIPAL_ID = "999";
 	private static final String TEAM_ID = "123";
 
+	private RestrictionInformationRequest restrictionInfoRqst;
+	private RestrictionInformationResponse hasUnmetAccessRqmtResponse;
+	private RestrictionInformationResponse noUnmetAccessRqmtResponse;
+
 	@BeforeEach
 	public void setUp() throws Exception {
 		userInfo = createUserInfo(false, MEMBER_PRINCIPAL_ID);
@@ -141,6 +144,13 @@ public class TeamManagerImplTest {
 		up.setLastName("bar");
 		up.setUserName("userName");
 		adminInfo = createUserInfo(true, "-1");
+		restrictionInfoRqst = new RestrictionInformationRequest();
+		restrictionInfoRqst.setRestrictableObjectType(RestrictableObjectType.TEAM);
+		restrictionInfoRqst.setObjectId(TEAM_ID);
+		hasUnmetAccessRqmtResponse = new RestrictionInformationResponse();
+		hasUnmetAccessRqmtResponse.setHasUnmetAccessRequirement(true);
+		noUnmetAccessRqmtResponse = new RestrictionInformationResponse();
+		noUnmetAccessRqmtResponse.setHasUnmetAccessRequirement(false);
 	}
 	
 	private static UserInfo createUserInfo(boolean isAdmin, String principalId) {
@@ -494,30 +504,11 @@ public class TeamManagerImplTest {
 		});
 	}
 	
-	private void mockUnmetAccessRequirements(boolean hasUnmet, UserInfo userInfo) {
-		List<Long> unmetAccessRequirementIds = null;
-		if (hasUnmet) {
-			unmetAccessRequirementIds = Arrays.asList(new Long[]{123L, 456L});
-		} else {
-			unmetAccessRequirementIds = Arrays.asList(new Long[]{});
-		}
-		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setType(RestrictableObjectType.TEAM);
-		rod.setId(TEAM_ID);
-		List<Long> teamIds = Collections.singletonList(KeyFactory.stringToKey(TEAM_ID));
-		List<ACCESS_TYPE> accessTypes = new ArrayList<ACCESS_TYPE>();
-		accessTypes.add(ACCESS_TYPE.PARTICIPATE);
-		Set<Long> principalIds = new HashSet<Long>();
-		for (Long id : userInfo.getGroups()) {
-			principalIds.add(id);
-		}
-		
-		lenient().when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(teamIds, RestrictableObjectType.TEAM, principalIds, accessTypes)).thenReturn(unmetAccessRequirementIds);		
-		
-	}
-	
 	@Test
 	public void testCanAddTeamMemberSELF() throws Exception {
+		when(mockRestrictionInformationManager.
+				getRestrictionInformation(userInfo, restrictionInfoRqst)).
+					thenReturn(noUnmetAccessRqmtResponse);
 		// let the team be a non-Open team (which it is by default)
 		Team team = createTeam(TEAM_ID, "name", "description", null, "101", null, null, null, null);
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
@@ -562,7 +553,9 @@ public class TeamManagerImplTest {
 		// first, the baseline
 		assertTrue(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false));
 		// now add unmet access requirement
-		mockUnmetAccessRequirements(true, userInfo);
+		when(mockRestrictionInformationManager.
+				getRestrictionInformation(userInfo, restrictionInfoRqst)).
+					thenReturn(hasUnmetAccessRqmtResponse);
 		// I can no longer join
 		assertFalse(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false));
 
@@ -570,7 +563,6 @@ public class TeamManagerImplTest {
 	
 	@Test
 	public void testCanAddTeamMemberOTHER() throws Exception {
-
 		// I can add someone else if I'm a Synapse admin
 		assertTrue(teamManagerImpl.canAddTeamMember(adminInfo, TEAM_ID, adminInfo, false));
 		
@@ -580,6 +572,10 @@ public class TeamManagerImplTest {
 		//	 there has been no membership request
 		String otherPrincipalId = "987";
 		UserInfo otherUserInfo = createUserInfo(false, otherPrincipalId);
+		when(mockRestrictionInformationManager.
+				getRestrictionInformation(otherUserInfo, restrictionInfoRqst)).
+					thenReturn(noUnmetAccessRqmtResponse);
+
 		when(mockMembershipRequestDAO.getOpenByTeamAndRequesterCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(otherPrincipalId)), anyLong())).thenReturn(0L);
 		assertFalse(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo, false));
 		// but the check returns true if I'm already on the Team
@@ -599,10 +595,11 @@ public class TeamManagerImplTest {
 		assertTrue(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo, false));
 		// now add unmet access requirement
 		// this is OK, since it's the one being added who must meet the access requirements
-		mockUnmetAccessRequirements(true, userInfo);
 		assertTrue(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo, false));
 		// but this is not OK...
-		mockUnmetAccessRequirements(true, otherUserInfo);
+		when(mockRestrictionInformationManager.
+				getRestrictionInformation(otherUserInfo, restrictionInfoRqst)).
+					thenReturn(hasUnmetAccessRqmtResponse);
 		// ...I can no longer add him
 		assertFalse(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo, false));
 	}
@@ -614,6 +611,9 @@ public class TeamManagerImplTest {
 		String principalId = "987";
 		UserInfo principalUserInfo = createUserInfo(false, principalId);
 		when(mockMembershipRequestDAO.getOpenByTeamAndRequesterCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(principalId)), anyLong())).thenReturn(1L);
+		when(mockRestrictionInformationManager.
+				getRestrictionInformation(principalUserInfo, restrictionInfoRqst)).
+					thenReturn(noUnmetAccessRqmtResponse);
 		
 		boolean added = teamManagerImpl.addMember(userInfo, TEAM_ID, principalUserInfo);
 		assertTrue(added);
@@ -630,6 +630,9 @@ public class TeamManagerImplTest {
 		String principalId = "987";
 		UserInfo principalUserInfo = createUserInfo(false, principalId);
 		when(mockGroupMembersDAO.getMemberIdsForUpdate(Long.valueOf(TEAM_ID))).thenReturn(ImmutableSet.of(Long.valueOf(principalId)));
+		when(mockRestrictionInformationManager.
+				getRestrictionInformation(principalUserInfo, restrictionInfoRqst)).
+					thenReturn(noUnmetAccessRqmtResponse);
 		boolean added = teamManagerImpl.addMember(userInfo, TEAM_ID, principalUserInfo);
 		assertFalse(added);
 		verify(mockGroupMembersDAO, never()).addMembers(TEAM_ID, Arrays.asList(new String[]{principalId}));
@@ -1021,6 +1024,9 @@ public class TeamManagerImplTest {
 		when(mockMembershipRequestDAO.getOpenByTeamAndRequesterCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), anyLong())).thenReturn(1L);
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationStatus.accessDenied(""));
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)).thenReturn(AuthorizationStatus.accessDenied(""));
+		when(mockRestrictionInformationManager.
+				getRestrictionInformation(principalUserInfo, restrictionInfoRqst)).
+					thenReturn(noUnmetAccessRqmtResponse);
 		
 		TeamMembershipStatus tms = teamManagerImpl.getTeamMembershipStatus(userInfo, TEAM_ID, principalUserInfo);
 		assertEquals(TEAM_ID, tms.getTeamId());
@@ -1073,7 +1079,9 @@ public class TeamManagerImplTest {
 		assertFalse(tms.getHasUnmetAccessRequirement());
 		assertTrue(tms.getCanSendEmail());
 		
-		mockUnmetAccessRequirements(true, principalUserInfo);
+		when(mockRestrictionInformationManager.
+				getRestrictionInformation(principalUserInfo, restrictionInfoRqst)).
+					thenReturn(hasUnmetAccessRqmtResponse);
 		tms = teamManagerImpl.getTeamMembershipStatus(userInfo, TEAM_ID, principalUserInfo);
 		assertEquals(TEAM_ID, tms.getTeamId());
 		assertEquals(principalId, tms.getUserId());

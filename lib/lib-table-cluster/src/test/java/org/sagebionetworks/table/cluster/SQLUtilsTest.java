@@ -1693,6 +1693,13 @@ public class SQLUtilsTest {
 		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_LONG_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.INTEGER));
 		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_STRING_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.LARGETEXT));
 		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_STRING_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.LINK));
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.STRING_LIST));
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_LONG_LIST_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.ENTITYID_LIST));
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_LONG_LIST_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.USERID_LIST));
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_LONG_LIST_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.INTEGER_LIST));
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_LONG_LIST_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.DATE_LIST));
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_BOOLEAN_LIST_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.BOOLEAN_LIST));
+
 	}
 
 	@Test
@@ -1742,10 +1749,12 @@ public class SQLUtilsTest {
 				+ " MAX(IF(A.ANNO_KEY ='string_list', A.STRING_LIST_VALUE, NULL)) AS _C12_,"
 				+ " MAX(IF(A.ANNO_KEY ='integer_list', A.LONG_LIST_VALUE, NULL)) AS _C13_,"
 				+ " MAX(IF(A.ANNO_KEY ='boolean_list', A.BOOLEAN_LIST_VALUE, NULL)) AS _C14_,"
-				+ " MAX(IF(A.ANNO_KEY ='date_list', A.LONG_LIST_VALUE, NULL)) AS _C15_"
+				+ " MAX(IF(A.ANNO_KEY ='date_list', A.LONG_LIST_VALUE, NULL)) AS _C15_,"
+				+ " MAX(IF(A.ANNO_KEY ='entityid_list', A.LONG_LIST_VALUE, NULL)) AS _C16_,"
+				+ " MAX(IF(A.ANNO_KEY ='userid_list', A.LONG_LIST_VALUE, NULL)) AS _C17_"
 				, builder.toString());
 		assertEquals(Lists.newArrayList("ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR", "_C0_", "_DBL_C1_",
-				"_C1_", "_C2_", "_C3_", "_C4_", "_C5_", "_C6_", "_C7_", "_C8_", "_C9_", "_C10_", "_C11_", "_C12_", "_C13_", "_C14_", "_C15_"), headers);
+				"_C1_", "_C2_", "_C3_", "_C4_", "_C5_", "_C6_", "_C7_", "_C8_", "_C9_", "_C10_", "_C11_", "_C12_", "_C13_", "_C14_", "_C15_", "_C16_", "_C17_"), headers);
 	}
 
 	@Test

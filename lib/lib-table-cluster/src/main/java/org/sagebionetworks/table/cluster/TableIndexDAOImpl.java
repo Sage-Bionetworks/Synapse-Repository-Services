@@ -1347,26 +1347,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public void determineCauseOfReplicationFailure(Exception exception, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper) {
-		// Calculate the schema from the annotations
-		List<ColumnModel> schemaFromAnnotations = getPossibleColumnModelsForContainers(scopeFilter, null, Long.MAX_VALUE, 0L);
-		
-		ObjectFieldModelResolver objectFieldModelResolver = objectFieldModelResolverFactory.getObjectFieldModelResolver(fieldTypeMapper);
-		
-		List<ColumnModel> filteredSchema = currentSchema.stream()
-				// Filter all the default object field column models
-				.filter( model -> !objectFieldModelResolver.findMatch(model).isPresent())
-				.collect(Collectors.toList());
-		
-		for (ColumnModel annotationModel : schemaFromAnnotations) {
-			for (ColumnModel schemaModel : filteredSchema) {
-				SQLUtils.determineCauseOfException(exception, schemaModel, annotationModel);
-			}
-		}
-		
-	}
-	
-	@Override
 	public void truncateReplicationSyncExpiration() {
 		template.update(TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE);
 	}

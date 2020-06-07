@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.manager.table;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -76,6 +76,7 @@ import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.ChangeData;
@@ -110,6 +111,10 @@ public class TableIndexManagerImplTest {
 	MetadataIndexProvider mockMetadataProvider;
 	@Mock
 	DefaultColumnModel mockDefaultColumnModel;
+	@Mock
+	ObjectFieldModelResolverFactory mockObjectFieldModelResolverFactory;
+	@Mock
+	ObjectFieldModelResolver mockObjectFieldModelResolver;
 	
 	@Captor 
 	ArgumentCaptor<List<ColumnChangeDetails>> changeCaptor;
@@ -151,7 +156,7 @@ public class TableIndexManagerImplTest {
 		
 		objectType = ViewObjectType.ENTITY;
 		tableId = IdAndVersion.parse("syn123");
-		manager = new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory);
+		manager = new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, mockObjectFieldModelResolverFactory);
 		managerSpy = Mockito.spy(manager);
 		versionNumber = 99L;		
 		schema = Arrays.asList(
@@ -209,7 +214,7 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testNullDao(){
 		assertThrows(IllegalArgumentException.class, ()->{
-			new TableIndexManagerImpl(null, mockManagerSupport, mockMetadataProviderFactory);	
+			new TableIndexManagerImpl(null, mockManagerSupport, mockMetadataProviderFactory, mockObjectFieldModelResolverFactory);	
 		});
 	}
 	
@@ -217,14 +222,21 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testNullSupport(){
 		assertThrows(IllegalArgumentException.class, ()->{
-			new TableIndexManagerImpl(mockIndexDao, null, mockMetadataProviderFactory);			
+			new TableIndexManagerImpl(mockIndexDao, null, mockMetadataProviderFactory, mockObjectFieldModelResolverFactory);			
 		});
 	}
 	
 	@Test
-	public void testNullFactory(){
+	public void testNullProviderFactory(){
 		assertThrows(IllegalArgumentException.class, ()->{
-			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, null);			
+			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, null, mockObjectFieldModelResolverFactory);			
+		});
+	}
+	
+	@Test
+	public void testNullObjectFieldFactory(){
+		assertThrows(IllegalArgumentException.class, ()->{
+			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, null);			
 		});
 	}
 	
@@ -663,6 +675,9 @@ public class TableIndexManagerImplTest {
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
+		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
+		when(mockObjectFieldModelResolverFactory.getObjectFieldModelResolver(any())).thenReturn(mockObjectFieldModelResolver);
+		when(mockObjectFieldModelResolver.findMatch(any())).thenReturn(Optional.empty());
 		
 		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
@@ -671,24 +686,25 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
 		
 		// setup a failure
-		IllegalArgumentException error = new IllegalArgumentException("Something went wrong");
-		doThrow(error).when(mockIndexDao).copyObjectReplicationToView(any(), any(), any(), any());
-		try {
+		IllegalArgumentException expected = new IllegalArgumentException("Something went wrong");
+		doThrow(expected).when(mockIndexDao).copyObjectReplicationToView(any(), any(), any(), any());
+
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
-			fail("Should have failed");
-		} catch (IllegalArgumentException expected) {
-			// when the cause cannot be determined the original exception is thrown.
-			assertEquals(error, expected);
-		}
+		});
+		// when the cause cannot be determined the original exception is thrown.
+		assertEquals(expected, ex);
 	}
 	
 	@Test
 	public void testPopulateViewFromEntityReplicationKnownCause() throws Exception{
 		Set<Long> scope = Sets.newHashSet(1L,2L);
-		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
+		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
+		when(mockObjectFieldModelResolverFactory.getObjectFieldModelResolver(any())).thenReturn(mockObjectFieldModelResolver);
+		when(mockObjectFieldModelResolver.findMatch(any())).thenReturn(Optional.empty());
 		
 		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
@@ -701,23 +717,28 @@ public class TableIndexManagerImplTest {
 		column.setName("foo");
 		column.setColumnType(ColumnType.STRING);
 		column.setMaximumSize(10L);
-		schema.add(column);
+
+		List<ColumnModel> schema = ImmutableList.of(column);
 		
+		ColumnModel annotationModel = new ColumnModel();
+		annotationModel.setName("foo");
+		annotationModel.setColumnType(ColumnType.STRING);
+		annotationModel.setMaximumSize(11L);
+		
+		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any(), any())).thenReturn(ImmutableList.of(annotationModel));
+
 		// setup a failure
 		IllegalArgumentException error = new IllegalArgumentException("Something went wrong");
 		
 		doThrow(error).when(mockIndexDao).copyObjectReplicationToView(any(), any(), any(), any());
-
-		IllegalArgumentException sizeError = new IllegalArgumentException("The size of the column 'foo' is too small");
 		
-		doThrow(sizeError).when(mockIndexDao).determineCauseOfReplicationFailure(any(), any(), any(), any());
-		
-		IllegalArgumentException expected = assertThrows(IllegalArgumentException.class, () -> {
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
 		});
-
-		assertEquals(sizeError, expected);
+		
+		assertNotEquals(error, ex);
+		assertEquals("The size of the column 'foo' is too small.  The column size needs to be at least 11 characters.", ex.getMessage());
 	}
 	
 	@Test
@@ -1483,12 +1504,14 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).deleteRowsFromViewBatch(tableId, rowsIdsArray);
 		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, mockMetadataProvider, rowsIdsWithChanges);
 		verify(managerSpy).populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
-		verify(managerSpy, never()).determineCauseOfReplicationFailure(any(), any(), any());
 	}
 	
 	@Test
 	public void testUpdateViewRowsInTransaction_ExceptionDuringUpdate() {
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
+		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
+		when(mockObjectFieldModelResolverFactory.getObjectFieldModelResolver(any())).thenReturn(mockObjectFieldModelResolver);
+		when(mockObjectFieldModelResolver.findMatch(any())).thenReturn(Optional.empty());
 		
 		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
@@ -1515,7 +1538,6 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).deleteRowsFromViewBatch(tableId, rowsIdsArray);
 		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, mockMetadataProvider, rowsIdsWithChanges);
 		// must attempt to determine the type of exception.
-		verify(managerSpy).determineCauseOfReplicationFailure(exception, scopeFilter, schema);
 		verify(managerSpy, never()).populateListColumnIndexTables(any(), any(), any());
 	}
 	
@@ -2073,6 +2095,80 @@ public class TableIndexManagerImplTest {
 
 
 		verify(mockIndexDao).tempTableListColumnMaxLength(tableId,oldCol.getId());
+	}
+	
+	@Test
+	public void testDetermineCauseOfExceptionLists() {
+		Exception original = new Exception("Some exception");
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setName("foo");
+		columnModel.setColumnType(ColumnType.STRING);
+		columnModel.setMaximumSize(10L);
+
+		ColumnModel annotationModel = new ColumnModel();
+		annotationModel.setName("foo");
+		annotationModel.setColumnType(ColumnType.STRING);
+		annotationModel.setMaximumSize(11L);
+		
+		when(mockObjectFieldModelResolverFactory.getObjectFieldModelResolver(any())).thenReturn(mockObjectFieldModelResolver);
+		when(mockObjectFieldModelResolver.findMatch(any())).thenReturn(Optional.empty());
+		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
+		
+		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any(), any())).thenReturn(ImmutableList.of(annotationModel));
+		
+		List<String> subTypes = EnumUtils.names(EntityType.file);
+		boolean filterByObjectId = false;
+		
+		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType, subTypes, filterByObjectId, scopeIds);
+		
+		List<ColumnModel> schema = ImmutableList.of(columnModel);
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			manager.determineCauseOfReplicationFailure(original, schema, mockMetadataProvider, scope.getViewTypeMask(), scopeFilter);
+		});
+		
+		assertEquals(original, ex.getCause());
+		assertEquals("The size of the column 'foo' is too small.  The column size needs to be at least 11 characters.", ex.getMessage());
+	}
+
+	@Test
+	public void testDetermineCauseOfExceptionListsMultipleValues() {
+		Exception original = new Exception("Some exception");
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setName("foo");
+		columnModel.setColumnType(ColumnType.STRING);
+		columnModel.setMaximumSize(10L);
+		// type does not match.
+		ColumnModel a1 = new ColumnModel();
+		a1.setName("foo");
+		a1.setColumnType(ColumnType.INTEGER);
+
+		ColumnModel a2 = new ColumnModel();
+		a2.setName("foo");
+		a2.setColumnType(ColumnType.STRING);
+		a2.setMaximumSize(11L);
+
+		when(mockObjectFieldModelResolverFactory.getObjectFieldModelResolver(any())).thenReturn(mockObjectFieldModelResolver);
+		when(mockObjectFieldModelResolver.findMatch(any())).thenReturn(Optional.empty());
+		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
+		
+		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any(), any())).thenReturn(ImmutableList.of(a1, a2));
+		
+		List<String> subTypes = EnumUtils.names(EntityType.file);
+		boolean filterByObjectId = false;
+		
+		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType, subTypes, filterByObjectId, scopeIds);
+		
+		List<ColumnModel> schema = ImmutableList.of(columnModel);
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			manager.determineCauseOfReplicationFailure(original, schema, mockMetadataProvider, scope.getViewTypeMask(), scopeFilter);
+		});
+		
+		assertEquals(original, ex.getCause());
+		assertEquals("The size of the column 'foo' is too small.  The column size needs to be at least 11 characters.", ex.getMessage());
 	}
 
 

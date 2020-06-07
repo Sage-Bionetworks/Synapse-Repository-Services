@@ -523,8 +523,13 @@ public class SQLTranslatorUtils {
 		// handle the right-hand-side values
 		Iterable<UnsignedLiteral> rightHandSide = predicate.getRightHandSideValues();
 		if(rightHandSide != null){
+			ColumnType columnType = columnTranslationReference.getColumnType();
+			//for the ArrayHasPredicate, we want its corresponding non-list type to be used
+			if(predicate instanceof ArrayHasPredicate && ColumnTypeListMappings.isList(columnType)){
+				columnType = ColumnTypeListMappings.nonListType(columnType);
+			}
 			for(UnsignedLiteral element: rightHandSide){
-				translateRightHandeSide(element, columnTranslationReference.getColumnType(), parameters);
+				translateRightHandeSide(element, columnType, parameters);
 			}
 		}
 		
