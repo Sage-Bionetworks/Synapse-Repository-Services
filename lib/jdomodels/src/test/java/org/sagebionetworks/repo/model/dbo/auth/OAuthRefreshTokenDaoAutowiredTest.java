@@ -405,22 +405,21 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 
 	@Test
 	void deleteLeastRecentlyUsedActiveTokens() {
-		// Note: this date is still in the "active" window (in this case, 180 days)
-		Date leastRecentlyUsedDate = new Date(System.currentTimeMillis() - ONE_DAY_MILLIS * 30);
+		Long tokenLimit = 2L; // Only keep the 2 newest tokens
 
-		// Create a bunch of tokens, one of which will be the "expected" retrieval based on date
-		OAuthRefreshTokenInformation toRemove = createRefreshToken("abcd", leastRecentlyUsedDate);
-		OAuthRefreshTokenInformation doNotRemove1 = createRefreshToken("abcd", new Date());
-		OAuthRefreshTokenInformation doNotRemove2 = createRefreshToken("abcd", new Date(System.currentTimeMillis() - 1000 * 5));
-
-		// We will create an expired token -- it will be deleted, but this is an implementation detail, rather than a requirement
-		OAuthRefreshTokenInformation expired = createRefreshToken("abcd", new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS));
+		// Create a bunch of tokens
+		// If we keep the newest 2 tokens, these will be deleted:
+		OAuthRefreshTokenInformation oldToken1 = createRefreshToken("abcd", new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS));
+		OAuthRefreshTokenInformation oldToken2 = createRefreshToken("abcd", new Date(System.currentTimeMillis() - ONE_DAY_MILLIS));
+		// and these will remain:
+		OAuthRefreshTokenInformation newToken1 = createRefreshToken("abcd", new Date(System.currentTimeMillis() - ONE_HOUR_MILLIS));
+		OAuthRefreshTokenInformation newToken2 = createRefreshToken("abcd", new Date());
 
 		// Call under test'
-		oauthRefreshTokenDao.deleteLeastRecentlyUsedTokensOverLimit(userId, client.getClient_id(), 2L);
-		assertFalse(oauthRefreshTokenDao.getRefreshTokenMetadata(toRemove.getTokenId()).isPresent());
-		assertTrue(oauthRefreshTokenDao.getRefreshTokenMetadata(doNotRemove1.getTokenId()).isPresent());
-		assertTrue(oauthRefreshTokenDao.getRefreshTokenMetadata(doNotRemove2.getTokenId()).isPresent());
-		assertFalse(oauthRefreshTokenDao.getRefreshTokenMetadata(expired.getTokenId()).isPresent());
+		oauthRefreshTokenDao.deleteLeastRecentlyUsedTokensOverLimit(userId, client.getClient_id(), tokenLimit);
+		assertFalse(oauthRefreshTokenDao.getRefreshTokenMetadata(oldToken1.getTokenId()).isPresent());
+		assertFalse(oauthRefreshTokenDao.getRefreshTokenMetadata(oldToken2.getTokenId()).isPresent());
+		assertTrue(oauthRefreshTokenDao.getRefreshTokenMetadata(newToken1.getTokenId()).isPresent());
+		assertTrue(oauthRefreshTokenDao.getRefreshTokenMetadata(newToken2.getTokenId()).isPresent());
 	}
 }
