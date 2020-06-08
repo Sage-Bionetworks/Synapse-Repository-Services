@@ -93,6 +93,8 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 	 *   - MySQL doesn't support LIMIT & IN/ALL/ANY/SOME subquery (so we can't do DELETE WHERE id IN (SELECT ... LIMIT x OFFSET y))
 	 *
 	 * https://stackoverflow.com/a/42030157
+	 *
+	 * Additionally, there is no need to check expiration date because tokens that are "revoked" have been deleted, so they will not count against the limit.
 	 */
 	private static final String DELETE_LEAST_RECENTLY_USED_ACTIVE_TOKEN = "DELETE t FROM " + TABLE_OAUTH_REFRESH_TOKEN + " t "
 			+ " JOIN ("
@@ -100,8 +102,6 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 				+ " FROM " + TABLE_OAUTH_REFRESH_TOKEN + " tt "
 				+ " WHERE " + COL_OAUTH_REFRESH_TOKEN_PRINCIPAL_ID + " = :" + PARAM_PRINCIPAL_ID
 				+ " AND " + COL_OAUTH_REFRESH_TOKEN_CLIENT_ID + " = :" + PARAM_CLIENT_ID
-				+ " AND " + COL_OAUTH_REFRESH_TOKEN_LAST_USED
-					+ " > (NOW() - INTERVAL :" + PARAM_DAYS + " DAY)"
 				+ " ORDER BY " + COL_OAUTH_REFRESH_TOKEN_LAST_USED + " DESC "
 				+ " LIMIT 18446744073709551615 OFFSET :" + PARAM_MAX_NUM_TOKENS //Limit is still required even if you just want offset: https://stackoverflow.com/questions/255517/mysql-offset-infinite-rows
 			+ ") tt ON t." + COL_OAUTH_REFRESH_TOKEN_ID + " = tt." + COL_OAUTH_REFRESH_TOKEN_ID;
@@ -271,15 +271,13 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 	}
 
 	@Override
-	public void deleteLeastRecentlyUsedTokensIfOverLimit(String userId, String clientId, Long maxLeaseLengthInDays, Long maxNumberOfTokens) {
+	public void deleteLeastRecentlyUsedTokensOverLimit(String userId, String clientId, Long maxNumberOfTokens) {
 		ValidateArgument.required(userId, "Principal ID");
 		ValidateArgument.required(clientId, "Client ID");
-		ValidateArgument.required(maxLeaseLengthInDays, "maxLeaseLengthInDays");
 		ValidateArgument.required(maxNumberOfTokens, "maxNumberOfTokens");
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(PARAM_PRINCIPAL_ID, userId);
 		params.addValue(PARAM_CLIENT_ID, clientId);
-		params.addValue(PARAM_DAYS, maxLeaseLengthInDays);
 		params.addValue(PARAM_MAX_NUM_TOKENS, maxNumberOfTokens);
 		namedParameterJdbcTemplate.update(DELETE_LEAST_RECENTLY_USED_ACTIVE_TOKEN, params);
 	}

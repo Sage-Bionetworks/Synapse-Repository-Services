@@ -412,12 +412,15 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		OAuthRefreshTokenInformation toRemove = createRefreshToken("abcd", leastRecentlyUsedDate);
 		OAuthRefreshTokenInformation doNotRemove1 = createRefreshToken("abcd", new Date());
 		OAuthRefreshTokenInformation doNotRemove2 = createRefreshToken("abcd", new Date(System.currentTimeMillis() - 1000 * 5));
-		createRefreshToken("abcd", new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS)); // expired, should be filtered by SQL so `toRemove` gets deleted
+
+		// We will create an expired token -- it will be deleted, but this is an implementation detail, rather than a requirement
+		OAuthRefreshTokenInformation expired = createRefreshToken("abcd", new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS));
 
 		// Call under test'
-		oauthRefreshTokenDao.deleteLeastRecentlyUsedTokensIfOverLimit(userId, client.getClient_id(), HALF_YEAR_DAYS, 2L);
+		oauthRefreshTokenDao.deleteLeastRecentlyUsedTokensOverLimit(userId, client.getClient_id(), 2L);
 		assertFalse(oauthRefreshTokenDao.getRefreshTokenMetadata(toRemove.getTokenId()).isPresent());
 		assertTrue(oauthRefreshTokenDao.getRefreshTokenMetadata(doNotRemove1.getTokenId()).isPresent());
 		assertTrue(oauthRefreshTokenDao.getRefreshTokenMetadata(doNotRemove2.getTokenId()).isPresent());
+		assertFalse(oauthRefreshTokenDao.getRefreshTokenMetadata(expired.getTokenId()).isPresent());
 	}
 }

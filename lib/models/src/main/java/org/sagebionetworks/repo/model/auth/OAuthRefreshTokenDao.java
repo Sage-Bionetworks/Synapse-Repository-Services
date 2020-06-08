@@ -84,6 +84,6 @@ public interface OAuthRefreshTokenDao {
 	 * @param userId
 	 * @param clientId
 	 */
-	void deleteLeastRecentlyUsedTokensIfOverLimit(String userId, String clientId, Long maxLeaseLengthInDays, Long maxNumberOfTokens);
+	void deleteLeastRecentlyUsedTokensOverLimit(String userId, String clientId, Long maxNumberOfTokens);
 
 }
