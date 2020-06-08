@@ -96,7 +96,7 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 	 *
 	 * Additionally, there is no need to check expiration date because tokens that are "revoked" have been deleted, so they will not count against the limit.
 	 */
-	private static final String DELETE_LEAST_RECENTLY_USED_ACTIVE_TOKEN = "DELETE t FROM " + TABLE_OAUTH_REFRESH_TOKEN + " t "
+	private static final String DELETE_LEAST_RECENTLY_USED_ACTIVE_TOKENS = "DELETE t FROM " + TABLE_OAUTH_REFRESH_TOKEN + " t "
 			+ " JOIN ("
 				+ "SELECT tt." + COL_OAUTH_REFRESH_TOKEN_ID
 				+ " FROM " + TABLE_OAUTH_REFRESH_TOKEN + " tt "
@@ -279,6 +279,6 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 		params.addValue(PARAM_PRINCIPAL_ID, userId);
 		params.addValue(PARAM_CLIENT_ID, clientId);
 		params.addValue(PARAM_MAX_NUM_TOKENS, maxNumberOfTokens);
-		namedParameterJdbcTemplate.update(DELETE_LEAST_RECENTLY_USED_ACTIVE_TOKEN, params);
+		namedParameterJdbcTemplate.update(DELETE_LEAST_RECENTLY_USED_ACTIVE_TOKENS, params);
 	}
 }
