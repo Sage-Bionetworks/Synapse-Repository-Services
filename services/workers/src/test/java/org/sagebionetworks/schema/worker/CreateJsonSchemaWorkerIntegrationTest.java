@@ -4,6 +4,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.InputStream;
 
@@ -18,6 +19,7 @@ import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.manager.schema.SynapseSchemaBootstrap;
+import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
@@ -80,15 +82,17 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 	}
 
 	@Test
-	public void testCreateSchema() throws InterruptedException {
+	public void testCreateSchema() throws InterruptedException, AssertionError, AsynchJobFailedException {
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(basicSchema);
-		CreateSchemaResponse response = asynchronousJobWorkerHelper.startAndWaitForJob(adminUserInfo, request,
-				MAX_WAIT_MS, CreateSchemaResponse.class);
-		assertNotNull(response);
-		assertNotNull(response.getNewVersionInfo());
-		assertEquals(adminUserInfo.getId().toString(), response.getNewVersionInfo().getCreatedBy());
-		assertEquals(semanticVersion, response.getNewVersionInfo().getSemanticVersion());
+		
+		asynchronousJobWorkerHelper.assertJobResponse(adminUserInfo, request, (CreateSchemaResponse response) -> {
+			assertNotNull(response);
+			assertNotNull(response.getNewVersionInfo());
+			assertEquals(adminUserInfo.getId().toString(), response.getNewVersionInfo().getCreatedBy());
+			assertEquals(semanticVersion, response.getNewVersionInfo().getSemanticVersion());
+		}, MAX_WAIT_MS);
+		
 		jsonSchemaManager.deleteSchemaAllVersion(adminUserInfo, organizationName, schemaName);
 		assertThrows(NotFoundException.class, () -> {
 			jsonSchemaManager.deleteSchemaAllVersion(adminUserInfo, organizationName, schemaName);
@@ -96,13 +100,16 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 	}
 
 	@Test
-	public void testCreateSchemaCycle() throws InterruptedException {
+	public void testCreateSchemaCycle() throws InterruptedException, AssertionError, AsynchJobFailedException {
 		// one
 		JsonSchema one = createSchema(organizationName, "one");
 		one.setDescription("no cycle yet");
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(one);
-		asynchronousJobWorkerHelper.startAndWaitForJob(adminUserInfo, request, MAX_WAIT_MS, CreateSchemaResponse.class);
+		
+		asynchronousJobWorkerHelper.assertJobResponse(adminUserInfo, request, (CreateSchemaResponse response) -> {
+			assertNotNull(response);
+		}, MAX_WAIT_MS);
 		
 		// two
 		JsonSchema refToOne = create$RefSchema(one);
@@ -111,17 +118,24 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 		two.setItems(refToOne);
 		request = new CreateSchemaRequest();
 		request.setSchema(two);
-		asynchronousJobWorkerHelper.startAndWaitForJob(adminUserInfo, request, MAX_WAIT_MS, CreateSchemaResponse.class);
+		
+		asynchronousJobWorkerHelper.assertJobResponse(adminUserInfo, request, (CreateSchemaResponse response) -> {
+			assertNotNull(response);
+		}, MAX_WAIT_MS);
 		
 		// update one to depend on two
 		one.setItems(create$RefSchema(two));
 		one.setDescription("now has a cycle");
 		CreateSchemaRequest cycleRequest = new CreateSchemaRequest();
 		cycleRequest.setSchema(one);
+		
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			asynchronousJobWorkerHelper.startAndWaitForJob(adminUserInfo, cycleRequest, MAX_WAIT_MS, CreateSchemaResponse.class);
+			asynchronousJobWorkerHelper.assertJobResponse(adminUserInfo, cycleRequest, (CreateSchemaResponse response) -> {
+				fail("Should have not receive a response");
+			}, MAX_WAIT_MS);
 		}).getMessage();
+		
 		assertEquals("Schema $id: 'my.org.net/one' has a circular dependency", message);
 	}
 
@@ -135,9 +149,11 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 			CreateSchemaRequest request = new CreateSchemaRequest();
 			request.setSchema(schema);
 			System.out.println("Creating schema: '" + schema.get$id() + "'");
-			CreateSchemaResponse response = asynchronousJobWorkerHelper.startAndWaitForJob(adminUserInfo, request,
-					MAX_WAIT_MS, CreateSchemaResponse.class);
-			System.out.println(response.getNewVersionInfo());
+			
+			asynchronousJobWorkerHelper.assertJobResponse(adminUserInfo, request, (CreateSchemaResponse response) -> {
+				assertNotNull(response);
+				System.out.println(response.getNewVersionInfo());
+			}, MAX_WAIT_MS);
 		}
 	}
 

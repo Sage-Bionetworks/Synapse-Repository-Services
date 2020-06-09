@@ -122,16 +122,15 @@ public class ViewColumnModelRequestWorkerIntegrationTest {
 				columnModel("foo", ColumnType.STRING, 3L)
 		);		
 		
-		// Call under test
-		ViewColumnModelResponse response = asyncHelper.startAndWaitForJob(evaluationOwner, request, MAX_WAIT, ViewColumnModelResponse.class);
-
-		List<ColumnModel> sortedResults = response.getResults()
-				.stream()
-				.sorted((m1, m2) -> m1.getName().compareTo(m2.getName()))
-				.collect(Collectors.toList());
-		
-		assertEquals(expectedResult, sortedResults);
-		assertNull(response.getNextPageToken());
+		asyncHelper.assertJobResponse(evaluationOwner, request, (ViewColumnModelResponse response) -> {
+			List<ColumnModel> sortedResults = response.getResults()
+					.stream()
+					.sorted((m1, m2) -> m1.getName().compareTo(m2.getName()))
+					.collect(Collectors.toList());
+			
+			assertEquals(expectedResult, sortedResults);
+			assertNull(response.getNextPageToken());
+		}, MAX_WAIT);	
 	}
 	
 	private static ColumnModel columnModel(String name, ColumnType type) {

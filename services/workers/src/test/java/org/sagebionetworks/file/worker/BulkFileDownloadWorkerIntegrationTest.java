@@ -144,25 +144,26 @@ public class BulkFileDownloadWorkerIntegrationTest {
 		BulkFileDownloadRequest request = new BulkFileDownloadRequest();
 		request.setRequestedFiles(Arrays.asList(fha1, fha2));
 		// Start the job to create the zip.
-		BulkFileDownloadResponse response = this.asynchronousJobWorkerHelper.startAndWaitForJob(adminUserInfo, request,
-				MAX_WAIT_MS, BulkFileDownloadResponse.class);
-		assertNotNull(response.getFileSummary());
-		assertEquals(2, response.getFileSummary().size());
-		// one
-		FileDownloadSummary summary = response.getFileSummary().get(0);
-		assertEquals(fha1.getFileHandleId(), summary.getFileHandleId());
-		assertEquals(FileDownloadStatus.SUCCESS,  summary.getStatus());
-		assertEquals(null, summary.getFailureMessage());
-		assertEquals(null, summary.getFailureCode());
-		// two
-		summary = response.getFileSummary().get(1);
-		assertEquals(fha2.getFileHandleId(), summary.getFileHandleId());
-		assertEquals(FileDownloadStatus.SUCCESS,  summary.getStatus());
-		assertEquals(null, summary.getFailureMessage());
-		assertEquals(null, summary.getFailureCode());
-		// must have a result
-		assertNotNull(response.getResultZipFileHandleId());
-		resulFileHandle = bulkDownloadManager.getS3FileHandle(response.getResultZipFileHandleId());
+		String zipFileHandleId = asynchronousJobWorkerHelper.assertJobResponse(adminUserInfo, request, (BulkFileDownloadResponse response) -> {			
+			assertNotNull(response.getFileSummary());
+			assertEquals(2, response.getFileSummary().size());
+			// one
+			FileDownloadSummary summary = response.getFileSummary().get(0);
+			assertEquals(fha1.getFileHandleId(), summary.getFileHandleId());
+			assertEquals(FileDownloadStatus.SUCCESS,  summary.getStatus());
+			assertEquals(null, summary.getFailureMessage());
+			assertEquals(null, summary.getFailureCode());
+			// two
+			summary = response.getFileSummary().get(1);
+			assertEquals(fha2.getFileHandleId(), summary.getFileHandleId());
+			assertEquals(FileDownloadStatus.SUCCESS,  summary.getStatus());
+			assertEquals(null, summary.getFailureMessage());
+			assertEquals(null, summary.getFailureCode());
+			// must have a result
+			assertNotNull(response.getResultZipFileHandleId());
+		}, MAX_WAIT_MS).getResponse().getResultZipFileHandleId();
+		
+		resulFileHandle = bulkDownloadManager.getS3FileHandle(zipFileHandleId);
 		fileHandlesToDelete.add(resulFileHandle.getId());
 		// Is the zip as expected?
 		validateZipContents(fileOneContents, fileTwoContents);

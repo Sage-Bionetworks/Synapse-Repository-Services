@@ -11,35 +11,34 @@ import java.net.URL;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.Callable;
+import java.util.function.Consumer;
 
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sagebionetworks.client.AsynchJobType;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
+import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
-import org.sagebionetworks.util.Pair;
-import org.sagebionetworks.util.TimeUtils;
 
 import com.google.common.collect.Lists;
 
@@ -162,86 +161,46 @@ public class IT099AsynchronousJobTest {
 			UploadToTablePreviewRequest previewRequest = new UploadToTablePreviewRequest();
 			previewRequest.setUploadFileHandleId(fileHandle.getId());
 			
-			final String uploadPreviewToken = synapse.uploadCsvTablePreviewAsyncStart(previewRequest);
-			// Wait for the job to finish
-			UploadToTablePreviewResult uploadPreviewResult = TimeUtils.waitFor(MAX_WAIT_MS, 500L, new Callable<Pair<Boolean, UploadToTablePreviewResult>>() {
-				@Override
-				public Pair<Boolean, UploadToTablePreviewResult> call() throws Exception {
-					try {
-						UploadToTablePreviewResult uploadResult = synapse.uploadCsvToTablePreviewAsyncGet(uploadPreviewToken);
-						return Pair.create(true, uploadResult);
-					} catch (SynapseResultNotReadyException e) {
-						return Pair.create(false, null);
-					}
-				}
-			});
-			assertNotNull(uploadPreviewResult);
-			assertNotNull(uploadPreviewResult.getSuggestedColumns());
-			assertNotNull(uploadPreviewResult.getSampleRows());
-			assertNotNull(uploadPreviewResult.getRowsScanned());
-			assertEquals(table.getColumnIds().size(), uploadPreviewResult.getSuggestedColumns().size());
-			assertEquals(rowCount, uploadPreviewResult.getSampleRows().size());
-			assertEquals(new Long(rowCount), uploadPreviewResult.getRowsScanned());
+			final int expectedColumnsNumber = table.getColumnIds().size();
 			
-			// We now have enough to apply the data to the table
-			final String uploadToken = synapse.uploadCsvToTableAsyncStart(tableId, fileHandle.getId(), null, null, null, null);
-			try {
-				synapse.uploadCsvToTableAsyncGet(uploadToken, tableId);
-			} catch (SynapseResultNotReadyException e) {
-				AsynchronousJobStatus status = e.getJobStatus();
-				assertNotNull(status);
-				assertNotNull(status.getJobId());
-			}
-			// Now make sure we can get the status
-			AsynchronousJobStatus status = synapse.getAsynchronousJobStatus(uploadToken);
-			assertNotNull(status);
-			assertNotNull(status.getJobId());
+			AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.TableCSVUploadPreview, previewRequest, (UploadToTablePreviewResult uploadPreviewResult) -> {
+				assertNotNull(uploadPreviewResult);
+				assertNotNull(uploadPreviewResult.getSuggestedColumns());
+				assertNotNull(uploadPreviewResult.getSampleRows());
+				assertNotNull(uploadPreviewResult.getRowsScanned());
+				assertEquals(expectedColumnsNumber, uploadPreviewResult.getSuggestedColumns().size());
+				assertEquals(rowCount, uploadPreviewResult.getSampleRows().size());
+				assertEquals(new Long(rowCount), uploadPreviewResult.getRowsScanned());
+			}, MAX_WAIT_MS);
+			
 
-			// Wait for the job to finish
-			UploadToTableResult uploadResult = TimeUtils.waitFor(MAX_WAIT_MS, 500L, new Callable<Pair<Boolean, UploadToTableResult>>() {
-				@Override
-				public Pair<Boolean, UploadToTableResult> call() throws Exception {
-					try {
-						UploadToTableResult uploadResult = synapse.uploadCsvToTableAsyncGet(uploadToken, tableId);
-						return Pair.create(true, uploadResult);
-					} catch (SynapseResultNotReadyException e) {
-						return Pair.create(false, null);
-					}
-				}
-			});
-			assertNotNull(uploadResult.getEtag());
-			assertEquals(rowCount, uploadResult.getRowsProcessed().longValue());
+			UploadToTableRequest uploadRequest = new UploadToTableRequest();
+			uploadRequest.setTableId(tableId);
+			uploadRequest.setUploadFileHandleId(fileHandle.getId());
+			
+			AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.TableCSVUpload, uploadRequest, (UploadToTableResult uploadResult) -> {
+				assertNotNull(uploadResult.getEtag());
+				assertEquals(rowCount, uploadResult.getRowsProcessed().longValue());				
+			}, MAX_WAIT_MS);			
 
 			// Wait for the table to be ready
 			String sql = "select * from "+table.getId();
-			final RowSet results = waitForQuery(sql, tableId);
-			assertEquals(rowCount, results.getRows().size());
-
-			assertEquals(rowCount, waitForCount(sql, tableId).longValue());
 			
-			// Now start a download job
-			final String downloadToken = synapse.downloadCsvFromTableAsyncStart("select * from " + table.getId(), true, true, null, tableId);
-			try {
-				synapse.downloadCsvFromTableAsyncGet(downloadToken, tableId);
-			} catch (SynapseResultNotReadyException e) {
-				status = e.getJobStatus();
-				assertNotNull(status);
-				assertNotNull(status.getJobId());
-			}
+			RowSet results = waitForQuery(sql, tableId, (rowSet) -> {				
+				assertEquals(rowCount, rowSet.getRows().size());
+			});
 
-			// Wait for the job to finish
-			DownloadFromTableResult downloadResult = TimeUtils.waitFor(MAX_WAIT_MS, 500L,
-					new Callable<Pair<Boolean, DownloadFromTableResult>>() {
-						@Override
-						public Pair<Boolean, DownloadFromTableResult> call() throws Exception {
-							try {
-								DownloadFromTableResult downloadResult = synapse.downloadCsvFromTableAsyncGet(downloadToken, tableId);
-								return Pair.create(true, downloadResult);
-							} catch (SynapseResultNotReadyException e) {
-								return Pair.create(false, null);
-							}
-						}
-					});
+			assertCount(sql, tableId, rowCount);
+			
+			DownloadFromTableRequest downloadRequest = new DownloadFromTableRequest();
+			downloadRequest.setEntityId(tableId);
+			downloadRequest.setSql(sql);
+			downloadRequest.setWriteHeader(true);
+			downloadRequest.setIncludeRowIdAndRowVersion(true);
+			
+			DownloadFromTableResult downloadResult = AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.TableCSVDownload, downloadRequest, (DownloadFromTableResult result) -> {
+				assertNotNull(result);
+			}, MAX_WAIT_MS).getResponse();			
 
 			// Now download the file
 			URL url = synapse.getFileHandleTemporaryUrl(downloadResult.getResultsFileHandleId());
@@ -296,50 +255,28 @@ public class IT099AsynchronousJobTest {
 			// Now upload this CSV as a file handle
 			fileHandle = synapse.multipartUpload(tempUpdate, null, false, false);
 			filesToDelete.add(fileHandle);
+			
 			// We now have enough to apply the data to the table
-			final String updateUploadToken = synapse.uploadCsvToTableAsyncStart(table.getId(), fileHandle.getId(), downloadResult.getEtag(),
-					null, null, null);
-			try {
-				synapse.uploadCsvToTableAsyncGet(updateUploadToken, tableId);
-			} catch (SynapseResultNotReadyException e) {
-				status = e.getJobStatus();
-				assertNotNull(status);
-				assertNotNull(status.getJobId());
-			}
 			
-			// Now make sure we can get the status
-			status = synapse.getAsynchronousJobStatus(updateUploadToken);
-			assertNotNull(status);
-			assertNotNull(status.getJobId());
-
-			// Wait for the job to finish
-			uploadResult = TimeUtils.waitFor(MAX_WAIT_MS, 500L, new Callable<Pair<Boolean, UploadToTableResult>>() {
-				@Override
-				public Pair<Boolean, UploadToTableResult> call() throws Exception {
-					try {
-						UploadToTableResult uploadResult = synapse.uploadCsvToTableAsyncGet(updateUploadToken, tableId);
-						return Pair.create(true, uploadResult);
-					} catch (SynapseResultNotReadyException e) {
-						return Pair.create(false, null);
-					}
-				}
-			});
-			assertNotNull(uploadResult.getEtag());
-			assertEquals(rowCount, uploadResult.getRowsProcessed().longValue());
-
+			uploadRequest = new UploadToTableRequest();
+			uploadRequest.setTableId(tableId);
+			uploadRequest.setUploadFileHandleId(fileHandle.getId());
+			uploadRequest.setUpdateEtag(downloadResult.getEtag());
+			
+			AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.TableCSVUpload, uploadRequest, (UploadToTableResult uploadResult) -> {
+				assertNotNull(uploadResult.getEtag());
+				assertEquals(rowCount, uploadResult.getRowsProcessed().longValue());				
+			}, MAX_WAIT_MS);		
+			
 			// Wait for the table to be ready
-			final RowSet updateResults = waitForQuery(sql, tableId);
-			assertEquals(rowCount, updateResults.getRows().size());
+			waitForQuery(sql, tableId, (updateResults) ->{				
+				assertEquals(rowCount, updateResults.getRows().size());
+				// since we updated the table this result should be different
+				assertFalse(updateResults.getRows().equals(results.getRows()));
+				assertFalse(results.getEtag().equals(updateResults.getEtag()));
+			});
 
-			assertEquals(rowCount, waitForCount(sql, tableId).longValue());
-			
-			// since we updated the table this result should be different
-			assertFalse(updateResults.getRows().equals(results.getRows()));
-			assertFalse(results.getEtag().equals(updateResults.getEtag()));
-			for (Row row : updateResults.getRows()) {
-				Long rowId = row.getRowId();
-				List<String> rowValues = row.getValues();
-			}
+			assertCount(sql, tableId, rowCount);
 			
 		} finally{
 			temp.delete();
@@ -347,13 +284,15 @@ public class IT099AsynchronousJobTest {
 		}
 	}
 	
-	public RowSet waitForQuery(String sql, final String tableId) throws Exception {
-		return AsyncHelper.waitForBundleQueryResults(synapse, MAX_WAIT_MS, sql, null, null, SynapseClient.QUERY_PARTMASK, tableId)
-				.getQueryResult().getQueryResults();
+	private RowSet waitForQuery(String sql, final String tableId, Consumer<RowSet> resultsConsumer) throws Exception {
+		return AsyncJobHelper.assertQueryBundleResults(synapse, tableId, sql, null, null, SynapseClient.QUERY_PARTMASK, (bundle) ->{
+			resultsConsumer.accept(bundle.getQueryResult().getQueryResults());
+		}, MAX_WAIT_MS).getResponse().getQueryResult().getQueryResults();
 	}
 
-	public Long waitForCount(String sql, final String tableId) throws Exception {
-		return AsyncHelper.waitForBundleQueryResults(synapse, MAX_WAIT_MS, sql, null, null, SynapseClient.COUNT_PARTMASK, tableId)
-				.getQueryCount();
+	private void assertCount(String sql, final String tableId, Long count) throws Exception {
+		AsyncJobHelper.assertQueryBundleResults(synapse, tableId, sql, null, null, SynapseClient.COUNT_PARTMASK, (results) -> {
+			assertEquals(count, results.getQueryCount());
+		}, MAX_WAIT_MS);
 	}
 }
