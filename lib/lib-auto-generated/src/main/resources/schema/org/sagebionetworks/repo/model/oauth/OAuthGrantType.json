@@ -5,6 +5,10 @@
     {
       "name": "authorization_code",
       "description": "Authorization Code grant type"
+    },
+    {
+      "name": "refresh_token",
+      "description": "Refresh Token grant type"
     }
   ]
 }
