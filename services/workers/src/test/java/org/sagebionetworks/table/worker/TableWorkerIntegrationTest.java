@@ -2187,16 +2187,16 @@ public class TableWorkerIntegrationTest {
 				rowSet, mockProgressCallback);
 
 		//query the column expecting the index table for it to be populated
-		QueryResult result = waitForConsistentQuery(adminUserInfo, "select ROW_ID, UNNEST("+strListColumn.getName()+") from " + tableId, null, null);
-
-		//UNNEST() should expand into 6 rows accounting for the null row
-		assertEquals(6, result.getQueryResults().getRows().size());
-		Row expectedNullRow = new Row();
-		expectedNullRow.setRowId(3L);
-		expectedNullRow.setVersionNumber(1L);
-		// ROWID, UNNEST(strListColumn)
-		expectedNullRow.setValues(Arrays.asList("3", null));
-		assertTrue(result.getQueryResults().getRows().contains(expectedNullRow));
+		waitForConsistentQuery(adminUserInfo, "select ROW_ID, UNNEST("+strListColumn.getName()+") from " + tableId, null, null, (QueryResult result) -> {
+			//UNNEST() should expand into 6 rows accounting for the null row
+			assertEquals(6, result.getQueryResults().getRows().size());
+			Row expectedNullRow = new Row();
+			expectedNullRow.setRowId(3L);
+			expectedNullRow.setVersionNumber(1L);
+			// ROWID, UNNEST(strListColumn)
+			expectedNullRow.setValues(Arrays.asList("3", null));
+			assertTrue(result.getQueryResults().getRows().contains(expectedNullRow));
+		});
 	}
 
 
