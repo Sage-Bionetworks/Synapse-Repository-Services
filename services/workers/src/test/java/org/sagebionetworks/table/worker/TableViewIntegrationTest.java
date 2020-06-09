@@ -1390,7 +1390,7 @@ public class TableViewIntegrationTest {
 			assertEquals("val2", rows.get(1).getValues().get(0));
 			assertEquals("val3", rows.get(2).getValues().get(0));
 			assertEquals("val4", rows.get(3).getValues().get(0));
-      assertEquals(null, rows.get(4).getValues().get(0));
+			assertEquals(null, rows.get(4).getValues().get(0));
 		});
 	}
 	
