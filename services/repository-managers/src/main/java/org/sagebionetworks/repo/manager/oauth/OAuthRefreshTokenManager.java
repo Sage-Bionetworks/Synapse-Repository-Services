@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
@@ -23,7 +24,8 @@ public interface OAuthRefreshTokenManager {
 	/**
 	 * Creates an OAuth 2.0 refresh token, which can be used to grant an OAuth client long-lived, revocable access
 	 * to a user's resources
-	 * @param userId the ID of the resource owner, aka the Synapse user granting access to resources
+	 *
+	 * @param userId
 	 * @param clientId the client authorized to access the resources
 	 * @param scopes the {@link OAuthScope}s that the client is authorized to access with.
 	 * @param claims the OIDC claims that have been granted to the client. the {@link OIDCClaimsRequest} object also
@@ -55,13 +57,13 @@ public interface OAuthRefreshTokenManager {
 
 	/**
 	 * Retrieve an OAuth 2.0 refresh token's metadata using the tokens' ID, on behalf of a user
-	 * @param userId
+	 * @param userInfo
 	 * @param tokenId
 	 * @return
 	 * @throws NotFoundException if the token does not exist
 	 * @throws UnauthorizedException if the token is not associated with the user
 	 */
-	OAuthRefreshTokenInformation getRefreshTokenMetadataWithUserId(String userId, String tokenId) throws NotFoundException, UnauthorizedException;
+	OAuthRefreshTokenInformation getRefreshTokenMetadata(UserInfo userInfo, String tokenId) throws NotFoundException, UnauthorizedException;
 
 	/**
 	 * Retrieve an OAuth 2.0 refresh token's metadata using the tokens' ID, on behalf of a client
@@ -71,40 +73,42 @@ public interface OAuthRefreshTokenManager {
 	 * @throws NotFoundException if the token does not exist
 	 * @throws UnauthorizedException if the token is not associated with the client
 	 */
-	OAuthRefreshTokenInformation getRefreshTokenMetadataWithClientId(String clientId, String tokenId) throws NotFoundException, UnauthorizedException;
+	OAuthRefreshTokenInformation getRefreshTokenMetadata(String clientId, String tokenId) throws NotFoundException, UnauthorizedException;
 
 	/**
 	 * Retrieve a paginated record of which clients are currently granted OAuth 2.0 access to a user via active refresh tokens
-	 * @param userId the user whose records should be retrieved
+	 * @param userInfo the user whose records should be retrieved
 	 * @param nextPageToken {@link org.sagebionetworks.repo.model.NextPageToken} token for pagination
 	 * @return
 	 */
-	OAuthClientAuthorizationHistoryList getAuthorizedClientHistory(String userId, String nextPageToken);
+	OAuthClientAuthorizationHistoryList getAuthorizedClientHistory(UserInfo userInfo, String nextPageToken);
 
 	/**
 	 * Retrieve a paginated list of metadata for active refresh tokens between a particular user and client
-	 * @param userId
+	 *
+	 * @param userInfo
 	 * @param clientId
 	 * @param nextPageToken {@link org.sagebionetworks.repo.model.NextPageToken} token for pagination
 	 * @return
 	 */
-	OAuthRefreshTokenInformationList getMetadataForActiveRefreshTokens(String userId, String clientId, String nextPageToken);
+	OAuthRefreshTokenInformationList getMetadataForActiveRefreshTokens(UserInfo userInfo, String clientId, String nextPageToken);
 
 	/**
 	 * Revoke all refresh tokens between a particular user and a particular client.
-	 * @param userId
+	 * @param userInfo
 	 * @param clientId
 	 */
-	void revokeRefreshTokensForUserClientPair(String userId, String clientId);
+	void revokeRefreshTokensForUserClientPair(UserInfo userInfo, String clientId);
 
 	/**
-	 * Revoke a particular refresh token as a user
-	 * @param userId
+	 * Revoke a particular refresh token using a token ID
+	 *
+	 * @param userInfo
 	 * @param tokenId
 	 * @throws NotFoundException if the token does not exist
 	 * @throws UnauthorizedException if the token is not associated with the user
 	 */
-	void revokeRefreshToken(String userId, String tokenId) throws NotFoundException, UnauthorizedException;
+	void revokeRefreshToken(UserInfo userInfo, String tokenId) throws NotFoundException, UnauthorizedException;
 
 	/**
 	 * Revokes a refresh token using the token itself. This method is usually invoked by an OAuth client, but a client
@@ -116,9 +120,10 @@ public interface OAuthRefreshTokenManager {
 
 	/**
 	 * Updates a token metadata.
-	 * @param userId
+	 *
+	 * @param userInfo
 	 * @param metadata
 	 * @return
 	 */
-	OAuthRefreshTokenInformation updateRefreshTokenMetadata(String userId, OAuthRefreshTokenInformation metadata) throws NotFoundException, UnauthorizedException;
+	OAuthRefreshTokenInformation updateRefreshTokenMetadata(UserInfo userInfo, OAuthRefreshTokenInformation metadata) throws NotFoundException, UnauthorizedException;
 }

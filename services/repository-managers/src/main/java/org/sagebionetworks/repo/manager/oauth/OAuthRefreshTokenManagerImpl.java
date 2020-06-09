@@ -5,10 +5,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.sagebionetworks.repo.manager.PrivateFieldUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.OAuthRefreshTokenDao;
+import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistory;
 import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
@@ -52,20 +55,24 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 	// The maximum number of refresh tokens that can be issued between a user-client pair.
 	private static final Long MAX_REFRESH_TOKENS_PER_CLIENT_PER_USER = 100L;
 
+	public static boolean canViewAndAlterTokenMetadata(UserInfo userInfo, OAuthRefreshTokenInformation metadata) {
+		return userInfo.getId().toString().equals(metadata.getPrincipalId()) || userInfo.isAdmin();
+	}
+
 	@WriteTransaction
 	@Override
 	public OAuthRefreshTokenAndId createRefreshToken(String userId, String clientId, List<OAuthScope> scopes, OIDCClaimsRequest claims) {
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(clientId, "clientId");
 		// The OpenIDConnectManager will handle if scope/claims are semantically valid
-		// Require that scope be non-null, and the claims maps be non-null
+		// Here, just require that scope be non-null, and the claims maps be non-null
 		ValidateArgument.required(scopes, "scopes");
 		ValidateArgument.required(claims, "claims");
 		ValidateArgument.required(claims.getId_token(), "id_token claims");
 		ValidateArgument.required(claims.getUserinfo(), "userinfo claims");
 
-		String token = generateToken();
-		String hash = hashToken(token); // We store the hash, not the token itself
+		String token = generateRefreshToken();
+		String hash = hashToken(token); // Save the hash, not the token
 
 		// Before we create the token, ensure the user/client pair is under the max tokens limit
 		oauthRefreshTokenDao.deleteLeastRecentlyUsedTokensOverLimit(userId, clientId, MAX_REFRESH_TOKENS_PER_CLIENT_PER_USER);
@@ -99,17 +106,17 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 	}
 
 	@Override
-	public OAuthRefreshTokenInformation getRefreshTokenMetadataWithUserId(String userId, String tokenId) throws NotFoundException {
+	public OAuthRefreshTokenInformation getRefreshTokenMetadata(UserInfo userInfo, String tokenId) throws NotFoundException {
 		OAuthRefreshTokenInformation metadata = oauthRefreshTokenDao.getRefreshTokenMetadata(tokenId)
 				.orElseThrow(() -> new NotFoundException("Refresh token with ID: " + tokenId + " does not exist"));
-		if (!userId.equals(metadata.getPrincipalId())) {
+		if (!canViewAndAlterTokenMetadata(userInfo, metadata)) {
 			throw new UnauthorizedException("You do not have permission to view this token metadata");
 		}
 		return metadata;
 	}
 
 	@Override
-	public OAuthRefreshTokenInformation getRefreshTokenMetadataWithClientId(String clientId, String tokenId) throws NotFoundException {
+	public OAuthRefreshTokenInformation getRefreshTokenMetadata(String clientId, String tokenId) throws NotFoundException {
 		OAuthRefreshTokenInformation metadata = oauthRefreshTokenDao.getRefreshTokenMetadata(tokenId)
 				.orElseThrow(() -> new NotFoundException("Refresh token with ID: " + tokenId + " does not exist"));
 		if (!clientId.equals(metadata.getClientId())) {
@@ -119,35 +126,38 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 	}
 
 	@Override
-	public OAuthClientAuthorizationHistoryList getAuthorizedClientHistory(String userId, String nextPageToken) {
-		return oauthClientDao.getAuthorizedClientHistory(userId, nextPageToken, REFRESH_TOKEN_LEASE_DURATION_DAYS);
+	public OAuthClientAuthorizationHistoryList getAuthorizedClientHistory(UserInfo userInfo, String nextPageToken) {
+		OAuthClientAuthorizationHistoryList results = oauthClientDao.getAuthorizedClientHistory(userInfo.getId().toString(), nextPageToken, REFRESH_TOKEN_LEASE_DURATION_DAYS);
+		for (OAuthClientAuthorizationHistory result : results.getResults()) {
+			PrivateFieldUtils.clearPrivateFields(result.getClient());
+		}
+		return results;
 	}
 
 	@Override
-	public OAuthRefreshTokenInformationList getMetadataForActiveRefreshTokens(String userId, String clientId, String nextPageToken) {
-		return oauthRefreshTokenDao.getActiveTokenInformation(userId, clientId, nextPageToken, REFRESH_TOKEN_LEASE_DURATION_DAYS);
+	public OAuthRefreshTokenInformationList getMetadataForActiveRefreshTokens(UserInfo userInfo, String clientId, String nextPageToken) {
+		return oauthRefreshTokenDao.getActiveTokenInformation(userInfo.getId().toString(), clientId, nextPageToken, REFRESH_TOKEN_LEASE_DURATION_DAYS);
 	}
 
 	@WriteTransaction
 	@Override
-	public void revokeRefreshTokensForUserClientPair(String userId, String clientId) {
+	public void revokeRefreshTokensForUserClientPair(UserInfo userInfo, String clientId) {
 		// Verify that tokens exist for the pair
-		OAuthRefreshTokenInformationList tokens = oauthRefreshTokenDao.getActiveTokenInformation(userId, clientId, null, REFRESH_TOKEN_LEASE_DURATION_DAYS);
+		OAuthRefreshTokenInformationList tokens = oauthRefreshTokenDao.getActiveTokenInformation(userInfo.getId().toString(), clientId, null, REFRESH_TOKEN_LEASE_DURATION_DAYS);
 		if (tokens.getResults().size() == 0) {
 			throw new NotFoundException("Refresh tokens have not been granted to client " + clientId);
 		} else {
-			oauthRefreshTokenDao.deleteAllTokensForUserClientPair(userId, clientId);
+			oauthRefreshTokenDao.deleteAllTokensForUserClientPair(userInfo.getId().toString(), clientId);
 		}
 	}
 
 	@WriteTransaction
 	@Override
-	public void revokeRefreshToken(String userId, String tokenId) {
-		OAuthRefreshTokenInformation metadata = oauthRefreshTokenDao
-				.getRefreshTokenMetadata(tokenId)
+	public void revokeRefreshToken(UserInfo userInfo, String tokenId) {
+		OAuthRefreshTokenInformation metadata = oauthRefreshTokenDao.getRefreshTokenMetadata(tokenId)
 				.orElseThrow(() -> new NotFoundException("Refresh token with ID:" + tokenId + " does not exist"));
 
-		if (!metadata.getPrincipalId().equals(userId)) {
+		if (!canViewAndAlterTokenMetadata(userInfo, metadata)) {
 			throw new UnauthorizedException("The specified token is owned by a different user and cannot be revoked");
 		}
 
@@ -188,7 +198,7 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 		OAuthRefreshTokenInformation metadata = oauthRefreshTokenDao.getRefreshTokenMetadata(tokenId)
 				.orElseThrow(() -> new IllegalStateException("Attempted to rotate a refresh token that does not exist."));
 
-		String token = generateToken();
+		String token = generateRefreshToken();
 		String hash = hashToken(token);
 
 		// Update the etag, and last used date (not modified on, which tells when the name was last changed)
@@ -201,29 +211,29 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 
 	@WriteTransaction
 	@Override
-	public OAuthRefreshTokenInformation updateRefreshTokenMetadata(String userId, OAuthRefreshTokenInformation metadata) {
+	public OAuthRefreshTokenInformation updateRefreshTokenMetadata(UserInfo userInfo, OAuthRefreshTokenInformation metadata) {
 		ValidateArgument.required(metadata, "OAuthRefreshTokenInformation");
 		ValidateArgument.required(metadata.getTokenId(), "id");
 		ValidateArgument.required(metadata.getName(), "name");
 		ValidateArgument.required(metadata.getEtag(), "etag");
 
-		OAuthRefreshTokenInformation old = oauthRefreshTokenDao.getRefreshTokenMetadata(metadata.getTokenId())
+		OAuthRefreshTokenInformation currentMetadata = oauthRefreshTokenDao.getRefreshTokenMetadata(metadata.getTokenId())
 				.orElseThrow(() -> new NotFoundException("The refresh token does not exist."));
 
-		if (!userId.equals(old.getPrincipalId())) {
+		if (!canViewAndAlterTokenMetadata(userInfo, currentMetadata)) {
 			throw new UnauthorizedException("You are not authorized to update this token because it belongs to a different user.");
 		}
 
-		if (!metadata.getEtag().equals(old.getEtag())) {
+		if (!metadata.getEtag().equals(currentMetadata.getEtag())) {
 			throw new ConflictingUpdateException("The refresh token metadata was updated since you last fetched it. Retrieve it again and reapply the update.");
 		}
 
 		// The name is currently the only field the user can specify
-		old.setName(metadata.getName());
-		old.setModifiedOn(clock.now());
-		old.setEtag(UUID.randomUUID().toString());
+		currentMetadata.setName(metadata.getName());
+		currentMetadata.setModifiedOn(clock.now());
+		currentMetadata.setEtag(UUID.randomUUID().toString());
 
-		oauthRefreshTokenDao.updateRefreshTokenMetadata(old);
+		oauthRefreshTokenDao.updateRefreshTokenMetadata(currentMetadata);
 
 		return oauthRefreshTokenDao.getRefreshTokenMetadata(metadata.getTokenId())
 				.orElseThrow(() -> new IllegalStateException("The token metadata could not be retrieved after an update."));
@@ -233,7 +243,7 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 	 * Generates a random string suitable for use as a refresh token.
 	 * @return a cryptographically-unguessable random string
 	 */
-	private String generateToken() {
+	private String generateRefreshToken() {
 		return PBKDF2Utils.generateSecureRandomString();
 	}
 
