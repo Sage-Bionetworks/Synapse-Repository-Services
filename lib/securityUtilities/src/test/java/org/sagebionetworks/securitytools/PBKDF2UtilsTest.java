@@ -51,10 +51,10 @@ public class PBKDF2UtilsTest {
 	}
 	
 	@Test
-	public void testGenerateClientSecret() {
+	public void testGenerateRandomString() {
 		assertTrue(StringUtils.isNotBlank(
 				// method under test
-				PBKDF2Utils.generateClientSecret()
+				PBKDF2Utils.generateSecureRandomString()
 		));
 	}
 	

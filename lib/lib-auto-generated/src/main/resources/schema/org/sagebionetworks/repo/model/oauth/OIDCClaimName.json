@@ -101,6 +101,10 @@
     {
       "name": "validated_at",
       "description": "The timestamp (seconds since the epoch) when validation occurred.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+    },
+    {
+      "name": "refresh_token_id",
+      "description": "The ID of the OAuth 2 refresh token affiliated with this access token, if one exists."
     }
   ]
 }
