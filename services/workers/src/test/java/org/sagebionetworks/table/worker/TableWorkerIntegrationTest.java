@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -2158,6 +2159,47 @@ public class TableWorkerIntegrationTest {
 		});
 	}
 
+	//reproduces PLFM-6235
+	@Test
+	public void testUnnest_nullColumns() throws Exception{
+		// setup an string list column.
+		ColumnModel strListColumn = new ColumnModel();
+		strListColumn.setColumnType(ColumnType.STRING_LIST);
+		strListColumn.setName("strList");
+		strListColumn = columnManager.createColumnModel(adminUserInfo, strListColumn);
+		schema = Lists.newArrayList(strListColumn);
+		// build a table with this column.
+		createTableWithSchema();
+		TableStatus status = waitForTableProcessing(tableId);
+		if(status.getErrorDetails() != null){
+			System.out.println(status.getErrorDetails());
+		}
+		assertTrue(TableState.AVAILABLE.equals(status.getState()));
+
+
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(
+				TableModelTestUtils.createRow(null, null, "[\"asdf1\",\"asdf2\",\"asdf3\"]"),
+				TableModelTestUtils.createRow(null, null, "[\"qwer1\",\"qwer2\"]"),
+				TableModelTestUtils.createRow(null, null, (String) null)));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = appendRows(adminUserInfo, tableId,
+				rowSet, mockProgressCallback);
+
+		//query the column expecting the index table for it to be populated
+		waitForConsistentQuery(adminUserInfo, "select ROW_ID, UNNEST("+strListColumn.getName()+") from " + tableId, null, null, (QueryResult result) -> {
+			//UNNEST() should expand into 6 rows accounting for the null row
+			assertEquals(6, result.getQueryResults().getRows().size());
+			Row expectedNullRow = new Row();
+			expectedNullRow.setRowId(3L);
+			expectedNullRow.setVersionNumber(1L);
+			// ROWID, UNNEST(strListColumn)
+			expectedNullRow.setValues(Arrays.asList("3", null));
+			assertTrue(result.getQueryResults().getRows().contains(expectedNullRow));
+		});
+	}
+
 
 	@Test
 	public void testFacet_ListColumnValueSelected() throws Exception{
@@ -2390,15 +2432,19 @@ public class TableWorkerIntegrationTest {
 		//query the column expecting the index table for it to be populated
 		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where entityIdList has ('8', 'syn1')", null, null, (result) -> {			
 			assertEquals(2, result.getQueryResults().getRows().size());
-			assertEquals(Arrays.asList("[\"syn1\",\"syn2\",\"syn3\"]", "[9, 8, 7]"), result.getQueryResults().getRows().get(0).getValues());
-			assertEquals(Arrays.asList("[\"syn6\",\"syn7\",\"syn8\"]", "[3, 2, 1]"), result.getQueryResults().getRows().get(1).getValues());
+			List<List<String>> resultsRows = result.getQueryResults().getRows().stream().map(Row::getValues).collect(Collectors.toList());
+
+			assertTrue(resultsRows.contains(Arrays.asList("[\"syn1\",\"syn2\",\"syn3\"]", "[9, 8, 7]")));
+			assertTrue(resultsRows.contains(Arrays.asList("[\"syn6\",\"syn7\",\"syn8\"]", "[3, 2, 1]")));
 		});
 
 		//query the column expecting the index table for it to be populated
 		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where userIdList has (9, 5)", null, null, (result) -> {			
 			assertEquals(2, result.getQueryResults().getRows().size());
-			assertEquals(Arrays.asList("[\"syn1\",\"syn2\",\"syn3\"]", "[9, 8, 7]"), result.getQueryResults().getRows().get(0).getValues());
-			assertEquals(Arrays.asList("[\"syn3\",\"syn4\",\"syn5\"]", "[6, 5, 4]"), result.getQueryResults().getRows().get(1).getValues());
+			List<List<String>> resultsRows = result.getQueryResults().getRows().stream().map(Row::getValues).collect(Collectors.toList());
+
+			assertTrue(resultsRows.contains(Arrays.asList("[\"syn1\",\"syn2\",\"syn3\"]", "[9, 8, 7]")));
+			assertTrue(resultsRows.contains(Arrays.asList("[\"syn3\",\"syn4\",\"syn5\"]", "[6, 5, 4]")));
 		});
 
 	}

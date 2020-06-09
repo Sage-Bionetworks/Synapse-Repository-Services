@@ -900,8 +900,8 @@ public class SQLTranslatorUtilsTest {
 
 		String expected = "SELECT _C222_, _C111__UNNEST, _C333__UNNEST " +
 				"FROM T123 " +
-				"JOIN T123_456_INDEX_C111_ ON T123.ROW_ID = T123_456_INDEX_C111_.ROW_ID_REF_C111_ " +
-				"JOIN T123_456_INDEX_C333_ ON T123.ROW_ID = T123_456_INDEX_C333_.ROW_ID_REF_C333_ " +
+				"LEFT JOIN T123_456_INDEX_C111_ ON T123.ROW_ID = T123_456_INDEX_C111_.ROW_ID_REF_C111_ " +
+				"LEFT JOIN T123_456_INDEX_C333_ ON T123.ROW_ID = T123_456_INDEX_C333_.ROW_ID_REF_C333_ " +
 				"ORDER BY _C111__UNNEST, _C333__UNNEST";
 		assertEquals(expected, querySpecification.toSql());
 	}
@@ -1755,7 +1755,7 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
 		String expectedSql = "SELECT _C111__UNNEST, COUNT(*) " +
 				"FROM T123 " +
-				"JOIN T123_INDEX_C111_ ON T123.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ " +
+				"LEFT JOIN T123_INDEX_C111_ ON T123.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ " +
 				"WHERE _C333_ IN ( :b0, :b1 ) " +
 				"GROUP BY _C111__UNNEST";
 		assertEquals(expectedSql,element.toSql());
