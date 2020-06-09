@@ -77,4 +77,13 @@ public interface OAuthRefreshTokenDao {
 	 * @param clientId
 	 */
 	void deleteAllTokensForUserClientPair(String userId, String clientId);
+	
+	/**
+	 * Deletes the least-recently used active refresh tokens between a particular user and particular client, if the client has more tokens than the limit.
+	 * The number of remaining active refresh tokens will be the specified limit.
+	 * @param userId
+	 * @param clientId
+	 */
+	void deleteLeastRecentlyUsedTokensOverLimit(String userId, String clientId, Long maxNumberOfTokens);
+
 }
