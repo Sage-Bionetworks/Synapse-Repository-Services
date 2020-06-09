@@ -334,6 +334,18 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		assertEquals(expected, actual.get());
 	}
 
+	@Transactional
+	@Test
+	void getMatchingTokenByHash_EmptyResult() {
+		String hashValue = "hash";
+		createRefreshToken(hashValue, new Date());
+
+		// call under test
+		Optional<OAuthRefreshTokenInformation> actual = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate("value that doesn't match", client.getClient_id());
+		assertFalse(actual.isPresent());
+	}
+
+
 	@Test
 	void getMatchingTokenByHashForUpdate_noTransaction() {
 		assertThrows(IllegalTransactionStateException.class,() ->

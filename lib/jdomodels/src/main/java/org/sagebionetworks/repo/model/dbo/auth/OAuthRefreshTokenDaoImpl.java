@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
@@ -183,7 +184,12 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(PARAM_TOKEN_HASH, hash);
 		params.addValue(PARAM_CLIENT_ID, clientId);
-		Optional<DBOOAuthRefreshToken> dbo = Optional.ofNullable(namedParameterJdbcTemplate.queryForObject(SELECT_TOKEN_BY_HASH_FOR_UPDATE, params, REFRESH_TOKEN_TABLE_MAPPING));
+		Optional<DBOOAuthRefreshToken> dbo;
+		try {
+			dbo = Optional.ofNullable(namedParameterJdbcTemplate.queryForObject(SELECT_TOKEN_BY_HASH_FOR_UPDATE, params, REFRESH_TOKEN_TABLE_MAPPING));
+		} catch (EmptyResultDataAccessException e) {
+			dbo = Optional.empty();
+		}
 		return dbo.map(OAuthRefreshTokenDaoImpl::refreshTokenDboToDto);
 	}
 
