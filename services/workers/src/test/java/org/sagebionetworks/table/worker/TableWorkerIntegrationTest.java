@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -2431,15 +2432,19 @@ public class TableWorkerIntegrationTest {
 		//query the column expecting the index table for it to be populated
 		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where entityIdList has ('8', 'syn1')", null, null, (result) -> {			
 			assertEquals(2, result.getQueryResults().getRows().size());
-			assertEquals(Arrays.asList("[\"syn1\",\"syn2\",\"syn3\"]", "[9, 8, 7]"), result.getQueryResults().getRows().get(0).getValues());
-			assertEquals(Arrays.asList("[\"syn6\",\"syn7\",\"syn8\"]", "[3, 2, 1]"), result.getQueryResults().getRows().get(1).getValues());
+			List<List<String>> resultsRows = result.getQueryResults().getRows().stream().map(Row::getValues).collect(Collectors.toList());
+
+			assertTrue(resultsRows.contains(Arrays.asList("[\"syn1\",\"syn2\",\"syn3\"]", "[9, 8, 7]")));
+			assertTrue(resultsRows.contains(Arrays.asList("[\"syn6\",\"syn7\",\"syn8\"]", "[3, 2, 1]")));
 		});
 
 		//query the column expecting the index table for it to be populated
 		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where userIdList has (9, 5)", null, null, (result) -> {			
 			assertEquals(2, result.getQueryResults().getRows().size());
-			assertEquals(Arrays.asList("[\"syn1\",\"syn2\",\"syn3\"]", "[9, 8, 7]"), result.getQueryResults().getRows().get(0).getValues());
-			assertEquals(Arrays.asList("[\"syn3\",\"syn4\",\"syn5\"]", "[6, 5, 4]"), result.getQueryResults().getRows().get(1).getValues());
+			List<List<String>> resultsRows = result.getQueryResults().getRows().stream().map(Row::getValues).collect(Collectors.toList());
+
+			assertTrue(resultsRows.contains(Arrays.asList("[\"syn1\",\"syn2\",\"syn3\"]", "[9, 8, 7]")));
+			assertTrue(resultsRows.contains(Arrays.asList("[\"syn3\",\"syn4\",\"syn5\"]", "[6, 5, 4]")));
 		});
 
 	}
