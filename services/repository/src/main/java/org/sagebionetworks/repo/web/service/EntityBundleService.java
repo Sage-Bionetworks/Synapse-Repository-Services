@@ -56,61 +56,6 @@ public interface EntityBundleService {
 	 * Create an entity and associated components with a single POST.
 	 * Specifically, this operation supports creation of an Entity, its
 	 * Annotations, and its ACL.
-	 * 
-	 * Upon successful creation, an EntityBundle is returned containing the
-	 * created components, as defined by the partsMask.
-	 * 
-	 * @param userId
-	 * @param eb
-	 * @param partsMask
-	 * @param request
-	 * @return
-	 * @throws ConflictingUpdateException
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws ParseException 
-	 * @throws ACLInheritanceException 
-	 */
-	@Deprecated
-	public org.sagebionetworks.repo.model.EntityBundle createEntityBundle(Long userId, org.sagebionetworks.repo.model.EntityBundleCreate ebc, String activityId)
-			throws ConflictingUpdateException, DatastoreException,
-			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException;
-
-	/**
-	 * Update an entity and associated components with a single POST.
-	 * Specifically, this operation supports creation of an Entity, its
-	 * Annotations, and its ACL.
-	 * 
-	 * Upon successful creation, an EntityBundle is returned containing the
-	 * updated components.
-	 * 
-	 * @param userId
-	 * @param entityId
-	 * @param ebc
-	 * @param request
-	 * @return
-	 * @throws ConflictingUpdateException
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws ACLInheritanceException
-	 * @throws ParseException
-	 */
-	@Deprecated
-	public org.sagebionetworks.repo.model.EntityBundle updateEntityBundle(Long userId, String entityId,
-																		  org.sagebionetworks.repo.model.EntityBundleCreate ebc, String activityId) throws
-			ConflictingUpdateException,	DatastoreException, 
-			InvalidModelException, UnauthorizedException, NotFoundException, 
-			ACLInheritanceException, ParseException;
-
-
-	/**
-	 * Create an entity and associated components with a single POST.
-	 * Specifically, this operation supports creation of an Entity, its
-	 * Annotations, and its ACL.
 	 *
 	 * Upon successful creation, an EntityBundle is returned containing the
 	 * created components, as defined by the partsMask.
