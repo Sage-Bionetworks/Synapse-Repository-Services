@@ -1043,63 +1043,6 @@ public class ServletTestHelper {
 				accessRequirement.getClass());
 	}
 
-	public PaginatedResults<AccessRequirement> getEntityAccessRequirements(
-			HttpServlet dispatchServlet, String id, Long userId)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/entity/" + id + UrlHelpers.ACCESS_REQUIREMENT,
-				userId, token(userId), null);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils.readResponseVariablePaginatedResults(
-				response, AccessRequirement.class);
-	}
-
-	public PaginatedResults<AccessRequirement> getEvaluationAccessRequirements(
-			HttpServlet dispatchServlet, String id, Long userId)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/evaluation/" + id
-						+ UrlHelpers.ACCESS_REQUIREMENT, userId, token(userId), null);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils.readResponseVariablePaginatedResults(
-				response, AccessRequirement.class);
-	}
-
-	public PaginatedResults<AccessRequirement> getUnmetEntityAccessRequirements(
-			HttpServlet dispatchServlet, String id, Long userId, ACCESS_TYPE accessType)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils
-				.initRequest(HTTPMODE.GET, "/entity/" + id
-						+ "/accessRequirementUnfulfilled", userId, token(userId), null);
-		if (accessType!=null) request.setParameter("accessType", accessType.name());
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils.readResponseVariablePaginatedResults(
-				response, AccessRequirement.class);
-	}
-
-	public PaginatedResults<AccessRequirement> getUnmetEvaluationAccessRequirements(
-			HttpServlet dispatchServlet, String id, Long userId, ACCESS_TYPE accessType)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/evaluation/" + id
-						+ "/accessRequirementUnfulfilled", userId, token(userId), null);
-		if (accessType!=null) request.setParameter("accessType", accessType.name());
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils.readResponseVariablePaginatedResults(
-				response, AccessRequirement.class);
-	}
-
 	public void deleteAccessRequirements(HttpServlet dispatchServlet,
 			String id, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
@@ -1124,44 +1067,6 @@ public class ServletTestHelper {
 
 		return (T) objectMapper.readValue(response.getContentAsString(),
 				accessApproval.getClass());
-	}
-
-	public PaginatedResults<AccessApproval> getEntityAccessApprovals(
-			HttpServlet dispatchServlet, String id, Long userId)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/entity/" + id + UrlHelpers.ACCESS_APPROVAL,
-				userId, token(userId), null);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils.readResponseVariablePaginatedResults(
-				response, AccessApproval.class);
-	}
-
-	public PaginatedResults<AccessApproval> getEvaluationAccessApprovals(
-			HttpServlet dispatchServlet, String id, Long userId)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/evaluation/" + id + UrlHelpers.ACCESS_APPROVAL,
-				userId, token(userId), null);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils.readResponseVariablePaginatedResults(
-				response, AccessApproval.class);
-	}
-
-	public void deleteAccessApproval(HttpServlet dispatchServlet,
-			String id, Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, UrlHelpers.ACCESS_APPROVAL + "/" + id, userId,
-				 token(userId), null);
-
-		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
-				HttpStatus.OK);
 	}
 
 	public void deleteAccessApprovals(HttpServlet dispatchServlet, Long userId,

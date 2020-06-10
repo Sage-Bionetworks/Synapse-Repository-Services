@@ -122,9 +122,6 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 				 dispatchServlet, accessApproval, userId, extraParams);
 		assertNotNull(clone);
 		
-		// test deletion
-		servletTestHelper.deleteAccessApproval(dispatchServlet, clone.getId().toString(), userId);
-
 		// test deletion using access requirementId and accessorId
 		try {
 			servletTestHelper.deleteAccessApprovals(dispatchServlet, userId, entityAccessRequirement.getId().toString(), testUser.getId().toString());
@@ -133,10 +130,6 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 			// The service is wired up.
 			// Exception thrown for not supporting access approval deletion for TermOfUseAccessRequirement
 		}
-		
-		List<AccessApproval> ars = servletTestHelper.getEntityAccessApprovals(
-				dispatchServlet, entityId, userId).getResults();
-		assertEquals(0, ars.size());
 	}
 
 }
