@@ -22,7 +22,6 @@ public class EntityBundleCreate implements JSONEntity {
 	public static int ENTITY 		      	= EntityBundle.ENTITY;
 	public static int ANNOTATIONS	      	= EntityBundle.ANNOTATIONS;
 	public static int ACL					= EntityBundle.ACL;
-	public static int ACCESS_REQUIREMENT	= EntityBundle.ACCESS_REQUIREMENTS;
 	
 	private static final String JSON_ENTITY = EntityBundle.JSON_ENTITY;
 	private static final String JSON_ENTITY_TYPE = EntityBundle.JSON_ENTITY_TYPE;
