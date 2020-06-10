@@ -96,8 +96,12 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	public Evaluation getEvaluation(UserInfo userInfo, String id)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		EvaluationUtils.ensureNotNull(id, "Evaluation ID");
+		
+		Evaluation evaluation = evaluationDAO.get(id);
+		
 		evaluationPermissionsManager.hasAccess(userInfo, id, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
-		return evaluationDAO.get(id);
+		
+		return evaluation;
 	}
 	
 	@Override
