@@ -93,7 +93,7 @@ public class EntityBundleController {
 			@PathVariable String id, 
 			@RequestParam int mask)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return "TODO"; // TODO check DW
+		return "See "+UrlHelpers.ENTITY_ID_BUNDLE_V2;
 	}	
 
 	/**
@@ -122,7 +122,7 @@ public class EntityBundleController {
 			@PathVariable Long versionNumber,
 			@RequestParam int mask)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return "TODO"; // TODO check DW
+		return "See "+UrlHelpers.ENTITY_VERSION_NUMBER_BUNDLE_V2;
 	}	
 	
 	/**
@@ -156,7 +156,7 @@ public class EntityBundleController {
 			@RequestBody EntityBundleCreate ebc)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
-		return "TODO"; // TODO check DW
+		return "See "+UrlHelpers.ENTITY_BUNDLE_V2_CREATE;
 	}
 	
 	/**
@@ -190,6 +190,6 @@ public class EntityBundleController {
 			@RequestBody EntityBundleCreate ebc)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
-		return "TODO"; // TODO check DW
+		return "See "+UrlHelpers.ENTITY_ID_BUNDLE_V2;
 	}
 }

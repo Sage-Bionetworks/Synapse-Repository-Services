@@ -185,7 +185,7 @@ public class AccessApprovalController {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
 		subjectId.setType(RestrictableObjectType.ENTITY);
-		return "TODO"; // TODO check data warehouse
+		return "See "+UrlHelpers.ACCESS_APPROVAL_INFO;
 	}
 
 	/**
@@ -214,7 +214,7 @@ public class AccessApprovalController {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(id);
 		subjectId.setType(RestrictableObjectType.TEAM);
-		return "TODO"; // TODO check data warehouse
+		return "See "+UrlHelpers.ACCESS_APPROVAL_INFO;
 	}
 
 	/**
@@ -243,7 +243,7 @@ public class AccessApprovalController {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(evaluationId);
 		subjectId.setType(RestrictableObjectType.EVALUATION);
-		return "TODO"; // TODO check data warehouse
+		return "See "+UrlHelpers.ACCESS_APPROVAL_INFO;
 	}
 
 	/**
@@ -261,14 +261,15 @@ public class AccessApprovalController {
 	public String deleteAccessApproval(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String approvalId) throws DatastoreException, UnauthorizedException, NotFoundException {
-		return "TODO"; // TODO check data warehouse and client implementation to show this is not called
+		return "See "+UrlHelpers.ACCESS_APPROVAL;
 	}
 
-	// TODO create hyperlink for ACTAccessRequirement in the doc below.
 	/**
 	 * Revoke all Access Approvals an accessor may have for a given Access Requirement.
 	 * This service is only available to the ACT.
-	 * Note requirementId must be the ID of an ACTAccessRequirement 
+	 * Note: requirementId must be the ID of an 
+	 * <a href="${org.sagebionetworks.repo.model.ACTAccessRequirement}">ACT AccessRequirement</a>.
+	 * 
 	 * @param userId - The user who is making the request
 	 * @param accessRequirementId - The access requirement to look for
 	 * @param accessorId - The user whose access is being revoked

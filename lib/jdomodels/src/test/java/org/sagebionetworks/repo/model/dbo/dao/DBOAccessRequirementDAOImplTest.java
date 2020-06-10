@@ -5,10 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -271,33 +268,6 @@ public class DBOAccessRequirementDAOImplTest {
 		assertTrue(stats.getRequirementIdSet().contains(accessRequirement2.getId().toString()));
 
 		accessRequirementDAO.delete(accessRequirement2.getId().toString());
-	}
-
-	/*
-	 * PLFM-3300
-	 */
-	@Test
-	public void testAROnEntityAndItsParent() {
-		node2.setParentId(node.getId());
-		nodeDao.updateNode(node2);
-
-		TermsOfUseAccessRequirement accessRequirement = new TermsOfUseAccessRequirement();
-		accessRequirement.setCreatedBy(individualGroup.getId());
-		accessRequirement.setCreatedOn(new Date());
-		accessRequirement.setModifiedBy(individualGroup.getId());
-		accessRequirement.setModifiedOn(new Date());
-		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		accessRequirement.setVersionNumber(1L);
-		RestrictableObjectDescriptor rod1 = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
-		RestrictableObjectDescriptor rod2 = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node2.getId());
-		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod1, rod2}));
-		accessRequirement.setTermsOfUse("text");
-
-		accessRequirement = accessRequirementDAO.create(accessRequirement);
-
-		// TODO verify content of retrieved object
-		
-		accessRequirementDAO.delete(accessRequirement.getId().toString());
 	}
 
 	@Test (expected = IllegalTransactionStateException.class)

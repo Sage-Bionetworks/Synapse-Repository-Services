@@ -174,7 +174,7 @@ public class AccessRequirementController {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
 		subjectId.setType(RestrictableObjectType.ENTITY);
-		return "TODO"; // TODO check data warehouse
+		return "See "+UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID;
 	}
 
 	/**
@@ -200,7 +200,7 @@ public class AccessRequirementController {
 				@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
 				@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset
 				) throws DatastoreException, UnauthorizedException, NotFoundException {
-		return "TODO"; // TODO check data warehouse
+		return "See "+UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID;
 	}
 
 	/**
