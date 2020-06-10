@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.oauth;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.commons.codec.digest.DigestUtils;
@@ -61,7 +60,7 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 
 	@WriteTransaction
 	@Override
-	public OAuthRefreshTokenAndId createRefreshToken(String userId, String clientId, List<OAuthScope> scopes, OIDCClaimsRequest claims) {
+	public OAuthRefreshTokenAndMetadata createRefreshToken(String userId, String clientId, List<OAuthScope> scopes, OIDCClaimsRequest claims) {
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(clientId, "clientId");
 		// The OpenIDConnectManager will handle if scope/claims are semantically valid
@@ -92,17 +91,36 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 		tokenMetadata = oauthRefreshTokenDao.createRefreshToken(hash, tokenMetadata);
 
 		// Return the unhashed token and ID
-		OAuthRefreshTokenAndId tokenAndId = new OAuthRefreshTokenAndId();
-		tokenAndId.setTokenId(tokenMetadata.getTokenId());
+		OAuthRefreshTokenAndMetadata tokenAndId = new OAuthRefreshTokenAndMetadata();
 		tokenAndId.setRefreshToken(token);
+		tokenAndId.setMetadata(tokenMetadata);
 		return tokenAndId;
 	}
 
 	@MandatoryWriteTransaction
 	@Override
-	public Optional<OAuthRefreshTokenInformation> getRefreshTokenMetadataForUpdate(String token, String clientId) throws NotFoundException {
-		String hash = hashToken(token);
-		return oauthRefreshTokenDao.getMatchingTokenByHashForUpdate(hash, clientId);
+	public OAuthRefreshTokenAndMetadata getRefreshTokenMetadataForUpdateAndRotate(String refreshToken) {
+		String hash = hashToken(refreshToken);
+		OAuthRefreshTokenInformation metadata = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate(hash)
+				.orElseThrow(() -> new IllegalArgumentException("The token does not match an existing token"));
+
+		String newToken = generateRefreshToken();
+		String newHash = hashToken(newToken);
+
+		// Update the etag, and last used date (not modified on, which tells when the name was last changed)
+		metadata.setLastUsed(clock.now());
+		metadata.setEtag(UUID.randomUUID().toString());
+
+		oauthRefreshTokenDao.updateTokenHash(metadata, newHash);
+
+		OAuthRefreshTokenInformation updatedMetadata = oauthRefreshTokenDao.getRefreshTokenMetadata(metadata.getTokenId())
+				.orElseThrow(() -> new IllegalStateException("Could not retrieve refresh token metadata after updating it."));
+
+		OAuthRefreshTokenAndMetadata tokenAndMetadata = new OAuthRefreshTokenAndMetadata();
+		tokenAndMetadata.setRefreshToken(newToken);
+		tokenAndMetadata.setMetadata(updatedMetadata);
+		return tokenAndMetadata;
+
 	}
 
 	@Override
@@ -166,47 +184,27 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 
 	@WriteTransaction
 	@Override
-	public void revokeRefreshToken(String clientId, OAuthTokenRevocationRequest revocationRequest) {
+	public void revokeRefreshToken(OAuthTokenRevocationRequest revocationRequest) {
 		String tokenIdToRevoke = null;
 		switch (revocationRequest.getToken_type_hint()) {
-			case access_token: // retrieve the refresh token ID from the JWT, if it exists
+			case access_token: // retrieve the refresh token ID from the JWT
 				Jwt<JwsHeader, Claims> token = oidcTokenHelper.parseJWT(revocationRequest.getToken());
 				tokenIdToRevoke = token.getBody().get(OIDCClaimName.refresh_token_id.name(), String.class);
 				if (tokenIdToRevoke == null) {
+					// Access tokens that were not issued alongside refresh tokens cannot be revoked.
 					throw new IllegalArgumentException("The access token was not issued via a refresh token. It cannot be revoked.");
 				}
-				// Don't check if the client owns the refresh token
-				// If someone other than the authorized client has an unexpired, signed access token, it should be revoked anyways
 				break;
 			case refresh_token: // retrieve the token ID from the DAO using the token hash
 				String hashedToken = hashToken(revocationRequest.getToken());
-				OAuthRefreshTokenInformation metadata = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate(hashedToken, clientId)
+				OAuthRefreshTokenInformation metadata = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate(hashedToken)
 						.orElseThrow(() -> new NotFoundException("The refresh token does not exist."));
-				tokenIdToRevoke= metadata.getTokenId();
+				tokenIdToRevoke = metadata.getTokenId();
 				break;
 			default:
 				throw new IllegalArgumentException("Unable to revoke a token with token_type_hint=" + revocationRequest.getToken_type_hint().name());
 		}
-
 		oauthRefreshTokenDao.deleteToken(tokenIdToRevoke);
-	}
-
-	@MandatoryWriteTransaction
-	@Override
-	public String rotateRefreshToken(String tokenId) {
-		// This method should only be called when the token row is locked, so something is wrong on our end if the token doesn't exist anymore
-		OAuthRefreshTokenInformation metadata = oauthRefreshTokenDao.getRefreshTokenMetadata(tokenId)
-				.orElseThrow(() -> new IllegalStateException("Attempted to rotate a refresh token that does not exist."));
-
-		String token = generateRefreshToken();
-		String hash = hashToken(token);
-
-		// Update the etag, and last used date (not modified on, which tells when the name was last changed)
-		metadata.setLastUsed(clock.now());
-		metadata.setEtag(UUID.randomUUID().toString());
-
-		oauthRefreshTokenDao.updateTokenHash(metadata, hash);
-		return token;
 	}
 
 	@WriteTransaction

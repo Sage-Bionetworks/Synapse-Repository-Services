@@ -1,11 +1,13 @@
 package org.sagebionetworks.repo.manager.oauth;
 
+import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
+
 /**
  * Simple POJO to hold an OAuth refresh token and its ID
  */
-public class OAuthRefreshTokenAndId {
+public class OAuthRefreshTokenAndMetadata {
 	private String refreshToken;
-	private String tokenId;
+	private OAuthRefreshTokenInformation metadata;
 
 
 	public String getRefreshToken() {
@@ -16,12 +18,12 @@ public class OAuthRefreshTokenAndId {
 		this.refreshToken = refreshToken;
 	}
 
-	public String getTokenId() {
-		return tokenId;
+	public OAuthRefreshTokenInformation getMetadata() {
+		return metadata;
 	}
 
-	public void setTokenId(String tokenId) {
-		this.tokenId = tokenId;
+	public void setMetadata(OAuthRefreshTokenInformation metadata) {
+		this.metadata = metadata;
 	}
 
 	@Override
@@ -29,7 +31,7 @@ public class OAuthRefreshTokenAndId {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
-				+ ((tokenId == null) ? 0 : tokenId.hashCode());
+				+ ((metadata == null) ? 0 : metadata.hashCode());
 		result = prime * result
 				+ ((refreshToken == null) ? 0 : refreshToken.hashCode());
 		return result;
@@ -43,11 +45,11 @@ public class OAuthRefreshTokenAndId {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		OAuthRefreshTokenAndId other = (OAuthRefreshTokenAndId) obj;
-		if (tokenId == null) {
-			if (other.tokenId != null)
+		OAuthRefreshTokenAndMetadata other = (OAuthRefreshTokenAndMetadata) obj;
+		if (metadata == null) {
+			if (other.metadata != null)
 				return false;
-		} else if (!tokenId.equals(other.tokenId))
+		} else if (!metadata.equals(other.metadata))
 			return false;
 		if (refreshToken == null) {
 			if (other.refreshToken != null)

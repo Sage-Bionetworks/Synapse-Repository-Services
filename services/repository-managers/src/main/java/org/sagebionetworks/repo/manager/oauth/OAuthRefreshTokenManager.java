@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.oauth;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -33,27 +32,17 @@ public interface OAuthRefreshTokenManager {
 	 *                 makes a request at the userinfo endpoint
 	 * @return a generated refresh token, and the refresh token's unique ID.
 	 */
-	OAuthRefreshTokenAndId createRefreshToken(String userId, String clientId, List<OAuthScope> scopes, OIDCClaimsRequest claims);
+	OAuthRefreshTokenAndMetadata createRefreshToken(String userId, String clientId, List<OAuthScope> scopes, OIDCClaimsRequest claims);
 
 	/**
-	 * Retrieves token metadata, if it exists, using the unhashed token and associated {@link org.sagebionetworks.repo.model.oauth.OAuthClient} ID.
-	 * This retrieval locks the row so that it may be updated. Therefore, a caller must use a {@link org.sagebionetworks.repo.transactions.WriteTransaction}.
-	 * @param token the unhashed token
-	 * @param clientId the associated client ID
-	 * @return an {@link Optional} containing the token metadata, if it exists. Otherwise, an empty optional.
+	 * Retrieves token metadata, using the unhashed token and associated {@link org.sagebionetworks.repo.model.oauth.OAuthClient} ID.
+	 * This retrieval locks the row so that it is not changed until the transaction completes.
+	 * Therefore, the caller must use {@link org.sagebionetworks.repo.transactions.WriteTransaction}.
+	 * @param refreshToken the unhashed refresh token
+	 * @return the new token and token ID
+	 * @throws IllegalArgumentException if the passed refresh token does not match an existing refresh token
 	 */
-	Optional<OAuthRefreshTokenInformation> getRefreshTokenMetadataForUpdate(String token, String clientId);
-
-	/**
-	 * Updates the hash for a refresh token and returns the new hash. Metadata (such as the token name) will be retained,
-	 * but certain fields may be updated (such as the Etag and the Last Used date).
-	 *
-	 * Prior to calling this method, the row should be locked with {@link #getRefreshTokenMetadataForUpdate}. Thus, an exception will
-	 * be thrown if calling this method unless already in a {@link org.sagebionetworks.repo.transactions.WriteTransaction}
-	 * @param tokenId
-	 * @return
-	 */
-	String rotateRefreshToken(String tokenId);
+	OAuthRefreshTokenAndMetadata getRefreshTokenMetadataForUpdateAndRotate(String refreshToken) throws IllegalArgumentException;
 
 	/**
 	 * Retrieve an OAuth 2.0 refresh token's metadata using the tokens' ID, on behalf of a user
@@ -113,10 +102,9 @@ public interface OAuthRefreshTokenManager {
 	/**
 	 * Revokes a refresh token using the token itself. This method is usually invoked by an OAuth client, but a client
 	 * ID is not required because if this is called by an unauthorized party, the token should be revoked anyways.
-	 * @param clientId
 	 * @param revocationRequest
 	 */
-	void revokeRefreshToken(String clientId, OAuthTokenRevocationRequest revocationRequest) throws NotFoundException;
+	void revokeRefreshToken(OAuthTokenRevocationRequest revocationRequest) throws NotFoundException;
 
 	/**
 	 * Updates a token metadata.
