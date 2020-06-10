@@ -132,7 +132,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		
 		// method under test
 		OIDCTokenResponse tokenResponse = 
-				openIDConnectManager.getAccessToken(authResponse.getAccess_code(), 
+				openIDConnectManager.getTokenResponseWithAuthorizationCode(authResponse.getAccess_code(),
 						oauthClient.getClient_id(), oauthClient.getRedirect_uris().get(0), OAUTH_ENDPOINT);
 		
 		

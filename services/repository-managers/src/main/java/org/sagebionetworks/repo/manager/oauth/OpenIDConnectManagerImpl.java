@@ -294,7 +294,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	}
 
 	@Override
-	public OIDCTokenResponse getAccessToken(String code, String verifiedClientId, String redirectUri, String oauthEndpoint) {
+	public OIDCTokenResponse getTokenResponseWithAuthorizationCode(String code, String verifiedClientId, String redirectUri, String oauthEndpoint) {
 		ValidateArgument.required(code, "Authorization Code");
 		ValidateArgument.required(verifiedClientId, "OAuth Client ID");
 		ValidateArgument.required(redirectUri, "Redirect URI");

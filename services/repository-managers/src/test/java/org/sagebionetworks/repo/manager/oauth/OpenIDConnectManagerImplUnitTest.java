@@ -678,7 +678,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		// here we just spot check a few fields to make sure everything's wired up
 
 		// method under test
-		OIDCTokenResponse tokenResponse = openIDConnectManagerImpl.getAccessToken(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
+		OIDCTokenResponse tokenResponse = openIDConnectManagerImpl.getTokenResponseWithAuthorizationCode(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
 		
 		// verifying the mock token indirectly verifies all param's were correctly passed to oidcTokenHelper.createOIDCIdToken()
 		assertEquals(expectedIdToken, tokenResponse.getId_token());
@@ -707,7 +707,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(incorrectlyEncryptedCode)).thenThrow(new RuntimeException());
 		try {
 			// method under test
-			openIDConnectManagerImpl.getAccessToken(incorrectlyEncryptedCode, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
+			openIDConnectManagerImpl.getTokenResponseWithAuthorizationCode(incorrectlyEncryptedCode, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
 			fail("IllegalArgumentException expected");
 		}  catch (IllegalArgumentException e) {
 			// as expected
@@ -717,7 +717,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		String invalidAuthorizationObjectCode = "not correctly serialized json";
 		try {
 			// method under test
-			openIDConnectManagerImpl.getAccessToken(invalidAuthorizationObjectCode, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
+			openIDConnectManagerImpl.getTokenResponseWithAuthorizationCode(invalidAuthorizationObjectCode, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
 			fail("IllegalArgumentException expected");
 		}  catch (IllegalStateException e) {
 			// as expected
@@ -744,7 +744,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		// method under test
 		try {
-			openIDConnectManagerImpl.getAccessToken(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
+			openIDConnectManagerImpl.getTokenResponseWithAuthorizationCode(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
 			fail("IllegalArgumentException expected");
 		}  catch (IllegalArgumentException e) {
 			// as expected
@@ -767,7 +767,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		// method under test
 		try {
-			openIDConnectManagerImpl.getAccessToken(authResponse.getAccess_code(), OAUTH_CLIENT_ID, "wrong redirect uri", OAUTH_ENDPOINT);
+			openIDConnectManagerImpl.getTokenResponseWithAuthorizationCode(authResponse.getAccess_code(), OAUTH_CLIENT_ID, "wrong redirect uri", OAUTH_ENDPOINT);
 			fail("IllegalArgumentException expected");
 		}  catch (IllegalArgumentException e) {
 			// as expected
@@ -797,7 +797,7 @@ public class OpenIDConnectManagerImplUnitTest {
 				eq(now), isNull(), anyString(), (List<OAuthScope>)any(), (Map<OIDCClaimName, OIDCClaimsRequestDetails>)any())).thenReturn(expectedAccessToken);
 		
 		// method under test
-		OIDCTokenResponse tokenResponse = openIDConnectManagerImpl.getAccessToken(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
+		OIDCTokenResponse tokenResponse = openIDConnectManagerImpl.getTokenResponseWithAuthorizationCode(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
 		
 		verify(oidcTokenHelper, never()).
 			createOIDCIdToken(anyString(), anyString(), anyString(), anyLong(), anyString(), (Date)any(), anyString(), (Map)any());
@@ -815,7 +815,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		
 		assertThrows(OAuthClientNotVerifiedException.class, () -> {
 			// method under test
-			openIDConnectManagerImpl.getAccessToken(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
+			openIDConnectManagerImpl.getTokenResponseWithAuthorizationCode(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
 		});
 		
 		verify(mockOauthClientDao).isOauthClientVerified(OAUTH_CLIENT_ID);

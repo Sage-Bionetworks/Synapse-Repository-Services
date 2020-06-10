@@ -27,13 +27,14 @@ public interface OpenIDConnectManager {
 	OAuthAuthorizationResponse authorizeClient(UserInfo userInfo, OIDCAuthorizationRequest authorizationRequest);
 	
 	/**
-	 * 
+	 * Obtain an access token, and conditionally an ID token and/or refresh token using an authorization code
 	 * @param authorizationCode
 	 * @param verifiedClientId Client ID verified via client authentication
 	 * @param redirectUri
 	 * @return
 	 */
-	OIDCTokenResponse getAccessToken(String authorizationCode, String verifiedClientId, String redirectUri, String oauthEndpoint);
+	OIDCTokenResponse getTokenResponseWithAuthorizationCode(String authorizationCode, String verifiedClientId, String redirectUri, String oauthEndpoint);
+
 	
 	/**
 	 * Given an OAuth access token with an audience and subject, 'decode' the
