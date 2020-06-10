@@ -85,15 +85,15 @@ public class EntityBundleController {
 	 */
 	@Deprecated
 	@RequiredScope({view})
-	@ResponseStatus(HttpStatus.OK)
+	@ResponseStatus(HttpStatus.GONE)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE, method = RequestMethod.GET)
 	public @ResponseBody
-	EntityBundle getEntityBundle(
+	String getEntityBundle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, 
 			@RequestParam int mask)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, mask);
+		return "TODO"; // TODO check DW
 	}	
 
 	/**
@@ -113,16 +113,16 @@ public class EntityBundleController {
 	 */
 	@Deprecated
 	@RequiredScope({view})
-	@ResponseStatus(HttpStatus.OK)
+	@ResponseStatus(HttpStatus.GONE)
 	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_NUMBER_BUNDLE, method = RequestMethod.GET)
 	public @ResponseBody
-	EntityBundle getEntityBundle(
+	String getEntityBundle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id,
 			@PathVariable Long versionNumber,
 			@RequestParam int mask)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, versionNumber, mask);
+		return "TODO"; // TODO check DW
 	}	
 	
 	/**

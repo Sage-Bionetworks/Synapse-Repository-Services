@@ -288,37 +288,6 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		return getEntityBundle(userId, entityId, fetchRequest);
 	}
 
-	@Deprecated
-	@Override
-	public org.sagebionetworks.repo.model.EntityBundle getEntityBundle(Long userId, String entityId, int mask)
-			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return getEntityBundle(userId, entityId, null, mask);
-	}
-
-	@Deprecated
-	@Override
-	public org.sagebionetworks.repo.model.EntityBundle getEntityBundle(Long userId, String entityId,
-																	   Long versionNumber, int mask)
-			throws NotFoundException, DatastoreException,
-			UnauthorizedException, ACLInheritanceException, ParseException {
-
-		//translate from V2 bundle
-		org.sagebionetworks.repo.model.EntityBundle eb = translateEntityBundle(getEntityBundle(userId,entityId,versionNumber, requestFromMask(mask)));
-
-		///additional deprecated flags not supported by V2 bundle
-		if ((mask & org.sagebionetworks.repo.model.EntityBundle.ENTITY_REFERENCEDBY) > 0) {
-			throw new IllegalArgumentException("ENTITY_REFERENCEDBY is deprecated.");
-		}
-		if ((mask & org.sagebionetworks.repo.model.EntityBundle.ACCESS_REQUIREMENTS) > 0) {
-			// This is deprecated.
-			eb.setAccessRequirements(new LinkedList<AccessRequirement>());
-		}
-		if ((mask & org.sagebionetworks.repo.model.EntityBundle.UNMET_ACCESS_REQUIREMENTS) > 0) {
-			eb.setUnmetAccessRequirements(null); // TODO double check this is not used
-		}
-		return eb;
-	}
-
 	@WriteTransaction
 	@Override
 	@Deprecated

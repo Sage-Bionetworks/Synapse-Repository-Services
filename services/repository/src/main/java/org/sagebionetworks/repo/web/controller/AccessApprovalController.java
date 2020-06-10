@@ -7,7 +7,6 @@ import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
 
 import java.io.IOException;
 
-import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
@@ -262,7 +261,7 @@ public class AccessApprovalController {
 	public String deleteAccessApproval(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String approvalId) throws DatastoreException, UnauthorizedException, NotFoundException {
-		return "TODO"; // TODO check data warehouse and client to show this is not called
+		return "TODO"; // TODO check data warehouse and client implementation to show this is not called
 	}
 
 	// TODO create hyperlink for ACTAccessRequirement in the doc below.

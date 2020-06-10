@@ -25,11 +25,11 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.QueryDAO;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
@@ -140,11 +140,15 @@ public class EvaluationServiceImpl implements EvaluationService {
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		
-		// fetch EntityBundle to be serialized
-		int mask = ServiceConstants.DEFAULT_ENTITYBUNDLE_MASK_FOR_SUBMISSIONS;
 		String entityId = submission.getEntityId();
 		Long versionNumber = submission.getVersionNumber();
-		EntityBundle bundle = serviceProvider.getEntityBundleService().getEntityBundle(userId, entityId, versionNumber, mask);
+		EntityBundleRequest entityBundleRequest = new EntityBundleRequest();
+		// EntityBundle.ENTITY + EntityBundle.ANNOTATIONS + EntityBundle.FILE_HANDLES;
+		entityBundleRequest.setIncludeEntity(true);
+		entityBundleRequest.setIncludeAnnotations(true);
+		entityBundleRequest.setIncludeFileHandles(true);
+
+		EntityBundle bundle = serviceProvider.getEntityBundleService().getEntityBundle(userId, entityId, versionNumber, entityBundleRequest);
 		Submission created = submissionManager.createSubmission(userInfo, submission, entityEtag, submissionEligibilityHash, bundle);
 		
 		List<MessageToUserAndBody> messages = submissionManager.
