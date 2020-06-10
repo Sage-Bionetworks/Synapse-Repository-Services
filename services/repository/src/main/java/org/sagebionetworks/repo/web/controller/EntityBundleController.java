@@ -147,16 +147,16 @@ public class EntityBundleController {
 	 */
 	@Deprecated
 	@RequiredScope({view,modify})
-	@ResponseStatus(HttpStatus.OK)
+	@ResponseStatus(HttpStatus.GONE)
 	@RequestMapping(value = UrlHelpers.ENTITY_BUNDLE, method = RequestMethod.POST)
 	public @ResponseBody
-	EntityBundle createEntityBundle(
+	String createEntityBundle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@RequestBody EntityBundleCreate ebc)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().createEntityBundle(userId, ebc, generatedBy);
+		return "TODO"; // TODO check DW
 	}
 	
 	/**
@@ -180,16 +180,16 @@ public class EntityBundleController {
 	 */
 	@Deprecated
 	@RequiredScope({view,modify})
-	@ResponseStatus(HttpStatus.OK)
+	@ResponseStatus(HttpStatus.GONE)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE, method = RequestMethod.PUT)
 	public @ResponseBody
-	EntityBundle updateEntityBundle(
+	String updateEntityBundle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@PathVariable String id,
 			@RequestBody EntityBundleCreate ebc)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().updateEntityBundle(userId, id, ebc, generatedBy);
+		return "TODO"; // TODO check DW
 	}
 }

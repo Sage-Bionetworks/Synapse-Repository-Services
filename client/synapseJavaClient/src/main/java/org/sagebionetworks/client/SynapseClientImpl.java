@@ -80,7 +80,6 @@ import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ProjectListTypeDeprecated;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResponseMessage;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
@@ -355,7 +354,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	private static final String ENTITY_URI_PATH = "/entity";
 	private static final String ENTITY_ACL_PATH_SUFFIX = "/acl";
-	private static final String ENTITY_ACL_RECURSIVE_SUFFIX = "?recursive=true";
 	private static final String BUNDLE = "/bundle";
 	private static final String BUNDLE_V2 = "/bundle2";
 	private static final String BENEFACTOR = "/benefactor"; // from
@@ -393,8 +391,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			+ REDIRECT_PARAMETER;
 	private static final String QUERY_REDIRECT_PARAMETER = "?"
 			+ REDIRECT_PARAMETER;
-	private static final String ACCESS_TYPE_PARAMETER = "accessType";
-
 	private static final String EVALUATION_URI_PATH = "/evaluation";
 	private static final String AVAILABLE_EVALUATION_URI_PATH = "/evaluation/available";
 	private static final String NAME = "name";

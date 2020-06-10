@@ -121,15 +121,9 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 		AccessApproval clone = servletTestHelper.createAccessApproval(
 				 dispatchServlet, accessApproval, userId, extraParams);
 		assertNotNull(clone);
-
-		// test getAccessApprovals for the entity
-		PaginatedResults<AccessApproval> results = servletTestHelper.getEntityAccessApprovals(
-				dispatchServlet, entityId, userId);	
-		List<AccessApproval> ars = results.getResults();
-		assertEquals(1, ars.size());
 		
 		// test deletion
-		servletTestHelper.deleteAccessApproval(dispatchServlet, ars.get(0).getId().toString(), userId);
+		servletTestHelper.deleteAccessApproval(dispatchServlet, clone.getId().toString(), userId);
 
 		// test deletion using access requirementId and accessorId
 		try {
@@ -140,9 +134,8 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 			// Exception thrown for not supporting access approval deletion for TermOfUseAccessRequirement
 		}
 		
-		results = servletTestHelper.getEntityAccessApprovals(
-				dispatchServlet, entityId, userId);	
-		ars = results.getResults();
+		List<AccessApproval> ars = servletTestHelper.getEntityAccessApprovals(
+				dispatchServlet, entityId, userId).getResults();
 		assertEquals(0, ars.size());
 	}
 
