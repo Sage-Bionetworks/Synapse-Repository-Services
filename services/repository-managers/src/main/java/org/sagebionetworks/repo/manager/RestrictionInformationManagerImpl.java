@@ -17,7 +17,9 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class RestrictionInformationManagerImpl implements RestrictionInformationManager {
 	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;
