@@ -162,10 +162,10 @@ public class AccessRequirementController {
 	 * @throws NotFoundException
 	 */
 	@RequiredScope({view})
-	@ResponseStatus(HttpStatus.OK)
+	@ResponseStatus(HttpStatus.GONE)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_ENTITY_ID, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<AccessRequirement>
+	String
 	 getEntityAccessRequirements(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 				@PathVariable(value = ID_PATH_VARIABLE) String entityId,
@@ -175,7 +175,7 @@ public class AccessRequirementController {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
 		subjectId.setType(RestrictableObjectType.ENTITY);
-		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId, limit, offset);
+		return "TODO"; // TODO check data warehouse
 	}
 
 	/**
@@ -191,20 +191,17 @@ public class AccessRequirementController {
 	 * @throws NotFoundException
 	 */
 	@RequiredScope({view})
-	@ResponseStatus(HttpStatus.OK)
+	@ResponseStatus(HttpStatus.GONE)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_TEAM_ID, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<AccessRequirement>
+	String
 	 getTeamAccessRequirements(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 				@PathVariable String id,
 				@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
 				@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset
 				) throws DatastoreException, UnauthorizedException, NotFoundException {
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setId(id);
-		subjectId.setType(RestrictableObjectType.TEAM);
-		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId, limit, offset);
+		return "TODO"; // TODO check data warehouse
 	}
 
 	/**

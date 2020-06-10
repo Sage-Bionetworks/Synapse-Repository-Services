@@ -244,37 +244,6 @@ public class AccessRequirementManagerImplUnitTest {
 	}
 
 	@Test
-	public void testUnmetForEntity() throws Exception {
-		Long mockDownloadARId = 1L;
-		Long mockUploadARId = 2L;
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setId(TEST_ENTITY_ID);
-		subjectId.setType(RestrictableObjectType.ENTITY);
-		when(nodeDao.getEntityPathIds(TEST_ENTITY_ID, false)).thenReturn(new ArrayList<Long>()); // an empty list, i.e. this is a top-level object
-		Node mockNode = new Node();
-		mockNode.setId(KeyFactory.stringToKey(TEST_ENTITY_ID).toString());
-		mockNode.setCreatedByPrincipalId(999L); // someone other than TEST_PRINCIPAL_ID
-		mockNode.setNodeType(EntityType.file);
-		when(nodeDao.getNode(TEST_ENTITY_ID)).thenReturn(mockNode);
-		when(accessRequirementDAO.getAllUnmetAccessRequirements(
-				Collections.singletonList(KeyFactory.stringToKey(TEST_ENTITY_ID)),
-				RestrictableObjectType.ENTITY,
-				Collections.singleton(userInfo.getId()),
-				Collections.singletonList(DOWNLOAD))).
-				thenReturn(Collections.singletonList(mockDownloadARId));
-		AccessRequirement downloadAR = new TermsOfUseAccessRequirement();
-		downloadAR.setId(mockDownloadARId);
-		AccessRequirement uploadAR = new TermsOfUseAccessRequirement();
-		uploadAR.setId(mockUploadARId);
-		List<AccessRequirement> arList = Arrays.asList(new AccessRequirement[]{downloadAR, uploadAR});
-		when(accessRequirementDAO.getAllAccessRequirementsForSubject(Collections.singletonList(KeyFactory.stringToKey(TEST_ENTITY_ID)), RestrictableObjectType.ENTITY)).
-			thenReturn(arList);
-		// call under test
-		List<AccessRequirement> result = arm.getAllUnmetAccessRequirements(userInfo, subjectId, DOWNLOAD);
-		assertEquals(Collections.singletonList(downloadAR), result);
-	}
-
-	@Test
 	public void testSetDefaultValuesForManagedAR() {
 		ManagedACTAccessRequirement ar = (ManagedACTAccessRequirement) createExpectedAR();
 		ar = (ManagedACTAccessRequirement) AccessRequirementManagerImpl.setDefaultValues(ar);
@@ -491,54 +460,6 @@ public class AccessRequirementManagerImplUnitTest {
 		assertTrue(ar.getVersionNumber().equals(info.getCurrentVersion()+1));
 
 		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
-	}
-
-	@Test
-	public void testGetAccessRequirementsForSubjectWithNullLimit() {
-		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId("1");
-		rod.setType(RestrictableObjectType.ENTITY);
-		arm.getAccessRequirementsForSubject(userInfo, rod, null, 0L);
-		verify(accessRequirementDAO).getAccessRequirementsForSubject(any(List.class), eq(RestrictableObjectType.ENTITY), eq(DEFAULT_LIMIT), eq(0L));
-	}
-
-	@Test
-	public void testGetAccessRequirementsForSubjectWithNullOffset() {
-		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId("1");
-		rod.setType(RestrictableObjectType.ENTITY);
-		arm.getAccessRequirementsForSubject(userInfo, rod, 10L, null);
-		verify(accessRequirementDAO).getAccessRequirementsForSubject(any(List.class), eq(RestrictableObjectType.ENTITY), eq(10L), eq(DEFAULT_OFFSET));
-	}
-
-	@Test
-	public void testGetAccessRequirementsForSubjectOverMaxLimit() {
-		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId("1");
-		rod.setType(RestrictableObjectType.ENTITY);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			arm.getAccessRequirementsForSubject(userInfo, rod, 51L, 0L);
-		});
-	}
-
-	@Test
-	public void testGetAccessRequirementsForSubjectZeroLimit() {
-		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId("1");
-		rod.setType(RestrictableObjectType.ENTITY);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			arm.getAccessRequirementsForSubject(userInfo, rod, 0L, 0L);
-		});
-	}
-
-	@Test
-	public void testGetAccessRequirementsForSubjectNegativeOffset() {
-		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId("1");
-		rod.setType(RestrictableObjectType.ENTITY);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			arm.getAccessRequirementsForSubject(userInfo, rod, 10L, -1L);
-		});
 	}
 
 	@Test

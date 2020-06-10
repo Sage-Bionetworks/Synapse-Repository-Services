@@ -314,11 +314,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			eb.setAccessRequirements(new LinkedList<AccessRequirement>());
 		}
 		if ((mask & org.sagebionetworks.repo.model.EntityBundle.UNMET_ACCESS_REQUIREMENTS) > 0) {
-			RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-			subjectId.setId(entityId);
-			subjectId.setType(RestrictableObjectType.ENTITY);
-			eb.setUnmetAccessRequirements(accessRequirementManager.getAllUnmetAccessRequirements(
-					userManager.getUserInfo(userId), subjectId, ACCESS_TYPE.DOWNLOAD));
+			eb.setUnmetAccessRequirements(null); // TODO double check this is not used
 		}
 		return eb;
 	}

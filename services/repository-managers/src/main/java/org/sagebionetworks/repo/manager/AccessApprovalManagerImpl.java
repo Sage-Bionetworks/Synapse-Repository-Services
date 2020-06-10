@@ -110,45 +110,6 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		return accessApprovalDAO.create(accessApproval);
 	}
 
-	@Deprecated
-	@Override
-	public List<AccessApproval> getAccessApprovalsForSubject(UserInfo userInfo,
-			RestrictableObjectDescriptor rod, Long limit, Long offset)
-			throws DatastoreException, NotFoundException, UnauthorizedException {
-		authorizationManager.canAccessAccessApprovalsForSubject(userInfo, rod, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
-
-		if (limit == null) {
-			limit = DEFAULT_LIMIT;
-		}
-		if (offset == null) {
-			offset = DEFAULT_OFFSET;
-		}
-		ValidateArgument.requirement(limit > 0 && limit <= MAX_LIMIT,
-				"Limit must be between 0 and "+MAX_LIMIT);
-		ValidateArgument.requirement(offset >= 0, "Offset must be at least 0");
-		List<Long> subjectIds = new ArrayList<Long>();
-		if (RestrictableObjectType.ENTITY==rod.getType()) {
-			subjectIds.addAll(nodeDao.getEntityPathIds(rod.getId()));
-		} else {
-			subjectIds.add(KeyFactory.stringToKey(rod.getId()));
-		}
-		return accessApprovalDAO.getAccessApprovalsForSubjects(subjectIds, rod.getType(), limit, offset);
-	}
-
-	@Deprecated
-	@WriteTransaction
-	@Override
-	public void deleteAccessApproval(UserInfo userInfo, String accessApprovalId)
-			throws NotFoundException, DatastoreException, UnauthorizedException {
-		AccessApproval accessApproval = accessApprovalDAO.get(accessApprovalId);
-		authorizationManager.canAccess(userInfo, accessApproval.getId().toString(),
-						ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.DELETE)
-				.checkAuthorizationOrElseThrow();
-			
-		accessApprovalDAO.delete(accessApproval.getId().toString());
-	}
-
-	@Deprecated
 	@WriteTransaction
 	@Override
 	public void revokeAccessApprovals(UserInfo userInfo, String accessRequirementId, String accessorId)

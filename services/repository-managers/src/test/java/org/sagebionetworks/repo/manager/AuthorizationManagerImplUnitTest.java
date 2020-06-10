@@ -189,11 +189,6 @@ public class AuthorizationManagerImplUnitTest {
 		participateAndDownload.add(ACCESS_TYPE.DOWNLOAD);
 		participateAndDownload.add(ACCESS_TYPE.PARTICIPATE);
 
-		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
-				any(List.class),
-				any(RestrictableObjectType.class), any(Collection.class), eq(participateAndDownload))).
-				thenReturn(new ArrayList<Long>());
-		
 		when(mockFileHandleAssociationManager.getAuthorizationObjectTypeForAssociatedObjectType(FileHandleAssociateType.FileEntity)).thenReturn(ObjectType.ENTITY);
 		when(mockFileHandleAssociationManager.getAuthorizationObjectTypeForAssociatedObjectType(FileHandleAssociateType.TableEntity)).thenReturn(ObjectType.ENTITY);
 		when(mockFileHandleAssociationManager.getAuthorizationObjectTypeForAssociatedObjectType(FileHandleAssociateType.WikiAttachment)).thenReturn(ObjectType.WIKI);
