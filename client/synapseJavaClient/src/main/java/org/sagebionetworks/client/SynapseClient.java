@@ -430,9 +430,6 @@ public interface SynapseClient extends BaseClient {
 	
 	public AccessRequirement getAccessRequirement(Long requirementId) throws SynapseException;
 
-	public PaginatedResults<AccessRequirement> getAccessRequirements(
-			RestrictableObjectDescriptor subjectId, Long limit, Long offset) throws SynapseException;
-
 	public WikiPage updateWikiPage(String ownerId, ObjectType ownerType,
 			WikiPage toUpdate) throws SynapseException;
 
@@ -579,8 +576,6 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 	
 	public AccessApproval getAccessApproval(Long approvalId) throws SynapseException;
-
-	public void deleteAccessApproval(Long approvalId) throws SynapseException;
 
 	public void revokeAccessApprovals(String requirementId, String accessorId) throws SynapseException;
 

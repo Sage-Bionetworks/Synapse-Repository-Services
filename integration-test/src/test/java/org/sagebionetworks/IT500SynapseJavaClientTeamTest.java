@@ -525,22 +525,10 @@ public class IT500SynapseJavaClientTeamTest {
 		assertNotNull(tou.getId());
 		accessRequirementsToDelete.add(tou.getId());
 		
-		// Query AccessRestriction
-		PaginatedResults<AccessRequirement> paginatedResults;
-		paginatedResults = adminSynapse.getAccessRequirements(rod, 10L, 0L);
-		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
-		
-		paginatedResults = adminSynapse.getAccessRequirements(rod, 10L, 10L);
-		assertTrue(paginatedResults.getResults().isEmpty());
-
 		// Create AccessApproval
 		AccessApproval aa = new AccessApproval();
 		aa.setRequirementId(tou.getId());
-		synapseTwo.createAccessApproval(aa);
-		
-		// Query AccessRestriction
-		paginatedResults = adminSynapse.getAccessRequirements(rod, 10L, 0L);
-		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);		
+		synapseTwo.createAccessApproval(aa);	
 	}
 
 	@Test

@@ -1302,27 +1302,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getJSONEntity(getRepoEndpoint(), uri, AccessRequirement.class);
 	}
 
-	@Override
-	public PaginatedResults<AccessRequirement> getAccessRequirements(
-			RestrictableObjectDescriptor subjectId, Long limit, Long offset) throws SynapseException {
-		String uri = null;
-		switch (subjectId.getType()){
-			case ENTITY:
-				uri = ENTITY + "/" + subjectId.getId() + ACCESS_REQUIREMENT;
-				break;
-			case EVALUATION:
-				uri = EVALUATION_URI_PATH + "/" + subjectId.getId() + ACCESS_REQUIREMENT;
-				break;
-			case TEAM:
-				uri = TEAM + "/" + subjectId.getId() + ACCESS_REQUIREMENT;
-				break;
-			default:
-				throw new SynapseClientException("Unsupported type "+ subjectId.getType());
-		}
-		uri += "?limit="+limit+"&offset="+offset;
-		return getPaginatedResults(getRepoEndpoint(), uri, AccessRequirement.class);
-	}
-
 	@SuppressWarnings("unchecked")
 	@Override
 	public <T extends AccessApproval> T createAccessApproval(T aa) throws SynapseException {
@@ -1335,11 +1314,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throws SynapseException {
 		String uri = ACCESS_APPROVAL + "/" + approvalId;
 		return getJSONEntity(getRepoEndpoint(), uri, AccessApproval.class);
-	}
-
-	@Override
-	public void deleteAccessApproval(Long approvalId) throws SynapseException {
-		deleteUri(getRepoEndpoint(), ACCESS_APPROVAL + "/" + approvalId);
 	}
 
 	@Override
