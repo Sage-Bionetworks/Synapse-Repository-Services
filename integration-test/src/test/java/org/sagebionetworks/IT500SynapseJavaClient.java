@@ -717,6 +717,8 @@ public class IT500SynapseJavaClient {
 		String accessRequirementId = r.getId().toString();
 		// check that revocation works
 		adminSynapse.revokeAccessApprovals(accessRequirementId, otherProfile.getOwnerId());
+		
+		adminSynapse.deleteAccessRequirement(Long.parseLong(accessRequirementId));
 	}
 
 	@Test
