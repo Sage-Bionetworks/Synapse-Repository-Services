@@ -107,7 +107,10 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Mock
 	private OIDCTokenHelper oidcTokenHelper;
-	
+
+	@Mock
+	private OAuthRefreshTokenManager oauthRefreshTokenManager;
+
 	@InjectMocks
 	private OpenIDConnectManagerImpl openIDConnectManagerImpl;
 	
@@ -300,7 +303,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	private OIDCAuthorizationRequest createAuthorizationRequest(List<String> claimsTags) {
 		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
 		authorizationRequest.setClientId(OAUTH_CLIENT_ID);
-		authorizationRequest.setScope(OAuthScope.openid.name());
+		authorizationRequest.setScope(OAuthScope.openid.name() + " " + OAuthScope.offline_access.name());
 		StringBuilder claims = new StringBuilder("{");
 		boolean firstTag = true;
 		for (String claimsTag : claimsTags) {
@@ -669,7 +672,64 @@ public class OpenIDConnectManagerImplUnitTest {
 		String expectedIdToken = "ID-TOKEN";
 		when(oidcTokenHelper.createOIDCIdToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), 
 				eq(NONCE), eq(now), anyString(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
+
+		OAuthRefreshTokenAndId expectedRefreshTokenAndId = new OAuthRefreshTokenAndId();
+		expectedRefreshTokenAndId.setRefreshToken("REFRESH-TOKEN");
+		expectedRefreshTokenAndId.setTokenId("REFRESH-TOKEN-ID");
+		when(oauthRefreshTokenManager.createRefreshToken(eq(USER_ID), eq(OAUTH_CLIENT_ID), any(), any())).thenReturn(expectedRefreshTokenAndId);
+
+		String expectedAccessToken = "ACCESS-TOKEN";
+		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(),
+				eq(now), eq(expectedRefreshTokenAndId.getTokenId()), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
+
+		// elsewhere we test that we correctly build up the requested user-info
+		// here we just spot check a few fields to make sure everything's wired up
+
+		// method under test
+		OIDCTokenResponse tokenResponse = openIDConnectManagerImpl.getTokenResponseWithAuthorizationCode(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
 		
+		// verifying the mock token indirectly verifies all param's were correctly passed to oidcTokenHelper.createOIDCIdToken()
+		assertEquals(expectedIdToken, tokenResponse.getId_token());
+		// just spot check a few fields to make sure everything's wired up
+		Map<OIDCClaimName, Object> userInfo = userInfoCaptor.getValue();
+		assertEquals(EMAIL, userInfo.get(OIDCClaimName.email));
+		assertTrue((Boolean)userInfo.get(OIDCClaimName.email_verified));
+		assertEquals(USER_ID, userInfo.get(OIDCClaimName.userid));
+
+		assertEquals(expectedAccessToken, tokenResponse.getAccess_token());
+		assertEquals(Arrays.asList(OAuthScope.openid, OAuthScope.offline_access), scopesCaptor.getValue());
+		for (OIDCClaimName claimName : mockClaimProviders.keySet()) {
+			assertTrue(claimsCaptor.getValue().containsKey(claimName));
+			assertNull(claimsCaptor.getValue().get(claimName));
+		}
+	
+		assertEquals(expectedRefreshTokenAndId.getRefreshToken(), tokenResponse.getRefresh_token());
+	}
+
+	@Test
+	public void testGetAccessToken_noRefreshToken() {
+		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(anyString())).then(returnsFirstArg());
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
+		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());
+		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
+		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
+		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
+		when(mockClock.now()).thenReturn(new Date());
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID_LONG)).thenReturn(EMAIL);
+		when(mockUserProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
+
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(ImmutableList.of("id_token", "userinfo"));
+		// Remove the offline_access scope, which will prevent a refresh token from being issued
+		authorizationRequest.setScope(OAuthScope.openid.name());
+
+		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
+		String code = authResponse.getAccess_code();
+
+		String expectedIdToken = "ID-TOKEN";
+		when(oidcTokenHelper.createOIDCIdToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(),
+				eq(NONCE), eq(now), anyString(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
+
 		String expectedAccessToken = "ACCESS-TOKEN";
 		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(),
 				eq(now), isNull(), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
@@ -694,8 +754,9 @@ public class OpenIDConnectManagerImplUnitTest {
 			assertTrue(claimsCaptor.getValue().containsKey(claimName));
 			assertNull(claimsCaptor.getValue().get(claimName));
 		}
-	
-		assertNull(tokenResponse.getRefresh_token());  // in the future we will provide a refresh token
+
+		verify(oauthRefreshTokenManager, never()).createRefreshToken(any(), any(), any(), any());
+		assertNull(tokenResponse.getRefresh_token());
 	}
 	
 	@Test

@@ -5,7 +5,6 @@ import static org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager.getSco
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -22,7 +21,6 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
-import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
@@ -35,6 +33,7 @@ import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -66,6 +65,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	@Autowired
 	private OAuthClientDao oauthClientDao;
+
+	@Autowired
+	private OAuthRefreshTokenManager oauthRefreshTokenManager;
 
 	@Autowired
 	private AuthenticationDAO authDao;
@@ -352,9 +354,30 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			result.setId_token(idToken);
 		}
 
+		// A refresh token should only be issued when `offline_access` is requested.
+		boolean issueRefreshToken = scopes.contains(OAuthScope.offline_access);
+		String refreshTokenId = null;
+		if (issueRefreshToken) {
+			Map<OIDCClaimName, OIDCClaimsRequestDetails> idTokenClaims = ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), ID_TOKEN_CLAIMS_KEY);
+			Map<OIDCClaimName, OIDCClaimsRequestDetails> userinfoClaims = ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), USER_INFO_CLAIMS_KEY);
+
+			OIDCClaimsRequest claimsToSave = new OIDCClaimsRequest();
+			claimsToSave.setId_token(EnumKeyedJsonMapUtil.convertToString(idTokenClaims));
+			claimsToSave.setUserinfo(EnumKeyedJsonMapUtil.convertToString(userinfoClaims));
+
+			OAuthRefreshTokenAndId refreshToken = oauthRefreshTokenManager
+					.createRefreshToken(authorizationRequest.getUserId(),
+							oauthClientId,
+							scopes,
+							claimsToSave
+					);
+			refreshTokenId = refreshToken.getTokenId();
+			result.setRefresh_token(refreshToken.getRefreshToken());
+		}
+
 		String accessTokenId = UUID.randomUUID().toString();
 		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid, 
-				oauthClientId, now, authTime, null, accessTokenId, scopes,
+				oauthClientId, now, authTime, refreshTokenId, accessTokenId, scopes,
 				ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), USER_INFO_CLAIMS_KEY));
 		result.setAccess_token(accessToken);
 		return result;

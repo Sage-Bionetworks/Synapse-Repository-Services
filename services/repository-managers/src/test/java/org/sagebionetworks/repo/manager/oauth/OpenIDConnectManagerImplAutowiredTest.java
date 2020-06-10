@@ -114,7 +114,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
 		authorizationRequest.setClientId(oauthClient.getClient_id());
 		authorizationRequest.setRedirectUri(oauthClient.getRedirect_uris().get(0));
-		authorizationRequest.setScope(OAuthScope.openid.name());
+		authorizationRequest.setScope(OAuthScope.openid.name() + " " + OAuthScope.offline_access.name());
 		authorizationRequest.setResponseType(OAuthResponseType.code);
 		authorizationRequest.setClaims("{\"id_token\":{\"team\":{\"values\":[\"2\"]}},\"userinfo\":{\"team\":{\"values\":[\"2\"]}}}");
 				
@@ -138,7 +138,8 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		
 		assertNotNull(tokenResponse.getAccess_token());
 		assertNotNull(tokenResponse.getId_token());
-		
+		assertNotNull(tokenResponse.getRefresh_token());
+
 		oidcTokenHelper.validateJWT(tokenResponse.getId_token());
 		
 		// method under test
