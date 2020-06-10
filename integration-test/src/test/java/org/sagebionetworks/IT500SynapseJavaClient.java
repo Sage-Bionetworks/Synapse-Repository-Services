@@ -715,8 +715,8 @@ public class IT500SynapseJavaClient {
 		assertTrue(synapseTwo.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
 
 		String accessRequirementId = r.getId().toString();
-		// check that revocation works
-		adminSynapse.revokeAccessApprovals(accessRequirementId, otherProfile.getOwnerId());
+
+		assertThrows(SynapseBadRequestException.class, () -> adminSynapse.revokeAccessApprovals(accessRequirementId, otherProfile.getOwnerId()));
 		
 		adminSynapse.deleteAccessRequirement(Long.parseLong(accessRequirementId));
 	}
