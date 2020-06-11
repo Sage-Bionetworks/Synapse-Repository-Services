@@ -695,6 +695,8 @@ public class OpenIDConnectManagerImplUnitTest {
 			assertTrue(claimsCaptor.getValue().containsKey(claimName));
 			assertNull(claimsCaptor.getValue().get(claimName));
 		}
+		
+		assertEquals("Bearer", tokenResponse.getToken_type());
 	
 		assertNull(tokenResponse.getRefresh_token());  // in the future we will provide a refresh token
 	}
