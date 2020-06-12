@@ -182,7 +182,7 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 		assertNotNull(retrievedViaToken.getMetadata());
 		// Last used and Etag will have changed
 		assertNotEquals(token.getMetadata().getEtag(), retrievedViaToken.getMetadata().getEtag());
-		assertNotEquals(token.getMetadata().getLastUsed(), retrievedViaToken.getMetadata().getLastUsed());
+		assertTrue(retrievedViaToken.getMetadata().getLastUsed().getTime() >= token.getMetadata().getLastUsed().getTime());
 		// Everything else will be equal
 		token.getMetadata().setEtag(retrievedViaToken.getMetadata().getEtag());
 		token.getMetadata().setLastUsed(retrievedViaToken.getMetadata().getLastUsed());
@@ -205,7 +205,7 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 		OAuthRefreshTokenInformation updatedMetadata = refreshTokenManager.updateRefreshTokenMetadata(user1, metadata);
 		assertEquals(customName, updatedMetadata.getName());
 		assertNotEquals(metadata.getEtag(), updatedMetadata.getEtag());
-		assertNotEquals(metadata.getModifiedOn(), updatedMetadata.getModifiedOn());
+		assertTrue(updatedMetadata.getModifiedOn().getTime() >= metadata.getModifiedOn().getTime());
 		// Everything else should be equal
 		metadata.setName(updatedMetadata.getName());
 		metadata.setEtag(updatedMetadata.getEtag());
