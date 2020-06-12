@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
@@ -28,6 +27,7 @@ import org.junit.platform.commons.util.StringUtils;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -37,16 +37,9 @@ import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
-import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
-import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
-import org.sagebionetworks.repo.model.oauth.TokenTypeHint;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
-
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwsHeader;
-import io.jsonwebtoken.Jwt;
 
 @ExtendWith(MockitoExtension.class)
 public class OAuthRefreshTokenManagerImplUnitTest {
@@ -58,20 +51,10 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 	OAuthRefreshTokenDao mockOAuthRefreshTokenDao;
 
 	@Mock
-	OIDCTokenHelper mockOidcTokenHelper;
-
-	@Mock
 	Clock clock;
 
 	@InjectMocks
 	OAuthRefreshTokenManagerImpl oauthRefreshTokenManager;
-
-	@Mock
-	Jwt<JwsHeader, Claims> mockJwt;
-
-	@Mock
-	Claims mockClaims;
-
 
 	private static final Long EXPECTED_LEASE_DURATION = 180L;
 	private static final Long EXPECTED_MAX_REFRESH_TOKENS = 100L;
@@ -117,8 +100,20 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 		assertEquals(TOKEN_ID, actual.getMetadata().getTokenId());
 		assertTrue(StringUtils.isNotBlank(actual.getRefreshToken()));
 
-		verify(mockOAuthRefreshTokenDao).deleteLeastRecentlyUsedTokensOverLimit(USER_ID, CLIENT_ID, EXPECTED_MAX_REFRESH_TOKENS);
+		verify(mockOAuthRefreshTokenDao).deleteLeastRecentlyUsedTokensOverLimit(USER_ID, CLIENT_ID, EXPECTED_MAX_REFRESH_TOKENS - 1);
 		verify(mockOAuthRefreshTokenDao).createRefreshToken(anyString(), any(OAuthRefreshTokenInformation.class));
+	}
+
+	@Test
+	public void testCreateRefreshToken_anonymousUser() {
+		String anonymousUser = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString();
+
+		List<OAuthScope> scopes = Arrays.asList(OAuthScope.authorize, OAuthScope.openid);
+		OIDCClaimsRequest claimsRequest = new OIDCClaimsRequest();
+		claimsRequest.setUserinfo(Collections.emptyMap());
+		claimsRequest.setId_token(Collections.emptyMap());
+
+		assertThrows(UnauthorizedException.class, () -> oauthRefreshTokenManager.createRefreshToken(anonymousUser, CLIENT_ID, scopes, claimsRequest));
 	}
 
 	@Test
@@ -155,7 +150,7 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 		when(mockOAuthRefreshTokenDao.getRefreshTokenMetadata(TOKEN_ID)).thenReturn(Optional.of(existingToken));
 
 		// Call under test
-		OAuthRefreshTokenAndMetadata actual = oauthRefreshTokenManager.getRefreshTokenMetadataForUpdateAndRotate(token);
+		OAuthRefreshTokenAndMetadata actual = oauthRefreshTokenManager.rotateRefreshToken(token);
 
 		assertEquals(existingToken, actual.getMetadata());
 		assertTrue(StringUtils.isNotBlank(actual.getRefreshToken()));
@@ -171,7 +166,7 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 		when(mockOAuthRefreshTokenDao.getMatchingTokenByHashForUpdate(anyString())).thenReturn(Optional.empty());
 
 		// Call under test
-		assertThrows(IllegalArgumentException.class, () -> oauthRefreshTokenManager.getRefreshTokenMetadataForUpdateAndRotate("token"));
+		assertThrows(IllegalArgumentException.class, () -> oauthRefreshTokenManager.rotateRefreshToken("token"));
 	}
 
 
@@ -187,7 +182,7 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 		when(mockOAuthRefreshTokenDao.getMatchingTokenByHashForUpdate(anyString())).thenReturn(Optional.of(existingToken));
 		when(mockOAuthRefreshTokenDao.getRefreshTokenMetadata(TOKEN_ID)).thenReturn(Optional.empty());
 		// Call under test
-		assertThrows(IllegalStateException.class, () -> oauthRefreshTokenManager.getRefreshTokenMetadataForUpdateAndRotate("token"));
+		assertThrows(IllegalStateException.class, () -> oauthRefreshTokenManager.rotateRefreshToken("token"));
 	}
 
 	@Test
@@ -307,29 +302,11 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 		OAuthRefreshTokenInformationList existingTokens = new OAuthRefreshTokenInformationList();
 		existingTokens.setResults(Collections.singletonList(new OAuthRefreshTokenInformation())); // need a list of length >= 1
 
-		when(mockOAuthRefreshTokenDao.getActiveTokenInformation(USER_ID, CLIENT_ID, null, EXPECTED_LEASE_DURATION)).thenReturn(existingTokens);
-
 		// Call under test
 		oauthRefreshTokenManager.revokeRefreshTokensForUserClientPair(USER_INFO, CLIENT_ID);
 
-		verify(mockOAuthRefreshTokenDao).getActiveTokenInformation(USER_ID, CLIENT_ID, null, EXPECTED_LEASE_DURATION);
 		verify(mockOAuthRefreshTokenDao).deleteAllTokensForUserClientPair(USER_ID, CLIENT_ID);
 	}
-
-	@Test
-	public void testRevokeTokensForUserClientPair_NotFound() {
-		OAuthRefreshTokenInformationList existingTokens = new OAuthRefreshTokenInformationList();
-		existingTokens.setResults(Collections.emptyList()); // No tokens exist
-
-		when(mockOAuthRefreshTokenDao.getActiveTokenInformation(USER_ID, CLIENT_ID, null, EXPECTED_LEASE_DURATION)).thenReturn(existingTokens);
-
-		// Call under test
-		assertThrows(NotFoundException.class, () ->	oauthRefreshTokenManager.revokeRefreshTokensForUserClientPair(USER_INFO, CLIENT_ID));
-
-		verify(mockOAuthRefreshTokenDao).getActiveTokenInformation(USER_ID, CLIENT_ID, null, EXPECTED_LEASE_DURATION);
-		verify(mockOAuthRefreshTokenDao, never()).deleteAllTokensForUserClientPair(USER_ID, CLIENT_ID);
-	}
-
 
 	@Test
 	public void testRevokeTokenAsUser() {
@@ -506,48 +483,8 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 	}
 
 	@Test
-	public void testRevokeRefreshTokenWithAccessToken() {
-		String accessToken = "this would be a signed JWT string";
-		OAuthTokenRevocationRequest revocationRequest = new OAuthTokenRevocationRequest();
-		revocationRequest.setToken(accessToken);
-		revocationRequest.setToken_type_hint(TokenTypeHint.access_token);
-
-		when(mockOidcTokenHelper.parseJWT(accessToken)).thenReturn(mockJwt);
-		when(mockJwt.getBody()).thenReturn(mockClaims);
-		when(mockClaims.get(OIDCClaimName.refresh_token_id.name(), String.class)).thenReturn(TOKEN_ID);
-
-		// Call under test
-		oauthRefreshTokenManager.revokeRefreshToken(revocationRequest);
-
-		verify(mockOidcTokenHelper).parseJWT(accessToken);
-		verify(mockOAuthRefreshTokenDao).deleteToken(TOKEN_ID);
-	}
-
-	@Test
-	public void testRevokeRefreshTokenWithAccessToken_NoRefreshTokenId() {
-		String accessToken = "this would be a signed JWT string";
-		OAuthTokenRevocationRequest revocationRequest = new OAuthTokenRevocationRequest();
-		revocationRequest.setToken(accessToken);
-		revocationRequest.setToken_type_hint(TokenTypeHint.access_token);
-
-		when(mockOidcTokenHelper.parseJWT(accessToken)).thenReturn(mockJwt);
-		when(mockJwt.getBody()).thenReturn(mockClaims);
-		when(mockClaims.get(OIDCClaimName.refresh_token_id.name(), String.class)).thenReturn(null);
-
-		// Call under test
-		assertThrows(IllegalArgumentException.class, () -> oauthRefreshTokenManager.revokeRefreshToken(revocationRequest));
-
-		verify(mockOidcTokenHelper).parseJWT(accessToken);
-		verify(mockOAuthRefreshTokenDao, never()).deleteToken(anyString());
-	}
-
-
-	@Test
 	public void testRevokeRefreshTokenWithRefreshToken() {
-		String refreshToken = "this would be an opaque string";
-		OAuthTokenRevocationRequest revocationRequest = new OAuthTokenRevocationRequest();
-		revocationRequest.setToken(refreshToken);
-		revocationRequest.setToken_type_hint(TokenTypeHint.refresh_token);
+		String refreshToken = "a refresh token";
 
 		OAuthRefreshTokenInformation retrievedMetadata = new OAuthRefreshTokenInformation();
 		retrievedMetadata.setTokenId(TOKEN_ID);
@@ -555,53 +492,23 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 		when(mockOAuthRefreshTokenDao.getMatchingTokenByHashForUpdate(anyString())).thenReturn(Optional.of(retrievedMetadata));
 
 		// Call under test
-		oauthRefreshTokenManager.revokeRefreshToken(revocationRequest);
+		oauthRefreshTokenManager.revokeRefreshToken(refreshToken);
 
 		verify(mockOAuthRefreshTokenDao).getMatchingTokenByHashForUpdate(anyString());
-		verify(mockOidcTokenHelper, never()).parseJWT(anyString());
 		verify(mockOAuthRefreshTokenDao).deleteToken(TOKEN_ID);
-
 	}
 
 	@Test
-	public void testRevokeRefreshTokenWithRefreshToken_NotFound() {
-		String refreshToken = "this would be an opaque string";
-		OAuthTokenRevocationRequest revocationRequest = new OAuthTokenRevocationRequest();
-		revocationRequest.setToken(refreshToken);
-		revocationRequest.setToken_type_hint(TokenTypeHint.refresh_token);
+	public void testRevokeRefreshTokenWithRefreshToken_IllegalArgument() {
+		String refreshToken = "a refresh token";
 
 		when(mockOAuthRefreshTokenDao.getMatchingTokenByHashForUpdate(anyString())).thenReturn(Optional.empty());
 
 		// Call under test
-		assertThrows(NotFoundException.class, () -> oauthRefreshTokenManager.revokeRefreshToken(revocationRequest));
+		assertThrows(IllegalArgumentException.class, () -> oauthRefreshTokenManager.revokeRefreshToken(refreshToken));
 
 		verify(mockOAuthRefreshTokenDao).getMatchingTokenByHashForUpdate(anyString());
-		verify(mockOidcTokenHelper, never()).parseJWT(anyString());
 		verify(mockOAuthRefreshTokenDao, never()).deleteToken(anyString());
-
-	}
-
-
-	@Test
-	public void testRevokeRefreshTokenWithUnknownHint() {
-		OAuthTokenRevocationRequest revocationRequest = new OAuthTokenRevocationRequest();
-		revocationRequest.setToken("token");
-
-		// This test will fail if a new token type hint is added without a branch in the method under test.
-
-		for (TokenTypeHint hint : TokenTypeHint.values()) {
-			revocationRequest.setToken_type_hint(hint);
-			try {
-				oauthRefreshTokenManager.revokeRefreshToken(revocationRequest);
-			} catch (IllegalArgumentException e) {
-				if (e.getMessage().contains("Unable to revoke a token with token_type_hint=")) {
-					fail();
-				}
-				// Otherwise let pass
-			} catch (Exception e) {
-				// Let pass
-			}
-		}
 	}
 }
 

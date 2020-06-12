@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.sagebionetworks.repo.manager.PrivateFieldUtils;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -15,8 +16,6 @@ import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
-import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
-import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -26,10 +25,6 @@ import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwsHeader;
-import io.jsonwebtoken.Jwt;
-
 public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 
 	@Autowired
@@ -37,9 +32,6 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 
 	@Autowired
 	OAuthRefreshTokenDao oauthRefreshTokenDao;
-
-	@Autowired
-	OIDCTokenHelper oidcTokenHelper;
 
 	@Autowired
 	Clock clock;
@@ -70,11 +62,15 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 		ValidateArgument.required(claims.getId_token(), "id_token claims");
 		ValidateArgument.required(claims.getUserinfo(), "userinfo claims");
 
+		if (AuthorizationUtils.isUserAnonymous(Long.valueOf(userId))) {
+			throw new UnauthorizedException("Anonymous users may not issue OAuth 2.0 refresh tokens.");
+		}
+
 		String token = generateRefreshToken();
 		String hash = hashToken(token); // Save the hash, not the token
 
 		// Before we create the token, ensure the user/client pair is under the max tokens limit
-		oauthRefreshTokenDao.deleteLeastRecentlyUsedTokensOverLimit(userId, clientId, MAX_REFRESH_TOKENS_PER_CLIENT_PER_USER);
+		oauthRefreshTokenDao.deleteLeastRecentlyUsedTokensOverLimit(userId, clientId, MAX_REFRESH_TOKENS_PER_CLIENT_PER_USER - 1);
 
 		// Create the token
 		OAuthRefreshTokenInformation tokenMetadata = new OAuthRefreshTokenInformation();
@@ -99,7 +95,7 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 
 	@MandatoryWriteTransaction
 	@Override
-	public OAuthRefreshTokenAndMetadata getRefreshTokenMetadataForUpdateAndRotate(String refreshToken) {
+	public OAuthRefreshTokenAndMetadata rotateRefreshToken(String refreshToken) {
 		String hash = hashToken(refreshToken);
 		OAuthRefreshTokenInformation metadata = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate(hash)
 				.orElseThrow(() -> new IllegalArgumentException("The token does not match an existing token"));
@@ -160,13 +156,7 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 	@WriteTransaction
 	@Override
 	public void revokeRefreshTokensForUserClientPair(UserInfo userInfo, String clientId) {
-		// Verify that tokens exist for the pair
-		OAuthRefreshTokenInformationList tokens = oauthRefreshTokenDao.getActiveTokenInformation(userInfo.getId().toString(), clientId, null, REFRESH_TOKEN_LEASE_DURATION_DAYS);
-		if (tokens.getResults().size() == 0) {
-			throw new NotFoundException("Refresh tokens have not been granted to client " + clientId);
-		} else {
-			oauthRefreshTokenDao.deleteAllTokensForUserClientPair(userInfo.getId().toString(), clientId);
-		}
+		oauthRefreshTokenDao.deleteAllTokensForUserClientPair(userInfo.getId().toString(), clientId);
 	}
 
 	@WriteTransaction
@@ -184,27 +174,11 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 
 	@WriteTransaction
 	@Override
-	public void revokeRefreshToken(OAuthTokenRevocationRequest revocationRequest) {
-		String tokenIdToRevoke = null;
-		switch (revocationRequest.getToken_type_hint()) {
-			case access_token: // retrieve the refresh token ID from the JWT
-				Jwt<JwsHeader, Claims> token = oidcTokenHelper.parseJWT(revocationRequest.getToken());
-				tokenIdToRevoke = token.getBody().get(OIDCClaimName.refresh_token_id.name(), String.class);
-				if (tokenIdToRevoke == null) {
-					// Access tokens that were not issued alongside refresh tokens cannot be revoked.
-					throw new IllegalArgumentException("The access token was not issued via a refresh token. It cannot be revoked.");
-				}
-				break;
-			case refresh_token: // retrieve the token ID from the DAO using the token hash
-				String hashedToken = hashToken(revocationRequest.getToken());
-				OAuthRefreshTokenInformation metadata = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate(hashedToken)
-						.orElseThrow(() -> new NotFoundException("The refresh token does not exist."));
-				tokenIdToRevoke = metadata.getTokenId();
-				break;
-			default:
-				throw new IllegalArgumentException("Unable to revoke a token with token_type_hint=" + revocationRequest.getToken_type_hint().name());
-		}
-		oauthRefreshTokenDao.deleteToken(tokenIdToRevoke);
+	public void revokeRefreshToken(String refreshToken) {
+		String hashedToken = hashToken(refreshToken);
+		OAuthRefreshTokenInformation metadata = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate(hashedToken)
+					.orElseThrow(() -> new IllegalArgumentException("The refresh token does not exist, or has already been revoked."));
+		oauthRefreshTokenDao.deleteToken(metadata.getTokenId());
 	}
 
 	@WriteTransaction

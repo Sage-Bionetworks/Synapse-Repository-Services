@@ -34,12 +34,10 @@ import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
-import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
-import org.sagebionetworks.repo.model.oauth.TokenTypeHint;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -153,24 +151,31 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 		OAuthRefreshTokenAndMetadata token = refreshTokenManager.createRefreshToken(user1.getId().toString(), client1.getClient_id(), scopes, claims);
 		assertNotNull(token);
 		assertTrue(StringUtils.isNotBlank(token.getRefreshToken()));
-		assertNotNull(token.getMetadata());
+		OAuthRefreshTokenInformation tokenMetadata = token.getMetadata();
+		assertNotNull(tokenMetadata);
+		assertEquals(user1.getId().toString(), tokenMetadata.getPrincipalId());
+		assertEquals(client1.getClient_id(), tokenMetadata.getClientId());
+		assertNotNull(tokenMetadata.getName());
+		assertNotNull(tokenMetadata.getEtag());
+		assertNotNull(tokenMetadata.getModifiedOn());
+		assertNotNull(tokenMetadata.getLastUsed());
+		assertNotNull(tokenMetadata.getAuthorizedOn());
+		assertEquals(scopes, tokenMetadata.getScopes());
+		assertEquals(claims, tokenMetadata.getClaims());
 
-		// Retrieving the token with the token ID
+		// Retrieving the token with the token ID as a user
 		OAuthRefreshTokenInformation retrievedViaId = refreshTokenManager.getRefreshTokenMetadata(user1, token.getMetadata().getTokenId());
 		assertNotNull(retrievedViaId);
 		assertEquals(token.getMetadata(), retrievedViaId);
-		assertEquals(user1.getId().toString(), retrievedViaId.getPrincipalId());
-		assertEquals(client1.getClient_id(), retrievedViaId.getClientId());
-		assertNotNull(retrievedViaId.getName());
-		assertNotNull(retrievedViaId.getEtag());
-		assertNotNull(retrievedViaId.getModifiedOn());
-		assertNotNull(retrievedViaId.getLastUsed());
-		assertNotNull(retrievedViaId.getAuthorizedOn());
-		assertEquals(scopes, retrievedViaId.getScopes());
-		assertEquals(claims, retrievedViaId.getClaims());
+
+		// Retrieving the token with the token ID as a verified client
+		retrievedViaId = refreshTokenManager.getRefreshTokenMetadata(client1.getClient_id(), token.getMetadata().getTokenId());
+		assertNotNull(retrievedViaId);
+		assertEquals(token.getMetadata(), retrievedViaId);
+
 
 		// Retrieve the token with the token, causing a token refresh
-		OAuthRefreshTokenAndMetadata retrievedViaToken = refreshTokenManager.getRefreshTokenMetadataForUpdateAndRotate(token.getRefreshToken());
+		OAuthRefreshTokenAndMetadata retrievedViaToken = refreshTokenManager.rotateRefreshToken(token.getRefreshToken());
 		assertNotNull(retrievedViaToken);
 		assertTrue(StringUtils.isNotBlank(retrievedViaToken.getRefreshToken()));
 		assertNotEquals(retrievedViaToken.getRefreshToken(), token.getRefreshToken()); // The token should be different
@@ -184,10 +189,14 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 		assertEquals(token.getMetadata(), retrievedViaToken.getMetadata());
 
 		// Should get IllegalArgumentException when trying to retrieve via the old hash
-		assertThrows(IllegalArgumentException.class, () -> refreshTokenManager.getRefreshTokenMetadataForUpdateAndRotate(token.getRefreshToken()));
+		assertThrows(IllegalArgumentException.class, () -> refreshTokenManager.rotateRefreshToken(token.getRefreshToken()));
 
 		// Other user should get unauthz on attempt to retrieve via ID
 		assertThrows(UnauthorizedException.class, () -> refreshTokenManager.getRefreshTokenMetadata(user2, token.getMetadata().getTokenId()));
+
+		// Other client should get unauthz on attempt to retrieve via ID
+		assertThrows(UnauthorizedException.class, () -> refreshTokenManager.getRefreshTokenMetadata(client2.getClient_id(), token.getMetadata().getTokenId()));
+
 
 		// Update a refresh token's metadata
 		OAuthRefreshTokenInformation metadata = retrievedViaToken.getMetadata();
@@ -214,7 +223,7 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 		// Should get NFE because token is revoked/deleted.
 		assertThrows(NotFoundException.class, () -> refreshTokenManager.getRefreshTokenMetadata(user1, token.getMetadata().getTokenId()));
 		// Should get IllegalArgumentException when trying to retrieve via hash
-		assertThrows(IllegalArgumentException.class, () -> refreshTokenManager.getRefreshTokenMetadataForUpdateAndRotate(retrievedViaToken.getRefreshToken()));
+		assertThrows(IllegalArgumentException.class, () -> refreshTokenManager.rotateRefreshToken(retrievedViaToken.getRefreshToken()));
 
 	}
 
@@ -313,31 +322,11 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 	}
 
 	@Test
-	public void testRevokeTokenWithRefreshToken() throws Exception {
+	public void testRevokeTokenWithRefreshToken() {
 		OAuthRefreshTokenAndMetadata tokenAndId = refreshTokenManager.createRefreshToken(user1.getId().toString(), client1.getClient_id(), scopes, claims);
 
-		OAuthTokenRevocationRequest revocationRequest = new OAuthTokenRevocationRequest();
-		revocationRequest.setToken(tokenAndId.getRefreshToken());
-		revocationRequest.setToken_type_hint(TokenTypeHint.refresh_token);
 		// Call under test
-		refreshTokenManager.revokeRefreshToken(revocationRequest);
-
-		assertThrows(NotFoundException.class, () -> refreshTokenManager.getRefreshTokenMetadata(user1, tokenAndId.getMetadata().getTokenId()));
-	}
-
-	@Test
-	public void testRevokeTokenWithAccessToken() throws Exception {
-		OAuthRefreshTokenAndMetadata tokenAndId = refreshTokenManager.createRefreshToken(user1.getId().toString(), client1.getClient_id(), scopes, claims);
-
-		// We must create a signed JWT containing the `refresh_token_id` claim -- the only argument here that matters is the refresh token ID
-		String accessToken  = tokenHelper.createOIDCaccessToken("placeholder", "placeholder", client1.getClient_id(), System.currentTimeMillis(), new Date(), tokenAndId.getMetadata().getTokenId(), UUID.randomUUID().toString(), scopes, Collections.emptyMap());
-
-		OAuthTokenRevocationRequest revocationRequest = new OAuthTokenRevocationRequest();
-		revocationRequest.setToken(accessToken);
-		revocationRequest.setToken_type_hint(TokenTypeHint.access_token);
-
-		// Call under test
-		refreshTokenManager.revokeRefreshToken(revocationRequest);
+		refreshTokenManager.revokeRefreshToken(tokenAndId.getRefreshToken());
 
 		assertThrows(NotFoundException.class, () -> refreshTokenManager.getRefreshTokenMetadata(user1, tokenAndId.getMetadata().getTokenId()));
 	}
@@ -345,7 +334,7 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 	@Test
 	public void testGetByHashForUpdateAndRotate_MandatoryWriteTransaction() {
 		assertThrows(IllegalTransactionStateException.class,() ->
-				refreshTokenManager.getRefreshTokenMetadataForUpdateAndRotate("token")
+				refreshTokenManager.rotateRefreshToken("token")
 		);
 	}
 

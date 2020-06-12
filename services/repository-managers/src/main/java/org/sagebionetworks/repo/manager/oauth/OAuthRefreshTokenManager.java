@@ -8,7 +8,6 @@ import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
-import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -35,14 +34,14 @@ public interface OAuthRefreshTokenManager {
 	OAuthRefreshTokenAndMetadata createRefreshToken(String userId, String clientId, List<OAuthScope> scopes, OIDCClaimsRequest claims);
 
 	/**
-	 * Retrieves token metadata, using the unhashed token and associated {@link org.sagebionetworks.repo.model.oauth.OAuthClient} ID.
+	 * Rotates a refresh token, returning the new token and its metadata.
 	 * This retrieval locks the row so that it is not changed until the transaction completes.
 	 * Therefore, the caller must use {@link org.sagebionetworks.repo.transactions.WriteTransaction}.
 	 * @param refreshToken the unhashed refresh token
-	 * @return the new token and token ID
+	 * @return the new token and token metadata
 	 * @throws IllegalArgumentException if the passed refresh token does not match an existing refresh token
 	 */
-	OAuthRefreshTokenAndMetadata getRefreshTokenMetadataForUpdateAndRotate(String refreshToken) throws IllegalArgumentException;
+	OAuthRefreshTokenAndMetadata rotateRefreshToken(String refreshToken) throws IllegalArgumentException;
 
 	/**
 	 * Retrieve an OAuth 2.0 refresh token's metadata using the tokens' ID, on behalf of a user
@@ -56,7 +55,7 @@ public interface OAuthRefreshTokenManager {
 
 	/**
 	 * Retrieve an OAuth 2.0 refresh token's metadata using the tokens' ID, on behalf of a client
-	 * @param clientId
+	 * @param clientId the verified client ID of the client making this request
 	 * @param tokenId
 	 * @return
 	 * @throws NotFoundException if the token does not exist
@@ -102,9 +101,9 @@ public interface OAuthRefreshTokenManager {
 	/**
 	 * Revokes a refresh token using the token itself. This method is usually invoked by an OAuth client, but a client
 	 * ID is not required because if this is called by an unauthorized party, the token should be revoked anyways.
-	 * @param revocationRequest
+	 * @param refreshToken the unhashed token to revoke
 	 */
-	void revokeRefreshToken(OAuthTokenRevocationRequest revocationRequest) throws NotFoundException;
+	void revokeRefreshToken(String refreshToken) throws NotFoundException;
 
 	/**
 	 * Updates a token metadata.
