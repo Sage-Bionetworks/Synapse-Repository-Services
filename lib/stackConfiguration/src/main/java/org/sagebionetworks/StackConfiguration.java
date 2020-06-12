@@ -808,6 +808,15 @@ public interface StackConfiguration {
 	 */
 	String getTempCredentialsIamRoleArn();
 
+	/**
+	 *
+	 * @return The name of the read-only user on RDS databases
+	 */
 	String getReadOnlyUserName();
+
+	/**
+	 *
+	 * @return The password of the read-only user on RDS databases
+	 */
 	String getReadOnlyUserPassword();
 }
