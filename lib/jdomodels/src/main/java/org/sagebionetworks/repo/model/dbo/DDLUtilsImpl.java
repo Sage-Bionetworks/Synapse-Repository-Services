@@ -19,7 +19,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * @author John
  *
  */
-public class DDLUtilsImpl implements DDLUtils{
+public class DDLUtilsImpl implements DDLUtils {
 
 	private static final String DROP_FUNCTION = "DROP FUNCTION ";
 
@@ -28,6 +28,11 @@ public class DDLUtilsImpl implements DDLUtils{
 	private static final String FUNCTION_ALREADY_EXISTS = "Function already exists: ";
 
 	private static final String ALREADY_EXISTS = "already exists";
+
+	public static final String CREATE_USER = "CREATE USER IF NOT EXISTS '%s'@'%%' IDENTIFIED BY '%s'";
+	public static final String GRANT_SELECT_USER = "GRANT SELECT ON %s.* TO '%s'@'%%'";
+	public static final String DROP_USER = "DROP USER IF EXISTS '%s'@'%%'";
+	public static final String CHECK_USER_EXISTS = "SELECT * FROM mysql.user WHERE user='%s'";
 
 	static private Logger log = LogManager.getLogger(DDLUtilsImpl.class);
 	
@@ -41,9 +46,7 @@ public class DDLUtilsImpl implements DDLUtils{
 	
 	/**
 	 * If the given table does not already exist, then create it using the provided SQL file
-	 * @param databaseTableName
-	 * @param DDLSqlFileName
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	public boolean validateTableExists(TableMapping mapping) throws IOException{
 		String schema = stackConfiguration.getRepositoryDatabaseSchemaName();
@@ -174,6 +177,31 @@ public class DDLUtilsImpl implements DDLUtils{
 	public void createFunction(String definition) throws IOException {
 		// create the function from its definition
 		jdbcTemplate.update(definition);
+	}
+
+	@Override
+	public void createReadOnlyUser() {
+		String userName = stackConfiguration.getReadOnlyUserName();
+		String userPassword = stackConfiguration.getReadOnlyUserPassword();
+		String schema = stackConfiguration.getRepositoryDatabaseSchemaName();
+		String sqlCreateUSer = String.format(CREATE_USER, userName, userPassword);
+		jdbcTemplate.update(sqlCreateUSer);
+		String sqlGrantUser = String.format(GRANT_SELECT_USER, schema, userName);
+		jdbcTemplate.update(sqlGrantUser);
+	}
+
+	@Override
+	public void dropReadOnlyUser() {
+		String userName = stackConfiguration.getReadOnlyUserName();
+		jdbcTemplate.update(String.format(DROP_USER, userName));
+	}
+
+	@Override
+	public boolean doesReadOnlyUserExist() {
+		String userName = stackConfiguration.getReadOnlyUserName();
+		String sql = String.format(CHECK_USER_EXISTS, userName);
+		List<Map<String, Object>> list = jdbcTemplate.queryForList(sql);
+		return list.size() == 1; // Should only have 'userName'@'%'
 	}
 
 }

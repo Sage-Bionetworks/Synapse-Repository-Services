@@ -807,4 +807,7 @@ public interface StackConfiguration {
 	 * credentials that we pass to the caller.
 	 */
 	String getTempCredentialsIamRoleArn();
+
+	String getReadOnlyUserName();
+	String getReadOnlyUserPassword();
 }

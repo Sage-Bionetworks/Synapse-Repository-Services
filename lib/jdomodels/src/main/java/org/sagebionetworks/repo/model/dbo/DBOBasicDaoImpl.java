@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -123,6 +124,9 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 				ddlUtils.createFunction(functionName, functionMap.get(functionName));
 			}
 		}
+
+		// Create ReadOnlyUser
+		if (! ddlUtils.doesReadOnlyUserExist()) { ddlUtils.createReadOnlyUser(); }
 	}
 
 	@WriteTransaction

@@ -56,4 +56,8 @@ public interface DDLUtils {
 	 */
 	public boolean doesFunctionExist(String functionName);
 
+	public void createReadOnlyUser();
+	public void dropReadOnlyUser();
+	public boolean doesReadOnlyUserExist();
+
 }

@@ -9,11 +9,15 @@ import java.util.StringJoiner;
 
 import com.google.inject.Inject;
 
+import javax.xml.crypto.dsig.spec.XPathFilterParameterSpec;
+
 public class StackConfigurationImpl implements StackConfiguration {
 
 	private final String PROD = "prod";
 	private final String DEV = "dev";
 	private final String HUDSON = "hud";
+	private final String READ_ONLY_USER = "readonlyuser";
+	private final String READ_ONLY_USER_PWD = "readonlypwd";
 
 	// Package-scoped for unit tests.
 	final static String CONFIG_KEY_STS_IAM_ARN = "org.sagebionetworks.sts.iam.arn";
@@ -1204,5 +1208,15 @@ public class StackConfigurationImpl implements StackConfiguration {
 		} else {
 			return null;
 		}
+	}
+
+	@Override
+	public String getReadOnlyUserName() {
+		return (configuration.hasProperty("org.sagebionetworks.db.readonlyusername") ? configuration.getProperty("org.sagebionetworks.db.readonlyusername") : "readonlyuser");
+	}
+
+	@Override
+	public String getReadOnlyUserPassword() {
+		return (configuration.hasProperty("org.sagebionetworks.db.readonlyuserpassword") ? configuration.getProperty("org.sagebionetworks.db.readonlyuserpassword") : "readonlypwd");
 	}
 }

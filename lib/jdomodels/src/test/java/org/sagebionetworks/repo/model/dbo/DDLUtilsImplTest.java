@@ -56,4 +56,12 @@ public class DDLUtilsImplTest {
 		ddlUtils.dropFunction(functionName);
 		assertFalse(ddlUtils.doesFunctionExist(functionName));
 	}
+
+	@Test
+	public void testCreateReadOnlyUser() throws Exception {
+		ddlUtils.dropReadOnlyUser();
+		assertFalse(ddlUtils.doesReadOnlyUserExist());
+		ddlUtils.createReadOnlyUser();
+		assertTrue(ddlUtils.doesReadOnlyUserExist());
+	}
 }
