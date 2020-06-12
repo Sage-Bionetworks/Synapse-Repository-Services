@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.auth.OAuthRefreshTokenDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
+import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthRefreshToken;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
@@ -50,6 +51,7 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 	private static final String PARAM_LIMIT = "limitParam";
 	private static final String PARAM_OFFSET = "offsetParam";
 	private static final String PARAM_DAYS = "days";
+	private static final String PARAM_MAX_NUM_TOKENS = "maxNumberOfTokens";
 
 	private static final String UPDATE_REFRESH_TOKEN_METADATA = "UPDATE "+TABLE_OAUTH_REFRESH_TOKEN+
 			" SET "+
@@ -85,6 +87,25 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 			+ " WHERE " + COL_OAUTH_REFRESH_TOKEN_PRINCIPAL_ID + " = :" + PARAM_PRINCIPAL_ID
 			+ " AND " + COL_OAUTH_REFRESH_TOKEN_CLIENT_ID + " = :" + PARAM_CLIENT_ID;
 
+	/*
+	 * We use a JOIN because
+	 *   - MySQL doesn't support OFFSET when using DELETE
+	 *   - MySQL doesn't support LIMIT & IN/ALL/ANY/SOME subquery (so we can't do DELETE WHERE id IN (SELECT ... LIMIT x OFFSET y))
+	 *
+	 * https://stackoverflow.com/a/42030157
+	 *
+	 * Additionally, there is no need to check expiration date because tokens that are "revoked" have been deleted, so they will not count against the limit.
+	 */
+	private static final String DELETE_LEAST_RECENTLY_USED_ACTIVE_TOKENS = "DELETE t FROM " + TABLE_OAUTH_REFRESH_TOKEN + " t "
+			+ " JOIN ("
+				+ "SELECT tt." + COL_OAUTH_REFRESH_TOKEN_ID
+				+ " FROM " + TABLE_OAUTH_REFRESH_TOKEN + " tt "
+				+ " WHERE " + COL_OAUTH_REFRESH_TOKEN_PRINCIPAL_ID + " = :" + PARAM_PRINCIPAL_ID
+				+ " AND " + COL_OAUTH_REFRESH_TOKEN_CLIENT_ID + " = :" + PARAM_CLIENT_ID
+				+ " ORDER BY " + COL_OAUTH_REFRESH_TOKEN_LAST_USED + " DESC "
+				+ " LIMIT 18446744073709551615 OFFSET :" + PARAM_MAX_NUM_TOKENS //Limit is still required even if you just want offset: https://stackoverflow.com/questions/255517/mysql-offset-infinite-rows
+			+ ") tt ON t." + COL_OAUTH_REFRESH_TOKEN_ID + " = tt." + COL_OAUTH_REFRESH_TOKEN_ID;
+
 	@Autowired
 	private DBOBasicDao basicDao;
 
@@ -94,6 +115,7 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 	@Autowired
 	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
+	private static final TableMapping<DBOOAuthRefreshToken> REFRESH_TOKEN_TABLE_MAPPING = (new DBOOAuthRefreshToken()).getTableMapping();
 	// We serialize explicitly chosen fields, not the entire DTO, so no need to omit fields in the builder
 	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().build();
 
@@ -161,7 +183,7 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(PARAM_TOKEN_HASH, hash);
 		params.addValue(PARAM_CLIENT_ID, clientId);
-		Optional<DBOOAuthRefreshToken> dbo = Optional.ofNullable(namedParameterJdbcTemplate.queryForObject(SELECT_TOKEN_BY_HASH_FOR_UPDATE, params, (new DBOOAuthRefreshToken()).getTableMapping()));
+		Optional<DBOOAuthRefreshToken> dbo = Optional.ofNullable(namedParameterJdbcTemplate.queryForObject(SELECT_TOKEN_BY_HASH_FOR_UPDATE, params, REFRESH_TOKEN_TABLE_MAPPING));
 		return dbo.map(OAuthRefreshTokenDaoImpl::refreshTokenDboToDto);
 	}
 
@@ -209,10 +231,7 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 	}
 
 	@Override
-	public OAuthRefreshTokenInformationList getActiveTokenInformation(String userId,
-																	  String clientId,
-																	  String nextPageToken,
-																	  Long maxLeaseLengthInDays) {
+	public OAuthRefreshTokenInformationList getActiveTokenInformation(String userId, String clientId, String nextPageToken, Long maxLeaseLengthInDays) {
 		NextPageToken nextPage = new NextPageToken(nextPageToken);
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(PARAM_PRINCIPAL_ID, userId);
@@ -222,13 +241,11 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 		params.addValue(PARAM_DAYS, maxLeaseLengthInDays);
 
 		List<DBOOAuthRefreshToken> tokenDbos = namedParameterJdbcTemplate.query(
-				SELECT_TOKENS_FOR_CLIENT_AND_PRINCIPAL, params, (new DBOOAuthRefreshToken()).getTableMapping());
+				SELECT_TOKENS_FOR_CLIENT_AND_PRINCIPAL, params, REFRESH_TOKEN_TABLE_MAPPING);
 		OAuthRefreshTokenInformationList result = new OAuthRefreshTokenInformationList();
 		result.setNextPageToken(nextPage.getNextPageTokenForCurrentResults(tokenDbos));
 		result.setResults(
-				tokenDbos.stream()
-						.map(OAuthRefreshTokenDaoImpl::refreshTokenDboToDto)
-						.collect(Collectors.toList())
+				tokenDbos.stream().map(OAuthRefreshTokenDaoImpl::refreshTokenDboToDto).collect(Collectors.toList())
 		);
 		return result;
 	}
@@ -251,5 +268,17 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 		params.addValue(PARAM_PRINCIPAL_ID, userId);
 		params.addValue(PARAM_CLIENT_ID, clientId);
 		namedParameterJdbcTemplate.update(DELETE_TOKEN_BY_CLIENT_USER_PAIR, params);
+	}
+
+	@Override
+	public void deleteLeastRecentlyUsedTokensOverLimit(String userId, String clientId, Long maxNumberOfTokens) {
+		ValidateArgument.required(userId, "Principal ID");
+		ValidateArgument.required(clientId, "Client ID");
+		ValidateArgument.required(maxNumberOfTokens, "maxNumberOfTokens");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(PARAM_PRINCIPAL_ID, userId);
+		params.addValue(PARAM_CLIENT_ID, clientId);
+		params.addValue(PARAM_MAX_NUM_TOKENS, maxNumberOfTokens);
+		namedParameterJdbcTemplate.update(DELETE_LEAST_RECENTLY_USED_ACTIVE_TOKENS, params);
 	}
 }

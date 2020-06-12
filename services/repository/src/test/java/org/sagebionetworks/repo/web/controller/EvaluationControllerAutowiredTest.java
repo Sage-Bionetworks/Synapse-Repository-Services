@@ -231,7 +231,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		entityServletHelper.deleteEvaluation(eval1.getId(), adminUserId);
 		
 		assertThrows(NotFoundException.class, ()-> {
-			entityServletHelper.getEvaluation(adminUserId, eval1.getId());
+			entityServletHelper.getEvaluation(testUserId, eval1.getId());
 		});
 		assertEquals(initialCount, entityServletHelper.getAvailableEvaluations(adminUserId).getTotalNumberOfResults());
 	}

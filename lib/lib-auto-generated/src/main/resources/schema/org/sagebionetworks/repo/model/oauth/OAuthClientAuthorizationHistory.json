@@ -3,13 +3,7 @@
  	"properties": {
 		"client": {
 			"$ref": "org.sagebionetworks.repo.model.oauth.OAuthClient",
-			"description": "The OAuth 2.0 client that has been granted access",
-			"links": [
-				{
-					"rel": "describedby",
-					"href": "http://synapse.sagebase.org/access/public"
-				}
-			]
+			"description": "The OAuth 2.0 client that has been granted access"
 		},
 		"authorizedOn": {
 			"type": "string",

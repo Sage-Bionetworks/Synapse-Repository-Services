@@ -1184,7 +1184,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		QueryTableResults results = synapseOne.queryEvaluation(queryString);
 		assertNotNull(results);
 		long start = System.currentTimeMillis();
-		while (results.getTotalNumberOfResults() < 1) {
+		while (results.getTotalNumberOfResults() < 2) {
 			long elapsed = System.currentTimeMillis() - start;
 			assertTrue(elapsed < RDS_WORKER_TIMEOUT, "Timed out waiting for annotations to be published for query: " + queryString);
 			System.out.println("Waiting for annotations to be published... " + elapsed + "ms");		
