@@ -22,6 +22,8 @@
 # org.sagebionetworks.doi.datacite.api.endpoint - the endpoint used to connect to DataCite for minting DOIs (e.g. mds.test.datacite.org)
 # org.sagebionetworks.google.cloud.enabled - when set to true, enable Google Cloud features
 # org.sagebionetworks.google.cloud.key - the private key used to log into the Google Cloud service account
+# org.sagebionetworks.db.readonlyusername - the username of the readonly user
+# org.sagebionetworks.db.readonlyuserpassword - the password of the readonly user \
 
 # if anything fails, stop
 set -e
@@ -106,6 +108,8 @@ ${AWS_CREDS} \
 -Dorg.sagebionetworks.doi.datacite.api.endpoint=${org_sagebionetworks_doi_datacite_api_endpoint} \
 -Dorg.sagebionetworks.google.cloud.enabled=${org_sagebionetworks_google_cloud_enabled} \
 -Dorg.sagebionetworks.google.cloud.key="${org_sagebionetworks_google_cloud_key}" \
+-Dorg.sagebionetworks.db.readonlyusername=${org_sagebionetworks_db_readonlyusername} \
+-Dorg.sagebionetworks.db.readonlyuserpassword=${org_sagebionetworks_db_readonlyuserpassword} \
 -Duser.home=/tmp"
 
 clean_up_container ${build_container_name}
