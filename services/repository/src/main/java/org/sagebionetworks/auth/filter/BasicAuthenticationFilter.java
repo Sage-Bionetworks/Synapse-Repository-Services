@@ -28,16 +28,6 @@ public abstract class BasicAuthenticationFilter implements Filter {
 	private static final String MISSING_CREDENTIALS_MSG = "Missing required credentials in the authorization header.";
 	private static final String INVALID_CREDENTIALS_MSG = "Invalid credentials.";
 	
-	protected FilterHelper filterHelper;
-	
-	public BasicAuthenticationFilter(FilterHelper filterHelper) {
-		this.filterHelper = filterHelper;
-	}
-
-	public BasicAuthenticationFilter(StackConfiguration config, Consumer consumer) {
-		this.filterHelper = new FilterHelper(config, consumer);
-	}
-
 	@Override
 	public final void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain)
 			throws IOException, ServletException {
@@ -54,17 +44,19 @@ public abstract class BasicAuthenticationFilter implements Filter {
 		try {
 			credentials = HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest);
 		} catch (IllegalArgumentException e) {
-			filterHelper.rejectRequest(reportBadCredentialsMetric(), httpResponse, e);
+			filterHelper().rejectRequest(reportBadCredentialsMetric(), httpResponse, e);
 			return;
 		}
 
 		if (credentialsRequired() && !credentials.isPresent()) {
-			filterHelper.rejectRequest(reportBadCredentialsMetric(), httpResponse, MISSING_CREDENTIALS_MSG);
+			filterHelper().rejectRequest(reportBadCredentialsMetric(), httpResponse, MISSING_CREDENTIALS_MSG);
 			return;
 		}
 
 		validateCredentialsAndDoFilterInternal(httpRequest, httpResponse, filterChain, credentials);
 	}
+	
+	abstract protected FilterHelper filterHelper();
 	
 	/**
 	 * Validates the credentials (if required and present) and proceeds with the request invoking the

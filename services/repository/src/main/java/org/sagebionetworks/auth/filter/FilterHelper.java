@@ -17,7 +17,6 @@ import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.MetricUtils;
 import org.sagebionetworks.cloudwatch.ProfileData;
-import org.springframework.stereotype.Component;
 
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
 

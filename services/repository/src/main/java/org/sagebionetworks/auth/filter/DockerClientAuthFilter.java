@@ -35,6 +35,8 @@ public class DockerClientAuthFilter extends BasicAuthenticationFilter {
 
 	private OpenIDConnectManager oidcManager;
 	
+	private FilterHelper filterHelper;
+
 	@Autowired
 	public DockerClientAuthFilter(
 			StackConfiguration config, 
@@ -42,11 +44,13 @@ public class DockerClientAuthFilter extends BasicAuthenticationFilter {
 			AuthenticationService authenticationService,
 			OIDCTokenHelper oidcTokenHelper,
 			OpenIDConnectManager oidcManager) {
-		super(config, consumer);
+		filterHelper = new FilterHelper(config, consumer);
 		this.authenticationService = authenticationService;
 		this.oidcTokenHelper=oidcTokenHelper;
 		this.oidcManager=oidcManager;
 	}
+
+	protected FilterHelper filterHelper() {return filterHelper;}
 
 	// The anonymous user can come in
 	@Override

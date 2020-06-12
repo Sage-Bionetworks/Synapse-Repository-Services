@@ -19,10 +19,11 @@ public class CloudMailInAuthFilter extends BasicAuthenticationFilter {
 
 	private String cloudMailInUser;
 	private String cloudMailInPassword;
+	private FilterHelper filterHelper;
 
 	@Autowired
 	public CloudMailInAuthFilter(StackConfiguration config, Consumer consumer) {
-		super(config, consumer);
+		filterHelper = new FilterHelper(config, consumer);
 		cloudMailInUser = config.getCloudMailInUser();
 		cloudMailInPassword = config.getCloudMailInPassword();
 	}
@@ -47,6 +48,8 @@ public class CloudMailInAuthFilter extends BasicAuthenticationFilter {
 		}
 		filterChain.doFilter(httpRequest, httpResponse);
 	}
+	
+	protected FilterHelper filterHelper() {return filterHelper;}
 
 	private boolean validCredentials(UserNameAndPassword credentials) {
 		return cloudMailInUser.equals(credentials.getUserName()) && cloudMailInPassword.equals(credentials.getPassword());

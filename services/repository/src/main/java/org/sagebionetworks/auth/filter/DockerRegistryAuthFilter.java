@@ -19,14 +19,17 @@ public class DockerRegistryAuthFilter extends BasicAuthenticationFilter {
 
 	private String dockerRegistryUser;
 	private String dockerRegistryPassword;
+	private FilterHelper filterHelper;
 
 	@Autowired
 	public DockerRegistryAuthFilter(StackConfiguration config, Consumer consumer) {
-		super(config, consumer);
-		dockerRegistryUser = config.getDockerRegistryUser();
-		dockerRegistryPassword = config.getDockerRegistryPassword();
+		filterHelper = new FilterHelper(config, consumer);
+		this.dockerRegistryUser = config.getDockerRegistryUser();
+		this.dockerRegistryPassword = config.getDockerRegistryPassword();
 	}
 	
+	protected FilterHelper filterHelper() {return filterHelper;}
+
 	@Override
 	protected boolean credentialsRequired() {
 		return true;

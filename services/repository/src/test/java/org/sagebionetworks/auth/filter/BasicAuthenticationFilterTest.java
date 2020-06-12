@@ -1,6 +1,6 @@
 package org.sagebionetworks.auth.filter;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -57,7 +57,6 @@ public class BasicAuthenticationFilterTest {
 	@BeforeEach
 	public void before() {
 		filter = Mockito.mock(BasicAuthenticationFilter.class, withSettings()
-					.useConstructor(mockFilterHelper)
 					.defaultAnswer(Answers.CALLS_REAL_METHODS)
 		);
 	}
@@ -75,17 +74,18 @@ public class BasicAuthenticationFilterTest {
 	
 	@Test
 	public void testDoFilterWithoutCredentials() throws Exception {
+		when(filter.filterHelper()).thenReturn(mockFilterHelper);
 		
 		// Call under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
-		//verifyRejectRequestPassingException();
 		verifyRejectRequest("Missing required credentials in the authorization header.");
 	}
 	
 	@Test
 	public void testDoFilterWithInvalidHeader() throws Exception {
 		when(mockRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Some invalid header");
+		when(filter.filterHelper()).thenReturn(mockFilterHelper);
 		
 		// Call under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
@@ -96,6 +96,7 @@ public class BasicAuthenticationFilterTest {
 	@Test
 	public void testDoFilterWithInvalideEncodingHeader() throws Exception {
 		when(mockRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Basic " + ENCODED + "___");
+		when(filter.filterHelper()).thenReturn(mockFilterHelper);
 		
 		// Call under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
