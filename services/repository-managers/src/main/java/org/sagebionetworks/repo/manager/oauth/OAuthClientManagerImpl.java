@@ -274,7 +274,7 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 		if (!canAdministrate(userInfo, creator)) {
 			throw new UnauthorizedException("You can only generate credentials for your own OAuth client(s).");
 		}		
-		String secret = PBKDF2Utils.generateClientSecret();
+		String secret = PBKDF2Utils.generateSecureRandomString();
 		String secretHash = PBKDF2Utils.hashPassword(secret, null);
 		oauthClientDao.setOAuthClientSecretHash(clientId, secretHash, UUID.randomUUID().toString());
 		OAuthClientIdAndSecret result = new OAuthClientIdAndSecret();

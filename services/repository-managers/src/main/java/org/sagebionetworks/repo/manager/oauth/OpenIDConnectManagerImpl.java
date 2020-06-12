@@ -354,7 +354,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		String accessTokenId = UUID.randomUUID().toString();
 		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid, 
-				oauthClientId, now, authTime, accessTokenId, scopes, 
+				oauthClientId, now, authTime, null, accessTokenId, scopes,
 				ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), USER_INFO_CLAIMS_KEY));
 		result.setAccess_token(accessToken);
 		return result;

@@ -330,15 +330,26 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		OAuthRefreshTokenInformation expected = createRefreshToken(hashValue, new Date());
 
 		// call under test
-		Optional<OAuthRefreshTokenInformation> actual = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate(hashValue, client.getClient_id());
+		Optional<OAuthRefreshTokenInformation> actual = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate(hashValue);
 		assertEquals(expected, actual.get());
 	}
+
+	@Transactional
+	@Test
+	void getMatchingTokenByHash_EmptyResult() {
+		String hashValue = "hash";
+		createRefreshToken(hashValue, new Date());
+
+		// call under test
+		Optional<OAuthRefreshTokenInformation> actual = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate("value that doesn't match");
+		assertFalse(actual.isPresent());
+	}
+
 
 	@Test
 	void getMatchingTokenByHashForUpdate_noTransaction() {
 		assertThrows(IllegalTransactionStateException.class,() ->
-				oauthRefreshTokenDao.getMatchingTokenByHashForUpdate("hash", "clientid")
-
+				oauthRefreshTokenDao.getMatchingTokenByHashForUpdate("hash")
 		);
 	}
 
@@ -362,7 +373,7 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		// call under test
 		oauthRefreshTokenDao.updateTokenHash(metadata, newHash);
 
-		OAuthRefreshTokenInformation updated = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate(newHash, client.getClient_id()).get();
+		OAuthRefreshTokenInformation updated = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate(newHash).get();
 		assertEquals(metadata.getTokenId(), updated.getTokenId());
 		assertNotNull(updated);
 		assertEquals(newEtag, updated.getEtag());

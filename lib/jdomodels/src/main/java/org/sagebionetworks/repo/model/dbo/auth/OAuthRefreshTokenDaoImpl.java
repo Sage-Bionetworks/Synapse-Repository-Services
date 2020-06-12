@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
@@ -77,7 +78,6 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 
 	private static final String SELECT_TOKEN_BY_HASH_FOR_UPDATE = "SELECT * FROM " + TABLE_OAUTH_REFRESH_TOKEN
 			+ " WHERE " + COL_OAUTH_REFRESH_TOKEN_HASH + " = :" + PARAM_TOKEN_HASH
-			+ " AND " + COL_OAUTH_REFRESH_TOKEN_CLIENT_ID + " = :" + PARAM_CLIENT_ID
 			+ " FOR UPDATE";
 
 	private static final String DELETE_TOKEN_BY_ID = "DELETE FROM " + TABLE_OAUTH_REFRESH_TOKEN
@@ -177,13 +177,16 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 
 	@MandatoryWriteTransaction
 	@Override
-	public Optional<OAuthRefreshTokenInformation> getMatchingTokenByHashForUpdate(String hash, String clientId) {
+	public Optional<OAuthRefreshTokenInformation> getMatchingTokenByHashForUpdate(String hash) {
 		ValidateArgument.required(hash, "token hash");
-		ValidateArgument.required(clientId, "clientId");
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(PARAM_TOKEN_HASH, hash);
-		params.addValue(PARAM_CLIENT_ID, clientId);
-		Optional<DBOOAuthRefreshToken> dbo = Optional.ofNullable(namedParameterJdbcTemplate.queryForObject(SELECT_TOKEN_BY_HASH_FOR_UPDATE, params, REFRESH_TOKEN_TABLE_MAPPING));
+		Optional<DBOOAuthRefreshToken> dbo;
+		try {
+			dbo = Optional.ofNullable(namedParameterJdbcTemplate.queryForObject(SELECT_TOKEN_BY_HASH_FOR_UPDATE, params, REFRESH_TOKEN_TABLE_MAPPING));
+		} catch (EmptyResultDataAccessException e) {
+			dbo = Optional.empty();
+		}
 		return dbo.map(OAuthRefreshTokenDaoImpl::refreshTokenDboToDto);
 	}
 

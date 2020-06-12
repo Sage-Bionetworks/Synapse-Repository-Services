@@ -101,7 +101,8 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 			String oauthClientId,
 			long now, 
 			Date authTime,
-			String tokenId,
+			String refreshTokenId,
+			String accessTokenId,
 			List<OAuthScope> scopes,
 			Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims) {
 		
@@ -114,11 +115,11 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 			.setExpiration(new Date(now+ACCESS_TOKEN_EXPIRATION_TIME_SECONDS*1000L))
 			.setNotBefore(new Date(now))
 			.setIssuedAt(new Date(now))
-			.setId(tokenId)
+			.setId(accessTokenId)
 			.setSubject(subject);
-		
-		if (authTime!=null) claims.put(OIDCClaimName.auth_time.name(), authTime);
 
+		if (authTime!=null) claims.put(OIDCClaimName.auth_time.name(), authTime);
+		if (refreshTokenId!=null) claims.put(OIDCClaimName.refresh_token_id.name(), refreshTokenId);
 		return createSignedJWT(claims);
 	}
 	
@@ -130,7 +131,7 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 		String tokenId = UUID.randomUUID().toString();
 		List<OAuthScope> allScopes = Arrays.asList(OAuthScope.values());  // everything!
 		return createOIDCaccessToken(issuer, subject, oauthClientId, System.currentTimeMillis(), null,
-				tokenId, allScopes, Collections.EMPTY_MAP);
+				null, tokenId, allScopes, Collections.EMPTY_MAP);
 	}
 
 	

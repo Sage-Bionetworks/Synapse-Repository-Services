@@ -1,0 +1,24 @@
+{
+    "description": "Request body used by OAuth 2.0 clients to revoke an OAuth 2.0 token. Defined by https://tools.ietf.org/html/rfc7009#section-2.1",
+ 	"properties": {
+		"token": {
+			"type": "string",
+			"description": "The token to revoke"
+		},
+		"token_type_hint":{
+			"type": "string",
+			"name": "TokenTypeHint",
+			"description":"The type of the token to revoke.",
+			"enum": [
+				{
+					"name": "access_token",
+					"description": "The token to revoke is an access token. The associated refresh token will also be revoked."
+				},
+				{
+					"name": "refresh_token",
+					"description": "The token to revoke is an refresh token. Any associated access tokens will also be revoked."
+				}
+			]
+		}
+	}
+}
