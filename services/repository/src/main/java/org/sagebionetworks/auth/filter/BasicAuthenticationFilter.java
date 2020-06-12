@@ -28,6 +28,8 @@ public abstract class BasicAuthenticationFilter implements Filter {
 	private static final String MISSING_CREDENTIALS_MSG = "Missing required credentials in the authorization header.";
 	private static final String INVALID_CREDENTIALS_MSG = "Invalid credentials.";
 	
+	abstract protected FilterHelper filterHelper();
+	
 	@Override
 	public final void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain)
 			throws IOException, ServletException {
@@ -55,8 +57,6 @@ public abstract class BasicAuthenticationFilter implements Filter {
 
 		validateCredentialsAndDoFilterInternal(httpRequest, httpResponse, filterChain, credentials);
 	}
-	
-	abstract protected FilterHelper filterHelper();
 	
 	/**
 	 * Validates the credentials (if required and present) and proceeds with the request invoking the

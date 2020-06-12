@@ -21,6 +21,7 @@ import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -31,24 +32,29 @@ import org.springframework.stereotype.Component;
 public class OAuthClientAuthFilter implements Filter {
 	private static final String INVALID_CREDENTIALS_MSG = "OAuth Client ID and secret must be passed via Basic Authentication. Credentials are missing or invalid.";
 
-	private FilterHelper filterHelper;
-	
+
+	private StackConfiguration config;
+
+	private Consumer consumer;
+
 	private OAuthClientManager oauthClientManager;
 
 	private static final boolean REPORT_BAD_CREDENTIALS_METRIC = true;
-
-	public OAuthClientAuthFilter(StackConfiguration config, Consumer consumer, OAuthClientManager oauthClientManager) {
-		this.filterHelper = new FilterHelper(config, consumer);
-		this.oauthClientManager = oauthClientManager;
-	}
 	
+	@Autowired
+	public OAuthClientAuthFilter(StackConfiguration config, Consumer consumer, OAuthClientManager oauthClientManager) {
+		this.config=config;
+		this.consumer=consumer;
+		this.oauthClientManager=oauthClientManager;
+	}
+
 	private boolean validCredentials(UserNameAndPassword credentials) {
 		OAuthClientIdAndSecret clientCreds = new OAuthClientIdAndSecret();
 
 		clientCreds.setClient_id(credentials.getUserName());
 		clientCreds.setClient_secret(credentials.getPassword());
 
-		return oauthClientManager.validateClientCredentials(clientCreds);
+		return this.oauthClientManager.validateClientCredentials(clientCreds);
 	}
 	
 	@Override
@@ -63,6 +69,8 @@ public class OAuthClientAuthFilter implements Filter {
 		HttpServletResponse httpResponse = (HttpServletResponse) response;
 
 		Optional<UserNameAndPassword> credentials;
+		
+		FilterHelper filterHelper = new FilterHelper(config, consumer);
 
 		try {
 			credentials = HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest);
