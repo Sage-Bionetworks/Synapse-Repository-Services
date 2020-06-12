@@ -1212,11 +1212,11 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	@Override
 	public String getReadOnlyUserName() {
-		return (configuration.hasProperty("org.sagebionetworks.db.readonlyusername") ? configuration.getProperty("org.sagebionetworks.db.readonlyusername") : "readonlyuser");
+		return (configuration.hasProperty("org.sagebionetworks.db.readonlyusername") ? configuration.getProperty("org.sagebionetworks.db.readonlyusername") : READ_ONLY_USER);
 	}
 
 	@Override
 	public String getReadOnlyUserPassword() {
-		return (configuration.hasProperty("org.sagebionetworks.db.readonlyuserpassword") ? configuration.getProperty("org.sagebionetworks.db.readonlyuserpassword") : "readonlypwd");
+		return (configuration.hasProperty("org.sagebionetworks.db.readonlyuserpassword") ? configuration.getProperty("org.sagebionetworks.db.readonlyuserpassword") : READ_ONLY_USER_PWD);
 	}
 }
