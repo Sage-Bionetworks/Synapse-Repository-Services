@@ -24,7 +24,9 @@ import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 
 	@Autowired

@@ -100,13 +100,13 @@ public interface OAuthRefreshTokenManager {
 
 	/**
 	 * Revokes a refresh token using the token itself. This method is usually invoked by an OAuth client, but a client
-	 * ID is not required because if this is called by an unauthorized party, the token should be revoked anyways.
+	 * ID is not required because if this is called by an unauthorized party, the token should be revoked anyway.
 	 * @param refreshToken the unhashed token to revoke
 	 */
 	void revokeRefreshToken(String refreshToken) throws NotFoundException;
 
 	/**
-	 * Updates a token metadata.
+	 * Updates a token's metadata.
 	 *
 	 * @param userInfo
 	 * @param metadata

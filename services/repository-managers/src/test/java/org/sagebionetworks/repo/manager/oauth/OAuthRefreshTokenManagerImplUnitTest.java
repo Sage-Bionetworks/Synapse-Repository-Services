@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -24,6 +24,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.platform.commons.util.StringUtils;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -56,7 +57,7 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 	@InjectMocks
 	OAuthRefreshTokenManagerImpl oauthRefreshTokenManager;
 
-	private static final Long EXPECTED_LEASE_DURATION = 180L;
+	private static final Long EXPECTED_LEASE_DURATION_DAYS = 180L;
 	private static final Long EXPECTED_MAX_REFRESH_TOKENS = 100L;
 
 	// Some constants to simplify test setup
@@ -74,24 +75,15 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 		claimsRequest.setId_token(Collections.emptyMap());
 
 		when(clock.now()).thenReturn(new Date()); // Ensure all 'clock.now()' calls return the same time
-		when(mockOAuthRefreshTokenDao.createRefreshToken(anyString(), any(OAuthRefreshTokenInformation.class)))
-			.thenAnswer(i -> {
-				OAuthRefreshTokenInformation tokenInfo = i.getArgument(1, OAuthRefreshTokenInformation.class);
 
-				// Make sure the fields in the object the DAO receives match what should be set
-				assertEquals(USER_ID, tokenInfo.getPrincipalId());
-				assertEquals(CLIENT_ID, tokenInfo.getClientId());
-				assertEquals(scopes, tokenInfo.getScopes());
-				assertEquals(claimsRequest, tokenInfo.getClaims());
-				assertTrue(StringUtils.isNotBlank(tokenInfo.getName()));
-				assertTrue(StringUtils.isNotBlank(tokenInfo.getEtag()));
-				assertEquals(clock.now(), tokenInfo.getLastUsed());
-				assertEquals(clock.now(), tokenInfo.getAuthorizedOn());
-				assertEquals(clock.now(), tokenInfo.getModifiedOn());
+		ArgumentCaptor<OAuthRefreshTokenInformation> captor = ArgumentCaptor.forClass(OAuthRefreshTokenInformation.class);
 
-				tokenInfo.setTokenId(TOKEN_ID); // The DAO will set an ID
-				return tokenInfo;
-			});
+		OAuthRefreshTokenInformation createdToken = new OAuthRefreshTokenInformation();
+		createdToken.setTokenId(TOKEN_ID);
+		createdToken.setPrincipalId(USER_ID);
+		createdToken.setClientId(CLIENT_ID);
+
+		when(mockOAuthRefreshTokenDao.createRefreshToken(anyString(), captor.capture())).thenReturn(createdToken);
 
 
 		// Call under test
@@ -99,6 +91,16 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 		assertNotNull(actual);
 		assertEquals(TOKEN_ID, actual.getMetadata().getTokenId());
 		assertTrue(StringUtils.isNotBlank(actual.getRefreshToken()));
+
+		assertEquals(USER_ID, captor.getValue().getPrincipalId());
+		assertEquals(CLIENT_ID, captor.getValue().getClientId());
+		assertEquals(scopes, captor.getValue().getScopes());
+		assertEquals(claimsRequest, captor.getValue().getClaims());
+		assertTrue(StringUtils.isNotBlank(captor.getValue().getName()));
+		assertTrue(StringUtils.isNotBlank(captor.getValue().getEtag()));
+		assertEquals(clock.now(), captor.getValue().getLastUsed());
+		assertEquals(clock.now(), captor.getValue().getAuthorizedOn());
+		assertEquals(clock.now(), captor.getValue().getModifiedOn());
 
 		verify(mockOAuthRefreshTokenDao).deleteLeastRecentlyUsedTokensOverLimit(USER_ID, CLIENT_ID, EXPECTED_MAX_REFRESH_TOKENS - 1);
 		verify(mockOAuthRefreshTokenDao).createRefreshToken(anyString(), any(OAuthRefreshTokenInformation.class));
@@ -117,7 +119,7 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 	}
 
 	@Test
-	public void testGetTokenMetadataForUpdateAndRotate() {
+	public void testRotateToken() {
 		String token = "token val";
 		String oldEtag = "an etag that should be changed";
 		when(clock.now()).thenReturn(new Date()); // Ensure all 'clock.now()' calls return the same time
@@ -131,26 +133,26 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 		existingToken.setEtag(oldEtag);
 
 		when(mockOAuthRefreshTokenDao.getMatchingTokenByHashForUpdate(DigestUtils.sha256Hex(token))).thenReturn(Optional.of(existingToken));
-		doAnswer(invocation -> {
-			// Verify that a hashed token was generated and passed
-			String hashedToken = invocation.getArgument(1, String.class);
-			assertTrue(StringUtils.isNotBlank(hashedToken));
 
-			// Verify that the token was modified
-			OAuthRefreshTokenInformation tokenInfo = invocation.getArgument(0, OAuthRefreshTokenInformation.class);
-			assertEquals(TOKEN_ID, tokenInfo.getTokenId());
-			assertEquals(USER_ID, tokenInfo.getPrincipalId());
-			assertEquals(clock.now(), tokenInfo.getLastUsed());
-			assertEquals(oldDate, tokenInfo.getModifiedOn());
-			assertNotEquals(oldEtag, tokenInfo.getEtag());
-			return null;
-		}).when(mockOAuthRefreshTokenDao).updateTokenHash(any(OAuthRefreshTokenInformation.class), anyString());
+		ArgumentCaptor<OAuthRefreshTokenInformation> metadataCaptor = ArgumentCaptor.forClass(OAuthRefreshTokenInformation.class);
+		ArgumentCaptor<String> tokenCaptor = ArgumentCaptor.forClass(String.class);
+
+		doNothing().when(mockOAuthRefreshTokenDao).updateTokenHash(metadataCaptor.capture(), tokenCaptor.capture());
 
 		// Note that this object won't have the altered metadata, but we check that it has been altered in the above answer
 		when(mockOAuthRefreshTokenDao.getRefreshTokenMetadata(TOKEN_ID)).thenReturn(Optional.of(existingToken));
 
 		// Call under test
 		OAuthRefreshTokenAndMetadata actual = oauthRefreshTokenManager.rotateRefreshToken(token);
+
+		assertTrue(StringUtils.isNotBlank(tokenCaptor.getValue()));
+
+		// Verify that the token was modified
+		assertEquals(TOKEN_ID, metadataCaptor.getValue().getTokenId());
+		assertEquals(USER_ID, metadataCaptor.getValue().getPrincipalId());
+		assertEquals(clock.now(), metadataCaptor.getValue().getLastUsed());
+		assertEquals(oldDate, metadataCaptor.getValue().getModifiedOn());
+		assertNotEquals(oldEtag, metadataCaptor.getValue().getEtag());
 
 		assertEquals(existingToken, actual.getMetadata());
 		assertTrue(StringUtils.isNotBlank(actual.getRefreshToken()));
@@ -162,7 +164,7 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 	}
 
 	@Test
-	public void testGetTokenForUpdateAndRotateRefreshToken_IllegalArgumentOnNonmatchingToken() {
+	public void testRotateRefreshToken_IllegalArgumentOnNonmatchingToken() {
 		when(mockOAuthRefreshTokenDao.getMatchingTokenByHashForUpdate(anyString())).thenReturn(Optional.empty());
 
 		// Call under test
@@ -171,7 +173,7 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 
 
 	@Test
-	public void testGetTokenForUpdateAndRotateRefreshToken_IllegalStateOnFailedRetrieval() {
+	public void testRotateRefreshToken_IllegalStateOnFailedRetrieval() {
 		OAuthRefreshTokenInformation existingToken = new OAuthRefreshTokenInformation();
 		existingToken.setTokenId(TOKEN_ID);
 		existingToken.setPrincipalId(USER_ID);
@@ -271,13 +273,13 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 		expected.setResults(Collections.emptyList());
 		expected.setNextPageToken("some new nextpagetoken");
 
-		when(mockOAuthClientDao.getAuthorizedClientHistory(USER_ID, nextPageToken, EXPECTED_LEASE_DURATION)).thenReturn(expected);
+		when(mockOAuthClientDao.getAuthorizedClientHistory(USER_ID, nextPageToken, EXPECTED_LEASE_DURATION_DAYS)).thenReturn(expected);
 
 		// Call under test
 		OAuthClientAuthorizationHistoryList actual = oauthRefreshTokenManager.getAuthorizedClientHistory(USER_INFO, nextPageToken);
 
 		assertEquals(expected, actual);
-		verify(mockOAuthClientDao).getAuthorizedClientHistory(USER_ID, nextPageToken, EXPECTED_LEASE_DURATION);
+		verify(mockOAuthClientDao).getAuthorizedClientHistory(USER_ID, nextPageToken, EXPECTED_LEASE_DURATION_DAYS);
 	}
 
 	@Test
@@ -288,13 +290,13 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 		expected.setResults(Collections.emptyList());
 		expected.setNextPageToken("some new nextpagetoken");
 
-		when(mockOAuthRefreshTokenDao.getActiveTokenInformation(USER_ID, CLIENT_ID, nextPageToken, EXPECTED_LEASE_DURATION)).thenReturn(expected);
+		when(mockOAuthRefreshTokenDao.getActiveTokenInformation(USER_ID, CLIENT_ID, nextPageToken, EXPECTED_LEASE_DURATION_DAYS)).thenReturn(expected);
 
 		// Call under test
 		OAuthRefreshTokenInformationList actual = oauthRefreshTokenManager.getMetadataForActiveRefreshTokens(USER_INFO, CLIENT_ID, nextPageToken);
 
 		assertEquals(expected, actual);
-		verify(mockOAuthRefreshTokenDao).getActiveTokenInformation(USER_ID, CLIENT_ID, nextPageToken, EXPECTED_LEASE_DURATION);
+		verify(mockOAuthRefreshTokenDao).getActiveTokenInformation(USER_ID, CLIENT_ID, nextPageToken, EXPECTED_LEASE_DURATION_DAYS);
 	}
 
 	@Test
@@ -374,22 +376,20 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 
 		when(mockOAuthRefreshTokenDao.getRefreshTokenMetadata(TOKEN_ID)).thenReturn(Optional.of(retrievedFromDao));
 
-		doAnswer(invocation -> {
-			// Verify that the fields were updated by the manager when passed to DAO
-			OAuthRefreshTokenInformation toUpdate = invocation.getArgument(0, OAuthRefreshTokenInformation.class);
-			assertNotNull(toUpdate);
+		ArgumentCaptor<OAuthRefreshTokenInformation> captor = ArgumentCaptor.forClass(OAuthRefreshTokenInformation.class);
 
-			assertNotEquals(oldEtag, toUpdate.getEtag());
-			assertEquals(newName, toUpdate.getName());
-			assertEquals(clock.now(), toUpdate.getModifiedOn());
-			return null;
-		}).when(mockOAuthRefreshTokenDao).updateRefreshTokenMetadata(any());
+		doNothing().when(mockOAuthRefreshTokenDao).updateRefreshTokenMetadata(captor.capture());
 
 		// Call under test
 		OAuthRefreshTokenInformation updated = oauthRefreshTokenManager.updateRefreshTokenMetadata(USER_INFO, newMetadata);
 
 		// Just check that the updated object came from the DAO.getRefreshTokenMetadata method. The fields won't be updated because it's a mock
 		assertEquals(updated, retrievedFromDao);
+
+		assertNotNull(captor.getValue());
+		assertNotEquals(oldEtag, captor.getValue().getEtag());
+		assertEquals(newName, captor.getValue().getName());
+		assertEquals(clock.now(), captor.getValue().getModifiedOn());
 
 		verify(mockOAuthRefreshTokenDao, times(2)).getRefreshTokenMetadata(TOKEN_ID);
 		verify(mockOAuthRefreshTokenDao).updateRefreshTokenMetadata(any(OAuthRefreshTokenInformation.class));
