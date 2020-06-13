@@ -78,6 +78,8 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 		// ensure the index has the correct tables
 		tableIndexDao.setDataSource(singleConnectionPool);
 		tableIndexDao.createObjectReplicationTablesIfDoesNotExist();
+		// create a read-only user on instance
+		tableIndexDao.createReadOnlyUser(stackConfig.getReadOnlyUserName(), stackConfig.getReadOnlyUserPassword());
 	}
 
 	/**

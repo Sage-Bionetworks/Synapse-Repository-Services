@@ -557,4 +557,23 @@ public interface TableIndexDAO {
 	 */
 	ObjectDataDTO getObjectData(ViewObjectType objectType, Long objectId);
 
+	/**
+	 * Create a user with SELECT privileges on RDS table instance
+	 * @param userName - the name of the user
+	 * @param userPassword - the password of the user
+	 */
+	public void createReadOnlyUser(String userName, String userPassword);
+
+	/**
+	 * For testing: Drop an RDS database user
+	 * @param userName
+	 */
+	public void dropUser(String userName);
+
+	/**
+	 * Check if an RDS database user exists
+	 * @param userName
+	 */
+	public boolean doesUserExist(String userName);
+
 }

@@ -1374,5 +1374,23 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		
 		return param;
 	}
-	
+
+	@Override
+	public void createReadOnlyUser(String userName, String userPassword) {
+		String sql = SQLUtils.getCreateReadOnlyUserSql(userName, userPassword);
+		template.update(sql);
+	}
+
+	@Override
+	public void dropUser(String userName) {
+		String sql = SQLUtils.getDropUserSql(userName);
+		template.update(sql);
+	}
+
+	@Override
+	public boolean doesUserExist(String userName) {
+		String sql = SQLUtils.getCheckUserExistsSql(userName);
+		List<Map<String, Object>> list = template.queryForList(sql);
+		return list.size() == 1; // Should only have 'userName'@'%'
+	}
 }

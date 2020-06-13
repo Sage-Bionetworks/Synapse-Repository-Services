@@ -4055,4 +4055,6 @@ public class TableIndexDAOImplTest {
 		assertEquals(2, tableIndexDAO.tempTableListColumnMaxLength(tableId,columnId));
 	}
 
+
+
 }

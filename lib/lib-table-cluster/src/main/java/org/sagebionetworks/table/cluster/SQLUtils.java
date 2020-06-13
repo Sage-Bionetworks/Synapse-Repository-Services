@@ -2017,4 +2017,20 @@ public class SQLUtils {
 		return OBJECT_REPLICATION_COL_PARENT_ID;
 	}
 
+	public static final String CREATE_READ_ONLY_USER_SQL =
+			"CREATE USER IF NOT EXISTS '%1$s'@'%%' IDENTIFIED BY '%2$s' ; GRANT SELECT ON *.* TO '%1$s'@'%%'";
+	public static String getCreateReadOnlyUserSql(String userName, String password) {
+		return String.format(CREATE_READ_ONLY_USER_SQL, userName, password);
+	}
+
+	public static final String DROP_USER_SQL = "DROP USER IF EXISTS '%s'@'%%'";
+	public static String getDropUserSql(String userName) {
+		return String.format(DROP_USER_SQL, userName);
+	}
+
+	public static final String CHECK_USER_EXISTS_SQL = "SELECT * FROM mysql.user WHERE user='%s'";
+	public static String getCheckUserExistsSql(String userName) {
+		return String.format(CHECK_USER_EXISTS_SQL, userName);
+	}
+
 }

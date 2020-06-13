@@ -3066,5 +3066,30 @@ public class SQLUtilsTest {
 		return new ViewScopeFilter(ViewObjectType.ENTITY, subTypes, filterByObjectId, Collections.emptySet());
 	}
 
+	@Test
+	public void testGetCreateReadOnlyUser() {
+		final String NAME = "username";
+		final String PWD = "password";
+		final String EXPECTED_SQL = "CREATE USER IF NOT EXISTS 'username'@'%' IDENTIFIED BY 'password' ; GRANT SELECT ON *.* TO 'username'@'%'";
+
+		assertEquals(EXPECTED_SQL, SQLUtils.getCreateReadOnlyUserSql(NAME, PWD));
+
+	}
+
+	@Test
+	public void testGetDropUserSql() {
+		final String NAME = "username";
+		final String EXPECTED_SQL = "DROP USER IF EXISTS 'username'@'%'";
+
+		assertEquals(EXPECTED_SQL, SQLUtils.getDropUserSql(NAME));
+	}
+
+	@Test
+	public void testDoesUserExistSql() {
+		final String NAME = "username";
+		final String EXPECTED_SQL = "SELECT * FROM mysql.user WHERE user='username'";
+
+		assertEquals(EXPECTED_SQL, SQLUtils.getCheckUserExistsSql(NAME));
+	}
 
 }
