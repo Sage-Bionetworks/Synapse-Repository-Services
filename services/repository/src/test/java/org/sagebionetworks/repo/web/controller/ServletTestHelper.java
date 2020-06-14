@@ -1043,6 +1043,20 @@ public class ServletTestHelper {
 				accessRequirement.getClass());
 	}
 
+	public PaginatedResults<AccessRequirement> getEntityAccessRequirements(
+			HttpServlet dispatchServlet, String id, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/entity/" + id + UrlHelpers.ACCESS_REQUIREMENT,
+				userId, token(userId), null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponseVariablePaginatedResults(
+				response, AccessRequirement.class);
+	}
+	
 	public void deleteAccessRequirements(HttpServlet dispatchServlet,
 			String id, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(

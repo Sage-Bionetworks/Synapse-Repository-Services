@@ -1,15 +1,21 @@
 package org.sagebionetworks.repo.web.service;
 
+import java.util.List;
+
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class AccessRequirementServiceImpl implements AccessRequirementService {
@@ -52,6 +58,22 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 		return accessRequirementManager.getAccessRequirement(requirementId);
 	}
 
+
+
+	@Override	
+	public PaginatedResults<AccessRequirement> getAccessRequirements(
+			Long userId, RestrictableObjectDescriptor subjectId, Long limit, Long offset) 
+			throws DatastoreException, UnauthorizedException, NotFoundException
+			 {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+
+		List<AccessRequirement> results = 
+			accessRequirementManager.getAccessRequirementsForSubject(userInfo, subjectId, limit, offset);
+		
+		// This services is not actually paginated so PaginatedResults is being misused.
+		return PaginatedResults.createMisusedPaginatedResults(results);
+	}
+	
 	@WriteTransaction
 	@Override
 	public void deleteAccessRequirements(Long userId, String requirementId) 

@@ -143,7 +143,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 		String entityId = submission.getEntityId();
 		Long versionNumber = submission.getVersionNumber();
 		EntityBundleRequest entityBundleRequest = new EntityBundleRequest();
-		// EntityBundle.ENTITY + EntityBundle.ANNOTATIONS + EntityBundle.FILE_HANDLES;
+
 		entityBundleRequest.setIncludeEntity(true);
 		entityBundleRequest.setIncludeAnnotations(true);
 		entityBundleRequest.setIncludeFileHandles(true);

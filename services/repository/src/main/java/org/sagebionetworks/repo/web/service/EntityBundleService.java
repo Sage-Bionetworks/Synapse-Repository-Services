@@ -53,6 +53,42 @@ public interface EntityBundleService {
 			DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException;
 
 	/**
+	 * Get an entity and related data with a single GET.
+	 * 
+	 * @param userId -The user that is doing the get.
+	 * @param entityId - The ID of the entity to fetch.
+	 * @param request
+	 * @return The requested Entity if it exists.
+	 * @throws NotFoundException - Thrown if the requested entity does not exist.
+	 * @throws DatastoreException - Thrown when an there is a server failure. 
+	 * @throws UnauthorizedException
+	 * @throws ACLInheritanceException 
+	 * @throws ParseException 
+	 */
+	@Deprecated
+	public org.sagebionetworks.repo.model.EntityBundle getEntityBundle(Long userId, String entityId, int mask) throws NotFoundException,
+			DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException;
+
+
+	/**
+	 * Get an entity and related data with a single GET.
+	 * 
+	 * @param userId -The user that is doing the get.
+	 * @param entityId - The ID of the entity to fetch.
+	 * @param versionNumber - The version Number of the entity to fetch
+	 * @param request
+	 * @return The requested Entity if it exists.
+	 * @throws NotFoundException - Thrown if the requested entity does not exist.
+	 * @throws DatastoreException - Thrown when an there is a server failure. 
+	 * @throws UnauthorizedException
+	 * @throws ACLInheritanceException 
+	 * @throws ParseException 
+	 */
+	@Deprecated
+	public org.sagebionetworks.repo.model.EntityBundle getEntityBundle(Long userId, String entityId, Long versionNumber, int mask) throws NotFoundException,
+			DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException;
+	
+	/**
 	 * Create an entity and associated components with a single POST.
 	 * Specifically, this operation supports creation of an Entity, its
 	 * Annotations, and its ACL.

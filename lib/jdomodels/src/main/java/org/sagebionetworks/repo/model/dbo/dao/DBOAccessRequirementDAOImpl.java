@@ -16,6 +16,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SUBJEC
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,6 +31,7 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementInfoForUpdate;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -121,6 +123,11 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	private static final String DELETE_SUBJECT_ACCESS_REQUIREMENTS_SQL = 
 			"DELETE FROM "+TABLE_SUBJECT_ACCESS_REQUIREMENT
 			+ " WHERE "+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
+
+	private static final String GET_ACCESS_REQUIREMENTS_IDS_PAGE_SQL =
+			GET_ACCESS_REQUIREMENTS_IDS_FOR_SUBJECTS_SQL+" "
+			+LIMIT_PARAM+" :"+LIMIT_PARAM+" "
+			+OFFSET_PARAM+" :"+OFFSET_PARAM;
 
 	private static final String SELECT_CONCRETE_TYPE_SQL = "SELECT "+COL_ACCESS_REQUIREMENT_CONCRETE_TYPE
 			+" FROM "+TABLE_ACCESS_REQUIREMENT
@@ -296,6 +303,23 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		populateSubjectAccessRequirement(dto.getId(), dto.getSubjectIds());
 
 		return (T) get(dto.getId().toString());
+	}
+
+	@Override
+	public List<AccessRequirement> getAccessRequirementsForSubject(
+			List<Long> subjectIds, RestrictableObjectType type,
+			long limit, long offset) throws DatastoreException {
+		List<AccessRequirement>  dtos = new ArrayList<AccessRequirement>();
+		if (subjectIds.isEmpty()) {
+			return dtos;
+		}
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, subjectIds);
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, type.name());
+		param.addValue(LIMIT_PARAM, limit);
+		param.addValue(OFFSET_PARAM, offset);
+		List<Long> ids = namedJdbcTemplate.queryForList(GET_ACCESS_REQUIREMENTS_IDS_PAGE_SQL, param, Long.class);
+		return getAccessRequirements(ids);
 	}
 
 	@Override

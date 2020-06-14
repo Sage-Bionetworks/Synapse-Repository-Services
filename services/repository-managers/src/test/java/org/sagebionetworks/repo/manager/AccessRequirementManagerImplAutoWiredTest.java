@@ -262,5 +262,15 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		AccessRequirement retrieved = accessRequirementManager.getAccessRequirement(ar.getId().toString());
 		assertEquals(ar, retrieved);
 	}
-
+	
+	@Test
+	public void testGetInheritedAccessRequirements() throws Exception {
+		ar = newEntityAccessRequirement(entityId);
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(childId);
+		rod.setType(RestrictableObjectType.ENTITY);
+		List<AccessRequirement> ars = accessRequirementManager.getAccessRequirementsForSubject(adminUserInfo, rod, 10L, 0L);
+		assertEquals(1, ars.size());
+	}
 }

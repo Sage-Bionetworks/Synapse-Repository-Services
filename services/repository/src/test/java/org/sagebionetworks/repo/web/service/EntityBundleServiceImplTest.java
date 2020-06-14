@@ -1,9 +1,12 @@
 package org.sagebionetworks.repo.web.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -16,6 +19,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,6 +34,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.EntityIdList;
+import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -39,13 +44,16 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
+import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCount;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -426,5 +434,97 @@ public class EntityBundleServiceImplTest {
 		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, bundleV2Request);
 		assertEquals(response, bundle.getRestrictionInformation());
 		verify(mockDataAccessService).getRestrictionInformation(TEST_USER1, request);
+	}
+	@Test
+	public void testRequestFromMask_individualMasks() {
+		//assert individual requests
+		assertTrue(EntityBundleServiceImpl.requestFromMask(org.sagebionetworks.repo.model.EntityBundle.ENTITY).getIncludeEntity());
+		assertTrue(EntityBundleServiceImpl.requestFromMask(org.sagebionetworks.repo.model.EntityBundle.ANNOTATIONS).getIncludeAnnotations());
+		assertTrue(EntityBundleServiceImpl.requestFromMask(org.sagebionetworks.repo.model.EntityBundle.PERMISSIONS).getIncludePermissions());
+		assertTrue(EntityBundleServiceImpl.requestFromMask(org.sagebionetworks.repo.model.EntityBundle.ENTITY_PATH).getIncludeEntityPath());
+		assertTrue(EntityBundleServiceImpl.requestFromMask(org.sagebionetworks.repo.model.EntityBundle.HAS_CHILDREN).getIncludeHasChildren());
+		assertTrue(EntityBundleServiceImpl.requestFromMask(org.sagebionetworks.repo.model.EntityBundle.ACL).getIncludeAccessControlList());
+		assertTrue(EntityBundleServiceImpl.requestFromMask(org.sagebionetworks.repo.model.EntityBundle.FILE_HANDLES).getIncludeFileHandles());
+		assertTrue(EntityBundleServiceImpl.requestFromMask(org.sagebionetworks.repo.model.EntityBundle.TABLE_DATA).getIncludeTableBundle());
+		assertTrue(EntityBundleServiceImpl.requestFromMask(org.sagebionetworks.repo.model.EntityBundle.ROOT_WIKI_ID).getIncludeRootWikiId());
+		assertTrue(EntityBundleServiceImpl.requestFromMask(org.sagebionetworks.repo.model.EntityBundle.BENEFACTOR_ACL).getIncludeBenefactorACL());
+		assertTrue(EntityBundleServiceImpl.requestFromMask(org.sagebionetworks.repo.model.EntityBundle.DOI).getIncludeDOIAssociation());
+		assertTrue(EntityBundleServiceImpl.requestFromMask(org.sagebionetworks.repo.model.EntityBundle.FILE_NAME).getIncludeFileName());
+		assertTrue(EntityBundleServiceImpl.requestFromMask(org.sagebionetworks.repo.model.EntityBundle.THREAD_COUNT).getIncludeThreadCount());
+		assertTrue(EntityBundleServiceImpl.requestFromMask(org.sagebionetworks.repo.model.EntityBundle.RESTRICTION_INFORMATION).getIncludeRestrictionInformation());
+	}
+
+	@Test
+	public void testRequestFromMask_combinationMask() {
+		//assert individual requests
+		int mask = org.sagebionetworks.repo.model.EntityBundle.ENTITY | org.sagebionetworks.repo.model.EntityBundle.PERMISSIONS | org.sagebionetworks.repo.model.EntityBundle.HAS_CHILDREN | org.sagebionetworks.repo.model.EntityBundle.FILE_HANDLES
+				| org.sagebionetworks.repo.model.EntityBundle.ROOT_WIKI_ID | org.sagebionetworks.repo.model.EntityBundle.DOI | org.sagebionetworks.repo.model.EntityBundle.THREAD_COUNT;
+		EntityBundleRequest request = EntityBundleServiceImpl.requestFromMask(mask);
+		assertTrue(request.getIncludeEntity());
+		assertFalse(request.getIncludeAnnotations());
+		assertTrue(request.getIncludePermissions());
+		assertFalse(request.getIncludeEntityPath());
+		assertTrue(request.getIncludeHasChildren());
+		assertFalse(request.getIncludeAccessControlList());
+		assertTrue(request.getIncludeFileHandles());
+		assertFalse(request.getIncludeTableBundle());
+		assertTrue(request.getIncludeRootWikiId());
+		assertFalse(request.getIncludeBenefactorACL());
+		assertTrue(request.getIncludeDOIAssociation());
+		assertFalse(request.getIncludeFileName());
+		assertTrue(request.getIncludeThreadCount());
+		assertFalse(request.getIncludeRestrictionInformation());
+	}
+
+	@Test
+	public void testTranslateEntityBundleCreate(){
+		org.sagebionetworks.repo.model.EntityBundleCreate entityBundleCreate = new org.sagebionetworks.repo.model.EntityBundleCreate();
+		entityBundleCreate.setAnnotations(new org.sagebionetworks.repo.model.Annotations());
+		entityBundleCreate.setAccessControlList(new AccessControlList());
+		entityBundleCreate.setEntity(new FileEntity());
+
+
+		EntityBundleCreate v2Create = EntityBundleServiceImpl.translateEntityBundleCreate(entityBundleCreate);
+
+		//directly copied over
+		assertSame(entityBundleCreate.getAccessControlList(), v2Create.getAccessControlList());
+		assertSame(entityBundleCreate.getEntity(), v2Create.getEntity());
+		//this should have been translated
+		assertEquals(entityBundleCreate.getAnnotations(), AnnotationsV2Translator.toAnnotationsV1(v2Create.getAnnotations()));
+	}
+
+	@Test
+	public void testTranslateEntityBundle(){
+		EntityBundle entityBundleV2 = new EntityBundle();
+		entityBundleV2.setEntity(new FileEntity());
+		entityBundleV2.setAnnotations(AnnotationsV2TestUtils.newEmptyAnnotationsV2("syn123"));
+		entityBundleV2.setPermissions(new UserEntityPermissions());
+		entityBundleV2.setPath(new EntityPath());
+		entityBundleV2.setHasChildren(false);
+		entityBundleV2.setAccessControlList(new AccessControlList());
+		entityBundleV2.setFileHandles(Collections.emptyList());
+		entityBundleV2.setTableBundle(new TableBundle());
+		entityBundleV2.setRootWikiId("root wiki id");
+		entityBundleV2.setBenefactorAcl(new AccessControlList());
+		entityBundleV2.setDoiAssociation(new DoiAssociation());
+		entityBundleV2.setFileName("filename");
+		entityBundleV2.setThreadCount(42L);
+		entityBundleV2.setRestrictionInformation(new RestrictionInformationResponse());
+
+		org.sagebionetworks.repo.model.EntityBundle v1Bundle = EntityBundleServiceImpl.translateEntityBundle(entityBundleV2);
+		assertSame(entityBundleV2.getEntity(), v1Bundle.getEntity());
+		assertEquals(entityBundleV2.getAnnotations(), AnnotationsV2Translator.toAnnotationsV2(v1Bundle.getAnnotations()));
+		assertSame(entityBundleV2.getPermissions(), v1Bundle.getPermissions());
+		assertSame(entityBundleV2.getPath(), v1Bundle.getPath());
+		assertSame(entityBundleV2.getHasChildren(), v1Bundle.getHasChildren());
+		assertSame(entityBundleV2.getAccessControlList(), v1Bundle.getAccessControlList());
+		assertSame(entityBundleV2.getFileHandles(), v1Bundle.getFileHandles());
+		assertSame(entityBundleV2.getTableBundle(), v1Bundle.getTableBundle());
+		assertSame(entityBundleV2.getRootWikiId(), v1Bundle.getRootWikiId());
+		assertSame(entityBundleV2.getBenefactorAcl(), v1Bundle.getBenefactorAcl());
+		assertSame(entityBundleV2.getDoiAssociation(), v1Bundle.getDoiAssociation());
+		assertSame(entityBundleV2.getFileName(), v1Bundle.getFileName());
+		assertSame(entityBundleV2.getThreadCount(), v1Bundle.getThreadCount());
+		assertSame(entityBundleV2.getRestrictionInformation(), v1Bundle.getRestrictionInformation());
 	}
 }

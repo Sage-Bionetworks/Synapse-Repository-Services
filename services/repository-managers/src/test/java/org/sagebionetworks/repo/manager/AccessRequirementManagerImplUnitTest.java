@@ -11,6 +11,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.AccessRequirementManagerImpl.DEFAULT_LIMIT;
+import static org.sagebionetworks.repo.manager.AccessRequirementManagerImpl.DEFAULT_OFFSET;
 
 import java.util.Arrays;
 import java.util.Date;
@@ -452,6 +454,54 @@ public class AccessRequirementManagerImplUnitTest {
 		assertTrue(ar.getVersionNumber().equals(info.getCurrentVersion()+1));
 
 		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
+	}
+
+	@Test
+	public void testGetAccessRequirementsForSubjectWithNullLimit() {
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId("1");
+		rod.setType(RestrictableObjectType.ENTITY);
+		arm.getAccessRequirementsForSubject(userInfo, rod, null, 0L);
+		verify(accessRequirementDAO).getAccessRequirementsForSubject(any(List.class), eq(RestrictableObjectType.ENTITY), eq(DEFAULT_LIMIT), eq(0L));
+	}
+
+	@Test
+	public void testGetAccessRequirementsForSubjectWithNullOffset() {
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId("1");
+		rod.setType(RestrictableObjectType.ENTITY);
+		arm.getAccessRequirementsForSubject(userInfo, rod, 10L, null);
+		verify(accessRequirementDAO).getAccessRequirementsForSubject(any(List.class), eq(RestrictableObjectType.ENTITY), eq(10L), eq(DEFAULT_OFFSET));
+	}
+
+	@Test
+	public void testGetAccessRequirementsForSubjectOverMaxLimit() {
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId("1");
+		rod.setType(RestrictableObjectType.ENTITY);
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			arm.getAccessRequirementsForSubject(userInfo, rod, 51L, 0L);
+		});
+	}
+
+	@Test
+	public void testGetAccessRequirementsForSubjectZeroLimit() {
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId("1");
+		rod.setType(RestrictableObjectType.ENTITY);
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			arm.getAccessRequirementsForSubject(userInfo, rod, 0L, 0L);
+		});
+	}
+
+	@Test
+	public void testGetAccessRequirementsForSubjectNegativeOffset() {
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId("1");
+		rod.setType(RestrictableObjectType.ENTITY);
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			arm.getAccessRequirementsForSubject(userInfo, rod, 10L, -1L);
+		});
 	}
 
 	@Test

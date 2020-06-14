@@ -31,6 +31,11 @@ public interface AccessRequirementManager {
 	public AccessRequirement getAccessRequirement(String requirementId) throws DatastoreException, NotFoundException;
 
 	/**
+	 *  get a page of the access requirements for an entity
+	 */
+	public List<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId, Long limit, Long offset) throws DatastoreException, NotFoundException, UnauthorizedException;
+
+	/**
 	 *  update an access requirement
 	 *
 	 */

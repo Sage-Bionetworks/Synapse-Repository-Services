@@ -85,15 +85,15 @@ public class EntityBundleController {
 	 */
 	@Deprecated
 	@RequiredScope({view})
-	@ResponseStatus(HttpStatus.GONE)
+	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE, method = RequestMethod.GET)
 	public @ResponseBody
-	String getEntityBundle(
+	EntityBundle getEntityBundle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, 
 			@RequestParam int mask)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return "See "+UrlHelpers.ENTITY_ID_BUNDLE_V2;
+		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, mask);
 	}	
 
 	/**
@@ -113,16 +113,16 @@ public class EntityBundleController {
 	 */
 	@Deprecated
 	@RequiredScope({view})
-	@ResponseStatus(HttpStatus.GONE)
+	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_NUMBER_BUNDLE, method = RequestMethod.GET)
 	public @ResponseBody
-	String getEntityBundle(
+	EntityBundle getEntityBundle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id,
 			@PathVariable Long versionNumber,
 			@RequestParam int mask)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return "See "+UrlHelpers.ENTITY_VERSION_NUMBER_BUNDLE_V2;
+		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, versionNumber, mask);
 	}	
 	
 	/**

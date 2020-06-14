@@ -155,6 +155,28 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		return accessRequirementDAO.get(requirementId);
 	}
 
+	@Override
+	public List<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo,
+			RestrictableObjectDescriptor rod, Long limit, Long offset)
+					throws DatastoreException, NotFoundException {
+		if (limit == null) {
+			limit = DEFAULT_LIMIT;
+		}
+		if (offset == null) {
+			offset = DEFAULT_OFFSET;
+		}
+		ValidateArgument.requirement(limit >= 1L && limit <= MAX_LIMIT,
+				"limit must be between 1 and "+MAX_LIMIT);
+		ValidateArgument.requirement(offset >= 0L, "offset must be at least 0");
+		List<Long> subjectIds = new ArrayList<Long>();
+		if (RestrictableObjectType.ENTITY==rod.getType()) {
+			subjectIds.addAll(nodeDao.getEntityPathIds(rod.getId()));
+		} else {
+			subjectIds.add(KeyFactory.stringToKey(rod.getId()));
+		}
+		return accessRequirementDAO.getAccessRequirementsForSubject(subjectIds, rod.getType(), limit, offset);
+	}
+
 	@WriteTransaction
 	@Override
 	public <T extends AccessRequirement> T updateAccessRequirement(UserInfo userInfo, String accessRequirementId, T toUpdate) throws NotFoundException, UnauthorizedException, ConflictingUpdateException, InvalidModelException, DatastoreException {

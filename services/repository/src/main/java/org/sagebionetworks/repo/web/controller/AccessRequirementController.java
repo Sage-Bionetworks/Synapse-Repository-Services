@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
 
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -161,10 +162,10 @@ public class AccessRequirementController {
 	 * @throws NotFoundException
 	 */
 	@RequiredScope({view})
-	@ResponseStatus(HttpStatus.GONE)
+	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_ENTITY_ID, method = RequestMethod.GET)
 	public @ResponseBody
-	String
+	PaginatedResults<AccessRequirement>
 	 getEntityAccessRequirements(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 				@PathVariable(value = ID_PATH_VARIABLE) String entityId,
@@ -174,7 +175,7 @@ public class AccessRequirementController {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
 		subjectId.setType(RestrictableObjectType.ENTITY);
-		return "See "+UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID;
+		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId, limit, offset);
 	}
 
 	/**
@@ -190,17 +191,20 @@ public class AccessRequirementController {
 	 * @throws NotFoundException
 	 */
 	@RequiredScope({view})
-	@ResponseStatus(HttpStatus.GONE)
+	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_TEAM_ID, method = RequestMethod.GET)
 	public @ResponseBody
-	String
+	PaginatedResults<AccessRequirement>
 	 getTeamAccessRequirements(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 				@PathVariable String id,
 				@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
 				@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset
 				) throws DatastoreException, UnauthorizedException, NotFoundException {
-		return "See "+UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID;
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(id);
+		subjectId.setType(RestrictableObjectType.TEAM);
+		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId, limit, offset);
 	}
 
 	/**

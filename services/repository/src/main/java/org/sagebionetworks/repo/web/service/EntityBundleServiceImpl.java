@@ -8,11 +8,16 @@ import java.util.List;
 
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
@@ -20,6 +25,7 @@ import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
@@ -30,9 +36,6 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
-import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
-import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.queryparser.ParseException;
@@ -283,6 +286,85 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		}
 
 		return getEntityBundle(userId, entityId, fetchRequest);
+	}
+
+	@Deprecated
+	@Override
+	public org.sagebionetworks.repo.model.EntityBundle getEntityBundle(Long userId, String entityId, int mask)
+			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
+		return getEntityBundle(userId, entityId, null, mask);
+	}
+
+	@Deprecated
+	@Override
+	public org.sagebionetworks.repo.model.EntityBundle getEntityBundle(Long userId, String entityId,
+																	   Long versionNumber, int mask)
+			throws NotFoundException, DatastoreException,
+			UnauthorizedException, ACLInheritanceException, ParseException {
+
+		//translate from V2 bundle
+		org.sagebionetworks.repo.model.EntityBundle eb = translateEntityBundle(getEntityBundle(userId,entityId,versionNumber, requestFromMask(mask)));
+
+		///additional deprecated flags not supported by V2 bundle
+		if ((mask & org.sagebionetworks.repo.model.EntityBundle.ENTITY_REFERENCEDBY) > 0) {
+			throw new IllegalArgumentException("ENTITY_REFERENCEDBY is unsupported.");
+		}
+		if ((mask & org.sagebionetworks.repo.model.EntityBundle.ACCESS_REQUIREMENTS) > 0) {
+			throw new IllegalArgumentException("ACCESS_REQUIREMENTS is unsupported.");
+		}
+		if ((mask & org.sagebionetworks.repo.model.EntityBundle.UNMET_ACCESS_REQUIREMENTS) > 0) {
+			throw new IllegalArgumentException("UNMET_ACCESS_REQUIREMENTS is unsupported.");
+		}
+		return eb;
+	}
+
+	@Deprecated
+	static org.sagebionetworks.repo.model.EntityBundle translateEntityBundle(EntityBundle v2Bundle){
+		org.sagebionetworks.repo.model.EntityBundle entityBundle = new org.sagebionetworks.repo.model.EntityBundle();
+		entityBundle.setEntity(v2Bundle.getEntity());
+		entityBundle.setAnnotations(AnnotationsV2Translator.toAnnotationsV1(v2Bundle.getAnnotations()));
+		entityBundle.setPermissions(v2Bundle.getPermissions());
+		entityBundle.setPath(v2Bundle.getPath());
+		entityBundle.setHasChildren(v2Bundle.getHasChildren());
+		entityBundle.setAccessControlList(v2Bundle.getAccessControlList());
+		entityBundle.setFileHandles(v2Bundle.getFileHandles());
+		entityBundle.setTableBundle(v2Bundle.getTableBundle());
+		entityBundle.setRootWikiId(v2Bundle.getRootWikiId());
+		entityBundle.setBenefactorAcl(v2Bundle.getBenefactorAcl());
+		entityBundle.setDoiAssociation(v2Bundle.getDoiAssociation());
+		entityBundle.setFileName(v2Bundle.getFileName());
+		entityBundle.setThreadCount(v2Bundle.getThreadCount());
+		entityBundle.setRestrictionInformation(v2Bundle.getRestrictionInformation());
+		return entityBundle;
+	}
+
+	@Deprecated
+	static EntityBundleCreate translateEntityBundleCreate(org.sagebionetworks.repo.model.EntityBundleCreate entityBundleCreate){
+		EntityBundleCreate v2Create = new EntityBundleCreate();
+		v2Create.setEntity(entityBundleCreate.getEntity());
+		v2Create.setAnnotations(AnnotationsV2Translator.toAnnotationsV2(entityBundleCreate.getAnnotations()));
+		v2Create.setAccessControlList(entityBundleCreate.getAccessControlList());
+		return v2Create;
+	}
+
+	@Deprecated
+	static EntityBundleRequest requestFromMask(int mask){
+		EntityBundleRequest request = new EntityBundleRequest();
+		request.setIncludeEntity((mask & org.sagebionetworks.repo.model.EntityBundle.ENTITY) > 0);
+		request.setIncludeAnnotations((mask & org.sagebionetworks.repo.model.EntityBundle.ANNOTATIONS) > 0);
+		request.setIncludePermissions((mask & org.sagebionetworks.repo.model.EntityBundle.PERMISSIONS) > 0);
+		request.setIncludeEntityPath((mask & org.sagebionetworks.repo.model.EntityBundle.ENTITY_PATH) > 0);
+		request.setIncludeHasChildren((mask & org.sagebionetworks.repo.model.EntityBundle.HAS_CHILDREN) > 0);
+		request.setIncludeAccessControlList((mask & org.sagebionetworks.repo.model.EntityBundle.ACL) > 0);
+		request.setIncludeFileHandles((mask & org.sagebionetworks.repo.model.EntityBundle.FILE_HANDLES) > 0);
+		request.setIncludeTableBundle((mask & org.sagebionetworks.repo.model.EntityBundle.TABLE_DATA) > 0);
+		request.setIncludeRootWikiId((mask & org.sagebionetworks.repo.model.EntityBundle.ROOT_WIKI_ID) > 0);
+		request.setIncludeBenefactorACL((mask & org.sagebionetworks.repo.model.EntityBundle.BENEFACTOR_ACL) > 0);
+		request.setIncludeDOIAssociation((mask & org.sagebionetworks.repo.model.EntityBundle.DOI) > 0);
+		request.setIncludeFileName((mask & org.sagebionetworks.repo.model.EntityBundle.FILE_NAME) > 0);
+		request.setIncludeThreadCount((mask & org.sagebionetworks.repo.model.EntityBundle.THREAD_COUNT) > 0);
+		request.setIncludeRestrictionInformation((mask & org.sagebionetworks.repo.model.EntityBundle.RESTRICTION_INFORMATION) > 0);
+		return request;
 	}
 
 }

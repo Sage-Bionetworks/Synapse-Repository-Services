@@ -46,6 +46,19 @@ public interface AccessRequirementDAO {
 	public void delete(String id) throws DatastoreException, NotFoundException;
 
 	/**
+	 * Retrieve a page of AccessRequirements.
+	 * 
+	 * @param subject the subject of the access restriction
+	 * @param limit
+	 * @param offset
+	 * @return the AccessRequirement objects related to this node
+	 * @throws DatastoreException 
+	 */
+	public List<AccessRequirement> getAccessRequirementsForSubject(
+			List<Long> subjectIds, RestrictableObjectType type, long limit,
+			long offset) throws DatastoreException;
+
+	/**
 	 * Retrieve the concreteType of an access requirement.
 	 * 
 	 * @param accessRequirementId

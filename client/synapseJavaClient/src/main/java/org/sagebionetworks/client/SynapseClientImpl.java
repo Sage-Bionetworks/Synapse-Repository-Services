@@ -80,6 +80,7 @@ import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ProjectListTypeDeprecated;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResponseMessage;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
@@ -391,6 +392,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			+ REDIRECT_PARAMETER;
 	private static final String QUERY_REDIRECT_PARAMETER = "?"
 			+ REDIRECT_PARAMETER;
+
 	private static final String EVALUATION_URI_PATH = "/evaluation";
 	private static final String AVAILABLE_EVALUATION_URI_PATH = "/evaluation/available";
 	private static final String NAME = "name";
@@ -1296,6 +1298,27 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throws SynapseException {
 		String uri = ACCESS_REQUIREMENT + "/" + requirementId;
 		return getJSONEntity(getRepoEndpoint(), uri, AccessRequirement.class);
+	}
+
+	@Override
+	public PaginatedResults<AccessRequirement> getAccessRequirements(
+			RestrictableObjectDescriptor subjectId, Long limit, Long offset) throws SynapseException {
+		String uri = null;
+		switch (subjectId.getType()){
+			case ENTITY:
+				uri = ENTITY + "/" + subjectId.getId() + ACCESS_REQUIREMENT;
+				break;
+			case EVALUATION:
+				uri = EVALUATION_URI_PATH + "/" + subjectId.getId() + ACCESS_REQUIREMENT;
+				break;
+			case TEAM:
+				uri = TEAM + "/" + subjectId.getId() + ACCESS_REQUIREMENT;
+				break;
+			default:
+				throw new SynapseClientException("Unsupported type "+ subjectId.getType());
+		}
+		uri += "?limit="+limit+"&offset="+offset;
+		return getPaginatedResults(getRepoEndpoint(), uri, AccessRequirement.class);
 	}
 
 	@SuppressWarnings("unchecked")

@@ -5,7 +5,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -123,6 +126,18 @@ public class DBOAccessRequirementDAOImplTest {
 		return accessRequirement;
 	}
 
+	// for PLFM-1730 test that if we create a number of access requirements, they come back in the creation order
+	@Test
+	public void testRetrievalOrder() throws Exception{
+		this.ars = new ArrayList<AccessRequirement>();
+		for (int i=0; i<10; i++) {
+			TermsOfUseAccessRequirement accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo_"+i);
+			ars.add(accessRequirementDAO.create(accessRequirement));
+		}
+		List<AccessRequirement> ars2 = accessRequirementDAO.getAccessRequirementsForSubject(Collections.singletonList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY, 10L, 0L);
+		assertEquals(ars, ars2);
+	}
+	
 	/**
 	 * PLFM-4415 When subjectIds is null return an empty list.
 	 * 
@@ -159,7 +174,13 @@ public class DBOAccessRequirementDAOImplTest {
 		assertNotNull(clone);
 		assertEquals(accessRequirement, clone);
 
+		// Get by Node Id
+		Collection<AccessRequirement> ars = accessRequirementDAO.getAccessRequirementsForSubject(Collections.singletonList(KeyFactory.stringToKey(subjectId.getId())), subjectId.getType(), 10L, 0L);
+		assertEquals(1, ars.size());
+		assertEquals(accessRequirement, ars.iterator().next());
+		
 		// update it
+		clone = ars.iterator().next();
 		clone.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		clone.setVersionNumber(accessRequirement.getVersionNumber()+1);
 		AccessRequirement updatedAR = accessRequirementDAO.update(clone);
@@ -170,6 +191,35 @@ public class DBOAccessRequirementDAOImplTest {
 		assertEquals(accessRequirement.getClass().getName(),
 				accessRequirementDAO.getConcreteType(accessRequirement.getId().toString()));
 
+		// Delete the access requirements
+		accessRequirementDAO.delete(accessRequirement.getId().toString());
+		accessRequirementDAO.delete(accessRequirement2.getId().toString());
+	}
+	
+	@Test
+	public void testMultipleNodes() throws Exception {
+		// Create a new object
+		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
+		
+		// Create it
+		accessRequirement = accessRequirementDAO.create(accessRequirement);
+		assertNotNull(accessRequirement.getId());
+		
+		accessRequirement2 = newEntityAccessRequirement(individualGroup, node2, "bar");
+		accessRequirement2 = accessRequirementDAO.create(accessRequirement2);		
+		AccessRequirement clone = accessRequirementDAO.get(accessRequirement.getId().toString());
+		assertNotNull(clone);
+		assertEquals(accessRequirement, clone);
+				
+		boolean found1 = false;
+		boolean found2 = false;
+		for (AccessRequirement ar : ars) {
+			if (ar.equals(accessRequirement)) found1=true;
+			if (ar.equals(accessRequirement2)) found2=true;
+		}
+		assertTrue(found1);
+		assertTrue(found2);
+		
 		// Delete the access requirements
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
 		accessRequirementDAO.delete(accessRequirement2.getId().toString());
@@ -268,6 +318,35 @@ public class DBOAccessRequirementDAOImplTest {
 		assertTrue(stats.getRequirementIdSet().contains(accessRequirement2.getId().toString()));
 
 		accessRequirementDAO.delete(accessRequirement2.getId().toString());
+	}
+
+	/*
+	 * PLFM-3300
+	 */
+	@Test
+	public void testAROnEntityAndItsParent() {
+		node2.setParentId(node.getId());
+		nodeDao.updateNode(node2);
+
+		TermsOfUseAccessRequirement accessRequirement = new TermsOfUseAccessRequirement();
+		accessRequirement.setCreatedBy(individualGroup.getId());
+		accessRequirement.setCreatedOn(new Date());
+		accessRequirement.setModifiedBy(individualGroup.getId());
+		accessRequirement.setModifiedOn(new Date());
+		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		accessRequirement.setVersionNumber(1L);
+		RestrictableObjectDescriptor rod1 = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
+		RestrictableObjectDescriptor rod2 = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node2.getId());
+		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod1, rod2}));
+		accessRequirement.setTermsOfUse("text");
+
+		accessRequirement = accessRequirementDAO.create(accessRequirement);
+		List<AccessRequirement> list = accessRequirementDAO.getAccessRequirementsForSubject(Arrays.asList(KeyFactory.stringToKey(node.getId()), KeyFactory.stringToKey(node2.getId())), RestrictableObjectType.ENTITY, 10L, 0L);
+		assertNotNull(list);
+		assertEquals(1, list.size());
+		assertEquals(accessRequirement, list.get(0));
+
+		accessRequirementDAO.delete(accessRequirement.getId().toString());
 	}
 
 	@Test (expected = IllegalTransactionStateException.class)
