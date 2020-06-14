@@ -210,15 +210,6 @@ public class DBOAccessRequirementDAOImplTest {
 		AccessRequirement clone = accessRequirementDAO.get(accessRequirement.getId().toString());
 		assertNotNull(clone);
 		assertEquals(accessRequirement, clone);
-				
-		boolean found1 = false;
-		boolean found2 = false;
-		for (AccessRequirement ar : ars) {
-			if (ar.equals(accessRequirement)) found1=true;
-			if (ar.equals(accessRequirement2)) found2=true;
-		}
-		assertTrue(found1);
-		assertTrue(found2);
 		
 		// Delete the access requirements
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
