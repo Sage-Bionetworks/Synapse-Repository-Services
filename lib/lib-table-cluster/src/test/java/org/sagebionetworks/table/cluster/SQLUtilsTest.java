@@ -3067,12 +3067,22 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void testGetCreateReadOnlyUser() {
+	public void testGetCreateReadOnlyUserSql() {
 		final String NAME = "username";
 		final String PWD = "password";
-		final String EXPECTED_SQL = "CREATE USER IF NOT EXISTS 'username'@'%' IDENTIFIED BY 'password' ; GRANT SELECT ON *.* TO 'username'@'%'";
+		final String EXPECTED_SQL = "CREATE USER IF NOT EXISTS 'username'@'%' IDENTIFIED BY 'password' ";
 
 		assertEquals(EXPECTED_SQL, SQLUtils.getCreateReadOnlyUserSql(NAME, PWD));
+
+	}
+
+	@Test
+	public void testGrantSelectReadOnlyUserSql() {
+		final String NAME = "username";
+		final String PWD = "password";
+		final String EXPECTED_SQL = "GRANT SELECT ON *.* TO 'username'@'%' ";
+
+		assertEquals(EXPECTED_SQL, SQLUtils.getGrantSelectReadOnlyUserSql(NAME));
 
 	}
 

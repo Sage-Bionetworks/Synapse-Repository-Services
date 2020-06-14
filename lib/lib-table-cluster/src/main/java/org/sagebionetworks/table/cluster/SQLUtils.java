@@ -2018,9 +2018,14 @@ public class SQLUtils {
 	}
 
 	public static final String CREATE_READ_ONLY_USER_SQL =
-			"CREATE USER IF NOT EXISTS '%1$s'@'%%' IDENTIFIED BY '%2$s' ; GRANT SELECT ON *.* TO '%1$s'@'%%'";
+			"CREATE USER IF NOT EXISTS '%1$s'@'%%' IDENTIFIED BY '%2$s' ";
 	public static String getCreateReadOnlyUserSql(String userName, String password) {
 		return String.format(CREATE_READ_ONLY_USER_SQL, userName, password);
+	}
+
+	public static final String GRANT_SELECT_READ_ONLY_USER_SQL = "GRANT SELECT ON *.* TO '%s'@'%%' ";
+	public static String getGrantSelectReadOnlyUserSql(String userName) {
+		return String.format(GRANT_SELECT_READ_ONLY_USER_SQL, userName);
 	}
 
 	public static final String DROP_USER_SQL = "DROP USER IF EXISTS '%s'@'%%'";

@@ -1379,6 +1379,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	public void createReadOnlyUser(String userName, String userPassword) {
 		String sql = SQLUtils.getCreateReadOnlyUserSql(userName, userPassword);
 		template.update(sql);
+		sql = SQLUtils.getGrantSelectReadOnlyUserSql(userName);
+		template.update(sql);
 	}
 
 	@Override
