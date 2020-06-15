@@ -34,7 +34,7 @@ public class SchemaTranslatorImp implements SchemaTranslator {
 	@Override
 	public ObjectSchemaImpl loadSchemaFromClasspath(String id) {
 		ValidateArgument.required(id, "id");
-		String fileName = "schema/" + id.replaceAll("\\.", JsonSchemaConstants.ID_DELIMITER) + ".json";
+		String fileName = "schema/" + id.replaceAll("\\.", JsonSchemaConstants.PATH_DELIMITER) + ".json";
 		try (InputStream input = SynapseSchemaBootstrapImpl.class.getClassLoader().getResourceAsStream(fileName);) {
 			if (input == null) {
 				throw new NotFoundException("Cannot find: '" + fileName + "' on the classpath");
@@ -68,7 +68,7 @@ public class SchemaTranslatorImp implements SchemaTranslator {
 			throw new IllegalArgumentException("Id has an unknown organization name: '" + id + "'");
 		}
 		String schemaName = id.substring(SYNAPSE_ORGANIZATION_NAME.length() + 1);
-		StringJoiner joiner = new StringJoiner(JsonSchemaConstants.ID_DELIMITER);
+		StringJoiner joiner = new StringJoiner(JsonSchemaConstants.PATH_DELIMITER);
 		joiner.add(SYNAPSE_ORGANIZATION_NAME);
 		joiner.add(schemaName);
 		return joiner.toString();

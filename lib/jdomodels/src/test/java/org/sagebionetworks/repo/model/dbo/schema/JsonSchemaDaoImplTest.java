@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.logging.log4j.core.Filter.Result;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -299,7 +298,7 @@ public class JsonSchemaDaoImplTest {
 
 	@Test
 	public void testGetVersionInfo() throws JSONObjectAdapterException {
-		JsonSchemaVersionInfo info = createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", 1);
+		JsonSchemaVersionInfo info = createNewSchemaVersion("my.org.edu/foo.bar-1.0.1", 1);
 		// call under test
 		JsonSchemaVersionInfo getInfo = jsonSchemaDao.getVersionInfo(info.getVersionId());
 		assertNotNull(getInfo.getOrganizationId());
@@ -308,7 +307,7 @@ public class JsonSchemaDaoImplTest {
 		assertEquals("foo.bar", getInfo.getSchemaName());
 		assertNotNull(getInfo.getVersionId());
 		assertEquals("1.0.1", getInfo.getSemanticVersion());
-		assertEquals("my.org.edu/foo.bar/1.0.1", getInfo.get$id());
+		assertEquals("my.org.edu/foo.bar-1.0.1", getInfo.get$id());
 		assertEquals(info, getInfo);
 	}
 
@@ -498,7 +497,7 @@ public class JsonSchemaDaoImplTest {
 		int index = 0;
 		createNewSchemaVersion("my.org.edu/foo.bar", index++);
 		createNewSchemaVersion("my.org.edu/foo.bar", index++);
-		createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar-1.0.1", index++);
 		JsonSchemaVersionInfo lastVersion = createNewSchemaVersion("my.org.edu/foo.bar", index++);
 		createNewSchemaVersion("other.org/foo.bar", index++);
 		createNewSchemaVersion("my.org.edu/foo.bar.other", index++);
@@ -551,7 +550,7 @@ public class JsonSchemaDaoImplTest {
 		int index = 0;
 		createNewSchemaVersion("my.org.edu/foo.bar", index++);
 		createNewSchemaVersion("my.org.edu/foo.bar", index++);
-		createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar-1.0.1", index++);
 		JsonSchemaVersionInfo lastVersion = createNewSchemaVersion("my.org.edu/foo.bar", index++);
 		createNewSchemaVersion("other.org/foo.bar", index++);
 		createNewSchemaVersion("my.org.edu/foo.bar.other", index++);
@@ -580,9 +579,9 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testGetVersionId() throws JSONObjectAdapterException {
 		int index = 0;
-		createNewSchemaVersion("my.org.edu/foo.bar/0.0.1", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar-0.0.1", index++);
 		createNewSchemaVersion("my.org.edu/foo.bar", index++);
-		JsonSchemaVersionInfo expected = createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		JsonSchemaVersionInfo expected = createNewSchemaVersion("my.org.edu/foo.bar-1.0.1", index++);
 		createNewSchemaVersion("my.org.edu/foo.bar", index++);
 		createNewSchemaVersion("other.org/foo.bar", index++);
 		createNewSchemaVersion("my.org.edu/foo.bar.other", index++);
@@ -599,7 +598,7 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testGetVersionIdNotFound() throws JSONObjectAdapterException {
 		int index = 0;
-		createNewSchemaVersion("my.org.edu/foo.bar/0.0.1", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar-0.0.1", index++);
 
 		String organizationName = "my.org.edu";
 		String schemaName = "foo.bar";
@@ -649,9 +648,9 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testGetVersionInfoTripple() throws JSONObjectAdapterException {
 		int index = 0;
-		createNewSchemaVersion("my.org.edu/foo.bar/0.0.1", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar-0.0.1", index++);
 		createNewSchemaVersion("my.org.edu/foo.bar", index++);
-		JsonSchemaVersionInfo expected = createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		JsonSchemaVersionInfo expected = createNewSchemaVersion("my.org.edu/foo.bar-1.0.1", index++);
 		createNewSchemaVersion("my.org.edu/foo.bar", index++);
 		createNewSchemaVersion("other.org/foo.bar", index++);
 		createNewSchemaVersion("my.org.edu/foo.bar.other", index++);
@@ -664,7 +663,7 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testGetSchemaVersionOrganizationNotFound() throws JSONObjectAdapterException {
 		int index = 0;
-		createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar-1.0.1", index++);
 		String message = assertThrows(NotFoundException.class, () -> {
 			jsonSchemaDao.getVersionInfo("other.org", "foo.bar", "1.0.1");
 		}).getMessage();
@@ -676,7 +675,7 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testGetSchemaVersionSchemaNameNotFound() throws JSONObjectAdapterException {
 		int index = 0;
-		createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar-1.0.1", index++);
 		String message = assertThrows(NotFoundException.class, () -> {
 			jsonSchemaDao.getVersionInfo("my.org.edu", "foo.bar.bar", "1.0.1");
 		}).getMessage();
@@ -688,7 +687,7 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testGetVersionInfoWithVersionNotFound() throws JSONObjectAdapterException {
 		int index = 0;
-		createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar-1.0.1", index++);
 		String message = assertThrows(NotFoundException.class, () -> {
 			jsonSchemaDao.getVersionInfo("my.org.edu", "foo.bar", "1.0.2");
 		}).getMessage();
@@ -730,9 +729,9 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testDeleteSchema() throws JSONObjectAdapterException {
 		int index = 0;
-		createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
-		createNewSchemaVersion("my.org.edu/foo.bar/1.0.2", index++);
-		JsonSchemaVersionInfo stillExists = createNewSchemaVersion("other.org/foo.bar/1.0.2", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar-1.0.1", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar-1.0.2", index++);
+		JsonSchemaVersionInfo stillExists = createNewSchemaVersion("other.org/foo.bar-1.0.2", index++);
 		JsonSchemaVersionInfo lastInfo = createNewSchemaVersion("my.org.edu/foo.bar", index++);
 		String schemaName = "foo.bar";
 		String schemaId = jsonSchemaDao.getSchemaInfoForUpdate(lastInfo.getOrganizationId(), schemaName);
@@ -765,8 +764,8 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testFindLatestVersion() throws JSONObjectAdapterException {
 		int index = 0;
-		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
-		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/foo.bar/1.0.2", index++);
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/foo.bar-1.0.1", index++);
+		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/foo.bar-1.0.2", index++);
 		JsonSchemaVersionInfo three = createNewSchemaVersion("my.org.edu/foo.bar", index++);
 		JsonSchemaVersionInfo otherOrg = createNewSchemaVersion("another.org/foo.bar", index++);
 		JsonSchemaVersionInfo otherName = createNewSchemaVersion("my.org.edu/other.name", index++);
@@ -802,9 +801,9 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testGetSchemaId() throws JSONObjectAdapterException {
 		int index = 0;
-		createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		createNewSchemaVersion("my.org.edu/foo.bar-1.0.1", index++);
 		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/foo.bar", index++);
-		createNewSchemaVersion("other.org.edu/foo.bar/1.0.1", index++);
+		createNewSchemaVersion("other.org.edu/foo.bar-1.0.1", index++);
 		// call under test
 		String schemaId = jsonSchemaDao.getSchemaId(two.getOrganizationName(), two.getSchemaName());
 		assertEquals(two.getSchemaId(), schemaId);
@@ -844,7 +843,7 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testGetSchemaIdForUpdate() throws JSONObjectAdapterException {
 		int index = 0;
-		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/foo.bar-1.0.1", index++);
 		// call under test
 		String schemaId = jsonSchemaDao.getSchemaIdForUpdate(one.getVersionId());
 		assertEquals(one.getSchemaId(), schemaId);
@@ -862,8 +861,8 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testDeleteVersionNotLatest() throws JSONObjectAdapterException {
 		int index = 0;
-		JsonSchemaVersionInfo stillExists = createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
-		JsonSchemaVersionInfo toDelete = createNewSchemaVersion("my.org.edu/foo.bar/1.0.2", index++);
+		JsonSchemaVersionInfo stillExists = createNewSchemaVersion("my.org.edu/foo.bar-1.0.1", index++);
+		JsonSchemaVersionInfo toDelete = createNewSchemaVersion("my.org.edu/foo.bar-1.0.2", index++);
 		createNewSchemaVersion("my.org.edu/foo.bar", index++);
 		// call under test
 		jsonSchemaDao.deleteSchemaVersion(toDelete.getVersionId());
@@ -883,8 +882,8 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testDeleteVersionLatest() throws JSONObjectAdapterException {
 		int index = 0;
-		JsonSchemaVersionInfo stillExists = createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
-		JsonSchemaVersionInfo toDelete = createNewSchemaVersion("my.org.edu/foo.bar/1.0.2", index++);
+		JsonSchemaVersionInfo stillExists = createNewSchemaVersion("my.org.edu/foo.bar-1.0.1", index++);
+		JsonSchemaVersionInfo toDelete = createNewSchemaVersion("my.org.edu/foo.bar-1.0.2", index++);
 
 		// call under test
 		jsonSchemaDao.deleteSchemaVersion(toDelete.getVersionId());
@@ -908,7 +907,7 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testDeleteVersionOnlyVersion() throws JSONObjectAdapterException {
 		int index = 0;
-		JsonSchemaVersionInfo onlyVersion = createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		JsonSchemaVersionInfo onlyVersion = createNewSchemaVersion("my.org.edu/foo.bar-1.0.1", index++);
 
 		// call under test
 		jsonSchemaDao.deleteSchemaVersion(onlyVersion.getVersionId());
@@ -941,11 +940,11 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testGetSchema() throws JSONObjectAdapterException {
 		int index = 0;
-		JsonSchemaVersionInfo info = createNewSchemaVersion("my.org.edu/foo.bar/1.0.1", index++);
+		JsonSchemaVersionInfo info = createNewSchemaVersion("my.org.edu/foo.bar-1.0.1", index++);
 		assertNotNull(info);
 		JsonSchema schema = jsonSchemaDao.getSchema(info.getVersionId());
 		assertNotNull(schema);
-		assertEquals("my.org.edu/foo.bar/1.0.1", schema.get$id());
+		assertEquals("my.org.edu/foo.bar-1.0.1", schema.get$id());
 		assertEquals("index:0", schema.getDescription());
 	}
 
@@ -1057,11 +1056,11 @@ public class JsonSchemaDaoImplTest {
 		int index = 0;
 		List<JsonSchemaVersionInfo> versions = new ArrayList<JsonSchemaVersionInfo>();
 		versions.add(createNewSchemaVersion("other.org.edu/b", index++));
-		versions.add(createNewSchemaVersion("my.org.edu/c/1.0.0", index++));
-		versions.add(createNewSchemaVersion("my.org.edu/b/1.0.0", index++));
-		versions.add(createNewSchemaVersion("my.org.edu/b/1.0.1", index++));
-		versions.add(createNewSchemaVersion("my.org.edu/b/1.0.2", index++));
-		versions.add(createNewSchemaVersion("my.org.edu/b/1.0.3", index++));
+		versions.add(createNewSchemaVersion("my.org.edu/c-1.0.0", index++));
+		versions.add(createNewSchemaVersion("my.org.edu/b-1.0.0", index++));
+		versions.add(createNewSchemaVersion("my.org.edu/b-1.0.1", index++));
+		versions.add(createNewSchemaVersion("my.org.edu/b-1.0.2", index++));
+		versions.add(createNewSchemaVersion("my.org.edu/b-1.0.3", index++));
 
 		long limit = 2;
 		long offset = 1;
@@ -1134,12 +1133,12 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testBindDependenciesWithVersions() throws JSONObjectAdapterException {
 		int index = 0;
-		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one/1.0.0", index++);
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one-1.0.0", index++);
 		// two depends on one
 		ArrayList<SchemaDependency> dependencies = new ArrayList<SchemaDependency>();
 		dependencies.add(new SchemaDependency().withDependsOnSchemaId(one.getSchemaId())
 				.withDependsOnVersionId(one.getVersionId()));
-		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/two/1.0.0", index++, dependencies);
+		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/two-1.0.0", index++, dependencies);
 		// Three depends on one and two
 		dependencies = new ArrayList<SchemaDependency>();
 		dependencies.add(new SchemaDependency().withDependsOnSchemaId(one.getSchemaId())
@@ -1147,7 +1146,7 @@ public class JsonSchemaDaoImplTest {
 		dependencies.add(new SchemaDependency().withDependsOnSchemaId(two.getSchemaId())
 				.withDependsOnVersionId(two.getVersionId()));
 		// call under test
-		JsonSchemaVersionInfo three = createNewSchemaVersion("my.org.edu/three/1.0.0", index++, dependencies);
+		JsonSchemaVersionInfo three = createNewSchemaVersion("my.org.edu/three-1.0.0", index++, dependencies);
 
 		List<DBOJsonSchemaDependency> dependencyResults = jsonSchemaDao.getDependencies(three.getVersionId());
 		assertNotNull(dependencyResults);
@@ -1174,7 +1173,7 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testBindDependenciesWithSameSchemaWithAndWithoutVersion() throws JSONObjectAdapterException {
 		int index = 0;
-		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one/1.0.0", index++);
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one-1.0.0", index++);
 		// two depends on one
 		ArrayList<SchemaDependency> dependencies = new ArrayList<SchemaDependency>();
 		// one with a version
@@ -1182,7 +1181,7 @@ public class JsonSchemaDaoImplTest {
 				.withDependsOnVersionId(one.getVersionId()));
 		// one without a version
 		dependencies.add(new SchemaDependency().withDependsOnSchemaId(one.getSchemaId()));
-		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/two/1.0.0", index++, dependencies);
+		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/two-1.0.0", index++, dependencies);
 
 		// Should block delete of one and two
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -1202,7 +1201,7 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testBindDependenciesWithSameSchemaWithDuplicate() throws JSONObjectAdapterException {
 		int index = 0;
-		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one/1.0.0", index++);
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one-1.0.0", index++);
 		// two depends on one
 		ArrayList<SchemaDependency> dependencies = new ArrayList<SchemaDependency>();
 		// one with a version
@@ -1211,7 +1210,7 @@ public class JsonSchemaDaoImplTest {
 		// same binding twice
 		dependencies.add(new SchemaDependency().withDependsOnSchemaId(one.getSchemaId())
 				.withDependsOnVersionId(one.getVersionId()));
-		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/two/1.0.0", index++, dependencies);
+		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/two-1.0.0", index++, dependencies);
 
 		// Should block delete of one and two
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -1257,12 +1256,12 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testGetDependencies() throws JSONObjectAdapterException {
 		int index = 0;
-		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one/1.0.0", index++);
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one-1.0.0", index++);
 		// two depends on one
 		ArrayList<SchemaDependency> dependencies = new ArrayList<SchemaDependency>();
 		dependencies.add(new SchemaDependency().withDependsOnSchemaId(one.getSchemaId())
 				.withDependsOnVersionId(one.getVersionId()));
-		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/two/1.0.0", index++, dependencies);
+		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/two-1.0.0", index++, dependencies);
 
 		// call under test
 		List<DBOJsonSchemaDependency> result = jsonSchemaDao.getDependencies(two.getVersionId());
@@ -1278,11 +1277,11 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testGetDependenciesWithNullVersionId() throws JSONObjectAdapterException {
 		int index = 0;
-		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one/1.0.0", index++);
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one-1.0.0", index++);
 		// two depends on one with a null version Id
 		ArrayList<SchemaDependency> dependencies = new ArrayList<SchemaDependency>();
 		dependencies.add(new SchemaDependency().withDependsOnSchemaId(one.getSchemaId()).withDependsOnVersionId(null));
-		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/two/1.0.0", index++, dependencies);
+		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/two-1.0.0", index++, dependencies);
 
 		// call under test
 		List<DBOJsonSchemaDependency> result = jsonSchemaDao.getDependencies(two.getVersionId());
@@ -1297,8 +1296,8 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testBindSchemaToObject() throws JSONObjectAdapterException {
 		int index = 0;
-		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one/1.0.0", index++);
-		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/one/2.0.0", index++);
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one-1.0.0", index++);
+		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/one-2.0.0", index++);
 		bindSchemaRequest.withSchemaId(one.getSchemaId());
 		bindSchemaRequest.withVersionId(one.getVersionId());
 		// call under test
@@ -1389,12 +1388,12 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testGetSchemaBindingForObject() throws JSONObjectAdapterException {
 		int index = 0;
-		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one/1.0.0", index++);
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one-1.0.0", index++);
 		bindSchemaRequest.withSchemaId(one.getSchemaId());
 		bindSchemaRequest.withVersionId(one.getVersionId());
 		JsonSchemaObjectBinding bindOne = jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
 
-		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/two/1.0.0", index++);
+		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu/two-1.0.0", index++);
 		bindSchemaRequest.withSchemaId(two.getSchemaId());
 		bindSchemaRequest.withVersionId(two.getVersionId());
 		bindSchemaRequest.withObjectId(456L);
@@ -1409,7 +1408,7 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testGetSchemaBindingForObjectWithNullVersionId() throws JSONObjectAdapterException {
 		int index = 0;
-		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one/1.0.0", index++);
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one-1.0.0", index++);
 		bindSchemaRequest.withSchemaId(one.getSchemaId());
 		bindSchemaRequest.withVersionId(null);
 		JsonSchemaObjectBinding bindOne = jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
@@ -1452,7 +1451,7 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testClearBoundSchema() throws JSONObjectAdapterException {
 		int index = 0;
-		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one/1.0.0", index++);
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu/one-1.0.0", index++);
 		bindSchemaRequest.withSchemaId(one.getSchemaId());
 		bindSchemaRequest.withVersionId(null);
 		jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);

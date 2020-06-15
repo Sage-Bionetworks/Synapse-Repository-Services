@@ -71,8 +71,8 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 		createOrgRequest.setOrganizationName(organizationName);
 		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createOrgRequest);
 		basicSchema = new JsonSchema();
-		basicSchema.set$id(organizationName + JsonSchemaConstants.ID_DELIMITER + schemaName
-				+ JsonSchemaConstants.ID_DELIMITER + semanticVersion);
+		basicSchema.set$id(organizationName + JsonSchemaConstants.PATH_DELIMITER + schemaName
+				+ JsonSchemaConstants.PATH_DELIMITER + semanticVersion);
 		basicSchema.setDescription("basic schema for integration test");
 	}
 
@@ -201,7 +201,7 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 	 */
 	public JsonSchema createSchema(String organizationName, String schemaName) {
 		JsonSchema schema = new JsonSchema();
-		schema.set$id(organizationName + JsonSchemaConstants.ID_DELIMITER + schemaName);
+		schema.set$id(organizationName + JsonSchemaConstants.PATH_DELIMITER + schemaName);
 		return schema;
 	}
 
