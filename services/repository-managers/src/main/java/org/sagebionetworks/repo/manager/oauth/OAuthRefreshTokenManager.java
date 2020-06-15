@@ -113,4 +113,11 @@ public interface OAuthRefreshTokenManager {
 	 * @return
 	 */
 	OAuthRefreshTokenInformation updateRefreshTokenMetadata(UserInfo userInfo, OAuthRefreshTokenInformation metadata) throws NotFoundException, UnauthorizedException;
+
+	/**
+	 * Determine whether a refresh token is active using its unique ID
+	 * @param refreshTokenId
+	 * @return true if the token is active, false if the token is revoked or doesn't exist
+	 */
+	public boolean isRefreshTokenActive(String refreshTokenId);
 }

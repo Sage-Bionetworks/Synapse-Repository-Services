@@ -54,6 +54,10 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 	private static final String PARAM_DAYS = "days";
 	private static final String PARAM_MAX_NUM_TOKENS = "maxNumberOfTokens";
 
+	private static final String SELECT_IS_TOKEN_ACTIVE_COUNT = "SELECT COUNT(*) FROM " + TABLE_OAUTH_REFRESH_TOKEN +
+			" WHERE "+ COL_OAUTH_REFRESH_TOKEN_ID+" = :" + PARAM_TOKEN_ID +
+			" AND " + COL_OAUTH_REFRESH_TOKEN_LAST_USED + " > (NOW() - INTERVAL  :" + PARAM_DAYS + " DAY)";
+
 	private static final String UPDATE_REFRESH_TOKEN_METADATA = "UPDATE "+TABLE_OAUTH_REFRESH_TOKEN+
 			" SET "+
 			COL_OAUTH_REFRESH_TOKEN_NAME+" = :" + PARAM_NAME + ", "+
@@ -156,6 +160,20 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 		dto.setLastUsed(new Date(dbo.getLastUsed().getTime()));
 		dto.setEtag(dbo.getEtag());
 		return dto;
+	}
+
+	@Override
+	public boolean isTokenActive(String tokenId, Long maxLeaseLengthInDays) {
+		ValidateArgument.required(tokenId, "tokenId");
+		ValidateArgument.required(maxLeaseLengthInDays, "maxLeaseLengthInDays");
+
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(PARAM_TOKEN_ID, tokenId);
+		params.addValue(PARAM_DAYS, maxLeaseLengthInDays);
+
+		Integer count = namedParameterJdbcTemplate.queryForObject(SELECT_IS_TOKEN_ACTIVE_COUNT, params, Integer.class);
+
+		return count != null && count > 0;
 	}
 
 	@MandatoryWriteTransaction

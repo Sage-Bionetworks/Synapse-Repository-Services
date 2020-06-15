@@ -334,6 +334,19 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 	}
 
 	@Test
+	public void testIsRefreshTokenActive() {
+		OAuthRefreshTokenAndMetadata token = refreshTokenManager.createRefreshToken(user1.getId().toString(), client1.getClient_id(), scopes, claims);
+
+		// Call under test
+		assertTrue(refreshTokenManager.isRefreshTokenActive(token.getMetadata().getTokenId()));
+
+		refreshTokenManager.revokeRefreshToken(token.getRefreshToken());
+
+		// Call under test
+		assertFalse(refreshTokenManager.isRefreshTokenActive(token.getMetadata().getTokenId()));
+	}
+
+	@Test
 	public void testRotateToken_MandatoryWriteTransaction() {
 		assertThrows(IllegalTransactionStateException.class,() ->
 				refreshTokenManager.rotateRefreshToken("token")

@@ -122,7 +122,7 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 				oauthClientDao.deleteSectorIdentifer(sectorIdentifier);
 			} catch (NotFoundException e) {
 				// Ignore
-				}
+			}
 		}
 		for (String id : tokenIdsToDelete) {
 			try {
@@ -209,7 +209,7 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 	}
 
 	@Test
-	void testDboToDtoAndBack() throws Exception{
+	void testDboToDtoAndBack() throws Exception {
 		DBOOAuthRefreshToken dbo = new DBOOAuthRefreshToken();
 		dbo.setName(UUID.randomUUID().toString());
 		dbo.setId(11111L);
@@ -348,7 +348,7 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 
 	@Test
 	void getMatchingTokenByHashForUpdate_noTransaction() {
-		assertThrows(IllegalTransactionStateException.class,() ->
+		assertThrows(IllegalTransactionStateException.class, () ->
 				oauthRefreshTokenDao.getMatchingTokenByHashForUpdate("hash")
 		);
 	}
@@ -383,7 +383,7 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 
 	@Test
 	void updateTokenHash_noTransaction() {
-		assertThrows(IllegalTransactionStateException.class,() ->
+		assertThrows(IllegalTransactionStateException.class, () ->
 				oauthRefreshTokenDao.updateTokenHash(new OAuthRefreshTokenInformation(), "clientid")
 
 		);
@@ -432,5 +432,29 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		assertFalse(oauthRefreshTokenDao.getRefreshTokenMetadata(oldToken2.getTokenId()).isPresent());
 		assertTrue(oauthRefreshTokenDao.getRefreshTokenMetadata(newToken1.getTokenId()).isPresent());
 		assertTrue(oauthRefreshTokenDao.getRefreshTokenMetadata(newToken2.getTokenId()).isPresent());
+	}
+
+	@Test
+	public void testIsTokenActive() {
+		OAuthRefreshTokenInformation token = createRefreshToken(new Date(System.currentTimeMillis()));
+		// Call under test
+		assertTrue(oauthRefreshTokenDao.isTokenActive(token.getTokenId(), HALF_YEAR_DAYS));
+	}
+
+	@Test
+	public void testIsTokenActive_deleted() {
+		OAuthRefreshTokenInformation token = createRefreshToken(new Date(System.currentTimeMillis()));
+		oauthRefreshTokenDao.deleteToken(token.getTokenId());
+		// Call under test
+		assertFalse(oauthRefreshTokenDao.isTokenActive(token.getTokenId(), HALF_YEAR_DAYS));
+	}
+
+	@Test
+	public void testIsTokenActive_expired() {
+		// Create token last used one year ago
+		OAuthRefreshTokenInformation token = createRefreshToken(new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS));
+		oauthRefreshTokenDao.deleteToken(token.getTokenId());
+		// Call under test
+		assertFalse(oauthRefreshTokenDao.isTokenActive(token.getTokenId(), HALF_YEAR_DAYS));
 	}
 }

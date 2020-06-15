@@ -213,6 +213,10 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 				.orElseThrow(() -> new IllegalStateException("The token metadata could not be retrieved after an update."));
 	}
 
+	public boolean isRefreshTokenActive(String refreshTokenId) {
+		return oauthRefreshTokenDao.isTokenActive(refreshTokenId, REFRESH_TOKEN_LEASE_DURATION_DAYS);
+	}
+
 	/**
 	 * Generates a random string suitable for use as a refresh token.
 	 * @return a cryptographically-unguessable random string

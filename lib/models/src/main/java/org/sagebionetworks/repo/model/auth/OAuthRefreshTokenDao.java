@@ -8,6 +8,14 @@ import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
 public interface OAuthRefreshTokenDao {
 
 	/**
+	 * Determine if a token is active or not.
+	 * @param tokenId the unique ID of a token
+	 * @param maxLeaseLengthInDays refresh tokens that have been unused for this many days are considered expired
+	 * @return true if the token is active, false if the token is revoked or does not exist
+	 */
+	boolean isTokenActive(String tokenId, Long maxLeaseLengthInDays);
+
+	/**
 	 * Update the stored hash for an existing token, This must only be called when the record is locked,
 	 * e.g. by calling {@link #getMatchingTokenByHashForUpdate}.
 	 *

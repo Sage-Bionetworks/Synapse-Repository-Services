@@ -510,5 +510,13 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 		verify(mockOAuthRefreshTokenDao).getMatchingTokenByHashForUpdate(anyString());
 		verify(mockOAuthRefreshTokenDao, never()).deleteToken(anyString());
 	}
+
+	@Test
+	public void testIsRefreshTokenActive() {
+		when(mockOAuthRefreshTokenDao.isTokenActive(TOKEN_ID, EXPECTED_LEASE_DURATION_DAYS)).thenReturn(true);
+
+		// Call under test
+		assertTrue(oauthRefreshTokenManager.isRefreshTokenActive(TOKEN_ID));
+	}
 }
 
