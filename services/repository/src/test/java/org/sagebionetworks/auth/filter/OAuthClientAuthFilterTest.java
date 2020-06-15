@@ -97,6 +97,7 @@ public class OAuthClientAuthFilterTest {
 		when(mockHttpRequest.getParameter("client_id")).thenReturn(CLIENT_ID);
 		when(mockHttpRequest.getParameter("client_secret")).thenReturn(CLIENT_SECRET);
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
+		when(mockHttpRequest.getMethod()).thenReturn("POST");
 		// method under test
 		oAuthClientAuthFilter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
 
