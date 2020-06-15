@@ -12,6 +12,10 @@
 		"id_token": {
 			"type": "string",
 			"description": "The Open ID Connect ID token"
+		},
+		"token_type": {
+			"type": "string",
+			"description": "The type of token returned"
 		}
 	}
 }

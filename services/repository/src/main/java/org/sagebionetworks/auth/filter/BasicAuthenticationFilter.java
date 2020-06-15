@@ -18,8 +18,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.auth.UserNameAndPassword;
@@ -46,7 +46,7 @@ public abstract class BasicAuthenticationFilter implements Filter {
 	private static final String CLOUD_WATCH_DIMENSION_MESSAGE = "message";
 	private static final String CLOUD_WATCH_UNIT_COUNT = StandardUnit.Count.toString();
 
-	private Log logger = LogFactory.getLog(getClass());
+	private Logger logger = LogManager.getLogger(getClass());
 	
 	private StackConfiguration config;
 	private Consumer consumer;
@@ -70,7 +70,7 @@ public abstract class BasicAuthenticationFilter implements Filter {
 		Optional<UserNameAndPassword> credentials;
 
 		try {
-			credentials = HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest);
+			credentials = getCredentialsFromRequest(httpRequest);
 		} catch (IllegalArgumentException e) {
 			rejectRequest(httpResponse, e);
 			return;
@@ -82,6 +82,16 @@ public abstract class BasicAuthenticationFilter implements Filter {
 		}
 
 		validateCredentialsAndDoFilterInternal(httpRequest, httpResponse, filterChain, credentials);
+	}
+	
+	/**
+	 * Get the user name and password from the HTTP Request
+	 * Subclasses may retrieve the credentials from different parts of the request.
+	 * @param httpRequest
+	 * @return
+	 */
+	protected Optional<UserNameAndPassword> getCredentialsFromRequest(HttpServletRequest httpRequest) {
+		return HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest);
 	}
 	
 	/**
