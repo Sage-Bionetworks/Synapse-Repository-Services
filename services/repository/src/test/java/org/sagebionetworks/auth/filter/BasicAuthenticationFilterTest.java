@@ -57,7 +57,8 @@ public class BasicAuthenticationFilterTest {
 	@BeforeEach
 	public void before() {
 		filter = Mockito.mock(BasicAuthenticationFilter.class, withSettings()
-					.defaultAnswer(Answers.CALLS_REAL_METHODS)
+				.useConstructor(mockFilterHelper)
+				.defaultAnswer(Answers.CALLS_REAL_METHODS)
 		);
 	}
 	
@@ -73,9 +74,7 @@ public class BasicAuthenticationFilterTest {
 	}
 	
 	@Test
-	public void testDoFilterWithoutCredentials() throws Exception {
-		when(filter.filterHelper()).thenReturn(mockFilterHelper);
-		
+	public void testDoFilterWithoutCredentials() throws Exception {		
 		// Call under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
@@ -85,7 +84,6 @@ public class BasicAuthenticationFilterTest {
 	@Test
 	public void testDoFilterWithInvalidHeader() throws Exception {
 		when(mockRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Some invalid header");
-		when(filter.filterHelper()).thenReturn(mockFilterHelper);
 		
 		// Call under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
@@ -96,7 +94,6 @@ public class BasicAuthenticationFilterTest {
 	@Test
 	public void testDoFilterWithInvalideEncodingHeader() throws Exception {
 		when(mockRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Basic " + ENCODED + "___");
-		when(filter.filterHelper()).thenReturn(mockFilterHelper);
 		
 		// Call under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);

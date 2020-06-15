@@ -13,6 +13,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.auth.UserNameAndPassword;
@@ -30,8 +31,9 @@ import org.springframework.stereotype.Component;
  */
 @Component("oauthClientAuthFilter")
 public class OAuthClientAuthFilter implements Filter {
-	private static final String INVALID_CREDENTIALS_MSG = "OAuth Client ID and secret must be passed via Basic Authentication. Credentials are missing or invalid.";
-
+	private static final String INVALID_CREDENTIALS_MSG = "OAuth Client ID and secret must be passed via Basic Authentication or as request parameters. Credentials are missing or invalid.";
+	private static final String CLIENT_ID_PARAM_NAME = "client_id";
+	private static final String CLIENT_SECRET_PARAM_NAME = "client_secret";
 
 	private StackConfiguration config;
 
@@ -78,19 +80,27 @@ public class OAuthClientAuthFilter implements Filter {
 			filterHelper.rejectRequest(REPORT_BAD_CREDENTIALS_METRIC, httpResponse, e);
 			return;
 		}
+		
+		// if credentials are not in the authorization header (i.e. passed by client_secret_basic),
+		// the might be passed as request parameters (i.e. passed by client_secret_post)
+		if (!credentials.isPresent()) {
+			String clientId = httpRequest.getParameter(CLIENT_ID_PARAM_NAME);
+			String clientSecret = httpRequest.getParameter(CLIENT_SECRET_PARAM_NAME);
+			if (StringUtils.isEmpty(clientId) || StringUtils.isBlank(clientSecret)) {
+				credentials = Optional.empty();
+			} else {
+				credentials = Optional.of(new UserNameAndPassword(clientId, clientSecret));
+			}
+		}
 
 		if (!credentials.isPresent()) {
-			filterHelper.rejectRequest(REPORT_BAD_CREDENTIALS_METRIC, httpResponse, "Missing required credentials in the authorization header.");
+			filterHelper.rejectRequest(REPORT_BAD_CREDENTIALS_METRIC, httpResponse, "Missing client credentials.");
 			return;
 		}
 
-		if (credentials.isPresent() && !validCredentials(credentials.get())) {
+		if (!validCredentials(credentials.get())) {
 			filterHelper.rejectRequest(REPORT_BAD_CREDENTIALS_METRIC, httpResponse, INVALID_CREDENTIALS_MSG);
 			return;
-		}
-
-		if (!credentials.isPresent()) {
-			throw new IllegalStateException("Credentials were expected but not supplied");
 		}
 
 		String oauthClientId = credentials.get().getUserName();

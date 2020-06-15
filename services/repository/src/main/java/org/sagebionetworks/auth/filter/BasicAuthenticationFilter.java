@@ -12,10 +12,8 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.auth.UserNameAndPassword;
-import org.sagebionetworks.cloudwatch.Consumer;
 
 /**
  * Implementation of a filter that extracts base64 encoded credentials from the
@@ -28,7 +26,11 @@ public abstract class BasicAuthenticationFilter implements Filter {
 	private static final String MISSING_CREDENTIALS_MSG = "Missing required credentials in the authorization header.";
 	private static final String INVALID_CREDENTIALS_MSG = "Invalid credentials.";
 	
-	abstract protected FilterHelper filterHelper();
+	protected FilterHelper filterHelper;
+	
+	public BasicAuthenticationFilter(FilterHelper filterHelper) {
+		this.filterHelper = filterHelper;
+	}
 	
 	@Override
 	public final void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain)
@@ -46,12 +48,12 @@ public abstract class BasicAuthenticationFilter implements Filter {
 		try {
 			credentials = HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest);
 		} catch (IllegalArgumentException e) {
-			filterHelper().rejectRequest(reportBadCredentialsMetric(), httpResponse, e);
+			filterHelper.rejectRequest(reportBadCredentialsMetric(), httpResponse, e);
 			return;
 		}
 
 		if (credentialsRequired() && !credentials.isPresent()) {
-			filterHelper().rejectRequest(reportBadCredentialsMetric(), httpResponse, MISSING_CREDENTIALS_MSG);
+			filterHelper.rejectRequest(reportBadCredentialsMetric(), httpResponse, MISSING_CREDENTIALS_MSG);
 			return;
 		}
 
