@@ -133,6 +133,7 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 		existingToken.setEtag(oldEtag);
 
 		when(mockOAuthRefreshTokenDao.getMatchingTokenByHashForUpdate(DigestUtils.sha256Hex(token))).thenReturn(Optional.of(existingToken));
+		when(mockOAuthRefreshTokenDao.isTokenActive(TOKEN_ID, EXPECTED_LEASE_DURATION_DAYS)).thenReturn(true);
 
 		ArgumentCaptor<OAuthRefreshTokenInformation> metadataCaptor = ArgumentCaptor.forClass(OAuthRefreshTokenInformation.class);
 		ArgumentCaptor<String> tokenCaptor = ArgumentCaptor.forClass(String.class);
@@ -171,6 +172,20 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 		assertThrows(IllegalArgumentException.class, () -> oauthRefreshTokenManager.rotateRefreshToken("token"));
 	}
 
+	@Test
+	public void testRotateRefreshToken_expiredToken() {
+		OAuthRefreshTokenInformation tokenMetadata = new OAuthRefreshTokenInformation();
+		tokenMetadata.setTokenId(TOKEN_ID);
+		when(mockOAuthRefreshTokenDao.getMatchingTokenByHashForUpdate(anyString())).thenReturn(Optional.of(
+				tokenMetadata
+		));
+		when(mockOAuthRefreshTokenDao.isTokenActive(TOKEN_ID, EXPECTED_LEASE_DURATION_DAYS)).thenReturn(false);
+
+
+		// Call under test
+		assertThrows(IllegalArgumentException.class, () -> oauthRefreshTokenManager.rotateRefreshToken("token"));
+	}
+
 
 	@Test
 	public void testRotateRefreshToken_IllegalStateOnFailedRetrieval() {
@@ -182,6 +197,7 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 		existingToken.setEtag(UUID.randomUUID().toString());
 
 		when(mockOAuthRefreshTokenDao.getMatchingTokenByHashForUpdate(anyString())).thenReturn(Optional.of(existingToken));
+		when(mockOAuthRefreshTokenDao.isTokenActive(TOKEN_ID, EXPECTED_LEASE_DURATION_DAYS)).thenReturn(true);
 		when(mockOAuthRefreshTokenDao.getRefreshTokenMetadata(TOKEN_ID)).thenReturn(Optional.empty());
 		// Call under test
 		assertThrows(IllegalStateException.class, () -> oauthRefreshTokenManager.rotateRefreshToken("token"));

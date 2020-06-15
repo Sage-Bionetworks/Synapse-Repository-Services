@@ -100,7 +100,11 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 	public OAuthRefreshTokenAndMetadata rotateRefreshToken(String refreshToken) {
 		String hash = hashToken(refreshToken);
 		OAuthRefreshTokenInformation metadata = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate(hash)
-				.orElseThrow(() -> new IllegalArgumentException("The token does not match an existing token"));
+				.orElseThrow(() -> new IllegalArgumentException("The token does not match an existing token."));
+
+		if (!oauthRefreshTokenDao.isTokenActive(metadata.getTokenId(), REFRESH_TOKEN_LEASE_DURATION_DAYS)) {
+			throw new IllegalArgumentException("The refresh token has expired.");
+		}
 
 		String newToken = generateRefreshToken();
 		String newHash = hashToken(newToken);
