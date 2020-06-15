@@ -94,14 +94,14 @@ public class OAuthClientAuthFilterTest {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(null);
 		when(mockHttpRequest.getParameter("client_id")).thenReturn(CLIENT_ID);
 		when(mockHttpRequest.getParameter("client_secret")).thenReturn(CLIENT_SECRET);
-
+		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
 		// method under test
 		oAuthClientAuthFilter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
 		
-		OAuthClientIdAndSecret oauthClientIdAndSecret = new OAuthClientIdAndSecret();
-		oauthClientIdAndSecret.setClient_id(CLIENT_ID);
-		oauthClientIdAndSecret.setClient_id(CLIENT_SECRET);
-		verify(mockOauthClientManager).validateClientCredentials(eq(oauthClientIdAndSecret));
+		ArgumentCaptor<OAuthClientIdAndSecret> credentialsCaptor = ArgumentCaptor.forClass(OAuthClientIdAndSecret.class);
+		verify(mockOauthClientManager).validateClientCredentials(credentialsCaptor.capture());
+		assertEquals(CLIENT_ID, credentialsCaptor.getValue().getClient_id());
+		assertEquals(CLIENT_SECRET, credentialsCaptor.getValue().getClient_secret());
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
 		
 		assertEquals(CLIENT_ID, requestCaptor.getValue().getHeader(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER));
@@ -120,7 +120,7 @@ public class OAuthClientAuthFilterTest {
 		verify(mockFilterChain, never()).doFilter((ServletRequest)any(), (ServletResponse)any());
 		verify(mockHttpResponse).setStatus(401);
 		verify(mockHttpResponse).setContentType("application/json");
-		verify(mockPrintWriter).println("{\"reason\":\"OAuth Client ID and secret must be passed via Basic Authentication. Credentials are missing or invalid.\"}");
+		verify(mockPrintWriter).println("{\"reason\":\"OAuth Client ID and secret must be passed via Basic Authentication or as request parameters. Credentials are missing or invalid.\"}");
 	}
 
 	@Test
@@ -136,7 +136,7 @@ public class OAuthClientAuthFilterTest {
 		verify(mockFilterChain, never()).doFilter((ServletRequest)any(), (ServletResponse)any());
 		verify(mockHttpResponse).setStatus(401);
 		verify(mockHttpResponse).setContentType("application/json");
-		verify(mockPrintWriter).println("{\"reason\":\"Missing required credentials in the authorization header.\"}");
+		verify(mockPrintWriter).println("{\"reason\":\"Missing client credentials.\"}");
 	}
 
 }
