@@ -58,7 +58,7 @@ public class OAuthClientAuthFilter implements Filter {
 	}
 	
 	@Override
-	public final void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain)
+	public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain)
 			throws IOException, ServletException {
 
 		if (!(request instanceof HttpServletRequest) || !(response instanceof HttpServletResponse)) {
