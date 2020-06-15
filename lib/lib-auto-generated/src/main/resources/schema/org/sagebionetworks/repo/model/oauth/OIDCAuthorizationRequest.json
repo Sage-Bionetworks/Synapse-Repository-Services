@@ -10,7 +10,7 @@
 			"description": "space-separated list of scopes"
 		},
 		"claims":{
-			"type":"string",
+			"$ref":"org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest",
 			"description":"Specific claims in addition to the requested scope, in the form of a JSON document, as per https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter"
 		},
 		"responseType":{

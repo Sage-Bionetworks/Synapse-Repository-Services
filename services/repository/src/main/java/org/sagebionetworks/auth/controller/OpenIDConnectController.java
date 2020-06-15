@@ -11,10 +11,14 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.model.oauth.OAuthConsentGrantedResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
+import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
+import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
+import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
@@ -283,7 +287,9 @@ public class OpenIDConnectController {
 	 * <br/>
 	 *  Request must include client ID and Secret in Basic Authentication header, i.e. the 'client_secret_basic' authentication method, as per the 
 	 *  <a href="https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication">Open ID Connect specification for client authentication</a>.
-	 *  
+	 *
+	 *  Note
+	 *
 	 * @param grant_type  authorization_code or refresh_token
 	 * @param code required if grant_type is authorization_code
 	 * @param redirectUri required if grant_type is authorization_code
@@ -354,6 +360,137 @@ public class OpenIDConnectController {
 			)  throws NotFoundException, OAuthClientNotVerifiedException {
 		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken, getEndpoint(uriComponentsBuilder));
+	}
+
+	/**
+	 * Get a paginated list of the OAuth 2 clients that have been granted long-lived access to the user's
+	 * Synapse identity and/or resources.
+	 *
+	 * @throws NotFoundException
+	 * @throws OAuthClientNotVerifiedException if the client is not verified
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_AUDIT_CLIENTS, method = RequestMethod.GET)
+	public @ResponseBody
+	OAuthClientAuthorizationHistoryList getGrantedClientsForUser(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM, required=false) String nextPageToken
+	) throws NotFoundException {
+		return serviceProvider.getOpenIDConnectService().getClientAuthorizationHistory(userId, nextPageToken);
+	}
+
+	/**
+	 * Get a paginated list of metadata about long-lived tokens granted to a particular OAuth 2 clients on
+	 * behalf of the user
+	 *
+	 * @throws NotFoundException
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_AUDIT_CLIENT_TOKENS, method = RequestMethod.GET)
+	public @ResponseBody
+	OAuthRefreshTokenInformationList getGrantedTokenMetadataForUserClientPair(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String clientId,
+			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM, required=false) String nextPageToken
+	) throws NotFoundException {
+		return serviceProvider.getOpenIDConnectService().getTokenMetadataForGrantedClient(userId, clientId, nextPageToken);
+	}
+
+
+	/**
+	 * Get the metadata for a refresh token as a user.
+	 *
+	 * Client should use GET /oauth2/token/{tokenId}/metadata
+	 *
+	 * @throws NotFoundException
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_AUDIT_TOKENS_ID_METADATA, method = RequestMethod.GET)
+	public @ResponseBody
+	OAuthRefreshTokenInformation getRefreshTokenMetadataAsUser(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String tokenId) throws NotFoundException {
+		return serviceProvider.getOpenIDConnectService().getRefreshTokenMetadataAsUser(userId, tokenId);
+	}
+
+	/**
+	 * Get the metadata for a refresh token as a user.
+	 *
+	 * Client should use GET /oauth2/token/{tokenId}/metadata
+	 *
+	 * @throws NotFoundException
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_TOKEN_ID_METADATA, method = RequestMethod.GET)
+	public @ResponseBody
+	OAuthRefreshTokenInformation getRefreshTokenMetadataAsClient(
+			@RequestHeader(value = AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER) String verifiedClientId,
+			@PathVariable String tokenId) throws NotFoundException {
+		return serviceProvider.getOpenIDConnectService().getRefreshTokenMetadataAsClient(verifiedClientId, tokenId);
+	}
+
+	/**
+	 * Update the metadata for a refresh token.
+	 *
+	 * @throws NotFoundException
+	 */
+	@RequiredScope({view, modify})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_AUDIT_TOKENS_ID_METADATA, method = RequestMethod.PUT)
+	public @ResponseBody
+	OAuthRefreshTokenInformation updateRefreshTokenMetadata(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String tokenId,
+			@RequestBody OAuthRefreshTokenInformation metadata) throws NotFoundException {
+		return serviceProvider.getOpenIDConnectService().updateRefreshTokenMetadata(userId, tokenId, metadata);
+	}
+
+	/**
+	 * Revoke all long-lived refresh tokens between a user and a client.
+	 *
+	 * @throws NotFoundException
+	 */
+	@RequiredScope({view, modify, authorize})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_AUDIT_CLIENT_REVOKE, method = RequestMethod.POST)
+	public void revokeRefreshTokensForUserClientPair(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String clientId) throws NotFoundException {
+		serviceProvider.getOpenIDConnectService().revokeTokensForUserClientPair(userId, clientId);
+	}
+
+	/**
+	 * As a user, revoke a particular refresh token.
+	 * Clients should use POST /oauth2/revoke //TODO link
+	 *
+	 * @throws NotFoundException
+	 */
+	@RequiredScope({view, modify, authorize})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_AUDIT_TOKENS_ID_REVOKE, method = RequestMethod.POST)
+	public void revokeRefreshToken(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String tokenId) throws NotFoundException {
+		serviceProvider.getOpenIDConnectService().revokeRefreshTokenAsUser(userId, tokenId);
+	}
+
+	/**
+	 * As an OAuth client, revoke a particular refresh token.
+	 * Users should use POST /oauth2/grantedClients/{clientId}/tokens/{tokenId}/revoke //TODO link
+	 *
+	 * @throws NotFoundException
+	 */
+	@RequiredScope({})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_REVOKE, method = RequestMethod.POST)
+	public void revokeToken(
+			@RequestHeader(value = AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER, required=true) String verifiedClientId,
+			@RequestBody OAuthTokenRevocationRequest revokeRequest) throws NotFoundException {
+		serviceProvider.getOpenIDConnectService().revokeToken(revokeRequest);
 	}
 
 }

@@ -191,7 +191,7 @@ public class UrlHelpers {
 	public static final String ASYNCHRONOUS_JOB_CANCEL = ASYNCHRONOUS_JOB_ID + "/cancel";
 	public static final String ADMIN_ASYNCHRONOUS_JOB = ADMIN + ASYNCHRONOUS_JOB;
 	public static final String ADMIN_ASYNCHRONOUS_JOB_ID = ADMIN + ASYNCHRONOUS_JOB_ID;
-	
+
 	public static final String ADMIN_ID_GEN_EXPORT = ADMIN + "/id/generator/export";
 	public static final String ADMIN_OAUTH_CLIENT_VERIFICATION = ADMIN + "/oauth2/client/{clientId}/verified";
 	
@@ -1127,7 +1127,19 @@ public class UrlHelpers {
 	public static final String OAUTH_2_USER_INFO = AUTH_OAUTH_2+"/userinfo";
 	public static final String OAUTH_2_JWKS = AUTH_OAUTH_2+"/jwks";
 	public static final String OAUTH_2_AUTH_REQUEST_DESCRIPTION = AUTH_OAUTH_2+"/description";
-	
+	public static final String OAUTH_2_REVOKE = AUTH_OAUTH_2+"/revoke";
+	public static final String OAUTH_2_TOKEN_ID = OAUTH_2_TOKEN + "/{tokenId}";
+	public static final String OAUTH_2_TOKEN_ID_METADATA = OAUTH_2_TOKEN_ID + "/metadata";
+
+	// Endpoints for users to audit OAuth 2 tokens
+	public static final String OAUTH_2_AUDIT = AUTH_OAUTH_2 + "/audit";
+	public static final String OAUTH_2_AUDIT_TOKENS_ID = OAUTH_2_AUDIT+"/tokens/{tokenId}";
+	public static final String OAUTH_2_AUDIT_TOKENS_ID_METADATA = OAUTH_2_AUDIT_TOKENS_ID+"/metadata";
+	public static final String OAUTH_2_AUDIT_TOKENS_ID_REVOKE = OAUTH_2_AUDIT_TOKENS_ID+"/revoke";
+	public static final String OAUTH_2_AUDIT_CLIENTS = OAUTH_2_AUDIT + "/grantedClients";
+	public static final String OAUTH_2_AUDIT_CLIENT_TOKENS = OAUTH_2_AUDIT_CLIENTS + "/{clientId}/tokens";
+	public static final String OAUTH_2_AUDIT_CLIENT_REVOKE = OAUTH_2_AUDIT_CLIENTS + "/{clientId}/revoke";
+
 
 	public static final String AUTH_LOGIN = "/login";
 	

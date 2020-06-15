@@ -202,11 +202,15 @@ import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.model.oauth.OAuthConsentGrantedResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
+import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
+import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
+import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
@@ -516,7 +520,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String AUTH_OAUTH_2_CONSENT_CHECK = AUTH_OAUTH_2+"/consentcheck";
 	public static final String AUTH_OAUTH_2_TOKEN = AUTH_OAUTH_2+"/token";
 	public static final String AUTH_OAUTH_2_USER_INFO = AUTH_OAUTH_2+"/userinfo";
-	
+
+	public static final String AUTH_OAUTH_2_AUDIT = AUTH_OAUTH_2 + "/audit";
+	public static final String AUTH_OAUTH_2_AUDIT_TOKENS = AUTH_OAUTH_2_AUDIT + "/tokens";
+	public static final String AUTH_OAUTH_2_AUDIT_CLIENTS = AUTH_OAUTH_2_AUDIT + "/grantedClients";
+	public static final String METADATA = "/metadata";
+	public static final String REVOKE = "/revoke";
+	public static final String TOKENS = "/tokens";
+
 	public static final String AUTH_OAUTH_2_GRANT_TYPE_PARAM = "grant_type";
 	public static final String AUTH_OAUTH_2_CODE_PARAM = "code";
 	public static final String AUTH_OAUTH_2_REDIRECT_URI_PARAM = "redirect_uri";
@@ -4534,6 +4545,54 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public JSONObject getUserInfoAsJSON() throws SynapseException {
 		return getJson(getAuthEndpoint(), AUTH_OAUTH_2_USER_INFO);
+	}
+
+	@Override
+	public OAuthClientAuthorizationHistoryList getClientAuthorizationHistory(String nextPageToken) throws SynapseException {
+		return getJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_AUDIT_CLIENTS, OAuthClientAuthorizationHistoryList.class);
+	}
+
+	@Override
+	public OAuthRefreshTokenInformationList getTokenMetadataForAuthorizedClient(String clientId, String nextPageToken) throws SynapseException {
+		ValidateArgument.required(clientId, "clientId");
+		return getJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_AUDIT_CLIENTS + "/" + clientId + TOKENS, OAuthRefreshTokenInformationList.class);
+	}
+
+	@Override
+	public void revokeMyTokensFromClient(String clientId, String nextPageToken) throws SynapseException {
+		ValidateArgument.required(clientId, "clientId");
+		voidPost(getAuthEndpoint(), AUTH_OAUTH_2_AUDIT_CLIENTS + "/" + clientId + REVOKE, null,null);
+	}
+
+	@Override
+	public void revokeRefreshToken(String refreshTokenId) throws SynapseException {
+		ValidateArgument.required(refreshTokenId, "refreshTokenId");
+		voidPost(getAuthEndpoint(), AUTH_OAUTH_2_AUDIT_TOKENS + "/" + refreshTokenId + REVOKE, null,null);
+	}
+
+	@Override
+	public void revokeToken(OAuthTokenRevocationRequest revocationRequest) throws SynapseException {
+		ValidateArgument.required(revocationRequest, "revocationRequest");
+		voidPost(getAuthEndpoint(), AUTH_OAUTH_2 + REVOKE, revocationRequest, null);
+	}
+
+	@Override
+	public OAuthRefreshTokenInformation updateRefreshTokenMetadata(OAuthRefreshTokenInformation metadata) throws SynapseException {
+		ValidateArgument.required(metadata, "metadata");
+		ValidateArgument.required(metadata.getTokenId(), "tokenId");
+		return putJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_AUDIT_TOKENS + "/" + metadata.getTokenId() + METADATA, metadata, OAuthRefreshTokenInformation.class);
+	}
+
+	@Override
+	public OAuthRefreshTokenInformation getRefreshTokenMetadata(String tokenId) throws SynapseException {
+		ValidateArgument.required(tokenId, "tokenId");
+		return getJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_AUDIT_TOKENS + "/" + tokenId + METADATA, OAuthRefreshTokenInformation.class);
+	}
+
+	@Override
+	public OAuthRefreshTokenInformation getRefreshTokenMetadataAsOAuthClient(String tokenId) throws SynapseException {
+		ValidateArgument.required(tokenId, "tokenId");
+		return getJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_TOKEN + "/" + tokenId + METADATA, OAuthRefreshTokenInformation.class);
 	}
 
 	@Override

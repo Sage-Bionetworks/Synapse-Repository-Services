@@ -286,14 +286,14 @@ public class AuthenticationFilterTest {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BEARER_TOKEN_HEADER);
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
 		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.enumeration(Collections.singletonList(BEARER_TOKEN_HEADER)));
-		when(mockOidcManager.getUserId(anyString())).thenReturn(""+userId);
+		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(""+userId);
 
 		// by default the mocked oidcTokenHelper.validateJWT(bearerToken) won't throw any exception, so the token is deemed valid
 
 		// method under test
 		filter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
 		
-		verify(mockOidcManager).getUserId(BEARER_TOKEN);
+		verify(mockOidcManager).validateAccessToken(BEARER_TOKEN);
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
 		
 		assertEquals(""+userId, requestCaptor.getValue().getParameter(AuthorizationConstants.USER_ID_PARAM));
@@ -314,7 +314,7 @@ public class AuthenticationFilterTest {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BEARER_TOKEN_HEADER);
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
 		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.enumeration(Collections.singletonList(BEARER_TOKEN_HEADER)));
-		when(mockOidcManager.getUserId(anyString())).thenReturn(""+userId);
+		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(""+userId);
 
 		// method under test
 		filter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
@@ -337,12 +337,12 @@ public class AuthenticationFilterTest {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BEARER_TOKEN_HEADER);
 		when(mockHttpResponse.getWriter()).thenReturn(mockPrintWriter);
 
-		doThrow(new IllegalArgumentException()).when(mockOidcManager).getUserId(BEARER_TOKEN);
+		doThrow(new IllegalArgumentException()).when(mockOidcManager).validateAccessToken(BEARER_TOKEN);
 
 		// method under test
 		filter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
 		
-		verify(mockOidcManager).getUserId(BEARER_TOKEN);
+		verify(mockOidcManager).validateAccessToken(BEARER_TOKEN);
 		verify(mockFilterChain, never()).doFilter((ServletRequest)any(), (ServletResponse)any());
 		verify(mockHttpResponse).setStatus(401);
 		verify(mockHttpResponse).setContentType("application/json");
@@ -363,7 +363,7 @@ public class AuthenticationFilterTest {
 		filter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
 		
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
-		verify(mockOidcManager, never()).getUserId(BEARER_TOKEN);
+		verify(mockOidcManager, never()).validateAccessToken(BEARER_TOKEN);
 		
 		assertEquals("273950", requestCaptor.getValue().getParameter(AuthorizationConstants.USER_ID_PARAM));
 		assertNull(requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME));

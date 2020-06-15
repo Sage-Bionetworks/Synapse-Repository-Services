@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xmlns="http://java.sun.com/xml/ns/javaee" xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
-	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
-	version="2.5">
+		 xmlns="http://java.sun.com/xml/ns/javaee"
+		 xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+		 version="2.5">
 
 	<display-name>Synapse Web Services</display-name>
 
@@ -98,6 +98,7 @@
 		<url-pattern>/auth/v1/oauth2/consent</url-pattern>
 		<url-pattern>/auth/v1/oauth2/consentcheck</url-pattern>
 		<url-pattern>/auth/v1/oauth2/userinfo</url-pattern>
+		<url-pattern>/auth/v1/oauth2/audit/*</url-pattern>
 		<url-pattern>/repo/v1/*</url-pattern>
 		<url-pattern>/file/v1/*</url-pattern>
 	</filter-mapping>
@@ -153,6 +154,7 @@
 		<url-pattern>/auth/v1/oauth2/consent</url-pattern>
 		<url-pattern>/auth/v1/oauth2/consentcheck</url-pattern>
 		<url-pattern>/auth/v1/oauth2/userinfo</url-pattern>
+		<url-pattern>/auth/v1/oauth2/audit/*</url-pattern>
 		<url-pattern>/repo/v1/*</url-pattern>
 		<url-pattern>/file/v1/*</url-pattern>
 		<url-pattern>/docker/v1/*</url-pattern>
@@ -332,6 +334,7 @@
 	<filter-mapping>
 		<filter-name>oauthClientAuthFilter</filter-name>
 		<url-pattern>/auth/v1/oauth2/token</url-pattern>
+		<url-pattern>/auth/v1/oauth2/token/*</url-pattern>
 	</filter-mapping>
 	
 	<!-- appends a new sessionId cookie to the response if the user did not provide one in their request -->

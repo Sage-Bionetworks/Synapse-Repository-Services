@@ -47,7 +47,7 @@ public class OpenIDConnectServiceImplTest {
 		assertEquals("http://localhost:8080/authorize", config.getAuthorization_endpoint());
 		assertTrue(config.getClaims_parameter_supported());
 		assertFalse(config.getClaims_supported().isEmpty());
-		assertEquals(Collections.singletonList(OAuthGrantType.authorization_code), config.getGrant_types_supported());
+		assertEquals(Arrays.asList(OAuthGrantType.authorization_code, OAuthGrantType.refresh_token), config.getGrant_types_supported());
 		assertEquals(Collections.singletonList(OIDCSigningAlgorithm.RS256), config.getId_token_signing_alg_values_supported());
 		assertEquals(OAUTH_ENDPOINT, config.getIssuer());
 		assertEquals(OAUTH_ENDPOINT+"/oauth2/jwks", config.getJwks_uri());
