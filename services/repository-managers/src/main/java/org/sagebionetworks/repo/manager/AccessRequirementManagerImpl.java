@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -156,52 +155,6 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		return accessRequirementDAO.get(requirementId);
 	}
 
-	@Deprecated
-	@Override
-	public List<AccessRequirement> getAllUnmetAccessRequirements(UserInfo userInfo,
-			RestrictableObjectDescriptor rod, ACCESS_TYPE accessType)
-					throws DatastoreException, NotFoundException {
-		// first check if there *are* any unmet requirements.  (If not, no further queries will be executed.)
-		List<Long> subjectIds = new ArrayList<Long>();
-		subjectIds.add(KeyFactory.stringToKey(rod.getId()));
-		List<Long> unmetARIds = null;
-		if (RestrictableObjectType.ENTITY==rod.getType()) {
-			unmetARIds = new ArrayList<Long>();
-			List<Long> nodeAncestorIds = nodeDao.getEntityPathIds(rod.getId(), false);
-			if (accessType==null || accessType==ACCESS_TYPE.DOWNLOAD) {
-				subjectIds.addAll(nodeAncestorIds);
-				unmetARIds.addAll(AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(
-						userInfo, rod.getId(), nodeAncestorIds, nodeDao, accessRequirementDAO));
-			} else {
-				throw new IllegalArgumentException("Unexpected access type "+accessType);
-			}
-		} else {
-			if (accessType==null) {
-				if (rod.getType()==RestrictableObjectType.EVALUATION) {
-					accessType = ACCESS_TYPE.SUBMIT;
-				} else {
-					throw new IllegalArgumentException("accessType is required.");
-				}
-			}
-			unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(
-					Collections.singletonList(KeyFactory.stringToKey(rod.getId())), rod.getType(), userInfo.getGroups(), 
-					Collections.singletonList(accessType));
-		}
-		
-		List<AccessRequirement> unmetRequirements = new ArrayList<AccessRequirement>();
-		// if there are any unmet requirements, retrieve the object(s)
-		if (!unmetARIds.isEmpty()) {
-			List<AccessRequirement> allRequirementsForSubject = accessRequirementDAO.getAllAccessRequirementsForSubject(subjectIds, rod.getType());
-			for (Long unmetId : unmetARIds) { // typically there will be just one id here
-				for (AccessRequirement ar : allRequirementsForSubject) { // typically there will be just one id here
-					if (ar.getId().equals(unmetId)) unmetRequirements.add(ar);
-				}
-			}
-		}
-		return unmetRequirements;
-	}
-
-	@Deprecated
 	@Override
 	public List<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo,
 			RestrictableObjectDescriptor rod, Long limit, Long offset)
@@ -223,7 +176,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		}
 		return accessRequirementDAO.getAccessRequirementsForSubject(subjectIds, rod.getType(), limit, offset);
 	}
-	
+
 	@WriteTransaction
 	@Override
 	public <T extends AccessRequirement> T updateAccessRequirement(UserInfo userInfo, String accessRequirementId, T toUpdate) throws NotFoundException, UnauthorizedException, ConflictingUpdateException, InvalidModelException, DatastoreException {
@@ -249,7 +202,6 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		populateModifiedFields(userInfo, toUpdate);
 		return (T) accessRequirementDAO.update(setDefaultValues(toUpdate));
 	}
-
 
 	@WriteTransaction
 	@Override

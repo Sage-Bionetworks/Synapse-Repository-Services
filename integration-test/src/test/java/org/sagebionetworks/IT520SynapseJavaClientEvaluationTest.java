@@ -785,7 +785,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		bundleV2Request.setIncludeAnnotations(true);
 		bundleV2Request.setIncludeFileHandles(true);
 		EntityBundle bundle = synapseOne.getEntityBundleV2(entityId, bundleV2Request);
-		org.sagebionetworks.repo.model.EntityBundle sumbissionJSONStringBundle = new org.sagebionetworks.repo.model.EntityBundle();
+		EntityBundle sumbissionJSONStringBundle = new EntityBundle();
 		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
 		sumbissionJSONStringBundle.initializeFromJSONObject(joa.createNew(sub1.getEntityBundleJSON()));
 		// we don't care if etags have changed
@@ -794,7 +794,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		bundle.getEntity().setEtag(null);
 		bundle.getAnnotations().setEtag(null);
 		assertEquals(bundle.getEntity(), sumbissionJSONStringBundle.getEntity());
-		assertEquals(AnnotationsV2Translator.toAnnotationsV1(bundle.getAnnotations()), sumbissionJSONStringBundle.getAnnotations());
+		assertEquals(bundle.getAnnotations(), sumbissionJSONStringBundle.getAnnotations());
 		assertEquals(bundle.getFileHandles(), sumbissionJSONStringBundle.getFileHandles());
 		
 		// delete

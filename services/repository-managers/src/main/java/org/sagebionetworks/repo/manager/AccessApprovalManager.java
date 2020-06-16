@@ -33,16 +33,6 @@ public interface AccessApprovalManager {
 	public AccessApproval getAccessApproval(UserInfo userInfo, String approvalId) throws DatastoreException, NotFoundException;
 
 	/**
-	 *  get all the access approvals for an entity
-	 */
-	public List<AccessApproval> getAccessApprovalsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId, Long limit, Long offset) throws DatastoreException, NotFoundException, UnauthorizedException;
-	
-	/*
-	 *  delete an access approval
-	 */
-	public void deleteAccessApproval(UserInfo userInfo, String AccessApprovalId) throws NotFoundException, DatastoreException, UnauthorizedException;
-
-	/**
 	 * Delete all access approvals that gives accessorId access to subject(s) that requires access requirement accessRequirementId
 	 * 
 	 * @param userInfo - the user who making the request

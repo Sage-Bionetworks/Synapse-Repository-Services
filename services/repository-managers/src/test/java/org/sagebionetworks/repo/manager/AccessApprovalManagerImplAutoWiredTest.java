@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.manager.dataaccess.SubmissionManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
@@ -69,6 +70,9 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	
 	@Autowired
 	private SubmissionDAO submissionDao;
+	
+	@Autowired
+	private AccessApprovalDAO accessApprovalDao;
 
 	@Autowired
 	private UserManager userManager;
@@ -172,7 +176,8 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	@AfterEach
 	public void after() throws Exception {
 		for (String id: approvalsToDelete) {
-			accessApprovalManager.deleteAccessApproval(adminUserInfo, id);
+
+			accessApprovalDao.delete(id);
 		}
 		for (String id: submissionIdsToDelete) { // submissions must be deleted before requests
 			submissionDao.delete(id);
@@ -239,46 +244,6 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		aa = accessApprovalManager.createAccessApproval(user, aa);
 		this.approvalsToDelete.add(""+aa.getId());
 		return aa;
-	}
-
-	@Test
-	public void testApprovalRetrieval() throws Exception {
-		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId(nodeAId);
-		rod.setType(RestrictableObjectType.ENTITY);
-
-		List<AccessApproval> aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod, 10L, 0L);
-		assertEquals(0, aas.size());
-		AccessApproval aa = newAccessApproval(ar.getId(),ar.getVersionNumber(),  adminUserInfo.getId().toString());
-		aa = createAccessApproval(adminUserInfo, aa);
-		aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod, 10L, 0L);
-		assertEquals(1, aas.size());
-		
-		AccessApproval retrieved = accessApprovalManager.getAccessApproval(adminUserInfo, aa.getId().toString());
-		assertEquals(aa, retrieved);
-		
-		// node B inherits the ARs and AAs from Node A
-		rod.setId(nodeBId);
-		aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod, 10L, 0L);
-		assertEquals(1, aas.size());
-		
-		AccessApproval aaB = newAccessApproval(arB.getId(), arB.getVersionNumber(), adminUserInfo.getId().toString());
-		aaB = createAccessApproval(adminUserInfo, aaB);
-		
-		aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod, 10L, 0L);
-		assertEquals(2, aas.size());
-	}
-
-	@Test
-	public void testDeleteAccessApproval() throws Exception {
-		AccessApproval aa = newAccessApproval(ar.getId(), ar.getVersionNumber(), adminUserInfo.getId().toString());
-		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
-		accessApprovalManager.deleteAccessApproval(adminUserInfo, aa.getId().toString());
-		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId(nodeAId);
-		rod.setType(RestrictableObjectType.ENTITY);
-		List<AccessApproval> aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod, 10L, 0L);
-		assertEquals(0, aas.size());
 	}
 
 	@Test

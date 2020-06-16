@@ -355,7 +355,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	private static final String ENTITY_URI_PATH = "/entity";
 	private static final String ENTITY_ACL_PATH_SUFFIX = "/acl";
-	private static final String ENTITY_ACL_RECURSIVE_SUFFIX = "?recursive=true";
 	private static final String BUNDLE = "/bundle";
 	private static final String BUNDLE_V2 = "/bundle2";
 	private static final String BENEFACTOR = "/benefactor"; // from
@@ -393,7 +392,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			+ REDIRECT_PARAMETER;
 	private static final String QUERY_REDIRECT_PARAMETER = "?"
 			+ REDIRECT_PARAMETER;
-	private static final String ACCESS_TYPE_PARAMETER = "accessType";
 
 	private static final String EVALUATION_URI_PATH = "/evaluation";
 	private static final String AVAILABLE_EVALUATION_URI_PATH = "/evaluation/available";
@@ -1335,11 +1333,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throws SynapseException {
 		String uri = ACCESS_APPROVAL + "/" + approvalId;
 		return getJSONEntity(getRepoEndpoint(), uri, AccessApproval.class);
-	}
-
-	@Override
-	public void deleteAccessApproval(Long approvalId) throws SynapseException {
-		deleteUri(getRepoEndpoint(), ACCESS_APPROVAL + "/" + approvalId);
 	}
 
 	@Override

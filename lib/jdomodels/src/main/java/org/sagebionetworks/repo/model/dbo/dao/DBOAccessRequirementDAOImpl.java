@@ -1,9 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ACCESSOR_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_STATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ACCESS_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CONCRETE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER;
@@ -14,7 +10,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_R
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_APPROVAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT_REVISION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SUBJECT_ACCESS_REQUIREMENT;
@@ -22,7 +17,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SUBJEC
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -37,7 +31,6 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementInfoForUpdate;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
-import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
@@ -178,81 +171,6 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			return AccessRequirementUtils.copyDboToDto(dboRequirement, dboRevision);
 		}
 	};
-
-	// DEPRECATED SQL
-	private static final String UNMET_REQUIREMENTS_AR_COL_ID = "ar_id";
-	private static final String UNMET_REQUIREMENTS_AA_COL_ID = "aa_id";
-	private static final String UNMET_REQUIREMENTS_AA_STATE = "aa_state";
-
-	private static final String UNMET_REQUIREMENTS_SQL_PREFIX = "select"
-			+ " ar."+COL_ACCESS_REQUIREMENT_ID+" as "+UNMET_REQUIREMENTS_AR_COL_ID+","
-			+ " aa."+COL_ACCESS_APPROVAL_ID+" as "+UNMET_REQUIREMENTS_AA_COL_ID+","
-			+ " aa."+COL_ACCESS_APPROVAL_STATE+" as "+UNMET_REQUIREMENTS_AA_STATE
-			+ " FROM "+TABLE_ACCESS_REQUIREMENT+" ar ";
-	
-	private static final String UNMET_REQUIREMENTS_SQL_SUFFIX = 
-			" left join "+TABLE_ACCESS_APPROVAL+" aa"
-			+ " on ar."+COL_ACCESS_REQUIREMENT_ID+"=aa."+COL_ACCESS_APPROVAL_REQUIREMENT_ID
-			+ " and aa."+COL_ACCESS_APPROVAL_ACCESSOR_ID+" in (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+")"
-			+ " where ar."+COL_ACCESS_REQUIREMENT_ACCESS_TYPE+" in (:"+COL_ACCESS_REQUIREMENT_ACCESS_TYPE+")"
-			+ " order by "+UNMET_REQUIREMENTS_AR_COL_ID;
-
-	// select ar.id as ar_id, aa.id as aa_id
-	// from ACCESS_REQUIREMENT ar 
-	// join NODE_ACCESS_REQUIREMENT nar on nar.requirement_id=ar.id and 
-	// nar.subject_type=:subject_type and nar.subject_id in (:subject_id)
-	// left join ACCESS_APPROVAL aa on ar.id=aa.requirement_id and aa.accessor_id in (:accessor_id)
-	// where ar.access_type=:access_type
-	private static final String SELECT_UNMET_REQUIREMENTS_SQL = 
-			UNMET_REQUIREMENTS_SQL_PREFIX
-			+" join "+TABLE_SUBJECT_ACCESS_REQUIREMENT+" nar"
-			+ " on nar."+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=ar."+COL_ACCESS_REQUIREMENT_ID+" "
-			+"and nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+" "
-			+"and nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" in (:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+") "
-			+UNMET_REQUIREMENTS_SQL_SUFFIX;
-
-	@Deprecated
-	@Override
-	public List<AccessRequirement> getAllAccessRequirementsForSubject(List<Long> subjectIds, RestrictableObjectType type)  throws DatastoreException {
-		if (subjectIds.isEmpty()){
-			return new ArrayList<AccessRequirement>();
-		}
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, subjectIds);
-		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, type.name());
-		List<Long> ids = namedJdbcTemplate.queryForList(GET_ACCESS_REQUIREMENTS_IDS_FOR_SUBJECTS_SQL, param, Long.class);
-		return getAccessRequirements(ids);
-	}
-	
-	@Deprecated
-	@Override
-	public List<Long> getAllUnmetAccessRequirements(List<Long> subjectIds, RestrictableObjectType subjectType, Collection<Long> principalIds, Collection<ACCESS_TYPE> accessTypes) throws DatastoreException {
-		if (subjectIds.isEmpty()) return new ArrayList<Long>();
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, principalIds);
-		List<String> accessTypeStrings = new ArrayList<String>();
-		for (ACCESS_TYPE type : accessTypes) {
-			accessTypeStrings.add(type.toString());
-		}
-		param.addValue(COL_ACCESS_REQUIREMENT_ACCESS_TYPE, accessTypeStrings);
-		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, subjectIds);
-		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, subjectType.name());
-		List<Long> arIds = namedJdbcTemplate.query(SELECT_UNMET_REQUIREMENTS_SQL, param, new RowMapper<Long>(){
-			@Override
-			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
-				rs.getLong(UNMET_REQUIREMENTS_AA_COL_ID);
-				if (rs.wasNull()) { // no access approval, so this is one of the requirements we've been looking for				{ 
-					return rs.getLong(UNMET_REQUIREMENTS_AR_COL_ID);
-				} else {
-					return null; 
-				}
-			}
-		});
-		// now jus strip out the nulls and return the list
-		List<Long> result = new ArrayList<Long>();
-		for (Long arId : arIds) if (arId!=null) result.add(arId);
-		return result;
-	}
 
 	@WriteTransaction
 	@Override

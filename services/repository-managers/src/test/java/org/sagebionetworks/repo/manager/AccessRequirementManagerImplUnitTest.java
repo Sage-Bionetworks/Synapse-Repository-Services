@@ -13,11 +13,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.AccessRequirementManagerImpl.DEFAULT_LIMIT;
 import static org.sagebionetworks.repo.manager.AccessRequirementManagerImpl.DEFAULT_OFFSET;
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.DOWNLOAD;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,11 +39,9 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementInfoForUpdate;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
-import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
@@ -60,7 +55,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.util.jrjc.CreatedIssue;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
 import org.sagebionetworks.repo.util.jrjc.ProjectInfo;
@@ -241,37 +235,6 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			arm.createAccessRequirement(userInfo, ar);
 		});
-	}
-
-	@Test
-	public void testUnmetForEntity() throws Exception {
-		Long mockDownloadARId = 1L;
-		Long mockUploadARId = 2L;
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setId(TEST_ENTITY_ID);
-		subjectId.setType(RestrictableObjectType.ENTITY);
-		when(nodeDao.getEntityPathIds(TEST_ENTITY_ID, false)).thenReturn(new ArrayList<Long>()); // an empty list, i.e. this is a top-level object
-		Node mockNode = new Node();
-		mockNode.setId(KeyFactory.stringToKey(TEST_ENTITY_ID).toString());
-		mockNode.setCreatedByPrincipalId(999L); // someone other than TEST_PRINCIPAL_ID
-		mockNode.setNodeType(EntityType.file);
-		when(nodeDao.getNode(TEST_ENTITY_ID)).thenReturn(mockNode);
-		when(accessRequirementDAO.getAllUnmetAccessRequirements(
-				Collections.singletonList(KeyFactory.stringToKey(TEST_ENTITY_ID)),
-				RestrictableObjectType.ENTITY,
-				Collections.singleton(userInfo.getId()),
-				Collections.singletonList(DOWNLOAD))).
-				thenReturn(Collections.singletonList(mockDownloadARId));
-		AccessRequirement downloadAR = new TermsOfUseAccessRequirement();
-		downloadAR.setId(mockDownloadARId);
-		AccessRequirement uploadAR = new TermsOfUseAccessRequirement();
-		uploadAR.setId(mockUploadARId);
-		List<AccessRequirement> arList = Arrays.asList(new AccessRequirement[]{downloadAR, uploadAR});
-		when(accessRequirementDAO.getAllAccessRequirementsForSubject(Collections.singletonList(KeyFactory.stringToKey(TEST_ENTITY_ID)), RestrictableObjectType.ENTITY)).
-			thenReturn(arList);
-		// call under test
-		List<AccessRequirement> result = arm.getAllUnmetAccessRequirements(userInfo, subjectId, DOWNLOAD);
-		assertEquals(Collections.singletonList(downloadAR), result);
 	}
 
 	@Test
