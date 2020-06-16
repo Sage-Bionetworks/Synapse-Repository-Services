@@ -17,7 +17,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -25,7 +24,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import javax.servlet.ServletException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,24 +33,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
-import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
-import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
@@ -62,17 +52,18 @@ import org.sagebionetworks.repo.model.discussion.EntityThreadCount;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableBundle;
-import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.dataaccess.DataAccessService;
 import org.sagebionetworks.repo.web.service.discussion.DiscussionService;
 import org.sagebionetworks.repo.web.service.table.TableServices;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 @ExtendWith(MockitoExtension.class)
 public class EntityBundleServiceImplTest {
@@ -169,86 +160,6 @@ public class EntityBundleServiceImplTest {
 		responseBundle.setEntity(study);
 		responseBundle.setAnnotations(annos);
 		responseBundle.setAccessControlList(acl);
-	}
-
-	@Test
-	public void testCreateEntityBundle() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException, ConflictingUpdateException, InvalidModelException, UnauthorizedException, ACLInheritanceException, ParseException {
-		String activityId = "123";
-		when(mockEntityService.getEntity(eq(TEST_USER1), eq(STUDY_ID))).thenReturn(studyWithId);
-		when(mockEntityService.createEntity(eq(TEST_USER1), eq(study), eq(activityId))).thenReturn(studyWithId);
-		when(mockEntityService.getEntityACL(eq(STUDY_ID), eq(TEST_USER1))).thenReturn(acl);
-		when(mockEntityService.createOrUpdateEntityACL(eq(TEST_USER1), eq(acl))).thenReturn(acl);
-		when(mockEntityService.getEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID))).thenReturn(AnnotationsV2TestUtils.newEmptyAnnotationsV2(STUDY_ID));
-		when(mockEntityService.updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annotationsV2))).thenReturn(annotationsV2);
-		when(mockServiceProvider.getEntityService()).thenReturn(mockEntityService);
-
-		// Create the bundle, verify contents
-		org.sagebionetworks.repo.model.EntityBundleCreate ebc = new org.sagebionetworks.repo.model.EntityBundleCreate();
-		
-		ebc.setEntity(study);
-		ebc.setAnnotations(annos);
-		ebc.setAccessControlList(acl);
-		
-		org.sagebionetworks.repo.model.EntityBundle eb = entityBundleService.createEntityBundle(TEST_USER1, ebc, activityId);
-		Folder s2 = (Folder) eb.getEntity();
-		assertNotNull(s2);
-		assertEquals(study.getName(), s2.getName());
-		
-		org.sagebionetworks.repo.model.Annotations a2 = eb.getAnnotations();
-		assertNotNull(a2);
-		assertEquals(annos.getStringAnnotations(), a2.getStringAnnotations(), "Retrieved Annotations in bundle do not match original ones");
-		assertEquals(annos.getDoubleAnnotations(), a2.getDoubleAnnotations(), "Retrieved Annotations in bundle do not match original ones");
-		
-		AccessControlList acl2 = eb.getAccessControlList();
-		assertNotNull(acl2);
-		assertEquals(acl.getResourceAccess(), acl2.getResourceAccess(), "Retrieved ACL in bundle does not match original one");
-	
-		verify(mockEntityService).createEntity(eq(TEST_USER1), eq(study), eq(activityId));
-		verify(mockEntityService).updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annotationsV2));
-		verify(mockEntityService).createOrUpdateEntityACL(eq(TEST_USER1), eq(acl));
-	}
-	
-	@Test
-	public void testUpdateEntityBundle() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException, ConflictingUpdateException, InvalidModelException, UnauthorizedException, ACLInheritanceException, ParseException {
-		Annotations annosWithId = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
-		annosWithId.setId(STUDY_ID);
-		String activityId = "1";
-			
-		when(mockEntityService.getEntity(eq(TEST_USER1), eq(STUDY_ID))).thenReturn(studyWithId);
-		when(mockEntityService.updateEntity(eq(TEST_USER1), eq(study), eq(false), eq(activityId))).thenReturn(studyWithId);
-		when(mockEntityService.getEntityACL(eq(STUDY_ID), eq(TEST_USER1))).thenReturn(acl);
-		when(mockEntityService.createOrUpdateEntityACL(eq(TEST_USER1), eq(acl))).thenReturn(acl);
-		when(mockEntityService.getEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID))).thenReturn(annosWithId);
-		when(mockEntityService.updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annotationsV2))).thenReturn(annotationsV2);
-		when(mockServiceProvider.getEntityService()).thenReturn(mockEntityService);
-		
-		// Create the bundle, verify contents
-		org.sagebionetworks.repo.model.EntityBundleCreate ebc = new org.sagebionetworks.repo.model.EntityBundleCreate();
-		study.setId(STUDY_ID);
-		annos.setId(STUDY_ID);
-		acl.setId(STUDY_ID);
-		ebc.setEntity(study);
-		ebc.setAnnotations(annos);
-		ebc.setAccessControlList(acl);
-
-		org.sagebionetworks.repo.model.EntityBundle eb = entityBundleService.updateEntityBundle(TEST_USER1, STUDY_ID, ebc, activityId);
-
-		Folder s2 = (Folder) eb.getEntity();
-		assertNotNull(s2);
-		assertEquals(study.getName(), s2.getName());
-		
-		org.sagebionetworks.repo.model.Annotations a2 = eb.getAnnotations();
-		assertNotNull(a2);
-		assertEquals(annos.getStringAnnotations(), a2.getStringAnnotations(), "Retrieved Annotations in bundle do not match original ones");
-		assertEquals(annos.getDoubleAnnotations(), a2.getDoubleAnnotations(), "Retrieved Annotations in bundle do not match original ones");
-		
-		AccessControlList acl2 = eb.getAccessControlList();
-		assertNotNull(acl2);
-		assertEquals(acl.getResourceAccess(), acl2.getResourceAccess(), "Retrieved ACL in bundle does not match original one");
-	
-		verify(mockEntityService).updateEntity(eq(TEST_USER1), eq(study), eq(false), eq(activityId));
-		verify(mockEntityService).updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annotationsV2));
-		verify(mockEntityService).createOrUpdateEntityACL(eq(TEST_USER1), eq(acl));
 	}
 	
 	@Test
@@ -524,7 +435,6 @@ public class EntityBundleServiceImplTest {
 		assertEquals(response, bundle.getRestrictionInformation());
 		verify(mockDataAccessService).getRestrictionInformation(TEST_USER1, request);
 	}
-
 	@Test
 	public void testRequestFromMask_individualMasks() {
 		//assert individual requests

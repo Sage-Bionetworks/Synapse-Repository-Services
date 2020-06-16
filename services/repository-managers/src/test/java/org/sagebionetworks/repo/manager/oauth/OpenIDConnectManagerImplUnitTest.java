@@ -12,12 +12,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager.getScopeHash;
-
+import static org.mockito.ArgumentMatchers.isNull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -694,6 +693,8 @@ public class OpenIDConnectManagerImplUnitTest {
 			assertTrue(claimsCaptor.getValue().containsKey(claimName));
 			assertNull(claimsCaptor.getValue().get(claimName));
 		}
+		
+		assertEquals("Bearer", tokenResponse.getToken_type());
 	
 		assertNull(tokenResponse.getRefresh_token());  // in the future we will provide a refresh token
 	}

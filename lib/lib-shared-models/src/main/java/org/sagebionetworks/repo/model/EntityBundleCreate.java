@@ -15,15 +15,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  *
  */
 public class EntityBundleCreate implements JSONEntity {
-	
-	/**
-	 * Masks for requesting what should be included in the bundle.
-	 */
-	public static int ENTITY 		      	= EntityBundle.ENTITY;
-	public static int ANNOTATIONS	      	= EntityBundle.ANNOTATIONS;
-	public static int ACL					= EntityBundle.ACL;
-	public static int ACCESS_REQUIREMENT	= EntityBundle.ACCESS_REQUIREMENTS;
-	
 	private static final String JSON_ENTITY = EntityBundle.JSON_ENTITY;
 	private static final String JSON_ENTITY_TYPE = EntityBundle.JSON_ENTITY_TYPE;
 	private static final String JSON_ANNOTATIONS = EntityBundle.JSON_ANNOTATIONS;

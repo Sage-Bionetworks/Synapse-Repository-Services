@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.Collection;
 import java.util.List;
 
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -28,14 +27,6 @@ public interface AccessRequirementDAO {
 	public AccessRequirement get(String id) throws DatastoreException, NotFoundException;
 	
 	/**
-	 * 
-	 * @param subject the subject of the access restriction
-	 * @return the AccessRequirement objects related to this node
-	 * @throws DatastoreException 
-	 */
-	public List<AccessRequirement> getAllAccessRequirementsForSubject(List<Long> subjectIds, RestrictableObjectType type) throws DatastoreException;
-	
-	/**
 	 * Updates the 'shallow' properties of an object.
 	 *
 	 * @param dto
@@ -53,17 +44,6 @@ public interface AccessRequirementDAO {
 	 * @throws NotFoundException
 	 */
 	public void delete(String id) throws DatastoreException, NotFoundException;
-
-	/**
-	 * 
-	 * @param subject the subject of the access restriction
-	 * @param principalIds the principalIds (user and groups) to which a user belongs
-	 * @param accessType
-	 * @return the AccessRequirement IDs for the given node and given access type which are unmet for ANY of the given principals
-	 * @throws DatastoreException
-	 */
-	List<Long> getAllUnmetAccessRequirements(List<Long> subjectIds, RestrictableObjectType type, Collection<Long> principalIds,
-			Collection<ACCESS_TYPE> accessTypes) throws DatastoreException;
 
 	/**
 	 * Retrieve a page of AccessRequirements.

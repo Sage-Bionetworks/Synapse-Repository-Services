@@ -580,8 +580,6 @@ public interface SynapseClient extends BaseClient {
 	
 	public AccessApproval getAccessApproval(Long approvalId) throws SynapseException;
 
-	public void deleteAccessApproval(Long approvalId) throws SynapseException;
-
 	public void revokeAccessApprovals(String requirementId, String accessorId) throws SynapseException;
 
 	public JSONObject getEntity(String uri) throws SynapseException;

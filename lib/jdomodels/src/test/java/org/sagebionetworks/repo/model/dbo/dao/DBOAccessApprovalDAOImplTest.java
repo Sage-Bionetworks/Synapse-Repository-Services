@@ -159,39 +159,6 @@ public class DBOAccessApprovalDAOImplTest {
 	
 	@Test
 	public void testCRUD() throws Exception {
-		// first of all, we should see the unmet requirement
-		List<Long> unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY, 
-				Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), downloadAccessType);
-		assertEquals(1, unmetARIds.size());
-		assertEquals(accessRequirement.getId(), unmetARIds.iterator().next());
-		// while we're at it, check the edge cases:
-		// same result for ficticious principal ID
-		unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY, 
-				Arrays.asList(new Long[]{8888L}), downloadAccessType);
-		assertEquals(1, unmetARIds.size());
-		assertEquals(accessRequirement.getId(), unmetARIds.iterator().next());
-		Set<String> arSet = new HashSet<String>();
-		arSet.add(accessRequirement.getId().toString());
-		assertTrue(accessApprovalDAO.hasUnmetAccessRequirement(arSet, individualGroup.getId()));
-		// no unmet requirements for ficticious node ID
-		assertTrue(
-				accessRequirementDAO.getAllUnmetAccessRequirements(
-						Collections.singletonList(7890L), RestrictableObjectType.ENTITY, 
-						Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), 
-						downloadAccessType).isEmpty()
-				);
-		// no unmet requirement for other type of access
-		assertTrue(
-				accessRequirementDAO.getAllUnmetAccessRequirements(
-						Collections.singletonList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY,
-						Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), 
-						updateAccessType).isEmpty()
-				);
-
-		List<AccessApproval> approvals = accessApprovalDAO.getAccessApprovalsForSubjects(
-				Arrays.asList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY, 10L, 0L);
-		assertNotNull(approvals);
-		assertTrue(approvals.isEmpty());
 
 		// Create a new object
 		accessApproval = newAccessApproval(individualGroup, accessRequirement);
@@ -207,32 +174,6 @@ public class DBOAccessApprovalDAOImplTest {
 		accessApproval.setEtag(updated.getEtag());
 		assertEquals(accessApproval, updated);
 
-		approvals = accessApprovalDAO.getAccessApprovalsForSubjects(
-				Arrays.asList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY, 10L, 0L);
-		assertNotNull(approvals);
-		assertEquals(1, approvals.size());
-		assertEquals(accessApproval, approvals.get(0));
-
-		// no unmet requirement anymore ...
-		assertTrue(
-				accessRequirementDAO.getAllUnmetAccessRequirements(
-						Collections.singletonList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY, 
-						Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), 
-						downloadAccessType).isEmpty()
-				);
-		assertFalse(accessApprovalDAO.hasUnmetAccessRequirement(arSet, individualGroup.getId()));
-		
-		// ... but for a different (ficticious) user, the requirement isn't met...
-		unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY, 
-				Arrays.asList(new Long[]{8888L}), downloadAccessType);
-		assertEquals(1, unmetARIds.size());
-		assertEquals(accessRequirement.getId(), unmetARIds.iterator().next());
-		// ... and it's still unmet for the second node
-		unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(KeyFactory.stringToKey(node2.getId())), RestrictableObjectType.ENTITY,
-				Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), participateAndDownload);
-		assertEquals(1, unmetARIds.size());
-		assertEquals(accessRequirement2.getId(), unmetARIds.iterator().next());
-		
 		// Fetch it
 		AccessApproval clone = accessApprovalDAO.get(id);
 		assertNotNull(clone);
@@ -293,14 +234,6 @@ public class DBOAccessApprovalDAOImplTest {
 		accessApproval = newAccessApproval(individualGroup, accessRequirement);
 		accessApproval = accessApprovalDAO.create(accessApproval);
 
-		// check that there are no unmet access requirements
-		assertTrue(accessRequirementDAO.getAllUnmetAccessRequirements(
-			Collections.singletonList(KeyFactory.stringToKey(node.getId())), 
-			RestrictableObjectType.ENTITY, 
-			Collections.singletonList(Long.parseLong(individualGroup.getId())), 
-			downloadAccessType).isEmpty()
-		);
-
 		accessApprovalDAO.revokeAll(accessRequirement.getId().toString(), individualGroup.getId(), individualGroup2.getId());
 		AccessApproval approval = accessApprovalDAO.get(accessApproval.getId().toString());
 		assertNotNull(approval);
@@ -349,14 +282,6 @@ public class DBOAccessApprovalDAOImplTest {
 		accessApproval2.setEtag(updated2.getEtag());
 		assertEquals(accessApproval2, updated2);
 		
-		// check that there are no unmet access requirements
-		assertTrue(accessRequirementDAO.getAllUnmetAccessRequirements(
-			Collections.singletonList(KeyFactory.stringToKey(node.getId())), 
-			RestrictableObjectType.ENTITY, 
-			Collections.singletonList(Long.parseLong(individualGroup.getId())), 
-			downloadAccessType).isEmpty()
-		);
-
 		// revoke
 		accessApproval.setState(ApprovalState.REVOKED);
 		accessApprovalDAO.revokeBySubmitter(
@@ -414,14 +339,6 @@ public class DBOAccessApprovalDAOImplTest {
 		assertTrue(group.getAccessorIds().contains(individualGroup.getId()));
 		assertTrue(group.getAccessorIds().contains(individualGroup2.getId()));
 		assertEquals(new Date(DBOAccessApprovalDAOImpl.DEFAULT_NOT_EXPIRED), group.getExpiredOn());
-
-		// check that there are no unmet access requirements
-		assertTrue(accessRequirementDAO.getAllUnmetAccessRequirements(
-			Collections.singletonList(KeyFactory.stringToKey(node.getId())), 
-			RestrictableObjectType.ENTITY, 
-			Collections.singletonList(Long.parseLong(individualGroup.getId())), 
-			downloadAccessType).isEmpty()
-		);
 
 		// revoke the group
 		accessApprovalDAO.revokeGroup(accessRequirement.getId().toString(), individualGroup.getId(), individualGroup2.getId());
