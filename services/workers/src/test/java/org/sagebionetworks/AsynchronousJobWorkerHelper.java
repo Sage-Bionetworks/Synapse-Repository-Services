@@ -152,4 +152,6 @@ public interface AsynchronousJobWorkerHelper {
 	 */
 	String downloadFileHandleFromS3(String fileHandleId) throws IOException;
 
+	void emptyAllQueues();
+
 }
