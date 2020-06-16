@@ -1204,7 +1204,6 @@ public interface SynapseClient extends BaseClient {
 	 * </p>
 	 * 
 	 * @param sql
-	 * @param isConsistent
 	 * @param partMask
 	 * @param tableId the id of the TableEntity.
 	 * @return
@@ -1219,7 +1218,7 @@ public interface SynapseClient extends BaseClient {
 	public String queryTableEntityBundleAsyncStart(Query query, QueryOptions queryOptions, String tableId)
 			throws SynapseException;
 
-	public String queryTableEntityBundleAsyncStart(String sql, Long offset, Long limit, boolean isConsistent, int partMask, String tableId)
+	public String queryTableEntityBundleAsyncStart(String sql, Long offset, Long limit, int partMask, String tableId)
 			throws SynapseException;
 
 	/**

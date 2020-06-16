@@ -147,7 +147,6 @@ public class FacetModel {
 			QuerySpecification modifiedQuerySpecification = FacetUtils.appendFacetSearchConditionToQuerySpecification(sqlQuery.getModel(), validatedFacets);
 
 			return new SqlQueryBuilder(modifiedQuerySpecification, sqlQuery.getTableSchema(), sqlQuery.getOverrideOffset(), sqlQuery.getOverrideLimit(), sqlQuery.getMaxBytesPerPage())
-					.isConsistent(sqlQuery.isConsistent())
 					.includeEntityEtag(sqlQuery.includeEntityEtag())
 					.includeRowIdAndRowVersion(sqlQuery.includesRowIdAndVersion())
 					.tableType(sqlQuery.getTableType())

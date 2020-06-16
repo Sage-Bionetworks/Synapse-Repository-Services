@@ -3041,7 +3041,6 @@ public class TableWorkerIntegrationTest {
 	private QueryResultBundle waitForConsistentQueryBundle(UserInfo user, String sql, Long offset, Long limit, Consumer<QueryResultBundle> responseConsumer)
 			throws Exception {
 		Query query = new Query();
-		query.setIsConsistent(true);
 		query.setSql(sql);
 		query.setOffset(offset);
 		query.setLimit(limit);

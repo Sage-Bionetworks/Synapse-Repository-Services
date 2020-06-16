@@ -290,7 +290,7 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryAsStreamIsConsistentTrue() throws Exception{
+	public void testQueryAsStream() throws Exception{
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
@@ -298,7 +298,6 @@ public class TableQueryManagerImplTest {
 		
 		RowHandler rowHandler = new SinglePageRowHandler();
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
-		.isConsistent(true)
 		.build();
 		// call under test.
 		QueryResultBundle result = manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
@@ -313,14 +312,13 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryAsStreamIsConsistentTrueNotFoundException() throws Exception{
+	public void testQueryAsStreamNotFoundException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
 						any(ProgressCallback.class), any(IdAndVersion.class),
 						any(ProgressingCallable.class))).thenThrow(
 				new NotFoundException("not found"));
 		RowHandler rowHandler = new SinglePageRowHandler();
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
-		.isConsistent(true)
 		.build();
 		assertThrows(NotFoundException.class, ()->{
 			// call under test.
@@ -329,14 +327,13 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryAsStreamIsConsistentTrueTableUnavailableException() throws Exception{
+	public void testQueryAsStreamTableUnavailableException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
 						any(ProgressCallback.class), any(IdAndVersion.class),
 						any(ProgressingCallable.class))).thenThrow(
 				new TableUnavailableException(new TableStatus()));
 		RowHandler rowHandler = new SinglePageRowHandler();
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
-		.isConsistent(true)
 		.build();
 		assertThrows(TableUnavailableException.class, ()->{
 			// call under test.
@@ -345,14 +342,13 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryAsStreamIsConsistentTrueTableFailedException() throws Exception{
+	public void testQueryAsStreamTableFailedException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
 						any(ProgressCallback.class), any(IdAndVersion.class),
 						any(ProgressingCallable.class))).thenThrow(
 				new TableFailedException(new TableStatus()));
 		RowHandler rowHandler = new SinglePageRowHandler();
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
-		.isConsistent(true)
 		.build();
 		assertThrows(TableFailedException.class, ()->{
 			// call under test.
@@ -361,14 +357,13 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryAsStreamIsConsistentTrueLockUnavilableException() throws Exception{
+	public void testQueryAsStreamLockUnavilableException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
 						any(ProgressCallback.class),any(IdAndVersion.class),
 						any(ProgressingCallable.class))).thenThrow(
 				new LockUnavilableException());
 		RowHandler rowHandler = new SinglePageRowHandler();
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
-		.isConsistent(true)
 		.build();
 		assertThrows(LockUnavilableException.class, ()->{
 			// call under test.
@@ -385,33 +380,11 @@ public class TableQueryManagerImplTest {
 				new EmptyResultException());
 		RowHandler rowHandler = new SinglePageRowHandler();
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
-		.isConsistent(true)
 		.build();
 		assertThrows(EmptyResultException.class, ()->{
 			// call under test.
 			manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
 		});
-	}
-	
-	@Test
-	public void testQueryAsStreamIsConsistentFalse() throws Exception{
-		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
-		setupQueryCallback();
-		
-		RowHandler rowHandler = new SinglePageRowHandler();
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
-		.isConsistent(false)
-		.build();
-		// call under test.
-		QueryResultBundle result = manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
-		assertNotNull(result);
-		assertNotNull(result.getQueryResult());
-		assertNotNull(result.getQueryResult().getQueryResults());
-		assertNull(result.getQueryResult().getQueryResults().getEtag(), "Non-Consistent query result must not contain an etag.");
-		// an exclusive lock must not be held for a non-consistent query.
-		verify(mockTableManagerSupport, never()).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),any(IdAndVersion.class), any(ProgressingCallable.class));
-		// The table status should not be checked only for a non-consistent query.
-		verify(mockTableManagerSupport, never()).getTableStatusOrCreateIfNotExists(idAndVersion);
 	}
 	
 	@Test
@@ -759,7 +732,6 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(new LinkedList<ColumnModel>());
 		Query query = new Query();
 		query.setSql("select * from " + tableId + " limit 1");
-		query.setIsConsistent(true);
 		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(false).withReturnFacets(false);
 		QueryResultBundle results = manager.querySinglePage(mockProgressCallbackVoid, user, query, queryOptions);
 		assertNotNull(results);
@@ -772,7 +744,7 @@ public class TableQueryManagerImplTest {
 	 * @throws Exception
 	 */
 	@Test
-	public void testQueryIsConsistentTrueNotAvailable() throws Exception {
+	public void testQueryIndexNotAvailable() throws Exception {
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
@@ -781,7 +753,6 @@ public class TableQueryManagerImplTest {
 		status.setState(TableState.PROCESSING);
 		Query query = new Query();
 		query.setSql("select * from " + tableId + " limit 1");
-		query.setIsConsistent(true);
 		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(false).withReturnFacets(false);
 		TableUnavailableException result = assertThrows(TableUnavailableException.class, ()-> {
 			// call under test
@@ -814,7 +785,6 @@ public class TableQueryManagerImplTest {
 		
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
-		query.setIsConsistent(true);
 		query.setOffset(0L);
 		query.setLimit(Long.MAX_VALUE);
 		QueryBundleRequest queryBundle = new QueryBundleRequest();
@@ -882,7 +852,6 @@ public class TableQueryManagerImplTest {
 		
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
-		query.setIsConsistent(true);
 		query.setOffset(0L);
 		query.setLimit(Long.MAX_VALUE);
 		QueryBundleRequest queryBundle = new QueryBundleRequest();
@@ -905,7 +874,6 @@ public class TableQueryManagerImplTest {
 		QueryBundleRequest queryBundle = new QueryBundleRequest();
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
-		query.setIsConsistent(true);
 		queryBundle.setQuery(query);
 		queryBundle.setPartMask(BUNDLE_MASK_SUM_FILE_SIZES);
 		// call under test
@@ -1193,12 +1161,10 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testSetRequsetDefaultsQuery(){
 		Query query = new Query();
-		query.setIsConsistent(null);
 		query.setIncludeEntityEtag(null);
 		
 		// call under test
 		TableQueryManagerImpl.setDefaultsValues(query);
-		assertTrue(query.getIsConsistent());
 		assertFalse(query.getIncludeEntityEtag());
 	}
 	
@@ -1207,14 +1173,12 @@ public class TableQueryManagerImplTest {
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
 		request.setIncludeRowIdAndRowVersion(null);
 		request.setWriteHeader(null);
-		request.setIsConsistent(null);
 		request.setIncludeEntityEtag(null);
 		
 		// call under test
 		TableQueryManagerImpl.setDefaultValues(request);
 		assertTrue(request.getIncludeRowIdAndRowVersion());
 		assertTrue(request.getWriteHeader());
-		assertTrue(request.getIsConsistent());
 		assertFalse(request.getIncludeEntityEtag());
 	}
 	
@@ -1382,7 +1346,6 @@ public class TableQueryManagerImplTest {
 		rows.add(row);
 		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(false).withReturnMaxRowsPerPage(true);
 		Query query = new Query();
-		query.setIsConsistent(true);
 		query.setSql("select * from "+tableId);
 		query.setSort(sortList);
 		query.setLimit(null);
@@ -1401,7 +1364,6 @@ public class TableQueryManagerImplTest {
 		assertEquals(null, nextQuery.getLimit());
 		assertEquals(new Long(1),nextQuery.getOffset());
 		assertEquals(query.getSql(), nextQuery.getSql());
-		assertEquals(true, nextQuery.getIsConsistent());
 	}
 	
 	@Test
@@ -1413,7 +1375,6 @@ public class TableQueryManagerImplTest {
 		// no options
 		queryOptions = new QueryOptions();
 		Query query = new Query();
-		query.setIsConsistent(true);
 		query.setSql("select * from "+tableId);
 		query.setSort(sortList);
 		query.setLimit(null);
@@ -1433,7 +1394,6 @@ public class TableQueryManagerImplTest {
 	public void testQuerySinglePageWithNoNextPage() throws Exception{		
 		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(false);
 		Query query = new Query();
-		query.setIsConsistent(true);
 		query.setSql("select * from "+tableId);
 		query.setSort(sortList);
 		query.setLimit(null);
@@ -1483,7 +1443,6 @@ public class TableQueryManagerImplTest {
 	public void testQuerySinglePageRunQueryTrue() throws Exception{		
 		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(false);
 		Query query = new Query();
-		query.setIsConsistent(true);
 		query.setSql("select * from "+tableId);
 		query.setSort(sortList);
 		query.setLimit(null);
@@ -1504,7 +1463,6 @@ public class TableQueryManagerImplTest {
 	public void testQuerySinglePageRunQueryFalse() throws Exception{		
 		queryOptions = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(false);
 		Query query = new Query();
-		query.setIsConsistent(true);
 		query.setSql("select * from "+tableId);
 		query.setSort(sortList);
 		query.setLimit(null);
@@ -1534,7 +1492,6 @@ public class TableQueryManagerImplTest {
 		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(totalCount);
 		queryOptions = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(false);
 		Query query = new Query();
-		query.setIsConsistent(true);
 		query.setSql("select * from "+tableId);
 		query.setSort(sortList);
 		query.setLimit(11L);
@@ -1566,7 +1523,6 @@ public class TableQueryManagerImplTest {
 		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(totalCount);
 		queryOptions = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(false);
 		Query query = new Query();
-		query.setIsConsistent(true);
 		query.setSql("select * from "+tableId+" limit 11");
 		query.setSort(sortList);
 		query.setLimit(11L);
