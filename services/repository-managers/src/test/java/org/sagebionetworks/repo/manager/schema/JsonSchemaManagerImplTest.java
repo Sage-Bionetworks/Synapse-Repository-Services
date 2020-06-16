@@ -153,7 +153,7 @@ public class JsonSchemaManagerImplTest {
 		schemaName = "path.SomeSchema.json";
 		semanticVersionString = "1.2.3";
 		schema = new JsonSchema();
-		schema.set$id(organization.getName() + "/" + schemaName + "/" + semanticVersionString);
+		schema.set$id(organization.getName() + "/" + schemaName + "-" + semanticVersionString);
 		parsed$Id = SchemaIdParser.parseSchemaId(schema.get$id());
 
 		createSchemaRequest = new CreateSchemaRequest();
@@ -630,7 +630,7 @@ public class JsonSchemaManagerImplTest {
 		String versionId = "123";
 		when(mockSchemaDao.getVersionId(any(), any(), any())).thenReturn(versionId);
 		// call under test
-		String id = manager.getSchemaVersionId("org/one/1.0.1");
+		String id = manager.getSchemaVersionId("org/one-1.0.1");
 		assertEquals(versionId, id);
 		String organizationName = "org";
 		String schemaName = "one";
@@ -681,7 +681,7 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testFindAllDependenciesWithVersion() {
 		JsonSchema one = new JsonSchema();
-		one.set$id("org/one/1.1.1");
+		one.set$id("org/one-1.1.1");
 
 		JsonSchema refToOne = new JsonSchema();
 		refToOne.set$ref(one.get$id());
@@ -715,7 +715,7 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testFindAllDependenciesWith$RefNotFound() {
 		JsonSchema one = new JsonSchema();
-		one.set$id("org/one/1.1.1");
+		one.set$id("org/one-1.1.1");
 
 		JsonSchema refToOne = new JsonSchema();
 		refToOne.set$ref(one.get$id());
@@ -742,7 +742,7 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testFindAllDependenciesWithNo$Refs() {
 		JsonSchema one = new JsonSchema();
-		one.set$id("org/one/1.1.1");
+		one.set$id("org/one-1.1.1");
 
 		// two depends on one directly
 		JsonSchema two = new JsonSchema();
@@ -771,7 +771,7 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testFindAllDependenciesWithNoRefs() {
 		JsonSchema one = new JsonSchema();
-		one.set$id("org/one/1.1.1");
+		one.set$id("org/one-1.1.1");
 		// call under test
 		List<SchemaDependency> actual = manager.findAllDependencies(one);
 		assertNotNull(actual);
@@ -1383,7 +1383,7 @@ public class JsonSchemaManagerImplTest {
 
 	@Test
 	public void testBindSchemaToObjectWithSemanticVersion() {
-		String $id = organizationName + "/" + schemaName+"/"+semanticVersionString;
+		String $id = organizationName + "/" + schemaName+"-"+semanticVersionString;
 		when(mockSchemaDao.getSchemaId(any(), any())).thenReturn(schemaId);
 		when(mockSchemaDao.getVersionId(any(), any(), any())).thenReturn(versionId);
 		when(mockSchemaDao.bindSchemaToObject(any())).thenReturn(jsonSchemaObjectBinding);
