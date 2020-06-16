@@ -304,17 +304,6 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 
 		//translate from V2 bundle
 		org.sagebionetworks.repo.model.EntityBundle eb = translateEntityBundle(getEntityBundle(userId,entityId,versionNumber, requestFromMask(mask)));
-
-		///additional deprecated flags not supported by V2 bundle
-		if ((mask & org.sagebionetworks.repo.model.EntityBundle.ENTITY_REFERENCEDBY) > 0) {
-			throw new IllegalArgumentException("ENTITY_REFERENCEDBY is unsupported.");
-		}
-		if ((mask & org.sagebionetworks.repo.model.EntityBundle.ACCESS_REQUIREMENTS) > 0) {
-			throw new IllegalArgumentException("ACCESS_REQUIREMENTS is unsupported.");
-		}
-		if ((mask & org.sagebionetworks.repo.model.EntityBundle.UNMET_ACCESS_REQUIREMENTS) > 0) {
-			throw new IllegalArgumentException("UNMET_ACCESS_REQUIREMENTS is unsupported.");
-		}
 		return eb;
 	}
 
