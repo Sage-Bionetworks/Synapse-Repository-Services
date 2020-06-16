@@ -1,6 +1,6 @@
 {
-	"$schema": "https://json-schema.org/draft/2019-09/schema#",
-	"$id": "my.organization/pets.Pet/1.0.3",
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "my.organization/pets.Pet-1.0.3",
 	"description": "Base type information shared by all pet types.",
 	"allOf": [
 		{

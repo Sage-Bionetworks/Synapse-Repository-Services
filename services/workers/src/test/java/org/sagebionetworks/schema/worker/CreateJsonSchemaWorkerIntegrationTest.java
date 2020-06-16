@@ -72,7 +72,7 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createOrgRequest);
 		basicSchema = new JsonSchema();
 		basicSchema.set$id(organizationName + JsonSchemaConstants.PATH_DELIMITER + schemaName
-				+ JsonSchemaConstants.PATH_DELIMITER + semanticVersion);
+				+ JsonSchemaConstants.VERSION_PRFIX + semanticVersion);
 		basicSchema.setDescription("basic schema for integration test");
 	}
 
@@ -176,7 +176,7 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 		assertNotNull(validationSchema.get$defs());
 		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.PetType"));
 		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.Pet"));
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.Pet/1.0.3"));
+		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.Pet-1.0.3"));
 		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.dog.Breed"));
 		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.cat.Breed"));
 		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.cat.Cat"));
