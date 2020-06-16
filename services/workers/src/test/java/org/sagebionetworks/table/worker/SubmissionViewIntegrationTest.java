@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
@@ -329,7 +330,7 @@ public class SubmissionViewIntegrationTest {
 	}
 	
 	@Test
-	public void testSubmissionViewAnnotationUpdateWithRowSet() throws Exception {
+	public void testSubmissionViewAnnotationUpdateWithPartialRowSet() throws Exception {
 		Folder entity1 = testHelper.createFolder(submitter1, submitter1Project);
 
 		SubmissionBundle submission1 = testHelper.createSubmission(submitter1, evaluation, entity1);
@@ -396,8 +397,89 @@ public class SubmissionViewIntegrationTest {
 		assertEquals("bar", AnnotationsV2Utils.getSingleValue(status.getSubmissionAnnotations(), fooColumnModel.getName()));
 	}
 	
+	@Test
+	public void testSubmissionViewAnnotationUpdateWithRowSet() throws Exception {
+		Folder entity1 = testHelper.createFolder(submitter1, submitter1Project);
+
+		SubmissionBundle submission1 = testHelper.createSubmission(submitter1, evaluation, entity1);
+		Long submissionId = KeyFactory.stringToKey(submission1.getSubmissionStatus().getId());
+		
+		view = createView(evaluationOwner, evaluationProject, evaluation);
+		
+		List<SubmissionBundle> submissions = ImmutableList.of(submission1);
+		
+		// Wait for the results
+		QueryResultBundle result = assertSubmissionQueryResults(evaluationOwner, "select * from " + view.getId() + " order by id", submissions);
+		
+		// Now add the "foo" column to the model
+		List<ColumnModel> columnModels = result.getColumnModels();
+		
+		ColumnModel fooColumnModel = modelManager.createColumnModel(evaluationOwner, TableModelTestUtils.createColumn(null, "foo", ColumnType.STRING));
+
+		columnModels.add(fooColumnModel);
+		
+		// Updates the schema
+		asyncHelper.setTableSchema(evaluationOwner, TableModelUtils.getIds(columnModels), view.getId(), MAX_WAIT);
+		
+		Row expectedRow = mapSubmission(evaluationProject, submission1);
+		
+		expectedRow.setValues(Collections.singletonList(null));
+		
+		// Select only the foo column, the values are null
+		final RowSet currentRowSet = assertSubmissionQueryResults(evaluationOwner, 
+				"select " +fooColumnModel.getName()+ " from " + view.getId() + " order by id", 
+				submissions, 
+				Collections.singletonList(expectedRow))
+		.getQueryResult().getQueryResults();
+		
+		// Add the bar value to the foo column
+		currentRowSet.getRows().get(0).setValues(Collections.singletonList("bar"));
+		
+		AppendableRowSetRequest appendRequest = new AppendableRowSetRequest();
+		appendRequest.setEntityId(view.getId());
+		appendRequest.setToAppend(currentRowSet);
+		
+		// Send the update
+		TableUpdateTransactionRequest transactionRequest = TableModelUtils.wrapInTransactionRequest(appendRequest);
+		
+		asyncHelper.assertJobResponse(evaluationOwner, transactionRequest, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+			assertNotNull(response.getResults());
+			assertEquals(1, response.getResults().size());
+			
+			EntityUpdateResults updateResults =  (EntityUpdateResults) response.getResults().get(0);
+			
+			assertNotNull(updateResults.getUpdateResults());
+			assertEquals(1, updateResults.getUpdateResults().size());
+			
+			EntityUpdateResult updateResult = updateResults.getUpdateResults().get(0);
+			
+			assertEquals(KeyFactory.keyToString(submissionId), updateResult.getEntityId());
+			
+			assertNull(updateResult.getFailureCode());
+			assertNull(updateResult.getFailureMessage());
+			
+		}, MAX_WAIT);
+		
+		// Double check that the annotation was actually updated
+		SubmissionStatus status = submissionManager.getSubmissionStatus(evaluationOwner, submission1.getSubmission().getId());
+		assertNotNull(status);
+		assertEquals("bar", AnnotationsV2Utils.getSingleValue(status.getSubmissionAnnotations(), fooColumnModel.getName()));
+		
+		submission1.setSubmissionStatus(status);		
+		
+		// Verifies that the view will be synched with the new value
+		assertSubmissionQueryResults(evaluationOwner, "select * from " + view.getId() + " order by id", submissions);
+		
+	}
+	
 	private QueryResultBundle assertSubmissionQueryResults(UserInfo user, String query, List<SubmissionBundle> submissions) throws Exception {
 		List<Row> expectedRows = mapSubmissions(evaluationProject, submissions);
+		
+		return assertSubmissionQueryResults(user, query, submissions, expectedRows);
+	}
+	
+	private QueryResultBundle assertSubmissionQueryResults(UserInfo user, String query, List<SubmissionBundle> submissions, List<Row> expectedRows) throws Exception {
 		
 		// Wait for the updated results
 		return asyncHelper.assertQueryResult(evaluationOwner, query, (QueryResultBundle result) -> {
