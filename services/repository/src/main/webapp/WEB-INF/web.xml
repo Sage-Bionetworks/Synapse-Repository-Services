@@ -335,6 +335,7 @@
 		<filter-name>oauthClientAuthFilter</filter-name>
 		<url-pattern>/auth/v1/oauth2/token</url-pattern>
 		<url-pattern>/auth/v1/oauth2/token/*</url-pattern>
+		<url-pattern>/auth/v1/oauth2/revoke</url-pattern>
 	</filter-mapping>
 	
 	<!-- appends a new sessionId cookie to the response if the user did not provide one in their request -->

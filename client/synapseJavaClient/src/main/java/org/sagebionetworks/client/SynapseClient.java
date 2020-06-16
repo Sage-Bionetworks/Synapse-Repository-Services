@@ -2099,16 +2099,15 @@ public interface SynapseClient extends BaseClient {
 	 * @param nextPageToken
 	 * @return
 	 */
-	OAuthRefreshTokenInformationList getTokenMetadataForAuthorizedClient(String clientId, String nextPageToken) throws SynapseException;
+	OAuthRefreshTokenInformationList getRefreshTokenMetadataForAuthorizedClient(String clientId, String nextPageToken) throws SynapseException;
 
 	/**
 	 * Revokes all refresh tokens that the logged in user has granted to the specified client. Note that access tokens that
 	 * have been granted without a refresh token will continue to work until they expire.
 	 * @param clientId
-	 * @param nextPageToken
 	 * @return
 	 */
-	void revokeMyTokensFromClient(String clientId, String nextPageToken) throws SynapseException;
+	void revokeMyRefreshTokensFromClient(String clientId) throws SynapseException;
 
 	/**
 	 * Revokes a particular refresh token. Note: any access tokens granted via this refresh token will also

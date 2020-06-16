@@ -4553,15 +4553,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public OAuthRefreshTokenInformationList getTokenMetadataForAuthorizedClient(String clientId, String nextPageToken) throws SynapseException {
+	public OAuthRefreshTokenInformationList getRefreshTokenMetadataForAuthorizedClient(String clientId, String nextPageToken) throws SynapseException {
 		ValidateArgument.required(clientId, "clientId");
 		return getJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_AUDIT_CLIENTS + "/" + clientId + TOKENS, OAuthRefreshTokenInformationList.class);
 	}
 
 	@Override
-	public void revokeMyTokensFromClient(String clientId, String nextPageToken) throws SynapseException {
+	public void revokeMyRefreshTokensFromClient(String clientId) throws SynapseException {
 		ValidateArgument.required(clientId, "clientId");
-		voidPost(getAuthEndpoint(), AUTH_OAUTH_2_AUDIT_CLIENTS + "/" + clientId + REVOKE, null,null);
+		voidPost(getAuthEndpoint(), AUTH_OAUTH_2_AUDIT_CLIENTS + "/" + clientId + REVOKE, null, null);
 	}
 
 	@Override
