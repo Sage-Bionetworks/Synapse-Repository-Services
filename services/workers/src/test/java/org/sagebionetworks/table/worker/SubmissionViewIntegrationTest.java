@@ -1,9 +1,11 @@
 package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -34,12 +36,19 @@ import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityUpdateResult;
+import org.sagebionetworks.repo.model.table.EntityUpdateResults;
+import org.sagebionetworks.repo.model.table.PartialRow;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SubmissionView;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
@@ -52,6 +61,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -316,6 +326,74 @@ public class SubmissionViewIntegrationTest {
 		assertEquals(1, model.size());
 		assertEquals("foo", model.get(0).getName());
 		assertEquals(ColumnType.STRING, model.get(0).getColumnType());
+	}
+	
+	@Test
+	public void testSubmissionViewAnnotationUpdateWithRowSet() throws Exception {
+		Folder entity1 = testHelper.createFolder(submitter1, submitter1Project);
+
+		SubmissionBundle submission1 = testHelper.createSubmission(submitter1, evaluation, entity1);
+		Long submissionId = KeyFactory.stringToKey(submission1.getSubmissionStatus().getId());
+		
+		view = createView(evaluationOwner, evaluationProject, evaluation);
+		
+		List<SubmissionBundle> submissions = ImmutableList.of(submission1);
+		
+		// Wait for the results
+		QueryResultBundle result = assertSubmissionQueryResults(evaluationOwner, "select * from " + view.getId() + " order by id", submissions);
+		
+		// Now add the "foo" column to the model
+		List<ColumnModel> columnModels = result.getColumnModels();
+		
+		ColumnModel fooColumnModel = modelManager.createColumnModel(evaluationOwner, TableModelTestUtils.createColumn(null, "foo", ColumnType.STRING));
+
+		columnModels.add(fooColumnModel);
+		
+		// Updates the schema
+		asyncHelper.setTableSchema(evaluationOwner, TableModelUtils.getIds(columnModels), view.getId(), MAX_WAIT);
+		
+		PartialRow row = new PartialRow();
+		
+		row.setRowId(submissionId);
+		row.setValues(ImmutableMap.of(fooColumnModel.getId(), "bar"));
+		row.setEtag(submission1.getSubmissionStatus().getEtag());
+		
+		PartialRowSet rowSet = new PartialRowSet();
+		
+		rowSet.setRows(Collections.singletonList(row));
+		rowSet.setTableId(view.getId());
+		
+		AppendableRowSetRequest appendRequest = new AppendableRowSetRequest();
+		appendRequest.setEntityId(view.getId());
+		appendRequest.setToAppend(rowSet);
+		
+		TableUpdateTransactionRequest transactionRequest = TableModelUtils.wrapInTransactionRequest(appendRequest);
+		
+		asyncHelper.assertJobResponse(evaluationOwner, transactionRequest, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+			assertNotNull(response.getResults());
+			assertEquals(1, response.getResults().size());
+			
+			EntityUpdateResults updateResults =  (EntityUpdateResults) response.getResults().get(0);
+			
+			assertNotNull(updateResults.getUpdateResults());
+			assertEquals(1, updateResults.getUpdateResults().size());
+			
+			EntityUpdateResult updateResult = updateResults.getUpdateResults().get(0);
+			
+			assertEquals(KeyFactory.keyToString(submissionId), updateResult.getEntityId());
+			
+			assertNull(updateResult.getFailureCode());
+			assertNull(updateResult.getFailureMessage());
+			
+		}, MAX_WAIT);
+		
+		// Checks that the annotations was added to the submission
+		SubmissionStatus status = submissionManager.getSubmissionStatus(evaluationOwner, submission1.getSubmission().getId());
+		
+		assertNotNull(status.getSubmissionAnnotations());
+		
+		assertEquals("bar", AnnotationsV2Utils.getSingleValue(status.getSubmissionAnnotations(), fooColumnModel.getName()));
 	}
 	
 	private QueryResultBundle assertSubmissionQueryResults(UserInfo user, String query, List<SubmissionBundle> submissions) throws Exception {
