@@ -97,7 +97,6 @@ public class OAuthClientAuthFilterTest {
 		when(mockHttpRequest.getParameter("client_id")).thenReturn(CLIENT_ID);
 		when(mockHttpRequest.getParameter("client_secret")).thenReturn(CLIENT_SECRET);
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
-		when(mockHttpRequest.getMethod()).thenReturn("POST");
 		// method under test
 		oAuthClientAuthFilter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
 
@@ -108,6 +107,23 @@ public class OAuthClientAuthFilterTest {
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
 
 		assertEquals(CLIENT_ID, requestCaptor.getValue().getHeader(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER));
+	}
+
+	@Test
+	public void testFilter_validCredentials_client_secret_post_query_params() throws Exception {
+		when(mockHttpResponse.getWriter()).thenReturn(mockPrintWriter);
+		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(null);
+		when(mockHttpRequest.getParameter("client_id")).thenReturn(CLIENT_ID);
+		when(mockHttpRequest.getParameter("client_secret")).thenReturn(CLIENT_SECRET);
+		when(mockHttpRequest.getQueryString()).thenReturn("client_id="+CLIENT_ID+"&client_secret="+CLIENT_SECRET);
+
+		// method under test
+		oAuthClientAuthFilter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
+		
+		verify(mockFilterChain, never()).doFilter((ServletRequest)any(), (ServletResponse)any());
+		verify(mockHttpResponse).setStatus(401);
+		verify(mockHttpResponse).setContentType("application/json");
+		verify(mockPrintWriter).println("{\"reason\":\"Client credentials must not be passed as query parameters.\"}");
 	}
 
 	@Test

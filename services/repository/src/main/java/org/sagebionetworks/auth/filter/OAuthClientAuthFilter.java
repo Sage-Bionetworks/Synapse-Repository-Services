@@ -18,7 +18,6 @@ import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
-import org.sagebionetworks.url.HttpMethod;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -75,9 +74,8 @@ public class OAuthClientAuthFilter extends BasicAuthenticationFilter {
 			if (StringUtils.isEmpty(clientId) || StringUtils.isBlank(clientSecret)) {
 				credentials = Optional.empty();
 			} else {
-				String method = httpRequest.getMethod();
-				if (!HttpMethod.POST.name().equals(method)) {
-					throw new IllegalArgumentException("client_secret_basic authentication requires the POST Http method.");
+				if (StringUtils.contains(httpRequest.getQueryString(), clientSecret)) {
+					throw new IllegalArgumentException("Client credentials must not be passed as query parameters.");
 				}
 				credentials = Optional.of(new UserNameAndPassword(clientId, clientSecret));
 			}
