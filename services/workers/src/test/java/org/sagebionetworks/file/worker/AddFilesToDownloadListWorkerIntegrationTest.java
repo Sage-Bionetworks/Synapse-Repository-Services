@@ -1,18 +1,19 @@
 package org.sagebionetworks.file.worker;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -21,7 +22,6 @@ import org.sagebionetworks.repo.manager.file.download.BulkDownloadManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
@@ -33,15 +33,14 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.Query;
-import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.utils.ContentTypeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.Lists;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class AddFilesToDownloadListWorkerIntegrationTest {
 
@@ -70,7 +69,7 @@ public class AddFilesToDownloadListWorkerIntegrationTest {
 	
 	FileHandleAssociation expectedAssociation;
 
-	@Before
+	@BeforeEach
 	public void before() throws UnsupportedEncodingException, IOException {
 		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
@@ -106,7 +105,7 @@ public class AddFilesToDownloadListWorkerIntegrationTest {
 		
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		if (project != null) {
 			entityManager.deleteEntity(adminUserInfo, project.getId());
@@ -114,46 +113,50 @@ public class AddFilesToDownloadListWorkerIntegrationTest {
 	}
 
 	@Test
-	public void testAddFolder() throws InterruptedException {
+	public void testAddFolder() throws InterruptedException, AssertionError, AsynchJobFailedException {
 		AddFileToDownloadListRequest request = new AddFileToDownloadListRequest();
 		request.setFolderId(folder.getId());
 
 		// call under test
-		AddFileToDownloadListResponse response = asynchronousJobWorkerHelper.startAndWaitForJob(adminUserInfo, request,
-				MAX_WAIT_MS, AddFileToDownloadListResponse.class);
-		assertNotNull(response);
-		assertNotNull(response.getDownloadList());
-		List<FileHandleAssociation> list = response.getDownloadList().getFilesToDownload();
-		assertNotNull(list);
-		assertEquals(1, list.size());
-		assertEquals(expectedAssociation, list.get(0));
+		asynchronousJobWorkerHelper.assertJobResponse(adminUserInfo, request, (AddFileToDownloadListResponse response) -> {
+			assertNotNull(response);
+			assertNotNull(response.getDownloadList());
+			List<FileHandleAssociation> list = response.getDownloadList().getFilesToDownload();
+			assertNotNull(list);
+			assertEquals(1, list.size());
+			assertEquals(expectedAssociation, list.get(0));
+		}, MAX_WAIT_MS);
 	}
 
 	@Test
-	public void testAddQuery() throws InterruptedException, AsynchJobFailedException, TableFailedException {
+	public void testAddQuery() throws Exception {
 		// create a view of the project.
 		Long viewTypeMask = 0x01L;
 		List<String> scope = Lists.newArrayList(project.getId());
-		EntityView view = asynchronousJobWorkerHelper.createView(adminUserInfo, "aView", project.getParentId(), scope, viewTypeMask);
+		EntityView view = asynchronousJobWorkerHelper.createView(adminUserInfo, "aView" + UUID.randomUUID().toString(), project.getParentId(), scope, viewTypeMask);
 		
 		// Wait for the file to appear in the table's database.
 		asynchronousJobWorkerHelper.waitForEntityReplication(adminUserInfo, view.getId(), file.getId(), MAX_WAIT_MS);
-		IdAndVersion viewId = IdAndVersion.parse(view.getId());
-		asynchronousJobWorkerHelper.waitForViewToBeUpToDate(viewId, MAX_WAIT_MS);
+		
+		String sql = "select * from "+view.getId();
+		
+		asynchronousJobWorkerHelper.assertQueryResult(adminUserInfo, sql, (response) -> {
+			assertEquals(1L, response.getQueryCount());
+		}, MAX_WAIT_MS);
 		
 		AddFileToDownloadListRequest request = new AddFileToDownloadListRequest();
 		Query query = new Query();
-		query.setSql("select * from "+view.getId());
+		query.setSql(sql);
 		request.setQuery(query);
 
 		// call under test
-		AddFileToDownloadListResponse response = asynchronousJobWorkerHelper.startAndWaitForJob(adminUserInfo, request,
-				MAX_WAIT_MS, AddFileToDownloadListResponse.class);
-		assertNotNull(response);
-		assertNotNull(response.getDownloadList());
-		List<FileHandleAssociation> list = response.getDownloadList().getFilesToDownload();
-		assertNotNull(list);
-		assertEquals(1, list.size());
-		assertEquals(expectedAssociation, list.get(0));
+		asynchronousJobWorkerHelper.assertJobResponse(adminUserInfo, request, (AddFileToDownloadListResponse response) -> {		
+			assertNotNull(response);
+			assertNotNull(response.getDownloadList());
+			List<FileHandleAssociation> list = response.getDownloadList().getFilesToDownload();
+			assertNotNull(list);
+			assertEquals(1, list.size());
+			assertEquals(expectedAssociation, list.get(0));
+		}, MAX_WAIT_MS);
 	}
 }

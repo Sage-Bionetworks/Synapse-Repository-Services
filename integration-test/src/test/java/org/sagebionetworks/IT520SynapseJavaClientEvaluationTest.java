@@ -21,8 +21,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -352,26 +352,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 		final String submitterId = sub1.getUserId();
 		final String submitterAlias = sub1.getSubmitterAlias();
 		
-		Predicate<QueryResultBundle> resultMatcher = (result) -> {
-			List<Row> rows = result.getQueryResult().getQueryResults().getRows();
-			
-			if (rows.isEmpty()) {
-				return false;
-			}
-			
-			if (rows.size() > 1) {
-				throw new IllegalStateException("Expected one row, got " + rows.size());
-			}
-			
-			Row submissionRow = rows.iterator().next();
-			
-			if (submissionRow.getRowId().equals(submissionId) && submissionRow.getEtag().equals(submissionEtag)) {
-				return true;
-			}
-			
-			return false;
-		};
-		
 		Query query = new Query();
 		
 		query.setSql(sql);
@@ -382,19 +362,32 @@ public class IT520SynapseJavaClientEvaluationTest {
 		QueryOptions queryOptions = new QueryOptions()
 				.withRunQuery(true)
 				.withReturnSelectColumns(true);
+
+		Consumer<QueryResultBundle> resultsConsumer = (result) -> {
+			List<Row> rows = result.getQueryResult().getQueryResults().getRows();
+			
+			assertFalse(rows.isEmpty());
+			
+			if (rows.size() > 1) {
+				throw new IllegalStateException("Expected one row, got " + rows.size());
+			}
+			
+			Row submissionRow = rows.iterator().next();
+			
+			assertEquals(submissionId, submissionRow.getRowId());
+			assertEquals(submissionEtag, submissionRow.getEtag());
+			
+			List<SelectColumn> columns = result.getQueryResult().getQueryResults().getHeaders();
+			
+			Map<SubmissionField, Integer> fieldIndexMap = getFieldsIndex(columns);
+			
+			assertEquals(status, submissionRow.getValues().get(fieldIndexMap.get(SubmissionField.status)));
+			assertEquals(evaluationId, submissionRow.getValues().get(fieldIndexMap.get(SubmissionField.evaluationid)));
+			assertEquals(submitterId, submissionRow.getValues().get(fieldIndexMap.get(SubmissionField.submitterid)));
+			assertEquals(submitterAlias, submissionRow.getValues().get(fieldIndexMap.get(SubmissionField.submitteralias)));
+		};
 		
-		QueryResultBundle results = AsyncHelper.waitForBundleQueryResults(synapseOne, RDS_WORKER_TIMEOUT, query, queryOptions, view.getId(), resultMatcher);
-	
-		List<SelectColumn> columns = results.getQueryResult().getQueryResults().getHeaders();
-		
-		Map<SubmissionField, Integer> fieldIndexMap = getFieldsIndex(columns);
-	
-		Row submissionRow = results.getQueryResult().getQueryResults().getRows().iterator().next();
-		
-		assertEquals(status, submissionRow.getValues().get(fieldIndexMap.get(SubmissionField.status)));
-		assertEquals(evaluationId, submissionRow.getValues().get(fieldIndexMap.get(SubmissionField.evaluationid)));
-		assertEquals(submitterId, submissionRow.getValues().get(fieldIndexMap.get(SubmissionField.submitterid)));
-		assertEquals(submitterAlias, submissionRow.getValues().get(fieldIndexMap.get(SubmissionField.submitteralias)));
+		AsyncJobHelper.assertQueryBundleResults(synapseOne, view.getId(), query, queryOptions, resultsConsumer, RDS_WORKER_TIMEOUT);
 		
 	}
 	
@@ -1191,7 +1184,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		QueryTableResults results = synapseOne.queryEvaluation(queryString);
 		assertNotNull(results);
 		long start = System.currentTimeMillis();
-		while (results.getTotalNumberOfResults() < 1) {
+		while (results.getTotalNumberOfResults() < 2) {
 			long elapsed = System.currentTimeMillis() - start;
 			assertTrue(elapsed < RDS_WORKER_TIMEOUT, "Timed out waiting for annotations to be published for query: " + queryString);
 			System.out.println("Waiting for annotations to be published... " + elapsed + "ms");		

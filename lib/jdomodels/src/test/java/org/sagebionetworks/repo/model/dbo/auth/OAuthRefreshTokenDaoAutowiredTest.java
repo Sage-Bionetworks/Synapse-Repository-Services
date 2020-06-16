@@ -258,13 +258,24 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		metadata.setTokenId(createResult.getTokenId());
 		assertEquals(metadata, createResult);
 
+		// Update fields
 		String newTokenName = "A new token name";
+		String newEtag = UUID.randomUUID().toString();
+		Date newModifiedOn = new Date(System.currentTimeMillis() + 1000 * 60 * 60);
 		metadata.setName(newTokenName);
+		metadata.setEtag(newEtag);
+		metadata.setModifiedOn(newModifiedOn);
+		// Try to update a field that can't be updated
+		metadata.setAuthorizedOn(new Date(System.currentTimeMillis() - 1000 * 60 * 60));
 		// Call under test -- Update
 		oauthRefreshTokenDao.updateRefreshTokenMetadata(metadata);
 		// Call under test -- Get
 		Optional<OAuthRefreshTokenInformation> updated = oauthRefreshTokenDao.getRefreshTokenMetadata(metadata.getTokenId());
 		assertTrue(updated.isPresent());
+		// Authorized on shouldn't be updated
+		assertNotEquals(metadata, updated.get().getAuthorizedOn());
+		metadata.setAuthorizedOn(updated.get().getAuthorizedOn());
+		// Other fields should be updated
 		assertEquals(metadata, updated.get());
 
 		// Call under test -- Delete
@@ -319,15 +330,26 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		OAuthRefreshTokenInformation expected = createRefreshToken(hashValue, new Date());
 
 		// call under test
-		Optional<OAuthRefreshTokenInformation> actual = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate(hashValue, client.getClient_id());
+		Optional<OAuthRefreshTokenInformation> actual = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate(hashValue);
 		assertEquals(expected, actual.get());
 	}
+
+	@Transactional
+	@Test
+	void getMatchingTokenByHash_EmptyResult() {
+		String hashValue = "hash";
+		createRefreshToken(hashValue, new Date());
+
+		// call under test
+		Optional<OAuthRefreshTokenInformation> actual = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate("value that doesn't match");
+		assertFalse(actual.isPresent());
+	}
+
 
 	@Test
 	void getMatchingTokenByHashForUpdate_noTransaction() {
 		assertThrows(IllegalTransactionStateException.class,() ->
-				oauthRefreshTokenDao.getMatchingTokenByHashForUpdate("hash", "clientid")
-
+				oauthRefreshTokenDao.getMatchingTokenByHashForUpdate("hash")
 		);
 	}
 
@@ -351,7 +373,7 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		// call under test
 		oauthRefreshTokenDao.updateTokenHash(metadata, newHash);
 
-		OAuthRefreshTokenInformation updated = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate(newHash, client.getClient_id()).get();
+		OAuthRefreshTokenInformation updated = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate(newHash).get();
 		assertEquals(metadata.getTokenId(), updated.getTokenId());
 		assertNotNull(updated);
 		assertEquals(newEtag, updated.getEtag());
@@ -392,4 +414,23 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		assertTrue(oauthRefreshTokenDao.getRefreshTokenMetadata(tokenToNotRevoke2.getTokenId()).isPresent());
 	}
 
+	@Test
+	void deleteLeastRecentlyUsedActiveTokens() {
+		Long tokenLimit = 2L; // Only keep the 2 newest tokens
+
+		// Create a bunch of tokens
+		// If we keep the newest 2 tokens, these will be deleted:
+		OAuthRefreshTokenInformation oldToken1 = createRefreshToken("abcd", new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS));
+		OAuthRefreshTokenInformation oldToken2 = createRefreshToken("abcd", new Date(System.currentTimeMillis() - ONE_DAY_MILLIS));
+		// and these will remain:
+		OAuthRefreshTokenInformation newToken1 = createRefreshToken("abcd", new Date(System.currentTimeMillis() - ONE_HOUR_MILLIS));
+		OAuthRefreshTokenInformation newToken2 = createRefreshToken("abcd", new Date());
+
+		// Call under test'
+		oauthRefreshTokenDao.deleteLeastRecentlyUsedTokensOverLimit(userId, client.getClient_id(), tokenLimit);
+		assertFalse(oauthRefreshTokenDao.getRefreshTokenMetadata(oldToken1.getTokenId()).isPresent());
+		assertFalse(oauthRefreshTokenDao.getRefreshTokenMetadata(oldToken2.getTokenId()).isPresent());
+		assertTrue(oauthRefreshTokenDao.getRefreshTokenMetadata(newToken1.getTokenId()).isPresent());
+		assertTrue(oauthRefreshTokenDao.getRefreshTokenMetadata(newToken2.getTokenId()).isPresent());
+	}
 }

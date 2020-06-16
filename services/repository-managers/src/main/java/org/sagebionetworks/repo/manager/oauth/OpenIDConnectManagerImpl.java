@@ -5,7 +5,6 @@ import static org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager.getSco
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -18,11 +17,9 @@ import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackEncrypter;
 import org.sagebionetworks.manager.util.OAuthPermissionUtils;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
-import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
@@ -61,6 +58,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	// user authorization times out after one year
 	private static final long AUTHORIZATION_TIME_OUT_MILLIS = 1000L*3600L*24L*365L;
 	
+	// token_type=Bearer, as per https://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
+	private static final String TOKEN_TYPE_BEARER = "Bearer";
+	
 	@Autowired
 	private StackEncrypter stackEncrypter;
 
@@ -75,9 +75,6 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
-	
-	@Autowired
-	private UserManager userManager;
 	
 	@Autowired
 	private Clock clock;
@@ -354,9 +351,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		String accessTokenId = UUID.randomUUID().toString();
 		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid, 
-				oauthClientId, now, authTime, accessTokenId, scopes, 
+				oauthClientId, now, authTime, null, accessTokenId, scopes, 
 				ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), USER_INFO_CLAIMS_KEY));
 		result.setAccess_token(accessToken);
+		result.setToken_type(TOKEN_TYPE_BEARER);
 		return result;
 	}
 	

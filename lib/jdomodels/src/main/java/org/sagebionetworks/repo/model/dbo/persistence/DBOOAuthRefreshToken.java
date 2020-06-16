@@ -58,25 +58,30 @@ public class DBOOAuthRefreshToken implements MigratableDatabaseObject<DBOOAuthRe
 			new FieldColumn("etag", COL_OAUTH_REFRESH_TOKEN_ETAG).withIsEtag(true),
 		};
 
+	private static DBOOAuthRefreshToken mapRow(ResultSet rs, int rowNum) throws SQLException {
+		DBOOAuthRefreshToken token = new DBOOAuthRefreshToken();
+		token.setId(rs.getLong(COL_OAUTH_REFRESH_TOKEN_ID));
+		token.setTokenHash(rs.getString(COL_OAUTH_REFRESH_TOKEN_HASH));
+		token.setName(rs.getString(COL_OAUTH_CLIENT_NAME));
+		token.setPrincipalId(rs.getLong(COL_OAUTH_REFRESH_TOKEN_PRINCIPAL_ID));
+		token.setClientId(rs.getLong(COL_OAUTH_REFRESH_TOKEN_CLIENT_ID));
+		token.setScopes(rs.getBytes(COL_OAUTH_REFRESH_TOKEN_SCOPES));
+		token.setClaims(rs.getBytes(COL_OAUTH_REFRESH_TOKEN_CLAIMS));
+		token.setCreatedOn(rs.getTimestamp(COL_OAUTH_REFRESH_TOKEN_CREATED_ON));
+		token.setModifiedOn(rs.getTimestamp(COL_OAUTH_REFRESH_TOKEN_MODIFIED_ON));
+		token.setLastUsed(rs.getTimestamp(COL_OAUTH_REFRESH_TOKEN_LAST_USED));
+		token.setEtag(rs.getString(COL_OAUTH_REFRESH_TOKEN_ETAG));
+		return token;
+	}
+
 	@Override
 	public TableMapping<DBOOAuthRefreshToken> getTableMapping() {
 		return new TableMapping<DBOOAuthRefreshToken>() {
 			// Map a result set to this object
 			@Override
 			public DBOOAuthRefreshToken mapRow(ResultSet rs, int rowNum) throws SQLException {
-				DBOOAuthRefreshToken token = new DBOOAuthRefreshToken();
-				token.setId(rs.getLong(COL_OAUTH_REFRESH_TOKEN_ID));
-				token.setTokenHash(rs.getString(COL_OAUTH_REFRESH_TOKEN_HASH));
-				token.setName(rs.getString(COL_OAUTH_CLIENT_NAME));
-				token.setPrincipalId(rs.getLong(COL_OAUTH_REFRESH_TOKEN_PRINCIPAL_ID));
-				token.setClientId(rs.getLong(COL_OAUTH_REFRESH_TOKEN_CLIENT_ID));
-				token.setScopes(rs.getBytes(COL_OAUTH_REFRESH_TOKEN_SCOPES));
-				token.setClaims(rs.getBytes(COL_OAUTH_REFRESH_TOKEN_CLAIMS));
-				token.setCreatedOn(rs.getTimestamp(COL_OAUTH_REFRESH_TOKEN_CREATED_ON));
-				token.setModifiedOn(rs.getTimestamp(COL_OAUTH_REFRESH_TOKEN_MODIFIED_ON));
-				token.setLastUsed(rs.getTimestamp(COL_OAUTH_REFRESH_TOKEN_LAST_USED));
-				token.setEtag(rs.getString(COL_OAUTH_REFRESH_TOKEN_ETAG));
-				return token;
+				// Use static method to avoid unintentionally referencing `this`
+				return DBOOAuthRefreshToken.mapRow(rs, rowNum);
 			}
 
 			@Override

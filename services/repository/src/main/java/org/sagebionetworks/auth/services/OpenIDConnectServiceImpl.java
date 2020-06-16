@@ -31,10 +31,13 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.google.common.collect.ImmutableList;
+
 @Service
 public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	
-	private static final List<String> TOKEN_ENDPOINT_AUTHENTICATION_TYPES = Collections.singletonList("client_secret_basic");
+	private static final List<String> TOKEN_ENDPOINT_AUTHENTICATION_TYPES = 
+			ImmutableList.of("client_secret_basic", "client_secret_post");
 	
 	@Autowired
 	private UserManager userManager;

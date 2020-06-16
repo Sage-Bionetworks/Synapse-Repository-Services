@@ -16,7 +16,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager.getScopeHash;
-
+import static org.mockito.ArgumentMatchers.isNull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -49,7 +49,6 @@ import org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedAtClaimProv
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
-import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
@@ -77,7 +76,6 @@ import org.sagebionetworks.securitytools.EncryptionUtils;
 import org.sagebionetworks.util.Clock;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
@@ -673,7 +671,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		
 		String expectedAccessToken = "ACCESS-TOKEN";
 		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(),
-				eq(now), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
+				eq(now), isNull(), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
 		
 		// elsewhere we test that we correctly build up the requested user-info
 		// here we just spot check a few fields to make sure everything's wired up
@@ -695,6 +693,8 @@ public class OpenIDConnectManagerImplUnitTest {
 			assertTrue(claimsCaptor.getValue().containsKey(claimName));
 			assertNull(claimsCaptor.getValue().get(claimName));
 		}
+		
+		assertEquals("Bearer", tokenResponse.getToken_type());
 	
 		assertNull(tokenResponse.getRefresh_token());  // in the future we will provide a refresh token
 	}
@@ -795,7 +795,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		String expectedAccessToken = "ACCESS-TOKEN";
 		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), anyString(), eq(OAUTH_CLIENT_ID), anyLong(),
-				eq(now), anyString(), (List<OAuthScope>)any(), (Map<OIDCClaimName, OIDCClaimsRequestDetails>)any())).thenReturn(expectedAccessToken);
+				eq(now), isNull(), anyString(), (List<OAuthScope>)any(), (Map<OIDCClaimName, OIDCClaimsRequestDetails>)any())).thenReturn(expectedAccessToken);
 		
 		// method under test
 		OIDCTokenResponse tokenResponse = openIDConnectManagerImpl.getAccessToken(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);

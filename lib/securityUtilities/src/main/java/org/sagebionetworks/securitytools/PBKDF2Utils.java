@@ -82,12 +82,14 @@ public class PBKDF2Utils {
 		// Convert to a string and add the prefix
 		return HASH_PREFIX + new String(Base64.encodeBase64(mashup));
 	}
-	
-	public static String generateClientSecret() {
+
+	/**
+	 * Generates a 256-bit Base64 encoded string using {@link SecureRandom}
+	 * @return
+	 */
+	public static String generateSecureRandomString() {
 		byte[] randomBytes = new byte[32];
 		RANDOM.nextBytes(randomBytes);
 		return Base64.encodeBase64URLSafeString(randomBytes);
 	}
-
-
 }

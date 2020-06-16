@@ -6,11 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.net.URLEncoder;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.http.HttpStatus;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterAll;
@@ -39,6 +42,10 @@ import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
@@ -51,11 +58,14 @@ public class ITOpenIDConnectTest {
 	private static SynapseAdminClient synapseAnonymous;
 	private static Long user1ToDelete;
 	private static Long user2ToDelete;
+	private static StackConfiguration config;
+	private static SimpleHttpClient simpleClient;
 	
 	private String clientToDelete;
 	
 	@BeforeAll
 	public static void beforeClass() throws Exception {
+		config = StackConfigurationSingleton.singleton();
 		// Create 2 users
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
@@ -68,6 +78,8 @@ public class ITOpenIDConnectTest {
 		
 		synapseAnonymous = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(synapseAnonymous);
+		
+		simpleClient = new SimpleHttpClientImpl();
 	}
 	
 	@AfterAll
@@ -273,6 +285,23 @@ public class ITOpenIDConnectTest {
 					oauthAuthorizationResponse.getAccess_code(), client.getRedirect_uris().get(0), null, null, null);
 		} finally {
 			synapseAnonymous.removeAuthorizationHeader();
+		}
+		
+		// we can also authorize the client using client_secret_post
+		{
+			SimpleHttpRequest request = new SimpleHttpRequest();
+			request.setUri(config.getAuthenticationServicePublicEndpoint()+"/oauth2/token");
+			Map<String, String> requestHeaders = new HashMap<String, String>();
+			requestHeaders.put("Content-Type", "application/x-www-form-urlencoded"); 
+			request.setHeaders(requestHeaders);
+			String requestBody = "client_id="+client.getClient_id()+
+					"&client_secret="+secret.getClient_secret()+
+					"&grant_type=authorization_code"+
+					"&code="+oauthAuthorizationResponse.getAccess_code()+
+					"&redirect_uri="+client.getRedirect_uris().get(0);
+			SimpleHttpResponse response = simpleClient.post(request, requestBody);
+			assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+			assertNotNull(response.getContent());
 		}
 		
 		Jwt<JwsHeader, Claims> parsedIdToken = JSONWebTokenHelper.parseJWT(tokenResponse.getId_token(), jsonWebKeySet);

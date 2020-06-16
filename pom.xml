@@ -1007,7 +1007,7 @@
 		<!-- This is just for "eclipse:eclipse" goal to always attempt downloading 
 			sources -->
 		<downloadSources>true</downloadSources>
-		<gwtVersion>2.5.1</gwtVersion>
+		<gwtVersion>2.8.2</gwtVersion>
 		<guavaVersion>27.1-jre</guavaVersion>
 		<reflectionsVersion>0.9.9-RC1</reflectionsVersion>
 		<org.springframework.version>5.2.3.RELEASE</org.springframework.version>
@@ -1020,7 +1020,7 @@
 		<mysql.mysql-connector-java.version>8.0.18</mysql.mysql-connector-java.version>
 		<org.aspectj.aspectjlib.version>1.6.2</org.aspectj.aspectjlib.version>
 		<org.aspectj.version>1.8.11</org.aspectj.version>
-		<schema-to-pojo.version>0.6.0</schema-to-pojo.version>
+		<schema-to-pojo.version>0.6.2</schema-to-pojo.version>
 		<com.amazonaws.version>1.11.751</com.amazonaws.version>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
 		<org.apache.httpcomponents.version>4.5.9</org.apache.httpcomponents.version>

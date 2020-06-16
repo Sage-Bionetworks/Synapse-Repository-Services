@@ -9,6 +9,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.auth.UserNameAndPassword;
@@ -24,6 +25,8 @@ import org.springframework.stereotype.Component;
 public class OAuthClientAuthFilter extends BasicAuthenticationFilter {
 
 	private static final String INVALID_CREDENTIAL_MSG = "OAuth Client ID and secret must be passed via Basic Authentication. Credentials are missing or invalid.";
+	private static final String CLIENT_ID_PARAM_NAME = "client_id";
+	private static final String CLIENT_SECRET_PARAM_NAME = "client_secret";
 
 	private OAuthClientManager oauthClientManager;
 
@@ -59,6 +62,28 @@ public class OAuthClientAuthFilter extends BasicAuthenticationFilter {
 
 		doFilterInternal(httpRequest, httpResponse, filterChain, credentials.orElse(null));
 	}
+	
+	protected Optional<UserNameAndPassword> getCredentialsFromRequest(HttpServletRequest httpRequest) {
+		Optional<UserNameAndPassword> credentials = HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest);
+		
+		// if credentials are not in the authorization header (i.e. passed by client_secret_basic),
+		// the might be passed as request parameters (i.e. passed by client_secret_post)
+		if (!credentials.isPresent()) {
+			String clientId = httpRequest.getParameter(CLIENT_ID_PARAM_NAME);
+			String clientSecret = httpRequest.getParameter(CLIENT_SECRET_PARAM_NAME);
+			if (StringUtils.isEmpty(clientId) || StringUtils.isBlank(clientSecret)) {
+				credentials = Optional.empty();
+			} else {
+				if (StringUtils.contains(httpRequest.getQueryString(), clientSecret)) {
+					throw new IllegalArgumentException("Client credentials must not be passed as query parameters.");
+				}
+				credentials = Optional.of(new UserNameAndPassword(clientId, clientSecret));
+			}
+		}
+		
+		return credentials;
+	}
+
 
 	private boolean validCredentials(UserNameAndPassword credentials) {
 		OAuthClientIdAndSecret clientCreds = new OAuthClientIdAndSecret();

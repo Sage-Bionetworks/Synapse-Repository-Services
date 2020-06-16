@@ -6,11 +6,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -79,7 +81,6 @@ public class EvaluationManagerTest {
 
 	private final String EVALUATION_NAME = "test-evaluation";
 	private final String EVALUATION_ID = "1234";
-	private final Long EVALUATION_ID_LONG = Long.parseLong(EVALUATION_ID);
 	private final String EVALUATION_CONTENT_SOURCE = "syn12358129748";
 	private final String EVALUATION_ETAG = "etag";
 
@@ -149,13 +150,46 @@ public class EvaluationManagerTest {
 		assertEquals(evalWithId, eval2);
 		verify(mockEvaluationDAO).get(eq(EVALUATION_ID));
 	}
+	
+	@Test
+	public void testGetEvaluationWithNullId() throws DatastoreException, NotFoundException, UnauthorizedException {
+		
+		String evaluationId = null;
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			evaluationManager.getEvaluation(ownerInfo, evaluationId);
+		}).getMessage();
+
+		assertEquals("Evaluation ID cannot be null", errorMessage);
+		verifyZeroInteractions(mockEvaluationDAO);
+		verifyZeroInteractions(mockPermissionsManager);
+	}
+	
+	@Test
+	public void testGetEvaluationWithNotFoundException() throws DatastoreException, NotFoundException, UnauthorizedException {
+		
+		NotFoundException expected = new NotFoundException();
+		
+		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenThrow(expected);
+
+		NotFoundException ex = assertThrows(NotFoundException.class, () -> {
+			// Call under test
+			evaluationManager.getEvaluation(ownerInfo, EVALUATION_ID);
+		});
+		
+		assertEquals(expected, ex);
+		verify(mockEvaluationDAO).get(eq(EVALUATION_ID));
+		verifyZeroInteractions(mockPermissionsManager);
+	}
+
 
 	@Test
 	public void testGetEvaluationByContentSource() throws Exception {
 
 		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
 		evaluations= Collections.singletonList(evalWithId);
-		when(mockEvaluationDAO.getAccessibleEvaluationsForProject(eq(EVALUATION_CONTENT_SOURCE), (List<Long>)any(), eq(accessType), eq(null), anyLong(), anyLong())).thenReturn(evaluations);
+		when(mockEvaluationDAO.getAccessibleEvaluationsForProject(eq(EVALUATION_CONTENT_SOURCE), anyList(), eq(accessType), eq(null), anyLong(), anyLong())).thenReturn(evaluations);
 
 		List<Evaluation> qr = evaluationManager.getEvaluationByContentSource(ownerInfo, EVALUATION_CONTENT_SOURCE, accessType, false, 10L, 0L);
 		assertEquals(evaluations, qr);
@@ -167,13 +201,13 @@ public class EvaluationManagerTest {
 
 		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
 		evaluations= Collections.singletonList(evalWithId);
-		when(mockEvaluationDAO.getAccessibleEvaluationsForProject(eq(EVALUATION_CONTENT_SOURCE), (List<Long>)any(), eq(accessType), anyLong(), anyLong(), anyLong())).
-		thenReturn(Collections.EMPTY_LIST);
+		when(mockEvaluationDAO.getAccessibleEvaluationsForProject(eq(EVALUATION_CONTENT_SOURCE), anyList(), eq(accessType), anyLong(), anyLong(), anyLong())).
+			thenReturn(Collections.emptyList());
 
 		List<Evaluation> qr = evaluationManager.getEvaluationByContentSource(ownerInfo, EVALUATION_CONTENT_SOURCE, accessType, true, 10L, 0L);
 		assertTrue(qr.isEmpty());
 		verify(mockEvaluationDAO).getAccessibleEvaluationsForProject(
-				eq(EVALUATION_CONTENT_SOURCE), (List<Long>)any(), eq(ACCESS_TYPE.READ),  anyLong(), eq(10L), eq(0L));
+				eq(EVALUATION_CONTENT_SOURCE), anyList(), eq(ACCESS_TYPE.READ),  anyLong(), eq(10L), eq(0L));
 	}
 	
 	@Test
@@ -234,7 +268,7 @@ public class EvaluationManagerTest {
 	public void testGetAvailableInRange() throws Exception {
 
 		evaluations= Collections.singletonList(evalWithId);
-		when(mockEvaluationDAO.getAccessibleEvaluations(any(List.class), eq(ACCESS_TYPE.SUBMIT), eq(null), anyLong(), anyLong(), eq(null))).thenReturn(evaluations);    	
+		when(mockEvaluationDAO.getAccessibleEvaluations(anyList(), eq(ACCESS_TYPE.SUBMIT), eq(null), anyLong(), anyLong(), eq(null))).thenReturn(evaluations);    	
 
 		// availability is based on SUBMIT access, not READ
 		List<Evaluation> qr = evaluationManager.getAvailableInRange(ownerInfo, false, 10L, 0L, null);
@@ -246,13 +280,14 @@ public class EvaluationManagerTest {
 	public void testGetAvailableInRangeActiveOnly() throws Exception {
 
 		evaluations= Collections.singletonList(evalWithId);
-		when(mockEvaluationDAO.getAccessibleEvaluations(any(List.class), eq(ACCESS_TYPE.SUBMIT), anyLong(), anyLong(), anyLong(), eq(null))).thenReturn(Collections.EMPTY_LIST);    	
+		when(mockEvaluationDAO.getAccessibleEvaluations(anyList(), eq(ACCESS_TYPE.SUBMIT), anyLong(), anyLong(), anyLong(), eq(null)))
+			.thenReturn(Collections.emptyList());    	
 
 		// availability is based on SUBMIT access, not READ
 		List<Evaluation> qr = evaluationManager.getAvailableInRange(ownerInfo, true, 10L, 0L, null);
 		assertTrue(qr.isEmpty());
 		verify(mockEvaluationDAO).getAccessibleEvaluations(
-				(List<Long>)any(), eq(ACCESS_TYPE.SUBMIT), anyLong(), eq(10L), eq(0L), eq(null));
+				anyList(), eq(ACCESS_TYPE.SUBMIT), anyLong(), eq(10L), eq(0L), eq(null));
 	}
 
 	@Test
