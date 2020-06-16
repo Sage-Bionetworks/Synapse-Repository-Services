@@ -1269,7 +1269,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		claims.setSubject(ppid);
 
 		// method under test
-		assertThrows(UnauthorizedException.class, () -> openIDConnectManagerImpl.validateAccessToken(token));
+		assertThrows(IllegalArgumentException.class, () -> openIDConnectManagerImpl.validateAccessToken(token));
 
 		verify(oidcTokenHelper).parseJWT(token);
 	}
