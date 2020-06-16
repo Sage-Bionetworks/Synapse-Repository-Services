@@ -33,6 +33,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.ObjectSchemaImpl;
 import org.sagebionetworks.schema.TYPE;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 import com.google.common.collect.Lists;
@@ -256,8 +258,9 @@ public class SynapseSchemaBootstrapImplTest {
 		verify(bootstrapSpy).getNextPatchNumberIfNeeded(organizationName, schemaName, jsonSchema);
 		
 		CreateSchemaRequest expected = new CreateSchemaRequest();
-		jsonSchema.set$id("org.sagebionetworks/repo.model.Test.json/1.0.101");
-		expected.setSchema(jsonSchema);
+		JsonSchema clone = cloneJsonSchema(jsonSchema);
+		clone.set$id("org.sagebionetworks/repo.model.Test.json-1.0.101");
+		expected.setSchema(clone);
 		verify(mockJsonSchemaManager).createJsonSchema(admin, expected);
 	}
 	
@@ -299,4 +302,12 @@ public class SynapseSchemaBootstrapImplTest {
 		verify(bootstrapSpy).registerSchemaIfDoesNotExist(admin, jsonSchemaTwo);
 	}
 
+	public JsonSchema cloneJsonSchema(JsonSchema schema) {
+		try {
+			String json = EntityFactory.createJSONStringForEntity(schema);
+			return EntityFactory.createEntityFromJSONString(json, JsonSchema.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+	}
 }

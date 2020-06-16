@@ -171,7 +171,22 @@ public class SchemaTranslatorImp implements SchemaTranslator {
 		jsonSchema.setDescription(objectSchema.getDescription());
 		jsonSchema.setItems(translate(objectSchema.getItems(), false /*not a root*/));
 		jsonSchema.setFormat(translateFormat(objectSchema.getFormat()));
+		translateConcreteType(objectSchema, jsonSchema);
 		return jsonSchema;
+	}
+
+	void translateConcreteType(ObjectSchema objectSchema, JsonSchema jsonSchema) {
+		if(objectSchema.getType() == null || TYPE.OBJECT.equals(objectSchema.getType())) {
+			Map<String, JsonSchema> properties = jsonSchema.getProperties();
+			if(properties == null) {
+				properties = new LinkedHashMap<String, JsonSchema>(1);
+			}
+			JsonSchema concreteType = new JsonSchema();
+			concreteType.setType(Type.string);
+			concreteType.set_const(objectSchema.getId());
+			properties.put("concreteType", concreteType);
+			jsonSchema.setProperties(properties);
+		}
 	}
 
 	@Override
