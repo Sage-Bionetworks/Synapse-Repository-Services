@@ -16,12 +16,14 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -126,21 +128,37 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 
 	@Override
 	public Optional<Annotations> getAnnotations(UserInfo userInfo, String objectId) {
-		SubmissionStatus status = submissionManager.getSubmissionStatus(userInfo, objectId);
+		// Fetch the current status
+		SubmissionStatus status = getSubmissionStatus(userInfo, objectId);
+		
 		return Optional.ofNullable(status.getSubmissionAnnotations());
 	}
 
 	@WriteTransaction
 	@Override
 	public void updateAnnotations(UserInfo userInfo, String objectId, Annotations annotations) {
+		ValidateArgument.required(annotations, "The annotations");
+		ValidateArgument.required(annotations.getEtag(), "The annotations etag");
+		
 		// Fetch the current status
-		SubmissionStatus status = submissionManager.getSubmissionStatus(userInfo, objectId);
+		SubmissionStatus status = getSubmissionStatus(userInfo, objectId);
+		
 		// Sync the etag to avoid overriding eventual conflicting updates
 		status.setEtag(annotations.getEtag());
 		// Sync the annotations
 		status.setSubmissionAnnotations(annotations);
 		
 		submissionManager.updateSubmissionStatus(userInfo, status);
+	}
+	
+	private SubmissionStatus getSubmissionStatus(UserInfo userInfo, String objectId) {
+		ValidateArgument.required(userInfo, "The user");
+		ValidateArgument.required(objectId, "The object id");
+		
+		// The object id might come in with the syn prefix
+		Long submissionId = KeyFactory.stringToKey(objectId);
+		
+		return submissionManager.getSubmissionStatus(userInfo, submissionId.toString());
 	}
 
 	@Override
