@@ -1,11 +1,8 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -13,25 +10,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.asynch.AsynchJobState;
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -45,22 +37,20 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.Lists;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TableAppendRowSetWorkerIntegrationTest {
 
 	public static final int MAX_WAIT_MS = 1000 * 60;
-	
-	@Autowired
-	AsynchJobStatusManager asynchJobStatusManager;
 	@Autowired
 	StackConfiguration config;
 	@Autowired
@@ -73,6 +63,9 @@ public class TableAppendRowSetWorkerIntegrationTest {
 	UserManager userManager;
 	@Autowired
 	SemaphoreManager semphoreManager;
+	@Autowired
+	AsynchronousJobWorkerHelper asyncHelper;
+	
 	private UserInfo adminUserInfo;
 	RowReferenceSet referenceSet;
 	List<ColumnModel> schema;
@@ -81,11 +74,11 @@ public class TableAppendRowSetWorkerIntegrationTest {
 	private String tableId;
 	private List<String> toDelete = Lists.newArrayList();
 
-	@Before
+	@BeforeEach
 	public void before() throws NotFoundException {
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		// Start with an empty queue.
-		asynchJobStatusManager.emptyAllQueues();
+		asyncHelper.emptyAllQueues();
 		// Get the admin user
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		this.schema = new LinkedList<ColumnModel>();
@@ -134,7 +127,7 @@ public class TableAppendRowSetWorkerIntegrationTest {
 		return sc;
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		if (adminUserInfo != null) {
 			for (String id : toDelete) {
@@ -147,8 +140,7 @@ public class TableAppendRowSetWorkerIntegrationTest {
 	}
 
 	@Test
-	public void testAppendPartialRowSet() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, IOException,
-			InterruptedException {
+	public void testAppendPartialRowSet() throws Exception {
 		// We are now ready to start the job
 		AppendableRowSetRequest body = new AppendableRowSetRequest();
 		PartialRowSet set = new PartialRowSet();
@@ -162,24 +154,24 @@ public class TableAppendRowSetWorkerIntegrationTest {
 		row.setValues(values);
 		set.setRows(Arrays.asList(row));
 		TableUpdateTransactionRequest txRequest = TableModelUtils.wrapInTransactionRequest(body);
-		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, txRequest);
-		// Wait for the job to complete.
-		status = waitForStatus(adminUserInfo, status);
-		assertNotNull(status);
-		RowReferenceSetResults results = TableModelUtils.extractResponseFromTransaction(status.getResponseBody(), RowReferenceSetResults.class);
-		assertNotNull(results.getRowReferenceSet());
-		RowReferenceSet refSet = results.getRowReferenceSet();
-		assertNotNull(refSet.getRows());
-		assertEquals(tableId, refSet.getTableId());
-		assertEquals(1, refSet.getRows().size());
-		RowReference rowRef = refSet.getRows().get(0);
-		assertNotNull(rowRef.getRowId());
-		assertNotNull(rowRef.getVersionNumber());
+		
+		asyncHelper.assertJobResponse(adminUserInfo, txRequest, (TableUpdateTransactionResponse response) -> {
+			RowReferenceSetResults results = TableModelUtils.extractResponseFromTransaction(response, RowReferenceSetResults.class);
+			assertNotNull(results.getRowReferenceSet());
+			RowReferenceSet refSet = results.getRowReferenceSet();
+			assertNotNull(refSet.getRows());
+			assertEquals(tableId, refSet.getTableId());
+			assertEquals(1, refSet.getRows().size());
+			RowReference rowRef = refSet.getRows().get(0);
+			assertNotNull(rowRef.getRowId());
+			assertNotNull(rowRef.getVersionNumber());
+		}, MAX_WAIT_MS);
+		
+		
 	}
 
 	@Test
-	public void testAppendRowSet() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, IOException,
-			InterruptedException {
+	public void testAppendRowSet() throws Exception {
 		// We are now ready to start the job
 		AppendableRowSetRequest body = new AppendableRowSetRequest();
 		RowSet set = new RowSet();
@@ -191,32 +183,19 @@ public class TableAppendRowSetWorkerIntegrationTest {
 		row.setValues(Arrays.asList("one", "1234"));
 		set.setRows(Arrays.asList(row));
 		TableUpdateTransactionRequest txRequest = TableModelUtils.wrapInTransactionRequest(body);
-		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, txRequest);
+		
 		// Wait for the job to complete.
-		status = waitForStatus(adminUserInfo, status);
-		assertNotNull(status);
-		assertNotNull(status.getResponseBody());
-		RowReferenceSetResults results = TableModelUtils.extractResponseFromTransaction(status.getResponseBody(), RowReferenceSetResults.class);
-		assertNotNull(results.getRowReferenceSet());
-		RowReferenceSet refSet = results.getRowReferenceSet();
-		assertNotNull(refSet.getRows());
-		assertEquals(tableId, refSet.getTableId());
-		assertEquals(1, refSet.getRows().size());
-		RowReference rowRef = refSet.getRows().get(0);
-		assertNotNull(rowRef.getRowId());
-		assertNotNull(rowRef.getVersionNumber());
+		asyncHelper.assertJobResponse(adminUserInfo, txRequest, (TableUpdateTransactionResponse response) -> {
+			RowReferenceSetResults results = TableModelUtils.extractResponseFromTransaction(response, RowReferenceSetResults.class);
+			assertNotNull(results.getRowReferenceSet());
+			RowReferenceSet refSet = results.getRowReferenceSet();
+			assertNotNull(refSet.getRows());
+			assertEquals(tableId, refSet.getTableId());
+			assertEquals(1, refSet.getRows().size());
+			RowReference rowRef = refSet.getRows().get(0);
+			assertNotNull(rowRef.getRowId());
+			assertNotNull(rowRef.getVersionNumber());
+		}, MAX_WAIT_MS);
 	}
 	
-	private AsynchronousJobStatus waitForStatus(UserInfo user, AsynchronousJobStatus status) throws InterruptedException, DatastoreException,
-			NotFoundException {
-		long start = System.currentTimeMillis();
-		while (!AsynchJobState.COMPLETE.equals(status.getJobState())) {
-			assertFalse("Job Failed: " + status.getErrorDetails(), AsynchJobState.FAILED.equals(status.getJobState()));
-			assertTrue("Timed out waiting for table status", (System.currentTimeMillis() - start) < MAX_WAIT_MS);
-			Thread.sleep(1000);
-			// Get the status again
-			status = this.asynchJobStatusManager.getJobStatus(user, status.getJobId());
-		}
-		return status;
-	}
 }

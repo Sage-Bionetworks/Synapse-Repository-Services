@@ -402,5 +402,10 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 			return IOUtils.toString(reader);
 		}
 	}
+	
+	@Override
+	public void emptyAllQueues() {
+		asynchJobStatusManager.emptyAllQueues();
+	}
 
 }
