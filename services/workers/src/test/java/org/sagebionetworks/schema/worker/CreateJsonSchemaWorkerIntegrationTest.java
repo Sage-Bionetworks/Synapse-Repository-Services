@@ -93,9 +93,9 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 			assertEquals(semanticVersion, response.getNewVersionInfo().getSemanticVersion());
 		}, MAX_WAIT_MS);
 		
-		jsonSchemaManager.deleteSchemaAllVersion(adminUserInfo, organizationName, schemaName);
+		jsonSchemaManager.deleteSchemaById(adminUserInfo, basicSchema.get$id());
 		assertThrows(NotFoundException.class, () -> {
-			jsonSchemaManager.deleteSchemaAllVersion(adminUserInfo, organizationName, schemaName);
+			jsonSchemaManager.deleteSchemaById(adminUserInfo, basicSchema.get$id());
 		});
 	}
 

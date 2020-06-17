@@ -4,6 +4,8 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.authorize;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 
+import java.util.StringJoiner;
+
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
@@ -275,38 +277,24 @@ public class JsonSchemaController {
 	}
 
 	/**
-	 * Get a registered JSON schema using its $id. This method excludes the semantic
-	 * version, and will return the latest version of the schema.
+	 * Get a registered JSON schema using its $id.
 	 * 
 	 * @param userId
-	 * @param id     The $if of the schema to get.
+	 * @param organizationName The organization name of the schema.
+	 * @param schemaNameDashSemanticVersion The schema name with an optional dash semantic version.
 	 * @return
 	 */
 	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.JSON_SHCEMA_TYPE_REG_ORG_NAME }, method = RequestMethod.GET)
-	public @ResponseBody JsonSchema getJsonSchemaNoVersion(@PathVariable String organizationName,
-			@PathVariable String schemaName) {
-		String semanticVersion = null;
-		return serviceProvider.getSchemaServices().getSchema(organizationName, schemaName, semanticVersion);
+	public @ResponseBody JsonSchema getJsonSchemaNoVersion(@PathVariable(required = true) String organizationName,
+			@PathVariable(required = true) String schemaNameDashSemanticVersion) {
+		StringJoiner $idJoiner = new StringJoiner("/");
+		$idJoiner.add(organizationName);
+		$idJoiner.add(schemaNameDashSemanticVersion);
+		return serviceProvider.getSchemaServices().getSchema($idJoiner.toString());
 	}
 
-	/**
-	 * Get a registered JSON schema using its $id. This method includes the semantic
-	 * version, and will return a specific version of a schema.
-	 * 
-	 * @param organizationName
-	 * @param schemaName
-	 * @param semanticVersion
-	 * @return
-	 */
-	@RequiredScope({ view })
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.JSON_SHCEMA_TYPE_REG_ORG_NAME_VER }, method = RequestMethod.GET)
-	public @ResponseBody JsonSchema getJsonSchemaWithVersion(@PathVariable String organizationName,
-			@PathVariable String schemaName, @PathVariable String semanticVersion) {
-		return serviceProvider.getSchemaServices().getSchema(organizationName, schemaName, semanticVersion);
-	}
 
 	/**
 	 * List all JSON schemas for an Organization. Each call will return a single
@@ -341,7 +329,8 @@ public class JsonSchemaController {
 	}
 
 	/**
-	 * Delete the given schema and all of its versions. Caution: This operation
+	 * Delete the given schema using its $id.  If the $id excludes a semantic version, all versions of the schema will be deleted.
+	 * If the $id includes a semantic version then just that version will be deleted. Caution: This operation
 	 * cannot be undone.
 	 * <p>
 	 * Note: The caller must be granted the
@@ -350,37 +339,19 @@ public class JsonSchemaController {
 	 * </p>
 	 * 
 	 * @param userId
-	 * @param id     The $id of the schema to delete.
+	 * @param organizationName The organization name of the schema.
+	 * @param schemaNameDashSemanticVersion The schema name with an optional dash semantic version.
 	 */
 	@RequiredScope({ modify })
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = { UrlHelpers.JSON_SHCEMA_TYPE_REG_ORG_NAME }, method = RequestMethod.DELETE)
 	public void deleteSchemaAllVersions(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String organizationName, @PathVariable String schemaName) {
-		serviceProvider.getSchemaServices().deleteSchemaAllVersions(userId, organizationName, schemaName);
+			@PathVariable(required = true) String organizationName, @PathVariable(required = true) String schemaNameDashSemanticVersion) {
+		StringJoiner $idJoiner = new StringJoiner("/");
+		$idJoiner.add(organizationName);
+		$idJoiner.add(schemaNameDashSemanticVersion);
+		serviceProvider.getSchemaServices().deleteSchemaById(userId, $idJoiner.toString());
 	}
 
-	/**
-	 * Delete a specific version of a schema. Caution: This operation cannot be
-	 * undone.
-	 * <p>
-	 * Note: The caller must be granted the
-	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.DELETE</a> permission on the schema's organization.
-	 * </p>
-	 * 
-	 * @param userId
-	 * @param organizationName
-	 * @param schemaName
-	 * @param semanticVersion
-	 */
-	@RequiredScope({ modify })
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = { UrlHelpers.JSON_SHCEMA_TYPE_REG_ORG_NAME_VER }, method = RequestMethod.DELETE)
-	public void deleteSchemaVersion(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String organizationName, @PathVariable String schemaName,
-			@PathVariable String semanticVersion) {
-		serviceProvider.getSchemaServices().deleteSchemaVersion(userId, organizationName, schemaName, semanticVersion);
-	}
 
 }

@@ -5626,12 +5626,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public JsonSchema getJsonSchema(String organizationName, String schemaName, String semanticVersion) throws SynapseException {
 		ValidateArgument.required(organizationName, "organizationName");
 		ValidateArgument.required(schemaName, "schemaName");
-		StringJoiner joiner = new StringJoiner("/");
-		joiner.add("/schema/type/registered");
-		joiner.add(organizationName);
-		joiner.add(schemaName);
+		StringBuilder joiner = new StringBuilder();
+		joiner.append("/schema/type/registered/");
+		joiner.append(organizationName);
+		joiner.append("/");
+		joiner.append(schemaName);
 		if(semanticVersion != null) {
-			joiner.add(semanticVersion);
+			joiner.append("-");
+			joiner.append(semanticVersion);
 		}
 		return getJSONEntity(getRepoEndpoint(), joiner.toString(), JsonSchema.class);
 	}

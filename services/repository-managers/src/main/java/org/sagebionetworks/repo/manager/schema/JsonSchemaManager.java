@@ -82,24 +82,7 @@ public interface JsonSchemaManager {
 	 * @param semanticVersion
 	 * @return
 	 */
-	JsonSchema getSchema(String organizationName, String schemaName, String semanticVersion);
-
-	/**
-	 * Attempt to delete all version of a schema.
-	 * @param user
-	 * @param organizationName
-	 * @param schemaName
-	 */
-	public void deleteSchemaAllVersion(UserInfo user, String organizationName, String schemaName);
-	
-	/**
-	 * Delete a specific version of a schema.
-	 * @param user
-	 * @param organizationName
-	 * @param schemaName
-	 * @param semanticVersion
-	 */
-	void deleteSchemaVersion(UserInfo user, String organizationName, String schemaName, String semanticVersion);
+	JsonSchema getSchema(String $id);
 
 	void truncateAll();
 
@@ -166,6 +149,13 @@ public interface JsonSchemaManager {
 	 * @param objectType
 	 */
 	void clearBoundSchema(Long objectId, BoundObjectType objectType);
+
+	/**
+	 * Delete a schema for the given $id.
+	 * @param user
+	 * @param $id
+	 */
+	void deleteSchemaById(UserInfo user, String $id);
 
 
 }

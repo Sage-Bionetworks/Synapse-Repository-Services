@@ -424,4 +424,11 @@ public class SchemaIdParserTest {
 		}).getMessage();
 		assertEquals("Organization name cannot be null", message);
 	}
+	
+	@Test
+	public void testParseSchemaIdFull() {
+		SchemaId id = SchemaIdParser.parseSchemaId("test.integeration.organization/integration.test.Schema.json-1.45.67-alpha+beta");
+		assertNotNull(id);
+		assertEquals("test.integeration.organization/integration.test.Schema.json-1.45.67-alpha+beta", id.toString());
+	}
 }
