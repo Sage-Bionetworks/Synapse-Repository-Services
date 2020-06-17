@@ -321,6 +321,7 @@ public class SchemaTranslatorImplTest {
 		properties.put("a", new ObjectSchemaImpl(TYPE.STRING));
 		properties.put("b", new ObjectSchemaImpl(TYPE.NUMBER));
 		ObjectSchemaImpl inputSchema = new ObjectSchemaImpl(TYPE.OBJECT);
+		inputSchema.setId("org.sagebionetworks.Testing");
 		inputSchema.setProperties(properties);
 		
 		// Call under test
@@ -328,7 +329,7 @@ public class SchemaTranslatorImplTest {
 		assertNotNull(result);
 		assertNotNull(result.get$schema());
 		assertNotNull(result.getProperties());
-		assertEquals(2, result.getProperties().size());
+		assertEquals(3, result.getProperties().size());
 		JsonSchema propA = result.getProperties().get("a");
 		// only the root should have a $schema
 		assertNull(propA.get$schema());
@@ -338,6 +339,10 @@ public class SchemaTranslatorImplTest {
 		assertNotNull(propB);
 		assertEquals(Type.number, propB.getType());
 		assertNull(propB.get$schema());
+		JsonSchema propConcreteType = result.getProperties().get("concreteType");
+		assertNotNull(propConcreteType);
+		assertEquals(Type.string, propConcreteType.getType());
+		assertEquals(inputSchema.getId(), propConcreteType.get_const());
 	}
 	
 	@Test
@@ -348,6 +353,69 @@ public class SchemaTranslatorImplTest {
 		JsonSchema result = translator.translate(one);
 		assertNotNull(result);
 		assertEquals(Type.string, result.getType());
+	}
+	
+	@Test
+	public void testTranslateWithNullType() {
+		ObjectSchemaImpl one = new ObjectSchemaImpl();
+		one.setType(null);
+		one.setId("org.sagebionetworks.model.Test");
+		// call under test
+		JsonSchema result = translator.translate(one);
+		assertNotNull(result);
+		assertEquals(null, result.getType());
+		assertNotNull(result.getProperties());
+		assertEquals(1, result.getProperties().size());
+		JsonSchema concreteType = result.getProperties().get("concreteType");
+		assertNotNull(concreteType);
+		assertEquals(one.getId(), concreteType.get_const());
+	}
+	
+	@Test
+	public void testTranslateWithTypeObjectWithNullProperties() {
+		ObjectSchemaImpl one = new ObjectSchemaImpl();
+		one.setType(TYPE.OBJECT);
+		one.setId("org.sagebionetworks.model.Test");
+		one.setProperties(null);
+		// call under test
+		JsonSchema result = translator.translate(one);
+		assertNotNull(result);
+		assertEquals(Type.object, result.getType());
+		assertNotNull(result.getProperties());
+		assertEquals(1, result.getProperties().size());
+		JsonSchema concreteType = result.getProperties().get("concreteType");
+		assertNotNull(concreteType);
+		assertEquals(one.getId(), concreteType.get_const());
+	}
+	
+	@Test
+	public void testTranslateWithTypeObjectWithProperties() {
+		ObjectSchemaImpl one = new ObjectSchemaImpl();
+		one.setType(TYPE.OBJECT);
+		one.setId("org.sagebionetworks.model.Test");
+		one.setProperties(new LinkedHashMap<String, ObjectSchema>(0));
+		one.getProperties().put("test", new ObjectSchemaImpl(TYPE.STRING));
+		// call under test
+		JsonSchema result = translator.translate(one);
+		assertNotNull(result);
+		assertEquals(Type.object, result.getType());
+		assertNotNull(result.getProperties());
+		assertEquals(2, result.getProperties().size());
+		JsonSchema concreteType = result.getProperties().get("concreteType");
+		assertNotNull(concreteType);
+		assertEquals(one.getId(), concreteType.get_const());
+	}
+	
+	@Test
+	public void testTranslateWithTypeInterface() {
+		ObjectSchemaImpl one = new ObjectSchemaImpl();
+		one.setType(TYPE.INTERFACE);
+		one.setId("org.sagebionetworks.model.Test");
+		// call under test
+		JsonSchema result = translator.translate(one);
+		assertNotNull(result);
+		assertEquals(Type.object, result.getType());
+		assertNull(result.getProperties());
 	}
 	
 	@Test

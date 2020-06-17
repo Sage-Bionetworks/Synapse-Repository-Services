@@ -4245,7 +4245,7 @@ public class NodeDAOImplTest {
 		Long childId = KeyFactory.stringToKey(child.getId());
 		toDelete.add(child.getId());
 
-		String schema$id = "my.org/foo.bar/1.2.3";
+		String schema$id = "my.org/foo.bar-1.2.3";
 		int index = 0;
 		JsonSchemaVersionInfo schemaInfo = jsonSchemaTestHelper.createNewSchemaVersion(creatorUserGroupId, schema$id,
 				index);
@@ -4300,7 +4300,7 @@ public class NodeDAOImplTest {
 		Long childId = KeyFactory.stringToKey(child.getId());
 		toDelete.add(child.getId());
 
-		String schema$id = "my.org/foo.bar/1.2.3";
+		String schema$id = "my.org/foo.bar-1.2.3";
 		int index = 0;
 		JsonSchemaVersionInfo schemaInfo = jsonSchemaTestHelper.createNewSchemaVersion(creatorUserGroupId, schema$id,
 				index);

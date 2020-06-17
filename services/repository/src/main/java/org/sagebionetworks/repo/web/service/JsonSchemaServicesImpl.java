@@ -55,20 +55,14 @@ public class JsonSchemaServicesImpl implements JsonSchemaServices {
 	}
 
 	@Override
-	public JsonSchema getSchema(String organizationName, String schemaName, String semanticVersion) {
-		return schemaManager.getSchema(organizationName, schemaName, semanticVersion);
+	public JsonSchema getSchema(String $id) {
+		return schemaManager.getSchema($id);
 	}
 
 	@Override
-	public void deleteSchemaAllVersions(Long userId, String organizationName, String schemaName) {
+	public void deleteSchemaById(Long userId, String $id) {
 		UserInfo user = userManager.getUserInfo(userId);
-		schemaManager.deleteSchemaAllVersion(user, organizationName, schemaName);
-	}
-
-	@Override
-	public void deleteSchemaVersion(Long userId, String organizationName, String schemaName, String semanticVersion) {
-		UserInfo user = userManager.getUserInfo(userId);
-		schemaManager.deleteSchemaVersion(user, organizationName, schemaName, semanticVersion);
+		schemaManager.deleteSchemaById(user, $id);
 	}
 
 	@Override
@@ -85,5 +79,7 @@ public class JsonSchemaServicesImpl implements JsonSchemaServices {
 	public ListJsonSchemaVersionInfoResponse listSchemasVersions(ListJsonSchemaVersionInfoRequest request) {
 		return schemaManager.listSchemaVersions(request);
 	}
+
+
 
 }

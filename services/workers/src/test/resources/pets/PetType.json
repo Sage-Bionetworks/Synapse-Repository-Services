@@ -3,7 +3,7 @@
 	"$id": "my.organization/pets.PetType",
 	"type": "string",
 	"description": "Identifies the type of pet shown in photo.",
-	"_enum": [
+	"enum": [
 		"cat",
 		"dog"
 	]
