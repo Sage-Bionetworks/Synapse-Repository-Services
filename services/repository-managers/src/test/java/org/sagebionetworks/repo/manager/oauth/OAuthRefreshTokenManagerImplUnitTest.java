@@ -282,6 +282,49 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 	}
 
 	@Test
+	public void testGetTokenMetadataWithToken() {
+		String token = "opaque refresh token";
+
+		OAuthRefreshTokenInformation expected = new OAuthRefreshTokenInformation();
+		expected.setTokenId(TOKEN_ID);
+		expected.setClientId(CLIENT_ID);
+
+		when(mockOAuthRefreshTokenDao.getMatchingTokenByHash(anyString())).thenReturn(Optional.of(expected));
+
+		// Call under test
+		OAuthRefreshTokenInformation actual = oauthRefreshTokenManager.getRefreshTokenMetadataWithToken(CLIENT_ID, token);
+
+		assertEquals(expected, actual);
+		verify(mockOAuthRefreshTokenDao).getMatchingTokenByHash(anyString());
+	}
+
+	@Test
+	public void testGetTokenMetadataWithToken_NotFound() {
+		String token = "opaque refresh token";
+		when(mockOAuthRefreshTokenDao.getMatchingTokenByHash(anyString())).thenReturn(Optional.empty());
+
+		// Call under test
+		assertThrows(NotFoundException.class, () -> oauthRefreshTokenManager.getRefreshTokenMetadataWithToken(CLIENT_ID, token));
+
+		verify(mockOAuthRefreshTokenDao).getMatchingTokenByHash(anyString());
+	}
+
+	@Test
+	public void testGetTokenMetadataWithToken_Unauthorized() {
+		String token = "opaque refresh token";
+		OAuthRefreshTokenInformation expected = new OAuthRefreshTokenInformation();
+		expected.setTokenId(TOKEN_ID);
+		expected.setClientId("some other client ID");
+
+		when(mockOAuthRefreshTokenDao.getMatchingTokenByHash(anyString())).thenReturn(Optional.of(expected));
+
+		// Call under test
+		assertThrows(UnauthorizedException.class, () -> oauthRefreshTokenManager.getRefreshTokenMetadataWithToken(CLIENT_ID, token));
+
+		verify(mockOAuthRefreshTokenDao).getMatchingTokenByHash(anyString());
+	}
+
+	@Test
 	public void testGetClientHistory() {
 		String nextPageToken = "initial npt";
 
@@ -362,6 +405,48 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 
 		// Call under test
 		assertThrows(UnauthorizedException.class, () -> oauthRefreshTokenManager.revokeRefreshToken(USER_INFO, TOKEN_ID));
+
+		verify(mockOAuthRefreshTokenDao).getRefreshTokenMetadata(TOKEN_ID);
+		verify(mockOAuthRefreshTokenDao, never()).deleteToken(TOKEN_ID);
+	}
+
+
+	@Test
+	public void testRevokeTokenAsClient() {
+		OAuthRefreshTokenInformation existingToken = new OAuthRefreshTokenInformation();
+		existingToken.setTokenId(TOKEN_ID);
+		existingToken.setClientId(CLIENT_ID);
+
+		when(mockOAuthRefreshTokenDao.getRefreshTokenMetadata(TOKEN_ID)).thenReturn(Optional.of(existingToken));
+
+		// Call under test
+		oauthRefreshTokenManager.revokeRefreshToken(CLIENT_ID, TOKEN_ID);
+
+		verify(mockOAuthRefreshTokenDao).getRefreshTokenMetadata(TOKEN_ID);
+		verify(mockOAuthRefreshTokenDao).deleteToken(TOKEN_ID);
+	}
+
+	@Test
+	public void testRevokeTokenAsClient_NotFound() {
+		when(mockOAuthRefreshTokenDao.getRefreshTokenMetadata(TOKEN_ID)).thenReturn(Optional.empty());
+
+		// Call under test
+		assertThrows(NotFoundException.class, () -> oauthRefreshTokenManager.revokeRefreshToken(CLIENT_ID, TOKEN_ID));
+
+		verify(mockOAuthRefreshTokenDao).getRefreshTokenMetadata(TOKEN_ID);
+		verify(mockOAuthRefreshTokenDao, never()).deleteToken(TOKEN_ID);
+	}
+
+	@Test
+	public void testRevokeTokenAsClient_Unauthorized() {
+		OAuthRefreshTokenInformation existingToken = new OAuthRefreshTokenInformation();
+		existingToken.setTokenId(TOKEN_ID);
+		existingToken.setClientId("some other client ID");
+
+		when(mockOAuthRefreshTokenDao.getRefreshTokenMetadata(TOKEN_ID)).thenReturn(Optional.of(existingToken));
+
+		// Call under test
+		assertThrows(UnauthorizedException.class, () -> oauthRefreshTokenManager.revokeRefreshToken(CLIENT_ID, TOKEN_ID));
 
 		verify(mockOAuthRefreshTokenDao).getRefreshTokenMetadata(TOKEN_ID);
 		verify(mockOAuthRefreshTokenDao, never()).deleteToken(TOKEN_ID);
@@ -496,35 +581,6 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 
 		verify(mockOAuthRefreshTokenDao).getRefreshTokenMetadata(TOKEN_ID);
 		verify(mockOAuthRefreshTokenDao, never()).updateRefreshTokenMetadata(any(OAuthRefreshTokenInformation.class));
-	}
-
-	@Test
-	public void testRevokeRefreshTokenWithRefreshToken() {
-		String refreshToken = "a refresh token";
-
-		OAuthRefreshTokenInformation retrievedMetadata = new OAuthRefreshTokenInformation();
-		retrievedMetadata.setTokenId(TOKEN_ID);
-
-		when(mockOAuthRefreshTokenDao.getMatchingTokenByHashForUpdate(anyString())).thenReturn(Optional.of(retrievedMetadata));
-
-		// Call under test
-		oauthRefreshTokenManager.revokeRefreshToken(refreshToken);
-
-		verify(mockOAuthRefreshTokenDao).getMatchingTokenByHashForUpdate(anyString());
-		verify(mockOAuthRefreshTokenDao).deleteToken(TOKEN_ID);
-	}
-
-	@Test
-	public void testRevokeRefreshTokenWithRefreshToken_IllegalArgument() {
-		String refreshToken = "a refresh token";
-
-		when(mockOAuthRefreshTokenDao.getMatchingTokenByHashForUpdate(anyString())).thenReturn(Optional.empty());
-
-		// Call under test
-		assertThrows(IllegalArgumentException.class, () -> oauthRefreshTokenManager.revokeRefreshToken(refreshToken));
-
-		verify(mockOAuthRefreshTokenDao).getMatchingTokenByHashForUpdate(anyString());
-		verify(mockOAuthRefreshTokenDao, never()).deleteToken(anyString());
 	}
 
 	@Test

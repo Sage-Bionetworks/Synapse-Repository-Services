@@ -33,7 +33,7 @@ public class EnumKeyedJsonMapUtilTest {
 	}
 
 	@Test
-	public void testConvertToEnum_IllegalArgExc() {
+	public void testConvertToEnum_unrecognizedKey() {
 		Map<String, String> stringMap = new HashMap<>();
 		stringMap.put("ALPHA", "alphaVal");
 		stringMap.put("BETA", "betaVal");
@@ -48,7 +48,6 @@ public class EnumKeyedJsonMapUtilTest {
 		assertNull(enumMap.get(TestEnum.GAMMA));
 
 	}
-
 
 	@Test
 	public void testConvertToString() {
@@ -65,20 +64,4 @@ public class EnumKeyedJsonMapUtilTest {
 		assertEquals(enumMap.get(TestEnum.BETA), stringMap.get("BETA"));
 		assertEquals(enumMap.get(TestEnum.GAMMA), stringMap.get("GAMMA"));
 	}
-
-
-	@Test
-	public void testRoundTrip() {
-		Map<String, String> stringMap = new HashMap<>();
-		stringMap.put("ALPHA", "alphaVal");
-		stringMap.put("BETA", "betaVal");
-		stringMap.put("GAMMA", "gammaVal");
-
-		// Call under test
-		Map<String, String> stringMapRoundTrip = EnumKeyedJsonMapUtil.convertToString(
-				EnumKeyedJsonMapUtil.convertToEnum(stringMap, TestEnum.class));
-
-		assertEquals(stringMap, stringMapRoundTrip);
-	}
-
 }

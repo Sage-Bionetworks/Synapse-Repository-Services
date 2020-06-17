@@ -64,6 +64,16 @@ public interface OAuthRefreshTokenManager {
 	OAuthRefreshTokenInformation getRefreshTokenMetadata(String clientId, String tokenId) throws NotFoundException, UnauthorizedException;
 
 	/**
+	 * Retrieve an OAuth 2.0 refresh token's metadata using the tokens itself, on behalf of a client
+	 * @param verifiedClientId the verified client ID of the client making this request
+	 * @param refreshToken the unhashed token
+	 * @return
+	 * @throws NotFoundException if the token does not exist
+	 * @throws UnauthorizedException if the token is not associated with the client
+	 */
+	OAuthRefreshTokenInformation getRefreshTokenMetadataWithToken(String verifiedClientId, String refreshToken) throws NotFoundException, UnauthorizedException;
+
+	/**
 	 * Retrieve a paginated record of which clients are currently granted OAuth 2.0 access to a user via active refresh tokens
 	 * @param userInfo the user whose records should be retrieved
 	 * @param nextPageToken {@link org.sagebionetworks.repo.model.NextPageToken} token for pagination
@@ -89,7 +99,7 @@ public interface OAuthRefreshTokenManager {
 	void revokeRefreshTokensForUserClientPair(UserInfo userInfo, String clientId);
 
 	/**
-	 * Revoke a particular refresh token using a token ID
+	 * Revoke a particular refresh token using a token ID, checking a user's credentials to see if they are authorized to revoke it
 	 *
 	 * @param userInfo
 	 * @param tokenId
@@ -99,11 +109,14 @@ public interface OAuthRefreshTokenManager {
 	void revokeRefreshToken(UserInfo userInfo, String tokenId) throws NotFoundException, UnauthorizedException;
 
 	/**
-	 * Revokes a refresh token using the token itself. This method is usually invoked by an OAuth client, but a client
-	 * ID is not required because if this is called by an unauthorized party, the token should be revoked anyway.
-	 * @param refreshToken the unhashed token to revoke
+	 * Revoke a particular refresh token using a token ID, checking a client's ID to see if they are authorized to revoke it
+	 *
+	 * @param clientId
+	 * @param tokenId
+	 * @throws NotFoundException if the token does not exist
+	 * @throws UnauthorizedException if the token is not associated with the user
 	 */
-	void revokeRefreshToken(String refreshToken) throws NotFoundException;
+	void revokeRefreshToken(String clientId, String tokenId) throws NotFoundException, UnauthorizedException;
 
 	/**
 	 * Updates a token's metadata.

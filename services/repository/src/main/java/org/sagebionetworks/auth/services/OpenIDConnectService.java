@@ -140,7 +140,7 @@ public interface OpenIDConnectService {
 
 	void revokeRefreshTokenAsUser(Long userId, String tokenId);
 
-	void revokeToken(OAuthTokenRevocationRequest revokeRequest);
+	void revokeToken(String verifiedClientId, OAuthTokenRevocationRequest revokeRequest);
 
 	OAuthRefreshTokenInformation updateRefreshTokenMetadata(Long userId, String tokenId, OAuthRefreshTokenInformation metadata);
 

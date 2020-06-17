@@ -36,7 +36,7 @@ public interface OpenIDConnectManager {
 	 * @param redirectUri
 	 * @return
 	 */
-	OIDCTokenResponse getTokenResponseWithAuthorizationCode(String authorizationCode, String verifiedClientId, String redirectUri, String oauthEndpoint);
+	OIDCTokenResponse generateTokenResponseWithAuthorizationCode(String authorizationCode, String verifiedClientId, String redirectUri, String oauthEndpoint);
 
 	/**
 	 * Obtain an access token and a new refresh token, and conditionally an ID token using a refresh token
@@ -46,7 +46,7 @@ public interface OpenIDConnectManager {
 	 * @param oauthEndpoint
 	 * @return
 	 */
-	OIDCTokenResponse getTokenResponseWithRefreshToken(String refreshToken, String verifiedClientId, String scope, String oauthEndpoint);
+	OIDCTokenResponse generateTokenResponseWithRefreshToken(String refreshToken, String verifiedClientId, String scope, String oauthEndpoint);
 
 	/**
 	 * Given an OAuth access token with an audience and subject, 'decode' the
@@ -87,9 +87,10 @@ public interface OpenIDConnectManager {
 	/**
 	 * Revokes a refresh token using the token itself. This method is usually invoked by an OAuth client, but a client
 	 * ID is not required because if this is called by an unauthorized party, the token should be revoked anyways.
+	 * @param verifiedClientId
 	 * @param revocationRequest
 	 */
-	void revokeToken(OAuthTokenRevocationRequest revocationRequest) throws NotFoundException;
+	void revokeToken(String verifiedClientId, OAuthTokenRevocationRequest revocationRequest) throws NotFoundException;
 
 
 }

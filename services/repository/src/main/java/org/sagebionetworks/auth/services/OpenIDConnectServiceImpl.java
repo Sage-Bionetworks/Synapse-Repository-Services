@@ -149,9 +149,9 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	public OIDCTokenResponse getTokenResponse(String verifiedClientId, OAuthGrantType grantType, 
 			String authorizationCode, String redirectUri, String refreshToken, String scope, String claims, String oauthEndpoint) {
 		if (OAuthGrantType.authorization_code==grantType) {
-			return oidcManager.getTokenResponseWithAuthorizationCode(authorizationCode, verifiedClientId, redirectUri, oauthEndpoint);
+			return oidcManager.generateTokenResponseWithAuthorizationCode(authorizationCode, verifiedClientId, redirectUri, oauthEndpoint);
 		} else if (OAuthGrantType.refresh_token==grantType) {
-			return oidcManager.getTokenResponseWithRefreshToken(refreshToken, verifiedClientId, scope, oauthEndpoint);
+			return oidcManager.generateTokenResponseWithRefreshToken(refreshToken, verifiedClientId, scope, oauthEndpoint);
 		} else {
 			throw new IllegalArgumentException("Unsupported grant type"+grantType);
 		}
@@ -187,8 +187,8 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	}
 
 	@Override
-	public void revokeToken(OAuthTokenRevocationRequest revokeRequest) {
-		oidcManager.revokeToken(revokeRequest);
+	public void revokeToken(String verifiedClientId, OAuthTokenRevocationRequest revokeRequest) {
+		oidcManager.revokeToken(verifiedClientId, revokeRequest);
 	}
 
 	@Override

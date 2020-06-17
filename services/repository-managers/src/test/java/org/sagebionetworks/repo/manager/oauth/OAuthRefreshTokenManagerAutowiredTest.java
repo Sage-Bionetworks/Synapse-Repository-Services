@@ -178,20 +178,24 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 		assertEquals(token.getMetadata(), retrievedViaId);
 
 
-		// Retrieve the token with the token, causing a token refresh
+		// Retrieve the token metadata with the token
+		OAuthRefreshTokenInformation retrievedViaMetadata = refreshTokenManager.getRefreshTokenMetadataWithToken(client1.getClient_id(), token.getRefreshToken());
+		assertEquals(retrievedViaId, retrievedViaMetadata);
+
+		// Rotate the token
 		// Call under test
-		OAuthRefreshTokenAndMetadata retrievedViaToken = refreshTokenManager.rotateRefreshToken(token.getRefreshToken());
-		assertNotNull(retrievedViaToken);
-		assertTrue(StringUtils.isNotBlank(retrievedViaToken.getRefreshToken()));
-		assertNotEquals(retrievedViaToken.getRefreshToken(), token.getRefreshToken()); // The token should be different
-		assertNotNull(retrievedViaToken.getMetadata());
+		OAuthRefreshTokenAndMetadata rotatedToken = refreshTokenManager.rotateRefreshToken(token.getRefreshToken());
+		assertNotNull(rotatedToken);
+		assertTrue(StringUtils.isNotBlank(rotatedToken.getRefreshToken()));
+		assertNotEquals(rotatedToken.getRefreshToken(), token.getRefreshToken()); // The token should be different
+		assertNotNull(rotatedToken.getMetadata());
 		// Last used and Etag will have changed
-		assertNotEquals(token.getMetadata().getEtag(), retrievedViaToken.getMetadata().getEtag());
-		assertTrue(retrievedViaToken.getMetadata().getLastUsed().getTime() >= token.getMetadata().getLastUsed().getTime());
+		assertNotEquals(token.getMetadata().getEtag(), rotatedToken.getMetadata().getEtag());
+		assertTrue(rotatedToken.getMetadata().getLastUsed().getTime() >= token.getMetadata().getLastUsed().getTime());
 		// Everything else will be equal
-		token.getMetadata().setEtag(retrievedViaToken.getMetadata().getEtag());
-		token.getMetadata().setLastUsed(retrievedViaToken.getMetadata().getLastUsed());
-		assertEquals(token.getMetadata(), retrievedViaToken.getMetadata());
+		token.getMetadata().setEtag(rotatedToken.getMetadata().getEtag());
+		token.getMetadata().setLastUsed(rotatedToken.getMetadata().getLastUsed());
+		assertEquals(token.getMetadata(), rotatedToken.getMetadata());
 
 		// Should get IllegalArgumentException when trying to retrieve via the old hash
 		assertThrows(IllegalArgumentException.class, () -> refreshTokenManager.rotateRefreshToken(token.getRefreshToken()));
@@ -199,12 +203,13 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 		// Other user should get unauthz on attempt to retrieve via ID
 		assertThrows(UnauthorizedException.class, () -> refreshTokenManager.getRefreshTokenMetadata(user2, token.getMetadata().getTokenId()));
 
-		// Other client should get unauthz on attempt to retrieve via ID
+		// Other client should get unauthz on attempt to retrieve via ID or token itself
 		assertThrows(UnauthorizedException.class, () -> refreshTokenManager.getRefreshTokenMetadata(client2.getClient_id(), token.getMetadata().getTokenId()));
+		assertThrows(UnauthorizedException.class, () -> refreshTokenManager.getRefreshTokenMetadataWithToken(client2.getClient_id(), rotatedToken.getRefreshToken()));
 
 
 		// Update a refresh token's metadata
-		OAuthRefreshTokenInformation metadata = retrievedViaToken.getMetadata();
+		OAuthRefreshTokenInformation metadata = rotatedToken.getMetadata();
 		String customName = "my token name";
 		metadata.setName(customName);
 		// Call under test
@@ -230,7 +235,7 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 		// Should get NFE because token is revoked/deleted.
 		assertThrows(NotFoundException.class, () -> refreshTokenManager.getRefreshTokenMetadata(user1, token.getMetadata().getTokenId()));
 		// Should get IllegalArgumentException when trying to retrieve via hash
-		assertThrows(IllegalArgumentException.class, () -> refreshTokenManager.rotateRefreshToken(retrievedViaToken.getRefreshToken()));
+		assertThrows(IllegalArgumentException.class, () -> refreshTokenManager.rotateRefreshToken(rotatedToken.getRefreshToken()));
 
 	}
 
@@ -324,23 +329,14 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 	}
 
 	@Test
-	public void testRevokeTokenWithRefreshToken() {
-		OAuthRefreshTokenAndMetadata tokenAndId = refreshTokenManager.createRefreshToken(user1.getId().toString(), client1.getClient_id(), scopes, claims);
-
-		// Call under test
-		refreshTokenManager.revokeRefreshToken(tokenAndId.getRefreshToken());
-
-		assertThrows(NotFoundException.class, () -> refreshTokenManager.getRefreshTokenMetadata(user1, tokenAndId.getMetadata().getTokenId()));
-	}
-
-	@Test
 	public void testIsRefreshTokenActive() {
 		OAuthRefreshTokenAndMetadata token = refreshTokenManager.createRefreshToken(user1.getId().toString(), client1.getClient_id(), scopes, claims);
 
 		// Call under test
 		assertTrue(refreshTokenManager.isRefreshTokenActive(token.getMetadata().getTokenId()));
 
-		refreshTokenManager.revokeRefreshToken(token.getRefreshToken());
+		// revoke the token
+		refreshTokenManager.revokeRefreshToken(user1, token.getMetadata().getTokenId());
 
 		// Call under test
 		assertFalse(refreshTokenManager.isRefreshTokenActive(token.getMetadata().getTokenId()));

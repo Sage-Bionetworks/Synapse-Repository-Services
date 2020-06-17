@@ -303,7 +303,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	}
 
 	@Override
-	public OIDCTokenResponse getTokenResponseWithAuthorizationCode(String code, String verifiedClientId, String redirectUri, String oauthEndpoint) {
+	public OIDCTokenResponse generateTokenResponseWithAuthorizationCode(String code, String verifiedClientId, String redirectUri, String oauthEndpoint) {
 		ValidateArgument.required(code, "Authorization Code");
 		ValidateArgument.required(verifiedClientId, "OAuth Client ID");
 		ValidateArgument.required(redirectUri, "Redirect URI");
@@ -340,10 +340,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		OIDCClaimsRequest normalizedClaims = normalizeClaims(authorizationRequest.getClaims());
 
-		Date authTime = null;
-		if (authorizationRequest.getAuthenticatedAt()!=null) {
-			authTime = authorizationRequest.getAuthenticatedAt();
-		}
+		Date authTime = authorizationRequest.getAuthenticatedAt();
 
 		// The following implements 'pairwise' subject_type, https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
 		// Pairwise Pseudonymous Identifier (PPID)
@@ -423,7 +420,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	@WriteTransaction
 	@Override
-	public OIDCTokenResponse getTokenResponseWithRefreshToken(String refreshToken, String verifiedClientId, String scope, String oauthEndpoint) {
+	public OIDCTokenResponse generateTokenResponseWithRefreshToken(String refreshToken, String verifiedClientId, String scope, String oauthEndpoint) {
 		ValidateArgument.required(refreshToken, "Refresh Token");
 		ValidateArgument.required(verifiedClientId, "OAuth Client ID");
 		ValidateArgument.required(oauthEndpoint, "Authorization Endpoint");
@@ -551,20 +548,19 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	@WriteTransaction
 	@Override
-	public void revokeToken(OAuthTokenRevocationRequest revocationRequest) {
+	public void revokeToken(String verifiedClientId, OAuthTokenRevocationRequest revocationRequest) {
 		switch (revocationRequest.getToken_type_hint()) {
 			case access_token: // retrieve the refresh token ID from the JWT
 				String refreshTokenId = this.getRefreshTokenId(revocationRequest.getToken());
 				if (refreshTokenId == null) {
 					// Access tokens that were not issued alongside refresh tokens cannot be revoked.
-					throw new IllegalArgumentException("The access token was not issued via a refresh token. It cannot be revoked.");
+					throw new IllegalArgumentException("The access token has no associated refresh token so it cannot be revoked.");
 				}
-				// Revoke via token doesn't require authorization, so we use the admin user
-				UserInfo adminUserInfo = userManager.getUserInfo(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-				oauthRefreshTokenManager.revokeRefreshToken(adminUserInfo, refreshTokenId);
+				oauthRefreshTokenManager.revokeRefreshToken(verifiedClientId, refreshTokenId);
 				return;
-			case refresh_token: // retrieve the token ID from the DAO using the token hash
-				oauthRefreshTokenManager.revokeRefreshToken(revocationRequest.getToken());
+			case refresh_token: // retrieve the token ID using the token
+				OAuthRefreshTokenInformation metadata = oauthRefreshTokenManager.getRefreshTokenMetadataWithToken(verifiedClientId, revocationRequest.getToken());
+				oauthRefreshTokenManager.revokeRefreshToken(verifiedClientId, metadata.getTokenId());
 				return;
 			default:
 				throw new IllegalArgumentException("Unable to revoke a token with token_type_hint=" + revocationRequest.getToken_type_hint().name());

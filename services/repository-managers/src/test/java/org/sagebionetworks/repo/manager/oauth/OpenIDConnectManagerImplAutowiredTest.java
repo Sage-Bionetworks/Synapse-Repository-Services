@@ -1,11 +1,11 @@
 package org.sagebionetworks.repo.manager.oauth;
 
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
 import java.util.Date;
@@ -39,6 +39,8 @@ import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.TokenTypeHint;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.util.TemporaryCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.test.context.ContextConfiguration;
@@ -116,6 +118,24 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		}
 	}
 
+	private static OIDCAuthorizationRequest createAuthorizationRequest(OAuthClient client) {
+		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
+		authorizationRequest.setClientId(client.getClient_id());
+		authorizationRequest.setRedirectUri(client.getRedirect_uris().get(0));
+		authorizationRequest.setScope(OAuthScope.openid.name() + " " + OAuthScope.offline_access.name());
+		authorizationRequest.setResponseType(OAuthResponseType.code);
+		Map<String, OIDCClaimsRequestDetails> claimsToRequest = new HashMap<>();
+		OIDCClaimsRequestDetails teamClaimRequestDetails = new OIDCClaimsRequestDetails();
+		teamClaimRequestDetails.setValues(Collections.singletonList("2"));
+		claimsToRequest.put(OIDCClaimName.team.name(), teamClaimRequestDetails);
+		claimsToRequest.put(OIDCClaimName.refresh_token_id.name(), null);
+		OIDCClaimsRequest claimsRequest = new OIDCClaimsRequest();
+		claimsRequest.setId_token(claimsToRequest);
+		claimsRequest.setUserinfo(claimsToRequest);
+		authorizationRequest.setClaims(claimsRequest);
+		return authorizationRequest;
+	}
+
 	// the business logic is tested in detail in the unit tests.  This just does a basic authorization round-trip.
 	@Test
 	public void testAuthorizationCodeRoundTrip() throws Exception {
@@ -123,19 +143,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		// Verify the client
 		oauthClient = oauthClientManager.updateOpenIDConnectClientVerifiedStatus(adminUserInfo, oauthClient.getClient_id(), oauthClient.getEtag(), true);
 
-		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
-		authorizationRequest.setClientId(oauthClient.getClient_id());
-		authorizationRequest.setRedirectUri(oauthClient.getRedirect_uris().get(0));
-		authorizationRequest.setScope(OAuthScope.openid.name() + " " + OAuthScope.offline_access.name());
-		authorizationRequest.setResponseType(OAuthResponseType.code);
-		Map<String, OIDCClaimsRequestDetails> claimsToRequest = new HashMap<>();
-		OIDCClaimsRequestDetails teamClaimRequestDetails = new OIDCClaimsRequestDetails();
-		teamClaimRequestDetails.setValues(Collections.singletonList("2"));
-		claimsToRequest.put(OIDCClaimName.team.name(), teamClaimRequestDetails);
-		OIDCClaimsRequest claimsRequest = new OIDCClaimsRequest();
-		claimsRequest.setId_token(claimsToRequest);
-		claimsRequest.setUserinfo(claimsToRequest);
-		authorizationRequest.setClaims(claimsRequest);
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(oauthClient);
 
 		// method under test
 		OIDCAuthorizationRequestDescription description =
@@ -151,7 +159,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 
 		// method under test
 		OIDCTokenResponse tokenResponse =
-				openIDConnectManager.getTokenResponseWithAuthorizationCode(authResponse.getAccess_code(),
+				openIDConnectManager.generateTokenResponseWithAuthorizationCode(authResponse.getAccess_code(),
 						oauthClient.getClient_id(), oauthClient.getRedirect_uris().get(0), OAUTH_ENDPOINT);
 
 
@@ -173,19 +181,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		// Verify the client
 		oauthClient = oauthClientManager.updateOpenIDConnectClientVerifiedStatus(adminUserInfo, oauthClient.getClient_id(), oauthClient.getEtag(), true);
 
-		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
-		authorizationRequest.setClientId(oauthClient.getClient_id());
-		authorizationRequest.setRedirectUri(oauthClient.getRedirect_uris().get(0));
-		authorizationRequest.setScope(OAuthScope.openid.name() + " " + OAuthScope.offline_access.name());
-		authorizationRequest.setResponseType(OAuthResponseType.code);
-		Map<String, OIDCClaimsRequestDetails> claimsToRequest = new HashMap<>();
-		OIDCClaimsRequestDetails teamClaimRequestDetails = new OIDCClaimsRequestDetails();
-		teamClaimRequestDetails.setValues(Collections.singletonList("2"));
-		claimsToRequest.put(OIDCClaimName.team.name(), teamClaimRequestDetails);
-		OIDCClaimsRequest claimsRequest = new OIDCClaimsRequest();
-		claimsRequest.setId_token(claimsToRequest);
-		claimsRequest.setUserinfo(claimsToRequest);
-		authorizationRequest.setClaims(claimsRequest);
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(oauthClient);
 
 		// tested in testAuthorizationCodeRoundTrip
 		OAuthAuthorizationResponse authResponse = openIDConnectManager.
@@ -193,13 +189,13 @@ public class OpenIDConnectManagerImplAutowiredTest {
 
 		// tested in testAuthorizationCodeRoundTrip
 		OIDCTokenResponse tokenResponse =
-				openIDConnectManager.getTokenResponseWithAuthorizationCode(authResponse.getAccess_code(),
+				openIDConnectManager.generateTokenResponseWithAuthorizationCode(authResponse.getAccess_code(),
 						oauthClient.getClient_id(), oauthClient.getRedirect_uris().get(0), OAUTH_ENDPOINT);
 
 		// Use the refresh token to get a new access token
 		// method under test
 		OIDCTokenResponse newTokenResponse =
-				openIDConnectManager.getTokenResponseWithRefreshToken(tokenResponse.getRefresh_token(), oauthClient.getClient_id(), null, OAUTH_ENDPOINT);
+				openIDConnectManager.generateTokenResponseWithRefreshToken(tokenResponse.getRefresh_token(), oauthClient.getClient_id(), null, OAUTH_ENDPOINT);
 
 		assertNotNull(newTokenResponse.getAccess_token());
 		assertNotEquals(tokenResponse.getAccess_token(), newTokenResponse.getAccess_token());
@@ -214,6 +210,15 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		JWTWrapper oidcUserInfo = (JWTWrapper) openIDConnectManager.getUserInfo(newTokenResponse.getAccess_token(), OAUTH_ENDPOINT);
 
 		oidcTokenHelper.validateJWT(oidcUserInfo.getJwt());
+
+		// Lastly, we requested the refresh_token_id claim, but we test that this claim doesn't not appear in the ID token or userinfo (because it doesn't make sense)
+		Claims idTokenClaims = oidcTokenHelper.parseJWT(tokenResponse.getId_token()).getBody();
+		assertFalse(idTokenClaims.containsKey(OIDCClaimName.refresh_token_id.name()));
+
+
+		Claims userInfoClaims = oidcTokenHelper.parseJWT(oidcUserInfo.getJwt()).getBody();
+		assertFalse(userInfoClaims.containsKey(OIDCClaimName.refresh_token_id.name()));
+
 	}
 
 	@Test
@@ -221,19 +226,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		// Verify the client
 		oauthClient = oauthClientManager.updateOpenIDConnectClientVerifiedStatus(adminUserInfo, oauthClient.getClient_id(), oauthClient.getEtag(), true);
 
-		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
-		authorizationRequest.setClientId(oauthClient.getClient_id());
-		authorizationRequest.setRedirectUri(oauthClient.getRedirect_uris().get(0));
-		authorizationRequest.setScope(OAuthScope.openid.name() + " " + OAuthScope.offline_access.name());
-		authorizationRequest.setResponseType(OAuthResponseType.code);
-		Map<String, OIDCClaimsRequestDetails> claimsToRequest = new HashMap<>();
-		OIDCClaimsRequestDetails teamClaimRequestDetails = new OIDCClaimsRequestDetails();
-		teamClaimRequestDetails.setValues(Collections.singletonList("2"));
-		claimsToRequest.put(OIDCClaimName.team.name(), teamClaimRequestDetails);
-		OIDCClaimsRequest claimsRequest = new OIDCClaimsRequest();
-		claimsRequest.setId_token(claimsToRequest);
-		claimsRequest.setUserinfo(claimsToRequest);
-		authorizationRequest.setClaims(claimsRequest);
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(oauthClient);
 
 		// tested in testAuthorizationCodeRoundTrip
 		OAuthAuthorizationResponse authResponse = openIDConnectManager.
@@ -241,7 +234,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 
 		// tested in testAuthorizationCodeRoundTrip
 		OIDCTokenResponse tokenResponse =
-				openIDConnectManager.getTokenResponseWithAuthorizationCode(authResponse.getAccess_code(),
+				openIDConnectManager.generateTokenResponseWithAuthorizationCode(authResponse.getAccess_code(),
 						oauthClient.getClient_id(), oauthClient.getRedirect_uris().get(0), OAUTH_ENDPOINT);
 
 		OAuthTokenRevocationRequest revocationRequest = new OAuthTokenRevocationRequest();
@@ -249,12 +242,12 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		revocationRequest.setToken_type_hint(TokenTypeHint.refresh_token);
 
 		// method under test
-		openIDConnectManager.revokeToken(revocationRequest);
+		openIDConnectManager.revokeToken(oauthClient.getClient_id(), revocationRequest);
 
 		// Use the refresh token to get a new access token
 		// tested in testRefreshTokenRoundTrip
 		assertThrows(IllegalArgumentException.class, () ->
-				openIDConnectManager.getTokenResponseWithRefreshToken(tokenResponse.getRefresh_token(), oauthClient.getClient_id(), null, OAUTH_ENDPOINT));
+				openIDConnectManager.generateTokenResponseWithRefreshToken(tokenResponse.getRefresh_token(), oauthClient.getClient_id(), null, OAUTH_ENDPOINT));
 
 	}
 
@@ -267,54 +260,16 @@ public class OpenIDConnectManagerImplAutowiredTest {
 	}
 
 	@Test
-	public void testRefreshTokenIdClaimInIdToken() {
-		/*
-		 The refresh_token_id claim is used to add a refresh token ID to the access token.
-		 The client can request this claim for the ID token, but nothing should happen.
-		 */
+	public void testRevokeAccessToken_invalidJwt() {
+		OAuthTokenRevocationRequest revocationRequest = new OAuthTokenRevocationRequest();
+		revocationRequest.setToken("not a JWT");
+		revocationRequest.setToken_type_hint(TokenTypeHint.access_token);
 
-		// Verify the client
-		oauthClient = oauthClientManager.updateOpenIDConnectClientVerifiedStatus(adminUserInfo, oauthClient.getClient_id(), oauthClient.getEtag(), true);
-
-		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
-		authorizationRequest.setClientId(oauthClient.getClient_id());
-		authorizationRequest.setRedirectUri(oauthClient.getRedirect_uris().get(0));
-		authorizationRequest.setScope(OAuthScope.openid.name() + " " + OAuthScope.offline_access.name());
-		authorizationRequest.setResponseType(OAuthResponseType.code);
-		Map<String, OIDCClaimsRequestDetails> claimsToRequest = new HashMap<>();
-		claimsToRequest.put(OIDCClaimName.email.name(), null);
-		claimsToRequest.put(OIDCClaimName.refresh_token_id.name(), null); // !!
-		OIDCClaimsRequest claimsRequest = new OIDCClaimsRequest();
-		claimsRequest.setId_token(claimsToRequest);
-		claimsRequest.setUserinfo(claimsToRequest);
-		authorizationRequest.setClaims(claimsRequest);
-
-		// tested in testAuthorizationCodeRoundTrip
-		OAuthAuthorizationResponse authResponse = openIDConnectManager.
-				authorizeClient(userInfo, authorizationRequest);
-
-		// method under test
-		OIDCTokenResponse tokenResponse =
-				openIDConnectManager.getTokenResponseWithAuthorizationCode(authResponse.getAccess_code(),
-						oauthClient.getClient_id(), oauthClient.getRedirect_uris().get(0), OAUTH_ENDPOINT);
-
-		// Check the ID token
-		oidcTokenHelper.validateJWT(tokenResponse.getId_token());
-		Claims idTokenClaims = oidcTokenHelper.parseJWT(tokenResponse.getId_token()).getBody();
-		assertTrue(idTokenClaims.containsKey(OIDCClaimName.email.name()));
-		assertFalse(idTokenClaims.containsKey(OIDCClaimName.refresh_token_id.name()));
-
-		// Check the userInfo response
-		JWTWrapper oidcUserInfo = (JWTWrapper) openIDConnectManager.getUserInfo(tokenResponse.getAccess_token(), OAUTH_ENDPOINT);
-
-		oidcTokenHelper.validateJWT(oidcUserInfo.getJwt());
-		Claims userInfoClaims = oidcTokenHelper.parseJWT(oidcUserInfo.getJwt()).getBody();
-		assertTrue(userInfoClaims.containsKey(OIDCClaimName.email.name()));
-		assertFalse(userInfoClaims.containsKey(OIDCClaimName.refresh_token_id.name()));
+		assertThrows(IllegalArgumentException.class, () -> openIDConnectManager.revokeToken(oauthClient.getClient_id(), revocationRequest));
 	}
 
 	@Test
-	public void testGetTokenResponseWithRefreshTokenRollBack() {
+	public void testGetTokenResponseWithRefreshTokenRollBackOnInvalidScopeRequest() {
 		/*
 		 Using a refresh token should force the refresh token to rotate, so the old token no longer works.
 		 One exception to this rule is if the client makes an invalid scope request, the refresh token rotation
@@ -336,20 +291,72 @@ public class OpenIDConnectManagerImplAutowiredTest {
 
 		// tested in testAuthorizationCodeRoundTrip
 		OIDCTokenResponse tokenResponse =
-				openIDConnectManager.getTokenResponseWithAuthorizationCode(authResponse.getAccess_code(),
+				openIDConnectManager.generateTokenResponseWithAuthorizationCode(authResponse.getAccess_code(),
 						oauthClient.getClient_id(), oauthClient.getRedirect_uris().get(0), OAUTH_ENDPOINT);
 
 		// Try to use the refresh token to get a new access token, asking for a different scope than was originally granted
 		// method under test
 		assertThrows(IllegalArgumentException.class, () ->
-				openIDConnectManager.getTokenResponseWithRefreshToken(tokenResponse.getRefresh_token(), oauthClient.getClient_id(), OAuthScope.download.name(), OAUTH_ENDPOINT)
+				openIDConnectManager.generateTokenResponseWithRefreshToken(tokenResponse.getRefresh_token(), oauthClient.getClient_id(), OAuthScope.download.name(), OAUTH_ENDPOINT)
 		);
 
 		// Calling again with valid scope will only work if the refresh token was not rotated
 		OIDCTokenResponse newTokenResponse =
-				openIDConnectManager.getTokenResponseWithRefreshToken(tokenResponse.getRefresh_token(), oauthClient.getClient_id(), "", OAUTH_ENDPOINT);
+				openIDConnectManager.generateTokenResponseWithRefreshToken(tokenResponse.getRefresh_token(), oauthClient.getClient_id(), "", OAUTH_ENDPOINT);
 
 		assertNotNull(newTokenResponse);
+	}
+
+
+	@TemporaryCode(author = "nickgrosenbacher", comment = "Ensures schema-to-pojo can parse strings that map to OIDCClaimsRequest")
+	@Test
+	public void testOidcClaimsRequestStringToPojo() throws Exception {
+		/**
+		 * In OIDCAuthorizationRequest, the claims field is a JSON map. This field was initially set as a string, and has been
+		 * changed to use the schema-to-pojo map type. This test should ensure that this change is not a breaking API change.
+		 */
+
+		// We will test all of the hard-coded strings that were previously in the OIDC/OAuth test suites.
+		// Also, we will test that we can parse the object itself (OIDCClaimsRequest), as well as an object that contains the changed object (OIDCAuthorizationRequest)
+		String claims = "{\"id_token\":{},\"userinfo\":{}}";
+		OIDCClaimsRequest expectedClaimsRequest = new OIDCClaimsRequest();
+		expectedClaimsRequest.setId_token(Collections.emptyMap());
+		expectedClaimsRequest.setUserinfo(Collections.emptyMap());
+
+		OIDCClaimsRequest parsedClaimsRequest = EntityFactory.createEntityFromJSONString(claims, OIDCClaimsRequest.class);
+		assertEquals(expectedClaimsRequest, parsedClaimsRequest);
+
+		String authorizationRequest = "{\"claims\": " + claims + "}";
+		OIDCAuthorizationRequest expectedAuthzRequest = new OIDCAuthorizationRequest();
+		expectedAuthzRequest.setClaims(expectedClaimsRequest);
+
+		OIDCAuthorizationRequest parsedAuthzRequest = EntityFactory.createEntityFromJSONString(authorizationRequest, OIDCAuthorizationRequest.class);
+		assertEquals(expectedAuthzRequest, parsedAuthzRequest);
+
+
+		claims = "{\"id_token\":{\"userid\":null,\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}},"+
+				  "\"userinfo\":{\"userid\":null,\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}}}";
+
+		Map<String, OIDCClaimsRequestDetails> claimsMap = new HashMap<>();
+		claimsMap.put(OIDCClaimName.userid.name(), null);
+		claimsMap.put(OIDCClaimName.email.name(), null);
+		claimsMap.put(OIDCClaimName.is_certified.name(), null);
+		OIDCClaimsRequestDetails teamClaimReqDetails = new OIDCClaimsRequestDetails();
+		teamClaimReqDetails.setValues(Collections.singletonList("2"));
+		claimsMap.put(OIDCClaimName.team.name(), teamClaimReqDetails);
+		expectedClaimsRequest = new OIDCClaimsRequest();
+		expectedClaimsRequest.setUserinfo(claimsMap);
+		expectedClaimsRequest.setId_token(claimsMap);
+
+		parsedClaimsRequest = EntityFactory.createEntityFromJSONString(claims, OIDCClaimsRequest.class);
+		assertEquals(expectedClaimsRequest, parsedClaimsRequest);
+
+		authorizationRequest = "{\"claims\": " + claims + "}";
+		expectedAuthzRequest = new OIDCAuthorizationRequest();
+		expectedAuthzRequest.setClaims(expectedClaimsRequest);
+
+		parsedAuthzRequest = EntityFactory.createEntityFromJSONString(authorizationRequest, OIDCAuthorizationRequest.class);
+		assertEquals(expectedAuthzRequest, parsedAuthzRequest);
 	}
 }
 

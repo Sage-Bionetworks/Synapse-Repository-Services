@@ -30,6 +30,13 @@ public interface OAuthRefreshTokenDao {
 	void updateTokenHash(OAuthRefreshTokenInformation tokenInformation, String newHash);
 
 	/**
+	 * Retrieve a matching token, if it exists.
+	 * @param hash The hash of the token
+	 * @return an {@link Optional} that contains the token metadata, if it exists.
+	 */
+	Optional<OAuthRefreshTokenInformation>  getMatchingTokenByHash(String hash);
+
+	/**
 	 * Retrieve a matching token, if it exists. Locks the row until released in an existing transaction.
 	 * @param hash The hash of the token
 	 * @return an {@link Optional} that contains the token metadata, if it exists.

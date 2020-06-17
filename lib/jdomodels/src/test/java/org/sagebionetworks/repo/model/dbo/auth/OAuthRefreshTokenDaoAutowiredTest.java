@@ -322,10 +322,29 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		assertEquals(activeToken2, pageTwo.getResults().get(0));
 	}
 
+	@Test
+	void getMatchingTokenByHash() {
+		String hashValue = "matching hash";
+		OAuthRefreshTokenInformation expected = createRefreshToken(hashValue, new Date());
+
+		// call under test
+		Optional<OAuthRefreshTokenInformation> actual = oauthRefreshTokenDao.getMatchingTokenByHash(hashValue);
+		assertEquals(expected, actual.get());
+	}
+
+	@Test
+	void getMatchingTokenByHash_EmptyResult() {
+		String hashValue = "hash";
+		createRefreshToken(hashValue, new Date());
+
+		// call under test
+		Optional<OAuthRefreshTokenInformation> actual = oauthRefreshTokenDao.getMatchingTokenByHash("value that doesn't match");
+		assertFalse(actual.isPresent());
+	}
 
 	@Transactional
 	@Test
-	void getMatchingTokenByHash() {
+	void getMatchingTokenByHashForUpdate() {
 		String hashValue = "matching hash";
 		OAuthRefreshTokenInformation expected = createRefreshToken(hashValue, new Date());
 
@@ -336,7 +355,7 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 
 	@Transactional
 	@Test
-	void getMatchingTokenByHash_EmptyResult() {
+	void getMatchingTokenByHashForUpdate_EmptyResult() {
 		String hashValue = "hash";
 		createRefreshToken(hashValue, new Date());
 
@@ -344,7 +363,6 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		Optional<OAuthRefreshTokenInformation> actual = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate("value that doesn't match");
 		assertFalse(actual.isPresent());
 	}
-
 
 	@Test
 	void getMatchingTokenByHashForUpdate_noTransaction() {
@@ -453,7 +471,6 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 	public void testIsTokenActive_expired() {
 		// Create token last used one year ago
 		OAuthRefreshTokenInformation token = createRefreshToken(new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS));
-		oauthRefreshTokenDao.deleteToken(token.getTokenId());
 		// Call under test
 		assertFalse(oauthRefreshTokenDao.isTokenActive(token.getTokenId(), HALF_YEAR_DAYS));
 	}

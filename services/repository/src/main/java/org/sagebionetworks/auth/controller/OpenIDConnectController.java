@@ -288,7 +288,11 @@ public class OpenIDConnectController {
 	 *  Request must include client ID and Secret in Basic Authentication header, i.e. the 'client_secret_basic' authentication method, as per the 
 	 *  <a href="https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication">Open ID Connect specification for client authentication</a>.
 	 *
-	 *  Note
+	 *
+	 *  OAuth 2.0 refresh tokens are only issued when the "offline_access" scope is authorized. Refresh tokens issued by Synapse are single-use only,
+	 *  and expire if unused for 180 days. Using the refresh_token grant type will cause Synapse to issue a new refresh token in the token response, and the old
+	 *  refresh token will become invalid. Some token metadata, such as the unique refresh token ID and configurable token name, will not change when
+	 *  a refresh token is rotated in this way.
 	 *
 	 * @param grant_type  authorization_code or refresh_token
 	 * @param code required if grant_type is authorization_code
@@ -363,8 +367,8 @@ public class OpenIDConnectController {
 	}
 
 	/**
-	 * Get a paginated list of the OAuth 2 clients that have been granted long-lived access to the user's
-	 * Synapse identity and/or resources.
+	 * Get a paginated list of the OAuth 2 clients that currently have active refresh tokens that grant access to the user's
+	 * Synapse identity and/or resources. OAuth 2.0 clients that have no active refresh tokens will not appear in this list.
 	 *
 	 * @throws NotFoundException
 	 * @throws OAuthClientNotVerifiedException if the client is not verified
@@ -381,8 +385,9 @@ public class OpenIDConnectController {
 	}
 
 	/**
-	 * Get a paginated list of metadata about long-lived tokens granted to a particular OAuth 2 clients on
-	 * behalf of the user
+	 * Get a paginated list of metadata about refresh tokens granted to a particular OAuth 2 clients on
+	 * behalf of the requesting user. The token itself may not be retrieved.
+	 * Refresh tokens that have been revoked will not be included in this list.
 	 *
 	 * @throws NotFoundException
 	 */
@@ -400,9 +405,10 @@ public class OpenIDConnectController {
 
 
 	/**
-	 * Get the metadata for a refresh token as a user.
+	 * Retrieve the metadata for an OAuth 2.0 refresh token as an authenticated Synapse user.
 	 *
-	 * Client should use GET /oauth2/token/{tokenId}/metadata
+	 * Users that wish to retrieve OAuth 2.0 refresh token metadata should use
+	 * <a href="${GET.oauth2.token.tokenId.metadata}">GET /oauth2/token/{tokenId}/metadata</a>
 	 *
 	 * @throws NotFoundException
 	 */
@@ -417,9 +423,11 @@ public class OpenIDConnectController {
 	}
 
 	/**
-	 * Get the metadata for a refresh token as a user.
+	 * Retrieve the metadata for an OAuth 2.0 refresh token. The request should be made as an OAuth 2.0 client using
+	 * basic authentication.
 	 *
-	 * Client should use GET /oauth2/token/{tokenId}/metadata
+	 * Users that wish to retrieve OAuth 2.0 refresh token metadata should use
+	 * <a href="${GET.oauth2.audit.tokens.tokenId.metadata}">GET /oauth2/audit/tokens/{tokenId}/metadata</a>
 	 *
 	 * @throws NotFoundException
 	 */
@@ -434,7 +442,7 @@ public class OpenIDConnectController {
 	}
 
 	/**
-	 * Update the metadata for a refresh token.
+	 * Update the metadata for a refresh token. At this time, the only field that a user may set is the 'name' field.
 	 *
 	 * @throws NotFoundException
 	 */
@@ -450,9 +458,13 @@ public class OpenIDConnectController {
 	}
 
 	/**
-	 * Revoke all long-lived refresh tokens between a user and a client.
+	 * Revoke all refresh token and their related access tokens associated with a particular client and the requesting user.
+	 * Note that access tokens that are not associated with refresh tokens cannot be revoked.
+	 * Users that want to revoke one refresh token should use <a href="${POST.oauth2.audit.tokens.tokenId.revoke}">POST /oauth2/audit/tokens/{tokenId}/revoke</a>.
 	 *
-	 * @throws NotFoundException
+	 * Additionally, Access tokens that are not associated with a refresh token cannot be revoked.
+	 *
+	 * OAuth 2.0 clients wishing to revoke a refresh token should use <a href="${POST.oauth2.revoke}">POST /oauth2/revoke</a>
 	 */
 	@RequiredScope({view, modify, authorize})
 	@ResponseStatus(HttpStatus.OK)
@@ -464,10 +476,13 @@ public class OpenIDConnectController {
 	}
 
 	/**
-	 * As a user, revoke a particular refresh token.
-	 * Clients should use POST /oauth2/revoke //TODO link
+	 * Revoke a particular refresh token and all of its related access tokens using its unique ID. The caller must be the the user/resource owner associated with the refresh token.
+	 * Note that a client may be in possession of more than one refresh token, so users wishing to revoke all access should use
+	 * <a href="${POST.oauth2.audit.grantedClients.clientId.revoke}">POST /oauth2/audit/grantedClients/{clientId}/revoke</a>.
 	 *
-	 * @throws NotFoundException
+	 * Additionally, Access tokens that are not associated with a refresh token cannot be revoked.
+	 *
+	 * OAuth 2.0 clients wishing to revoke a refresh token should use <a href="${POST.oauth2.revoke}">POST /oauth2/revoke</a>
 	 */
 	@RequiredScope({view, modify, authorize})
 	@ResponseStatus(HttpStatus.OK)
@@ -479,10 +494,10 @@ public class OpenIDConnectController {
 	}
 
 	/**
-	 * As an OAuth client, revoke a particular refresh token.
-	 * Users should use POST /oauth2/grantedClients/{clientId}/tokens/{tokenId}/revoke //TODO link
+	 * Revoke a particular refresh token using the token itself, or an associated access token. The caller must be the the user/resource owner associated with the refresh token.
 	 *
-	 * @throws NotFoundException
+	 * OAuth 2.0 clients wishing to revoke a refresh token should use
+	 * Clients should use <a href="${POST.oauth2.revoke}">POST /oauth2/revoke</a>
 	 */
 	@RequiredScope({})
 	@ResponseStatus(HttpStatus.OK)
@@ -490,7 +505,7 @@ public class OpenIDConnectController {
 	public void revokeToken(
 			@RequestHeader(value = AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER, required=true) String verifiedClientId,
 			@RequestBody OAuthTokenRevocationRequest revokeRequest) throws NotFoundException {
-		serviceProvider.getOpenIDConnectService().revokeToken(revokeRequest);
+		serviceProvider.getOpenIDConnectService().revokeToken(verifiedClientId, revokeRequest);
 	}
 
 }
