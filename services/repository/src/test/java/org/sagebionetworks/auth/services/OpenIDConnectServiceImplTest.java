@@ -71,7 +71,7 @@ public class OpenIDConnectServiceImplTest {
 		
 		// method under test
 		oidcServiceImpl.getTokenResponse(verifiedClientId, OAuthGrantType.authorization_code, authorizationCode, redirectUri, 
-				null, null, null, OAUTH_ENDPOINT);
+				null, null, OAUTH_ENDPOINT);
 		verify(oidcManager).generateTokenResponseWithAuthorizationCode(authorizationCode, verifiedClientId, redirectUri, OAUTH_ENDPOINT);
 	}
 	

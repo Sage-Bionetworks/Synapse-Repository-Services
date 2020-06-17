@@ -118,11 +118,10 @@ public interface OpenIDConnectService {
 	 * @param redirectUri
 	 * @param refreshToken
 	 * @param scope
-	 * @param claims
 	 * @return
 	 */
 	public OIDCTokenResponse getTokenResponse(String verifiedClientId, OAuthGrantType grantType, String authorizationCode, 
-			String redirectUri, String refreshToken, String scope, String claims, String oauthEndpoint);
+			String redirectUri, String refreshToken, String scope, String oauthEndpoint);
 		
 	/**
 	 * 

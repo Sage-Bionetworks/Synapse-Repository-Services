@@ -147,7 +147,7 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 
 	@Override
 	public OIDCTokenResponse getTokenResponse(String verifiedClientId, OAuthGrantType grantType, 
-			String authorizationCode, String redirectUri, String refreshToken, String scope, String claims, String oauthEndpoint) {
+			String authorizationCode, String redirectUri, String refreshToken, String scope, String oauthEndpoint) {
 		if (OAuthGrantType.authorization_code==grantType) {
 			return oidcManager.generateTokenResponseWithAuthorizationCode(authorizationCode, verifiedClientId, redirectUri, oauthEndpoint);
 		} else if (OAuthGrantType.refresh_token==grantType) {

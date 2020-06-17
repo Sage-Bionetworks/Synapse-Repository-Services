@@ -299,7 +299,6 @@ public class OpenIDConnectController {
 	 * @param redirectUri required if grant_type is authorization_code
 	 * @param refresh_token required if grant_type is refresh_token
 	 * @param scope only provided if grant_type is refresh_token
-	 * @param claims optional if grant_type is refresh_token
 	 * @return
 	 * @throws NotFoundException
 	 * @throws OAuthClientNotVerifiedException if the client is not verified
@@ -315,10 +314,9 @@ public class OpenIDConnectController {
 			@RequestParam(value = AuthorizationConstants.OAUTH2_REDIRECT_URI_PARAM, required=false) String redirectUri,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_REFRESH_TOKEN_PARAM, required=false) String refresh_token,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_SCOPE_PARAM, required=false) String scope,
-			@RequestParam(value = AuthorizationConstants.OAUTH2_CLAIMS_PARAM, required=false) String claims,
 			UriComponentsBuilder uriComponentsBuilder
 			)  throws NotFoundException, OAuthClientNotVerifiedException {
-		return serviceProvider.getOpenIDConnectService().getTokenResponse(verifiedClientId, grant_type, code, redirectUri, refresh_token, scope, claims, getEndpoint(uriComponentsBuilder));
+		return serviceProvider.getOpenIDConnectService().getTokenResponse(verifiedClientId, grant_type, code, redirectUri, refresh_token, scope, getEndpoint(uriComponentsBuilder));
 	}
 		
 	/**
