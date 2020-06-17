@@ -40,7 +40,6 @@ import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.TokenTypeHint;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.util.TemporaryCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.test.context.ContextConfiguration;
@@ -307,8 +306,6 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		assertNotNull(newTokenResponse);
 	}
 
-
-	@TemporaryCode(author = "nickgrosenbacher", comment = "Ensures schema-to-pojo can parse strings that map to OIDCClaimsRequest")
 	@Test
 	public void testOidcClaimsRequestStringToPojo() throws Exception {
 		/**
