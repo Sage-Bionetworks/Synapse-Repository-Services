@@ -340,7 +340,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		OIDCClaimsRequest normalizedClaims = normalizeClaims(authorizationRequest.getClaims());
 
-		Date authTime = authorizationRequest.getAuthenticatedAt();
+		Date authTime = null;
+		if (authorizationRequest.getAuthenticatedAt()!=null) {
+			authTime = authorizationRequest.getAuthenticatedAt();
+		}
 
 		// The following implements 'pairwise' subject_type, https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
 		// Pairwise Pseudonymous Identifier (PPID)
@@ -449,10 +452,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		// In the JWT, we will need to supply both the current time and the date/time of the initial authorization
 		long now = clock.currentTimeMillis();
-		Date authTime = null;
-		if (refreshTokenMetadata.getAuthorizedOn() != null) {
-			authTime = refreshTokenMetadata.getAuthorizedOn();
-		}
+		Date authTime = refreshTokenMetadata.getAuthorizedOn();
 
 		// The following implements 'pairwise' subject_type, https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
 		// Pairwise Pseudonymous Identifier (PPID)
