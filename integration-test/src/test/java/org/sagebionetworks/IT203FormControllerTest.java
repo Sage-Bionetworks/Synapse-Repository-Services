@@ -59,12 +59,12 @@ public class IT203FormControllerTest {
 		assertNotNull(acl);
 
 		// Create a file containing the data of the form.
-		String fileHanleId = uploadTextAsFile("Sample text");
+		String fileHandleId = uploadTextAsFile("Sample text");
 
 		// Create the form Group
 		FormChangeRequest changeRequest = new FormChangeRequest();
 		changeRequest.setName("IT203 form name");
-		changeRequest.setFileHandleId(fileHanleId);
+		changeRequest.setFileHandleId(fileHandleId);
 		FormData form = synapse.createFormData(group.getGroupId(), changeRequest);
 		assertNotNull(form);
 		// update the form
