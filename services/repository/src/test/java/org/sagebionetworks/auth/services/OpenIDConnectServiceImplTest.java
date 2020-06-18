@@ -3,7 +3,6 @@ package org.sagebionetworks.auth.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 
@@ -55,7 +54,7 @@ public class OpenIDConnectServiceImplTest {
 		assertEquals(OAUTH_ENDPOINT+"/oauth2/jwks", config.getJwks_uri());
 		assertEquals(OAUTH_ENDPOINT+"/oauth2/client", config.getRegistration_endpoint());
 		assertEquals(Collections.singletonList(OAuthResponseType.code), config.getResponse_types_supported());
-		assertNull(config.getRevocation_endpoint());
+		assertEquals(OAUTH_ENDPOINT + "/oauth2/revoke", config.getRevocation_endpoint());
 		assertEquals(Arrays.asList(OAuthScope.values()), config.getScopes_supported());
 		assertEquals("https://docs.synapse.org", config.getService_documentation());
 		assertEquals(Collections.singletonList(OIDCSubjectIdentifierType.pairwise), config.getSubject_types_supported());
