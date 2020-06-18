@@ -295,7 +295,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	@Override
 	public void deleteSchemaById(UserInfo user, String $id) {
 		ValidateArgument.required(user, "user");
-		ValidateArgument.required($id, "organizationName");
+		ValidateArgument.required($id, "$id");
 		SchemaId parsedId = SchemaIdParser.parseSchemaId($id);
 		JsonSchemaVersionInfo versionInfo = null;
 		if (parsedId.getSemanticVersion() == null) {
@@ -434,6 +434,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	 * @param $id
 	 * @return
 	 */
+	@Override
 	public JsonSchema getSchema(String $id) {
 		ValidateArgument.required($id, "id");
 		String versionId = getSchemaVersionId($id);
