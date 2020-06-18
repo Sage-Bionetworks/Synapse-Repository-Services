@@ -181,7 +181,7 @@ public class JsonSchemaController {
 	 * pseudo-BNF syntax for a valid $id is as follows:
 	 * 
 	 * <pre>
-	 * < $id > ::= < organization name > "/" < schema name > [ "/"  < semantic version > ]
+	 * < $id > ::= < organization name > "/" < schema name > [ "-"  < semantic version > ]
 	 * 
 	 * < organization name > ::= < dot separated alpha numeric > 
 	 * 
@@ -202,7 +202,7 @@ public class JsonSchemaController {
 	 * <p>
 	 * Take the following example, if organizationName="my.organization",
 	 * schemaName="foo.Bar.json", and semanticVersion="0.1.2", then
-	 * $id="my.organization/foo.Bar.json/0.1.2". Note: The semantic version is
+	 * $id="my.organization/foo.Bar.json-0.1.2". Note: The semantic version is
 	 * optional. When provide the semantic version is a label for a specific version
 	 * that allows other schemas to reference it by its version. When a semantic
 	 * version is include, that version of the schema is immutable. This means if a
@@ -214,14 +214,14 @@ public class JsonSchemaController {
 	 * within the schema or references other registered JSON schemas. References to
 	 * non-registered schemas is not currently supported. To reference a registered
 	 * schema $ref should equal the $id of the referenced schema. To reference the
-	 * example schema from above use $ref="my.organization/foo.Bar.json/0.1.2".
+	 * example schema from above use $ref="my.organization/foo.Bar.json-0.1.2".
 	 * </p>
 	 * <p>
 	 * Note: The semantic version of a referenced schema is optional. When the
 	 * semantic version is excluded in a $ref the reference is assumed to reference
 	 * the latest version of the schema. So $ref="my.organization/foo.Bar.json"
 	 * would be a reference to the latest version of that schema. While
-	 * $ref="my.organization/foo.Bar.json/0.1.2" would be a reference to the version
+	 * $ref="my.organization/foo.Bar.json-0.1.2" would be a reference to the version
 	 * 0.1.2
 	 * </p>
 	 * To monitor the progress of the job and to get the final results use:
