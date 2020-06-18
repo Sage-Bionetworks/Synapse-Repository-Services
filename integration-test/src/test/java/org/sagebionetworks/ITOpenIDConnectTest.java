@@ -104,14 +104,23 @@ public class ITOpenIDConnectTest {
 			// already gone
 		}
 	}
-	
-	@Test
-	public void testClientNotVerified() throws Exception {
+
+	private OAuthClient setUpOAuthClient(boolean verified) throws SynapseException {
 		OAuthClient client = new OAuthClient();
 		client.setClient_name("some client");
 		client.setRedirect_uris(Collections.singletonList("https://foo.bar.com"));
 		client = synapseOne.createOAuthClient(client);
 		clientToDelete = client.getClient_id();
+		if (verified) {
+			return adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), client.getEtag(), true);
+		} else {
+			return client;
+		}
+	}
+	
+	@Test
+	public void testClientNotVerified() throws Exception {
+		OAuthClient client = setUpOAuthClient(false);
 		
 		assertFalse(client.getVerified());
 		
@@ -237,11 +246,7 @@ public class ITOpenIDConnectTest {
 		JsonWebKeySet jsonWebKeySet = synapseAnonymous.getOIDCJsonWebKeySet();
 		assertFalse(jsonWebKeySet.getKeys().isEmpty());
 		
-		OAuthClient client = new OAuthClient();
-		client.setClient_name("some client");
-		client.setRedirect_uris(Collections.singletonList("https://foo.bar.com"));
-		client = synapseOne.createOAuthClient(client);
-		clientToDelete = client.getClient_id();
+		OAuthClient client = setUpOAuthClient(false);
 		
 		assertEquals(client, synapseOne.getOAuthClient(client.getClient_id()));
 		assertFalse(client.getVerified());
@@ -360,18 +365,6 @@ public class ITOpenIDConnectTest {
 		} finally {
 			synapseAnonymous.removeAuthorizationHeader();
 		}
-		
-		synapseOne.deleteOAuthClient(client.getClient_id());
-		clientToDelete=null;
-	}
-
-	private OAuthClient setUpVerifiedOAuthClient() throws SynapseException {
-		OAuthClient client = new OAuthClient();
-		client.setClient_name("some client");
-		client.setRedirect_uris(Collections.singletonList("https://foo.bar.com"));
-		client = synapseOne.createOAuthClient(client);
-		clientToDelete = client.getClient_id();
-		return adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), client.getEtag(), true);
 	}
 
 	private static OIDCAuthorizationRequest setUpAuthorizationRequest(OAuthClient client) throws Exception {
@@ -395,12 +388,12 @@ public class ITOpenIDConnectTest {
 
 		String nonce = UUID.randomUUID().toString();
 		authorizationRequest.setNonce(nonce);
-		return  authorizationRequest;
+		return authorizationRequest;
 	}
 
 	@Test
 	public void testRefreshTokenGrantTypeRoundTrip() throws Exception {
-		OAuthClient client = setUpVerifiedOAuthClient();
+		OAuthClient client = setUpOAuthClient(true);
 		OAuthClientIdAndSecret secret = synapseOne.createOAuthClientSecret(client.getClient_id());
 
 		OIDCAuthorizationRequest authorizationRequest = setUpAuthorizationRequest(client);
@@ -541,16 +534,12 @@ public class ITOpenIDConnectTest {
 		} finally {
 			synapseAnonymous.removeAuthorizationHeader();
 		}
-
-
-		synapseOne.deleteOAuthClient(client.getClient_id());
-		clientToDelete=null;
 	}
 
 	@Test
 	public void testRevokeAllTokensFromClient() throws Exception {
 		// START Set up, use authorization code
-		OAuthClient client = setUpVerifiedOAuthClient();
+		OAuthClient client = setUpOAuthClient(true);
 		OAuthClientIdAndSecret secret = synapseOne.createOAuthClientSecret(client.getClient_id());
 
 		OIDCAuthorizationRequest authorizationRequest = setUpAuthorizationRequest(client);
@@ -578,15 +567,12 @@ public class ITOpenIDConnectTest {
 
 		assertThrows(SynapseNotFoundException.class, () ->
 				synapseOne.getRefreshTokenMetadata(tokenId));
-
-		synapseOne.deleteOAuthClient(client.getClient_id());
-		clientToDelete=null;
 	}
 
 	@Test
 	public void testRevokeTokensViaClient() throws Exception {
 		// START Set up, use authorization code
-		OAuthClient client = setUpVerifiedOAuthClient();
+		OAuthClient client = setUpOAuthClient(true);
 		OAuthClientIdAndSecret secret = synapseOne.createOAuthClientSecret(client.getClient_id());
 
 		OIDCAuthorizationRequest authorizationRequest = setUpAuthorizationRequest(client);
@@ -621,8 +607,5 @@ public class ITOpenIDConnectTest {
 
 		assertThrows(SynapseNotFoundException.class, () ->
 				synapseOne.getRefreshTokenMetadata(tokenId));
-
-		synapseOne.deleteOAuthClient(client.getClient_id());
-		clientToDelete=null;
 	}
 }

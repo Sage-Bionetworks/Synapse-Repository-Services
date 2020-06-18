@@ -383,7 +383,7 @@ public class OpenIDConnectController {
 	}
 
 	/**
-	 * Get a paginated list of metadata about refresh tokens granted to a particular OAuth 2 clients on
+	 * Get a paginated list of metadata about refresh tokens granted to a particular OAuth 2 client on
 	 * behalf of the requesting user. The token itself may not be retrieved.
 	 * Refresh tokens that have been revoked will not be included in this list.
 	 *
@@ -405,7 +405,7 @@ public class OpenIDConnectController {
 	/**
 	 * Retrieve the metadata for an OAuth 2.0 refresh token as an authenticated Synapse user.
 	 *
-	 * Users that wish to retrieve OAuth 2.0 refresh token metadata should use
+	 * Clients that wish to retrieve OAuth 2.0 refresh token metadata should use
 	 * <a href="${GET.oauth2.token.tokenId.metadata}">GET /oauth2/token/{tokenId}/metadata</a>
 	 *
 	 * @throws NotFoundException
@@ -429,7 +429,7 @@ public class OpenIDConnectController {
 	 *
 	 * @throws NotFoundException
 	 */
-	@RequiredScope({view})
+	@RequiredScope({})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_TOKEN_ID_METADATA, method = RequestMethod.GET)
 	public @ResponseBody
@@ -456,16 +456,16 @@ public class OpenIDConnectController {
 	}
 
 	/**
-	 * Revoke all refresh token and their related access tokens associated with a particular client and the requesting user.
+	 * Revoke all refresh tokens and their related access tokens associated with a particular client and the requesting user.
 	 * Note that access tokens that are not associated with refresh tokens cannot be revoked.
 	 * Users that want to revoke one refresh token should use <a href="${POST.oauth2.audit.tokens.tokenId.revoke}">POST /oauth2/audit/tokens/{tokenId}/revoke</a>.
 	 *
-	 * Additionally, Access tokens that are not associated with a refresh token cannot be revoked.
+	 * Additionally, access tokens that are not associated with a refresh token cannot be revoked.
 	 *
 	 * OAuth 2.0 clients wishing to revoke a refresh token should use <a href="${POST.oauth2.revoke}">POST /oauth2/revoke</a>
 	 */
-	@RequiredScope({view, modify, authorize})
-	@ResponseStatus(HttpStatus.OK)
+	@RequiredScope({authorize})
+	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_AUDIT_CLIENT_REVOKE, method = RequestMethod.POST)
 	public void revokeRefreshTokensForUserClientPair(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -478,12 +478,12 @@ public class OpenIDConnectController {
 	 * Note that a client may be in possession of more than one refresh token, so users wishing to revoke all access should use
 	 * <a href="${POST.oauth2.audit.grantedClients.clientId.revoke}">POST /oauth2/audit/grantedClients/{clientId}/revoke</a>.
 	 *
-	 * Additionally, Access tokens that are not associated with a refresh token cannot be revoked.
+	 * Additionally, access tokens that are not associated with a refresh token cannot be revoked.
 	 *
 	 * OAuth 2.0 clients wishing to revoke a refresh token should use <a href="${POST.oauth2.revoke}">POST /oauth2/revoke</a>
 	 */
-	@RequiredScope({view, modify, authorize})
-	@ResponseStatus(HttpStatus.OK)
+	@RequiredScope({authorize})
+	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_AUDIT_TOKENS_ID_REVOKE, method = RequestMethod.POST)
 	public void revokeRefreshToken(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -492,13 +492,11 @@ public class OpenIDConnectController {
 	}
 
 	/**
-	 * Revoke a particular refresh token using the token itself, or an associated access token. The caller must be the the user/resource owner associated with the refresh token.
-	 *
-	 * OAuth 2.0 clients wishing to revoke a refresh token should use
-	 * Clients should use <a href="${POST.oauth2.revoke}">POST /oauth2/revoke</a>
+	 * Revoke a particular refresh token using the token itself, or an associated access token.
+	 * The caller must be the the client associated with the refresh token, authenticated using basic authentication.
 	 */
 	@RequiredScope({})
-	@ResponseStatus(HttpStatus.OK)
+	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_REVOKE, method = RequestMethod.POST)
 	public void revokeToken(
 			@RequestHeader(value = AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER, required=true) String verifiedClientId,

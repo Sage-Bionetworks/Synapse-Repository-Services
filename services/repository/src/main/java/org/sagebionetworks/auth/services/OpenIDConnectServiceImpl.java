@@ -107,6 +107,7 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 		result.setAuthorization_endpoint(StackConfigurationSingleton.singleton().getOAuthAuthorizationEndpoint());
 		result.setToken_endpoint(issuer+UrlHelpers.OAUTH_2_TOKEN);
 		result.setUserinfo_endpoint(issuer+UrlHelpers.OAUTH_2_USER_INFO);
+		result.setRevocation_endpoint(issuer+UrlHelpers.OAUTH_2_REVOKE);
 		result.setJwks_uri(issuer+UrlHelpers.OAUTH_2_JWKS);
 		result.setRegistration_endpoint(issuer+UrlHelpers.OAUTH_2_CLIENT);
 		result.setScopes_supported(Arrays.asList(OAuthScope.values()));
