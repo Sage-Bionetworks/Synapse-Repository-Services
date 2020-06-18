@@ -304,45 +304,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 
 		//translate from V2 bundle
 		org.sagebionetworks.repo.model.EntityBundle eb = translateEntityBundle(getEntityBundle(userId,entityId,versionNumber, requestFromMask(mask)));
-
-		///additional deprecated flags not supported by V2 bundle
-		if ((mask & org.sagebionetworks.repo.model.EntityBundle.ENTITY_REFERENCEDBY) > 0) {
-			throw new IllegalArgumentException("ENTITY_REFERENCEDBY is deprecated.");
-		}
-		if ((mask & org.sagebionetworks.repo.model.EntityBundle.ACCESS_REQUIREMENTS) > 0) {
-			// This is deprecated.
-			eb.setAccessRequirements(new LinkedList<AccessRequirement>());
-		}
-		if ((mask & org.sagebionetworks.repo.model.EntityBundle.UNMET_ACCESS_REQUIREMENTS) > 0) {
-			RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-			subjectId.setId(entityId);
-			subjectId.setType(RestrictableObjectType.ENTITY);
-			eb.setUnmetAccessRequirements(accessRequirementManager.getAllUnmetAccessRequirements(
-					userManager.getUserInfo(userId), subjectId, ACCESS_TYPE.DOWNLOAD));
-		}
 		return eb;
-	}
-
-	@WriteTransaction
-	@Override
-	@Deprecated
-	public org.sagebionetworks.repo.model.EntityBundle createEntityBundle(Long userId, org.sagebionetworks.repo.model.EntityBundleCreate ebc, String activityId) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
-		if (ebc.getEntity() == null) {
-			throw new IllegalArgumentException("Invalid request: no entity to create");
-		}
-		return translateEntityBundle(createEntityBundle(userId, translateEntityBundleCreate(ebc), activityId));
-	}
-
-	@WriteTransaction
-	@Override
-	@Deprecated
-	public org.sagebionetworks.repo.model.EntityBundle updateEntityBundle(Long userId, String entityId,
-																		  org.sagebionetworks.repo.model.EntityBundleCreate ebc, String activityId)
-			throws ConflictingUpdateException, DatastoreException,
-			InvalidModelException, UnauthorizedException, NotFoundException,
-			ACLInheritanceException, ParseException {
-		
-		return translateEntityBundle(updateEntityBundle(userId, entityId, translateEntityBundleCreate(ebc), activityId));
 	}
 
 	@Deprecated

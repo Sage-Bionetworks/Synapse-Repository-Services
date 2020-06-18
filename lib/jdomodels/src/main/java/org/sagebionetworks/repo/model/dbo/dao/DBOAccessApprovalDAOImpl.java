@@ -35,11 +35,9 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -325,23 +323,6 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 				return dbos.size();
 			}
 		});
-	}
-
-	@Deprecated
-	@Override
-	public List<AccessApproval> getAccessApprovalsForSubjects(List<Long> subjectIdList, RestrictableObjectType type, long limit, long offset) {
-		List<AccessApproval> dtos = new ArrayList<AccessApproval>();
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, subjectIdList);
-		params.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, type.name());
-		params.addValue(LIMIT_PARAM, limit);
-		params.addValue(OFFSET_PARAM, offset);
-		List<DBOAccessApproval> dbos = namedJdbcTemplate.query(SELECT_ACCESS_APPROVALS_FOR_SUBJECTS, params, rowMapper);
-		for (DBOAccessApproval dbo : dbos) {
-			AccessApproval dto = AccessApprovalUtils.copyDboToDto(dbo);
-			dtos.add(dto);
-		}
-		return dtos;
 	}
 
 	@Override

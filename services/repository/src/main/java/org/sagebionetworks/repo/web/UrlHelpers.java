@@ -402,8 +402,7 @@ public class UrlHelpers {
 	 * https://stackoverflow.com/questions/3526523/spring-mvc-pathvariable-getting-
 	 * truncated
 	 */
-	public static final String JSON_SHCEMA_TYPE_REG_ORG_NAME = JSON_SCHEMA_TYPE_REG+"/{organizationName}/{schemaName:.+}";
-	public static final String JSON_SHCEMA_TYPE_REG_ORG_NAME_VER = JSON_SCHEMA_TYPE_REG+"/{organizationName}/{schemaName}/{semanticVersion:.+}";
+	public static final String JSON_SHCEMA_TYPE_REG_ORG_NAME = JSON_SCHEMA_TYPE_REG+"/{organizationName}/{schemaNameDashSemanticVersion:.+}";
 	
 	public static final String FORM_DATA_ACCEPT = FORM_DATA_ID+"/accept";
 	public static final String FORM_DATA_REJECT = FORM_DATA_ID+"/reject";

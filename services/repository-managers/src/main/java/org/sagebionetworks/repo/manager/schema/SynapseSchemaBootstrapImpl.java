@@ -104,9 +104,9 @@ public class SynapseSchemaBootstrapImpl implements SynapseSchemaBootstrap {
 		}
 		StringBuilder builder = new StringBuilder();
 		builder.append(organizationName);
-		builder.append(JsonSchemaConstants.ID_DELIMITER);
+		builder.append(JsonSchemaConstants.PATH_DELIMITER);
 		builder.append(schemaName);
-		builder.append(JsonSchemaConstants.ID_DELIMITER);
+		builder.append(JsonSchemaConstants.VERSION_PRFIX);
 		builder.append("1.0.");
 		builder.append(optionalPatchNumber.get());
 		CreateSchemaRequest request = new CreateSchemaRequest();

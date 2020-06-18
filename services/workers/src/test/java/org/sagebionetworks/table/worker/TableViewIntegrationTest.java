@@ -1383,14 +1383,14 @@ public class TableViewIntegrationTest {
 		// This query should trigger the reconciliation to repair the lost data.
 		// If the query returns a single row, then the deleted data was restored.
 		String sql = "select UNNEST("+stringListColumn.getName()+") from "+fileViewId;
-		
 		waitForConsistentQuery(adminUserInfo, sql, (results) -> {			
 			List<Row> rows  = extractRows(results);
-			assertEquals(4, rows.size());
+			assertEquals(5, rows.size());
 			assertEquals("val1", rows.get(0).getValues().get(0));
 			assertEquals("val2", rows.get(1).getValues().get(0));
 			assertEquals("val3", rows.get(2).getValues().get(0));
 			assertEquals("val4", rows.get(3).getValues().get(0));
+			assertEquals(null, rows.get(4).getValues().get(0));
 		});
 	}
 	

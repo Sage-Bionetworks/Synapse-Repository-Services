@@ -359,7 +359,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	private static final String ENTITY_URI_PATH = "/entity";
 	private static final String ENTITY_ACL_PATH_SUFFIX = "/acl";
-	private static final String ENTITY_ACL_RECURSIVE_SUFFIX = "?recursive=true";
 	private static final String BUNDLE = "/bundle";
 	private static final String BUNDLE_V2 = "/bundle2";
 	private static final String BENEFACTOR = "/benefactor"; // from
@@ -397,7 +396,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			+ REDIRECT_PARAMETER;
 	private static final String QUERY_REDIRECT_PARAMETER = "?"
 			+ REDIRECT_PARAMETER;
-	private static final String ACCESS_TYPE_PARAMETER = "accessType";
 
 	private static final String EVALUATION_URI_PATH = "/evaluation";
 	private static final String AVAILABLE_EVALUATION_URI_PATH = "/evaluation/available";
@@ -1346,11 +1344,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throws SynapseException {
 		String uri = ACCESS_APPROVAL + "/" + approvalId;
 		return getJSONEntity(getRepoEndpoint(), uri, AccessApproval.class);
-	}
-
-	@Override
-	public void deleteAccessApproval(Long approvalId) throws SynapseException {
-		deleteUri(getRepoEndpoint(), ACCESS_APPROVAL + "/" + approvalId);
 	}
 
 	@Override
@@ -5685,14 +5678,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public JsonSchema getJsonSchema(String organizationName, String schemaName, String semanticVersion) throws SynapseException {
 		ValidateArgument.required(organizationName, "organizationName");
 		ValidateArgument.required(schemaName, "schemaName");
-		StringJoiner joiner = new StringJoiner("/");
-		joiner.add("/schema/type/registered");
-		joiner.add(organizationName);
-		joiner.add(schemaName);
+		StringBuilder builder = new StringBuilder();
+		builder.append("/schema/type/registered/");
+		builder.append(organizationName);
+		builder.append("/");
+		builder.append(schemaName);
 		if(semanticVersion != null) {
-			joiner.add(semanticVersion);
+			builder.append("-");
+			builder.append(semanticVersion);
 		}
-		return getJSONEntity(getRepoEndpoint(), joiner.toString(), JsonSchema.class);
+		return getJSONEntity(getRepoEndpoint(), builder.toString(), JsonSchema.class);
 	}
 
 	@Override
@@ -5712,12 +5707,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(organizationName, "organizationName");
 		ValidateArgument.required(schemaName, "schemaName");
 		ValidateArgument.required(semanticVersion, "semanticVersion");
-		StringJoiner joiner = new StringJoiner("/");
-		joiner.add("/schema/type/registered");
-		joiner.add(organizationName);
-		joiner.add(schemaName);
-		joiner.add(semanticVersion);
-		deleteUri(getRepoEndpoint(), joiner.toString());
+		StringBuilder builder = new StringBuilder();
+		builder.append("/schema/type/registered/");
+		builder.append(organizationName);
+		builder.append("/");
+		builder.append(schemaName);
+		if(semanticVersion != null) {
+			builder.append("-");
+			builder.append(semanticVersion);
+		}
+		deleteUri(getRepoEndpoint(), builder.toString());
 	}
 	
 	@Override

@@ -207,7 +207,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 				.withSemanticVersion(semanticVersionString).withJsonSchema(request.getSchema())
 				.withDependencies(dependencies);
 		JsonSchemaVersionInfo info = jsonSchemaDao.createNewSchemaVersion(newVersionRequest);
-		
+
 		// Ensure we can create the validation schema
 		JsonSchema validationSchema = getValidationSchema(schemaId.toString());
 
@@ -272,14 +272,6 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		return jsonSchemaDao.getVersionInfo(versionId);
 	}
 
-	@Override
-	public JsonSchema getSchema(String organizationName, String schemaName, String semanticVersion) {
-		ValidateArgument.required(organizationName, "organizationName");
-		ValidateArgument.required(schemaName, "schemaName");
-		String versionId = getSchemaVersionId(organizationName, schemaName, semanticVersion);
-		return jsonSchemaDao.getSchema(versionId);
-	}
-
 	public String getSchemaVersionId(String organizationName, String schemaName, String semanticVersion) {
 		ValidateArgument.required(organizationName, "organizationName");
 		ValidateArgument.required(schemaName, "schemaName");
@@ -301,33 +293,28 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 
 	@WriteTransaction
 	@Override
-	public void deleteSchemaAllVersion(UserInfo user, String organizationName, String schemaName) {
+	public void deleteSchemaById(UserInfo user, String $id) {
 		ValidateArgument.required(user, "user");
-		ValidateArgument.required(organizationName, "organizationName");
-		ValidateArgument.required(schemaName, "schemaName");
-		JsonSchemaVersionInfo versionInfo = jsonSchemaDao.getVersionLatestInfo(organizationName, schemaName);
+		ValidateArgument.required($id, "organizationName");
+		SchemaId parsedId = SchemaIdParser.parseSchemaId($id);
+		JsonSchemaVersionInfo versionInfo = null;
+		if (parsedId.getSemanticVersion() == null) {
+			versionInfo = jsonSchemaDao.getVersionLatestInfo(parsedId.getOrganizationName().toString(),
+					parsedId.getSchemaName().toString());
+		} else {
+			versionInfo = jsonSchemaDao.getVersionInfo(parsedId.getOrganizationName().toString(),
+					parsedId.getSchemaName().toString(), parsedId.getSemanticVersion().toString());
+		}
 		// Must have delete on the organization
 		if (!user.isAdmin()) {
 			aclDao.canAccess(user, versionInfo.getOrganizationId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE)
 					.checkAuthorizationOrElseThrow();
 		}
-		jsonSchemaDao.deleteSchema(versionInfo.getSchemaId());
-	}
-
-	@WriteTransaction
-	@Override
-	public void deleteSchemaVersion(UserInfo user, String organizationName, String schemaName, String semanticVersion) {
-		ValidateArgument.required(user, "user");
-		ValidateArgument.required(organizationName, "organizationName");
-		ValidateArgument.required(schemaName, "schemaName");
-		ValidateArgument.required(semanticVersion, "semanticVersion");
-		JsonSchemaVersionInfo versionInfo = jsonSchemaDao.getVersionInfo(organizationName, schemaName, semanticVersion);
-		// Must have delete on the organization
-		if (!user.isAdmin()) {
-			aclDao.canAccess(user, versionInfo.getOrganizationId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE)
-					.checkAuthorizationOrElseThrow();
+		if(parsedId.getSemanticVersion() == null) {
+			jsonSchemaDao.deleteSchema(versionInfo.getSchemaId());
+		}else {
+			jsonSchemaDao.deleteSchemaVersion(versionInfo.getVersionId());
 		}
-		jsonSchemaDao.deleteSchemaVersion(versionInfo.getVersionId());
 	}
 
 	@Override
@@ -376,9 +363,9 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		response.setNextPageToken(nextPageToken.getNextPageTokenForCurrentResults(page));
 		return response;
 	}
-	
-	/**
 
+	/**
+	 * 
 	 * 
 	 * @param id
 	 * @return
@@ -388,22 +375,23 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		Deque<String> visitedStack = new ArrayDeque<String>();
 		return getValidationSchema(visitedStack, id);
 	}
-	
+
 	/**
-	 * Recursively 
+	 * Recursively
+	 * 
 	 * @param visitedSchemas
 	 * @param id
 	 * @return
 	 */
 	JsonSchema getValidationSchema(Deque<String> visitedStack, String id) {
 		// duplicates are allowed but cycles are not
-		if(visitedStack.contains(id)) {
-			throw new IllegalArgumentException("Schema $id: '"+id+"' has a circular dependency");
+		if (visitedStack.contains(id)) {
+			throw new IllegalArgumentException("Schema $id: '" + id + "' has a circular dependency");
 		}
 		visitedStack.push(id);
 		// get the base schema
 		JsonSchema baseSchema = getSchema(id);
-		if(baseSchema.get$defs() == null) {
+		if (baseSchema.get$defs() == null) {
 			baseSchema.set$defs(new LinkedHashMap<String, JsonSchema>());
 		}
 		for (JsonSchema subSchema : SubSchemaIterable.depthFirstIterable(baseSchema)) {
@@ -423,7 +411,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 				subSchema.set$ref(local$defsId);
 			}
 		}
-		if(baseSchema.get$defs().isEmpty()) {
+		if (baseSchema.get$defs().isEmpty()) {
 			baseSchema.set$defs(null);
 		}
 		visitedStack.pop();
@@ -453,17 +441,20 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	}
 
 	@Override
-	public JsonSchemaObjectBinding bindSchemaToObject(Long createdBy, String $id, Long objectId, BoundObjectType objectType) {
+	public JsonSchemaObjectBinding bindSchemaToObject(Long createdBy, String $id, Long objectId,
+			BoundObjectType objectType) {
 		ValidateArgument.required(createdBy, "createdBy");
 		ValidateArgument.required($id, "$id");
 		ValidateArgument.required(objectId, "objectId");
 		ValidateArgument.required(objectType, "objectType");
 		SchemaId parsedId = SchemaIdParser.parseSchemaId($id);
-		String schemaId = jsonSchemaDao.getSchemaId(parsedId.getOrganizationName().toString(), parsedId.getSchemaName().toString());
+		String schemaId = jsonSchemaDao.getSchemaId(parsedId.getOrganizationName().toString(),
+				parsedId.getSchemaName().toString());
 		// versionId is null unless a semantic version is provided in the $id.
 		String versionId = null;
-		if(parsedId.getSemanticVersion() != null) {
-			versionId = jsonSchemaDao.getVersionId(parsedId.getOrganizationName().toString(), parsedId.getSchemaName().toString(), parsedId.getSemanticVersion().toString());
+		if (parsedId.getSemanticVersion() != null) {
+			versionId = jsonSchemaDao.getVersionId(parsedId.getOrganizationName().toString(),
+					parsedId.getSchemaName().toString(), parsedId.getSemanticVersion().toString());
 		}
 		return jsonSchemaDao.bindSchemaToObject(new BindSchemaRequest().withCreatedBy(createdBy).withObjectId(objectId)
 				.withObjectType(objectType).withSchemaId(schemaId).withVersionId(versionId));

@@ -278,8 +278,6 @@
 
 	<bean id="accessRequirementManager" class="org.sagebionetworks.repo.manager.AccessRequirementManagerImpl" />
 
-	<bean id="restrictionInformationManager" class="org.sagebionetworks.repo.manager.RestrictionInformationManagerImpl" />
-
 	<bean id="accessApprovalManager" class="org.sagebionetworks.repo.manager.AccessApprovalManagerImpl" />
 
 	<bean id="userManager" class="org.sagebionetworks.repo.manager.UserManagerImpl" />
@@ -528,6 +526,9 @@
 					<ref bean="tableEntityTransactionManager" />
 				</entry>
 				<entry key="entityview">
+					<ref bean="tableViewTransactionManager" />
+				</entry>
+				<entry key="submissionview">
 					<ref bean="tableViewTransactionManager" />
 				</entry>
 			</map>

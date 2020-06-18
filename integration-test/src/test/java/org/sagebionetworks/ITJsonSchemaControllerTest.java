@@ -254,9 +254,9 @@ public class ITJsonSchemaControllerTest {
 	public void testCreateSchemaGetDeleteWithVersion() throws SynapseException, InterruptedException {
 		organization = synapse.createOrganization(createOrganizationRequest);
 		assertNotNull(organization);
-		String semanticVersion = "1.45.67+alpha-beta";
+		String semanticVersion = "1.45.67-alpha+beta";
 		JsonSchema schema = new JsonSchema();
-		schema.set$id(organizationName+"/"+schemaName+"/"+semanticVersion);
+		schema.set$id(organizationName+"/"+schemaName+"-"+semanticVersion);
 		schema.setDescription("test with a version");
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(schema);
@@ -282,7 +282,7 @@ public class ITJsonSchemaControllerTest {
 		assertNotNull(organization);
 		String semanticVersion = "1.45.0";
 		JsonSchema schema = new JsonSchema();
-		schema.set$id(organizationName+"/"+schemaName+"/"+semanticVersion);
+		schema.set$id(organizationName+"/"+schemaName+"-"+semanticVersion);
 		schema.setDescription("test with a version");
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(schema);

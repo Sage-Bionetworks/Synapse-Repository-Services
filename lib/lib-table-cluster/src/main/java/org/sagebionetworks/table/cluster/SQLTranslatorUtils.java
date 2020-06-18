@@ -50,7 +50,9 @@ import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.IntervalLiteral;
 import org.sagebionetworks.table.query.model.JoinCondition;
+import org.sagebionetworks.table.query.model.JoinType;
 import org.sagebionetworks.table.query.model.OrderByClause;
+import org.sagebionetworks.table.query.model.OuterJoinType;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QualifiedJoin;
@@ -424,7 +426,10 @@ public class SQLTranslatorUtils {
 			JoinCondition joinOnRowId = new JoinCondition(new TableQueryParser(
 				mainTableName + "." + ROW_ID + "=" + joinTableName + "." + SQLUtils.getRowIdRefColumnNameForId(columnId)
 			).searchCondition());
-			currentTableReference = new TableReference(new QualifiedJoin(currentTableReference, joinedTableRef, joinOnRowId));
+			JoinType leftOuterJoin = new JoinType(OuterJoinType.LEFT);
+			currentTableReference = new TableReference(new QualifiedJoin(
+					currentTableReference, leftOuterJoin, joinedTableRef, joinOnRowId
+			));
 		}
 		fromClause.setTableReference(currentTableReference);
 	}

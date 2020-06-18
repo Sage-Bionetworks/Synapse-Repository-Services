@@ -242,6 +242,7 @@ import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.SqlTransformRequest;
+import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
@@ -582,8 +583,6 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 	
 	public AccessApproval getAccessApproval(Long approvalId) throws SynapseException;
-
-	public void deleteAccessApproval(Long approvalId) throws SynapseException;
 
 	public void revokeAccessApprovals(String requirementId, String accessorId) throws SynapseException;
 
@@ -1040,6 +1039,14 @@ public interface SynapseClient extends BaseClient {
 	public void downloadFromSubmission(String submissionId, String fileHandleId, File destinationFile) 
 			throws SynapseException;
 
+	/**
+	 * 
+	 * @param query
+	 * @return
+	 * @throws SynapseException
+	 * @Deprecated Use {@link SubmissionView} and the {@link #queryTableEntityBundleAsyncStart(Query, QueryOptions, String)}
+	 */
+	@Deprecated
 	public QueryTableResults queryEvaluation(String query) throws SynapseException;
 
 	public void moveToTrash(String entityId) throws SynapseException;

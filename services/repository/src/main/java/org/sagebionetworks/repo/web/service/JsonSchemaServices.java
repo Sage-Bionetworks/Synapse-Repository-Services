@@ -23,16 +23,14 @@ public interface JsonSchemaServices {
 
 	AccessControlList updateOrganizationAcl(Long userId, String id, AccessControlList acl);
 
-	JsonSchema getSchema(String organizationName, String schemaName, String semanticVersion);
-
-	void deleteSchemaAllVersions(Long userId, String organizationName, String schemaName);
-
-	void deleteSchemaVersion(Long userId, String organizationName, String schemaName, String semanticVersion);
+	JsonSchema getSchema(String $id);
 
 	ListOrganizationsResponse listOrganizations(ListOrganizationsRequest request);
 
 	ListJsonSchemaInfoResponse listSchemas(ListJsonSchemaInfoRequest request);
 
 	ListJsonSchemaVersionInfoResponse listSchemasVersions(ListJsonSchemaVersionInfoRequest request);
+
+	void deleteSchemaById(Long userId, String $id);
 
 }

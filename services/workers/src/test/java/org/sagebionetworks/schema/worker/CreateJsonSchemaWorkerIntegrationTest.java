@@ -71,8 +71,8 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 		createOrgRequest.setOrganizationName(organizationName);
 		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createOrgRequest);
 		basicSchema = new JsonSchema();
-		basicSchema.set$id(organizationName + JsonSchemaConstants.ID_DELIMITER + schemaName
-				+ JsonSchemaConstants.ID_DELIMITER + semanticVersion);
+		basicSchema.set$id(organizationName + JsonSchemaConstants.PATH_DELIMITER + schemaName
+				+ JsonSchemaConstants.VERSION_PRFIX + semanticVersion);
 		basicSchema.setDescription("basic schema for integration test");
 	}
 
@@ -93,9 +93,9 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 			assertEquals(semanticVersion, response.getNewVersionInfo().getSemanticVersion());
 		}, MAX_WAIT_MS);
 		
-		jsonSchemaManager.deleteSchemaAllVersion(adminUserInfo, organizationName, schemaName);
+		jsonSchemaManager.deleteSchemaById(adminUserInfo, basicSchema.get$id());
 		assertThrows(NotFoundException.class, () -> {
-			jsonSchemaManager.deleteSchemaAllVersion(adminUserInfo, organizationName, schemaName);
+			jsonSchemaManager.deleteSchemaById(adminUserInfo, basicSchema.get$id());
 		});
 	}
 
@@ -176,7 +176,7 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 		assertNotNull(validationSchema.get$defs());
 		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.PetType"));
 		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.Pet"));
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.Pet/1.0.3"));
+		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.Pet-1.0.3"));
 		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.dog.Breed"));
 		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.cat.Breed"));
 		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.cat.Cat"));
@@ -201,7 +201,7 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 	 */
 	public JsonSchema createSchema(String organizationName, String schemaName) {
 		JsonSchema schema = new JsonSchema();
-		schema.set$id(organizationName + JsonSchemaConstants.ID_DELIMITER + schemaName);
+		schema.set$id(organizationName + JsonSchemaConstants.PATH_DELIMITER + schemaName);
 		return schema;
 	}
 

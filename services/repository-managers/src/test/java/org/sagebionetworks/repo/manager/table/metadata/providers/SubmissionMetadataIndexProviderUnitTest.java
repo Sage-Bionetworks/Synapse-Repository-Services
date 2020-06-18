@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.table.metadata.providers;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -34,6 +35,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
@@ -179,8 +181,33 @@ public class SubmissionMetadataIndexProviderUnitTest {
 		assertTrue(result.isPresent());
 		assertEquals(mockAnnotations, result.get());
 
-		verify(mockSubmissionManager).getSubmissionStatus(mockUser, objectId);
+		verify(mockSubmissionManager).getSubmissionStatus(mockUser, KeyFactory.stringToKey(objectId).toString());
 		verify(mockSubmissionStatus).getSubmissionAnnotations();
+	}
+	
+	@Test
+	public void testGetAnnotationsWithNoUser() {
+		mockUser = null;
+		String objectId = "syn123";
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			provider.getAnnotations(mockUser, objectId);
+		}).getMessage();
+		
+		assertEquals("The user is required.", errorMessage);
+	}
+	
+	@Test
+	public void testGetAnnotationsWithNoObjectId() {
+		String objectId = null;
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			provider.getAnnotations(mockUser, objectId);
+		}).getMessage();
+		
+		assertEquals("The object id is required.", errorMessage);
 	}
 
 	@Test
@@ -199,13 +226,68 @@ public class SubmissionMetadataIndexProviderUnitTest {
 		// Call under test
 		provider.updateAnnotations(mockUser, objectId, updatedAnnotations);
 
-		verify(mockSubmissionManager).getSubmissionStatus(mockUser, objectId);
+		verify(mockSubmissionManager).getSubmissionStatus(mockUser, KeyFactory.stringToKey(objectId).toString());
 		// Verify that we sync the etag from the input annotations before saving
-		verify(updatedAnnotations).getEtag();
 		verify(mockSubmissionStatus).setEtag(etag);
 		
 		verify(mockSubmissionStatus).setSubmissionAnnotations(updatedAnnotations);
 		verify(mockSubmissionManager).updateSubmissionStatus(mockUser, mockSubmissionStatus);
+	}
+	
+	@Test
+	public void testUpdateAnnotationsWithNoUser() {
+		when(mockAnnotations.getEtag()).thenReturn("etag");		
+		String objectId = "syn123";
+		
+		mockUser = null;
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			provider.updateAnnotations(mockUser, objectId, mockAnnotations);
+		}).getMessage();
+		
+		assertEquals("The user is required.", errorMessage);
+	}
+	
+	@Test
+	public void testUpdateAnnotationsWithNoObjectId() {
+		when(mockAnnotations.getEtag()).thenReturn("etag");
+		
+		String objectId = null;
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			provider.updateAnnotations(mockUser, objectId, mockAnnotations);
+		}).getMessage();
+		
+		assertEquals("The object id is required.", errorMessage);
+	}
+	
+	@Test
+	public void testUpdateAnnotationsWithNoAnnotations() {
+		String objectId = "syn123";
+		mockAnnotations = null;
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			provider.updateAnnotations(mockUser, objectId, mockAnnotations);
+		}).getMessage();
+		
+		assertEquals("The annotations is required.", errorMessage);
+	}
+	
+	@Test
+	public void testUpdateAnnotationsWithNoEtag() {
+		when(mockAnnotations.getEtag()).thenReturn(null);
+		
+		String objectId = "syn123";		
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			provider.updateAnnotations(mockUser, objectId, mockAnnotations);
+		}).getMessage();
+		
+		assertEquals("The annotations etag is required.", errorMessage);
 	}
 
 	@Test

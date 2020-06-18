@@ -17,7 +17,6 @@ import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackEncrypter;
 import org.sagebionetworks.manager.util.OAuthPermissionUtils;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
@@ -59,6 +58,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	// user authorization times out after one year
 	private static final long AUTHORIZATION_TIME_OUT_MILLIS = 1000L*3600L*24L*365L;
 	
+	// token_type=Bearer, as per https://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
+	private static final String TOKEN_TYPE_BEARER = "Bearer";
+
 	@Autowired
 	private StackEncrypter stackEncrypter;
 
@@ -76,10 +78,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
-	
-	@Autowired
-	private UserManager userManager;
-	
+
 	@Autowired
 	private Clock clock;
 	
@@ -379,46 +378,12 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 
 		String accessTokenId = UUID.randomUUID().toString();
-		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid, 
+		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid,
 				oauthClientId, now, authTime, refreshTokenId, accessTokenId, scopes,
 				EnumKeyedJsonMapUtil.convertToEnum(normalizedClaims.getUserinfo(), OIDCClaimName.class));
 		result.setAccess_token(accessToken);
+		result.setToken_type(TOKEN_TYPE_BEARER);
 		return result;
-	}
-
-	/**
-	 * Removes null fields and unrecognized claims from the OIDCClaimsRequest. Also replaces
-	 * null objects with empty ones (a requirement for the {@link OAuthRefreshTokenManager}, if the
-	 * claims are saved)
-	 *
-	 * Protected access for testing
-	 * @param claims
-	 * @return
-	 */
-	protected static OIDCClaimsRequest normalizeClaims(OIDCClaimsRequest claims) {
-		if (claims == null) {
-			claims = new OIDCClaimsRequest();
-		}
-		if (claims.getId_token() == null) {
-			claims.setId_token(Collections.emptyMap());
-		} else {
-			// Converting the key to enum and back to string will drop unrecognized claims
-			claims.setId_token(
-					EnumKeyedJsonMapUtil.convertToString(
-							EnumKeyedJsonMapUtil.convertToEnum(claims.getId_token(), OIDCClaimName.class)
-					)
-			);
-		}
-		if (claims.getUserinfo() == null) {
-			claims.setUserinfo(Collections.emptyMap());
-		} else {
-			claims.setUserinfo(
-					EnumKeyedJsonMapUtil.convertToString(
-							EnumKeyedJsonMapUtil.convertToEnum(claims.getUserinfo(), OIDCClaimName.class)
-					)
-			);
-		}
-		return claims;
 	}
 
 	@WriteTransaction
@@ -480,9 +445,45 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid,
 				oauthClientId, now, authTime, refreshTokenMetadata.getTokenId(), accessTokenId, scopes, userInfoClaims);
 		result.setAccess_token(accessToken);
+		result.setToken_type(TOKEN_TYPE_BEARER);
 		return result;
 	}
-	
+
+	/**
+	 * Removes null fields and unrecognized claims from the OIDCClaimsRequest. Also replaces
+	 * null objects with empty ones (a requirement for the {@link OAuthRefreshTokenManager}, if the
+	 * claims are saved)
+	 *
+	 * Protected access for testing
+	 * @param claims
+	 * @return
+	 */
+	protected static OIDCClaimsRequest normalizeClaims(OIDCClaimsRequest claims) {
+		if (claims == null) {
+			claims = new OIDCClaimsRequest();
+		}
+		if (claims.getId_token() == null) {
+			claims.setId_token(Collections.emptyMap());
+		} else {
+			// Converting the key to enum and back to string will drop unrecognized claims
+			claims.setId_token(
+					EnumKeyedJsonMapUtil.convertToString(
+							EnumKeyedJsonMapUtil.convertToEnum(claims.getId_token(), OIDCClaimName.class)
+					)
+			);
+		}
+		if (claims.getUserinfo() == null) {
+			claims.setUserinfo(Collections.emptyMap());
+		} else {
+			claims.setUserinfo(
+					EnumKeyedJsonMapUtil.convertToString(
+							EnumKeyedJsonMapUtil.convertToEnum(claims.getUserinfo(), OIDCClaimName.class)
+					)
+			);
+		}
+		return claims;
+	}
+
 	@Override
 	public Object getUserInfo(String accessTokenParam, String oauthEndpoint) {
 		Jwt<JwsHeader,Claims> accessToken = oidcTokenHelper.parseJWT(accessTokenParam);

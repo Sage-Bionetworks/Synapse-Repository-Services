@@ -16,6 +16,7 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
+import org.sagebionetworks.repo.manager.CertifiedUserManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -24,13 +25,14 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -64,6 +66,9 @@ public class TestHelper {
 	
 	@Autowired
 	private TableIndexDAO indexDao;
+	
+	@Autowired
+	private CertifiedUserManager certifiedUserManager;
 	
 	private List<String> nodes;
 	private List<String> evaluations;
@@ -121,15 +126,17 @@ public class TestHelper {
 		NewUser user = new NewUser();
 		user.setUserName(UUID.randomUUID().toString());
 		user.setEmail(user.getUserName() + "@bond.com");
-		long userId = userManager.createUser(user);
-
+		
+		DBOTermsOfUseAgreement touAgreement = new DBOTermsOfUseAgreement();
+		touAgreement.setAgreesToTermsOfUse(true);
+		
+		long userId = userManager.createOrGetTestUser(adminUser, user, null, touAgreement).getId();
+		
 		addUserForCleanup(userId);
 		
-		UserInfo userInfo = userManager.getUserInfo(userId);
+		certifiedUserManager.setUserCertificationStatus(adminUser, userId, true);
 		
-		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
-		
-		return userInfo;
+		return userManager.getUserInfo(userId);
 	}
 	
 	public Team createTeam(UserInfo user) {

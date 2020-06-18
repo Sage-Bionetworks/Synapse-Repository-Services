@@ -90,13 +90,14 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		info.setCreatedBy(rs.getString(COL_JSON_SCHEMA_VER_CREATED_BY));
 		info.setCreatedOn(rs.getTimestamp(COL_JSON_SCHEMA_VER_CREATED_ON));
 		info.setJsonSHA256Hex(rs.getString(COL_JSON_SCHEMA_BLOB_SHA256));
-		StringJoiner joiner = new StringJoiner(JsonSchemaConstants.ID_DELIMITER);
-		joiner.add(info.getOrganizationName());
-		joiner.add(info.getSchemaName());
-		if (info.getSemanticVersion() != null) {
-			joiner.add(info.getSemanticVersion());
+		StringBuilder $idBuilder = new StringBuilder(info.getOrganizationName());
+		$idBuilder.append(JsonSchemaConstants.PATH_DELIMITER);
+		$idBuilder.append(info.getSchemaName());
+		if(info.getSemanticVersion() != null) {
+			$idBuilder.append(JsonSchemaConstants.VERSION_PRFIX);
+			$idBuilder.append(info.getSemanticVersion());
 		}
-		info.set$id(joiner.toString());
+		info.set$id($idBuilder.toString());
 		return info;
 	};
 

@@ -63,7 +63,8 @@ public class OAuthClientAuthFilterTest {
 	private ArgumentCaptor<HttpServletRequest> requestCaptor;
 	
 	private static final String CLIENT_ID = "oauthClientId";
-	private static final String BASIC_HEADER = "Basic "+ Base64.getEncoder().encodeToString((CLIENT_ID+":secret").getBytes(StandardCharsets.UTF_8));
+	private static final String CLIENT_SECRET = "secret";
+	private static final String BASIC_HEADER = "Basic "+ Base64.getEncoder().encodeToString((CLIENT_ID+":"+CLIENT_SECRET).getBytes(StandardCharsets.UTF_8));
 
 	@BeforeEach
 	public void setUp() throws Exception {
@@ -73,7 +74,7 @@ public class OAuthClientAuthFilterTest {
 	}
 
 	@Test
-	public void testFilter_validCredentials() throws Exception {
+	public void testFilter_validCredentials_client_secret_basic() throws Exception {
 		when(mockOauthClientManager.validateClientCredentials((OAuthClientIdAndSecret)any())).thenReturn(true);
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(
 				Collections.singletonList(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)));
@@ -87,6 +88,42 @@ public class OAuthClientAuthFilterTest {
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
 		
 		assertEquals(CLIENT_ID, requestCaptor.getValue().getHeader(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER));
+	}
+
+	@Test
+	public void testFilter_validCredentials_client_secret_post() throws Exception {
+		when(mockOauthClientManager.validateClientCredentials((OAuthClientIdAndSecret)any())).thenReturn(true);
+		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(null);
+		when(mockHttpRequest.getParameter("client_id")).thenReturn(CLIENT_ID);
+		when(mockHttpRequest.getParameter("client_secret")).thenReturn(CLIENT_SECRET);
+		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
+		// method under test
+		oAuthClientAuthFilter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
+
+		ArgumentCaptor<OAuthClientIdAndSecret> credentialsCaptor = ArgumentCaptor.forClass(OAuthClientIdAndSecret.class);
+		verify(mockOauthClientManager).validateClientCredentials(credentialsCaptor.capture());
+		assertEquals(CLIENT_ID, credentialsCaptor.getValue().getClient_id());
+		assertEquals(CLIENT_SECRET, credentialsCaptor.getValue().getClient_secret());
+		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
+
+		assertEquals(CLIENT_ID, requestCaptor.getValue().getHeader(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER));
+	}
+
+	@Test
+	public void testFilter_validCredentials_client_secret_post_query_params() throws Exception {
+		when(mockHttpResponse.getWriter()).thenReturn(mockPrintWriter);
+		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(null);
+		when(mockHttpRequest.getParameter("client_id")).thenReturn(CLIENT_ID);
+		when(mockHttpRequest.getParameter("client_secret")).thenReturn(CLIENT_SECRET);
+		when(mockHttpRequest.getQueryString()).thenReturn("client_id="+CLIENT_ID+"&client_secret="+CLIENT_SECRET);
+
+		// method under test
+		oAuthClientAuthFilter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
+		
+		verify(mockFilterChain, never()).doFilter((ServletRequest)any(), (ServletResponse)any());
+		verify(mockHttpResponse).setStatus(401);
+		verify(mockHttpResponse).setContentType("application/json");
+		verify(mockPrintWriter).println("{\"reason\":\"Client credentials must not be passed as query parameters.\"}");
 	}
 
 	@Test

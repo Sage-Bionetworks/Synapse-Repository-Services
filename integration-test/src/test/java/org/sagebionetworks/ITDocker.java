@@ -68,7 +68,7 @@ public class ITDocker {
 
 	private String projectId;
 	
-	private StackConfiguration config;
+	private static StackConfiguration config;
 
 	private static SimpleHttpClient simpleClient;
 	
@@ -78,7 +78,7 @@ public class ITDocker {
 
 	@BeforeAll
 	public static void beforeClass() throws Exception {
-		StackConfiguration config = StackConfigurationSingleton.singleton();
+		config = StackConfigurationSingleton.singleton();
 		// Create 2 users
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
@@ -98,7 +98,6 @@ public class ITDocker {
 
 	@BeforeEach
 	public void before() throws Exception {
-		config = StackConfigurationSingleton.singleton();
 		Project project = new Project();
 		project = synapseOne.createEntity(project);
 		projectId = project.getId();

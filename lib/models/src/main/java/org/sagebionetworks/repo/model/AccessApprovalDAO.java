@@ -64,18 +64,6 @@ public interface AccessApprovalDAO {
 	public void createOrUpdateBatch(List<AccessApproval> approvalsToCreate);
 
 	/**
-	 * Retrieve a list of access approvals for a given subjectIdList
-	 * 
-	 * @param subjectIdList
-	 * @param type
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	public List<AccessApproval> getAccessApprovalsForSubjects(List<Long> subjectIdList, RestrictableObjectType type,
-			long limit, long offset);
-
-	/**
 	 * Retrieve all active approvals, approvals that have APPROVED state and haven't expired, for the given user.
 	 * 
 	 * @param accessRequirementId

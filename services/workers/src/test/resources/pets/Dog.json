@@ -4,12 +4,15 @@
 	"description": "...",
 	"allOf": [
 		{
-			"$ref": "my.organization/pets.Pet/1.0.3"
+			"$ref": "my.organization/pets.Pet-1.0.3"
 		}
 	],
 	"properties": {
 		"breed": {
 			"$ref": "my.organization/pets.dog.Breed"
+		},
+		"petType": {
+			"const": "dog"
 		}
 	}
 }
