@@ -2,7 +2,9 @@ package org.sagebionetworks;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -13,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -24,24 +27,34 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
+import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
+import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
 import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
+import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
+import org.sagebionetworks.repo.model.oauth.TokenTypeHint;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
@@ -60,7 +73,7 @@ public class ITOpenIDConnectTest {
 	private static Long user2ToDelete;
 	private static StackConfiguration config;
 	private static SimpleHttpClient simpleClient;
-	
+
 	private String clientToDelete;
 	
 	@BeforeAll
@@ -78,7 +91,7 @@ public class ITOpenIDConnectTest {
 		
 		synapseAnonymous = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(synapseAnonymous);
-		
+
 		simpleClient = new SimpleHttpClientImpl();
 	}
 	
@@ -102,15 +115,24 @@ public class ITOpenIDConnectTest {
 			// already gone
 		}
 	}
-	
-	@Test
-	public void testClientNotVerified() throws Exception {
+
+	private OAuthClient setUpOAuthClient(boolean verified) throws SynapseException {
 		OAuthClient client = new OAuthClient();
 		client.setClient_name("some client");
 		client.setRedirect_uris(Collections.singletonList("https://foo.bar.com"));
 		client = synapseOne.createOAuthClient(client);
 		clientToDelete = client.getClient_id();
-		
+		if (verified) {
+			return adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), client.getEtag(), true);
+		} else {
+			return client;
+		}
+	}
+
+	@Test
+	public void testClientNotVerified() throws Exception {
+		OAuthClient client = setUpOAuthClient(false);
+
 		assertFalse(client.getVerified());
 		
 		OAuthClientIdAndSecret secret = synapseOne.createOAuthClientSecret(client.getClient_id());
@@ -122,10 +144,18 @@ public class ITOpenIDConnectTest {
 		authorizationRequest.setRedirectUri(client.getRedirect_uris().get(0));
 		authorizationRequest.setResponseType(OAuthResponseType.code);
 		authorizationRequest.setScope("openid");
-		authorizationRequest.setClaims(
-				"{\"id_token\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}},"+
-				 "\"userinfo\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}}}"
-		);
+		Map<String, OIDCClaimsRequestDetails> claimsToRequest = new HashMap<>();
+		claimsToRequest.put(OIDCClaimName.userid.name(), null);
+		claimsToRequest.put(OIDCClaimName.email.name(), null);
+		claimsToRequest.put(OIDCClaimName.is_certified.name(), null);
+		OIDCClaimsRequestDetails teamClaimRequestDetails = new OIDCClaimsRequestDetails();
+		teamClaimRequestDetails.setValues(Collections.singletonList("2"));
+		claimsToRequest.put(OIDCClaimName.team.name(), teamClaimRequestDetails);
+		OIDCClaimsRequest claimsRequest = new OIDCClaimsRequest();
+		claimsRequest.setId_token(claimsToRequest);
+		claimsRequest.setUserinfo(claimsToRequest);
+		authorizationRequest.setClaims(claimsRequest);
+
 
 		// ---- Auth Description Test ----
 		
@@ -227,11 +257,7 @@ public class ITOpenIDConnectTest {
 		JsonWebKeySet jsonWebKeySet = synapseAnonymous.getOIDCJsonWebKeySet();
 		assertFalse(jsonWebKeySet.getKeys().isEmpty());
 		
-		OAuthClient client = new OAuthClient();
-		client.setClient_name("some client");
-		client.setRedirect_uris(Collections.singletonList("https://foo.bar.com"));
-		client = synapseOne.createOAuthClient(client);
-		clientToDelete = client.getClient_id();
+		OAuthClient client = setUpOAuthClient(false);
 		
 		assertEquals(client, synapseOne.getOAuthClient(client.getClient_id()));
 		assertFalse(client.getVerified());
@@ -256,10 +282,19 @@ public class ITOpenIDConnectTest {
 		authorizationRequest.setRedirectUri(client.getRedirect_uris().get(0));
 		authorizationRequest.setResponseType(OAuthResponseType.code);
 		authorizationRequest.setScope("openid");
-		authorizationRequest.setClaims(
-				"{\"id_token\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}},"+
-				 "\"userinfo\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}}}"
-		);
+
+		Map<String, OIDCClaimsRequestDetails> claimsToRequest = new HashMap<>();
+		claimsToRequest.put(OIDCClaimName.userid.name(), null);
+		claimsToRequest.put(OIDCClaimName.email.name(), null);
+		claimsToRequest.put(OIDCClaimName.is_certified.name(), null);
+		OIDCClaimsRequestDetails teamClaimRequestDetails = new OIDCClaimsRequestDetails();
+		teamClaimRequestDetails.setValues(Collections.singletonList("2"));
+		claimsToRequest.put(OIDCClaimName.team.name(), teamClaimRequestDetails);
+		OIDCClaimsRequest claimsRequest = new OIDCClaimsRequest();
+		claimsRequest.setId_token(claimsToRequest);
+		claimsRequest.setUserinfo(claimsToRequest);
+		authorizationRequest.setClaims(claimsRequest);
+
 		String nonce = UUID.randomUUID().toString();
 		authorizationRequest.setNonce(nonce);
 		
@@ -286,13 +321,13 @@ public class ITOpenIDConnectTest {
 		} finally {
 			synapseAnonymous.removeAuthorizationHeader();
 		}
-		
+
 		// we can also authorize the client using client_secret_post
 		{
 			SimpleHttpRequest request = new SimpleHttpRequest();
 			request.setUri(config.getAuthenticationServicePublicEndpoint()+"/oauth2/token");
 			Map<String, String> requestHeaders = new HashMap<String, String>();
-			requestHeaders.put("Content-Type", "application/x-www-form-urlencoded"); 
+			requestHeaders.put("Content-Type", "application/x-www-form-urlencoded");
 			request.setHeaders(requestHeaders);
 			String requestBody = "client_id="+client.getClient_id()+
 					"&client_secret="+secret.getClient_secret()+
@@ -303,7 +338,7 @@ public class ITOpenIDConnectTest {
 			assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 			assertNotNull(response.getContent());
 		}
-		
+
 		Jwt<JwsHeader, Claims> parsedIdToken = JSONWebTokenHelper.parseJWT(tokenResponse.getId_token(), jsonWebKeySet);
 		UserProfile myProfile = synapseOne.getMyProfile();
 		String myId = myProfile.getOwnerId();
@@ -358,9 +393,247 @@ public class ITOpenIDConnectTest {
 		} finally {
 			synapseAnonymous.removeAuthorizationHeader();
 		}
-		
-		synapseOne.deleteOAuthClient(client.getClient_id());
-		clientToDelete=null;
 	}
 
+	private static OIDCAuthorizationRequest setUpAuthorizationRequest(OAuthClient client) throws Exception {
+		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
+		authorizationRequest.setClientId(client.getClient_id());
+		authorizationRequest.setRedirectUri(client.getRedirect_uris().get(0));
+		authorizationRequest.setResponseType(OAuthResponseType.code);
+		authorizationRequest.setScope("openid offline_access"); // offline_access is needed for a refresh token
+
+		Map<String, OIDCClaimsRequestDetails> claimsToRequest = new HashMap<>();
+		claimsToRequest.put(OIDCClaimName.userid.name(), null);
+		claimsToRequest.put(OIDCClaimName.email.name(), null);
+		claimsToRequest.put(OIDCClaimName.is_certified.name(), null);
+		OIDCClaimsRequestDetails teamClaimRequestDetails = new OIDCClaimsRequestDetails();
+		teamClaimRequestDetails.setValues(Collections.singletonList("2"));
+		claimsToRequest.put(OIDCClaimName.team.name(), teamClaimRequestDetails);
+		OIDCClaimsRequest claimsRequest = new OIDCClaimsRequest();
+		claimsRequest.setId_token(claimsToRequest);
+		claimsRequest.setUserinfo(claimsToRequest);
+		authorizationRequest.setClaims(claimsRequest);
+
+		String nonce = UUID.randomUUID().toString();
+		authorizationRequest.setNonce(nonce);
+		return authorizationRequest;
+	}
+
+	@Test
+	public void testRefreshTokenGrantTypeRoundTrip() throws Exception {
+		OAuthClient client = setUpOAuthClient(true);
+		OAuthClientIdAndSecret secret = synapseOne.createOAuthClientSecret(client.getClient_id());
+
+		OIDCAuthorizationRequest authorizationRequest = setUpAuthorizationRequest(client);
+
+		OAuthAuthorizationResponse oauthAuthorizationResponse = synapseOne.authorizeClient(authorizationRequest);
+
+		// Note, we use Basic auth to authorize the client when asking for an access token
+		OIDCTokenResponse tokenResponse = null;
+		try {
+			synapseAnonymous.setBasicAuthorizationCredentials(client.getClient_id(), secret.getClient_secret());
+			tokenResponse = synapseAnonymous.getTokenResponse(OAuthGrantType.authorization_code,
+					oauthAuthorizationResponse.getAccess_code(), client.getRedirect_uris().get(0), null, null, null);
+		} finally {
+			synapseAnonymous.removeAuthorizationHeader();
+		}
+
+		// get another access token using our refresh token
+		OIDCTokenResponse newTokenResponse = null;
+		try {
+			synapseAnonymous.setBasicAuthorizationCredentials(client.getClient_id(), secret.getClient_secret());
+			newTokenResponse = synapseAnonymous.getTokenResponse(OAuthGrantType.refresh_token, null,
+					client.getRedirect_uris().get(0), tokenResponse.getRefresh_token(), null, null);
+
+		} finally {
+			synapseAnonymous.removeAuthorizationHeader();
+		}
+		// The refresh token should be rotated
+		assertFalse(StringUtils.isBlank(newTokenResponse.getRefresh_token()));
+		assertNotEquals(tokenResponse.getRefresh_token(), newTokenResponse.getRefresh_token());
+
+		// New ID and access tokens should be retrieved
+		assertFalse(StringUtils.isBlank(newTokenResponse.getId_token()));
+		assertNotEquals(tokenResponse.getId_token(), newTokenResponse.getId_token());
+		assertFalse(StringUtils.isBlank(newTokenResponse.getAccess_token()));
+		assertNotEquals(tokenResponse.getAccess_token(), newTokenResponse.getAccess_token());
+
+		// The old refresh token shouldn't work anymore.
+		try {
+			synapseAnonymous.setBasicAuthorizationCredentials(client.getClient_id(), secret.getClient_secret());
+			String clientUri = client.getRedirect_uris().get(0);
+			String oldRefreshToken = tokenResponse.getRefresh_token();
+			assertThrows(SynapseBadRequestException.class, () ->
+					synapseAnonymous.getTokenResponse(OAuthGrantType.refresh_token, null,
+					clientUri, oldRefreshToken, null, null));
+		} finally {
+			synapseAnonymous.removeAuthorizationHeader();
+		}
+
+		// Both the old and the new access tokens should work
+		try { // Get userInfo using old access token
+			synapseAnonymous.setBearerAuthorizationToken(tokenResponse.getAccess_token());
+			JSONObject userInfo = synapseAnonymous.getUserInfoAsJSON();
+			assertTrue((Boolean)userInfo.get("is_certified"));
+		} finally {
+			synapseAnonymous.removeAuthorizationHeader();
+		}
+
+		// The old refresh token should not work
+		try {
+			synapseAnonymous.setBasicAuthorizationCredentials(client.getClient_id(), secret.getClient_secret());
+			String clientUri = client.getRedirect_uris().get(0);
+			String refreshToken = tokenResponse.getRefresh_token();
+			assertThrows(SynapseBadRequestException.class, () ->
+					synapseAnonymous.getTokenResponse(OAuthGrantType.refresh_token, null,
+							clientUri, refreshToken, null, null)
+			);
+		} finally {
+			synapseAnonymous.removeAuthorizationHeader();
+		}
+
+
+		try { // Get userInfo using new access token
+			synapseAnonymous.setBearerAuthorizationToken(newTokenResponse.getAccess_token());
+			JSONObject userInfo = synapseAnonymous.getUserInfoAsJSON();
+			assertTrue((Boolean)userInfo.get("is_certified"));
+		} finally {
+			synapseAnonymous.removeAuthorizationHeader();
+		}
+
+		// Audit clients -- there should only be one active client
+		// Call under test
+		OAuthClientAuthorizationHistoryList authzHistory = synapseOne.getClientAuthorizationHistory(null);
+		assertEquals(1, authzHistory.getResults().size());
+		assertNull(authzHistory.getNextPageToken());
+		assertEquals(client.getClient_id(), authzHistory.getResults().get(0).getClient().getClient_id());
+
+		// Audit tokens -- there should only be one token for the sole active client
+		// Call under test
+		OAuthRefreshTokenInformationList tokenList = synapseOne.getRefreshTokenMetadataForAuthorizedClient(client.getClient_id(), null);
+		assertEquals(1, tokenList.getResults().size());
+		assertNull(tokenList.getNextPageToken());
+		assertEquals(synapseOne.getMyProfile().getOwnerId(), tokenList.getResults().get(0).getPrincipalId());
+		assertEquals(client.getClient_id(), tokenList.getResults().get(0).getClientId());
+		assertEquals(authorizationRequest.getClaims(), tokenList.getResults().get(0).getClaims());
+
+		// Retrieving the refresh token metadata should yield the same result
+		OAuthRefreshTokenInformation metadata = synapseOne.getRefreshTokenMetadata(tokenList.getResults().get(0).getTokenId());
+		assertEquals(tokenList.getResults().get(0), metadata);
+
+		// Rename the refresh token
+		metadata.setName("a new refresh token name");
+		// Call under test
+		synapseOne.updateRefreshTokenMetadata(metadata);
+		OAuthRefreshTokenInformation newMetadata = synapseOne.getRefreshTokenMetadata(tokenList.getResults().get(0).getTokenId());
+
+		assertEquals(metadata.getName(), newMetadata.getName());
+
+		// The OAuth client should be able to get the refresh token metadata as well
+		try {
+			synapseAnonymous.setBasicAuthorizationCredentials(client.getClient_id(), secret.getClient_secret());
+			assertEquals(newMetadata, synapseAnonymous.getRefreshTokenMetadataAsOAuthClient(metadata.getTokenId()));
+		} finally {
+			synapseAnonymous.removeAuthorizationHeader();
+		}
+
+		// Revoke the refresh token
+		synapseOne.revokeRefreshToken(metadata.getTokenId());
+
+		// Client should be unable to use access token
+		try {
+			synapseAnonymous.setBearerAuthorizationToken(tokenResponse.getAccess_token());
+			assertThrows(SynapseUnauthorizedException.class, () ->
+					synapseAnonymous.getUserInfoAsJSONWebToken()
+			);
+		} finally {
+			synapseAnonymous.removeAuthorizationHeader();
+		}
+
+		// Client should be unable to use refresh token
+		try {
+			synapseAnonymous.setBasicAuthorizationCredentials(client.getClient_id(), secret.getClient_secret());
+			String clientUri = client.getRedirect_uris().get(0);
+			String refreshToken = newTokenResponse.getRefresh_token();
+			assertThrows(SynapseBadRequestException.class, () ->
+					synapseAnonymous.getTokenResponse(OAuthGrantType.refresh_token, null,
+							clientUri, refreshToken, null, null)
+			);
+		} finally {
+			synapseAnonymous.removeAuthorizationHeader();
+		}
+	}
+
+	@Test
+	public void testRevokeAllTokensFromClient() throws Exception {
+		// START Set up, use authorization code
+		OAuthClient client = setUpOAuthClient(true);
+		OAuthClientIdAndSecret secret = synapseOne.createOAuthClientSecret(client.getClient_id());
+
+		OIDCAuthorizationRequest authorizationRequest = setUpAuthorizationRequest(client);
+
+		OAuthAuthorizationResponse oauthAuthorizationResponse = synapseOne.authorizeClient(authorizationRequest);
+
+		// Note, we use Basic auth to authorize the client when asking for an access token
+		OIDCTokenResponse tokenResponse = null;
+		try {
+			synapseAnonymous.setBasicAuthorizationCredentials(client.getClient_id(), secret.getClient_secret());
+			tokenResponse = synapseAnonymous.getTokenResponse(OAuthGrantType.authorization_code,
+					oauthAuthorizationResponse.getAccess_code(), client.getRedirect_uris().get(0), null, null, null);
+		} finally {
+			synapseAnonymous.removeAuthorizationHeader();
+		}
+		// END Set up. We now have a refresh token
+
+		OAuthRefreshTokenInformationList tokens = synapseOne.getRefreshTokenMetadataForAuthorizedClient(client.getClient_id(), null);
+		String tokenId = tokens.getResults().get(0).getTokenId();
+
+		// Test revoking all refresh tokens from a client
+
+		// Call under test
+		synapseOne.revokeMyRefreshTokensFromClient(client.getClient_id());
+
+		assertThrows(SynapseNotFoundException.class, () ->
+				synapseOne.getRefreshTokenMetadata(tokenId));
+	}
+
+	@Test
+	public void testRevokeTokensViaClient() throws Exception {
+		// START Set up, use authorization code
+		OAuthClient client = setUpOAuthClient(true);
+		OAuthClientIdAndSecret secret = synapseOne.createOAuthClientSecret(client.getClient_id());
+
+		OIDCAuthorizationRequest authorizationRequest = setUpAuthorizationRequest(client);
+
+		OAuthAuthorizationResponse oauthAuthorizationResponse = synapseOne.authorizeClient(authorizationRequest);
+
+		// Note, we use Basic auth to authorize the client when asking for an access token
+		OIDCTokenResponse tokenResponse = null;
+		try {
+			synapseAnonymous.setBasicAuthorizationCredentials(client.getClient_id(), secret.getClient_secret());
+			tokenResponse = synapseAnonymous.getTokenResponse(OAuthGrantType.authorization_code,
+					oauthAuthorizationResponse.getAccess_code(), client.getRedirect_uris().get(0), null, null, null);
+		} finally {
+			synapseAnonymous.removeAuthorizationHeader();
+		}
+		// END Set up. We now have a refresh token
+
+		OAuthRefreshTokenInformationList tokens = synapseOne.getRefreshTokenMetadataForAuthorizedClient(client.getClient_id(), null);
+		String tokenId = tokens.getResults().get(0).getTokenId();
+
+		// Test revoking a token as a client
+		OAuthTokenRevocationRequest revocationRequest = new OAuthTokenRevocationRequest();
+		revocationRequest.setToken(tokenResponse.getRefresh_token());
+		revocationRequest.setToken_type_hint(TokenTypeHint.refresh_token);
+		try {
+			synapseAnonymous.setBasicAuthorizationCredentials(client.getClient_id(), secret.getClient_secret());
+			// Call under test
+			synapseAnonymous.revokeToken(revocationRequest);
+		} finally {
+			synapseAnonymous.removeAuthorizationHeader();
+		}
+
+		assertThrows(SynapseNotFoundException.class, () ->
+				synapseOne.getRefreshTokenMetadata(tokenId));
+	}
 }

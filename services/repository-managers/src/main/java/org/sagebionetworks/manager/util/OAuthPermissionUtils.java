@@ -15,6 +15,8 @@ public class OAuthPermissionUtils {
 			return "To download the content which you can download";
 		case authorize:
 			return "To authorize others to access to resources you control";
+		case offline_access:
+			return "To access the resources authorized here when you are not logged in, until you revoke access from this application.";
 		}
 		return null;
 	}

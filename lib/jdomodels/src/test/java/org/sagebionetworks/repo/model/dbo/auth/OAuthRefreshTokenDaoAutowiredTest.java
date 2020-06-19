@@ -122,7 +122,7 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 				oauthClientDao.deleteSectorIdentifer(sectorIdentifier);
 			} catch (NotFoundException e) {
 				// Ignore
-				}
+			}
 		}
 		for (String id : tokenIdsToDelete) {
 			try {
@@ -209,7 +209,7 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 	}
 
 	@Test
-	void testDboToDtoAndBack() throws Exception{
+	void testDboToDtoAndBack() throws Exception {
 		DBOOAuthRefreshToken dbo = new DBOOAuthRefreshToken();
 		dbo.setName(UUID.randomUUID().toString());
 		dbo.setId(11111L);
@@ -322,10 +322,29 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		assertEquals(activeToken2, pageTwo.getResults().get(0));
 	}
 
+	@Test
+	void getMatchingTokenByHash() {
+		String hashValue = "matching hash";
+		OAuthRefreshTokenInformation expected = createRefreshToken(hashValue, new Date());
+
+		// call under test
+		Optional<OAuthRefreshTokenInformation> actual = oauthRefreshTokenDao.getMatchingTokenByHash(hashValue);
+		assertEquals(expected, actual.get());
+	}
+
+	@Test
+	void getMatchingTokenByHash_EmptyResult() {
+		String hashValue = "hash";
+		createRefreshToken(hashValue, new Date());
+
+		// call under test
+		Optional<OAuthRefreshTokenInformation> actual = oauthRefreshTokenDao.getMatchingTokenByHash("value that doesn't match");
+		assertFalse(actual.isPresent());
+	}
 
 	@Transactional
 	@Test
-	void getMatchingTokenByHash() {
+	void getMatchingTokenByHashForUpdate() {
 		String hashValue = "matching hash";
 		OAuthRefreshTokenInformation expected = createRefreshToken(hashValue, new Date());
 
@@ -336,7 +355,7 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 
 	@Transactional
 	@Test
-	void getMatchingTokenByHash_EmptyResult() {
+	void getMatchingTokenByHashForUpdate_EmptyResult() {
 		String hashValue = "hash";
 		createRefreshToken(hashValue, new Date());
 
@@ -345,10 +364,9 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		assertFalse(actual.isPresent());
 	}
 
-
 	@Test
 	void getMatchingTokenByHashForUpdate_noTransaction() {
-		assertThrows(IllegalTransactionStateException.class,() ->
+		assertThrows(IllegalTransactionStateException.class, () ->
 				oauthRefreshTokenDao.getMatchingTokenByHashForUpdate("hash")
 		);
 	}
@@ -383,7 +401,7 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 
 	@Test
 	void updateTokenHash_noTransaction() {
-		assertThrows(IllegalTransactionStateException.class,() ->
+		assertThrows(IllegalTransactionStateException.class, () ->
 				oauthRefreshTokenDao.updateTokenHash(new OAuthRefreshTokenInformation(), "clientid")
 
 		);
@@ -432,5 +450,28 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		assertFalse(oauthRefreshTokenDao.getRefreshTokenMetadata(oldToken2.getTokenId()).isPresent());
 		assertTrue(oauthRefreshTokenDao.getRefreshTokenMetadata(newToken1.getTokenId()).isPresent());
 		assertTrue(oauthRefreshTokenDao.getRefreshTokenMetadata(newToken2.getTokenId()).isPresent());
+	}
+
+	@Test
+	public void testIsTokenActive() {
+		OAuthRefreshTokenInformation token = createRefreshToken(new Date(System.currentTimeMillis()));
+		// Call under test
+		assertTrue(oauthRefreshTokenDao.isTokenActive(token.getTokenId(), HALF_YEAR_DAYS));
+	}
+
+	@Test
+	public void testIsTokenActive_deleted() {
+		OAuthRefreshTokenInformation token = createRefreshToken(new Date(System.currentTimeMillis()));
+		oauthRefreshTokenDao.deleteToken(token.getTokenId());
+		// Call under test
+		assertFalse(oauthRefreshTokenDao.isTokenActive(token.getTokenId(), HALF_YEAR_DAYS));
+	}
+
+	@Test
+	public void testIsTokenActive_expired() {
+		// Create token last used one year ago
+		OAuthRefreshTokenInformation token = createRefreshToken(new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS));
+		// Call under test
+		assertFalse(oauthRefreshTokenDao.isTokenActive(token.getTokenId(), HALF_YEAR_DAYS));
 	}
 }

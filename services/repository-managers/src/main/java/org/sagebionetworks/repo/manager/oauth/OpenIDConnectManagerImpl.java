@@ -27,11 +27,14 @@ import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.OAuthDao;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
+import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -41,6 +44,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.EncryptionUtils;
 import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.util.EnumKeyedJsonMapUtil;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -51,21 +55,20 @@ import io.jsonwebtoken.Jwt;
 public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	private static final long AUTHORIZATION_CODE_TIME_LIMIT_MILLIS = 60000L; // one minute
 
-	// from https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
-	private static final String ID_TOKEN_CLAIMS_KEY = "id_token";
-	private static final String USER_INFO_CLAIMS_KEY = "userinfo";
-	
 	// user authorization times out after one year
 	private static final long AUTHORIZATION_TIME_OUT_MILLIS = 1000L*3600L*24L*365L;
 	
 	// token_type=Bearer, as per https://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
 	private static final String TOKEN_TYPE_BEARER = "Bearer";
-	
+
 	@Autowired
 	private StackEncrypter stackEncrypter;
 
 	@Autowired
 	private OAuthClientDao oauthClientDao;
+
+	@Autowired
+	private OAuthRefreshTokenManager oauthRefreshTokenManager;
 
 	@Autowired
 	private AuthenticationDAO authDao;
@@ -75,7 +78,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
-	
+
 	@Autowired
 	private Clock clock;
 	
@@ -161,19 +164,23 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		// Use of [the OpenID Connect] extension [to OAuth 2.0] is requested by Clients by including the openid scope value in the Authorization Request.
 		// https://openid.net/specs/openid-connect-core-1_0.html#Introduction
-		if (scopes.contains(OAuthScope.openid) && !StringUtils.isEmpty(authorizationRequest.getClaims())) {
-			scopeDescriptions.addAll(getDecriptionsForClaims(authorizationRequest.getClaims(), ID_TOKEN_CLAIMS_KEY));
-			scopeDescriptions.addAll(getDecriptionsForClaims(authorizationRequest.getClaims(), USER_INFO_CLAIMS_KEY));
+		if (scopes.contains(OAuthScope.openid) && authorizationRequest.getClaims() != null) {
+			if (authorizationRequest.getClaims().getUserinfo() != null && !authorizationRequest.getClaims().getUserinfo().isEmpty()) {
+				Map<OIDCClaimName,OIDCClaimsRequestDetails> userinfoClaims = EnumKeyedJsonMapUtil.convertToEnum(authorizationRequest.getClaims().getUserinfo(), OIDCClaimName.class);
+				scopeDescriptions.addAll(getDescriptionsForClaims(userinfoClaims));
+			}
+			if (authorizationRequest.getClaims().getId_token() != null && !authorizationRequest.getClaims().getId_token().isEmpty()) {
+				Map<OIDCClaimName,OIDCClaimsRequestDetails> idTokenClaims = EnumKeyedJsonMapUtil.convertToEnum(authorizationRequest.getClaims().getId_token(), OIDCClaimName.class);
+				scopeDescriptions.addAll(getDescriptionsForClaims(idTokenClaims));
+			}
 		}
 		result.setScope(new ArrayList<String>(scopeDescriptions));
 		return result;
 	}
 	
-	private Set<String> getDecriptionsForClaims(String claimsJsonString, String jsonField) {
+	private Set<String> getDescriptionsForClaims(Map<OIDCClaimName,OIDCClaimsRequestDetails> idTokenClaimsMap) {
 		Set<String> scopeDescriptions = new TreeSet<String>();
 		{
-			Map<OIDCClaimName,OIDCClaimsRequestDetails> idTokenClaimsMap = 
-					ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(claimsJsonString, jsonField);
 			for (OIDCClaimName claim : idTokenClaimsMap.keySet()) {
 				OIDCClaimProvider provider = claimProviders.get(claim);
 				if (provider!=null) {
@@ -258,12 +265,16 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	}
 	
 	@Override
-	public String getUserId(String jwtToken) {
+	public String validateAccessToken(String jwtToken) {
 		Claims claims = oidcTokenHelper.parseJWT(jwtToken).getBody();
-		return getUserIdFromPPID(claims.getSubject(), claims.getAudience());
+		String userId = getUserIdFromPPID(claims.getSubject(), claims.getAudience());
+		String refreshTokenId = claims.get(OIDCClaimName.refresh_token_id.name(), String.class);
+		if (refreshTokenId != null && !oauthRefreshTokenManager.isRefreshTokenActive(refreshTokenId)) {
+			throw new IllegalArgumentException("The access token has been revoked");
+		}
+		return userId;
 	}
 
-	
 	/*
 	 * Given the scopes and additional OIDC claims requested by the user, return the 
 	 * user info claims to add to the returned User Info object or JSON Web Token
@@ -291,7 +302,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	}
 
 	@Override
-	public OIDCTokenResponse getAccessToken(String code, String verifiedClientId, String redirectUri, String oauthEndpoint) {
+	public OIDCTokenResponse generateTokenResponseWithAuthorizationCode(String code, String verifiedClientId, String redirectUri, String oauthEndpoint) {
 		ValidateArgument.required(code, "Authorization Code");
 		ValidateArgument.required(verifiedClientId, "OAuth Client ID");
 		ValidateArgument.required(redirectUri, "Redirect URI");
@@ -326,6 +337,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		List<OAuthScope> scopes = parseScopeString(authorizationRequest.getScope());
 
+		OIDCClaimsRequest normalizedClaims = normalizeClaims(authorizationRequest.getClaims());
+
 		Date authTime = null;
 		if (authorizationRequest.getAuthenticatedAt()!=null) {
 			authTime = authorizationRequest.getAuthenticatedAt();
@@ -343,21 +356,134 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		if (scopes.contains(OAuthScope.openid)) {
 			String idTokenId = UUID.randomUUID().toString();
 			Map<OIDCClaimName,Object> userInfo = getUserInfo(authorizationRequest.getUserId(), 
-					scopes, ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), ID_TOKEN_CLAIMS_KEY));
+					scopes, EnumKeyedJsonMapUtil.convertToEnum(normalizedClaims.getId_token(), OIDCClaimName.class));
 			String idToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, 
 					authorizationRequest.getNonce(), authTime, idTokenId, userInfo);
 			result.setId_token(idToken);
 		}
 
+		// A refresh token should only be issued when `offline_access` is requested.
+		boolean issueRefreshToken = scopes.contains(OAuthScope.offline_access);
+		String refreshTokenId = null;
+		if (issueRefreshToken) {
+
+			OAuthRefreshTokenAndMetadata refreshToken = oauthRefreshTokenManager
+					.createRefreshToken(authorizationRequest.getUserId(),
+							oauthClientId,
+							scopes,
+							normalizedClaims
+					);
+			refreshTokenId = refreshToken.getMetadata().getTokenId();
+			result.setRefresh_token(refreshToken.getRefreshToken());
+		}
+
 		String accessTokenId = UUID.randomUUID().toString();
-		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid, 
-				oauthClientId, now, authTime, null, accessTokenId, scopes, 
-				ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), USER_INFO_CLAIMS_KEY));
+		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid,
+				oauthClientId, now, authTime, refreshTokenId, accessTokenId, scopes,
+				EnumKeyedJsonMapUtil.convertToEnum(normalizedClaims.getUserinfo(), OIDCClaimName.class));
 		result.setAccess_token(accessToken);
 		result.setToken_type(TOKEN_TYPE_BEARER);
 		return result;
 	}
-	
+
+	@WriteTransaction
+	@Override
+	public OIDCTokenResponse generateTokenResponseWithRefreshToken(String refreshToken, String verifiedClientId, String scope, String oauthEndpoint) {
+		ValidateArgument.required(refreshToken, "Refresh Token");
+		ValidateArgument.required(verifiedClientId, "OAuth Client ID");
+		ValidateArgument.required(oauthEndpoint, "Authorization Endpoint");
+		// scopes is not required
+
+		validateClientVerificationStatus(verifiedClientId);
+		List<OAuthScope> scopes = parseScopeString(scope);
+
+		// Retrieve the refresh token and rotate it.
+		OAuthRefreshTokenAndMetadata rotatedRefreshToken = oauthRefreshTokenManager.rotateRefreshToken(refreshToken);
+		OAuthRefreshTokenInformation refreshTokenMetadata = rotatedRefreshToken.getMetadata();
+
+		// Ensure the client is permitted to use this refresh token
+		if (!refreshTokenMetadata.getClientId().equals(verifiedClientId)) {
+			// Defined by https://tools.ietf.org/html/rfc6749#section-5.2
+			throw new IllegalArgumentException("invalid_grant");
+		}
+
+		if (scopes.isEmpty()) {
+			// Per RFC-6479 Section 6, if [the requested scope is] omitted[, it] is treated as equal to the scope originally granted by the resource owner. https://tools.ietf.org/html/rfc6749#section-6
+			scopes = refreshTokenMetadata.getScopes();
+		} else if (!refreshTokenMetadata.getScopes().containsAll(scopes)) { // Ensure the requested scopes are a subset of previously authorized scopes and claims
+			// Defined by https://tools.ietf.org/html/rfc6749#section-5.2
+			throw new IllegalArgumentException("invalid_scope");
+		}
+
+		// In the JWT, we will need to supply both the current time and the date/time of the initial authorization
+		long now = clock.currentTimeMillis();
+		Date authTime = refreshTokenMetadata.getAuthorizedOn();
+
+		// The following implements 'pairwise' subject_type, https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
+		// Pairwise Pseudonymous Identifier (PPID)
+		String ppid = ppid(refreshTokenMetadata.getPrincipalId(), verifiedClientId);
+		String oauthClientId = refreshTokenMetadata.getClientId();
+
+		OIDCTokenResponse result = new OIDCTokenResponse();
+		result.setRefresh_token(rotatedRefreshToken.getRefreshToken());
+
+		// Use of [the OpenID Connect] extension [to OAuth 2.0] is requested by Clients by including the openid scope value in the Authorization Request.
+		// https://openid.net/specs/openid-connect-core-1_0.html#Introduction
+		Map<OIDCClaimName, OIDCClaimsRequestDetails> idTokenClaims = EnumKeyedJsonMapUtil.convertToEnum(refreshTokenMetadata.getClaims().getId_token(), OIDCClaimName.class);
+		Map<OIDCClaimName, OIDCClaimsRequestDetails> userInfoClaims = EnumKeyedJsonMapUtil.convertToEnum(refreshTokenMetadata.getClaims().getUserinfo(), OIDCClaimName.class);
+		if (scopes.contains(OAuthScope.openid)) {
+			String idTokenId = UUID.randomUUID().toString();
+			Map<OIDCClaimName,Object> userInfo = getUserInfo(refreshTokenMetadata.getPrincipalId(), scopes, idTokenClaims);
+			String idToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, null, authTime, idTokenId, userInfo);
+			result.setId_token(idToken);
+		} else {
+			idTokenClaims = Collections.emptyMap();
+			userInfoClaims = Collections.emptyMap();
+		}
+
+		String accessTokenId = UUID.randomUUID().toString();
+		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid,
+				oauthClientId, now, authTime, refreshTokenMetadata.getTokenId(), accessTokenId, scopes, userInfoClaims);
+		result.setAccess_token(accessToken);
+		result.setToken_type(TOKEN_TYPE_BEARER);
+		return result;
+	}
+
+	/**
+	 * Removes null fields and unrecognized claims from the OIDCClaimsRequest. Also replaces
+	 * null objects with empty ones (a requirement for the {@link OAuthRefreshTokenManager}, if the
+	 * claims are saved)
+	 *
+	 * Protected access for testing
+	 * @param claims
+	 * @return
+	 */
+	protected static OIDCClaimsRequest normalizeClaims(OIDCClaimsRequest claims) {
+		if (claims == null) {
+			claims = new OIDCClaimsRequest();
+		}
+		if (claims.getId_token() == null) {
+			claims.setId_token(Collections.emptyMap());
+		} else {
+			// Converting the key to enum and back to string will drop unrecognized claims
+			claims.setId_token(
+					EnumKeyedJsonMapUtil.convertToString(
+							EnumKeyedJsonMapUtil.convertToEnum(claims.getId_token(), OIDCClaimName.class)
+					)
+			);
+		}
+		if (claims.getUserinfo() == null) {
+			claims.setUserinfo(Collections.emptyMap());
+		} else {
+			claims.setUserinfo(
+					EnumKeyedJsonMapUtil.convertToString(
+							EnumKeyedJsonMapUtil.convertToEnum(claims.getUserinfo(), OIDCClaimName.class)
+					)
+			);
+		}
+		return claims;
+	}
+
 	@Override
 	public Object getUserInfo(String accessTokenParam, String oauthEndpoint) {
 		Jwt<JwsHeader,Claims> accessToken = oidcTokenHelper.parseJWT(accessTokenParam);
@@ -419,5 +545,41 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		if (!oauthClientDao.isOauthClientVerified(clientId)) {			
 			throw new OAuthClientNotVerifiedException("The OAuth client (" + clientId + ") is not verified.");
 		}
+	}
+
+	@WriteTransaction
+	@Override
+	public void revokeToken(String verifiedClientId, OAuthTokenRevocationRequest revocationRequest) {
+		switch (revocationRequest.getToken_type_hint()) {
+			case access_token: // retrieve the refresh token ID from the JWT
+				String refreshTokenId = this.getRefreshTokenId(revocationRequest.getToken());
+				if (refreshTokenId == null) {
+					// Access tokens that were not issued alongside refresh tokens cannot be revoked.
+					throw new IllegalArgumentException("The access token has no associated refresh token so it cannot be revoked.");
+				}
+				oauthRefreshTokenManager.revokeRefreshToken(verifiedClientId, refreshTokenId);
+				return;
+			case refresh_token: // retrieve the token ID using the token
+				OAuthRefreshTokenInformation metadata = oauthRefreshTokenManager.getRefreshTokenMetadataWithToken(verifiedClientId, revocationRequest.getToken());
+				oauthRefreshTokenManager.revokeRefreshToken(verifiedClientId, metadata.getTokenId());
+				return;
+			default:
+				throw new IllegalArgumentException("Unable to revoke a token with token_type_hint=" + revocationRequest.getToken_type_hint().name());
+		}
+	}
+
+
+	/**
+	 * Given an OAuth access token, return the associated refresh token ID.
+	 *
+	 * When an OAuth authorization request with the `{@link org.sagebionetworks.repo.model.oauth.OAuthScope#offline_access}`
+	 * scope is granted, an access token is issued alongside a refresh token that has a unique, persistent ID. This access token,
+	 * along with any future access tokens issued using that refresh token will contain that refresh token ID in the {@link org.sagebionetworks.repo.model.oauth.OIDCClaimName#refresh_token_id} scope
+	 * @param accessToken a JWT access token
+	 * @return the refresh token ID, or null if this token was not issued with a refresh token.
+	 */
+	private String getRefreshTokenId(String accessToken) {
+		Claims claims = oidcTokenHelper.parseJWT(accessToken).getBody();
+		return claims.get(OIDCClaimName.refresh_token_id.name(), String.class);
 	}
 }

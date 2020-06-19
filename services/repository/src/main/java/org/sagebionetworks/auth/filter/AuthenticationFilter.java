@@ -110,7 +110,7 @@ public class AuthenticationFilter implements Filter {
 			if (!isTokenEmptyOrNull(accessToken)) {
 				try {
 					// validate token and get userid parameter
-					userId = Long.parseLong(oidcManager.getUserId(accessToken));
+					userId = Long.parseLong(oidcManager.validateAccessToken(accessToken));
 				} catch (IllegalArgumentException  | ForbiddenException | OAuthClientNotVerifiedException e) {
 					String failureReason = "Invalid access token";
 					if (StringUtils.isNotEmpty(e.getMessage())) {

@@ -83,7 +83,7 @@ public class DockerClientAuthFilter extends BasicAuthenticationFilter {
 	private Optional<UserIdAndAccessToken> getUserIdAndAccessToken(UserNameAndPassword credentials) {
 		try {
 			// is the password actually an access token?
-			String userId = oidcManager.getUserId(credentials.getPassword());
+			String userId = oidcManager.validateAccessToken(credentials.getPassword());
 			return Optional.of(new UserIdAndAccessToken(userId, credentials.getPassword()));
 		} catch (IllegalArgumentException iae) {
 			// the password is NOT a (valid) access token,

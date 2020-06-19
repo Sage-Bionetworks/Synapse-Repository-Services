@@ -24,7 +24,9 @@ import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 
 	@Autowired
@@ -98,7 +100,11 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 	public OAuthRefreshTokenAndMetadata rotateRefreshToken(String refreshToken) {
 		String hash = hashToken(refreshToken);
 		OAuthRefreshTokenInformation metadata = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate(hash)
-				.orElseThrow(() -> new IllegalArgumentException("The token does not match an existing token"));
+				.orElseThrow(() -> new IllegalArgumentException("The token does not match an existing token."));
+
+		if (!oauthRefreshTokenDao.isTokenActive(metadata.getTokenId(), REFRESH_TOKEN_LEASE_DURATION_DAYS)) {
+			throw new IllegalArgumentException("The refresh token has expired.");
+		}
 
 		String newToken = generateRefreshToken();
 		String newHash = hashToken(newToken);
@@ -140,6 +146,18 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 	}
 
 	@Override
+	public OAuthRefreshTokenInformation getRefreshTokenMetadataWithToken(String verifiedClientId, String refreshToken) throws NotFoundException, UnauthorizedException {
+		String hash = hashToken(refreshToken);
+		OAuthRefreshTokenInformation metadata = oauthRefreshTokenDao.getMatchingTokenByHash(hash)
+				.orElseThrow(() -> new NotFoundException("The refresh token does not exist."));
+
+		if (!verifiedClientId.equals(metadata.getClientId())) {
+			throw new UnauthorizedException("You do not have permission to view this token metadata");
+		}
+		return metadata;
+	}
+
+	@Override
 	public OAuthClientAuthorizationHistoryList getAuthorizedClientHistory(UserInfo userInfo, String nextPageToken) {
 		OAuthClientAuthorizationHistoryList results = oauthClientDao.getAuthorizedClientHistory(userInfo.getId().toString(), nextPageToken, REFRESH_TOKEN_LEASE_DURATION_DAYS);
 		for (OAuthClientAuthorizationHistory result : results.getResults()) {
@@ -174,11 +192,15 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 
 	@WriteTransaction
 	@Override
-	public void revokeRefreshToken(String refreshToken) {
-		String hashedToken = hashToken(refreshToken);
-		OAuthRefreshTokenInformation metadata = oauthRefreshTokenDao.getMatchingTokenByHashForUpdate(hashedToken)
-					.orElseThrow(() -> new IllegalArgumentException("The refresh token does not exist, or has already been revoked."));
-		oauthRefreshTokenDao.deleteToken(metadata.getTokenId());
+	public void revokeRefreshToken(String clientId, String tokenId) {
+		OAuthRefreshTokenInformation metadata = oauthRefreshTokenDao.getRefreshTokenMetadata(tokenId)
+				.orElseThrow(() -> new NotFoundException("Refresh token with ID:" + tokenId + " does not exist"));
+
+		if (!clientId.equals(metadata.getClientId())) {
+			throw new UnauthorizedException("The specified token could not be revoked. It is owned by a different client.");
+		}
+
+		oauthRefreshTokenDao.deleteToken(tokenId);
 	}
 
 	@WriteTransaction
@@ -209,6 +231,10 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 
 		return oauthRefreshTokenDao.getRefreshTokenMetadata(metadata.getTokenId())
 				.orElseThrow(() -> new IllegalStateException("The token metadata could not be retrieved after an update."));
+	}
+
+	public boolean isRefreshTokenActive(String refreshTokenId) {
+		return oauthRefreshTokenDao.isTokenActive(refreshTokenId, REFRESH_TOKEN_LEASE_DURATION_DAYS);
 	}
 
 	/**

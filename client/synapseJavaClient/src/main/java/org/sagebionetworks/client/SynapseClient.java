@@ -165,10 +165,14 @@ import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
+import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
+import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
+import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
@@ -2086,11 +2090,69 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 */
 	JSONObject getUserInfoAsJSON() throws SynapseException;
-	
+
+	/**
+	 * Get a paginated record of the OAuth clients that currently have access to the
+	 * logged-in user's Synapse resources via OAuth 2.0 refresh tokens.
+	 * @param nextPageToken
+	 * @return a paginated list containing OAuth 2 clients and relevant authorization and access dates.
+	 */
+	OAuthClientAuthorizationHistoryList getClientAuthorizationHistory(String nextPageToken) throws SynapseException;
+
+	/**
+	 * Get a paginated list of metadata related to active refresh tokens that an OAuth 2.0 client
+	 * may use to access the logged-in user's resources.
+	 * @param clientId
+	 * @param nextPageToken
+	 * @return
+	 */
+	OAuthRefreshTokenInformationList getRefreshTokenMetadataForAuthorizedClient(String clientId, String nextPageToken) throws SynapseException;
+
+	/**
+	 * Revokes all refresh tokens that the logged in user has granted to the specified client. Note that access tokens that
+	 * have been granted without a refresh token will continue to work until they expire.
+	 * @param clientId
+	 * @return
+	 */
+	void revokeMyRefreshTokensFromClient(String clientId) throws SynapseException;
+
+	/**
+	 * Revokes a particular refresh token. Note: any access tokens granted via this refresh token will also
+	 * be revoked.
+	 */
+	void revokeRefreshToken(String refreshTokenId) throws SynapseException;
+
+	/**
+	 * Revokes a refresh token using the token itself, or a supplied access token.
+	 * Note: if the access token is not associated with a refresh token, it cannot be revoked.
+	 */
+	void revokeToken(OAuthTokenRevocationRequest revocationRequest) throws SynapseException;
+
+	/**
+	 * Updates the metadata for a particular refresh token.
+	 * @param metadata
+	 * @return
+	 */
+	OAuthRefreshTokenInformation updateRefreshTokenMetadata(OAuthRefreshTokenInformation metadata) throws SynapseException;
+
+	/**
+	 * Gets the metadata for a particular refresh token.
+	 * @param tokenId
+	 * @return
+	 */
+	OAuthRefreshTokenInformation getRefreshTokenMetadata(String tokenId) throws SynapseException;
+
+	/**
+	 * Gets the metadata for a particular refresh token.
+	 * @param tokenId
+	 * @return
+	 */
+	OAuthRefreshTokenInformation getRefreshTokenMetadataAsOAuthClient(String tokenId) throws SynapseException;
+
 	/**
 	 * Get the Quiz specifically intended to be the Certified User test
 	 * @return
-	 * @throws SynapseException 
+	 * @throws SynapseException
 	 */
 	public Quiz getCertifiedUserTest() throws SynapseException;
 	

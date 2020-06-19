@@ -1,5 +1,6 @@
 {
-    "description": "Stores OIDC claims and details in accordance with OIDC Core 1.0 Claims Request: https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter",
+    "description": "Stores OIDC claims and details in accordance with <a href=\"https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter\">OIDC Core 1.0 Claims Request</a>. The keys used in these maps are <a href=\"${org.sagebionetworks.repo.model.oauth.OIDCClaimName}\">OIDCClaimName</a>s",
+
  	"properties": {
 		"userinfo":{
 			"type": "map",

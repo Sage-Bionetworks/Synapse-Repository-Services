@@ -11,10 +11,14 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.model.oauth.OAuthConsentGrantedResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
+import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
+import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
+import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
@@ -283,13 +287,18 @@ public class OpenIDConnectController {
 	 * <br/>
 	 *  Request must include client ID and Secret in Basic Authentication header, i.e. the 'client_secret_basic' authentication method, as per the 
 	 *  <a href="https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication">Open ID Connect specification for client authentication</a>.
-	 *  
+	 *
+	 *
+	 *  OAuth 2.0 refresh tokens are only issued when the "offline_access" scope is authorized. Refresh tokens issued by Synapse are single-use only,
+	 *  and expire if unused for 180 days. Using the refresh_token grant type will cause Synapse to issue a new refresh token in the token response, and the old
+	 *  refresh token will become invalid. Some token metadata, such as the unique refresh token ID and configurable token name, will not change when
+	 *  a refresh token is rotated in this way.
+	 *
 	 * @param grant_type  authorization_code or refresh_token
 	 * @param code required if grant_type is authorization_code
 	 * @param redirectUri required if grant_type is authorization_code
 	 * @param refresh_token required if grant_type is refresh_token
 	 * @param scope only provided if grant_type is refresh_token
-	 * @param claims optional if grant_type is refresh_token
 	 * @return
 	 * @throws NotFoundException
 	 * @throws OAuthClientNotVerifiedException if the client is not verified
@@ -305,10 +314,9 @@ public class OpenIDConnectController {
 			@RequestParam(value = AuthorizationConstants.OAUTH2_REDIRECT_URI_PARAM, required=false) String redirectUri,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_REFRESH_TOKEN_PARAM, required=false) String refresh_token,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_SCOPE_PARAM, required=false) String scope,
-			@RequestParam(value = AuthorizationConstants.OAUTH2_CLAIMS_PARAM, required=false) String claims,
 			UriComponentsBuilder uriComponentsBuilder
 			)  throws NotFoundException, OAuthClientNotVerifiedException {
-		return serviceProvider.getOpenIDConnectService().getTokenResponse(verifiedClientId, grant_type, code, redirectUri, refresh_token, scope, claims, getEndpoint(uriComponentsBuilder));
+		return serviceProvider.getOpenIDConnectService().getTokenResponse(verifiedClientId, grant_type, code, redirectUri, refresh_token, scope, getEndpoint(uriComponentsBuilder));
 	}
 		
 	/**
@@ -354,6 +362,146 @@ public class OpenIDConnectController {
 			)  throws NotFoundException, OAuthClientNotVerifiedException {
 		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken, getEndpoint(uriComponentsBuilder));
+	}
+
+	/**
+	 * Get a paginated list of the OAuth 2 clients that currently have active refresh tokens that grant access to the user's
+	 * Synapse identity and/or resources. OAuth 2.0 clients that have no active refresh tokens will not appear in this list.
+	 *
+	 * @throws NotFoundException
+	 * @throws OAuthClientNotVerifiedException if the client is not verified
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_AUDIT_CLIENTS, method = RequestMethod.GET)
+	public @ResponseBody
+	OAuthClientAuthorizationHistoryList getGrantedClientsForUser(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM, required=false) String nextPageToken
+	) throws NotFoundException {
+		return serviceProvider.getOpenIDConnectService().getClientAuthorizationHistory(userId, nextPageToken);
+	}
+
+	/**
+	 * Get a paginated list of metadata about refresh tokens granted to a particular OAuth 2 client on
+	 * behalf of the requesting user. The token itself may not be retrieved.
+	 * Refresh tokens that have been revoked will not be included in this list.
+	 *
+	 * @throws NotFoundException
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_AUDIT_CLIENT_TOKENS, method = RequestMethod.GET)
+	public @ResponseBody
+	OAuthRefreshTokenInformationList getGrantedTokenMetadataForUserClientPair(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String clientId,
+			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM, required=false) String nextPageToken
+	) throws NotFoundException {
+		return serviceProvider.getOpenIDConnectService().getTokenMetadataForGrantedClient(userId, clientId, nextPageToken);
+	}
+
+
+	/**
+	 * Retrieve the metadata for an OAuth 2.0 refresh token as an authenticated Synapse user.
+	 *
+	 * Clients that wish to retrieve OAuth 2.0 refresh token metadata should use
+	 * <a href="${GET.oauth2.token.tokenId.metadata}">GET /oauth2/token/{tokenId}/metadata</a>
+	 *
+	 * @throws NotFoundException
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_AUDIT_TOKENS_ID_METADATA, method = RequestMethod.GET)
+	public @ResponseBody
+	OAuthRefreshTokenInformation getRefreshTokenMetadataAsUser(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String tokenId) throws NotFoundException {
+		return serviceProvider.getOpenIDConnectService().getRefreshTokenMetadataAsUser(userId, tokenId);
+	}
+
+	/**
+	 * Retrieve the metadata for an OAuth 2.0 refresh token. The request should be made as an OAuth 2.0 client using
+	 * basic authentication.
+	 *
+	 * Users that wish to retrieve OAuth 2.0 refresh token metadata should use
+	 * <a href="${GET.oauth2.audit.tokens.tokenId.metadata}">GET /oauth2/audit/tokens/{tokenId}/metadata</a>
+	 *
+	 * @throws NotFoundException
+	 */
+	@RequiredScope({})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_TOKEN_ID_METADATA, method = RequestMethod.GET)
+	public @ResponseBody
+	OAuthRefreshTokenInformation getRefreshTokenMetadataAsClient(
+			@RequestHeader(value = AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER) String verifiedClientId,
+			@PathVariable String tokenId) throws NotFoundException {
+		return serviceProvider.getOpenIDConnectService().getRefreshTokenMetadataAsClient(verifiedClientId, tokenId);
+	}
+
+	/**
+	 * Update the metadata for a refresh token. At this time, the only field that a user may set is the 'name' field.
+	 *
+	 * @throws NotFoundException
+	 */
+	@RequiredScope({view, modify})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_AUDIT_TOKENS_ID_METADATA, method = RequestMethod.PUT)
+	public @ResponseBody
+	OAuthRefreshTokenInformation updateRefreshTokenMetadata(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String tokenId,
+			@RequestBody OAuthRefreshTokenInformation metadata) throws NotFoundException {
+		return serviceProvider.getOpenIDConnectService().updateRefreshTokenMetadata(userId, tokenId, metadata);
+	}
+
+	/**
+	 * Revoke all refresh tokens and their related access tokens associated with a particular client and the requesting user.
+	 * Note that access tokens that are not associated with refresh tokens cannot be revoked.
+	 * Users that want to revoke one refresh token should use <a href="${POST.oauth2.audit.tokens.tokenId.revoke}">POST /oauth2/audit/tokens/{tokenId}/revoke</a>.
+	 *
+	 * Additionally, access tokens that are not associated with a refresh token cannot be revoked.
+	 *
+	 * OAuth 2.0 clients wishing to revoke a refresh token should use <a href="${POST.oauth2.revoke}">POST /oauth2/revoke</a>
+	 */
+	@RequiredScope({authorize})
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_AUDIT_CLIENT_REVOKE, method = RequestMethod.POST)
+	public void revokeRefreshTokensForUserClientPair(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String clientId) throws NotFoundException {
+		serviceProvider.getOpenIDConnectService().revokeTokensForUserClientPair(userId, clientId);
+	}
+
+	/**
+	 * Revoke a particular refresh token and all of its related access tokens using its unique ID. The caller must be the the user/resource owner associated with the refresh token.
+	 * Note that a client may be in possession of more than one refresh token, so users wishing to revoke all access should use
+	 * <a href="${POST.oauth2.audit.grantedClients.clientId.revoke}">POST /oauth2/audit/grantedClients/{clientId}/revoke</a>.
+	 *
+	 * Additionally, access tokens that are not associated with a refresh token cannot be revoked.
+	 *
+	 * OAuth 2.0 clients wishing to revoke a refresh token should use <a href="${POST.oauth2.revoke}">POST /oauth2/revoke</a>
+	 */
+	@RequiredScope({authorize})
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_AUDIT_TOKENS_ID_REVOKE, method = RequestMethod.POST)
+	public void revokeRefreshToken(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String tokenId) throws NotFoundException {
+		serviceProvider.getOpenIDConnectService().revokeRefreshTokenAsUser(userId, tokenId);
+	}
+
+	/**
+	 * Revoke a particular refresh token using the token itself, or an associated access token.
+	 * The caller must be the the client associated with the refresh token, authenticated using basic authentication.
+	 */
+	@RequiredScope({})
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_REVOKE, method = RequestMethod.POST)
+	public void revokeToken(
+			@RequestHeader(value = AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER, required=true) String verifiedClientId,
+			@RequestBody OAuthTokenRevocationRequest revokeRequest) throws NotFoundException {
+		serviceProvider.getOpenIDConnectService().revokeToken(verifiedClientId, revokeRequest);
 	}
 
 }

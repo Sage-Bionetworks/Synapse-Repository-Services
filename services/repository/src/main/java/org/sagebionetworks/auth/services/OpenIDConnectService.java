@@ -3,9 +3,13 @@ package org.sagebionetworks.auth.services;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
+import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
+import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
+import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
@@ -25,7 +29,7 @@ public interface OpenIDConnectService {
 	
 	/**
 	 * 
-	 * @param userid
+	 * @param userId
 	 * @param clientId
 	 * @return
 	 */
@@ -114,11 +118,10 @@ public interface OpenIDConnectService {
 	 * @param redirectUri
 	 * @param refreshToken
 	 * @param scope
-	 * @param claims
 	 * @return
 	 */
 	public OIDCTokenResponse getTokenResponse(String verifiedClientId, OAuthGrantType grantType, String authorizationCode, 
-			String redirectUri, String refreshToken, String scope, String claims, String oauthEndpoint);
+			String redirectUri, String refreshToken, String scope, String oauthEndpoint);
 		
 	/**
 	 * 
@@ -128,4 +131,19 @@ public interface OpenIDConnectService {
 	 */
 	public Object getUserInfo(String accessToken, String oauthEndpoint);
 
+	OAuthClientAuthorizationHistoryList getClientAuthorizationHistory(Long userId, String nextPageToken);
+
+	OAuthRefreshTokenInformationList getTokenMetadataForGrantedClient(Long userId, String clientId, String nextPageToken);
+
+	void revokeTokensForUserClientPair(Long userId, String clientId);
+
+	void revokeRefreshTokenAsUser(Long userId, String tokenId);
+
+	void revokeToken(String verifiedClientId, OAuthTokenRevocationRequest revokeRequest);
+
+	OAuthRefreshTokenInformation updateRefreshTokenMetadata(Long userId, String tokenId, OAuthRefreshTokenInformation metadata);
+
+	OAuthRefreshTokenInformation getRefreshTokenMetadataAsUser(Long userId, String tokenId);
+
+	OAuthRefreshTokenInformation getRefreshTokenMetadataAsClient(String verifiedClientId, String tokenId);
 }

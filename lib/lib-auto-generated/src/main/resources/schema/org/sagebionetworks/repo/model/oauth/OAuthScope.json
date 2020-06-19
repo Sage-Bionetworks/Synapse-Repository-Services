@@ -21,6 +21,10 @@
     {
       "name": "authorize",
       "description": "Authorize access and share resources"
+    },
+    {
+      "name": "offline_access",
+      "description": "Access resources even when the user is not logged in"
     }
   ]
 }

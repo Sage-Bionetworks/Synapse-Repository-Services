@@ -4,15 +4,15 @@
  	"properties": {
   		"kid":{
  			"type":"string",
- 			"description":"The unique identifier for the JSON Web Token, https://tools.ietf.org/html/rfc7517#section-4.5"
+ 			"description":"The unique identifier for the JSON Web Token, described in <a href=\"https://tools.ietf.org/html/rfc7517#section-4.5\">RFC 7517 Section 4.5</a>"
  		},
   		"kty":{
  			"type":"string",
- 			"description":"The key type, https://tools.ietf.org/html/rfc7517#section-4.1"
+ 			"description":"The key type, described in <a href=\"https://tools.ietf.org/html/rfc7517#section-4.1\">RFC 7517 Section 4.1</a>"
  		},
   		"use":{
  			"type":"string",
- 			"description":"The public key use, https://tools.ietf.org/html/rfc7517#section-4.2"
+ 			"description":"The public key use, described in <a href=\"https://tools.ietf.org/html/rfc7517#section-4.2\">RFC 7517 Section 4.2</a>"
  		},
  		"concreteType": {
  			"type": "string",

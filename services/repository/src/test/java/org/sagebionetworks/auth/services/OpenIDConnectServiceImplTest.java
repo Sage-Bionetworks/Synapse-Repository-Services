@@ -3,7 +3,6 @@ package org.sagebionetworks.auth.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 
@@ -49,13 +48,13 @@ public class OpenIDConnectServiceImplTest {
 		assertEquals("http://localhost:8080/authorize", config.getAuthorization_endpoint());
 		assertTrue(config.getClaims_parameter_supported());
 		assertFalse(config.getClaims_supported().isEmpty());
-		assertEquals(Collections.singletonList(OAuthGrantType.authorization_code), config.getGrant_types_supported());
+		assertEquals(Arrays.asList(OAuthGrantType.authorization_code, OAuthGrantType.refresh_token), config.getGrant_types_supported());
 		assertEquals(Collections.singletonList(OIDCSigningAlgorithm.RS256), config.getId_token_signing_alg_values_supported());
 		assertEquals(OAUTH_ENDPOINT, config.getIssuer());
 		assertEquals(OAUTH_ENDPOINT+"/oauth2/jwks", config.getJwks_uri());
 		assertEquals(OAUTH_ENDPOINT+"/oauth2/client", config.getRegistration_endpoint());
 		assertEquals(Collections.singletonList(OAuthResponseType.code), config.getResponse_types_supported());
-		assertNull(config.getRevocation_endpoint());
+		assertEquals(OAUTH_ENDPOINT + "/oauth2/revoke", config.getRevocation_endpoint());
 		assertEquals(Arrays.asList(OAuthScope.values()), config.getScopes_supported());
 		assertEquals("https://docs.synapse.org", config.getService_documentation());
 		assertEquals(Collections.singletonList(OIDCSubjectIdentifierType.pairwise), config.getSubject_types_supported());
@@ -73,8 +72,8 @@ public class OpenIDConnectServiceImplTest {
 		
 		// method under test
 		oidcServiceImpl.getTokenResponse(verifiedClientId, OAuthGrantType.authorization_code, authorizationCode, redirectUri, 
-				null, null, null, OAUTH_ENDPOINT);
-		verify(oidcManager).getAccessToken(authorizationCode, verifiedClientId, redirectUri, OAUTH_ENDPOINT);
+				null, null, OAUTH_ENDPOINT);
+		verify(oidcManager).generateTokenResponseWithAuthorizationCode(authorizationCode, verifiedClientId, redirectUri, OAUTH_ENDPOINT);
 	}
 	
 	@Test

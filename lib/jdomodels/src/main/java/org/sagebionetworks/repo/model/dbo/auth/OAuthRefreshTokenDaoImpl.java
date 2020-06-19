@@ -54,6 +54,10 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 	private static final String PARAM_DAYS = "days";
 	private static final String PARAM_MAX_NUM_TOKENS = "maxNumberOfTokens";
 
+	private static final String SELECT_IS_TOKEN_ACTIVE_COUNT = "SELECT COUNT(*) FROM " + TABLE_OAUTH_REFRESH_TOKEN +
+			" WHERE "+ COL_OAUTH_REFRESH_TOKEN_ID+" = :" + PARAM_TOKEN_ID +
+			" AND " + COL_OAUTH_REFRESH_TOKEN_LAST_USED + " > (NOW() - INTERVAL  :" + PARAM_DAYS + " DAY)";
+
 	private static final String UPDATE_REFRESH_TOKEN_METADATA = "UPDATE "+TABLE_OAUTH_REFRESH_TOKEN+
 			" SET "+
 			COL_OAUTH_REFRESH_TOKEN_NAME+" = :" + PARAM_NAME + ", "+
@@ -76,9 +80,8 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 			+ " ORDER BY " + COL_OAUTH_REFRESH_TOKEN_LAST_USED + " DESC"
 			+ " LIMIT :" + PARAM_LIMIT + " OFFSET :" + PARAM_OFFSET;
 
-	private static final String SELECT_TOKEN_BY_HASH_FOR_UPDATE = "SELECT * FROM " + TABLE_OAUTH_REFRESH_TOKEN
-			+ " WHERE " + COL_OAUTH_REFRESH_TOKEN_HASH + " = :" + PARAM_TOKEN_HASH
-			+ " FOR UPDATE";
+	private static final String SELECT_TOKEN_BY_HASH = "SELECT * FROM " + TABLE_OAUTH_REFRESH_TOKEN
+			+ " WHERE " + COL_OAUTH_REFRESH_TOKEN_HASH + " = :" + PARAM_TOKEN_HASH;
 
 	private static final String DELETE_TOKEN_BY_ID = "DELETE FROM " + TABLE_OAUTH_REFRESH_TOKEN
 			+ " WHERE " + COL_OAUTH_REFRESH_TOKEN_ID + " = :" + PARAM_TOKEN_ID;
@@ -158,6 +161,20 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 		return dto;
 	}
 
+	@Override
+	public boolean isTokenActive(String tokenId, Long maxLeaseLengthInDays) {
+		ValidateArgument.required(tokenId, "tokenId");
+		ValidateArgument.required(maxLeaseLengthInDays, "maxLeaseLengthInDays");
+
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(PARAM_TOKEN_ID, tokenId);
+		params.addValue(PARAM_DAYS, maxLeaseLengthInDays);
+
+		Integer count = namedParameterJdbcTemplate.queryForObject(SELECT_IS_TOKEN_ACTIVE_COUNT, params, Integer.class);
+
+		return count != null && count > 0;
+	}
+
 	@MandatoryWriteTransaction
 	@Override
 	public void updateTokenHash(OAuthRefreshTokenInformation tokenInformation, String newHash) {
@@ -175,19 +192,34 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 		namedParameterJdbcTemplate.update(UPDATE_REFRESH_TOKEN_HASH, params);
 	}
 
-	@MandatoryWriteTransaction
-	@Override
-	public Optional<OAuthRefreshTokenInformation> getMatchingTokenByHashForUpdate(String hash) {
+	private Optional<OAuthRefreshTokenInformation> getMatchingTokenByHash(String hash, boolean forUpdate) {
 		ValidateArgument.required(hash, "token hash");
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(PARAM_TOKEN_HASH, hash);
+
+		String sql = SELECT_TOKEN_BY_HASH;
+		if (forUpdate) {
+			sql += " FOR UPDATE";
+		}
+
 		Optional<DBOOAuthRefreshToken> dbo;
 		try {
-			dbo = Optional.ofNullable(namedParameterJdbcTemplate.queryForObject(SELECT_TOKEN_BY_HASH_FOR_UPDATE, params, REFRESH_TOKEN_TABLE_MAPPING));
+			dbo = Optional.ofNullable(namedParameterJdbcTemplate.queryForObject(sql, params, REFRESH_TOKEN_TABLE_MAPPING));
 		} catch (EmptyResultDataAccessException e) {
 			dbo = Optional.empty();
 		}
 		return dbo.map(OAuthRefreshTokenDaoImpl::refreshTokenDboToDto);
+	}
+
+	@Override
+	public Optional<OAuthRefreshTokenInformation> getMatchingTokenByHash(String hash) {
+		return this.getMatchingTokenByHash(hash, false);
+	}
+
+	@MandatoryWriteTransaction
+	@Override
+	public Optional<OAuthRefreshTokenInformation> getMatchingTokenByHashForUpdate(String hash) {
+		return this.getMatchingTokenByHash(hash, true);
 	}
 
 	@Override

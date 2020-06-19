@@ -1,6 +1,6 @@
 {
   "type": "string",
-  "description": "The OIDC claims supported by Synapse some of which are standardized, https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims",
+  "description": "The OIDC claims supported by Synapse some of which are standardized in <a href=\"https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims\">OpenID Connect Core 1.0 Standard Claims</a>",
   "enum": [
     {
       "name": "iss",
