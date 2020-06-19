@@ -280,14 +280,14 @@ public class JsonSchemaController {
 	 * Get a registered JSON schema using its $id.
 	 * 
 	 * @param userId
-	 * @param relative$Id The relative $id of the JSON schema to get.
+	 * @param id The relative $id of the JSON schema to get.
 	 * @return
 	 */
 	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.JSON_SHCEMA_TYPE_REG_ORG_NAME }, method = RequestMethod.GET)
-	public @ResponseBody JsonSchema getJsonSchemaNoVersion(@PathVariable(required = true) String relative$Id) {
-		return serviceProvider.getSchemaServices().getSchema(relative$Id);
+	@RequestMapping(value = { UrlHelpers.JSON_SHCEMA_TYPE_REG_ID }, method = RequestMethod.GET)
+	public @ResponseBody JsonSchema getJsonSchemaNoVersion(@PathVariable(required = true) String id) {
+		return serviceProvider.getSchemaServices().getSchema(id);
 	}
 
 
@@ -334,14 +334,14 @@ public class JsonSchemaController {
 	 * </p>
 	 * 
 	 * @param userId
-	 * @param relative$Id The relative $id of the schema to delete.
+	 * @param id The relative $id of the schema to delete.
 	 */
 	@RequiredScope({ modify })
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = { UrlHelpers.JSON_SHCEMA_TYPE_REG_ORG_NAME }, method = RequestMethod.DELETE)
+	@RequestMapping(value = { UrlHelpers.JSON_SHCEMA_TYPE_REG_ID }, method = RequestMethod.DELETE)
 	public void deleteSchemaAllVersions(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(required = true) String relative$Id) {
-		serviceProvider.getSchemaServices().deleteSchemaById(userId, relative$Id);
+			@PathVariable(required = true) String id) {
+		serviceProvider.getSchemaServices().deleteSchemaById(userId, id);
 	}
 
 
