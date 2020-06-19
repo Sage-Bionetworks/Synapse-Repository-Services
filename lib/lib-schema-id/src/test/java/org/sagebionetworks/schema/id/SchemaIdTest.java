@@ -30,14 +30,14 @@ public class SchemaIdTest {
 	@Test
 	public void testToString() {
 		SchemaId id = new SchemaId(organizationName, schemaName, semanticVersion);
-		assertEquals("org.myorg/path.ClassName-1.0.3", id.toString());
+		assertEquals("org.myorg-path.ClassName-1.0.3", id.toString());
 	}
 	
 	@Test
 	public void testToStringNoVersion() {
 		semanticVersion = null;
 		SchemaId id = new SchemaId(organizationName, schemaName, semanticVersion);
-		assertEquals("org.myorg/path.ClassName", id.toString());
+		assertEquals("org.myorg-path.ClassName", id.toString());
 	}
 	
 	@Test
