@@ -57,7 +57,10 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	
 	public static final long TABLE_PROCESSING_TIMEOUT_MS = 1000*60*10; // 10 mins
 	
-	public static final int MAX_CONTAINERS_PER_VIEW = 1000*10; // 10K;
+	/**
+	 * Note: We raised this limit from 10K to 20K for PLFM-6287.
+	 */
+	public static final int MAX_CONTAINERS_PER_VIEW = 1000*20; // 20K;
 
 	@Autowired
 	private TableStatusDAO tableStatusDAO;

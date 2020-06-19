@@ -177,17 +177,17 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * </tr>
  * <tr>
  * <td>The maximum number of projects/folder per view scope</td>
- * <td>10 K</td>
+ * <td>20 K</td>
  * <td>Recursive sub-folders count towards this limit. For example, if a project
- * contains more than 10 K sub-folders then it cannot be included in a view's
+ * contains more than 20 K sub-folders then it cannot be included in a view's
  * scope.</td>
  * </tr>
  * <tr>
  * <td>The maximum number of rows per view</td>
- * <td>100 M</td>
+ * <td>200 M</td>
  * <td>A single folder cannot contain more then 10 K files/folders. Since a
- * view's scope is limited to 10 K project/folders, the maximum number of rows
- * per view is 10 K * 10 K = 100 M.</td>
+ * view's scope is limited to 20 K project/folders, the maximum number of rows
+ * per view is 10 K * 20 K = 200 M.</td>
  * </tr>
  * <tr>
  * <td>The maximum file size of a CSV that can be appended to a table</td>
