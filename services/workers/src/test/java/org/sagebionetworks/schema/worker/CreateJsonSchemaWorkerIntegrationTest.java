@@ -173,18 +173,18 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 		JsonSchema validationSchema = jsonSchemaManager.getValidationSchema("my.organization/pets.PetPhoto");
 		assertNotNull(schemaBootstrap);
 		printJson(validationSchema);
-		assertNotNull(validationSchema.get$defs());
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.PetType"));
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.Pet"));
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.Pet-1.0.3"));
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.dog.Breed"));
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.cat.Breed"));
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.cat.Cat"));
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.dog.Dog"));
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/org.sagebionetworks/repo.model.Entity"));
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/org.sagebionetworks/repo.model.Versionable"));
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/org.sagebionetworks/repo.model.VersionableEntity"));
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/org.sagebionetworks/repo.model.FileEntity"));
+		assertNotNull(validationSchema.getDefinitions());
+		assertTrue(validationSchema.getDefinitions().containsKey("#/Definitions/my.organization/pets.PetType"));
+		assertTrue(validationSchema.getDefinitions().containsKey("#/Definitions/my.organization/pets.Pet"));
+		assertTrue(validationSchema.getDefinitions().containsKey("#/Definitions/my.organization/pets.Pet-1.0.3"));
+		assertTrue(validationSchema.getDefinitions().containsKey("#/Definitions/my.organization/pets.dog.Breed"));
+		assertTrue(validationSchema.getDefinitions().containsKey("#/Definitions/my.organization/pets.cat.Breed"));
+		assertTrue(validationSchema.getDefinitions().containsKey("#/Definitions/my.organization/pets.cat.Cat"));
+		assertTrue(validationSchema.getDefinitions().containsKey("#/Definitions/my.organization/pets.dog.Dog"));
+		assertTrue(validationSchema.getDefinitions().containsKey("#/Definitions/org.sagebionetworks/repo.model.Entity"));
+		assertTrue(validationSchema.getDefinitions().containsKey("#/Definitions/org.sagebionetworks/repo.model.Versionable"));
+		assertTrue(validationSchema.getDefinitions().containsKey("#/Definitions/org.sagebionetworks/repo.model.VersionableEntity"));
+		assertTrue(validationSchema.getDefinitions().containsKey("#/Definitions/org.sagebionetworks/repo.model.FileEntity"));
 
 	}
 

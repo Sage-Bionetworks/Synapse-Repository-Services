@@ -153,7 +153,7 @@ public class JsonSchemaManagerImplTest {
 		schemaName = "path.SomeSchema.json";
 		semanticVersionString = "1.2.3";
 		schema = new JsonSchema();
-		schema.set$id(organization.getName() + "/" + schemaName + "-" + semanticVersionString);
+		schema.set$id(organization.getName() + "-" + schemaName + "-" + semanticVersionString);
 		parsed$Id = SchemaIdParser.parseSchemaId(schema.get$id());
 
 		createSchemaRequest = new CreateSchemaRequest();
@@ -617,7 +617,7 @@ public class JsonSchemaManagerImplTest {
 		String versionId = "123";
 		when(mockSchemaDao.getLatestVersionId(any(), any())).thenReturn(versionId);
 		// call under test
-		String id = manager.getSchemaVersionId("org/one");
+		String id = manager.getSchemaVersionId("org-one");
 		assertEquals(versionId, id);
 		String organizationName = "org";
 		String schemaName = "one";
@@ -630,7 +630,7 @@ public class JsonSchemaManagerImplTest {
 		String versionId = "123";
 		when(mockSchemaDao.getVersionId(any(), any(), any())).thenReturn(versionId);
 		// call under test
-		String id = manager.getSchemaVersionId("org/one-1.0.1");
+		String id = manager.getSchemaVersionId("org-one-1.0.1");
 		assertEquals(versionId, id);
 		String organizationName = "org";
 		String schemaName = "one";
@@ -650,13 +650,13 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testFindAllDependencies() {
 		JsonSchema one = new JsonSchema();
-		one.set$id("org/one");
+		one.set$id("org-one");
 
 		JsonSchema refToOne = new JsonSchema();
 		refToOne.set$ref(one.get$id());
 
 		JsonSchema two = new JsonSchema();
-		two.set$id("org/two");
+		two.set$id("org-two");
 		two.setItems(refToOne);
 
 		String organizationName = "org";
@@ -681,13 +681,13 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testFindAllDependenciesWithVersion() {
 		JsonSchema one = new JsonSchema();
-		one.set$id("org/one-1.1.1");
+		one.set$id("org-one-1.1.1");
 
 		JsonSchema refToOne = new JsonSchema();
 		refToOne.set$ref(one.get$id());
 
 		JsonSchema two = new JsonSchema();
-		two.set$id("org/two");
+		two.set$id("org-two");
 		two.setItems(refToOne);
 
 		String organizationName = "org";
@@ -715,13 +715,13 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testFindAllDependenciesWith$RefNotFound() {
 		JsonSchema one = new JsonSchema();
-		one.set$id("org/one-1.1.1");
+		one.set$id("org-one-1.1.1");
 
 		JsonSchema refToOne = new JsonSchema();
 		refToOne.set$ref(one.get$id());
 
 		JsonSchema two = new JsonSchema();
-		two.set$id("org/two");
+		two.set$id("org-two");
 		two.setItems(refToOne);
 
 		String organizationName = "org";
@@ -742,11 +742,11 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testFindAllDependenciesWithNo$Refs() {
 		JsonSchema one = new JsonSchema();
-		one.set$id("org/one-1.1.1");
+		one.set$id("org-one-1.1.1");
 
 		// two depends on one directly
 		JsonSchema two = new JsonSchema();
-		two.set$id("org/two");
+		two.set$id("org-two");
 		two.setItems(one);
 
 		// call under test
@@ -811,7 +811,7 @@ public class JsonSchemaManagerImplTest {
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockSchemaDao.createNewSchemaVersion(any())).thenReturn(versionInfo);
-		schema.set$id(organizationName + "/" + schemaName);
+		schema.set$id(organizationName + "-" + schemaName);
 		doReturn(validationSchema).when(managerSpy).getValidationSchema(schema.get$id());
 		// call under test
 		CreateSchemaResponse response = managerSpy.createJsonSchema(user, createSchemaRequest);
@@ -873,7 +873,7 @@ public class JsonSchemaManagerImplTest {
 	public void testGetSchemaWithVersion() {
 		when(mockSchemaDao.getVersionId(any(), any(), any())).thenReturn(versionId);
 		when(mockSchemaDao.getSchema(any())).thenReturn(schema);
-		String $id = organizationName+"/"+schemaName+"-"+semanticVersionString;
+		String $id = organizationName+"-"+schemaName+"-"+semanticVersionString;
 		// call under test
 		JsonSchema result = manager.getSchema($id);
 		assertEquals(schema, result);
@@ -887,7 +887,7 @@ public class JsonSchemaManagerImplTest {
 	public void testGetSchemaNullVersion() {
 		when(mockSchemaDao.getLatestVersionId(any(), any())).thenReturn(versionId);
 		when(mockSchemaDao.getSchema(any())).thenReturn(schema);
-		String $id = organizationName+"/"+schemaName;
+		String $id = organizationName+"-"+schemaName;
 		// call under test
 		JsonSchema result = manager.getSchema($id);
 		assertEquals(schema, result);
@@ -910,7 +910,7 @@ public class JsonSchemaManagerImplTest {
 		when(mockSchemaDao.getVersionLatestInfo(any(), any())).thenReturn(versionInfo);
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
 				.thenReturn(AuthorizationStatus.authorized());
-		String $id = organizationName+"/"+schemaName;
+		String $id = organizationName+"-"+schemaName;
 		// call under test
 		manager.deleteSchemaById(user, $id);
 		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE);
@@ -922,7 +922,7 @@ public class JsonSchemaManagerImplTest {
 		when(mockSchemaDao.getVersionLatestInfo(any(), any())).thenReturn(versionInfo);
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
 				.thenReturn(AuthorizationStatus.accessDenied("naw"));
-		String $id = organizationName+"/"+schemaName;
+		String $id = organizationName+"-"+schemaName;
 		assertThrows(UnauthorizedException.class, ()->{
 			// call under test
 			manager.deleteSchemaById(user, $id);
@@ -935,7 +935,7 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testDeleteSchemaByIdWithoutVersionAsAdmin() {
 		when(mockSchemaDao.getVersionLatestInfo(any(), any())).thenReturn(versionInfo);
-		String $id = organizationName+"/"+schemaName;
+		String $id = organizationName+"-"+schemaName;
 		// call under test
 		manager.deleteSchemaById(adminUser, $id);
 		verify(mockAclDao, never()).canAccess(any(UserInfo.class), any(), any(), any());
@@ -947,7 +947,7 @@ public class JsonSchemaManagerImplTest {
 		when(mockSchemaDao.getVersionInfo(organizationName, schemaName, semanticVersionString)).thenReturn(versionInfo);
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
 				.thenReturn(AuthorizationStatus.authorized());
-		String $id = organizationName+"/"+schemaName+"-"+semanticVersionString;
+		String $id = organizationName+"-"+schemaName+"-"+semanticVersionString;
 		// call under test
 		manager.deleteSchemaById(user, $id);
 		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE);
@@ -959,7 +959,7 @@ public class JsonSchemaManagerImplTest {
 		when(mockSchemaDao.getVersionInfo(organizationName, schemaName, semanticVersionString)).thenReturn(versionInfo);
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
 				.thenReturn(AuthorizationStatus.accessDenied("no"));
-		String $id = organizationName+"/"+schemaName+"-"+semanticVersionString;
+		String $id = organizationName+"-"+schemaName+"-"+semanticVersionString;
 		assertThrows(UnauthorizedException.class, ()->{
 			// call under test
 			manager.deleteSchemaById(user, $id);
@@ -972,7 +972,7 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testDeleteSchemaByIdWithVersionAsAdmin() {
 		when(mockSchemaDao.getVersionInfo(organizationName, schemaName, semanticVersionString)).thenReturn(versionInfo);
-		String $id = organizationName+"/"+schemaName+"-"+semanticVersionString;
+		String $id = organizationName+"-"+schemaName+"-"+semanticVersionString;
 		// call under test
 		manager.deleteSchemaById(adminUser, $id);
 		verify(mockAclDao, never()).canAccess(any(UserInfo.class), any(), any(), any());
@@ -982,7 +982,7 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testDeleteSchemaByIdWithoutNullUser() {
 		user = null;
-		String $id = organizationName+"/"+schemaName;
+		String $id = organizationName+"-"+schemaName;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			manager.deleteSchemaById(user, $id);
@@ -1138,22 +1138,16 @@ public class JsonSchemaManagerImplTest {
 		verify(mockSchemaDao, never()).getVersionInfo(any());
 	}
 
-	@Test
-	public void testCreateLocal$defsId() {
-		// call under test
-		String result = JsonSchemaManagerImpl.createLocal$defsId("foo/bar");
-		assertEquals("#/$defs/foo/bar", result);
-	}
 
 	@Test
 	public void testGetValidationSchema() throws JSONObjectAdapterException {
 		JsonSchema one = createSchema("one");
 		one.setDescription("about one");
-		Map<String, JsonSchema> one$defs = new HashMap<String, JsonSchema>();
+		Map<String, JsonSchema> oneDefintions = new HashMap<String, JsonSchema>();
 		JsonSchema aString = new JsonSchema();
 		aString.setType(Type.string);
-		one$defs.put("#/$defs/foo/bar", aString);
-		one.set$defs(one$defs);
+		oneDefintions.put("foo-bar", aString);
+		one.setDefinitions(oneDefintions);
 		JsonSchema refToOne = create$RefSchema(one);
 		JsonSchema two = createSchema("two");
 		two.setItems(refToOne);
@@ -1168,24 +1162,24 @@ public class JsonSchemaManagerImplTest {
 		// call under test
 		JsonSchema validationSchema = managerSpy.getValidationSchema(three.get$id());
 		assertNotNull(validationSchema);
-		Map<String, JsonSchema> validation$defs = validationSchema.get$defs();
-		assertNotNull(validation$defs);
+		Map<String, JsonSchema> validationDefinitions = validationSchema.getDefinitions();
+		assertNotNull(validationDefinitions);
 		assertEquals("three", validationSchema.get$id());
 		assertNotNull(validationSchema.getItems());
-		assertEquals("#/$defs/two", validationSchema.getItems().get$ref());
-		// two fetched from three's $defs
-		JsonSchema twoFrom$defs = validation$defs.get("#/$defs/two");
-		assertNotNull(twoFrom$defs);
-		assertNotNull(twoFrom$defs.getItems());
-		assertEquals("#/$defs/one", twoFrom$defs.getItems().get$ref());
-		assertNull(twoFrom$defs.get$defs());
-		// one fetched from three's $defs
-		JsonSchema oneFrom$defs = validation$defs.get("#/$defs/one");
-		assertNotNull(oneFrom$defs);
-		assertEquals(one.getDescription(), oneFrom$defs.getDescription());
-		assertNull(oneFrom$defs.get$defs());
-		// $defs from one fetched form three's $defs
-		JsonSchema fooBar = validation$defs.get("#/$defs/foo/bar");
+		assertEquals("#/definitions/two", validationSchema.getItems().get$ref());
+		// two fetched from three's Definitions
+		JsonSchema twoFromDefinitions = validationDefinitions.get("two");
+		assertNotNull(twoFromDefinitions);
+		assertNotNull(twoFromDefinitions.getItems());
+		assertEquals("#/definitions/one", twoFromDefinitions.getItems().get$ref());
+		assertNull(twoFromDefinitions.getDefinitions());
+		// one fetched from three's Definitions
+		JsonSchema oneFromDefinitions = validationDefinitions.get("one");
+		assertNotNull(oneFromDefinitions);
+		assertEquals(one.getDescription(), oneFromDefinitions.getDescription());
+		assertNull(oneFromDefinitions.getDefinitions());
+		// Definitions from one fetched form three's Definitions
+		JsonSchema fooBar = validationDefinitions.get("foo-bar");
 		assertNotNull(fooBar);
 		assertEquals(Type.string, fooBar.getType());
 
@@ -1195,10 +1189,10 @@ public class JsonSchemaManagerImplTest {
 	}
 
 	@Test
-	public void testGetValidationSchemaWithLeafWithNull$defs() throws JSONObjectAdapterException {
+	public void testGetValidationSchemaWithLeafWithNullDefinitions() throws JSONObjectAdapterException {
 		JsonSchema one = createSchema("one");
 		one.setDescription("about one");
-		one.set$defs(null);
+		one.setDefinitions(null);
 		JsonSchema refToOne = create$RefSchema(one);
 		JsonSchema two = createSchema("two");
 		two.setItems(refToOne);
@@ -1209,17 +1203,17 @@ public class JsonSchemaManagerImplTest {
 		// call under test
 		JsonSchema validationSchema = managerSpy.getValidationSchema(two.get$id());
 		assertNotNull(validationSchema);
-		Map<String, JsonSchema> validation$defs = validationSchema.get$defs();
-		assertNotNull(validation$defs);
+		Map<String, JsonSchema> validationDefinitions = validationSchema.getDefinitions();
+		assertNotNull(validationDefinitions);
 		assertEquals("two", validationSchema.get$id());
 		assertNotNull(validationSchema.getItems());
-		assertEquals("#/$defs/one", validationSchema.getItems().get$ref());
+		assertEquals("#/definitions/one", validationSchema.getItems().get$ref());
 
-		// one fetched from three's $defs
-		JsonSchema oneFrom$defs = validation$defs.get("#/$defs/one");
-		assertNotNull(oneFrom$defs);
-		assertEquals(one.getDescription(), oneFrom$defs.getDescription());
-		assertNull(oneFrom$defs.get$defs());
+		// one fetched from three's Definitions
+		JsonSchema oneFromDefinitions = validationDefinitions.get("one");
+		assertNotNull(oneFromDefinitions);
+		assertEquals(one.getDescription(), oneFromDefinitions.getDescription());
+		assertNull(oneFromDefinitions.getDefinitions());
 
 		verify(managerSpy).getSchema(one.get$id());
 		verify(managerSpy).getSchema(two.get$id());
@@ -1230,7 +1224,7 @@ public class JsonSchemaManagerImplTest {
 		// one
 		JsonSchema one = createSchema("one");
 		one.setDescription("about one");
-		one.set$defs(null);
+		one.setDefinitions(null);
 		JsonSchema refToOne = create$RefSchema(one);
 		// two
 		JsonSchema two = createSchema("two");
@@ -1249,14 +1243,14 @@ public class JsonSchemaManagerImplTest {
 		// call under test
 		JsonSchema validationSchema = managerSpy.getValidationSchema(three.get$id());
 		assertNotNull(validationSchema);
-		Map<String, JsonSchema> validation$defs = validationSchema.get$defs();
-		assertNotNull(validation$defs);
+		Map<String, JsonSchema> validationDefinitions = validationSchema.getDefinitions();
+		assertNotNull(validationDefinitions);
 		assertEquals("three", validationSchema.get$id());
 		assertNotNull(validationSchema.getItems());
-		assertEquals("#/$defs/one", validationSchema.getItems().get$ref());
+		assertEquals("#/definitions/one", validationSchema.getItems().get$ref());
 		assertNotNull(validationSchema.getProperties());
 		assertEquals(1, validationSchema.getProperties().size());
-		assertEquals("#/$defs/two", validationSchema.getProperties().get("threeRefToTwo").get$ref());
+		assertEquals("#/definitions/two", validationSchema.getProperties().get("threeRefToTwo").get$ref());
 	}
 
 	@Test
@@ -1295,7 +1289,7 @@ public class JsonSchemaManagerImplTest {
 		// call under test
 		JsonSchema validationSchema = managerSpy.getValidationSchema(one.get$id());
 		assertNotNull(validationSchema);
-		assertNull(validationSchema.get$defs());
+		assertNull(validationSchema.getDefinitions());
 		assertEquals("one", validationSchema.get$id());
 
 		verify(managerSpy).getSchema(one.get$id());
@@ -1303,7 +1297,7 @@ public class JsonSchemaManagerImplTest {
 
 	@Test
 	public void testBindSchemaToObjectWithSemanticVersion() {
-		String $id = organizationName + "/" + schemaName+"-"+semanticVersionString;
+		String $id = organizationName + "-" + schemaName+"-"+semanticVersionString;
 		when(mockSchemaDao.getSchemaId(any(), any())).thenReturn(schemaId);
 		when(mockSchemaDao.getVersionId(any(), any(), any())).thenReturn(versionId);
 		when(mockSchemaDao.bindSchemaToObject(any())).thenReturn(jsonSchemaObjectBinding);
@@ -1320,7 +1314,7 @@ public class JsonSchemaManagerImplTest {
 
 	@Test
 	public void testBindSchemaToObjectWithoutSemanticVersion() {
-		String $id = organizationName + "/" + schemaName;
+		String $id = organizationName + "-" + schemaName;
 		when(mockSchemaDao.getSchemaId(any(), any())).thenReturn(schemaId);
 		when(mockSchemaDao.bindSchemaToObject(any())).thenReturn(jsonSchemaObjectBinding);
 		// call under test
@@ -1335,7 +1329,7 @@ public class JsonSchemaManagerImplTest {
 	
 	@Test
 	public void testBindSchemaToObjectWithNullUserId() {
-		String $id = organizationName + "/" + schemaName;
+		String $id = organizationName + "-" + schemaName;
 		Long userId = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			manager.bindSchemaToObject(userId, $id, objectId, objectType);
@@ -1352,7 +1346,7 @@ public class JsonSchemaManagerImplTest {
 	
 	@Test
 	public void testBindSchemaToObjectWithNullObjectId() {
-		String $id = organizationName + "/" + schemaName;
+		String $id = organizationName + "-" + schemaName;
 		objectId = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			manager.bindSchemaToObject(adminUser.getId(), $id, objectId, objectType);
@@ -1361,7 +1355,7 @@ public class JsonSchemaManagerImplTest {
 
 	@Test
 	public void testBindSchemaToObjectWithNullObjectType() {
-		String $id = organizationName + "/" + schemaName;
+		String $id = organizationName + "-" + schemaName;
 		objectType = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			manager.bindSchemaToObject(adminUser.getId(), $id, objectId, objectType);

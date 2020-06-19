@@ -303,7 +303,7 @@ public class SchemaIdParserTest {
 	
 	@Test
 	public void testSchemaIdNoVersion() throws ParseException {
-		SchemaId id = testSchemaId("org.myorg/path.SomeClass");
+		SchemaId id = testSchemaId("org.myorg-path.SomeClass");
 		assertNotNull(id);
 		assertNotNull(id.getOrganizationName());
 		assertEquals("org.myorg",id.getOrganizationName().toString());
@@ -314,7 +314,7 @@ public class SchemaIdParserTest {
 	
 	@Test
 	public void testSchemaIdWithVersion() throws ParseException {
-		SchemaId id = testSchemaId("org.myorg/path.SomeClass-1.2.3-alpha+1234f");
+		SchemaId id = testSchemaId("org.myorg-path.SomeClass-1.2.3-alpha+1234f");
 		assertNotNull(id);
 		assertNotNull(id.getOrganizationName());
 		assertEquals("org.myorg",id.getOrganizationName().toString());
@@ -326,29 +326,29 @@ public class SchemaIdParserTest {
 	
 	@Test
 	public void testSchemaIdWhiteSpace() throws ParseException {
-		SchemaIdParser parser = new SchemaIdParser("\n  org.myorg/path.SomeClass-1.2.3-alpha+1234f \t");
+		SchemaIdParser parser = new SchemaIdParser("\n  org.myorg-path.SomeClass-1.2.3-alpha+1234f \t");
 		SchemaId schemaId = parser.schemaId();
-		assertEquals("org.myorg/path.SomeClass-1.2.3-alpha+1234f", schemaId.toString());
+		assertEquals("org.myorg-path.SomeClass-1.2.3-alpha+1234f", schemaId.toString());
 	}
 	
 	@Test
 	public void testSchemaIdWithVersionVersionPatchLeadingZero() throws ParseException {
 		assertThrows(ParseException.class, ()->{
-			testSchemaId("org.myorg/path.SomeClass-1.2.03");
+			testSchemaId("org.myorg-path.SomeClass-1.2.03");
 		});
 	}
 	
 	@Test
 	public void testSchemaIdWithVersionVersionEndSlash() throws ParseException {
 		assertThrows(ParseException.class, ()->{
-			testSchemaId("org.myorg/path.SomeClass-");
+			testSchemaId("org.myorg-path.SomeClass-");
 		});
 	}
 	
 	@Test
 	public void testSchemaIdWithVersionVersionEndDot() throws ParseException {
 		assertThrows(ParseException.class, ()->{
-			testSchemaId("org.myorg/path.SomeClass.");
+			testSchemaId("org.myorg-path.SomeClass.");
 		});
 	}
 	
@@ -361,17 +361,17 @@ public class SchemaIdParserTest {
 	
 	@Test
 	public void testParseSchemaId() {
-		SchemaId id = SchemaIdParser.parseSchemaId("org.valid/name");
+		SchemaId id = SchemaIdParser.parseSchemaId("org.valid-name");
 		assertNotNull(id);
-		assertEquals("org.valid/name", id.toString());
+		assertEquals("org.valid-name", id.toString());
 	}
 	
 	@Test
 	public void testParseSchemaIdInvalid() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, ()->{
-			SchemaIdParser.parseSchemaId("org.valid/name-0");
+			SchemaIdParser.parseSchemaId("org.valid-name-0");
 		});
-		assertTrue(exception.getMessage().startsWith("Invalid '$id' : 'org.valid/name-0'"));
+		assertTrue(exception.getMessage().startsWith("Invalid '$id' : 'org.valid-name-0'"));
 		assertTrue(exception.getCause() instanceof ParseException);
 	}
 	
@@ -427,8 +427,8 @@ public class SchemaIdParserTest {
 	
 	@Test
 	public void testParseSchemaIdFull() {
-		SchemaId id = SchemaIdParser.parseSchemaId("test.integeration.organization/integration.test.Schema.json-1.45.67-alpha+beta");
+		SchemaId id = SchemaIdParser.parseSchemaId("test.integeration.organization-integration.test.Schema.json-1.45.67-alpha+beta");
 		assertNotNull(id);
-		assertEquals("test.integeration.organization/integration.test.Schema.json-1.45.67-alpha+beta", id.toString());
+		assertEquals("test.integeration.organization-integration.test.Schema.json-1.45.67-alpha+beta", id.toString());
 	}
 }

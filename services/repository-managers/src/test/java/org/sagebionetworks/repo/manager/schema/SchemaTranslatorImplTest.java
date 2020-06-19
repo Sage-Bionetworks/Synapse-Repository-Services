@@ -64,7 +64,7 @@ public class SchemaTranslatorImplTest {
 		String internalId = "org.sagebionetworks.repo.model.FileEntity";
 		// call under test
 		String externalId = translator.convertFromInternalIdToExternalId(internalId);
-		assertEquals("org.sagebionetworks/repo.model.FileEntity", externalId);
+		assertEquals("org.sagebionetworks-repo.model.FileEntity", externalId);
 	}
 
 	@Test
@@ -95,8 +95,8 @@ public class SchemaTranslatorImplTest {
 		List<JsonSchema> result = translator.translateArray(array);
 		assertNotNull(result);
 		assertEquals(2, result.size());
-		assertEquals("org.sagebionetworks/one", result.get(0).get$id());
-		assertEquals("org.sagebionetworks/two", result.get(1).get$id());
+		assertEquals("org.sagebionetworks-one", result.get(0).get$id());
+		assertEquals("org.sagebionetworks-two", result.get(1).get$id());
 	}
 	
 	@Test
@@ -280,7 +280,7 @@ public class SchemaTranslatorImplTest {
 		// Call under test
 		JsonSchema resultSchema = translator.translate(objectSchema);
 		assertNotNull(resultSchema);
-		assertEquals("org.sagebionetworks/repo.model.FileEntity", resultSchema.get$id());
+		assertEquals("org.sagebionetworks-repo.model.FileEntity", resultSchema.get$id());
 		assertEquals(SchemaTranslatorImp.CURRENT_$SCHEMA, resultSchema.get$schema());
 	}
 	
@@ -291,7 +291,7 @@ public class SchemaTranslatorImplTest {
 		// Call under test
 		JsonSchema resultSchema = translator.translate(objectSchema);
 		assertNotNull(resultSchema);
-		assertEquals("org.sagebionetworks/repo.model.FileEntity", resultSchema.get$ref());
+		assertEquals("org.sagebionetworks-repo.model.FileEntity", resultSchema.get$ref());
 	}
 	
 	@Test
@@ -306,11 +306,11 @@ public class SchemaTranslatorImplTest {
 		JsonSchema resultSchema = translator.translate(objectSchema);
 		assertNotNull(resultSchema);
 		assertNotNull(resultSchema.get$schema());
-		assertEquals("org.sagebionetworks/repo.model.FileEntity", resultSchema.get$id());
+		assertEquals("org.sagebionetworks-repo.model.FileEntity", resultSchema.get$id());
 		assertNotNull(resultSchema.getAllOf());
 		assertEquals(1, resultSchema.getAllOf().size());
 		JsonSchema allOfItem = resultSchema.getAllOf().get(0);
-		assertEquals("org.sagebionetworks/repo.model.Versionable", allOfItem.get$ref());
+		assertEquals("org.sagebionetworks-repo.model.Versionable", allOfItem.get$ref());
 		// only the root should have a $schema
 		assertNull(allOfItem.get$schema());
 	}
@@ -462,7 +462,7 @@ public class SchemaTranslatorImplTest {
 		// Call under test
 		JsonSchema resultSchema = translator.translate(fileEntityObjecSchema);
 		assertNotNull(resultSchema);
-		assertEquals("org.sagebionetworks/repo.model.FileEntity", resultSchema.get$id());
+		assertEquals("org.sagebionetworks-repo.model.FileEntity", resultSchema.get$id());
 	}
 	
 
