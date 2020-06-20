@@ -1,6 +1,6 @@
 {
 	"$recursiveAnchor": true,
-	"description": "The JSON schema is defined by: <a href=\"https://json-schema.org/\">json-schema.org</a>, specifically draft 2019-09. While our goal is to eventually support as many features of the 2019-09 specification as possible, only features listed here are currently supported.",
+	"description": "The JSON schema is defined by: <a href=\"https://json-schema.org/\">json-schema.org</a>, specifically draft-07.  Only features listed here are currently supported.",
 	"properties": {
 		"$schema": {
 			"type": "string",
@@ -65,8 +65,8 @@
 			"type": "string",
 			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-validation.html#rfc.section.7.3\">Defined Formats</a>"
 		},
-		"$defs": {
-			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.8.2.5\">$defs</a>",
+		"definitions": {
+			"description": "In an effor to support draft-07 implementations, we are using 'definitions' instead of '$defs'.  See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-validation.html#rfc.appendix.A\">Appendix A</a>",
 			"type": "map",
 			"key": {
 				"type": "string"

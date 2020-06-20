@@ -84,7 +84,7 @@ public class SynapseSchemaBootstrapImplTest {
 		schemaName = "repo.model.Test.json";
 		
 		jsonSchema = new JsonSchema();
-		jsonSchema.set$id(organizationName + "/" + schemaName);
+		jsonSchema.set$id(organizationName + "-" + schemaName);
 		jsonSchema.setDescription("A test schema");
 		
 		NormalizedJsonSchema normal = new NormalizedJsonSchema(jsonSchema);
@@ -259,7 +259,7 @@ public class SynapseSchemaBootstrapImplTest {
 		
 		CreateSchemaRequest expected = new CreateSchemaRequest();
 		JsonSchema clone = cloneJsonSchema(jsonSchema);
-		clone.set$id("org.sagebionetworks/repo.model.Test.json-1.0.101");
+		clone.set$id("org.sagebionetworks-repo.model.Test.json-1.0.101");
 		expected.setSchema(clone);
 		verify(mockJsonSchemaManager).createJsonSchema(admin, expected);
 	}

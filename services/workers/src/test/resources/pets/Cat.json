@@ -1,15 +1,15 @@
 {
 	"title": "Cat",
-	"$id": "my.organization/pets.cat.Cat",
+	"$id": "my.organization-pets.cat.Cat",
 	"description": "...",
 	"allOf": [
 		{
-			"$ref": "my.organization/pets.Pet"
+			"$ref": "my.organization-pets.Pet"
 		}
 	],
 	"properties": {
 		"breed": {
-			"$ref": "my.organization/pets.cat.Breed"
+			"$ref": "my.organization-pets.cat.Breed"
 		},
 		"petType": {
 			"const": "cat"

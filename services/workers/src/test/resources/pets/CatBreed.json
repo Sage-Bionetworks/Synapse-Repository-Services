@@ -1,6 +1,6 @@
 {
 	"title": "Cat Breed",
-	"$id": "my.organization/pets.cat.Breed",
+	"$id": "my.organization-pets.cat.Breed",
 	"description": "Enumeration of possible cat breeds.",
 	"type": "string",
 	"_enum": [

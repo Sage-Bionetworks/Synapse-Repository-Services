@@ -5681,7 +5681,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		StringBuilder builder = new StringBuilder();
 		builder.append("/schema/type/registered/");
 		builder.append(organizationName);
-		builder.append("/");
+		builder.append("-");
 		builder.append(schemaName);
 		if(semanticVersion != null) {
 			builder.append("-");
@@ -5694,11 +5694,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public void deleteSchema(String organizationName, String schemaName) throws SynapseException {
 		ValidateArgument.required(organizationName, "organizationName");
 		ValidateArgument.required(schemaName, "schemaName");
-		StringJoiner joiner = new StringJoiner("/");
-		joiner.add("/schema/type/registered");
-		joiner.add(organizationName);
-		joiner.add(schemaName);
-		deleteUri(getRepoEndpoint(), joiner.toString());
+		StringBuilder builder = new StringBuilder();
+		builder.append("/schema/type/registered/");
+		builder.append(organizationName);
+		builder.append("-");
+		builder.append(schemaName);
+		deleteUri(getRepoEndpoint(), builder.toString());
 	}
 
 	@Override
@@ -5710,7 +5711,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		StringBuilder builder = new StringBuilder();
 		builder.append("/schema/type/registered/");
 		builder.append(organizationName);
-		builder.append("/");
+		builder.append("-");
 		builder.append(schemaName);
 		if(semanticVersion != null) {
 			builder.append("-");

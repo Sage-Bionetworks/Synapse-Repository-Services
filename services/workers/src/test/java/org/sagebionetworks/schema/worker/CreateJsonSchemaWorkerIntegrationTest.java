@@ -136,7 +136,7 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 			}, MAX_WAIT_MS);
 		}).getMessage();
 		
-		assertEquals("Schema $id: 'my.org.net/one' has a circular dependency", message);
+		assertEquals("Schema $id: 'my.org.net-one' has a circular dependency", message);
 	}
 
 	public void registerSchemaFromClasspath(String name) throws Exception {
@@ -170,21 +170,21 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 			registerSchemaFromClasspath(fileName);
 		}
 
-		JsonSchema validationSchema = jsonSchemaManager.getValidationSchema("my.organization/pets.PetPhoto");
+		JsonSchema validationSchema = jsonSchemaManager.getValidationSchema("my.organization-pets.PetPhoto");
 		assertNotNull(schemaBootstrap);
 		printJson(validationSchema);
-		assertNotNull(validationSchema.get$defs());
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.PetType"));
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.Pet"));
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.Pet-1.0.3"));
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.dog.Breed"));
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.cat.Breed"));
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.cat.Cat"));
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/my.organization/pets.dog.Dog"));
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/org.sagebionetworks/repo.model.Entity"));
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/org.sagebionetworks/repo.model.Versionable"));
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/org.sagebionetworks/repo.model.VersionableEntity"));
-		assertTrue(validationSchema.get$defs().containsKey("#/$defs/org.sagebionetworks/repo.model.FileEntity"));
+		assertNotNull(validationSchema.getDefinitions());
+		assertTrue(validationSchema.getDefinitions().containsKey("my.organization-pets.PetType"));
+		assertTrue(validationSchema.getDefinitions().containsKey("my.organization-pets.Pet"));
+		assertTrue(validationSchema.getDefinitions().containsKey("my.organization-pets.Pet-1.0.3"));
+		assertTrue(validationSchema.getDefinitions().containsKey("my.organization-pets.dog.Breed"));
+		assertTrue(validationSchema.getDefinitions().containsKey("my.organization-pets.cat.Breed"));
+		assertTrue(validationSchema.getDefinitions().containsKey("my.organization-pets.cat.Cat"));
+		assertTrue(validationSchema.getDefinitions().containsKey("my.organization-pets.dog.Dog"));
+		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.Entity"));
+		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.Versionable"));
+		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.VersionableEntity"));
+		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.FileEntity"));
 
 	}
 

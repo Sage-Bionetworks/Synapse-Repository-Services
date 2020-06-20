@@ -4,7 +4,7 @@ public class JsonSchemaConstants {
 	/**
 	 * The delimiter used for the path section of a $id.
 	 */
-	public static final String PATH_DELIMITER = "/";
+	public static final String PATH_DELIMITER = "-";
 	
 	/**
 	 * The prefix used to include a semantic version in a $id.

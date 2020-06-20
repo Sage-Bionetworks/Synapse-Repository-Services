@@ -34,7 +34,7 @@ public class SchemaTranslatorImp implements SchemaTranslator {
 	@Override
 	public ObjectSchemaImpl loadSchemaFromClasspath(String id) {
 		ValidateArgument.required(id, "id");
-		String fileName = "schema/" + id.replaceAll("\\.", JsonSchemaConstants.PATH_DELIMITER) + ".json";
+		String fileName = "schema/" + id.replaceAll("\\.", "/") + ".json";
 		try (InputStream input = SynapseSchemaBootstrapImpl.class.getClassLoader().getResourceAsStream(fileName);) {
 			if (input == null) {
 				throw new NotFoundException("Cannot find: '" + fileName + "' on the classpath");

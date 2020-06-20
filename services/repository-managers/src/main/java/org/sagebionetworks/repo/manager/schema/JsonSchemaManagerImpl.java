@@ -295,7 +295,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	@Override
 	public void deleteSchemaById(UserInfo user, String $id) {
 		ValidateArgument.required(user, "user");
-		ValidateArgument.required($id, "organizationName");
+		ValidateArgument.required($id, "$id");
 		SchemaId parsedId = SchemaIdParser.parseSchemaId($id);
 		JsonSchemaVersionInfo versionInfo = null;
 		if (parsedId.getSemanticVersion() == null) {
@@ -391,41 +391,31 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		visitedStack.push(id);
 		// get the base schema
 		JsonSchema baseSchema = getSchema(id);
-		if (baseSchema.get$defs() == null) {
-			baseSchema.set$defs(new LinkedHashMap<String, JsonSchema>());
+		if (baseSchema.getDefinitions() == null) {
+			baseSchema.setDefinitions(new LinkedHashMap<String, JsonSchema>());
 		}
 		for (JsonSchema subSchema : SubSchemaIterable.depthFirstIterable(baseSchema)) {
 			if (subSchema.get$ref() != null) {
-				String local$defsId = createLocal$defsId(subSchema.get$ref());
-				if (!baseSchema.get$defs().containsKey(local$defsId)) {
+
+				if (!baseSchema.getDefinitions().containsKey(subSchema.get$ref())) {
 					// Load the sub-schema's validation schema
 					JsonSchema validationSubSchema = getValidationSchema(visitedStack, subSchema.get$ref());
-					// Merge the $defs from the new schema with the current
-					if (validationSubSchema.get$defs() != null) {
-						baseSchema.get$defs().putAll(validationSubSchema.get$defs());
+					// Merge the Definitions from the new schema with the current
+					if (validationSubSchema.getDefinitions() != null) {
+						baseSchema.getDefinitions().putAll(validationSubSchema.getDefinitions());
 					}
-					validationSubSchema.set$defs(null);
-					baseSchema.get$defs().put(local$defsId, validationSubSchema);
+					validationSubSchema.setDefinitions(null);
+					baseSchema.getDefinitions().put(subSchema.get$ref(), validationSubSchema);
 				}
 				// replace the $ref to the local $def
-				subSchema.set$ref(local$defsId);
+				subSchema.set$ref("#/definitions/"+subSchema.get$ref());
 			}
 		}
-		if (baseSchema.get$defs().isEmpty()) {
-			baseSchema.set$defs(null);
+		if (baseSchema.getDefinitions().isEmpty()) {
+			baseSchema.setDefinitions(null);
 		}
 		visitedStack.pop();
 		return baseSchema;
-	}
-
-	/**
-	 * Create a $ref to the a local $refs map given an original $id
-	 * 
-	 * @param $id
-	 * @return
-	 */
-	public static String createLocal$defsId(String $id) {
-		return "#/$defs/" + $id;
 	}
 
 	/**
@@ -434,6 +424,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	 * @param $id
 	 * @return
 	 */
+	@Override
 	public JsonSchema getSchema(String $id) {
 		ValidateArgument.required($id, "id");
 		String versionId = getSchemaVersionId($id);
