@@ -29,6 +29,7 @@ import org.sagebionetworks.client.exceptions.UnknownSynapseServerException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.ErrorResponseCode;
+import org.sagebionetworks.repo.model.OAuthErrorResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.simpleHttpClient.Header;
@@ -80,10 +81,20 @@ public class ClientUtils {
 			ErrorResponse errorResponse = EntityFactory.createEntityFromJSONString(reasonStr, ErrorResponse.class);
 			errorMessage = errorResponse.getReason();
 			errorResponseCode = errorResponse.getErrorCode();
-		} catch (JSONObjectAdapterException e){
-			//this is fine, just use the original reasonStr
-			errorMessage = reasonStr;
-			errorResponseCode = null;
+		} catch (JSONObjectAdapterException e1){
+			try {
+				OAuthErrorResponse errorResponse = EntityFactory.createEntityFromJSONString(reasonStr, OAuthErrorResponse.class);
+				errorMessage = errorResponse.getError();
+				if (errorMessage != null) {
+					errorMessage += " " + errorMessage;
+				}
+				errorResponseCode = errorResponse.getErrorCode();
+
+			} catch (JSONObjectAdapterException e2) {
+				//this is fine, just use the original reasonStr
+				errorMessage = reasonStr;
+				errorResponseCode = null;
+			}
 		}
 
 
@@ -116,8 +127,7 @@ public class ClientUtils {
 	 * This method is used to check the SimpleHttpResponse that has expected
 	 * content in JSON format.
 	 * 
-	 * @param responseBody
-	 * @param statusCode
+	 * @param response
 	 * @return
 	 * @throws SynapseException
 	 */

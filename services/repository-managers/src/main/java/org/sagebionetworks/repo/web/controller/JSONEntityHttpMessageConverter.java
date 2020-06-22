@@ -14,6 +14,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ErrorResponse;
+import org.sagebionetworks.repo.model.OAuthErrorResponse;
 import org.sagebionetworks.repo.util.JSONEntityUtil;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -242,6 +243,8 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 	public static String convertEntityToPlainText(JSONEntity entity) throws JSONObjectAdapterException {
 		if (entity instanceof ErrorResponse) {
 			return ((ErrorResponse)entity).getReason();
+		} else if (entity instanceof OAuthErrorResponse) {
+			return (((OAuthErrorResponse)(OAuthErrorResponse) entity).getError());
 		} else {
 			return EntityFactory.createJSONStringForEntity(entity);
 		}

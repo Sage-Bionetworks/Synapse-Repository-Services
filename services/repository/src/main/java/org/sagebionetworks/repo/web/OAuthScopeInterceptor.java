@@ -116,8 +116,10 @@ public class OAuthScopeInterceptor implements HandlerInterceptor {
 		StringBuilder sb = new StringBuilder(ERROR_MESSAGE_PREFIX);
 		sb.append(String.join(", ", missingScopes));
 
-		HttpAuthUtil.reject(response, sb.toString(), HttpStatus.FORBIDDEN);
-		
+		// Code should be `insufficient_scope` with HTTP 403
+		// https://tools.ietf.org/html/draft-parecki-oauth-v2-1-02#section-7.3.1
+		HttpAuthUtil.rejectWithOAuthError(response, OAuthErrorCode.insufficient_scope, sb.toString(), HttpStatus.FORBIDDEN);
+
 		return false;
 	}
 

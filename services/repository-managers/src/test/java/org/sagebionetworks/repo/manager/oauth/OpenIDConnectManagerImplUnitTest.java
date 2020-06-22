@@ -75,6 +75,8 @@ import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.OAuthBadRequestException;
+import org.sagebionetworks.repo.web.OAuthUnauthorizedException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -231,8 +233,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		try {
 			// method under test
 			OpenIDConnectManagerImpl.parseScopeString("openid foo");
-			fail("IllegalArgumentException expected.");
-		} catch (IllegalArgumentException e) {
+			fail("OAuthBadRequestException expected.");
+		} catch (OAuthBadRequestException e) {
 			// as expected
 		}
 		
@@ -300,7 +302,7 @@ public class OpenIDConnectManagerImplUnitTest {
 			// method under test
 			OpenIDConnectManagerImpl.validateAuthenticationRequest(authorizationRequest, client);
 			fail("Exception expected.");
-		} catch (IllegalArgumentException e) {
+		} catch (OAuthBadRequestException e) {
 			// as expected
 		}
 	}	
@@ -409,8 +411,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		try {
 			// method under test
 			openIDConnectManagerImpl.getAuthenticationRequestDescription(authorizationRequest);
-			fail("IllegalArgumentException expected");
-		} catch (IllegalArgumentException e) {
+			fail("OAuthBadRequestException expected");
+		} catch (OAuthBadRequestException e) {
 			// as expected
 		}
 
@@ -567,8 +569,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		try {
 			// method under test
 			openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
-			fail("IllegalArgumentException expected");
-		} catch (IllegalArgumentException e) {
+			fail("OAuthBadRequestException expected");
+		} catch (OAuthBadRequestException e) {
 			// as expected
 		}
 	}
@@ -800,8 +802,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		try {
 			// method under test
 			openIDConnectManagerImpl.generateTokenResponseWithAuthorizationCode(incorrectlyEncryptedCode, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
-			fail("IllegalArgumentException expected");
-		}  catch (IllegalArgumentException e) {
+			fail("OAuthBadRequestException expected");
+		}  catch (OAuthBadRequestException e) {
 			// as expected
 		}
 		
@@ -810,8 +812,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		try {
 			// method under test
 			openIDConnectManagerImpl.generateTokenResponseWithAuthorizationCode(invalidAuthorizationObjectCode, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
-			fail("IllegalArgumentException expected");
-		}  catch (IllegalStateException e) {
+			fail("OAuthBadRequestException expected");
+		}  catch (OAuthBadRequestException e) {
 			// as expected
 		}
 	}
@@ -837,8 +839,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		// method under test
 		try {
 			openIDConnectManagerImpl.generateTokenResponseWithAuthorizationCode(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
-			fail("IllegalArgumentException expected");
-		}  catch (IllegalArgumentException e) {
+			fail("OAuthBadRequestException expected");
+		}  catch (OAuthBadRequestException e) {
 			// as expected
 		}
 
@@ -860,8 +862,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		// method under test
 		try {
 			openIDConnectManagerImpl.generateTokenResponseWithAuthorizationCode(authResponse.getAccess_code(), OAUTH_CLIENT_ID, "wrong redirect uri", OAUTH_ENDPOINT);
-			fail("IllegalArgumentException expected");
-		}  catch (IllegalArgumentException e) {
+			fail("OAuthBadRequestException expected");
+		}  catch (OAuthBadRequestException e) {
 			// as expected
 		}
 		
@@ -1272,7 +1274,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		claims.setSubject(ppid);
 
 		// method under test
-		assertThrows(IllegalArgumentException.class, () -> openIDConnectManagerImpl.validateAccessToken(token));
+		assertThrows(OAuthUnauthorizedException.class, () -> openIDConnectManagerImpl.validateAccessToken(token));
 
 		verify(oidcTokenHelper).parseJWT(token);
 	}

@@ -17,10 +17,14 @@ import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
+import org.sagebionetworks.repo.web.OAuthErrorCode;
+import org.sagebionetworks.repo.web.OAuthUnauthorizedException;
+import org.sagebionetworks.util.Clock;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
@@ -39,6 +43,9 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 
 	@Autowired
 	private StackConfiguration stackConfiguration;
+
+	@Autowired
+	private Clock clock;
 	
 	@Override
 	public void afterPropertiesSet() {
@@ -130,14 +137,28 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 		String oauthClientId = ""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID;
 		String tokenId = UUID.randomUUID().toString();
 		List<OAuthScope> allScopes = Arrays.asList(OAuthScope.values());  // everything!
-		return createOIDCaccessToken(issuer, subject, oauthClientId, System.currentTimeMillis(), null,
+		return createOIDCaccessToken(issuer, subject, oauthClientId, clock.currentTimeMillis(), null,
 				null, tokenId, allScopes, Collections.EMPTY_MAP);
 	}
 
 	
 	@Override
 	public Jwt<JwsHeader,Claims> parseJWT(String token) {
-		return JSONWebTokenHelper.parseJWT(token, jsonWebKeySet);
+		Jwt<JwsHeader, Claims> parsed;
+		// The JSONWebTokenHelper is also used in the Java client, where the thrown exception is fine
+		// If the server receives an expired token, it should throw an OAuthUnauthorizedException
+		try {
+			parsed = JSONWebTokenHelper.parseJWT(token, jsonWebKeySet);
+		} catch (ExpiredJwtException e) {
+			throw new OAuthUnauthorizedException(OAuthErrorCode.invalid_token, "The token has expired.");
+		} catch (IllegalArgumentException e) {
+			if (e.getMessage().equals("Token has expired.")) {
+				throw new OAuthUnauthorizedException(OAuthErrorCode.invalid_token, "The token has expired.");
+			} else {
+				throw e;
+			}
+		}
+		return parsed;
 	}
 	
 	@Override

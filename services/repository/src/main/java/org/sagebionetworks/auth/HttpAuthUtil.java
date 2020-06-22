@@ -2,8 +2,15 @@ package org.sagebionetworks.auth;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.Base64.Decoder;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -11,6 +18,8 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ErrorResponse;
+import org.sagebionetworks.repo.model.OAuthErrorResponse;
+import org.sagebionetworks.repo.web.OAuthErrorCode;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -136,4 +145,32 @@ public class HttpAuthUtil {
 		}
 		resp.getWriter().flush();
 	}
+
+	/**
+	 * OAuth errors don't have the same JSON format as our regular error, so this method may be used for
+	 * sending error responses caused by OAuth services
+	 */
+	public static void rejectWithOAuthError(HttpServletResponse resp, OAuthErrorCode errorCode, String description, HttpStatus status) throws IOException {
+		resp.setStatus(status.value());
+
+		// This header is required according to RFC-2612
+		// See: http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.2
+		//      http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.47
+		//      http://www.ietf.org/rfc/rfc2617.txt
+		resp.setContentType("application/json");
+		resp.setHeader("WWW-Authenticate", "\"Digest\" your email");
+		OAuthErrorResponse er = new OAuthErrorResponse();
+		er.setError(errorCode.name());
+		er.setError_description(description);
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
+		try {
+			er.writeToJSONObject(joa);
+			resp.getWriter().println(joa.toJSONString());
+		} catch (JSONObjectAdapterException e) {
+			// give up here, use old method, so we at least send something back
+			resp.getWriter().println("{\"error\": \"" + errorCode + "\"}");
+		}
+		resp.getWriter().flush();
+	}
+
 }

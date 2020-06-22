@@ -257,7 +257,7 @@ class OAuthScopeInterceptorTest {
 		
 		verify(mockRequest).getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME);
 
-		assertEquals("{\"reason\":\"Request lacks scope(s) required by this service: authorize, download, modify, offline_access, openid\"}"+System.lineSeparator() , os.toString());
+		assertEquals("{\"error\":\"" + OAuthErrorCode.insufficient_scope.name() + "\",\"error_description\":\"Request lacks scope(s) required by this service: authorize, download, modify, offline_access, openid\"}"+System.lineSeparator() , os.toString());
 		
 	}
 
@@ -274,7 +274,7 @@ class OAuthScopeInterceptorTest {
 		
 		assertFalse(result);
 
-		assertEquals("{\"reason\":\"Request lacks scope(s) required by this service: authorize, download, modify, offline_access, openid, view\"}" + System.lineSeparator(),  os.toString());
+		assertEquals("{\"error\":\"" + OAuthErrorCode.insufficient_scope.name() + "\",\"error_description\":\"Request lacks scope(s) required by this service: authorize, download, modify, offline_access, openid, view\"}" + System.lineSeparator(),  os.toString());
 		
 		verify(mockRequest).getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME);
 		verify(mockOidcTokenHelper, never()).parseJWT(anyString());
