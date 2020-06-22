@@ -18,7 +18,7 @@ import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.web.OAuthErrorCode;
-import org.sagebionetworks.repo.web.OAuthUnauthorizedException;
+import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.util.Clock;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -150,10 +150,10 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 		try {
 			parsed = JSONWebTokenHelper.parseJWT(token, jsonWebKeySet);
 		} catch (ExpiredJwtException e) {
-			throw new OAuthUnauthorizedException(OAuthErrorCode.invalid_token, "The token has expired.");
+			throw new OAuthUnauthenticatedException(OAuthErrorCode.invalid_token, "The token has expired.");
 		} catch (IllegalArgumentException e) {
 			if (e.getMessage().equals("Token has expired.")) {
-				throw new OAuthUnauthorizedException(OAuthErrorCode.invalid_token, "The token has expired.");
+				throw new OAuthUnauthenticatedException(OAuthErrorCode.invalid_token, "The token has expired.");
 			} else {
 				throw e;
 			}

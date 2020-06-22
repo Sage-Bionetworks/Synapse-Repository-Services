@@ -76,7 +76,7 @@ import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.OAuthBadRequestException;
-import org.sagebionetworks.repo.web.OAuthUnauthorizedException;
+import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -1274,7 +1274,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		claims.setSubject(ppid);
 
 		// method under test
-		assertThrows(OAuthUnauthorizedException.class, () -> openIDConnectManagerImpl.validateAccessToken(token));
+		assertThrows(OAuthUnauthenticatedException.class, () -> openIDConnectManagerImpl.validateAccessToken(token));
 
 		verify(oidcTokenHelper).parseJWT(token);
 	}

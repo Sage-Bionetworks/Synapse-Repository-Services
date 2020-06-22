@@ -41,7 +41,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.OAuthBadRequestException;
 import org.sagebionetworks.repo.web.OAuthErrorCode;
-import org.sagebionetworks.repo.web.OAuthUnauthorizedException;
+import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -274,7 +274,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		String userId = getUserIdFromPPID(claims.getSubject(), claims.getAudience());
 		String refreshTokenId = claims.get(OIDCClaimName.refresh_token_id.name(), String.class);
 		if (refreshTokenId != null && !oauthRefreshTokenManager.isRefreshTokenActive(refreshTokenId)) {
-			throw new OAuthUnauthorizedException(OAuthErrorCode.invalid_token, "The access token has been revoked");
+			throw new OAuthUnauthenticatedException(OAuthErrorCode.invalid_token, "The access token has been revoked");
 		}
 		return userId;
 	}

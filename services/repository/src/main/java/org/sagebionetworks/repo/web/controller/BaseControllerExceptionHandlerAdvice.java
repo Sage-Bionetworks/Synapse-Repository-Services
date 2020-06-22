@@ -45,7 +45,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.OAuthBadRequestException;
 import org.sagebionetworks.repo.web.OAuthException;
 import org.sagebionetworks.repo.web.OAuthForbiddenException;
-import org.sagebionetworks.repo.web.OAuthUnauthorizedException;
+import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -143,10 +143,10 @@ public class BaseControllerExceptionHandlerAdvice {
 	 * @param request
 	 * @return
 	 */
-	@ExceptionHandler(OAuthUnauthorizedException.class)
+	@ExceptionHandler(OAuthUnauthenticatedException.class)
 	@ResponseStatus(HttpStatus.UNAUTHORIZED)
 	public @ResponseBody
-	OAuthErrorResponse handleOAuthUnauthorizedException(OAuthUnauthorizedException ex, HttpServletRequest request) {
+	OAuthErrorResponse handleOAuthUnauthorizedException(OAuthUnauthenticatedException ex, HttpServletRequest request) {
 		return handleOAuthException(ex, request, false);
 	}
 

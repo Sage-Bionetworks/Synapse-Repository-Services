@@ -35,7 +35,7 @@ import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
-import org.sagebionetworks.repo.web.OAuthUnauthorizedException;
+import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.util.Clock;
 
 import io.jsonwebtoken.Claims;
@@ -276,7 +276,7 @@ public class OIDCTokenHelperImplTest {
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis() - ONE_YEAR_MILLIS);
 		Long principalId = 101L;
 		String expiredAccessToken = oidcTokenHelper.createTotalAccessToken(principalId);
-		assertThrows(OAuthUnauthorizedException.class, () ->
+		assertThrows(OAuthUnauthenticatedException.class, () ->
 				oidcTokenHelper.parseJWT(expiredAccessToken));
 	}
 
