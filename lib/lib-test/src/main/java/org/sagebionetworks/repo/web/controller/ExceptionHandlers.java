@@ -59,7 +59,7 @@ public class ExceptionHandlers {
 				new ExceptionType("org.sagebionetworks.repo.web.OAuthForbiddenException", true)),
 		new TestEntry(401,
 				new ExceptionType("org.sagebionetworks.repo.model.UnauthenticatedException", true),
-				new ExceptionType("org.sagebionetworks.repo.model.OAuthUnauthenticatedException", true),
+				new ExceptionType("org.sagebionetworks.repo.web.OAuthUnauthenticatedException", true),
 				new ExceptionType("org.sagebionetworks.repo.manager.authentication.PasswordResetViaEmailRequiredException", true)),
 		new TestEntry(409,
 				new ExceptionType("org.sagebionetworks.repo.model.NameConflictException", true)),
