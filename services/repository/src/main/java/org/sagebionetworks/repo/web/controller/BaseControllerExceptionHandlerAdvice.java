@@ -146,7 +146,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ExceptionHandler(OAuthUnauthenticatedException.class)
 	@ResponseStatus(HttpStatus.UNAUTHORIZED)
 	public @ResponseBody
-	OAuthErrorResponse handleOAuthUnauthorizedException(OAuthUnauthenticatedException ex, HttpServletRequest request) {
+	OAuthErrorResponse handleOAuthUnauthenticatedException(OAuthUnauthenticatedException ex, HttpServletRequest request) {
 		return handleOAuthException(ex, request, false);
 	}
 
