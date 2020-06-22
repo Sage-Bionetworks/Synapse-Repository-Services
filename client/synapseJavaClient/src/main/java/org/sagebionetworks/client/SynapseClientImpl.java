@@ -3753,13 +3753,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public String queryTableEntityBundleAsyncStart(String sql, Long offset,
-			Long limit, boolean isConsistent, int partsMask, String tableId)
+			Long limit, int partsMask, String tableId)
 			throws SynapseException {
 		
 		Query query = new Query();
 		
 		query.setSql(sql);
-		query.setIsConsistent(isConsistent);
 		query.setOffset(offset);
 		query.setLimit(limit);
 		

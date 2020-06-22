@@ -379,7 +379,7 @@ public class IT100TableControllerTest {
 		
 		adminSynapse.rebuildTableCacheAndIndex(table.getId());
 		
-		final String asyncToken = synapse.queryTableEntityBundleAsyncStart("select * from " + table.getId(), null, null, true,
+		final String asyncToken = synapse.queryTableEntityBundleAsyncStart("select * from " + table.getId(), null, null,
 				SynapseClient.COUNT_PARTMASK, table.getId());
 		
 		assertThrows(SynapseResultNotReadyException.class, () -> {
@@ -762,7 +762,7 @@ public class IT100TableControllerTest {
 		}, MAX_QUERY_TIMEOUT_MS);
 		
 		// Since the table has not changed running the same query again should return the same job id. See PLFM-3284.
-		final String asyncToken2 = synapse.queryTableEntityBundleAsyncStart(queryString, null, null, true, 0xff, tableId);
+		final String asyncToken2 = synapse.queryTableEntityBundleAsyncStart(queryString, null, null, 0xff, tableId);
 		
 		assertEquals(jobResponse.getJobToken(), asyncToken2);		
 		

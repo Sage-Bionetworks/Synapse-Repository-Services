@@ -46,16 +46,14 @@ public class TableQueryUtils {
 	 * @param sql
 	 * @param nextOffset
 	 * @param limit
-	 * @param isConsistent
 	 * @return
 	 */
-	public static QueryNextPageToken createNextPageToken(String sql, List<SortItem> sortList, Long nextOffset, Long limit, boolean isConsistent, List<FacetColumnRequest> selectedFacets) {
+	public static QueryNextPageToken createNextPageToken(String sql, List<SortItem> sortList, Long nextOffset, Long limit, List<FacetColumnRequest> selectedFacets) {
 		Query query = new Query();
 		query.setSql(sql);
 		query.setSort(sortList);
 		query.setOffset(nextOffset);
 		query.setLimit(limit);
-		query.setIsConsistent(isConsistent);
 		query.setSelectedFacets(selectedFacets);
 
 		StringWriter writer = new StringWriter(sql.length() + 50);

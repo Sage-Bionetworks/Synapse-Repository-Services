@@ -34,8 +34,7 @@ public interface TableQueryManager {
 	 * @param user
 	 * @param query
 	 * @param selectedFacets
-	 * @param isConsistent
-	 * 
+	 *
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException

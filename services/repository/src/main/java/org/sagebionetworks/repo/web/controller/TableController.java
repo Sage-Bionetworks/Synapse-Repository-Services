@@ -849,22 +849,12 @@ public class TableController {
 	 * This services depends on an index that is created/update asynchronously
 	 * from table creation and update events. This means there could be short
 	 * window of time when the index is inconsistent with the true state of the
-	 * table. When a query is run with the isConsistent parameter set to true
-	 * (the default) and the index is out-of-sych, then a status code of 202
+	 * table. When the index is out-of-synch, then a status code of 202
 	 * (ACCEPTED) will be returned and the response body will be a <a
 	 * href="${org.sagebionetworks.repo.model.table.TableStatus}"
 	 * >TableStatus</a> object. The TableStatus will indicates the current
 	 * status of the index including how much work is remaining until the index
 	 * is consistent with the truth of the table.
-	 * </p>
-	 * <p>
-	 * isConsistent Defaults to true. When true, a query will be run only if the
-	 * index is up-to-date with all changes to the table and a read-lock is
-	 * successfully acquired on the index. When set to false, the query will be
-	 * run against the index regardless of the state of the index and without
-	 * attempting to acquire a read-lock. When isConsistent is set to false the
-	 * query results will not contain an etag so the results cannot be used as
-	 * input to a table update.
 	 * </p>
 	 * <p>
 	 * The 'partsMask' is an integer "mask" that can be combined into to request
@@ -893,15 +883,6 @@ public class TableController {
 	 * @param id
 	 *            The ID of the TableEntity.
 	 * @param query
-	 * @param isConsistent
-	 *            Defaults to true. When true, a query will be run only if the
-	 *            index is up-to-date with all changes to the table and a
-	 *            read-lock is successfully acquired on the index. When set to
-	 *            false, the query will be run against the index regardless of
-	 *            the state of the index and without attempting to acquire a
-	 *            read-lock. When isConsistent is set to false the query results
-	 *            will not contain an etag so the results cannot be used as
-	 *            input to a table update.
 	 * @param countOnly
 	 *            When this parameter is included and set to 'true', the passed
 	 *            query will be converted into a count query. This means the

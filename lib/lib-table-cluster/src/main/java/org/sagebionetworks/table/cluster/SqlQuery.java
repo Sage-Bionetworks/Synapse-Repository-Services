@@ -94,8 +94,6 @@ public class SqlQuery {
 	 */
 	boolean isAggregatedResult;
 	
-	boolean isConsistent;
-	
 	/**
 	 * The list of all columns referenced in the select column.
 	 */
@@ -122,9 +120,7 @@ public class SqlQuery {
 			Long overrideLimit,
 			Long maxBytesPerPage,
 			List<SortItem> sortList,
-			Boolean isConsistent,
 			Boolean includeEntityEtag,
-			Boolean includeRowIdAndRowVersion,
 			EntityType tableType,
 			List<FacetColumnRequest> selectedFacets,
 			List<QueryFilter> additionalFilters
@@ -147,14 +143,7 @@ public class SqlQuery {
 		}else{
 			this.tableType = tableType;
 		}
-		
-		if(isConsistent == null){
-			// default to true
-			this.isConsistent = true;
-		}else{
-			this.isConsistent = isConsistent;
-		}
-		
+
 		// only a view can include the etag
 		if(EntityTypeUtils.isViewType(this.tableType) && includeEntityEtag != null){
 			this.includeEntityEtag = includeEntityEtag;
@@ -334,15 +323,6 @@ public class SqlQuery {
 	 */
 	public Long getMaxRowsPerPage() {
 		return maxRowsPerPage;
-	}
-	
-	/**
-	 * Should this query be run as consistent?
-	 * 
-	 * @return
-	 */
-	public boolean isConsistent(){
-		return this.isConsistent;
 	}
 	
 	/**

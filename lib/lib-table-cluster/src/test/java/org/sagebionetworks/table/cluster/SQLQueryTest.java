@@ -716,28 +716,7 @@ public class SQLQueryTest {
 	}
 	
 	@Test
-	public void testDeafultConsistent() throws ParseException{
-		// call under test
-		SqlQuery query = new SqlQueryBuilder(sql)
-		.tableSchema(schema)
-		.isConsistent(null)
-		.build();
-		// should default to table.
-		assertTrue(query.isConsistent());
-	}
-	
-	@Test
-	public void testNotConsistent() throws ParseException{
-		// call under test
-		SqlQuery query = new SqlQueryBuilder(sql)
-		.tableSchema(schema)
-		.isConsistent(false)
-		.build();
-		assertFalse(query.isConsistent());
-	}
-	
-	@Test
-	public void testDeafultType() throws ParseException{
+	public void testDefaultType() throws ParseException{
 		// call under test
 		SqlQuery query = new SqlQueryBuilder(sql)
 		.tableSchema(schema)

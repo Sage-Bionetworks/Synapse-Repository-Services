@@ -19,7 +19,6 @@ public class SqlQueryBuilder {
 	Long overrideLimit;
 	Long maxBytesPerPage;
 	List<SortItem> sortList;
-	Boolean isConsistent;
 	Boolean includeEntityEtag;
 	Boolean includeRowIdAndRowVersion;
 	EntityType tableType;
@@ -79,11 +78,6 @@ public class SqlQueryBuilder {
 		return this;
 	}
 	
-	public SqlQueryBuilder isConsistent(Boolean isConsistent) {
-		this.isConsistent = isConsistent;
-		return this;
-	}
-	
 	public SqlQueryBuilder includeEntityEtag(Boolean includeEntityEtag) {
 		this.includeEntityEtag = includeEntityEtag;
 		return this;
@@ -110,8 +104,8 @@ public class SqlQueryBuilder {
 	}
 
 	public SqlQuery build(){
-		return new SqlQuery(model, tableSchema, overrideOffset, overrideLimit, maxBytesPerPage, sortList, isConsistent,
-				includeEntityEtag, includeRowIdAndRowVersion, tableType, selectedFacets, additionalFilters);
+		return new SqlQuery(model, tableSchema, overrideOffset, overrideLimit, maxBytesPerPage, sortList,
+				includeEntityEtag, tableType, selectedFacets, additionalFilters);
 	}
 
 

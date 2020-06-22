@@ -123,10 +123,10 @@ public class JobHashProviderImplTest {
 
 	@Test
 	public void testGetRequestObjectEtagQueryNextPageToken() throws NotFoundException, IOException{
-		QueryNextPageToken body1 = TableQueryUtils.createNextPageToken("SELECT * FROM SYN123", null, 100L, 10L, true, null);
+		QueryNextPageToken body1 = TableQueryUtils.createNextPageToken("SELECT * FROM SYN123", null, 100L, 10L,  null);
 		// call under test
 		String hash = provider.getJobHash(body1);
-		assertEquals("143599eb9ac5480fbea70d5cafa14464", hash);
+		assertEquals("8acd1d8b465c43c34196a6f3026c08ba", hash);
 	}
 	
 }
