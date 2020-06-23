@@ -257,7 +257,11 @@ class OAuthScopeInterceptorTest {
 		
 		verify(mockRequest).getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME);
 
-		assertEquals("{\"error\":\"" + OAuthErrorCode.insufficient_scope.name() + "\",\"error_description\":\"Request lacks scope(s) required by this service: authorize, download, modify, offline_access, openid\"}"+System.lineSeparator() , os.toString());
+		String expectedError = OAuthErrorCode.insufficient_scope.name();
+		String expectedErrorDescription = "Request lacks scope(s) required by this service: authorize, download, modify, offline_access, openid";
+		String expectedReason = expectedError + ". " + expectedErrorDescription;
+
+		assertEquals("{\"reason\":\"" + expectedReason + "\",\"error\":\"" + expectedError + "\",\"error_description\":\"" + expectedErrorDescription + "\"}"+System.lineSeparator() , os.toString());
 		
 	}
 
@@ -274,7 +278,10 @@ class OAuthScopeInterceptorTest {
 		
 		assertFalse(result);
 
-		assertEquals("{\"error\":\"" + OAuthErrorCode.insufficient_scope.name() + "\",\"error_description\":\"Request lacks scope(s) required by this service: authorize, download, modify, offline_access, openid, view\"}" + System.lineSeparator(),  os.toString());
+		String expectedError = OAuthErrorCode.insufficient_scope.name();
+		String expectedErrorDescription = "Request lacks scope(s) required by this service: authorize, download, modify, offline_access, openid, view";
+		String expectedReason = expectedError + ". " + expectedErrorDescription;
+		assertEquals("{\"reason\":\"" + expectedReason + "\",\"error\":\"" + expectedError + "\",\"error_description\":\"" + expectedErrorDescription + "\"}" + System.lineSeparator(),  os.toString());
 		
 		verify(mockRequest).getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME);
 		verify(mockOidcTokenHelper, never()).parseJWT(anyString());
