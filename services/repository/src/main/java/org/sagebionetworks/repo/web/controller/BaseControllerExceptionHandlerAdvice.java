@@ -715,6 +715,11 @@ public class BaseControllerExceptionHandlerAdvice {
 		OAuthErrorResponse errorResponse = new OAuthErrorResponse();
 		errorResponse.setError(ex.getError().name());
 		errorResponse.setError_description(ex.getErrorDescription());
+		if (ex.getErrorDescription() == null) {
+			errorResponse.setReason(ex.getError().name());
+		} else {
+			errorResponse.setReason(ex.getError().name() + ". " + ex.getErrorDescription());
+		}
 		return errorResponse;
 	}
 

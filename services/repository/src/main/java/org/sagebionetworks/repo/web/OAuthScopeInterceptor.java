@@ -99,7 +99,7 @@ public class OAuthScopeInterceptor implements HandlerInterceptor {
 				Jwt<JwsHeader, Claims> jwt = oidcTokenHelper.parseJWT(accessToken);
 				requestScopes = ClaimsJsonUtil.getScopeFromClaims(jwt.getBody());
 			} catch (IllegalArgumentException e) {
-				HttpAuthUtil.reject(response, e.getMessage(), HttpStatus.UNAUTHORIZED);
+				HttpAuthUtil.rejectWithErrorResponse(response, e.getMessage(), HttpStatus.UNAUTHORIZED);
 				return false;
 			}
 		}

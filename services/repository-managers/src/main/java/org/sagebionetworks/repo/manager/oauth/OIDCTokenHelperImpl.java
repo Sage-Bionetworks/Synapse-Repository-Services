@@ -145,24 +145,21 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 	@Override
 	public Jwt<JwsHeader,Claims> parseJWT(String token) {
 		Jwt<JwsHeader, Claims> parsed;
-		// The JSONWebTokenHelper is also used in the Java client, where the thrown exception is fine
 		// If the server receives an expired token, it should throw an OAuthUnauthenticatedException
 		try {
 			parsed = JSONWebTokenHelper.parseJWT(token, jsonWebKeySet);
 		} catch (ExpiredJwtException e) {
 			throw new OAuthUnauthenticatedException(OAuthErrorCode.invalid_token, "The token has expired.");
-		} catch (IllegalArgumentException e) {
-			if (e.getMessage().equals("Token has expired.")) {
-				throw new OAuthUnauthenticatedException(OAuthErrorCode.invalid_token, "The token has expired.");
-			} else {
-				throw e;
-			}
 		}
 		return parsed;
 	}
 	
 	@Override
 	public void validateJWT(String token) {
-		JSONWebTokenHelper.parseJWT(token, jsonWebKeySet);
+		try {
+			JSONWebTokenHelper.parseJWT(token, jsonWebKeySet);
+		} catch (ExpiredJwtException e) {
+			throw new OAuthUnauthenticatedException(OAuthErrorCode.invalid_token, "The token has expired.");
+		}
 	}
 }

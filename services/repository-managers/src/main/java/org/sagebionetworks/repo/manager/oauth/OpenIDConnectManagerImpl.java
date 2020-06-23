@@ -20,7 +20,6 @@ import org.sagebionetworks.manager.util.OAuthPermissionUtils;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
@@ -209,7 +208,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			OIDCAuthorizationRequest authorizationRequest) {
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
 			// Perhaps this should be an OIDC Error Code: https://openid.net/specs/openid-connect-core-1_0.html#AuthError
-			throw new UnauthorizedException("Anonymous users may not provide access to OAuth clients.");
+			throw new OAuthUnauthenticatedException(OAuthErrorCode.login_required, "Anonymous users may not provide access to OAuth clients.");
 		}
 
 		OAuthClient client;
@@ -325,7 +324,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(serializedAuthorizationRequest);
 			authorizationRequest.initializeFromJSONObject(adapter);
 		} catch (JSONObjectAdapterException e) {
-			throw new OAuthBadRequestException(OAuthErrorCode.invalid_grant, "Incorrectly formatted authorization code: "+code, e);
+			// This should never happen. If it does, the authz code was likely improperly encoded/decoded, which isn't the user's fault.
+			throw new IllegalStateException("Incorrectly formatted authorization code: "+code, e);
 		}
 
 		// enforce expiration of authorization code

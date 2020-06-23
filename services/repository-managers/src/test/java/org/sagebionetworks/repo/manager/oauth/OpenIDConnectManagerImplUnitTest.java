@@ -51,7 +51,6 @@ import org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedAtClaimProv
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
@@ -554,8 +553,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		// method under test
 		try {
 			openIDConnectManagerImpl.authorizeClient(anonymousUserInfo, authorizationRequest);
-			fail("UnauthorizedException expected");
-		} catch (UnauthorizedException e) {
+			fail("OAuthUnauthenticatedException expected");
+		} catch (OAuthUnauthenticatedException e) {
 			// as expected
 		}
 	}
@@ -812,8 +811,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		try {
 			// method under test
 			openIDConnectManagerImpl.generateTokenResponseWithAuthorizationCode(invalidAuthorizationObjectCode, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
-			fail("OAuthBadRequestException expected");
-		}  catch (OAuthBadRequestException e) {
+			fail("IllegalStateException expected");
+		}  catch (IllegalStateException e) {
 			// as expected
 		}
 	}

@@ -46,7 +46,7 @@ public class AcceptTermsOfUseFilter implements Filter {
 		
 		if (userIdParam==null) {
 			// There must at least be an anonymous user id.  If not, we have misconfigured the filter
-			HttpAuthUtil.reject(httpResponse, "Missing user id.", HttpStatus.INTERNAL_SERVER_ERROR);
+			HttpAuthUtil.rejectWithErrorResponse(httpResponse, "Missing user id.", HttpStatus.INTERNAL_SERVER_ERROR);
 			return;
 		}
 		
@@ -55,7 +55,7 @@ public class AcceptTermsOfUseFilter implements Filter {
 		// If the user is not anonymous, check if they have accepted the terms of use
 		if (!BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(userId)) {
 			if (!authenticationService.hasUserAcceptedTermsOfUse(userId)) {
-				HttpAuthUtil.reject(httpResponse, TOU_UNSIGNED_REASON, HttpStatus.FORBIDDEN);
+				HttpAuthUtil.rejectWithErrorResponse(httpResponse, TOU_UNSIGNED_REASON, HttpStatus.FORBIDDEN);
 				return;
 			}
 		}

@@ -20,7 +20,6 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.ExampleEntity;
-import org.sagebionetworks.repo.model.OAuthErrorResponse;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -119,19 +118,11 @@ public class JSONEntityHttpMessageConverterTest {
 	}
 	
 	@Test
-	public void testConvertErrorEntityToPlainText() throws Exception {
+	public void testConvertEntityToPlainText() throws Exception {
 		ErrorResponse error = new ErrorResponse();
 		error.setReason("foo");
 		assertEquals("foo", JSONEntityHttpMessageConverter.convertEntityToPlainText(error));
 	}
-
-	@Test
-	public void testConvertOAuthErrorEntityToPlainText() throws Exception {
-		OAuthErrorResponse error = new OAuthErrorResponse();
-		error.setError("foo");
-		assertEquals("foo", JSONEntityHttpMessageConverter.convertEntityToPlainText(error));
-	}
-
 
 	@Test 
 	public void testReadToString() throws IOException{

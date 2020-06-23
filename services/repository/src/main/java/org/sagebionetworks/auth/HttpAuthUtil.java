@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.OAuthErrorResponse;
 import org.sagebionetworks.repo.web.OAuthErrorCode;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -121,10 +122,10 @@ public class HttpAuthUtil {
 	}	
 		
 	public static void reject(HttpServletResponse resp, String reason) throws IOException {
-		reject(resp, reason, HttpStatus.UNAUTHORIZED);
+		rejectWithErrorResponse(resp, reason, HttpStatus.UNAUTHORIZED);
 	}
-	
-	public static void reject(HttpServletResponse resp, String reason, HttpStatus status) throws IOException {
+
+	public static void reject(HttpServletResponse resp, JSONEntity responseBody, HttpStatus status) throws IOException {
 		resp.setStatus(status.value());
 
 		// This header is required according to RFC-2612
@@ -132,18 +133,24 @@ public class HttpAuthUtil {
 		//      http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.47
 		//      http://www.ietf.org/rfc/rfc2617.txt
 		resp.setContentType("application/json");
-		resp.setHeader("WWW-Authenticate", "\"Digest\" your email");
-		ErrorResponse er = new ErrorResponse();
-		er.setReason(reason);
+		if (status.equals(HttpStatus.UNAUTHORIZED)) {
+			resp.setHeader("WWW-Authenticate", "\"Digest\" your email");
+		}
 		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
 		try {
-			er.writeToJSONObject(joa);
+			responseBody.writeToJSONObject(joa);
 			resp.getWriter().println(joa.toJSONString());
 		} catch (JSONObjectAdapterException e) {
 			// give up here, use old method, so we at least send something back
-			resp.getWriter().println("{\"reason\": \"" + reason + "\"}");
+			resp.getWriter().println(responseBody.toString());
 		}
 		resp.getWriter().flush();
+	}
+	
+	public static void rejectWithErrorResponse(HttpServletResponse resp, String reason, HttpStatus status) throws IOException {
+		ErrorResponse er = new ErrorResponse();
+		er.setReason(reason);
+		reject(resp, er, status);
 	}
 
 	/**
@@ -151,26 +158,15 @@ public class HttpAuthUtil {
 	 * sending error responses caused by OAuth services
 	 */
 	public static void rejectWithOAuthError(HttpServletResponse resp, OAuthErrorCode errorCode, String description, HttpStatus status) throws IOException {
-		resp.setStatus(status.value());
-
-		// This header is required according to RFC-2612
-		// See: http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.2
-		//      http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.47
-		//      http://www.ietf.org/rfc/rfc2617.txt
-		resp.setContentType("application/json");
-		resp.setHeader("WWW-Authenticate", "\"Digest\" your email");
 		OAuthErrorResponse er = new OAuthErrorResponse();
 		er.setError(errorCode.name());
 		er.setError_description(description);
-		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
-		try {
-			er.writeToJSONObject(joa);
-			resp.getWriter().println(joa.toJSONString());
-		} catch (JSONObjectAdapterException e) {
-			// give up here, use old method, so we at least send something back
-			resp.getWriter().println("{\"error\": \"" + errorCode + "\"}");
+		if (description != null) {
+			er.setReason(errorCode.name() + ". " + description);
+		} else {
+			er.setReason(errorCode.name());
 		}
-		resp.getWriter().flush();
+		reject(resp, er, status);
 	}
 
 }
