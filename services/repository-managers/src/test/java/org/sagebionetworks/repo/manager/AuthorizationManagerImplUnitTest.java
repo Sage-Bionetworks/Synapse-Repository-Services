@@ -112,7 +112,7 @@ public class AuthorizationManagerImplUnitTest {
 	@Mock
 	private V2WikiPageDao mockWikiPageDaoV2;
 	@Mock
-	private org.sagebionetworks.repo.model.evaluation.SubmissionDAO mockSubmissionDAO;
+	private org.sagebionetworks.evaluation.dao.SubmissionDAO mockSubmissionDAO;
 	@Mock
 	private Submission mockSubmission;
 	@Mock

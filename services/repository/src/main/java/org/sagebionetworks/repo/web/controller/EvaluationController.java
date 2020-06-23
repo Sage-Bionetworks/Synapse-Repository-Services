@@ -8,7 +8,6 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
@@ -180,6 +179,7 @@ public class EvaluationController {
 	 * @param id the ID of the project
 	 * @param accessType The type of access for the user to filter for, optional and defaults to <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}">ACCESS_TYPE.READ</a>
 	 * @param activeOnly If 'true' then return only those evaluations with rounds defined and for which the current time is in one of the rounds.
+	 * @param evaluationIds an optional, comma-delimited list of evaluation IDs to which the response is limited
 	 * @param offset
 	 *            The offset index determines where this page will start from.
 	 *            An index of 0 is the first entity. When null it will default
@@ -200,11 +200,12 @@ public class EvaluationController {
 			@PathVariable String id, 
 			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM, required = false, defaultValue="READ") ACCESS_TYPE accessType,
 			@RequestParam(value = ServiceConstants.ACTIVE_ONLY_PARAM, required=false, defaultValue="false") boolean activeOnly,
+			@RequestParam(value = ServiceConstants.EVALUATION_IDS_PARAM, required = false) List<Long> evaluationIds,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit
 			) throws DatastoreException, NotFoundException
 	{
-		return serviceProvider.getEvaluationService().getEvaluationByContentSource(userId, id, accessType, activeOnly, limit, offset);
+		return serviceProvider.getEvaluationService().getEvaluationByContentSource(userId, id, accessType, activeOnly, evaluationIds, limit, offset);
 	}
 	
 	/**
@@ -218,6 +219,7 @@ public class EvaluationController {
 	 * 
 	 * @param accessType The type of access for the user to filter for, optional and defaults to <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}">ACCESS_TYPE.READ</a>
 	 * @param activeOnly If 'true' then return only those evaluations with rounds defined and for which the current time is in one of the rounds.
+	 * @param evaluationIds an optional, comma-delimited list of evaluation IDs to which the response is limited
 	 * @param offset
 	 *            The offset index determines where this page will start from.
 	 *            An index of 0 is the first entity. When null it will default
@@ -237,13 +239,11 @@ public class EvaluationController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM, required = false, defaultValue="READ") ACCESS_TYPE accessType,
 			@RequestParam(value = ServiceConstants.ACTIVE_ONLY_PARAM, required=false, defaultValue="false") boolean activeOnly,
+			@RequestParam(value = ServiceConstants.EVALUATION_IDS_PARAM, required = false) List<Long> evaluationIds,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit
 			) throws DatastoreException, NotFoundException {
-		
-		
-		
-		return serviceProvider.getEvaluationService().getEvaluationsInRange(userId, accessType, activeOnly, limit, offset);
+		return serviceProvider.getEvaluationService().getEvaluations(userId, accessType, activeOnly, evaluationIds, limit, offset);
 	}
 	
 	/**
@@ -275,27 +275,14 @@ public class EvaluationController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_AVAILABLE, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(
-			@RequestParam(value = ServiceConstants.EVALUATION_IDS_PARAM, required = false) String evaluationIds,
 			@RequestParam(value = ServiceConstants.ACTIVE_ONLY_PARAM, required=false, defaultValue="false") boolean activeOnly,
+			@RequestParam(value = ServiceConstants.EVALUATION_IDS_PARAM, required = false) List<Long> evaluationIds,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws DatastoreException, NotFoundException
 	{
-		List<Long> evalIds = new ArrayList<Long>();
-		if (evaluationIds!=null) {
-			String[] evalIdStrings = evaluationIds.split(ServiceConstants.BATCH_PARAM_VALUE_SEPARATOR);
-			for (String s : evalIdStrings) {
-				Long l;
-				try {
-					l = Long.parseLong(s);
-				} catch (NumberFormatException e) {
-					throw new InvalidModelException("Expected an evaluation ID but found "+s);
-				}
-				evalIds.add(l);
-			}
-		}
-		return serviceProvider.getEvaluationService().getAvailableEvaluationsInRange(userId, activeOnly, limit, offset, evalIds);
+		return serviceProvider.getEvaluationService().getAvailableEvaluations(userId, activeOnly, evaluationIds, limit, offset);
 	}	
 
 	/**

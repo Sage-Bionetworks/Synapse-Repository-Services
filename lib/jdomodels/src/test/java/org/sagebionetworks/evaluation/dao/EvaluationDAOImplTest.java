@@ -31,7 +31,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -146,13 +145,18 @@ public class EvaluationDAOImplTest {
 	
 	@Test
 	public void testGetAccessibleEvaluationsForProject() throws Exception {
-		List<Long> principalIds = Collections.singletonList(EVALUATION_OWNER_ID);
+		Set<Long> principalIds = Collections.singleton(EVALUATION_OWNER_ID);
+		
+		EvaluationFilter filter = new EvaluationFilter(principalIds, ACCESS_TYPE.READ)
+				.withContentSourceFilter(EVALUATION_CONTENT_SOURCE);
+		
 		// Get nothing
-		List<Evaluation> retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, null, 10, 0);
+		List<Evaluation> retrieved = evaluationDAO.getAccessibleEvaluations(filter, 10, 0);
 		assertEquals(0, retrieved.size());
 		
 		// test with timestamp param
-		retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, System.currentTimeMillis(), 10, 0);
+		filter.withTimeFilter(System.currentTimeMillis());
+		retrieved = evaluationDAO.getAccessibleEvaluations(filter, 10, 0);
 		assertEquals(0, retrieved.size());
 		
 		// Create one
@@ -161,7 +165,7 @@ public class EvaluationDAOImplTest {
 		toDelete.add(evalId);
 		
 		// no permission to access
-		retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, null, 10, 0);
+		retrieved = evaluationDAO.getAccessibleEvaluations(filter, 10, 0);
 		assertEquals(0, retrieved.size());
 		
 		// now provide the permission to READ
@@ -171,8 +175,11 @@ public class EvaluationDAOImplTest {
 		acl.setId(aclId);
 		aclToDelete = acl;
 		
+		// reset the time filter
+		filter.withTimeFilter(null);
+		
 		// Get it
-		retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, null, 10, 0);
+		retrieved = evaluationDAO.getAccessibleEvaluations(filter, 10, 0);
 		assertEquals(1, retrieved.size());
 		
 		Evaluation created = retrieved.get(0);
@@ -184,11 +191,16 @@ public class EvaluationDAOImplTest {
 		assertNotNull(created.getEtag());
 
 		// test with timestamp param
+		filter.withTimeFilter(System.currentTimeMillis());
+		
 		// currently the challenge is active...
-		retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, System.currentTimeMillis(), 10, 0);
+		retrieved = evaluationDAO.getAccessibleEvaluations(filter, 10, 0);
 		assertEquals(1, retrieved.size());
+		
 		// but in the future it won't be
-		retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, futureTime, 10, 0);
+		filter.withTimeFilter(futureTime);
+		
+		retrieved = evaluationDAO.getAccessibleEvaluations(filter, 10, 0);
 		assertEquals(0, retrieved.size());
 		
 	}
@@ -246,28 +258,41 @@ public class EvaluationDAOImplTest {
 		assertNotNull(evalId2);
 		toDelete.add(evalId2);
 		
-		// search for it
-		// I can find my own evaluation...
-		List<Long> pids;
-		List<Evaluation> evalList;
 
 		// those who have not joined do not get this result
 		long participantId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
-		pids = Arrays.asList(new Long[]{participantId,104L});
-		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, null);
+		
+		// search for it
+		// I can find my own evaluation...
+		Set<Long> pids = ImmutableSet.of(participantId, 104L);
+		List<Evaluation> evalList;
+		
+		EvaluationFilter filter = new EvaluationFilter(pids, ACCESS_TYPE.SUBMIT);
+		
+		evalList = evaluationDAO.getAccessibleEvaluations(filter, 10, 0);
 		assertTrue(evalList.isEmpty());
 		
 		// check that an empty principal list works too
-		pids = Arrays.asList(new Long[]{});
-		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, null);
+		
+		filter = new EvaluationFilter(Collections.emptySet(), ACCESS_TYPE.SUBMIT);
+		
+		evalList = evaluationDAO.getAccessibleEvaluations(filter, 10, 0);
 		assertTrue(evalList.isEmpty());
 		
 		// check that the filter works
-		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId)}));
+		
+		filter = new EvaluationFilter(pids, ACCESS_TYPE.SUBMIT)
+				.withIdsFilter(Arrays.asList(Long.parseLong(evalId)));
+		
+		evalList = evaluationDAO.getAccessibleEvaluations(filter, 10, 0);
 		assertTrue(evalList.isEmpty());
 		
 		// and that the time filter works
-		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, System.currentTimeMillis(), 10, 0, null);
+		filter = new EvaluationFilter(pids, ACCESS_TYPE.SUBMIT)
+			.withIdsFilter(null)
+			.withTimeFilter(System.currentTimeMillis());
+
+		evalList = evaluationDAO.getAccessibleEvaluations(filter, 10, 0);
 		assertTrue(evalList.isEmpty());
 
 		// Now join the Evaluation by
@@ -278,31 +303,47 @@ public class EvaluationDAOImplTest {
 		aclToDelete = acl;
 		
 		// As a participant, I can find:
-		pids = Arrays.asList(new Long[]{participantId,104L});
-		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, null);
+		filter = new EvaluationFilter(pids, ACCESS_TYPE.SUBMIT);
+		
+		evalList = evaluationDAO.getAccessibleEvaluations(filter, 10, 0);
 		assertEquals(1, evalList.size());
 		assertEquals(eval, evalList.get(0));
 		
 		// make sure time filter works
-		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, System.currentTimeMillis(), 10, 0, null);
+		filter = new EvaluationFilter(pids, ACCESS_TYPE.SUBMIT)
+				.withTimeFilter(System.currentTimeMillis());
+		
+		evalList = evaluationDAO.getAccessibleEvaluations(filter, 10, 0);
 		assertEquals(1, evalList.size());
 		assertEquals(eval, evalList.get(0));
+		
 		// the evaluation is omitted if the challenge is over:
-		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, futureTime, 10, 0, null);
+		filter = new EvaluationFilter(pids, ACCESS_TYPE.SUBMIT)
+				.withTimeFilter(futureTime);
+		
+		evalList = evaluationDAO.getAccessibleEvaluations(filter, 10, 0);
 		assertTrue(evalList.isEmpty());		
 		
 		// make sure filter works
-		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId)}));
+		filter = new EvaluationFilter(pids, ACCESS_TYPE.SUBMIT)
+				.withIdsFilter(Arrays.asList(Long.parseLong(evalId)));
+		
+		evalList = evaluationDAO.getAccessibleEvaluations(filter, 10, 0);
 		assertEquals(1, evalList.size());
 		assertEquals(eval, evalList.get(0));
 		
 		// filtering with 'eval 2' causes no results to come back
-		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId2)}));
+		filter = new EvaluationFilter(pids, ACCESS_TYPE.SUBMIT)
+				.withIdsFilter(Arrays.asList(Long.parseLong(evalId2)));
+		
+		evalList = evaluationDAO.getAccessibleEvaluations(filter, 10, 0);
 		assertEquals(0, evalList.size());
 		
 		// non-participants  cannot find
-		pids = Arrays.asList(new Long[]{110L,111L});
-		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, null);
+		filter = new EvaluationFilter(ImmutableSet.of(110L, 111L), ACCESS_TYPE.SUBMIT)
+				.withIdsFilter(Arrays.asList(Long.parseLong(evalId)));
+		
+		evalList = evaluationDAO.getAccessibleEvaluations(filter, 10, 0);
 		assertTrue(evalList.isEmpty());
 		
 		// PLFM-2312 problem with repeated entries
@@ -312,18 +353,20 @@ public class EvaluationDAOImplTest {
 		Set<ResourceAccess> ras = acl.getResourceAccess();
 		ras.add(ra);
 		aclDAO.update(acl, ObjectType.EVALUATION);
-		// should still find just one result, even though I'm in the ACL twice
-		pids = Arrays.asList(new Long[] {
-				participantId,
-				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId() });
-		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, null);
-		assertEquals(1, evalList.size());
-		assertEquals(eval, evalList.get(0));
 		
+		// should still find just one result, even though I'm in the ACL twice
+		pids = ImmutableSet.of(participantId, BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+		
+		filter = new EvaluationFilter(pids, ACCESS_TYPE.SUBMIT);
+		
+		evalList = evaluationDAO.getAccessibleEvaluations(filter, 10, 0);
+		assertEquals(1, evalList.size());
+		assertEquals(eval, evalList.get(0));		
 		
 		// Note:  The evaluation isn't returned for the wrong access type
-		assertFalse(evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, null).isEmpty());
-		assertTrue(evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.READ, null, 10, 0, null).isEmpty());
+		filter = new EvaluationFilter(pids, ACCESS_TYPE.READ);
+		
+		assertTrue(evaluationDAO.getAccessibleEvaluations(filter, 10, 0).isEmpty());
    }
     
     @Test

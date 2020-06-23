@@ -1,9 +1,11 @@
 package org.sagebionetworks.evaluation.manager;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.sagebionetworks.evaluation.dao.EvaluationDAO;
+import org.sagebionetworks.evaluation.dao.EvaluationFilter;
+import org.sagebionetworks.evaluation.dao.EvaluationSubmissionsDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
@@ -19,10 +21,8 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
-import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
-import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -105,7 +105,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	}
 	
 	@Override
-	public List<Evaluation> getEvaluationByContentSource(UserInfo userInfo, String id, ACCESS_TYPE accessType, boolean activeOnly, long limit, long offset)
+	public List<Evaluation> getEvaluationsByContentSource(UserInfo userInfo, String id, ACCESS_TYPE accessType, boolean activeOnly, List<Long> evaluationIds, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		EvaluationUtils.ensureNotNull(id, "Entity ID");
 		ValidateArgument.required(userInfo, "User info");
@@ -113,27 +113,33 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		
 		Long now = activeOnly ? System.currentTimeMillis() : null;
 		
-		return evaluationDAO.getAccessibleEvaluationsForProject(id, new ArrayList<Long>(userInfo.getGroups()), accessType, now, limit, offset);
+		EvaluationFilter filter = new EvaluationFilter(userInfo, accessType)
+				.withTimeFilter(now)
+				.withContentSourceFilter(id)
+				.withIdsFilter(evaluationIds);
+		
+		return evaluationDAO.getAccessibleEvaluations(filter, limit, offset);
 	}
 
 	@Override
-	public List<Evaluation> getInRange(UserInfo userInfo, ACCESS_TYPE accessType, boolean activeOnly, long limit, long offset)
+	public List<Evaluation> getEvaluations(UserInfo userInfo, ACCESS_TYPE accessType, boolean activeOnly, List<Long> evaluationIds, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		ValidateArgument.required(userInfo, "User info");
 		ValidateArgument.required(accessType, "The access type");
 		
 		Long now = activeOnly ? System.currentTimeMillis() : null;
 		
-		return evaluationDAO.getAccessibleEvaluations(new ArrayList<Long>(userInfo.getGroups()), accessType, now,
-				limit, offset, null);
+		EvaluationFilter filter = new EvaluationFilter(userInfo, accessType)
+				.withTimeFilter(now)
+				.withIdsFilter(evaluationIds);
+		
+		return evaluationDAO.getAccessibleEvaluations(filter, limit, offset);
 	}
 
 	@Override
-	public List<Evaluation> getAvailableInRange(UserInfo userInfo, boolean activeOnly, long limit, long offset, List<Long> evaluationIds)
+	public List<Evaluation> getAvailableEvaluations(UserInfo userInfo, boolean activeOnly, List<Long> evaluationIds, long limit, long offset)
 			throws DatastoreException, NotFoundException {
-		Long now = activeOnly ? System.currentTimeMillis() : null;
-		return evaluationDAO.getAccessibleEvaluations(new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.SUBMIT, now,
-				limit, offset, evaluationIds);
+		return getEvaluations(userInfo, ACCESS_TYPE.SUBMIT, activeOnly, evaluationIds, limit, offset);
 	}
 
 	@Override

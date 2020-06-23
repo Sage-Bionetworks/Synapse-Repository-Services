@@ -25,25 +25,25 @@ public interface EvaluationManager {
 	 */
 	public Evaluation getEvaluation(UserInfo userInfo, String id)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
-	
+
 	/**
 	 * Gets all Synapse Evaluations tied to the given project
 	 */
-	public List<Evaluation> getEvaluationByContentSource(UserInfo userInfo, String id, ACCESS_TYPE accessType, boolean activeOnly, long limit, long offset)
+	public List<Evaluation> getEvaluationsByContentSource(UserInfo userInfo, String id, ACCESS_TYPE accessType,
+			boolean activeOnly, List<Long> evaluationIds, long limit, long offset)
 			throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get a collection of Evaluations, within a given range
 	 */
-	@Deprecated
-	public List<Evaluation> getInRange(UserInfo userInfo, ACCESS_TYPE accessType, boolean activeOnly, long limit, long offset) 
-			throws DatastoreException, NotFoundException;
+	public List<Evaluation> getEvaluations(UserInfo userInfo, ACCESS_TYPE accessType, boolean activeOnly,
+			List<Long> evaluationIds, long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get a collection of Evaluations to the user may SUBMIT, within a given range
 	 */
-	public List<Evaluation> getAvailableInRange(UserInfo userInfo, boolean activeOnly, long limit, long offset, List<Long> evaluationIds) 
-			throws DatastoreException, NotFoundException;
+	public List<Evaluation> getAvailableEvaluations(UserInfo userInfo, boolean activeOnly, List<Long> evaluationIds,
+			long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Find a Evaluation, by name

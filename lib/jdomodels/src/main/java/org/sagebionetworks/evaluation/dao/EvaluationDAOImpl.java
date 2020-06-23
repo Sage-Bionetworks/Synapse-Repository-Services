@@ -21,7 +21,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
 
 import java.sql.ResultSet;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -33,15 +32,12 @@ import org.sagebionetworks.evaluation.dbo.EvaluationDBO;
 import org.sagebionetworks.evaluation.dbo.EvaluationDBOUtil;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -174,63 +170,49 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 			":"+
 			BIND_VAR_PREFIX+
 			AUTHORIZATION_SQL_WHERE_2;
-
-
-	@Override
-	public List<Evaluation> getAccessibleEvaluationsForProject(String projectId, List<Long> principalIds, ACCESS_TYPE accessType, Long optionalTimeToFilterBy, long limit, long offset) 
-			throws DatastoreException, NotFoundException {
-		if (principalIds.isEmpty()) return new ArrayList<Evaluation>(); // SQL breaks down if list is empty
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(CONTENT_SOURCE, KeyFactory.stringToKey(projectId));
-		param.addValue(BIND_VAR_PREFIX, principalIds);
-		param.addValue(ACCESS_TYPE_BIND_VAR, accessType.name());
-		param.addValue(OFFSET_PARAM_NAME, offset);
-		param.addValue(LIMIT_PARAM_NAME, limit);	
-		param.addValue(RESOURCE_TYPE_BIND_VAR, ObjectType.EVALUATION.name());
-		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX);
-		sql.append(AUTHORIZATION_SQL_WHERE);
-		sql.append(SELECT_AVAILABLE_CONTENT_SOURCE_FILTER);
-		if (optionalTimeToFilterBy!=null) {
-			sql.append(SELECT_TIME_RANGE_FILTER);
-			param.addValue(CURRENT_TIME_PARAM_NAME, optionalTimeToFilterBy);
-		}
-		sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
-
-		List<EvaluationDBO> dbos = namedJdbcTemplate.query(sql.toString(), param, rowMapper);
-		List<Evaluation> dtos = new ArrayList<Evaluation>();
-		EvaluationDBOUtil.copyDbosToDtos(dbos, dtos);
-		return dtos;
-	}
 	
-	/**
-	 * return the evaluations in which the user (given as a list of principal Ids)
-	 * has the given access type
-	 */
 	@Override
-	public List<Evaluation> getAccessibleEvaluations(List<Long> principalIds, ACCESS_TYPE accessType, Long optionalTimeToFilterBy, long limit, long offset, List<Long> evaluationIds) throws DatastoreException {
-		if (principalIds.isEmpty()) return new ArrayList<Evaluation>(); // SQL breaks down if list is empty
+	public List<Evaluation> getAccessibleEvaluations(EvaluationFilter filter, long limit, long offset) throws DatastoreException, NotFoundException {
+		ValidateArgument.required(filter, "filter");
+		
+		if (filter.getPrincipalIds() == null || filter.getPrincipalIds().isEmpty()) {
+			return Collections.emptyList();
+		}
+		
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(BIND_VAR_PREFIX, principalIds);	
-		param.addValue(ACCESS_TYPE_BIND_VAR, accessType.name());
+		
+		param.addValue(BIND_VAR_PREFIX, filter.getPrincipalIds());
+		param.addValue(ACCESS_TYPE_BIND_VAR, filter.getAccessType().name());
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		param.addValue(RESOURCE_TYPE_BIND_VAR, ObjectType.EVALUATION.name());
+		
 		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX);
-		sql.append(AUTHORIZATION_SQL_WHERE);
-		if (evaluationIds!=null && !evaluationIds.isEmpty()) {
-			param.addValue(COL_EVALUATION_ID, evaluationIds);
+		sql.append(AUTHORIZATION_SQL_WHERE);		
+
+		if (filter.getIdsFilter() !=null && !filter.getIdsFilter().isEmpty()) {
+			param.addValue(COL_EVALUATION_ID, filter.getIdsFilter());
 			sql.append(SELECT_AVAILABLE_EVALUATIONS_FILTER);
 		}
-		if (optionalTimeToFilterBy!=null) {
-			sql.append(SELECT_TIME_RANGE_FILTER);
-			param.addValue(CURRENT_TIME_PARAM_NAME, optionalTimeToFilterBy);
+		
+		if (filter.getContentSourceFilter() != null) {
+			param.addValue(CONTENT_SOURCE, filter.getContentSourceFilter());
+			sql.append(SELECT_AVAILABLE_CONTENT_SOURCE_FILTER);
 		}
+		
+		if (filter.getTimeFilter() != null) {
+			sql.append(SELECT_TIME_RANGE_FILTER);
+			param.addValue(CURRENT_TIME_PARAM_NAME, filter.getTimeFilter());
+		}
+		
 		sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
 
-		List<EvaluationDBO> dbos = namedJdbcTemplate.query(sql.toString(), param, rowMapper);
-		List<Evaluation> dtos = new ArrayList<Evaluation>();
-		EvaluationDBOUtil.copyDbosToDtos(dbos, dtos);
-		return dtos;
+		return namedJdbcTemplate.query(sql.toString(), param, (ResultSet rs, int rowNum) -> {
+			EvaluationDBO dbo = rowMapper.mapRow(rs, rowNum);
+			Evaluation dto = new Evaluation();
+			EvaluationDBOUtil.copyDboToDto(dbo, dto);
+			return dto;
+		});
 	}
 
 	@Override

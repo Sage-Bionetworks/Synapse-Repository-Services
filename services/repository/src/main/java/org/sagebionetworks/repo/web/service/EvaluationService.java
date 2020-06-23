@@ -49,8 +49,8 @@ public interface EvaluationService {
 	/**
 	 * Gets all Synapse Evaluations tied to the given Project
 	 */
-	public PaginatedResults<Evaluation> getEvaluationByContentSource(Long userId, String id, ACCESS_TYPE accessType, boolean activeOnly, long limit, long offset)
-			throws DatastoreException, NotFoundException;
+	public PaginatedResults<Evaluation> getEvaluationByContentSource(Long userId, String contentSource, ACCESS_TYPE accessType,
+			boolean activeOnly, List<Long> evaluationIds, long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get a collection of Evaluations, within a given range
@@ -61,21 +61,24 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<Evaluation> getEvaluationsInRange(Long userId, ACCESS_TYPE accessType, boolean activeOnly, long limit, long offset) throws DatastoreException, NotFoundException;
+	public PaginatedResults<Evaluation> getEvaluations(Long userId, ACCESS_TYPE accessType, boolean activeOnly,
+			List<Long> evaluationIds, long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
-	 * Get a collection of Evaluations in which the user has SUBMIT permission, within a given range
+	 * Get a collection of Evaluations in which the user has SUBMIT permission,
+	 * within a given range
 	 *
-	 * @param userId the userId (email address) of the user making the request
+	 * @param userId        the userId (email address) of the user making the
+	 *                      request
+	 * @param evaluationIds
 	 * @param limit
 	 * @param offset
-	 * @param evaluationIds
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<Evaluation> getAvailableEvaluationsInRange(
-			Long userId, boolean activeOnly, long limit, long offset, List<Long> evaluationIds) throws DatastoreException, NotFoundException;
+	public PaginatedResults<Evaluation> getAvailableEvaluations(Long userId, boolean activeOnly, List<Long> evaluationIds,
+			long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Find a Evaluation, by name

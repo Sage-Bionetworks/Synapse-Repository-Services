@@ -102,36 +102,36 @@ public class EvaluationServiceTest {
 	public void testGetEvaluationsInRange() {
 		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
 		
-		evaluationService.getEvaluationsInRange(userId, accessType, false, limit, offset);
+		evaluationService.getEvaluations(userId, accessType, false, null, limit, offset);
 		
-		verify(mockEvaluationManager).getInRange(userInfo, accessType, false, limit, offset);
+		verify(mockEvaluationManager).getEvaluations(userInfo, accessType, false, null, limit, offset);
 	}
 
 	@Test
 	public void testGetEvaluationsInRangeActiveOnly() {
 		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
 		
-		evaluationService.getEvaluationsInRange(userId, accessType, true, limit, offset);
+		evaluationService.getEvaluations(userId, accessType, true, null, limit, offset);
 		
-		verify(mockEvaluationManager).getInRange(userInfo, accessType, true, limit, offset);
+		verify(mockEvaluationManager).getEvaluations(userInfo, accessType, true, null, limit, offset);
 	}
 
 	@Test
 	public void testGetEvaluationByContentSource() {
 		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
 		
-		evaluationService.getEvaluationByContentSource(userId, "syn123", accessType, false, limit, offset);
+		evaluationService.getEvaluationByContentSource(userId, "syn123", accessType, false, null, limit, offset);
 		
-		verify(mockEvaluationManager).getEvaluationByContentSource(userInfo, "syn123", accessType, false, limit, offset);
+		verify(mockEvaluationManager).getEvaluationsByContentSource(userInfo, "syn123", accessType, false, null, limit, offset);
 	}
 
 	@Test
 	public void testGetEvaluationByContentSourceActiveOnly() {
 		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
 		
-		evaluationService.getEvaluationByContentSource(userId, "syn123", accessType, true, limit, offset);
+		evaluationService.getEvaluationByContentSource(userId, "syn123", accessType, true, null, limit, offset);
 		
-		verify(mockEvaluationManager).getEvaluationByContentSource(userInfo, "syn123", accessType, true, limit, offset);
+		verify(mockEvaluationManager).getEvaluationsByContentSource(userInfo, "syn123", accessType, true, null, limit, offset);
 	}
 
 	@Test

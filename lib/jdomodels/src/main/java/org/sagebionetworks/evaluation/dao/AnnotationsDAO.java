@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.evaluation;
+package org.sagebionetworks.evaluation.dao;
 
 import java.util.List;
 
@@ -8,8 +8,6 @@ import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 public interface AnnotationsDAO {
-	
-	public static final boolean DEFAULT_ANNOTATION_PRIVACY = true;
 	
 	/**
 	 * Get all of the annotations for a specific SubmissionStatus. Reads from the typed tables.

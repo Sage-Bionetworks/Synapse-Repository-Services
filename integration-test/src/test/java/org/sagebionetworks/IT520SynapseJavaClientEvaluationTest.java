@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -456,6 +457,46 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// But still cannot list with READ_PRIVATE_SUBMISSION
 		evals = synapseTwo.getEvaluationByContentSource(project.getId(), accessType, 0, 10);
 		assertEquals(0, evals.getTotalNumberOfResults());
+	}
+	
+	@Test
+	public void testGetEvaluationsByIds() throws Exception {
+		eval1 = synapseOne.createEvaluation(eval1);
+		
+		evaluationsToDelete.add(eval1.getId());
+		
+		ACCESS_TYPE accessType = ACCESS_TYPE.READ_PRIVATE_SUBMISSION;
+		boolean activeOnly = false;
+		List<Long> evalIds = null;
+		
+		// Without
+		PaginatedResults<Evaluation> evals = synapseOne.getEvaluationByContentSource(project.getId(), accessType, activeOnly, evalIds, 0, 10);
+		
+		assertEquals(1, evals.getTotalNumberOfResults());
+		assertEquals(eval1, evals.getResults().get(0));
+		
+		// Filter by the eval id
+		evalIds = Collections.singletonList(KeyFactory.stringToKey(eval1.getId()));
+		
+		evals = synapseOne.getEvaluationByContentSource(project.getId(), accessType, activeOnly, evalIds, 0, 10);
+		
+		assertEquals(1, evals.getTotalNumberOfResults());
+		assertEquals(eval1, evals.getResults().get(0));
+		
+		// Non existing eval id
+		evalIds = Collections.singletonList(-1L);
+		
+		evals = synapseOne.getEvaluationByContentSource(project.getId(), accessType, activeOnly, evalIds, 0, 10);
+		
+		assertTrue(evals.getResults().isEmpty());
+		
+		// Multiple
+		evalIds = Arrays.asList(KeyFactory.stringToKey(eval1.getId()), -1L);
+		
+		evals = synapseOne.getEvaluationByContentSource(project.getId(), accessType, activeOnly, evalIds, 0, 10);
+		
+		assertEquals(1, evals.getTotalNumberOfResults());
+		assertEquals(eval1, evals.getResults().get(0));
 	}
 	
 	@Test

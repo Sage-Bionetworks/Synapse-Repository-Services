@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.evaluation;
+package org.sagebionetworks.evaluation.dao;
 
 import java.util.List;
 
