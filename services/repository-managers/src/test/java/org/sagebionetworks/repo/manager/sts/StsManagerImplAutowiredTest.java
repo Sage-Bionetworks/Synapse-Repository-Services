@@ -152,9 +152,10 @@ public class StsManagerImplAutowiredTest {
 		// Only run this test if the STS Arn is set up.
 		Assumptions.assumeTrue(stackConfiguration.getTempCredentialsIamRoleArn() != null);
 
-		// Setup - Create 3 files:
+		// Setup - Create 4 files:
 		//   [bucket]/inaccessible.txt
 		//   [bucket]/[sts root]/owner.txt
+		//   [bucket]/[sts root]/file.txt
 		//   [bucket]/[sts root]/subfolder/file.txt
 		// This is to verify that we can't list or read the bucket root, but we can list and read the STS folder root
 		// and the subfolder.
@@ -162,6 +163,7 @@ public class StsManagerImplAutowiredTest {
 		String subFolderPath = testFolderPath + "/subfolder";
 		uploadFileToS3(null, "inaccessible.txt", "Dummy file content");
 		uploadFileToS3(testFolderPath, "owner.txt", username);
+		uploadFileToS3(testFolderPath, "file.txt", "Additional dummy file content");
 		uploadFileToS3(subFolderPath, "file.txt", "More dummy file content");
 
 		// Create StsStorageLocation.
@@ -191,7 +193,12 @@ public class StsManagerImplAutowiredTest {
 
 		// Can list and read at the STS root.
 		readOnlyTempClient.listObjects(EXTERNAL_S3_BUCKET, testFolderPath);
-		readOnlyTempClient.getObjectMetadata(EXTERNAL_S3_BUCKET, testFolderPath + "/owner.txt");
+		readOnlyTempClient.getObjectMetadata(EXTERNAL_S3_BUCKET, testFolderPath + "/file.txt");
+
+		// Cannot read owner.txt.
+		ex = assertThrows(AmazonServiceException.class, () -> readOnlyTempClient.getObjectMetadata(EXTERNAL_S3_BUCKET,
+				testFolderPath + "/owner.txt"));
+		assertEquals(403, ex.getStatusCode());
 
 		// Can list and read in a subfolder.
 		readOnlyTempClient.listObjects(EXTERNAL_S3_BUCKET, subFolderPath);
@@ -217,7 +224,12 @@ public class StsManagerImplAutowiredTest {
 
 		// Can list and read at the STS root.
 		readWriteTempClient.listObjects(EXTERNAL_S3_BUCKET, testFolderPath);
-		readWriteTempClient.getObjectMetadata(EXTERNAL_S3_BUCKET, testFolderPath + "/owner.txt");
+		readWriteTempClient.getObjectMetadata(EXTERNAL_S3_BUCKET, testFolderPath + "/file.txt");
+
+		// Cannot read owner.txt.
+		ex = assertThrows(AmazonServiceException.class, () -> readWriteTempClient.getObjectMetadata(EXTERNAL_S3_BUCKET,
+				testFolderPath + "/owner.txt"));
+		assertEquals(403, ex.getStatusCode());
 
 		// Can list and read in a subfolder.
 		readWriteTempClient.listObjects(EXTERNAL_S3_BUCKET, subFolderPath);
@@ -226,6 +238,11 @@ public class StsManagerImplAutowiredTest {
 		// Validate can write to S3. This call will not throw.
 		readWriteTempClient.putObject(EXTERNAL_S3_BUCKET, testFolderPath + "/" + filenameToWrite,
 				"lorem ipsum");
+
+		// Cannot write to owner.txt.
+		ex = assertThrows(AmazonServiceException.class, () -> readWriteTempClient.putObject(
+				EXTERNAL_S3_BUCKET, testFolderPath + "/owner.txt", "lorem ipsum"));
+		assertEquals(403, ex.getStatusCode());
 	}
 
 	@Test
