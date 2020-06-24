@@ -576,7 +576,7 @@ public class TeamManagerImpl implements TeamManager {
 		String principalId = principalUserInfo.getId().toString();
 		Set<Long> currentMembers = groupMembersDAO.getMemberIdsForUpdate(Long.valueOf(teamId));
 		boolean alreadyInTeam = currentMembers.contains(principalUserInfo.getId());
-		if (!canAddTeamMember(userInfo, teamId, principalUserInfo, alreadyInTeam)) throw new UnauthorizedException("Cannot add member to Team.");
+		if (!canAddTeamMember(userInfo, teamId, principalUserInfo, alreadyInTeam)) throw new UnauthorizedException("Cannot add member to team because they have not met all access restrictions. Please remove the pending request and then invite the member again. They will then be prompted to meet the requirement(s) before joining the team.");
 
 		if (!alreadyInTeam) {
 			groupMembersDAO.addMembers(teamId, Collections.singletonList(principalId));
