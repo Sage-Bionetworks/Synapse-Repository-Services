@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -34,6 +35,8 @@ import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
+import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
+import org.sagebionetworks.util.Clock;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
@@ -48,6 +51,7 @@ public class OIDCTokenHelperImplTest {
 	private static final String CLIENT_ID = "client-01234";
 	private static final long NOW = System.currentTimeMillis();
 	private static final Date AUTH_TIME = new Date();
+	private static final long ONE_YEAR_MILLIS = 1000L * 60 * 60 * 24 * 365;
 	private static final String REFRESH_TOKEN_ID = "123456";
 	private static final String TOKEN_ID = UUID.randomUUID().toString();
 	private static final String NONCE = UUID.randomUUID().toString();
@@ -74,7 +78,10 @@ public class OIDCTokenHelperImplTest {
 	
 	@Mock
 	private StackConfiguration stackConfiguration;
-		
+
+	@Mock
+	private Clock mockClock;
+
 	@InjectMocks
 	OIDCTokenHelperImpl oidcTokenHelper;
 	
@@ -252,6 +259,7 @@ public class OIDCTokenHelperImplTest {
 	
 	@Test
 	public void testCreateTotalAccessToken() {
+		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 		Long principalId = 101L;
 		String accessToken = oidcTokenHelper.createTotalAccessToken(principalId);
 		Jwt<JwsHeader,Claims> jwt = Jwts.parser().setSigningKey(getPublicSigningKey()).parse(accessToken);
@@ -261,6 +269,15 @@ public class OIDCTokenHelperImplTest {
 		assertEquals(""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID, claims.getAudience());
 		assertNotNull(claims.getId());
 		assertEquals(Arrays.asList(OAuthScope.values()), ClaimsJsonUtil.getScopeFromClaims(claims));
+	}
+
+	@Test
+	public void testParseExpiredJWTException() {
+		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis() - ONE_YEAR_MILLIS);
+		Long principalId = 101L;
+		String expiredAccessToken = oidcTokenHelper.createTotalAccessToken(principalId);
+		assertThrows(OAuthUnauthenticatedException.class, () ->
+				oidcTokenHelper.parseJWT(expiredAccessToken));
 	}
 
 }

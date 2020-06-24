@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.util.ThreadLocalProvider;
 import org.sagebionetworks.util.ValidateArgument;
@@ -111,7 +112,7 @@ public class AuthenticationFilter implements Filter {
 				try {
 					// validate token and get userid parameter
 					userId = Long.parseLong(oidcManager.validateAccessToken(accessToken));
-				} catch (IllegalArgumentException  | ForbiddenException | OAuthClientNotVerifiedException e) {
+				} catch (IllegalArgumentException  | ForbiddenException | OAuthClientNotVerifiedException | OAuthUnauthenticatedException e) {
 					String failureReason = "Invalid access token";
 					if (StringUtils.isNotEmpty(e.getMessage())) {
 						failureReason = e.getMessage();

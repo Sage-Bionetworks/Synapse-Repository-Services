@@ -1,0 +1,20 @@
+{
+    "description":"JSON schema for an error returned by Synapse OAuth 2.0 Services. Used to align error messages with <a href=\"https://tools.ietf.org/html/rfc6749#section-5.2\">RFC 6749 Section 5.2</a>",
+    "extends": {
+        "$ref": "org.sagebionetworks.repo.model.ErrorResponse"
+    },
+    "properties":{
+        "error": {
+            "type":"string",
+            "description":"A short code for the error encountered, typically defined by OAuth 2 specifications"
+        },
+        "error_description": {
+            "type": "string",
+            "description": "A human-readable description of the error that occurred."
+        },
+        "errorCode": {
+            "$ref": "org.sagebionetworks.repo.model.ErrorResponseCode",
+            "description": "A code to be used by clients to handle the error."
+        }
+    }
+}

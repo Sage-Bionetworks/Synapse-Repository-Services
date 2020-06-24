@@ -20,7 +20,6 @@ import org.sagebionetworks.manager.util.OAuthPermissionUtils;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
@@ -39,6 +38,9 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.OAuthBadRequestException;
+import org.sagebionetworks.repo.web.OAuthErrorCode;
+import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -110,7 +112,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			try {
 				scope = OAuthScope.valueOf(token);
 			} catch (IllegalArgumentException e) {
-				throw new IllegalArgumentException("Unrecognized scope: "+token, e);
+				throw new OAuthBadRequestException(OAuthErrorCode.invalid_scope, "Unrecognized scope: "+token, e);
 			}
 			result.add(scope);
 		}
@@ -120,11 +122,11 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	public static void validateAuthenticationRequest(OIDCAuthorizationRequest authorizationRequest, OAuthClient client) {
 		ValidateArgument.validUrl(authorizationRequest.getRedirectUri(), "Redirect URI");
 		if (!client.getRedirect_uris().contains(authorizationRequest.getRedirectUri())) {
-			throw new IllegalArgumentException("Redirect URI "+authorizationRequest.getRedirectUri()+
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_grant, "Redirect URI "+authorizationRequest.getRedirectUri()+
 					" is not registered for "+client.getClient_name());
 		}		
 		if (OAuthResponseType.code!=authorizationRequest.getResponseType()) 
-			throw new IllegalArgumentException("Unsupported response type "+authorizationRequest.getResponseType());
+			throw new OAuthBadRequestException(OAuthErrorCode.unsupported_grant_type, "Unsupported response type "+authorizationRequest.getResponseType());
 	}
 
 	@Override
@@ -137,7 +139,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		try {
 			client = oauthClientDao.getOAuthClient(authorizationRequest.getClientId());
 		} catch (NotFoundException e) {
-			throw new IllegalArgumentException("Invalid OAuth Client ID: "+authorizationRequest.getClientId());
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_client, "Invalid OAuth Client ID: "+authorizationRequest.getClientId());
 		}
 		
 		validateClientVerificationStatus(client.getClient_id());
@@ -205,14 +207,15 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	public OAuthAuthorizationResponse authorizeClient(UserInfo userInfo,
 			OIDCAuthorizationRequest authorizationRequest) {
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
-			throw new UnauthorizedException("Anonymous users may not provide access to OAuth clients.");
+			// Perhaps this should be an OIDC Error Code: https://openid.net/specs/openid-connect-core-1_0.html#AuthError
+			throw new OAuthUnauthenticatedException(OAuthErrorCode.login_required, "Anonymous users may not provide access to OAuth clients.");
 		}
 
 		OAuthClient client;
 		try {
 			client = oauthClientDao.getOAuthClient(authorizationRequest.getClientId());
 		} catch (NotFoundException e) {
-			throw new IllegalArgumentException("Invalid OAuth Client ID: "+authorizationRequest.getClientId());
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_client, "Invalid OAuth Client ID: "+authorizationRequest.getClientId());
 		}
 		
 		validateClientVerificationStatus(client.getClient_id());
@@ -270,7 +273,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		String userId = getUserIdFromPPID(claims.getSubject(), claims.getAudience());
 		String refreshTokenId = claims.get(OIDCClaimName.refresh_token_id.name(), String.class);
 		if (refreshTokenId != null && !oauthRefreshTokenManager.isRefreshTokenActive(refreshTokenId)) {
-			throw new IllegalArgumentException("The access token has been revoked");
+			throw new OAuthUnauthenticatedException(OAuthErrorCode.invalid_token, "The access token has been revoked");
 		}
 		return userId;
 	}
@@ -314,25 +317,26 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		try {
 			serializedAuthorizationRequest = stackEncrypter.decryptStackEncryptedAndBase64EncodedString(code);
 		} catch (Exception e) {
-			throw new IllegalArgumentException("Invalid authorization code: "+code, e);
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_grant, "Invalid authorization code: "+code, e);
 		}
 		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
 		try {
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(serializedAuthorizationRequest);
 			authorizationRequest.initializeFromJSONObject(adapter);
 		} catch (JSONObjectAdapterException e) {
+			// This should never happen. If it does, the authz code was likely improperly encoded/decoded, which isn't the user's fault.
 			throw new IllegalStateException("Incorrectly formatted authorization code: "+code, e);
 		}
 
 		// enforce expiration of authorization code
 		long now = clock.currentTimeMillis();
 		if (now > authorizationRequest.getAuthorizedAt().getTime()+AUTHORIZATION_CODE_TIME_LIMIT_MILLIS) {
-			throw new IllegalArgumentException("Authorization code has expired.");
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_grant, "Authorization code has expired.");
 		}
 
 		// ensure redirect URI matches
 		if (!authorizationRequest.getRedirectUri().equals(redirectUri)) {
-			throw new IllegalArgumentException("URI mismatch: "+authorizationRequest.getRedirectUri()+" vs. "+redirectUri);
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_grant, "URI mismatch: "+authorizationRequest.getRedirectUri()+" vs. "+redirectUri);
 		}
 
 		List<OAuthScope> scopes = parseScopeString(authorizationRequest.getScope());
@@ -564,7 +568,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 				oauthRefreshTokenManager.revokeRefreshToken(verifiedClientId, metadata.getTokenId());
 				return;
 			default:
-				throw new IllegalArgumentException("Unable to revoke a token with token_type_hint=" + revocationRequest.getToken_type_hint().name());
+				throw new OAuthBadRequestException(OAuthErrorCode.unsupported_token_type, "Unable to revoke a token with token_type_hint=" + revocationRequest.getToken_type_hint().name());
 		}
 	}
 
