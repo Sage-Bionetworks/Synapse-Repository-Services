@@ -929,6 +929,9 @@ public interface SynapseClient extends BaseClient {
 
 	public PaginatedResults<Evaluation> getEvaluationByContentSource(String id, ACCESS_TYPE accessType,
 			int offset, int limit) throws SynapseException;
+	
+	PaginatedResults<Evaluation> getEvaluationByContentSource(String id, ACCESS_TYPE accessType, boolean activeOnly,
+			List<Long> evaluationIds, int offset, int limit) throws SynapseException;
 
 	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(int offset, int limit)
 			throws SynapseException;
@@ -3746,4 +3749,5 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	void clearSchemaBindingForEntity(String entityId) throws SynapseException;
+
 }

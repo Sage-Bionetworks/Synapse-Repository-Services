@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -2897,11 +2898,28 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public PaginatedResults<Evaluation> getEvaluationByContentSource(String id, ACCESS_TYPE accessType,
 			int offset, int limit) throws SynapseException {
+		return getEvaluationByContentSource(id, accessType, false, null, offset, limit);
+	}
+	
+	@Override
+	public PaginatedResults<Evaluation> getEvaluationByContentSource(String id, ACCESS_TYPE accessType, 
+			boolean activeOnly, List<Long> evaluationIds,
+			int offset, int limit) throws SynapseException {
+		
 		String url = ENTITY_URI_PATH + "/" + id + EVALUATION_URI_PATH + "?"
-				+ OFFSET + "=" + offset + "&limit=" + limit;
+				+ OFFSET + "=" + offset + "&limit=" + limit + "&activeOnly="+activeOnly;
 		
 		if (accessType != null) {
 			url += "&accessType=" + accessType.name();
+		}
+		
+		if (evaluationIds != null && !evaluationIds.isEmpty()) {
+			
+			String evaluationIdsString = evaluationIds.stream()
+					.map(Object::toString)
+					.collect(Collectors.joining(","));
+			
+			url += "&evaluationIds=" + evaluationIdsString;
 		}
 		
 		return getPaginatedResults(getRepoEndpoint(), url, Evaluation.class);

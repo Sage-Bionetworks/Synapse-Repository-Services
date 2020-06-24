@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.evaluation;
+package org.sagebionetworks.evaluation.dao;
 
 import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.repo.model.DatastoreException;

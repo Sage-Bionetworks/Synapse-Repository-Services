@@ -5,9 +5,10 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
 
 public class AnnotationsUtils {
+	
+	public static final boolean DEFAULT_ANNOTATION_PRIVACY = true;
 	
 	/**
 	 * Ensure that Annotation keys are unique.
@@ -60,7 +61,8 @@ public class AnnotationsUtils {
 	
 	private static void populateMissingFields(Collection<? extends AnnotationBase> annoCollection) {
 		for (AnnotationBase ba : annoCollection) {
-			if (ba.getIsPrivate()==null) ba.setIsPrivate(AnnotationsDAO.DEFAULT_ANNOTATION_PRIVACY);
+			if (ba.getIsPrivate()==null) ba.setIsPrivate(DEFAULT_ANNOTATION_PRIVACY);
 		}
 	}
+
 }

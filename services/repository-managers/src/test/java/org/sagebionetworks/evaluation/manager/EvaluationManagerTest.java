@@ -22,8 +22,12 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.evaluation.dao.EvaluationDAO;
+import org.sagebionetworks.evaluation.dao.EvaluationFilter;
+import org.sagebionetworks.evaluation.dao.EvaluationSubmissionsDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
@@ -40,8 +44,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
-import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
-import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -189,36 +191,84 @@ public class EvaluationManagerTest {
 
 		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
 		evaluations= Collections.singletonList(evalWithId);
-		when(mockEvaluationDAO.getAccessibleEvaluationsForProject(eq(EVALUATION_CONTENT_SOURCE), anyList(), eq(accessType), eq(null), anyLong(), anyLong())).thenReturn(evaluations);
-
-		List<Evaluation> qr = evaluationManager.getEvaluationByContentSource(ownerInfo, EVALUATION_CONTENT_SOURCE, accessType, false, 10L, 0L);
+		List<Long> evaluationIds = null;
+		long limit = 10L;
+		long offset = 0;
+		
+		when(mockEvaluationDAO.getAccessibleEvaluations(any(), anyLong(), anyLong())).thenReturn(evaluations);
+		
+		EvaluationFilter expectedFilter = new EvaluationFilter(ownerInfo, accessType)
+				.withTimeFilter(null)
+				.withContentSourceFilter(EVALUATION_CONTENT_SOURCE)
+				.withIdsFilter(evaluationIds);
+		
+		List<Evaluation> qr = evaluationManager.getEvaluationsByContentSource(ownerInfo, EVALUATION_CONTENT_SOURCE, accessType, false, evaluationIds, limit, offset);
+		
 		assertEquals(evaluations, qr);
 		assertEquals(1L, qr.size());
+	
+		verify(mockEvaluationDAO).getAccessibleEvaluations(expectedFilter, limit, offset);
 	}
 
 	@Test
 	public void testGetEvaluationByContentSourceActiveOnly() throws Exception {
+		
+		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
+		evaluations= Collections.singletonList(evalWithId);
+		List<Long> evaluationIds = null;
+		long limit = 10L;
+		long offset = 0;
+		
+		when(mockEvaluationDAO.getAccessibleEvaluations(any(), anyLong(), anyLong())).thenReturn(evaluations);
+
+		List<Evaluation> qr = evaluationManager.getEvaluationsByContentSource(ownerInfo, EVALUATION_CONTENT_SOURCE, accessType, true, evaluationIds, limit, offset);
+		
+		assertEquals(evaluations, qr);
+		
+		ArgumentCaptor<EvaluationFilter> filterCaptor = ArgumentCaptor.forClass(EvaluationFilter.class);
+		
+		verify(mockEvaluationDAO).getAccessibleEvaluations(filterCaptor.capture(), eq(limit), eq(offset));
+		
+		assertNotNull(filterCaptor.getValue().getTimeFilter());
+	}
+	
+	@Test
+	public void testGetEvaluationByContentSourceWithEvaluationIdsFilter() throws Exception {
 
 		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
 		evaluations= Collections.singletonList(evalWithId);
-		when(mockEvaluationDAO.getAccessibleEvaluationsForProject(eq(EVALUATION_CONTENT_SOURCE), anyList(), eq(accessType), anyLong(), anyLong(), anyLong())).
-			thenReturn(Collections.emptyList());
-
-		List<Evaluation> qr = evaluationManager.getEvaluationByContentSource(ownerInfo, EVALUATION_CONTENT_SOURCE, accessType, true, 10L, 0L);
-		assertTrue(qr.isEmpty());
-		verify(mockEvaluationDAO).getAccessibleEvaluationsForProject(
-				eq(EVALUATION_CONTENT_SOURCE), anyList(), eq(ACCESS_TYPE.READ),  anyLong(), eq(10L), eq(0L));
+		List<Long> evaluationIds = Collections.singletonList(Long.valueOf(EVALUATION_ID));
+		long limit = 10L;
+		long offset = 0;
+		
+		when(mockEvaluationDAO.getAccessibleEvaluations(any(), anyLong(), anyLong())).thenReturn(evaluations);
+		
+		EvaluationFilter expectedFilter = new EvaluationFilter(ownerInfo, accessType)
+				.withTimeFilter(null)
+				.withContentSourceFilter(EVALUATION_CONTENT_SOURCE)
+				.withIdsFilter(evaluationIds);
+		
+		List<Evaluation> qr = evaluationManager.getEvaluationsByContentSource(ownerInfo, EVALUATION_CONTENT_SOURCE, accessType, false, evaluationIds, limit, offset);
+		
+		assertEquals(evaluations, qr);
+		assertEquals(1L, qr.size());
+	
+		verify(mockEvaluationDAO).getAccessibleEvaluations(expectedFilter, limit, offset);
 	}
+
 	
 	@Test
 	public void testGetEvaluationByContentSourceWithNullAccessType() throws Exception {
 
 		ACCESS_TYPE accessType = null;
 		evaluations= Collections.singletonList(evalWithId);
+		List<Long> evaluationIds = null;
+		long limit = 10L;
+		long offset = 0;
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			evaluationManager.getEvaluationByContentSource(ownerInfo, EVALUATION_CONTENT_SOURCE, accessType, true, 10L, 0L);
+			evaluationManager.getEvaluationsByContentSource(ownerInfo, EVALUATION_CONTENT_SOURCE, accessType, true, evaluationIds, limit, offset);
 		}).getMessage();
 		
 		assertEquals("The access type is required.", errorMessage);
@@ -265,31 +315,74 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void testGetAvailableInRange() throws Exception {
+	public void testGetAvailableEvaluations() throws Exception {
 
 		evaluations= Collections.singletonList(evalWithId);
-		when(mockEvaluationDAO.getAccessibleEvaluations(anyList(), eq(ACCESS_TYPE.SUBMIT), eq(null), anyLong(), anyLong(), eq(null))).thenReturn(evaluations);    	
-
+		List<Long> evaluationIds = null;
+		long limit = 10L;
+		long offset = 0;
+		
+		when(mockEvaluationDAO.getAccessibleEvaluations(any(), anyLong(), anyLong())).thenReturn(evaluations);
+		
+		EvaluationFilter expectedFilter = new EvaluationFilter(ownerInfo, ACCESS_TYPE.SUBMIT)
+				.withTimeFilter(null)
+				.withContentSourceFilter(null)
+				.withIdsFilter(evaluationIds);
+		
 		// availability is based on SUBMIT access, not READ
-		List<Evaluation> qr = evaluationManager.getAvailableInRange(ownerInfo, false, 10L, 0L, null);
+		List<Evaluation> qr = evaluationManager.getAvailableEvaluations(ownerInfo, false, evaluationIds, limit, offset);
+		
 		assertEquals(evaluations, qr);
-		assertEquals(1L, qr.size());
+		
+		verify(mockEvaluationDAO).getAccessibleEvaluations(expectedFilter, limit, offset);
 	}
 
 	@Test
-	public void testGetAvailableInRangeActiveOnly() throws Exception {
+	public void testGetAvailableEvaluationsActiveOnly() throws Exception {
+
+		evaluations = Collections.singletonList(evalWithId);
+		List<Long> evaluationIds = null;
+		long limit = 10L;
+		long offset = 0;
+		
+		when(mockEvaluationDAO.getAccessibleEvaluations(any(), anyLong(), anyLong())).thenReturn(evaluations);
+		
+		// availability is based on SUBMIT access, not READ
+		List<Evaluation> qr = evaluationManager.getAvailableEvaluations(ownerInfo, true, evaluationIds, 10L, 0L);
+		
+		assertEquals(evaluations, qr);
+		
+		ArgumentCaptor<EvaluationFilter> filterCaptor = ArgumentCaptor.forClass(EvaluationFilter.class);
+		
+		verify(mockEvaluationDAO).getAccessibleEvaluations(filterCaptor.capture(), eq(limit), eq(offset));
+		
+		assertEquals(filterCaptor.getValue().getAccessType(), ACCESS_TYPE.SUBMIT);
+		assertNotNull(filterCaptor.getValue().getTimeFilter());
+	}
+	
+	@Test
+	public void testGetAvailableEvaluationsWithEvaluationsIdsFilter() throws Exception {
 
 		evaluations= Collections.singletonList(evalWithId);
-		when(mockEvaluationDAO.getAccessibleEvaluations(anyList(), eq(ACCESS_TYPE.SUBMIT), anyLong(), anyLong(), anyLong(), eq(null)))
-			.thenReturn(Collections.emptyList());    	
-
+		List<Long> evaluationIds = Collections.singletonList(Long.valueOf(EVALUATION_ID));
+		long limit = 10L;
+		long offset = 0;
+		
+		when(mockEvaluationDAO.getAccessibleEvaluations(any(), anyLong(), anyLong())).thenReturn(evaluations);
+		
+		EvaluationFilter expectedFilter = new EvaluationFilter(ownerInfo, ACCESS_TYPE.SUBMIT)
+				.withTimeFilter(null)
+				.withContentSourceFilter(null)
+				.withIdsFilter(evaluationIds);
+		
 		// availability is based on SUBMIT access, not READ
-		List<Evaluation> qr = evaluationManager.getAvailableInRange(ownerInfo, true, 10L, 0L, null);
-		assertTrue(qr.isEmpty());
-		verify(mockEvaluationDAO).getAccessibleEvaluations(
-				anyList(), eq(ACCESS_TYPE.SUBMIT), anyLong(), eq(10L), eq(0L), eq(null));
+		List<Evaluation> qr = evaluationManager.getAvailableEvaluations(ownerInfo, false, evaluationIds, limit, offset);
+		
+		assertEquals(evaluations, qr);
+		
+		verify(mockEvaluationDAO).getAccessibleEvaluations(expectedFilter, limit, offset);
 	}
-
+	
 	@Test
 	public void testFindDoesNotExist() throws DatastoreException, UnauthorizedException, NotFoundException {
 		when(mockEvaluationDAO.lookupByName(eq(EVALUATION_NAME +  "2"))).thenThrow(new NotFoundException());

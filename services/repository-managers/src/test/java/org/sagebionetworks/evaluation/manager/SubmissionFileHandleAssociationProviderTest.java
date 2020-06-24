@@ -12,8 +12,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.evaluation.SubmissionFileHandleDAO;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class SubmissionFileHandleAssociationProviderTest {

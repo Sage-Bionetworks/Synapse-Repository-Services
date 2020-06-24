@@ -72,41 +72,45 @@ public class EvaluationServiceImpl implements EvaluationService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return evaluationManager.getEvaluation(userInfo, id);
 	}
-	
+
 	@Override
-	public PaginatedResults<Evaluation> getEvaluationByContentSource(Long userId, String id, ACCESS_TYPE accessType,  boolean activeOnly, long limit, long offset)
+	public PaginatedResults<Evaluation> getEvaluationByContentSource(Long userId, String contentSource,
+			ACCESS_TYPE accessType, boolean activeOnly, List<Long> evaluationIds, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		List<Evaluation> res = evaluationManager.getEvaluationByContentSource(userInfo, id, accessType, activeOnly, limit, offset);
+		List<Evaluation> res = evaluationManager.getEvaluationsByContentSource(userInfo, contentSource, accessType,
+				activeOnly, evaluationIds, limit, offset);
 		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
 
 	@Override
-	@Deprecated
-	public PaginatedResults<Evaluation> getEvaluationsInRange(Long userId, ACCESS_TYPE accessType, boolean activeOnly, long limit, long offset) 
-			throws DatastoreException, NotFoundException {
+	public PaginatedResults<Evaluation> getEvaluations(Long userId, ACCESS_TYPE accessType, boolean activeOnly,
+			List<Long> evaluationIds, long limit, long offset) throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		List<Evaluation> res = evaluationManager.getInRange(userInfo, accessType, activeOnly, limit, offset);
+		List<Evaluation> res = evaluationManager.getEvaluations(userInfo, accessType, activeOnly, evaluationIds, limit,
+				offset);
 		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
-	
+
 	/**
-	 * Get a collection of Evaluations to which the user may SUBMIT, within a given range
+	 * Get a collection of Evaluations to which the user may SUBMIT, within a given
+	 * range
 	 *
-	 * @param userId the userId (email address) of the user making the request
+	 * @param userId        the userId (email address) of the user making the
+	 *                      request
+	 * @param evaluationIds
 	 * @param limit
 	 * @param offset
-	 * @param evaluationIds
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
 	@Override
-	public PaginatedResults<Evaluation> getAvailableEvaluationsInRange(
-			Long userId, boolean activeOnly, long limit, long offset, List<Long> evaluationIds) 
-			throws DatastoreException, NotFoundException {
+	public PaginatedResults<Evaluation> getAvailableEvaluations(Long userId, boolean activeOnly,
+			List<Long> evaluationIds, long limit, long offset) throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		List<Evaluation> res = evaluationManager.getAvailableInRange(userInfo, activeOnly, limit, offset, evaluationIds);
+		List<Evaluation> res = evaluationManager.getAvailableEvaluations(userInfo, activeOnly, evaluationIds, limit,
+				offset);
 		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
 

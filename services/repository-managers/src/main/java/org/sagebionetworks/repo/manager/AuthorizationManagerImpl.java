@@ -102,7 +102,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private V2WikiPageDao wikiPageDaoV2;
 	@Autowired
-	private org.sagebionetworks.repo.model.evaluation.SubmissionDAO submissionDAO;
+	private org.sagebionetworks.evaluation.dao.SubmissionDAO submissionDAO;
 	@Autowired
 	private MessageManager messageManager;
 	@Autowired

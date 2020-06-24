@@ -1,10 +1,9 @@
-package org.sagebionetworks.repo.model.evaluation;
+package org.sagebionetworks.evaluation.dao;
 
 import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -32,18 +31,10 @@ public interface EvaluationDAO {
 	public Evaluation get(String id) throws DatastoreException, NotFoundException;
 	
 	/**
-	 * Retrieves all evaluations (subject to limit and offset) drawing content from the project
-	 * and optionally filtered by the start and end times derived from the Evaluation's Quota
+	 * @return The list of evaluations that match the given filter
 	 */
-	public List<Evaluation> getAccessibleEvaluationsForProject(String projectId, List<Long> principalIds, ACCESS_TYPE accessType, Long optionalTimeToFilterBy, long limit, long offset) throws DatastoreException, NotFoundException;
-	
-	/**
-	 * @return the Evaluations that any of the given principalIds may 
-	 * participate in, optionally filtered by a  given list of Evaluations
-	 * and optionally filtered by the start and end times derived from the Evaluation's Quota
-	 */
-	public List<Evaluation> getAccessibleEvaluations(List<Long> principalIds, ACCESS_TYPE accessType, Long optionalTimeToFilterBy, long limit, long offset, List<Long> evaluationIds) throws DatastoreException;
-
+	List<Evaluation> getAccessibleEvaluations(EvaluationFilter filter, long limit, long offset)
+			throws DatastoreException, NotFoundException;
 	/**
 	 * Updates a Evaluation. Note that this operation requires a current eTag,
 	 * which will be updated upon completion.
