@@ -31,7 +31,6 @@ public class AsyncJobHelper {
 		Query query = new Query();
 		
 		query.setSql(sql);
-		query.setIsConsistent(true);
 		query.setOffset(offset);
 		query.setLimit(limit);
 		

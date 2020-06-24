@@ -110,7 +110,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			if (isRowCountEqualToMaxRowsPerPage(bundle, maxRowsPerPage)) {
 				long nextOffset = (query.getOffset() == null ? 0 : query.getOffset()) + maxRowsPerPage;
 				QueryNextPageToken nextPageToken = TableQueryUtils.createNextPageToken(query.getSql(), query.getSort(),
-						nextOffset, query.getLimit(), query.getIsConsistent(), query.getSelectedFacets());
+						nextOffset, query.getLimit(), query.getSelectedFacets());
 				bundle.getQueryResult().setNextPageToken(nextPageToken);
 			}
 			return bundle;
@@ -167,7 +167,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 		// Return the prepared query.
 		return new SqlQueryBuilder(model).tableSchema(columnModels).overrideOffset(query.getOffset())
-				.overrideLimit(query.getLimit()).maxBytesPerPage(maxBytesPerPage).isConsistent(query.getIsConsistent())
+				.overrideLimit(query.getLimit()).maxBytesPerPage(maxBytesPerPage)
 				.includeEntityEtag(query.getIncludeEntityEtag()).selectedFacets(query.getSelectedFacets())
 				.sortList(query.getSort()).additionalFilters(query.getAdditionalFilters()).tableType(tableType).build();
 	}
@@ -183,7 +183,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param limit
 	 * @param runQuery
 	 * @param runCount
-	 * @param isConsistent
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -196,28 +195,21 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			final RowHandler rowHandler, final QueryOptions options)
 			throws DatastoreException, NotFoundException, TableUnavailableException, TableFailedException,
 			LockUnavilableException, EmptyResultException {
-		// consistent queries are run with a read lock on the table and include the
-		// current etag.
-		if (query.isConsistent()) {
-			// run with the read lock
-			IdAndVersion idAndVersion = IdAndVersion.parse(query.getTableId());
-			return tryRunWithTableReadLock(progressCallback, idAndVersion, (ProgressCallback callback) -> {
-						// We can only run this query if the table is available.
-						final TableStatus status = validateTableIsAvailable(query.getTableId());
-						// run the query
-						QueryResultBundle bundle = queryAsStreamAfterAuthorization(progressCallback, query,
-								rowHandler, options);
-						// add the status to the result
-						if (rowHandler != null) {
-							// the etag is only returned for consistent queries.
-							bundle.getQueryResult().getQueryResults().setEtag(status.getLastTableChangeEtag());
-						}
-						return bundle;
-					});
-		} else {
-			// run without a read lock.
-			return queryAsStreamAfterAuthorization(progressCallback, query, rowHandler, options);
-		}
+		// run with a read lock on the table and include the current etag.
+		IdAndVersion idAndVersion = IdAndVersion.parse(query.getTableId());
+		return tryRunWithTableReadLock(progressCallback, idAndVersion, (ProgressCallback callback) -> {
+					// We can only run this query if the table is available.
+					final TableStatus status = validateTableIsAvailable(query.getTableId());
+					// run the query
+					QueryResultBundle bundle = queryAsStreamAfterAuthorization(progressCallback, query,
+							rowHandler, options);
+					// add the status to the result
+					if (rowHandler != null) {
+						// the etag is only returned for consistent queries.
+						bundle.getQueryResult().getQueryResults().setEtag(status.getLastTableChangeEtag());
+					}
+					return bundle;
+				});
 	}
 
 	/**
@@ -257,7 +249,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param limit
 	 * @param runQuery
 	 * @param runCount
-	 * @param isConsistent
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -399,10 +390,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 */
 	public static void setDefaultsValues(Query query) {
 		ValidateArgument.required(query, "query");
-		if (query.getIsConsistent() == null) {
-			// default to true
-			query.setIsConsistent(true);
-		}
 		if (query.getIncludeEntityEtag() == null) {
 			// default to false
 			query.setIncludeEntityEtag(false);

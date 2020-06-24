@@ -3,6 +3,7 @@ package org.sagebionetworks.auth;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -185,18 +186,32 @@ class HttpAuthUtilTest {
 	
 	@Test
 	void testRejectWithStatus() throws Exception {
-		HttpStatus status = HttpStatus.BAD_REQUEST;
-		
+		HttpStatus status = HttpStatus.UNAUTHORIZED;
+
 		when(httpResponse.getWriter()).thenReturn(mockWriter);
-		
+
 		// method under test
-		HttpAuthUtil.reject(httpResponse, "bad request", status);
-		
+		HttpAuthUtil.rejectWithErrorResponse(httpResponse, "bad request", status);
+
 		verify(httpResponse).setStatus(status.value());
 		verify(httpResponse).setContentType("application/json");
 		verify(httpResponse).setHeader("WWW-Authenticate", "\"Digest\" your email");
 		verify(mockWriter).println("{\"reason\":\"bad request\"}");
-		
+	}
+
+	@Test
+	void testNoWwwAuthenticateOnReject_nonUnauthorized() throws Exception {
+		HttpStatus status = HttpStatus.FORBIDDEN;
+
+		when(httpResponse.getWriter()).thenReturn(mockWriter);
+
+		// method under test
+		HttpAuthUtil.rejectWithErrorResponse(httpResponse, "bad request", status);
+
+		verify(httpResponse).setStatus(status.value());
+		verify(httpResponse).setContentType("application/json");
+		verify(httpResponse, never()).setHeader("WWW-Authenticate", "\"Digest\" your email");
+		verify(mockWriter).println("{\"reason\":\"bad request\"}");
 	}
 
 	@Test

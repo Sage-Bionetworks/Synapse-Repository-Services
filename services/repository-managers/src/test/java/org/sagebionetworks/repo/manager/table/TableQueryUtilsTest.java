@@ -43,7 +43,7 @@ public class TableQueryUtilsTest {
 		queryRequest = new QueryBundleRequest();
 		queryRequest.setQuery(query);
 		
-		nextPageToken = TableQueryUtils.createNextPageToken("select * from syn123", null, null, null, true, null);
+		nextPageToken = TableQueryUtils.createNextPageToken("select * from syn123", null, null, null, null);
 	}
 
 	@Test
@@ -59,13 +59,11 @@ public class TableQueryUtilsTest {
 		
 		Long nextOffset = 10L;
 		Long limit = 21L;
-		boolean isConsistent = true;
-		QueryNextPageToken token = TableQueryUtils.createNextPageToken(sql, sortList, nextOffset, limit, isConsistent, selectedFacets);
+		QueryNextPageToken token = TableQueryUtils.createNextPageToken(sql, sortList, nextOffset, limit, selectedFacets);
 		Query query = TableQueryUtils.createQueryFromNextPageToken(token);
 		assertEquals(sql, query.getSql());
 		assertEquals(nextOffset, query.getOffset());
 		assertEquals(limit, query.getLimit());
-		assertEquals(isConsistent, query.getIsConsistent());
 		assertEquals(sortList, query.getSort());
 		assertEquals(selectedFacets, query.getSelectedFacets());
 	}

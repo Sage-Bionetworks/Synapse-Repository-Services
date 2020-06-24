@@ -33,6 +33,7 @@ public class JSONWebTokenHelper {
 	 * @param jsonWebKeySet
 	 * @return
 	 * @throws IllegalArgumentException if the token is invalid or the signature incorrect.
+	 * @throws io.jsonwebtoken.ExpiredJwtException if the token is expired
 	 */
 	public static Jwt<JwsHeader,Claims> parseJWT(String token, JsonWebKeySet jsonWebKeySet) {
 		ValidateArgument.required(token, "JSON Web Token");
@@ -45,7 +46,9 @@ public class JSONWebTokenHelper {
 		String unsignedToken = pieces[0]+"."+pieces[1]+".";
 		JsonWebKey matchingKey=null;
 		{
+			// Expiration time is checked by the parser
 			Jwt<Header,Claims> unsignedJwt = Jwts.parser().parseClaimsJwt(unsignedToken);
+
 			String keyId = (String)unsignedJwt.getHeader().get(JwsHeader.KEY_ID);
 			for (JsonWebKey jwk : jsonWebKeySet.getKeys()) {
 				if (jwk.getKid().equals(keyId)) {
@@ -63,11 +66,6 @@ public class JSONWebTokenHelper {
 			result = Jwts.parser().setSigningKey(rsaPublicKey).parse(token);
 		} catch (SignatureException e) {
 			throw new IllegalArgumentException(e.getMessage(), e);
-		}
-		
-		Claims claims = result.getBody();
-		if (System.currentTimeMillis()>claims.getExpiration().getTime()) {
-			throw new IllegalArgumentException("Token has expired.");
 		}
 
 		return result;

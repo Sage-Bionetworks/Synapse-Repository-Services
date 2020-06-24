@@ -123,7 +123,7 @@ public class JSONEntityHttpMessageConverterTest {
 		error.setReason("foo");
 		assertEquals("foo", JSONEntityHttpMessageConverter.convertEntityToPlainText(error));
 	}
-	
+
 	@Test 
 	public void testReadToString() throws IOException{
 		String value = "This string should make a round trip!";

@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.TokenTypeHint;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.OAuthBadRequestException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -255,7 +256,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
 		authorizationRequest.setClientId(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID);
 
-		assertThrows(IllegalArgumentException.class, () -> openIDConnectManager.authorizeClient(userInfo, authorizationRequest));
+		assertThrows(OAuthBadRequestException.class, () -> openIDConnectManager.authorizeClient(userInfo, authorizationRequest));
 	}
 
 	@Test

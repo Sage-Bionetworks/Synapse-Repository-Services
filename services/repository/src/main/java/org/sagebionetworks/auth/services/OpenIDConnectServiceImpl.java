@@ -1,7 +1,6 @@
 package org.sagebionetworks.auth.services;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import org.sagebionetworks.StackConfigurationSingleton;
@@ -30,6 +29,8 @@ import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCSubjectIdentifierType;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
+import org.sagebionetworks.repo.web.OAuthBadRequestException;
+import org.sagebionetworks.repo.web.OAuthErrorCode;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.util.ValidateArgument;
@@ -157,7 +158,7 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 		} else if (OAuthGrantType.refresh_token==grantType) {
 			return oidcManager.generateTokenResponseWithRefreshToken(refreshToken, verifiedClientId, scope, oauthEndpoint);
 		} else {
-			throw new IllegalArgumentException("Unsupported grant type"+grantType);
+			throw new OAuthBadRequestException(OAuthErrorCode.unsupported_grant_type, "Unsupported grant type"+grantType);
 		}
 	}
 

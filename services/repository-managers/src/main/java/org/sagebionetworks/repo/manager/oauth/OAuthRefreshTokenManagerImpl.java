@@ -20,6 +20,8 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.OAuthBadRequestException;
+import org.sagebionetworks.repo.web.OAuthErrorCode;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
@@ -103,7 +105,7 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 				.orElseThrow(() -> new IllegalArgumentException("The token does not match an existing token."));
 
 		if (!oauthRefreshTokenDao.isTokenActive(metadata.getTokenId(), REFRESH_TOKEN_LEASE_DURATION_DAYS)) {
-			throw new IllegalArgumentException("The refresh token has expired.");
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_grant, "The refresh token has expired.");
 		}
 
 		String newToken = generateRefreshToken();

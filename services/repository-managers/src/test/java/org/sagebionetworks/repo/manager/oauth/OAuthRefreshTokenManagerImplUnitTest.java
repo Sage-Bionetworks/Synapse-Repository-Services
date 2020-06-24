@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.OAuthBadRequestException;
 import org.sagebionetworks.util.Clock;
 
 @ExtendWith(MockitoExtension.class)
@@ -183,7 +184,7 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 
 
 		// Call under test
-		assertThrows(IllegalArgumentException.class, () -> oauthRefreshTokenManager.rotateRefreshToken("token"));
+		assertThrows(OAuthBadRequestException.class, () -> oauthRefreshTokenManager.rotateRefreshToken("token"));
 	}
 
 

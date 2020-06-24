@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LockedException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.NotReadyException;
+import org.sagebionetworks.repo.model.OAuthErrorResponse;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
@@ -41,6 +42,10 @@ import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.DeprecatedServiceException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.OAuthBadRequestException;
+import org.sagebionetworks.repo.web.OAuthException;
+import org.sagebionetworks.repo.web.OAuthForbiddenException;
+import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -120,7 +125,43 @@ public class BaseControllerExceptionHandlerAdvice {
 
 	static final String SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER = "Service temporarily unavailable, please try again later.";
 	private static Logger log = LogManager.getLogger(BaseControllerExceptionHandlerAdvice.class);
-	
+
+	/**
+	 * @param ex
+	 * @param request
+	 * @return
+	 */
+	@ExceptionHandler(OAuthBadRequestException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody
+	OAuthErrorResponse handleOAuthBadRequestException(OAuthBadRequestException ex, HttpServletRequest request) {
+		return handleOAuthException(ex, request, false);
+	}
+
+	/**
+	 * @param ex
+	 * @param request
+	 * @return
+	 */
+	@ExceptionHandler(OAuthUnauthenticatedException.class)
+	@ResponseStatus(HttpStatus.UNAUTHORIZED)
+	public @ResponseBody
+	OAuthErrorResponse handleOAuthUnauthenticatedException(OAuthUnauthenticatedException ex, HttpServletRequest request) {
+		return handleOAuthException(ex, request, false);
+	}
+
+	/**
+	 * @param ex
+	 * @param request
+	 * @return
+	 */
+	@ExceptionHandler(OAuthForbiddenException.class)
+	@ResponseStatus(HttpStatus.FORBIDDEN)
+	public @ResponseBody
+	OAuthErrorResponse handleOAuthForbiddenException(OAuthForbiddenException ex, HttpServletRequest request) {
+		return handleOAuthException(ex, request, false);
+	}
+
 	/**
 	 * When a TableUnavilableException occurs we need to communicate the table status to the caller with a 202 ACCEPTED,
 	 * indicating we accepted they call but the resource is not ready yet.
@@ -652,6 +693,34 @@ public class BaseControllerExceptionHandlerAdvice {
 		ErrorResponse er = new ErrorResponse();
 		er.setReason(SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER);
 		return er;
+	}
+
+	/**
+	 * Log the exception at the warning level and return an OAuthErrorResponse
+	 * object, which provides JSON error messages that are in-spec with OAuth2/OIDC error messages
+	 *
+	 * @param ex
+	 *            the exception to be handled
+	 * @param request
+	 *            the client request
+	 * @param fullTrace Should the full stack trace of the exception be written to the log.
+	 * @return an OAuthErrorResponse object containing the exception reason or some
+	 *         other human-readable response
+	 */
+	OAuthErrorResponse handleOAuthException(OAuthException ex,
+								 HttpServletRequest request, boolean fullTrace) {
+		// Let the existing exception handler deal with logging
+		handleException(ex, request, fullTrace);
+		// Create the necessary object
+		OAuthErrorResponse errorResponse = new OAuthErrorResponse();
+		errorResponse.setError(ex.getError().name());
+		errorResponse.setError_description(ex.getErrorDescription());
+		if (ex.getErrorDescription() == null) {
+			errorResponse.setReason(ex.getError().name());
+		} else {
+			errorResponse.setReason(ex.getError().name() + ". " + ex.getErrorDescription());
+		}
+		return errorResponse;
 	}
 
 	/**
