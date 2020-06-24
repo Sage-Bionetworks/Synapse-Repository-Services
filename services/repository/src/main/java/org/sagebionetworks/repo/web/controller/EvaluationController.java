@@ -8,6 +8,8 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
@@ -33,6 +35,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.DeprecatedServiceException;
@@ -200,12 +203,14 @@ public class EvaluationController {
 			@PathVariable String id, 
 			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM, required = false, defaultValue="READ") ACCESS_TYPE accessType,
 			@RequestParam(value = ServiceConstants.ACTIVE_ONLY_PARAM, required=false, defaultValue="false") boolean activeOnly,
-			@RequestParam(value = ServiceConstants.EVALUATION_IDS_PARAM, required = false) List<Long> evaluationIds,
+			@RequestParam(value = ServiceConstants.EVALUATION_IDS_PARAM, required = false) String evaluationIds,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit
 			) throws DatastoreException, NotFoundException
 	{
-		return serviceProvider.getEvaluationService().getEvaluationByContentSource(userId, id, accessType, activeOnly, evaluationIds, limit, offset);
+		List<Long> ids = stringToEvaluationIds(evaluationIds);
+		
+		return serviceProvider.getEvaluationService().getEvaluationByContentSource(userId, id, accessType, activeOnly, ids, limit, offset);
 	}
 	
 	/**
@@ -239,11 +244,14 @@ public class EvaluationController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM, required = false, defaultValue="READ") ACCESS_TYPE accessType,
 			@RequestParam(value = ServiceConstants.ACTIVE_ONLY_PARAM, required=false, defaultValue="false") boolean activeOnly,
-			@RequestParam(value = ServiceConstants.EVALUATION_IDS_PARAM, required = false) List<Long> evaluationIds,
+			@RequestParam(value = ServiceConstants.EVALUATION_IDS_PARAM, required = false) String evaluationIds,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit
 			) throws DatastoreException, NotFoundException {
-		return serviceProvider.getEvaluationService().getEvaluations(userId, accessType, activeOnly, evaluationIds, limit, offset);
+		
+		List<Long> ids = stringToEvaluationIds(evaluationIds);
+		
+		return serviceProvider.getEvaluationService().getEvaluations(userId, accessType, activeOnly, ids, limit, offset);
 	}
 	
 	/**
@@ -276,14 +284,17 @@ public class EvaluationController {
 	public @ResponseBody
 	PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(
 			@RequestParam(value = ServiceConstants.ACTIVE_ONLY_PARAM, required=false, defaultValue="false") boolean activeOnly,
-			@RequestParam(value = ServiceConstants.EVALUATION_IDS_PARAM, required = false) List<Long> evaluationIds,
+			@RequestParam(value = ServiceConstants.EVALUATION_IDS_PARAM, required = false) String evaluationIds,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws DatastoreException, NotFoundException
 	{
-		return serviceProvider.getEvaluationService().getAvailableEvaluations(userId, activeOnly, evaluationIds, limit, offset);
-	}	
+		
+		List<Long> ids = stringToEvaluationIds(evaluationIds);
+		
+		return serviceProvider.getEvaluationService().getAvailableEvaluations(userId, activeOnly, ids, limit, offset);
+	}
 
 	/**
 	 * Finds an Evaluation by name.
@@ -1178,5 +1189,26 @@ public class EvaluationController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String subId) {
 		serviceProvider.getEvaluationService().processCancelSubmissionRequest(userId, subId);
+	}
+	
+	
+	// For some unknown reason binding a List<Long> with a @RequestParam is not working with our setup 
+	// (Leaving this static method here as this is a feature present since spring 3, more investigation is needed)
+	private static List<Long> stringToEvaluationIds(String value) {
+		if (value == null || value.isEmpty()) {
+			return Collections.emptyList();
+		}
+		String[] evalIdStrings = value.split(ServiceConstants.BATCH_PARAM_VALUE_SEPARATOR);
+		List<Long> evalIds = new ArrayList<>();
+		for (String s : evalIdStrings) {
+			Long l;
+			try {
+				l = Long.parseLong(s);
+			} catch (NumberFormatException e) {
+				throw new InvalidModelException("Expected an evaluation ID but found "+s);
+			}
+			evalIds.add(l);
+		}
+		return evalIds;
 	}
 }
