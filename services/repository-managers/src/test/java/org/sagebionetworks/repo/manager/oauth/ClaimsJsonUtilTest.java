@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager.oauth;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -9,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
+import org.json.simple.JSONObject;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
@@ -18,6 +21,64 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 
 public class ClaimsJsonUtilTest {
+
+
+	@Test
+	public void testGetClaimsMapFromJSONObject() {
+		JSONObject claimsJson = new JSONObject();
+		claimsJson.put(OIDCClaimName.team.name(), "{\"values\":[\"101\"]}");
+		claimsJson.put(OIDCClaimName.given_name.name(), "null");
+		claimsJson.put(OIDCClaimName.company.name(), "NULL");
+		claimsJson.put(OIDCClaimName.family_name.name(), "{\"essential\":true,\"value\":\"foo\"}");
+		claimsJson.put("unrecognized-key", "some value");
+
+		// method under test
+		Map<OIDCClaimName, OIDCClaimsRequestDetails> actual = ClaimsJsonUtil.getClaimsMapFromJSONObject(claimsJson);
+
+		OIDCClaimsRequestDetails teamDetails = new OIDCClaimsRequestDetails();
+		teamDetails.setValues(Collections.singletonList("101"));
+		assertEquals(teamDetails, actual.get(OIDCClaimName.team));
+
+		assertNull(actual.get(OIDCClaimName.given_name));
+		assertTrue(actual.containsKey(OIDCClaimName.given_name)); // given_name IS in the map, but with a null value
+
+		assertNull(actual.get(OIDCClaimName.company));
+		assertTrue(actual.containsKey(OIDCClaimName.company)); // company IS in the map, but with a null value
+
+		OIDCClaimsRequestDetails familyNameDetails = new OIDCClaimsRequestDetails();
+		familyNameDetails.setEssential(true);
+		familyNameDetails.setValue("foo");
+		assertEquals(familyNameDetails, actual.get(OIDCClaimName.family_name));
+	}
+
+	@Test
+	public void testGetClaimsMapFromClaimsRequestParam() throws Exception {
+		String claimsString = "{\"somekey\":{\"team\":{\"values\":[\"101\"]},\"given_name\":null,\"family_name\":{\"essential\":true,\"value\":\"foo\"}}}";
+		Map<OIDCClaimName,OIDCClaimsRequestDetails> map = ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(claimsString, "somekey");
+		{
+			assertTrue(map.containsKey(OIDCClaimName.team));
+			OIDCClaimsRequestDetails details = map.get(OIDCClaimName.team);
+			OIDCClaimsRequestDetails expectedDetails = new OIDCClaimsRequestDetails();
+			expectedDetails.setValues(Collections.singletonList("101"));
+			assertEquals(expectedDetails, details);
+		}
+		{
+			assertTrue(map.containsKey(OIDCClaimName.given_name));
+			assertNull(map.get(OIDCClaimName.given_name));
+		}
+		{
+			assertTrue(map.containsKey(OIDCClaimName.family_name));
+			OIDCClaimsRequestDetails details = map.get(OIDCClaimName.family_name);
+			OIDCClaimsRequestDetails expectedDetails = new OIDCClaimsRequestDetails();
+			expectedDetails.setEssential(true);
+			expectedDetails.setValue("foo");
+			assertEquals(expectedDetails, details);
+		}
+		// what if key is omitted?
+		claimsString = "{\"somekey\":{\"team\":{\"values\":[\"101\"]},\"given_name\":null,\"family_name\":{\"essential\":true,\"value\":\"foo\"}}}";
+		map = ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(claimsString, "some other key");
+		assertTrue(map.isEmpty());
+	}
 
 	@Test
 	public void testAddAndExtractScopeAndClaims() throws Exception {		

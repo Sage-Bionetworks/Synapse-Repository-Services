@@ -7,9 +7,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -91,6 +98,56 @@ public class ClaimsJsonUtil {
 			}
 		}
 		return Collections.EMPTY_MAP;
+	}
+
+	/**
+	 * Extract the claims and their details from a claims JSON, e.g. from a claims parameters in an OIDC authorization request.
+	 *
+	 * @param claimsJson the claims, e.g. from an OIDC authorization request
+	 * @return
+	 */
+	public static Map<OIDCClaimName, OIDCClaimsRequestDetails> getClaimsMapFromJSONObject(JSONObject claimsJson) {
+		Map<OIDCClaimName, OIDCClaimsRequestDetails> result = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
+		if (claimsJson==null) return result;
+		for (Object claimName : claimsJson.keySet()) {
+			OIDCClaimName claim;
+			try {
+				claim = OIDCClaimName.valueOf((String)claimName);
+			} catch (IllegalArgumentException e) {
+				continue; // ignore unknown claims as per https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
+			}
+			Object value = claimsJson.get(claimName);
+			String detailsString = value==null ? null : value.toString();
+			OIDCClaimsRequestDetails details = null;
+			if (detailsString!=null && !NULL.equalsIgnoreCase(detailsString)) {
+				details = new OIDCClaimsRequestDetails();
+				try {
+					JSONObjectAdapter adapter = new JSONObjectAdapterImpl(detailsString);
+					details.initializeFromJSONObject(adapter);
+				} catch (JSONObjectAdapterException e) {
+					throw new IllegalArgumentException(e);
+				}
+			}
+			result.put(claim, details);
+		}
+		return result;
+	}
+
+	public static Map<OIDCClaimName,OIDCClaimsRequestDetails> getClaimsMapFromClaimsRequestParam(String claims, String claimsField) {
+		if (StringUtils.isEmpty(claims)) return Collections.EMPTY_MAP;
+		JSONObject claimsObject;
+
+		try {
+			JSONParser jsonParser = new JSONParser();
+			claimsObject = (JSONObject)jsonParser.parse(claims);
+		} catch (ParseException e) {
+			throw new IllegalArgumentException(e);
+		}
+		if (!claimsObject.containsKey(claimsField)) {
+			return Collections.EMPTY_MAP;
+		}
+		JSONObject idTokenClaims = (JSONObject)claimsObject.get(claimsField);
+		return getClaimsMapFromJSONObject(idTokenClaims);
 	}
 
 }

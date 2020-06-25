@@ -309,25 +309,32 @@ public class OpenIDConnectManagerImplUnitTest {
 	
 	// claimsTag must be 'id_token' or 'userinfo'
 	private OIDCAuthorizationRequest createAuthorizationRequest(boolean includeIdTokenClaims, boolean includeUserInfoClaims) {
+		List<String> claimsTags = new ArrayList<>();
+		if (includeIdTokenClaims) {
+			claimsTags.add("id_token");
+		}
+		if (includeUserInfoClaims) {
+			claimsTags.add("userinfo");
+		}
+
 		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
 		authorizationRequest.setClientId(OAUTH_CLIENT_ID);
 		authorizationRequest.setScope(OAuthScope.openid.name() + " " + OAuthScope.offline_access.name());
-		OIDCClaimsRequest claims = new OIDCClaimsRequest();
-		if (includeIdTokenClaims) {
-			Map<String, OIDCClaimsRequestDetails> idTokenClaims = new HashMap<>();
+
+		StringBuilder claims = new StringBuilder("{");
+		boolean firstTag = true;
+		for (String claimsTag : claimsTags) {
+			if (firstTag) {firstTag=false;} else {claims.append(",");}
+			claims.append("\""+claimsTag+"\":{");
+			boolean firstClaim = true;
 			for (OIDCClaimName claimName : mockClaimProviders.keySet()) {
-				idTokenClaims.put(claimName.name(), null);
-			}
-			claims.setId_token(idTokenClaims);
+				if (firstClaim) {firstClaim=false;} else {claims.append(",");}
+				claims.append("\""+claimName.name()+"\":\"null\"");
+				}
+			claims.append("}");
 		}
-		if (includeUserInfoClaims) {
-			Map<String, OIDCClaimsRequestDetails> userInfoClaims = new HashMap<>();
-			for (OIDCClaimName claimName : mockClaimProviders.keySet()) {
-				userInfoClaims.put(claimName.name(), null);
-			}
-			claims.setUserinfo(userInfoClaims);
-		}
-		authorizationRequest.setClaims(claims);
+		claims.append("}");
+		authorizationRequest.setClaims(claims.toString());
 		authorizationRequest.setResponseType(OAuthResponseType.code);
 		authorizationRequest.setRedirectUri(REDIRCT_URIS.get(0));
 		authorizationRequest.setNonce(NONCE);
@@ -1388,19 +1395,9 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testNormalizeClaims() {
-		OIDCClaimsRequest claims = new OIDCClaimsRequest();
-		Map<String, OIDCClaimsRequestDetails> idToken = new HashMap<>();
-		idToken.put(OIDCClaimName.team.name(), new OIDCClaimsRequestDetails());
-		idToken.put(OIDCClaimName.email.name(), null);
-		idToken.put("some_nonsense_claim", new OIDCClaimsRequestDetails());
-		claims.setId_token(idToken);
-		Map<String, OIDCClaimsRequestDetails> userInfo = new HashMap<>();
-		userInfo.put(OIDCClaimName.team.name(), new OIDCClaimsRequestDetails());
-		userInfo.put(OIDCClaimName.userid.name(), null);
-		userInfo.put("another_nonsense_claim", new OIDCClaimsRequestDetails());
-		claims.setUserinfo(userInfo);
+		String claims = "{\"id_token\":{\"team\":{},\"email\":null}, \"userinfo\":{\"team\":{},\"userid\":null}}";
 
-		// Expected: same but without the invalid claims
+		// Expected: an object, without the invalid claims
 		OIDCClaimsRequest expectedClaims = new OIDCClaimsRequest();
 		Map<String, OIDCClaimsRequestDetails> expectedIdToken = new HashMap<>();
 		expectedIdToken.put(OIDCClaimName.team.name(), new OIDCClaimsRequestDetails());
@@ -1424,9 +1421,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testNormalizeClaims_nullFields() {
-		OIDCClaimsRequest claimsRequestWithNullFields = new OIDCClaimsRequest();
-		claimsRequestWithNullFields.setId_token(null);
-		claimsRequestWithNullFields.setUserinfo(null);
+		String claimsRequestWithNullFields = "{}";
 
 		OIDCClaimsRequest emptyClaimsRequest = new OIDCClaimsRequest();
 		emptyClaimsRequest.setUserinfo(Collections.emptyMap());

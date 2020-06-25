@@ -1,6 +1,5 @@
 package org.sagebionetworks;
 
-import java.util.HashMap;
 import java.util.UUID;
 
 import org.sagebionetworks.client.SynapseClient;
@@ -9,7 +8,6 @@ import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
 import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
-import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 
 public class OAuthHelper {
@@ -26,10 +24,7 @@ public class OAuthHelper {
 		authorizationRequest.setRedirectUri(redirectUri);
 		authorizationRequest.setResponseType(OAuthResponseType.code);
 		authorizationRequest.setScope(scopes);
-		OIDCClaimsRequest claims = new OIDCClaimsRequest();
-		claims.setId_token(new HashMap<>());
-		claims.setUserinfo(new HashMap<>());
-		authorizationRequest.setClaims(claims);
+		authorizationRequest.setClaims("{\"id_token\":{},\"userinfo\":{}}");
 		String nonce = UUID.randomUUID().toString();
 		authorizationRequest.setNonce(nonce);
 		

@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.oauth;
 
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -39,7 +38,6 @@ import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.TokenTypeHint;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.test.context.ContextConfiguration;
@@ -131,8 +129,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		OIDCClaimsRequest claimsRequest = new OIDCClaimsRequest();
 		claimsRequest.setId_token(claimsToRequest);
 		claimsRequest.setUserinfo(claimsToRequest);
-		authorizationRequest.setClaims(claimsRequest);
-		return authorizationRequest;
+		authorizationRequest.setClaims("{\"id_token\":{\"team\":{\"values\":[\"2\"]}},\"userinfo\":{\"team\":{\"values\":[\"2\"]}}}"); 		return authorizationRequest;
 	}
 
 	// the business logic is tested in detail in the unit tests.  This just does a basic authorization round-trip.
@@ -304,56 +301,6 @@ public class OpenIDConnectManagerImplAutowiredTest {
 				openIDConnectManager.generateTokenResponseWithRefreshToken(tokenResponse.getRefresh_token(), oauthClient.getClient_id(), "", OAUTH_ENDPOINT);
 
 		assertNotNull(newTokenResponse);
-	}
-
-	@Test
-	public void testOidcClaimsRequestStringToPojo() throws Exception {
-		/**
-		 * In OIDCAuthorizationRequest, the claims field is a JSON map. This field was initially set as a string, and has been
-		 * changed to use the schema-to-pojo map type. This test should ensure that this change is not a breaking API change.
-		 */
-
-		// We will test all of the hard-coded strings that were previously in the OIDC/OAuth test suites.
-		// Also, we will test that we can parse the object itself (OIDCClaimsRequest), as well as an object that contains the changed object (OIDCAuthorizationRequest)
-		String claims = "{\"id_token\":{},\"userinfo\":{}}";
-		OIDCClaimsRequest expectedClaimsRequest = new OIDCClaimsRequest();
-		expectedClaimsRequest.setId_token(Collections.emptyMap());
-		expectedClaimsRequest.setUserinfo(Collections.emptyMap());
-
-		OIDCClaimsRequest parsedClaimsRequest = EntityFactory.createEntityFromJSONString(claims, OIDCClaimsRequest.class);
-		assertEquals(expectedClaimsRequest, parsedClaimsRequest);
-
-		String authorizationRequest = "{\"claims\": " + claims + "}";
-		OIDCAuthorizationRequest expectedAuthzRequest = new OIDCAuthorizationRequest();
-		expectedAuthzRequest.setClaims(expectedClaimsRequest);
-
-		OIDCAuthorizationRequest parsedAuthzRequest = EntityFactory.createEntityFromJSONString(authorizationRequest, OIDCAuthorizationRequest.class);
-		assertEquals(expectedAuthzRequest, parsedAuthzRequest);
-
-
-		claims = "{\"id_token\":{\"userid\":null,\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}},"+
-				  "\"userinfo\":{\"userid\":null,\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}}}";
-
-		Map<String, OIDCClaimsRequestDetails> claimsMap = new HashMap<>();
-		claimsMap.put(OIDCClaimName.userid.name(), null);
-		claimsMap.put(OIDCClaimName.email.name(), null);
-		claimsMap.put(OIDCClaimName.is_certified.name(), null);
-		OIDCClaimsRequestDetails teamClaimReqDetails = new OIDCClaimsRequestDetails();
-		teamClaimReqDetails.setValues(Collections.singletonList("2"));
-		claimsMap.put(OIDCClaimName.team.name(), teamClaimReqDetails);
-		expectedClaimsRequest = new OIDCClaimsRequest();
-		expectedClaimsRequest.setUserinfo(claimsMap);
-		expectedClaimsRequest.setId_token(claimsMap);
-
-		parsedClaimsRequest = EntityFactory.createEntityFromJSONString(claims, OIDCClaimsRequest.class);
-		assertEquals(expectedClaimsRequest, parsedClaimsRequest);
-
-		authorizationRequest = "{\"claims\": " + claims + "}";
-		expectedAuthzRequest = new OIDCAuthorizationRequest();
-		expectedAuthzRequest.setClaims(expectedClaimsRequest);
-
-		parsedAuthzRequest = EntityFactory.createEntityFromJSONString(authorizationRequest, OIDCAuthorizationRequest.class);
-		assertEquals(expectedAuthzRequest, parsedAuthzRequest);
 	}
 }
 

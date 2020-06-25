@@ -61,6 +61,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	// token_type=Bearer, as per https://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
 	private static final String TOKEN_TYPE_BEARER = "Bearer";
 
+	// from https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
+	private static final String ID_TOKEN_CLAIMS_KEY = "id_token";
+	private static final String USER_INFO_CLAIMS_KEY = "userinfo";
+
 	@Autowired
 	private StackEncrypter stackEncrypter;
 
@@ -164,23 +168,19 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		// Use of [the OpenID Connect] extension [to OAuth 2.0] is requested by Clients by including the openid scope value in the Authorization Request.
 		// https://openid.net/specs/openid-connect-core-1_0.html#Introduction
-		if (scopes.contains(OAuthScope.openid) && authorizationRequest.getClaims() != null) {
-			if (authorizationRequest.getClaims().getUserinfo() != null && !authorizationRequest.getClaims().getUserinfo().isEmpty()) {
-				Map<OIDCClaimName,OIDCClaimsRequestDetails> userinfoClaims = EnumKeyedJsonMapUtil.convertToEnum(authorizationRequest.getClaims().getUserinfo(), OIDCClaimName.class);
-				scopeDescriptions.addAll(getDescriptionsForClaims(userinfoClaims));
-			}
-			if (authorizationRequest.getClaims().getId_token() != null && !authorizationRequest.getClaims().getId_token().isEmpty()) {
-				Map<OIDCClaimName,OIDCClaimsRequestDetails> idTokenClaims = EnumKeyedJsonMapUtil.convertToEnum(authorizationRequest.getClaims().getId_token(), OIDCClaimName.class);
-				scopeDescriptions.addAll(getDescriptionsForClaims(idTokenClaims));
-			}
+		if (scopes.contains(OAuthScope.openid) && !StringUtils.isEmpty(authorizationRequest.getClaims())) {
+			scopeDescriptions.addAll(getDescriptionsForClaims(authorizationRequest.getClaims(), ID_TOKEN_CLAIMS_KEY));
+			scopeDescriptions.addAll(getDescriptionsForClaims(authorizationRequest.getClaims(), USER_INFO_CLAIMS_KEY));
 		}
 		result.setScope(new ArrayList<String>(scopeDescriptions));
 		return result;
 	}
 	
-	private Set<String> getDescriptionsForClaims(Map<OIDCClaimName,OIDCClaimsRequestDetails> idTokenClaimsMap) {
+	private Set<String> getDescriptionsForClaims(String claimsJsonString, String jsonField) {
 		Set<String> scopeDescriptions = new TreeSet<String>();
 		{
+			Map<OIDCClaimName,OIDCClaimsRequestDetails> idTokenClaimsMap =
+					ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(claimsJsonString, jsonField);
 			for (OIDCClaimName claim : idTokenClaimsMap.keySet()) {
 				OIDCClaimProvider provider = claimProviders.get(claim);
 				if (provider!=null) {
@@ -458,29 +458,28 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	 * @param claims
 	 * @return
 	 */
-	protected static OIDCClaimsRequest normalizeClaims(OIDCClaimsRequest claims) {
-		if (claims == null) {
+	protected static OIDCClaimsRequest normalizeClaims(String claimsString) {
+		OIDCClaimsRequest claims = new OIDCClaimsRequest();
+
+		if (claimsString == null || StringUtils.isEmpty(claimsString)) {
 			claims = new OIDCClaimsRequest();
 		}
-		if (claims.getId_token() == null) {
-			claims.setId_token(Collections.emptyMap());
-		} else {
-			// Converting the key to enum and back to string will drop unrecognized claims
-			claims.setId_token(
-					EnumKeyedJsonMapUtil.convertToString(
-							EnumKeyedJsonMapUtil.convertToEnum(claims.getId_token(), OIDCClaimName.class)
-					)
-			);
+
+		Map<OIDCClaimName, OIDCClaimsRequestDetails> idTokenClaims = ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(claimsString, ID_TOKEN_CLAIMS_KEY);
+		Map<String, OIDCClaimsRequestDetails> idTokenClaimsAsString = new HashMap<>();
+		for (Map.Entry<OIDCClaimName, OIDCClaimsRequestDetails> e : idTokenClaims.entrySet()) {
+			idTokenClaimsAsString.put(e.getKey().name(), e.getValue());
 		}
-		if (claims.getUserinfo() == null) {
-			claims.setUserinfo(Collections.emptyMap());
-		} else {
-			claims.setUserinfo(
-					EnumKeyedJsonMapUtil.convertToString(
-							EnumKeyedJsonMapUtil.convertToEnum(claims.getUserinfo(), OIDCClaimName.class)
-					)
-			);
+		claims.setId_token(idTokenClaimsAsString);
+
+
+		Map<OIDCClaimName, OIDCClaimsRequestDetails> userInfoClaims = ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(claimsString, USER_INFO_CLAIMS_KEY);
+		Map<String, OIDCClaimsRequestDetails> userInfoClaimsAsString = new HashMap<>();
+		for (Map.Entry<OIDCClaimName, OIDCClaimsRequestDetails> e : userInfoClaims.entrySet()) {
+			userInfoClaimsAsString.put(e.getKey().name(), e.getValue());
 		}
+		claims.setUserinfo(userInfoClaimsAsString);
+
 		return claims;
 	}
 

@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.net.URLEncoder;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -49,7 +48,6 @@ import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
-import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
@@ -138,24 +136,16 @@ public class ITOpenIDConnectTest {
 		OAuthClientIdAndSecret secret = synapseOne.createOAuthClientSecret(client.getClient_id());
 		assertEquals(client.getClient_id(), secret.getClient_id());
 		assertNotNull(secret.getClient_secret());
-		
+
 		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
 		authorizationRequest.setClientId(client.getClient_id());
 		authorizationRequest.setRedirectUri(client.getRedirect_uris().get(0));
 		authorizationRequest.setResponseType(OAuthResponseType.code);
 		authorizationRequest.setScope("openid");
-		Map<String, OIDCClaimsRequestDetails> claimsToRequest = new HashMap<>();
-		claimsToRequest.put(OIDCClaimName.userid.name(), null);
-		claimsToRequest.put(OIDCClaimName.email.name(), null);
-		claimsToRequest.put(OIDCClaimName.is_certified.name(), null);
-		OIDCClaimsRequestDetails teamClaimRequestDetails = new OIDCClaimsRequestDetails();
-		teamClaimRequestDetails.setValues(Collections.singletonList("2"));
-		claimsToRequest.put(OIDCClaimName.team.name(), teamClaimRequestDetails);
-		OIDCClaimsRequest claimsRequest = new OIDCClaimsRequest();
-		claimsRequest.setId_token(claimsToRequest);
-		claimsRequest.setUserinfo(claimsToRequest);
-		authorizationRequest.setClaims(claimsRequest);
-
+		authorizationRequest.setClaims(
+				"{\"id_token\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}},"+
+						"\"userinfo\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}}}"
+		);
 
 		// ---- Auth Description Test ----
 		
@@ -283,17 +273,12 @@ public class ITOpenIDConnectTest {
 		authorizationRequest.setResponseType(OAuthResponseType.code);
 		authorizationRequest.setScope("openid");
 
-		Map<String, OIDCClaimsRequestDetails> claimsToRequest = new HashMap<>();
-		claimsToRequest.put(OIDCClaimName.userid.name(), null);
-		claimsToRequest.put(OIDCClaimName.email.name(), null);
-		claimsToRequest.put(OIDCClaimName.is_certified.name(), null);
-		OIDCClaimsRequestDetails teamClaimRequestDetails = new OIDCClaimsRequestDetails();
-		teamClaimRequestDetails.setValues(Collections.singletonList("2"));
-		claimsToRequest.put(OIDCClaimName.team.name(), teamClaimRequestDetails);
-		OIDCClaimsRequest claimsRequest = new OIDCClaimsRequest();
-		claimsRequest.setId_token(claimsToRequest);
-		claimsRequest.setUserinfo(claimsToRequest);
-		authorizationRequest.setClaims(claimsRequest);
+		authorizationRequest.setClaims(
+				"{\"id_token\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}},"+
+						"\"userinfo\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}}}"
+		);
+
+
 
 		String nonce = UUID.randomUUID().toString();
 		authorizationRequest.setNonce(nonce);
@@ -406,13 +391,11 @@ public class ITOpenIDConnectTest {
 		claimsToRequest.put(OIDCClaimName.userid.name(), null);
 		claimsToRequest.put(OIDCClaimName.email.name(), null);
 		claimsToRequest.put(OIDCClaimName.is_certified.name(), null);
-		OIDCClaimsRequestDetails teamClaimRequestDetails = new OIDCClaimsRequestDetails();
-		teamClaimRequestDetails.setValues(Collections.singletonList("2"));
-		claimsToRequest.put(OIDCClaimName.team.name(), teamClaimRequestDetails);
-		OIDCClaimsRequest claimsRequest = new OIDCClaimsRequest();
-		claimsRequest.setId_token(claimsToRequest);
-		claimsRequest.setUserinfo(claimsToRequest);
-		authorizationRequest.setClaims(claimsRequest);
+
+		authorizationRequest.setClaims(
+			"{\"id_token\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}},"+
+			"\"userinfo\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}}}"
+		);
 
 		String nonce = UUID.randomUUID().toString();
 		authorizationRequest.setNonce(nonce);
