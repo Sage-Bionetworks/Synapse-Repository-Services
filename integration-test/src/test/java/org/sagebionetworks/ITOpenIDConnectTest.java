@@ -21,6 +21,7 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
@@ -48,6 +49,7 @@ import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
@@ -72,6 +74,11 @@ public class ITOpenIDConnectTest {
 	private static StackConfiguration config;
 	private static SimpleHttpClient simpleClient;
 
+	private static final String CLAIMS_REQUEST_STRING = "{\"id_token\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}},"+
+			"\"userinfo\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}}}";
+	private static OIDCClaimsRequest expectedClaimsRequest; // Created in beforeEach
+
+
 	private String clientToDelete;
 	
 	@BeforeAll
@@ -92,7 +99,24 @@ public class ITOpenIDConnectTest {
 
 		simpleClient = new SimpleHttpClientImpl();
 	}
-	
+
+	@BeforeEach
+	public static void beforeEach() throws Exception {
+		// Make expected claims match the constant string
+		expectedClaimsRequest = new OIDCClaimsRequest();
+
+		Map<String, OIDCClaimsRequestDetails> requestMap = new HashMap<>();
+		requestMap.put("userid", null);
+		requestMap.put("email", null);
+		requestMap.put("is_certified", null);
+		OIDCClaimsRequestDetails teamRequestDetails = new OIDCClaimsRequestDetails();
+		teamRequestDetails.setValues(Collections.singletonList("2"));
+		requestMap.put("team", teamRequestDetails);
+
+		expectedClaimsRequest.setUserinfo(requestMap);
+		expectedClaimsRequest.setId_token(requestMap);
+	}
+
 	@AfterAll
 	public static void afterClass() throws Exception {
 		try {
@@ -142,10 +166,7 @@ public class ITOpenIDConnectTest {
 		authorizationRequest.setRedirectUri(client.getRedirect_uris().get(0));
 		authorizationRequest.setResponseType(OAuthResponseType.code);
 		authorizationRequest.setScope("openid");
-		authorizationRequest.setClaims(
-				"{\"id_token\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}},"+
-						"\"userinfo\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}}}"
-		);
+		authorizationRequest.setClaims(CLAIMS_REQUEST_STRING);
 
 		// ---- Auth Description Test ----
 		
@@ -273,10 +294,7 @@ public class ITOpenIDConnectTest {
 		authorizationRequest.setResponseType(OAuthResponseType.code);
 		authorizationRequest.setScope("openid");
 
-		authorizationRequest.setClaims(
-				"{\"id_token\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}},"+
-						"\"userinfo\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}}}"
-		);
+		authorizationRequest.setClaims(CLAIMS_REQUEST_STRING);
 
 
 
@@ -392,10 +410,7 @@ public class ITOpenIDConnectTest {
 		claimsToRequest.put(OIDCClaimName.email.name(), null);
 		claimsToRequest.put(OIDCClaimName.is_certified.name(), null);
 
-		authorizationRequest.setClaims(
-			"{\"id_token\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}},"+
-			"\"userinfo\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}}}"
-		);
+		authorizationRequest.setClaims(CLAIMS_REQUEST_STRING);
 
 		String nonce = UUID.randomUUID().toString();
 		authorizationRequest.setNonce(nonce);
@@ -498,7 +513,7 @@ public class ITOpenIDConnectTest {
 		assertNull(tokenList.getNextPageToken());
 		assertEquals(synapseOne.getMyProfile().getOwnerId(), tokenList.getResults().get(0).getPrincipalId());
 		assertEquals(client.getClient_id(), tokenList.getResults().get(0).getClientId());
-		assertEquals(authorizationRequest.getClaims(), tokenList.getResults().get(0).getClaims());
+		assertEquals(expectedClaimsRequest, tokenList.getResults().get(0).getClaims());
 
 		// Retrieving the refresh token metadata should yield the same result
 		OAuthRefreshTokenInformation metadata = synapseOne.getRefreshTokenMetadata(tokenList.getResults().get(0).getTokenId());
