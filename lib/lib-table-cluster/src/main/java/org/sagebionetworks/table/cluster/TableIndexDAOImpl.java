@@ -57,6 +57,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
@@ -733,7 +734,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public void addObjectData(ViewObjectType objectType, List<ObjectDataDTO> objectDtos) {
 		
-		final List<ObjectDataDTO> sorted = new ArrayList<ObjectDataDTO>(objectDtos);
+		Map<Long, ObjectDataDTO> deduplicated = objectDtos.stream().collect(
+				Collectors.toMap(ObjectDataDTO::getId, Function.identity(), (a, b) -> b)
+		);
+		
+		final List<ObjectDataDTO> sorted = new ArrayList<ObjectDataDTO>(deduplicated.values());
 		
 		Collections.sort(sorted);
 		

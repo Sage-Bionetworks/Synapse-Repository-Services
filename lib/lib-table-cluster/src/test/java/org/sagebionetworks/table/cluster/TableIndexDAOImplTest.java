@@ -1378,6 +1378,26 @@ public class TableIndexDAOImplTest {
 		
 		assertEquals(objectData, result);
 	}
+	
+	@Test
+	public void testEntityReplicationWithDuplicates() {
+		
+		Long objectId = 2L;
+		
+		// Creates two objects with the same id, but with different data
+		List<ObjectDataDTO> objectData = Arrays.asList(
+				createObjectDataDTO(objectId, EntityType.file, 2),
+				createObjectDataDTO(objectId, EntityType.file, 3)				
+		);
+		
+		// This should work, but only the latter should have been added
+		tableIndexDAO.addObjectData(objectType, objectData);
+		
+		ObjectDataDTO result = tableIndexDAO.getObjectData(ViewObjectType.ENTITY, objectId);
+		
+		assertEquals(objectData.get(1), result);
+		
+	}
 
 	@Test
 	public void testEntityReplication_maxStringLength(){
