@@ -541,4 +541,62 @@ public class TableStatusDAOImplTest {
 		Date endingChangedOne = tableStatusDAO.getLastChangedOn(tableIdWithVersion);
 		assertEquals(endingChangedOne, startingChangedOn);
 	}
+	
+	@Test
+	public void testGetLastChangeEtagWithNoEtag() throws InterruptedException {
+		tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion);
+		// no etag set for this case
+		// call under test
+		Optional<String> optional = tableStatusDAO.getLastChangeEtag(tableIdWithVersion);
+		assertNotNull(optional);
+		assertFalse(optional.isPresent());
+	}
+	
+	@Test
+	public void testGetLastChangeEtagWithVersion() throws InterruptedException {
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion);
+		String lastTableChangeEtag = UUID.randomUUID().toString();
+		// set the etag
+		tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdWithVersion, resetToken, lastTableChangeEtag);
+		// call under test
+		Optional<String> optional = tableStatusDAO.getLastChangeEtag(tableIdWithVersion);
+		assertNotNull(optional);
+		assertTrue(optional.isPresent());
+		assertEquals(lastTableChangeEtag, optional.get());
+	}
+	
+	@Test
+	public void testGetLastChangeEtagWithVersionWithDoesNotExist() throws InterruptedException {
+		// call under test
+		Optional<String> optional = tableStatusDAO.getLastChangeEtag(tableIdWithVersion);
+		assertNotNull(optional);
+		assertFalse(optional.isPresent());
+	}
+	
+	@Test
+	public void testGetLastChangeEtagWithNoVersion() throws InterruptedException {
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		String lastTableChangeEtag = UUID.randomUUID().toString();
+		tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdNoVersion, resetToken, lastTableChangeEtag);
+		// call under test
+		Optional<String> optional = tableStatusDAO.getLastChangeEtag(tableIdNoVersion);
+		assertNotNull(optional);
+		assertTrue(optional.isPresent());
+		assertEquals(lastTableChangeEtag, optional.get());
+	}
+	
+	@Test
+	public void testGetLastChangeEtagWithVersionWithNoVersion() throws InterruptedException {
+		// call under test
+		Optional<String> optional = tableStatusDAO.getLastChangeEtag(tableIdNoVersion);
+		assertNotNull(optional);
+		assertFalse(optional.isPresent());
+	}
+	
+	@Test
+	public void testGetLastChangeEtagWithNull() {
+		assertThrows(IllegalArgumentException.class, ()->{
+			tableStatusDAO.getLastChangeEtag(null);
+		});
+	}
 }

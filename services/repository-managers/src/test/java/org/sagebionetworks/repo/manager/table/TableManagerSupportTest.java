@@ -913,6 +913,43 @@ public class TableManagerSupportTest {
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
 	}
 	
+	@Test
+	public void testIsTableIndexStateInvalidWithNoEtag() {
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
+		when(mockTableStatusDAO.getLastChangeEtag(any())).thenReturn(Optional.empty());
+		// call under test
+		boolean result = manager.isTableIndexStateInvalid(idAndVersion);
+		assertFalse(result);
+		verify(mockTableStatusDAO).getLastChangeEtag(idAndVersion);
+		verify(mockTableTruthDao, never()).isEtagInTablesChangeHistory(any(), any());
+	}
+	
+	@Test
+	public void testIsTableIndexStateInvalidWithWrongEtag() {
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
+		String etag = "some-etag";
+		when(mockTableStatusDAO.getLastChangeEtag(any())).thenReturn(Optional.of(etag));
+		when(mockTableTruthDao.isEtagInTablesChangeHistory(any(), any())).thenReturn(false);
+		// call under test
+		boolean result = manager.isTableIndexStateInvalid(idAndVersion);
+		assertTrue(result);
+		verify(mockTableStatusDAO).getLastChangeEtag(idAndVersion);
+		verify(mockTableTruthDao).isEtagInTablesChangeHistory(idAndVersion.getId().toString(), etag);
+	}
+	
+	@Test
+	public void testIsTableIndexStateInvalidWithMatchinggEtag() {
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
+		String etag = "some-etag";
+		when(mockTableStatusDAO.getLastChangeEtag(any())).thenReturn(Optional.of(etag));
+		when(mockTableTruthDao.isEtagInTablesChangeHistory(any(), any())).thenReturn(true);
+		// call under test
+		boolean result = manager.isTableIndexStateInvalid(idAndVersion);
+		assertFalse(result);
+		verify(mockTableStatusDAO).getLastChangeEtag(idAndVersion);
+		verify(mockTableTruthDao).isEtagInTablesChangeHistory(idAndVersion.getId().toString(), etag);
+	}
+	
 	/**
 	 * Setup to create a column by returning the passed column.
 	 */

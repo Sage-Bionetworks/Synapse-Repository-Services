@@ -30,20 +30,18 @@ public interface TableManagerSupport {
 
 	/**
 	 * Get the status of a table. This method is guaranteed to return a table's
-	 * status if the table exists. Note: Calling this method can trigger a table
-	 * to update if the table's status is out-of-date for any reason. If an
-	 * update is triggered, the returned table status will be set to PROCESSING.
-	 * The returned table status will only be AVAIABLE if the table's index is
-	 * up-to-date (see PLFM-3383).
+	 * status if the table exists. Note: Calling this method can trigger a table to
+	 * update if the table's status is out-of-date for any reason. If an update is
+	 * triggered, the returned table status will be set to PROCESSING. The returned
+	 * table status will only be AVAIABLE if the table's index is up-to-date (see
+	 * PLFM-3383).
 	 * 
 	 * @param tableId
 	 * @return the status
-	 * @throws NotFoundException
-	 *             if the table does not exist
+	 * @throws NotFoundException if the table does not exist
 	 */
-	TableStatus getTableStatusOrCreateIfNotExists(IdAndVersion tableId)
-			throws NotFoundException;
-	
+	TableStatus getTableStatusOrCreateIfNotExists(IdAndVersion tableId) throws NotFoundException;
+
 	/**
 	 * Get the current state of the given table.
 	 * 
@@ -54,60 +52,60 @@ public interface TableManagerSupport {
 	Optional<TableState> getTableStatusState(IdAndVersion idAndVersion);
 
 	/**
-	 * Attempt to set the table status to AVIALABLE. The state will be changed
-	 * will be applied as long as the passed resetToken matches the current
-	 * restToken indicating all changes have been accounted for.
-	 * 
-	 * @param tableId
-	 * @param resetToken
-	 * @return
-	 * @throws ConflictingUpdateException
-	 *             Thrown when the passed restToken does not match the current
-	 *             resetToken. This indicates that the table was updated before
-	 *             processing finished so we cannot change the status to
-	 *             available until the new changes are accounted for.
-	 * @throws NotFoundException
-	 */
-	void attemptToSetTableStatusToAvailable(IdAndVersion tableId,
-			String resetToken, String tableChangeEtag)
-			throws ConflictingUpdateException, NotFoundException;
-
-	/**
-	 * Attempt to set the table status to FAILED. The state will be changed will
+	 * Attempt to set the table status to AVIALABLE. The state will be changed will
 	 * be applied as long as the passed resetToken matches the current restToken
 	 * indicating all changes have been accounted for.
 	 * 
 	 * @param tableId
+	 * @param resetToken
 	 * @return
-	 * @throws ConflictingUpdateException
-	 *             Thrown when the passed restToken does not match the current
-	 *             resetToken. This indicates that the table was updated before
-	 *             processing finished so we cannot change the status to
-	 *             available until the new changes are accounted for.
+	 * @throws ConflictingUpdateException Thrown when the passed restToken does not
+	 *                                    match the current resetToken. This
+	 *                                    indicates that the table was updated
+	 *                                    before processing finished so we cannot
+	 *                                    change the status to available until the
+	 *                                    new changes are accounted for.
+	 * @throws NotFoundException
+	 */
+	void attemptToSetTableStatusToAvailable(IdAndVersion tableId, String resetToken, String tableChangeEtag)
+			throws ConflictingUpdateException, NotFoundException;
+
+	/**
+	 * Attempt to set the table status to FAILED. The state will be changed will be
+	 * applied as long as the passed resetToken matches the current restToken
+	 * indicating all changes have been accounted for.
+	 * 
+	 * @param tableId
+	 * @return
+	 * @throws ConflictingUpdateException Thrown when the passed restToken does not
+	 *                                    match the current resetToken. This
+	 *                                    indicates that the table was updated
+	 *                                    before processing finished so we cannot
+	 *                                    change the status to available until the
+	 *                                    new changes are accounted for.
 	 * @throws NotFoundException
 	 */
 	void attemptToSetTableStatusToFailed(IdAndVersion tableId, Exception exception)
 			throws ConflictingUpdateException, NotFoundException;
 
 	/**
-	 * Attempt to update the progress of a table. Will fail if the passed
-	 * rest-token does not match the current reset-token indicating the table
-	 * change while it was being processed.
+	 * Attempt to update the progress of a table. Will fail if the passed rest-token
+	 * does not match the current reset-token indicating the table change while it
+	 * was being processed.
 	 * 
 	 * @param tableId
 	 * @param resetToken
 	 * @param progressMessage
 	 * @param currentProgress
 	 * @param totalProgress
-	 * @throws ConflictingUpdateException
-	 *             Thrown when the passed restToken does not match the current
-	 *             resetToken. This indicates that the table was updated before
-	 *             processing finished.
+	 * @throws ConflictingUpdateException Thrown when the passed restToken does not
+	 *                                    match the current resetToken. This
+	 *                                    indicates that the table was updated
+	 *                                    before processing finished.
 	 * @throws NotFoundException
 	 */
-	void attemptToUpdateTableProgress(IdAndVersion tableId, String resetToken,
-			String progressMessage, Long currentProgress, Long totalProgress)
-			throws ConflictingUpdateException, NotFoundException;
+	void attemptToUpdateTableProgress(IdAndVersion tableId, String resetToken, String progressMessage,
+			Long currentProgress, Long totalProgress) throws ConflictingUpdateException, NotFoundException;
 
 	/**
 	 * Called by the worker when it starts to process a table. This method will
@@ -158,9 +156,8 @@ public interface TableManagerSupport {
 	String getSchemaMD5Hex(IdAndVersion tableId);
 
 	/**
-	 * Get the version of the given table. This is can be different for each
-	 * table type. The value is used to indicate the current state of a table's
-	 * truth.
+	 * Get the version of the given table. This is can be different for each table
+	 * type. The value is used to indicate the current state of a table's truth.
 	 * 
 	 * @param tableId
 	 * @return
@@ -192,9 +189,9 @@ public interface TableManagerSupport {
 	Long getViewStateNumber(IdAndVersion table);
 
 	/**
-	 * Get the set of container ids (Projects and Folders) for a view's scope.
-	 * The resulting set will include the scope containers plus all folders
-	 * contained within each scope.
+	 * Get the set of container ids (Projects and Folders) for a view's scope. The
+	 * resulting set will include the scope containers plus all folders contained
+	 * within each scope.
 	 * 
 	 * All FileEntities within the the given view will have a parentId from the
 	 * returned set.
@@ -203,21 +200,21 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion, ViewScopeType scopeType);
-	
+
 	/**
-	 * Get the set of container ids (Projects and Folders) for a given set
-	 * of scope Ids. The resulting set will include the scope containers plus all folders
+	 * Get the set of container ids (Projects and Folders) for a given set of scope
+	 * Ids. The resulting set will include the scope containers plus all folders
 	 * contained within each scope.
 	 * 
 	 * All FileEntities within the the given view will have a parentId from the
 	 * returned set.
+	 * 
 	 * @param scope
 	 * @return
 	 */
 	Set<Long> getAllContainerIdsForScope(Set<Long> scope, ViewScopeType scopeType);
-	
-	Set<Long> getAllContainerIdsForReconciliation(IdAndVersion idAndVersion);
 
+	Set<Long> getAllContainerIdsForReconciliation(IdAndVersion idAndVersion);
 
 	/**
 	 * <p>
@@ -247,28 +244,27 @@ public interface TableManagerSupport {
 	 * @return
 	 * @throws Exception
 	 */
-	<R> R tryRunWithTableExclusiveLock(ProgressCallback callback,
-			IdAndVersion tableId, ProgressingCallable<R> runner)
+	<R> R tryRunWithTableExclusiveLock(ProgressCallback callback, IdAndVersion tableId, ProgressingCallable<R> runner)
 			throws Exception;
-	
+
 	/**
 	 * <p>
-	 * Attempt to acquire a non-exclusive lock on a table. If the lock is
-	 * acquired, the passed Callable will be run while holding lock. The lock
-	 * will automatically be release when the caller returns.
+	 * Attempt to acquire a non-exclusive lock on a table. If the lock is acquired,
+	 * the passed Callable will be run while holding lock. The lock will
+	 * automatically be release when the caller returns.
 	 * </p>
 	 * There are several possible conditions that can occur.
 	 * <ul>
 	 * <li>An exclusive lock has already been issued to another caller. A
 	 * LockUnavilableException will be thrown for this case.</li>
 	 * <li>One or more non-exclusive locks have been issued for this table. When
-	 * this occurs another new non-exclusive lock will be acquired and the
-	 * passed Callable will be run. There is no limit to the number of
-	 * non-exclusive locks that can be issued for a single table.</li>
+	 * this occurs another new non-exclusive lock will be acquired and the passed
+	 * Callable will be run. There is no limit to the number of non-exclusive locks
+	 * that can be issued for a single table.</li>
 	 * <li>Another caller has reserved the exclusive lock and is waiting for the
 	 * exclusive lock. A LockUnavilableException will be thrown for this case.</li>
-	 * <li>There are no outstanding locks on this table at all. A new
-	 * non-exclusive lock will be issue and the passed Callable will be run.</li>
+	 * <li>There are no outstanding locks on this table at all. A new non-exclusive
+	 * lock will be issue and the passed Callable will be run.</li>
 	 * </ul>
 	 * 
 	 * @param callback
@@ -277,20 +273,20 @@ public interface TableManagerSupport {
 	 * @return
 	 * @throws Exception
 	 */
-	<R> R tryRunWithTableNonexclusiveLock(
-			ProgressCallback callback, IdAndVersion tableId,
+	<R> R tryRunWithTableNonexclusiveLock(ProgressCallback callback, IdAndVersion tableId,
 			ProgressingCallable<R> runner) throws Exception;
-	
+
 	/**
-	 * @see TableManagerSupport#tryRunWithTableExclusiveLock(ProgressCallback, IdAndVersion, int, ProgressingCallable)
+	 * @see TableManagerSupport#tryRunWithTableExclusiveLock(ProgressCallback,
+	 *      IdAndVersion, int, ProgressingCallable)
 	 * @param callback
 	 * @param key
 	 * @param runner
 	 * @return
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	<R> R tryRunWithTableExclusiveLock(ProgressCallback callback, String key,
-			ProgressingCallable<R> runner) throws Exception;
+	<R> R tryRunWithTableExclusiveLock(ProgressCallback callback, String key, ProgressingCallable<R> runner)
+			throws Exception;
 
 	/**
 	 * Validate the user has read access to the given table.
@@ -317,8 +313,8 @@ public interface TableManagerSupport {
 			throws UnauthorizedException, DatastoreException, NotFoundException;
 
 	/**
-	 * Touch the table and update the etag, modifiedOn, and modifiedBy.
-	 * This will also lock the table.
+	 * Touch the table and update the etag, modifiedOn, and modifiedBy. This will
+	 * also lock the table.
 	 * 
 	 * @param user
 	 * @param tableId
@@ -327,8 +323,8 @@ public interface TableManagerSupport {
 	String touchTable(UserInfo user, String tableId);
 
 	/**
-	 * Given a set of benefactor Ids get the sub-set of benefactor IDs for which
-	 * the given user has read access.
+	 * Given a set of benefactor Ids get the sub-set of benefactor IDs for which the
+	 * given user has read access.
 	 * 
 	 * @param user
 	 * @param benefactorIds
@@ -337,7 +333,8 @@ public interface TableManagerSupport {
 	Set<Long> getAccessibleBenefactors(UserInfo user, ViewScopeType scopeType, Set<Long> benefactorIds);
 
 	/**
-	 * Get the default ColumnModels for a view based on the object type and the viewTypeMask.
+	 * Get the default ColumnModels for a view based on the object type and the
+	 * viewTypeMask.
 	 * 
 	 * @param scopeType
 	 * 
@@ -362,8 +359,8 @@ public interface TableManagerSupport {
 	ViewScopeType getViewScopeType(IdAndVersion viewId);
 
 	/**
-	 * Only Administrator can perform this action.
-	 * Trigger a table/ view to be rebuilt.
+	 * Only Administrator can perform this action. Trigger a table/ view to be
+	 * rebuilt.
 	 * 
 	 * @param userInfo
 	 * @param tableId
@@ -372,14 +369,16 @@ public interface TableManagerSupport {
 
 	/**
 	 * Validate that the given scope is within the size limit.
+	 * 
 	 * @param scopeIds
 	 * @param type
 	 */
 	void validateScope(ViewScopeType scopeType, Set<Long> scopeIds);
 
 	/**
-	 * Does the given table exist?  If the table is in the trash then this will
-	 * return true.  Will only return true if the table no longer exists.
+	 * Does the given table exist? If the table is in the trash then this will
+	 * return true. Will only return true if the table no longer exists.
+	 * 
 	 * @param tableId
 	 * @return
 	 */
@@ -388,13 +387,15 @@ public interface TableManagerSupport {
 	/**
 	 * Get the last change number for the given table ID and version pair.
 	 * 
-	 * @param idAndVersion Present if there is at least one change for the given pair.
+	 * @param idAndVersion Present if there is at least one change for the given
+	 *                     pair.
 	 * @return
 	 */
 	Optional<Long> getLastTableChangeNumber(IdAndVersion idAndVersion);
 
 	/**
 	 * Get the schema for the given id and version combination.
+	 * 
 	 * @param idAndVersion
 	 * @return
 	 */
@@ -412,9 +413,19 @@ public interface TableManagerSupport {
 
 	/**
 	 * Get table status last changed on date for the given table.
+	 * 
 	 * @param idAndVersion
 	 * @return
 	 */
 	Date getLastChangedOn(IdAndVersion idAndVersion);
+
+	/**
+	 * Is the state of the index for the given table invalid? An index is invalid if
+	 * changes have been applied to a table that no longer exist.
+	 * 
+	 * @param idAndVersion
+	 * @return
+	 */
+	boolean isTableIndexStateInvalid(IdAndVersion idAndVersion);
 
 }

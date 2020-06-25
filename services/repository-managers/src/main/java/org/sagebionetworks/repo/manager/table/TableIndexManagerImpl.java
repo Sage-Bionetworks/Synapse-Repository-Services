@@ -555,6 +555,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			final Iterator<TableChangeMetaData> iterator) throws RecoverableMessageException {
 		// Attempt to run with
 		try {
+			if(tableManagerSupport.isTableIndexStateInvalid(idAndVersion)) {
+				log.warn("Current table index is invalid and will be rebuilt from scratch for table: " + idAndVersion);
+				deleteTableIndex(idAndVersion);
+			}
+
 			// Only proceed if work is needed.
 			if (!tableManagerSupport.isIndexWorkRequired(idAndVersion)) {
 				log.info("Index already up-to-date for table: " + idAndVersion);
@@ -578,7 +583,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		} catch (InvalidStatusTokenException e) {
 			// PLFM-6069, invalid tokens should not cause the table state to be set to failed, but
 			// instead should be retried later.
-			log.warn("InvalidStatusTokenException occured for "+idAndVersion+", message will be returend to the queue");
+			log.warn("InvalidStatusTokenException occurred for "+idAndVersion+", message will be returned to the queue");
 			throw new RecoverableMessageException(e);
 		} catch (Exception e) {
 			// Any other error is a table failure.

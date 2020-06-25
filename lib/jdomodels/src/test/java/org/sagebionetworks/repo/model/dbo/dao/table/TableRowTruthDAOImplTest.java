@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.util.LinkedList;
@@ -507,5 +508,69 @@ public class TableRowTruthDAOImplTest {
 		assertNotNull(secondTransaction);
 		assertTrue(secondTransaction.isPresent());
 		assertTrue(secondTransaction.get() > firstTransaction.get());
+	}
+	
+	@Test
+	public void testIsEtagInTablesChangeHistoryWithNoTable() {
+		String etag = "does not exist";
+		// call under test
+		assertFalse(tableRowTruthDao.isEtagInTablesChangeHistory(tableId, etag));
+	}
+	
+	@Test
+	public void testIsEtagInTablesChangeHistoryWithTableWithMatch() throws IOException {
+		// Create some test column models
+		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createRows(columns, 5);
+		RawRowSet set = new RawRowSet(TableModelUtils.getIds(columns), null, tableId, rows);
+		// Append this change set
+		appendRowSetToTable(creatorUserGroupId, tableId, columns, set);
+	
+		TableChangeType changeType = TableChangeType.ROW;
+		TableRowChange change = tableRowTruthDao.getLastTableRowChange(tableId, changeType);
+		assertNotNull(change);
+		assertEquals(changeType, change.getChangeType());
+		
+		// call under test
+		assertTrue(tableRowTruthDao.isEtagInTablesChangeHistory(tableId, change.getEtag()));
+	}
+	
+	@Test
+	public void testIsEtagInTablesChangeHistoryWithTableWithNoMatch() throws IOException {
+		// Create some test column models
+		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createRows(columns, 5);
+		RawRowSet set = new RawRowSet(TableModelUtils.getIds(columns), null, tableId, rows);
+		// Append this change set
+		appendRowSetToTable(creatorUserGroupId, tableId, columns, set);
+	
+		TableChangeType changeType = TableChangeType.ROW;
+		TableRowChange change = tableRowTruthDao.getLastTableRowChange(tableId, changeType);
+		assertNotNull(change);
+		assertEquals(changeType, change.getChangeType());
+		
+		// call under test
+		assertFalse(tableRowTruthDao.isEtagInTablesChangeHistory(tableId, change.getEtag()+"no-match"));
+	}
+	
+	@Test
+	public void testIsEtagInTablesChangeHistoryWithNullTableId() throws IOException {
+		String tableId = null;
+		String etag = "some-etag";
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableRowTruthDao.isEtagInTablesChangeHistory(tableId, etag);
+		});
+	}
+	
+	@Test
+	public void testIsEtagInTablesChangeHistoryWithNullEtag() throws IOException {
+		String etag = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableRowTruthDao.isEtagInTablesChangeHistory(tableId, etag);
+		});
 	}
 }

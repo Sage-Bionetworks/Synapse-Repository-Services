@@ -70,6 +70,7 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
@@ -190,6 +191,9 @@ public class TableWorkerIntegrationTest {
 	
 	@Autowired
 	AsynchronousJobWorkerHelper asyncHelper;
+	
+	@Autowired
+	TableRowTruthDAO tableRowTruthDAO;
 
 	private UserInfo adminUserInfo;
 	private UserInfo anonymousUser;
@@ -2845,6 +2849,61 @@ public class TableWorkerIntegrationTest {
 		});
 	}
 	
+	/**
+	 * With PLFM-6305 the index of a table had a higher change number applied to it
+	 * than was available in the table's history. This likely occurred by modifying
+	 * the table on staging, followed by a migration event that removed the change.
+	 * Since the index last change number did not match the latest actual change
+	 * number, any query against the table triggered the worker to rebuild the
+	 * index. However, the rebuild did not detect the problem and set the index back
+	 * to available. The query then triggers the rebuild again, and the thrashing
+	 * continues with the query message remaining in the queue indefinitely.
+	 * @throws Exception 
+	 */
+	@Test
+	public void testPLFM_6305() throws Exception {
+		ColumnModel columnOne = new ColumnModel();
+		columnOne.setColumnType(ColumnType.INTEGER);
+		columnOne.setName("one");
+		columnOne = columnManager.createColumnModel(adminUserInfo, columnOne);
+		ColumnModel columnTwo = new ColumnModel();
+		columnTwo.setColumnType(ColumnType.STRING);
+		columnTwo.setMaximumSize(50L);
+		columnTwo.setName("two");
+		columnTwo = columnManager.createColumnModel(adminUserInfo, columnTwo);
+		schema = Lists.newArrayList(columnOne, columnTwo);
+		// build a table with this column.
+		createTableWithSchema();
+		// add one row to the table as the first change.
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "1", "foo")));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		// add a second row as the second change.
+		rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "2", "bar")));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		// wait for both rows to appear in the index.
+		query.setSql("select * from " + tableId);
+		waitForConsistentQuery(adminUserInfo, query, queryOptions, (queryResult) -> {
+			assertEquals(2, queryResult.getQueryResults().getRows().size());
+		});
+		// Simulate the migration event by deleting the second change from the table's history
+		long changeNumber = 2;
+		tableRowTruthDAO.deleteChangeNumber(tableId, changeNumber);
+		// at this point the table index must get rebuilt to repair
+		waitForConsistentQuery(adminUserInfo, query, queryOptions, (queryResult) -> {
+			List<Row> queryRows = queryResult.getQueryResults().getRows();
+			assertEquals(1, queryRows.size());
+			Row row = queryRows.get(0);
+			assertEquals("1", row.getValues().get(0));
+			assertEquals("foo", row.getValues().get(1));
+		});
+	}
+
 	/**
 	 * Create a string of the given size.
 	 * @param numberOfCharacters
