@@ -1407,6 +1407,28 @@ public class TableIndexManagerImplTest {
 		verify(mockManagerSupport).attemptToSetTableStatusToFailed(tableId, exception);
 	}
 	
+	@Test
+	public void testBuildTableIndexWithLockWithInvalidState() throws Exception {
+		List<TableChangeMetaData> list = setupMockChanges();
+		Iterator<TableChangeMetaData> iterator = list.iterator();
+		when(mockManagerSupport.isTableIndexStateInvalid(tableId)).thenReturn(true);
+		// call under test
+		managerSpy.buildTableIndexWithLock(mockCallback, tableId, iterator);
+		// when the state is invalid, the index must get deleted.
+		verify(managerSpy).deleteTableIndex(tableId);
+	}
+	
+	@Test
+	public void testBuildTableIndexWithLockWithValidState() throws Exception {
+		List<TableChangeMetaData> list = setupMockChanges();
+		Iterator<TableChangeMetaData> iterator = list.iterator();
+		when(mockManagerSupport.isTableIndexStateInvalid(tableId)).thenReturn(false);
+		// call under test
+		managerSpy.buildTableIndexWithLock(mockCallback, tableId, iterator);
+		// when the state is invalid, the index must get deleted.
+		verify(managerSpy, never()).deleteTableIndex(tableId);
+	}
+	
 	/**
 	 * The default schema does not contain any list columns.
 	 */

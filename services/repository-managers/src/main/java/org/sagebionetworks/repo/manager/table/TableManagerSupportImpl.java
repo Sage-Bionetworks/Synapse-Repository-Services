@@ -54,13 +54,13 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class TableManagerSupportImpl implements TableManagerSupport {
-	
-	public static final long TABLE_PROCESSING_TIMEOUT_MS = 1000*60*10; // 10 mins
-	
+
+	public static final long TABLE_PROCESSING_TIMEOUT_MS = 1000 * 60 * 10; // 10 mins
+
 	/**
 	 * Note: We raised this limit from 10K to 20K for PLFM-6287.
 	 */
-	public static final int MAX_CONTAINERS_PER_VIEW = 1000*20; // 20K;
+	public static final int MAX_CONTAINERS_PER_VIEW = 1000 * 20; // 20K;
 
 	@Autowired
 	private TableStatusDAO tableStatusDAO;
@@ -88,38 +88,40 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	private MetadataIndexProviderFactory metadataIndexProviderFactory;
 	@Autowired
 	private DefaultColumnModelMapper defaultColumnMapper;
-	
+
 	/*
 	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.TableRowManager#getTableStatusOrCreateIfNotExists(java.lang.String)
+	 * 
+	 * @see org.sagebionetworks.repo.manager.table.TableRowManager#
+	 * getTableStatusOrCreateIfNotExists(java.lang.String)
 	 */
 	@NewWriteTransaction
 	@Override
 	public TableStatus getTableStatusOrCreateIfNotExists(IdAndVersion idAndVersion) throws NotFoundException {
 		try {
 			TableStatus status = tableStatusDAO.getTableStatus(idAndVersion);
-			if(!TableState.AVAILABLE.equals(status.getState())){
+			if (!TableState.AVAILABLE.equals(status.getState())) {
 				// Processing or Failed.
 				// Is progress being made?
-				if(timeoutUtils.hasExpired(TABLE_PROCESSING_TIMEOUT_MS, status.getChangedOn().getTime())){
+				if (timeoutUtils.hasExpired(TABLE_PROCESSING_TIMEOUT_MS, status.getChangedOn().getTime())) {
 					// progress has not been made so trigger another update
 					return setTableToProcessingAndTriggerUpdate(idAndVersion);
-				}else{
+				} else {
 					// progress has been made so just return the status
 					return status;
 				}
 			}
 			// Status is Available, is the index synchronized with the truth?
-			if(isIndexSynchronizedWithTruth(idAndVersion)){
+			if (isIndexSynchronizedWithTruth(idAndVersion)) {
 				// Send an asynchronous signal that there was activity on this table/view
 				sendAsynchronousActivitySignal(idAndVersion);
 				// Available and synchronized.
 				return status;
-			}else{
+			} else {
 				// Available but not synchronized, so change the state to processing.
 				return setTableToProcessingAndTriggerUpdate(idAndVersion);
 			}
-			
+
 		} catch (NotFoundException e) {
 			// make sure the table exists
 			if (!isTableAvailable(idAndVersion)) {
@@ -128,23 +130,26 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			return setTableToProcessingAndTriggerUpdate(idAndVersion);
 		}
 	}
-	
+
 	public void sendAsynchronousActivitySignal(IdAndVersion idAndVersion) {
 		// lookup the table type.
 		ObjectType tableType = getTableType(idAndVersion);
-		
+
 		// Currently we only signal non-snapshot views.
-		if(ObjectType.ENTITY_VIEW.equals(tableType) && !idAndVersion.getVersion().isPresent()) {
+		if (ObjectType.ENTITY_VIEW.equals(tableType) && !idAndVersion.getVersion().isPresent()) {
 			// notify all listeners.
-			transactionalMessenger.sendMessageAfterCommit( new MessageToSend().withObjectId(idAndVersion.getId().toString())
-					.withObjectVersion(idAndVersion.getVersion().orElse(null))
-					.withObjectType(tableType).withChangeType(ChangeType.UPDATE));
+			transactionalMessenger
+					.sendMessageAfterCommit(new MessageToSend().withObjectId(idAndVersion.getId().toString())
+							.withObjectVersion(idAndVersion.getVersion().orElse(null)).withObjectType(tableType)
+							.withChangeType(ChangeType.UPDATE));
 		}
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#setTableToProcessingAndTriggerUpdate(java.lang.String)
+	 * 
+	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#
+	 * setTableToProcessingAndTriggerUpdate(java.lang.String)
 	 */
 	@WriteTransaction
 	@Override
@@ -152,22 +157,22 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
 		// lookup the table type.
 		ObjectType tableType = getTableType(idAndVersion);
-		// we get here, if the index for this table is not (yet?) being build. We need to kick off the
+		// we get here, if the index for this table is not (yet?) being build. We need
+		// to kick off the
 		// building of the index and report the table as unavailable
 		tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
 		// notify all listeners.
-		transactionalMessenger.sendMessageAfterCommit( new MessageToSend().withObjectId(idAndVersion.getId().toString())
-				.withObjectVersion(idAndVersion.getVersion().orElse(null))
-				.withObjectType(tableType).withChangeType(ChangeType.UPDATE));
+		transactionalMessenger.sendMessageAfterCommit(new MessageToSend().withObjectId(idAndVersion.getId().toString())
+				.withObjectVersion(idAndVersion.getVersion().orElse(null)).withObjectType(tableType)
+				.withChangeType(ChangeType.UPDATE));
 		// status should exist now
 		return tableStatusDAO.getTableStatus(idAndVersion);
 	}
 
 	@NewWriteTransaction
 	@Override
-	public void attemptToSetTableStatusToAvailable(IdAndVersion idAndVersion,
-			String resetToken, String tableChangeEtag) throws ConflictingUpdateException,
-			NotFoundException {
+	public void attemptToSetTableStatusToAvailable(IdAndVersion idAndVersion, String resetToken, String tableChangeEtag)
+			throws ConflictingUpdateException, NotFoundException {
 		tableStatusDAO.attemptToSetTableStatusToAvailable(idAndVersion, resetToken, tableChangeEtag);
 	}
 
@@ -184,15 +189,17 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 
 	@NewWriteTransaction
 	@Override
-	public void attemptToUpdateTableProgress(IdAndVersion idAndVersion, String resetToken,
-			String progressMessage, Long currentProgress, Long totalProgress)
-			throws ConflictingUpdateException, NotFoundException {
-		tableStatusDAO.attemptToUpdateTableProgress(idAndVersion, resetToken, progressMessage, currentProgress, totalProgress);
+	public void attemptToUpdateTableProgress(IdAndVersion idAndVersion, String resetToken, String progressMessage,
+			Long currentProgress, Long totalProgress) throws ConflictingUpdateException, NotFoundException {
+		tableStatusDAO.attemptToUpdateTableProgress(idAndVersion, resetToken, progressMessage, currentProgress,
+				totalProgress);
 	}
-	
+
 	/*
 	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.TableStatusManager#startTableProcessing(java.lang.String)
+	 * 
+	 * @see org.sagebionetworks.repo.manager.table.TableStatusManager#
+	 * startTableProcessing(java.lang.String)
 	 */
 	@NewWriteTransaction
 	@Override
@@ -202,7 +209,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.TableStatusManager#isIndexSynchronizedWithTruth(java.lang.String)
+	 * 
+	 * @see org.sagebionetworks.repo.manager.table.TableStatusManager#
+	 * isIndexSynchronizedWithTruth(java.lang.String)
 	 */
 	@Override
 	public boolean isIndexSynchronizedWithTruth(IdAndVersion idAndVersion) {
@@ -211,26 +220,30 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		// get the truth version
 		long truthLastVersion = getTableVersion(idAndVersion);
 		// compare the truth with the index.
-		return this.tableConnectionFactory.getConnection(idAndVersion).doesIndexStateMatch(idAndVersion, truthLastVersion, truthSchemaMD5Hex);
+		return this.tableConnectionFactory.getConnection(idAndVersion).doesIndexStateMatch(idAndVersion,
+				truthLastVersion, truthSchemaMD5Hex);
 	}
-	
+
 	/*
 	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.TableStatusManager#isIndexWorkRequired(java.lang.String)
+	 * 
+	 * @see
+	 * org.sagebionetworks.repo.manager.table.TableStatusManager#isIndexWorkRequired
+	 * (java.lang.String)
 	 */
 	@Override
 	public boolean isIndexWorkRequired(IdAndVersion idAndVersion) {
 		// Does the table exist and not in the trash?
-		if(!isTableAvailable(idAndVersion)){
+		if (!isTableAvailable(idAndVersion)) {
 			return false;
 		}
 		// work is needed if the index is out-of-sych.
-		if(!isIndexSynchronizedWithTruth(idAndVersion)){
+		if (!isIndexSynchronizedWithTruth(idAndVersion)) {
 			return true;
 		}
 		// work is needed if the current state is processing.
 		Optional<TableState> optional = tableStatusDAO.getTableStatusState(idAndVersion);
-		if(!optional.isPresent()) {
+		if (!optional.isPresent()) {
 			// there is no state for this table so work is required.
 			return true;
 		}
@@ -239,57 +252,71 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.TableStatusManager#setTableDeleted(java.lang.String)
+	 * 
+	 * @see
+	 * org.sagebionetworks.repo.manager.table.TableStatusManager#setTableDeleted(
+	 * java.lang.String)
 	 */
 	@Override
 	public void setTableDeleted(IdAndVersion idAndVersion, ObjectType tableType) {
 		transactionalMessenger.sendDeleteMessageAfterCommit(idAndVersion.getId().toString(), tableType);
 	}
-	
+
 	/*
 	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#getSchemaMD5Hex(java.lang.String)
+	 * 
+	 * @see
+	 * org.sagebionetworks.repo.manager.table.TableManagerSupport#getSchemaMD5Hex(
+	 * java.lang.String)
 	 */
 	@Override
 	public String getSchemaMD5Hex(IdAndVersion idAndVersion) {
 		List<String> columnIds = columnModelManager.getColumnIdsForTable(idAndVersion);
 		return TableModelUtils.createSchemaMD5Hex(columnIds);
 	}
-	
+
 	@Override
 	public Optional<Long> getLastTableChangeNumber(IdAndVersion idAndVersion) {
-		if(idAndVersion.getVersion().isPresent()) {
+		if (idAndVersion.getVersion().isPresent()) {
 			return this.tableTruthDao.getLastTableChangeNumber(idAndVersion.getId(), idAndVersion.getVersion().get());
-		}else {
+		} else {
 			return this.tableTruthDao.getLastTableChangeNumber(idAndVersion.getId());
 		}
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#isTableAvailable(java.lang.String)
+	 * 
+	 * @see
+	 * org.sagebionetworks.repo.manager.table.TableManagerSupport#isTableAvailable(
+	 * java.lang.String)
 	 */
 	@Override
 	public boolean isTableAvailable(IdAndVersion idAndVersion) {
 		return nodeDao.isNodeAvailable(idAndVersion.getId());
 	}
-	
+
 	@Override
 	public boolean doesTableExist(IdAndVersion idAndVersion) {
 		return nodeDao.doesNodeExist(idAndVersion.getId());
 	}
+
 	/*
 	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#getTableType(java.lang.String)
+	 * 
+	 * @see
+	 * org.sagebionetworks.repo.manager.table.TableManagerSupport#getTableType(java.
+	 * lang.String)
 	 */
 	@Override
 	public ObjectType getTableType(IdAndVersion idAndVersion) {
 		EntityType type = getTableEntityType(idAndVersion);
 		return getObjectTypeForEntityType(type);
 	}
-	
+
 	/**
 	 * Convert an EntityType to an Object.
+	 * 
 	 * @param type
 	 * @return
 	 */
@@ -301,26 +328,27 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		}
 		throw new IllegalArgumentException("unknown table type: " + type);
 	}
-	
-	
+
 	@Override
 	public Long getViewStateNumber(IdAndVersion idAndVersion) {
-		if(idAndVersion.getVersion().isPresent()) {
+		if (idAndVersion.getVersion().isPresent()) {
 			// The ID of the snapshot is used for this case.
 			return viewSnapshotDao.getSnapshotId(idAndVersion);
-		}else {
+		} else {
 			/*
-			 * By returning the version already associated with the view index,
-			 * we ensure this call will not trigger a view to be rebuilt.
+			 * By returning the version already associated with the view index, we ensure
+			 * this call will not trigger a view to be rebuilt.
 			 */
 			TableIndexDAO indexDao = this.tableConnectionFactory.getConnection(idAndVersion);
 			return indexDao.getMaxCurrentCompleteVersionForTable(idAndVersion);
 		}
 	}
-	
+
 	/*
 	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.TableViewTruthManager#getAllContainerIdsForViewScope(java.lang.String)
+	 * 
+	 * @see org.sagebionetworks.repo.manager.table.TableViewTruthManager#
+	 * getAllContainerIdsForViewScope(java.lang.String)
 	 */
 	@Override
 	public Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion, ViewScopeType scopeType) {
@@ -329,47 +357,49 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		Set<Long> scope = viewScopeDao.getViewScope(idAndVersion.getId());
 		return getAllContainerIdsForScope(scope, scopeType);
 	}
-	
+
 	@Override
 	public Set<Long> getAllContainerIdsForReconciliation(IdAndVersion idAndVersion) {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
-		
+
 		Long viewId = idAndVersion.getId();
-		
+
 		ViewScopeType scopeType = viewScopeDao.getViewScopeType(viewId);
 		Set<Long> scope = viewScopeDao.getViewScope(viewId);
-		
+
 		return getContainerIds(scope, scopeType, true);
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#getAllContainerIdsForScope(java.util.Set)
+	 * 
+	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#
+	 * getAllContainerIdsForScope(java.util.Set)
 	 */
 	@Override
 	public Set<Long> getAllContainerIdsForScope(Set<Long> scope, ViewScopeType scopeType) {
 		return getContainerIds(scope, scopeType, false);
 	}
-	
+
 	private Set<Long> getContainerIds(Set<Long> scope, ViewScopeType scopeType, boolean forReconciliation) {
 		ValidateArgument.required(scope, "scope");
 		ValidateArgument.required(scopeType, "scopeType");
-		
+
 		if (scope.isEmpty()) {
 			return Collections.emptySet();
 		}
-		
+
 		ViewObjectType objectType = scopeType.getObjectType();
 		Long viewTypeMask = scopeType.getTypeMask();
-	
+
 		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(objectType);
-		
+
 		// Validate the given scope is under the limit.
-		if(scope.size() > MAX_CONTAINERS_PER_VIEW) {
+		if (scope.size() > MAX_CONTAINERS_PER_VIEW) {
 			String errorMessage = provider.createViewOverLimitMessage(viewTypeMask, MAX_CONTAINERS_PER_VIEW);
 			throw new IllegalArgumentException(errorMessage);
 		}
-		
+
 		try {
 			if (forReconciliation) {
 				return provider.getContainerIdsForReconciliation(scope, viewTypeMask, MAX_CONTAINERS_PER_VIEW);
@@ -382,10 +412,13 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			throw new IllegalArgumentException(errorMessage);
 		}
 	}
-	
+
 	/*
 	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#getTableVersion(java.lang.String)
+	 * 
+	 * @see
+	 * org.sagebionetworks.repo.manager.table.TableManagerSupport#getTableVersion(
+	 * java.lang.String)
 	 */
 	@Override
 	public long getTableVersion(IdAndVersion idAndVersion) {
@@ -402,38 +435,36 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			throw new IllegalArgumentException("unknown table type: " + type);
 		}
 	}
-	
+
 	@Override
-	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback,
-			IdAndVersion tableId, ProgressingCallable<R> callable)
-			throws Exception {
+	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback, IdAndVersion tableId,
+			ProgressingCallable<R> callable) throws Exception {
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.
 		return writeReadSemaphoreRunner.tryRunWithWriteLock(callback, key, callable);
 	}
-	
+
 	@Override
-	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback, String key,
-			ProgressingCallable<R> runner) throws Exception {
+	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback, String key, ProgressingCallable<R> runner)
+			throws Exception {
 		// The semaphore runner does all of the lock work.
 		return writeReadSemaphoreRunner.tryRunWithWriteLock(callback, key, runner);
 	}
 
 	@Override
-	public <R> R tryRunWithTableNonexclusiveLock(
-			ProgressCallback callback, IdAndVersion tableId,
-			ProgressingCallable<R> callable) throws Exception
-			{
+	public <R> R tryRunWithTableNonexclusiveLock(ProgressCallback callback, IdAndVersion tableId,
+			ProgressingCallable<R> callable) throws Exception {
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.
 		return writeReadSemaphoreRunner.tryRunWithReadLock(callback, key, callable);
 	}
-	
+
 	@Override
 	public EntityType validateTableReadAccess(UserInfo userInfo, IdAndVersion idAndVersion)
 			throws UnauthorizedException, DatastoreException, NotFoundException {
 		// They must have read permission to access table content.
-		authorizationManager.canAccess(userInfo, idAndVersion.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		authorizationManager.canAccess(userInfo, idAndVersion.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.READ)
+				.checkAuthorizationOrElseThrow();
 
 		// Lookup the entity type for this table.
 		EntityType entityTpe = getTableEntityType(idAndVersion);
@@ -441,11 +472,13 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		// User must have the download permission to read from a TableEntity.
 		if (ObjectType.TABLE.equals(type)) {
 			// And they must have download permission to access table content.
-			authorizationManager.canAccess(userInfo, idAndVersion.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).checkAuthorizationOrElseThrow();
+			authorizationManager
+					.canAccess(userInfo, idAndVersion.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)
+					.checkAuthorizationOrElseThrow();
 		}
 		return entityTpe;
 	}
-	
+
 	@Override
 	public void validateTableWriteAccess(UserInfo userInfo, IdAndVersion idAndVersion)
 			throws UnauthorizedException, DatastoreException, NotFoundException {
@@ -459,10 +492,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 
 	@Override
 	public Set<Long> getAccessibleBenefactors(UserInfo user, ViewScopeType scopeType, Set<Long> benefactorIds) {
-		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(scopeType.getObjectType());
-		
+		MetadataIndexProvider provider = metadataIndexProviderFactory
+				.getMetadataIndexProvider(scopeType.getObjectType());
+
 		ObjectType benefactorType = provider.getBenefactorObjectType();
-		
+
 		return authorizationManager.getAccessibleBenefactors(user, benefactorType, benefactorIds);
 	}
 
@@ -470,25 +504,25 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public EntityType getTableEntityType(IdAndVersion idAndVersion) {
 		return nodeDao.getNodeTypeById(idAndVersion.getId().toString());
 	}
-	
+
 	@Override
-	public ViewScopeType getViewScopeType(IdAndVersion idAndVersion){
+	public ViewScopeType getViewScopeType(IdAndVersion idAndVersion) {
 		return viewScopeDao.getViewScopeType(idAndVersion.getId());
 	}
 
 	@Override
-	public List<ColumnModel> getDefaultTableViewColumns(ViewEntityType viewEntityType, Long viewTypeMask) {				
+	public List<ColumnModel> getDefaultTableViewColumns(ViewEntityType viewEntityType, Long viewTypeMask) {
 		if (viewEntityType == null) {
 			// To avoid breaking API changes we fallback to ENTITY
 			viewEntityType = ViewEntityType.entityview;
 		}
-		
+
 		ViewObjectType objectType = ViewObjectType.map(viewEntityType);
-		
+
 		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(objectType);
-		
+
 		DefaultColumnModel defaultColumns = provider.getDefaultColumnModel(viewTypeMask);
-		
+
 		return defaultColumnMapper.map(defaultColumns);
 	}
 
@@ -514,14 +548,14 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public void validateScope(ViewScopeType scopeType, Set<Long> scopeIds) {
 		ValidateArgument.required(scopeType, "scopeType");
 		ValidateArgument.required(scopeType.getObjectType(), "scopeType.objectType");
-		
+
 		ViewObjectType objectType = scopeType.getObjectType();
-		
+
 		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(objectType);
-		
+
 		provider.validateTypeMask(scopeType.getTypeMask());
-		
-		if(scopeIds != null && !scopeIds.isEmpty()) {
+
+		if (scopeIds != null && !scopeIds.isEmpty()) {
 			// Validation is built into getAllContainerIdsForScope() call
 			getAllContainerIdsForScope(scopeIds, scopeType);
 		}
@@ -543,15 +577,27 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public Optional<TableState> getTableStatusState(IdAndVersion idAndVersion) throws NotFoundException {
 		return tableStatusDAO.getTableStatusState(idAndVersion);
 	}
-	
+
 	@Override
 	public boolean updateChangedOnIfAvailable(IdAndVersion idAndVersion) {
 		return tableStatusDAO.updateChangedOnIfAvailable(idAndVersion);
 	}
-	
+
 	@Override
 	public Date getLastChangedOn(IdAndVersion idAndVersion) {
 		return tableStatusDAO.getLastChangedOn(idAndVersion);
+	}
+
+	@Override
+	public boolean isTableIndexStateInvalid(IdAndVersion idAndVersion) {
+		Optional<String> lastChangeEtag = tableStatusDAO.getLastChangeEtag(idAndVersion);
+		if (!lastChangeEtag.isPresent()) {
+			// since there is no status for this table it is not in an invalid state.
+			return false;
+		}
+		// The table is in an invalid state if the last applied change etag does not
+		// match any of the change etags in the tables history.
+		return !tableTruthDao.isEtagInTablesChangeHistory(idAndVersion.getId().toString(), lastChangeEtag.get());
 	}
 
 }

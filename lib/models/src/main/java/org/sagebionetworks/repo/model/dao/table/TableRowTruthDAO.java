@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -193,5 +194,21 @@ public interface TableRowTruthDAO {
 	 * @return
 	 */
 	public boolean hasAtLeastOneChangeOfType(String tableId, TableChangeType type);
+	
+	/**
+	 * Delete a specific change number from a table.
+	 * @param tableId
+	 * @param changeNumber
+	 */
+	public void deleteChangeNumber(String tableId, long changeNumber);
+
+	/**
+	 * Does the given table change etag match any change in the table's history?
+	 * 
+	 * @param tableId
+	 * @param etag
+	 * @return
+	 */
+	public boolean isEtagInTablesChangeHistory(String tableId, String etag);
 	
 }
