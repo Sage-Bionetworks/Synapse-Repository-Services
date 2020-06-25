@@ -1347,6 +1347,37 @@ public class TableIndexDAOImplTest {
 		fetched = tableIndexDAO.getObjectData(objectType, 3L);
 		assertEquals(file, fetched);
 	}
+	
+	/**
+	 * Test for PLFM-6306: The index failed to replicate because the insert was not handling duplicates. When replicating
+	 * we first delete and then insert but with concurrent inserts and with no data it could lead to a race condition where
+	 * a second thread that wasn't blocked by the first delete (since nothing needed to be deleted) tries to insert the same 
+	 * record. The solution is to allow updating on duplicate.
+	 */
+	@Test
+	public void testEntityReplicationWithUpdate(){
+		
+		ObjectDataDTO objectData = createObjectDataDTO(2L, EntityType.file, 2);
+		
+		// Add the data to the index once
+		tableIndexDAO.addObjectData(objectType, Collections.singletonList(objectData));
+		
+		ObjectDataDTO result = tableIndexDAO.getObjectData(ViewObjectType.ENTITY, objectData.getId());
+	
+		assertEquals(objectData, result);
+		
+		// Update the data
+		objectData.setEtag(objectData.getEtag() + "_updated");
+		objectData.getAnnotations().get(0).setValue("updated_annotation");
+		
+		// Re-adding to the index should simply update the object without throwing
+		tableIndexDAO.addObjectData(objectType, Collections.singletonList(objectData));
+		
+		// Makes sure the data was updated
+		result = tableIndexDAO.getObjectData(ViewObjectType.ENTITY, objectData.getId());
+		
+		assertEquals(objectData, result);
+	}
 
 	@Test
 	public void testEntityReplication_maxStringLength(){
