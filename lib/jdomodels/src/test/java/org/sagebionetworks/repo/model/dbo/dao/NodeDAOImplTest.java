@@ -3276,7 +3276,14 @@ public class NodeDAOImplTest {
 		String result = NodeDAOImpl.getFragmentSortColumn(sortBy);
 		assertEquals(NodeDAOImpl.N_CREATED_ON, result);
 	}
-	
+
+	@Test
+	public void testGetFragmentSortColumnModifiedOn() {
+		SortBy sortBy = SortBy.MODIFIED_ON;
+		String result = NodeDAOImpl.getFragmentSortColumn(sortBy);
+		assertEquals(NodeDAOImpl.N_MODIFIED_ON, result);
+	}
+
 	@Test
 	public void testGetFragmentSortColumnNull(){
 		SortBy sortBy = null;

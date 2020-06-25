@@ -29,6 +29,10 @@
 				{
 					"name": "CREATED_ON",
 					"description": "TODO: Auto-generated description"
+				},
+				{
+					"name": "MODIFIED_ON",
+					"description": "TODO: Auto-generated description"
 				}
 			]
 		},
