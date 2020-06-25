@@ -101,7 +101,7 @@ public class ITOpenIDConnectTest {
 	}
 
 	@BeforeEach
-	public static void beforeEach() throws Exception {
+	public void beforeEach() throws Exception {
 		// Make expected claims match the constant string
 		expectedClaimsRequest = new OIDCClaimsRequest();
 
