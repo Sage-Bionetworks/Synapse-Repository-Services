@@ -57,6 +57,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
@@ -732,60 +733,101 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void addObjectData(ViewObjectType objectType, List<ObjectDataDTO> objectDtos) {
-		final List<ObjectDataDTO> sorted = new ArrayList<ObjectDataDTO>(objectDtos);
+		
+		Map<Long, ObjectDataDTO> deduplicated = objectDtos.stream().collect(
+				Collectors.toMap(ObjectDataDTO::getId, Function.identity(), (a, b) -> b)
+		);
+		
+		final List<ObjectDataDTO> sorted = new ArrayList<ObjectDataDTO>(deduplicated.values());
+		
 		Collections.sort(sorted);
+		
 		// batch update the object replication table
-		template.batchUpdate(TableConstants.OBJECT_REPLICATION_INSERT, new BatchPreparedStatementSetter(){
+		template.batchUpdate(TableConstants.OBJECT_REPLICATION_INSERT_OR_UPDATE, new BatchPreparedStatementSetter(){
 
 			@Override
 			public void setValues(PreparedStatement ps, int i)
 					throws SQLException {
 				ObjectDataDTO dto = sorted.get(i);
 				int parameterIndex = 1;
+				int updateOffset = 14;
+				
 				ps.setString(parameterIndex++, objectType.name());
 				ps.setLong(parameterIndex++, dto.getId());
+				
 				ps.setLong(parameterIndex++, dto.getCurrentVersion());
+				ps.setLong(parameterIndex + updateOffset, dto.getCurrentVersion());
+				
 				ps.setLong(parameterIndex++, dto.getCreatedBy());
+				ps.setLong(parameterIndex + updateOffset, dto.getCreatedBy());
+				
 				ps.setLong(parameterIndex++, dto.getCreatedOn().getTime());
+				ps.setLong(parameterIndex + updateOffset, dto.getCreatedOn().getTime());
+				
 				ps.setString(parameterIndex++, dto.getEtag());
+				ps.setString(parameterIndex + updateOffset, dto.getEtag());
+				
 				ps.setString(parameterIndex++, dto.getName());
+				ps.setString(parameterIndex + updateOffset, dto.getName());
+				
 				ps.setString(parameterIndex++, dto.getSubType());
+				ps.setString(parameterIndex + updateOffset, dto.getSubType());
+				
 				if(dto.getParentId() != null){
 					ps.setLong(parameterIndex++, dto.getParentId());
+					ps.setLong(parameterIndex + updateOffset, dto.getParentId());
 				}else{
 					ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
+					ps.setNull(parameterIndex + updateOffset, java.sql.Types.BIGINT);
 				}
 				if(dto.getBenefactorId() != null){
 					ps.setLong(parameterIndex++, dto.getBenefactorId());
+					ps.setLong(parameterIndex + updateOffset, dto.getBenefactorId());
 				}else{
 					ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
+					ps.setNull(parameterIndex + updateOffset, java.sql.Types.BIGINT);
 				}
 				if(dto.getProjectId() != null){
 					ps.setLong(parameterIndex++, dto.getProjectId());
+					ps.setLong(parameterIndex + updateOffset, dto.getProjectId());
 				}else{
 					ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
+					ps.setNull(parameterIndex + updateOffset, java.sql.Types.BIGINT);
 				}
+				
 				ps.setLong(parameterIndex++, dto.getModifiedBy());
+				ps.setLong(parameterIndex + updateOffset, dto.getModifiedBy());
+				
 				ps.setLong(parameterIndex++, dto.getModifiedOn().getTime());
+				ps.setLong(parameterIndex + updateOffset, dto.getModifiedOn().getTime());
+				
 				if(dto.getFileHandleId() != null){
 					ps.setLong(parameterIndex++, dto.getFileHandleId());
+					ps.setLong(parameterIndex + updateOffset, dto.getFileHandleId());
 				}else{
 					ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
+					ps.setNull(parameterIndex + updateOffset, java.sql.Types.BIGINT);
 				}
 				if(dto.getFileSizeBytes() != null) {
 					ps.setLong(parameterIndex++, dto.getFileSizeBytes());
+					ps.setLong(parameterIndex + updateOffset, dto.getFileSizeBytes());
 				}else{
 					ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
+					ps.setNull(parameterIndex + updateOffset, java.sql.Types.BIGINT);
 				}
 				if(dto.getIsInSynapseStorage() != null) {
 					ps.setBoolean(parameterIndex++, dto.getIsInSynapseStorage());
+					ps.setBoolean(parameterIndex + updateOffset, dto.getIsInSynapseStorage());
 				}else{
 					ps.setNull(parameterIndex++, java.sql.Types.BOOLEAN);
+					ps.setNull(parameterIndex + updateOffset, java.sql.Types.BOOLEAN);
 				}
 				if(dto.getFileMD5() != null) {
 					ps.setString(parameterIndex++, dto.getFileMD5());
+					ps.setString(parameterIndex + updateOffset, dto.getFileMD5());
 				}else {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					ps.setNull(parameterIndex + updateOffset, java.sql.Types.VARCHAR);
 				}
 			}
 
@@ -803,7 +845,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			}
 		}
 		// update the annotations
-		template.batchUpdate(TableConstants.ANNOTATION_REPLICATION_INSERT, new BatchPreparedStatementSetter(){
+		template.batchUpdate(TableConstants.ANNOTATION_REPLICATION_INSERT_OR_UPDATE, new BatchPreparedStatementSetter(){
 
 			@Override
 			public void setValues(PreparedStatement ps, int i)

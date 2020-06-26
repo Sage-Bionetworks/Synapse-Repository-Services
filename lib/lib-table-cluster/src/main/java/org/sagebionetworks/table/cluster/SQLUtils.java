@@ -1781,15 +1781,20 @@ public class SQLUtils {
 	 */
 	public static void writeAnnotationDtoToPreparedStatement(ViewObjectType objectType, PreparedStatement ps, ObjectAnnotationDTO dto) throws SQLException{
 		int parameterIndex = 1;
+		int updateOffset = 9;
+		
 		ps.setString(parameterIndex++, objectType.name());
 		ps.setLong(parameterIndex++, dto.getObjectId());
 		ps.setString(parameterIndex++, dto.getKey());
 		ps.setString(parameterIndex++, dto.getType().name());
+		
 		List<String> stringList = dto.getValue();
 
 		String stringValue = stringList.isEmpty() ? null : stringList.get(0);
 
 		ps.setString(parameterIndex++, stringValue);
+		ps.setString(parameterIndex + updateOffset, stringValue);
+		
 		// Handle longs
 		AllLongTypeParser longParser = new AllLongTypeParser();
 		List<Long> longList = new ArrayList<>(stringList.size());
@@ -1805,8 +1810,10 @@ public class SQLUtils {
 		Long longValue = longList == null || longList.isEmpty() ? null : longList.get(0);
 		if(longValue == null){
 			ps.setNull(parameterIndex++, Types.BIGINT);
+			ps.setNull(parameterIndex + updateOffset, Types.BIGINT);
 		}else{
 			ps.setLong(parameterIndex++, longValue);
+			ps.setLong(parameterIndex + updateOffset, longValue);
 		}
 
 
@@ -1832,14 +1839,18 @@ public class SQLUtils {
 		}
 		if(doubleValue == null){
 			ps.setNull(parameterIndex++, Types.DOUBLE);
+			ps.setNull(parameterIndex + updateOffset, Types.DOUBLE);
 		}else{
 			ps.setDouble(parameterIndex++, doubleValue);
+			ps.setDouble(parameterIndex + updateOffset, doubleValue);
 		}
 		// Handle abstract doubles
 		if(abstractDoubleType == null){
 			ps.setNull(parameterIndex++, Types.VARCHAR);
+			ps.setNull(parameterIndex + updateOffset, Types.VARCHAR);
 		}else{
 			ps.setString(parameterIndex++, abstractDoubleType.getEnumerationValue());
+			ps.setString(parameterIndex + updateOffset, abstractDoubleType.getEnumerationValue());
 		}
 		// Handle booleans
 		List<Boolean> booleanList = new ArrayList<>(stringList.size());
@@ -1856,22 +1867,34 @@ public class SQLUtils {
 		Boolean booleanValue = booleanList == null || booleanList.isEmpty() ? null : booleanList.get(0);
 		if(booleanValue == null){
 			ps.setNull(parameterIndex++, Types.BOOLEAN);
+			ps.setNull(parameterIndex + updateOffset, Types.BOOLEAN);
 		}else{
 			ps.setBoolean(parameterIndex++, booleanValue);
+			ps.setBoolean(parameterIndex + updateOffset, booleanValue);
 		}
 
-		ps.setString(parameterIndex++, stringList == null ? null : new JSONArray(stringList).toString());
-		ps.setString(parameterIndex++, longList == null ? null : new JSONArray(longList).toString());
-		//doubles need extra conversion:
-		ps.setString(parameterIndex++, booleanList == null ? null : new JSONArray(booleanList).toString());
-
+		String stringListValue = stringList == null ? null : new JSONArray(stringList).toString();
+		ps.setString(parameterIndex++, stringListValue);
+		ps.setString(parameterIndex + updateOffset, stringListValue);
+		
+		String longListValue = longList == null ? null : new JSONArray(longList).toString();
+		ps.setString(parameterIndex++, longListValue);
+		ps.setString(parameterIndex + updateOffset, longListValue);
+		
+		String booleanListValue = booleanList == null ? null : new JSONArray(booleanList).toString();
+		ps.setString(parameterIndex++, booleanListValue);
+		ps.setString(parameterIndex + updateOffset, booleanListValue);
 
 		Integer maxElementStringSize = stringList.stream()
 				.map(String::length)
 				.max(Integer::compareTo)
 				.orElse(0);
+		
 		ps.setLong(parameterIndex++, maxElementStringSize);
+		ps.setLong(parameterIndex + updateOffset, maxElementStringSize);
+		
 		ps.setLong(parameterIndex++, stringList.size());
+		ps.setLong(parameterIndex + updateOffset, stringList.size());
 	}
 
 	/**
