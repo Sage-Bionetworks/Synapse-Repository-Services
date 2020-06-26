@@ -537,6 +537,26 @@ public class TableRowTruthDAOImplTest {
 	}
 	
 	@Test
+	public void testIsEtagInTablesChangeHistoryWithTableWithMatchNotLatest() throws IOException {
+		// Create some test column models
+		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createRows(columns, 5);
+		RawRowSet set = new RawRowSet(TableModelUtils.getIds(columns), null, tableId, rows);
+		// Append this change set
+		appendRowSetToTable(creatorUserGroupId, tableId, columns, set);
+	
+		TableChangeType changeType = TableChangeType.ROW;
+		TableRowChange firstChange = tableRowTruthDao.getLastTableRowChange(tableId, changeType);
+		
+		// Append another change
+		appendRowSetToTable(creatorUserGroupId, tableId, columns, set);
+		
+		// call under test
+		assertTrue(tableRowTruthDao.isEtagInTablesChangeHistory(tableId, firstChange.getEtag()));
+	}
+	
+	@Test
 	public void testIsEtagInTablesChangeHistoryWithTableWithNoMatch() throws IOException {
 		// Create some test column models
 		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();

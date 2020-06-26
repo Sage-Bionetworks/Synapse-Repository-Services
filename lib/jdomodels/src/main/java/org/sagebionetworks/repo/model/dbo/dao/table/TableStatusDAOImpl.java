@@ -277,11 +277,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		try {
 			String sql = String.format(SELECT_STATUS_TEMPLATE, COL_TABLE_LAST_TABLE_CHANGE_ETAG);
 			String etag = jdbcTemplate.queryForObject(sql, String.class, tableId.getId(), version);
-			if (etag != null) {
-				return Optional.of(etag);
-			} else {
-				return Optional.empty();
-			}
+			return Optional.ofNullable(etag);
 		} catch (EmptyResultDataAccessException e) {
 			return Optional.empty();
 		}
