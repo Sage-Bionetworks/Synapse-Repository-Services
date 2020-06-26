@@ -1,5 +1,6 @@
 package org.sagebionetworks;
 
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
@@ -32,6 +33,9 @@ import org.sagebionetworks.util.ContentDispositionUtils;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class ITStsTest {
 	private static SynapseAdminClient adminSynapse;
@@ -103,12 +107,23 @@ public class ITStsTest {
 		String baseKey = "integration-test/ITStsTest-" + UUID.randomUUID().toString();
 		byte[] bytes = username.getBytes(StandardCharsets.UTF_8);
 
-		ObjectMetadata om = new ObjectMetadata();
-		om.setContentType("text/plain");
-		om.setContentEncoding("UTF-8");
-		om.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(baseKey));
-		om.setContentLength(bytes.length);
-		synapseS3Client.putObject(externalS3Bucket, baseKey + "/owner.txt", new ByteArrayInputStream(bytes), om);
+		ObjectMetadata ownerTxtMetadata = new ObjectMetadata();
+		ownerTxtMetadata.setContentType("text/plain");
+		ownerTxtMetadata.setContentEncoding("UTF-8");
+		ownerTxtMetadata.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(baseKey));
+		ownerTxtMetadata.setContentLength(bytes.length);
+		synapseS3Client.putObject(externalS3Bucket, baseKey + "/owner.txt",
+				new ByteArrayInputStream(bytes), ownerTxtMetadata);
+
+		// Create another file, to test reading using STS credentials.
+		byte[] fileTxtContent = "Dummy content".getBytes(StandardCharsets.UTF_8);
+		ObjectMetadata fileTxtMetadata = new ObjectMetadata();
+		fileTxtMetadata.setContentType("text/plain");
+		fileTxtMetadata.setContentEncoding("UTF-8");
+		fileTxtMetadata.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(baseKey));
+		fileTxtMetadata.setContentLength(fileTxtContent.length);
+		synapseS3Client.putObject(externalS3Bucket, baseKey + "/file.txt",
+				new ByteArrayInputStream(fileTxtContent), fileTxtMetadata);
 
 		// Create StsStorageLocation.
 		ExternalS3StorageLocationSetting storageLocationSetting = new ExternalS3StorageLocationSetting();
@@ -135,7 +150,12 @@ public class ITStsTest {
 				.withDelimiter("/").withPrefix(baseKey);
 		tempClient.listObjects(listObjectsRequest);
 
-		// Validate can read the owner.txt.
-		tempClient.getObject(externalS3Bucket, baseKey + "/owner.txt");
+		// Validate can read file.txt.
+		tempClient.getObject(externalS3Bucket, baseKey + "/file.txt");
+
+		// We cannot read owner.txt.
+		AmazonServiceException ex = assertThrows(AmazonServiceException.class, () -> tempClient.getObject(
+				externalS3Bucket, baseKey + "owner.txt"));
+		assertEquals(403, ex.getStatusCode());
 	}
 }

@@ -1523,7 +1523,7 @@ public class EntityController {
 	 * </p>
 	 *
 	 * @param id         The ID of the entity to get credentials. This must be a folder with an STS-enabled storage location.
-	 * @param permission Read-only or read-write permissions. See {@link org.sagebionetworks.repo.model.sts.StsPermission}.
+	 * @param permission Read-only or read-write permissions. See <a href="${org.sagebionetworks.repo.model.sts.StsPermission}">StsPermission</a>.
 	 */
 	@RequiredScope({ view, modify, download })
 	@ResponseStatus(HttpStatus.OK)
