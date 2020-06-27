@@ -9,6 +9,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.io.InputStream;
 
 import org.apache.commons.io.IOUtils;
+import org.everit.json.schema.Schema;
+import org.everit.json.schema.ValidationException;
+import org.everit.json.schema.loader.SchemaLoader;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
@@ -140,20 +143,29 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 	}
 
 	public void registerSchemaFromClasspath(String name) throws Exception {
+		String json = loadStringFromClasspath(name);
+		JsonSchema schema = EntityFactory.createEntityFromJSONString(json, JsonSchema.class);
+		CreateSchemaRequest request = new CreateSchemaRequest();
+		request.setSchema(schema);
+		System.out.println("Creating schema: '" + schema.get$id() + "'");
+		asynchronousJobWorkerHelper.assertJobResponse(adminUserInfo, request, (CreateSchemaResponse response) -> {
+			assertNotNull(response);
+			System.out.println(response.getNewVersionInfo());
+		}, MAX_WAIT_MS);
+	}
+	
+	/**
+	 * Load the file contents from the classpath.
+	 * @param name 
+	 * @return
+	 * @throws Exception
+	 */
+	public String loadStringFromClasspath(String name) throws Exception {
 		try (InputStream in = CreateJsonSchemaWorkerIntegrationTest.class.getClassLoader().getResourceAsStream(name);) {
 			if (in == null) {
 				throw new IllegalArgumentException("Cannot find: '" + name + "' on the classpath");
 			}
-			String json = IOUtils.toString(in, "UTF-8");
-			JsonSchema schema = EntityFactory.createEntityFromJSONString(json, JsonSchema.class);
-			CreateSchemaRequest request = new CreateSchemaRequest();
-			request.setSchema(schema);
-			System.out.println("Creating schema: '" + schema.get$id() + "'");
-			
-			asynchronousJobWorkerHelper.assertJobResponse(adminUserInfo, request, (CreateSchemaResponse response) -> {
-				assertNotNull(response);
-				System.out.println(response.getNewVersionInfo());
-			}, MAX_WAIT_MS);
+			return IOUtils.toString(in, "UTF-8");
 		}
 	}
 
@@ -185,7 +197,23 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.Versionable"));
 		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.VersionableEntity"));
 		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.FileEntity"));
-
+		
+		String validationSchemaJson = EntityFactory.createJSONStringForEntity(validationSchema);
+		JSONObject rawSchema = new JSONObject(validationSchemaJson);
+		Schema schema = SchemaLoader.load(rawSchema);
+		
+		String validCatJsonString  = loadStringFromClasspath("pets/ValidCat.json");
+		JSONObject validCat = new JSONObject(validCatJsonString);
+		// this schema should be valid
+		schema.validate(validCat);
+		
+		String invalidDogString  = loadStringFromClasspath("pets/InvalidDog.json");
+		JSONObject invalidDog = new JSONObject(invalidDogString);
+		String message = assertThrows(ValidationException.class, ()->{
+			// this schema should not be valid
+			schema.validate(invalidDog);
+		}).getMessage();
+		assertEquals("#: #: 0 subschemas matched instead of one", message);
 	}
 
 	public void printJson(JSONEntity entity) throws JSONException, JSONObjectAdapterException {

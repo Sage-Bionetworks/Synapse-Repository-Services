@@ -62,6 +62,10 @@
 			<id>spring-plugins</id>
 			<url>https://repo.spring.io/plugins-release/</url>
 		</repository>
+		<repository>
+			<id>jitpack.io</id>
+			<url>https://jitpack.io</url>
+		</repository>		
 	</repositories>
 
 	<pluginRepositories>
@@ -129,7 +133,12 @@
 				<version>${commonscollections4.version}</version>
 				<type>jar</type>
 			</dependency>
-
+			<!-- JSON schema validation library -->
+			<dependency>
+				<groupId>com.github.everit-org.json-schema</groupId>
+				<artifactId>org.everit.json.schema</artifactId>
+				<version>1.12.1</version>
+			</dependency>
 			<dependency>
 				<groupId>io.jsonwebtoken</groupId>
 				<artifactId>jjwt</artifactId>
