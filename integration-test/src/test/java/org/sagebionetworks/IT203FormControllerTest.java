@@ -57,6 +57,9 @@ public class IT203FormControllerTest {
 		assertNotNull(group);
 		AccessControlList acl = grantSubmitForm(group);
 		assertNotNull(acl);
+		
+		FormGroup fetched = adminSynapse.getFormGroup(form.getGroupId());
+		assertEquals(form, fetched);
 
 		// Create a file containing the data of the form.
 		String fileHandleId = uploadTextAsFile("Sample text");
@@ -73,9 +76,6 @@ public class IT203FormControllerTest {
 		form = synapse.updateFormData(form.getFormDataId(), changeRequest);
 		assertEquals(updatedName, form.getName());
 		
-		FormGroup fetched = synapse.getFormGroup(form.getGroupId());
-		assertEquals(form, fetched);
-
 		// List the forms for this user.
 		ListRequest listRequest = new ListRequest();
 		listRequest.setFilterByState(Sets.newHashSet(StateEnum.WAITING_FOR_SUBMISSION));
