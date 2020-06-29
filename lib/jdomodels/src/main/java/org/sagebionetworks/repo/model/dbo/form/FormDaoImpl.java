@@ -12,6 +12,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DAT
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_REVIEWED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_STATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_SUBMITTED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_GROUP_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_GROUP_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_GROUP_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FORM_DATA;
@@ -69,6 +71,15 @@ public class FormDaoImpl implements FormDao {
 		status.setState(StateEnum.valueOf(rs.getString(COL_FORM_DATA_STATE)));
 		status.setRejectionMessage(rs.getString(COL_FORM_DATA_REJECTION_MESSAGE));
 		return status;
+	};
+	
+	private static RowMapper<FormGroup> FORM_GROUP_MAPPER = (ResultSet rs, int rowNum) -> {
+		FormGroup group = new FormGroup();
+		group.setGroupId(rs.getString(COL_FORM_GROUP_ID));
+		group.setName(rs.getString(COL_FORM_GROUP_NAME));
+		group.setCreatedBy(rs.getString(COL_FORM_GROUP_CREATED_BY));
+		group.setCreatedOn(rs.getTimestamp(COL_FORM_GROUP_CREATED_ON));
+		return group;
 	};
 
 	@WriteTransaction
@@ -338,4 +349,14 @@ public class FormDaoImpl implements FormDao {
 		}
 	}
 
+	@Override
+	public FormGroup getFormGroup(String id) {
+		ValidateArgument.required(id, "id");
+		try {
+			return jdbcTemplate.queryForObject("SELECT * FROM "+TABLE_FORM_GROUP+" WHERE "+COL_FORM_GROUP_ID+" = ?", FORM_GROUP_MAPPER, id);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("FormGroup does not exist for id: "+id);
+		}
+	}
+	
 }

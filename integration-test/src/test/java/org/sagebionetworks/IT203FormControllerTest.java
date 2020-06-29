@@ -72,6 +72,9 @@ public class IT203FormControllerTest {
 		changeRequest.setName(updatedName);
 		form = synapse.updateFormData(form.getFormDataId(), changeRequest);
 		assertEquals(updatedName, form.getName());
+		
+		FormGroup fetched = synapse.getFormGroup(form.getGroupId());
+		assertEquals(form, fetched);
 
 		// List the forms for this user.
 		ListRequest listRequest = new ListRequest();

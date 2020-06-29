@@ -240,6 +240,33 @@ public class FormDaoImplTest {
 		assertNull(status.getReviewedBy());
 		assertNull(status.getRejectionMessage());
 	}
+	
+	@Test
+	public void testGetFormGroup() {
+		FormGroup group = createSampleGroup();
+		// call under test
+		FormGroup fetched = formDao.getFormGroup(group.getGroupId());
+		assertEquals(group, fetched);
+	}
+	
+	@Test
+	public void testGetFormGroupWithNotFound() {
+		String id = "-1";
+		String message = assertThrows(NotFoundException.class, ()->{
+			// call under test
+			formDao.getFormGroup(id);
+		}).getMessage();
+		assertEquals("FormGroup does not exist for id: -1", message);
+	}
+	
+	@Test
+	public void testGetFormGroupWithNullId() {
+		String id = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			formDao.getFormGroup(id);
+		});
+	}
 
 	@Test
 	public void testGetFormDataCreator() {

@@ -106,4 +106,12 @@ public interface FormService {
 	 */
 	FormData reviewerRejectForm(Long userId, String id, FormRejection rejection);
 
+	/**
+	 * Get a form group for the given id.
+	 * @param userId
+	 * @param id
+	 * @return
+	 */
+	FormGroup getGroup(Long userId, String id);
+
 }
