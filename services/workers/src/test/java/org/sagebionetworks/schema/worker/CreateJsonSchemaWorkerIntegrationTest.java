@@ -207,11 +207,13 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 		// this schema should be valid
 		schema.validate(validCat);
 		
-		String invalidDogString  = loadStringFromClasspath("pets/InvalidDog.json");
-		JSONObject invalidDog = new JSONObject(invalidDogString);
+//		String invalidDogString  = loadStringFromClasspath("pets/InvalidDog.json");
+//		JSONObject invalidDog = new JSONObject(invalidDogString);
+		// changing the 'petType' to 'dog' should make the schema invalid.
+		validCat.put("petType", "dog");
 		String message = assertThrows(ValidationException.class, ()->{
 			// this schema should not be valid
-			schema.validate(invalidDog);
+			schema.validate(validCat);
 		}).getMessage();
 		assertEquals("#: #: 0 subschemas matched instead of one", message);
 	}
