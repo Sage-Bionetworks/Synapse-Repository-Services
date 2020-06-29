@@ -58,8 +58,8 @@ public class IT203FormControllerTest {
 		AccessControlList acl = grantSubmitForm(group);
 		assertNotNull(acl);
 		
-		FormGroup fetched = adminSynapse.getFormGroup(form.getGroupId());
-		assertEquals(form, fetched);
+		FormGroup fetched = adminSynapse.getFormGroup(group.getGroupId());
+		assertEquals(group, fetched);
 
 		// Create a file containing the data of the form.
 		String fileHandleId = uploadTextAsFile("Sample text");
