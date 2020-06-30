@@ -3459,6 +3459,15 @@ public interface SynapseClient extends BaseClient {
 	 */
 	FormGroup createFormGroup(String name) throws SynapseException;
 	
+
+	/**
+	 * Get a FormGroup for the given group ID.
+	 * @param id
+	 * @return
+	 * @throws SynapseException
+	 */
+	FormGroup getFormGroup(String id) throws SynapseException;
+	
 	/**
 	 * Get the Access Control List (ACL) for a FormGroup.
 	 * </p>

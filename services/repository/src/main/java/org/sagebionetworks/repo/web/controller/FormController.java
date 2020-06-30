@@ -55,7 +55,7 @@ public class FormController {
 	ServiceProvider serviceProvider;
 
 	/**
-	 * Create a FormGroup with provided name. This method is idempotent. If a group
+	 * Create a FormGroup with the provided name. This method is idempotent. If a group
 	 * with the provided name already exists and the caller has
 	 * <a href= "${org.sagebionetworks.repo.model.ACCESS_TYPE}">ACCESS_TYPE.READ</a>
 	 * permission the existing FormGroup will be returned.
@@ -75,6 +75,25 @@ public class FormController {
 	public @ResponseBody FormGroup createGroup(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = "name", required = true) String name) {
 		return serviceProvider.getFormService().createGroup(userId, name);
+	}
+	
+	/**
+	 * Get a FormGroup with the provided ID.
+	 * </p>
+	 * Note: The caller must have the
+	 * <a href= "${org.sagebionetworks.repo.model.ACCESS_TYPE}">ACCESS_TYPE.READ</a>
+	 * permission on the identified group.
+	 * 
+	 * @param userId
+	 * @param id
+	 * @return
+	 */
+	@RequiredScope({ view, modify })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.FORM_GROUP_ID }, method = RequestMethod.GET)
+	public @ResponseBody FormGroup getFormGroup(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id) {
+		return serviceProvider.getFormService().getGroup(userId, id);
 	}
 
 	/**

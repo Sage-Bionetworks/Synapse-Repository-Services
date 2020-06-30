@@ -1236,6 +1236,46 @@ public class FormManagerTest {
 			manager.canUserDownloadFormData(user, formDataId);
 		});
 	}
+	
+	@Test
+	public void testGetFormGroup() {
+		when(mockFormDao.getFormGroup(any())).thenReturn(groupToReturn);
+		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		// call under test
+		FormGroup group = manager.getFormGroup(user, groupId);
+		assertEquals(groupToReturn, group);
+		verify(mockFormDao).getFormGroup(groupId);
+		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ);
+	}
+	
+	@Test
+	public void testGetFormGroupWithUnauthorized() {
+		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any())).thenReturn(AuthorizationStatus.accessDenied("no"));
+		assertThrows(UnauthorizedException.class, ()->{
+			// call under test
+			manager.getFormGroup(user, groupId);
+		});
+		verify(mockFormDao, never()).getFormGroup(any());
+		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ);
+	}
+	
+	@Test
+	public void testGetFormGroupWithNullUser() {
+		user  = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.getFormGroup(user, groupId);
+		});
+	}
+	
+	@Test
+	public void testGetFormGroupWithNullId() {
+		groupId  = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.getFormGroup(user, groupId);
+		});
+	}
 
 	/**
 	 * Helper to create a page of data of the given size.

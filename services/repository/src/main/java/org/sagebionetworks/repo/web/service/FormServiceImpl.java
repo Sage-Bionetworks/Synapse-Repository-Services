@@ -87,4 +87,10 @@ public class FormServiceImpl implements FormService {
 		return formManager.reviewerRejectForm(user, id, rejection);
 	}
 
+	@Override
+	public FormGroup getGroup(Long userId, String id) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return formManager.getFormGroup(user, id);
+	}
+
 }

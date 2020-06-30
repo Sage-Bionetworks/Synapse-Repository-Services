@@ -5564,6 +5564,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String url = "/form/group?name="+name;
 		return postJSONEntity(getRepoEndpoint(), url, null, FormGroup.class);
 	}
+	
+	@Override
+	public FormGroup getFormGroup(String id) throws SynapseException {
+		ValidateArgument.required(id, "id");
+		String url = "/form/group/"+id;
+		return getJSONEntity(getRepoEndpoint(), url, FormGroup.class);
+	}
 
 	@Override
 	public AccessControlList getFormGroupAcl(String formGroupId) throws SynapseException {

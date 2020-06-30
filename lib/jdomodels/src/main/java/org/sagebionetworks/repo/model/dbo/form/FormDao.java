@@ -149,4 +149,12 @@ public interface FormDao {
 	 * @return
 	 */
 	public String getFormDataFileHandleId(String formDataId);
+
+	/**
+	 * Get the identified FormGroup.
+	 * 
+	 * @param id
+	 * @return
+	 */
+	public FormGroup getFormGroup(String id);
 }
