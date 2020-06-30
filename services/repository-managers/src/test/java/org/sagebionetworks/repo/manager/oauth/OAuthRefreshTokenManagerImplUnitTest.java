@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
+import org.sagebionetworks.repo.model.auth.OAuthDao;
 import org.sagebionetworks.repo.model.auth.OAuthRefreshTokenDao;
 import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
@@ -45,6 +46,9 @@ import org.sagebionetworks.util.Clock;
 
 @ExtendWith(MockitoExtension.class)
 public class OAuthRefreshTokenManagerImplUnitTest {
+
+	@Mock
+	OAuthDao mockOAuthDao;
 
 	@Mock
 	OAuthClientDao mockOAuthClientDao;
@@ -367,6 +371,7 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 		// Call under test
 		oauthRefreshTokenManager.revokeRefreshTokensForUserClientPair(USER_INFO, CLIENT_ID);
 
+		verify(mockOAuthDao).deleteAuthorizationConsentForClient(Long.valueOf(USER_ID), Long.valueOf(CLIENT_ID));
 		verify(mockOAuthRefreshTokenDao).deleteAllTokensForUserClientPair(USER_ID, CLIENT_ID);
 	}
 
