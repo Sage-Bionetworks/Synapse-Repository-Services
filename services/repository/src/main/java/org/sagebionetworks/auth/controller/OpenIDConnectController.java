@@ -294,6 +294,9 @@ public class OpenIDConnectController {
 	 *  refresh token will become invalid. Some token metadata, such as the unique refresh token ID and configurable token name, will not change when
 	 *  a refresh token is rotated in this way.
 	 *
+	 *  Access tokens issued via a refresh token will also include a 'refresh_token_id' claim that can be used to identify the chain of refresh tokens that the
+	 *  access token is related to.
+	 *
 	 * @param grant_type  authorization_code or refresh_token
 	 * @param code required if grant_type is authorization_code
 	 * @param redirectUri required if grant_type is authorization_code
