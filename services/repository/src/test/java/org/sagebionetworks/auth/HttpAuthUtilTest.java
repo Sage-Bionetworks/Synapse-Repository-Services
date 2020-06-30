@@ -164,6 +164,18 @@ class HttpAuthUtilTest {
 		HttpAuthUtil.setBearerTokenHeader(headers,  BEARER_TOKEN);
 		assertEquals("Bearer "+BEARER_TOKEN, headers.get(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME)[0]);
 	}
+	
+	@Test
+	void testSetServiceNameHeader() {
+		Map<String, String[]> headers = new HashMap<String, String[]>();
+		
+		String serviceName = "someService";
+		
+		// Call under test
+		HttpAuthUtil.setServiceNameHeader(headers,  serviceName);
+		
+		assertEquals(serviceName, headers.get(AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME)[0]);
+	}
 
 	@Test
 	void testFilterAuthorizationHeaders() {

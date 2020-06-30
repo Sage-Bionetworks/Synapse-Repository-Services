@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.PrintWriter;
 import java.util.Base64;
+import java.util.Enumeration;
 
 import javax.servlet.FilterChain;
 import javax.servlet.http.HttpServletRequest;
@@ -39,6 +40,8 @@ public class CloudMailInAuthFilterTest {
 	private HttpServletResponse mockResponse;
 	@Mock
 	private FilterChain mockFilterChain;
+	@Mock
+	private Enumeration<String> mockEnumNames;
 	
 	private CloudMailInAuthFilter filter;
 
@@ -52,8 +55,8 @@ public class CloudMailInAuthFilterTest {
 	
 	@BeforeEach
 	public void beforeEach() {
-		when(mockConfig.getCloudMailInUser()).thenReturn(USER);
-		when(mockConfig.getCloudMailInPassword()).thenReturn(PASS);
+		when(mockConfig.getServiceAuthKey(StackConfiguration.SERVICE_CLOUDMAILIN)).thenReturn(USER);
+		when(mockConfig.getServiceAuthSecret(StackConfiguration.SERVICE_CLOUDMAILIN)).thenReturn(PASS);
 		
 		filter = new CloudMailInAuthFilter(mockConfig, mockConsumer);
 		
@@ -65,6 +68,9 @@ public class CloudMailInAuthFilterTest {
 	public void testAuthenticated() throws Exception {
 		when(mockRequest.getHeader(eq(AUTHORIZATION))).thenReturn("Basic "+
 				Base64.getEncoder().encodeToString(CORRECT_CREDENTIALS.getBytes()));
+		
+		when(mockRequest.getHeaderNames()).thenReturn(mockEnumNames);
+		
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		// to check that authorization proceeded, check that 'doFilter' was called and 'setStatus' was not
 		ArgumentCaptor<HttpServletResponse> responseCaptor = ArgumentCaptor.forClass(HttpServletResponse.class);
