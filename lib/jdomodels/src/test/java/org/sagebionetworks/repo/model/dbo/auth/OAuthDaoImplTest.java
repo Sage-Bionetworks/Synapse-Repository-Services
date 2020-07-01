@@ -3,16 +3,12 @@ package org.sagebionetworks.repo.model.dbo.auth;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHORIZATION_CONSENT_CLIENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHORIZATION_CONSENT_SCOPE_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHORIZATION_CONSENT_USER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_AUTHORIZATION_CONSENT;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.UUID;
 
@@ -57,6 +53,7 @@ class OAuthDaoImplTest {
 	private Long userId;
 	private Long clientId;
 	private static final String SCOPE_HASH = DigestUtils.sha256Hex("some dummy text");
+	private static final String OTHER_SCOPE_HASH = DigestUtils.sha256Hex("a different hash");
 	private static final Date GRANTED_ON = new Date();
 
 	@BeforeEach
@@ -149,6 +146,22 @@ class OAuthDaoImplTest {
 		
 		// ... now it's gone
 		assertFalse(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH, notBefore));
+	}
+
+	@Test
+	public void testDeleteAllForUserClientPair() {
+		oauthDao.saveAuthorizationConsent(userId, clientId, SCOPE_HASH, GRANTED_ON);
+		oauthDao.saveAuthorizationConsent(userId, clientId, OTHER_SCOPE_HASH, GRANTED_ON);
+
+		assertTrue(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH, GRANTED_ON));
+		assertTrue(oauthDao.lookupAuthorizationConsent(userId, clientId, OTHER_SCOPE_HASH, GRANTED_ON));
+
+		// method under test
+		oauthDao.deleteAuthorizationConsentForClient(userId, clientId);
+
+		assertFalse(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH, GRANTED_ON));
+		assertFalse(oauthDao.lookupAuthorizationConsent(userId, clientId, OTHER_SCOPE_HASH, GRANTED_ON));
+
 	}
 
 }

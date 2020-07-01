@@ -588,9 +588,12 @@ public class ITOpenIDConnectTest {
 		String tokenId = tokens.getResults().get(0).getTokenId();
 
 		// Test revoking all refresh tokens from a client
+		assertTrue(synapseOne.hasUserAuthorizedClient(authorizationRequest));
 
 		// Call under test
 		synapseOne.revokeMyRefreshTokensFromClient(client.getClient_id());
+
+		assertFalse(synapseOne.hasUserAuthorizedClient(authorizationRequest));
 
 		assertThrows(SynapseNotFoundException.class, () ->
 				synapseOne.getRefreshTokenMetadata(tokenId));
