@@ -90,6 +90,15 @@ public class HttpAuthUtil {
 				new String[] {AuthorizationConstants.BEARER_TOKEN_HEADER+bearerToken});
 	}
 	
+	/**
+	 * Sets the given service name as the value of the special synapse header service name
+	 * 
+	 * @param headers
+	 * @param serviceName
+	 */
+	public static void setServiceNameHeader(Map<String, String[]> headers, String serviceName) {
+		headers.put(AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME, new String[] { serviceName } );
+	}
 
 	private static final List<String> AUTHORIZATION_HEADERS_LOWER_CASE = 
 			Arrays.asList(new String[] {
@@ -98,7 +107,8 @@ public class HttpAuthUtil {
 					AuthorizationConstants.USER_ID_HEADER.toLowerCase(),
 					AuthorizationConstants.SIGNATURE_TIMESTAMP.toLowerCase(),
 					AuthorizationConstants.SIGNATURE.toLowerCase(),
-					AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER.toLowerCase()
+					AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER.toLowerCase(),
+					AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME.toLowerCase()
 			});
 	
 	/*

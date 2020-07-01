@@ -2,12 +2,14 @@ package org.sagebionetworks.auth.filter;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.PrintWriter;
 import java.util.Base64;
+import java.util.Enumeration;
 
 import javax.servlet.FilterChain;
 import javax.servlet.http.HttpServletRequest;
@@ -43,6 +45,9 @@ public class DockerRegistryAuthFilterTest {
 	@Mock
 	private FilterChain mockFilterChain;
 
+	@Mock
+	private Enumeration<String> mockEnumNames;
+
 	private DockerRegistryAuthFilter filter;
 
 	private static final String USER = "user";
@@ -50,8 +55,8 @@ public class DockerRegistryAuthFilterTest {
 
 	@BeforeEach
 	public void beforeEach() {
-		when(mockConfig.getDockerRegistryUser()).thenReturn(USER);
-		when(mockConfig.getDockerRegistryPassword()).thenReturn(PASS);
+		when(mockConfig.getServiceAuthKey(StackConfiguration.SERVICE_DOCKER_REGISTRY)).thenReturn(USER);
+		when(mockConfig.getServiceAuthSecret(StackConfiguration.SERVICE_DOCKER_REGISTRY)).thenReturn(PASS);
 		
 		filter = new DockerRegistryAuthFilter(mockConfig, mockConsumer);
 		
@@ -83,8 +88,11 @@ public class DockerRegistryAuthFilterTest {
 		String basicAuthenticationHeader = AuthorizationConstants.BASIC_PREFIX
 				+ Base64.getEncoder().encodeToString((USER+ ":" + PASS).getBytes());
 		when(mockRequest.getHeader("Authorization")).thenReturn(basicAuthenticationHeader);
+		when(mockRequest.getHeaderNames()).thenReturn(mockEnumNames);
+		
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
-		verify(mockFilterChain).doFilter(mockRequest, mockResponse);
+		
+		verify(mockFilterChain).doFilter(any(), eq(mockResponse));
 	}
 
 }

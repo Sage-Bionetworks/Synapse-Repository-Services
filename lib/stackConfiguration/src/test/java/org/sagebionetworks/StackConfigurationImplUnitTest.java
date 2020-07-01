@@ -85,7 +85,7 @@ public class StackConfigurationImplUnitTest {
 	private static final String DOI_PREFIX_PROPERTY = "org.sagebionetworks.doi.prefix";
 
 	@Test
-	public void getTempCredentialsIamRoleArn() {
+	public void testGetTempCredentialsIamRoleArn() {
 		when(mockProperties.hasProperty(StackConfigurationImpl.CONFIG_KEY_STS_IAM_ARN)).thenReturn(true);
 		when(mockProperties.getProperty(StackConfigurationImpl.CONFIG_KEY_STS_IAM_ARN)).thenReturn("dummy-arn");
 
@@ -95,7 +95,7 @@ public class StackConfigurationImplUnitTest {
 	}
 
 	@Test
-	public void getTempCredentialsIamRoleArn_NullConfig() {
+	public void testGtTempCredentialsIamRoleArn_NullConfig() {
 		when(mockProperties.hasProperty(StackConfigurationImpl.CONFIG_KEY_STS_IAM_ARN)).thenReturn(false);
 
 		// Method under test
@@ -103,5 +103,61 @@ public class StackConfigurationImplUnitTest {
 		assertNull(result);
 
 		verify(mockProperties, never()).getProperty(any());
+	}
+	
+	@Test
+	public void testGetServiceAuthKey() {
+		String serviceName = "someService";
+		
+		// Call under test
+		config.getServiceAuthKey(serviceName);
+		
+		verify(stackEncrypter).getDecryptedProperty("org.sagebionetworks." + serviceName + ".auth.key");
+	}
+	
+	@Test
+	public void testGetServiceAuthSecret() {
+		String serviceName = "someService";
+		
+		// Call under test
+		config.getServiceAuthSecret(serviceName);
+		
+		verify(stackEncrypter).getDecryptedProperty("org.sagebionetworks." + serviceName + ".auth.secret");
+	}
+	
+	@Test
+	public void testGetCloudMailInUser() {
+		
+		// Call under test
+		config.getCloudMailInUser();
+		
+		verify(stackEncrypter).getDecryptedProperty("org.sagebionetworks." + StackConfiguration.SERVICE_CLOUDMAILIN + ".auth.key");
+	}
+	
+	@Test
+	public void testGetCloudMailInPassword() {
+		
+		// Call under test
+		config.getCloudMailInPassword();
+		
+		verify(stackEncrypter).getDecryptedProperty("org.sagebionetworks." + StackConfiguration.SERVICE_CLOUDMAILIN + ".auth.secret");
+	}
+	
+	@Test
+	public void testGetDockerRegistryUser() {
+		
+		// Call under test
+		config.getDockerRegistryUser();
+		
+		verify(stackEncrypter).getDecryptedProperty("org.sagebionetworks." + StackConfiguration.SERVICE_DOCKER_REGISTRY + ".auth.key");
+	}
+	
+	@Test
+	public void testGetDockerRegistryPassword() {
+		
+		// Call under test
+		config.getDockerRegistryPassword();
+		
+		verify(stackEncrypter).getDecryptedProperty("org.sagebionetworks." + StackConfiguration.SERVICE_DOCKER_REGISTRY + ".auth.secret");
 	}
 }

@@ -226,6 +226,11 @@ public class AuthorizationConstants {
 	 */
 	public static final String SYNAPSE_AUTHORIZATION_HEADER_NAME = "Synapse-Authorization";
 	
+	/**
+	 * Internal header name used to identify a request that was authenticated for a service
+	 */
+	public static final String SYNAPSE_HEADER_SERVICE_NAME = "Synapse-Service-Name";
+	
 	public static final String BASIC_PREFIX = "Basic ";
 
 	public static final String PROJECT_FILTER_PARAM = "filter";
