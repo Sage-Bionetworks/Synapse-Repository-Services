@@ -51,9 +51,19 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 	private OIDCTokenHelper oidcTokenHelper;
 	
 	String getOAuthClientId(HttpServletRequest request) {
+		/*
+		 * There are two different places the client ID might be:
+		 *  - in the access token, if the OAuth client is acting on behalf of a user
+		 *  - in the basic auth credentials, if using an auth code/refresh token
+		 */
 		String accessToken = HttpAuthUtil.getBearerTokenFromStandardAuthorizationHeader(request);
-		if (accessToken==null) return null;
-		return oidcTokenHelper.parseJWT(accessToken).getBody().getAudience();
+		if (accessToken != null) {
+			return oidcTokenHelper.parseJWT(accessToken).getBody().getAudience();
+		} else if (HttpAuthUtil.usesBasicAuthentication(request)) {
+			return HttpAuthUtil.getBasicAuthenticationCredentials(request).get().getUserName();
+		} else {
+			return null;
+		}
 	}
 
 	/**

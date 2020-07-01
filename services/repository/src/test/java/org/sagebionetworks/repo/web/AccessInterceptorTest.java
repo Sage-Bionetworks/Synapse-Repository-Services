@@ -1,21 +1,25 @@
 package org.sagebionetworks.repo.web;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
@@ -38,7 +42,7 @@ import io.jsonwebtoken.impl.DefaultJwt;
  * @author jmhill
  *
  */
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class AccessInterceptorTest {
 	
 	@Mock
@@ -56,11 +60,13 @@ public class AccessInterceptorTest {
 	TestClock testClock = new TestClock();
 	int instanceNumber;
 	String stack;
-	
+
 	private static final String BEARER_TOKEN_HEADER = "Bearer some-token";
 	private static final String OAUTH_CLIENT_ID = "9999";
+	private static final String OAUTH_CLIENT_ID_BASIC = "2222";
+	private static final String BASIC_AUTH_HEADER = "Basic " + Base64.getEncoder().encodeToString((OAUTH_CLIENT_ID_BASIC + ":password").getBytes(StandardCharsets.US_ASCII));
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		userId = 12345L;
 		mockHandler = Mockito.mock(Object.class);
@@ -82,12 +88,8 @@ public class AccessInterceptorTest {
 		when(mockRequest.getRemoteAddr()).thenReturn("moon.org");
 		when(mockRequest.getHeader("Origin")).thenReturn("http://www.example-social-network.com");
 		when(mockRequest.getHeader("Via")).thenReturn("1.0 fred, 1.1 example.com");
+		when(mockRequest.getHeader("X-Forwarded-For")).thenReturn(null);
 		when(mockRequest.getQueryString()).thenReturn("?param1=foo");
-		when(mockRequest.getHeader("Authorization")).thenReturn(BEARER_TOKEN_HEADER);
-		Claims claims = new DefaultClaims();
-		claims.setAudience(OAUTH_CLIENT_ID);
-		Jwt<JwsHeader,Claims> jwt = new DefaultJwt(null, claims);
-		when(oidcTokenHelper.parseJWT(any())).thenReturn(jwt);
 		// setup response
 		when(mockResponse.getStatus()).thenReturn(200);
 		instanceNumber = 101;
@@ -132,7 +134,7 @@ public class AccessInterceptorTest {
 		assertEquals(VirtualMachineIdProvider.getVMID(), result.getVmId());
 		assertEquals("?param1=foo", result.getQueryString());
 		assertEquals("returnId", result.getReturnObjectId());
-		assertEquals(OAUTH_CLIENT_ID, result.getOauthClientId());
+		assertNull(result.getOauthClientId()); // request was made without an OAuth client
 	}
 	
 	@Test
@@ -174,7 +176,7 @@ public class AccessInterceptorTest {
 		assertNotNull(result);
 		assertTrue(result.getTimestamp() >= start);
 		assertEquals(234L, result.getElapseMS().longValue());
-		assertTrue("200 is a success",result.getSuccess());
+		assertTrue(result.getSuccess(), "200 is a success");
 		assertEquals(new Long(200), result.getResponseStatus());
 	}
 	
@@ -196,7 +198,51 @@ public class AccessInterceptorTest {
 		assertNotNull(result);
 		assertTrue(result.getTimestamp() >= start);
 		assertEquals(234L, result.getElapseMS().longValue());
-		assertFalse("400 is not a success",result.getSuccess());
+		assertFalse(result.getSuccess(), "400 is not a success");
 		assertEquals(new Long(400), result.getResponseStatus());
+	}
+
+	@Test
+	public void testGetOAuthClientIdFromBearerJwt() throws Exception {
+		// Put the client ID in the JWT access token
+		when(mockRequest.getHeader("Authorization")).thenReturn(BEARER_TOKEN_HEADER);
+		Claims claims = new DefaultClaims();
+		claims.setAudience(OAUTH_CLIENT_ID);
+		Jwt<JwsHeader,Claims> jwt = new DefaultJwt(null, claims);
+		when(oidcTokenHelper.parseJWT(any())).thenReturn(jwt);
+
+		// Start
+		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
+		interceptor.setReturnObjectId("returnId");
+		// Wait to add some elapse time
+		testClock.sleep(234);
+		// finish the call
+		Exception exception = null;
+		interceptor.afterCompletion(mockRequest, mockResponse, mockHandler, exception);
+		// Now get the results from the stub
+		AccessRecord result = stubRecorder.getSavedRecords().get(0);
+
+		// Other fields are tested in testHappyCase
+		assertEquals(OAUTH_CLIENT_ID, result.getOauthClientId());
+	}
+
+	@Test
+	public void testGetOAuthClientIdFromBasicAuthCreds() throws Exception {
+		// Put the client ID in the basic auth header.
+		when(mockRequest.getHeader("Authorization")).thenReturn(BASIC_AUTH_HEADER);
+
+		// Start
+		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
+		interceptor.setReturnObjectId("returnId");
+		// Wait to add some elapse time
+		testClock.sleep(234);
+		// finish the call
+		Exception exception = null;
+		interceptor.afterCompletion(mockRequest, mockResponse, mockHandler, exception);
+		// Now get the results from the stub
+		AccessRecord result = stubRecorder.getSavedRecords().get(0);
+
+		// Other fields are tested in testHappyCase
+		assertEquals(OAUTH_CLIENT_ID_BASIC, result.getOauthClientId());
 	}
 }
