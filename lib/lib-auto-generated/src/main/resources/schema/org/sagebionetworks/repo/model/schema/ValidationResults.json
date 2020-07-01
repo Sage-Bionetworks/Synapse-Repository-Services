@@ -1,0 +1,41 @@
+{
+	"description": "Results of validating an object against a schema",
+	"properties": {
+		"objectId": {
+			"type": "string",
+			"description": "The identifier of the object that was validated."
+		},
+		"objectType": {
+			"description": "The type of object that was validated.",
+			"$ref": "org.sagebionetworks.repo.model.schema.ObjectType"
+		},
+		"objectEtag": {
+			"type": "string",
+			"description": "The etag of the object at the time of validation.  Note: If this etag does not match the current etag of the object then these validation results should be considered out of date."
+		},
+		"isValid": {
+			"type": "boolean",
+			"description": "True if the object is currently valid according to the schema."
+		},
+		"validatedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date-time this object was validated"
+		},
+		"validationErrorMessage": {
+			"type": "string",
+			"description": "If the object is not valid according to the schema, a simple one line error message will be provided."
+		},
+		"allValidationMessages": {
+			"description": "If the object is not valid according to the schema, a the flat list of error messages will be provided with one error message per sub-schema.",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		},
+		"validationException": {
+			"description": "If the object is not valid according to the schema, a recursive ValidationException will be provided that describes all violations in the sub-schema tree.",
+			"$ref": "org.sagebionetworks.repo.model.schema.ValidationException"
+		}
+	}
+}

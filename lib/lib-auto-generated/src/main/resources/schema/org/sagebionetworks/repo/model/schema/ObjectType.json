@@ -1,0 +1,10 @@
+{
+	"type": "string",
+	"description": "Type types of Synapse objects that can have a JSON schema.",
+	"enum": [
+		{
+			"name": "entity",
+			"description": "Synapse entities include Projects, Folders, and FileEntities"
+		}
+	]
+}

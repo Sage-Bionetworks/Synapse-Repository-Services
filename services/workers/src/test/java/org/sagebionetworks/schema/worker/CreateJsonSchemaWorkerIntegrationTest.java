@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.InputStream;
+import java.util.Date;
 
 import org.apache.commons.io.IOUtils;
 import org.everit.json.schema.Schema;
@@ -30,11 +31,14 @@ import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
+import org.sagebionetworks.repo.model.schema.ObjectType;
 import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -88,14 +92,14 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 	public void testCreateSchema() throws InterruptedException, AssertionError, AsynchJobFailedException {
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(basicSchema);
-		
+
 		asynchronousJobWorkerHelper.assertJobResponse(adminUserInfo, request, (CreateSchemaResponse response) -> {
 			assertNotNull(response);
 			assertNotNull(response.getNewVersionInfo());
 			assertEquals(adminUserInfo.getId().toString(), response.getNewVersionInfo().getCreatedBy());
 			assertEquals(semanticVersion, response.getNewVersionInfo().getSemanticVersion());
 		}, MAX_WAIT_MS);
-		
+
 		jsonSchemaManager.deleteSchemaById(adminUserInfo, basicSchema.get$id());
 		assertThrows(NotFoundException.class, () -> {
 			jsonSchemaManager.deleteSchemaById(adminUserInfo, basicSchema.get$id());
@@ -109,11 +113,11 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 		one.setDescription("no cycle yet");
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(one);
-		
+
 		asynchronousJobWorkerHelper.assertJobResponse(adminUserInfo, request, (CreateSchemaResponse response) -> {
 			assertNotNull(response);
 		}, MAX_WAIT_MS);
-		
+
 		// two
 		JsonSchema refToOne = create$RefSchema(one);
 		JsonSchema two = createSchema(organizationName, "two");
@@ -121,24 +125,25 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 		two.setItems(refToOne);
 		request = new CreateSchemaRequest();
 		request.setSchema(two);
-		
+
 		asynchronousJobWorkerHelper.assertJobResponse(adminUserInfo, request, (CreateSchemaResponse response) -> {
 			assertNotNull(response);
 		}, MAX_WAIT_MS);
-		
+
 		// update one to depend on two
 		one.setItems(create$RefSchema(two));
 		one.setDescription("now has a cycle");
 		CreateSchemaRequest cycleRequest = new CreateSchemaRequest();
 		cycleRequest.setSchema(one);
-		
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			asynchronousJobWorkerHelper.assertJobResponse(adminUserInfo, cycleRequest, (CreateSchemaResponse response) -> {
-				fail("Should have not receive a response");
-			}, MAX_WAIT_MS);
+			asynchronousJobWorkerHelper.assertJobResponse(adminUserInfo, cycleRequest,
+					(CreateSchemaResponse response) -> {
+						fail("Should have not receive a response");
+					}, MAX_WAIT_MS);
 		}).getMessage();
-		
+
 		assertEquals("Schema $id: 'my.org.net-one' has a circular dependency", message);
 	}
 
@@ -153,10 +158,11 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 			System.out.println(response.getNewVersionInfo());
 		}, MAX_WAIT_MS);
 	}
-	
+
 	/**
 	 * Load the file contents from the classpath.
-	 * @param name 
+	 * 
+	 * @param name
 	 * @return
 	 * @throws Exception
 	 */
@@ -197,25 +203,38 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.Versionable"));
 		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.VersionableEntity"));
 		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.FileEntity"));
-		
+
 		String validationSchemaJson = EntityFactory.createJSONStringForEntity(validationSchema);
 		JSONObject rawSchema = new JSONObject(validationSchemaJson);
 		Schema schema = SchemaLoader.load(rawSchema);
-		
-		String validCatJsonString  = loadStringFromClasspath("pets/ValidCat.json");
+
+		String validCatJsonString = loadStringFromClasspath("pets/ValidCat.json");
 		JSONObject validCat = new JSONObject(validCatJsonString);
 		// this schema should be valid
 		schema.validate(validCat);
-		
-//		String invalidDogString  = loadStringFromClasspath("pets/InvalidDog.json");
-//		JSONObject invalidDog = new JSONObject(invalidDogString);
-		// changing the 'petType' to 'dog' should make the schema invalid.
+
 		validCat.put("petType", "dog");
-		String message = assertThrows(ValidationException.class, ()->{
+		String message = assertThrows(ValidationException.class, () -> {
 			// this schema should not be valid
 			schema.validate(validCat);
 		}).getMessage();
 		assertEquals("#: #: 0 subschemas matched instead of one", message);
+
+		ValidationException e = assertThrows(ValidationException.class, () -> {
+			// this schema should not be valid
+			schema.validate(validCat);
+		});
+		ValidationResults results = new ValidationResults();
+		results.setIsValid(false);
+		results.setObjectEtag("some-etag");
+		results.setObjectId("syn123");
+		results.setObjectType(ObjectType.entity);
+		results.setValidatedOn(new Date());
+		results.setValidationErrorMessage(e.getErrorMessage());
+		results.setAllValidationMessages(e.getAllMessages());
+		org.sagebionetworks.repo.model.schema.ValidationException dtoException = new org.sagebionetworks.repo.model.schema.ValidationException(new JSONObjectAdapterImpl(e.toJSON()));
+		results.setValidationException(dtoException);
+		printJson(results);
 	}
 
 	public void printJson(JSONEntity entity) throws JSONException, JSONObjectAdapterException {
