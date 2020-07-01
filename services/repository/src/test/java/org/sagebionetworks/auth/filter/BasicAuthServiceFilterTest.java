@@ -5,12 +5,15 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 import java.io.PrintWriter;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Optional;
 
@@ -147,6 +150,32 @@ public class BasicAuthServiceFilterTest {
 		String userId = requestCaptor.getValue().getParameter(AuthorizationConstants.USER_ID_PARAM);
 		
 		assertEquals(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString(), userId);
+	}
+	
+	@Test
+	public void testDoFilterInternalWithInjectedHeader() throws Exception {
+		
+		Enumeration<String> injectedHeaderNames = Collections.enumeration(Arrays.asList(AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME));
+		
+		when(mockRequest.getHeaderNames()).thenReturn(injectedHeaderNames);
+		when(mockKeyAndSecretProvider.getServiceName()).thenReturn(SERVICE_NAME);
+		when(mockKeyAndSecretProvider.validate(any(), any())).thenReturn(true);
+		
+		Optional<UserNameAndPassword> credentials = Optional.of(new UserNameAndPassword(KEY, SECRET));
+		
+		// Call under test
+		filter.validateCredentialsAndDoFilterInternal(mockRequest, mockResponse, mockFilterChain, credentials);
+		
+		// Makes sure that if the header is there in the request, the value is not taken from the original request
+		verify(mockRequest, times(0)).getHeaders(AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME);
+		
+		ArgumentCaptor<HttpServletRequest> requestCaptor = ArgumentCaptor.forClass(HttpServletRequest.class);
+		
+		verify(mockFilterChain).doFilter(requestCaptor.capture(), eq(mockResponse));	
+		
+		assertNotEquals(mockRequest, requestCaptor.getValue());
+		
+		assertEquals(SERVICE_NAME, requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME));
 	}
 
 }
