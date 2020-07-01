@@ -3,6 +3,7 @@ package org.sagebionetworks.auth.filter;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -86,33 +87,16 @@ public class BasicAuthServiceFilterTest {
 	}
 	
 	@Test
-	public void testDoFilterInternalWithInvalidKey() throws Exception {
+	public void testDoFilterInternalWithInvalidCredentials() throws Exception {
 		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
-		when(mockKeyAndSecretProvider.getServiceKey()).thenReturn(KEY);
-		when(mockKeyAndSecretProvider.getServiceSecret()).thenReturn(SECRET);
+		when(mockKeyAndSecretProvider.validate(any(), any())).thenReturn(false);
 		
-		Optional<UserNameAndPassword> credentials = Optional.of(new UserNameAndPassword(KEY + "_invalid", SECRET));
+		Optional<UserNameAndPassword> credentials = Optional.of(new UserNameAndPassword(KEY, SECRET));
 		
 		// Call under test
 		filter.validateCredentialsAndDoFilterInternal(mockRequest, mockResponse, mockFilterChain, credentials);
 		
-		verify(filter).validCredentials(credentials.get());
-		verify(filter).rejectRequest(mockResponse, filter.getInvalidCredentialsMessage());		
-		verifyZeroInteractions(mockFilterChain);
-	}
-	
-	@Test
-	public void testDoFilterInternalWithInvalidSecret() throws Exception {
-		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
-		when(mockKeyAndSecretProvider.getServiceKey()).thenReturn(KEY);
-		when(mockKeyAndSecretProvider.getServiceSecret()).thenReturn(SECRET);
-		
-		Optional<UserNameAndPassword> credentials = Optional.of(new UserNameAndPassword(KEY, SECRET + "_invalid"));
-		
-		// Call under test
-		filter.validateCredentialsAndDoFilterInternal(mockRequest, mockResponse, mockFilterChain, credentials);
-		
-		verify(filter).validCredentials(credentials.get());
+		verify(mockKeyAndSecretProvider).validate(KEY, SECRET);
 		verify(filter).rejectRequest(mockResponse, filter.getInvalidCredentialsMessage());		
 		verifyZeroInteractions(mockFilterChain);
 	}
@@ -121,8 +105,7 @@ public class BasicAuthServiceFilterTest {
 	public void testDoFilterInternalWithValidCredentials() throws Exception {
 		when(mockRequest.getHeaderNames()).thenReturn(mockHeaderNames);
 		when(mockKeyAndSecretProvider.getServiceName()).thenReturn(SERVICE_NAME);
-		when(mockKeyAndSecretProvider.getServiceKey()).thenReturn(KEY);
-		when(mockKeyAndSecretProvider.getServiceSecret()).thenReturn(SECRET);
+		when(mockKeyAndSecretProvider.validate(any(), any())).thenReturn(true);
 		
 		Optional<UserNameAndPassword> credentials = Optional.of(new UserNameAndPassword(KEY, SECRET));
 		
@@ -130,8 +113,8 @@ public class BasicAuthServiceFilterTest {
 		filter.validateCredentialsAndDoFilterInternal(mockRequest, mockResponse, mockFilterChain, credentials);
 		
 		ArgumentCaptor<HttpServletRequest> requestCaptor = ArgumentCaptor.forClass(HttpServletRequest.class);
-		
-		verify(filter).validCredentials(credentials.get());
+
+		verify(mockKeyAndSecretProvider).validate(KEY, SECRET);
 		verify(filter).isAdminService();
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), eq(mockResponse));
 		assertNotEquals(mockRequest, requestCaptor.getValue());
@@ -144,8 +127,7 @@ public class BasicAuthServiceFilterTest {
 	public void testDoFilterInternalWithAdminService() throws Exception {
 		when(mockRequest.getHeaderNames()).thenReturn(mockHeaderNames);
 		when(mockKeyAndSecretProvider.getServiceName()).thenReturn(SERVICE_NAME);
-		when(mockKeyAndSecretProvider.getServiceKey()).thenReturn(KEY);
-		when(mockKeyAndSecretProvider.getServiceSecret()).thenReturn(SECRET);
+		when(mockKeyAndSecretProvider.validate(any(), any())).thenReturn(true);
 		when(filter.isAdminService()).thenReturn(true);
 		
 		Optional<UserNameAndPassword> credentials = Optional.of(new UserNameAndPassword(KEY, SECRET));
@@ -155,7 +137,7 @@ public class BasicAuthServiceFilterTest {
 		
 		ArgumentCaptor<HttpServletRequest> requestCaptor = ArgumentCaptor.forClass(HttpServletRequest.class);
 		
-		verify(filter).validCredentials(credentials.get());
+		verify(mockKeyAndSecretProvider).validate(KEY, SECRET);
 		verify(filter).isAdminService();
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), eq(mockResponse));	
 		assertNotEquals(mockRequest, requestCaptor.getValue());

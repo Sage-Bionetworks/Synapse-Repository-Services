@@ -59,7 +59,9 @@ public abstract class BasicAuthServiceFilter extends BasicAuthenticationFilter {
 			return;
 		}
 		
-		if (!validCredentials(credentials.get())) {
+		UserNameAndPassword keyAndSecret = credentials.get();
+		
+		if (!keyAndSecretProvider.validate(keyAndSecret.getUserName(), keyAndSecret.getPassword())) {
 			rejectRequest(httpResponse, getInvalidCredentialsMessage());
 			return;
 		}
@@ -78,13 +80,6 @@ public abstract class BasicAuthServiceFilter extends BasicAuthenticationFilter {
 		}
 		
 		filterChain.doFilter(new ModHttpServletRequest(httpRequest, modHeaders, modParams), httpResponse);
-	}
-	
-	protected boolean validCredentials(UserNameAndPassword credentials) {
-		String serviceKey = keyAndSecretProvider.getServiceKey();
-		String serviceSecret = keyAndSecretProvider.getServiceSecret();
-
-		return serviceKey.equals(credentials.getUserName()) && serviceSecret.equals(credentials.getPassword());
 	}
 	
 }
