@@ -62,6 +62,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
@@ -123,6 +124,11 @@ public class TeamManagerImpl implements TeamManager {
 	public static final String USER_HAS_JOINED_TEAM_TEMPLATE = "message/userHasJoinedTeamTemplate.html";
 	public static final String ADMIN_HAS_ADDED_USER_TEMPLATE = "message/teamAdminHasAddedUserTemplate.html";
 	private static final String JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT = "New Member Has Joined the Team";
+	private static final String MSG_CANNOT_ADD_TEAM_MEMBER_UNMET_AR = "Cannot add member to team because they have not met all access restrictions. Please remove the pending request and then invite the member again. They will then be prompted to meet the requirement(s) before joining the team.";
+	private static final String MSG_CANNOT_ADD_TEAM_MEMBER_GENERIC = "Cannot add member to team";
+	public static final AuthorizationStatus UNAUTHORIZED_ADD_TEAM_MEMBER_GENERIC =  AuthorizationStatus.accessDenied(TeamManagerImpl.MSG_CANNOT_ADD_TEAM_MEMBER_GENERIC);
+	public static final AuthorizationStatus UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_AR =  AuthorizationStatus.accessDenied(TeamManagerImpl.MSG_CANNOT_ADD_TEAM_MEMBER_UNMET_AR);
+	public static final AuthorizationStatus AUTHORIZED_ADD_TEAM_MEMBER =  AuthorizationStatus.authorized();
 	
 	public void setTeamsToBootstrap(List<BootstrapTeam> teamsToBootstrap) {
 		this.teamsToBootstrap = teamsToBootstrap;
@@ -477,7 +483,7 @@ public class TeamManagerImpl implements TeamManager {
 		request.setRestrictableObjectType(RestrictableObjectType.TEAM);
 		return restrictionInformationManager.getRestrictionInformation(memberUserInfo, request).getHasUnmetAccessRequirement();
 	}
-	
+
 	/**
 	 * Either:
 		principalId is self and membership invitation has been extended (and not yet accepted), or
@@ -488,30 +494,30 @@ public class TeamManagerImpl implements TeamManager {
 	 * @param principalId the ID of the one to be added to the team
 	 * @return
 	 */
-	public boolean canAddTeamMember(UserInfo userInfo, String teamId, UserInfo principalUserInfo, boolean alreadyInTeam) throws NotFoundException {
-		if (userInfo.isAdmin()) return true;
-		if (hasUnmetAccessRequirements(principalUserInfo, teamId)) return false;
+	public AuthorizationStatus canAddTeamMember(UserInfo userInfo, String teamId, UserInfo principalUserInfo, boolean alreadyInTeam) throws NotFoundException {
+		if (userInfo.isAdmin()) return AUTHORIZED_ADD_TEAM_MEMBER;
+		if (hasUnmetAccessRequirements(principalUserInfo, teamId)) return UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_AR;
 		String principalId = principalUserInfo.getId().toString();
 		boolean principalIsSelf = userInfo.getId().toString().equals(principalId);
 		boolean amTeamAdmin = authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).isAuthorized();
 		long now = System.currentTimeMillis();
 		if (principalIsSelf) {
 			// trying to add myself to Team.  
-			if (amTeamAdmin) return true;
+			if (amTeamAdmin) return AUTHORIZED_ADD_TEAM_MEMBER;
 			// if the team is open, I can join
 			Team team = teamDAO.get(teamId);
-			if (team.getCanPublicJoin()!=null && team.getCanPublicJoin()==true) return true;
+			if (team.getCanPublicJoin()!=null && team.getCanPublicJoin()==true) return AUTHORIZED_ADD_TEAM_MEMBER;
 			// if I'm not a team admin and the team is not open, then I need to have an open invitation
-			if (alreadyInTeam) return true;
+			if (alreadyInTeam) return AUTHORIZED_ADD_TEAM_MEMBER;
 			long openInvitationCount = membershipInvitationDAO.getOpenByTeamAndUserCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
-			return openInvitationCount>0L;
+			return openInvitationCount>0L ? AUTHORIZED_ADD_TEAM_MEMBER : UNAUTHORIZED_ADD_TEAM_MEMBER_GENERIC;
 		} else {
 			// the member to be added is someone other than me
-			if (!amTeamAdmin) return false; // can't add somone unless I'm a Team administrator
+			if (!amTeamAdmin) return UNAUTHORIZED_ADD_TEAM_MEMBER_GENERIC; // can't add someone unless I'm a Team administrator
 			// can't add someone unless they are asking to be added
-			if (alreadyInTeam) return true;
+			if (alreadyInTeam) return AUTHORIZED_ADD_TEAM_MEMBER;
 			long openRequestCount = membershipRequestDAO.getOpenByTeamAndRequesterCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
-			return openRequestCount>0L;
+			return openRequestCount>0L  ? AUTHORIZED_ADD_TEAM_MEMBER : UNAUTHORIZED_ADD_TEAM_MEMBER_GENERIC;
 		}
 	}
 	
@@ -576,7 +582,8 @@ public class TeamManagerImpl implements TeamManager {
 		String principalId = principalUserInfo.getId().toString();
 		Set<Long> currentMembers = groupMembersDAO.getMemberIdsForUpdate(Long.valueOf(teamId));
 		boolean alreadyInTeam = currentMembers.contains(principalUserInfo.getId());
-		if (!canAddTeamMember(userInfo, teamId, principalUserInfo, alreadyInTeam)) throw new UnauthorizedException("Cannot add member to team because they have not met all access restrictions. Please remove the pending request and then invite the member again. They will then be prompted to meet the requirement(s) before joining the team.");
+		AuthorizationStatus canAddTeamMemberStatus = canAddTeamMember(userInfo, teamId, principalUserInfo, alreadyInTeam);
+		if (!canAddTeamMemberStatus.isAuthorized()) throw new UnauthorizedException(canAddTeamMemberStatus.getMessage());
 
 		if (!alreadyInTeam) {
 			groupMembersDAO.addMembers(teamId, Collections.singletonList(principalId));
@@ -721,7 +728,7 @@ public class TeamManagerImpl implements TeamManager {
 		tms.setHasOpenInvitation(openInvitationCount>0L);
 		long openRequestCount = membershipRequestDAO.getOpenByTeamAndRequesterCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
 		tms.setHasOpenRequest(openRequestCount>0L);
-		tms.setCanJoin(canAddTeamMember(userInfo, teamId, principalUserInfo, isMember));
+		tms.setCanJoin(canAddTeamMember(userInfo, teamId, principalUserInfo, isMember).isAuthorized());
 		tms.setHasUnmetAccessRequirement(hasUnmetAccessRequirements(principalUserInfo, teamId));
 		tms.setMembershipApprovalRequired(isMembershipApprovalRequired(principalUserInfo, teamId));
 		tms.setCanSendEmail(authorizationManager.canAccess(principalUserInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE).isAuthorized());
