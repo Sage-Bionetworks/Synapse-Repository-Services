@@ -5,8 +5,6 @@ import java.util.Date;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.StackStatusManager;
@@ -14,6 +12,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.doi.DoiAdminManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
+import org.sagebionetworks.repo.manager.sqs.SQSManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityId;
@@ -30,10 +29,12 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
-import org.sagebionetworks.repo.model.message.TransactionSynchronizationProxy;
+import org.sagebionetworks.repo.model.message.SQSSendMessageRequest;
+import org.sagebionetworks.repo.model.message.SQSSendMessageResponse;
 import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -46,8 +47,6 @@ import org.springframework.http.HttpHeaders;
  * @author John
  */
 public class AdministrationServiceImpl implements AdministrationService  {
-
-	static private Logger log = LogManager.getLogger(AdministrationServiceImpl.class);
 	
 	@Autowired
 	private ObjectTypeSerializer objectTypeSerializer;
@@ -74,13 +73,13 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	private DBOChangeDAO changeDAO;
 	
 	@Autowired
-	IdGenerator idGenerator;
+	private IdGenerator idGenerator;
 
 	@Autowired
-	TransactionSynchronizationProxy transactionSynchronizationManager;
-
+	private PasswordValidator passwordValidator;
+	
 	@Autowired
-	PasswordValidator passwordValidator;
+	private SQSManager sqsManager;
 	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getStackStatus(java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
@@ -217,6 +216,11 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		IdGeneratorExport export = new IdGeneratorExport();
 		export.setExportScript(script);
 		return export;
+	}
+	
+	@Override
+	public SQSSendMessageResponse sendSQSMessage(SQSSendMessageRequest messageRequest) throws NotFoundException, TemporarilyUnavailableException  {
+		return sqsManager.sendMessage(messageRequest);
 	}
 
 }
