@@ -2,17 +2,14 @@ package org.sagebionetworks.schema.worker;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.InputStream;
-import java.util.Date;
 
 import org.apache.commons.io.IOUtils;
-import org.everit.json.schema.Schema;
-import org.everit.json.schema.ValidationException;
-import org.everit.json.schema.loader.SchemaLoader;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
@@ -22,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
+import org.sagebionetworks.repo.manager.schema.JsonSchemaValidationManager;
 import org.sagebionetworks.repo.manager.schema.SynapseSchemaBootstrap;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -31,14 +29,12 @@ import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
-import org.sagebionetworks.repo.model.schema.ObjectType;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -60,6 +56,9 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 
 	@Autowired
 	UserManager userManager;
+	
+	@Autowired
+	JsonSchemaValidationManager jsonSchemaValidationManager;
 
 	UserInfo adminUserInfo;
 	String organizationName;
@@ -203,38 +202,47 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.Versionable"));
 		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.VersionableEntity"));
 		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.FileEntity"));
+		
 
-		String validationSchemaJson = EntityFactory.createJSONStringForEntity(validationSchema);
-		JSONObject rawSchema = new JSONObject(validationSchemaJson);
-		Schema schema = SchemaLoader.load(rawSchema);
+//		String validationSchemaJson = EntityFactory.createJSONStringForEntity(validationSchema);
+//		JSONObject rawSchema = new JSONObject(validationSchemaJson);
+//		Schema schema = SchemaLoader.load(rawSchema);
 
 		String validCatJsonString = loadStringFromClasspath("pets/ValidCat.json");
 		JSONObject validCat = new JSONObject(validCatJsonString);
 		// this schema should be valid
-		schema.validate(validCat);
-
+		ValidationResults result = jsonSchemaValidationManager.validate(validationSchema, validCat);
+		assertNotNull(result);
+		assertTrue(result.getIsValid());
+		
+		// Changing the petType to dog should cause a schema violation.
 		validCat.put("petType", "dog");
-		String message = assertThrows(ValidationException.class, () -> {
-			// this schema should not be valid
-			schema.validate(validCat);
-		}).getMessage();
-		assertEquals("#: #: 0 subschemas matched instead of one", message);
-
-		ValidationException e = assertThrows(ValidationException.class, () -> {
-			// this schema should not be valid
-			schema.validate(validCat);
-		});
-		ValidationResults results = new ValidationResults();
-		results.setIsValid(false);
-		results.setObjectEtag("some-etag");
-		results.setObjectId("syn123");
-		results.setObjectType(ObjectType.entity);
-		results.setValidatedOn(new Date());
-		results.setValidationErrorMessage(e.getErrorMessage());
-		results.setAllValidationMessages(e.getAllMessages());
-		org.sagebionetworks.repo.model.schema.ValidationException dtoException = new org.sagebionetworks.repo.model.schema.ValidationException(new JSONObjectAdapterImpl(e.toJSON()));
-		results.setValidationException(dtoException);
-		printJson(results);
+		result = jsonSchemaValidationManager.validate(validationSchema, validCat);
+		assertNotNull(result);
+		assertFalse(result.getIsValid());
+		assertEquals("#: 0 subschemas matched instead of one", result.getValidationErrorMessage());
+//		
+//		String message = assertThrows(ValidationException.class, () -> {
+//			// this schema should not be valid
+//			schema.validate(validCat);
+//		}).getMessage();
+//		assertEquals("#: #: 0 subschemas matched instead of one", message);
+//
+//		ValidationException e = assertThrows(ValidationException.class, () -> {
+//			// this schema should not be valid
+//			schema.validate(validCat);
+//		});
+//		ValidationResults results = new ValidationResults();
+//		results.setIsValid(false);
+//		results.setObjectEtag("some-etag");
+//		results.setObjectId("syn123");
+//		results.setObjectType(ObjectType.entity);
+//		results.setValidatedOn(new Date());
+//		results.setValidationErrorMessage(e.getErrorMessage());
+//		results.setAllValidationMessages(e.getAllMessages());
+//		org.sagebionetworks.repo.model.schema.ValidationException dtoException = new org.sagebionetworks.repo.model.schema.ValidationException(new JSONObjectAdapterImpl(e.toJSON()));
+//		results.setValidationException(dtoException);
+		printJson(result);
 	}
 
 	public void printJson(JSONEntity entity) throws JSONException, JSONObjectAdapterException {
