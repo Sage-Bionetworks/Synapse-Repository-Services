@@ -102,6 +102,22 @@
 		<url-pattern>/repo/v1/*</url-pattern>
 		<url-pattern>/file/v1/*</url-pattern>
 	</filter-mapping>
+	
+	<!-- Filter that authenticate the migration services using basic auth -->
+	<filter>
+		<filter-name>migrationServiceAuthFilter</filter-name>
+		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+		<init-param>
+			<!-- Make sure the init-params are passed through the proxy to the bean -->
+			<param-name>targetFilterLifecycle</param-name>
+			<param-value>true</param-value>
+		</init-param>
+	</filter>
+	
+	<filter-mapping>
+		<filter-name>migrationServiceAuthFilter</filter-name>
+		<url-pattern>/repo/v1/migration/*</url-pattern>
+	</filter-mapping>
 
 	<!-- This filter will look for the session token as a cookie, if it finds
     it, the token will be added to the header of the request -->

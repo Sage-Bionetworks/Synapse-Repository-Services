@@ -406,4 +406,12 @@ public class FormManagerImpl implements FormManager {
 		formDao.truncateAll();
 	}
 
+	@Override
+	public FormGroup getFormGroup(UserInfo user, String id) {
+		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(id, "id");
+		aclDao.canAccess(user, id, ObjectType.FORM_GROUP, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		return formDao.getFormGroup(id);
+	}
+
 }

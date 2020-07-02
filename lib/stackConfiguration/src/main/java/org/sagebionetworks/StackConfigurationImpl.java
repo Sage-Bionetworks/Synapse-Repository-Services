@@ -17,6 +17,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	// Package-scoped for unit tests.
 	final static String CONFIG_KEY_STS_IAM_ARN = "org.sagebionetworks.sts.iam.arn";
+	private static final String SERVICE_AUTH_TEMPLATE = "org.sagebionetworks.%s.auth.%s";
 
 	private ConfigurationProperties configuration;
 	private StackEncrypter stackEncrypter;
@@ -957,7 +958,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * services.
 	 */
 	public String getCloudMailInUser() {
-		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.email.cloudmailin.user");
+		return getServiceAuthKey(SERVICE_CLOUDMAILIN);
 	}
 
 	/*
@@ -965,7 +966,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * services.
 	 */
 	public String getCloudMailInPassword() {
-		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.email.cloudmailin.password");
+		return getServiceAuthSecret(SERVICE_CLOUDMAILIN);
 	}
 
 	public String getDefaultPortalNotificationEndpoint() {
@@ -980,14 +981,14 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * Credentials used by Docker Registry to send events to the repo services.
 	 */
 	public String getDockerRegistryUser() {
-		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.docker.registry.user");
+		return getServiceAuthKey(SERVICE_DOCKER_REGISTRY);
 	}
 
 	/*
 	 * Credentials used by Docker Registry to send events to the repo services.
 	 */
 	public String getDockerRegistryPassword() {
-		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.docker.registry.password");
+		return getServiceAuthSecret(SERVICE_DOCKER_REGISTRY);
 	}
 
 	/**
@@ -1204,5 +1205,15 @@ public class StackConfigurationImpl implements StackConfiguration {
 		} else {
 			return null;
 		}
+	}
+	
+	@Override
+	public String getServiceAuthKey(String serviceName) {
+		return stackEncrypter.getDecryptedProperty(String.format(SERVICE_AUTH_TEMPLATE, serviceName, "key"));
+	}
+	
+	@Override
+	public String getServiceAuthSecret(String serviceName) {
+		return stackEncrypter.getDecryptedProperty(String.format(SERVICE_AUTH_TEMPLATE, serviceName, "secret"));
 	}
 }

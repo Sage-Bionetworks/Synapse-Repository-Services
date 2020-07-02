@@ -8,6 +8,10 @@ import java.util.List;
  *
  */
 public interface StackConfiguration {
+	
+	String SERVICE_CLOUDMAILIN = "cloudmailin";
+	String SERVICE_DOCKER_REGISTRY = "docker.registry";
+	String SERVICE_MIGRATION = "migration";
 
 	/**
 	 * Is this a production stack?
@@ -807,4 +811,17 @@ public interface StackConfiguration {
 	 * credentials that we pass to the caller.
 	 */
 	String getTempCredentialsIamRoleArn();
+	
+	/**
+	 * @param serviceName Name of the service
+	 * @return The key used to authenticate the service with the given name
+	 */
+	String getServiceAuthKey(String serviceName);
+	
+	/**
+	 * @param serviceName Name of the service
+	 * @return The secret used to authenticate the service with the given name
+	 */
+	String getServiceAuthSecret(String serviceName);
+	
 }

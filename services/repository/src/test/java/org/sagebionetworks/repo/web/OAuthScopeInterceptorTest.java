@@ -8,6 +8,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME;
 
@@ -114,6 +116,7 @@ class OAuthScopeInterceptorTest {
 		if (accessToken!=null) {
 			when(mockRequest.getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME)).thenReturn("Bearer "+accessToken);
 		}
+		when(mockRequest.getHeader(AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME)).thenReturn(null);
 		when(mockRequest.getParameter(AuthorizationConstants.USER_ID_PARAM)).thenReturn(userId); 	
 	}
 	
@@ -183,8 +186,12 @@ class OAuthScopeInterceptorTest {
 		
 		assertTrue(result);
 		
-		verify(mockRequest, never()).getHeader(anyString());
-		verify(mockHandler, never()).getMethodAnnotation(any());
+		verify(mockRequest).getHeader(AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME);
+		verify(mockRequest).getParameter(AuthorizationConstants.USER_ID_PARAM);
+		
+		verifyNoMoreInteractions(mockRequest);
+		verifyZeroInteractions(mockResponse);
+		verifyZeroInteractions(mockHandler);
 	}
 
 	@Test
@@ -311,5 +318,19 @@ class OAuthScopeInterceptorTest {
 		verify(mockRequest).getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME);
 		verify(mockOidcTokenHelper).parseJWT(anyString());
 		verify(mockHandler).getMethodAnnotation(RequiredScope.class);
+	}
+	
+	@Test
+	void testPrehandleWithServiceCall() throws Exception {
+		when(mockRequest.getHeader(AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME)).thenReturn("serviceName"); 	
+
+		// method under test
+		boolean result = oauthScopeInterceptor.preHandle(mockRequest, mockResponse, mockHandler);
+		
+		assertTrue(result);
+		
+		verify(mockRequest).getHeader(AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME);
+		verifyZeroInteractions(mockResponse);
+		verifyZeroInteractions(mockHandler);
 	}
 }

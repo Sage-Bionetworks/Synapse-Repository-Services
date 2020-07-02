@@ -61,10 +61,20 @@ public class OAuthScopeInterceptor implements HandlerInterceptor {
 				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId()
 					.equals(Long.parseLong(userIdRequestParameter));
 	}
+	
+	public static boolean isServiceCall(HttpServletRequest request) {
+		String serviceName = request.getHeader(AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME);
+		return serviceName != null;
+	}
 
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
 			throws Exception {
+
+		// Service calls do not need to have the scope checked since they are authenticated by the filter itself
+		if (isServiceCall(request)) {
+			return true;
+		}
 		
 		// anonymous requests do not need to have scope checked, they have the same 
 		// access that unauthenticated requests have

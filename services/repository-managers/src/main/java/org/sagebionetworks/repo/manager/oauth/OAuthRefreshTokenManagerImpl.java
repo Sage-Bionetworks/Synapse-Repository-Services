@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
+import org.sagebionetworks.repo.model.auth.OAuthDao;
 import org.sagebionetworks.repo.model.auth.OAuthRefreshTokenDao;
 import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistory;
 import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
@@ -30,6 +31,9 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
+
+	@Autowired
+	OAuthDao oauthDao;
 
 	@Autowired
 	OAuthClientDao oauthClientDao;
@@ -176,6 +180,8 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 	@WriteTransaction
 	@Override
 	public void revokeRefreshTokensForUserClientPair(UserInfo userInfo, String clientId) {
+		ValidateArgument.required(clientId, "clientId");
+		oauthDao.deleteAuthorizationConsentForClient(userInfo.getId(), Long.valueOf(clientId));
 		oauthRefreshTokenDao.deleteAllTokensForUserClientPair(userInfo.getId().toString(), clientId);
 	}
 

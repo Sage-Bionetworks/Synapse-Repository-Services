@@ -129,4 +129,13 @@ public interface FormManager {
 	 */
 	void truncateAll();
 
+	/**
+	 * Get the identified FormGroup.
+	 * 
+	 * @param user
+	 * @param id
+	 * @return
+	 */
+	FormGroup getFormGroup(UserInfo user, String id);
+
 }

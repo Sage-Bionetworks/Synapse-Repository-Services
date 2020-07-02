@@ -25,6 +25,12 @@
 				"arn:aws:s3:::${bucketWithFolder}",
 				"arn:aws:s3:::${bucketWithFolder}/*"
 			]
+		},
+		{
+			"Sid": "DenyOwnerTxt",
+			"Effect": "Deny",
+			"Action": ["*"],
+			"Resource": ["arn:aws:s3:::${bucketWithFolder}/owner.txt"]
 		}
 	]
 }
