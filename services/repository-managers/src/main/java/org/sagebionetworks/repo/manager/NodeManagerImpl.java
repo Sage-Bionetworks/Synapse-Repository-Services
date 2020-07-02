@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.entity.Direction;
@@ -384,7 +385,11 @@ public class NodeManagerImpl implements NodeManager {
 		final String parentInUpdate = updatedNode.getParentId();
 		// is this a parentId change?
 		if (!KeyFactory.equals(parentInDatabase, parentInUpdate)) {
-			authorizationManager.canAccess(userInfo, parentInUpdate, ObjectType.ENTITY, ACCESS_TYPE.CREATE).checkAuthorizationOrElseThrow();
+			AuthorizationStatus moveAuthorization = authorizationManager.
+					canAccess(userInfo, parentInUpdate, ObjectType.ENTITY, ACCESS_TYPE.CREATE);
+			if (!moveAuthorization.isAuthorized()) {
+				throw new UnauthorizedException("You do not have permission to move into the new location, "+parentInUpdate);
+			}
 			// Validate the limits of the new parent
 			validateChildCount(parentInUpdate, updatedNode.getNodeType());
 			
