@@ -1,14 +1,12 @@
 package org.sagebionetworks.repo.util.jrjc;
 
-import org.json.simple.JSONObject;
-
 import java.util.Map;
 
 public class BasicIssue {
     private String summary;
     private String projectId;
     private Long issueTypeId;
-    private Map<String, String> customFields;
+    private Map<String, Object> customFields;
 
     public String getSummary() {
         return summary;
@@ -34,11 +32,11 @@ public class BasicIssue {
         this.issueTypeId = issueTypeId;
     }
 
-    public Map<String, String> getCustomFields() {
+    public Map<String, Object> getCustomFields() {
         return customFields;
     }
 
-    public void setCustomFields(Map<String, String> customFields) {
+    public void setCustomFields(Map<String, Object> customFields) {
         this.customFields = customFields;
     }
 

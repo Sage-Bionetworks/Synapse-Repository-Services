@@ -1,24 +1,26 @@
 package org.sagebionetworks.repo.util.jrjc;
 
-import org.sagebionetworks.StackConfiguration;
-
-import org.apache.http.HttpHeaders;
-import org.apache.http.HttpStatus;
-
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
-import org.sagebionetworks.simpleHttpClient.*;
-import org.sagebionetworks.url.HttpMethod;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+
+import org.apache.http.HttpHeaders;
+import org.apache.http.HttpStatus;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
+import org.sagebionetworks.url.HttpMethod;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Mini JIRA REST client

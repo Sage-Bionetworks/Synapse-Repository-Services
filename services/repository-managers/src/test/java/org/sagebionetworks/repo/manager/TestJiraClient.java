@@ -2,8 +2,11 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.Map;
 
-import org.json.simple.JSONObject;
-import org.sagebionetworks.repo.util.jrjc.*;
+import org.sagebionetworks.repo.util.jrjc.BasicIssue;
+import org.sagebionetworks.repo.util.jrjc.CreatedIssue;
+import org.sagebionetworks.repo.util.jrjc.JiraClient;
+import org.sagebionetworks.repo.util.jrjc.JiraClientImpl;
+import org.sagebionetworks.repo.util.jrjc.ProjectInfo;
 
 /**
  * This is a test Jira client which avoids creating any actual issues in Jira

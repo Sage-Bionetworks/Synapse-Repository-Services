@@ -10,6 +10,8 @@ import static org.mockito.Mockito.when;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,11 +56,17 @@ public class JRJCHelperTest {
 		BasicIssue issueInput = issueCaptor.getValue();
 
 		assertNotNull(issueInput.getCustomFields());
-		Map<String,String> customFields = issueInput.getCustomFields();
+		Map<String,Object> customFields = issueInput.getCustomFields();
 		assertEquals("Request for ACT to add data restriction", issueInput.getSummary());
 		assertEquals(TEST_PRINCIPAL_ID, customFields.get("id1"));
 		assertEquals(TEST_DISPLAY_NAME, customFields.get("id2"));
 		assertEquals(TEST_DATA_OBJECT_ID, customFields.get("id3"));
+		JSONArray components = (JSONArray)customFields.get("components");
+		JSONArray expected = new JSONArray();
+		JSONObject componentName = new JSONObject();
+		componentName.put("name", "Data Restriction Request");
+		expected.add(componentName);
+		assertEquals(expected, components);
 		assertEquals("projectId", issueInput.getProjectId());
 		assertEquals(Long.valueOf((10000L)), issueInput.getIssueTypeId());
 
@@ -76,7 +84,7 @@ public class JRJCHelperTest {
 		BasicIssue issueInput = issueCaptor.getValue();
 
 		assertNotNull(issueInput.getCustomFields());
-		Map<String,String> fields = issueInput.getCustomFields();
+		Map<String,Object> fields = issueInput.getCustomFields();
 		assertEquals("Request for ACT to review data", issueInput.getSummary());
 		assertEquals(TEST_PRINCIPAL_ID, fields.get("id1"));
 		assertEquals(TEST_DISPLAY_NAME, fields.get("id2"));
@@ -112,6 +120,7 @@ public class JRJCHelperTest {
 		fields.put("Synapse Principal ID", "id1");
 		fields.put("Synapse User Display Name", "id2");
 		fields.put("Synapse Data Object", "id3");
+		fields.put("Components", "components");
 		when(jiraClient.getFields()).thenReturn(fields);
 	}
 
