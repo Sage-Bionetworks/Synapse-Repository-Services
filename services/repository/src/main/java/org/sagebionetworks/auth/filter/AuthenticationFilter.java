@@ -30,11 +30,13 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.OAuthException;
 import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.util.ThreadLocalProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 /**
@@ -112,7 +114,7 @@ public class AuthenticationFilter implements Filter {
 				try {
 					// validate token and get userid parameter
 					userId = Long.parseLong(oidcManager.validateAccessToken(accessToken));
-				} catch (IllegalArgumentException  | ForbiddenException | OAuthClientNotVerifiedException | OAuthUnauthenticatedException e) {
+				} catch (IllegalArgumentException | ForbiddenException | OAuthClientNotVerifiedException e) {
 					String failureReason = "Invalid access token";
 					if (StringUtils.isNotEmpty(e.getMessage())) {
 						failureReason = e.getMessage();
@@ -120,7 +122,11 @@ public class AuthenticationFilter implements Filter {
 					HttpAuthUtil.reject((HttpServletResponse)servletResponse, failureReason);
 					log.warn(failureReason, e);
 					return;
-				}	
+				} catch (OAuthException e) {
+					HttpAuthUtil.rejectWithOAuthError((HttpServletResponse)servletResponse, e.getError(), e.getErrorDescription(), HttpStatus.UNAUTHORIZED);
+					log.warn(e.getMessage(), e);
+					return;
+				}
 			} else { // anonymous
 				userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 			}
