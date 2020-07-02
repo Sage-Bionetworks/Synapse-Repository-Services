@@ -666,13 +666,10 @@ public class ITOpenIDConnectTest {
 		// Revoke the token
 		synapseOne.revokeMyRefreshTokensFromClient(client.getClient_id());
 
-		// Try to use the access token and verify that the error is the proper JSON error
+		// Try to use the revoked access token and verify that the error is the proper JSON error
 		{
-
-
 			SimpleHttpRequest request = new SimpleHttpRequest();
 			request.setUri(config.getAuthenticationServicePublicEndpoint()+"/oauth2/audit/grantedClients");
-
 			Map<String, String> requestHeaders = new HashMap<>();
 			requestHeaders.put("Content-Type", "application/json");
 			requestHeaders.put("Authorization", "Bearer " + tokenResponse.getAccess_token());
