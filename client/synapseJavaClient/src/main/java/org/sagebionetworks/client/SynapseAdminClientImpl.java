@@ -15,6 +15,8 @@ import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
+import org.sagebionetworks.repo.model.message.SQSSendMessageRequest;
+import org.sagebionetworks.repo.model.message.SQSSendMessageResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
@@ -43,6 +45,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String ADMIN_GET_CURRENT_CHANGE_NUM = ADMIN + "/messages/currentnumber";
 	private static final String ADMIN_PUBLISH_MESSAGES = ADMIN_CHANGE_MESSAGES + "/rebroadcast";
 	private static final String ADMIN_DOI_CLEAR = ADMIN + "/doi/clear";
+	private static final String ADMIN_SQS_MESSAGE = ADMIN + "/sqs/message";
 
 	private static final String MIGRATION = "/migration";
 	private static final String MIGRATION_COUNTS = MIGRATION + "/counts";
@@ -396,5 +399,15 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		validateStringAsLong(principalId);
 		String uri = ADMIN + REDACT_USER + "/" + principalId;
 		voidPost(getRepoEndpoint(), uri, null, null);
+	}
+	
+	@Override
+	public SQSSendMessageResponse sendSQSMessage(String queue, String messageBody) throws SynapseException {
+		SQSSendMessageRequest request = new SQSSendMessageRequest();
+		
+		request.setQueueName(queue);
+		request.setMessageBody(messageBody);
+		
+		return postJSONEntity(getRepoEndpoint(), ADMIN_SQS_MESSAGE, request, SQSSendMessageResponse.class);
 	}
 }

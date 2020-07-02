@@ -825,4 +825,9 @@ public interface StackConfiguration {
 	 */
 	String getServiceAuthSecret(String serviceName);
 	
+	/**
+	 * @return The base endpoint for remote trigger workers
+	 */
+	String getRemoteTriggerWorkerEndpoint();
+	
 }

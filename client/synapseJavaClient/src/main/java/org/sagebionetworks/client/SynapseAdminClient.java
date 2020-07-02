@@ -9,6 +9,8 @@ import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
+import org.sagebionetworks.repo.model.message.SQSSendMessageRequest;
+import org.sagebionetworks.repo.model.message.SQSSendMessageResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
@@ -273,5 +275,15 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException
 	 */
 	void redactUserInformation(String principalId) throws SynapseException;
+	
+	/**
+	 * Sends an SQS message to the given queue
+	 * 
+	 * @param queue The name of the queue (without stack information)
+	 * @param messageBody The message body
+	 * @return The {@link SQSSendMessageResponse} containing information about the SQS message that was sent
+	 * @throws SynapseException
+	 */
+	SQSSendMessageResponse sendSQSMessage(String queue, String messageBody) throws SynapseException;
 
 }
