@@ -133,6 +133,11 @@
 				<version>${commonscollections4.version}</version>
 				<type>jar</type>
 			</dependency>
+			<dependency>
+				<groupId>org.json</groupId>
+				<artifactId>JSON-Java</artifactId>
+				<version>1.2</version>
+			</dependency>
 			<!-- JSON schema validation library -->
 			<dependency>
 				<groupId>com.github.everit-org.json-schema</groupId>
