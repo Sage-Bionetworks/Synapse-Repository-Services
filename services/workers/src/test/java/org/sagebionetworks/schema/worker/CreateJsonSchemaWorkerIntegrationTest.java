@@ -202,11 +202,6 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.Versionable"));
 		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.VersionableEntity"));
 		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.FileEntity"));
-		
-
-//		String validationSchemaJson = EntityFactory.createJSONStringForEntity(validationSchema);
-//		JSONObject rawSchema = new JSONObject(validationSchemaJson);
-//		Schema schema = SchemaLoader.load(rawSchema);
 
 		String validCatJsonString = loadStringFromClasspath("pets/ValidCat.json");
 		JSONObject validCat = new JSONObject(validCatJsonString);
@@ -221,27 +216,6 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 		assertNotNull(result);
 		assertFalse(result.getIsValid());
 		assertEquals("#: 0 subschemas matched instead of one", result.getValidationErrorMessage());
-//		
-//		String message = assertThrows(ValidationException.class, () -> {
-//			// this schema should not be valid
-//			schema.validate(validCat);
-//		}).getMessage();
-//		assertEquals("#: #: 0 subschemas matched instead of one", message);
-//
-//		ValidationException e = assertThrows(ValidationException.class, () -> {
-//			// this schema should not be valid
-//			schema.validate(validCat);
-//		});
-//		ValidationResults results = new ValidationResults();
-//		results.setIsValid(false);
-//		results.setObjectEtag("some-etag");
-//		results.setObjectId("syn123");
-//		results.setObjectType(ObjectType.entity);
-//		results.setValidatedOn(new Date());
-//		results.setValidationErrorMessage(e.getErrorMessage());
-//		results.setAllValidationMessages(e.getAllMessages());
-//		org.sagebionetworks.repo.model.schema.ValidationException dtoException = new org.sagebionetworks.repo.model.schema.ValidationException(new JSONObjectAdapterImpl(e.toJSON()));
-//		results.setValidationException(dtoException);
 		printJson(result);
 	}
 
