@@ -135,6 +135,7 @@ public class AccessInterceptorTest {
 		assertEquals("?param1=foo", result.getQueryString());
 		assertEquals("returnId", result.getReturnObjectId());
 		assertNull(result.getOauthClientId()); // request was made without an OAuth client
+		assertNull(result.getBasicAuthUsername());
 	}
 	
 	@Test
@@ -224,12 +225,14 @@ public class AccessInterceptorTest {
 
 		// Other fields are tested in testHappyCase
 		assertEquals(OAUTH_CLIENT_ID, result.getOauthClientId());
+		assertNull(result.getBasicAuthUsername());
 	}
 
 	@Test
-	public void testGetOAuthClientIdFromBasicAuthCreds() throws Exception {
+	public void testGetOAuthClientIdFromBasicAuthCredsAndHeader() throws Exception {
 		// Put the client ID in the basic auth header.
 		when(mockRequest.getHeader("Authorization")).thenReturn(BASIC_AUTH_HEADER);
+		when(mockRequest.getHeader(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER)).thenReturn(OAUTH_CLIENT_ID_BASIC);
 
 		// Start
 		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
@@ -244,5 +247,6 @@ public class AccessInterceptorTest {
 
 		// Other fields are tested in testHappyCase
 		assertEquals(OAUTH_CLIENT_ID_BASIC, result.getOauthClientId());
+		assertEquals(OAUTH_CLIENT_ID_BASIC, result.getBasicAuthUsername());
 	}
 }
