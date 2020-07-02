@@ -14,6 +14,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -3131,12 +3133,12 @@ public class NodeDAOImplTest {
 	 * @return
 	 */
 	private List<Node> createHierarchy(){
-		List<Node> resutls = new LinkedList<Node>();
+		List<Node> results = new LinkedList<Node>();
 		// Create a project
 		Node project = NodeTestUtils.createNew("hierarchy", creatorUserGroupId);
 		project.setNodeType(EntityType.project);
 		String projectId = nodeDao.createNew(project);
-		resutls.add(nodeDao.getNode(projectId));
+		results.add(nodeDao.getNode(projectId));
 		toDelete.add(projectId);
 		
 		String levelOneFolderId = null;
@@ -3146,7 +3148,7 @@ public class NodeDAOImplTest {
 			folder.setNodeType(EntityType.folder);
 			folder.setParentId(projectId);
 			levelOneFolderId = nodeDao.createNew(folder);
-			resutls.add(nodeDao.getNode(levelOneFolderId));
+			results.add(nodeDao.getNode(levelOneFolderId));
 			toDelete.add(levelOneFolderId);
 		}
 		
@@ -3156,7 +3158,7 @@ public class NodeDAOImplTest {
 		file.setParentId(projectId);
 		file.setFileHandleId(fileHandle.getId());
 		String fileId = nodeDao.createNew(file);
-		resutls.add(nodeDao.getNode(fileId));
+		results.add(nodeDao.getNode(fileId));
 		toDelete.add(fileId);
 		
 		// folder2
@@ -3164,7 +3166,7 @@ public class NodeDAOImplTest {
 		folder.setNodeType(EntityType.folder);
 		folder.setParentId(levelOneFolderId);
 		String folder2Id = nodeDao.createNew(folder);
-		resutls.add(nodeDao.getNode(folder2Id));
+		results.add(nodeDao.getNode(folder2Id));
 		toDelete.add(folder2Id);
 		
 		// file1
@@ -3173,7 +3175,7 @@ public class NodeDAOImplTest {
 		file.setParentId(levelOneFolderId);
 		file.setFileHandleId(fileHandle.getId());
 		fileId = nodeDao.createNew(file);
-		resutls.add(nodeDao.getNode(fileId));
+		results.add(nodeDao.getNode(fileId));
 		toDelete.add(fileId);
 		
 		// file2
@@ -3182,13 +3184,13 @@ public class NodeDAOImplTest {
 		file.setParentId(folder2Id);
 		file.setFileHandleId(fileHandle.getId());
 		fileId = nodeDao.createNew(file);
-		resutls.add(nodeDao.getNode(fileId));
+		results.add(nodeDao.getNode(fileId));
 		// Set file2 to be its own benefactor
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(fileId, adminUser, new Date());
 		accessControlListDAO.create(acl, ObjectType.ENTITY);
 		toDelete.add(fileId);
 		
-		return resutls;
+		return results;
 	}
 
 	private Node createProject(String projectName, String user) throws Exception {
@@ -3281,7 +3283,7 @@ public class NodeDAOImplTest {
 	public void testGetFragmentSortColumnModifiedOn() {
 		SortBy sortBy = SortBy.MODIFIED_ON;
 		String result = NodeDAOImpl.getFragmentSortColumn(sortBy);
-		assertEquals(NodeDAOImpl.N_MODIFIED_ON, result);
+		assertEquals(NodeDAOImpl.R_MODIFIED_ON, result);
 	}
 
 	@Test
@@ -3425,6 +3427,103 @@ public class NodeDAOImplTest {
 		String benefactorId = nodeDao.getBenefactor(header.getId());
 		Long benefactorLong = KeyFactory.stringToKey(benefactorId);
 		assertEquals(benefactorLong, header.getBenefactorId());
+	}
+
+	/**
+	 * Generate the following Hierarchy:
+	 * <ul>
+	 * <li>project</li>
+	 * <li>folder0->project, modifiedOn = 01/01/1000</li>
+	 * <li>folder1->project, modifiedOn = 01/01/2000</li>
+	 * <li>folder2->project, modifiedOn = 01/01/3000</li>
+	 * </ul>
+	 *
+	 * @return list of nodes with the hierarchy outlined above
+	 */
+	private List<Node> createHierarchyToTestModifiedOnSort(){
+		List<Node> results = new LinkedList<Node>();
+
+		SimpleDateFormat date = new SimpleDateFormat("dd/MM/yyyy");
+
+		// Create a project
+		Node project = NodeTestUtils.createNew("hierarchy", creatorUserGroupId);
+		project.setNodeType(EntityType.project);
+		String projectId = nodeDao.createNew(project);
+		results.add(nodeDao.getNode(projectId));
+		toDelete.add(projectId);
+
+		String folderId = null;
+		Node folder1 = NodeTestUtils.createNew("folder1", creatorUserGroupId);
+		folder1.setNodeType(EntityType.folder);
+		folder1.setParentId(projectId);
+
+		try {
+			// set modifiedOn to year 1000
+			folder1.setModifiedOn(date.parse("01/01/1000"));
+		} catch (ParseException error) {
+			fail(error);
+		}
+		folderId = nodeDao.createNew(folder1);
+		results.add(nodeDao.getNode(folderId));
+		toDelete.add(folderId);
+
+		Node folder2 = NodeTestUtils.createNew("folder2", creatorUserGroupId);
+		folder2.setNodeType(EntityType.folder);
+		folder2.setParentId(projectId);
+		try {
+			// set modifiedOn to year 2000
+			folder2.setModifiedOn(date.parse("01/01/2000"));
+		} catch (ParseException error) {
+			fail(error);
+		}
+		folderId = nodeDao.createNew(folder2);
+		results.add(nodeDao.getNode(folderId));
+		toDelete.add(folderId);
+
+		Node folder3 = NodeTestUtils.createNew("folder3", creatorUserGroupId);
+		folder3.setNodeType(EntityType.folder);
+		folder3.setParentId(projectId);
+		try {
+			// set modifiedOn to year 3000
+			folder3.setModifiedOn(date.parse("01/01/3000"));
+		} catch (ParseException error) {
+			fail(error);
+		}
+		folderId = nodeDao.createNew(folder3);
+		results.add(nodeDao.getNode(folderId));
+		toDelete.add(folderId);
+
+		return results;
+	}
+
+	@Test
+	public void testGetChildrenSortByModifiedOn(){
+		List<Node> nodes = createHierarchyToTestModifiedOnSort();
+
+		String parentId = nodes.get(0).getId();
+		// children of the project created by createHierarchyToTestModifiedOnSort
+		Node folder1 = nodes.get(1); // created first
+		Node folder2 = nodes.get(2); // created second
+		Node folder3 = nodes.get(3); // created third
+		// set up params for request
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.folder);
+		SortBy sortBy = SortBy.MODIFIED_ON;
+		long limit = 10L;
+		long offset = 0L;
+		// sort in descending order
+		List<EntityHeader> descendingResults = nodeDao.getChildren(parentId, includeTypes, null, sortBy, Direction.DESC, limit, offset);
+		assertNotNull(descendingResults);
+		assertEquals(3, descendingResults.size());
+		assertEquals(folder3.getCreatedOn(), descendingResults.get(0).getCreatedOn());
+		assertEquals(folder2.getCreatedOn(), descendingResults.get(1).getCreatedOn());
+		assertEquals(folder1.getCreatedOn(), descendingResults.get(2).getCreatedOn());
+		// sort in ascending order
+		List<EntityHeader> ascendingResults = nodeDao.getChildren(parentId, includeTypes, null, sortBy, Direction.ASC, limit, offset);
+		assertNotNull(ascendingResults);
+		assertEquals(3, ascendingResults.size());
+		assertEquals(folder1.getCreatedOn(), ascendingResults.get(0).getCreatedOn());
+		assertEquals(folder2.getCreatedOn(), ascendingResults.get(1).getCreatedOn());
+		assertEquals(folder3.getCreatedOn(), ascendingResults.get(2).getCreatedOn());
 	}
 	
 	@Test

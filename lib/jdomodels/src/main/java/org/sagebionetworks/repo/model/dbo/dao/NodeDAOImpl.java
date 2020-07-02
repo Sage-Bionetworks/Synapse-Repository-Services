@@ -262,7 +262,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 	public static final String N_NAME = "N."+COL_NODE_NAME;
 	public static final String N_CREATED_ON = "N."+COL_NODE_CREATED_ON;
-	public static final String N_MODIFIED_ON = "N."+COL_NODE_MODIFIED_ON;
+	public static final String R_MODIFIED_ON = "R."+COL_NODE_MODIFIED_ON;
 	
 	public static final String SQL_ID_NOT_IN_SET = " AND N."+COL_NODE_ID+" NOT IN (:"+BIND_NODE_IDS+")";
 	
@@ -1844,7 +1844,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		case CREATED_ON:
 			return N_CREATED_ON;
 		case MODIFIED_ON:
-			return N_MODIFIED_ON;
+			return R_MODIFIED_ON;
 		default:
 			throw new IllegalArgumentException("Unknown SortBy: "+sortBy);
 		}
