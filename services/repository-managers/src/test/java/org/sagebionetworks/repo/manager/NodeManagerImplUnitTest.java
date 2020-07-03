@@ -740,7 +740,7 @@ public class NodeManagerImplUnitTest {
 		UnauthorizedException thrown = assertThrows(UnauthorizedException.class, () ->
 			nodeManager.update(mockUserInfo, mockNode, null, false));
 		
-		assertEquals("You do not have permission to move into the new location, "+newParentId, thrown.getMessage());
+		assertEquals("You cannot move content into the new location, "+newParentId+". ", thrown.getMessage());
 		
 	}
 	

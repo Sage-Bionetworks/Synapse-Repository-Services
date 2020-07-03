@@ -388,7 +388,8 @@ public class NodeManagerImpl implements NodeManager {
 			AuthorizationStatus moveAuthorization = authorizationManager.
 					canAccess(userInfo, parentInUpdate, ObjectType.ENTITY, ACCESS_TYPE.CREATE);
 			if (!moveAuthorization.isAuthorized()) {
-				throw new UnauthorizedException("You do not have permission to move into the new location, "+parentInUpdate);
+				throw new UnauthorizedException("You cannot move content into the new location, "+
+						parentInUpdate+". "+moveAuthorization.getMessage());
 			}
 			// Validate the limits of the new parent
 			validateChildCount(parentInUpdate, updatedNode.getNodeType());

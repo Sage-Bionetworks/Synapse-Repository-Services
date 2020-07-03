@@ -494,7 +494,7 @@ public class EntityPermissionsManagerImplTest {
 			nodeManager.update(userInfo, newFolder, null, false);
 		});
 		
-		assertEquals("Only certified users may create or update content in Synapse.", ex.getMessage());
+		assertEquals("You cannot move content into the new location, "+newProject.getId()+". Only certified users may create or update content in Synapse.", ex.getMessage());
 	}
 	
 }
