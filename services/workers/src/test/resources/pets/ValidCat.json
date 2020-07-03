@@ -1,0 +1,21 @@
+{
+	"name": "Charity-jumping.png",
+	"description": "A cat with things to do! She is too busy to stand still for more than a few seconds.",
+	"id": "syn123",
+	"etag": "some-etag",
+	"createdOn": "2020-05-20T20:20:39+00:00",
+	"modifiedOn": "2020-05-20T20:20:39+00:00",
+	"createdBy": "123456789",
+	"modifiedBy": "123456789",
+	"parentId": "syn444",
+	"versionLabel": "one",
+	"versionComment": "leaving blank",
+	"versionNumber": 1,
+	"dataFileHandleId": "98765",
+	"fileNameOverride": "",
+	"concreteType": "org.sagebionetworks.repo.model.FileEntity",
+	"petName": "Charity",
+	"birthday": "2016-09-10T20:20:39+00:00",
+	"petType": "cat",
+	"breed": "American Shorthair"
+}

@@ -92,7 +92,8 @@ public interface OAuthRefreshTokenManager {
 	OAuthRefreshTokenInformationList getMetadataForActiveRefreshTokens(UserInfo userInfo, String clientId, String nextPageToken);
 
 	/**
-	 * Revoke all refresh tokens between a particular user and a particular client.
+	 * Revoke all refresh tokens between a particular user and a particular client. Also rescinds all consent records, so a user
+	 * will have to explicitly authorize the client to issue further tokens.
 	 * @param userInfo
 	 * @param clientId
 	 */

@@ -177,15 +177,17 @@ public class SchemaTranslatorImp implements SchemaTranslator {
 
 	void translateConcreteType(ObjectSchema objectSchema, JsonSchema jsonSchema) {
 		if(objectSchema.getType() == null || TYPE.OBJECT.equals(objectSchema.getType())) {
-			Map<String, JsonSchema> properties = jsonSchema.getProperties();
-			if(properties == null) {
-				properties = new LinkedHashMap<String, JsonSchema>(1);
+			if(objectSchema.getId() != null) {
+				Map<String, JsonSchema> properties = jsonSchema.getProperties();
+				if(properties == null) {
+					properties = new LinkedHashMap<String, JsonSchema>(1);
+				}
+				JsonSchema concreteType = new JsonSchema();
+				concreteType.setType(Type.string);
+				concreteType.set_const(objectSchema.getId());
+				properties.put("concreteType", concreteType);
+				jsonSchema.setProperties(properties);
 			}
-			JsonSchema concreteType = new JsonSchema();
-			concreteType.setType(Type.string);
-			concreteType.set_const(objectSchema.getId());
-			properties.put("concreteType", concreteType);
-			jsonSchema.setProperties(properties);
 		}
 	}
 

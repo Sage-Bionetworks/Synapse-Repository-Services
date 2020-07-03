@@ -1,10 +1,12 @@
 {
+	"$schema": "http://json-schema.org/draft-07/schema",
 	"title": "Pet Type",
 	"$id": "my.organization-pets.PetType",
 	"type": "string",
 	"description": "Identifies the type of pet shown in photo.",
 	"enum": [
 		"cat",
-		"dog"
+		"dog",
+		"fish"
 	]
 }

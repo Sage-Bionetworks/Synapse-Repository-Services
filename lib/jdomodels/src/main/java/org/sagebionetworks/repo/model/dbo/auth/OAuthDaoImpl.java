@@ -55,6 +55,11 @@ public class OAuthDaoImpl implements OAuthDao {
 			COL_AUTHORIZATION_CONSENT_CLIENT_ID+"=? AND "+
 			COL_AUTHORIZATION_CONSENT_SCOPE_HASH+"=?";
 
+	private static final String DELETE_ALL_FOR_USER_CLIENT_SQL = "DELETE FROM "+TABLE_AUTHORIZATION_CONSENT+
+			" WHERE "+
+			COL_AUTHORIZATION_CONSENT_USER_ID+"=? AND "+
+			COL_AUTHORIZATION_CONSENT_CLIENT_ID+"=?";
+
 	@Override
 	public void saveAuthorizationConsent(Long userId, Long clientId, String scopeHash, Date date) {
 		Long id = idGenerator.generateNewId(IdType.OAUTH_AUTHORIZATION_CONSENT);
@@ -76,5 +81,10 @@ public class OAuthDaoImpl implements OAuthDao {
 	public void deleteAuthorizationConsent(Long userId, Long clientId, String scopeHash) {
 		jdbcTemplate.update(DELETE_SQL, userId, clientId, scopeHash);
 		
+	}
+
+	@Override
+	public void deleteAuthorizationConsentForClient(Long userId, Long clientId) {
+		jdbcTemplate.update(DELETE_ALL_FOR_USER_CLIENT_SQL, userId, clientId);
 	}
 }

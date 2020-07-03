@@ -35,4 +35,12 @@ public interface OAuthDao {
 	 */
 	public void deleteAuthorizationConsent(Long userId, Long clientId, String scopeHash);
 
+	/**
+	 * Delete all records of user consent for a specific client.
+	 *
+	 * @param userId the ID of the user who gave their consent
+	 * @param clientId the ID of the OAuth 2.0 client which was authorized
+	 */
+	public void deleteAuthorizationConsentForClient(Long userId, Long clientId);
+
 }
