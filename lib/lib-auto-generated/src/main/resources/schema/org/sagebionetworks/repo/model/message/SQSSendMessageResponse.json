@@ -1,0 +1,10 @@
+{
+    "title": "SQSSendMessageResponse",
+    "description": "Response from a SQSSendMessageRequest",
+    "properties": {
+        "messageId": {
+            "type": "string",
+            "description": "The id of the SQS message that was sent"
+        }
+    }
+}

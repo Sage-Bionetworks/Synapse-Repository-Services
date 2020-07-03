@@ -14,9 +14,13 @@ import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
+import org.sagebionetworks.repo.model.message.SQSSendMessageRequest;
+import org.sagebionetworks.repo.model.message.SQSSendMessageResponse;
 import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.springframework.http.HttpHeaders;
 
 public interface AdministrationService {
@@ -137,4 +141,15 @@ public interface AdministrationService {
 	 * @return
 	 */
 	public IdGeneratorExport createIdGeneratorExport(Long userId);
+
+	/**
+	 * Sends a message to SQS
+	 * 
+	 * @param messageRequest Container for the SQS message
+	 * @return An object with information about the sent message (e.g. message id)
+	 * @throws NotFoundException           If the queue referred by the message does
+	 *                                     not exist
+	 * @throws ServiceUnavailableException If an exception occurs contacting SQS
+	 */
+	SQSSendMessageResponse sendSQSMessage(SQSSendMessageRequest messageRequest) throws NotFoundException, TemporarilyUnavailableException;
 }
