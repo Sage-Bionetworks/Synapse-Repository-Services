@@ -158,6 +158,7 @@ public class AccessRequirementManagerImplUnitTest {
 		fields.put("Synapse Principal ID", "id1");
 		fields.put("Synapse User Display Name", "id2");
 		fields.put("Synapse Data Object", "id3");
+		fields.put("Components", "components");
 		when(jiraClient.getFields()).thenReturn(fields);
 
 		when(jiraClient.getProjectInfo(anyString(), anyString())).thenReturn(mockProjectInfo);
