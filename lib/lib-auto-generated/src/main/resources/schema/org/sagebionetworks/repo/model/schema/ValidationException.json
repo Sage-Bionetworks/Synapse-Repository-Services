@@ -1,0 +1,29 @@
+{
+	"$recursiveAnchor": true,
+	"description": "A recursive ValidationException that describes all schema violations for an entire schema tree.",
+	"properties": {
+		"keyword": {
+			"type": "string",
+			"description": "The JSON schema keyword which was violated."
+		},
+		"pointerToViolation": {
+			"type": "string",
+			"description": "A JSON Pointer denoting the path from the input document root to its fragment which caused the validation failure."
+		},
+		"message": {
+			"type": "string",
+			"description": "The description of the validation failure."
+		},
+		"schemaLocation": {
+			"type": "string",
+			"description": "A JSON Pointer denoting the path from the schema JSON root to the violated keyword."
+		},
+		"causingExceptions": {
+			"description": "An array of sub-exceptions.",
+			"type": "array",
+			"items": {
+				"$recursiveRef": "#"
+			}
+		}
+	}
+}

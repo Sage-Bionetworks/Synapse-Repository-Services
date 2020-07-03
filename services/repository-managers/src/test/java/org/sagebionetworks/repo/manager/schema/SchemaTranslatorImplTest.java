@@ -346,6 +346,34 @@ public class SchemaTranslatorImplTest {
 	}
 	
 	@Test
+	public void testTranslateWithPropertiesNoId() {
+		LinkedHashMap<String, ObjectSchema> properties = new LinkedHashMap<String, ObjectSchema>(2);
+		properties.put("a", new ObjectSchemaImpl(TYPE.STRING));
+		properties.put("b", new ObjectSchemaImpl(TYPE.NUMBER));
+		ObjectSchemaImpl inputSchema = new ObjectSchemaImpl(TYPE.OBJECT);
+		inputSchema.setId(null);
+		inputSchema.setProperties(properties);
+		
+		// Call under test
+		JsonSchema result = translator.translate(inputSchema);
+		assertNotNull(result);
+		assertNotNull(result.get$schema());
+		assertNotNull(result.getProperties());
+		assertEquals(2, result.getProperties().size());
+		JsonSchema propA = result.getProperties().get("a");
+		// only the root should have a $schema
+		assertNull(propA.get$schema());
+		assertNotNull(propA);
+		assertEquals(Type.string, propA.getType());
+		JsonSchema propB = result.getProperties().get("b");
+		assertNotNull(propB);
+		assertEquals(Type.number, propB.getType());
+		assertNull(propB.get$schema());
+		// the input schema did not have an ID so it should not have a concrete type.
+		assertNull(result.getProperties().get("concreteType"));
+	}
+	
+	@Test
 	public void testTranslateWithType() {
 		ObjectSchemaImpl one = new ObjectSchemaImpl();
 		one.setType(TYPE.STRING);

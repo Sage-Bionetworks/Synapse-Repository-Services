@@ -1,9 +1,10 @@
 {
+	"$schema": "http://json-schema.org/draft-07/schema",
 	"title": "Cat Breed",
 	"$id": "my.organization-pets.cat.Breed",
 	"description": "Enumeration of possible cat breeds.",
 	"type": "string",
-	"_enum": [
+	"enum": [
 		"Siamese",
 		"Persian",
 		"Maine Coon",
