@@ -132,7 +132,7 @@
 	
 	<!-- The mapping for the admin services, for now only filter sqs services. We can extend this incrementally to all the administrative services -->
 	<filter-mapping>
-		<filter-name>migrationServiceAuthFilter</filter-name>
+		<filter-name>adminServiceAuthFilter</filter-name>
 		<url-pattern>/repo/v1/admin/sqs/*</url-pattern>
 	</filter-mapping>
 
