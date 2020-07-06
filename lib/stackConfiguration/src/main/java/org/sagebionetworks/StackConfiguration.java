@@ -12,6 +12,7 @@ public interface StackConfiguration {
 	String SERVICE_CLOUDMAILIN = "cloudmailin";
 	String SERVICE_DOCKER_REGISTRY = "docker.registry";
 	String SERVICE_MIGRATION = "migration";
+	String SERVICE_ADMIN = "admin";
 
 	/**
 	 * Is this a production stack?

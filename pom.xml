@@ -62,6 +62,10 @@
 			<id>spring-plugins</id>
 			<url>https://repo.spring.io/plugins-release/</url>
 		</repository>
+		<repository>
+			<id>jitpack.io</id>
+			<url>https://jitpack.io</url>
+		</repository>
 	</repositories>
 
 	<pluginRepositories>
@@ -114,9 +118,9 @@
 			</dependency>
 			<!-- Binding for slf4j -->
 			<dependency>
-			    <groupId>org.apache.logging.log4j</groupId>
-			    <artifactId>log4j-slf4j-impl</artifactId>
-			    <version>${log4j.version}</version>
+				<groupId>org.apache.logging.log4j</groupId>
+				<artifactId>log4j-slf4j-impl</artifactId>
+				<version>${log4j.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>commons-logging</groupId>
@@ -129,7 +133,23 @@
 				<version>${commonscollections4.version}</version>
 				<type>jar</type>
 			</dependency>
-
+			<dependency>
+				<groupId>org.json</groupId>
+				<artifactId>JSON-Java</artifactId>
+				<version>1.2</version>
+			</dependency>
+			<!-- JSON schema validation library -->
+			<dependency>
+				<groupId>com.github.everit-org.json-schema</groupId>
+				<artifactId>org.everit.json.schema</artifactId>
+				<version>1.12.1</version>
+				<exclusions>
+					<exclusion>
+						<groupId>org.json</groupId>
+						<artifactId>json</artifactId>
+					</exclusion>
+				</exclusions>
+			</dependency>
 			<dependency>
 				<groupId>io.jsonwebtoken</groupId>
 				<artifactId>jjwt</artifactId>
@@ -173,7 +193,7 @@
 				<artifactId>jackson-core</artifactId>
 				<version>${jackson.version}</version>
 			</dependency>
-			
+
 			<dependency>
 				<groupId>com.fasterxml.jackson.datatype</groupId>
 				<artifactId>jackson-datatype-jsr310</artifactId>
@@ -336,11 +356,11 @@
 				<scope>test</scope>
 			</dependency>
 			<dependency>
-			<groupId>nl.jqno.equalsverifier</groupId>
-			<artifactId>equalsverifier</artifactId>
-			<version>3.1.13</version>
-			<scope>test</scope>
-		</dependency>
+				<groupId>nl.jqno.equalsverifier</groupId>
+				<artifactId>equalsverifier</artifactId>
+				<version>3.1.13</version>
+				<scope>test</scope>
+			</dependency>
 			<dependency>
 				<groupId>joda-time</groupId>
 				<artifactId>joda-time</artifactId>
@@ -728,15 +748,15 @@
 				<artifactId>commons-dbcp2</artifactId>
 				<version>2.6.0</version>
 			</dependency>
-			
+
 			<!-- Import the BOM for AWS sdk dependencies -->
 			<dependency>
-		      <groupId>com.amazonaws</groupId>
-		      <artifactId>aws-java-sdk-bom</artifactId>
-		      <version>${com.amazonaws.version}</version>
-		      <type>pom</type>
-		      <scope>import</scope>
-		    </dependency>
+				<groupId>com.amazonaws</groupId>
+				<artifactId>aws-java-sdk-bom</artifactId>
+				<version>${com.amazonaws.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
 
 		</dependencies>
 
@@ -949,10 +969,9 @@
 			</plugins>
 		</pluginManagement>
 
-		<!--
-			The previous section "pluginManagement" configures plugins but doesn't run them. The "plugins" section
-			below causes the listed plugins to be run for all submodules.
-		-->
+		<!-- The previous section "pluginManagement" configures plugins but doesn't 
+			run them. The "plugins" section below causes the listed plugins to be run 
+			for all submodules. -->
 		<plugins>
 			<!-- JaCoCo Code Coverage Tool -->
 			<plugin>
@@ -961,7 +980,8 @@
 				<version>0.8.3</version>
 				<configuration>
 					<excludes>
-						<!-- No point in testing exceptions, since they are entirely boilerplate code. -->
+						<!-- No point in testing exceptions, since they are entirely boilerplate 
+							code. -->
 						<exclude>org/sagebionetworks/client/exceptions/*</exclude>
 						<exclude>org/sagebionetworks/repo/model/exception/*</exclude>
 					</excludes>
@@ -1010,20 +1030,24 @@
 		<gwtVersion>2.8.2</gwtVersion>
 		<guavaVersion>27.1-jre</guavaVersion>
 		<reflectionsVersion>0.9.9-RC1</reflectionsVersion>
-		<org.springframework.version>5.2.3.RELEASE</org.springframework.version>
+		<org.springframework.version>5.2.3.RELEASE
+		</org.springframework.version>
 		<jackson.version>2.10.3</jackson.version>
 		<jackson.databind.version>2.10.3</jackson.databind.version>
 		<xstream.version>1.4.11.1</xstream.version>
-		<maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ssZ</maven.build.timestamp.format>
+		<maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ssZ
+		</maven.build.timestamp.format>
 		<javax.transaction.jta.version>1.1</javax.transaction.jta.version>
 		<javax.jdo.jdo2-api.version>2.3-ec</javax.jdo.jdo2-api.version>
-		<mysql.mysql-connector-java.version>8.0.18</mysql.mysql-connector-java.version>
+		<mysql.mysql-connector-java.version>8.0.18
+		</mysql.mysql-connector-java.version>
 		<org.aspectj.aspectjlib.version>1.6.2</org.aspectj.aspectjlib.version>
 		<org.aspectj.version>1.8.11</org.aspectj.version>
 		<schema-to-pojo.version>0.6.2</schema-to-pojo.version>
 		<com.amazonaws.version>1.11.751</com.amazonaws.version>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
-		<org.apache.httpcomponents.version>4.5.9</org.apache.httpcomponents.version>
+		<org.apache.httpcomponents.version>4.5.9
+		</org.apache.httpcomponents.version>
 		<com.sun.tools.version>1.7</com.sun.tools.version>
 		<org.apache.pivot.version>2.0.1</org.apache.pivot.version>
 		<log4j.version>2.6.1</log4j.version>

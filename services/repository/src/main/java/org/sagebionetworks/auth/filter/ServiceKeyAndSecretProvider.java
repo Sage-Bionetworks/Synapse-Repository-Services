@@ -1,7 +1,7 @@
 package org.sagebionetworks.auth.filter;
 
 /**
- * Abstraction for key/secret pair provider
+ * Abstraction for key/secret pair validation
  * @author Marco Marasca
  */
 public interface ServiceKeyAndSecretProvider {
@@ -10,15 +10,10 @@ public interface ServiceKeyAndSecretProvider {
 	 * @return The service name
 	 */
 	String getServiceName();
-	
+
 	/**
-	 * @return The service key
+	 * @return True if the given key and secret are valid for this provider
 	 */
-	String getServiceKey();
-	
-	/**
-	 * @return The service secret
-	 */
-	String getServiceSecret();
+	boolean validate(String key, String secret);
 
 }
