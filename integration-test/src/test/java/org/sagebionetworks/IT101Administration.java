@@ -1,30 +1,39 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
+import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 /**
  * This test will push data from a backup into Synapse
@@ -32,20 +41,24 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  */
 public class IT101Administration {
 
+	private static StackConfiguration stackConfig;
 	private static SynapseAdminClient adminSynapse;
 	
 	private List<Entity> toDelete = null;
 
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() throws Exception {
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
+		stackConfig = StackConfigurationSingleton.singleton();
+		
+		adminSynapse.setUsername(stackConfig.getMigrationAdminUsername());
+		adminSynapse.setApiKey(stackConfig.getMigrationAdminAPIKey());
 	}
 	
-	@Before
+	@BeforeEach
 	public void before()throws Exception {
+		adminSynapse.removeAuthorizationHeader();
 		adminSynapse.clearAllLocks();
 		toDelete = new ArrayList<Entity>();
 		// always restore the status
@@ -56,7 +69,7 @@ public class IT101Administration {
 		}
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		if(adminSynapse != null && toDelete != null){
 			for(Entity e: toDelete){
@@ -153,4 +166,57 @@ public class IT101Administration {
 		assertNotNull(export);
 		assertNotNull(export.getExportScript());
 	}
-}
+	
+	@Test
+	public void testSendSQSMessageWithoutServiceCredentials() throws SynapseException {
+		String queueName = "someQueue";
+		String messageBody = "some message";
+		
+		// This service call cannot go through with standard API key auth
+		String errorMessage = assertThrows(SynapseUnauthorizedException.class, () -> {			
+			adminSynapse.sendSQSMessage(queueName, messageBody);
+		}).getMessage();
+		
+		assertEquals("Missing required credentials in the authorization header.", errorMessage);
+	}
+	
+	@Test
+	public void testSendSQSMessageWithNonExistingQueue() throws SynapseException {
+
+		String queueName = "nonExistingQueue";
+		String messageBody = "some message";
+		
+		String adminKey = stackConfig.getServiceAuthKey(StackConfiguration.SERVICE_ADMIN);
+		String adminSecret = stackConfig.getServiceAuthSecret(StackConfiguration.SERVICE_ADMIN);
+		
+		adminSynapse.setBasicAuthorizationCredentials(adminKey, adminSecret);
+		
+		String errorMessage = assertThrows(SynapseNotFoundException.class, () -> {			
+			adminSynapse.sendSQSMessage(queueName, messageBody);
+		}).getMessage();
+		
+		assertEquals("The queue referenced by " +queueName + " does not exist", errorMessage);
+	}
+	
+	@Test
+	public void testSendSQSMessage() throws Exception {
+		
+		// Emulate a change message (non existing entity) for replication
+		ChangeMessage message = new ChangeMessage();
+		
+		message.setObjectType(ObjectType.ENTITY);
+		message.setObjectId("-1");
+		message.setChangeType(ChangeType.DELETE);	
+
+		String queueName = "TABLE_ENTITY_REPLICATION";
+		String messageBody = message.writeToJSONObject(new JSONObjectAdapterImpl()).toJSONString();
+		
+		String adminKey = stackConfig.getServiceAuthKey(StackConfiguration.SERVICE_ADMIN);
+		String adminSecret = stackConfig.getServiceAuthSecret(StackConfiguration.SERVICE_ADMIN);
+		
+		adminSynapse.setBasicAuthorizationCredentials(adminKey, adminSecret);
+		
+		adminSynapse.sendSQSMessage(queueName, messageBody);
+	}
+	
+ }
