@@ -279,7 +279,7 @@ public class SQSManagerTest {
 	private SQSSendMessageRequest createRequest(String queue, String body) {
 		SQSSendMessageRequest request = new SQSSendMessageRequest();
 		
-		request.setQueueName(queue);
+		request.setRelativeQueueName(queue);
 		request.setMessageBody(body);
 		
 		return request;

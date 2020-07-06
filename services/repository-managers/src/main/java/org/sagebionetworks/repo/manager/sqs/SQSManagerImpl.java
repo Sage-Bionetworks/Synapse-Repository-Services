@@ -30,10 +30,10 @@ public class SQSManagerImpl implements SQSManager {
 	@Override
 	public SQSSendMessageResponse sendMessage(final SQSSendMessageRequest messageRequest) throws NotFoundException, TemporarilyUnavailableException {
 		ValidateArgument.required(messageRequest, "messageRequest");
-		ValidateArgument.requiredNotBlank(messageRequest.getQueueName(), "messageRequest.queueName");
+		ValidateArgument.requiredNotBlank(messageRequest.getRelativeQueueName(), "messageRequest.relativeQueueName");
 		ValidateArgument.requiredNotBlank(messageRequest.getMessageBody(), "messageRequest.messageBody");
 
-		final String queueName = messageRequest.getQueueName();
+		final String queueName = messageRequest.getRelativeQueueName();
 		final String messageBody = messageRequest.getMessageBody();
 
 		final String stackQueueUrl = getStackQueueUrl(queueName);

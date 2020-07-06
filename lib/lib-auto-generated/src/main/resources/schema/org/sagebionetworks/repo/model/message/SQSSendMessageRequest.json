@@ -2,9 +2,9 @@
     "title": "SQSSendMessageRequest",
     "description": "A message request to send an SQS message to a stack queue",
     "properties": {
-        "queueName": {
+        "relativeQueueName": {
             "type": "string",
-            "description": "The name of the queue to send the message to"
+            "description": "The relative (without stack information) name of the queue to send the message to"
         },
         "messageBody": {
             "type": "string",

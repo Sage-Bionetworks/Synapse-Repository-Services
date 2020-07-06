@@ -402,10 +402,10 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	}
 	
 	@Override
-	public SQSSendMessageResponse sendSQSMessage(String queue, String messageBody) throws SynapseException {
+	public SQSSendMessageResponse sendSQSMessage(String relativeQueueName, String messageBody) throws SynapseException {
 		SQSSendMessageRequest request = new SQSSendMessageRequest();
 		
-		request.setQueueName(queue);
+		request.setRelativeQueueName(relativeQueueName);
 		request.setMessageBody(messageBody);
 		
 		return postJSONEntity(getRepoEndpoint(), ADMIN_SQS_MESSAGE, request, SQSSendMessageResponse.class);

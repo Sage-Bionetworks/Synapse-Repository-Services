@@ -279,11 +279,11 @@ public interface SynapseAdminClient extends SynapseClient {
 	/**
 	 * Sends an SQS message to the given queue
 	 * 
-	 * @param queue The name of the queue (without stack information)
+	 * @param relativeQueueName The relative (without stack information) name of the queue
 	 * @param messageBody The message body
 	 * @return The {@link SQSSendMessageResponse} containing information about the SQS message that was sent
 	 * @throws SynapseException
 	 */
-	SQSSendMessageResponse sendSQSMessage(String queue, String messageBody) throws SynapseException;
+	SQSSendMessageResponse sendSQSMessage(String relativeQueueName, String messageBody) throws SynapseException;
 
 }
