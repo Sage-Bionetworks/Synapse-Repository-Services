@@ -16,6 +16,7 @@ import org.sagebionetworks.asynchronous.workers.remote.RemoteTriggerWorkerStackC
 import org.sagebionetworks.asynchronous.workers.remote.SQSMessageProvider;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 
 @ExtendWith(MockitoExtension.class)
@@ -23,6 +24,9 @@ public class RemoteTriggerRunnerTest {
 
 	@Mock
 	private StackConfiguration mockStackConfig;
+	
+	@Mock
+	private WorkerLogger mockWorkerLogger;
 	
 	@Mock
 	private RemoteTriggerWorkerStackConfiguration mockTriggerConfig;
@@ -45,12 +49,12 @@ public class RemoteTriggerRunnerTest {
 	@BeforeEach
 	public void before() {
 
-		when(mockTriggerConfig.getQueueName()).thenReturn(QUEUE);
+		when(mockTriggerConfig.getRelativeQueueName()).thenReturn(QUEUE);
 		when(mockTriggerConfig.getMessageProvider()).thenReturn(mockMessageProvider);
 		
-		runner = new RemoteTriggerRunner(mockTriggerConfig, mockStackConfig, mockClient);
+		runner = new RemoteTriggerRunner(mockTriggerConfig, mockStackConfig, mockWorkerLogger, mockClient);
 		
-		verify(mockTriggerConfig).getQueueName();
+		verify(mockTriggerConfig).getRelativeQueueName();
 		verify(mockTriggerConfig).getMessageProvider();
 	}
 	
@@ -81,7 +85,9 @@ public class RemoteTriggerRunnerTest {
 		when(mockStackConfig.getServiceAuthKey(any())).thenReturn(KEY);
 		when(mockStackConfig.getServiceAuthSecret(any())).thenReturn(SECRET);
 		
-		doThrow(SynapseClientException.class).when(mockClient).sendSQSMessage(any(), any());
+		SynapseClientException ex = new SynapseClientException();
+		
+		doThrow(ex).when(mockClient).sendSQSMessage(any(), any());
 		
 		// Call under test
 		runner.run(mockCallback);
@@ -91,6 +97,7 @@ public class RemoteTriggerRunnerTest {
 		verify(mockStackConfig).getServiceAuthSecret(StackConfiguration.SERVICE_ADMIN);
 		verify(mockClient).setBasicAuthorizationCredentials(KEY, SECRET);
 		verify(mockClient).sendSQSMessage(QUEUE, messageBody);
+		verify(mockWorkerLogger).logWorkerFailure(mockMessageProvider.getClass().getName(), ex, false);
 		verify(mockClient).removeAuthorizationHeader();	
 	}
 	

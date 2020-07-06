@@ -3,6 +3,7 @@ package org.sagebionetworks.asynchronous.workers.remote;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
 import org.sagebionetworks.workers.util.semaphore.SemaphoreGatedRunnerConfiguration;
@@ -16,23 +17,23 @@ import org.sagebionetworks.workers.util.semaphore.SemaphoreGatedRunnerImpl;
 public class RemoteTriggerWorkerStack implements Runnable {
 	
 	private static final int MAX_LOCK_COUNT = 1;
-	private static final long LOCK_TIMEOUT = 60 * 1000;
+	private static final long LOCK_TIMEOUT_SEC = 60;
 
 	private static final int CONNECTION_TIMEOUT = 10 * 1000;
 	private static final int SOCKET_TIMEOUT = CONNECTION_TIMEOUT;
 	
 	private Runnable stack;
 
-	public RemoteTriggerWorkerStack(StackConfiguration stackConfiguration, CountingSemaphore semaphore, RemoteTriggerWorkerStackConfiguration configuration) {
+	public RemoteTriggerWorkerStack(StackConfiguration stackConfiguration, CountingSemaphore semaphore, WorkerLogger workerLogger, RemoteTriggerWorkerStackConfiguration configuration) {
 		
 		SynapseAdminClient synapseClient = initSynapseClient(stackConfiguration);
 		
-		RemoteTriggerRunner runner = new RemoteTriggerRunner(configuration, stackConfiguration, synapseClient);
+		RemoteTriggerRunner runner = new RemoteTriggerRunner(configuration, stackConfiguration, workerLogger, synapseClient);
 
 		SemaphoreGatedRunnerConfiguration runnerConfiguration = new SemaphoreGatedRunnerConfiguration(
 				runner,
 				configuration.getLockKey(),
-				LOCK_TIMEOUT,
+				LOCK_TIMEOUT_SEC,
 				MAX_LOCK_COUNT
 		);
 		

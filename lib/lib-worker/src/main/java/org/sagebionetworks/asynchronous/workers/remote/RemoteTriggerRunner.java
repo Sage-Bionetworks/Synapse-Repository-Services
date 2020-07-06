@@ -4,6 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingRunner;
 
@@ -17,15 +18,17 @@ public class RemoteTriggerRunner implements ProgressingRunner {
 
 	private static final Logger LOG = LogManager.getLogger(RemoteTriggerRunner.class);
 
-	private String queueName;
+	private String relativeQueueName;
 	private SQSMessageProvider messageProvider;
+	private WorkerLogger workerLogger;
 	private StackConfiguration stackConfiguration;
 	private SynapseAdminClient synapseClient;
 
-	public RemoteTriggerRunner(RemoteTriggerWorkerStackConfiguration configuration, StackConfiguration stackConfiguration, SynapseAdminClient synapseClient) {
-		this.queueName = configuration.getQueueName();
+	public RemoteTriggerRunner(RemoteTriggerWorkerStackConfiguration configuration, StackConfiguration stackConfiguration, WorkerLogger workerLogger, SynapseAdminClient synapseClient) {
+		this.relativeQueueName = configuration.getRelativeQueueName();
 		this.messageProvider = configuration.getMessageProvider();
 		this.stackConfiguration = stackConfiguration;
+		this.workerLogger = workerLogger;
 		this.synapseClient = synapseClient;
 	}
 
@@ -38,9 +41,11 @@ public class RemoteTriggerRunner implements ProgressingRunner {
 
 			synapseClient.setBasicAuthorizationCredentials(key, secret);
 			// The retry logic is implemented in the client, if the service is not available it will automatically retry the request
-			synapseClient.sendSQSMessage(queueName, messageBody);
+			synapseClient.sendSQSMessage(relativeQueueName, messageBody);
 		} catch (Throwable ex) {
-			LOG.error("Error sending message to " + queueName + "@" + stackConfiguration.getRemoteTriggerWorkerEndpoint(), ex);
+			LOG.error("Error sending message to " + relativeQueueName + "@" + stackConfiguration.getRemoteTriggerWorkerEndpoint(), ex);
+			boolean willRetry = false;
+			workerLogger.logWorkerFailure(messageProvider.getClass().getName(), ex, willRetry);
 		} finally {
 			synapseClient.removeAuthorizationHeader();
 		}

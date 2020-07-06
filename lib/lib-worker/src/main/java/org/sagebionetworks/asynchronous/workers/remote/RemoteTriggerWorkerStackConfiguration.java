@@ -4,7 +4,7 @@ import org.sagebionetworks.workers.util.Gate;
 
 public class RemoteTriggerWorkerStackConfiguration {
 	
-	private String queueName;
+	private String relativeQueueName;
 	private String lockKey;
 	private SQSMessageProvider messageProvider;
 	private Gate gate;
@@ -12,15 +12,15 @@ public class RemoteTriggerWorkerStackConfiguration {
 	/**
 	 * @param queueName The name of the queue where the message will be sent, this name should be stack agnostic
 	 */
-	public void setQueueName(String queueName) {
-		this.queueName = queueName;
+	public String getRelativeQueueName() {
+		return relativeQueueName;
 	}
 	
 	/**
 	 * @return The name of the queue where the message will be sent, this name should be stack agnostic
 	 */
-	public String getQueueName() {
-		return queueName;
+	public void setRelativeQueueName(String relativeQueueName) {
+		this.relativeQueueName = relativeQueueName;
 	}
 	
 	/**
