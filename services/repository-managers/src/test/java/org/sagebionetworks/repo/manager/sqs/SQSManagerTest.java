@@ -76,58 +76,6 @@ public class SQSManagerTest {
 	}
 	
 	@Test
-	public void testGetStackQueueUrlWithNonExistingQueue() {
-		when(mockConfig.getQueueName(any())).thenReturn(STACK_QUEUE_NAME);
-		
-		QueueDoesNotExistException expected = new QueueDoesNotExistException("Some error");
-		
-		doThrow(expected).when(mockSqsClient).getQueueUrl(anyString());
-		
-		NotFoundException ex = assertThrows(NotFoundException.class, () -> {			
-			// Call under test
-			manager.getStackQueueUrl(QUEUE_NAME);
-		});
-		
-		assertEquals("The queue " + QUEUE_NAME + " does not exist", ex.getMessage());
-		assertEquals(expected, ex.getCause());
-		
-	}
-	
-	@Test
-	public void testGetStackQueueUrlWithSQSException() {
-		when(mockConfig.getQueueName(any())).thenReturn(STACK_QUEUE_NAME);
-		
-		AmazonSQSException expected = new AmazonSQSException("Some error");
-		
-		doThrow(expected).when(mockSqsClient).getQueueUrl(anyString());
-		
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			manager.getStackQueueUrl(QUEUE_NAME);
-		});
-		
-		assertEquals(expected.getMessage(), ex.getMessage());
-		assertEquals(expected, ex.getCause());
-	}
-	
-	@Test
-	public void testGetStackQueueUrlWithClientException() {
-		when(mockConfig.getQueueName(any())).thenReturn(STACK_QUEUE_NAME);
-		
-		AmazonClientException expected = new AmazonClientException("Some error");
-		
-		doThrow(expected).when(mockSqsClient).getQueueUrl(anyString());
-		
-		TemporarilyUnavailableException ex = assertThrows(TemporarilyUnavailableException.class, () -> {			
-			// Call under test
-			manager.getStackQueueUrl(QUEUE_NAME);
-		});
-		
-		assertEquals("Could not fetch the queue URL: Some error", ex.getMessage());
-		assertEquals(expected, ex.getCause());
-	}
-	
-	@Test
 	public void testSendMessage() {
 		when(mockConfig.getQueueName(any())).thenReturn(STACK_QUEUE_NAME);
 		when(mockQueueUrlResult.getQueueUrl()).thenReturn(STACK_QUEUE_URL);
@@ -171,21 +119,21 @@ public class SQSManagerTest {
 			manager.sendMessage(createRequest(null, "body"));
 		});
 		
-		assertEquals("messageRequest.queueName is required and must not be the empty string.", ex.getMessage());
+		assertEquals("messageRequest.relativeQueueName is required and must not be the empty string.", ex.getMessage());
 		
 		ex = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
 			manager.sendMessage(createRequest("", "body"));
 		});
 		
-		assertEquals("messageRequest.queueName is required and must not be the empty string.", ex.getMessage());
+		assertEquals("messageRequest.relativeQueueName is required and must not be the empty string.", ex.getMessage());
 		
 		ex = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
 			manager.sendMessage(createRequest(" ", "body"));
 		});
 		
-		assertEquals("messageRequest.queueName is required and must not be a blank string.", ex.getMessage());
+		assertEquals("messageRequest.relativeQueueName is required and must not be a blank string.", ex.getMessage());
 	}
 	
 	@Test
@@ -214,14 +162,12 @@ public class SQSManagerTest {
 	}
 	
 	@Test
-	public void testSendMessageWithNonExistingQueueUrl() {
+	public void testSendMessageWithNonExistingQueue() {
 		when(mockConfig.getQueueName(any())).thenReturn(STACK_QUEUE_NAME);
-		when(mockQueueUrlResult.getQueueUrl()).thenReturn(STACK_QUEUE_URL);
-		when(mockSqsClient.getQueueUrl(anyString())).thenReturn(mockQueueUrlResult);
 
 		QueueDoesNotExistException expected = new QueueDoesNotExistException("Some error");
 		
-		doThrow(expected).when(mockSqsClient).sendMessage(any(), any());
+		doThrow(expected).when(mockSqsClient).getQueueUrl(anyString());
 		
 		SQSSendMessageRequest request = createRequest(QUEUE_NAME, "body");
 		
@@ -230,7 +176,7 @@ public class SQSManagerTest {
 			manager.sendMessage(request);
 		});
 		
-		assertEquals("The queue referenced by " + STACK_QUEUE_URL + " does not exist", ex.getMessage());
+		assertEquals("The queue referenced by " + QUEUE_NAME + " does not exist", ex.getMessage());
 		assertEquals(expected, ex.getCause());
 	}
 	
@@ -272,7 +218,7 @@ public class SQSManagerTest {
 			manager.sendMessage(request);
 		});
 		
-		assertEquals("Could not send message: Some error", ex.getMessage());
+		assertEquals("Could not send SQS message to queue " + QUEUE_NAME + ": Some error", ex.getMessage());
 		assertEquals(expected, ex.getCause());
 	}
 	

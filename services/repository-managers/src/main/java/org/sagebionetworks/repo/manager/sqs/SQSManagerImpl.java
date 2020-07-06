@@ -35,22 +35,21 @@ public class SQSManagerImpl implements SQSManager {
 
 		final String queueName = messageRequest.getRelativeQueueName();
 		final String messageBody = messageRequest.getMessageBody();
-
-		final String stackQueueUrl = getStackQueueUrl(queueName);
 		
 		final SendMessageResult result;
 		
 		try {
+			final String stackQueueUrl = getStackQueueUrl(queueName);
 			result = sqsClient.sendMessage(stackQueueUrl, messageBody);
 		} catch (QueueDoesNotExistException ex) {
-			throw new NotFoundException("The queue referenced by " + stackQueueUrl + " does not exist", ex);
+			throw new NotFoundException("The queue referenced by " + queueName + " does not exist", ex);
 		} catch (AmazonSQSException ex) {
 			// This is a service exception and we cannot recover from this, AWS cannot process the request
 			throw new IllegalArgumentException(ex.getMessage(), ex);
 		} catch (AmazonClientException ex) {
-			throw new TemporarilyUnavailableException("Could not send message: " + ex.getMessage(), ex);
+			throw new TemporarilyUnavailableException("Could not send SQS message to queue " + queueName + ": " + ex.getMessage(), ex);
 		}
-
+		
 		SQSSendMessageResponse response = new SQSSendMessageResponse();
 		
 		response.setMessageId(result.getMessageId());
@@ -63,17 +62,7 @@ public class SQSManagerImpl implements SQSManager {
 	 */
 	String getStackQueueUrl(final String queueName) {
 		final String stackQueueName = getStackQueueName(queueName);
-		
-		try {
-			return sqsClient.getQueueUrl(stackQueueName).getQueueUrl();
-		} catch (QueueDoesNotExistException ex) {
-			throw new NotFoundException("The queue " + queueName + " does not exist", ex);
-		} catch (AmazonSQSException ex) {
-			// This is a service exception and we cannot recover from this, AWS cannot process the request
-			throw new IllegalArgumentException(ex.getMessage(), ex);
-		} catch (AmazonClientException ex) {
-			throw new TemporarilyUnavailableException("Could not fetch the queue URL: " + ex.getMessage(), ex);
-		}
+		return sqsClient.getQueueUrl(stackQueueName).getQueueUrl();
 	}
 
 	/**
