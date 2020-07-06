@@ -716,6 +716,35 @@ public class NodeManagerImplUnitTest {
 	}
 	
 	@Test
+	public void testUpdateDisallowedParentIdFolder(){
+		String currentParentId = "syn111";
+		String newParentId = "syn222";
+		when(mockNode.getId()).thenReturn(nodeId);
+		when(mockNode.getETag()).thenReturn(startEtag);
+		when(mockNode.getParentId()).thenReturn(newParentId);
+		when(mockNode.getNodeType()).thenReturn(EntityType.folder);
+		
+		Node oldNode = mock(Node.class);
+		when(oldNode.getParentId()).thenReturn(currentParentId);
+		
+		when(mockNodeDao.lockNode(nodeId)).thenReturn(startEtag);
+		when(mockAuthManager.canAccess(any(), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).
+		thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccess(any(), eq(newParentId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).
+		thenReturn(AuthorizationStatus.accessDenied(""));
+		when(mockAuthManager.canUserMoveRestrictedEntity(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockNodeDao.getNode(nodeId)).thenReturn(oldNode);
+		when(mockNodeDao.touch(any(Long.class), any(String.class))).thenReturn(newEtag);
+		
+		// call under test
+		UnauthorizedException thrown = assertThrows(UnauthorizedException.class, () ->
+			nodeManager.update(mockUserInfo, mockNode, null, false));
+		
+		assertEquals("You cannot move content into the new location, "+newParentId+". ", thrown.getMessage());
+		
+	}
+	
+	@Test
 	public void testUpdateNewParentIdFile(){
 		String currentParentId = "syn111";
 		String newParentId = "syn222";

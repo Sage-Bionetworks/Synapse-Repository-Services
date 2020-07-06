@@ -353,7 +353,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, accessType)) {
 			return AuthorizationStatus.authorized();
 		} else {
-			return AuthorizationStatus.accessDenied("You do not have "+accessType+" permission for the requested entity.");
+			return AuthorizationStatus.accessDenied("You do not have "+accessType+" permission for the requested entity, "+entityId+".");
 		}
 	}
 
