@@ -21,6 +21,7 @@ public class SqlConstants {
 	public static final String COL_NODE_ETAG 			= "ETAG";
 	public static final String COL_NODE_CREATED_BY 		= "CREATED_BY";
 	public static final String COL_NODE_CREATED_ON 		= "CREATED_ON";
+	public static final String COL_NODE_MODIFIED_ON 	= "MODIFIED_ON";
 	public static final String COL_NODE_TYPE			= "NODE_TYPE";
 	public static final String COL_NODE_ACL				= "NODE_ACL";
 	public static final String COL_NODE_CURRENT_REV			= "CURRENT_REV_NUM";

@@ -24,11 +24,15 @@
 			"enum": [
 				{
 					"name": "NAME",
-					"description": "TODO: Auto-generated description"
+					"description": "Sort by the name of the entity"
 				},
 				{
 					"name": "CREATED_ON",
-					"description": "TODO: Auto-generated description"
+					"description": "Sort by the creation date of the entity"
+				},
+				{
+					"name": "MODIFIED_ON",
+					"description": "Sort by the last modified date of the entity"
 				}
 			]
 		},
