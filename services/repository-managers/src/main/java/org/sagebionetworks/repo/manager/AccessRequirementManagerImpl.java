@@ -43,6 +43,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	public static final Long DEFAULT_OFFSET = 0L;
 	public static final Long DEFAULT_EXPIRATION_PERIOD = 0L;
 	public static final Long ONE_YEAR = 365 * 24 * 60 * 60 * 1000L;
+	public static final int MAX_DESCRIPTION_LENGHT = 50;
 	
 	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;
@@ -64,6 +65,8 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		ValidateArgument.required(ar.getSubjectIds(), "AccessRequirement.subjectIds");
 		ValidateArgument.requirement(!ar.getConcreteType().equals(PostMessageContentAccessRequirement.class.getName()),
 				"No longer support PostMessageContentAccessRequirement.");
+		ValidateArgument.requirement(ar.getDescription() == null || ar.getDescription().length() <= MAX_DESCRIPTION_LENGHT,
+				"The AR description can be at most " + MAX_DESCRIPTION_LENGHT + " characters.");
 		RestrictableObjectType expecitingObjectType = determineObjectType(ar.getAccessType());
 		
 		for (RestrictableObjectDescriptor rod : ar.getSubjectIds()) {

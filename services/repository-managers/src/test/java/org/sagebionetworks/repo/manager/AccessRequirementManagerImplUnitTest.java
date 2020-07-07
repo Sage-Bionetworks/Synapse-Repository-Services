@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -920,6 +922,28 @@ public class AccessRequirementManagerImplUnitTest {
 					
 		AccessRequirementManagerImpl.validateAccessRequirement(ar);
 		
+	}
+	
+	@Test
+	public void testValidateAccessRequirementWithValidDescription() {
+		ManagedACTAccessRequirement ar = createExpectedAR();
+		
+		ar.setDescription("Some description");
+		
+		AccessRequirementManagerImpl.validateAccessRequirement(ar);
+	}
+	
+	@Test
+	public void testValidateAccessRequirementWithInvalidDescription() {
+		ManagedACTAccessRequirement ar = createExpectedAR();
+		
+		ar.setDescription(RandomStringUtils.random(51));
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			AccessRequirementManagerImpl.validateAccessRequirement(ar);			
+		}).getMessage();
+		
+		assertEquals("The AR description can be at most 50 characters.", errorMessage);
 	}
 
 	@Test
