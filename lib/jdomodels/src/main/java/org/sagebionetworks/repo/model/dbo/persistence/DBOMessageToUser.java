@@ -1,15 +1,16 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import java.io.UnsupportedEncodingException;
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
@@ -17,7 +18,7 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 /**
  * Contains information specific to a message sent to a user
  */
-public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUser, DBOMessageToUserBackup> {
+public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUser, DBOMessageToUser> {
 
 	public static final String MESSAGE_ID_FIELD_NAME = "messageId";
 
@@ -51,67 +52,70 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	private Boolean withUnsubscribeLink;
 	private Boolean withProfileSettingLink;
 	private Boolean isNotificationMessage;
+	
+	private static final MigratableTableTranslation<DBOMessageToUser, DBOMessageToUser> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<>();
 
+	private static final TableMapping<DBOMessageToUser> TABLE_MAPPING = new TableMapping<DBOMessageToUser>() {
+
+		@Override
+		public DBOMessageToUser mapRow(ResultSet rs, int rowNum) throws SQLException {
+			DBOMessageToUser result = new DBOMessageToUser();
+			result.setMessageId(rs.getLong(SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID));
+			result.setRootMessageId(rs.getLong(SqlConstants.COL_MESSAGE_TO_USER_ROOT_ID));
+			String replyTo = rs.getString(SqlConstants.COL_MESSAGE_TO_USER_REPLY_TO_ID);
+			if (replyTo != null) {
+				result.setInReplyTo(Long.parseLong(replyTo));
+			};
+			Blob subjectBytesBlob = rs.getBlob(SqlConstants.COL_MESSAGE_TO_USER_SUBJECT);
+			if(subjectBytesBlob != null){
+				result.setSubjectBytes(subjectBytesBlob.getBytes(1, (int) subjectBytesBlob.length()));
+			}
+
+			result.setSent(rs.getBoolean(SqlConstants.COL_MESSAGE_TO_USER_SENT));
+			result.setNotificationsEndpoint(rs.getString(SqlConstants.COL_MESSAGE_NOTIFICATIONS_ENDPOINT));
+			result.setProfileSettingEndpoint(rs.getString(SqlConstants.COL_MESSAGE_PROFILE_SETTING_ENDPOINT));
+			result.setWithUnsubscribeLink(rs.getBoolean(SqlConstants.COL_MESSAGE_WITH_UNSUBSCRIBE_LINK));
+			result.setWithProfileSettingLink(rs.getBoolean(SqlConstants.COL_MESSAGE_WITH_PROFILE_SETTING_LINK));
+			result.setIsNotificationMessage(rs.getBoolean(SqlConstants.COL_MESSAGE_IS_NOTIFICATION_MESSAGE));
+			Blob toBlob = rs.getBlob(SqlConstants.COL_MESSAGE_TO_USER_TO);
+			if (toBlob != null) {
+				result.setBytesTo(toBlob.getBytes(1, (int) toBlob.length()));
+			}
+			Blob ccBlob = rs.getBlob(SqlConstants.COL_MESSAGE_TO_USER_CC);
+			if (ccBlob != null) {
+				result.setBytesCc(ccBlob.getBytes(1, (int) ccBlob.length()));
+			}
+
+			Blob bccBlob = rs.getBlob(SqlConstants.COL_MESSAGE_TO_USER_BCC);
+			if (bccBlob != null) {
+				result.setBytesBcc(bccBlob.getBytes(1, (int) bccBlob.length()));
+			}
+			return result;
+		}
+
+		@Override
+		public String getTableName() {
+			return SqlConstants.TABLE_MESSAGE_TO_USER;
+		}
+
+		@Override
+		public FieldColumn[] getFieldColumns() {
+			return FIELDS;
+		}
+
+		@Override
+		public String getDDLFileName() {
+			return SqlConstants.DDL_MESSAGE_TO_USER;
+		}
+
+		@Override
+		public Class<? extends DBOMessageToUser> getDBOClass() {
+			return DBOMessageToUser.class;
+		}
+	};
 	@Override
 	public TableMapping<DBOMessageToUser> getTableMapping() {
-		return new TableMapping<DBOMessageToUser>() {
-
-			@Override
-			public DBOMessageToUser mapRow(ResultSet rs, int rowNum) throws SQLException {
-				DBOMessageToUser result = new DBOMessageToUser();
-				result.setMessageId(rs.getLong(SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID));
-				result.setRootMessageId(rs.getLong(SqlConstants.COL_MESSAGE_TO_USER_ROOT_ID));
-				String replyTo = rs.getString(SqlConstants.COL_MESSAGE_TO_USER_REPLY_TO_ID);
-				if (replyTo != null) {
-					result.setInReplyTo(Long.parseLong(replyTo));
-				};
-				Blob subjectBytesBlob = rs.getBlob(SqlConstants.COL_MESSAGE_TO_USER_SUBJECT);
-				if(subjectBytesBlob != null){
-					result.setSubjectBytes(subjectBytesBlob.getBytes(1, (int) subjectBytesBlob.length()));
-				}
-
-				result.setSent(rs.getBoolean(SqlConstants.COL_MESSAGE_TO_USER_SENT));
-				result.setNotificationsEndpoint(rs.getString(SqlConstants.COL_MESSAGE_NOTIFICATIONS_ENDPOINT));
-				result.setProfileSettingEndpoint(rs.getString(SqlConstants.COL_MESSAGE_PROFILE_SETTING_ENDPOINT));
-				result.setWithUnsubscribeLink(rs.getBoolean(SqlConstants.COL_MESSAGE_WITH_UNSUBSCRIBE_LINK));
-				result.setWithProfileSettingLink(rs.getBoolean(SqlConstants.COL_MESSAGE_WITH_PROFILE_SETTING_LINK));
-				result.setIsNotificationMessage(rs.getBoolean(SqlConstants.COL_MESSAGE_IS_NOTIFICATION_MESSAGE));
-				Blob toBlob = rs.getBlob(SqlConstants.COL_MESSAGE_TO_USER_TO);
-				if (toBlob != null) {
-					result.setBytesTo(toBlob.getBytes(1, (int) toBlob.length()));
-				}
-				Blob ccBlob = rs.getBlob(SqlConstants.COL_MESSAGE_TO_USER_CC);
-				if (ccBlob != null) {
-					result.setBytesCc(ccBlob.getBytes(1, (int) ccBlob.length()));
-				}
-
-				Blob bccBlob = rs.getBlob(SqlConstants.COL_MESSAGE_TO_USER_BCC);
-				if (bccBlob != null) {
-					result.setBytesBcc(bccBlob.getBytes(1, (int) bccBlob.length()));
-				}
-				return result;
-			}
-
-			@Override
-			public String getTableName() {
-				return SqlConstants.TABLE_MESSAGE_TO_USER;
-			}
-
-			@Override
-			public FieldColumn[] getFieldColumns() {
-				return FIELDS;
-			}
-
-			@Override
-			public String getDDLFileName() {
-				return SqlConstants.DDL_MESSAGE_TO_USER;
-			}
-
-			@Override
-			public Class<? extends DBOMessageToUser> getDBOClass() {
-				return DBOMessageToUser.class;
-			}
-		};
+		return TABLE_MAPPING;
 	}
 
 	public Long getMessageId() {
@@ -224,78 +228,13 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	}
 
 	@Override
-	public MigratableTableTranslation<DBOMessageToUser, DBOMessageToUserBackup> getTranslator() {
-		return new MigratableTableTranslation<DBOMessageToUser, DBOMessageToUserBackup>() {
-			@Override
-			public DBOMessageToUser createDatabaseObjectFromBackup(DBOMessageToUserBackup backup) {
-				DBOMessageToUser dbo = new DBOMessageToUser();
-				dbo.setMessageId(backup.getMessageId());
-				dbo.setRootMessageId(backup.getRootMessageId());
-				dbo.setInReplyTo(backup.getInReplyTo());
-				dbo.setSubjectBytes(backup.getSubjectBytes());
-				dbo.setSent(backup.getSent());
-				dbo.setNotificationsEndpoint(backup.getNotificationsEndpoint());
-				dbo.setProfileSettingEndpoint(backup.getProfileSettingEndpoint());
-				dbo.setWithUnsubscribeLink(backup.getWithUnsubscribeLink());
-				dbo.setWithProfileSettingLink(backup.getWithProfileSettingLink());
-				dbo.setIsNotificationMessage(backup.getIsNotificationMessage());
-				if (toCcBccAreStrings(backup)) {
-					try {
-						if (backup.getTo() != null) {
-							dbo.setBytesTo(backup.getTo().getBytes("UTF-8"));
-						}
-						if (backup.getCc() != null) {
-							dbo.setBytesCc(backup.getCc().getBytes("UTF-8"));
-						}
-						if (backup.getBcc() != null) {
-							dbo.setBytesBcc(backup.getBcc().getBytes("UTF-8"));
-						}
-					} catch (UnsupportedEncodingException e) {
-						throw new RuntimeException(e);
-					}
-				} else if (toCcBccAreByteArrays(backup)) {
-					dbo.setBytesTo(backup.getBytesTo());
-					dbo.setBytesCc(backup.getBytesCc());
-					dbo.setBytesBcc(backup.getBytesBcc());
-				} else {
-					throw new IllegalStateException(
-							"The backup object should not have mixed to, cc and bcc field types (String and byte[])");
-				}
-				return dbo;
-			}
-
-			private boolean toCcBccAreStrings(DBOMessageToUserBackup backup) {
-				return backup.getBytesTo() == null && backup.getBytesCc() == null && backup.getBytesBcc() == null;
-			}
-
-			private boolean toCcBccAreByteArrays(DBOMessageToUserBackup backup) {
-				return backup.getTo() == null && backup.getCc() == null && backup.getBcc() == null;
-			}
-
-			@Override
-			public DBOMessageToUserBackup createBackupFromDatabaseObject(DBOMessageToUser dbo) {
-				DBOMessageToUserBackup backup = new DBOMessageToUserBackup();
-				backup.setMessageId(dbo.getMessageId());
-				backup.setRootMessageId(dbo.getRootMessageId());
-				backup.setInReplyTo(dbo.getInReplyTo());
-				backup.setSubjectBytes(dbo.getSubjectBytes());
-				backup.setSent(dbo.getSent());
-				backup.setNotificationsEndpoint(dbo.getNotificationsEndpoint());
-				backup.setProfileSettingEndpoint(dbo.getProfileSettingEndpoint());
-				backup.setWithUnsubscribeLink(dbo.getWithUnsubscribeLink());
-				backup.setWithProfileSettingLink(dbo.getWithProfileSettingLink());
-				backup.setIsNotificationMessage(dbo.getIsNotificationMessage());
-				backup.setBytesTo(dbo.getBytesTo());
-				backup.setBytesCc(dbo.getBytesCc());
-				backup.setBytesBcc(dbo.getBytesBcc());
-				return backup;
-			}
-		};
+	public MigratableTableTranslation<DBOMessageToUser, DBOMessageToUser> getTranslator() {
+		return MIGRATION_TRANSLATOR;
 	}
 
 	@Override
-	public Class<? extends DBOMessageToUserBackup> getBackupClass() {
-		return DBOMessageToUserBackup.class;
+	public Class<? extends DBOMessageToUser> getBackupClass() {
+		return DBOMessageToUser.class;
 	}
 
 	@Override
@@ -309,67 +248,52 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	}
 
 	@Override
-	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
-
-		DBOMessageToUser that = (DBOMessageToUser) o;
-
-		if (messageId != null ? !messageId.equals(that.messageId) : that.messageId != null) return false;
-		if (rootMessageId != null ? !rootMessageId.equals(that.rootMessageId) : that.rootMessageId != null)
-			return false;
-		if (inReplyTo != null ? !inReplyTo.equals(that.inReplyTo) : that.inReplyTo != null) return false;
-		if (!Arrays.equals(subjectBytes, that.subjectBytes)) return false;
-		if (!Arrays.equals(bytesTo, that.bytesTo)) return false;
-		if (!Arrays.equals(bytesCc, that.bytesCc)) return false;
-		if (!Arrays.equals(bytesBcc, that.bytesBcc)) return false;
-		if (sent != null ? !sent.equals(that.sent) : that.sent != null) return false;
-		if (notificationsEndpoint != null ? !notificationsEndpoint.equals(that.notificationsEndpoint) : that.notificationsEndpoint != null)
-			return false;
-		if (profileSettingEndpoint != null ? !profileSettingEndpoint.equals(that.profileSettingEndpoint) : that.profileSettingEndpoint != null)
-			return false;
-		if (withUnsubscribeLink != null ? !withUnsubscribeLink.equals(that.withUnsubscribeLink) : that.withUnsubscribeLink != null)
-			return false;
-		if (withProfileSettingLink != null ? !withProfileSettingLink.equals(that.withProfileSettingLink) : that.withProfileSettingLink != null)
-			return false;
-		return isNotificationMessage != null ? isNotificationMessage.equals(that.isNotificationMessage) : that.isNotificationMessage == null;
-	}
-
-	@Override
 	public int hashCode() {
-		int result = messageId != null ? messageId.hashCode() : 0;
-		result = 31 * result + (rootMessageId != null ? rootMessageId.hashCode() : 0);
-		result = 31 * result + (inReplyTo != null ? inReplyTo.hashCode() : 0);
-		result = 31 * result + Arrays.hashCode(subjectBytes);
-		result = 31 * result + Arrays.hashCode(bytesTo);
-		result = 31 * result + Arrays.hashCode(bytesCc);
-		result = 31 * result + Arrays.hashCode(bytesBcc);
-		result = 31 * result + (sent != null ? sent.hashCode() : 0);
-		result = 31 * result + (notificationsEndpoint != null ? notificationsEndpoint.hashCode() : 0);
-		result = 31 * result + (profileSettingEndpoint != null ? profileSettingEndpoint.hashCode() : 0);
-		result = 31 * result + (withUnsubscribeLink != null ? withUnsubscribeLink.hashCode() : 0);
-		result = 31 * result + (withProfileSettingLink != null ? withProfileSettingLink.hashCode() : 0);
-		result = 31 * result + (isNotificationMessage != null ? isNotificationMessage.hashCode() : 0);
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + Arrays.hashCode(bytesBcc);
+		result = prime * result + Arrays.hashCode(bytesCc);
+		result = prime * result + Arrays.hashCode(bytesTo);
+		result = prime * result + Arrays.hashCode(subjectBytes);
+		result = prime * result + Objects.hash(inReplyTo, isNotificationMessage, messageId, notificationsEndpoint,
+				profileSettingEndpoint, rootMessageId, sent, withProfileSettingLink, withUnsubscribeLink);
 		return result;
 	}
 
 	@Override
-	public String toString() {
-		return "DBOMessageToUser{" +
-				"messageId=" + messageId +
-				", rootMessageId=" + rootMessageId +
-				", inReplyTo=" + inReplyTo +
-				", subjectBytes=" + Arrays.toString(subjectBytes) +
-				", bytesTo=" + Arrays.toString(bytesTo) +
-				", bytesCc=" + Arrays.toString(bytesCc) +
-				", bytesBcc=" + Arrays.toString(bytesBcc) +
-				", sent=" + sent +
-				", notificationsEndpoint='" + notificationsEndpoint + '\'' +
-				", profileSettingEndpoint='" + profileSettingEndpoint + '\'' +
-				", withUnsubscribeLink=" + withUnsubscribeLink +
-				", withProfileSettingLink=" + withProfileSettingLink +
-				", isNotificationMessage=" + isNotificationMessage +
-				'}';
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		DBOMessageToUser other = (DBOMessageToUser) obj;
+		return Arrays.equals(bytesBcc, other.bytesBcc) && Arrays.equals(bytesCc, other.bytesCc)
+				&& Arrays.equals(bytesTo, other.bytesTo) && Objects.equals(inReplyTo, other.inReplyTo)
+				&& Objects.equals(isNotificationMessage, other.isNotificationMessage)
+				&& Objects.equals(messageId, other.messageId)
+				&& Objects.equals(notificationsEndpoint, other.notificationsEndpoint)
+				&& Objects.equals(profileSettingEndpoint, other.profileSettingEndpoint)
+				&& Objects.equals(rootMessageId, other.rootMessageId) && Objects.equals(sent, other.sent)
+				&& Arrays.equals(subjectBytes, other.subjectBytes)
+				&& Objects.equals(withProfileSettingLink, other.withProfileSettingLink)
+				&& Objects.equals(withUnsubscribeLink, other.withUnsubscribeLink);
 	}
+
+	@Override
+	public String toString() {
+		return "DBOMessageToUser [messageId=" + messageId + ", rootMessageId=" + rootMessageId + ", inReplyTo="
+				+ inReplyTo + ", subjectBytes=" + Arrays.toString(subjectBytes) + ", bytesTo="
+				+ Arrays.toString(bytesTo) + ", bytesCc=" + Arrays.toString(bytesCc) + ", bytesBcc="
+				+ Arrays.toString(bytesBcc) + ", sent=" + sent + ", notificationsEndpoint=" + notificationsEndpoint
+				+ ", profileSettingEndpoint=" + profileSettingEndpoint + ", withUnsubscribeLink=" + withUnsubscribeLink
+				+ ", withProfileSettingLink=" + withProfileSettingLink + ", isNotificationMessage="
+				+ isNotificationMessage + "]";
+	}
+
 }
 
