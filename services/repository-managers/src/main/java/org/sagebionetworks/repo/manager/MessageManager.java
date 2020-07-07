@@ -37,6 +37,16 @@ public interface MessageManager {
 	 * This method also checks to see if file handles (message body) are accessible.  
 	 */
 	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException;
+	
+	/**
+	 * Saves the message so that it can be processed by other queries. A worker will asynchronously process the message.
+	 * In case of failure, the user will be notified via bounce message. This method allows to override the notification setting
+	 * for the recipients.
+	 * </br>
+	 * This method also checks to see if file handles (message body) are accessible.  
+	 */
+	MessageToUser createMessage(UserInfo userInfo, MessageToUser dto, boolean overrideNotificationSettings)
+			throws NotFoundException;
 
 	/**
 	 * Adds the creator of the given entity to the recipient list of the
@@ -134,5 +144,6 @@ public interface MessageManager {
 	 * and checks to see if file handles (message body) are accessible.  
 	 */
 	public MessageToUser createMessageWithThrottle(UserInfo userInfo, MessageToUser dto);
+
 
 }

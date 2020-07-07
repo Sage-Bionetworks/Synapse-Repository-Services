@@ -99,6 +99,7 @@ public class MessageUtils {
 		bundle.setWithUnsubscribeLink(info.getWithUnsubscribeLink());
 		bundle.setWithProfileSettingLink(info.getWithProfileSettingLink());
 		bundle.setIsNotificationMessage(info.getIsNotificationMessage());
+		bundle.setOverrideNotificationSettings(info.getOverrideNotificationSettings());
 		try {
 			if (info.getBytesTo() != null) {
 				bundle.setTo(new String(info.getBytesTo(), "UTF-8"));
@@ -267,6 +268,11 @@ public class MessageUtils {
 			info.setIsNotificationMessage(false);
 		} else {
 			info.setIsNotificationMessage(dto.getIsNotificationMessage());
+		}
+		if (dto.getOverrideNotificationSettings() == null) {
+			info.setOverrideNotificationSettings(false);
+		} else {
+			info.setOverrideNotificationSettings(dto.getOverrideNotificationSettings());
 		}
 		try {
 			if (dto.getTo() != null) {

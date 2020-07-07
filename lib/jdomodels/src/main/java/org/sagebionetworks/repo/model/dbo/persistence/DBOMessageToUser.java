@@ -33,6 +33,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 			new FieldColumn("withUnsubscribeLink", SqlConstants.COL_MESSAGE_WITH_UNSUBSCRIBE_LINK),
 			new FieldColumn("withProfileSettingLink", SqlConstants.COL_MESSAGE_WITH_PROFILE_SETTING_LINK),
 			new FieldColumn("isNotificationMessage", SqlConstants.COL_MESSAGE_IS_NOTIFICATION_MESSAGE),
+			new FieldColumn("overrideNotificationSettings", SqlConstants.COL_MESSAGE_OVERRIDE_NOTIFICATION_SETTINGS),
 			new FieldColumn("bytesTo", SqlConstants.COL_MESSAGE_TO_USER_TO),
 			new FieldColumn("bytesCc", SqlConstants.COL_MESSAGE_TO_USER_CC),
 			new FieldColumn("bytesBcc", SqlConstants.COL_MESSAGE_TO_USER_BCC)
@@ -52,8 +53,18 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	private Boolean withUnsubscribeLink;
 	private Boolean withProfileSettingLink;
 	private Boolean isNotificationMessage;
+	private Boolean overrideNotificationSettings;
 	
-	private static final MigratableTableTranslation<DBOMessageToUser, DBOMessageToUser> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<>();
+	private static final MigratableTableTranslation<DBOMessageToUser, DBOMessageToUser> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<DBOMessageToUser>() {
+	
+		@Override
+		public DBOMessageToUser createDatabaseObjectFromBackup(DBOMessageToUser backup) {
+			if (backup.getOverrideNotificationSettings() == null) {
+				backup.setOverrideNotificationSettings(false);
+			}
+			return backup;
+		}
+	};
 
 	private static final TableMapping<DBOMessageToUser> TABLE_MAPPING = new TableMapping<DBOMessageToUser>() {
 
@@ -77,6 +88,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 			result.setWithUnsubscribeLink(rs.getBoolean(SqlConstants.COL_MESSAGE_WITH_UNSUBSCRIBE_LINK));
 			result.setWithProfileSettingLink(rs.getBoolean(SqlConstants.COL_MESSAGE_WITH_PROFILE_SETTING_LINK));
 			result.setIsNotificationMessage(rs.getBoolean(SqlConstants.COL_MESSAGE_IS_NOTIFICATION_MESSAGE));
+			result.setOverrideNotificationSettings(rs.getBoolean(SqlConstants.COL_MESSAGE_OVERRIDE_NOTIFICATION_SETTINGS));
 			Blob toBlob = rs.getBlob(SqlConstants.COL_MESSAGE_TO_USER_TO);
 			if (toBlob != null) {
 				result.setBytesTo(toBlob.getBytes(1, (int) toBlob.length()));
@@ -196,6 +208,14 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 
 	public void setIsNotificationMessage(Boolean isNotificationMessage) {
 		this.isNotificationMessage = isNotificationMessage;
+	}
+	
+	public Boolean getOverrideNotificationSettings() {
+		return overrideNotificationSettings;
+	}
+	
+	public void setOverrideNotificationSettings(Boolean overrideNotificationSettings) {
+		this.overrideNotificationSettings = overrideNotificationSettings;
 	}
 
 	public byte[] getBytesTo() {

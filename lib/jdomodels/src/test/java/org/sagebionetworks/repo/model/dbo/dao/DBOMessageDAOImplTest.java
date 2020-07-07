@@ -244,14 +244,24 @@ public class DBOMessageDAOImplTest {
 		dto.setWithUnsubscribeLink(true);
 		dto.setWithProfileSettingLink(false);
 		dto.setIsNotificationMessage(true);
+		
 		String to = RandomStringUtils.randomAlphanumeric(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
 		dto.setTo(to);
 		String cc = RandomStringUtils.randomAlphanumeric(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
 		dto.setCc(cc);
 		String bcc = RandomStringUtils.randomAlphanumeric(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
 		dto.setBcc(bcc);
+		
 		dto = messageDAO.createMessage(dto);
+		
 		cleanup.add(dto.getId());
+	}
+	
+	@Test
+	public void testCreateMessageWithOverrideNotificationSettings() throws InterruptedException{
+		MessageToUser dto = createBasicDTO();
+		dto.setOverrideNotificationSettings(true);
+		createMessage(dto);
 	}
 
 	@Test
@@ -504,6 +514,7 @@ public class DBOMessageDAOImplTest {
 		dto.setWithUnsubscribeLink(true);
 		dto.setWithProfileSettingLink(false);
 		dto.setIsNotificationMessage(true);
+		dto.setOverrideNotificationSettings(false);
 		// Note: InReplyToRoot is calculated by the DAO
 		String to = "Foo <foo@sb.com>";
 		dto.setTo(to);
@@ -521,6 +532,7 @@ public class DBOMessageDAOImplTest {
 		messageToCreate.setSubject(subject);
 		messageToCreate.setRecipients(recipients);
 		messageToCreate.setInReplyTo(inReplyTo);
+		messageToCreate.setOverrideNotificationSettings(false);
 
 		return createMessage(messageToCreate);
 	}
@@ -542,6 +554,7 @@ public class DBOMessageDAOImplTest {
 		assertTrue(dto.getWithUnsubscribeLink());
 		assertTrue(dto.getIsNotificationMessage());
 		assertFalse(dto.getWithProfileSettingLink());
+		assertEquals(toCreate.getOverrideNotificationSettings(), dto.getOverrideNotificationSettings());
 		assertEquals(toCreate.getRecipients(), dto.getRecipients());
 		assertEquals(toCreate.getSubject(), dto.getSubject());
 		assertEquals(toCreate.getTo(), dto.getTo());

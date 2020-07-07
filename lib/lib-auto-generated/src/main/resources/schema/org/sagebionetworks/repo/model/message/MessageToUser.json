@@ -41,6 +41,10 @@
 			"type": "boolean",
 			"description": "A notification message is sent from a noreply email address, delivery failures are not sent back to the sender"
 		},
+		"overrideNotificationSettings": {
+			"type": "boolean",
+			"description": "The message will be sent to the recipient despite its notification setting"
+		},
 		"to": {
 			"type": "string",
 			"description": "The email addresses in the 'to' field of the email message"

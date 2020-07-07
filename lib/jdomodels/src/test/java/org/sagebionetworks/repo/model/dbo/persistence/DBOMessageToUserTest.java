@@ -1,13 +1,23 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
+import org.junit.jupiter.api.Test;
 
 
-@ExtendWith(SpringExtension.class)
-@ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOMessageToUserTest {
+	
+	@Test
+	public void testMigrateOverrideNotificationSettings() {
+		DBOMessageToUser messageToUser = new DBOMessageToUser();
+		
+		messageToUser.setOverrideNotificationSettings(null);
+		
+		DBOMessageToUser result = messageToUser.getTranslator().createDatabaseObjectFromBackup(messageToUser);
+		
+		assertFalse(result.getOverrideNotificationSettings());
+		
+	}
 	
 }
 

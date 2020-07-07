@@ -196,6 +196,7 @@ public class MessageManagerImpl implements MessageManager {
 	@WriteTransaction
 	public MessageToUser createMessageWithThrottle(UserInfo userInfo, MessageToUser dto) throws NotFoundException {
 		boolean userIsTrustedMessageSender = userInfo.getGroups().contains(TeamConstants.TRUSTED_MESSAGE_SENDER_TEAM_ID);
+
 		// Throttle message creation
 		if (!userInfo.isAdmin() && !userIsTrustedMessageSender && !messageDAO.canCreateMessage(userInfo.getId().toString(), 
 					MAX_NUMBER_OF_NEW_MESSAGES,
@@ -205,12 +206,19 @@ public class MessageManagerImpl implements MessageManager {
 							+ MAX_NUMBER_OF_NEW_MESSAGES + " message(s) every "
 							+ (MESSAGE_CREATION_INTERVAL_MILLISECONDS / 1000) + " second(s)");
 		}
+		
 		return createMessage(userInfo, dto);
 	}
 
 	@Override
 	@WriteTransaction
 	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException {
+		return createMessage(userInfo, dto, false);
+	}
+	
+	@Override
+	@WriteTransaction
+	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto, boolean overrideNotificationSettings) throws NotFoundException {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(dto, "dto");
 		ValidateArgument.requirement(dto.getRecipients() != null && !dto.getRecipients().isEmpty(),
@@ -244,6 +252,8 @@ public class MessageManagerImpl implements MessageManager {
 		if (ugs.size() != dto.getRecipients().size()) {
 			throw new IllegalArgumentException("One or more of the following IDs are not recognized: " + dto.getRecipients());
 		}
+		
+		dto.setOverrideNotificationSettings(overrideNotificationSettings);
 		
 		return messageDAO.createMessage(dto);
 	}
