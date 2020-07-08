@@ -1,32 +1,29 @@
 package org.sagebionetworks.repo.util.jrjc;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
-
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
-import org.junit.platform.runner.JUnitPlatform;
-import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
-import org.springframework.test.util.ReflectionTestUtils;
-
-import java.util.Base64;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class JiraClientImplTest {
@@ -309,15 +306,24 @@ public class JiraClientImplTest {
         when(mockConfig.getJiraUserApikey()).thenReturn(USERAPIKEY);
         when(mockResponse.getStatusCode()).thenReturn(HttpStatus.SC_CREATED);
         when(mockResponse.getContent()).thenReturn(expectedJson);
-        when(mockHttpClient.post(any(SimpleHttpRequest.class), anyString())).thenReturn(mockResponse);
+        ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
+        when(mockHttpClient.post(any(SimpleHttpRequest.class), bodyCaptor.capture())).thenReturn(mockResponse);
 
         BasicIssue issue = new BasicIssue();
+        issue.setProjectId("101");
+        issue.setSummary("this is the summary");
+        issue.setIssueTypeId(202L);
+        Map<String,Object> customFields = new HashMap<String,Object>();
+        customFields.put("components", JRJCHelper.componentName("some name"));
+        issue.setCustomFields(customFields);
+        String expectedBody ="{\"fields\":{\"summary\":\"this is the summary\",\"issuetype\":{\"id\":202},\"components\":[{\"name\":\"some name\"}],\"project\":{\"id\":\"101\"}}}";
 
         // Call under test
         CreatedIssue i = jiraClient.createIssue(issue);
 
         assertNotNull(i);
         assertEquals("SG-24", i.getKey());
+        assertEquals(expectedBody, bodyCaptor.getValue());
     }
 
     @Test

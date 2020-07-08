@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.util.jrjc;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-
-import org.json.simple.JSONObject;
 
 public class JRJCHelper {
 
@@ -13,11 +13,14 @@ public class JRJCHelper {
 	private static final String JIRA_PRINCIPAL_ID_ISSUE_FIELD_NAME = "Synapse Principal ID"; // The ID of the Synapse user reporting the issue.
 	private static final String JIRA_USER_DISPLAY_NAME_ISSUE_FIELD_NAME = "Synapse User Display Name"; // The display name of the Synapse user reporting the issue.
 	private static final String JIRA_SYNAPSE_ENTITY_ID_FIELD_NAME = "Synapse Data Object"; // The ID of the Synapse object which is the subject of the issue.
+	private static final String JIRA_COMPONENT_FIELD_NAME = "Components";
+	private static final String JIRA_COMPONENT_NAME = "name";
+	private static final String JIRA_COMPONENT_FIELD_VALUE_RESTRICTION_REQUEST = "Data Restriction Request";
 	private static final String FLAG_SUMMARY = "Request for ACT to review data";
 	private static final String RESTRICT_SUMMARY = "Request for ACT to add data restriction";
 	
 	public static String createFlagIssue(JiraClient jiraClient, String principalId, String displayName, String dataObjectId) {
-        Map<String,String> params = new HashMap<String,String>();
+        Map<String,Object> params = new HashMap<String,Object>();
         params.put(JIRA_PRINCIPAL_ID_ISSUE_FIELD_NAME, principalId);
         params.put(JIRA_USER_DISPLAY_NAME_ISSUE_FIELD_NAME, displayName);
         params.put(JIRA_SYNAPSE_ENTITY_ID_FIELD_NAME, dataObjectId);
@@ -25,11 +28,18 @@ public class JRJCHelper {
 		return createdIssue.getKey();
 	}
 	
+	public static List<Map<String,String>> componentName(String name) {
+		Map<String,String> component = new HashMap<String,String>();
+		component.put(JIRA_COMPONENT_NAME, name);
+		return Collections.singletonList(component);
+	}
+	
 	public static String createRestrictIssue(JiraClient jiraClient, String principalId, String displayName, String dataObjectId) {
-        Map<String,String> params = new HashMap<String,String>();
+        Map<String,Object> params = new HashMap<String,Object>();
         params.put(JIRA_PRINCIPAL_ID_ISSUE_FIELD_NAME, principalId);
         params.put(JIRA_USER_DISPLAY_NAME_ISSUE_FIELD_NAME, displayName);
         params.put(JIRA_SYNAPSE_ENTITY_ID_FIELD_NAME, dataObjectId);
+        params.put(JIRA_COMPONENT_FIELD_NAME, componentName(JIRA_COMPONENT_FIELD_VALUE_RESTRICTION_REQUEST));
         CreatedIssue createdIssue = createIssue(jiraClient, JIRA_RESTRICT_ISSUE_TYPE_NAME, RESTRICT_SUMMARY, params);
         return createdIssue.getKey();
 	} 
@@ -41,7 +51,7 @@ public class JRJCHelper {
 	 * @param params a map from field names to field values
 	 * @return
 	 */
-	public static CreatedIssue createIssue(JiraClient jiraClient, String issueTypeName, String summary, Map<String,String> params) {
+	public static CreatedIssue createIssue(JiraClient jiraClient, String issueTypeName, String summary, Map<String,Object> params) {
 		ProjectInfo projectInfo = jiraClient.getProjectInfo(JIRA_PROJECT_KEY, issueTypeName);
 		String projectId = projectInfo.getProjectId();
 		Long issueTypeId = projectInfo.getIssueTypeId();
@@ -57,8 +67,8 @@ public class JRJCHelper {
 		return createdIssue;
 	}
 
-	private static Map<String, String> mapParams(Map<String, String>fieldsMap, Map<String, String> params) {
-		Map<String, String> mapped = new HashMap<>();
+	private static Map<String, Object> mapParams(Map<String, String>fieldsMap, Map<String, Object> params) {
+		Map<String, Object> mapped = new HashMap<>();
 		for (String k: params.keySet()) {
 			String fk = fieldsMap.get(k);
 			// check that we could map field name to field id

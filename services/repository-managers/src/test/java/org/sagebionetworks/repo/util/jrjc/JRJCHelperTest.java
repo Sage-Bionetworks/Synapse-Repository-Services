@@ -7,7 +7,9 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Assertions;
@@ -54,11 +56,16 @@ public class JRJCHelperTest {
 		BasicIssue issueInput = issueCaptor.getValue();
 
 		assertNotNull(issueInput.getCustomFields());
-		Map<String,String> customFields = issueInput.getCustomFields();
+		Map<String,Object> customFields = issueInput.getCustomFields();
 		assertEquals("Request for ACT to add data restriction", issueInput.getSummary());
 		assertEquals(TEST_PRINCIPAL_ID, customFields.get("id1"));
 		assertEquals(TEST_DISPLAY_NAME, customFields.get("id2"));
 		assertEquals(TEST_DATA_OBJECT_ID, customFields.get("id3"));
+		List<Map<String,Object>> components = (List<Map<String,Object>>)customFields.get("components");
+		Map<String,Object> expectedComponent = new HashMap<String,Object>();
+		expectedComponent.put("name", "Data Restriction Request");
+		List<Map<String,Object>> expectedComponents = Collections.singletonList(expectedComponent);
+		assertEquals(expectedComponents, components);
 		assertEquals("projectId", issueInput.getProjectId());
 		assertEquals(Long.valueOf((10000L)), issueInput.getIssueTypeId());
 
@@ -76,7 +83,7 @@ public class JRJCHelperTest {
 		BasicIssue issueInput = issueCaptor.getValue();
 
 		assertNotNull(issueInput.getCustomFields());
-		Map<String,String> fields = issueInput.getCustomFields();
+		Map<String,Object> fields = issueInput.getCustomFields();
 		assertEquals("Request for ACT to review data", issueInput.getSummary());
 		assertEquals(TEST_PRINCIPAL_ID, fields.get("id1"));
 		assertEquals(TEST_DISPLAY_NAME, fields.get("id2"));
@@ -112,6 +119,7 @@ public class JRJCHelperTest {
 		fields.put("Synapse Principal ID", "id1");
 		fields.put("Synapse User Display Name", "id2");
 		fields.put("Synapse Data Object", "id3");
+		fields.put("Components", "components");
 		when(jiraClient.getFields()).thenReturn(fields);
 	}
 
