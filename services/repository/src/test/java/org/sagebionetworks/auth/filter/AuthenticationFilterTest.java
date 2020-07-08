@@ -46,7 +46,10 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.web.OAuthErrorCode;
+import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.securitytools.HMACUtils;
+import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -299,7 +302,7 @@ public class AuthenticationFilterTest {
 		assertEquals(""+userId, requestCaptor.getValue().getParameter(AuthorizationConstants.USER_ID_PARAM));
 		assertEquals("Bearer "+BEARER_TOKEN, requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME));
 	}
-	
+
 	@Test
 	public void noExternalUserIdParameter() throws Exception {
 		Map<String, String[]> requestParams = new HashMap<String, String[]>();
@@ -337,7 +340,9 @@ public class AuthenticationFilterTest {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BEARER_TOKEN_HEADER);
 		when(mockHttpResponse.getWriter()).thenReturn(mockPrintWriter);
 
-		doThrow(new IllegalArgumentException()).when(mockOidcManager).validateAccessToken(BEARER_TOKEN);
+		OAuthErrorCode code = OAuthErrorCode.invalid_token;
+		String description = "The token is invalid.";
+		doThrow(new OAuthUnauthenticatedException(code, description)).when(mockOidcManager).validateAccessToken(BEARER_TOKEN);
 
 		// method under test
 		filter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
@@ -346,7 +351,7 @@ public class AuthenticationFilterTest {
 		verify(mockFilterChain, never()).doFilter((ServletRequest)any(), (ServletResponse)any());
 		verify(mockHttpResponse).setStatus(401);
 		verify(mockHttpResponse).setContentType("application/json");
-		verify(mockPrintWriter).println("{\"reason\":\"Invalid access token\"}");
+		verify(mockPrintWriter).println("{\"reason\":\"" + code.name() + ". " + description + "\",\"error\":\"" + code.name() + "\",\"error_description\":\"" + description + "\"}");
 	}
 
 	@Test
