@@ -761,6 +761,29 @@ public class MessageManagerImplTest {
 	}
 	
 	@Test
+	public void testSendMessageWithOverrideNotificationSettings() throws Exception {
+		final String testUserId = testUser.getId().toString();
+		Set<String> testUserIdSet = ImmutableSet.of(testUserId);
+		
+		// Emails are sent by default
+		UserProfile profile = userProfileManager.getUserProfile(testUser.getId().toString());
+		profile.setNotificationSettings(new Settings());
+		
+		// Disable the user notifications
+		profile.getNotificationSettings().setSendEmailNotifications(false);
+		profile = userProfileManager.updateUserProfile(testUser, profile);
+		
+		// Now this message will appear as UNREAD
+		MessageToUser message = createMessage(otherTestUser, "message", testUserIdSet, null);
+		
+		// Process the message (emulates the worker)
+		messageManager.processMessage(message.getId(), null);				
+		
+		List<MessageBundle> inbox = messageManager.getInbox(testUser, unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(message, inbox.get(0).getMessage());
+	}
+	
+	@Test
 	public void testCreateMessageToEntityOwner() throws Exception {
 		// Make an "entity"
 		Node node = new Node();

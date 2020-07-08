@@ -39,11 +39,7 @@ public interface MessageManager {
 	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException;
 	
 	/**
-	 * Saves the message so that it can be processed by other queries. A worker will asynchronously process the message.
-	 * In case of failure, the user will be notified via bounce message. This method allows to override the notification setting
-	 * for the recipients.
-	 * </br>
-	 * This method also checks to see if file handles (message body) are accessible.  
+	 * See {@link #createMessage(UserInfo, MessageToUser)}, but allows to override the notifications setting of the recipient
 	 */
 	MessageToUser createMessage(UserInfo userInfo, MessageToUser dto, boolean overrideNotificationSettings)
 			throws NotFoundException;

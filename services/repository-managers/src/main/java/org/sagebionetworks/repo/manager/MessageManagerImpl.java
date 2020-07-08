@@ -406,13 +406,17 @@ public class MessageManagerImpl implements MessageManager {
 		for (String userId : recipients) {
 			// Try to send messages to each user individually
 			try {
+				
 				// Get the user's settings
-				Settings settings = null;
-				UserProfile profile = userProfileManager.getUserProfile(userId);
-				settings = profile.getNotificationSettings();
-				if(settings == null){
-					settings = new Settings();
+				Settings settings = new Settings();
+				
+				if (dto.getOverrideNotificationSettings() == null || !dto.getOverrideNotificationSettings()) {
+					UserProfile profile = userProfileManager.getUserProfile(userId);
+					if (profile.getNotificationSettings() != null) {
+						settings = profile.getNotificationSettings();
+					}
 				}
+				
 				MessageStatusType userMessageStatus = null; // setting to null tells the DAO to use the default value
 				
 				messageDAO.createMessageStatus(dto.getId(), userId, userMessageStatus);	
