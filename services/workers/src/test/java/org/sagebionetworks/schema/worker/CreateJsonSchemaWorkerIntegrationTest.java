@@ -16,10 +16,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mockito;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaValidationManager;
+import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.manager.schema.SynapseSchemaBootstrap;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -38,6 +40,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -205,14 +208,16 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 
 		String validCatJsonString = loadStringFromClasspath("pets/ValidCat.json");
 		JSONObject validCat = new JSONObject(validCatJsonString);
+		JsonSubject mockSubject = Mockito.mock(JsonSubject.class);
+		when(mockSubject.toJson()).thenReturn(validCat);
 		// this schema should be valid
-		ValidationResults result = jsonSchemaValidationManager.validate(validationSchema, validCat);
+		ValidationResults result = jsonSchemaValidationManager.validate(validationSchema, mockSubject);
 		assertNotNull(result);
 		assertTrue(result.getIsValid());
 		
 		// Changing the petType to dog should cause a schema violation.
 		validCat.put("petType", "dog");
-		result = jsonSchemaValidationManager.validate(validationSchema, validCat);
+		result = jsonSchemaValidationManager.validate(validationSchema, mockSubject);
 		assertNotNull(result);
 		assertFalse(result.getIsValid());
 		assertEquals("#: 0 subschemas matched instead of one", result.getValidationErrorMessage());
