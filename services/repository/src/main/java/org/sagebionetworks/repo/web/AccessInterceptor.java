@@ -46,14 +46,22 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 	
 	@Autowired
 	StackConfiguration stackConfiguration;
-	
+
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
-	
+
 	String getOAuthClientId(HttpServletRequest request) {
+		/*
+		 * There are two different places the client ID might be:
+		 *  - in the access token, if the OAuth client is acting on behalf of a user
+		 *  - injected into the verified client ID header, if the client used basic auth
+		 */
 		String accessToken = HttpAuthUtil.getBearerTokenFromStandardAuthorizationHeader(request);
-		if (accessToken==null) return null;
-		return oidcTokenHelper.parseJWT(accessToken).getBody().getAudience();
+		if (accessToken != null) {
+			return oidcTokenHelper.parseJWT(accessToken).getBody().getAudience();
+		} else {
+			return request.getHeader(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER);
+		}
 	}
 
 	/**
@@ -88,6 +96,9 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 		data.setVmId(VirtualMachineIdProvider.getVMID());
 		data.setQueryString(request.getQueryString());
 		data.setOauthClientId(getOAuthClientId(request));
+		if (HttpAuthUtil.usesBasicAuthentication(request)) {
+			data.setBasicAuthUsername(HttpAuthUtil.getBasicAuthenticationCredentials(request).get().getUserName());
+		}
 		// push the session id to the logging thread context
 		ThreadContext.put(SESSION_ID, data.getSessionId());
 		// Bind this record to this thread.

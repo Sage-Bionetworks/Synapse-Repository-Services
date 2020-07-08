@@ -80,10 +80,14 @@
 		"responseStatus": {
 			"type": "integer",
 			"description": "The resulting HTTP response code."
-		},	
+		},
 		"oauthClientId": {
 			"type": "string",
 			"description": "The ID of the OAuth Client making the request"
+		},
+		"basicAuthUsername": {
+			"type": "string",
+			"description": "The username used in the authorization header of the request, if the request used basic authentication."
 		}
 	}
 }

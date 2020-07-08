@@ -30,6 +30,15 @@ public class HttpAuthUtil {
 	private static final Decoder BASE64_DECODER = Base64.getDecoder();
 	private static final String INVALID_AUTH_MSG_FORMAT = "Invalid Authorization header for basic authentication (%s)"; 
 
+	public static boolean usesBasicAuthentication(HttpServletRequest httpRequest) {
+		String header = httpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME);
+		if (StringUtils.isBlank(header)) {
+			return false;
+		}
+
+		return header.startsWith(AuthorizationConstants.BASIC_PREFIX);
+	}
+
 	/**
 	 * Extracts the credentials from the Authorization header following the basic authentication scheme
 	 * 

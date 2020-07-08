@@ -1,8 +1,10 @@
 package org.sagebionetworks.auth;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -45,7 +47,34 @@ class HttpAuthUtilTest {
 	private static String base64Encode(String in) {
 		return Base64.getEncoder().encodeToString(in.getBytes());
 	}
-	
+
+	@Test
+	void testUsesBasicAuthenticationCredentials() {
+		when(httpRequest.getHeader("Authorization")).thenReturn("Basic placeholder");
+		// method under test
+		assertTrue(HttpAuthUtil.usesBasicAuthentication(httpRequest));
+	}
+
+	@Test
+	void testUsesBasicAuthenticationCredentials_NoHeader() {
+		when(httpRequest.getHeader("Authorization")).thenReturn(null);
+		// method under test
+		assertFalse(HttpAuthUtil.usesBasicAuthentication(httpRequest));
+	}
+
+	@Test
+	void testUsesBasicAuthenticationCredentials_EmptyHeader() {
+		when(httpRequest.getHeader("Authorization")).thenReturn("");
+		// method under test
+		assertFalse(HttpAuthUtil.usesBasicAuthentication(httpRequest));
+	}
+
+	@Test
+	void testUsesBasicAuthenticationCredentials_NotBasic() {
+		when(httpRequest.getHeader("Authorization")).thenReturn("Bearer placeholder");
+		// method under test
+		assertFalse(HttpAuthUtil.usesBasicAuthentication(httpRequest));
+	}
 
 	@Test
 	void testGetBasicAuthenticationCredentialsWithNoHeader() {
