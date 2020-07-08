@@ -641,44 +641,4 @@ public class ITOpenIDConnectTest {
 		assertThrows(SynapseNotFoundException.class, () ->
 				synapseOne.getRefreshTokenMetadata(tokenId));
 	}
-
-	@Test
-	public void testOAuthFormattedErrorMessage() throws Exception {
-		// START Set up, use authorization code
-		OAuthClient client = setUpOAuthClient(true);
-		OAuthClientIdAndSecret secret = synapseOne.createOAuthClientSecret(client.getClient_id());
-
-		OIDCAuthorizationRequest authorizationRequest = setUpAuthorizationRequest(client);
-
-		OAuthAuthorizationResponse oauthAuthorizationResponse = synapseOne.authorizeClient(authorizationRequest);
-
-		// Note, we use Basic auth to authorize the client when asking for an access token
-		OIDCTokenResponse tokenResponse = null;
-		try {
-			synapseAnonymous.setBasicAuthorizationCredentials(client.getClient_id(), secret.getClient_secret());
-			tokenResponse = synapseAnonymous.getTokenResponse(OAuthGrantType.authorization_code,
-					oauthAuthorizationResponse.getAccess_code(), client.getRedirect_uris().get(0), null, null, null);
-		} finally {
-			synapseAnonymous.removeAuthorizationHeader();
-		}
-		// END Set up. We now have a refresh token
-
-		// Revoke the token
-		synapseOne.revokeMyRefreshTokensFromClient(client.getClient_id());
-
-		// Try to use the revoked access token and verify that the error is the proper JSON error
-		{
-			SimpleHttpRequest request = new SimpleHttpRequest();
-			request.setUri(config.getAuthenticationServicePublicEndpoint()+"/oauth2/audit/grantedClients");
-			Map<String, String> requestHeaders = new HashMap<>();
-			requestHeaders.put("Content-Type", "application/json");
-			requestHeaders.put("Authorization", "Bearer " + tokenResponse.getAccess_token());
-			request.setHeaders(requestHeaders);
-			SimpleHttpResponse response = simpleClient.get(request);
-			assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
-			assertNotNull(response.getContent());
-			OAuthErrorResponse actualError = EntityFactory.createEntityFromJSONString(response.getContent(), OAuthErrorResponse.class);
-			assertEquals(OAuthErrorCode.invalid_token.name(), actualError.getError());
-		}
-	}
 }
