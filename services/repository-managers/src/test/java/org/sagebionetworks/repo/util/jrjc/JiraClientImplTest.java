@@ -16,6 +16,7 @@ import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -305,22 +306,24 @@ public class JiraClientImplTest {
         when(mockConfig.getJiraUserApikey()).thenReturn(USERAPIKEY);
         when(mockResponse.getStatusCode()).thenReturn(HttpStatus.SC_CREATED);
         when(mockResponse.getContent()).thenReturn(expectedJson);
-        when(mockHttpClient.post(any(SimpleHttpRequest.class), anyString())).thenReturn(mockResponse);
+        ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
+        when(mockHttpClient.post(any(SimpleHttpRequest.class), bodyCaptor.capture())).thenReturn(mockResponse);
 
         BasicIssue issue = new BasicIssue();
         issue.setProjectId("101");
         issue.setSummary("this is the summary");
         issue.setIssueTypeId(202L);
         Map<String,Object> customFields = new HashMap<String,Object>();
-        customFields.put("user", "303");
         customFields.put("components", JRJCHelper.componentName("some name"));
         issue.setCustomFields(customFields);
+        String expectedBody ="{\"fields\":{\"summary\":\"this is the summary\",\"issuetype\":{\"id\":202},\"components\":[{\"name\":\"some name\"}],\"project\":{\"id\":\"101\"}}}";
 
         // Call under test
         CreatedIssue i = jiraClient.createIssue(issue);
 
         assertNotNull(i);
         assertEquals("SG-24", i.getKey());
+        assertEquals(expectedBody, bodyCaptor.getValue());
     }
 
     @Test

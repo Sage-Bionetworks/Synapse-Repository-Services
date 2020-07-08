@@ -1,10 +1,9 @@
 package org.sagebionetworks.repo.util.jrjc;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 
 public class JRJCHelper {
 
@@ -29,12 +28,10 @@ public class JRJCHelper {
 		return createdIssue.getKey();
 	}
 	
-	public static JSONArray componentName(String name) {
-        JSONArray result = new JSONArray();
-        JSONObject nameObject = new JSONObject();
-        nameObject.put(JIRA_COMPONENT_NAME, name);
-        result.add(nameObject);
-		return result;
+	public static List<Map<String,String>> componentName(String name) {
+		Map<String,String> component = new HashMap<String,String>();
+		component.put(JIRA_COMPONENT_NAME, name);
+		return Collections.singletonList(component);
 	}
 	
 	public static String createRestrictIssue(JiraClient jiraClient, String principalId, String displayName, String dataObjectId) {

@@ -7,11 +7,11 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,12 +61,11 @@ public class JRJCHelperTest {
 		assertEquals(TEST_PRINCIPAL_ID, customFields.get("id1"));
 		assertEquals(TEST_DISPLAY_NAME, customFields.get("id2"));
 		assertEquals(TEST_DATA_OBJECT_ID, customFields.get("id3"));
-		JSONArray components = (JSONArray)customFields.get("components");
-		JSONArray expected = new JSONArray();
-		JSONObject componentName = new JSONObject();
-		componentName.put("name", "Data Restriction Request");
-		expected.add(componentName);
-		assertEquals(expected, components);
+		List<Map<String,Object>> components = (List<Map<String,Object>>)customFields.get("components");
+		Map<String,Object> expectedComponent = new HashMap<String,Object>();
+		expectedComponent.put("name", "Data Restriction Request");
+		List<Map<String,Object>> expectedComponents = Collections.singletonList(expectedComponent);
+		assertEquals(expectedComponents, components);
 		assertEquals("projectId", issueInput.getProjectId());
 		assertEquals(Long.valueOf((10000L)), issueInput.getIssueTypeId());
 
