@@ -21,8 +21,6 @@ import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
-import org.sagebionetworks.repo.model.message.SQSSendMessageRequest;
-import org.sagebionetworks.repo.model.message.SQSSendMessageResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
@@ -325,17 +323,5 @@ public class AdministrationController {
 																	 @PathVariable Long principalId)
 			throws NotFoundException, UnauthorizedException {
 		serviceProvider.getPrincipalService().redactPrincipalInformation(userId, principalId);
-	}
-	
-	/**
-	 * Sends an message to SQS
-	 * 
-	 * @param messageRequest The request containing the message to send and the name of the queue
-	 */
-	@RequiredScope({})
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ADMIN_SQS_MESSAGE, method = RequestMethod.POST)
-	public @ResponseBody SQSSendMessageResponse sendSQSMessage(@RequestBody SQSSendMessageRequest messageRequest) {
-		return serviceProvider.getAdministrationService().sendSQSMessage(messageRequest);
 	}
 }
