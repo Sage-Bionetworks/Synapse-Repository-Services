@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslat
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+import org.sagebionetworks.util.TemporaryCode;
 
 /**
  * Contains information specific to a message sent to a user
@@ -57,6 +58,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	
 	private static final MigratableTableTranslation<DBOMessageToUser, DBOMessageToUser> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<DBOMessageToUser>() {
 	
+		@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "Can be removed afer 319 is deployed")
 		@Override
 		public DBOMessageToUser createDatabaseObjectFromBackup(DBOMessageToUser backup) {
 			if (backup.getOverrideNotificationSettings() == null) {
@@ -276,7 +278,8 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		result = prime * result + Arrays.hashCode(bytesTo);
 		result = prime * result + Arrays.hashCode(subjectBytes);
 		result = prime * result + Objects.hash(inReplyTo, isNotificationMessage, messageId, notificationsEndpoint,
-				profileSettingEndpoint, rootMessageId, sent, withProfileSettingLink, withUnsubscribeLink);
+				overrideNotificationSettings, profileSettingEndpoint, rootMessageId, sent, withProfileSettingLink,
+				withUnsubscribeLink);
 		return result;
 	}
 
@@ -297,6 +300,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				&& Objects.equals(isNotificationMessage, other.isNotificationMessage)
 				&& Objects.equals(messageId, other.messageId)
 				&& Objects.equals(notificationsEndpoint, other.notificationsEndpoint)
+				&& Objects.equals(overrideNotificationSettings, other.overrideNotificationSettings)
 				&& Objects.equals(profileSettingEndpoint, other.profileSettingEndpoint)
 				&& Objects.equals(rootMessageId, other.rootMessageId) && Objects.equals(sent, other.sent)
 				&& Arrays.equals(subjectBytes, other.subjectBytes)
@@ -312,7 +316,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				+ Arrays.toString(bytesBcc) + ", sent=" + sent + ", notificationsEndpoint=" + notificationsEndpoint
 				+ ", profileSettingEndpoint=" + profileSettingEndpoint + ", withUnsubscribeLink=" + withUnsubscribeLink
 				+ ", withProfileSettingLink=" + withProfileSettingLink + ", isNotificationMessage="
-				+ isNotificationMessage + "]";
+				+ isNotificationMessage + ", overrideNotificationSettings=" + overrideNotificationSettings + "]";
 	}
 
 }
