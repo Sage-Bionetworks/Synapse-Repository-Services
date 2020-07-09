@@ -378,6 +378,19 @@ public class ITStorageLocation {
 		
 		synapse.createStorageLocationSetting(externalS3StorageLocationSetting);
 	}
+	
+	@Test
+	public void testBucketOwnerWithMultipleUsersOnSameLine() throws SynapseException {
+		
+		List<String> ownerIdentifiers = ImmutableList.of(
+				String.join(",", "someotherusername", userToDelete.toString())
+		);
+		
+		// Create and verify storage location.
+		ExternalS3StorageLocationSetting externalS3StorageLocationSetting = createExternalS3StorageLocation(ownerIdentifiers);
+		
+		synapse.createStorageLocationSetting(externalS3StorageLocationSetting);
+	}
 
 	private void testStsStorageLocation(StsStorageLocationSetting stsStorageLocationSetting) throws SynapseException {
 		String baseKey = stsStorageLocationSetting.getBaseKey();
