@@ -14,6 +14,9 @@ public interface BucketOwnerVerifier {
 	
 	// The file name that contains the bucket owner information to verify
 	public static final String OWNER_MARKER = "owner.txt";
+	
+	// Separator for identifiers on the same line
+	public static final String SAME_LINE_SEPARATOR = ",";
 
 	/**
 	 * Verifies that the given user is the owner of the bucket with the given name, the

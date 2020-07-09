@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -84,9 +85,13 @@ public class BucketOwnerVerifierImpl implements BucketOwnerVerifier {
 
 			BufferedReader content = newStreamReader(stream);
 			
-			return content.lines().limit(OWNER_TXT_MAX_LINES)
+			return content
+					.lines()
+					.limit(OWNER_TXT_MAX_LINES)
+					// Each line can be a comma separated list of aliases
+					.flatMap((line) -> Stream.of(line.split(SAME_LINE_SEPARATOR)))
 					.map(this::normalizeAlias)
-					.filter( line -> !line.isEmpty())
+					.filter( value -> !value.isEmpty())
 					.collect(Collectors.toList());
 			
 		} catch (UncheckedIOException e) {

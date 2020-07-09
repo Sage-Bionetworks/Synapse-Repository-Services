@@ -99,6 +99,19 @@ public class BucketOwnerVerifierImplAutowireTest {
 	}
 	
 	@Test
+	public void testVerificationWithMultipleUsersOnSameLine() throws Exception {
+		UserInfo user1 = createUser();
+		UserInfo user2 = createUser();
+		
+		List<String> ownerList = ImmutableList.of(String.join(BucketOwnerVerifier.SAME_LINE_SEPARATOR, user1.getId().toString(), user2.getId().toString()));
+		
+		BucketOwnerStorageLocationSetting storageLocation = linkBucket(ownerList);
+		
+		bucketOwnerVerifier.verifyBucketOwnership(user1, storageLocation);
+		bucketOwnerVerifier.verifyBucketOwnership(user2, storageLocation);
+	}
+	
+	@Test
 	public void testVerificationWithDifferentOwner() throws Exception {
 		UserInfo user1 = createUser();
 		UserInfo user2 = createUser();

@@ -311,6 +311,93 @@ public class BucketOwnerVerifierImplUnitTest {
 	}
 	
 	@Test
+	public void testReadOwnerContent() {
+		
+	    BucketOwnerVerifierImpl bucketOwnerVerifier = setupMockObjectReader();
+		
+		List<String> ownerContent = ImmutableList.of(
+			USER_EMAIL, USER_ID.toString(), USER_NAME
+		);
+		
+		when(mockBufferedReader.lines()).thenReturn(ownerContent.stream());
+		
+		List<String> result = bucketOwnerVerifier.readOwnerContent(mockObjectReader, BUCKET_NAME, OWNER_KEY);
+		List<String> expected = ImmutableList.of(USER_EMAIL, USER_ID.toString(), USER_NAME);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testReadOwnerContentWithSameLineValues() {
+		
+	    BucketOwnerVerifierImpl bucketOwnerVerifier = setupMockObjectReader();
+		
+		List<String> ownerContent = ImmutableList.of(
+			String.join(BucketOwnerVerifier.SAME_LINE_SEPARATOR, USER_EMAIL, USER_NAME)
+		);
+		
+		when(mockBufferedReader.lines()).thenReturn(ownerContent.stream());
+		
+		List<String> result = bucketOwnerVerifier.readOwnerContent(mockObjectReader, BUCKET_NAME, OWNER_KEY);
+		List<String> expected = ImmutableList.of(USER_EMAIL, USER_NAME);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testReadOwnerContentWithSameLineValuesAndEmpty() {
+		
+	    BucketOwnerVerifierImpl bucketOwnerVerifier = setupMockObjectReader();
+		
+		List<String> ownerContent = ImmutableList.of(
+			String.join(BucketOwnerVerifier.SAME_LINE_SEPARATOR, USER_EMAIL, " ")
+		);
+		
+		when(mockBufferedReader.lines()).thenReturn(ownerContent.stream());
+		
+		List<String> result = bucketOwnerVerifier.readOwnerContent(mockObjectReader, BUCKET_NAME, OWNER_KEY);
+		List<String> expected = ImmutableList.of(USER_EMAIL);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testReadOwnerContentWithSameLineValuesAndMultipleLines() {
+		
+	    BucketOwnerVerifierImpl bucketOwnerVerifier = setupMockObjectReader();
+		
+		List<String> ownerContent = ImmutableList.of(
+			String.join(BucketOwnerVerifier.SAME_LINE_SEPARATOR, USER_EMAIL, USER_NAME),
+			USER_ID.toString()
+		);
+		
+		when(mockBufferedReader.lines()).thenReturn(ownerContent.stream());
+		
+		List<String> result = bucketOwnerVerifier.readOwnerContent(mockObjectReader, BUCKET_NAME, OWNER_KEY);
+		List<String> expected = ImmutableList.of(USER_EMAIL, USER_NAME, USER_ID.toString());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testReadOwnerContentWithSameLineValuesWithSpaces() {
+		
+	    BucketOwnerVerifierImpl bucketOwnerVerifier = setupMockObjectReader();
+		
+		List<String> ownerContent = ImmutableList.of(
+			String.join(BucketOwnerVerifier.SAME_LINE_SEPARATOR, "  " + USER_EMAIL + "  ", USER_NAME+ " "),
+			USER_ID.toString() + "   "
+		);
+		
+		when(mockBufferedReader.lines()).thenReturn(ownerContent.stream());
+		
+		List<String> result = bucketOwnerVerifier.readOwnerContent(mockObjectReader, BUCKET_NAME, OWNER_KEY);
+		List<String> expected = ImmutableList.of(USER_EMAIL, USER_NAME, USER_ID.toString());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
 	public void testGetBucketOwnerAliases() {
 		
 		when(mockUserInfo.getId()).thenReturn(USER_ID);
