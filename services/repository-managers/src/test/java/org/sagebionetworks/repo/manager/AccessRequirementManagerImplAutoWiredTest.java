@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -64,7 +65,6 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	private String entityId;
 	private String entityId2;
 	private String childId;
-	private String fileId;
 
 	private Team team;
 	
@@ -97,7 +97,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		fileNode.setName("File");
 		fileNode.setNodeType(EntityType.file);
 		fileNode.setParentId(rootId);
-		fileId = nodeManager.createNewNode(fileNode, adminUserInfo);
+		nodeManager.createNewNode(fileNode, adminUserInfo);
 
 		Node childNode = new Node();
 		childNode.setName("Child");
@@ -151,6 +151,20 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		if (team!=null) teamManager.delete(adminUserInfo, team.getId());
 	}
 	
+	private static ManagedACTAccessRequirement newManagedAccessRequirement(String entityId, Long expirationPeriod, String renewalDetailsUrl) {
+		ManagedACTAccessRequirement ar = new ManagedACTAccessRequirement();
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(entityId);
+		rod.setType(RestrictableObjectType.ENTITY);
+		ar.setDescription("Some description");
+		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
+		ar.setConcreteType(ar.getClass().getName());
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setExpirationPeriod(expirationPeriod);
+		ar.setRenewalDetailsUrl(renewalDetailsUrl);
+		return ar;
+	}
+	
 	private static TermsOfUseAccessRequirement newEntityAccessRequirement(String entityId) {
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
@@ -185,6 +199,43 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		assertNotNull(ar.getId());
 		assertNotNull(ar.getModifiedBy());
 		assertNotNull(ar.getModifiedOn());
+	}
+	
+	@Test
+	public void testCreateEntityAccessRequirementWithExpirationPeriod() throws Exception {
+		Long expirationPeriod = 365 * 24 * 60 * 60 * 1000L;
+		
+		ManagedACTAccessRequirement expected = newManagedAccessRequirement(entityId, expirationPeriod, null);
+		
+		ManagedACTAccessRequirement result = accessRequirementManager.createAccessRequirement(adminUserInfo, expected);
+		ar = result;
+		
+		expected.setId(result.getId());
+		expected.setEtag(result.getEtag());
+		expected.setModifiedOn(result.getModifiedOn());
+		expected.setModifiedBy(result.getModifiedBy());
+		
+		assertEquals(expected, result);
+		
+	}
+	
+	@Test
+	public void testCreateEntityAccessRequirementWithRenewalUrl() throws Exception {
+		Long expirationPeriod = 365 * 24 * 60 * 60 * 1000L;
+		String renewalUrl = "https://somedomain.org";
+		
+		ManagedACTAccessRequirement expected = newManagedAccessRequirement(entityId, expirationPeriod, renewalUrl);
+		
+		ManagedACTAccessRequirement result = accessRequirementManager.createAccessRequirement(adminUserInfo, expected);
+		ar = result;
+		
+		expected.setId(result.getId());
+		expected.setEtag(result.getEtag());
+		expected.setModifiedOn(result.getModifiedOn());
+		expected.setModifiedBy(result.getModifiedBy());
+		
+		assertEquals(expected, result);
+		
 	}
 	
 	@Test

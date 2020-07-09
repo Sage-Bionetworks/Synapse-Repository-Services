@@ -260,9 +260,9 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	 */
 	@Test
 	public void testListExpiringAccessApprovals() {
-		// AR v1 expires in 30 days
+		// AR v1 expires in 365 days
 		managedActAr = newManagedACTAccessRequirement(nodeAId);
-		managedActAr.setExpirationPeriod(30*24*60*60*1000L);
+		managedActAr.setExpirationPeriod(365*24*60*60*1000L);
 		managedActAr = accessRequirementManager.createAccessRequirement(adminUserInfo, managedActAr);
 		requirementIdsToDelete.add(managedActAr.getId().toString());
 
@@ -304,47 +304,12 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		// list expiring
 		AccessorGroupRequest agr = new AccessorGroupRequest();
 		agr.setAccessRequirementId(managedActAr.getId().toString());
-		long twoMonthTs = System.currentTimeMillis() + 2*30*24*60*60*1000L;
-		agr.setExpireBefore(new Date(twoMonthTs));
+		long oneYearAndOneDay = System.currentTimeMillis() + 366*30*24*60*60*1000L;
+		agr.setExpireBefore(new Date(oneYearAndOneDay));
 		AccessorGroupResponse agResponse = accessApprovalManager.listAccessorGroup(adminUserInfo, agr);
 		assertNotNull(agResponse);
 		assertEquals(1, agResponse.getResults().size());
 		AccessorGroup ag = agResponse.getResults().get(0);
-		assertNotNull(ag);
-		assertEquals(ag.getSubmitterId(), testUserInfo.getId().toString());
-
-		// AR v1 expires in 365 days
-		managedActAr.setExpirationPeriod(365*24*60*60*1000L);
-		managedActAr = accessRequirementManager.updateAccessRequirement(adminUserInfo, managedActAr.getId().toString(), managedActAr);
-
-		// update request
-		request = requestManager.getRequestForUpdate(testUserInfo, managedActAr.getId().toString());
-		assertEquals(1, request.getAccessorChanges().size());
-		ac = request.getAccessorChanges().get(0);
-		assertEquals(AccessType.RENEW_ACCESS, ac.getType());
-		request = requestManager.update(testUserInfo, request);
-		// submit
-		csRequest.setRequestEtag(request.getEtag());
-		status = submissionManager.create(testUserInfo, csRequest);
-		submissionIdsToDelete.add(status.getSubmissionId());		
-
-		// approve
-		sscr = new SubmissionStateChangeRequest();
-		sscr.setNewState(SubmissionState.APPROVED);
-		sscr.setSubmissionId(status.getSubmissionId());
-		submissionManager.updateStatus(adminUserInfo, sscr);
-
-		// list expiring
-		agResponse = accessApprovalManager.listAccessorGroup(adminUserInfo, agr);
-		assertNotNull(agResponse);
-		assertEquals(0, agResponse.getResults().size());
-
-		long fourHundredDaysTs = System.currentTimeMillis() + 400*24*60*60*1000L;
-		agr.setExpireBefore(new Date(fourHundredDaysTs));
-		agResponse = accessApprovalManager.listAccessorGroup(adminUserInfo, agr);
-		assertNotNull(agResponse);
-		assertEquals(1, agResponse.getResults().size());
-		ag = agResponse.getResults().get(0);
 		assertNotNull(ag);
 		assertEquals(ag.getSubmitterId(), testUserInfo.getId().toString());
 	}
@@ -357,7 +322,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 
 		// create a managed access requirement
 		managedActAr = newManagedACTAccessRequirement(nodeAId);
-		managedActAr.setExpirationPeriod(30*24*60*60*1000L);
+		managedActAr.setExpirationPeriod(365*24*60*60*1000L);
 		managedActAr = accessRequirementManager.createAccessRequirement(adminUserInfo, managedActAr);
 		requirementIdsToDelete.add(managedActAr.getId().toString());
 		

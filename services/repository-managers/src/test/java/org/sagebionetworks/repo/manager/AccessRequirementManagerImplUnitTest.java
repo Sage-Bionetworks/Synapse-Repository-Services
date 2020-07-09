@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyObject;
@@ -14,6 +15,9 @@ import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.AccessRequirementManagerImpl.DEFAULT_LIMIT;
 import static org.sagebionetworks.repo.manager.AccessRequirementManagerImpl.DEFAULT_OFFSET;
 
+import java.time.Period;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -22,7 +26,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -122,7 +129,7 @@ public class AccessRequirementManagerImplUnitTest {
 		});
 	}
 
-	private AccessRequirement createExpectedAR() {
+	private ManagedACTAccessRequirement createExpectedAR() {
 		ManagedACTAccessRequirement expectedAR = new ManagedACTAccessRequirement();
 		expectedAR.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
@@ -834,6 +841,110 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			AccessRequirementManagerImpl.validateAccessRequirement(ar);
 		});
+	}
+	
+	@Test
+	public void testValidateAccessRequirementWithDefaultExpiration() {
+		ManagedACTAccessRequirement ar = createExpectedAR();
+		
+		ar.setExpirationPeriod(0L);
+		
+		AccessRequirementManagerImpl.validateAccessRequirement(ar);
+	}
+	
+	@Test
+	public void testValidateAccessRequirementWithInvalidExpiration() {
+		ManagedACTAccessRequirement ar = createExpectedAR();
+		
+		ar.setExpirationPeriod(-1L);
+		
+		String expectedError = "When supplied, the minimum expiration period should be at least one year.";
+		
+		assertEquals(expectedError, assertThrows(IllegalArgumentException.class, () -> {			
+			AccessRequirementManagerImpl.validateAccessRequirement(ar);
+		}).getMessage());
+		
+		ar.setExpirationPeriod(365 * 24 * 60 * 60 * 1000L - 1);
+		
+		assertEquals(expectedError, assertThrows(IllegalArgumentException.class, () -> {			
+			AccessRequirementManagerImpl.validateAccessRequirement(ar);
+		}).getMessage());
+	}
+	
+	@Test
+	public void testValidateAccessRequirementWithRenewalUrlAndNoExpiration() {
+		ManagedACTAccessRequirement ar = createExpectedAR();
+		
+		String url = "http://somedomain.org";
+		
+		ar.setRenewalDetailsUrl(url);
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			AccessRequirementManagerImpl.validateAccessRequirement(ar);
+		}).getMessage();
+		
+		assertEquals("The renewal details URL can be supplied only with an expiration period", errorMessage);
+			
+	}
+	
+	@Test
+	public void testValidateAccessRequirementWithRenewalUrl() {
+		ManagedACTAccessRequirement ar = createExpectedAR();
+		
+		String url = "https://somedomain.org";
+		
+		ar.setRenewalDetailsUrl(url);
+		ar.setExpirationPeriod(365 * 24 * 60 * 60 * 1000L);
+		
+		AccessRequirementManagerImpl.validateAccessRequirement(ar);		
+	}
+	
+	@Test
+	public void testValidateAccessRequirementWithInvalidRenewalUrl() {
+		ManagedACTAccessRequirement ar = createExpectedAR();
+		
+		String url = "some invalid url";
+		
+		ar.setRenewalDetailsUrl(url);
+		ar.setExpirationPeriod(365 * 24 * 60 * 60 * 1000L);
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			AccessRequirementManagerImpl.validateAccessRequirement(ar);		
+		}).getMessage();
+
+		assertEquals("The provided renewal details URL is not a valid url: " + url, errorMessage);
+	}
+	
+	@Test
+	public void testValidateAccessRequirementWithValidExpiration() {
+		ManagedACTAccessRequirement ar = createExpectedAR();
+		
+		ar.setExpirationPeriod(365 * 24 * 60 * 60 * 1000L);
+					
+		AccessRequirementManagerImpl.validateAccessRequirement(ar);
+		
+	}
+	
+	@Test
+	public void testValidateAccessRequirementWithValidDescription() {
+		ManagedACTAccessRequirement ar = createExpectedAR();
+		
+		ar.setDescription("Some description");
+		
+		AccessRequirementManagerImpl.validateAccessRequirement(ar);
+	}
+	
+	@Test
+	public void testValidateAccessRequirementWithInvalidDescription() {
+		ManagedACTAccessRequirement ar = createExpectedAR();
+		
+		ar.setDescription(RandomStringUtils.random(51));
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			AccessRequirementManagerImpl.validateAccessRequirement(ar);			
+		}).getMessage();
+		
+		assertEquals("The AR description can be at most 50 characters.", errorMessage);
 	}
 
 	@Test

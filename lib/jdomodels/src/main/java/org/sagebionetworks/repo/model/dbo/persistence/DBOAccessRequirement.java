@@ -15,9 +15,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
@@ -35,11 +35,8 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 	private String eTag;
 	private Long createdBy;
 	private long createdOn;
-	private Long modifiedBy;
-	private long modifiedOn;
 	private String accessType;
 	private String concreteType;
-	private byte[] serializedEntity;
 	private Long currentRevNumber;
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
@@ -132,17 +129,6 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		this.createdBy = createdBy;
 	}
 
-
-
-	public Long getModifiedBy() {
-		return modifiedBy;
-	}
-
-
-	public void setModifiedBy(Long modifiedBy) {
-		this.modifiedBy = modifiedBy;
-	}
-
 	public String getAccessType() {
 		return accessType;
 	}
@@ -161,16 +147,6 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		this.createdOn = createdOn;
 	}
 
-
-	public long getModifiedOn() {
-		return modifiedOn;
-	}
-
-
-	public void setModifiedOn(long modifiedOn) {
-		this.modifiedOn = modifiedOn;
-	}
-
 	public String getConcreteType() {
 		return concreteType;
 	}
@@ -180,97 +156,28 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		this.concreteType = concreteType;
 	}
 
-
-	public byte[] getSerializedEntity() {
-		return serializedEntity;
-	}
-
-
-	public void setSerializedEntity(byte[] serializedEntity) {
-		this.serializedEntity = serializedEntity;
-	}
-
-
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((accessType == null) ? 0 : accessType.hashCode());
-		result = prime * result + ((concreteType == null) ? 0 : concreteType.hashCode());
-		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
-		result = prime * result + (int) (createdOn ^ (createdOn >>> 32));
-		result = prime * result + ((currentRevNumber == null) ? 0 : currentRevNumber.hashCode());
-		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
-		result = prime * result + (int) (modifiedOn ^ (modifiedOn >>> 32));
-		result = prime * result + Arrays.hashCode(serializedEntity);
-		return result;
+		return Objects.hash(accessType, concreteType, createdBy, createdOn, currentRevNumber, eTag, id);
 	}
-
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (obj == null) {
 			return false;
-		if (getClass() != obj.getClass())
+		}
+		if (getClass() != obj.getClass()) {
 			return false;
+		}
 		DBOAccessRequirement other = (DBOAccessRequirement) obj;
-		if (accessType == null) {
-			if (other.accessType != null)
-				return false;
-		} else if (!accessType.equals(other.accessType))
-			return false;
-		if (concreteType == null) {
-			if (other.concreteType != null)
-				return false;
-		} else if (!concreteType.equals(other.concreteType))
-			return false;
-		if (createdBy == null) {
-			if (other.createdBy != null)
-				return false;
-		} else if (!createdBy.equals(other.createdBy))
-			return false;
-		if (createdOn != other.createdOn)
-			return false;
-		if (currentRevNumber == null) {
-			if (other.currentRevNumber != null)
-				return false;
-		} else if (!currentRevNumber.equals(other.currentRevNumber))
-			return false;
-		if (eTag == null) {
-			if (other.eTag != null)
-				return false;
-		} else if (!eTag.equals(other.eTag))
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (modifiedBy == null) {
-			if (other.modifiedBy != null)
-				return false;
-		} else if (!modifiedBy.equals(other.modifiedBy))
-			return false;
-		if (modifiedOn != other.modifiedOn)
-			return false;
-		if (!Arrays.equals(serializedEntity, other.serializedEntity))
-			return false;
-		return true;
+		return Objects.equals(accessType, other.accessType) && Objects.equals(concreteType, other.concreteType)
+				&& Objects.equals(createdBy, other.createdBy) && createdOn == other.createdOn
+				&& Objects.equals(currentRevNumber, other.currentRevNumber) && Objects.equals(eTag, other.eTag)
+				&& Objects.equals(id, other.id);
 	}
-
-
-	@Override
-	public String toString() {
-		return "DBOAccessRequirement [id=" + id + ", eTag=" + eTag + ", createdBy=" + createdBy + ", createdOn="
-				+ createdOn + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + ", accessType=" + accessType
-				+ ", concreteType=" + concreteType + ", serializedEntity=" + Arrays.toString(serializedEntity)
-				+ ", currentRevNumber=" + currentRevNumber + "]";
-	}
-
 
 	@Override
 	public MigrationType getMigratableTableType() {

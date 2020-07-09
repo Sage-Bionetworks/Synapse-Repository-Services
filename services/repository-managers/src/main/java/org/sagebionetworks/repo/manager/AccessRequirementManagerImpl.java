@@ -42,6 +42,8 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	public static final Long MAX_LIMIT = 50L;
 	public static final Long DEFAULT_OFFSET = 0L;
 	public static final Long DEFAULT_EXPIRATION_PERIOD = 0L;
+	public static final Long ONE_YEAR = 365 * 24 * 60 * 60 * 1000L;
+	public static final int MAX_DESCRIPTION_LENGHT = 50;
 	
 	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;
@@ -63,10 +65,29 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		ValidateArgument.required(ar.getSubjectIds(), "AccessRequirement.subjectIds");
 		ValidateArgument.requirement(!ar.getConcreteType().equals(PostMessageContentAccessRequirement.class.getName()),
 				"No longer support PostMessageContentAccessRequirement.");
+		ValidateArgument.requirement(ar.getDescription() == null || ar.getDescription().length() <= MAX_DESCRIPTION_LENGHT,
+				"The AR description can be at most " + MAX_DESCRIPTION_LENGHT + " characters.");
 		RestrictableObjectType expecitingObjectType = determineObjectType(ar.getAccessType());
+		
 		for (RestrictableObjectDescriptor rod : ar.getSubjectIds()) {
 			ValidateArgument.requirement(rod.getType().equals(expecitingObjectType),
 					"Cannot apply AccessRequirement with AccessType "+ar.getAccessType().name()+" to an object of type "+rod.getType().name());
+		}
+		
+		if (ar instanceof ManagedACTAccessRequirement) {
+			ManagedACTAccessRequirement managedAR = (ManagedACTAccessRequirement) ar;
+			
+			Long expirationPeriod = managedAR.getExpirationPeriod();
+			
+			if (expirationPeriod == null || expirationPeriod.equals(DEFAULT_EXPIRATION_PERIOD)) {
+				ValidateArgument.requirement(managedAR.getRenewalDetailsUrl() == null, "The renewal details URL can be supplied only with an expiration period");
+			} else {				
+				ValidateArgument.requirement(expirationPeriod >= ONE_YEAR, "When supplied, the minimum expiration period should be at least one year.");
+			}
+			
+			if (managedAR.getRenewalDetailsUrl() != null) {
+				ValidateArgument.validUrl(managedAR.getRenewalDetailsUrl(), "The provided renewal details URL");
+			}
 		}
 	}
 
