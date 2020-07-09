@@ -167,8 +167,10 @@ public class DBOMessageDAOImplTest {
 		String bcc = "Baz<baz@sb.com>";
 		dto.setBcc(bcc);
 		
+		boolean overrideNotificationSettings = false;
+		
 		IllegalArgumentException e = Assertions.assertThrows(IllegalArgumentException.class, ()-> {
-			messageDAO.createMessage(dto);
+			messageDAO.createMessage(dto, overrideNotificationSettings);
 		});
 		
 		assertTrue(e.getMessage().contains("CC"));
@@ -194,9 +196,11 @@ public class DBOMessageDAOImplTest {
 		dto.setCc(cc);
 		String bcc = "Baz<baz@sb.com>";
 		dto.setBcc(bcc);
+		
+		boolean overrideNotificationSettings = false;
 
 		IllegalArgumentException e = Assertions.assertThrows(IllegalArgumentException.class, ()-> {
-			messageDAO.createMessage(dto);
+			messageDAO.createMessage(dto, overrideNotificationSettings);
 		});
 		
 		assertTrue(e.getMessage().contains("To"));
@@ -223,8 +227,10 @@ public class DBOMessageDAOImplTest {
 		String bcc = RandomStringUtils.randomAlphanumeric(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
 		dto.setBcc(bcc);
 
+		boolean overrideNotificationSettings = false;
+		
 		IllegalArgumentException e = Assertions.assertThrows(IllegalArgumentException.class, ()-> {
-			messageDAO.createMessage(dto);
+			messageDAO.createMessage(dto, overrideNotificationSettings);
 		});
 		
 		assertTrue(e.getMessage().contains("BCC"));
@@ -252,16 +258,11 @@ public class DBOMessageDAOImplTest {
 		String bcc = RandomStringUtils.randomAlphanumeric(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
 		dto.setBcc(bcc);
 		
-		dto = messageDAO.createMessage(dto);
+		boolean overrideNotificationSettings = false;
+		
+		dto = messageDAO.createMessage(dto, overrideNotificationSettings);
 		
 		cleanup.add(dto.getId());
-	}
-	
-	@Test
-	public void testCreateMessageWithOverrideNotificationSettings() throws InterruptedException{
-		MessageToUser dto = createBasicDTO();
-		dto.setOverrideNotificationSettings(true);
-		createMessage(dto);
 	}
 
 	@Test
@@ -497,6 +498,15 @@ public class DBOMessageDAOImplTest {
 		toCreate.setBcc("한글 <korean@person.kr");
 		createMessage(toCreate);
 	}
+	
+	@Test
+	public void testCreateMessageWithOverrideNotificationSettings() throws Exception {
+		MessageToUser message = createBasicDTO();
+		
+		message = createMessage(message, true);
+		
+		assertTrue(messageDAO.overrideNotificationSettings(message.getId()));
+	}
 
 	private MessageToUser createBasicDTO() {
 		MessageToUser dto = new MessageToUser();
@@ -514,7 +524,6 @@ public class DBOMessageDAOImplTest {
 		dto.setWithUnsubscribeLink(true);
 		dto.setWithProfileSettingLink(false);
 		dto.setIsNotificationMessage(true);
-		dto.setOverrideNotificationSettings(false);
 		// Note: InReplyToRoot is calculated by the DAO
 		String to = "Foo <foo@sb.com>";
 		dto.setTo(to);
@@ -532,14 +541,20 @@ public class DBOMessageDAOImplTest {
 		messageToCreate.setSubject(subject);
 		messageToCreate.setRecipients(recipients);
 		messageToCreate.setInReplyTo(inReplyTo);
-		messageToCreate.setOverrideNotificationSettings(false);
 
 		return createMessage(messageToCreate);
 	}
 
 	private MessageToUser createMessage(MessageToUser toCreate) throws InterruptedException {
+		return createMessage(toCreate, false);
+	}
+	
+	private MessageToUser createMessage(MessageToUser toCreate, boolean overrideNotificationSettings) throws InterruptedException {
 		// Insert the message
-		MessageToUser dto = messageDAO.createMessage(toCreate);
+		MessageToUser dto = messageDAO.createMessage(toCreate, overrideNotificationSettings);
+		
+		assertEquals(overrideNotificationSettings, messageDAO.overrideNotificationSettings(dto.getId()));
+		
 		assertNotNull(dto.getId());
 		cleanup.add(dto.getId());
 
@@ -554,7 +569,6 @@ public class DBOMessageDAOImplTest {
 		assertTrue(dto.getWithUnsubscribeLink());
 		assertTrue(dto.getIsNotificationMessage());
 		assertFalse(dto.getWithProfileSettingLink());
-		assertEquals(toCreate.getOverrideNotificationSettings(), dto.getOverrideNotificationSettings());
 		assertEquals(toCreate.getRecipients(), dto.getRecipients());
 		assertEquals(toCreate.getSubject(), dto.getSubject());
 		assertEquals(toCreate.getTo(), dto.getTo());

@@ -119,7 +119,6 @@ public class MessageUtilsTest {
 		dto.setWithProfileSettingLink(false);
 		dto.setWithUnsubscribeLink(false);
 		dto.setIsNotificationMessage(false);
-		dto.setOverrideNotificationSettings(false);
 		assertEquals(dto, dto2);
 	}
 	
@@ -166,7 +165,6 @@ public class MessageUtilsTest {
 		dto.setWithProfileSettingLink(false);
 		dto.setWithUnsubscribeLink(true);
 		dto.setIsNotificationMessage(false);
-		dto.setOverrideNotificationSettings(false);
 		dto.setTo("foo@sb.com");
 		dto.setCc("bar@sb.com");
 		dto.setBcc("baz@sb.com");
@@ -191,7 +189,6 @@ public class MessageUtilsTest {
 		dto.setWithProfileSettingLink(false);
 		dto.setWithUnsubscribeLink(true);
 		dto.setIsNotificationMessage(false);
-		dto.setOverrideNotificationSettings(null);
 		dto.setTo("foo@sb.com");
 		dto.setCc("bar@sb.com");
 		dto.setBcc("baz@sb.com");
@@ -199,11 +196,7 @@ public class MessageUtilsTest {
 		DBOMessageToUser info = new DBOMessageToUser();
 		MessageUtils.copyDTOToDBO(dto, info);
 
-		MessageToUser dto2 = new MessageToUser();
-		MessageUtils.copyDBOToDTO(info, dto2);
-		
-		dto.setOverrideNotificationSettings(false);
-		assertEquals(dto, dto2);
+		assertFalse(info.getOverrideNotificationSettings());
 	}
 	
 	@Test
@@ -218,18 +211,16 @@ public class MessageUtilsTest {
 		dto.setWithProfileSettingLink(false);
 		dto.setWithUnsubscribeLink(true);
 		dto.setIsNotificationMessage(false);
-		dto.setOverrideNotificationSettings(true);
 		dto.setTo("foo@sb.com");
 		dto.setCc("bar@sb.com");
 		dto.setBcc("baz@sb.com");
 		
 		DBOMessageToUser info = new DBOMessageToUser();
+		
+		info.setOverrideNotificationSettings(true);
 		MessageUtils.copyDTOToDBO(dto, info);
 
-		MessageToUser dto2 = new MessageToUser();
-		MessageUtils.copyDBOToDTO(info, dto2);
-		
-		assertEquals(dto, dto2);
+		assertTrue(info.getOverrideNotificationSettings());
 	}
 	
 	@Test
@@ -253,7 +244,6 @@ public class MessageUtilsTest {
 		dto.setWithProfileSettingLink(false);
 		dto.setWithUnsubscribeLink(false);
 		dto.setIsNotificationMessage(false);
-		dto.setOverrideNotificationSettings(false);
 		assertEquals(dto, dto2);
 	}
 	

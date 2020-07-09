@@ -3,6 +3,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -161,7 +162,6 @@ public class MessageManagerImplUnitTest {
 		mtu.setIsNotificationMessage(false);
 		mtu.setWithUnsubscribeLink(false);
 		mtu.setWithProfileSettingLink(true);
-		mtu.setOverrideNotificationSettings(false);
 		mtu.setTo("TO <to@foo.com>");
 		mtu.setCc("CC <cc@foo.com>");
 		mtu.setBcc("BCC <bcc@foo.com>");
@@ -171,12 +171,16 @@ public class MessageManagerImplUnitTest {
 
 	}
 
-	private void setupCreatorRecipientMocks() {
+	private void setupCreatorRecipientMocks(boolean overrideNotificationSettings) {
 		when(principalAliasDAO.getUserName(CREATOR_ID)).thenReturn("foo");
 		when(userManager.getUserInfo(CREATOR_ID)).thenReturn(creatorUserInfo);
 		when(notificationEmailDao.getNotificationEmailForPrincipal(RECIPIENT_ID)).thenReturn(RECIPIENT_EMAIL);
 		when(userProfileManager.getUserProfile(CREATOR_ID.toString())).thenReturn(userProfileCreator);
-		when(userProfileManager.getUserProfile(RECIPIENT_ID.toString())).thenReturn(userProfileRecipient);
+		
+		// When overriding the notification settings the profile of the recipient is never fetched
+		if (!overrideNotificationSettings) {
+			when(userProfileManager.getUserProfile(RECIPIENT_ID.toString())).thenReturn(userProfileRecipient);
+		}
 		
 		UserGroup ug = new UserGroup();
 		ug.setId(RECIPIENT_ID.toString());
@@ -184,6 +188,7 @@ public class MessageManagerImplUnitTest {
 		
 		when(userGroupDAO.get(eq(RECIPIENT_ID))).thenReturn(ug);
 		when(messageDAO.getMessage(MESSAGE_ID)).thenReturn(mtu);
+		when(messageDAO.overrideNotificationSettings(MESSAGE_ID)).thenReturn(overrideNotificationSettings);
 	}
 
 	@Test
@@ -228,8 +233,6 @@ public class MessageManagerImplUnitTest {
 		
 		MessageToUser messageToUser = new MessageToUser();
 		
-		// Try and ovveride the notification setting
-		messageToUser.setOverrideNotificationSettings(true);
 		messageToUser.setFileHandleId(FILE_HANDLE_ID);
 		messageToUser.setRecipients(Collections.singleton("1"));
 		
@@ -241,10 +244,7 @@ public class MessageManagerImplUnitTest {
 	
 		ArgumentCaptor<MessageToUser> captor = ArgumentCaptor.forClass(MessageToUser.class);
 		
-		verify(messageDAO).createMessage(captor.capture());
-		
-		// Makes sure that the notification settings are not overriden
-		assertFalse(captor.getValue().getOverrideNotificationSettings());
+		verify(messageDAO).createMessage(captor.capture(), eq(false));
 	}
 	
 	@Test
@@ -270,14 +270,12 @@ public class MessageManagerImplUnitTest {
 	
 		ArgumentCaptor<MessageToUser> captor = ArgumentCaptor.forClass(MessageToUser.class);
 		
-		verify(messageDAO).createMessage(captor.capture());
-		
-		assertTrue(captor.getValue().getOverrideNotificationSettings());
+		verify(messageDAO).createMessage(captor.capture(), eq(true));
 	}
 	
 	@Test
 	public void testProcessMessagePLAIN() throws Exception {
-		setupCreatorRecipientMocks();
+		setupCreatorRecipientMocks(false);
 		
 		fileHandle.setContentType("text/plain");
 		String messageBody = "message body";
@@ -305,7 +303,7 @@ public class MessageManagerImplUnitTest {
 
 	@Test
 	public void testProcessMessageHTML() throws Exception {
-		setupCreatorRecipientMocks();
+		setupCreatorRecipientMocks(false);
 		
 		fileHandle.setContentType("text/html");
 		String messageBody = "<div>message body</div>";
@@ -333,7 +331,7 @@ public class MessageManagerImplUnitTest {
 
 	@Test
 	public void testProcessMessageJSON() throws Exception {
-		setupCreatorRecipientMocks();
+		setupCreatorRecipientMocks(false);
 		
 		fileHandle.setContentType("application/json");
 		MessageBody messageBody = new MessageBody();
@@ -647,7 +645,7 @@ public class MessageManagerImplUnitTest {
 	
 	@Test
 	public void testSendMessageWithQuarantinedAddress() throws Exception {
-		setupCreatorRecipientMocks();
+		setupCreatorRecipientMocks(false);
 		fileHandle.setContentType("text/plain");
 		
 		String messageBody = "message body";
@@ -668,7 +666,7 @@ public class MessageManagerImplUnitTest {
 		when(messageDAO.canCreateMessage(eq(CREATOR_ID.toString()), anyLong(), anyLong())).thenReturn(true);
 		when(authorizationManager.canAccessRawFileHandleById(creatorUserInfo, FILE_HANDLE_ID)).thenReturn(AuthorizationStatus.authorized());
 		when(messageDAO.getMessage(MESSAGE_ID)).thenReturn(mtu);
-		when(messageDAO.createMessage(mtu)).thenReturn(mtu);
+		when(messageDAO.createMessage(any(), anyBoolean())).thenReturn(mtu);
 		
 		UserGroup ug = new UserGroup();
 		ug.setId(RECIPIENT_ID.toString());
@@ -682,7 +680,7 @@ public class MessageManagerImplUnitTest {
 		MessageToUser forwardedDto = messageManager.forwardMessage(creatorUserInfo, MESSAGE_ID, recipients);
 		
 		verify(messageDAO).getMessage(MESSAGE_ID);
-		verify(messageDAO).createMessage(mtu);
+		verify(messageDAO).createMessage(mtu, false);
 		
 		assertEquals(mtu, forwardedDto);
 		
@@ -691,7 +689,7 @@ public class MessageManagerImplUnitTest {
 	
 	@Test
 	public void testProcessMessage() throws Exception {
-		setupCreatorRecipientMocks();
+		setupCreatorRecipientMocks(false);
 		
 		fileHandle.setContentType("application/json");
 		MessageBody messageBody = new MessageBody();
@@ -724,20 +722,8 @@ public class MessageManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testProcessMessageWithOverrideNotificationSettings() throws Exception {
-		mtu.setOverrideNotificationSettings(true);
-		
-		when(principalAliasDAO.getUserName(CREATOR_ID)).thenReturn("foo");
-		when(userManager.getUserInfo(CREATOR_ID)).thenReturn(creatorUserInfo);
-		when(notificationEmailDao.getNotificationEmailForPrincipal(RECIPIENT_ID)).thenReturn(RECIPIENT_EMAIL);
-		when(userProfileManager.getUserProfile(CREATOR_ID.toString())).thenReturn(userProfileCreator);
-		
-		UserGroup ug = new UserGroup();
-		ug.setId(RECIPIENT_ID.toString());
-		ug.setIsIndividual(true);
-		
-		when(userGroupDAO.get(eq(RECIPIENT_ID))).thenReturn(ug);
-		when(messageDAO.getMessage(MESSAGE_ID)).thenReturn(mtu);
+	public void testProcessMessageWithOverrideNotificationSettings() throws Exception {		
+		setupCreatorRecipientMocks(true);
 		
 		fileHandle.setContentType("application/json");
 		

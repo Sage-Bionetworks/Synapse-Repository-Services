@@ -253,9 +253,7 @@ public class MessageManagerImpl implements MessageManager {
 			throw new IllegalArgumentException("One or more of the following IDs are not recognized: " + dto.getRecipients());
 		}
 		
-		dto.setOverrideNotificationSettings(overrideNotificationSettings);
-		
-		return messageDAO.createMessage(dto);
+		return messageDAO.createMessage(dto, overrideNotificationSettings);
 	}
 	
 	@Override
@@ -354,13 +352,14 @@ public class MessageManagerImpl implements MessageManager {
 	@WriteTransaction
 	public List<String> processMessage(String messageId, ProgressCallback progressCallback) throws NotFoundException {
 		MessageToUser dto = messageDAO.getMessage(messageId);
+		boolean overrideNotificationSettings = messageDAO.overrideNotificationSettings(messageId);
 		FileHandle fileHandle = fileHandleDao.get(dto.getFileHandleId());
 		ContentType contentType = ContentType.parse(fileHandle.getContentType());
 		String mimeType = contentType.getMimeType().trim().toLowerCase();
 
 		try {
 			String messageBody = fileHandleManager.downloadFileToString(dto.getFileHandleId());
-			return processMessage(dto, messageBody, mimeType, progressCallback);
+			return processMessage(dto, messageBody, mimeType, overrideNotificationSettings, progressCallback);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -372,7 +371,7 @@ public class MessageManagerImpl implements MessageManager {
 	 * @param messageBody The body of any email(s) that get sent as a result of processing this message
 	 *    Note: This parameter is provided so that templated messages do not need to be uploaded then downloaded before sending
 	 */
-	private List<String> processMessage(MessageToUser dto, String messageBody, String mimeType, ProgressCallback progressCallback) throws NotFoundException {
+	private List<String> processMessage(MessageToUser dto, String messageBody, String mimeType, boolean overrideNotificationSettings, ProgressCallback progressCallback) throws NotFoundException {
 		List<String> errors = new ArrayList<String>();
 		
 		// Check to see if the message has already been sent
@@ -410,7 +409,7 @@ public class MessageManagerImpl implements MessageManager {
 				// Get the user's settings
 				Settings settings = new Settings();
 				
-				if (dto.getOverrideNotificationSettings() == null || !dto.getOverrideNotificationSettings()) {
+				if (!overrideNotificationSettings) {
 					UserProfile profile = userProfileManager.getUserProfile(userId);
 					if (profile.getNotificationSettings() != null) {
 						settings = profile.getNotificationSettings();

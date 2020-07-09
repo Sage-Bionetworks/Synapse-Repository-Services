@@ -139,6 +139,10 @@ public class DBOMessageDAOImpl implements MessageDAO {
 			" AND " + SqlConstants.COL_MESSAGE_CONTENT_FILE_HANDLE_ID + "=:" + FILEHANDLE_PARAM_NAME + 
 			" AND " + SqlConstants.COL_MESSAGE_RECIPIENT_ID + " IN(:" + USER_ID_PARAM_NAME + ")";
 	
+	private static final String SELECT_OVERRIDE_NOTIFICATION_SETTINGS = 
+			"SELECT " +SqlConstants.COL_MESSAGE_OVERRIDE_NOTIFICATION_SETTINGS+ " FROM " + SqlConstants.TABLE_MESSAGE_TO_USER + 
+			" WHERE " + SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID + "=:" + MESSAGE_ID_PARAM_NAME;
+	
 	private static final RowMapper<DBOMessageContent> messageContentRowMapper = new DBOMessageContent().getTableMapping();
 	private static final RowMapper<DBOMessageToUser> messageToUserRowMapper = new DBOMessageToUser().getTableMapping();
 	private static final RowMapper<DBOMessageRecipient> messageRecipientRowMapper = new DBOMessageRecipient().getTableMapping();
@@ -209,12 +213,15 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		MessageUtils.copyDBOToDTO(recipients, bundle);
 		return bundle;
 	}
-
+	
 	@Override
 	@WriteTransaction
-	public MessageToUser createMessage(MessageToUser dto) {
+	public MessageToUser createMessage(MessageToUser dto, boolean overrideNotificationSettings) {
 		DBOMessageContent content = new DBOMessageContent();
+		
 		DBOMessageToUser info = new DBOMessageToUser();
+		info.setOverrideNotificationSettings(overrideNotificationSettings);
+		
 		List<DBOMessageRecipient> recipients = new ArrayList<DBOMessageRecipient>();
 		MessageUtils.copyDTOtoDBO(dto, content, info, recipients);
 		
@@ -448,6 +455,16 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		params.addValue(FILEHANDLE_PARAM_NAME, fileHandleId);
 		long messages = namedJdbcTemplate.queryForObject(COUNT_VISIBLE_MESSAGES_BY_FILE_HANDLE, params, Long.class);
 		return messages > 0;
+	}
+	
+	@Override
+	public boolean overrideNotificationSettings(String messageId) throws NotFoundException {
+		MapSqlParameterSource params = new MapSqlParameterSource(MESSAGE_ID_PARAM_NAME, messageId);
+		try {
+			return namedJdbcTemplate.queryForObject(SELECT_OVERRIDE_NOTIFICATION_SETTINGS, params, Boolean.class);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("Message (" + messageId + ") not found");
+		}
 	}
 
 

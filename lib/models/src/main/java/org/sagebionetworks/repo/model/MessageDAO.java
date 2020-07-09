@@ -16,11 +16,11 @@ public interface MessageDAO {
 	 * Retrieves a message by ID
 	 */
 	public MessageToUser getMessage(String messageId) throws NotFoundException;
-
+	
 	/**
-	 * Saves the message information so that it can be processed by a worker
+	 * Saves the message information so that it can be processed by a worker, allows to override the recipients notification settings
 	 */
-	public MessageToUser createMessage(MessageToUser dto);
+	MessageToUser createMessage(MessageToUser dto, boolean overrideNotificationSettings);
 	
 	/**
 	 * Changes the etag of a message
@@ -107,5 +107,10 @@ public interface MessageDAO {
 	 * If so, then the user or group should be allowed to download the file associated with the file handle
 	 */
 	public boolean canSeeMessagesUsingFileHandle(Set<Long> userGroups, String fileHandleId);
+	
+	/**
+	 * True if the message with the given id should override the user notification settings
+	 */
+	boolean overrideNotificationSettings(String messageId) throws NotFoundException;
 
 }
