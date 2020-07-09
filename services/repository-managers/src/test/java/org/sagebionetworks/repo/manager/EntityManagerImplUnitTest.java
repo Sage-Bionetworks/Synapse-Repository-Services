@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -12,6 +13,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.notNull;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
@@ -35,7 +37,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
@@ -66,6 +68,7 @@ import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.schema.BoundObjectType;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
+import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.common.collect.Lists;
@@ -99,7 +102,6 @@ public class EntityManagerImplUnitTest {
 	private ArgumentCaptor<ChildStatsRequest> statsRequestCaptor;
 
 	@InjectMocks
-	@Spy
 	private EntityManagerImpl entityManager;
 	Long userId = 007L;
 
@@ -604,7 +606,35 @@ public class EntityManagerImplUnitTest {
 		verify(mockNodeManager).update(eq(mockUser), any(Node.class), any(Annotations.class), eq(newVersion));
 		verify(mockNodeManager, never()).getCurrentRevisionNumber(project.getId());
 	}
+	
+	// Test for both PLFM-6362 and PLFM-5702
+	@Test
+	public void testEntityUpdateWithNewVersionAndTableType() {
 
+		// Creates a spy so that we can mock some internal static method calls that would fail
+		EntityManagerImpl entityManagerSpy = Mockito.spy(entityManager);
+		
+		// We mock this call since the mock we use is not a real instance
+		doNothing().when(entityManagerSpy).updateNodeAndAnnotationsFromEntity(any(), any(), any());
+		
+		when(mockNodeManager.get(any(), any())).thenReturn(new Node());
+		when(mockNodeManager.getEntityPropertyAnnotations(any(), any())).thenReturn(new Annotations());
+		
+		String activityId = null;
+		boolean newVersion = true;
+
+		Table entity = Mockito.mock(Table.class);
+		
+		// call under test
+		boolean newVersionCreated = entityManagerSpy.updateEntity(mockUser, entity, newVersion, activityId);
+		
+		// Despite the newVersion flag true, a new version for Table types cannot be created this way
+		assertFalse(newVersionCreated);
+		verify(mockNodeManager).update(eq(mockUser), any(Node.class), any(Annotations.class), eq(false));
+		verify(mockNodeManager, never()).getCurrentRevisionNumber(any());
+	}
+
+	
 	@Test
 	public void testBindSchemaToEntity() {
 		when(mockPermissionsManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());

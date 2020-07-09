@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -350,6 +351,25 @@ public class EntityManagerImplAutowireTest {
 		view.setName("Table");
 		String id = entityManager.createEntity(userInfo, view, null);
 		view = entityManager.getEntity(adminUserInfo, id, EntityView.class);
+		toDelete.add(id);
+		boolean newVersion = true;
+		String activityId = null;
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(adminUserInfo, view, newVersion, activityId);
+		// should not create a new version.
+		assertFalse(wasNewVersionCreated);
+	}
+	
+	/**
+	 * Test for PLFM-6362
+	 */
+	@Test
+	public void testUpdateEntityNewVersionSubmissionView() {
+		// update a table with newVersion=true;
+		SubmissionView view = new SubmissionView();
+		view.setName("Table");
+		String id = entityManager.createEntity(userInfo, view, null);
+		view = entityManager.getEntity(adminUserInfo, id, SubmissionView.class);
 		toDelete.add(id);
 		boolean newVersion = true;
 		String activityId = null;

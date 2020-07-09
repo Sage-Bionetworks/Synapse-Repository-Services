@@ -39,8 +39,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.schema.BoundObjectType;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
-import org.sagebionetworks.repo.model.table.EntityView;
-import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -281,7 +280,7 @@ public class EntityManagerImpl implements EntityManager {
 			}
 		}
 
-		if (updated instanceof TableEntity || updated instanceof EntityView) {
+		if (updated instanceof Table) {
 			/*
 			 * Fix for PLFM-5702. Creating a new version is fundamentally different than
 			 * creating a table/view snapshot. We cannot block callers from creating new
@@ -323,7 +322,7 @@ public class EntityManagerImpl implements EntityManager {
 	 * @param node
 	 * @param annos
 	 */
-	private <T extends Entity> void updateNodeAndAnnotationsFromEntity(T entity, Node node,
+	<T extends Entity> void updateNodeAndAnnotationsFromEntity(T entity, Node node,
 			org.sagebionetworks.repo.model.Annotations annos) {
 		// Update the annotations from the entity
 		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(entity, annos);
