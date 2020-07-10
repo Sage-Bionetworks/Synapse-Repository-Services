@@ -7,6 +7,7 @@ import static org.sagebionetworks.client.SynapseClientImpl.DOI;
 import static org.sagebionetworks.client.SynapseClientImpl.DOWNLOAD_LIST_ADD;
 import static org.sagebionetworks.client.SynapseClientImpl.FILE_BULK;
 import static org.sagebionetworks.client.SynapseClientImpl.SCHEMA_TYPE_CREATE;
+import static org.sagebionetworks.client.SynapseClientImpl.SCHEMA_TYPE_VALIDATION;
 import static org.sagebionetworks.client.SynapseClientImpl.STORAGE_REPORT;
 import static org.sagebionetworks.client.SynapseClientImpl.TABLE_APPEND;
 import static org.sagebionetworks.client.SynapseClientImpl.TABLE_DOWNLOAD_CSV;
@@ -24,6 +25,7 @@ import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
+import org.sagebionetworks.repo.model.schema.GetValidationSchemaResponse;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.HasEntityId;
 import org.sagebionetworks.repo.model.table.QueryResult;
@@ -54,6 +56,7 @@ public enum AsynchJobType {
 	AddFileToDownloadList(DOWNLOAD_LIST_ADD, AddFileToDownloadListResponse.class,  RestEndpointType.file),
 	DownloadStorageReport(STORAGE_REPORT, DownloadStorageReportResponse.class, RestEndpointType.repo),
 	CreateJsonSchema(SCHEMA_TYPE_CREATE, CreateSchemaResponse.class, RestEndpointType.repo),
+	GetValidationSchema(SCHEMA_TYPE_VALIDATION, GetValidationSchemaResponse.class, RestEndpointType.repo),
 	ViewColumnModelRequest(VIEW_COLUMNS, ViewColumnModelResponse.class, RestEndpointType.repo);
 
 	String prefix;

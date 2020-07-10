@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
+import org.sagebionetworks.repo.model.schema.GetValidationSchemaRequest;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
@@ -39,12 +40,14 @@ import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.model.schema.GetValidationSchemaResponse;
 
 import com.google.common.collect.Sets;
+import org.sagebionetworks.repo.model.schema.GetValidationSchemaResponse;
 
 public class ITJsonSchemaControllerTest {
-	
-	public static final long MAX_WAIT_MS = 1000*30;
+
+	public static final long MAX_WAIT_MS = 1000 * 30;
 
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapse;
@@ -91,7 +94,7 @@ public class ITJsonSchemaControllerTest {
 
 	@AfterEach
 	public void afterEach() throws SynapseException {
-		if(project != null){
+		if (project != null) {
 			synapse.deleteEntity(project, true);
 		}
 		try {
@@ -117,7 +120,7 @@ public class ITJsonSchemaControllerTest {
 		assertNotNull(organization.getId());
 		assertEquals("" + userId, organization.getCreatedBy());
 	}
-	
+
 	@Test
 	public void testListOrganization() throws SynapseException {
 		organization = synapse.createOrganization(createOrganizationRequest);
@@ -178,13 +181,13 @@ public class ITJsonSchemaControllerTest {
 		// etag should have changed
 		assertNotEquals(acl.getEtag(), resultAcl.getEtag());
 	}
-	
+
 	@Test
 	public void testCreateSchemaGetDeleteNullVersion() throws SynapseException, InterruptedException {
 		organization = synapse.createOrganization(createOrganizationRequest);
 		assertNotNull(organization);
 		JsonSchema schema = new JsonSchema();
-		schema.set$id(organizationName+"-"+schemaName);
+		schema.set$id(organizationName + "-" + schemaName);
 		schema.setDescription("test without a version");
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(schema);
@@ -202,17 +205,48 @@ public class ITJsonSchemaControllerTest {
 		// call under test
 		synapse.deleteSchema(organizationName, schemaName);
 	}
-	
+
+	@Test
+	public void testGetValidationSchema() throws SynapseException, InterruptedException {
+		organization = synapse.createOrganization(createOrganizationRequest);
+		assertNotNull(organization);
+		JsonSchema schema = new JsonSchema();
+		schema.set$id(organizationName + "-" + schemaName);
+		schema.setDescription("test without a version");
+		CreateSchemaRequest createRequest = new CreateSchemaRequest();
+		createRequest.setSchema(schema);
+		waitForSchemaCreate(createRequest, (response) -> {
+			assertNotNull(response);
+			assertNotNull(response.getNewVersionInfo());
+			assertEquals(organizationName, response.getNewVersionInfo().getOrganizationName());
+			assertEquals(schemaName, response.getNewVersionInfo().getSchemaName());
+		});
+
+		GetValidationSchemaRequest getRequest = new GetValidationSchemaRequest();
+		getRequest.set$id(schema.get$id());
+		// call under test
+		AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.CreateJsonSchema, getRequest,
+				(GetValidationSchemaResponse response) -> {
+
+					assertNotNull(response);
+					assertEquals(schema, response.getValidationSchema());
+
+				}, MAX_WAIT_MS).getResponse();
+
+		// call under test
+		synapse.deleteSchema(organizationName, schemaName);
+	}
+
 	@Test
 	public void testListJsonSchemas() throws SynapseException, InterruptedException {
 		organization = synapse.createOrganization(createOrganizationRequest);
 		assertNotNull(organization);
 		JsonSchema schema = new JsonSchema();
-		schema.set$id(organizationName+"-"+schemaName);
+		schema.set$id(organizationName + "-" + schemaName);
 		schema.setDescription("test without a version");
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(schema);
-		
+
 		waitForSchemaCreate(request, (response) -> {
 			assertNotNull(response);
 		});
@@ -225,17 +259,17 @@ public class ITJsonSchemaControllerTest {
 		assertNotNull(result.getPage());
 		assertTrue(result.getPage().size() > 0);
 	}
-	
+
 	@Test
 	public void testListJsonSchemaVersions() throws SynapseException, InterruptedException {
 		organization = synapse.createOrganization(createOrganizationRequest);
 		assertNotNull(organization);
 		JsonSchema schema = new JsonSchema();
-		schema.set$id(organizationName+"-"+schemaName);
+		schema.set$id(organizationName + "-" + schemaName);
 		schema.setDescription("test without a version");
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(schema);
-		
+
 		waitForSchemaCreate(request, (response) -> {
 			assertNotNull(response);
 		});
@@ -249,18 +283,18 @@ public class ITJsonSchemaControllerTest {
 		assertNotNull(result.getPage());
 		assertTrue(result.getPage().size() > 0);
 	}
-	
+
 	@Test
 	public void testCreateSchemaGetDeleteWithVersion() throws SynapseException, InterruptedException {
 		organization = synapse.createOrganization(createOrganizationRequest);
 		assertNotNull(organization);
 		String semanticVersion = "1.45.67-alpha+beta";
 		JsonSchema schema = new JsonSchema();
-		schema.set$id(organizationName+"-"+schemaName+"-"+semanticVersion);
+		schema.set$id(organizationName + "-" + schemaName + "-" + semanticVersion);
 		schema.setDescription("test with a version");
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(schema);
-		
+
 		// Call under test
 		waitForSchemaCreate(request, (response) -> {
 			assertNotNull(response);
@@ -275,53 +309,53 @@ public class ITJsonSchemaControllerTest {
 		// call under test
 		synapse.deleteSchema(organizationName, schemaName);
 	}
-	
+
 	@Test
 	public void testDeleteSchemaVersion() throws SynapseException, InterruptedException {
 		organization = synapse.createOrganization(createOrganizationRequest);
 		assertNotNull(organization);
 		String semanticVersion = "1.45.0";
 		JsonSchema schema = new JsonSchema();
-		schema.set$id(organizationName+"-"+schemaName+"-"+semanticVersion);
+		schema.set$id(organizationName + "-" + schemaName + "-" + semanticVersion);
 		schema.setDescription("test with a version");
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(schema);
-		
+
 		// Call under test
 		waitForSchemaCreate(request, (response) -> {
 			assertNotNull(response);
 		});
-		
+
 		JsonSchema fetched = synapse.getJsonSchema(organizationName, schemaName, semanticVersion);
 		assertEquals(schema, fetched);
 		// call under test
 		synapse.deleteSchemaVersion(organizationName, schemaName, semanticVersion);
 	}
-	
+
 	@Test
 	public void bindSchemaToEntity() throws Exception {
 		organization = synapse.createOrganization(createOrganizationRequest);
 		assertNotNull(organization);
 		JsonSchema schema = new JsonSchema();
-		schema.set$id(organizationName+"-"+schemaName);
+		schema.set$id(organizationName + "-" + schemaName);
 		schema.setDescription("schema to bind");
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(schema);
-		
+
 		// Call under test
 		JsonSchemaVersionInfo versionInfo = waitForSchemaCreate(request, (response) -> {
 			assertNotNull(response);
 		}).getNewVersionInfo();
-		
+
 		// will bind the schema to the project
 		project = new Project();
 		project = synapse.createEntity(project);
-		
+
 		Folder folder = new Folder();
 		folder.setName("child");
 		folder.setParentId(project.getId());
 		folder = synapse.createEntity(folder);
-		
+
 		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
 		bindRequest.setEntityId(project.getId());
 		bindRequest.setSchema$id(schema.get$id());
@@ -329,31 +363,35 @@ public class ITJsonSchemaControllerTest {
 		JsonSchemaObjectBinding parentBinding = synapse.bindJsonSchemaToEntity(bindRequest);
 		assertNotNull(parentBinding);
 		assertEquals(versionInfo, parentBinding.getJsonSchemaVersionInfo());
-		
+
 		// the folder should inherit the binding
 		// call under test
 		JsonSchemaObjectBinding childBinding = synapse.getJsonSchemaBindingForEntity(folder.getId());
 		assertNotNull(childBinding);
 		assertEquals(parentBinding.getJsonSchemaVersionInfo(), childBinding.getJsonSchemaVersionInfo());
-		
+
 		// clear the binding
 		// call under test
 		synapse.clearSchemaBindingForEntity(project.getId());
-		
+
 		String folderId = folder.getId();
-		assertThrows(SynapseNotFoundException.class, ()->{
+		assertThrows(SynapseNotFoundException.class, () -> {
 			synapse.getJsonSchemaBindingForEntity(folderId);
 		});
 	}
-	
+
 	/**
 	 * Wait for the schema to be created.
+	 * 
 	 * @param request
 	 * @return
 	 * @throws SynapseException
 	 * @throws InterruptedException
 	 */
-	CreateSchemaResponse waitForSchemaCreate(CreateSchemaRequest request, Consumer<CreateSchemaResponse> resultConsumer) throws SynapseException, InterruptedException {
-		return AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.CreateJsonSchema, request, resultConsumer, MAX_WAIT_MS).getResponse();
+	CreateSchemaResponse waitForSchemaCreate(CreateSchemaRequest request, Consumer<CreateSchemaResponse> resultConsumer)
+			throws SynapseException, InterruptedException {
+		return AsyncJobHelper
+				.assertAysncJobResult(synapse, AsynchJobType.CreateJsonSchema, request, resultConsumer, MAX_WAIT_MS)
+				.getResponse();
 	}
 }

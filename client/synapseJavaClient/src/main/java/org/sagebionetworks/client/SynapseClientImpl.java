@@ -641,6 +641,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String ANNOTATIONS_V2 = "/annotations2";
 	
 	public static final String SCHEMA_TYPE_CREATE = "/schema/type/create/";
+	public static final String SCHEMA_TYPE_VALIDATION = "/schema/type/validation/";
 	public static final String VIEW_COLUMNS = "/column/view/scope/";
 
 	/**

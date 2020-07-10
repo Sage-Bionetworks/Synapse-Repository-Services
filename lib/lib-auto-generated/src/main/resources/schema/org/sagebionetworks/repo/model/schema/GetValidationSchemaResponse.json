@@ -1,0 +1,14 @@
+{
+	"description": "Response body containing the resulting compiled validation schema.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+		}
+	],
+	"properties": {
+		"validationSchema": {
+			"description": "The compiled validation schema.",
+			"$ref": "org.sagebionetworks.repo.model.schema.JsonSchema"
+		}
+	}
+}

@@ -29,6 +29,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
+import org.sagebionetworks.repo.model.schema.GetValidationSchemaRequest;
+import org.sagebionetworks.repo.model.schema.GetValidationSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.model.schema.Organization;
@@ -44,7 +46,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class CreateJsonSchemaWorkerIntegrationTest {
+public class JsonSchemaWorkerIntegrationTest {
 
 	public static final long MAX_WAIT_MS = 1000 * 30;
 
@@ -169,7 +171,7 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 	 * @throws Exception
 	 */
 	public String loadStringFromClasspath(String name) throws Exception {
-		try (InputStream in = CreateJsonSchemaWorkerIntegrationTest.class.getClassLoader().getResourceAsStream(name);) {
+		try (InputStream in = JsonSchemaWorkerIntegrationTest.class.getClassLoader().getResourceAsStream(name);) {
 			if (in == null) {
 				throw new IllegalArgumentException("Cannot find: '" + name + "' on the classpath");
 			}
@@ -222,6 +224,29 @@ public class CreateJsonSchemaWorkerIntegrationTest {
 		assertFalse(result.getIsValid());
 		assertEquals("#: 0 subschemas matched instead of one", result.getValidationErrorMessage());
 		printJson(result);
+	}
+	
+	@Test
+	public void testGetValidationSchemaWorker() throws AssertionError, AsynchJobFailedException {
+		CreateSchemaRequest createRequest = new CreateSchemaRequest();
+		createRequest.setSchema(basicSchema);
+
+		// First create the schema.
+		asynchronousJobWorkerHelper.assertJobResponse(adminUserInfo, createRequest, (CreateSchemaResponse response) -> {
+			assertNotNull(response);
+			assertNotNull(response.getNewVersionInfo());
+			assertEquals(adminUserInfo.getId().toString(), response.getNewVersionInfo().getCreatedBy());
+			assertEquals(semanticVersion, response.getNewVersionInfo().getSemanticVersion());
+		}, MAX_WAIT_MS);
+		
+		GetValidationSchemaRequest getRequest = new GetValidationSchemaRequest();
+		getRequest.set$id(basicSchema.get$id());
+		// Get the validation schema for this schema
+		asynchronousJobWorkerHelper.assertJobResponse(adminUserInfo, getRequest, (GetValidationSchemaResponse response) -> {
+			assertNotNull(response);
+			assertNotNull(response.getValidationSchema());
+			assertEquals(basicSchema, response.getValidationSchema());
+		}, MAX_WAIT_MS);
 	}
 
 	public void printJson(JSONEntity entity) throws JSONException, JSONObjectAdapterException {

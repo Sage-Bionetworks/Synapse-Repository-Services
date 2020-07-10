@@ -4,8 +4,6 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.authorize;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 
-import java.util.StringJoiner;
-
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
@@ -13,6 +11,8 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
+import org.sagebionetworks.repo.model.schema.GetValidationSchemaRequest;
+import org.sagebionetworks.repo.model.schema.GetValidationSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoRequest;
 import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoResponse;
@@ -280,7 +280,7 @@ public class JsonSchemaController {
 	 * Get a registered JSON schema using its $id.
 	 * 
 	 * @param userId
-	 * @param id The relative $id of the JSON schema to get.
+	 * @param id     The relative $id of the JSON schema to get.
 	 * @return
 	 */
 	@RequiredScope({ view })
@@ -289,7 +289,6 @@ public class JsonSchemaController {
 	public @ResponseBody JsonSchema getJsonSchemaNoVersion(@PathVariable(required = true) String id) {
 		return serviceProvider.getSchemaServices().getSchema(id);
 	}
-
 
 	/**
 	 * List all JSON schemas for an Organization. Each call will return a single
@@ -324,9 +323,10 @@ public class JsonSchemaController {
 	}
 
 	/**
-	 * Delete the given schema using its $id.  If the $id excludes a semantic version, all versions of the schema will be deleted.
-	 * If the $id includes a semantic version then just that version will be deleted. Caution: This operation
-	 * cannot be undone.
+	 * Delete the given schema using its $id. If the $id excludes a semantic
+	 * version, all versions of the schema will be deleted. If the $id includes a
+	 * semantic version then just that version will be deleted. Caution: This
+	 * operation cannot be undone.
 	 * <p>
 	 * Note: The caller must be granted the
 	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
@@ -334,7 +334,7 @@ public class JsonSchemaController {
 	 * </p>
 	 * 
 	 * @param userId
-	 * @param id The relative $id of the schema to delete.
+	 * @param id     The relative $id of the schema to delete.
 	 */
 	@RequiredScope({ modify })
 	@ResponseStatus(HttpStatus.NO_CONTENT)
@@ -344,5 +344,60 @@ public class JsonSchemaController {
 		serviceProvider.getSchemaServices().deleteSchemaById(userId, id);
 	}
 
+	/**
+	 * To use a JSON schema for validation, the JSON schema plus all of its
+	 * dependency schemas must be provided to a JSON schema validator. The
+	 * 'validation' schema is simply a JSON schema with all of its dependencies
+	 * added to the 'definitions' section of the schema, making the schema
+	 * self-contained.
+	 * <p>
+	 * Use this call to start an asynchronous job that will compile the 'validation'
+	 * schema for a given JSON schema $id.
+	 * </p>
+	 * To monitor the progress of the job and to get the final results use:
+	 * <a href="${GET.schema.type.create.async.get.asyncToken}">GET
+	 * schema/type/validation/async/get/{asyncToken}"</a>
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 */
+	@RequiredScope({ modify })
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.JSON_SCHEMA_TYPE_VALIDATION_START, method = RequestMethod.POST)
+	public @ResponseBody AsyncJobId startGetValidationSchema(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody GetValidationSchemaRequest request) {
+		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, request);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	/**
+	 * Get the results of an asynchronous job that was started to compile a
+	 * 'validation' schema for a JSON schema.
+	 * <p>
+	 * Note: If the job has not completed, this method will return a status code of
+	 * 202 (ACCEPTED) and the response body will be a
+	 * <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+	 * >AsynchronousJobStatus</a> object.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param asyncToken Forward the token returned when the job was started.
+	 * @return
+	 * @throws Throwable
+	 */
+	@RequiredScope({ view, modify })
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.JSON_SCHEMA_TYPE_VALIDATION_GET, method = RequestMethod.GET)
+	public @ResponseBody GetValidationSchemaResponse getValidationSchemaResults(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String asyncToken)
+			throws Throwable {
+		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+				asyncToken);
+		return (GetValidationSchemaResponse) jobStatus.getResponseBody();
+	}
 
 }
