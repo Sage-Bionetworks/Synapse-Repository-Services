@@ -225,7 +225,7 @@ public class ITJsonSchemaControllerTest {
 		GetValidationSchemaRequest getRequest = new GetValidationSchemaRequest();
 		getRequest.set$id(schema.get$id());
 		// call under test
-		AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.CreateJsonSchema, getRequest,
+		AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.GetValidationSchema, getRequest,
 				(GetValidationSchemaResponse response) -> {
 					assertNotNull(response);
 					assertEquals(schema, response.getValidationSchema());
