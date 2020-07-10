@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.schema;
 
-import org.json.JSONObject;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 
@@ -13,6 +12,6 @@ public interface JsonSchemaValidationManager {
 	 * @param subject
 	 * @return
 	 */
-	public ValidationResults validate(JsonSchema schema, JSONObject subject);
+	public ValidationResults validate(JsonSchema schema, JsonSubject subject);
 
 }

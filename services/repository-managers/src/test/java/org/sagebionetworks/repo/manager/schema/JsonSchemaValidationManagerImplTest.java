@@ -6,11 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.verify;
 import java.io.InputStream;
 import java.util.List;
 
@@ -20,7 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.ObjectType;
@@ -33,11 +30,6 @@ import com.google.common.collect.Lists;
 @ExtendWith(MockitoExtension.class)
 public class JsonSchemaValidationManagerImplTest {
 
-	@Mock
-	ObjectTranslatorProvider mockProvider;
-
-	@Mock
-	ObjectTranslator mockTranslator;
 
 	@InjectMocks
 	JsonSchemaValidationManagerImpl manager;
@@ -58,14 +50,10 @@ public class JsonSchemaValidationManagerImplTest {
 	@Test
 	public void testValidationWithValid() throws Exception {
 		JsonSchema schema = loadSchemaFromClasspath("schemas/Enum.json");
-		JSONObject subject = setupSubject();
-		subject.put("enumKey", "a");
+		JsonSubject subject = setupSubject();
+		subject.toJson().put("enumKey", "a");
 		// call under test
 		ValidationResults result = manager.validate(schema, subject);
-		verify(mockProvider).getTranslatorForConcreteType(concreteType);
-		verify(mockTranslator).getObjectId(subject);
-		verify(mockTranslator).getObjectEtag(subject);
-		verify(mockTranslator).getObjectType(subject);
 		
 		assertNotNull(result);
 		assertEquals(objectId, result.getObjectId());
@@ -81,8 +69,8 @@ public class JsonSchemaValidationManagerImplTest {
 	@Test
 	public void testValidationWithInvalid() throws Exception {
 		JsonSchema schema = loadSchemaFromClasspath("schemas/Enum.json");
-		JSONObject subject = setupSubject();
-		subject.put("enumKey", "c");
+		JsonSubject subject = setupSubject();
+		subject.toJson().put("enumKey", "c");
 		// call under test
 		ValidationResults result = manager.validate(schema, subject);
 		assertNotNull(result);
@@ -114,7 +102,7 @@ public class JsonSchemaValidationManagerImplTest {
 	@Test
 	public void testValidationWithNullSchema() {
 		JsonSchema schema = null;
-		JSONObject subject = new JSONObject();
+		JsonSubject subject =  Mockito.mock(JsonSubject.class);
 		assertThrows(IllegalArgumentException.class, ()->{
 			 manager.validate(schema, subject);
 		});
@@ -123,24 +111,23 @@ public class JsonSchemaValidationManagerImplTest {
 	@Test
 	public void testValidationWithNullSubject() throws Exception {
 		JsonSchema schema = loadSchemaFromClasspath("schemas/Enum.json");
-		JSONObject subject = null;
+		JsonSubject subject = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			 manager.validate(schema, subject);
 		});
 	}
-
-
-	public JSONObject setupSubject() {
-		JSONObject subject = new JSONObject();
-		subject.put("objectId", objectId);
-		subject.put("objectType", objectType);
-		subject.put("objectId", objectEtag);
-		subject.put("concreteType", concreteType);
-
-		when(mockProvider.getTranslatorForConcreteType(any())).thenReturn(mockTranslator);
-		when(mockTranslator.getObjectId(any())).thenReturn(objectId);
-		when(mockTranslator.getObjectType(any())).thenReturn(objectType);
-		when(mockTranslator.getObjectEtag(any())).thenReturn(objectEtag);
+	
+	public JsonSubject setupSubject() {
+		JSONObject jsonObject = new JSONObject();
+		jsonObject.put("objectId", objectId);
+		jsonObject.put("objectType", objectType);
+		jsonObject.put("objectEtag", objectEtag);
+		
+		JsonSubject subject = Mockito.mock(JsonSubject.class);
+		when(subject.getObjectId()).thenReturn(objectId);
+		when(subject.getObjectEtag()).thenReturn(objectEtag);
+		when(subject.getObjectType()).thenReturn(objectType);
+		when(subject.toJson()).thenReturn(jsonObject);
 
 		return subject;
 	}

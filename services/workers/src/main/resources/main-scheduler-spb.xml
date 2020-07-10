@@ -65,6 +65,7 @@
     <import resource="classpath:schema-create-worker-sqs-spb.xml" />
     <import resource="classpath:schema-synapse-bootstrap-spb.xml" />
     <import resource="classpath:view-column-model-request-spb.xml" />
+    <import resource="classpath:get-validation-schema-worker-spb.xml" />
 
 	<util:list id="workerTriggersList">
 		<!-- workers -->
@@ -113,6 +114,7 @@
 		<ref bean="schemaCreateTransactionMessageTrigger" />
 		<ref bean="schemaBoostrapTrigger" />
 		<ref bean="viewColumnModelRequestWorkerTrigger" />
+		<ref bean="getValidationSchemaTrigger" />
 	</util:list>
 
 	<bean id="mainScheduler"
