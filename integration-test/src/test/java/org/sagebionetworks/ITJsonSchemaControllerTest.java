@@ -227,7 +227,6 @@ public class ITJsonSchemaControllerTest {
 		// call under test
 		AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.CreateJsonSchema, getRequest,
 				(GetValidationSchemaResponse response) -> {
-
 					assertNotNull(response);
 					assertEquals(schema, response.getValidationSchema());
 
