@@ -196,6 +196,7 @@ public class MessageManagerImpl implements MessageManager {
 	@WriteTransaction
 	public MessageToUser createMessageWithThrottle(UserInfo userInfo, MessageToUser dto) throws NotFoundException {
 		boolean userIsTrustedMessageSender = userInfo.getGroups().contains(TeamConstants.TRUSTED_MESSAGE_SENDER_TEAM_ID);
+
 		// Throttle message creation
 		if (!userInfo.isAdmin() && !userIsTrustedMessageSender && !messageDAO.canCreateMessage(userInfo.getId().toString(), 
 					MAX_NUMBER_OF_NEW_MESSAGES,
@@ -205,12 +206,19 @@ public class MessageManagerImpl implements MessageManager {
 							+ MAX_NUMBER_OF_NEW_MESSAGES + " message(s) every "
 							+ (MESSAGE_CREATION_INTERVAL_MILLISECONDS / 1000) + " second(s)");
 		}
+		
 		return createMessage(userInfo, dto);
 	}
 
 	@Override
 	@WriteTransaction
 	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException {
+		return createMessage(userInfo, dto, false);
+	}
+	
+	@Override
+	@WriteTransaction
+	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto, boolean overrideNotificationSettings) throws NotFoundException {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(dto, "dto");
 		ValidateArgument.requirement(dto.getRecipients() != null && !dto.getRecipients().isEmpty(),
@@ -245,7 +253,7 @@ public class MessageManagerImpl implements MessageManager {
 			throw new IllegalArgumentException("One or more of the following IDs are not recognized: " + dto.getRecipients());
 		}
 		
-		return messageDAO.createMessage(dto);
+		return messageDAO.createMessage(dto, overrideNotificationSettings);
 	}
 	
 	@Override
@@ -344,13 +352,14 @@ public class MessageManagerImpl implements MessageManager {
 	@WriteTransaction
 	public List<String> processMessage(String messageId, ProgressCallback progressCallback) throws NotFoundException {
 		MessageToUser dto = messageDAO.getMessage(messageId);
+		boolean overrideNotificationSettings = messageDAO.overrideNotificationSettings(messageId);
 		FileHandle fileHandle = fileHandleDao.get(dto.getFileHandleId());
 		ContentType contentType = ContentType.parse(fileHandle.getContentType());
 		String mimeType = contentType.getMimeType().trim().toLowerCase();
 
 		try {
 			String messageBody = fileHandleManager.downloadFileToString(dto.getFileHandleId());
-			return processMessage(dto, messageBody, mimeType, progressCallback);
+			return processMessage(dto, messageBody, mimeType, overrideNotificationSettings, progressCallback);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -362,7 +371,7 @@ public class MessageManagerImpl implements MessageManager {
 	 * @param messageBody The body of any email(s) that get sent as a result of processing this message
 	 *    Note: This parameter is provided so that templated messages do not need to be uploaded then downloaded before sending
 	 */
-	private List<String> processMessage(MessageToUser dto, String messageBody, String mimeType, ProgressCallback progressCallback) throws NotFoundException {
+	private List<String> processMessage(MessageToUser dto, String messageBody, String mimeType, boolean overrideNotificationSettings, ProgressCallback progressCallback) throws NotFoundException {
 		List<String> errors = new ArrayList<String>();
 		
 		// Check to see if the message has already been sent
@@ -396,13 +405,17 @@ public class MessageManagerImpl implements MessageManager {
 		for (String userId : recipients) {
 			// Try to send messages to each user individually
 			try {
+				
 				// Get the user's settings
-				Settings settings = null;
-				UserProfile profile = userProfileManager.getUserProfile(userId);
-				settings = profile.getNotificationSettings();
-				if(settings == null){
-					settings = new Settings();
+				Settings settings = new Settings();
+				
+				if (!overrideNotificationSettings) {
+					UserProfile profile = userProfileManager.getUserProfile(userId);
+					if (profile.getNotificationSettings() != null) {
+						settings = profile.getNotificationSettings();
+					}
 				}
+				
 				MessageStatusType userMessageStatus = null; // setting to null tells the DAO to use the default value
 				
 				messageDAO.createMessageStatus(dto.getId(), userId, userMessageStatus);	

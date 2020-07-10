@@ -31,12 +31,20 @@ public interface MessageManager {
 	public String getMessageFileRedirectURL(UserInfo userInfo, String messageId) throws NotFoundException;
 	
 	/**
-	 * Saves the message so that it can be processed by other queries. A worker will asynchronously process the message.
-	 * In case of failure, the user will be notified via bounce message.
-	 * </br>
-	 * This method also checks to see if file handles (message body) are accessible.  
+	 * See {@link #createMessage(UserInfo, MessageToUser, boolean) createMessage(UserInfo, MessageToUser, false)}
 	 */
 	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException;
+	
+	/**
+	 * Saves the message so that it can be processed by other queries. A worker will asynchronously process the message.
+	 * In case of failure, the user will be notified via bounce message. 
+	 * </br>
+	 * This method also checks to see if file handles (message body) are accessible.
+	 * </br> 
+	 * If the overrideNotificationSettings is set to true the recipient notification settings will be ignored.
+	 */
+	MessageToUser createMessage(UserInfo userInfo, MessageToUser dto, boolean overrideNotificationSettings)
+			throws NotFoundException;
 
 	/**
 	 * Adds the creator of the given entity to the recipient list of the
@@ -134,5 +142,6 @@ public interface MessageManager {
 	 * and checks to see if file handles (message body) are accessible.  
 	 */
 	public MessageToUser createMessageWithThrottle(UserInfo userInfo, MessageToUser dto);
+
 
 }

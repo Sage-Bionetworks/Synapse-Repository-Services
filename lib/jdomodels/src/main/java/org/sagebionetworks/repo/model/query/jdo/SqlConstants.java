@@ -267,21 +267,22 @@ public class SqlConstants {
  	public static final String DDL_MESSAGE_CONTENT                  = "schema/MessageContent-ddl.sql";
  	
  	// Message to user
- 	public static final String TABLE_MESSAGE_TO_USER                = "MESSAGE_TO_USER";
- 	public static final String COL_MESSAGE_TO_USER_MESSAGE_ID       = "MESSAGE_ID";
- 	public static final String COL_MESSAGE_TO_USER_ROOT_ID          = "ROOT_MESSAGE_ID";
- 	public static final String COL_MESSAGE_TO_USER_REPLY_TO_ID      = "IN_REPLY_TO";
- 	public static final String COL_MESSAGE_TO_USER_SUBJECT          = "SUBJECT";
- 	public static final String COL_MESSAGE_TO_USER_SENT       		= "SENT";
- 	public static final String COL_MESSAGE_TO_USER_TO	     		= "TO";
- 	public static final String COL_MESSAGE_TO_USER_CC       		= "CC";
- 	public static final String COL_MESSAGE_TO_USER_BCC       		= "BCC";
- 	public static final String COL_MESSAGE_NOTIFICATIONS_ENDPOINT   = "NOTIFICATIONS_ENDPOINT";
- 	public static final String COL_MESSAGE_PROFILE_SETTING_ENDPOINT = "PROFILE_SETTING_ENDPOINT";
- 	public static final String COL_MESSAGE_WITH_UNSUBSCRIBE_LINK    = "WITH_UNSUBSCRIBE_LINK";
- 	public static final String COL_MESSAGE_WITH_PROFILE_SETTING_LINK = "WITH_PROFILE_SETTING_LINK";
- 	public static final String COL_MESSAGE_IS_NOTIFICATION_MESSAGE  = "IS_NOTIFICATION_MESSAGE";
- 	public static final String DDL_MESSAGE_TO_USER                  = "schema/MessageToUser-ddl.sql";
+ 	public static final String TABLE_MESSAGE_TO_USER                		= "MESSAGE_TO_USER";
+ 	public static final String COL_MESSAGE_TO_USER_MESSAGE_ID       		= "MESSAGE_ID";
+ 	public static final String COL_MESSAGE_TO_USER_ROOT_ID          		= "ROOT_MESSAGE_ID";
+ 	public static final String COL_MESSAGE_TO_USER_REPLY_TO_ID      		= "IN_REPLY_TO";
+ 	public static final String COL_MESSAGE_TO_USER_SUBJECT          		= "SUBJECT";
+ 	public static final String COL_MESSAGE_TO_USER_SENT       				= "SENT";
+ 	public static final String COL_MESSAGE_TO_USER_TO	     				= "TO";
+ 	public static final String COL_MESSAGE_TO_USER_CC       				= "CC";
+ 	public static final String COL_MESSAGE_TO_USER_BCC       				= "BCC";
+ 	public static final String COL_MESSAGE_NOTIFICATIONS_ENDPOINT   		= "NOTIFICATIONS_ENDPOINT";
+ 	public static final String COL_MESSAGE_PROFILE_SETTING_ENDPOINT 		= "PROFILE_SETTING_ENDPOINT";
+ 	public static final String COL_MESSAGE_WITH_UNSUBSCRIBE_LINK    		= "WITH_UNSUBSCRIBE_LINK";
+ 	public static final String COL_MESSAGE_WITH_PROFILE_SETTING_LINK		= "WITH_PROFILE_SETTING_LINK";
+ 	public static final String COL_MESSAGE_IS_NOTIFICATION_MESSAGE 			= "IS_NOTIFICATION_MESSAGE";
+ 	public static final String COL_MESSAGE_OVERRIDE_NOTIFICATION_SETTINGS 	= "OVERRIDE_NOTIFICATION_SETTINGS";
+ 	public static final String DDL_MESSAGE_TO_USER                  		= "schema/MessageToUser-ddl.sql";
  	
  	// Message recipient
  	public static final String TABLE_MESSAGE_RECIPIENT              = "MESSAGE_RECIPIENT";

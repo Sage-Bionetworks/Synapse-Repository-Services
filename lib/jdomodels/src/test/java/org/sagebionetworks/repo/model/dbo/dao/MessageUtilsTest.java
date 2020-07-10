@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -11,7 +11,9 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.Test;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOComment;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
@@ -23,6 +25,7 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 
+@ExtendWith(MockitoExtension.class)
 public class MessageUtilsTest {
 	private static final String EMAIL_POST_FIX = "@synapse.org";
 	private static final int EMAIL_POST_FIX_LENGTH = 12;
@@ -172,6 +175,52 @@ public class MessageUtilsTest {
 		MessageToUser dto2 = new MessageToUser();
 		MessageUtils.copyDBOToDTO(info, dto2);
 		assertEquals(dto, dto2);
+	}
+	
+	@Test
+	public void testMessageInfoRoundTripWithoutOverrideNotificationSettings() throws Exception {
+		MessageToUser dto = new MessageToUser();
+		dto.setId("123");
+		dto.setInReplyTo("456");
+		dto.setInReplyToRoot("789");
+		dto.setSubject("foo");
+		dto.setNotificationUnsubscribeEndpoint("bar");
+		dto.setUserProfileSettingEndpoint("userProfileSettingEndpoint");
+		dto.setWithProfileSettingLink(false);
+		dto.setWithUnsubscribeLink(true);
+		dto.setIsNotificationMessage(false);
+		dto.setTo("foo@sb.com");
+		dto.setCc("bar@sb.com");
+		dto.setBcc("baz@sb.com");
+		
+		DBOMessageToUser info = new DBOMessageToUser();
+		MessageUtils.copyDTOToDBO(dto, info);
+
+		assertFalse(info.getOverrideNotificationSettings());
+	}
+	
+	@Test
+	public void testMessageInfoRoundTripWithOverrideNotificationSettings() throws Exception {
+		MessageToUser dto = new MessageToUser();
+		dto.setId("123");
+		dto.setInReplyTo("456");
+		dto.setInReplyToRoot("789");
+		dto.setSubject("foo");
+		dto.setNotificationUnsubscribeEndpoint("bar");
+		dto.setUserProfileSettingEndpoint("userProfileSettingEndpoint");
+		dto.setWithProfileSettingLink(false);
+		dto.setWithUnsubscribeLink(true);
+		dto.setIsNotificationMessage(false);
+		dto.setTo("foo@sb.com");
+		dto.setCc("bar@sb.com");
+		dto.setBcc("baz@sb.com");
+		
+		DBOMessageToUser info = new DBOMessageToUser();
+		
+		info.setOverrideNotificationSettings(true);
+		MessageUtils.copyDTOToDBO(dto, info);
+
+		assertTrue(info.getOverrideNotificationSettings());
 	}
 	
 	@Test

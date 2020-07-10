@@ -180,24 +180,28 @@ public class MessageManagerImplTest {
 	
 	private List<PrincipalAlias> aliasesToDelete;
 	
+	// Counter for messages sent (e.g. ses invocations) after the setup
+	private int sentMessagesCount;
+	
+	
 	/**
 	 * Note: This setup is very similar to {@link #DBOMessageDAOImplTest}
 	 */
 	@BeforeEach
 	public void setUp() throws Exception {
 		MockitoAnnotations.initMocks(this);
-		// the normally autowired SynapseEmailService diverts email from Amazon SES into an S3
-		// file for testing.  In this test suite, however, we want mail to actually go to SES,
-		// so we override the normal autowiring.
+		
 		SynapseEmailService emailService = new SynapseEmailService() {
 			@Override
 			public void sendEmail(SendEmailRequest emailRequest) {
 				amazonSESClient.sendEmail(emailRequest);
+				sentMessagesCount++;
 			}
 
 			@Override
 			public void sendRawEmail(SendRawEmailRequest sendRawEmailRequest) {
 				amazonSESClient.sendRawEmail(sendRawEmailRequest);
+				sentMessagesCount++;
 			}
 		};
 		
@@ -253,7 +257,7 @@ public class MessageManagerImplTest {
 
 		// Create a team
 		testTeam = new Team();
-		testTeam.setName("MessageManagerImplTest");
+		testTeam.setName("MessageManagerImplTest_" + UUID.randomUUID());
 		testTeam = teamManager.create(testUser, testTeam);
 		final String testTeamId = testTeam.getId();
 		
@@ -315,6 +319,9 @@ public class MessageManagerImplTest {
 				ImmutableSet.of(testUserId, testTeamId), null);
 		otherToGroup = createMessage(otherTestUser, "otherToGroup", 
 				ImmutableSet.of(testTeamId), null);
+		
+		// Reset the message counter
+		sentMessagesCount = 0;
 	}
 	
 	@AfterEach
@@ -719,8 +726,12 @@ public class MessageManagerImplTest {
 		// With default settings, the message should appear in the user's inbox
 		MessageToUser message = createMessage(otherTestUser, "message1", testUserIdSet, null);
 		
+		int expectedMessageCount = 1;
+		
 		// Process the message (emulates the worker)
 		messageManager.processMessage(message.getId(), null);
+		
+		assertEquals(expectedMessageCount, sentMessagesCount);
 		
 		List<MessageBundle> inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
@@ -735,8 +746,12 @@ public class MessageManagerImplTest {
 		// Now this second message will be marked as READ
 		MessageToUser message2 = createMessage(otherTestUser, "message2", testUserIdSet, null);
 		
+		expectedMessageCount++;
+		
 		// Process the message (emulates the worker)
 		messageManager.processMessage(message2.getId(), null);
+		
+		assertEquals(expectedMessageCount, sentMessagesCount);
 				
 		inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
@@ -755,9 +770,47 @@ public class MessageManagerImplTest {
 		// Process the message (emulates the worker)
 		messageManager.processMessage(message3.getId(), null);
 		
+		// The message is not sent, so no other call to SES should have been made
+		assertEquals(expectedMessageCount, sentMessagesCount);
+		
 		inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(message3, inbox.get(0).getMessage());
+	}
+	
+	@Test
+	public void testSendMessageWithOverrideNotificationSettings() throws Exception {
+		final String testUserId = testUser.getId().toString();
+		Set<String> testUserIdSet = ImmutableSet.of(testUserId);
+		
+		// Emails are sent by default
+		UserProfile profile = userProfileManager.getUserProfile(testUser.getId().toString());
+		profile.setNotificationSettings(new Settings());
+		
+		// Disable the user notifications
+		profile.getNotificationSettings().setSendEmailNotifications(false);
+		profile = userProfileManager.updateUserProfile(testUser, profile);
+
+		MessageToUser message = new MessageToUser();
+		message.setFileHandleId(fileHandleId);
+		message.setSubject("message");
+		message.setRecipients(testUserIdSet);
+		message.setNotificationUnsubscribeEndpoint("https://www.synapse.org/#unsubscribeEndpoint:");
+		
+		boolean overrideNotificationSettings = true;
+		
+		// Now this message will appear as UNREAD
+		message = messageManager.createMessage(otherTestUser, message, overrideNotificationSettings);
+		
+		// Process the message (emulates the worker)
+		messageManager.processMessage(message.getId(), null);		
+		
+		assertEquals(1, sentMessagesCount);
+		
+		List<MessageBundle> inbox = messageManager.getInbox(testUser, unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(message, inbox.get(0).getMessage());
+		
+		cleanup.add(message.getId());
 	}
 	
 	@Test

@@ -268,6 +268,10 @@ public class MessageUtils {
 		} else {
 			info.setIsNotificationMessage(dto.getIsNotificationMessage());
 		}
+		// Make sure to set the override to false by default
+		if (info.getOverrideNotificationSettings() == null) {
+			info.setOverrideNotificationSettings(false);
+		}
 		try {
 			if (dto.getTo() != null) {
 				info.setBytesTo(dto.getTo().getBytes("UTF-8"));

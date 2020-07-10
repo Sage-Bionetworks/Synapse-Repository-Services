@@ -2,10 +2,14 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -13,6 +17,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -166,12 +171,16 @@ public class MessageManagerImplUnitTest {
 
 	}
 
-	private void setupCreatorRecipientMocks() {
+	private void setupCreatorRecipientMocks(boolean overrideNotificationSettings) {
 		when(principalAliasDAO.getUserName(CREATOR_ID)).thenReturn("foo");
 		when(userManager.getUserInfo(CREATOR_ID)).thenReturn(creatorUserInfo);
 		when(notificationEmailDao.getNotificationEmailForPrincipal(RECIPIENT_ID)).thenReturn(RECIPIENT_EMAIL);
 		when(userProfileManager.getUserProfile(CREATOR_ID.toString())).thenReturn(userProfileCreator);
-		when(userProfileManager.getUserProfile(RECIPIENT_ID.toString())).thenReturn(userProfileRecipient);
+		
+		// When overriding the notification settings the profile of the recipient is never fetched
+		if (!overrideNotificationSettings) {
+			when(userProfileManager.getUserProfile(RECIPIENT_ID.toString())).thenReturn(userProfileRecipient);
+		}
 		
 		UserGroup ug = new UserGroup();
 		ug.setId(RECIPIENT_ID.toString());
@@ -179,6 +188,7 @@ public class MessageManagerImplUnitTest {
 		
 		when(userGroupDAO.get(eq(RECIPIENT_ID))).thenReturn(ug);
 		when(messageDAO.getMessage(MESSAGE_ID)).thenReturn(mtu);
+		when(messageDAO.overrideNotificationSettings(MESSAGE_ID)).thenReturn(overrideNotificationSettings);
 	}
 
 	@Test
@@ -212,8 +222,60 @@ public class MessageManagerImplUnitTest {
 	}
 	
 	@Test
+	public void testCreateMessage() {
+		when(authorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		
+		UserGroup ug = new UserGroup();
+		ug.setId("1");
+		ug.setIsIndividual(true);
+		
+		when(userGroupDAO.get(anyList())).thenReturn(Arrays.asList(ug));
+		
+		MessageToUser messageToUser = new MessageToUser();
+		
+		messageToUser.setFileHandleId(FILE_HANDLE_ID);
+		messageToUser.setRecipients(Collections.singleton("1"));
+		
+		// Call under test
+		messageManager.createMessage(creatorUserInfo, messageToUser);
+		
+		verify(authorizationManager).canAccessRawFileHandleById(creatorUserInfo, FILE_HANDLE_ID);
+		verify(userGroupDAO).get(new ArrayList<>(messageToUser.getRecipients()));
+	
+		ArgumentCaptor<MessageToUser> captor = ArgumentCaptor.forClass(MessageToUser.class);
+		
+		verify(messageDAO).createMessage(captor.capture(), eq(false));
+	}
+	
+	@Test
+	public void testCreateMessageWithOverrideNotificationsettings() {
+		when(authorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		
+		UserGroup ug = new UserGroup();
+		ug.setId("1");
+		ug.setIsIndividual(true);
+		
+		when(userGroupDAO.get(anyList())).thenReturn(Arrays.asList(ug));
+		
+		MessageToUser messageToUser = new MessageToUser();
+		
+		messageToUser.setFileHandleId(FILE_HANDLE_ID);
+		messageToUser.setRecipients(Collections.singleton("1"));
+		
+		// Call under test
+		messageManager.createMessage(creatorUserInfo, messageToUser, true);
+		
+		verify(authorizationManager).canAccessRawFileHandleById(creatorUserInfo, FILE_HANDLE_ID);
+		verify(userGroupDAO).get(new ArrayList<>(messageToUser.getRecipients()));
+	
+		ArgumentCaptor<MessageToUser> captor = ArgumentCaptor.forClass(MessageToUser.class);
+		
+		verify(messageDAO).createMessage(captor.capture(), eq(true));
+	}
+	
+	@Test
 	public void testProcessMessagePLAIN() throws Exception {
-		setupCreatorRecipientMocks();
+		setupCreatorRecipientMocks(false);
 		
 		fileHandle.setContentType("text/plain");
 		String messageBody = "message body";
@@ -241,7 +303,7 @@ public class MessageManagerImplUnitTest {
 
 	@Test
 	public void testProcessMessageHTML() throws Exception {
-		setupCreatorRecipientMocks();
+		setupCreatorRecipientMocks(false);
 		
 		fileHandle.setContentType("text/html");
 		String messageBody = "<div>message body</div>";
@@ -269,7 +331,7 @@ public class MessageManagerImplUnitTest {
 
 	@Test
 	public void testProcessMessageJSON() throws Exception {
-		setupCreatorRecipientMocks();
+		setupCreatorRecipientMocks(false);
 		
 		fileHandle.setContentType("application/json");
 		MessageBody messageBody = new MessageBody();
@@ -583,7 +645,7 @@ public class MessageManagerImplUnitTest {
 	
 	@Test
 	public void testSendMessageWithQuarantinedAddress() throws Exception {
-		setupCreatorRecipientMocks();
+		setupCreatorRecipientMocks(false);
 		fileHandle.setContentType("text/plain");
 		
 		String messageBody = "message body";
@@ -604,7 +666,7 @@ public class MessageManagerImplUnitTest {
 		when(messageDAO.canCreateMessage(eq(CREATOR_ID.toString()), anyLong(), anyLong())).thenReturn(true);
 		when(authorizationManager.canAccessRawFileHandleById(creatorUserInfo, FILE_HANDLE_ID)).thenReturn(AuthorizationStatus.authorized());
 		when(messageDAO.getMessage(MESSAGE_ID)).thenReturn(mtu);
-		when(messageDAO.createMessage(mtu)).thenReturn(mtu);
+		when(messageDAO.createMessage(any(), anyBoolean())).thenReturn(mtu);
 		
 		UserGroup ug = new UserGroup();
 		ug.setId(RECIPIENT_ID.toString());
@@ -618,7 +680,7 @@ public class MessageManagerImplUnitTest {
 		MessageToUser forwardedDto = messageManager.forwardMessage(creatorUserInfo, MESSAGE_ID, recipients);
 		
 		verify(messageDAO).getMessage(MESSAGE_ID);
-		verify(messageDAO).createMessage(mtu);
+		verify(messageDAO).createMessage(mtu, false);
 		
 		assertEquals(mtu, forwardedDto);
 		
@@ -627,7 +689,7 @@ public class MessageManagerImplUnitTest {
 	
 	@Test
 	public void testProcessMessage() throws Exception {
-		setupCreatorRecipientMocks();
+		setupCreatorRecipientMocks(false);
 		
 		fileHandle.setContentType("application/json");
 		MessageBody messageBody = new MessageBody();
@@ -638,6 +700,41 @@ public class MessageManagerImplUnitTest {
 		
 		// Call under test
 		messageManager.processMessage(MESSAGE_ID, null);
+		
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+
+		verify(sesClient).sendRawEmail(argument.capture());
+		SendRawEmailRequest ser = argument.getValue();
+		assertEquals("Foo FOO <foo@synapse.org>", ser.getSource());
+		assertEquals(1, ser.getDestinations().size());
+		assertEquals(RECIPIENT_EMAIL, ser.getDestinations().get(0));
+		String body = new String(ser.getRawMessage().getData().array());
+		assertTrue(body.indexOf("message body")>=0);
+		assertFalse(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
+		assertTrue(body.indexOf(PROFILE_SETTING_ENDPOINT)>=0);
+		assertEquals(mtu.getSubject(), MessageTestUtil.getSubjectFromRawMessage(ser));
+		assertEquals(mtu.getTo(), MessageTestUtil.getHeaderFromRawMessage(ser, "To"));
+		assertEquals(mtu.getCc(), MessageTestUtil.getHeaderFromRawMessage(ser, "Cc"));
+		assertEquals(mtu.getBcc(), MessageTestUtil.getHeaderFromRawMessage(ser, "Bcc"));
+		assertTrue(mtu.getWithProfileSettingLink());
+		assertFalse(mtu.getIsNotificationMessage());
+		assertFalse(mtu.getWithUnsubscribeLink());
+	}
+	
+	@Test
+	public void testProcessMessageWithOverrideNotificationSettings() throws Exception {		
+		setupCreatorRecipientMocks(true);
+		
+		fileHandle.setContentType("application/json");
+		
+		when(fileHandleManager.downloadFileToString(FILE_HANDLE_ID)).thenReturn("message body");
+		when(fileHandleDAO.get(FILE_HANDLE_ID)).thenReturn(fileHandle);
+		
+		// Call under test
+		messageManager.processMessage(MESSAGE_ID, null);
+		
+		// Verify that no call to the recipient user profile is performed
+		verify(userProfileManager, times(0)).getUserProfile(RECIPIENT_ID.toString());
 		
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 
