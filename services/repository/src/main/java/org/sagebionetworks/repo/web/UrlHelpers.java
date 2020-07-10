@@ -1165,9 +1165,6 @@ public class UrlHelpers {
 	 */
 	public static final String ADMIN_UPDATE_FILE = ADMIN + "/updateFile";
 	
-	public static final String ADMIN_SQS = ADMIN + "/sqs";
-	public static final String ADMIN_SQS_MESSAGE = ADMIN_SQS + "/message";
-	
 	/**
 	 * Request parameter to get the next page of a paginated query response.
 	 */
