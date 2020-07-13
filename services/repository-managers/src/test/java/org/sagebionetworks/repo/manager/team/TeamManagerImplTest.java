@@ -515,55 +515,55 @@ public class TeamManagerImplTest {
 		
 		// I can add myself if I'm an admin on the Team
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationStatus.authorized());
-		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false), teamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
+		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false), TeamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
 
 		// I canNOT add myself if I'm not an admin on the Team if I haven't been invited...
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationStatus.accessDenied(""));
 		when(mockMembershipInvitationDAO.getOpenByTeamAndUserCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), anyLong())).thenReturn(0L);
-		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false), teamManagerImpl.UNAUTHORIZED_ADD_TEAM_MEMBER_GENERIC);
+		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false), TeamManagerImpl.UNAUTHORIZED_ADD_TEAM_MEMBER_MUST_HAVE_INVITATION);
 		// ... but it returns true if I'm already on the team...
-		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, true), teamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
+		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, true), TeamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
 		
 		// ...or if the team is Open
 		team.setCanPublicJoin(true);
-		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false), teamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
+		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false), TeamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
 		team.setCanPublicJoin(false);
 		
 		// I can add myself if I'm not an admin on the team if I've been invited
 		when(mockMembershipInvitationDAO.getOpenByTeamAndUserCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), anyLong())).thenReturn(1L);
-		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false), teamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
+		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false), TeamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
 		
 		// I can't add myself if I'm invited to some other team...
 		when(mockMembershipInvitationDAO.getOpenByTeamAndUserCount(
 				eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), anyLong())).thenReturn(1L);
-		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false),  teamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
+		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false),  TeamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
 		
 		when(mockMembershipInvitationDAO.getOpenByTeamAndUserCount(
 				eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), anyLong())).thenReturn(0L);
-		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false), teamManagerImpl.UNAUTHORIZED_ADD_TEAM_MEMBER_GENERIC);
+		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false), TeamManagerImpl.UNAUTHORIZED_ADD_TEAM_MEMBER_MUST_HAVE_INVITATION);
 		// ok if I'm already in the team
-		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, true), teamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
+		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, true), TeamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
 		// restore the mock
 		when(mockMembershipInvitationDAO.getOpenByTeamAndUserCount(
 				eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), anyLong())).thenReturn(1L);
 
-		assertEquals(teamManagerImpl.canAddTeamMember(adminInfo, TEAM_ID, adminInfo, false), teamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
+		assertEquals(teamManagerImpl.canAddTeamMember(adminInfo, TEAM_ID, adminInfo, false), TeamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
 
 		// Test access requirements:
 		// first, the baseline
-		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false), teamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
+		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false), TeamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
 		// now add unmet access requirement
 		when(mockRestrictionInformationManager.
 				getRestrictionInformation(userInfo, restrictionInfoRqst)).
 					thenReturn(hasUnmetAccessRqmtResponse);
 		// I can no longer join
-		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false), teamManagerImpl.UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_AR);
+		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false), TeamManagerImpl.UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_AR_SELF);
 	}
 	
 	@Test
 	public void testCanAddTeamMemberOTHER() throws Exception {
 		// I can add someone else if I'm a Synapse admin
-		assertEquals(teamManagerImpl.canAddTeamMember(adminInfo, TEAM_ID, adminInfo, false), teamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
+		assertEquals(teamManagerImpl.canAddTeamMember(adminInfo, TEAM_ID, adminInfo, false), TeamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
 		
 		// I can't add someone else if they haven't requested it
 		//	 I am an admin for the team
@@ -576,31 +576,31 @@ public class TeamManagerImplTest {
 					thenReturn(noUnmetAccessRqmtResponse);
 
 		when(mockMembershipRequestDAO.getOpenByTeamAndRequesterCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(otherPrincipalId)), anyLong())).thenReturn(0L);
-		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo, false), teamManagerImpl.UNAUTHORIZED_ADD_TEAM_MEMBER_GENERIC);
+		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo, false), TeamManagerImpl.UNAUTHORIZED_ADD_TEAM_MEMBER_MUST_HAVE_REQUEST);
 		// but the check returns true if I'm already on the Team
-		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo, true), teamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
+		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo, true), TeamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
 		
 		//	 now there IS a membership request
 		when(mockMembershipRequestDAO.getOpenByTeamAndRequesterCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(otherPrincipalId)), anyLong())).thenReturn(3L);
-		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo, false), teamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
+		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo, false), TeamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
 		
 		// also, I can't add them even though there's a request if I'm not an admin on the team
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationStatus.accessDenied(""));
-		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo, false), teamManagerImpl.UNAUTHORIZED_ADD_TEAM_MEMBER_GENERIC);
+		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo, false), TeamManagerImpl.UNAUTHORIZED_ADD_TEAM_MEMBER_MUST_BE_TEAM_MANAGER);
 
 		// Test access requirements:
 		// first, the baseline
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationStatus.authorized());
-		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo, false), teamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
+		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo, false), TeamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
 		// now add unmet access requirement
 		// this is OK, since it's the one being added who must meet the access requirements
-		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo, false), teamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
+		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo, false), TeamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
 		// but this is not OK...
 		when(mockRestrictionInformationManager.
 				getRestrictionInformation(otherUserInfo, restrictionInfoRqst)).
 					thenReturn(hasUnmetAccessRqmtResponse);
 		// ...I can no longer add him
-		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo, false), teamManagerImpl.UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_AR);
+		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo, false), TeamManagerImpl.UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_AR_OTHER);
 	}
 	
 	@Test

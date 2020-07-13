@@ -124,10 +124,16 @@ public class TeamManagerImpl implements TeamManager {
 	public static final String USER_HAS_JOINED_TEAM_TEMPLATE = "message/userHasJoinedTeamTemplate.html";
 	public static final String ADMIN_HAS_ADDED_USER_TEMPLATE = "message/teamAdminHasAddedUserTemplate.html";
 	private static final String JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT = "New Member Has Joined the Team";
-	private static final String MSG_CANNOT_ADD_TEAM_MEMBER_UNMET_AR = "Cannot add member to team because they have not met all access restrictions. Please remove the pending request and then invite the member again. They will then be prompted to meet the requirement(s) before joining the team.";
-	private static final String MSG_CANNOT_ADD_TEAM_MEMBER_GENERIC = "Cannot add member to team";
-	public static final AuthorizationStatus UNAUTHORIZED_ADD_TEAM_MEMBER_GENERIC =  AuthorizationStatus.accessDenied(TeamManagerImpl.MSG_CANNOT_ADD_TEAM_MEMBER_GENERIC);
-	public static final AuthorizationStatus UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_AR =  AuthorizationStatus.accessDenied(TeamManagerImpl.MSG_CANNOT_ADD_TEAM_MEMBER_UNMET_AR);
+
+	public static final AuthorizationStatus UNAUTHORIZED_ADD_TEAM_MEMBER_MUST_BE_TEAM_MANAGER = AuthorizationStatus.accessDenied("You must be a team manager to perform this operation.");
+	public static final AuthorizationStatus UNAUTHORIZED_ADD_TEAM_MEMBER_MUST_HAVE_REQUEST = AuthorizationStatus.accessDenied("The prospective member must request to join the team.");
+	public static final AuthorizationStatus UNAUTHORIZED_ADD_TEAM_MEMBER_MUST_HAVE_INVITATION = AuthorizationStatus.accessDenied("An invitation is required to join the team.");
+	public static final AuthorizationStatus UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_AR_SELF = AuthorizationStatus.accessDenied("You can't join the team until you meet the Access Requirements");
+	private static final String MSG_CANNOT_ADD_TEAM_MEMBER_UNMET_AR = "Cannot add member to team because they have not met all access restrictions. " +
+			"Please remove the pending request and then invite the member again. " +
+			"They will then be prompted to meet the requirement(s) before joining the team.";
+	public static final AuthorizationStatus UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_AR_OTHER = AuthorizationStatus.accessDenied(MSG_CANNOT_ADD_TEAM_MEMBER_UNMET_AR);
+
 	public static final AuthorizationStatus AUTHORIZED_ADD_TEAM_MEMBER =  AuthorizationStatus.authorized();
 	
 	public void setTeamsToBootstrap(List<BootstrapTeam> teamsToBootstrap) {
@@ -484,6 +490,26 @@ public class TeamManagerImpl implements TeamManager {
 		return restrictionInformationManager.getRestrictionInformation(memberUserInfo, request).getHasUnmetAccessRequirement();
 	}
 
+	private AuthorizationStatus checkCanAddOther(String teamId, boolean amTeamAdmin, String principalId, long now) {
+		// the member to be added is someone other than me
+		if (!amTeamAdmin) return UNAUTHORIZED_ADD_TEAM_MEMBER_MUST_BE_TEAM_MANAGER; // can't add someone unless I'm a Team administrator
+		// can't add someone unless they are asking to be added
+		long openRequestCount = membershipRequestDAO.getOpenByTeamAndRequesterCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
+		return openRequestCount>0L  ? AUTHORIZED_ADD_TEAM_MEMBER : UNAUTHORIZED_ADD_TEAM_MEMBER_MUST_HAVE_REQUEST;
+	}
+
+	private AuthorizationStatus checkCanAddSelf(String teamId, boolean amTeamAdmin, String principalId, long now) {
+		// trying to add myself to Team.
+		if (amTeamAdmin) return AUTHORIZED_ADD_TEAM_MEMBER;
+		// if the team is open, I can join
+		Team team = teamDAO.get(teamId);
+		if (team.getCanPublicJoin()!=null && team.getCanPublicJoin()==true) return AUTHORIZED_ADD_TEAM_MEMBER;
+		// if I'm not a team admin and the team is not open, then I need to have an open invitation
+		long openInvitationCount = membershipInvitationDAO.getOpenByTeamAndUserCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
+		return openInvitationCount>0L ? AUTHORIZED_ADD_TEAM_MEMBER : UNAUTHORIZED_ADD_TEAM_MEMBER_MUST_HAVE_INVITATION;
+	}
+
+
 	/**
 	 * Either:
 		principalId is self and membership invitation has been extended (and not yet accepted), or
@@ -491,34 +517,36 @@ public class TeamManagerImpl implements TeamManager {
     	have MEMBERSHIP permission on Team and membership request has been created (but not yet accepted) for principalId
 	 * @param userInfo
 	 * @param teamId the ID of the team
-	 * @param principalId the ID of the one to be added to the team
 	 * @return
 	 */
 	public AuthorizationStatus canAddTeamMember(UserInfo userInfo, String teamId, UserInfo principalUserInfo, boolean alreadyInTeam) throws NotFoundException {
+		// admin can always accept membership
 		if (userInfo.isAdmin()) return AUTHORIZED_ADD_TEAM_MEMBER;
-		if (hasUnmetAccessRequirements(principalUserInfo, teamId)) return UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_AR;
+		if (alreadyInTeam) return AUTHORIZED_ADD_TEAM_MEMBER;
+
 		String principalId = principalUserInfo.getId().toString();
-		boolean principalIsSelf = userInfo.getId().toString().equals(principalId);
+		boolean principalIsSelf = userInfo.equals(principalUserInfo);
 		boolean amTeamAdmin = authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).isAuthorized();
 		long now = System.currentTimeMillis();
+		AuthorizationStatus hasInviteOrRequestToJoin = null;
 		if (principalIsSelf) {
-			// trying to add myself to Team.  
-			if (amTeamAdmin) return AUTHORIZED_ADD_TEAM_MEMBER;
-			// if the team is open, I can join
-			Team team = teamDAO.get(teamId);
-			if (team.getCanPublicJoin()!=null && team.getCanPublicJoin()==true) return AUTHORIZED_ADD_TEAM_MEMBER;
-			// if I'm not a team admin and the team is not open, then I need to have an open invitation
-			if (alreadyInTeam) return AUTHORIZED_ADD_TEAM_MEMBER;
-			long openInvitationCount = membershipInvitationDAO.getOpenByTeamAndUserCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
-			return openInvitationCount>0L ? AUTHORIZED_ADD_TEAM_MEMBER : UNAUTHORIZED_ADD_TEAM_MEMBER_GENERIC;
+			// check that principalUserInfo has an invitation to this team or that this team is public
+			hasInviteOrRequestToJoin = this.checkCanAddSelf(teamId, amTeamAdmin, principalId, now);
 		} else {
-			// the member to be added is someone other than me
-			if (!amTeamAdmin) return UNAUTHORIZED_ADD_TEAM_MEMBER_GENERIC; // can't add someone unless I'm a Team administrator
-			// can't add someone unless they are asking to be added
-			if (alreadyInTeam) return AUTHORIZED_ADD_TEAM_MEMBER;
-			long openRequestCount = membershipRequestDAO.getOpenByTeamAndRequesterCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
-			return openRequestCount>0L  ? AUTHORIZED_ADD_TEAM_MEMBER : UNAUTHORIZED_ADD_TEAM_MEMBER_GENERIC;
+			// check that principalUserInfo has requested to join this team
+			hasInviteOrRequestToJoin = this.checkCanAddOther(teamId, amTeamAdmin, principalId, now);
 		}
+		if (!hasInviteOrRequestToJoin.isAuthorized()) {
+			return hasInviteOrRequestToJoin;
+		}
+		if (hasUnmetAccessRequirements(principalUserInfo, teamId)) {
+			if (userInfo.equals(principalUserInfo)) {
+				return  UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_AR_SELF;
+			} else {
+				return  UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_AR_OTHER;
+			}
+		};
+		return AUTHORIZED_ADD_TEAM_MEMBER;
 	}
 	
 	@Override
@@ -583,7 +611,7 @@ public class TeamManagerImpl implements TeamManager {
 		Set<Long> currentMembers = groupMembersDAO.getMemberIdsForUpdate(Long.valueOf(teamId));
 		boolean alreadyInTeam = currentMembers.contains(principalUserInfo.getId());
 		AuthorizationStatus canAddTeamMemberStatus = canAddTeamMember(userInfo, teamId, principalUserInfo, alreadyInTeam);
-		if (!canAddTeamMemberStatus.isAuthorized()) throw new UnauthorizedException(canAddTeamMemberStatus.getMessage());
+		canAddTeamMemberStatus.checkAuthorizationOrElseThrow();
 
 		if (!alreadyInTeam) {
 			groupMembersDAO.addMembers(teamId, Collections.singletonList(principalId));
