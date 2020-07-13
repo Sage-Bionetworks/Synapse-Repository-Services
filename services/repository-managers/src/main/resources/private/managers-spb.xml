@@ -36,8 +36,6 @@
 	<bean id="CloudMailInManager" class="org.sagebionetworks.repo.manager.CloudMailInManagerImpl" />
 	
 	<bean id="dockerManager" class="org.sagebionetworks.repo.manager.DockerManagerImpl" />
-	
-	<bean id="httpClient" class="org.sagebionetworks.repo.manager.http.HttpClientImpl" />
 
 	<bean id="companyClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.CompanyClaimProvider"/>
 	<bean id="emailClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.EmailClaimProvider"/>
