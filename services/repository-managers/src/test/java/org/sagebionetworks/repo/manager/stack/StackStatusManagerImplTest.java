@@ -1,15 +1,17 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.manager.stack;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -17,9 +19,9 @@ import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class StackStatusManagerImplTest {
 	
@@ -31,7 +33,7 @@ public class StackStatusManagerImplTest {
 	
 	private UserInfo testUserInfo;
 	
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
@@ -39,7 +41,7 @@ public class StackStatusManagerImplTest {
 		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		userManager.deletePrincipal(adminUserInfo, testUserInfo.getId());
@@ -52,11 +54,16 @@ public class StackStatusManagerImplTest {
 		assertEquals(StatusEnum.READ_WRITE, status.getStatus());
 	}
 	
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testNonAdminUpdate() throws Exception {
 		// Only an admin can change the status
 		StackStatus status = stackStatusManager.getCurrentStatus();
-		stackStatusManager.updateStatus(testUserInfo, status);
+		
+		String errorMessage = assertThrows(UnauthorizedException.class, () -> {			
+			stackStatusManager.updateStatus(testUserInfo, status);
+		}).getMessage();
+		
+		assertEquals("Must be an administrator to change the status of the stack", errorMessage);
 	}
 	
 	@Test 

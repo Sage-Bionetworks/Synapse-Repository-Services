@@ -1,10 +1,11 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.manager.stack;
 
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * The manager for the stack status.
@@ -12,10 +13,15 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author jmhill
  *
  */
+@Service
 public class StackStatusManagerImpl implements StackStatusManager {
+
+	private StackStatusDao stackStatusDao;
 	
 	@Autowired
-	StackStatusDao stackStatusDao;
+	public StackStatusManagerImpl(final StackStatusDao stackStatusDao) {
+		this.stackStatusDao = stackStatusDao;
+	}
 
 	@Override
 	public StackStatus getCurrentStatus() {
