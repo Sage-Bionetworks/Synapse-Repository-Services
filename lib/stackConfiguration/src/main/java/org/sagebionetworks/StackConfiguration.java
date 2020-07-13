@@ -824,4 +824,9 @@ public interface StackConfiguration {
 	 */
 	String getServiceAuthSecret(String serviceName);
 	
+	/**
+	 * @return The configured endpoint for the repository services prod stack
+	 */
+	String getRepositoryServiceProdEndpoint();
+	
 }
