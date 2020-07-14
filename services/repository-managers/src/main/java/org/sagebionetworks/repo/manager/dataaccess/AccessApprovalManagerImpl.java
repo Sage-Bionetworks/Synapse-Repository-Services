@@ -1,10 +1,11 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.manager.dataaccess;
 
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -31,9 +32,11 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import com.google.common.collect.Sets;
 
+@Service
 public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	public static final Long DEFAULT_LIMIT = 50L;
 	public static final Long MAX_LIMIT = 50L;

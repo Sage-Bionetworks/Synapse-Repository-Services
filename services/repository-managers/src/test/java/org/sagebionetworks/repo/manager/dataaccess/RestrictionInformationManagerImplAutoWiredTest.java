@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.manager.dataaccess;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -12,6 +12,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManager;
+import org.sagebionetworks.repo.manager.dataaccess.RestrictionInformationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;

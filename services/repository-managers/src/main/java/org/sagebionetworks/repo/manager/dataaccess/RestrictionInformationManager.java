@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.manager.dataaccess;
 
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;

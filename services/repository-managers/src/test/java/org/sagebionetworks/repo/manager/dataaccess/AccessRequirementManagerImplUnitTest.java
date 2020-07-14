@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.manager.dataaccess;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -12,8 +12,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.manager.AccessRequirementManagerImpl.DEFAULT_LIMIT;
-import static org.sagebionetworks.repo.manager.AccessRequirementManagerImpl.DEFAULT_OFFSET;
+import static org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManagerImpl.DEFAULT_LIMIT;
+import static org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManagerImpl.DEFAULT_OFFSET;
 
 import java.time.Period;
 import java.time.temporal.ChronoUnit;
@@ -38,6 +38,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;

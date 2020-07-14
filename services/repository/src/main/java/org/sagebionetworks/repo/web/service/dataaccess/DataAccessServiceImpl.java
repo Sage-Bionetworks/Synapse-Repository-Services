@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.web.service.dataaccess;
 
-import org.sagebionetworks.repo.manager.RestrictionInformationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.dataaccess.RequestManager;
 import org.sagebionetworks.repo.manager.dataaccess.ResearchProjectManager;
+import org.sagebionetworks.repo.manager.dataaccess.RestrictionInformationManager;
 import org.sagebionetworks.repo.manager.dataaccess.SubmissionManager;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
