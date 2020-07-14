@@ -19,7 +19,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
-import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.SelfSignAccessRequirementInterface;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -46,8 +45,6 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	private AccessApprovalDAO accessApprovalDAO;
 	@Autowired
 	private AuthorizationManager authorizationManager;
-	@Autowired
-	private NodeDAO nodeDao;
 
 	public static void populateCreationFields(UserInfo userInfo, AccessApproval a) {
 		Date now = new Date();
