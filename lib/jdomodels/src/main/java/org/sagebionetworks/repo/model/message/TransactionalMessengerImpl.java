@@ -86,8 +86,11 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	@WriteTransaction
 	@Override
 	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, ChangeType changeType) {
-		Long userId = null;
-		sendMessageAfterCommit(objectId, objectType, etag, changeType, userId);
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(changeType);
+		message.setObjectType(objectType);
+		message.setObjectId(objectId);
+		sendMessageAfterCommit(message);
 	}
 	
 	@WriteTransaction
@@ -109,18 +112,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 			message.setUserId(currentUserIdThreadLocal.get());
 		}
 		appendToBoundMessages(message);
-	}
-
-
-	@WriteTransaction
-	@Override
-	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, ChangeType changeType, Long userId) {
-		ChangeMessage message = new ChangeMessage();
-		message.setChangeType(changeType);
-		message.setObjectType(objectType);
-		message.setObjectId(objectId);
-		message.setUserId(userId);
-		sendMessageAfterCommit(message);
 	}
 	
 	@WriteTransaction

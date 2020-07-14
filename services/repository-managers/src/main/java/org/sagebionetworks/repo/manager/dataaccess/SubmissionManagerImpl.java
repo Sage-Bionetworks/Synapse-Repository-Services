@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.sagebionetworks.repo.manager.AccessRequirementManagerImpl;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -30,12 +29,10 @@ import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
-import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfo;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPageRequest;
-import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
@@ -44,6 +41,7 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -91,8 +89,15 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		prepareCreationFields(userInfo, submissionToCreate);
 		SubmissionStatus status = submissionDao.createSubmission(submissionToCreate);
 		subscriptionDao.create(userInfo.getId().toString(), status.getSubmissionId(), SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS);
-		transactionalMessenger.sendMessageAfterCommit(status.getSubmissionId(),
-				ObjectType.DATA_ACCESS_SUBMISSION, UUID.randomUUID().toString(), ChangeType.CREATE, userInfo.getId());
+
+		MessageToSend changeMessage = new MessageToSend()
+				.withUserId(userInfo.getId())
+				.withObjectType(ObjectType.DATA_ACCESS_SUBMISSION)
+				.withObjectId(status.getSubmissionId())
+				.withChangeType(ChangeType.CREATE);
+		
+		transactionalMessenger.sendMessageAfterCommit(changeMessage);
+		
 		return status;
 	}
 
@@ -246,7 +251,15 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		submission = submissionDao.updateSubmissionStatus(request.getSubmissionId(),
 				request.getNewState(), request.getRejectedReason(), userInfo.getId().toString(),
 				System.currentTimeMillis());
-		transactionalMessenger.sendMessageAfterCommit(submission.getId(), ObjectType.DATA_ACCESS_SUBMISSION_STATUS, submission.getEtag(), ChangeType.UPDATE, userInfo.getId());
+		
+		MessageToSend changeMessage = new MessageToSend()
+				.withUserId(userInfo.getId())
+				.withObjectType(ObjectType.DATA_ACCESS_SUBMISSION_STATUS)
+				.withObjectId(submission.getId())
+				.withChangeType(ChangeType.UPDATE);
+		
+		transactionalMessenger.sendMessageAfterCommit(changeMessage);
+		
 		return submission;
 	}
 
