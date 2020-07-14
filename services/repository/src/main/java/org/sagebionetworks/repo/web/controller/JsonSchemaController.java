@@ -165,7 +165,7 @@ public class JsonSchemaController {
 	 * @param acl    The updated ACL.
 	 * @return
 	 */
-	@RequiredScope({ view, modify, authorize })
+	@RequiredScope({ view, modify })
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION_ID_ACL }, method = RequestMethod.PUT)
 	public @ResponseBody AccessControlList updateOrganizationAcl(

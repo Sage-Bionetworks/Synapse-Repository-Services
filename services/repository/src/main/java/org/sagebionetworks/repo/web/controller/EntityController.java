@@ -885,7 +885,7 @@ public class EntityController {
 	 *                                    header.
 	 * @throws ConflictingUpdateException
 	 */
-	@RequiredScope({ view, modify, authorize })
+	@RequiredScope({ view, modify })
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_ACL }, method = RequestMethod.POST)
 	public @ResponseBody AccessControlList createEntityAcl(@PathVariable String id,
@@ -943,7 +943,7 @@ public class EntityController {
 	 * @throws UnauthorizedException
 	 * @throws ConflictingUpdateException
 	 */
-	@RequiredScope({ view, modify, authorize })
+	@RequiredScope({ view, modify })
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_ACL }, method = RequestMethod.PUT)
 	public @ResponseBody AccessControlList updateEntityAcl(@PathVariable String id,
@@ -990,7 +990,7 @@ public class EntityController {
 	 * @throws UnauthorizedException
 	 * @throws ConflictingUpdateException
 	 */
-	@RequiredScope({ modify, authorize })
+	@RequiredScope({ modify })
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_ACL }, method = RequestMethod.DELETE)
 	public void deleteEntityACL(@PathVariable String id,
