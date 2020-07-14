@@ -134,7 +134,6 @@ public class PersonalAccessTokenDaoImpl implements PersonalAccessTokenDao {
 		ValidateArgument.required(metadata.getScopes(), "Scope");
 		ValidateArgument.required(metadata.getUserInfoClaims(), "Claims");
 		ValidateArgument.required(metadata.getCreatedOn(), "Created On");
-		ValidateArgument.required(metadata.getLastUsed(), "Last Used");
 		metadata.setId(idGenerator.generateNewId(IdType.PERSONAL_ACCESS_TOKEN_ID).toString());
 		DBOPersonalAccessToken dbo = personalAccessTokenDtoToDbo(metadata, userId);
 		basicDao.createNew(dbo);
