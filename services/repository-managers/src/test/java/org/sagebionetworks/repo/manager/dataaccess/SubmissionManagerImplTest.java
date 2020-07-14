@@ -71,11 +71,11 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
@@ -419,8 +419,15 @@ public class SubmissionManagerImplTest {
 		assertEquals(summaryOfUse, captured.getSummaryOfUse());
 		assertEquals(SubmissionState.SUBMITTED, captured.getState());
 		verify(mockSubscriptionDao).create(userId, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(eq(submissionId),
-				eq(ObjectType.DATA_ACCESS_SUBMISSION), anyString(), eq(ChangeType.CREATE), eq(userIdLong));
+		
+		MessageToSend expectedMessage = new MessageToSend()
+				.withUserId(userIdLong)
+				.withObjectType(ObjectType.DATA_ACCESS_SUBMISSION)
+				.withObjectId(submissionId)
+				.withChangeType(ChangeType.CREATE);
+		
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(expectedMessage);
+		
 		verify(mockAuthorizationManager).validateHasAccessorRequirement(mockAccessRequirement, accessorIds);
 	}
 
@@ -455,8 +462,14 @@ public class SubmissionManagerImplTest {
 		assertNull(captured.getSummaryOfUse());
 		assertEquals(SubmissionState.SUBMITTED, captured.getState());
 		verify(mockSubscriptionDao).create(userId, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(eq(submissionId),
-				eq(ObjectType.DATA_ACCESS_SUBMISSION), anyString(), eq(ChangeType.CREATE), eq(userIdLong));
+		
+		MessageToSend expectedMessage = new MessageToSend()
+				.withUserId(userIdLong)
+				.withObjectType(ObjectType.DATA_ACCESS_SUBMISSION)
+				.withObjectId(submissionId)
+				.withChangeType(ChangeType.CREATE);
+		
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(expectedMessage);
 	}
 
 	@Test
@@ -678,7 +691,14 @@ public class SubmissionManagerImplTest {
 				anyLong())).thenReturn(submission);
 		// call under test
 		assertEquals(submission, manager.updateStatus(mockUser, request));
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(submissionId, ObjectType.DATA_ACCESS_SUBMISSION_STATUS, etag, ChangeType.UPDATE, userIdLong);
+		
+		MessageToSend expectedMessage = new MessageToSend()
+				.withUserId(userIdLong)
+				.withObjectType(ObjectType.DATA_ACCESS_SUBMISSION_STATUS)
+				.withObjectId(submissionId)
+				.withChangeType(ChangeType.UPDATE);
+		
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(expectedMessage);
 		verify(mockRequestManager, never()).updateApprovedRequest(anyString());
 	}
 
@@ -740,8 +760,14 @@ public class SubmissionManagerImplTest {
 		assertNull(approval3.getExpiredOn());
 		assertEquals(approval3.getState(), ApprovalState.APPROVED);
 		assertEquals(accessRequirementId, approval3.getRequirementId().toString());
+		
+		MessageToSend expectedMessage = new MessageToSend()
+				.withUserId(userIdLong)
+				.withObjectType(ObjectType.DATA_ACCESS_SUBMISSION_STATUS)
+				.withObjectId(submissionId)
+				.withChangeType(ChangeType.UPDATE);
 
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(submissionId, ObjectType.DATA_ACCESS_SUBMISSION_STATUS, etag, ChangeType.UPDATE, userIdLong);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(expectedMessage);
 		verify(mockRequestManager).updateApprovedRequest(requestId);
 	}
 
@@ -783,8 +809,14 @@ public class SubmissionManagerImplTest {
 		assertNotNull(approval.getExpiredOn());
 		assertEquals(approval.getState(), ApprovalState.APPROVED);
 		assertEquals(accessRequirementId, approval.getRequirementId().toString());
+		
+		MessageToSend expectedMessage = new MessageToSend()
+				.withUserId(userIdLong)
+				.withObjectType(ObjectType.DATA_ACCESS_SUBMISSION_STATUS)
+				.withObjectId(submissionId)
+				.withChangeType(ChangeType.UPDATE);
 
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(submissionId, ObjectType.DATA_ACCESS_SUBMISSION_STATUS, etag, ChangeType.UPDATE, userIdLong);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(expectedMessage);
 		verify(mockRequestManager).updateApprovedRequest(requestId);
 	}
 
