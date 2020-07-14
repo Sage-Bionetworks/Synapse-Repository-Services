@@ -160,4 +160,14 @@ public class StackConfigurationImplUnitTest {
 		
 		verify(stackEncrypter).getDecryptedProperty("org.sagebionetworks." + StackConfiguration.SERVICE_DOCKER_REGISTRY + ".auth.secret");
 	}
+	
+	@Test
+	public void testGetRepositoryServiceProdEndpoint() {
+		
+		// Call under test
+		config.getRepositoryServiceProdEndpoint();
+		
+		verify(mockProperties).getProperty("org.sagebionetworks.repositoryservice.endpoint.prod");
+		
+	}
 }

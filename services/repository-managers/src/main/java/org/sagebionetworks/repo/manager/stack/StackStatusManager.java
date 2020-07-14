@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.manager.stack;
 
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -15,7 +15,7 @@ public interface StackStatusManager {
 	 * Get the current stack status.
 	 * @return
 	 */
-	public StackStatus getCurrentStatus();
+	StackStatus getCurrentStatus();
 	
 	/**
 	 * Update the stack status.
@@ -23,6 +23,6 @@ public interface StackStatusManager {
 	 * @param updated
 	 * @throws UnauthorizedException 
 	 */
-	public StackStatus updateStatus(UserInfo username, StackStatus updated) throws UnauthorizedException;
+	StackStatus updateStatus(UserInfo username, StackStatus updated) throws UnauthorizedException;
 
 }

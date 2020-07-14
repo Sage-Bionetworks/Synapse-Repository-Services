@@ -1216,4 +1216,9 @@ public class StackConfigurationImpl implements StackConfiguration {
 	public String getServiceAuthSecret(String serviceName) {
 		return stackEncrypter.getDecryptedProperty(String.format(SERVICE_AUTH_TEMPLATE, serviceName, "secret"));
 	}
+	
+	@Override
+	public String getRepositoryServiceProdEndpoint() {
+		return configuration.getProperty("org.sagebionetworks.repositoryservice.endpoint.prod");
+	}
 }
