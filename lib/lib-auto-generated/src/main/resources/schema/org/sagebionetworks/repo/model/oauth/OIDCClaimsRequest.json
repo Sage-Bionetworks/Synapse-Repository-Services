@@ -4,7 +4,7 @@
  	"properties": {
 		"userinfo":{
 			"type": "map",
-			"description":"",
+			"description":"The OIDC Claims that can be accessed by making a request to the userinfo endpoint",
 			"key": {
 				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimName"
 			},
@@ -14,7 +14,7 @@
 		},
 		"id_token": {
 			"type": "map",
-			"description":"",
+			"description":"The OIDC Claims that will be provided via an ID token by making a request to the token endpoint.",
 			"key": {
 				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimName"
 			},

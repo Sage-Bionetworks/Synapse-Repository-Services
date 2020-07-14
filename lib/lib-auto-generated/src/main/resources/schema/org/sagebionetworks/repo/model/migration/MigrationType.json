@@ -379,6 +379,10 @@
 			"description": "Hash and metadata of a refresh token issued to an OAuth client"
 		},
 		{
+			"name": "PERSONAL_ACCESS_TOKEN",
+			"description": "Metadata for user-issued access tokens"
+		},
+		{
 			"name": "AUTHORIZATION_GRANT",
 			"description": "Record of user grant of OAuth authorization"
 		},

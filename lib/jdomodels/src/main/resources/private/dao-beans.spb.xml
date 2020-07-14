@@ -48,6 +48,10 @@
 		  class="org.sagebionetworks.repo.model.dbo.auth.OAuthRefreshTokenDaoImpl"
 		  depends-on="idGenerator" />
 
+	<bean id="personalAccessTokenDao"
+		  class="org.sagebionetworks.repo.model.dbo.auth.PersonalAccessTokenDaoImpl"
+		  depends-on="idGenerator" />
+
 	<bean id="fileHandleDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOFileHandleDaoImpl" />
 		
