@@ -28,6 +28,12 @@ public interface PersonalAccessTokenDao {
 	AccessTokenRecordList getTokenRecords(String userId, String nextPageToken);
 
 	/**
+	 * Set the "last used" time for a token to the current time.
+	 * @param tokenId
+	 */
+	void updateLastUsed(String tokenId);
+
+	/**
 	 * Deletes a token record by its unique token ID. This effectively revokes the token.
 	 * @param tokenId
 	 */

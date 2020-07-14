@@ -36,6 +36,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 public class PersonalAccessTokenDaoImpl implements PersonalAccessTokenDao {
 
 	private static final String PARAM_TOKEN_ID = "id";
+	private static final String PARAM_LAST_USED = "lastUsed";
 	private static final String PARAM_PRINCIPAL_ID = "principalId";
 	private static final String PARAM_LIMIT = "limitParam";
 	private static final String PARAM_OFFSET = "offsetParam";
@@ -48,6 +49,12 @@ public class PersonalAccessTokenDaoImpl implements PersonalAccessTokenDao {
 
 	private static final String DELETE_TOKEN_BY_ID = "DELETE FROM " + TABLE_PERSONAL_ACCESS_TOKEN
 			+ " WHERE " + COL_PERSONAL_ACCESS_TOKEN_ID + " = :" + PARAM_TOKEN_ID;
+
+	private static final String UPDATE_LAST_USED = "UPDATE " + TABLE_PERSONAL_ACCESS_TOKEN+
+			" SET "+
+			COL_PERSONAL_ACCESS_TOKEN_LAST_USED+" = :" + PARAM_LAST_USED +
+			" WHERE "+ COL_PERSONAL_ACCESS_TOKEN_ID+" = :" + PARAM_TOKEN_ID;
+
 
 	/*
 	 * We use a JOIN because
@@ -150,6 +157,17 @@ public class PersonalAccessTokenDaoImpl implements PersonalAccessTokenDao {
 				tokenDbos.stream().map(PersonalAccessTokenDaoImpl::personalAccessTokenDboToDto).collect(Collectors.toList())
 		);
 		return result;
+	}
+
+	@WriteTransaction
+	@Override
+	public void updateLastUsed(String tokenId) {
+		Date now = new Date();
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(PARAM_TOKEN_ID, tokenId);
+		params.addValue(PARAM_LAST_USED, now);
+
+		namedParameterJdbcTemplate.update(UPDATE_LAST_USED, params);
 	}
 
 	@WriteTransaction

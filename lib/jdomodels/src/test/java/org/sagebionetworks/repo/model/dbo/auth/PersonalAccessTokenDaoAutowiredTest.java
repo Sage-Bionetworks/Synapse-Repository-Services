@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -155,6 +156,16 @@ public class PersonalAccessTokenDaoAutowiredTest {
 		assertThrows(NotFoundException.class, () -> personalAccessTokenDao.getTokenRecord(retrieved.getId()));
 	}
 
+	@Test
+	void testUpdateLastUsed() {
+		AccessTokenRecord tokenRecord = createTokenRecord(userId, new Date(System.currentTimeMillis() - ONE_HOUR_MILLIS));
+
+		// method under test
+		personalAccessTokenDao.updateLastUsed(tokenRecord.getId());
+
+		AccessTokenRecord updated = personalAccessTokenDao.getTokenRecord(tokenRecord.getId());
+		assertTrue(updated.getLastUsed().getTime() >= tokenRecord.getLastUsed().getTime());
+	}
 
 	@Test
 	void testGetTokensPaginated() {
