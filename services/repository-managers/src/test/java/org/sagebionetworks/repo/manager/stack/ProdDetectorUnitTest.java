@@ -83,7 +83,11 @@ public class ProdDetectorUnitTest {
 		SimpleHttpRequest expectedRequest = new SimpleHttpRequest();
 
 		expectedRequest.setUri(PROD_VERSION_ENDPOINT);
-		expectedRequest.setHeaders(ImmutableMap.of("Accept", "application/json", "Cache-Control", "no-cache"));
+		expectedRequest.setHeaders(ImmutableMap.of(
+				"User-Agent", "SynapseRepositoryStack/" + CURRENT_VERSION,
+				"Accept", "application/json", 
+				"Cache-Control", "no-cache")
+		);
 
 		// Call under test
 		Optional<SimpleHttpResponse> result = prodDetector.sendVersionRequest();
