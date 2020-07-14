@@ -10,8 +10,11 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.download;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -24,6 +27,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.oauth.ClaimsJsonUtil;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DockerCommitDao;
 import org.sagebionetworks.repo.model.DockerNodeDao;
@@ -44,6 +49,13 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.util.DockerRegistryEventUtil;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import com.google.common.collect.ImmutableList;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwt;
+import io.jsonwebtoken.Jwts;
 
 
 @RunWith(MockitoJUnitRunner.class)
@@ -71,6 +83,8 @@ public class DockerManagerImplUnitTest {
 	
 	private static final String MEDIA_TYPE = DockerManagerImpl.MANIFEST_MEDIA_TYPE;
 	
+	private static final String OAUTH_ACCESS_TOKEN = "access token";
+	
 	@InjectMocks
 	private DockerManagerImpl dockerManager;
 	
@@ -94,6 +108,12 @@ public class DockerManagerImplUnitTest {
 	
 	@Mock
 	private TransactionalMessenger transactionalMessenger;
+	
+	@Mock
+	private OIDCTokenHelper oidcTokenHelper;
+	
+	@Mock
+	private Jwt<JwsHeader,Claims> mockJwt;
 
 	@Before
 	public void before() throws Exception {
@@ -116,16 +136,22 @@ public class DockerManagerImplUnitTest {
 				thenReturn(AuthorizationStatus.authorized());
 		
 		when(entityManager.createEntity(any(), any(), any())).thenReturn(REPO_ENTITY_ID);
+		
+		Claims claims = Jwts.claims();		
+		ClaimsJsonUtil.addAccessClaims(ImmutableList.of(download,modify), Collections.EMPTY_MAP, claims);
+		when(mockJwt.getBody()).thenReturn(claims);
+		
+		when(oidcTokenHelper.parseJWT(OAUTH_ACCESS_TOKEN)).thenReturn(mockJwt);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testAuthorizeDockerAccessNullUserInfo() throws Exception{
-		dockerManager.authorizeDockerAccess(null, SERVICE, new ArrayList<String>());
+		dockerManager.authorizeDockerAccess(null, OAUTH_ACCESS_TOKEN, SERVICE, new ArrayList<String>());
 	}
 	
 	@Test (expected = IllegalArgumentException.class)
 	public void testAuthorizeDockerAccessNullService() throws Exception{
-		dockerManager.authorizeDockerAccess(USER_INFO, null, new ArrayList<String>());
+		dockerManager.authorizeDockerAccess(USER_INFO, OAUTH_ACCESS_TOKEN, null, new ArrayList<String>());
 	}
 	
 	@Test
@@ -135,7 +161,7 @@ public class DockerManagerImplUnitTest {
 		
 		// method under test:
 		DockerAuthorizationToken token = dockerManager.
-				authorizeDockerAccess(USER_INFO, SERVICE, scope);
+				authorizeDockerAccess(USER_INFO, OAUTH_ACCESS_TOKEN, SERVICE, scope);
 		
 		assertNotNull(token.getToken());
 	}
@@ -147,7 +173,7 @@ public class DockerManagerImplUnitTest {
 		
 		// method under test:
 		DockerAuthorizationToken token = dockerManager.
-				authorizeDockerAccess(USER_INFO, SERVICE, scope);
+				authorizeDockerAccess(USER_INFO, OAUTH_ACCESS_TOKEN, SERVICE, scope);
 		
 		assertNotNull(token.getToken());
 	}
@@ -157,7 +183,7 @@ public class DockerManagerImplUnitTest {
 	public void testDockerLogin() throws Exception {
 		// method under test:
 		DockerAuthorizationToken token = dockerManager.
-				authorizeDockerAccess(USER_INFO, SERVICE, null);
+				authorizeDockerAccess(USER_INFO, OAUTH_ACCESS_TOKEN, SERVICE, null);
 		
 		assertNotNull(token.getToken());
 	}

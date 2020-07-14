@@ -30,10 +30,10 @@ public class DockerServiceImpl implements DockerService {
 	private static final Logger log = LogManager.getLogger(DockerServiceImpl.class);
 
 	@Override
-	public DockerAuthorizationToken authorizeDockerAccess(Long userId,
+	public DockerAuthorizationToken authorizeDockerAccess(Long userId, String accessToken, 
 			String service, List<String> scopes) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return dockerManager.authorizeDockerAccess(userInfo, service, scopes);
+		return dockerManager.authorizeDockerAccess(userInfo, accessToken, service, scopes);
 	}
 
 	@Override

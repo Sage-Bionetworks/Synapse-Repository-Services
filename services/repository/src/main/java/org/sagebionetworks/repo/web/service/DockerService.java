@@ -15,11 +15,12 @@ public interface DockerService {
 	 * Answer Docker Registry authorization request.
 	 * 
 	 * @param userId
+	 * @param accessToken
 	 * @param service
 	 * @param scope
 	 * @return
 	 */
-	public DockerAuthorizationToken authorizeDockerAccess(Long userId, String service, List<String> scopes);
+	public DockerAuthorizationToken authorizeDockerAccess(Long userId, String accessToken, String service, List<String> scopes);
 	
 	/**
 	 * 
