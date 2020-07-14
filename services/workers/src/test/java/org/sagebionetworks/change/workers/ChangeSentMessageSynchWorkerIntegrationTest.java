@@ -139,16 +139,6 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 		waitForSynchState();
 	}
 	
-	@Ignore // this is a long running test that does not always need to be run.
-	@Test
-	public void testMissingMultipleTimes() throws InterruptedException{
-		// Now matter how many times we run the testMissing test it should still pass
-		for(int i=0; i<100; i++){
-			System.out.println("Run: "+i);
-			testMissing();
-		}
-	}
-	
 	@Test
 	public void testGetChangeSynchWorkerSleepTimeMS(){
 		long sleepMS = configuration.getChangeSynchWorkerSleepTimeMS();

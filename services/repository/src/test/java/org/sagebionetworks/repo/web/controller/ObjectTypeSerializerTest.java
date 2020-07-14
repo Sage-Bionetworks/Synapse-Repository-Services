@@ -15,7 +15,6 @@ import java.util.List;
 
 import org.json.JSONException;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -24,22 +23,20 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 
-public class ObjectTypeSerializerTest extends AbstractAutowiredControllerTestBase {
+public class ObjectTypeSerializerTest { 
 	
-	MediaType mediaType = new MediaType("application", "json", Charset.forName("UTF-8"));
+	private static final MediaType MEDIA_TYPE = new MediaType("application", "json", Charset.forName("UTF-8"));
 	
-	@Autowired
 	ObjectTypeSerializer objectTypeSerializer;
 	
 	@Before
 	public void before(){
-		assertNotNull(objectTypeSerializer);
+		objectTypeSerializer = new ObjectTypeSerializerImpl();
 	}
 	
 	@Test
@@ -63,7 +60,7 @@ public class ObjectTypeSerializerTest extends AbstractAutowiredControllerTestBas
 		assertNotNull(clone);
 		assertEquals(project, clone);
 	}
-	@Ignore
+	
 	@Test
 	public void testXML(){
 		// Try a few objects
@@ -112,7 +109,7 @@ public class ObjectTypeSerializerTest extends AbstractAutowiredControllerTestBas
 			}
 		};
 		// Write this to the stream
-		objectTypeSerializer.write(project, mediaType, message);
+		objectTypeSerializer.write(project, MEDIA_TYPE, message);
 		String outString = new String(out.toByteArray(), Charset.forName("UTF-8"));
 		System.out.println(outString);
 		assertFalse("The resulting JSON should not contain the schema",outString.indexOf("jsonschema") > -1);
@@ -143,7 +140,7 @@ public class ObjectTypeSerializerTest extends AbstractAutowiredControllerTestBas
 			}
 		};
 		// Write this to the stream
-		objectTypeSerializer.write(path, mediaType, message);
+		objectTypeSerializer.write(path, MEDIA_TYPE, message);
 		String outString = new String(out.toByteArray(), Charset.forName("UTF-8"));
 		System.out.println(outString);
 		assertFalse("The resulting JSON should not contain the schema",outString.indexOf("jsonschema") > -1);
@@ -174,7 +171,7 @@ public class ObjectTypeSerializerTest extends AbstractAutowiredControllerTestBas
 			}
 		};
 		// Write this to the stream
-		objectTypeSerializer.write(paged, mediaType, message);
+		objectTypeSerializer.write(paged, MEDIA_TYPE, message);
 		String outString = new String(out.toByteArray(), Charset.forName("UTF-8"));
 		System.out.println(outString);
 		assertFalse("The resulting JSON should not contain the schema",outString.indexOf("jsonschema") > -1);

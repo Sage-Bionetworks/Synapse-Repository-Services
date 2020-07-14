@@ -370,15 +370,6 @@ public class QueryParserTest {
 	/**
 	 * @throws Exception
 	 */
-	@Ignore
-	@Test(expected = ParseException.class)
-	public void testMisspelledSortDirection() throws Exception {
-		queryShouldFail("select * from dataset order by creationDate dsc", null);
-	}
-
-	/**
-	 * @throws Exception
-	 */
 	@Test(expected = IllegalArgumentException.class)
 	public void testBadLimit() throws Exception {
 		queryShouldFail("select * from dataset limit 0",
@@ -393,17 +384,6 @@ public class QueryParserTest {
 
 		queryShouldFail("select * from layer where type == \"C", 
 				"TokenMgrError: Lexical error at line 1, column 37.  Encountered: <EOF> after : \"\\\"C\"");
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	@Ignore
-	@Test(expected = ParseException.class)
-	public void testExtraStuffAtTheEnd() throws Exception {
-		queryShouldFail(
-				"select * from dataset where Species == \"Human\" order by name desc limit 10 offset 1 this is extra stuff",
-				null);
 	}
 
 	private void queryShouldFail(String query, String expectedErrorMessage)
