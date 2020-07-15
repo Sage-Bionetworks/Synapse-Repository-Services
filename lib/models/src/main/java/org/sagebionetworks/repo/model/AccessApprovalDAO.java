@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -129,4 +130,22 @@ public interface AccessApprovalDAO {
 	 * @return
 	 */
 	public Set<String> getRequirementsUserHasApprovals(String userId, List<String> accessRequirementIds);
+	
+	/**
+	 * Fetch the list of expired approval ids
+	 * 
+	 * @param expiredAfter Minimum expiration date
+	 * @param limit Maximum number of approval to fetch
+	 * @return The list of approval ids that are expired
+	 */
+	List<Long> listExpiredApprovals(Instant expiredAfter, int limit);
+
+	/**
+	 * Revokes the given batch of ids
+	 * 
+	 * @param userId The id of the user revoking access
+	 * @param ids The list of access approval ids to revoke
+	 * @return The list of ids of the revoked access approvals
+	 */
+	List<Long> revokeBatch(Long userId, List<Long> ids);
 }

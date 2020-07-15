@@ -1,23 +1,25 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -27,19 +29,17 @@ import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.Sets;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOAccessApprovalDAOImplTest {
 
@@ -67,7 +67,7 @@ public class DBOAccessApprovalDAOImplTest {
 	private List<ACCESS_TYPE> downloadAccessType=null;
 	private List<ACCESS_TYPE> updateAccessType=null;
 	
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 
 		individualGroup = new UserGroup();
@@ -113,7 +113,7 @@ public class DBOAccessApprovalDAOImplTest {
 		}
 	}
 	
-	@After
+	@AfterEach
 	public void tearDown() throws Exception{
 		if (accessApproval!=null && accessApproval.getId()!=null) {
 			accessApprovalDAO.delete(accessApproval.getId().toString());
@@ -209,19 +209,25 @@ public class DBOAccessApprovalDAOImplTest {
 				individualGroup.getId(), accessRequirement.getId().toString()));
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testRevokeAccessApprovalsWithNullAccessRequirementId() {
-		accessApprovalDAO.revokeAll(null, "1", "2");
+		assertThrows(IllegalArgumentException.class, () -> {			
+			accessApprovalDAO.revokeAll(null, "1", "2");
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testRevokeAccessApprovalsWithNullAccessorId() {
-		accessApprovalDAO.revokeAll("1", null, "2");
+		assertThrows(IllegalArgumentException.class, () -> {
+			accessApprovalDAO.revokeAll("1", null, "2");
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testRevokeAccessApprovalsWithNullRevokedBy() {
-		accessApprovalDAO.revokeAll("1", "2", null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			accessApprovalDAO.revokeAll("1", "2", null);
+		});
 	}
 
 	@Test
@@ -407,5 +413,249 @@ public class DBOAccessApprovalDAOImplTest {
 				+ " LIMIT :LIMIT"
 				+ " OFFSET :OFFSET",
 				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, null, new Date()));
+	}
+	
+	@Test
+	public void testListExpiredApprovalsWithNoExpiredAfter() {
+		
+		Instant expiredAfter = null;
+		int limit = 10;
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			accessApprovalDAO.listExpiredApprovals(expiredAfter, limit);
+		}).getMessage();
+		
+		assertEquals("expiredAfter is required.", message);
+		
+	}
+	
+	@Test
+	public void testListExpiredApprovalsWithWrongLimit() {
+		
+		Instant expiredAfter = Instant.now();
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			accessApprovalDAO.listExpiredApprovals(expiredAfter, 0);
+		}).getMessage();
+		
+		assertEquals("The limit must be greater than 0.", message);
+		
+		message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			accessApprovalDAO.listExpiredApprovals(expiredAfter, -1);
+		}).getMessage();
+		
+		assertEquals("The limit must be greater than 0.", message);
+		
+	}
+	
+	@Test
+	public void testListExpiredApprovals() {
+		
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
+		
+		// Expire one approval
+		Instant yesterday = Instant.now().minus(1, ChronoUnit.DAYS);
+		
+		accessApproval.setExpiredOn(Date.from(yesterday));
+		
+		accessApproval = accessApprovalDAO.create(accessApproval);
+		accessApproval2 = accessApprovalDAO.create(accessApproval2);
+		
+		List<Long> expected = Arrays.asList(accessApproval.getId());
+		
+		int limit = 10;
+		
+		// Call under test
+		List<Long> result = accessApprovalDAO.listExpiredApprovals(yesterday, limit);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListExpiredApprovalsWithLimit() {
+		
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
+		
+		// Expire one approval
+		Instant yesterday = Instant.now().minus(1, ChronoUnit.DAYS);
+		
+		accessApproval.setExpiredOn(Date.from(yesterday));
+		accessApproval2.setExpiredOn(Date.from(yesterday));
+		
+		accessApproval = accessApprovalDAO.create(accessApproval);
+		accessApproval2 = accessApprovalDAO.create(accessApproval2);
+		
+		List<Long> expected = Arrays.asList(accessApproval.getId());
+		
+		int limit = 1;
+		
+		// Call under test
+		List<Long> result = accessApprovalDAO.listExpiredApprovals(yesterday, limit);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListExpiredApprovalsWithNoExpiration() {
+		
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
+		
+		accessApproval = accessApprovalDAO.create(accessApproval);
+		accessApproval2 = accessApprovalDAO.create(accessApproval2);
+				
+		List<Long> expected = Collections.emptyList();
+		
+		Instant yesterday = Instant.now().minus(1, ChronoUnit.DAYS);
+
+		int limit = 10;
+		
+		// Call under test
+		List<Long> result = accessApprovalDAO.listExpiredApprovals(yesterday, limit);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListExpiredApprovalsWithPastExpiration() {
+		
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
+		
+		Instant dayBeforeYesterday = Instant.now().minus(2, ChronoUnit.DAYS);
+		
+		accessApproval.setExpiredOn(Date.from(dayBeforeYesterday));
+		
+		accessApproval = accessApprovalDAO.create(accessApproval);
+		accessApproval2 = accessApprovalDAO.create(accessApproval2);
+				
+		List<Long> expected = Collections.emptyList();
+		
+		int limit = 10;
+		
+		Instant yesterday = Instant.now().minus(1, ChronoUnit.DAYS);
+		
+		// Call under test
+		List<Long> result = accessApprovalDAO.listExpiredApprovals(yesterday, limit);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListExpiredApprovalsWithAlreadyRevoked() {
+		
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
+		
+		Instant yesterday = Instant.now().minus(1, ChronoUnit.DAYS);
+		
+		accessApproval.setExpiredOn(Date.from(yesterday));
+		
+		accessApproval2.setExpiredOn(Date.from(yesterday));
+		accessApproval2.setState(ApprovalState.REVOKED);
+		
+		accessApproval = accessApprovalDAO.create(accessApproval);
+		accessApproval2 = accessApprovalDAO.create(accessApproval2);
+				
+		List<Long> expected = Arrays.asList(accessApproval.getId());
+		
+		int limit = 10;
+		
+		// Call under test
+		List<Long> result = accessApprovalDAO.listExpiredApprovals(yesterday, limit);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testRevokeBatch() {
+		
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
+		
+		accessApproval = accessApprovalDAO.create(accessApproval);
+		accessApproval2 = accessApprovalDAO.create(accessApproval2);
+		
+		Long userId = Long.valueOf(individualGroup.getId());
+		List<Long> ids = Arrays.asList(accessApproval.getId(), accessApproval2.getId());
+		
+		List<Long> expected = ids;
+		
+		// Call under test
+		List<Long> result = accessApprovalDAO.revokeBatch(userId, ids);
+		
+		assertEquals(expected, result);
+		
+	}
+	
+	@Test
+	public void testRevokeBatchWithNoUserId() {
+		
+		Long userId = null;
+		List<Long> ids = Collections.emptyList();
+		
+	    String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			accessApprovalDAO.revokeBatch(userId, ids);
+		}).getMessage();
+			
+	    assertEquals("userId is required.", message);
+		
+	}
+	
+	@Test
+	public void testRevokeBatchWithNullBatch() {
+		
+		Long userId = Long.valueOf(individualGroup.getId());
+		List<Long> ids = null;
+		
+	    String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			accessApprovalDAO.revokeBatch(userId, ids);
+		}).getMessage();
+			
+	    assertEquals("ids is required.", message);
+		
+	}
+	
+	@Test
+	public void testRevokeEmptyBatch() {
+		
+		Long userId = Long.valueOf(individualGroup.getId());
+		List<Long> ids = Collections.emptyList();
+		
+		// Call under test
+		List<Long> result = accessApprovalDAO.revokeBatch(userId, ids);
+		
+		assertEquals(Collections.emptyList(), result);
+		
+	}
+	
+	@Test
+	public void testRevokeBatchWithAlreadyRevoked() {
+		
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
+		
+		accessApproval.setState(ApprovalState.REVOKED);
+		
+		accessApproval = accessApprovalDAO.create(accessApproval);
+		accessApproval2 = accessApprovalDAO.create(accessApproval2);
+		
+		Long userId = Long.valueOf(individualGroup.getId());
+		List<Long> ids = Arrays.asList(accessApproval.getId(), accessApproval2.getId());
+		
+		List<Long> expected = Arrays.asList(accessApproval2.getId());
+		
+		// Call under test
+		List<Long> result = accessApprovalDAO.revokeBatch(userId, ids);
+		
+		assertEquals(expected, result);
+		
 	}
 }

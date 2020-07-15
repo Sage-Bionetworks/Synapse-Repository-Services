@@ -160,12 +160,6 @@
 		depends-on="userGroupDAO"
 		init-method="bootstrapCredentials" />
 
-	<bean id="accessRequirementDAO"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessRequirementDAOImpl" />
-
-	<bean id="accessApprovalDAO"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessApprovalDAOImpl" />
-
 	<bean id="aclDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl"
 		scope="singleton" />
