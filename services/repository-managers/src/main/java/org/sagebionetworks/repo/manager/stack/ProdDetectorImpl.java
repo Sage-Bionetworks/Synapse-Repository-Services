@@ -32,6 +32,8 @@ public class ProdDetectorImpl implements ProdDetector {
 	static final String VERSION_INFO_ENDPOINT = "/version";
 	
 	static final String FAILED_REQUEST_MSG = "Could not fetch prod version info from {}: {}";
+	
+	static final String USER_AGENT_TEMPLATE = "SynapseRepositoryStack/%s";
 
 	private final SimpleHttpClient httpClient;
 	private final StackConfiguration stackConfiguration;
@@ -57,6 +59,7 @@ public class ProdDetectorImpl implements ProdDetector {
 		this.versionInfoRequest.setUri(stackConfiguration.getRepositoryServiceProdEndpoint() + VERSION_INFO_ENDPOINT);
 
 		Map<String, String> headers = ImmutableMap.of(
+				HttpHeaders.USER_AGENT, String.format(USER_AGENT_TEMPLATE, currentStackVersion),
 				HttpHeaders.ACCEPT, ContentType.APPLICATION_JSON.getMimeType(),
 				// Force revalidation along the way to avoid caching issues
 				HttpHeaders.CACHE_CONTROL, CacheControl.noCache().getHeaderValue()
