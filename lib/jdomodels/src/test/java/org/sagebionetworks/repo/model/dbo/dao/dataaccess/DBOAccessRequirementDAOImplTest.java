@@ -1,9 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,10 +14,10 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
@@ -35,10 +36,10 @@ import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.IllegalTransactionStateException;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOAccessRequirementDAOImplTest {
 
@@ -62,7 +63,7 @@ public class DBOAccessRequirementDAOImplTest {
 	private TermsOfUseAccessRequirement accessRequirement4 = null;
 
 	
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		individualGroup = new UserGroup();
 		individualGroup.setIsIndividual(true);
@@ -79,7 +80,7 @@ public class DBOAccessRequirementDAOImplTest {
 		};
 	}
 	
-	@After
+	@AfterEach
 	public void tearDown() throws Exception{
 		if (accessRequirement!=null && accessRequirement.getId()!=null) {
 			accessRequirementDAO.delete(accessRequirement.getId().toString());
@@ -185,7 +186,7 @@ public class DBOAccessRequirementDAOImplTest {
 		AccessRequirement updatedAR = accessRequirementDAO.update(clone);
 		assertEquals(clone.getAccessType(), updatedAR.getAccessType());
 
-		assertTrue("etags should be different after an update", !clone.getEtag().equals(updatedAR.getEtag()));
+		assertTrue(!clone.getEtag().equals(updatedAR.getEtag()), "etags should be different after an update");
 
 		assertEquals(accessRequirement.getClass().getName(),
 				accessRequirementDAO.getConcreteType(accessRequirement.getId().toString()));
@@ -215,29 +216,39 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirementDAO.delete(accessRequirement2.getId().toString());
 	}
 	
-	@Test (expected=NotFoundException.class)
+	@Test
 	public void testGetDoesNotExist(){
-		accessRequirementDAO.get("-1");
+		assertThrows(NotFoundException.class, () -> {			
+			accessRequirementDAO.get("-1");
+		});
 	}
 
-	@Test (expected = NotFoundException.class)
+	@Test
 	public void testGetConcreteTypeNotFound() {
-		accessRequirementDAO.getConcreteType("1");
+		assertThrows(NotFoundException.class, () -> {
+			accessRequirementDAO.getConcreteType("1");
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetAccessRequirementStatsWithNullSubjectIds() {
-		accessRequirementDAO.getAccessRequirementStats(null, RestrictableObjectType.ENTITY);
+		assertThrows(IllegalArgumentException.class, () -> {
+			accessRequirementDAO.getAccessRequirementStats(null, RestrictableObjectType.ENTITY);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetAccessRequirementStatsWithEmptySubjectIds() {
-		accessRequirementDAO.getAccessRequirementStats(new LinkedList<Long>(), RestrictableObjectType.ENTITY);
+		assertThrows(IllegalArgumentException.class, () -> {
+			accessRequirementDAO.getAccessRequirementStats(new LinkedList<Long>(), RestrictableObjectType.ENTITY);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetAccessRequirementStatsWithNullRestrictableObjectType() {
-		accessRequirementDAO.getAccessRequirementStats(Arrays.asList(KeyFactory.stringToKey(node.getId())), null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			accessRequirementDAO.getAccessRequirementStats(Arrays.asList(KeyFactory.stringToKey(node.getId())), null);
+		});
 	}
 
 	@Test
@@ -339,44 +350,56 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
 	}
 
-	@Test (expected = IllegalTransactionStateException.class)
+	@Test
 	public void testGetForUpdateWithoutTransaction() {
 		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
-		accessRequirementDAO.getForUpdate(accessRequirement.getId().toString());
+		assertThrows(IllegalTransactionStateException.class, () -> {
+			accessRequirementDAO.getForUpdate(accessRequirement.getId().toString());
+		});
 	}
 
-	@Test (expected = IllegalTransactionStateException.class)
+	@Test
 	public void testGetAccessRequirementForUpdateWithoutTransaction() {
 		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
-		accessRequirementDAO.getAccessRequirementForUpdate(accessRequirement.getId().toString());
+		assertThrows(IllegalTransactionStateException.class, () -> {
+			accessRequirementDAO.getAccessRequirementForUpdate(accessRequirement.getId().toString());
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetAccessRequirementDiffForNullSource() {
 		List<Long> destSubjects = Arrays.asList(KeyFactory.stringToKey(node.getId()));
-		accessRequirementDAO.getAccessRequirementDiff(null, destSubjects , RestrictableObjectType.ENTITY);
+		assertThrows(IllegalArgumentException.class, () -> {
+			accessRequirementDAO.getAccessRequirementDiff(null, destSubjects , RestrictableObjectType.ENTITY);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetAccessRequirementDiffForNullDest() {
 		List<Long> sourceSubjects = Arrays.asList(KeyFactory.stringToKey(node.getId()));
-		accessRequirementDAO.getAccessRequirementDiff(sourceSubjects, null , RestrictableObjectType.ENTITY);
+		assertThrows(IllegalArgumentException.class, () -> {
+			accessRequirementDAO.getAccessRequirementDiff(sourceSubjects, null , RestrictableObjectType.ENTITY);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetAccessRequirementDiffForEmptySource() {
 		List<Long> sourceSubjects = new LinkedList<Long>();
 		List<Long> destSubjects = Arrays.asList(KeyFactory.stringToKey(node.getId()));
-		accessRequirementDAO.getAccessRequirementDiff(sourceSubjects, destSubjects , RestrictableObjectType.ENTITY);
+		assertThrows(IllegalArgumentException.class, () -> {
+			accessRequirementDAO.getAccessRequirementDiff(sourceSubjects, destSubjects , RestrictableObjectType.ENTITY);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetAccessRequirementDiffForEmptyDest() {
 		List<Long> sourceSubjects = Arrays.asList(KeyFactory.stringToKey(node.getId()));
 		List<Long> destSubjects = new LinkedList<Long>();
-		accessRequirementDAO.getAccessRequirementDiff(sourceSubjects, destSubjects , RestrictableObjectType.ENTITY);
+		assertThrows(IllegalArgumentException.class, () -> {
+			accessRequirementDAO.getAccessRequirementDiff(sourceSubjects, destSubjects , RestrictableObjectType.ENTITY);
+		});
 	}
 
 	@Test
