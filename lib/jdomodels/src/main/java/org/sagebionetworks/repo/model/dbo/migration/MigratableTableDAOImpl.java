@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.function.Function;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.logging.log4j.LogManager;
@@ -29,12 +30,14 @@ import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageToUser;
 import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
 import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RangeChecksum;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.util.TemporaryCode;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -175,18 +178,31 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		tableNameXStreamBuilder.allowTypeHierarchy(MigratableDatabaseObject.class);
 		UnmodifiableXStream.Builder migrationTypeNameXStreamBuilder = UnmodifiableXStream.builder();
 		migrationTypeNameXStreamBuilder.allowTypeHierarchy(MigratableDatabaseObject.class);
+		
+		Function<MigratableDatabaseObject<?, ?>, String> tableAliasProvider = (dbo) -> dbo.getTableMapping().getTableName();
+		Function<MigratableDatabaseObject<?, ?>, String> typeAliasProvider = (dbo) -> dbo.getMigratableTableType().name();
 
-		for(MigratableDatabaseObject dbo: databaseObjectRegister){
+		for(MigratableDatabaseObject<?, ?> dbo: databaseObjectRegister) {
 			// Add aliases to XStream for each alias type
 			//BackupAliasType.TABLE_NAME
-			tableNameXStreamBuilder.alias(dbo.getTableMapping().getTableName(), dbo.getBackupClass());
+			addAlias(tableNameXStreamBuilder, dbo, tableAliasProvider);
 			//BackupAliasType.MIGRATION_TYPE_NAME
-			migrationTypeNameXStreamBuilder.alias(dbo.getMigratableTableType().name(), dbo.getBackupClass());
+			addAlias(migrationTypeNameXStreamBuilder, dbo, typeAliasProvider);
 		}
-
+		
 		//add map entries once the builders are done
 		TABLE_NAME_ALIAS_X_STREAM =  tableNameXStreamBuilder.build();
 		MIGRATION_TYPE_NAME_ALIAS_X_STREAM = migrationTypeNameXStreamBuilder.build();
+	}
+	
+	static void addAlias(UnmodifiableXStream.Builder streamBuilder, MigratableDatabaseObject<?, ?> dbo, Function<MigratableDatabaseObject<?, ?>, String> aliasProvider) {
+		streamBuilder.alias(aliasProvider.apply(dbo), dbo.getBackupClass());
+		// Also add the alias for the secondary objects
+		if (dbo.getSecondaryTypes() != null) {
+			dbo.getSecondaryTypes().forEach( secondaryType -> {				
+				addAlias(streamBuilder, secondaryType, aliasProvider);
+			});
+		}
 	}
 	
 	/*
