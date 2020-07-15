@@ -3,12 +3,12 @@ package org.sagebionetworks.repo.manager.dataaccess;
 import java.util.Date;
 
 import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;

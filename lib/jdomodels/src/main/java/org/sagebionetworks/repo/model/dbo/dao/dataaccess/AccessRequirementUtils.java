@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.dao;
+package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import java.io.IOException;
 import java.util.ArrayList;

@@ -33,7 +33,6 @@ import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.dataaccess.RestrictionInformationManager;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -49,6 +48,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 @ExtendWith(MockitoExtension.class)

@@ -5,7 +5,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -16,6 +15,7 @@ import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
