@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -873,7 +874,22 @@ public class JsonSchemaManagerImplTest {
 	public void testGetSchemaWithVersion() {
 		when(mockSchemaDao.getVersionId(any(), any(), any())).thenReturn(versionId);
 		when(mockSchemaDao.getSchema(any())).thenReturn(schema);
-		String $id = organizationName+"-"+schemaName+"-"+semanticVersionString;
+		String $id = organizationName + "-" + schemaName + "-" + semanticVersionString;
+		// call under test
+		JsonSchema result = manager.getSchema($id);
+		assertEquals(schema, result);
+		assertEquals($id, result.get$id());
+		verify(mockSchemaDao).getVersionId(organizationName, schemaName, semanticVersionString);
+		verify(mockSchemaDao, never()).getLatestVersionId(any(), any());
+		verify(mockSchemaDao).getSchema(versionId);
+	}
+
+	@Test
+	public void testGetSchemaWithWithoutId() {
+		when(mockSchemaDao.getVersionId(any(), any(), any())).thenReturn(versionId);
+		when(mockSchemaDao.getSchema(any())).thenReturn(schema);
+		// request without a semantic version.
+		String $id = organizationName + "-" + schemaName + "-" + semanticVersionString;
 		// call under test
 		JsonSchema result = manager.getSchema($id);
 		assertEquals(schema, result);
@@ -882,15 +898,24 @@ public class JsonSchemaManagerImplTest {
 		verify(mockSchemaDao).getSchema(versionId);
 	}
 
-
+	/**
+	 * For the get schema call, it is expected that the $id of the returned schema
+	 * exactly matches the $id from the request. Therefore, if the requested $id
+	 * excludes a semantic version, but the latest version of that schema includes a
+	 * semantic version, then the $id of the resulting schema must be changed to
+	 * match the request. Basically, the semantic version must be removed from the
+	 * $id of the returned schema, when the request does not include the semantic
+	 * version.
+	 */
 	@Test
 	public void testGetSchemaNullVersion() {
 		when(mockSchemaDao.getLatestVersionId(any(), any())).thenReturn(versionId);
 		when(mockSchemaDao.getSchema(any())).thenReturn(schema);
-		String $id = organizationName+"-"+schemaName;
+		String $id = organizationName + "-" + schemaName;
 		// call under test
 		JsonSchema result = manager.getSchema($id);
 		assertEquals(schema, result);
+		assertEquals($id, result.get$id());
 		verify(mockSchemaDao, never()).getVersionId(any(), any(), any());
 		verify(mockSchemaDao).getLatestVersionId(organizationName, schemaName);
 		verify(mockSchemaDao).getSchema(versionId);
@@ -904,26 +929,25 @@ public class JsonSchemaManagerImplTest {
 		});
 	}
 
-
 	@Test
 	public void testDeleteSchemaByIdWithoutVersion() {
 		when(mockSchemaDao.getVersionLatestInfo(any(), any())).thenReturn(versionInfo);
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
 				.thenReturn(AuthorizationStatus.authorized());
-		String $id = organizationName+"-"+schemaName;
+		String $id = organizationName + "-" + schemaName;
 		// call under test
 		manager.deleteSchemaById(user, $id);
 		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE);
 		verify(mockSchemaDao).deleteSchema(versionInfo.getSchemaId());
 	}
-	
+
 	@Test
 	public void testDeleteSchemaByIdWithoutVersionUnauthorized() {
 		when(mockSchemaDao.getVersionLatestInfo(any(), any())).thenReturn(versionInfo);
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
 				.thenReturn(AuthorizationStatus.accessDenied("naw"));
-		String $id = organizationName+"-"+schemaName;
-		assertThrows(UnauthorizedException.class, ()->{
+		String $id = organizationName + "-" + schemaName;
+		assertThrows(UnauthorizedException.class, () -> {
 			// call under test
 			manager.deleteSchemaById(user, $id);
 		});
@@ -935,32 +959,32 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testDeleteSchemaByIdWithoutVersionAsAdmin() {
 		when(mockSchemaDao.getVersionLatestInfo(any(), any())).thenReturn(versionInfo);
-		String $id = organizationName+"-"+schemaName;
+		String $id = organizationName + "-" + schemaName;
 		// call under test
 		manager.deleteSchemaById(adminUser, $id);
 		verify(mockAclDao, never()).canAccess(any(UserInfo.class), any(), any(), any());
 		verify(mockSchemaDao).deleteSchema(versionInfo.getSchemaId());
 	}
-	
+
 	@Test
 	public void testDeleteSchemaByIdWithVersion() {
 		when(mockSchemaDao.getVersionInfo(organizationName, schemaName, semanticVersionString)).thenReturn(versionInfo);
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
 				.thenReturn(AuthorizationStatus.authorized());
-		String $id = organizationName+"-"+schemaName+"-"+semanticVersionString;
+		String $id = organizationName + "-" + schemaName + "-" + semanticVersionString;
 		// call under test
 		manager.deleteSchemaById(user, $id);
 		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE);
 		verify(mockSchemaDao).deleteSchemaVersion(versionInfo.getVersionId());
 	}
-	
+
 	@Test
 	public void testDeleteSchemaByIdWithVersionUnauthorized() {
 		when(mockSchemaDao.getVersionInfo(organizationName, schemaName, semanticVersionString)).thenReturn(versionInfo);
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
 				.thenReturn(AuthorizationStatus.accessDenied("no"));
-		String $id = organizationName+"-"+schemaName+"-"+semanticVersionString;
-		assertThrows(UnauthorizedException.class, ()->{
+		String $id = organizationName + "-" + schemaName + "-" + semanticVersionString;
+		assertThrows(UnauthorizedException.class, () -> {
 			// call under test
 			manager.deleteSchemaById(user, $id);
 		});
@@ -968,31 +992,31 @@ public class JsonSchemaManagerImplTest {
 		verify(mockSchemaDao, never()).deleteSchemaVersion(any());
 		verify(mockSchemaDao, never()).deleteSchema(any());
 	}
-	
+
 	@Test
 	public void testDeleteSchemaByIdWithVersionAsAdmin() {
 		when(mockSchemaDao.getVersionInfo(organizationName, schemaName, semanticVersionString)).thenReturn(versionInfo);
-		String $id = organizationName+"-"+schemaName+"-"+semanticVersionString;
+		String $id = organizationName + "-" + schemaName + "-" + semanticVersionString;
 		// call under test
 		manager.deleteSchemaById(adminUser, $id);
 		verify(mockAclDao, never()).canAccess(any(UserInfo.class), any(), any(), any());
 		verify(mockSchemaDao).deleteSchemaVersion(versionInfo.getVersionId());
 	}
-	
+
 	@Test
 	public void testDeleteSchemaByIdWithoutNullUser() {
 		user = null;
-		String $id = organizationName+"-"+schemaName;
-		assertThrows(IllegalArgumentException.class, ()->{
+		String $id = organizationName + "-" + schemaName;
+		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.deleteSchemaById(user, $id);
 		});
 	}
-	
+
 	@Test
 	public void testDeleteSchemaByIdWithoutNull$id() {
 		String $id = null;
-		assertThrows(IllegalArgumentException.class, ()->{
+		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.deleteSchemaById(user, $id);
 		});
@@ -1138,10 +1162,10 @@ public class JsonSchemaManagerImplTest {
 		verify(mockSchemaDao, never()).getVersionInfo(any());
 	}
 
-
 	@Test
 	public void testGetValidationSchema() throws JSONObjectAdapterException {
 		JsonSchema one = createSchema("one");
+		one.set$schema("http://json-schema.org/draft-07/schema");
 		one.setDescription("about one");
 		Map<String, JsonSchema> oneDefintions = new HashMap<String, JsonSchema>();
 		JsonSchema aString = new JsonSchema();
@@ -1171,11 +1195,16 @@ public class JsonSchemaManagerImplTest {
 		JsonSchema twoFromDefinitions = validationDefinitions.get("two");
 		assertNotNull(twoFromDefinitions);
 		assertNotNull(twoFromDefinitions.getItems());
+		// the $id of each schema in the definitions should be null. see PLFM-6366.
+		assertNull(twoFromDefinitions.get$id());
 		assertEquals("#/definitions/one", twoFromDefinitions.getItems().get$ref());
 		assertNull(twoFromDefinitions.getDefinitions());
 		// one fetched from three's Definitions
 		JsonSchema oneFromDefinitions = validationDefinitions.get("one");
 		assertNotNull(oneFromDefinitions);
+		// the $id of each schema in the definitions should be null. see PLFM-6366.
+		assertNull(oneFromDefinitions.get$id());
+		assertEquals(one.get$schema(), oneFromDefinitions.get$schema());
 		assertEquals(one.getDescription(), oneFromDefinitions.getDescription());
 		assertNull(oneFromDefinitions.getDefinitions());
 		// Definitions from one fetched form three's Definitions
@@ -1297,13 +1326,12 @@ public class JsonSchemaManagerImplTest {
 
 	@Test
 	public void testBindSchemaToObjectWithSemanticVersion() {
-		String $id = organizationName + "-" + schemaName+"-"+semanticVersionString;
+		String $id = organizationName + "-" + schemaName + "-" + semanticVersionString;
 		when(mockSchemaDao.getSchemaId(any(), any())).thenReturn(schemaId);
 		when(mockSchemaDao.getVersionId(any(), any(), any())).thenReturn(versionId);
 		when(mockSchemaDao.bindSchemaToObject(any())).thenReturn(jsonSchemaObjectBinding);
 		// call under test
-		JsonSchemaObjectBinding binding = manager.bindSchemaToObject(adminUser.getId(), $id, objectId,
-				objectType);
+		JsonSchemaObjectBinding binding = manager.bindSchemaToObject(adminUser.getId(), $id, objectId, objectType);
 		assertNotNull(binding);
 		assertEquals(jsonSchemaObjectBinding, binding);
 		verify(mockSchemaDao).getSchemaId(organizationName, schemaName);
@@ -1326,29 +1354,29 @@ public class JsonSchemaManagerImplTest {
 		verify(mockSchemaDao).bindSchemaToObject(new BindSchemaRequest().withCreatedBy(adminUser.getId())
 				.withObjectId(objectId).withObjectType(objectType).withSchemaId(schemaId).withVersionId(null));
 	}
-	
+
 	@Test
 	public void testBindSchemaToObjectWithNullUserId() {
 		String $id = organizationName + "-" + schemaName;
 		Long userId = null;
-		assertThrows(IllegalArgumentException.class, ()->{
+		assertThrows(IllegalArgumentException.class, () -> {
 			manager.bindSchemaToObject(userId, $id, objectId, objectType);
 		});
 	}
-	
+
 	@Test
 	public void testBindSchemaToObjectWithNull$id() {
 		String $id = null;
-		assertThrows(IllegalArgumentException.class, ()->{
+		assertThrows(IllegalArgumentException.class, () -> {
 			manager.bindSchemaToObject(adminUser.getId(), $id, objectId, objectType);
 		});
 	}
-	
+
 	@Test
 	public void testBindSchemaToObjectWithNullObjectId() {
 		String $id = organizationName + "-" + schemaName;
 		objectId = null;
-		assertThrows(IllegalArgumentException.class, ()->{
+		assertThrows(IllegalArgumentException.class, () -> {
 			manager.bindSchemaToObject(adminUser.getId(), $id, objectId, objectType);
 		});
 	}
@@ -1357,11 +1385,11 @@ public class JsonSchemaManagerImplTest {
 	public void testBindSchemaToObjectWithNullObjectType() {
 		String $id = organizationName + "-" + schemaName;
 		objectType = null;
-		assertThrows(IllegalArgumentException.class, ()->{
+		assertThrows(IllegalArgumentException.class, () -> {
 			manager.bindSchemaToObject(adminUser.getId(), $id, objectId, objectType);
 		});
 	}
-	
+
 	/**
 	 * Helper to create a schema with the given $id.
 	 * 
@@ -1396,5 +1424,18 @@ public class JsonSchemaManagerImplTest {
 	public JsonSchema cloneSchema(JsonSchema toClone) throws JSONObjectAdapterException {
 		String json = EntityFactory.createJSONStringForEntity(toClone);
 		return EntityFactory.createEntityFromJSONString(json, JsonSchema.class);
+	}
+
+	/**
+	 * Convert a JsonSchema to json.
+	 * 
+	 * @param schema
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 */
+	public static String toJson(JsonSchema schema) throws JSONObjectAdapterException {
+		String json = EntityFactory.createJSONStringForEntity(schema);
+		JSONObject object = new JSONObject(json);
+		return object.toString(5);
 	}
 }
