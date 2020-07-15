@@ -35,7 +35,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = {"classpath:jdomodels-test-context.xml"})
 public class PersonalAccessTokenDaoAutowiredTest {
@@ -76,6 +75,7 @@ public class PersonalAccessTokenDaoAutowiredTest {
 	 */
 	private static AccessTokenRecord createDto(String userId, Date lastUsedDate) {
 		AccessTokenRecord record = new AccessTokenRecord();
+		record.setUserId(userId);
 		record.setName(UUID.randomUUID().toString());
 		record.setScopes(Collections.singletonList(OAuthScope.view));
 		record.setUserInfoClaims(new HashMap<>());
@@ -86,7 +86,7 @@ public class PersonalAccessTokenDaoAutowiredTest {
 
 	private AccessTokenRecord createTokenRecord(String userId, Date lastUsedDate) {
 		AccessTokenRecord record = createDto(userId, lastUsedDate);
-		record = personalAccessTokenDao.createTokenRecord(record, userId);
+		record = personalAccessTokenDao.createTokenRecord(record);
 		tokenIdsToDelete.add(record.getId());
 		return record;
 	}
@@ -94,8 +94,9 @@ public class PersonalAccessTokenDaoAutowiredTest {
 	@Test
 	void testDtoToDboAndBack() {
 		AccessTokenRecord dto = new AccessTokenRecord();
-		dto.setName(UUID.randomUUID().toString());
 		dto.setId("111111");
+		dto.setUserId("22222");
+		dto.setName(UUID.randomUUID().toString());
 		dto.setScopes(Arrays.asList(OAuthScope.modify, OAuthScope.authorize));
 		Map<String, OIDCClaimsRequestDetails> claimsMap = new HashMap<>();
 		OIDCClaimsRequestDetails claimDetails = new OIDCClaimsRequestDetails();
@@ -107,7 +108,7 @@ public class PersonalAccessTokenDaoAutowiredTest {
 
 		// Call under test -- map to DBO and back
 		AccessTokenRecord mapped = PersonalAccessTokenDaoImpl.personalAccessTokenDboToDto(
-				PersonalAccessTokenDaoImpl.personalAccessTokenDtoToDbo(dto, userId)
+				PersonalAccessTokenDaoImpl.personalAccessTokenDtoToDbo(dto)
 		);
 
 		assertEquals(dto, mapped);
@@ -118,6 +119,7 @@ public class PersonalAccessTokenDaoAutowiredTest {
 		DBOPersonalAccessToken dbo = new DBOPersonalAccessToken();
 		dbo.setName(UUID.randomUUID().toString());
 		dbo.setId(11111L);
+		dbo.setPrincipalId(Long.valueOf(userId));
 		dbo.setScopes(JDOSecondaryPropertyUtils.compressObject(X_STREAM, Arrays.asList(OAuthScope.modify, OAuthScope.authorize)));
 		Map<String, OIDCClaimsRequestDetails> userInfoClaims = new HashMap<>();
 		OIDCClaimsRequestDetails detail = new OIDCClaimsRequestDetails();
@@ -127,12 +129,9 @@ public class PersonalAccessTokenDaoAutowiredTest {
 		dbo.setCreatedOn(new Timestamp(System.currentTimeMillis()));
 		dbo.setLastUsed(new Timestamp(System.currentTimeMillis()));
 
-		// The principal ID isn't in the DTO
-		dbo.setPrincipalId(Long.valueOf(userId));
-
 		// Call under test -- map to DBO and back
 		DBOPersonalAccessToken mapped = PersonalAccessTokenDaoImpl.personalAccessTokenDtoToDbo(
-				PersonalAccessTokenDaoImpl.personalAccessTokenDboToDto(dbo), userId);
+				PersonalAccessTokenDaoImpl.personalAccessTokenDboToDto(dbo));
 		assertEquals(dbo, mapped);
 	}
 
@@ -141,7 +140,7 @@ public class PersonalAccessTokenDaoAutowiredTest {
 		AccessTokenRecord record = createDto(userId, new Date());
 
 		// method under test -- create
-		AccessTokenRecord created = personalAccessTokenDao.createTokenRecord(record, userId);
+		AccessTokenRecord created = personalAccessTokenDao.createTokenRecord(record);
 
 		assertNotNull(created.getId());
 		record.setId(created.getId());

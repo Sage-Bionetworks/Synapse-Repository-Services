@@ -5,6 +5,10 @@
       "type": "string",
       "description": "The unique ID of the access token"
     },
+    "userId": {
+      "type": "string",
+      "description": "The ID of the user that the token belongs to."
+    },
     "scopes":{
       "type":"array",
       "items": {

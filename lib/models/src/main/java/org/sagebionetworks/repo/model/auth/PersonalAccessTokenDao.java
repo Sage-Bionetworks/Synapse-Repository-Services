@@ -17,7 +17,7 @@ public interface PersonalAccessTokenDao {
 	 * @param metadata token information to store, excluding the ID field
 	 * @return the new token record
 	 */
-	AccessTokenRecord createTokenRecord(AccessTokenRecord metadata, String userId);
+	AccessTokenRecord createTokenRecord(AccessTokenRecord metadata);
 
 	/**
 	 * Get a paginated list of token records for a user.

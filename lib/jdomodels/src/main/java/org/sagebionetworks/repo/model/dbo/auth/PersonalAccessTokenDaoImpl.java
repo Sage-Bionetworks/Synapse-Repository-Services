@@ -87,7 +87,7 @@ public class PersonalAccessTokenDaoImpl implements PersonalAccessTokenDao {
 	// We serialize explicitly chosen fields, not the entire DTO, so no need to omit fields in the builder
 	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().build();
 
-	public static DBOPersonalAccessToken personalAccessTokenDtoToDbo(AccessTokenRecord dto, String principalId) {
+	public static DBOPersonalAccessToken personalAccessTokenDtoToDbo(AccessTokenRecord dto) {
 		DBOPersonalAccessToken dbo = new DBOPersonalAccessToken();
 		try {
 			dbo.setScopes(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto.getScopes()));
@@ -96,8 +96,8 @@ public class PersonalAccessTokenDaoImpl implements PersonalAccessTokenDao {
 			throw new RuntimeException(e);
 		}
 		dbo.setId(Long.parseLong(dto.getId()));
+		dbo.setPrincipalId(Long.parseLong(dto.getUserId()));
 		dbo.setName(dto.getName());
-		dbo.setPrincipalId(Long.parseLong(principalId));
 		dbo.setCreatedOn(new Timestamp(dto.getCreatedOn().getTime()));
 		dbo.setLastUsed(new Timestamp(dto.getLastUsed().getTime()));
 		return dbo;
@@ -112,6 +112,7 @@ public class PersonalAccessTokenDaoImpl implements PersonalAccessTokenDao {
 			throw new RuntimeException(e);
 		}
 		dto.setId(dbo.getId().toString());
+		dto.setUserId(dbo.getPrincipalId().toString());
 		dto.setName(dbo.getName());
 		// Timestamp must be converted to Date for .equals to work on the DTO
 		dto.setCreatedOn(new Date(dbo.getCreatedOn().getTime()));
@@ -128,14 +129,14 @@ public class PersonalAccessTokenDaoImpl implements PersonalAccessTokenDao {
 
 	@WriteTransaction
 	@Override
-	public AccessTokenRecord createTokenRecord(AccessTokenRecord metadata, String userId) {
-		ValidateArgument.required(userId, "userId");
+	public AccessTokenRecord createTokenRecord(AccessTokenRecord metadata) {
+		ValidateArgument.required(metadata.getUserId(), "userId");
 		ValidateArgument.required(metadata.getName(), "Token Name");
 		ValidateArgument.required(metadata.getScopes(), "Scope");
 		ValidateArgument.required(metadata.getUserInfoClaims(), "Claims");
 		ValidateArgument.required(metadata.getCreatedOn(), "Created On");
 		metadata.setId(idGenerator.generateNewId(IdType.PERSONAL_ACCESS_TOKEN_ID).toString());
-		DBOPersonalAccessToken dbo = personalAccessTokenDtoToDbo(metadata, userId);
+		DBOPersonalAccessToken dbo = personalAccessTokenDtoToDbo(metadata);
 		basicDao.createNew(dbo);
 		return this.getTokenRecord(dbo.getId().toString());
 	}
