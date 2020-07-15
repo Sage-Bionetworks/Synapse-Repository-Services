@@ -1,27 +1,33 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.dataaccess.AccessApprovalManager;
-import org.sagebionetworks.repo.manager.dataaccess.AccessApprovalManagerImpl;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -34,6 +40,7 @@ import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
 import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
@@ -43,11 +50,14 @@ import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.MessageToSend;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Sets;
 
+@ExtendWith(MockitoExtension.class)
 public class AccessApprovalManagerImplUnitTest {
 
 	@Mock
@@ -56,60 +66,72 @@ public class AccessApprovalManagerImplUnitTest {
 	private AccessApprovalDAO mockAccessApprovalDAO;
 	@Mock
 	private AuthorizationManager mockAuthorizationManager;
-	private AccessApprovalManager manager;
-	UserInfo userInfo;
+	@Mock
+	private TransactionalMessenger mockTransactionMessenger;
+	
+	@InjectMocks
+	private AccessApprovalManagerImpl manager;
+	
+	private UserInfo userInfo;
 
-	@Before
+	@BeforeEach
 	public void before() {
-		MockitoAnnotations.initMocks(this);
-		manager = new AccessApprovalManagerImpl();
-		ReflectionTestUtils.setField(manager, "accessRequirementDAO", mockAccessRequirementDAO);
-		ReflectionTestUtils.setField(manager, "accessApprovalDAO", mockAccessApprovalDAO);
-		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
 		userInfo = new UserInfo(false);
 		userInfo.setId(3L);
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testRevokeAccessApprovalsWithNullUserInfo() {
-		manager.revokeAccessApprovals(null, "1", "1");
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.revokeAccessApprovals(null, "1", "1");
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testRevokeAccessApprovalsWithNullAccessRequirementId() {
-		manager.revokeAccessApprovals(userInfo, null, "1");
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.revokeAccessApprovals(userInfo, null, "1");
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testRevokeAccessApprovalsWithNullAccessorId() {
-		manager.revokeAccessApprovals(userInfo, "1", null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.revokeAccessApprovals(userInfo, "1", null);
+		});
 	}
 
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testRevokeAccessApprovalsWithNonACTNorAdminUser() {
 		String accessRequirementId = "1";
 		String accessorId = "3";
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
-		manager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);
+		assertThrows(UnauthorizedException.class, () -> {
+			manager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);
+		});
 	}
 
-	@Test (expected = NotFoundException.class)
+	@Test
 	public void testRevokeAccessApprovalsWithNonExistingAccessRequirement() {
 		String accessRequirementId = "1";
 		String accessorId = "3";
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		when(mockAccessRequirementDAO.get(accessRequirementId)).thenThrow(new NotFoundException());
-		manager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);
+		assertThrows(NotFoundException.class, () -> {
+			manager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testRevokeAccessApprovalsWithToUAccessRequirement() {
 		String accessRequirementId = "1";
 		String accessorId = "3";
 		AccessRequirement accessRequirement = new TermsOfUseAccessRequirement();
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		when(mockAccessRequirementDAO.get(accessRequirementId)).thenReturn(accessRequirement);
-		manager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);
+		});
 	}
 
 	@Test
@@ -118,26 +140,32 @@ public class AccessApprovalManagerImplUnitTest {
 		String accessorId = "3";
 		AccessRequirement accessRequirement = new ACTAccessRequirement();
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
-		when(mockAccessRequirementDAO.get(accessRequirementId)).thenReturn(accessRequirement);
+		when(mockAccessRequirementDAO.get(accessRequirementId)).thenReturn(accessRequirement);	
 		manager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testListAccessorGroupWithNullUserInfo() {
 		AccessorGroupRequest request = new AccessorGroupRequest();
-		manager.listAccessorGroup(null, request);
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.listAccessorGroup(null, request);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testListAccessorGroupWithNullRequest() {
-		manager.listAccessorGroup(userInfo, null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.listAccessorGroup(userInfo, null);
+		});
 	}
 
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testListAccessorGroupUnauthorized() {
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
 		AccessorGroupRequest request = new AccessorGroupRequest();
-		manager.listAccessorGroup(userInfo, request);
+		assertThrows(UnauthorizedException.class, () -> {
+			manager.listAccessorGroup(userInfo, request);
+		});
 	}
 
 	@Test
@@ -150,40 +178,50 @@ public class AccessApprovalManagerImplUnitTest {
 		assertEquals(result, response.getResults());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testRevokeGroupWithNullUserInfo() {
 		AccessorGroupRevokeRequest request = new AccessorGroupRevokeRequest();
 		request.setAccessRequirementId("1");
 		request.setSubmitterId("2");
-		manager.revokeGroup(null, request);
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.revokeGroup(null, request);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testRevokeGroupWithNullRequest() {
-		manager.revokeGroup(userInfo, null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.revokeGroup(userInfo, null);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testRevokeGroupWithNullRequirementId() {
 		AccessorGroupRevokeRequest request = new AccessorGroupRevokeRequest();
 		request.setSubmitterId("2");
-		manager.revokeGroup(userInfo, request);
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.revokeGroup(userInfo, request);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testRevokeGroupWithNullSubmitterId() {
 		AccessorGroupRevokeRequest request = new AccessorGroupRevokeRequest();
 		request.setAccessRequirementId("1");
-		manager.revokeGroup(userInfo, request);
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.revokeGroup(userInfo, request);
+		});
 	}
 
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testRevokeGroupUnauthorized() {
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
 		AccessorGroupRevokeRequest request = new AccessorGroupRevokeRequest();
 		request.setAccessRequirementId("1");
 		request.setSubmitterId("2");
-		manager.revokeGroup(userInfo, request);
+		assertThrows(UnauthorizedException.class, () -> {
+			manager.revokeGroup(userInfo, request);
+		});
 	}
 
 	@Test
@@ -196,61 +234,75 @@ public class AccessApprovalManagerImplUnitTest {
 		verify(mockAccessApprovalDAO).revokeGroup("1", "2","3");
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateAccessApprovalWithNullUserInfo() {
 		AccessApproval accessApproval = new AccessApproval();
 		accessApproval.setRequirementId(1L);
-		manager.createAccessApproval(null, accessApproval);
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.createAccessApproval(null, accessApproval);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateAccessApprovalWithNullUAccessApproval() {
-		manager.createAccessApproval(userInfo, null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.createAccessApproval(userInfo, null);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateAccessApprovalWithNullRequirementId() {
 		AccessApproval accessApproval = new AccessApproval();
-		manager.createAccessApproval(userInfo, accessApproval);
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.createAccessApproval(userInfo, accessApproval);
+		});
 	}
 
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testCreateAccessApprovalUnauthorized() {
 		AccessApproval accessApproval = new AccessApproval();
 		accessApproval.setRequirementId(1L);
 		when(mockAccessRequirementDAO.get("1")).thenReturn(new ACTAccessRequirement());
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
-		manager.createAccessApproval(userInfo, accessApproval);
+		assertThrows(UnauthorizedException.class, () -> {
+			manager.createAccessApproval(userInfo, accessApproval);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateAccessApprovalWithoutAccessorId() {
 		AccessApproval accessApproval = new AccessApproval();
 		accessApproval.setRequirementId(1L);
 		when(mockAccessRequirementDAO.get("1")).thenReturn(new ACTAccessRequirement());
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
-		manager.createAccessApproval(userInfo, accessApproval);
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.createAccessApproval(userInfo, accessApproval);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateAccessApprovalForLockAR() {
 		AccessApproval accessApproval = new AccessApproval();
 		accessApproval.setRequirementId(1L);
 		accessApproval.setAccessorId("2");
 		when(mockAccessRequirementDAO.get("1")).thenReturn(new LockAccessRequirement());
-		manager.createAccessApproval(userInfo, accessApproval);
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.createAccessApproval(userInfo, accessApproval);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateAccessApprovalForPostMessageContentAR() {
 		AccessApproval accessApproval = new AccessApproval();
 		accessApproval.setRequirementId(1L);
 		accessApproval.setAccessorId("2");
 		when(mockAccessRequirementDAO.get("1")).thenReturn(new PostMessageContentAccessRequirement());
-		manager.createAccessApproval(userInfo, accessApproval);
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.createAccessApproval(userInfo, accessApproval);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateAccessApprovalAccessorRequirementNotSatisfied() {
 		AccessApproval accessApproval = new AccessApproval();
 		accessApproval.setRequirementId(1L);
@@ -259,17 +311,23 @@ public class AccessApprovalManagerImplUnitTest {
 		when(mockAccessRequirementDAO.get("1")).thenReturn(req);
 		doThrow(new IllegalArgumentException()).when(mockAuthorizationManager)
 				.validateHasAccessorRequirement(any(HasAccessorRequirement.class), anySet());
-		manager.createAccessApproval(userInfo, accessApproval);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.createAccessApproval(userInfo, accessApproval);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateAccessApprovalForAnonymous() {
 		AccessApproval accessApproval = new AccessApproval();
 		accessApproval.setRequirementId(1L);
 		accessApproval.setAccessorId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
 		when(mockAccessRequirementDAO.get("1")).thenReturn(new ACTAccessRequirement());
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
-		manager.createAccessApproval(userInfo, accessApproval);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.createAccessApproval(userInfo, accessApproval);
+		});
 	}
 
 	@Test
@@ -289,33 +347,41 @@ public class AccessApprovalManagerImplUnitTest {
 		assertEquals((Long)1L, created.getRequirementId());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetAccessApprovalInfoWithNullUserInfo() {
 		BatchAccessApprovalInfoRequest request = new BatchAccessApprovalInfoRequest();
 		String requirementId = "1";
 		request.setUserId(userInfo.getId().toString());
 		request.setAccessRequirementIds(Arrays.asList(requirementId));
-		manager.getAccessApprovalInfo(null, request);
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.getAccessApprovalInfo(null, request);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetAccessApprovalInfoWithNullRequest() {
-		manager.getAccessApprovalInfo(userInfo, null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.getAccessApprovalInfo(userInfo, null);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetAccessApprovalInfoWithNullUserId() {
 		BatchAccessApprovalInfoRequest request = new BatchAccessApprovalInfoRequest();
 		String requirementId = "1";
 		request.setAccessRequirementIds(Arrays.asList(requirementId));
-		manager.getAccessApprovalInfo(userInfo, request);
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.getAccessApprovalInfo(userInfo, request);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetAccessApprovalInfoWithNullRequirementIds() {
 		BatchAccessApprovalInfoRequest request = new BatchAccessApprovalInfoRequest();
 		request.setUserId(userInfo.getId().toString());
-		manager.getAccessApprovalInfo(userInfo, request);
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.getAccessApprovalInfo(userInfo, request);
+		});
 	}
 
 	@Test
@@ -352,4 +418,158 @@ public class AccessApprovalManagerImplUnitTest {
 		assertTrue(response.getResults().contains(info1));
 		assertTrue(response.getResults().contains(info2));
 	}
+	
+	@Test
+	public void testRevokeExpiredApprovalsWithNoUser() {
+		UserInfo user = null;
+		Instant expiredAfter = Instant.now().minus(1, ChronoUnit.DAYS);
+		int maxBatchSize = 10;
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			manager.revokeExpiredApprovals(user, expiredAfter, maxBatchSize);
+		}).getMessage();
+		
+		assertEquals("The user is required.", message);
+	}
+	
+	@Test
+	public void testRevokeExpiredApprovalsWithNoExpireAfter() {
+		UserInfo user = userInfo;
+		Instant expiredAfter = null;
+		int maxBatchSize = 10;
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			manager.revokeExpiredApprovals(user, expiredAfter, maxBatchSize);
+		}).getMessage();
+	
+		assertEquals("The expiredAfter is required.", message);
+	}
+	
+	@Test
+	public void testRevokeExpiredApprovalsWithFutureExpireAfter() {
+		UserInfo user = userInfo;
+		Instant expiredAfter = Instant.now().plus(1, ChronoUnit.DAYS);
+		int maxBatchSize = 10;
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			manager.revokeExpiredApprovals(user, expiredAfter, maxBatchSize);
+		}).getMessage();
+		
+		assertEquals("The expiredAfter must be a value in the past.", message);
+	}
+	
+	@Test
+	public void testRevokeExpiredApprovalsWithZeroBatchSize() {
+		UserInfo user = userInfo;
+		Instant expiredAfter = Instant.now().minus(1, ChronoUnit.DAYS);
+		int maxBatchSize = 0;
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			manager.revokeExpiredApprovals(user, expiredAfter, maxBatchSize);
+		}).getMessage();
+		
+		assertEquals("The maxBatchSize must be greater than 0.", message);
+	}
+	
+	@Test
+	public void testRevokeExpiredApprovalsWithNegativeBatchSize() {
+		UserInfo user = userInfo;
+		Instant expiredAfter = Instant.now().minus(1, ChronoUnit.DAYS);
+		int maxBatchSize = -1;
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			manager.revokeExpiredApprovals(user, expiredAfter, maxBatchSize);
+		}).getMessage();
+		
+		assertEquals("The maxBatchSize must be greater than 0.", message);
+	}
+	
+	@Test
+	public void testRevokeExpiredApprovals() {
+
+		List<Long> expiredApprovals = Arrays.asList(1L, 2L);
+		List<Long> revokedApprovals = Arrays.asList(2L);
+
+		when(mockAccessApprovalDAO.listExpiredApprovals(any(), anyInt())).thenReturn(expiredApprovals);
+		when(mockAccessApprovalDAO.revokeBatch(any(), any())).thenReturn(revokedApprovals);
+		
+		UserInfo user = userInfo;
+		Instant expiredAfter = Instant.now().minus(1, ChronoUnit.DAYS);
+		int maxBatchSize = 10;
+		
+		// Call under test
+		int result = manager.revokeExpiredApprovals(user, expiredAfter, maxBatchSize);
+		
+		assertEquals(1, result);
+		verify(mockAccessApprovalDAO).listExpiredApprovals(expiredAfter, maxBatchSize);
+		verify(mockAccessApprovalDAO).revokeBatch(user.getId(), expiredApprovals);
+		
+		ArgumentCaptor<MessageToSend> messageCaptor = ArgumentCaptor.forClass(MessageToSend.class);
+		
+		verify(mockTransactionMessenger).sendMessageAfterCommit(messageCaptor.capture());
+		
+		List<MessageToSend> sentMessages = messageCaptor.getAllValues();
+		
+		// Despite 2 initial expired approvals, only one message was sent as only one was revoked
+		assertEquals(1, sentMessages.size());
+		
+		MessageToSend message = sentMessages.get(0);
+		
+		assertEquals(user.getId(), message.getUserId());
+		assertEquals(ObjectType.ACCESS_APPROVAL, message.getObjectType());
+		assertEquals(revokedApprovals.get(0).toString(), message.getObjectId());
+		assertEquals(ChangeType.UPDATE, message.getChangeType());
+		
+	}
+	
+	@Test
+	public void testRevokeExpiredApprovalsWithNoExpiredApprovals() {
+
+		List<Long> expiredApprovals = Collections.emptyList();
+
+		when(mockAccessApprovalDAO.listExpiredApprovals(any(), anyInt())).thenReturn(expiredApprovals);
+		
+		UserInfo user = userInfo;
+		Instant expiredAfter = Instant.now().minus(1, ChronoUnit.DAYS);
+		int maxBatchSize = 10;
+		
+		// Call under test
+		int result = manager.revokeExpiredApprovals(user, expiredAfter, maxBatchSize);
+		
+		assertEquals(0, result);
+		verify(mockAccessApprovalDAO).listExpiredApprovals(expiredAfter, maxBatchSize);
+		verifyNoMoreInteractions(mockAccessApprovalDAO);
+		verifyZeroInteractions(mockTransactionMessenger);
+		
+	}
+	
+	@Test
+	public void testRevokeExpiredApprovalsWithNoRevokedApprovals() {
+
+		List<Long> expiredApprovals = Arrays.asList(1L, 2L);
+		List<Long> revokedApprovals = Collections.emptyList();
+
+		when(mockAccessApprovalDAO.listExpiredApprovals(any(), anyInt())).thenReturn(expiredApprovals);
+		when(mockAccessApprovalDAO.revokeBatch(any(), any())).thenReturn(revokedApprovals);
+		
+		UserInfo user = userInfo;
+		Instant expiredAfter = Instant.now().minus(1, ChronoUnit.DAYS);
+		int maxBatchSize = 10;
+		
+		// Call under test
+		int result = manager.revokeExpiredApprovals(user, expiredAfter, maxBatchSize);
+		
+		assertEquals(0, result);
+		verify(mockAccessApprovalDAO).listExpiredApprovals(expiredAfter, maxBatchSize);
+		verify(mockAccessApprovalDAO).revokeBatch(user.getId(), expiredApprovals);
+		verifyNoMoreInteractions(mockAccessApprovalDAO);
+		verifyZeroInteractions(mockTransactionMessenger);
+		
+	}
+	
 }

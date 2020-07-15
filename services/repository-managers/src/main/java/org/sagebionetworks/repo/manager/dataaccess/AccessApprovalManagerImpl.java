@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
+import java.time.Instant;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -20,6 +21,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.SelfSignAccessRequirementInterface;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -28,6 +30,9 @@ import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.MessageToSend;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -42,12 +47,25 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	public static final Long MAX_LIMIT = 50L;
 	public static final Long DEFAULT_OFFSET = 0L;
 	
-	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;
-	@Autowired
+	
 	private AccessApprovalDAO accessApprovalDAO;
-	@Autowired
+	
 	private AuthorizationManager authorizationManager;
+	
+	private TransactionalMessenger transactionalMessenger;
+	
+	@Autowired
+	public AccessApprovalManagerImpl(
+			final AccessRequirementDAO accessRequirementDAO, 
+			final AccessApprovalDAO accessApprovalDAO,
+			final AuthorizationManager authorizationManager, 
+			final TransactionalMessenger transactionalMessenger) {
+		this.accessRequirementDAO = accessRequirementDAO;
+		this.accessApprovalDAO = accessApprovalDAO;
+		this.authorizationManager = authorizationManager;
+		this.transactionalMessenger = transactionalMessenger;
+	}
 
 	public static void populateCreationFields(UserInfo userInfo, AccessApproval a) {
 		Date now = new Date();
@@ -171,5 +189,38 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 			}
 		}
 		return response;
+	}
+	
+	@Override
+	@WriteTransaction
+	public int revokeExpiredApprovals(UserInfo user, Instant expiredAfter, int maxBatchSize) {
+		ValidateArgument.required(user, "The user");
+		ValidateArgument.required(expiredAfter, "The expiredAfter");
+		ValidateArgument.requirement(maxBatchSize > 0, "The maxBatchSize must be greater than 0.");
+		ValidateArgument.requirement(expiredAfter.isBefore(Instant.now()), "The expiredAfter must be a value in the past.");
+	
+		// Fetch the list of expired approval
+		final List<Long> expiredApprovals = accessApprovalDAO.listExpiredApprovals(expiredAfter, maxBatchSize);
+		
+		if (expiredApprovals.isEmpty()) {
+			return 0;
+		}
+		
+		// Batch revoke the approvals
+		final List<Long> revokedApprovals = accessApprovalDAO.revokeBatch(user.getId(), expiredApprovals);
+		
+		// For each revocation send out a change message		
+		revokedApprovals.forEach( id -> {
+			MessageToSend message = new MessageToSend()
+					.withUserId(user.getId())
+					.withObjectType(ObjectType.ACCESS_APPROVAL)
+					.withObjectId(id.toString())
+					.withChangeType(ChangeType.UPDATE);
+			
+			transactionalMessenger.sendMessageAfterCommit(message);
+		});
+		
+		return revokedApprovals.size();
+		
 	}
 }

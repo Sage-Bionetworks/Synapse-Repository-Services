@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.AccessApproval;
@@ -67,4 +69,14 @@ public interface AccessApprovalManager {
 	 * @return
 	 */
 	public BatchAccessApprovalInfoResponse getAccessApprovalInfo(UserInfo userInfo, BatchAccessApprovalInfoRequest request);
+	
+	/**
+	 * Revokes all the approval that are expired. This method is invoked periodically by a worker.
+	 * 
+	 * @param user The user used for revoking
+	 * @param expiredAfter Only revoke approvals expired after the given instant. Must be a value in the past.
+	 * @param maxBatchSize The maximum number of approval to expire
+	 * @return The number of expired approvals
+	 */
+	int revokeExpiredApprovals(UserInfo user, Instant expiredAfter, int maxBatchSize);
 }
