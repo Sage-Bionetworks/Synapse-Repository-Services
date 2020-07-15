@@ -9,7 +9,7 @@ public class DBOMessageToUserTest {
 	
 	@Test
 	public void testMigrateOverrideNotificationSettings() {
-		DBOMessageToUser messageToUser = new DBOMessageToUser();
+		DBOMessageToUserBackup messageToUser = new DBOMessageToUserBackup();
 		
 		messageToUser.setOverrideNotificationSettings(null);
 		
