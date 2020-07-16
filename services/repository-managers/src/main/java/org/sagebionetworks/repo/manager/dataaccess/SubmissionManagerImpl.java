@@ -66,6 +66,8 @@ public class SubmissionManagerImpl implements SubmissionManager{
 	private SubscriptionDAO subscriptionDao;
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
+	@Autowired
+	private AccessApprovalManager accessAprovalManager;
 
 	@WriteTransaction
 	@Override
@@ -245,18 +247,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			createApprovalsForSubmission(submission, modifiedBy, expiredOn, approvalsToCreateOrUpdate, accessorsToRevoke);
 
 			if (!accessorsToRevoke.isEmpty()) {
-				final List<Long> approvals = accessApprovalDao.listApprovalsBySubmitter(submission.getAccessRequirementId(), submission.getSubmittedBy(), accessorsToRevoke);
-				final List<Long> revokedApprovals = accessApprovalDao.revokeBatch(userInfo.getId(), approvals);
-				
-				revokedApprovals.forEach( id -> {
-					MessageToSend message = new MessageToSend()
-							.withUserId(userInfo.getId())
-							.withObjectType(ObjectType.ACCESS_APPROVAL)
-							.withObjectId(id.toString())
-							.withChangeType(ChangeType.UPDATE);
-					
-					transactionalMessenger.sendMessageAfterCommit(message);
-				});
+				accessAprovalManager.revokeGroup(userInfo, submission.getAccessRequirementId(), submission.getSubmittedBy(), accessorsToRevoke);
 			}
 			
 			if (!approvalsToCreateOrUpdate.isEmpty()) {

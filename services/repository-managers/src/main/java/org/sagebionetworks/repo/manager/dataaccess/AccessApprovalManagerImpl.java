@@ -215,8 +215,30 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	
 	@Override
 	@WriteTransaction
-	public int revokeExpiredApprovals(UserInfo user, Instant expiredAfter, int maxBatchSize) {
-		ValidateArgument.required(user, "The user");
+	public void revokeGroup(UserInfo userInfo, String accessRequirementId, String submitterId, List<String> accessorIds) {
+		ValidateArgument.required(userInfo, "The user");
+		ValidateArgument.required(accessRequirementId, "The access requirement id");
+		ValidateArgument.required(submitterId, "The submitter id");
+		ValidateArgument.required(accessorIds, "The list of accessor ids");
+		
+		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only ACT member can perform this action.");
+		}
+		
+		if (accessorIds.isEmpty()) {
+			return;
+		}
+		
+		final List<Long> approvals = accessApprovalDAO.listApprovalsBySubmitter(accessRequirementId, submitterId, accessorIds);
+		final List<Long> revokedApprovals = accessApprovalDAO.revokeBatch(userInfo.getId(), approvals);
+		
+		sendUpdateChange(userInfo, revokedApprovals);
+	};
+	
+	@Override
+	@WriteTransaction
+	public int revokeExpiredApprovals(UserInfo userInfo, Instant expiredAfter, int maxBatchSize) {
+		ValidateArgument.required(userInfo, "The user");
 		ValidateArgument.required(expiredAfter, "The expiredAfter");
 		ValidateArgument.requirement(maxBatchSize > 0, "The maxBatchSize must be greater than 0.");
 		ValidateArgument.requirement(expiredAfter.isBefore(Instant.now()), "The expiredAfter must be a value in the past.");
@@ -229,10 +251,10 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		}
 		
 		// Batch revoke the approvals
-		final List<Long> revokedApprovals = accessApprovalDAO.revokeBatch(user.getId(), expiredApprovals);
+		final List<Long> revokedApprovals = accessApprovalDAO.revokeBatch(userInfo.getId(), expiredApprovals);
 		
 		// For each revocation send out a change message		
-		sendUpdateChange(user, revokedApprovals);
+		sendUpdateChange(userInfo, revokedApprovals);
 		
 		return revokedApprovals.size();
 		

@@ -103,6 +103,8 @@ public class SubmissionManagerImplTest {
 	@Mock
 	private TransactionalMessenger mockTransactionalMessenger;
 	@Mock
+	private AccessApprovalManager mockAccessAprovalManager;
+	@Mock
 	private RequestManager mockRequestManager;
 	@InjectMocks
 	private SubmissionManagerImpl manager;
@@ -725,22 +727,10 @@ public class SubmissionManagerImplTest {
 				eq(SubmissionState.APPROVED), eq(reason), eq(userId),
 				anyLong())).thenReturn(submission);
 		
-		when(mockAccessApprovalDao.listApprovalsBySubmitter(any(), any(), any())).thenReturn(Arrays.asList(2L));
-		when(mockAccessApprovalDao.revokeBatch(any(), any())).thenReturn(Arrays.asList(2L));
-		
 		// call under test
 		assertEquals(submission, manager.updateStatus(mockUser, request));
 		
-		verify(mockAccessApprovalDao).listApprovalsBySubmitter(accessRequirementId, userId, Arrays.asList(userId, "2"));
-		verify(mockAccessApprovalDao).revokeBatch(userIdLong, Arrays.asList(2L));
-
-		MessageToSend message = new MessageToSend()
-				.withUserId(userIdLong)
-				.withObjectType(ObjectType.ACCESS_APPROVAL)
-				.withObjectId("2")
-				.withChangeType(ChangeType.UPDATE);
-		
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(message);
+		verify(mockAccessAprovalManager).revokeGroup(mockUser, accessRequirementId, userId, Arrays.asList(userId, "2"));
 		
 		ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
 		
@@ -792,22 +782,10 @@ public class SubmissionManagerImplTest {
 				eq(SubmissionState.APPROVED), eq(reason), eq(userId),
 				anyLong())).thenReturn(submission);
 		
-		when(mockAccessApprovalDao.listApprovalsBySubmitter(any(), any(), any())).thenReturn(Arrays.asList(1L));
-		when(mockAccessApprovalDao.revokeBatch(any(), any())).thenReturn(Arrays.asList(1L));
-		
 		// call under test
 		assertEquals(submission, manager.updateStatus(mockUser, request));
 
-		verify(mockAccessApprovalDao).listApprovalsBySubmitter(accessRequirementId, userId, Arrays.asList(userId));
-		verify(mockAccessApprovalDao).revokeBatch(userIdLong, Arrays.asList(1L));
-		
-		MessageToSend message = new MessageToSend()
-				.withUserId(userIdLong)
-				.withObjectType(ObjectType.ACCESS_APPROVAL)
-				.withObjectId("1")
-				.withChangeType(ChangeType.UPDATE);
-		
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(message);
+		verify(mockAccessAprovalManager).revokeGroup(mockUser, accessRequirementId, userId, Arrays.asList(userId));
 		
 		ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
 
