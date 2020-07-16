@@ -23,7 +23,7 @@
 						<constructor-arg index="0" ref="countingSemaphore" />
 						<constructor-arg index="1">
 							<bean class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStackConfiguration">
-								<property name="progressingRunner" ref="athenaPartitionScannerWorker"/>
+								<property name="progressingRunner" ref="accessApprovalExpirationWorker"/>
 								<property name="semaphoreLockKey" value="accessApprovalExpirationWorker" />
 								<property name="semaphoreMaxLockCount" value="1" />
 								<property name="semaphoreLockTimeoutSec" value="60" />

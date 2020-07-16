@@ -56,7 +56,10 @@ public class AccessApprovalExpirationWorkerTest {
 		when(mockStackStatusDao.isStackReadWrite()).thenReturn(true);
 		when(mockAccessApprovalManager.revokeExpiredApprovals(any(), any(), anyInt())).thenReturn(processedApprovals);
 
-		Instant past = Instant.now().minus(AccessApprovalExpirationWorker.CUT_OFF_DAYS, ChronoUnit.DAYS);
+		// A bit of room if the test runs too fast
+		long resolutionMs = 1000;
+		
+		Instant past = Instant.now().minus(AccessApprovalExpirationWorker.CUT_OFF_DAYS, ChronoUnit.DAYS).minusMillis(resolutionMs);
 		
 		// Call under test
 		worker.run(mockCallback);
@@ -70,7 +73,7 @@ public class AccessApprovalExpirationWorkerTest {
 				eq(AccessApprovalExpirationWorker.BATCH_SIZE));
 		
 		assertTrue(expireCaptor.getValue().isAfter(past));
-		assertTrue(expireCaptor.getValue().isBefore(Instant.now().minus(AccessApprovalExpirationWorker.CUT_OFF_DAYS, ChronoUnit.DAYS)));
+		assertTrue(expireCaptor.getValue().isBefore(Instant.now().plusMillis(resolutionMs).minus(AccessApprovalExpirationWorker.CUT_OFF_DAYS, ChronoUnit.DAYS)));
 	}
 	
 	@Test
