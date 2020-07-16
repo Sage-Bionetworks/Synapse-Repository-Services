@@ -99,7 +99,9 @@ public class PersonalAccessTokenDaoImpl implements PersonalAccessTokenDao {
 		dbo.setPrincipalId(Long.parseLong(dto.getUserId()));
 		dbo.setName(dto.getName());
 		dbo.setCreatedOn(new Timestamp(dto.getCreatedOn().getTime()));
-		dbo.setLastUsed(new Timestamp(dto.getLastUsed().getTime()));
+		if (dto.getLastUsed() != null) {
+			dbo.setLastUsed(new Timestamp(dto.getLastUsed().getTime()));
+		}
 		return dbo;
 	}
 
@@ -116,7 +118,9 @@ public class PersonalAccessTokenDaoImpl implements PersonalAccessTokenDao {
 		dto.setName(dbo.getName());
 		// Timestamp must be converted to Date for .equals to work on the DTO
 		dto.setCreatedOn(new Date(dbo.getCreatedOn().getTime()));
-		dto.setLastUsed(new Date(dbo.getLastUsed().getTime()));
+		if (dbo.getLastUsed() != null) {
+			dto.setLastUsed(new Date(dbo.getLastUsed().getTime()));
+		}
 		return dto;
 	}
 
