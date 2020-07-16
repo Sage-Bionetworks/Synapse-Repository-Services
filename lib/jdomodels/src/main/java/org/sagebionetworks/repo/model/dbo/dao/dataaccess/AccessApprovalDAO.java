@@ -43,15 +43,6 @@ public interface AccessApprovalDAO {
 	public void delete(String id) throws DatastoreException, NotFoundException;
 
 	/**
-	 * delete all access approval that approves accessorId to access requirementId
-	 * 
-	 * @param accessRequirementId
-	 * @param accessorId
-	 * @param revokedBy
-	 */
-	public void revokeAll(String accessRequirementId, String accessorId, String revokedBy);
-
-	/**
 	 * Return true if there is an unmet access requirement for the given user; false otherwise.
 	 * 
 	 * @param requirementIdSet
@@ -110,22 +101,6 @@ public interface AccessApprovalDAO {
 			long limit, long offset);
 
 	/**
-	 * Revoke a group of accessors
-	 * 
-	 * @param accessRequirementId
-	 * @param submitterId
-	 * @param revokedBy
-	 */
-	public void revokeGroup(String accessRequirementId, String submitterId, String revokedBy);
-
-	/**
-	 * Revoke a batch of accessors
-	 * 
-	 * @param approvalsToRenew
-	 */
-	public void revokeBySubmitter(String accessRequirementId, String submitterId, List<String> accessors, String revokedBy);
-
-	/**
 	 * Retrieve a set of AccessRequirement ID that userId has access approval for within the provided accessRequirementIds
 	 * 
 	 * @param userId
@@ -133,6 +108,33 @@ public interface AccessApprovalDAO {
 	 * @return
 	 */
 	public Set<String> getRequirementsUserHasApprovals(String userId, List<String> accessRequirementIds);
+	
+	/**
+	 * Fetch the list of approval ids for the given access requirement and accessor id
+	 * 
+	 * @param accessRequirementId The id of the access requirement
+	 * @param accessorId The id of the accessor
+	 * @return The list of approved access approval ids for the given access requirement and accessor
+	 */
+	List<Long> listApprovalsByAccessor(String accessRequirementId, String accessorId);
+	
+	/**
+	 * Fetch the list of approval ids for the given access requirement and submitter id
+	 * 
+	 * @param accessRequirementId The id of the access requirement
+	 * @param submitterId The id of the submitter
+	 * @return The list of approved access approval ids for the given access requirement and submitter id
+	 */
+	List<Long> listApprovalsBySubmitter(String accessRequirementId, String submitterId);
+	
+	/**
+	 * Fetch the list of approval ids for the given access requirement, submitter id and list of accessors
+	 * 
+	 * @param accessRequirementId The id of the access requirement
+	 * @param submitterId The id of the submitter
+	 * @return The list of approved access approval ids for the given access requirement and submitter id
+	 */
+	List<Long> listApprovalsBySubmitter(String accessRequirementId, String submitterId, List<String> accessorIds);
 	
 	/**
 	 * Fetch the list of expired approval ids

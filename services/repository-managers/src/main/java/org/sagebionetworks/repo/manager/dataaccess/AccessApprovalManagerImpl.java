@@ -133,9 +133,19 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 			throw new UnauthorizedException("Only ACT member may delete access approvals.");
 		}
 		AccessRequirement accessRequirement = accessRequirementDAO.get(accessRequirementId);
+		
 		ValidateArgument.requirement(accessRequirement.getConcreteType().equals(ACTAccessRequirement.class.getName()),
 				"Do not support access approval deletion for access requirement type: "+accessRequirement.getConcreteType());
-		accessApprovalDAO.revokeAll(accessRequirementId, accessorId, userInfo.getId().toString());
+		
+		final List<Long> approvals = accessApprovalDAO.listApprovalsByAccessor(accessRequirementId, accessorId);
+		
+		if (approvals.isEmpty()) {
+			return;
+		}
+		
+		final List<Long> revokedApprovals = accessApprovalDAO.revokeBatch(userInfo.getId(), approvals);
+		
+		sendUpdateChange(userInfo, revokedApprovals);
 	}
 
 	@Override
@@ -163,10 +173,20 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getAccessRequirementId(), "requirementId");
 		ValidateArgument.required(request.getSubmitterId(), "submitterId");
+		
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can perform this action.");
 		}
-		accessApprovalDAO.revokeGroup(request.getAccessRequirementId(), request.getSubmitterId(), userInfo.getId().toString());
+		
+		final List<Long> approvals = accessApprovalDAO.listApprovalsBySubmitter(request.getAccessRequirementId(), request.getSubmitterId());
+		
+		if (approvals.isEmpty()) {
+			return;
+		}
+		
+		final List<Long> revokedApprovals = accessApprovalDAO.revokeBatch(userInfo.getId(), approvals);
+		
+		sendUpdateChange(userInfo, revokedApprovals);
 	}
 
 	@Override
@@ -175,9 +195,11 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getUserId(), "BatchAccessApprovalInfoRequest.userId");
 		ValidateArgument.required(request.getAccessRequirementIds(), "BatchAccessApprovalInfoRequest.accessRequirementIds");
+		
 		BatchAccessApprovalInfoResponse response = new BatchAccessApprovalInfoResponse();
 		List<AccessApprovalInfo> results = new LinkedList<AccessApprovalInfo>();
 		response.setResults(results);
+		
 		if (!request.getAccessRequirementIds().isEmpty()) {
 			Set<String> requirementsUserHasApproval = accessApprovalDAO.getRequirementsUserHasApprovals(request.getUserId(), request.getAccessRequirementIds());
 			for (String requirementId : request.getAccessRequirementIds()) {
@@ -210,7 +232,14 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		final List<Long> revokedApprovals = accessApprovalDAO.revokeBatch(user.getId(), expiredApprovals);
 		
 		// For each revocation send out a change message		
-		revokedApprovals.forEach( id -> {
+		sendUpdateChange(user, revokedApprovals);
+		
+		return revokedApprovals.size();
+		
+	}
+	
+	private void sendUpdateChange(UserInfo user, List<Long> accessApprovalIds) {
+		accessApprovalIds.forEach( id -> {
 			MessageToSend message = new MessageToSend()
 					.withUserId(user.getId())
 					.withObjectType(ObjectType.ACCESS_APPROVAL)
@@ -219,8 +248,5 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 			
 			transactionalMessenger.sendMessageAfterCommit(message);
 		});
-		
-		return revokedApprovals.size();
-		
 	}
 }

@@ -138,10 +138,29 @@ public class AccessApprovalManagerImplUnitTest {
 	public void testRevokeAccessApprovalsWithACTAccessRequirement() {
 		String accessRequirementId = "2";
 		String accessorId = "3";
+		List<Long> approvals = Arrays.asList(1L, 2L);
 		AccessRequirement accessRequirement = new ACTAccessRequirement();
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		when(mockAccessRequirementDAO.get(accessRequirementId)).thenReturn(accessRequirement);	
+		when(mockAccessApprovalDAO.listApprovalsByAccessor(any(), any())).thenReturn(approvals);
+		when(mockAccessApprovalDAO.revokeBatch(any(), any())).thenReturn(approvals);
+		
+		// Call under test
 		manager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);
+		
+		verify(mockAccessApprovalDAO).listApprovalsByAccessor(accessRequirementId, accessorId);
+		verify(mockAccessApprovalDAO).revokeBatch(userInfo.getId(), approvals);
+		
+		for (Long id : approvals) {
+			
+			MessageToSend expectedMessage = new MessageToSend()
+					.withUserId(userInfo.getId())
+					.withObjectType(ObjectType.ACCESS_APPROVAL)
+					.withObjectId(id.toString())
+					.withChangeType(ChangeType.UPDATE);
+			
+			verify(mockTransactionMessenger).sendMessageAfterCommit(expectedMessage);
+		}
 	}
 
 	@Test
@@ -226,12 +245,32 @@ public class AccessApprovalManagerImplUnitTest {
 
 	@Test
 	public void testRevokeGroupAuthorized() {
+		List<Long> approvals = Arrays.asList(1L, 2L);
+		
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockAccessApprovalDAO.listApprovalsBySubmitter(any(), any())).thenReturn(approvals);
+		when(mockAccessApprovalDAO.revokeBatch(any(), any())).thenReturn(approvals);
+		
 		AccessorGroupRevokeRequest request = new AccessorGroupRevokeRequest();
 		request.setAccessRequirementId("1");
 		request.setSubmitterId("2");
+		
 		manager.revokeGroup(userInfo, request);
-		verify(mockAccessApprovalDAO).revokeGroup("1", "2","3");
+		
+		verify(mockAccessApprovalDAO).listApprovalsBySubmitter("1", "2");
+		verify(mockAccessApprovalDAO).revokeBatch(userInfo.getId(), approvals);
+		
+		for (Long id : approvals) {
+			
+			MessageToSend expectedMessage = new MessageToSend()
+					.withUserId(userInfo.getId())
+					.withObjectType(ObjectType.ACCESS_APPROVAL)
+					.withObjectId(id.toString())
+					.withChangeType(ChangeType.UPDATE);
+			
+			verify(mockTransactionMessenger).sendMessageAfterCommit(expectedMessage);
+		}
+		
 	}
 
 	@Test
