@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
+package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -15,7 +15,6 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.ApprovalState;
-import org.sagebionetworks.repo.model.dbo.dao.dataaccess.AccessApprovalUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
 
 public class AccessApprovalUtilsTest {

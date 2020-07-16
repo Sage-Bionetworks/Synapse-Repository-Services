@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
+package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.util.Date;
 import java.util.LinkedList;

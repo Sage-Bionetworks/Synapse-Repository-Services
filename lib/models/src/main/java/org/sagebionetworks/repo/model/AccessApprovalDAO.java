@@ -1,13 +1,10 @@
-package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
+package org.sagebionetworks.repo.model;
 
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.web.NotFoundException;
 
