@@ -124,6 +124,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionSubmitter" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionStatus" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessNotification" />
 				<!-- Forms -->
 				<bean class="org.sagebionetworks.repo.model.dbo.form.DBOFormGroup" />
 				<bean class="org.sagebionetworks.repo.model.dbo.form.DBOFormData" />
@@ -240,6 +241,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBORequest" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionSubmitter" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessNotification" />
 				<!-- Forms -->
 				<bean class="org.sagebionetworks.repo.model.dbo.form.DBOFormGroup" />
 				<bean class="org.sagebionetworks.repo.model.dbo.form.DBOFormData" />

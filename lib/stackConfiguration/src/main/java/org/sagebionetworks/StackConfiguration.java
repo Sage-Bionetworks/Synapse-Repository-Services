@@ -1,6 +1,7 @@
 package org.sagebionetworks;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 
@@ -828,5 +829,10 @@ public interface StackConfiguration {
 	 * @return The configured endpoint for the repository services prod stack
 	 */
 	String getRepositoryServiceProdEndpoint();
+	
+	/**
+	 * @return The id of the user to be used as sender when sending data access notifications
+	 */
+	Long getDataAccessNotificationsSender();
 	
 }

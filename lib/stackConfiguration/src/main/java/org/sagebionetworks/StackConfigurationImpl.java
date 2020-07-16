@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 import java.util.StringJoiner;
 
 import com.google.inject.Inject;
@@ -1220,5 +1221,10 @@ public class StackConfigurationImpl implements StackConfiguration {
 	@Override
 	public String getRepositoryServiceProdEndpoint() {
 		return configuration.getProperty("org.sagebionetworks.repositoryservice.endpoint.prod");
+	}
+	
+	@Override
+	public Long getDataAccessNotificationsSender() {
+		return Long.valueOf(configuration.getProperty("org.sagebionetworks.dataaccess.notifications.sender"));
 	}
 }
