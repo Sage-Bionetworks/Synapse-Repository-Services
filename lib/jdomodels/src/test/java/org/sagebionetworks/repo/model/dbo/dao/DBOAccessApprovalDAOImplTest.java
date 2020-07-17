@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -557,6 +558,9 @@ public class DBOAccessApprovalDAOImplTest {
 		
 		assertEquals(expected, result);
 		
+		// Verify the etag change
+		assertNotEquals(accessApproval.getEtag(), accessApprovalDAO.get(accessApproval.getId().toString()).getEtag());
+		assertNotEquals(accessApproval2.getEtag(), accessApprovalDAO.get(accessApproval2.getId().toString()).getEtag());
 	}
 	
 	@Test
