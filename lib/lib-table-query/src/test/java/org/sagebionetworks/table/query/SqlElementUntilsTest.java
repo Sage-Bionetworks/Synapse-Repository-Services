@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.google.common.collect.Lists;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.query.model.ComparisonPredicate;
@@ -104,6 +105,18 @@ public class SqlElementUntilsTest {
 		QuerySpecification converted = SqlElementUntils.convertToSortedQuery(model, Lists.newArrayList(sort1, sort2));
 		assertNotNull(converted);
 		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY \"bar\" DESC, \"foo\" ASC LIMIT 1", converted.toString());
+	}
+
+	@Test
+	public void testConvertToSortedQuerySortListUsingColumnSQL() throws ParseException {
+		QuerySpecification model = TableQueryParser
+				.parserQuery("select * from syn123");
+		SortItem sort1 = new SortItem();
+		sort1.setColumnSQL("\"has\"\"Quote\"");
+		QuerySpecification converted = SqlElementUntils.convertToSortedQuery(model, Lists.newArrayList(sort1));
+		assertNotNull(converted);
+		assertEquals("SELECT * FROM syn123 ORDER BY \"has\"\"Quote\" ASC",
+				converted.toString());
 	}
 	
 	@Test
@@ -370,6 +383,13 @@ public class SqlElementUntilsTest {
 		String result = SqlElementUntils.wrapInDoubleQuotes(toWrap);
 		assertEquals("\"foo\"", result);
 	}
+
+	@Test
+	public void testWrapInDoubleQuotes_StringContainsDoubleQuotes(){
+		String toBeWrapped = "\"Don't trust everything you read on the internet\" - Abraham Lincoln";
+		String expectedResult = "\"\"\"Don't trust everything you read on the internet\"\" - Abraham Lincoln\"";
+		assertEquals(expectedResult, SqlElementUntils.wrapInDoubleQuotes(toBeWrapped));
+	}
 	
 	@Test
 	public void testCreateSortKeyWithKeywordInName() throws ParseException{
@@ -386,17 +406,39 @@ public class SqlElementUntilsTest {
 	}
 	
 	@Test
-	public void testCreateSortKeyFunction() throws ParseException{
+	public void testCreateSortKeyAggregateFunction() throws ParseException{
 		// function should not be wrapped in quotes.
 		SortKey sortKey = SqlElementUntils.createSortKey("max(foo)");
 		assertNotNull(sortKey);
 		assertEquals("MAX(foo)", sortKey.toSql());
 	}
-	
+
+	///////////////////////////////////////////////
+	// createDerivedColumnFromColumnModel() tests
+	///////////////////////////////////////////////
+
 	@Test
-	public void testCreateDoubleQuotedDerivedColumn(){
-		DerivedColumn dr = SqlElementUntils.createDoubleQuotedDerivedColumn("foo");
+	public void testCreateDerivedColumnFromColumnModel_nameIsSingleWord() throws ParseException {
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setName("foo");
+		DerivedColumn dr = SqlElementUntils.createDerivedColumnFromColumnModel(columnModel);
 		assertEquals("\"foo\"", dr.toSql());
+	}
+
+	@Test
+	public void testCreateDerivedColumnFromColumnModel_nameIncludesSpaces() throws ParseException {
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setName("foo bar");
+		DerivedColumn dr = SqlElementUntils.createDerivedColumnFromColumnModel(columnModel);
+		assertEquals("\"foo bar\"", dr.toSql());
+	}
+
+	@Test
+	public void testCreateDerivedColumnFromColumnModel_nameIncludesDoubleQuotes() throws ParseException {
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setName("foo\"bar\"");
+		DerivedColumn dr = SqlElementUntils.createDerivedColumnFromColumnModel(columnModel);
+		assertEquals("\"foo\"\"bar\"\"\"", dr.toSql());
 	}
 	
 	@Test
@@ -404,7 +446,6 @@ public class SqlElementUntilsTest {
 		DerivedColumn dr = SqlElementUntils.createNonQuotedDerivedColumn("ROW_ID");
 		assertEquals("ROW_ID", dr.toSql());
 	}
-
 
 	////////////////////////////////////////////////////////////
 	// appendCombinedWhereClauseToStringBuilder() tests

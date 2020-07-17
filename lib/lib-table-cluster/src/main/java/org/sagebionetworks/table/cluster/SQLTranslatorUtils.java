@@ -132,6 +132,7 @@ public class SQLTranslatorUtils {
 		// Select defines the selection
 		SelectColumn selectColumn = new SelectColumn();
 		selectColumn.setName(displayName);
+		selectColumn.setColumnSQL(derivedColumn.getColumnSQL());
 		
 		ColumnTranslationReference translationReference = null;
 		if(referencedColumn != null){
@@ -221,7 +222,7 @@ public class SQLTranslatorUtils {
 		ValidateArgument.required(schema, "schema");
 		List<DerivedColumn> columns = new ArrayList<DerivedColumn>(schema.size());
 		for(ColumnModel cm: schema){
-			columns.add(SqlElementUntils.createDoubleQuotedDerivedColumn(cm.getName()));
+			columns.add(SqlElementUntils.createDerivedColumnFromColumnModel(cm));
 		}
 		return new SelectList(columns);
 	}

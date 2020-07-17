@@ -623,7 +623,7 @@ public class TableIndexDAOImplTest {
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
 		List<SelectColumn> expectedHeaders = Lists.newArrayList(TableModelUtils
-				.createSelectColumn("COUNT(*)", ColumnType.INTEGER, null));
+				.createSelectColumn("COUNT(*)", "COUNT(*)",ColumnType.INTEGER, null));
 		assertEquals(expectedHeaders, results.getHeaders());
 		assertNotNull(results.getRows());
 		assertEquals(tableId.toString(), results.getTableId());

@@ -51,6 +51,7 @@ import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.ColumnTypeInfo;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
+import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.base.Function;
@@ -1150,17 +1151,22 @@ public class TableModelUtils {
 		}
 		return columnIdToColumnIndexMap;
 	}
-
-	public static SelectColumn createSelectColumn(String name, ColumnType columnType, String id) {
+	
+	public static SelectColumn createSelectColumn(String name, String columnSQL, ColumnType columnType, String id) {
 		SelectColumn newSelectColumn = new SelectColumn();
 		newSelectColumn.setName(name);
+		newSelectColumn.setColumnSQL(columnSQL);
 		newSelectColumn.setColumnType(columnType);
 		newSelectColumn.setId(id);
 		return newSelectColumn;
 	}
 
+	public static SelectColumn createSelectColumn(String name, ColumnType columnType, String id){
+		return createSelectColumn(name, null, columnType, id);
+	}
+
 	public static SelectColumn createSelectColumn(ColumnModel model) {
-		return createSelectColumn(model.getName(), model.getColumnType(), model.getId());
+		return createSelectColumn(model.getName(), SqlElementUntils.wrapInDoubleQuotes(model.getName()), model.getColumnType(), model.getId());
 	}
 	
 	/**

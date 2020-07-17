@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -496,7 +497,12 @@ public class SqlElementUntils {
 			OrderingSpecification direction = sortItem.getDirection() == SortDirection.DESC ? OrderingSpecification.DESC
 					: OrderingSpecification.ASC;
 			originalSortSpecifications.remove(sortItem.getColumn());
-			sortSpecifications.add(new SortSpecification(createSortKey(sortItem.getColumn()), direction));
+			if(sortItem.getColumnSQL() != null){ //TODO: Remove else statement once frontend stops using SortItem.column (PLFM-4892)
+				SortKey sortKey = new TableQueryParser(sortItem.getColumnSQL()).sortKey();
+				sortSpecifications.add(new SortSpecification(sortKey, direction));
+			}else{
+				sortSpecifications.add(new SortSpecification(createSortKey(sortItem.getColumn()), direction));
+			}
 		}
 		sortSpecifications.addAll(originalSortSpecifications.values());
 		orderByClause = new OrderByClause(new SortSpecificationList(sortSpecifications));
@@ -684,7 +690,8 @@ public class SqlElementUntils {
 		}
 		return builder.toString();
 	}
-	
+
+	@Deprecated //TODO: Remove once frontend stops using SortItem.column (PLFM-4892)
 	/**
 	 * Create delimited sort key from a column name.
 	 * 
@@ -720,12 +727,14 @@ public class SqlElementUntils {
 	
 	/**
 	 * Create an unconditionally double quoted derived column
-	 * @param columnName
+	 * @param columnModel
 	 * @return
 	 */
-	public static DerivedColumn createDoubleQuotedDerivedColumn(String columnName){
-		try {
-			return new TableQueryParser(wrapInDoubleQuotes(columnName)).derivedColumn();
+ 	public static DerivedColumn createDerivedColumnFromColumnModel(ColumnModel columnModel) {
+ 		try {
+			// column model names are always going to be not double-quoted so we must always wrap the column
+			// name in double quotes before passing it to the parser
+			return new TableQueryParser(wrapInDoubleQuotes(columnModel.getName())).derivedColumn();
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
@@ -745,17 +754,14 @@ public class SqlElementUntils {
 	}
 	
 	/**
-	 * Wrap the given string in double quotes.
+	 * Wrap the given string in double quotes and escape any existing double-quotes with 2 double-quotes ""
+	 * For example: My"quoted"string => "My""quoted""string"
 	 * 
 	 * @param toWrap
 	 * @return
 	 */
 	public static String wrapInDoubleQuotes(String toWrap){
-		StringBuilder builder = new StringBuilder();
-		builder.append("\"");
-		builder.append(toWrap);
-		builder.append("\"");
-		return builder.toString();
+		return "\"" + toWrap.replaceAll("\"", "\"\"") + "\"";
 	}
 
 	/**

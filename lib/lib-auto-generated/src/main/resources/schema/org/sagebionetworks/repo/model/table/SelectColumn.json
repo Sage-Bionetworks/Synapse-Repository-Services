@@ -6,10 +6,14 @@
             "type":"string",
             "description":"The required display name of the column"
         },
+        "columnSQL":{
+            "type":"string",
+            "description":"The SQL representation of the column name that can be used to toggle sorting (passed this value over to SortItem)"
+        },
         "columnType": {
-			"description": "The type of the select column or null if the type cannot be determined.",
-			"$ref": "org.sagebionetworks.repo.model.table.ColumnType"
-		},
+            "description": "The type of the select column or null if the type cannot be determined.",
+            "$ref": "org.sagebionetworks.repo.model.table.ColumnType"
+        },
         "id":{
             "type":"string",
             "description":"The optional ID of the select column, if this is a direct column selected"

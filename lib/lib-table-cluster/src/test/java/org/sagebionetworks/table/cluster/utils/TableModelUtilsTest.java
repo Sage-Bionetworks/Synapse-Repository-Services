@@ -1878,7 +1878,7 @@ public class TableModelUtilsTest {
 		assertEquals(newModel, results.get(0));
 		assertEquals(oldModel, results.get(1));
 	}
-	
+
 	@Test
 	public void testCreateChangesFromOldSchemaToNew() {
 		List<String> oldSchema = Lists.newArrayList("1","2");
@@ -1919,7 +1919,7 @@ public class TableModelUtilsTest {
 	 */
 	@Test
 	public void testCreateChangesFromOldSchemaToNewNullNew() {
-		List<String> oldSchema = Lists.newArrayList("1","2");
+		List<String> oldSchema = Lists.newArrayList("1", "2");
 		List<String> newSchema = null;
 		// call under test
 		List<ColumnChange> changes = TableModelUtils.createChangesFromOldSchemaToNew(oldSchema, newSchema);
@@ -1931,5 +1931,21 @@ public class TableModelUtilsTest {
 		ColumnChange removeTwo = changes.get(1);
 		assertEquals(null, removeTwo.getNewColumnId());
 		assertEquals("2", removeTwo.getOldColumnId());
+	}
+
+	@Test
+	public void testCreateSelectColumn_givenColumnModelWithQuotedName(){
+		ColumnModel cm = new ColumnModel();
+		cm.setName("quoted\"Name\"");
+		cm.setColumnType(ColumnType.DOUBLE);
+		cm.setId("123");
+
+		SelectColumn selectColumn = TableModelUtils.createSelectColumn(cm);
+
+		assertNotNull(selectColumn);
+		assertEquals(cm.getName(), selectColumn.getName());
+		assertEquals("\"quoted\"\"Name\"\"\"", selectColumn.getColumnSQL());
+		assertEquals(cm.getColumnType(), selectColumn.getColumnType());
+		assertEquals(cm.getId(), selectColumn.getId());
 	}
 }
