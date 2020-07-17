@@ -78,7 +78,7 @@
 	<!-- Profile with a subset of workers for data access workers only (Use with @ActiveProfiles("test-dataaccess-worker") -->
 	<beans profile="test-dataaccess-worker">
 		<util:list id="workerTriggersList">
-			<ref bean="messagePublisherTrigger" />
+			<ref bean="accessApprovalExpirationTrigger"/>
 		</util:list>
 	</beans>
 </beans>

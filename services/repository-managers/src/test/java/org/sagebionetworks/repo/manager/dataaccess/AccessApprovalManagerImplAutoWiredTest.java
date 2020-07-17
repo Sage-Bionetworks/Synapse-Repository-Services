@@ -2,9 +2,12 @@ package org.sagebionetworks.repo.manager.dataaccess;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -26,6 +29,9 @@ import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
@@ -73,6 +79,9 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	
 	@Autowired
 	private AccessApprovalDAO accessApprovalDao;
+	
+	@Autowired
+	private AccessRequirementDAO accessRequirementDao;
 
 	@Autowired
 	private UserManager userManager;
@@ -409,5 +418,76 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		
 		// show that entity can't be downloaded (before PLFM-6209 this failed)
 		assertFalse(entityPermissionsManager.hasAccess(nodeAId, ACCESS_TYPE.DOWNLOAD, testUserInfo).isAuthorized());
+	}
+	
+	@Test
+	public void testRevokeExpiredApprovals() {
+		// Approved and not expiring
+		AccessApproval ap1 = createApproval(createManagedAR(), ApprovalState.APPROVED, null);
+		// Already revoked and expired
+		AccessApproval ap2 = createApproval(createManagedAR(), ApprovalState.REVOKED, Instant.now().minus(1, ChronoUnit.DAYS));
+		// APPROVED by expired
+		AccessApproval ap3 = createApproval(createManagedAR(), ApprovalState.APPROVED, Instant.now().minus(1, ChronoUnit.DAYS));
+		// Already revoked and not expiring
+		AccessApproval ap4 = createApproval(createManagedAR(), ApprovalState.REVOKED, null);
+		// Approved and expiring in the future
+		AccessApproval ap5 = createApproval(createManagedAR(), ApprovalState.APPROVED, Instant.now().plus(1, ChronoUnit.DAYS));
+		
+		Instant expiredAfter = Instant.now().minus(60, ChronoUnit.DAYS);
+		int batchSize = 100;
+		
+		accessApprovalManager.revokeExpiredApprovals(adminUserInfo, expiredAfter, batchSize);
+		
+		// Should have not touched AP1 since it's not expiring 
+		assertEquals(ap1, accessApprovalDao.get(ap1.getId().toString()));
+		
+		// Should have not touched AP2 since it's already revoked (but expired)
+		assertEquals(ap2, accessApprovalDao.get(ap2.getId().toString()));
+		
+		AccessApproval ap3Updated = accessApprovalDao.get(ap3.getId().toString());
+
+		// Should have revoked AP3 since it's approved but expired
+		assertNotEquals(ap3, ap3Updated);
+		assertEquals(ApprovalState.REVOKED, ap3Updated.getState());
+		
+		// Should have not touched AP4 since it's already revoked (and not expiring)
+		assertEquals(ap4, accessApprovalDao.get(ap4.getId().toString()));
+		
+		// Should have not touched AP5 since it's it will expire in the future
+		assertEquals(ap5, accessApprovalDao.get(ap5.getId().toString()));
+	
+	}
+	
+	private AccessRequirement createManagedAR() {
+		AccessRequirement accessRequirement = new ManagedACTAccessRequirement();
+		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		accessRequirement.setCreatedBy(adminUserInfo.getId().toString());
+		accessRequirement.setCreatedOn(new Date());
+		accessRequirement.setModifiedBy(adminUserInfo.getId().toString());
+		accessRequirement.setModifiedOn(new Date());
+		accessRequirement.setConcreteType(ManagedACTAccessRequirement.class.getName());
+		
+		accessRequirement = accessRequirementDao.create(accessRequirement);
+		requirementIdsToDelete.add(accessRequirement.getId().toString());
+		return accessRequirement;
+	}
+	
+	private AccessApproval createApproval(AccessRequirement accessRequirement, ApprovalState state, Instant expiresOn) {
+		AccessApproval accessApproval = new AccessApproval();
+		accessApproval.setCreatedBy(adminUserInfo.getId().toString());
+		accessApproval.setCreatedOn(new Date());
+		accessApproval.setModifiedBy(adminUserInfo.getId().toString());
+		accessApproval.setModifiedOn(new Date());
+		accessApproval.setAccessorId(adminUserInfo.getId().toString());
+		accessApproval.setRequirementId(accessRequirement.getId());
+		accessApproval.setRequirementVersion(accessRequirement.getVersionNumber());
+		accessApproval.setSubmitterId(adminUserInfo.getId().toString());
+		accessApproval.setExpiredOn(expiresOn == null ? null : Date.from(expiresOn));
+		accessApproval.setState(state);
+		
+		accessApproval = accessApprovalDao.create(accessApproval);
+		approvalsToDelete.add(accessApproval.getId().toString());
+		
+		return accessApproval;
 	}
 }

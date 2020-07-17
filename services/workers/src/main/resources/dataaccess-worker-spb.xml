@@ -40,8 +40,8 @@
 			</bean>
 		</property>
 		<property name="startDelay" value="1012" />
-		<!-- Once every 10 minutes -->
-		<property name="repeatInterval" value="600000" />
+		<!-- Once every 30 seconds -->
+		<property name="repeatInterval" value="30000" />
 	</bean>
 	
 </beans>
