@@ -176,24 +176,6 @@ public class ITCloudMailIn {
 		assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
 	}
 
-	// send from an invalid email and check that the error comes back
-	@Ignore // See PLFM-3993
-	@Test
-	public void testResponseMessage() throws Exception {
-		String sampleFileName = SAMPLE_MESSAGES[0];
-		String fromemail = "notArealUser@sagebase.org";
-		SimpleHttpResponse response = sendMessage("CloudMailInMessages/"
-				+ sampleFileName, fromemail);
-		String responseBody = response.getContent();
-		assertEquals(
-				"Specified address notArealUser@sagebase.org is not registered with Synapse.",
-				responseBody);
-		String contentType = response.getFirstHeader("Content-Type").getValue();
-		assertTrue(contentType, contentType.startsWith("text/plain"));
-		assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-	}
-
-
 	@Test
 	public void testCloudMailAuthorizationOK() throws Exception {
 		UserProfile fromUserProfile = synapseOne.getUserProfile(user1ToDelete
