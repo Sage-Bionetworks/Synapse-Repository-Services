@@ -1,23 +1,26 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -27,19 +30,17 @@ import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.Sets;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOAccessApprovalDAOImplTest {
 
@@ -63,11 +64,12 @@ public class DBOAccessApprovalDAOImplTest {
 	private AccessRequirement accessRequirement2 = null;
 	private AccessApproval accessApproval = null;
 	private AccessApproval accessApproval2 = null;
+	private AccessApproval accessApproval3 = null;
 	private List<ACCESS_TYPE> participateAndDownload=null;
 	private List<ACCESS_TYPE> downloadAccessType=null;
 	private List<ACCESS_TYPE> updateAccessType=null;
 	
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 
 		individualGroup = new UserGroup();
@@ -113,13 +115,16 @@ public class DBOAccessApprovalDAOImplTest {
 		}
 	}
 	
-	@After
+	@AfterEach
 	public void tearDown() throws Exception{
 		if (accessApproval!=null && accessApproval.getId()!=null) {
 			accessApprovalDAO.delete(accessApproval.getId().toString());
 		}
 		if (accessApproval2!=null && accessApproval2.getId()!=null) {
 			accessApprovalDAO.delete(accessApproval2.getId().toString());
+		}
+		if (accessApproval3!=null && accessApproval3.getId()!=null) {
+			accessApprovalDAO.delete(accessApproval3.getId().toString());
 		}
 		if (accessRequirement!=null && accessRequirement.getId()!=null) {
 			accessRequirementDAO.delete(accessRequirement.getId().toString());
@@ -209,45 +214,6 @@ public class DBOAccessApprovalDAOImplTest {
 				individualGroup.getId(), accessRequirement.getId().toString()));
 	}
 
-	@Test (expected = IllegalArgumentException.class)
-	public void testRevokeAccessApprovalsWithNullAccessRequirementId() {
-		accessApprovalDAO.revokeAll(null, "1", "2");
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testRevokeAccessApprovalsWithNullAccessorId() {
-		accessApprovalDAO.revokeAll("1", null, "2");
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testRevokeAccessApprovalsWithNullRevokedBy() {
-		accessApprovalDAO.revokeAll("1", "2", null);
-	}
-
-	@Test
-	public void testRevokeAccessApprovalsWithNotExistingAccessApproval() {
-		accessApprovalDAO.revokeAll("-1", "-1", "2");
-	}
-
-	@Test
-	public void testRevokeAccessApprovalsWithExistingAccessApproval() {
-		accessApproval = newAccessApproval(individualGroup, accessRequirement);
-		accessApproval = accessApprovalDAO.create(accessApproval);
-
-		accessApprovalDAO.revokeAll(accessRequirement.getId().toString(), individualGroup.getId(), individualGroup2.getId());
-		AccessApproval approval = accessApprovalDAO.get(accessApproval.getId().toString());
-		assertNotNull(approval);
-		assertEquals(ApprovalState.REVOKED, approval.getState());
-		assertEquals(individualGroup2.getId(), approval.getModifiedBy());
-		assertFalse(accessApproval.getModifiedOn().equals(approval.getModifiedOn()));
-		assertFalse(accessApproval.getEtag().equals(approval.getEtag()));
-		// After revoke, we can still find the accessor
-		assertTrue(accessApprovalDAO.hasApprovalsSubmittedBy(
-				Sets.newHashSet(individualGroup.getId().toString()),
-				individualGroup.getId(), accessRequirement.getId().toString()));
-	
-	}
-
 	@Test
 	public void testCreateRevokeAndRenewBatch() {
 		accessApproval = newAccessApproval(individualGroup, accessRequirement);
@@ -283,17 +249,20 @@ public class DBOAccessApprovalDAOImplTest {
 		assertEquals(accessApproval2, updated2);
 		
 		// revoke
-		accessApproval.setState(ApprovalState.REVOKED);
-		accessApprovalDAO.revokeBySubmitter(
+		List<Long> approvals = accessApprovalDAO.listApprovalsBySubmitter(
 				accessApproval.getRequirementId().toString(),
 				accessApproval.getSubmitterId(),
-				Arrays.asList(accessApproval.getAccessorId(), accessApproval2.getAccessorId()),
-				individualGroup2.getId());
+				Arrays.asList(accessApproval.getAccessorId(), accessApproval2.getAccessorId())
+		);
+		
+		accessApprovalDAO.revokeBatch(Long.valueOf(individualGroup2.getId()), approvals);
+		
 		updated = accessApprovalDAO.getByPrimaryKey(
 				accessApproval.getRequirementId(),
 				accessApproval.getRequirementVersion(),
 				accessApproval.getSubmitterId(),
 				accessApproval.getAccessorId());
+		
 		assertEquals(ApprovalState.REVOKED, updated.getState());
 		
 
@@ -341,9 +310,13 @@ public class DBOAccessApprovalDAOImplTest {
 		assertEquals(new Date(DBOAccessApprovalDAOImpl.DEFAULT_NOT_EXPIRED), group.getExpiredOn());
 
 		// revoke the group
-		accessApprovalDAO.revokeGroup(accessRequirement.getId().toString(), individualGroup.getId(), individualGroup2.getId());
+		List<Long> accessors = accessApprovalDAO.listApprovalsBySubmitter(accessRequirement.getId().toString(), individualGroup.getId());
+		
+		accessApprovalDAO.revokeBatch(Long.valueOf(individualGroup2.getId()), accessors);
+		
 		result = accessApprovalDAO.listAccessorGroup(accessRequirement.getId().toString(),
 				individualGroup.getId(), null, 10L, 0L);
+		
 		assertNotNull(result);
 		assertTrue(result.isEmpty());
 
@@ -407,5 +380,462 @@ public class DBOAccessApprovalDAOImplTest {
 				+ " LIMIT :LIMIT"
 				+ " OFFSET :OFFSET",
 				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, null, new Date()));
+	}
+	
+	@Test
+	public void testListExpiredApprovalsWithNoExpiredAfter() {
+		
+		Instant expiredAfter = null;
+		int limit = 10;
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			accessApprovalDAO.listExpiredApprovals(expiredAfter, limit);
+		}).getMessage();
+		
+		assertEquals("expiredAfter is required.", message);
+		
+	}
+	
+	@Test
+	public void testListExpiredApprovalsWithWrongLimit() {
+		
+		Instant expiredAfter = Instant.now();
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			accessApprovalDAO.listExpiredApprovals(expiredAfter, 0);
+		}).getMessage();
+		
+		assertEquals("The limit must be greater than 0.", message);
+		
+		message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			accessApprovalDAO.listExpiredApprovals(expiredAfter, -1);
+		}).getMessage();
+		
+		assertEquals("The limit must be greater than 0.", message);
+		
+	}
+	
+	@Test
+	public void testListExpiredApprovals() {
+		
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
+		
+		// Expire one approval
+		Instant yesterday = Instant.now().minus(1, ChronoUnit.DAYS);
+		
+		accessApproval.setExpiredOn(Date.from(yesterday));
+		
+		accessApproval = accessApprovalDAO.create(accessApproval);
+		accessApproval2 = accessApprovalDAO.create(accessApproval2);
+		
+		List<Long> expected = Arrays.asList(accessApproval.getId());
+		
+		int limit = 10;
+		
+		// Call under test
+		List<Long> result = accessApprovalDAO.listExpiredApprovals(yesterday, limit);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListExpiredApprovalsWithLimit() {
+		
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
+		
+		// Expire one approval
+		Instant yesterday = Instant.now().minus(1, ChronoUnit.DAYS);
+		
+		accessApproval.setExpiredOn(Date.from(yesterday));
+		accessApproval2.setExpiredOn(Date.from(yesterday));
+		
+		accessApproval = accessApprovalDAO.create(accessApproval);
+		accessApproval2 = accessApprovalDAO.create(accessApproval2);
+		
+		List<Long> expected = Arrays.asList(accessApproval.getId());
+		
+		int limit = 1;
+		
+		// Call under test
+		List<Long> result = accessApprovalDAO.listExpiredApprovals(yesterday, limit);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListExpiredApprovalsWithNoExpiration() {
+		
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
+		
+		accessApproval = accessApprovalDAO.create(accessApproval);
+		accessApproval2 = accessApprovalDAO.create(accessApproval2);
+				
+		List<Long> expected = Collections.emptyList();
+		
+		Instant yesterday = Instant.now().minus(1, ChronoUnit.DAYS);
+
+		int limit = 10;
+		
+		// Call under test
+		List<Long> result = accessApprovalDAO.listExpiredApprovals(yesterday, limit);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListExpiredApprovalsWithPastExpiration() {
+		
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
+		
+		Instant dayBeforeYesterday = Instant.now().minus(2, ChronoUnit.DAYS);
+		
+		accessApproval.setExpiredOn(Date.from(dayBeforeYesterday));
+		
+		accessApproval = accessApprovalDAO.create(accessApproval);
+		accessApproval2 = accessApprovalDAO.create(accessApproval2);
+				
+		List<Long> expected = Collections.emptyList();
+		
+		int limit = 10;
+		
+		Instant yesterday = Instant.now().minus(1, ChronoUnit.DAYS);
+		
+		// Call under test
+		List<Long> result = accessApprovalDAO.listExpiredApprovals(yesterday, limit);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListExpiredApprovalsWithAlreadyRevoked() {
+		
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
+		
+		Instant yesterday = Instant.now().minus(1, ChronoUnit.DAYS);
+		
+		accessApproval.setExpiredOn(Date.from(yesterday));
+		
+		accessApproval2.setExpiredOn(Date.from(yesterday));
+		accessApproval2.setState(ApprovalState.REVOKED);
+		
+		accessApproval = accessApprovalDAO.create(accessApproval);
+		accessApproval2 = accessApprovalDAO.create(accessApproval2);
+				
+		List<Long> expected = Arrays.asList(accessApproval.getId());
+		
+		int limit = 10;
+		
+		// Call under test
+		List<Long> result = accessApprovalDAO.listExpiredApprovals(yesterday, limit);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testRevokeBatch() {
+		
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
+		
+		accessApproval = accessApprovalDAO.create(accessApproval);
+		accessApproval2 = accessApprovalDAO.create(accessApproval2);
+		
+		Long userId = Long.valueOf(individualGroup.getId());
+		List<Long> ids = Arrays.asList(accessApproval.getId(), accessApproval2.getId());
+		
+		List<Long> expected = ids;
+		
+		// Call under test
+		List<Long> result = accessApprovalDAO.revokeBatch(userId, ids);
+		
+		assertEquals(expected, result);
+		
+		// Verify the etag change
+		assertNotEquals(accessApproval.getEtag(), accessApprovalDAO.get(accessApproval.getId().toString()).getEtag());
+		assertNotEquals(accessApproval2.getEtag(), accessApprovalDAO.get(accessApproval2.getId().toString()).getEtag());
+	}
+	
+	@Test
+	public void testRevokeBatchWithNoUserId() {
+		
+		Long userId = null;
+		List<Long> ids = Collections.emptyList();
+		
+	    String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			accessApprovalDAO.revokeBatch(userId, ids);
+		}).getMessage();
+			
+	    assertEquals("userId is required.", message);
+		
+	}
+	
+	@Test
+	public void testRevokeBatchWithNullBatch() {
+		
+		Long userId = Long.valueOf(individualGroup.getId());
+		List<Long> ids = null;
+		
+	    String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			accessApprovalDAO.revokeBatch(userId, ids);
+		}).getMessage();
+			
+	    assertEquals("ids is required.", message);
+		
+	}
+	
+	@Test
+	public void testRevokeEmptyBatch() {
+		
+		Long userId = Long.valueOf(individualGroup.getId());
+		List<Long> ids = Collections.emptyList();
+		
+		// Call under test
+		List<Long> result = accessApprovalDAO.revokeBatch(userId, ids);
+		
+		assertEquals(Collections.emptyList(), result);
+		
+	}
+	
+	@Test
+	public void testRevokeBatchWithAlreadyRevoked() {
+		
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
+		
+		accessApproval.setState(ApprovalState.REVOKED);
+		
+		accessApproval = accessApprovalDAO.create(accessApproval);
+		accessApproval2 = accessApprovalDAO.create(accessApproval2);
+		
+		Long userId = Long.valueOf(individualGroup.getId());
+		List<Long> ids = Arrays.asList(accessApproval.getId(), accessApproval2.getId());
+		
+		List<Long> expected = Arrays.asList(accessApproval2.getId());
+		
+		// Call under test
+		List<Long> result = accessApprovalDAO.revokeBatch(userId, ids);
+		
+		assertEquals(expected, result);
+		
+	}
+	
+	@Test
+	public void testListBySubmitterWithNoAccessRequirement() {
+		String accessRequirementId = null;
+		String submitter = individualGroup.getId();
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {					
+			// Call under test
+			accessApprovalDAO.listApprovalsBySubmitter(accessRequirementId, submitter);
+		}).getMessage();
+	
+		assertEquals("accessRequirementId is required.", message);
+	}
+	
+	@Test
+	public void testListBySubmitterWithNoSubmitter() {
+		String accessRequirementId = accessRequirement.getId().toString();
+		String submitter = null;
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {					
+			// Call under test
+			accessApprovalDAO.listApprovalsBySubmitter(accessRequirementId, submitter);
+		}).getMessage();
+	
+		assertEquals("submitterId is required.", message);
+	}
+	
+	@Test
+	public void testListBySubmitter() {
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		// Different submitter
+		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
+		// Different AR
+		accessApproval3 = newAccessApproval(individualGroup, accessRequirement2);
+		
+		accessApproval = accessApprovalDAO.create(accessApproval);
+		accessApproval2 = accessApprovalDAO.create(accessApproval2);
+		accessApproval3 = accessApprovalDAO.create(accessApproval3);
+		
+		String accessRequirementId = accessRequirement.getId().toString();
+		String submitterId = individualGroup.getId();
+		
+		List<Long> expected = Arrays.asList(accessApproval.getId());
+		List<Long> result = accessApprovalDAO.listApprovalsBySubmitter(accessRequirementId, submitterId);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListBySubmitterWithRevoked() {
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		// Same submitter but REVOKED state
+		accessApproval2 = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2.setAccessorId(individualGroup2.getId());
+		accessApproval2.setState(ApprovalState.REVOKED);
+		// Different AR
+		accessApproval3 = newAccessApproval(individualGroup, accessRequirement2);
+		
+		accessApproval = accessApprovalDAO.create(accessApproval);
+		accessApproval2 = accessApprovalDAO.create(accessApproval2);
+		accessApproval3 = accessApprovalDAO.create(accessApproval3);
+		
+		String accessRequirementId = accessRequirement.getId().toString();
+		String submitterId = individualGroup.getId();
+		
+		List<Long> expected = Arrays.asList(accessApproval.getId());
+		List<Long> result = accessApprovalDAO.listApprovalsBySubmitter(accessRequirementId, submitterId);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListBySubmitterAndAccessors() {
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		// Different submitter
+		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
+		// Different AR
+		accessApproval3 = newAccessApproval(individualGroup, accessRequirement2);
+		
+		accessApproval = accessApprovalDAO.create(accessApproval);
+		accessApproval2 = accessApprovalDAO.create(accessApproval2);
+		accessApproval3 = accessApprovalDAO.create(accessApproval3);
+		
+		String accessRequirementId = accessRequirement.getId().toString();
+		String submitterId = individualGroup.getId();
+		List<String> accessorIds = Arrays.asList(individualGroup.getId());
+		
+		List<Long> expected = Arrays.asList(accessApproval.getId());
+		List<Long> result = accessApprovalDAO.listApprovalsBySubmitter(accessRequirementId, submitterId, accessorIds);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListBySubmitterAndAccessorsWithEmptyAccessors() {
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		// Different submitter
+		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
+		// Different AR
+		accessApproval3 = newAccessApproval(individualGroup, accessRequirement2);
+		
+		accessApproval = accessApprovalDAO.create(accessApproval);
+		accessApproval2 = accessApprovalDAO.create(accessApproval2);
+		accessApproval3 = accessApprovalDAO.create(accessApproval3);
+		
+		String accessRequirementId = accessRequirement.getId().toString();
+		String submitterId = individualGroup.getId();
+		List<String> accessorIds = Collections.emptyList();
+		
+		List<Long> expected = Collections.emptyList();
+		List<Long> result = accessApprovalDAO.listApprovalsBySubmitter(accessRequirementId, submitterId, accessorIds);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListBySubmitterAndAccessorsWithRevoked() {
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		// Same submitter, but REVOKED
+		accessApproval2 = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2.setAccessorId(individualGroup2.getId());
+		accessApproval2.setState(ApprovalState.REVOKED);
+		
+		// Different AR
+		accessApproval3 = newAccessApproval(individualGroup, accessRequirement2);
+		
+		accessApproval = accessApprovalDAO.create(accessApproval);
+		accessApproval2 = accessApprovalDAO.create(accessApproval2);
+		accessApproval3 = accessApprovalDAO.create(accessApproval3);
+		
+		String accessRequirementId = accessRequirement.getId().toString();
+		String submitterId = individualGroup.getId();
+		List<String> accessorIds = Arrays.asList(individualGroup.getId(), individualGroup2.getId());
+		
+		List<Long> expected = Arrays.asList(accessApproval.getId());
+		List<Long> result = accessApprovalDAO.listApprovalsBySubmitter(accessRequirementId, submitterId, accessorIds);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListByAccessorWithNoAccessRequirement() {
+		String accessRequirementId = null;
+		String accessor = individualGroup.getId();
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {					
+			// Call under test
+			accessApprovalDAO.listApprovalsByAccessor(accessRequirementId, accessor);
+		}).getMessage();
+	
+		assertEquals("accessRequirementId is required.", message);
+	}
+	
+	@Test
+	public void testListByAccessorWithNoSubmitter() {
+		String accessRequirementId = accessRequirement.getId().toString();
+		String accessor = null;
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {					
+			// Call under test
+			accessApprovalDAO.listApprovalsByAccessor(accessRequirementId, accessor);
+		}).getMessage();
+	
+		assertEquals("accessorId is required.", message);
+	}
+	
+	@Test
+	public void testListByAccessor() {
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		// Different accessor
+		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
+		// Different AR
+		accessApproval3 = newAccessApproval(individualGroup, accessRequirement2);
+		
+		accessApproval = accessApprovalDAO.create(accessApproval);
+		accessApproval2 = accessApprovalDAO.create(accessApproval2);
+		accessApproval3 = accessApprovalDAO.create(accessApproval3);
+		
+		String accessRequirementId = accessRequirement.getId().toString();
+		String accessorId = individualGroup.getId();
+		
+		List<Long> expected = Arrays.asList(accessApproval.getId());		
+		List<Long> result = accessApprovalDAO.listApprovalsByAccessor(accessRequirementId, accessorId);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListByAccessorWithRevoked() {
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		// Same accessor but REVOKED
+		accessApproval2 = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2.setSubmitterId(individualGroup2.getId());
+		accessApproval2.setState(ApprovalState.REVOKED);
+		
+		// Different AR
+		accessApproval3 = newAccessApproval(individualGroup, accessRequirement2);
+		
+		accessApproval = accessApprovalDAO.create(accessApproval);
+		accessApproval2 = accessApprovalDAO.create(accessApproval2);
+		accessApproval3 = accessApprovalDAO.create(accessApproval3);
+		
+		String accessRequirementId = accessRequirement.getId().toString();
+		String accessorId = individualGroup.getId();
+		
+		List<Long> expected = Arrays.asList(accessApproval.getId());		
+		List<Long> result = accessApprovalDAO.listApprovalsByAccessor(accessRequirementId, accessorId);
+		
+		assertEquals(expected, result);
 	}
 }
