@@ -9,6 +9,10 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.auth.DeprecatedUtils;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
+import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
+import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
+import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
@@ -29,12 +33,14 @@ import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * <p>
@@ -333,6 +339,77 @@ public class AuthenticationController {
 			) throws Exception {
 		OAuthProvider providerEnum = OAuthProvider.valueOf(provider);
 		authenticationService.unbindExternalID(userId, providerEnum, alias);
+	}
+
+
+	/**
+	 * Issues a personal access token to authorize scoped access to Synapse resources. To use the token, use the HTTP
+	 * header `Authorization: Bearer \<token\>`. The token will expire if unused for 180 days.
+	 * The token cannot be re-retrieved after the initial creation.
+	 * @param userId
+	 * @param request
+	 * @param uriComponentsBuilder
+	 * @return
+	 */
+	@RequiredScope({authorize})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.AUTH_PERSONAL_ACCESS_TOKEN, method = RequestMethod.POST)
+	public @ResponseBody AccessTokenGenerationResponse createPersonalAccessToken(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody(required=true) AccessTokenGenerationRequest request,
+			UriComponentsBuilder uriComponentsBuilder
+	) {
+		return authenticationService.createPersonalAccessToken(userId, request, OpenIDConnectController.getEndpoint(uriComponentsBuilder));
+	}
+
+	/**
+	 * Retrieve metadata for all personal access tokens issued for the requesting user. Excludes revoked tokens.
+	 * @param userId
+	 * @param nextPageToken
+	 * @return
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.AUTH_PERSONAL_ACCESS_TOKEN, method = RequestMethod.GET)
+	public @ResponseBody
+	AccessTokenRecordList getPersonalAccessTokens(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM, required=false) String nextPageToken
+	) {
+		return authenticationService.getPersonalAccessTokenRecords(userId, nextPageToken);
+	}
+
+	/**
+	 * Retrieve metadata for a particular personal access token. Metadata for revoked tokens cannot be retrieved.
+	 * @param userId
+	 * @param tokenId
+	 * @return
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.AUTH_PERSONAL_ACCESS_TOKEN_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	AccessTokenRecord getPersonalAccessToken(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) Long tokenId
+	) {
+		return authenticationService.getPersonalAccessTokenRecord(userId, tokenId);
+	}
+
+	/**
+	 * Revoke a personal access token. The token cannot be re-enabled after being revoked.
+	 * @param userId
+	 * @param tokenId
+	 */
+	@RequiredScope({view, authorize})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.AUTH_PERSONAL_ACCESS_TOKEN_ID, method = RequestMethod.DELETE)
+	public void revokePersonalAccessToken(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) Long tokenId
+	) {
+		authenticationService.revokePersonalAccessToken(userId, tokenId);
+
 	}
 
 }

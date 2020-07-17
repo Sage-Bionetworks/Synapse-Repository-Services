@@ -12,7 +12,9 @@ import java.util.UUID;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.KeyPairUtil;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
+import org.sagebionetworks.repo.model.auth.TokenType;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
@@ -20,6 +22,7 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.web.OAuthErrorCode;
 import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.util.EnumKeyedJsonMapUtil;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -93,7 +96,9 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 			.setIssuedAt(new Date(now))
 			.setId(tokenId)
 			.setSubject(subject);
-		
+
+		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ID);
+
 		if (nonce!=null) claims.put(NONCE, nonce);
 		
 		if (authTime!=null) claims.put(OIDCClaimName.auth_time.name(), authTime);
@@ -125,11 +130,31 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 			.setId(accessTokenId)
 			.setSubject(subject);
 
+		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ACCESS);
+
 		if (authTime!=null) claims.put(OIDCClaimName.auth_time.name(), authTime);
 		if (refreshTokenId!=null) claims.put(OIDCClaimName.refresh_token_id.name(), refreshTokenId);
 		return createSignedJWT(claims);
 	}
-	
+
+	@Override
+	public String createPersonalAccessToken(String issuer, AccessTokenRecord record) {
+		Claims claims = Jwts.claims();
+
+		ClaimsJsonUtil.addAccessClaims(record.getScopes(), EnumKeyedJsonMapUtil.convertToEnum(record.getUserInfoClaims(), OIDCClaimName.class), claims);
+
+		claims.put(OIDCClaimName.token_type.name(), TokenType.PERSONAL_ACCESS);
+
+		claims.setIssuer(issuer)
+				.setAudience(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID)
+				.setNotBefore(record.getCreatedOn())
+				.setIssuedAt(record.getCreatedOn())
+				.setId(record.getId())
+				.setSubject(record.getUserId());
+
+		return createSignedJWT(claims);
+	}
+
 	@Override
 	public String createTotalAccessToken(Long principalId) {
 		String issuer = null; // doesn't matter -- it's only important to the client (which will never see this token, used internally)

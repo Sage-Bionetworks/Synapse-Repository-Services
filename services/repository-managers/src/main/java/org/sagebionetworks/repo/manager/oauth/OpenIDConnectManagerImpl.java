@@ -17,6 +17,7 @@ import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackEncrypter;
 import org.sagebionetworks.manager.util.OAuthPermissionUtils;
+import org.sagebionetworks.repo.manager.authentication.PersonalAccessTokenManager;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
@@ -24,6 +25,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.OAuthDao;
+import org.sagebionetworks.repo.model.auth.TokenType;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
@@ -37,6 +39,7 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.OAuthBadRequestException;
 import org.sagebionetworks.repo.web.OAuthErrorCode;
@@ -71,6 +74,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	@Autowired
 	private OAuthRefreshTokenManager oauthRefreshTokenManager;
+
+	@Autowired
+	private PersonalAccessTokenManager personalAccessTokenManager;
 
 	@Autowired
 	private AuthenticationDAO authDao;
@@ -268,11 +274,37 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	
 	@Override
 	public String validateAccessToken(String jwtToken) {
+		// Parsing the JWT handles tokens that have expired
 		Claims claims = oidcTokenHelper.parseJWT(jwtToken).getBody();
+
 		String userId = getUserIdFromPPID(claims.getSubject(), claims.getAudience());
-		String refreshTokenId = claims.get(OIDCClaimName.refresh_token_id.name(), String.class);
-		if (refreshTokenId != null && !oauthRefreshTokenManager.isRefreshTokenActive(refreshTokenId)) {
-			throw new OAuthUnauthenticatedException(OAuthErrorCode.invalid_token, "The access token has been revoked");
+		TokenType tokenType;
+		try {
+			tokenType = TokenType.valueOf(claims.get(OIDCClaimName.token_type.name(), String.class));
+		} catch (IllegalArgumentException e) {
+			// Active OIDC access tokens without a token type will exist for up to 24 hours after release.
+			// This null case can be removed after this is live for 24 hours
+			tokenType = TokenType.OIDC_ACCESS;
+		}
+		switch (tokenType) {
+			case OIDC_ACCESS:
+				// If the access token has an associated refresh token, we check to see if the refresh token has been revoked.
+				String refreshTokenId = claims.get(OIDCClaimName.refresh_token_id.name(), String.class);
+				if (refreshTokenId != null && !oauthRefreshTokenManager.isRefreshTokenActive(refreshTokenId)) {
+					throw new OAuthUnauthenticatedException(OAuthErrorCode.invalid_token, "The access token has been revoked.");
+				}
+				break;
+			case PERSONAL_ACCESS:
+				String personalAccessTokenId = claims.getId();
+				if (personalAccessTokenManager.isTokenActive(personalAccessTokenId)) {
+					personalAccessTokenManager.updateLastUsedTime(personalAccessTokenId);
+				} else {
+					throw new ForbiddenException("The provided personal access token has expired or has been revoked.");
+				}
+				break;
+			case OIDC_ID:
+				throw new OAuthUnauthenticatedException(OAuthErrorCode.invalid_token, "The provided token is an OIDC ID token and cannot be used to authenticate requests.");
+
 		}
 		return userId;
 	}

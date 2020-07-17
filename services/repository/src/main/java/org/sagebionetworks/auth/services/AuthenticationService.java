@@ -2,6 +2,10 @@ package org.sagebionetworks.auth.services;
 
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
+import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
+import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
+import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -102,4 +106,37 @@ public interface AuthenticationService {
 	 * @throws org.sagebionetworks.repo.model.UnauthenticatedException If the credentials are incorrect
 	 */
 	public LoginResponse login(LoginRequest request);
+
+	/**
+	 * Creates a scoped personal access token for the requesting user.
+	 * @param userId
+	 * @param request
+	 * @param oauthEndpoint
+	 * @return
+	 */
+	public AccessTokenGenerationResponse createPersonalAccessToken(Long userId, AccessTokenGenerationRequest request, String oauthEndpoint);
+
+	/**
+	 * Retrieves the list of issued personal access token records (both active and expired tokens) for the requesting user.
+	 * @param userId
+	 * @param nextPageToken
+	 * @return
+	 */
+	public AccessTokenRecordList getPersonalAccessTokenRecords(Long userId, String nextPageToken);
+
+	/**
+	 * Retrieves the record for an individual personal access tokens.
+	 * @param userId
+	 * @param tokenId
+	 * @return
+	 */
+	public AccessTokenRecord getPersonalAccessTokenRecord(Long userId, Long tokenId);
+
+	/**
+	 * Revokes a personal access token
+	 * @param userId
+	 * @param tokenId
+	 */
+	public void revokePersonalAccessToken(Long userId, Long tokenId);
+
 }
