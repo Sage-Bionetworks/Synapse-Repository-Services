@@ -93,18 +93,8 @@ public class PersonalAccessTokenDaoAutowiredTest {
 
 	@Test
 	void testDtoToDboAndBack() {
-		AccessTokenRecord dto = new AccessTokenRecord();
-		dto.setId("111111");
-		dto.setUserId("22222");
-		dto.setName(UUID.randomUUID().toString());
-		dto.setScopes(Arrays.asList(OAuthScope.modify, OAuthScope.authorize));
-		Map<String, OIDCClaimsRequestDetails> claimsMap = new HashMap<>();
-		OIDCClaimsRequestDetails claimDetails = new OIDCClaimsRequestDetails();
-		claimDetails.setEssential(true);
-		claimsMap.put("userid", claimDetails);
-		dto.setUserInfoClaims(claimsMap);
-		dto.setCreatedOn(new Date());
-		dto.setLastUsed(new Date());
+		AccessTokenRecord dto = createDto(userId, new Date());
+		dto.setId("55555");
 
 		// Call under test -- map to DBO and back
 		AccessTokenRecord mapped = PersonalAccessTokenDaoImpl.personalAccessTokenDboToDto(
@@ -156,14 +146,16 @@ public class PersonalAccessTokenDaoAutowiredTest {
 	}
 
 	@Test
-	void testUpdateLastUsed() {
+	void testUpdateLastUsed() throws Exception {
 		AccessTokenRecord tokenRecord = createTokenRecord(userId, new Date(System.currentTimeMillis() - ONE_HOUR_MILLIS));
+
+		Thread.sleep(100L);
 
 		// method under test
 		personalAccessTokenDao.updateLastUsed(tokenRecord.getId());
 
 		AccessTokenRecord updated = personalAccessTokenDao.getTokenRecord(tokenRecord.getId());
-		assertTrue(updated.getLastUsed().getTime() >= tokenRecord.getLastUsed().getTime());
+		assertTrue(updated.getLastUsed().after(tokenRecord.getLastUsed()));
 	}
 
 	@Test

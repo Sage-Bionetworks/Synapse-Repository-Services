@@ -47,9 +47,6 @@ public class PersonalAccessTokenDaoImpl implements PersonalAccessTokenDao {
 			+ " ORDER BY " + COL_PERSONAL_ACCESS_TOKEN_LAST_USED + " DESC"
 			+ " LIMIT :" + PARAM_LIMIT + " OFFSET :" + PARAM_OFFSET;
 
-	private static final String DELETE_TOKEN_BY_ID = "DELETE FROM " + TABLE_PERSONAL_ACCESS_TOKEN
-			+ " WHERE " + COL_PERSONAL_ACCESS_TOKEN_ID + " = :" + PARAM_TOKEN_ID;
-
 	private static final String UPDATE_LAST_USED = "UPDATE " + TABLE_PERSONAL_ACCESS_TOKEN+
 			" SET "+
 			COL_PERSONAL_ACCESS_TOKEN_LAST_USED+" = :" + PARAM_LAST_USED +
@@ -99,9 +96,7 @@ public class PersonalAccessTokenDaoImpl implements PersonalAccessTokenDao {
 		dbo.setPrincipalId(Long.parseLong(dto.getUserId()));
 		dbo.setName(dto.getName());
 		dbo.setCreatedOn(new Timestamp(dto.getCreatedOn().getTime()));
-		if (dto.getLastUsed() != null) {
-			dbo.setLastUsed(new Timestamp(dto.getLastUsed().getTime()));
-		}
+		dbo.setLastUsed(new Timestamp(dto.getLastUsed().getTime()));
 		return dbo;
 	}
 
@@ -118,9 +113,7 @@ public class PersonalAccessTokenDaoImpl implements PersonalAccessTokenDao {
 		dto.setName(dbo.getName());
 		// Timestamp must be converted to Date for .equals to work on the DTO
 		dto.setCreatedOn(new Date(dbo.getCreatedOn().getTime()));
-		if (dbo.getLastUsed() != null) {
-			dto.setLastUsed(new Date(dbo.getLastUsed().getTime()));
-		}
+		dto.setLastUsed(new Date(dbo.getLastUsed().getTime()));
 		return dto;
 	}
 
@@ -139,6 +132,7 @@ public class PersonalAccessTokenDaoImpl implements PersonalAccessTokenDao {
 		ValidateArgument.required(metadata.getScopes(), "Scope");
 		ValidateArgument.required(metadata.getUserInfoClaims(), "Claims");
 		ValidateArgument.required(metadata.getCreatedOn(), "Created On");
+		ValidateArgument.required(metadata.getLastUsed(), "Last Used");
 		metadata.setId(idGenerator.generateNewId(IdType.PERSONAL_ACCESS_TOKEN_ID).toString());
 		DBOPersonalAccessToken dbo = personalAccessTokenDtoToDbo(metadata);
 		basicDao.createNew(dbo);
@@ -180,7 +174,7 @@ public class PersonalAccessTokenDaoImpl implements PersonalAccessTokenDao {
 		ValidateArgument.required(tokenId, "tokenId");
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PARAM_TOKEN_ID, tokenId);
-		namedParameterJdbcTemplate.update(DELETE_TOKEN_BY_ID, param);
+		basicDao.deleteObjectByPrimaryKey(DBOPersonalAccessToken.class, param);
 	}
 
 	@Override

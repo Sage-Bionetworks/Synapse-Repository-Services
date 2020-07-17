@@ -42,7 +42,7 @@ public class DBOPersonalAccessToken implements MigratableDatabaseObject<DBOPerso
 			new FieldColumn("scopes", COL_PERSONAL_ACCESS_TOKEN_SCOPES),
 			new FieldColumn("claims", COL_PERSONAL_ACCESS_TOKEN_CLAIMS),
 			new FieldColumn("createdOn", COL_PERSONAL_ACCESS_TOKEN_CREATED_ON),
-			new FieldColumn("lastUsed", COL_PERSONAL_ACCESS_TOKEN_LAST_USED)
+			new FieldColumn("lastUsed", COL_PERSONAL_ACCESS_TOKEN_LAST_USED).withIsEtag(true)
 		};
 
 	private static DBOPersonalAccessToken mapRow(ResultSet rs, int rowNum) throws SQLException {
