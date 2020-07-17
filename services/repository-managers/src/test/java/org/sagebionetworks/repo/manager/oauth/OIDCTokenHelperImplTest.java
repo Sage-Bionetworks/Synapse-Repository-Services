@@ -150,7 +150,7 @@ public class OIDCTokenHelperImplTest {
 		assertTrue(claims.get(OIDCClaimName.email_verified.name(), Boolean.class));
 		assertEquals("University of Example", claims.get(OIDCClaimName.company.name(), String.class));
 		assertEquals(TOKEN_ID, claims.getId());
-		assertEquals(TokenType.OIDC_ID, claims.get(OIDCClaimName.token_type.name(), TokenType.class));
+		assertEquals(TokenType.OIDC_ID.name(), claims.get(OIDCClaimName.token_type.name(), String.class));
 		
 		// This checks the other fields set in the method under test
 		jwtValidation(oidcToken, false, NONCE);
@@ -178,8 +178,8 @@ public class OIDCTokenHelperImplTest {
 		if (!isPersonalAccessToken) {
 			assertEquals(CLIENT_ID, claimsSet.getAudience());
 		} else {
-			// personal access tokens have no audience
-			assertNull(claimsSet.getAudience());
+			// The audience for personal access tokens is the internal OAuth client
+			assertEquals(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID, claimsSet.getAudience());
 		}
 		// If the ID Token contains multiple audiences, the Client SHOULD verify that an azp Claim is present.
 	    // 	(Note the above verifies that there are NOT multiple audiences.)
@@ -261,7 +261,7 @@ public class OIDCTokenHelperImplTest {
 		// in the test for ClaimsJsonUtil.addAccessClaims() we check 
 		// that the content is correct
 		assertNotNull(claims.get("access"));
-		assertEquals(TokenType.OIDC_ACCESS, claims.get(OIDCClaimName.token_type.name(), TokenType.class));
+		assertEquals(TokenType.OIDC_ACCESS.name(), claims.get(OIDCClaimName.token_type.name(), String.class));
 
 		// This checks the other fields set in the method under test
 		jwtValidation(accessToken, false, null/* no nonce */);
@@ -325,7 +325,7 @@ public class OIDCTokenHelperImplTest {
 		// in the test for ClaimsJsonUtil.addAccessClaims() we check
 		// that the content is correct
 		assertNotNull(claims.get("access"));
-		assertEquals(TokenType.PERSONAL_ACCESS, claims.get(OIDCClaimName.token_type.name(), TokenType.class));
+		assertEquals(TokenType.PERSONAL_ACCESS.name(), claims.get(OIDCClaimName.token_type.name(), String.class));
 
 		// This checks the other fields set in the method under test
 		jwtValidation(accessToken, true, null/* no nonce */);
