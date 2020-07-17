@@ -207,7 +207,6 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	public OAuthAuthorizationResponse authorizeClient(UserInfo userInfo,
 			OIDCAuthorizationRequest authorizationRequest) {
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
-			// Perhaps this should be an OIDC Error Code: https://openid.net/specs/openid-connect-core-1_0.html#AuthError
 			throw new OAuthUnauthenticatedException(OAuthErrorCode.login_required, "Anonymous users may not provide access to OAuth clients.");
 		}
 

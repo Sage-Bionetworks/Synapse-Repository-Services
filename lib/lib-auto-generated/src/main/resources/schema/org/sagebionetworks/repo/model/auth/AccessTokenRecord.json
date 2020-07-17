@@ -1,0 +1,61 @@
+{
+  "description": "Metadata related to an issued personal access token. After the token has been generated, it cannot be retrieved.",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "The unique ID of the access token"
+    },
+    "userId": {
+      "type": "string",
+      "description": "The ID of the user that the token belongs to."
+    },
+    "scopes":{
+      "type":"array",
+      "items": {
+        "$ref":"org.sagebionetworks.repo.model.oauth.OAuthScope"
+      },
+      "description":"The scopes that have been granted to this token"
+    },
+    "userInfoClaims":{
+      "type": "map",
+      "description":"The OIDC claims that can be accessed using this token.",
+      "key": {
+        "$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimName"
+      },
+      "value": {
+        "$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails"
+      }
+    },
+    "name": {
+      "type": "string",
+      "description": "A unique, typically human-readable name for the token"
+    },
+    "createdOn": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The date this personal access token was initially issued."
+    },
+    "lastUsed": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The date this personal access token was last used."
+    },
+    "state": {
+      "name": "AccessTokenState",
+      "type": "string",
+      "properties": {},
+      "description": "The enumeration of possible personal access token states.",
+      "id": "org.sagebionetworks.repo.model.auth.AccessTokenState",
+      "enum": [
+        {
+          "name": "ACTIVE",
+          "description": "Indicates that the token is currently active and can be used to make authorized requests to Synapse."
+        },
+        {
+          "name": "EXPIRED",
+          "description": "Indicates the token has expired because it has not been used for 180 days. The token can only be deleted."
+        }
+      ]
+    }
+  }
+}
