@@ -281,7 +281,7 @@ public class IT100TableControllerTest {
 			assertNotNull(bundle.getQueryResult().getQueryResults().getRows());
 			assertEquals(2, bundle.getQueryResult().getQueryResults().getRows().size());
 			assertEquals(new Long(3), bundle.getQueryCount(), "There should be 3 rows in this table");
-			assertEquals(Arrays.asList(TableModelUtils.createSelectColumn(one)), bundle.getSelectColumns());
+			assertEquals(Arrays.asList(TableModelUtils.createSelectColumn(one.getName(), one.getName(), one.getColumnType(), one.getId())), bundle.getSelectColumns());
 			assertNotNull(bundle.getMaxRowsPerPage());
 			assertTrue(bundle.getMaxRowsPerPage() > 0);
 		};
@@ -296,7 +296,7 @@ public class IT100TableControllerTest {
 			assertNotNull(bundle.getQueryResult().getQueryResults().getRows());
 			assertEquals(1, bundle.getQueryResult().getQueryResults().getRows().size());
 			assertEquals(new Long(3), bundle.getQueryCount(), "There should be 3 rows in this table");
-			assertEquals(Arrays.asList(TableModelUtils.createSelectColumn(one)), bundle.getSelectColumns());
+			assertEquals(Arrays.asList(TableModelUtils.createSelectColumn(one.getName(), one.getName(), one.getColumnType(), one.getId())), bundle.getSelectColumns());
 			assertNotNull(bundle.getMaxRowsPerPage());
 			assertTrue(bundle.getMaxRowsPerPage() > 0);
 		};

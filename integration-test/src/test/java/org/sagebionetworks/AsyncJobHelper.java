@@ -77,7 +77,9 @@ public class AsyncJobHelper {
 					fail(message);
 				} else {
 					LOG.error(message);
-					fail(message, lastException);
+					// throw the last exception as is.
+					// This allows IDE to parse the exception and provide a diff in cases such as assertEquals() failing
+					throw lastException;
 				}
 			}
 			
@@ -119,7 +121,9 @@ public class AsyncJobHelper {
 					// We reached the max number of jobs, fail
 					String message = String.format("%s Job results invalid, number of tries exhausted...(Token: %s, Try: %d)", jobType.name(), jobToken, tries);
 					LOG.error(message);
-					fail(message, e);
+					// throw the last exception as is.
+					// This allows IDE to parse the exception and provide a diff in cases such as assertEquals() failing
+					throw e;
 				}
 			}
 			
