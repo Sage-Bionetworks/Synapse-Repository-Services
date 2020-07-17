@@ -534,6 +534,7 @@ public class AccessApprovalManagerImplUnitTest {
 		List<Long> expiredApprovals = Arrays.asList(1L, 2L);
 		List<Long> revokedApprovals = Arrays.asList(2L);
 
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any())).thenReturn(true);
 		when(mockAccessApprovalDAO.listExpiredApprovals(any(), anyInt())).thenReturn(expiredApprovals);
 		when(mockAccessApprovalDAO.revokeBatch(any(), any())).thenReturn(revokedApprovals);
 		
@@ -545,6 +546,7 @@ public class AccessApprovalManagerImplUnitTest {
 		int result = manager.revokeExpiredApprovals(user, expiredAfter, maxBatchSize);
 		
 		assertEquals(1, result);
+		verify(mockAuthorizationManager).isACTTeamMemberOrAdmin(user);
 		verify(mockAccessApprovalDAO).listExpiredApprovals(expiredAfter, maxBatchSize);
 		verify(mockAccessApprovalDAO).revokeBatch(user.getId(), expiredApprovals);
 		
@@ -567,10 +569,27 @@ public class AccessApprovalManagerImplUnitTest {
 	}
 	
 	@Test
+	public void testRevokeExpiredApprovalsNotAuthorized() {
+		UserInfo user = userInfo;
+		Instant expiredAfter = Instant.now().minus(1, ChronoUnit.DAYS);
+		int maxBatchSize = 10;
+		
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any())).thenReturn(false);
+		
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// Call under test
+			manager.revokeExpiredApprovals(user, expiredAfter, maxBatchSize);
+		}).getMessage();
+		
+		assertEquals("Only ACT member can perform this action.", message);
+	}
+	
+	@Test
 	public void testRevokeExpiredApprovalsWithNoExpiredApprovals() {
 
 		List<Long> expiredApprovals = Collections.emptyList();
 
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any())).thenReturn(true);
 		when(mockAccessApprovalDAO.listExpiredApprovals(any(), anyInt())).thenReturn(expiredApprovals);
 		
 		UserInfo user = userInfo;
@@ -581,6 +600,7 @@ public class AccessApprovalManagerImplUnitTest {
 		int result = manager.revokeExpiredApprovals(user, expiredAfter, maxBatchSize);
 		
 		assertEquals(0, result);
+		verify(mockAuthorizationManager).isACTTeamMemberOrAdmin(user);
 		verify(mockAccessApprovalDAO).listExpiredApprovals(expiredAfter, maxBatchSize);
 		verifyNoMoreInteractions(mockAccessApprovalDAO);
 		verifyZeroInteractions(mockTransactionMessenger);
@@ -592,7 +612,8 @@ public class AccessApprovalManagerImplUnitTest {
 
 		List<Long> expiredApprovals = Arrays.asList(1L, 2L);
 		List<Long> revokedApprovals = Collections.emptyList();
-
+		
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any())).thenReturn(true);
 		when(mockAccessApprovalDAO.listExpiredApprovals(any(), anyInt())).thenReturn(expiredApprovals);
 		when(mockAccessApprovalDAO.revokeBatch(any(), any())).thenReturn(revokedApprovals);
 		
@@ -604,6 +625,7 @@ public class AccessApprovalManagerImplUnitTest {
 		int result = manager.revokeExpiredApprovals(user, expiredAfter, maxBatchSize);
 		
 		assertEquals(0, result);
+		verify(mockAuthorizationManager).isACTTeamMemberOrAdmin(user);
 		verify(mockAccessApprovalDAO).listExpiredApprovals(expiredAfter, maxBatchSize);
 		verify(mockAccessApprovalDAO).revokeBatch(user.getId(), expiredApprovals);
 		verifyNoMoreInteractions(mockAccessApprovalDAO);
@@ -615,7 +637,7 @@ public class AccessApprovalManagerImplUnitTest {
 	public void testRevokeGroupAccessorsAuthorized() {
 		List<Long> approvals = Arrays.asList(1L, 2L);
 		
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any())).thenReturn(true);
 		when(mockAccessApprovalDAO.listApprovalsBySubmitter(any(), any(), any())).thenReturn(approvals);
 		when(mockAccessApprovalDAO.revokeBatch(any(), any())).thenReturn(approvals);
 		
@@ -626,6 +648,7 @@ public class AccessApprovalManagerImplUnitTest {
 		// Call under test
 		manager.revokeGroup(userInfo, accessRequirementId, submitterId, accessorIds);
 		
+		verify(mockAuthorizationManager).isACTTeamMemberOrAdmin(userInfo);
 		verify(mockAccessApprovalDAO).listApprovalsBySubmitter(accessRequirementId, submitterId, accessorIds);
 		verify(mockAccessApprovalDAO).revokeBatch(userInfo.getId(), approvals);
 		
@@ -645,7 +668,7 @@ public class AccessApprovalManagerImplUnitTest {
 	@Test
 	public void testRevokeGroupAccessorsUnauthorized() {
 		
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any())).thenReturn(false);
 		
 		String accessRequirementId = "2";
 		String submitterId = "1";
@@ -656,6 +679,7 @@ public class AccessApprovalManagerImplUnitTest {
 			manager.revokeGroup(userInfo, accessRequirementId, submitterId, accessorIds);
 		});
 		
+		verify(mockAuthorizationManager).isACTTeamMemberOrAdmin(userInfo);
 		verifyZeroInteractions(mockAccessApprovalDAO);
 		verifyZeroInteractions(mockTransactionMessenger);
 		

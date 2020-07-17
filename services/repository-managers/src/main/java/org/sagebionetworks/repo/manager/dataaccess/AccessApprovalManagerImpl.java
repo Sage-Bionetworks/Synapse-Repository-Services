@@ -230,6 +230,11 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		}
 		
 		final List<Long> approvals = accessApprovalDAO.listApprovalsBySubmitter(accessRequirementId, submitterId, accessorIds);
+		
+		if (approvals.isEmpty()) {
+			return;
+		}
+		
 		final List<Long> revokedApprovals = accessApprovalDAO.revokeBatch(userInfo.getId(), approvals);
 		
 		sendUpdateChange(userInfo, revokedApprovals);
@@ -242,6 +247,10 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		ValidateArgument.required(expiredAfter, "The expiredAfter");
 		ValidateArgument.requirement(maxBatchSize > 0, "The maxBatchSize must be greater than 0.");
 		ValidateArgument.requirement(expiredAfter.isBefore(Instant.now()), "The expiredAfter must be a value in the past.");
+		
+		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only ACT member can perform this action.");
+		}
 	
 		// Fetch the list of expired approval
 		final List<Long> expiredApprovals = accessApprovalDAO.listExpiredApprovals(expiredAfter, maxBatchSize);
