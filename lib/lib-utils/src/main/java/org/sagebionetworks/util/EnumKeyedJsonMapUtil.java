@@ -7,7 +7,7 @@ import java.util.Map;
 import org.apache.commons.lang3.EnumUtils;
 
 /**
- * Utils for converting between maps that should be enum-keyed, but are string-keyed due to limitations in schema-to-pojo
+ * Utils for converting between maps that should be enum-keyed, but are string-keyed due to limitations in schema-to-pojo. See PLFM-6254.
  *
  * Note: you should only use this class if your schema property MUST be a JSON map (e.g. to adhere to a formal specification).
  * If you need a non-string keyed POJO, but don't care about the JSON format, use `tuplearraymap` in your schema-to-pojo schema
