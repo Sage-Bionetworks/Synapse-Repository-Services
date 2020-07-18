@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.service;
 
 import java.util.List;
 
+import org.json.JSONObject;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -653,4 +654,8 @@ public interface EntityService {
 	 * @return
 	 */
 	public void clearBoundSchema(Long userId, String id);
+
+	public JSONObject getEntityJson(Long userId, String id);
+
+	public JSONObject updateEntityJson(Long userId, JSONObject request);
 }

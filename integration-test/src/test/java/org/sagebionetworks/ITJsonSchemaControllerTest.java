@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.function.Consumer;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,11 +26,13 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.GetValidationSchemaRequest;
+import org.sagebionetworks.repo.model.schema.GetValidationSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
@@ -40,10 +43,8 @@ import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
-import org.sagebionetworks.repo.model.schema.GetValidationSchemaResponse;
 
 import com.google.common.collect.Sets;
-import org.sagebionetworks.repo.model.schema.GetValidationSchemaResponse;
 
 public class ITJsonSchemaControllerTest {
 
@@ -378,6 +379,33 @@ public class ITJsonSchemaControllerTest {
 			synapse.getJsonSchemaBindingForEntity(folderId);
 		});
 	}
+	
+	@Test
+	public void testGetEntityJson() throws SynapseException {
+		project = new Project();
+		project = synapse.createEntity(project);
+		// Call under test
+		JSONObject projectJSON = synapse.getEntityJson(project.getId());
+		assertNotNull(projectJSON);
+		System.out.println(projectJSON.toString(5));
+	}
+	
+	@Test
+	public void testUpdateEntityJson() throws SynapseException {
+		project = new Project();
+		project = synapse.createEntity(project);
+		JSONObject projectJSON = synapse.getEntityJson(project.getId());
+		assertNotNull(projectJSON);
+		projectJSON.put("sample", "some value");
+		// call under test
+		projectJSON = synapse.updateEntityJson(project.getId(), projectJSON);
+		System.out.println(projectJSON.toString(5));
+		Annotations annos = synapse.getAnnotationsV2(project.getId());
+		assertNotNull(annos);
+		assertNotNull(annos.getAnnotations());
+		assertEquals("some value", annos.getAnnotations().get("sample"));
+	}
+	
 
 	/**
 	 * Wait for the schema to be created.

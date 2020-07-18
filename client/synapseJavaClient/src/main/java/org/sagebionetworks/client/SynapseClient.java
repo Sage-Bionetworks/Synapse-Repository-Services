@@ -3759,4 +3759,23 @@ public interface SynapseClient extends BaseClient {
 	 */
 	void clearSchemaBindingForEntity(String entityId) throws SynapseException;
 
+	/**
+	 * Get the JSONObject representation of an Entity that can be used to validate
+	 * the entity against a JSON schema.
+	 * 
+	 * @param entityId
+	 * @return
+	 * @throws SynapseException
+	 */
+	JSONObject getEntityJson(String entityId) throws SynapseException;
+
+	/**
+	 * Update an Entity's annotations using the JSONObject representation of the Entity.
+	 * @param entityId
+	 * @param json
+	 * @return
+	 * @throws SynapseException
+	 */
+	JSONObject updateEntityJson(String entityId, JSONObject json) throws SynapseException;
+
 }

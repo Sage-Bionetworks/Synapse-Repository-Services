@@ -12,6 +12,7 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.json.JSONObject;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.SchemaManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -1513,17 +1514,21 @@ public class EntityController {
 	}
 
 	/**
-	 * Gets the temporary S3 credentials from STS for the given entity. These credentials are only good for the bucket
-	 * and base key specified by the returned credentials and expire 12 hours after this API is called.
+	 * Gets the temporary S3 credentials from STS for the given entity. These
+	 * credentials are only good for the bucket and base key specified by the
+	 * returned credentials and expire 12 hours after this API is called.
 	 *
 	 * <p>
-	 * The specified entity must be a folder with an STS-enabled storage location. If that storage location is external
-	 * storage, you may request read-only or read-write permissions. If that storage location is Synapse storage, you
-	 * must request read-only permissions.
+	 * The specified entity must be a folder with an STS-enabled storage location.
+	 * If that storage location is external storage, you may request read-only or
+	 * read-write permissions. If that storage location is Synapse storage, you must
+	 * request read-only permissions.
 	 * </p>
 	 *
-	 * @param id         The ID of the entity to get credentials. This must be a folder with an STS-enabled storage location.
-	 * @param permission Read-only or read-write permissions. See <a href="${org.sagebionetworks.repo.model.sts.StsPermission}">StsPermission</a>.
+	 * @param id         The ID of the entity to get credentials. This must be a
+	 *                   folder with an STS-enabled storage location.
+	 * @param permission Read-only or read-write permissions. See <a href=
+	 *                   "${org.sagebionetworks.repo.model.sts.StsPermission}">StsPermission</a>.
 	 */
 	@RequiredScope({ view, modify, download })
 	@ResponseStatus(HttpStatus.OK)
@@ -1595,9 +1600,10 @@ public class EntityController {
 	 * used to validate this Entity or its children.
 	 * <p>
 	 * Note: The caller must be granted the
-	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.DELETE</a>
-	 * permission on the Entity.
+	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.DELETE</a> permission on the Entity.
 	 * </p>
+	 * 
 	 * @param userId
 	 * @param id
 	 * @return
@@ -1605,9 +1611,57 @@ public class EntityController {
 	@RequiredScope({ modify })
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = { UrlHelpers.ENTITY_BIND_JSON_SCHEMA }, method = RequestMethod.DELETE)
-	public void clearBoundSchema(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	public void clearBoundSchema(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(required = true) String id) {
 		serviceProvider.getEntityService().clearBoundSchema(userId, id);
+	}
+
+	/**
+	 * Get the raw JSON for the given entity. The resulting JSON can be used for the
+	 * validation of a entity against a
+	 * <a href="${org.sagebionetworks.repo.model.schema.JsonSchema}">JsonSchema</a>.
+	 * <p>
+	 * Note: The caller must be granted the
+	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.READ</a>
+	 * permission on the Entity.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id
+	 * @return
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_ID_JSON }, method = RequestMethod.GET)
+	public @ResponseBody JSONObject getEntityJson(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(required = true) String id) {
+		return serviceProvider.getEntityService().getEntityJson(userId, id);
+	}
+
+	/**
+	 * Update the annotations of an entity using the raw JSON of the entity.
+	 * <p>
+	 * See: <a href="${GET.entity.id.json}">GET entity/{id}/json</a> to get the
+	 * JSON of an entity.
+	 * </p>
+	 * <p>
+	 * Note: The caller must be granted the
+	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.UPDATE</a>
+	 * permission on the Entity.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id
+	 * @param request
+	 * @return
+	 */
+	@RequiredScope({ view, modify })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_ID_JSON }, method = RequestMethod.PUT)
+	public @ResponseBody JSONObject updateEntityWithJson(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(required = true) String id, @RequestBody(required = true) JSONObject request) {
+		return serviceProvider.getEntityService().updateEntityJson(userId, request);
 	}
 }

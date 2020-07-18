@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.service;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.json.JSONObject;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
@@ -710,5 +711,18 @@ public class EntityServiceImpl implements EntityService {
 		ValidateArgument.required(userId, "userId");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		entityManager.clearBoundSchema(userInfo, id);
+	}
+
+	@Override
+	public JSONObject getEntityJson(Long userId, String id) {
+		JSONObject test = new JSONObject();
+		test.put("a-double", Math.PI);
+		test.put("a-string", "some string");
+		return test;
+	}
+
+	@Override
+	public JSONObject updateEntityJson(Long userId, JSONObject request) {
+		return request;
 	}
 }
