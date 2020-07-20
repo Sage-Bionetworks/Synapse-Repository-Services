@@ -54,6 +54,7 @@ public class AccessApprovalExpirationWorkerIntegrationTest {
 	
 	@BeforeEach
 	public void before() {
+		featureStatusDao.clear();
 		user = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		// Enabled the feature for testing
 		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_RENEWALS, true);
@@ -69,6 +70,7 @@ public class AccessApprovalExpirationWorkerIntegrationTest {
 		for (Long id : accessApprovals) {
 			accessApprovalDao.delete(id.toString());
 		}
+		featureStatusDao.clear();
 	}
 	
 	@Test

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Objects;
 
@@ -38,7 +39,7 @@ public class DBODataAccessNotification
 			dbo.setNotificationType(rs.getString(SqlConstants.COL_DATA_ACCESS_NOTIFICATION_TYPE));
 			dbo.setRequirementId(rs.getLong(SqlConstants.COL_DATA_ACCESS_NOTIFICATION_REQUIREMENT_ID));
 			dbo.setRecipientId(rs.getLong(SqlConstants.COL_DATA_ACCESS_NOTIFICATION_RECIPIENT_ID));
-			dbo.setSentOn(rs.getLong(SqlConstants.COL_DATA_ACCESS_NOTIFICATION_SENT_ON));
+			dbo.setSentOn(rs.getTimestamp(SqlConstants.COL_DATA_ACCESS_NOTIFICATION_SENT_ON));
 			dbo.setAccessApprovalId(rs.getLong(SqlConstants.COL_DATA_ACCESS_NOTIFICATION_APPROVAL_ID));
 			dbo.setMessageId(rs.getLong(SqlConstants.COL_DATA_ACCESS_NOTIFICATION_MESSAGE_ID));
 
@@ -73,7 +74,7 @@ public class DBODataAccessNotification
 	private String notificationType;
 	private Long requirementId;
 	private Long recipientId;
-	private Long sentOn;
+	private Timestamp sentOn;
 	private Long accessApprovalId;
 	private Long messageId;
 
@@ -117,11 +118,11 @@ public class DBODataAccessNotification
 		this.recipientId = recipientId;
 	}
 
-	public Long getSentOn() {
+	public Timestamp getSentOn() {
 		return sentOn;
 	}
-
-	public void setSentOn(Long sentOn) {
+	
+	public void setSentOn(Timestamp sentOn) {
 		this.sentOn = sentOn;
 	}
 

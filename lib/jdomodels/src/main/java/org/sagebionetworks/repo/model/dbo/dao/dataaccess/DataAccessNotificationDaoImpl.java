@@ -10,13 +10,14 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACC
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_NOTIFICATION_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_NOTIFICATION;
 
+import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.Date;
 import java.util.Optional;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessNotificationType;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -26,11 +27,15 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class DataAccessNotificationDaoImpl implements DataAccessNotificationDao {
 	
-	private static final String SQL_SELECT_SENT_ON = "SELECT " + COL_DATA_ACCESS_NOTIFICATION_SENT_ON 
+	private static final String SQL_SELECT_TEMPLATE = "SELECT %s "
 			+ " FROM " + TABLE_DATA_ACCESS_NOTIFICATION
 			+ " WHERE " + COL_DATA_ACCESS_NOTIFICATION_TYPE + " = ?"
 			+ " AND " + COL_DATA_ACCESS_NOTIFICATION_REQUIREMENT_ID + " = ?"
 			+ " AND " + COL_DATA_ACCESS_NOTIFICATION_RECIPIENT_ID + " = ?";
+	
+	private static final String SQL_SELECT_SENT_ON = String.format(SQL_SELECT_TEMPLATE, COL_DATA_ACCESS_NOTIFICATION_SENT_ON);
+	
+	private static final String SQL_SELECT_ETAG = String.format(SQL_SELECT_TEMPLATE, COL_DATA_ACCESS_NOTIFICATION_ETAG);
 	
 	private static final String SQL_INSERT_UPDATE = "INSERT INTO " + TABLE_DATA_ACCESS_NOTIFICATION
 			+ " ("
@@ -50,11 +55,13 @@ public class DataAccessNotificationDaoImpl implements DataAccessNotificationDao 
 
 	private IdGenerator idGenerator;
 	private JdbcTemplate jdbcTemplate;
+	private DBOBasicDao basicDao;
 	
 	@Autowired
-	public DataAccessNotificationDaoImpl(final IdGenerator idGenerator, final JdbcTemplate jdbcTemplate) {
+	public DataAccessNotificationDaoImpl(final IdGenerator idGenerator, final JdbcTemplate jdbcTemplate, final DBOBasicDao basicDao) {
 		this.idGenerator = idGenerator;
 		this.jdbcTemplate = jdbcTemplate;
+		this.basicDao = basicDao;
 	}
 
 	@Override
@@ -62,36 +69,50 @@ public class DataAccessNotificationDaoImpl implements DataAccessNotificationDao 
 	public void registerNotification(DataAccessNotificationType type, Long requirementId, Long recipientId,
 			Long accessApprovalId, Long messageId, Instant sentOn) {
 		
-		Long newId = idGenerator.generateNewId(IdType.DATA_ACCESS_NOTIFICATION_ID);
+		Long id = idGenerator.generateNewId(IdType.DATA_ACCESS_NOTIFICATION_ID);
+		Timestamp sentTimestamp = Timestamp.from(sentOn);
 		
 		jdbcTemplate.update(SQL_INSERT_UPDATE, (ps) -> {
 			int index = 0;
 			
 			// On create
-			ps.setLong(++index, newId);
+			ps.setLong(++index, id);
 			ps.setString(++index, type.name());
 			ps.setLong(++index, requirementId);
 			ps.setLong(++index, recipientId);
 			ps.setLong(++index, accessApprovalId);
 			ps.setLong(++index, messageId);
-			ps.setObject(++index, sentOn);
+			ps.setTimestamp(++index, sentTimestamp);
 
 			// On update
 			ps.setLong(++index, accessApprovalId);
 			ps.setLong(++index, messageId);
-			ps.setObject(++index, sentOn);
+			ps.setTimestamp(++index, sentTimestamp);
 		});
-		
 	}
 
 	@Override
 	public Optional<Instant> getSentOn(DataAccessNotificationType type, Long requirementId, Long recipientId) {
 		try {
-			Long sentOn = jdbcTemplate.queryForObject(SQL_SELECT_SENT_ON, Long.class, type.name(), requirementId, recipientId);
-			return Optional.of(new Date(sentOn).toInstant());
+			Timestamp sentOnTimestamp = jdbcTemplate.queryForObject(SQL_SELECT_SENT_ON, Timestamp.class, type.name(), requirementId, recipientId);
+			return Optional.of(sentOnTimestamp.toInstant());
 		} catch (EmptyResultDataAccessException e) {
 			return Optional.empty();
 		}
 	}
 
+	@Override
+	public Optional<String> getEtag(DataAccessNotificationType type, Long requirementId, Long recipientId) {
+		try {
+			String etag = jdbcTemplate.queryForObject(SQL_SELECT_ETAG, String.class, type.name(), requirementId, recipientId);
+			return Optional.of(etag);
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
+	}
+
+	@Override
+	public void clear() {
+		jdbcTemplate.update("TRUNCATE TABLE " + TABLE_DATA_ACCESS_NOTIFICATION);
+	}
 }

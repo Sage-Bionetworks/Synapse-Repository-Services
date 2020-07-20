@@ -33,5 +33,10 @@ public interface DataAccessNotificationDao {
 	 * @return An optional containing the sentOn instant for the notification, empty if no notification could be found
 	 */
 	Optional<Instant> getSentOn(DataAccessNotificationType type, Long requirementId, Long recipientId);
+	
+	// For testing
+	
+	void clear();
 
+	Optional<String> getEtag(DataAccessNotificationType type, Long requirementId, Long recipientId);
 }
