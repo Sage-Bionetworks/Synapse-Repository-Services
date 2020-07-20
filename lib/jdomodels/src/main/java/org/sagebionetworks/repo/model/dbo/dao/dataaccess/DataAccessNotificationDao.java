@@ -4,30 +4,33 @@ import java.time.Instant;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessNotificationType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 
 public interface DataAccessNotificationDao {
 
 	/**
-	 * Register the message sent for the access approval with the given id, if a message already exists for the
-	 * given access type and approval updates the message id, etag etc.
+	 * Register a notification that was sent for a given access requirement and recipient
 	 * 
-	 * @param type             The notification type
-	 * @param accessApprovalId The id of the {@link AccessApproval}
-	 * @param messageId        The id of the {@link MessageToUser} that was sent
+	 * @param type The type of notification
+	 * @param requirementId The id of the {@link AccessRequirement}
+	 * @param recipientId The id of the {@link UserInfo recipient}
+	 * @param accessApprovalId The id of the {@link AccessApproval} that led to this notification
+	 * @param messageId The id of the {@link MessageToUser}
+	 * @param sentOn When the notification was sent
 	 */
-	void registerSent(DataAccessNotificationType type, Long requirementId, Long recipientId, Long accessApprovalId, Long messageId, Instant sentOn);
+	void registerNotification(DataAccessNotificationType type, Long requirementId, Long recipientId, Long accessApprovalId, Long messageId, Instant sentOn);
 
 	/**
 	 * Fetch the (last) sent on for the notification of the given type for the
 	 * approval with the given id.
 	 * 
-	 * @param type            The notification type
-	 * @param accessAprovalId The id of the {@link AccessApproval}
-	 * @return An optional containing the sentOn instant of the notification for the
-	 *         approval with the given id if such a notification was create, empty
-	 *         otherwise
+	 * @param type The type of notification
+	 * @param requirementId The id of the {@link AccessRequirement}
+	 * @param recipientId The id of the {@link UserInfo recipient}
+	 * @return An optional containing the sentOn instant for the notification, empty if no notification could be found
 	 */
 	Optional<Instant> getSentOn(DataAccessNotificationType type, Long requirementId, Long recipientId);
 

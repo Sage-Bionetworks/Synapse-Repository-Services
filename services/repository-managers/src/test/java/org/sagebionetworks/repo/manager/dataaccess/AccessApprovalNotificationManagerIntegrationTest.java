@@ -7,10 +7,9 @@ import java.util.Date;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.feature.Feature;
+import org.sagebionetworks.repo.model.dbo.feature.FeatureStatusDao;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -25,18 +24,17 @@ public class AccessApprovalNotificationManagerIntegrationTest {
 
 	@Autowired
 	private AccessApprovalNotificationManager manager;
-	@Autowired
-	private UserManager userManager;
 	
-	private UserInfo admin;
+	@Autowired
+	private FeatureStatusDao featureTesting;
 	
 	@BeforeEach
 	public void before() {
-		admin = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()); 
+		featureTesting.setFeatureEnabled(Feature.DATA_ACCESS_RENEWALS, true);
 	}
 	
 	@Test
-	public void processAccessApprovalChangeMessageWithNonExistingAccessApproval() throws RecoverableMessageException {
+	public void processAccessApprovalChangeWithNonExistingAccessApproval() throws RecoverableMessageException {
 		ChangeMessage message = new ChangeMessage();
 		
 		message.setChangeNumber(12345L);
@@ -46,7 +44,7 @@ public class AccessApprovalNotificationManagerIntegrationTest {
 		message.setObjectId("1");
 		
 		assertThrows(NotFoundException.class, () -> {			
-			manager.processAccessApprovalChangeMessage(admin, message);
+			manager.processAccessApprovalChange(message);
 		});
 	}
 	

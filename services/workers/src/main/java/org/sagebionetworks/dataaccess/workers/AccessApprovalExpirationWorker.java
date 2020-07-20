@@ -9,7 +9,9 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingRunner;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.dataaccess.AccessApprovalManager;
+import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.dbo.feature.Feature;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -29,17 +31,25 @@ public class AccessApprovalExpirationWorker implements ProgressingRunner {
 	
 	private AccessApprovalManager accessApprovalManager;
 	private UserManager userManager;
+	private FeatureManager featureManager;
 
 	@Autowired
 	public AccessApprovalExpirationWorker(
 			final AccessApprovalManager accessApprovalManager,
-			final UserManager userManager) {
+			final UserManager userManager,
+			final FeatureManager featureTestingManager) {
 		this.accessApprovalManager = accessApprovalManager;
 		this.userManager = userManager;
+		this.featureManager = featureTestingManager;
 	}
 	
 	@Override
 	public void run(ProgressCallback progressCallback) throws Exception {
+		
+		// Feature not yet enabled
+		if (!featureManager.isFeatureEnabled(Feature.DATA_ACCESS_RENEWALS)) {
+			return;
+		}
 		
 		long startTime = System.currentTimeMillis();
 

@@ -22,9 +22,10 @@ public class DBODataAccessNotification
 			new FieldColumn("notificationType", SqlConstants.COL_DATA_ACCESS_NOTIFICATION_TYPE),
 			new FieldColumn("requirementId", SqlConstants.COL_DATA_ACCESS_NOTIFICATION_REQUIREMENT_ID),
 			new FieldColumn("recipientId", SqlConstants.COL_DATA_ACCESS_NOTIFICATION_RECIPIENT_ID),
+			new FieldColumn("sentOn", SqlConstants.COL_DATA_ACCESS_NOTIFICATION_SENT_ON),
 			new FieldColumn("accessApprovalId", SqlConstants.COL_DATA_ACCESS_NOTIFICATION_APPROVAL_ID),
-			new FieldColumn("messageId", SqlConstants.COL_DATA_ACCESS_NOTIFICATION_MESSAGE_ID),
-			new FieldColumn("sentOn", SqlConstants.COL_DATA_ACCESS_NOTIFICATION_SENT_ON) };
+			new FieldColumn("messageId", SqlConstants.COL_DATA_ACCESS_NOTIFICATION_MESSAGE_ID)
+	};
 
 	private static final TableMapping<DBODataAccessNotification> TABLE_MAPPING = new TableMapping<DBODataAccessNotification>() {
 
@@ -37,9 +38,9 @@ public class DBODataAccessNotification
 			dbo.setNotificationType(rs.getString(SqlConstants.COL_DATA_ACCESS_NOTIFICATION_TYPE));
 			dbo.setRequirementId(rs.getLong(SqlConstants.COL_DATA_ACCESS_NOTIFICATION_REQUIREMENT_ID));
 			dbo.setRecipientId(rs.getLong(SqlConstants.COL_DATA_ACCESS_NOTIFICATION_RECIPIENT_ID));
+			dbo.setSentOn(rs.getLong(SqlConstants.COL_DATA_ACCESS_NOTIFICATION_SENT_ON));
 			dbo.setAccessApprovalId(rs.getLong(SqlConstants.COL_DATA_ACCESS_NOTIFICATION_APPROVAL_ID));
 			dbo.setMessageId(rs.getLong(SqlConstants.COL_DATA_ACCESS_NOTIFICATION_MESSAGE_ID));
-			dbo.setSentOn(rs.getLong(SqlConstants.COL_DATA_ACCESS_NOTIFICATION_SENT_ON));
 
 			return dbo;
 		}
@@ -72,9 +73,9 @@ public class DBODataAccessNotification
 	private String notificationType;
 	private Long requirementId;
 	private Long recipientId;
+	private Long sentOn;
 	private Long accessApprovalId;
 	private Long messageId;
-	private Long sentOn;
 
 	public Long getId() {
 		return id;
@@ -116,6 +117,14 @@ public class DBODataAccessNotification
 		this.recipientId = recipientId;
 	}
 
+	public Long getSentOn() {
+		return sentOn;
+	}
+
+	public void setSentOn(Long sentOn) {
+		this.sentOn = sentOn;
+	}
+
 	public Long getAccessApprovalId() {
 		return accessApprovalId;
 	}
@@ -130,14 +139,6 @@ public class DBODataAccessNotification
 
 	public void setMessageId(Long messageId) {
 		this.messageId = messageId;
-	}
-
-	public Long getSentOn() {
-		return sentOn;
-	}
-
-	public void setSentOn(Long sentOn) {
-		this.sentOn = sentOn;
 	}
 
 	@Override

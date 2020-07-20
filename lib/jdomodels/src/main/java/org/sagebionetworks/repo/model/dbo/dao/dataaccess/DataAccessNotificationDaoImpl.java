@@ -18,6 +18,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessNotificationType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -41,7 +42,7 @@ public class DataAccessNotificationDaoImpl implements DataAccessNotificationDao 
 			+ COL_DATA_ACCESS_NOTIFICATION_APPROVAL_ID + "," 
 			+ COL_DATA_ACCESS_NOTIFICATION_MESSAGE_ID + ","
 			+ COL_DATA_ACCESS_NOTIFICATION_SENT_ON
-			+ " ) VALUES (?, UUID(), ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE"
+			+ " ) VALUES (?, UUID(), ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE "
 			+ COL_DATA_ACCESS_NOTIFICATION_ETAG + " = UUID(),"
 			+ COL_DATA_ACCESS_NOTIFICATION_APPROVAL_ID + " = ?,"
 			+ COL_DATA_ACCESS_NOTIFICATION_MESSAGE_ID + " = ?,"
@@ -50,6 +51,7 @@ public class DataAccessNotificationDaoImpl implements DataAccessNotificationDao 
 	private IdGenerator idGenerator;
 	private JdbcTemplate jdbcTemplate;
 	
+	@Autowired
 	public DataAccessNotificationDaoImpl(final IdGenerator idGenerator, final JdbcTemplate jdbcTemplate) {
 		this.idGenerator = idGenerator;
 		this.jdbcTemplate = jdbcTemplate;
@@ -57,7 +59,7 @@ public class DataAccessNotificationDaoImpl implements DataAccessNotificationDao 
 
 	@Override
 	@WriteTransaction
-	public void registerSent(DataAccessNotificationType type, Long requirementId, Long recipientId,
+	public void registerNotification(DataAccessNotificationType type, Long requirementId, Long recipientId,
 			Long accessApprovalId, Long messageId, Instant sentOn) {
 		
 		Long newId = idGenerator.generateNewId(IdType.DATA_ACCESS_NOTIFICATION_ID);

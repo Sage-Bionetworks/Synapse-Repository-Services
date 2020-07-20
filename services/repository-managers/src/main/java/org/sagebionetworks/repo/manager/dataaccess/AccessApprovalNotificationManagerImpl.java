@@ -10,12 +10,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.annotation.PostConstruct;
-
-import org.sagebionetworks.StackConfiguration;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.dataaccess.notifications.DataAccessNotificationBuilder;
+import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.stack.ProdDetector;
 import org.sagebionetworks.repo.model.AccessApproval;
@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessNotificationType;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationDao;
+import org.sagebionetworks.repo.model.dbo.feature.Feature;
 import org.sagebionetworks.repo.model.message.BroadcastMessageDao;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -41,12 +42,21 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class AccessApprovalNotificationManagerImpl implements AccessApprovalNotificationManager {
+	
+	private static final Logger LOG = LogManager.getLogger(AccessApprovalNotificationManagerImpl.class);
 
+	// TODO: Notifications configuration should be stored in the DB, including the resend timeout and
+	// eventually the reminder period so that it can be changed later if needed in the DB
+	
 	// Do not re-send another notification if one was sent already within the last 7 days
 	private static final long REVOKED_RESEND_TIMEOUT_DAYS = 7;
+	
+	// Do not process a change message if it's older than 24 hours
 	private static final long CHANGE_TIMEOUT_HOURS = 24;
+	
+	// Fake id for messages to that are not actually created
+	private static final long NO_MESSAGE_TO_USER = -1;
 
-	private StackConfiguration stackConfiguration;
 	private BroadcastMessageDao broadcastMessageDao;
 	private UserManager userManager;
 	private DataAccessNotificationDao notificationDao;
@@ -54,14 +64,13 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 	private AccessRequirementDAO accessRequirementDao;
 	private FileHandleManager fileHandleManager;
 	private MessageManager messageManager;
+	private FeatureManager featureManager;
 	private ProdDetector prodDetector;
 
 	private Map<DataAccessNotificationType, DataAccessNotificationBuilder> notificationBuilders;
-	private UserInfo notificationSender;
 
 	@Autowired
 	public AccessApprovalNotificationManagerImpl(
-			final StackConfiguration stackConfiguration,
 			final UserManager userManager, 
 			final BroadcastMessageDao broadcastMessageDao,
 			final DataAccessNotificationDao notificationDao, 
@@ -69,8 +78,8 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 			final AccessRequirementDAO accessRequirementDao, 
 			final FileHandleManager fileHandleManager,
 			final MessageManager messageManager, 
+			final FeatureManager featureTesting,
 			final ProdDetector prodDetector) {
-		this.stackConfiguration = stackConfiguration;
 		this.broadcastMessageDao = broadcastMessageDao;
 		this.userManager = userManager;
 		this.notificationDao = notificationDao;
@@ -78,6 +87,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		this.accessRequirementDao = accessRequirementDao;
 		this.fileHandleManager = fileHandleManager;
 		this.messageManager = messageManager;
+		this.featureManager = featureTesting;
 		this.prodDetector = prodDetector;
 	}
 
@@ -97,17 +107,9 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 
 	}
 
-	@PostConstruct
-	public void init() {
-		Long senderId = stackConfiguration.getDataAccessNotificationsSender();
-		notificationSender = userManager.getUserInfo(senderId);
-	}
-
 	@Override
 	@WriteTransaction
-	public void processAccessApprovalChangeMessage(UserInfo user, ChangeMessage message)
-			throws RecoverableMessageException {
-		ValidateArgument.required(user, "The user");
+	public void processAccessApprovalChange(ChangeMessage message) throws RecoverableMessageException {
 		ValidateArgument.required(message, "The change message");
 
 		// Should we process this change?
@@ -120,15 +122,15 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		
 		AccessApproval approval = accessApprovalDao.get(message.getObjectId());
 
+		UserInfo recipient = getRecipientForRevocation(approval);
+
 		// Should we process this approval change?
-		if (discardAccessApproval(approval)) {
+		if (discardAccessApproval(approval, recipient)) {
 			return;
 		}
 
-		// Now we can build and send the notification
-		if (deliverMessage(approval)) {
-			sendMessageToUser(DataAccessNotificationType.REVOCATION, approval);
-		}
+		// Send the notification
+		sendNotification(DataAccessNotificationType.REVOCATION, approval, recipient);
 	}
 
 	boolean discardChangeMessage(ChangeMessage change) {
@@ -156,14 +158,9 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		return false;
 	}
 	
-	boolean discardAccessApproval(AccessApproval approval) {
+	boolean discardAccessApproval(AccessApproval approval, UserInfo recipient) {
 		// Do not process approvals that are not revoked
 		if (!ApprovalState.REVOKED.equals(approval.getState())) {
-			return true;
-		}
-		
-		// Do not process approvals that do not expire
-		if (approval.getExpiredOn() == null) {
 			return true;
 		}
 		
@@ -175,11 +172,9 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		if (!ManagedACTAccessRequirement.class.getName().equals(accessRequirementType)) {
 			return true;
 		}
-		
-		Long recipientId = getRecipientForApproval(approval);
 
 		// Check if a revocation was already sent to the user for this requirement
-		Optional<Instant> sent = notificationDao.getSentOn(DataAccessNotificationType.REVOCATION, requirementId, recipientId);
+		Optional<Instant> sent = notificationDao.getSentOn(DataAccessNotificationType.REVOCATION, requirementId, recipient.getId());
 
 		if (sent.isPresent()) {
 
@@ -201,14 +196,33 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 
 		// We need to check if an APPROVED access approval exists already for the same access requirement, in such a case
 		// there is no need to send a notification as the user is still considered APPROVED
-		if (!accessApprovalDao.listApprovalsByAccessor(requirementId.toString(), recipientId.toString()).isEmpty()) {
+		if (!accessApprovalDao.listApprovalsByAccessor(requirementId.toString(), recipient.getId().toString()).isEmpty()) {
 			return true;
 		}
 		
 		return false;
 	}
+
+	void sendNotification(DataAccessNotificationType notificationType, AccessApproval approval, UserInfo recipient) throws RecoverableMessageException {
+		Long messageId;
+		Instant sentOn;
+		
+		if (deliverMessage(approval, recipient)) {
+			MessageToUser messageToUser = sendMessageToUser(notificationType, approval, recipient);
+			messageId = Long.valueOf(messageToUser.getId());
+			sentOn = messageToUser.getCreatedOn().toInstant();
+		} else {
+			// We do not deliver, but we still want to record the notification to avoid re-processing it
+			LOG.warn("{} notification (AR: {}, Recipient: {}, AP: {}) will not be delivered", notificationType, approval.getRequirementId(), recipient.getId(), approval.getId());
+			messageId = NO_MESSAGE_TO_USER;
+			sentOn = Instant.now();
+		}
+		
+		notificationDao.registerNotification(notificationType, approval.getRequirementId(), recipient.getId(), approval.getId(), messageId, sentOn);
 	
-	void sendMessageToUser(DataAccessNotificationType notificationType, AccessApproval approval) throws RecoverableMessageException {
+	}
+	
+	MessageToUser sendMessageToUser(DataAccessNotificationType notificationType, AccessApproval approval, UserInfo recipient) {
 
 		DataAccessNotificationBuilder notificationBuidler = getNotificationBuilder(notificationType);
 		
@@ -220,12 +234,13 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		
 		ManagedACTAccessRequirement managedAccessRequriement = (ManagedACTAccessRequirement) accessRequirement;
 
-		String sender = notificationSender.getId().toString();
+		UserInfo notificationsSender = getNotificationsSender();
+		
+		String sender = notificationsSender.getId().toString();
 		String messageBody = notificationBuidler.buildMessageBody(managedAccessRequriement, approval);
 		String mimeType = notificationBuidler.getMimeType();
 		String subject = notificationBuidler.buildSubject(managedAccessRequriement, approval);
 		String fileHandleId = storeNotificationBody(sender, messageBody, mimeType);
-		Long recipientId = getRecipientForApproval(approval);
 
 		MessageToUser message = new MessageToUser();
 
@@ -235,33 +250,28 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		message.setWithUnsubscribeLink(false);
 		message.setWithProfileSettingLink(false);
 		message.setFileHandleId(fileHandleId);
-		message.setRecipients(Collections.singleton(recipientId.toString()));
+		message.setRecipients(Collections.singleton(recipient.getId().toString()));
 
 		boolean overrideNotificationSettings = true;
 
-		message = messageManager.createMessage(notificationSender, message, overrideNotificationSettings);
-
-		Long messageId = Long.valueOf(message.getId());
-		Instant sentOn = message.getCreatedOn().toInstant();
-
-		notificationDao.registerSent(notificationType, accessRequirement.getId(), recipientId, approval.getId(), messageId, sentOn);
+		return messageManager.createMessage(notificationsSender, message, overrideNotificationSettings);
+	}
+	
+	UserInfo getNotificationsSender() {
+		return userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId());
 	}
 
-	boolean deliverMessage(AccessApproval approval) throws RecoverableMessageException {
-		boolean isProductionStack = prodDetector.isProductionStack()
-				.orElseThrow(() -> new RecoverableMessageException("Cannot detect current stack"));
-
-		if (isProductionStack) {
+	boolean deliverMessage(AccessApproval approval, UserInfo recipient) throws RecoverableMessageException {
+		// Checks if the feature is enabled first for the given recipient
+		if (featureManager.isFeatureEnabledForUser(Feature.DATA_ACCESS_RENEWALS, recipient)) {
 			return true;
 		}
 		
-		Long recipientId = getRecipientForApproval(approval);
-
-		// On a non production stack (e.g. staging, testing) we deliver the message only
-		// if the accessor belongs to the testing group
-		UserInfo accessor = userManager.getUserInfo(recipientId);
-
-		return accessor.getGroups().contains(BOOTSTRAP_PRINCIPAL.SYNAPSE_TESTING_GROUP.getPrincipalId());
+		// Once the feature is enabled we can process the notification only on production as we do not want
+		// to send duplicated messages from prod/staging
+		return prodDetector.isProductionStack().orElseThrow(() -> 
+			new RecoverableMessageException("Cannot detect current stack")
+		);
 	}
 
 	String storeNotificationBody(String sender, String messageBody, String mimeType) {
@@ -273,8 +283,8 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		}
 	}
 
-	private Long getRecipientForApproval(AccessApproval approval) {
-		return Long.valueOf(approval.getAccessorId());
+	UserInfo getRecipientForRevocation(AccessApproval approval) {
+		return userManager.getUserInfo(Long.valueOf(approval.getAccessorId()));
 	}
 	
 	private DataAccessNotificationBuilder getNotificationBuilder(DataAccessNotificationType notificationType) {

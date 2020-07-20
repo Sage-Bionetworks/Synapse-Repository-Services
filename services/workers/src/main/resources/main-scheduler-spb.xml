@@ -116,10 +116,8 @@
 		<ref bean="schemaBoostrapTrigger" />
 		<ref bean="viewColumnModelRequestWorkerTrigger" />
 		<ref bean="getValidationSchemaTrigger" />
-		<!--
-			Disable the worker that automatically revokes approvals for now until we have the notifications sending setup 		
-			<ref bean="accessApprovalExpirationTrigger" /> 
-		-->
+		<ref bean="accessApprovalExpirationTrigger" />
+		<ref bean="accessApprovalRevokedNotificationTrigger" />
 	</util:list>
 
 	<bean id="mainScheduler"

@@ -123,6 +123,21 @@
 			   	</bean>
 			</property>			
 		</bean>
+		<bean class="org.sagebionetworks.repo.model.principal.BootstrapUser">
+			<property name="id" value="3412389" />
+			<property name="email">
+			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
+			   		<property name="aliasName" value="act@sagebase.org" />
+			   		<property name="aliasId" value="172631" />
+			   	</bean>
+			</property>
+			<property name="userName">
+			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
+			   		<property name="aliasName" value="ACTAccessManagement" />
+			   		<property name="aliasId" value="172630" />
+			   	</bean>
+			</property>
+		</bean>
 	</util:list>
 
 	<bean id="userGroupDAO"

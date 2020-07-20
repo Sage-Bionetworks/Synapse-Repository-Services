@@ -18,6 +18,8 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.dbo.feature.Feature;
+import org.sagebionetworks.repo.model.dbo.feature.FeatureStatusDao;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.util.Pair;
@@ -43,6 +45,9 @@ public class AccessApprovalExpirationWorkerIntegrationTest {
 	@Autowired
 	private AccessApprovalDAO accessApprovalDao;
 	
+	@Autowired
+	private FeatureStatusDao featureStatusDao;
+	
 	private UserInfo user;
 	private List<Long> accessRequirements;
 	private List<Long> accessApprovals;
@@ -50,6 +55,8 @@ public class AccessApprovalExpirationWorkerIntegrationTest {
 	@BeforeEach
 	public void before() {
 		user = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		// Enabled the feature for testing
+		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_RENEWALS, true);
 		accessRequirements = new ArrayList<>();
 		accessApprovals = new ArrayList<>();
 	}
