@@ -1128,6 +1128,14 @@ public class SqlConstants {
 	public static final String COL_DATA_ACCESS_NOTIFICATION_APPROVAL_ID = 				"ACCESS_APPROVAL_ID";
 	public static final String COL_DATA_ACCESS_NOTIFICATION_SENT_ON = 					"SENT_ON";
 	public static final String COL_DATA_ACCESS_NOTIFICATION_MESSAGE_ID = 				"MESSAGE_ID";	
+	
+	// Feature testing
+	public static final String DDL_FEATURE_STATUS =										"schema/testing/FeatureStatus-ddl.sql";
+	public static final String TABLE_FEATURE_STATUS = 									"FEATURE_STATUS";
+	public static final String COL_FEATURE_STATUS_ID = 									"ID";
+	public static final String COL_FEATURE_STATUS_ETAG = 								"ETAG";
+	public static final String COL_FEATURE_STATUS_TYPE = 								"FEATURE_TYPE";
+	public static final String COL_FEATURE_STATUS_ENABLED =								"ENABLED";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
