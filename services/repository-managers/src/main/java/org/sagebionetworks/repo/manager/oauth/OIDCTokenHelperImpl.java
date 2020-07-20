@@ -97,7 +97,7 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 			.setId(tokenId)
 			.setSubject(subject);
 
-		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ID);
+		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ID_TOKEN);
 
 		if (nonce!=null) claims.put(NONCE, nonce);
 		
@@ -130,7 +130,7 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 			.setId(accessTokenId)
 			.setSubject(subject);
 
-		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ACCESS);
+		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ACCESS_TOKEN);
 
 		if (authTime!=null) claims.put(OIDCClaimName.auth_time.name(), authTime);
 		if (refreshTokenId!=null) claims.put(OIDCClaimName.refresh_token_id.name(), refreshTokenId);
@@ -141,9 +141,9 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 	public String createPersonalAccessToken(String issuer, AccessTokenRecord record) {
 		Claims claims = Jwts.claims();
 
-		ClaimsJsonUtil.addAccessClaims(record.getScopes(), EnumKeyedJsonMapUtil.convertToEnum(record.getUserInfoClaims(), OIDCClaimName.class), claims);
+		ClaimsJsonUtil.addAccessClaims(record.getScopes(), EnumKeyedJsonMapUtil.convertKeysToEnums(record.getUserInfoClaims(), OIDCClaimName.class), claims);
 
-		claims.put(OIDCClaimName.token_type.name(), TokenType.PERSONAL_ACCESS);
+		claims.put(OIDCClaimName.token_type.name(), TokenType.PERSONAL_ACCESS_TOKEN);
 
 		claims.setIssuer(issuer)
 				.setAudience(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID)

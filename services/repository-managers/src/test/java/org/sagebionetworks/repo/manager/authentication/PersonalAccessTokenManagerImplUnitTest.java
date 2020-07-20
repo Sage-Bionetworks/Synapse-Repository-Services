@@ -62,6 +62,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 	private static final Long OTHER_USER_ID = 654321L;
 
 	private static final Long ONE_YEAR_MILLIS = 1000L * 60 * 60 * 24 * 365;
+	private static final Long EXPECTED_TOKEN_LIMIT = 100L;
 
 	@BeforeEach
 	void beforeEach() {
@@ -73,11 +74,10 @@ public class PersonalAccessTokenManagerImplUnitTest {
 	void testDetermineActiveState_active() {
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 
-		AccessTokenRecord record = new AccessTokenRecord();
-		record.setLastUsed(new Date(System.currentTimeMillis()));
+		Date lastUsedDate = new Date(System.currentTimeMillis());
 
 		// method under test
-		assertEquals(AccessTokenState.ACTIVE, personalAccessTokenManager.determineActiveState(record));
+		assertEquals(AccessTokenState.ACTIVE, personalAccessTokenManager.determineActiveState(lastUsedDate));
 	}
 
 
@@ -85,23 +85,10 @@ public class PersonalAccessTokenManagerImplUnitTest {
 	void testDetermineActiveState_expired() {
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 
-		AccessTokenRecord record = new AccessTokenRecord();
-		record.setLastUsed(new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS));
+		Date lastUsedDate = new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS);
 
 		// method under test
-		assertEquals(AccessTokenState.EXPIRED, personalAccessTokenManager.determineActiveState(record));
-	}
-
-	@Test
-	void testDetermineActiveState_nullLastUsed() {
-		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
-
-		AccessTokenRecord record = new AccessTokenRecord();
-		record.setLastUsed(null);
-		record.setCreatedOn(new Date(System.currentTimeMillis()));
-
-		// method under test
-		assertEquals(AccessTokenState.ACTIVE, personalAccessTokenManager.determineActiveState(record));
+		assertEquals(AccessTokenState.EXPIRED, personalAccessTokenManager.determineActiveState(lastUsedDate));
 	}
 
 	@Test
@@ -140,6 +127,8 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		assertNotNull(captured.getCreatedOn());
 		assertNotNull(captured.getLastUsed());
 		assertEquals(expectedToken, token);
+
+		verify(mockPersonalAccessTokenDao).deleteLeastRecentlyUsedTokensOverLimit(userInfo.getId().toString(), EXPECTED_TOKEN_LIMIT);
 	}
 
 	@Test
@@ -175,6 +164,8 @@ public class PersonalAccessTokenManagerImplUnitTest {
 
 		AccessTokenRecord captured = recordCaptor.getValue();
 		assertTrue(StringUtils.isNotBlank(captured.getName()));
+
+		verify(mockPersonalAccessTokenDao).deleteLeastRecentlyUsedTokensOverLimit(userInfo.getId().toString(), EXPECTED_TOKEN_LIMIT);
 	}
 
 	@Test
@@ -206,6 +197,8 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		AccessTokenRecord captured = recordCaptor.getValue();
 		Set<OAuthScope> actualScope = new HashSet<>(captured.getScopes());
 		assertEquals(expectedScope, actualScope);
+
+		verify(mockPersonalAccessTokenDao).deleteLeastRecentlyUsedTokensOverLimit(userInfo.getId().toString(), EXPECTED_TOKEN_LIMIT);
 	}
 
 	@Test
@@ -233,26 +226,21 @@ public class PersonalAccessTokenManagerImplUnitTest {
 
 		AccessTokenRecord captured = recordCaptor.getValue();
 		assertEquals(expectedClaims, captured.getUserInfoClaims());
+
+		verify(mockPersonalAccessTokenDao).deleteLeastRecentlyUsedTokensOverLimit(userInfo.getId().toString(), EXPECTED_TOKEN_LIMIT);
 	}
 
 	@Test
 	void testIsTokenActive() {
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
-
-		AccessTokenRecord record = new AccessTokenRecord();
-		record.setLastUsed(new Date(System.currentTimeMillis()));
-
-		when(mockPersonalAccessTokenDao.getTokenRecord(TOKEN_ID)).thenReturn(record);
+		when(mockPersonalAccessTokenDao.getLastUsedDate(TOKEN_ID)).thenReturn(new Date(System.currentTimeMillis()));
 		// method under test
 		assertTrue(personalAccessTokenManager.isTokenActive(TOKEN_ID));
 	}
 
 	@Test
 	void testIsTokenActive_notFound() {
-		AccessTokenRecord record = new AccessTokenRecord();
-		record.setLastUsed(new Date(System.currentTimeMillis()));
-
-		when(mockPersonalAccessTokenDao.getTokenRecord(TOKEN_ID)).thenThrow(new NotFoundException());
+		when(mockPersonalAccessTokenDao.getLastUsedDate(TOKEN_ID)).thenThrow(new NotFoundException());
 		// method under test
 		assertFalse(personalAccessTokenManager.isTokenActive(TOKEN_ID));
 

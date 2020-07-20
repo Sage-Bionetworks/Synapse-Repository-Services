@@ -75,6 +75,8 @@ public class PersonalAccessTokenManagerAutowiredTest {
 		for (String t : tokenIdsToDelete) {
 			personalAccessTokenManager.revokeToken(adminUserInfo, t);
 		}
+
+		userManager.deletePrincipal(adminUserInfo, userInfo.getId());
 	}
 
 	private String getTokenIdFromJwt(String jwt) {

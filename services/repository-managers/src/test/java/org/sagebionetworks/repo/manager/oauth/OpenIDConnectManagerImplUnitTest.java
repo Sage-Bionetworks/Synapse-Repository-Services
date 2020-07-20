@@ -1227,7 +1227,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		String token = "access token";
 		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
 		Claims claims = Jwts.claims();
-		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ACCESS.name());
+		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ACCESS_TOKEN.name());
 		claims.put(OIDCClaimName.refresh_token_id.name(), refreshTokenId);
 		ClaimsJsonUtil.addAccessClaims(Collections.emptyList(), Collections.emptyMap(), claims);
 		when(mockJWT.getBody()).thenReturn(claims);
@@ -1249,7 +1249,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		String token = "access token";
 		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
 		Claims claims = Jwts.claims();
-		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ACCESS.name());
+		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ACCESS_TOKEN.name());
 		ClaimsJsonUtil.addAccessClaims(Collections.emptyList(), Collections.emptyMap(), claims);
 		when(mockJWT.getBody()).thenReturn(claims);
 		claims.setAudience(OAUTH_CLIENT_ID);
@@ -1270,7 +1270,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		String token = "access token";
 		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
 		Claims claims = Jwts.claims();
-		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ACCESS.name());
+		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ACCESS_TOKEN.name());
 		claims.put(OIDCClaimName.refresh_token_id.name(), refreshTokenId);
 		ClaimsJsonUtil.addAccessClaims(Collections.emptyList(), Collections.emptyMap(), claims);
 		when(mockJWT.getBody()).thenReturn(claims);
@@ -1292,7 +1292,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		String token = "id token";
 		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
 		Claims claims = Jwts.claims();
-		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ID.name());
+		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ID_TOKEN.name());
 		when(mockJWT.getBody()).thenReturn(claims);
 		claims.setAudience(OAUTH_CLIENT_ID);
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
@@ -1313,7 +1313,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
 		Claims claims = Jwts.claims();
 		claims.setId(tokenId);
-		claims.put(OIDCClaimName.token_type.name(), TokenType.PERSONAL_ACCESS.name());
+		claims.put(OIDCClaimName.token_type.name(), TokenType.PERSONAL_ACCESS_TOKEN.name());
 		ClaimsJsonUtil.addAccessClaims(Collections.emptyList(), Collections.emptyMap(), claims);
 		when(mockJWT.getBody()).thenReturn(claims);
 		claims.setAudience(OAUTH_CLIENT_ID);
@@ -1336,7 +1336,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
 		Claims claims = Jwts.claims();
 		claims.setId(tokenId);
-		claims.put(OIDCClaimName.token_type.name(), TokenType.PERSONAL_ACCESS.name());
+		claims.put(OIDCClaimName.token_type.name(), TokenType.PERSONAL_ACCESS_TOKEN.name());
 		ClaimsJsonUtil.addAccessClaims(Collections.emptyList(), Collections.emptyMap(), claims);
 		when(mockJWT.getBody()).thenReturn(claims);
 		claims.setAudience(OAUTH_CLIENT_ID);

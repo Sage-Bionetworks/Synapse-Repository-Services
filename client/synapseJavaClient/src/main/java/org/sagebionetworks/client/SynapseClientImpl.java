@@ -3631,8 +3631,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public AccessTokenRecordList retrievePersonalAccessTokenRecords() throws SynapseException {
-		return getJSONEntity(getAuthEndpoint(), AUTH_PERSONAL_ACCESS_TOKEN, AccessTokenRecordList.class);
+	public AccessTokenRecordList retrievePersonalAccessTokenRecords(String nextPageToken) throws SynapseException {
+		String uri = AUTH_PERSONAL_ACCESS_TOKEN;
+		if (nextPageToken != null) {
+			uri += "?" + NEXT_PAGE_TOKEN_PARAM + nextPageToken;
+		}
+		return getJSONEntity(getAuthEndpoint(), uri, AccessTokenRecordList.class);
 	}
 
 	@Override

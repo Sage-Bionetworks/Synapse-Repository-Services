@@ -34,6 +34,8 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 	private static final long MAX_TOKEN_LEASE_LENGTH_DAYS = 180L;
 	private static final long MAX_TOKEN_LEASE_LENGTH_MILLIS = MAX_TOKEN_LEASE_LENGTH_DAYS * 24 * 60 * 60 * 1000;
 
+	private static final long MAX_NUMBER_OF_TOKENS_PER_USER = 100L;
+
 	@Autowired
 	private PersonalAccessTokenDao personalAccessTokenDao;
 
@@ -44,18 +46,12 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 	private Clock clock;
 
 	/**
-	 * Determine the state of the access token record using the last used or created on fields.
+	 * Determine the state of the access token record using the last used date.
 	 * Method exposed for testing.
-	 * @param record
+	 * @param lastUsedDate The last used date of the token.
 	 * @return the state of the token
 	 */
-	AccessTokenState determineActiveState(AccessTokenRecord record) {
-		Date lastUsedDate;
-		if (record.getLastUsed() != null) {
-			lastUsedDate = record.getLastUsed();
-		} else {
-			lastUsedDate = record.getCreatedOn();
-		}
+	AccessTokenState determineActiveState(Date lastUsedDate) {
 		Date lastUsedExpirationDate = new Date(clock.currentTimeMillis() - MAX_TOKEN_LEASE_LENGTH_MILLIS);
 		boolean active = lastUsedDate.after(lastUsedExpirationDate);
 		return active ? AccessTokenState.ACTIVE : AccessTokenState.EXPIRED;
@@ -88,8 +84,8 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 
 		// Convert claims to enum and back to remove invalid claims -- see PLFM-6254
 		request.setUserInfoClaims(
-				EnumKeyedJsonMapUtil.convertToString(
-						EnumKeyedJsonMapUtil.convertToEnum(request.getUserInfoClaims(), OIDCClaimName.class)
+				EnumKeyedJsonMapUtil.convertKeysToStrings(
+						EnumKeyedJsonMapUtil.convertKeysToEnums(request.getUserInfoClaims(), OIDCClaimName.class)
 				)
 		);
 
@@ -105,18 +101,22 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 		record = personalAccessTokenDao.createTokenRecord(record);
 		AccessTokenGenerationResponse response = new AccessTokenGenerationResponse();
 		response.setToken(oidcTokenHelper.createPersonalAccessToken(oauthEndpoint, record));
+
+		// If the user has over 100 tokens, delete the least recently used to get under the limit.
+		personalAccessTokenDao.deleteLeastRecentlyUsedTokensOverLimit(userInfo.getId().toString(), MAX_NUMBER_OF_TOKENS_PER_USER);
+
 		return response;
 	}
 
 	@Override
 	public boolean isTokenActive(String tokenId) {
-		AccessTokenRecord record;
+		Date lastUsedDate;
 		try {
-			record = personalAccessTokenDao.getTokenRecord(tokenId);
+			lastUsedDate = personalAccessTokenDao.getLastUsedDate(tokenId);
 		} catch (NotFoundException e) {
 			return false;
 		}
-		return determineActiveState(record).equals(AccessTokenState.ACTIVE);
+		return determineActiveState(lastUsedDate).equals(AccessTokenState.ACTIVE);
 	}
 
 	@WriteTransaction
@@ -133,7 +133,7 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 
 		AccessTokenRecordList records = personalAccessTokenDao.getTokenRecords(userInfo.getId().toString(), nextPageToken);
 		for (AccessTokenRecord r : records.getResults()) {
-			r.setState(determineActiveState(r));
+			r.setState(determineActiveState(r.getLastUsed()));
 		}
 		return records;
 	}
@@ -142,7 +142,7 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 	public AccessTokenRecord getTokenRecord(UserInfo userInfo, String tokenId) throws NotFoundException, UnauthorizedException {
 		AccessTokenRecord record = personalAccessTokenDao.getTokenRecord(tokenId);
 		if (userInfo.getId().toString().equals(record.getUserId()) || userInfo.isAdmin()) {
-			record.setState(determineActiveState(record));
+			record.setState(determineActiveState(record.getLastUsed()));
 			return record;
 		} else {
 			throw new UnauthorizedException("You do not have permission to view this token record.");

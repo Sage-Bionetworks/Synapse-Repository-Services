@@ -1118,7 +1118,7 @@ public interface SynapseClient extends BaseClient {
 
 	public AccessTokenRecord retrievePersonalAccessTokenRecord(String tokenId) throws SynapseException;
 
-	public AccessTokenRecordList retrievePersonalAccessTokenRecords() throws SynapseException;
+	public AccessTokenRecordList retrievePersonalAccessTokenRecords(String nextPageToken) throws SynapseException;
 
 	public void revokePersonalAccessToken(String tokenId) throws SynapseException;
 

@@ -201,4 +201,20 @@ public class PersonalAccessTokenDaoAutowiredTest {
 		assertNotNull(personalAccessTokenDao.getTokenRecord(newToken1.getId()));
 		assertNotNull(personalAccessTokenDao.getTokenRecord(newToken2.getId()));
 	}
+
+	@Test
+	void testGetLastUsedDate() {
+		AccessTokenRecord token = createTokenRecord(userId, new Date(System.currentTimeMillis() - ONE_HOUR_MILLIS));
+
+		// method under test
+		Date lastUsedDate = personalAccessTokenDao.getLastUsedDate(token.getId());
+
+		assertEquals(token.getLastUsed(), lastUsedDate);
+	}
+
+	@Test
+	void testGetLastUsedDate_NotFound() {
+		// method under test
+		assertThrows(NotFoundException.class, () -> personalAccessTokenDao.getLastUsedDate("999999999999"));
+	}
 }

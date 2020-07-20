@@ -24,7 +24,7 @@ public class EnumKeyedJsonMapUtilTest {
 		stringMap.put("GAMMA", "gammaVal");
 
 		// Call under test
-		Map<TestEnum, String> enumMap = EnumKeyedJsonMapUtil.convertToEnum(stringMap, TestEnum.class);
+		Map<TestEnum, String> enumMap = EnumKeyedJsonMapUtil.convertKeysToEnums(stringMap, TestEnum.class);
 
 		assertEquals(3, enumMap.size());
 		assertEquals(stringMap.get("ALPHA"), enumMap.get(TestEnum.ALPHA));
@@ -40,7 +40,7 @@ public class EnumKeyedJsonMapUtilTest {
 		stringMap.put("EPSILON", "epsilonVal"); // not in the enum!
 
 		// Call under test
-		Map<TestEnum, String> enumMap = EnumKeyedJsonMapUtil.convertToEnum(stringMap, TestEnum.class);
+		Map<TestEnum, String> enumMap = EnumKeyedJsonMapUtil.convertKeysToEnums(stringMap, TestEnum.class);
 
 		assertEquals(2, enumMap.size());
 		assertEquals(stringMap.get("ALPHA"), enumMap.get(TestEnum.ALPHA));
@@ -57,7 +57,7 @@ public class EnumKeyedJsonMapUtilTest {
 		enumMap.put(TestEnum.GAMMA, "gammaVal");
 
 		// Call under test
-		Map<String, String> stringMap = EnumKeyedJsonMapUtil.convertToString(enumMap);
+		Map<String, String> stringMap = EnumKeyedJsonMapUtil.convertKeysToStrings(enumMap);
 
 		assertEquals(3, stringMap.size());
 		assertEquals(enumMap.get(TestEnum.ALPHA), stringMap.get("ALPHA"));

@@ -150,14 +150,22 @@ public class OIDCTokenHelperImplTest {
 		assertTrue(claims.get(OIDCClaimName.email_verified.name(), Boolean.class));
 		assertEquals("University of Example", claims.get(OIDCClaimName.company.name(), String.class));
 		assertEquals(TOKEN_ID, claims.getId());
-		assertEquals(TokenType.OIDC_ID.name(), claims.get(OIDCClaimName.token_type.name(), String.class));
+		assertEquals(TokenType.OIDC_ID_TOKEN.name(), claims.get(OIDCClaimName.token_type.name(), String.class));
 		
 		// This checks the other fields set in the method under test
 		jwtValidation(oidcToken, false, NONCE);
 	}
 
-    // let's check that our JWTs fulfill the OIDC spec by checking that they meet the requirements for client validation:	
-	// https://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation
+	/**
+	 * This method lets us check that our JWTs fulfill the OIDC spec by checking that they meet the requirements for client validation.
+	 * See https://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation
+	 *
+	 * For code reuse, we also use this method to check the validity of personal access tokens, but by design, PATs are not OIDC-compliant.
+	 * @param jwtString
+	 * @param isPersonalAccessToken
+	 * @param nonce
+	 * @throws ParseException
+	 */
 	private void jwtValidation(String jwtString, boolean isPersonalAccessToken, String nonce) throws ParseException {
 		// If the ID Token is received via direct communication between the Client and the Token Endpoint (which it is in this flow), 
 	    // the TLS server validation MAY be used to validate the issuer in place of checking the token signature. The Client MUST 
@@ -261,7 +269,7 @@ public class OIDCTokenHelperImplTest {
 		// in the test for ClaimsJsonUtil.addAccessClaims() we check 
 		// that the content is correct
 		assertNotNull(claims.get("access"));
-		assertEquals(TokenType.OIDC_ACCESS.name(), claims.get(OIDCClaimName.token_type.name(), String.class));
+		assertEquals(TokenType.OIDC_ACCESS_TOKEN.name(), claims.get(OIDCClaimName.token_type.name(), String.class));
 
 		// This checks the other fields set in the method under test
 		jwtValidation(accessToken, false, null/* no nonce */);
@@ -315,6 +323,7 @@ public class OIDCTokenHelperImplTest {
 		personalAccessTokenRecord.setScopes(grantedScopes);
 		personalAccessTokenRecord.setUserInfoClaims(expectedClaims);
 
+		// method under test
 		String accessToken = oidcTokenHelper.createPersonalAccessToken(
 				ISSUER,
 				personalAccessTokenRecord);
@@ -325,7 +334,7 @@ public class OIDCTokenHelperImplTest {
 		// in the test for ClaimsJsonUtil.addAccessClaims() we check
 		// that the content is correct
 		assertNotNull(claims.get("access"));
-		assertEquals(TokenType.PERSONAL_ACCESS.name(), claims.get(OIDCClaimName.token_type.name(), String.class));
+		assertEquals(TokenType.PERSONAL_ACCESS_TOKEN.name(), claims.get(OIDCClaimName.token_type.name(), String.class));
 
 		// This checks the other fields set in the method under test
 		jwtValidation(accessToken, true, null/* no nonce */);

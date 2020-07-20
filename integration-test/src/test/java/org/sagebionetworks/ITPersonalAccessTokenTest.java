@@ -98,7 +98,7 @@ public class ITPersonalAccessTokenTest {
 		}
 
 		// method under test -- get all records
-		AccessTokenRecordList records = synapseOne.retrievePersonalAccessTokenRecords();
+		AccessTokenRecordList records = synapseOne.retrievePersonalAccessTokenRecords(null);
 		assertEquals(1, records.getResults().size());
 		assertNull(records.getNextPageToken());
 

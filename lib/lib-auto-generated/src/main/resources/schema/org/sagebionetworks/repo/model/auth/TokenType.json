@@ -2,15 +2,15 @@
   "type": "string",
   "enum": [
     {
-      "name": "OIDC_ACCESS",
+      "name": "OIDC_ACCESS_TOKEN",
       "description": "Refers to an OIDC/OAuth 2 access token"
     },
     {
-      "name": "OIDC_ID",
+      "name": "OIDC_ID_TOKEN",
       "description": "Refers to an OIDC/OAuth 2 ID token"
     },
     {
-      "name": "PERSONAL_ACCESS",
+      "name": "PERSONAL_ACCESS_TOKEN",
       "description": "Refers to a personal access token"
     }
   ]
