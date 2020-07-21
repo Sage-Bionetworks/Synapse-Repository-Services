@@ -5,9 +5,9 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessNotificationType;
 import org.springframework.stereotype.Service;
-import org.springframework.util.MimeTypeUtils;
 
 @Service
 public class AccessRevokedNotificationBuilder implements DataAccessNotificationBuilder {
@@ -18,18 +18,13 @@ public class AccessRevokedNotificationBuilder implements DataAccessNotificationB
 	}
 
 	@Override
-	public String getMimeType() {
-		return MimeTypeUtils.TEXT_HTML_VALUE;
-	}
-
-	@Override
-	public String buildSubject(ManagedACTAccessRequirement accessRequirement, AccessApproval approval) {
+	public String buildSubject(ManagedACTAccessRequirement accessRequirement, AccessApproval approval, UserInfo recipient) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public String buildMessageBody(ManagedACTAccessRequirement accessRequirement, AccessApproval approval) {
+	public String buildMessageBody(ManagedACTAccessRequirement accessRequirement, AccessApproval approval, UserInfo recipient) {
 		// TODO Auto-generated method stub
 		return null;
 	}

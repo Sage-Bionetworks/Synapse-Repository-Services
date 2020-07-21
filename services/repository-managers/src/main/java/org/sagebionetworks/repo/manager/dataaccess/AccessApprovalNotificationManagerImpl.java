@@ -45,11 +45,8 @@ import org.springframework.stereotype.Service;
 public class AccessApprovalNotificationManagerImpl implements AccessApprovalNotificationManager {
 
 	private static final Logger LOG = LogManager.getLogger(AccessApprovalNotificationManagerImpl.class);
-
-	// TODO: Notifications configuration should be stored in the DB, including the
-	// resend timeout and
-	// eventually the reminder period so that it can be changed later if needed in
-	// the DB
+	
+	private static final String MSG_NOT_DELIVERED = "{} notification (AR: {}, Recipient: {}, AP: {}) will not be delivered.";
 
 	// Do not re-send another notification if one was sent already within the last 7
 	// days
@@ -58,7 +55,8 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 	// Do not process a change message if it's older than 24 hours
 	private static final long CHANGE_TIMEOUT_HOURS = 24;
 
-	// Fake id for messages to that are not actually created
+	// Fake id for messages to that are not actually created, e.g. in staging we do not send the messages
+	// to avoid having duplicate messages sent out
 	private static final long NO_MESSAGE_TO_USER = -1;
 
 	private UserManager userManager;
@@ -141,7 +139,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 			return;
 		}
 
-		sendMessage(DataAccessNotificationType.REVOCATION, approval, recipient, this::isSendRevocation);
+		sendMessageIfNeeded(DataAccessNotificationType.REVOCATION, approval, recipient, this::isSendRevocation);
 
 	}
 
@@ -203,28 +201,32 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		return false;
 	}
 
-	void sendMessage(DataAccessNotificationType notificationType, AccessApproval approval, UserInfo recipient,
-			ReSendApproval sendApproval) throws RecoverableMessageException {
+	void sendMessageIfNeeded(DataAccessNotificationType notificationType, AccessApproval approval, UserInfo recipient,
+			ReSendCondition reSendCondition) throws RecoverableMessageException {
 
 		final Long requirementId = approval.getRequirementId();
+		final Long recipientId = recipient.getId();
+		final Long approvalId = approval.getId();
 
-		// If we find a match we lock for update
-		Optional<DBODataAccessNotification> notification = notificationDao.findForUpdate(notificationType, requirementId, recipient.getId());
+		// We check if a notification was sent out already for the given requirement and recipient, we acquire a lock on the row if
+		// it exists
+		Optional<DBODataAccessNotification> notification = notificationDao.findForUpdate(notificationType, requirementId, recipientId);
 
-		if (notification.isPresent() && !sendApproval.isSend(notification.get(), approval)) {
+		// If a notification is present we check if we should send another one
+		if (notification.isPresent() && !reSendCondition.canSend(notification.get(), approval)) {
 			return;
 		}
 
 		Long messageId = NO_MESSAGE_TO_USER;
 		Instant sentOn = Instant.now();
 
+		// Check if the message can be delivered to the given recipient (e.g. on staging we usually do not want to send notifications)
 		if (deliverMessage(recipient)) {
 			MessageToUser messageToUser = createMessageToUser(notificationType, approval, recipient);
 			messageId = Long.valueOf(messageToUser.getId());
 			sentOn = messageToUser.getCreatedOn().toInstant();
 		} else {
-			LOG.warn("{} notification (AR: {}, Recipient: {}, AP: {}) will not be delivered", notificationType,
-					approval.getRequirementId(), recipient.getId(), approval.getId());
+			LOG.warn(MSG_NOT_DELIVERED, notificationType, requirementId, recipientId, approvalId);
 		}
 
 		DBODataAccessNotification toStore = notification.orElse(new DBODataAccessNotification());
@@ -232,11 +234,13 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		// Align the data for creation/update
 		toStore.setNotificationType(notificationType.name());
 		toStore.setRequirementId(requirementId);
-		toStore.setRecipientId(recipient.getId());
-		toStore.setAccessApprovalId(approval.getId());
+		toStore.setRecipientId(recipientId);
+		toStore.setAccessApprovalId(approvalId);
 		toStore.setMessageId(messageId);
 		toStore.setSentOn(Timestamp.from(sentOn));
 
+		// If two messages come at the same time, one or the other will fail on creation due to the unique constraint
+		// One transaction will roll back and the message to user won't be sent
 		if (toStore.getId() == null) {
 			notificationDao.create(toStore);
 		} else {
@@ -260,9 +264,11 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		UserInfo notificationsSender = getNotificationsSender();
 
 		String sender = notificationsSender.getId().toString();
-		String messageBody = notificationBuidler.buildMessageBody(managedAccessRequriement, approval);
+		String messageBody = notificationBuidler.buildMessageBody(managedAccessRequriement, approval, recipient);
 		String mimeType = notificationBuidler.getMimeType();
-		String subject = notificationBuidler.buildSubject(managedAccessRequriement, approval);
+		String subject = notificationBuidler.buildSubject(managedAccessRequriement, approval, recipient);
+		
+		// The message to user requires a file handle where the body is stored
 		String fileHandleId = storeMessageBody(sender, messageBody, mimeType);
 
 		MessageToUser message = new MessageToUser();
@@ -275,6 +281,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		message.setFileHandleId(fileHandleId);
 		message.setRecipients(Collections.singleton(recipient.getId().toString()));
 
+		// We override the user notification setting as we want to send this kind of notifications anyway
 		boolean overrideNotificationSettings = true;
 
 		return messageManager.createMessage(notificationsSender, message, overrideNotificationSettings);
@@ -328,16 +335,16 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 	 * @author Marco Marasca
 	 */
 	@FunctionalInterface
-	public static interface ReSendApproval {
+	public static interface ReSendCondition {
 
 		/**
-		 * @param existingNotification An existing notification that matches approval
+		 * @param existingNotification An existing notification that matches the approval
 		 *                             requirement and recipient
 		 * @param approval             The approval that matches the given notification
 		 * @return True iff a new notification should be sent out at this time for the
 		 *         given approval, false otherwise
 		 */
-		boolean isSend(DBODataAccessNotification existingNotification, AccessApproval approval);
+		boolean canSend(DBODataAccessNotification existingNotification, AccessApproval approval);
 
 	}
 
