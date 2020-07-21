@@ -1,8 +1,14 @@
 package org.sagebionetworks.repo.manager.feature;
 
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.feature.Feature;
 
+/**
+ * Manager for feature that can be selectively enabled or disabled
+ * 
+ * @author Marco Marasca
+ */
 public interface FeatureManager {
 
 	/**
@@ -15,13 +21,11 @@ public interface FeatureManager {
 	boolean isFeatureEnabled(Feature feature);
 
 	/**
-	 * Checks if the user has access to this feature
+	 * Checks if the user is part of the special {@link BOOTSTRAP_PRINCIPAL#SYNAPSE_TESTING_GROUP} group.
 	 * 
-	 * @param feature The type of feature
-	 * @param user    The user to check for
-	 * @return True if the user is part of the special testing group or if the feature is enabled (See
-	 *         {@link #isFeatureEnabled(Feature)})
+	 * @param user The user to check
+	 * @return True if the user is part of the {@link BOOTSTRAP_PRINCIPAL#SYNAPSE_TESTING_GROUP}, false otherwise
 	 */
-	boolean isFeatureEnabledForUser(Feature feature, UserInfo user);
+	boolean isUserInTestingGroup(UserInfo user);
 
 }

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Date;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,7 +31,13 @@ public class AccessApprovalNotificationManagerIntegrationTest {
 	
 	@BeforeEach
 	public void before() {
+		featureTesting.clear();
 		featureTesting.setFeatureEnabled(Feature.DATA_ACCESS_RENEWALS, true);
+	}
+	
+	@AfterEach
+	public void after() {
+		featureTesting.clear();
 	}
 	
 	@Test

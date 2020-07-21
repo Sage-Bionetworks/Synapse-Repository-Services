@@ -1,42 +1,43 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
-import java.time.Instant;
 import java.util.Optional;
 
-import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessNotificationType;
-import org.sagebionetworks.repo.model.message.MessageToUser;
 
 public interface DataAccessNotificationDao {
 
 	/**
-	 * Register a notification that was sent for a given access requirement and recipient
+	 * Creates a new notification
 	 * 
-	 * @param type The type of notification
-	 * @param requirementId The id of the {@link AccessRequirement}
-	 * @param recipientId The id of the {@link UserInfo recipient}
-	 * @param accessApprovalId The id of the {@link AccessApproval} that led to this notification
-	 * @param messageId The id of the {@link MessageToUser}
-	 * @param sentOn When the notification was sent
+	 * @param notification The notification to store
+	 * 
+	 * @return The newly created DBO object
 	 */
-	void registerNotification(DataAccessNotificationType type, Long requirementId, Long recipientId, Long accessApprovalId, Long messageId, Instant sentOn);
+	DBODataAccessNotification create(DBODataAccessNotification notification);
 
 	/**
-	 * Fetch the (last) sent on for the notification of the given type for the
-	 * approval with the given id.
+	 * Updates the given notification, the id of the notification must be present
 	 * 
-	 * @param type The type of notification
-	 * @param requirementId The id of the {@link AccessRequirement}
-	 * @param recipientId The id of the {@link UserInfo recipient}
-	 * @return An optional containing the sentOn instant for the notification, empty if no notification could be found
+	 * @param notification The notification to update
+	 * @return The updated notification
 	 */
-	Optional<Instant> getSentOn(DataAccessNotificationType type, Long requirementId, Long recipientId);
-	
-	// For testing
-	
-	void clear();
+	void update(Long id, DBODataAccessNotification notification);
 
-	Optional<String> getEtag(DataAccessNotificationType type, Long requirementId, Long recipientId);
+	/**
+	 * Fetches the notification of the given type, for the given requirement and
+	 * recipient.
+	 * 
+	 * @param type          The type of notification
+	 * @param requirementId The id of the {@link AccessRequirement}
+	 * @param recipientId   The id of the {@link UserInfo recipient}
+	 * @param forUpdate     True if the row on a match should be locked for update
+	 * @return An optional containing the notification data, empty if not found
+	 */
+	Optional<DBODataAccessNotification> findForUpdate(DataAccessNotificationType type, Long requirementId, Long recipientId);
+
+	// For testing
+
+	void clear();
 }

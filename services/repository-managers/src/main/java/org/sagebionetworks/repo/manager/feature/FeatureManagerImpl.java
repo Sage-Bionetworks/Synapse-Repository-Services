@@ -1,10 +1,12 @@
 package org.sagebionetworks.repo.manager.feature;
 
+import java.util.Set;
+
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.feature.Feature;
 import org.sagebionetworks.repo.model.dbo.feature.FeatureStatusDao;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -26,16 +28,16 @@ public class FeatureManagerImpl implements FeatureManager {
 	}
 
 	@Override
-	public boolean isFeatureEnabledForUser(Feature feature, UserInfo user) {
-		ValidateArgument.required(feature, "The feature");
+	public boolean isUserInTestingGroup(UserInfo user) {
 		ValidateArgument.required(user, "The user");
 		
-		// Users in the testing group can test any feature
-		if (user.getGroups().contains(BOOTSTRAP_PRINCIPAL.SYNAPSE_TESTING_GROUP.getPrincipalId())) {
-			return true;
+		final Set<Long> userGroup = user.getGroups();
+		
+		if (userGroup == null || userGroup.isEmpty()) {
+			return false;
 		}
 		
-		return isFeatureEnabled(feature);
+		return userGroup.contains(BOOTSTRAP_PRINCIPAL.SYNAPSE_TESTING_GROUP.getPrincipalId());
 	}
 
 }
