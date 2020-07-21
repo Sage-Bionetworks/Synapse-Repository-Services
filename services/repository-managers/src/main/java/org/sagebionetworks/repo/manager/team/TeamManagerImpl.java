@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -503,7 +504,7 @@ public class TeamManagerImpl implements TeamManager {
 		if (amTeamAdmin) return AUTHORIZED_ADD_TEAM_MEMBER;
 		// if the team is open, I can join
 		Team team = teamDAO.get(teamId);
-		if (team.getCanPublicJoin()!=null && team.getCanPublicJoin()==true) return AUTHORIZED_ADD_TEAM_MEMBER;
+		if (BooleanUtils.isTrue(team.getCanPublicJoin())) return AUTHORIZED_ADD_TEAM_MEMBER;
 		// if I'm not a team admin and the team is not open, then I need to have an open invitation
 		long openInvitationCount = membershipInvitationDAO.getOpenByTeamAndUserCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
 		return openInvitationCount>0L ? AUTHORIZED_ADD_TEAM_MEMBER : UNAUTHORIZED_ADD_TEAM_MEMBER_MUST_HAVE_INVITATION;
@@ -515,9 +516,11 @@ public class TeamManagerImpl implements TeamManager {
 		principalId is self and membership invitation has been extended (and not yet accepted), or
     	principalId is self and have MEMBERSHIP permission on Team, or
     	have MEMBERSHIP permission on Team and membership request has been created (but not yet accepted) for principalId
-	 * @param userInfo
+	 * @param userInfo the user adding principalUserInfo to the team
 	 * @param teamId the ID of the team
-	 * @return
+	 * @param principalUserInfo the user trying to join the team
+	 * @param alreadyInTeam if principalUserInfo is already in the team
+	 * @return AuthorizationStatus
 	 */
 	public AuthorizationStatus canAddTeamMember(UserInfo userInfo, String teamId, UserInfo principalUserInfo, boolean alreadyInTeam) throws NotFoundException {
 		// admin can always accept membership
@@ -528,22 +531,22 @@ public class TeamManagerImpl implements TeamManager {
 		boolean principalIsSelf = userInfo.equals(principalUserInfo);
 		boolean amTeamAdmin = authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).isAuthorized();
 		long now = System.currentTimeMillis();
-		AuthorizationStatus hasInviteOrRequestToJoin = null;
+		AuthorizationStatus canJoin = null;
 		if (principalIsSelf) {
 			// check that principalUserInfo has an invitation to this team or that this team is public
-			hasInviteOrRequestToJoin = this.checkCanAddSelf(teamId, amTeamAdmin, principalId, now);
+			canJoin = this.checkCanAddSelf(teamId, amTeamAdmin, principalId, now);
 		} else {
 			// check that principalUserInfo has requested to join this team
-			hasInviteOrRequestToJoin = this.checkCanAddOther(teamId, amTeamAdmin, principalId, now);
+			canJoin = this.checkCanAddOther(teamId, amTeamAdmin, principalId, now);
 		}
-		if (!hasInviteOrRequestToJoin.isAuthorized()) {
-			return hasInviteOrRequestToJoin;
+		if (!canJoin.isAuthorized()) {
+			return canJoin;
 		}
 		if (hasUnmetAccessRequirements(principalUserInfo, teamId)) {
-			if (userInfo.equals(principalUserInfo)) {
-				return  UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_AR_SELF;
+			if (principalIsSelf) {
+				return UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_AR_SELF;
 			} else {
-				return  UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_AR_OTHER;
+				return UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_AR_OTHER;
 			}
 		};
 		return AUTHORIZED_ADD_TEAM_MEMBER;
