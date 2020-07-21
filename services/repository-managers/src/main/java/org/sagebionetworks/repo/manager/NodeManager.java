@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.manager;
 import java.util.List;
 import java.util.Set;
 
+import org.json.JSONObject;
+import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;

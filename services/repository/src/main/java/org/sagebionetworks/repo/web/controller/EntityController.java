@@ -1662,6 +1662,6 @@ public class EntityController {
 	public @ResponseBody JSONObject updateEntityWithJson(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(required = true) String id, @RequestBody(required = true) JSONObject request) {
-		return serviceProvider.getEntityService().updateEntityJson(userId, request);
+		return serviceProvider.getEntityService().updateEntityJson(userId, id, request);
 	}
 }

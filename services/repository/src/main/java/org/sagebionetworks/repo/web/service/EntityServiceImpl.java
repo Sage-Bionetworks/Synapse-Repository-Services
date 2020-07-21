@@ -715,14 +715,15 @@ public class EntityServiceImpl implements EntityService {
 
 	@Override
 	public JSONObject getEntityJson(Long userId, String id) {
-		JSONObject test = new JSONObject();
-		test.put("a-double", Math.PI);
-		test.put("a-string", "some string");
-		return test;
+		ValidateArgument.required(userId, "userId");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.getEntityJson(userInfo, id);
 	}
 
 	@Override
-	public JSONObject updateEntityJson(Long userId, JSONObject request) {
-		return request;
+	public JSONObject updateEntityJson(Long userId, String entityId, JSONObject request) {
+		ValidateArgument.required(userId, "userId");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.updateEntityJson(userInfo, entityId, request);
 	}
 }

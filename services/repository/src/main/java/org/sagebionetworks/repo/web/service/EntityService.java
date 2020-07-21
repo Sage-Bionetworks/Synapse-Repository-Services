@@ -655,7 +655,7 @@ public interface EntityService {
 	 */
 	public void clearBoundSchema(Long userId, String id);
 
-	public JSONObject getEntityJson(Long userId, String id);
+	public JSONObject getEntityJson(Long userId, String entityId);
 
-	public JSONObject updateEntityJson(Long userId, JSONObject request);
+	public JSONObject updateEntityJson(Long userId, String entityId, JSONObject request);
 }

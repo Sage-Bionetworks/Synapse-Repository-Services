@@ -3,10 +3,12 @@ package org.sagebionetworks.repo.manager;
 import java.util.List;
 import java.util.Set;
 
+import org.json.JSONObject;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.MultipartUtils;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
+import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DataType;
@@ -558,5 +560,23 @@ public class EntityManagerImpl implements EntityManager {
 		ValidateArgument.required(id, "id");
 		entityPermissionsManager.hasAccess(id, ACCESS_TYPE.DELETE, userInfo).checkAuthorizationOrElseThrow();
 		jsonSchemaManager.clearBoundSchema(KeyFactory.stringToKey(id), BoundObjectType.entity);
+	}
+
+	@Override
+	public JSONObject getEntityJson(UserInfo userInfo, String entityId) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(entityId, "entityId");
+		entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).checkAuthorizationOrElseThrow();
+
+		return null;
+	}
+
+	@Override
+	public JSONObject updateEntityJson(UserInfo userInfo, String entityId, JSONObject request) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(request, "request");
+		entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, userInfo).checkAuthorizationOrElseThrow();
+		return null;
 	}
 }
