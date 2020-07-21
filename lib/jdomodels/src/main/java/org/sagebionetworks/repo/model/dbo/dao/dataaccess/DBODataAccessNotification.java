@@ -25,7 +25,7 @@ public class DBODataAccessNotification
 			new FieldColumn("recipientId", SqlConstants.COL_DATA_ACCESS_NOTIFICATION_RECIPIENT_ID),
 			new FieldColumn("sentOn", SqlConstants.COL_DATA_ACCESS_NOTIFICATION_SENT_ON),
 			new FieldColumn("accessApprovalId", SqlConstants.COL_DATA_ACCESS_NOTIFICATION_APPROVAL_ID),
-			new FieldColumn("messageId", SqlConstants.COL_DATA_ACCESS_NOTIFICATION_MESSAGE_ID)
+			new FieldColumn("messageId", SqlConstants.COL_DATA_ACCESS_NOTIFICATION_MESSAGE_ID) 
 	};
 
 	private static final TableMapping<DBODataAccessNotification> TABLE_MAPPING = new TableMapping<DBODataAccessNotification>() {
@@ -121,7 +121,7 @@ public class DBODataAccessNotification
 	public Timestamp getSentOn() {
 		return sentOn;
 	}
-	
+
 	public void setSentOn(Timestamp sentOn) {
 		this.sentOn = sentOn;
 	}
@@ -200,8 +200,8 @@ public class DBODataAccessNotification
 	@Override
 	public String toString() {
 		return "DBODataAccessNotification [id=" + id + ", etag=" + etag + ", notificationType=" + notificationType
-				+ ", requirementId=" + requirementId + ", recipientId=" + recipientId + ", accessApprovalId="
-				+ accessApprovalId + ", messageId=" + messageId + ", sentOn=" + sentOn + "]";
+				+ ", requirementId=" + requirementId + ", recipientId=" + recipientId + ", sentOn=" + sentOn
+				+ ", accessApprovalId=" + accessApprovalId + ", messageId=" + messageId + "]";
 	}
 
 }

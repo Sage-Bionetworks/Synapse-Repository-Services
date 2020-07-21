@@ -45,19 +45,8 @@ import org.springframework.stereotype.Service;
 public class AccessApprovalNotificationManagerImpl implements AccessApprovalNotificationManager {
 
 	private static final Logger LOG = LogManager.getLogger(AccessApprovalNotificationManagerImpl.class);
-	
+
 	private static final String MSG_NOT_DELIVERED = "{} notification (AR: {}, Recipient: {}, AP: {}) will not be delivered.";
-
-	// Do not re-send another notification if one was sent already within the last 7
-	// days
-	private static final long REVOKE_RESEND_TIMEOUT_DAYS = 7;
-
-	// Do not process a change message if it's older than 24 hours
-	private static final long CHANGE_TIMEOUT_HOURS = 24;
-
-	// Fake id for messages to that are not actually created, e.g. in staging we do not send the messages
-	// to avoid having duplicate messages sent out
-	private static final long NO_MESSAGE_TO_USER = -1;
 
 	private UserManager userManager;
 	private DataAccessNotificationDao notificationDao;
@@ -69,8 +58,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 	private ProdDetector prodDetector;
 
 	/**
-	 * The map is initialized by
-	 * {@link #configureDataAccessNotificationBuilders(List)} on bean creation
+	 * The map is initialized by {@link #configureDataAccessNotificationBuilders(List)} on bean creation
 	 */
 	private Map<DataAccessNotificationType, DataAccessNotificationBuilder> notificationBuilders;
 
@@ -89,7 +77,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		this.prodDetector = prodDetector;
 	}
 
-	@Autowired(required = false)
+	@Autowired
 	public void configureDataAccessNotificationBuilders(List<DataAccessNotificationBuilder> builders) {
 		notificationBuilders = new HashMap<>(DataAccessNotificationType.values().length);
 
@@ -143,6 +131,16 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 
 	}
 
+	/**
+	 * Checks if the the given approval modification date is after the sent on timestamp of the given notification.
+	 * Since we do not want to send the same notification too often to the same user we have a timeout in order to
+	 * re-send a notification of 7 days.
+	 * 
+	 * 
+	 * @param existingNotification An existing notification
+	 * @param approval             The changed approval
+	 * @return True if a new revocation notification should be sent to the access approval recipient, false otherwise
+	 */
 	boolean isSendRevocation(DBODataAccessNotification existingNotification, AccessApproval approval) {
 		Instant sentOn = existingNotification.getSentOn().toInstant();
 		Instant approvalModifiedOn = approval.getModifiedOn().toInstant();
@@ -163,6 +161,12 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		return true;
 	}
 
+	/**
+	 * Checks if the given change message is valid and can be processed.
+	 * 
+	 * @param change The change message
+	 * @return True if the the change is an update for an access approval and the change is not expired
+	 */
 	boolean discardChangeMessage(ChangeMessage change) {
 
 		// Check if it's an ACCESS_APPROVAL message
@@ -183,6 +187,13 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		return false;
 	}
 
+	/**
+	 * Checks if the given access approval is valid and can be processed.
+	 * 
+	 * @param approval      The approval
+	 * @param expectedState The expected state
+	 * @return True if the approval is in the expected state and refers to a {@link ManagedACTAccessRequirement}
+	 */
 	boolean discardAccessApproval(AccessApproval approval, ApprovalState expectedState) {
 		// Do not process approvals that are not in the given state
 		if (!expectedState.equals(approval.getState())) {
@@ -208,9 +219,11 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		final Long recipientId = recipient.getId();
 		final Long approvalId = approval.getId();
 
-		// We check if a notification was sent out already for the given requirement and recipient, we acquire a lock on the row if
+		// We check if a notification was sent out already for the given requirement and recipient, we acquire a lock on
+		// the row if
 		// it exists
-		Optional<DBODataAccessNotification> notification = notificationDao.findForUpdate(notificationType, requirementId, recipientId);
+		Optional<DBODataAccessNotification> notification = notificationDao.findForUpdate(notificationType,
+				requirementId, recipientId);
 
 		// If a notification is present we check if we should send another one
 		if (notification.isPresent() && !reSendCondition.canSend(notification.get(), approval)) {
@@ -220,7 +233,8 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		Long messageId = NO_MESSAGE_TO_USER;
 		Instant sentOn = Instant.now();
 
-		// Check if the message can be delivered to the given recipient (e.g. on staging we usually do not want to send notifications)
+		// Check if the message can be delivered to the given recipient (e.g. on staging we usually do not want to send
+		// notifications)
 		if (deliverMessage(recipient)) {
 			MessageToUser messageToUser = createMessageToUser(notificationType, approval, recipient);
 			messageId = Long.valueOf(messageToUser.getId());
@@ -251,12 +265,12 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 	MessageToUser createMessageToUser(DataAccessNotificationType notificationType, AccessApproval approval,
 			UserInfo recipient) {
 
-		DataAccessNotificationBuilder notificationBuidler = getNotificationBuilder(notificationType);
+		DataAccessNotificationBuilder notificationBuilder = getNotificationBuilder(notificationType);
 
 		AccessRequirement accessRequirement = accessRequirementDao.get(approval.getRequirementId().toString());
 
 		if (!(accessRequirement instanceof ManagedACTAccessRequirement)) {
-			throw new IllegalStateException("Cannot sent a notification for a non managed access requirement");
+			throw new IllegalStateException("Cannot send a notification for a non managed access requirement");
 		}
 
 		ManagedACTAccessRequirement managedAccessRequriement = (ManagedACTAccessRequirement) accessRequirement;
@@ -264,10 +278,10 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		UserInfo notificationsSender = getNotificationsSender();
 
 		String sender = notificationsSender.getId().toString();
-		String messageBody = notificationBuidler.buildMessageBody(managedAccessRequriement, approval, recipient);
-		String mimeType = notificationBuidler.getMimeType();
-		String subject = notificationBuidler.buildSubject(managedAccessRequriement, approval, recipient);
-		
+		String messageBody = notificationBuilder.buildMessageBody(managedAccessRequriement, approval, recipient);
+		String mimeType = notificationBuilder.getMimeType();
+		String subject = notificationBuilder.buildSubject(managedAccessRequriement, approval, recipient);
+
 		// The message to user requires a file handle where the body is stored
 		String fileHandleId = storeMessageBody(sender, messageBody, mimeType);
 
@@ -287,10 +301,6 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		return messageManager.createMessage(notificationsSender, message, overrideNotificationSettings);
 	}
 
-	UserInfo getNotificationsSender() {
-		return userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId());
-	}
-
 	boolean deliverMessage(UserInfo recipient) throws RecoverableMessageException {
 
 		// We always deliver the message if the user is in the synapse testing group
@@ -300,9 +310,8 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 
 		// We deliver the actual email only in production to avoid duplicate messages
 		// sent out both from prod and/or staging
-		return prodDetector.isProductionStack().orElseThrow(() -> 
-			new RecoverableMessageException("Cannot detect current stack")
-		);
+		return prodDetector.isProductionStack()
+				.orElseThrow(() -> new RecoverableMessageException("Could not detect current stack version."));
 	}
 
 	String storeMessageBody(String sender, String messageBody, String mimeType) {
@@ -314,12 +323,17 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		}
 	}
 
+	UserInfo getNotificationsSender() {
+		return userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId());
+	}
+
 	UserInfo getRecipientForRevocation(AccessApproval approval) {
 		return userManager.getUserInfo(Long.valueOf(approval.getAccessorId()));
 	}
 
 	DataAccessNotificationBuilder getNotificationBuilder(DataAccessNotificationType notificationType) {
-		DataAccessNotificationBuilder messageBuilder = notificationBuilders.get(notificationType);
+		DataAccessNotificationBuilder messageBuilder = notificationBuilders == null ? null
+				: notificationBuilders.get(notificationType);
 
 		if (messageBuilder == null) {
 			throw new IllegalStateException(
@@ -329,8 +343,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 	}
 
 	/**
-	 * Internal functional interface to check if an existing notification should be
-	 * resent for the given access approval
+	 * Internal functional interface to check if an existing notification should be resent for the given access approval
 	 * 
 	 * @author Marco Marasca
 	 */
@@ -338,11 +351,9 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 	public static interface ReSendCondition {
 
 		/**
-		 * @param existingNotification An existing notification that matches the approval
-		 *                             requirement and recipient
+		 * @param existingNotification An existing notification that matches the approval requirement and recipient
 		 * @param approval             The approval that matches the given notification
-		 * @return True iff a new notification should be sent out at this time for the
-		 *         given approval, false otherwise
+		 * @return True iff a new notification should be sent out at this time for the given approval, false otherwise
 		 */
 		boolean canSend(DBODataAccessNotification existingNotification, AccessApproval approval);
 
