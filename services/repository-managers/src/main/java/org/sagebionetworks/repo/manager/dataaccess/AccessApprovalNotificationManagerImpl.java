@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.manager.dataaccess.notifications.DataAccessNotif
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.stack.ProdDetector;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -192,7 +193,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 	 * 
 	 * @param approval      The approval
 	 * @param expectedState The expected state
-	 * @return True if the approval is in the expected state and refers to a {@link ManagedACTAccessRequirement}
+	 * @return True if the approval is in the expected state and refers to a {@link ManagedACTAccessRequirement} (of type entity)
 	 */
 	boolean discardAccessApproval(AccessApproval approval, ApprovalState expectedState) {
 		// Do not process approvals that are not in the given state
@@ -200,16 +201,9 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 			return true;
 		}
 
-		final Long requirementId = approval.getRequirementId();
-
-		String accessRequirementType = accessRequirementDao.getConcreteType(requirementId.toString());
-
-		// Does not process notifications for non-managed access requirements
-		if (!ManagedACTAccessRequirement.class.getName().equals(accessRequirementType)) {
-			return true;
-		}
-
-		return false;
+		return getManagedAccessRequirement(approval.getRequirementId())
+				.map(ar -> false)
+				.orElse(true);
 	}
 
 	void sendMessageIfNeeded(DataAccessNotificationType notificationType, AccessApproval approval, UserInfo recipient,
@@ -267,20 +261,16 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 
 		DataAccessNotificationBuilder notificationBuilder = getNotificationBuilder(notificationType);
 
-		AccessRequirement accessRequirement = accessRequirementDao.get(approval.getRequirementId().toString());
-
-		if (!(accessRequirement instanceof ManagedACTAccessRequirement)) {
-			throw new IllegalStateException("Cannot send a notification for a non managed access requirement");
-		}
-
-		ManagedACTAccessRequirement managedAccessRequriement = (ManagedACTAccessRequirement) accessRequirement;
-
+		ManagedACTAccessRequirement accessRequriement = getManagedAccessRequirement(approval.getRequirementId()).orElseThrow(() ->		
+			new IllegalStateException("Cannot send a notification for a non managed access requirement.")
+		);
+		
 		UserInfo notificationsSender = getNotificationsSender();
 
 		String sender = notificationsSender.getId().toString();
-		String messageBody = notificationBuilder.buildMessageBody(managedAccessRequriement, approval, recipient);
+		String messageBody = notificationBuilder.buildMessageBody(accessRequriement, approval, recipient);
 		String mimeType = notificationBuilder.getMimeType();
-		String subject = notificationBuilder.buildSubject(managedAccessRequriement, approval, recipient);
+		String subject = notificationBuilder.buildSubject(accessRequriement, approval, recipient);
 
 		// The message to user requires a file handle where the body is stored
 		String fileHandleId = storeMessageBody(sender, messageBody, mimeType);
@@ -332,14 +322,32 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 	}
 
 	DataAccessNotificationBuilder getNotificationBuilder(DataAccessNotificationType notificationType) {
-		DataAccessNotificationBuilder messageBuilder = notificationBuilders == null ? null
-				: notificationBuilders.get(notificationType);
+		if (notificationBuilders == null) {
+			throw new IllegalStateException("The message builders were not initialized.");
+		}
+		
+		DataAccessNotificationBuilder messageBuilder = notificationBuilders.get(notificationType);
 
 		if (messageBuilder == null) {
-			throw new IllegalStateException(
-					"Could not find a message builder for " + notificationType + " notification type.");
+			throw new IllegalStateException("Could not find a message builder for " + notificationType + " notification type.");
 		}
 		return messageBuilder;
+	}
+	
+	Optional<ManagedACTAccessRequirement> getManagedAccessRequirement(Long requirementId) {
+		final AccessRequirement accessRequirement = accessRequirementDao.get(requirementId.toString());
+
+		if (!(accessRequirement instanceof ManagedACTAccessRequirement)) {
+			return Optional.empty();
+		}
+		
+		final ManagedACTAccessRequirement managedAccessRequirement = (ManagedACTAccessRequirement) accessRequirement;
+
+		if (!ACCESS_TYPE.DOWNLOAD.equals(managedAccessRequirement.getAccessType())) {
+			return Optional.empty();
+		}
+
+		return Optional.of(managedAccessRequirement);
 	}
 
 	/**

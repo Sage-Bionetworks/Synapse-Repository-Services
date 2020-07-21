@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -39,6 +41,7 @@ import org.sagebionetworks.repo.manager.dataaccess.notifications.DataAccessNotif
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.stack.ProdDetector;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -91,10 +94,10 @@ public class AccessApprovalNotificationManagerUnitTest {
 	private AccessApproval mockAccessApproval;
 	
 	@Mock
-	private AccessRequirement mockAccessRequirement;
+	private ManagedACTAccessRequirement mockManagedAccessRequirement;
 	
 	@Mock
-	private ManagedACTAccessRequirement mockManagedAccessRequirement;
+	private AccessRequirement mockAccessRequirement;
 	
 	@Mock
 	private S3FileHandle mockFileHandle;
@@ -172,7 +175,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 	}
 	
 	@Test
-	public void testGetNotificationBuilderWithNoRegistered() {
+	public void testGetNotificationBuilderWithNotConfgiured() {
 		
 		DataAccessNotificationType notificationType = DataAccessNotificationType.REVOCATION;
 		
@@ -181,7 +184,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 			manager.getNotificationBuilder(notificationType);
 		}).getMessage();
 		
-		assertEquals("Could not find a message builder for " + notificationType + " notification type.", message);
+		assertEquals("The message builders were not initialized.", message);
 	}
 	
 	@Test
@@ -354,6 +357,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		doReturn(mockNotificationBuilder).when(managerSpy).getNotificationBuilder(any());
 		doReturn(sender).when(managerSpy).getNotificationsSender();
 		doReturn(fileHandleId).when(managerSpy).storeMessageBody(any(), any(), any());
+		doReturn(Optional.of(accessRequirement)).when(managerSpy).getManagedAccessRequirement(any());
 
 		when(mockNotificationBuilder.getMimeType()).thenReturn(mimeType);
 		when(mockNotificationBuilder.buildMessageBody(any(), any(), any())).thenReturn(messageBody);
@@ -363,8 +367,6 @@ public class AccessApprovalNotificationManagerUnitTest {
 		when(sender.getId()).thenReturn(senderId);
 		when(approval.getRequirementId()).thenReturn(requirementId);
 		
-		when(mockAccessRequirementDao.get(any())).thenReturn(accessRequirement);
-		
 		when(mockMessageManager.createMessage(any(), any(), anyBoolean())).thenReturn(mockMessageToUser);
 		
 		// Call under test
@@ -373,7 +375,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		assertEquals(mockMessageToUser, result);
 
 		verify(managerSpy).getNotificationBuilder(notificationType);
-		verify(mockAccessRequirementDao).get(requirementId.toString());
+		verify(managerSpy).getManagedAccessRequirement(requirementId);
 		verify(mockNotificationBuilder).getMimeType();
 		verify(mockNotificationBuilder).buildSubject(accessRequirement, approval, recipient);
 		verify(mockNotificationBuilder).buildMessageBody(accessRequirement, approval, recipient);
@@ -398,21 +400,21 @@ public class AccessApprovalNotificationManagerUnitTest {
 		
 		DataAccessNotificationType notificationType = DataAccessNotificationType.REVOCATION;
 		AccessApproval approval = mockAccessApproval;
-		AccessRequirement accessRequirement = mockAccessRequirement;
+		AccessRequirement accessRequirement = null;
 		UserInfo recipient = mockUser;
 		
 		// We use a spy to mock out already tested methods
 		AccessApprovalNotificationManagerImpl managerSpy = Mockito.spy(manager);
 
 		doReturn(mockNotificationBuilder).when(managerSpy).getNotificationBuilder(any());
-		when(mockAccessRequirementDao.get(any())).thenReturn(accessRequirement);
+		doReturn(Optional.ofNullable(accessRequirement)).when(managerSpy).getManagedAccessRequirement(any());
 		
 		String message = assertThrows(IllegalStateException.class, () -> {			
 			// Call under test
 			managerSpy.createMessageToUser(notificationType, approval, recipient);
 		}).getMessage();
 
-		assertEquals("Cannot send a notification for a non managed access requirement", message);
+		assertEquals("Cannot send a notification for a non managed access requirement.", message);
 	}
 	
 	@Test
@@ -501,25 +503,28 @@ public class AccessApprovalNotificationManagerUnitTest {
 	@Test
 	public void testDiscardAccessApproval() {
 		
+		ManagedACTAccessRequirement accessRequirement = mockManagedAccessRequirement;
 		AccessApproval approval = mockAccessApproval;
 		ApprovalState state = ApprovalState.REVOKED;
 		Long requirementId = 1L;
-		String requirementType = ManagedACTAccessRequirement.class.getName();
 		
 		when(approval.getState()).thenReturn(state);
 		when(approval.getRequirementId()).thenReturn(requirementId);
-		when(mockAccessRequirementDao.getConcreteType(any())).thenReturn(requirementType);
+		
+		AccessApprovalNotificationManagerImpl managerSpy = Mockito.spy(manager);
+		
+		doReturn(Optional.ofNullable(accessRequirement)).when(managerSpy).getManagedAccessRequirement(any());
 		
 		boolean expected = false;
 		
 		// Call under test
-		boolean result = manager.discardAccessApproval(approval, state);
+		boolean result = managerSpy.discardAccessApproval(approval, state);
 		
 		assertEquals(expected, result);
 		
 		verify(approval).getRequirementId();
 		verify(approval).getState();
-		verify(mockAccessRequirementDao).getConcreteType(requirementId.toString());
+		verify(managerSpy).getManagedAccessRequirement(requirementId);
 	}
 	
 	@Test
@@ -541,27 +546,30 @@ public class AccessApprovalNotificationManagerUnitTest {
 	}
 	
 	@Test
-	public void testDiscardAccessApprovalWithUnsupoprtedAccessRequirementType() {
+	public void testDiscardAccessApprovalWithUnsupportedAccessRequirementType() {
 		
+		ManagedACTAccessRequirement accessRequirement = null;
 		AccessApproval approval = mockAccessApproval;
 		ApprovalState state = ApprovalState.REVOKED;
 		Long requirementId = 1L;
-		String requirementType = AccessRequirement.class.getName();
+		
+		// We spy the manager to mock out already tested function
+		AccessApprovalNotificationManagerImpl managerSpy = Mockito.spy(manager);
 		
 		when(approval.getState()).thenReturn(state);
 		when(approval.getRequirementId()).thenReturn(requirementId);
-		when(mockAccessRequirementDao.getConcreteType(any())).thenReturn(requirementType);
+		doReturn(Optional.ofNullable(accessRequirement)).when(managerSpy).getManagedAccessRequirement(any());
 		
 		boolean expected = true;
 		
 		// Call under test
-		boolean result = manager.discardAccessApproval(approval, state);
+		boolean result = managerSpy.discardAccessApproval(approval, state);
 		
 		assertEquals(expected, result);
 		
 		verify(approval).getRequirementId();
 		verify(approval).getState();
-		verify(mockAccessRequirementDao).getConcreteType(requirementId.toString());
+		verify(managerSpy).getManagedAccessRequirement(requirementId);
 	}
 	
 	@Test
@@ -1019,5 +1027,61 @@ public class AccessApprovalNotificationManagerUnitTest {
 		
 		verify(managerSpy, never()).sendMessageIfNeeded(any(), any(), any(), any());
 		
+	}
+	
+	@Test
+	public void testGetManagedAccessRequirement() {
+		
+		ManagedACTAccessRequirement accessRequirement = mockManagedAccessRequirement;
+		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
+		Long requirementId = 1L;
+		
+		when(accessRequirement.getAccessType()).thenReturn(accessType);
+		when(mockAccessRequirementDao.get(any())).thenReturn(accessRequirement);
+		
+		// Call under test
+		Optional<ManagedACTAccessRequirement> result = manager.getManagedAccessRequirement(requirementId);
+		
+		assertTrue(result.isPresent());
+		assertEquals(accessRequirement, result.get());
+		
+		verify(mockAccessRequirementDao).get(requirementId.toString());
+		verify(accessRequirement).getAccessType();
+	}
+	
+	@Test
+	public void testGetManagedAccessRequirementWithNotManaged() {
+		
+		AccessRequirement accessRequirement = mockAccessRequirement;
+		Long requirementId = 1L;
+
+		when(mockAccessRequirementDao.get(any())).thenReturn(accessRequirement);
+		
+		// Call under test
+		Optional<ManagedACTAccessRequirement> result = manager.getManagedAccessRequirement(requirementId);
+		
+		assertFalse(result.isPresent());
+		
+		verify(mockAccessRequirementDao).get(requirementId.toString());
+		verifyZeroInteractions(accessRequirement);
+	}
+	
+	@Test
+	public void testGetManagedAccessRequirementWithDifferentAccessType() {
+		
+		ManagedACTAccessRequirement accessRequirement = mockManagedAccessRequirement;
+		ACCESS_TYPE accessType = ACCESS_TYPE.PARTICIPATE;
+		Long requirementId = 1L;
+		
+		when(accessRequirement.getAccessType()).thenReturn(accessType);
+		when(mockAccessRequirementDao.get(any())).thenReturn(accessRequirement);
+		
+		// Call under test
+		Optional<ManagedACTAccessRequirement> result = manager.getManagedAccessRequirement(requirementId);
+		
+		assertFalse(result.isPresent());
+		
+		verify(mockAccessRequirementDao).get(requirementId.toString());
+		verify(accessRequirement).getAccessType();
 	}
 }
