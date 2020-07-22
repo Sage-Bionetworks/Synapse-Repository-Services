@@ -335,7 +335,7 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO{
 	}
 
 	@Override
-	public List<Submission> getSubmissions(String accessRequirementId, SubmissionState filterBy,
+	public List<Submission> getSubmissions(String accessRequirementId, SubmissionState filterBy, String submitterId,
 			SubmissionOrder orderBy, Boolean isAscending, long limit, long offset) {
 
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -347,6 +347,10 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO{
 			param.addValue(COL_DATA_ACCESS_SUBMISSION_STATUS_STATE, filterBy.name());
 		} else {
 			query = SQL_LIST_SUBMISSIONS;
+		}
+		if (submitterId != null) {
+			query += " AND " + TABLE_DATA_ACCESS_SUBMISSION +"." + COL_DATA_ACCESS_SUBMISSION_CREATED_BY + " =:" + COL_DATA_ACCESS_SUBMISSION_CREATED_BY;
+			param.addValue(COL_DATA_ACCESS_SUBMISSION_CREATED_BY, submitterId);
 		}
 		query = addOrderByClause(orderBy, isAscending, query);
 		query += " "+LIMIT+" "+limit+" "+OFFSET+" "+offset;

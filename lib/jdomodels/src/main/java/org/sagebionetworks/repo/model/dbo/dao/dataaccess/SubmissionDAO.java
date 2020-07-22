@@ -88,13 +88,14 @@ public interface SubmissionDAO {
 	 * 
 	 * @param accessRequirementId
 	 * @param filterBy
+	 * @param submitterId Optional submitter
 	 * @param orderBy
 	 * @param isAscending
 	 * @param limit
 	 * @param offset
 	 * @return
 	 */
-	public List<Submission> getSubmissions(String accessRequirementId, SubmissionState filterBy,
+	public List<Submission> getSubmissions(String accessRequirementId, SubmissionState filterBy, String submitterId,
 			SubmissionOrder orderBy, Boolean isAscending, long limit, long offset);
 
 	/**

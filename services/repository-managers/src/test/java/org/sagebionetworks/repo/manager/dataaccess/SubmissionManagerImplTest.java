@@ -853,7 +853,7 @@ public class SubmissionManagerImplTest {
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
 		List<Submission> list = new LinkedList<Submission>();
 		when(mockSubmissionDao.getSubmissions(accessRequirementId,
-				SubmissionState.SUBMITTED, SubmissionOrder.CREATED_ON,
+				SubmissionState.SUBMITTED, null, SubmissionOrder.CREATED_ON,
 				true, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET)).thenReturn(list);
 		// call under test
 		SubmissionPage page = manager.listSubmission(mockUser, request);
@@ -861,7 +861,7 @@ public class SubmissionManagerImplTest {
 		assertEquals(page.getResults(), list);
 
 		verify(mockSubmissionDao).getSubmissions(accessRequirementId,
-				SubmissionState.SUBMITTED, SubmissionOrder.CREATED_ON,
+				SubmissionState.SUBMITTED, null, SubmissionOrder.CREATED_ON,
 				true, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET);
 	}
 
@@ -890,7 +890,7 @@ public class SubmissionManagerImplTest {
 			// method under test
 			manager.listInfoForApprovedSubmissions(request);
 		});
-		verify(mockSubmissionDao, never()).getSubmissions(any(), any(), any(), any(), anyLong(), anyLong());
+		verify(mockSubmissionDao, never()).getSubmissions(any(), any(), any(), any(), any(), anyLong(), anyLong());
 	}
 	
 	@Test
@@ -905,7 +905,7 @@ public class SubmissionManagerImplTest {
 			// method under test
 			manager.listInfoForApprovedSubmissions(request);
 		});
-		verify(mockSubmissionDao, never()).getSubmissions(any(), any(), any(), any(), anyLong(), anyLong());
+		verify(mockSubmissionDao, never()).getSubmissions(any(), any(), any(), any(), any(), anyLong(), anyLong());
 	}
 
 	@Test

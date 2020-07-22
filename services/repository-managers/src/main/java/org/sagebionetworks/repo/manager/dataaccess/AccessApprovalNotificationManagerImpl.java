@@ -261,16 +261,16 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 
 		DataAccessNotificationBuilder notificationBuilder = getNotificationBuilder(notificationType);
 
-		ManagedACTAccessRequirement accessRequriement = getManagedAccessRequirement(approval.getRequirementId()).orElseThrow(() ->		
+		ManagedACTAccessRequirement accessRequirement = getManagedAccessRequirement(approval.getRequirementId()).orElseThrow(() ->		
 			new IllegalStateException("Cannot send a notification for a non managed access requirement.")
 		);
 		
 		UserInfo notificationsSender = getNotificationsSender();
 
 		String sender = notificationsSender.getId().toString();
-		String messageBody = notificationBuilder.buildMessageBody(accessRequriement, approval, recipient);
+		String messageBody = notificationBuilder.buildMessageBody(accessRequirement, approval, recipient);
 		String mimeType = notificationBuilder.getMimeType();
-		String subject = notificationBuilder.buildSubject(accessRequriement, approval, recipient);
+		String subject = notificationBuilder.buildSubject(accessRequirement, approval, recipient);
 
 		// The message to user requires a file handle where the body is stored
 		String fileHandleId = storeMessageBody(sender, messageBody, mimeType);
