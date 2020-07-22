@@ -28,7 +28,7 @@ import org.sagebionetworks.repo.model.dbo.feature.Feature;
 import org.sagebionetworks.repo.model.UserInfo;
 
 @ExtendWith(MockitoExtension.class)
-public class AccessApprovalExpirationWorkerTest {
+public class AccessApprovalExpirationWorkerUnitTest {
 
 	@Mock
 	private AccessApprovalManager mockAccessApprovalManager;

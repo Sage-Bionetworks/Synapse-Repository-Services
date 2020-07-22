@@ -24,7 +24,7 @@ public interface DataAccessNotificationDao {
 	 * @return The updated notification
 	 */
 	void update(Long id, DBODataAccessNotification notification);
-
+	
 	/**
 	 * Fetches the notification of the given type, for the given requirement and
 	 * recipient.
@@ -32,7 +32,17 @@ public interface DataAccessNotificationDao {
 	 * @param type          The type of notification
 	 * @param requirementId The id of the {@link AccessRequirement}
 	 * @param recipientId   The id of the {@link UserInfo recipient}
-	 * @param forUpdate     True if the row on a match should be locked for update
+	 * @return An optional containing the notification data, empty if not found
+	 */
+	Optional<DBODataAccessNotification> find(DataAccessNotificationType type, Long requirementId, Long recipientId);
+
+	/**
+	 * Fetches the notification of the given type, for the given requirement and
+	 * recipient and lock for update.
+	 * 
+	 * @param type          The type of notification
+	 * @param requirementId The id of the {@link AccessRequirement}
+	 * @param recipientId   The id of the {@link UserInfo recipient}
 	 * @return An optional containing the notification data, empty if not found
 	 */
 	Optional<DBODataAccessNotification> findForUpdate(DataAccessNotificationType type, Long requirementId, Long recipientId);

@@ -26,7 +26,7 @@ import org.springframework.stereotype.Service;
 
 import com.google.common.collect.ImmutableMap;
 
-@Service
+@Service("prodDetector")
 public class ProdDetectorImpl implements ProdDetector {
 
 	static final String VERSION_INFO_ENDPOINT = "/version";

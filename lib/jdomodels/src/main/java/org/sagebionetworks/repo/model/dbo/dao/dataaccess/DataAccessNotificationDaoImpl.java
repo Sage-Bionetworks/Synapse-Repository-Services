@@ -20,21 +20,22 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class DataAccessNotificationDaoImpl implements DataAccessNotificationDao {
-	
-	private static final String SQL_FIND = "SELECT * FROM " + SqlConstants.TABLE_DATA_ACCESS_NOTIFICATION
-			+ " WHERE " + SqlConstants.COL_DATA_ACCESS_NOTIFICATION_TYPE + " = ?"
-			+ " AND " + SqlConstants.COL_DATA_ACCESS_NOTIFICATION_REQUIREMENT_ID + " = ?"
-			+ " AND " + SqlConstants.COL_DATA_ACCESS_NOTIFICATION_RECIPIENT_ID + " = ?"
-			+ " FOR UPDATE";
-	
-	private static final RowMapper<DBODataAccessNotification> ROW_MAPPER = new DBODataAccessNotification().getTableMapping()::mapRow;
+
+	private static final String SQL_FIND = "SELECT * FROM " + SqlConstants.TABLE_DATA_ACCESS_NOTIFICATION + " WHERE "
+			+ SqlConstants.COL_DATA_ACCESS_NOTIFICATION_TYPE + " = ?" + " AND "
+			+ SqlConstants.COL_DATA_ACCESS_NOTIFICATION_REQUIREMENT_ID + " = ?" + " AND "
+			+ SqlConstants.COL_DATA_ACCESS_NOTIFICATION_RECIPIENT_ID + " = ?";
+
+	private static final RowMapper<DBODataAccessNotification> ROW_MAPPER = new DBODataAccessNotification()
+			.getTableMapping()::mapRow;
 
 	private IdGenerator idGenerator;
 	private JdbcTemplate jdbcTemplate;
 	private DBOBasicDao basicDao;
-	
+
 	@Autowired
-	public DataAccessNotificationDaoImpl(final IdGenerator idGenerator, final JdbcTemplate jdbcTemplate, final DBOBasicDao basicDao) {
+	public DataAccessNotificationDaoImpl(final IdGenerator idGenerator, final JdbcTemplate jdbcTemplate,
+			final DBOBasicDao basicDao) {
 		this.idGenerator = idGenerator;
 		this.jdbcTemplate = jdbcTemplate;
 		this.basicDao = basicDao;
@@ -45,30 +46,30 @@ public class DataAccessNotificationDaoImpl implements DataAccessNotificationDao 
 	public DBODataAccessNotification create(DBODataAccessNotification notification) {
 		ValidateArgument.required(notification, "The notification");
 		ValidateArgument.requirement(notification.getId() == null, "The id must be unassigned.");
-		
+
 		// Sets the new id
 		notification.setId(idGenerator.generateNewId(IdType.DATA_ACCESS_NOTIFICATION_ID));
 		notification.setEtag(UUID.randomUUID().toString());
-		
+
 		validateForStorage(notification);
-		
+
 		return basicDao.createNew(notification);
 	}
-	
+
 	@Override
 	@WriteTransaction
 	public void update(Long id, DBODataAccessNotification notification) {
 		ValidateArgument.required(id, "The id");
 		ValidateArgument.required(notification, "The notification");
-		
+
 		notification.setId(id);
 		notification.setEtag(UUID.randomUUID().toString());
-		
+
 		validateForStorage(notification);
-		
+
 		basicDao.update(notification);
 	}
-	
+
 	static void validateForStorage(DBODataAccessNotification notification) {
 		ValidateArgument.required(notification.getId(), "The id");
 		ValidateArgument.required(notification.getNotificationType(), "The notification type");
@@ -78,12 +79,29 @@ public class DataAccessNotificationDaoImpl implements DataAccessNotificationDao 
 		ValidateArgument.required(notification.getMessageId(), "The message id");
 		ValidateArgument.required(notification.getSentOn(), "The sent on");
 	}
-	
+
+	@Override
+	public Optional<DBODataAccessNotification> find(DataAccessNotificationType type, Long requirementId,
+			Long recipientId) {
+		return find(type, requirementId, recipientId, false);
+	}
+
 	@Override
 	public Optional<DBODataAccessNotification> findForUpdate(DataAccessNotificationType type, Long requirementId,
 			Long recipientId) {
+		return find(type, requirementId, recipientId, true);
+	}
+
+	private Optional<DBODataAccessNotification> find(DataAccessNotificationType type, Long requirementId,
+			Long recipientId, boolean forUpdate) {
+		StringBuilder sql = new StringBuilder(SQL_FIND);
+
+		if (forUpdate) {
+			sql.append(" FOR UPDATE");
+		}
+
 		try {
-			return Optional.of(jdbcTemplate.queryForObject(SQL_FIND, ROW_MAPPER, type.name(), requirementId, recipientId));
+			return Optional.of(jdbcTemplate.queryForObject(sql.toString(), ROW_MAPPER, type.name(), requirementId, recipientId));
 		} catch (EmptyResultDataAccessException e) {
 			return Optional.empty();
 		}
