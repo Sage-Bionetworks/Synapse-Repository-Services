@@ -100,7 +100,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		ValidateArgument.required(message, "The change message");
 
 		// Check if the feature is enabled
-		if (!featureManager.isFeatureEnabled(Feature.DATA_ACCESS_RENEWALS)) {
+		if (!featureManager.isFeatureEnabled(Feature.DATA_ACCESS_NOTIFICATIONS)) {
 			return;
 		}
 

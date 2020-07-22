@@ -883,7 +883,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		// Call under test
 		managerSpy.processAccessApprovalChange(mockChangeMessage);
 		
-		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_ACCESS_RENEWALS);
+		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_ACCESS_NOTIFICATIONS);
 		verify(managerSpy).discardChangeMessage(mockChangeMessage);
 		verify(mockAccessApprovalDao).get(approvalId.toString());
 		verify(managerSpy).discardAccessApproval(approval, ApprovalState.REVOKED);
@@ -921,7 +921,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		// Call under test
 		manager.processAccessApprovalChange(mockChangeMessage);
 		
-		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_ACCESS_RENEWALS);
+		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_ACCESS_NOTIFICATIONS);
 		verifyZeroInteractions(mockAccessApprovalDao);
 		
 	}
@@ -942,7 +942,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		// Call under test
 		managerSpy.processAccessApprovalChange(mockChangeMessage);
 		
-		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_ACCESS_RENEWALS);
+		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_ACCESS_NOTIFICATIONS);
 		verify(managerSpy).discardChangeMessage(mockChangeMessage);
 		verifyZeroInteractions(mockAccessApprovalDao);
 		
@@ -972,7 +972,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		// Call under test
 		managerSpy.processAccessApprovalChange(mockChangeMessage);
 		
-		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_ACCESS_RENEWALS);
+		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_ACCESS_NOTIFICATIONS);
 		verify(managerSpy).discardChangeMessage(mockChangeMessage);
 		verify(mockAccessApprovalDao).get(approvalId.toString());
 		verify(managerSpy).discardAccessApproval(approval, ApprovalState.REVOKED);
@@ -1018,7 +1018,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		// Call under test
 		managerSpy.processAccessApprovalChange(mockChangeMessage);
 		
-		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_ACCESS_RENEWALS);
+		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_ACCESS_NOTIFICATIONS);
 		verify(managerSpy).discardChangeMessage(mockChangeMessage);
 		verify(mockAccessApprovalDao).get(approvalId.toString());
 		verify(managerSpy).discardAccessApproval(approval, ApprovalState.REVOKED);

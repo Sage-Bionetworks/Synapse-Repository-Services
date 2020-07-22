@@ -32,7 +32,7 @@ public class AccessApprovalNotificationManagerIntegrationTest {
 	@BeforeEach
 	public void before() {
 		featureTesting.clear();
-		featureTesting.setFeatureEnabled(Feature.DATA_ACCESS_RENEWALS, true);
+		featureTesting.setFeatureEnabled(Feature.DATA_ACCESS_NOTIFICATIONS, true);
 	}
 	
 	@AfterEach

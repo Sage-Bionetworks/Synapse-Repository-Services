@@ -57,7 +57,7 @@ public class AccessApprovalExpirationWorkerIntegrationTest {
 		featureStatusDao.clear();
 		user = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		// Enabled the feature for testing
-		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_RENEWALS, true);
+		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_AUTO_REVOCATION, true);
 		accessRequirements = new ArrayList<>();
 		accessApprovals = new ArrayList<>();
 	}

@@ -66,7 +66,7 @@ public class AccessApprovalExpirationWorkerTest {
 		// Call under test
 		worker.run(mockCallback);
 
-		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_ACCESS_RENEWALS);
+		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_ACCESS_AUTO_REVOCATION);
 		verify(mockUserManager).getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
 		ArgumentCaptor<Instant> expireCaptor = ArgumentCaptor.forClass(Instant.class);
@@ -89,7 +89,7 @@ public class AccessApprovalExpirationWorkerTest {
 		// Call under test
 		worker.run(mockCallback);
 
-		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_ACCESS_RENEWALS);
+		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_ACCESS_AUTO_REVOCATION);
 		verifyZeroInteractions(mockAccessApprovalManager);
 	}
 

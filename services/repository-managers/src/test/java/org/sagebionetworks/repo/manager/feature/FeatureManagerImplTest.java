@@ -52,7 +52,7 @@ public class FeatureManagerImplTest {
 		
 		when(mockFeatureStatusDao.isFeatureEnabled(any())).thenReturn(Optional.of(enabled));
 		
-		Feature feature = Feature.DATA_ACCESS_RENEWALS;
+		Feature feature = Feature.DATA_ACCESS_NOTIFICATIONS;
 		
 		// Call under test
 		boolean result =  manager.isFeatureEnabled(feature);
@@ -68,7 +68,7 @@ public class FeatureManagerImplTest {
 		
 		when(mockFeatureStatusDao.isFeatureEnabled(any())).thenReturn(Optional.of(enabled));
 		
-		Feature feature = Feature.DATA_ACCESS_RENEWALS;
+		Feature feature = Feature.DATA_ACCESS_NOTIFICATIONS;
 		
 		// Call under test
 		boolean result =  manager.isFeatureEnabled(feature);
@@ -82,7 +82,7 @@ public class FeatureManagerImplTest {
 		
 		when(mockFeatureStatusDao.isFeatureEnabled(any())).thenReturn(Optional.empty());
 		
-		Feature feature = Feature.DATA_ACCESS_RENEWALS;
+		Feature feature = Feature.DATA_ACCESS_NOTIFICATIONS;
 		
 		boolean expected = false;
 		

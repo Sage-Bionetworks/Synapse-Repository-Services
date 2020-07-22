@@ -33,7 +33,7 @@ public class FeatureStatusDaoImplTest {
 	@Test
 	public void testIsEnabledWithoutRecords() {
 		// Call under test
-		Optional<Boolean> result = featureStatusDao.isFeatureEnabled(Feature.DATA_ACCESS_RENEWALS);
+		Optional<Boolean> result = featureStatusDao.isFeatureEnabled(Feature.DATA_ACCESS_AUTO_REVOCATION);
 		
 		assertFalse(result.isPresent());
 	}
@@ -41,10 +41,10 @@ public class FeatureStatusDaoImplTest {
 	@Test
 	public void testIsEnabledWithEnabled() {
 		
-		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_RENEWALS, true);
+		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_AUTO_REVOCATION, true);
 		
 		// Call under test
-		Optional<Boolean> result = featureStatusDao.isFeatureEnabled(Feature.DATA_ACCESS_RENEWALS);
+		Optional<Boolean> result = featureStatusDao.isFeatureEnabled(Feature.DATA_ACCESS_AUTO_REVOCATION);
 		
 		assertTrue(result.isPresent());
 		assertTrue(result.get());
@@ -53,10 +53,10 @@ public class FeatureStatusDaoImplTest {
 	@Test
 	public void testIsEnabledWithDisabled() {
 		
-		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_RENEWALS, false);
+		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_AUTO_REVOCATION, false);
 		
 		// Call under test
-		Optional<Boolean> result = featureStatusDao.isFeatureEnabled(Feature.DATA_ACCESS_RENEWALS);
+		Optional<Boolean> result = featureStatusDao.isFeatureEnabled(Feature.DATA_ACCESS_AUTO_REVOCATION);
 		
 		assertTrue(result.isPresent());
 		assertFalse(result.get());
@@ -65,24 +65,24 @@ public class FeatureStatusDaoImplTest {
 	@Test
 	public void testDisabledFeature() {
 		
-		Optional<Boolean> result = featureStatusDao.isFeatureEnabled(Feature.DATA_ACCESS_RENEWALS);
+		Optional<Boolean> result = featureStatusDao.isFeatureEnabled(Feature.DATA_ACCESS_AUTO_REVOCATION);
 
 		assertFalse(result.isPresent());
 		
 		// Enable
-		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_RENEWALS, true);
+		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_AUTO_REVOCATION, true);
 		
-		assertTrue(featureStatusDao.isFeatureEnabled(Feature.DATA_ACCESS_RENEWALS).get());
+		assertTrue(featureStatusDao.isFeatureEnabled(Feature.DATA_ACCESS_AUTO_REVOCATION).get());
 
 		// Disable
-		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_RENEWALS, false);
+		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_AUTO_REVOCATION, false);
 		
-		assertFalse(featureStatusDao.isFeatureEnabled(Feature.DATA_ACCESS_RENEWALS).get());
+		assertFalse(featureStatusDao.isFeatureEnabled(Feature.DATA_ACCESS_AUTO_REVOCATION).get());
 
 		// Re-Enable
-		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_RENEWALS, true);
+		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_AUTO_REVOCATION, true);
 		
-		assertTrue(featureStatusDao.isFeatureEnabled(Feature.DATA_ACCESS_RENEWALS).get());
+		assertTrue(featureStatusDao.isFeatureEnabled(Feature.DATA_ACCESS_AUTO_REVOCATION).get());
 	}
 	
 }

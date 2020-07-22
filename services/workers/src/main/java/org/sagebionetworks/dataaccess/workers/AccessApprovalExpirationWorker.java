@@ -47,7 +47,7 @@ public class AccessApprovalExpirationWorker implements ProgressingRunner {
 	public void run(ProgressCallback progressCallback) throws Exception {
 		
 		// Feature not yet enabled
-		if (!featureManager.isFeatureEnabled(Feature.DATA_ACCESS_RENEWALS)) {
+		if (!featureManager.isFeatureEnabled(Feature.DATA_ACCESS_AUTO_REVOCATION)) {
 			return;
 		}
 		
