@@ -189,7 +189,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		
 		// validate eTag
 		String entityId = submission.getEntityId();
-		Node node = nodeManager.get(userInfo, entityId);
+		Node node = nodeManager.getNode(userInfo, entityId);
 		if (!node.getETag().equals(entityEtag)) {
 			// invalid eTag; reject the Submission
 			throw new IllegalArgumentException("The supplied eTag is out of date. " +

@@ -263,7 +263,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		long initialCount = entityServletHelper.getSubmissionCount(adminUserId, eval1.getId());
 		
 		// create
-		Node node = nodeManager.get(userInfo, nodeId);
+		Node node = nodeManager.getNode(userInfo, nodeId);
 		sub1.setEvaluationId(eval1.getId());
 		sub1.setEntityId(nodeId);
 		sub1 = entityServletHelper.createSubmission(sub1, testUserId, node.getETag());
@@ -349,7 +349,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		long initialCount = entityServletHelper.getSubmissionCount(adminUserId, eval1.getId());
 		
 		// create
-		Node node = nodeManager.get(userInfo, nodeId);
+		Node node = nodeManager.getNode(userInfo, nodeId);
 		sub1.setEvaluationId(eval1.getId());
 		sub1.setEntityId(nodeId);
 		sub1 = entityServletHelper.createSubmission(sub1, testUserId, node.getETag());
@@ -405,7 +405,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		String nodeId = createNode("An entity", ownerInfo);
 		assertNotNull(nodeId);
 		nodesToDelete.add(nodeId);
-		Node node = nodeManager.get(ownerInfo, nodeId);
+		Node node = nodeManager.getNode(ownerInfo, nodeId);
 		
 		// create
 		sub1.setEvaluationId(eval1.getId());
@@ -441,10 +441,10 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		UserInfo userInfo = userManager.getUserInfo(testUserId);
 		String node1 = createNode("entity1", userInfo);
 		assertNotNull(node1);
-		String etag1 = nodeManager.get(userInfo, node1).getETag();
+		String etag1 = nodeManager.getNode(userInfo, node1).getETag();
 		nodesToDelete.add(node1);
 		String node2 = createNode("entity2", userInfo);
-		String etag2 = nodeManager.get(userInfo, node2).getETag();
+		String etag2 = nodeManager.getNode(userInfo, node2).getETag();
 		assertNotNull(node2);
 		nodesToDelete.add(node2);
 		

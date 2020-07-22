@@ -246,7 +246,7 @@ public class EntityPermissionsManagerImplTest {
 		assertNotNull(results.getEtag());
 		assertFalse(eTagBefore.equals(results.getEtag()), "The Etag should have changed");
 		assertEquals(childNode.getId(), results.getId());
-		childNode = nodeManager.get(adminUserInfo, childNode.getId());
+		childNode = nodeManager.getNode(adminUserInfo, childNode.getId());
 		// call 'getACL':  the ACL should match the requested settings and specify the resource as the owner of the ACL
 		AccessControlList acl2 = entityPermissionsManager.getACL(childNode.getId(), adminUserInfo);
 		assertEquals(childNode.getId(), acl2.getId());
@@ -289,7 +289,7 @@ public class EntityPermissionsManagerImplTest {
 		assertNotNull(results);
 		assertNotNull(results.getEtag());
 		assertEquals(project.getId(), results.getId());
-		childNode = nodeManager.get(adminUserInfo, childNode.getId());
+		childNode = nodeManager.getNode(adminUserInfo, childNode.getId());
 		assertFalse(eTagBefore.equals(childNode.getETag()), "The etag of the child node should have changed");
 		// call 'getACL' on the resource.  The returned ACL should specify parent as the ACL owner
 		e =	assertThrows(ACLInheritanceException.class, () -> {		

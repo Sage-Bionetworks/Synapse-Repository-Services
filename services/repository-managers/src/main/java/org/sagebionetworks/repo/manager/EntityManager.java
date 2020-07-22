@@ -415,6 +415,13 @@ public interface EntityManager {
 	 * @return
 	 */
 	public JSONObject getEntityJson(UserInfo userInfo, String id);
+	
+	/**
+	 * Same as: {@link #getEntityJson(UserInfo, String)} but without the authorization check.
+	 * @param entityId
+	 * @return
+	 */
+	public JSONObject getEntityJson(String entityId);
 
 	/**
 	 * Update the annotation of an Entity by providing the flat JSON representation
@@ -429,4 +436,6 @@ public interface EntityManager {
 	 * @return
 	 */
 	public JSONObject updateEntityJson(UserInfo userInfo, String entityId, JSONObject request);
+
+
 }

@@ -192,7 +192,7 @@ public class EntityManagerImplUnitTest {
 
 		Node node = mock(Node.class);
 		Annotations annos = new Annotations();
-		when(mockNodeManager.get(mockUser, id)).thenReturn(node);
+		when(mockNodeManager.getNode(mockUser, id)).thenReturn(node);
 		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, id)).thenReturn(annos);
 		when(node.getParentId()).thenReturn(parentId);
 
@@ -235,7 +235,7 @@ public class EntityManagerImplUnitTest {
 
 		Node node = mock(Node.class);
 		Annotations annos = new Annotations();
-		when(mockNodeManager.get(mockUser, id)).thenReturn(node);
+		when(mockNodeManager.getNode(mockUser, id)).thenReturn(node);
 		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, id)).thenReturn(annos);
 		when(node.getParentId()).thenReturn(parentId);
 
@@ -280,7 +280,7 @@ public class EntityManagerImplUnitTest {
 		Node node = new Node();
 		node.setFileHandleId("101");
 		Annotations annos = new Annotations();
-		when(mockNodeManager.get(mockUser, id)).thenReturn(node);
+		when(mockNodeManager.getNode(mockUser, id)).thenReturn(node);
 		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, id)).thenReturn(annos);
 
 		// Make file entity to update.
@@ -558,7 +558,7 @@ public class EntityManagerImplUnitTest {
 		Project project = new Project();
 		project.setId("syn123");
 		project.setParentId("syn456");
-		when(mockNodeManager.get(mockUser, project.getId())).thenReturn(new Node());
+		when(mockNodeManager.getNode(mockUser, project.getId())).thenReturn(new Node());
 		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, project.getId())).thenReturn(new Annotations());
 		// still have room for one more version
 		when(mockNodeManager.getCurrentRevisionNumber(project.getId()))
@@ -576,7 +576,7 @@ public class EntityManagerImplUnitTest {
 		Project project = new Project();
 		project.setId("syn123");
 		project.setParentId("syn456");
-		when(mockNodeManager.get(mockUser, project.getId())).thenReturn(new Node());
+		when(mockNodeManager.getNode(mockUser, project.getId())).thenReturn(new Node());
 		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, project.getId())).thenReturn(new Annotations());
 		long currentRevisionNumber = (long) EntityManagerImpl.MAX_NUMBER_OF_REVISIONS;
 		// still have room for one more version
@@ -599,7 +599,7 @@ public class EntityManagerImplUnitTest {
 		Project project = new Project();
 		project.setId("syn123");
 		project.setParentId("syn456");
-		when(mockNodeManager.get(mockUser, project.getId())).thenReturn(new Node());
+		when(mockNodeManager.getNode(mockUser, project.getId())).thenReturn(new Node());
 		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, project.getId())).thenReturn(new Annotations());
 		// call under test
 		entityManager.updateEntity(mockUser, project, newVersion, activityId);
@@ -617,7 +617,7 @@ public class EntityManagerImplUnitTest {
 		// We mock this call since the mock we use is not a real instance
 		doNothing().when(entityManagerSpy).updateNodeAndAnnotationsFromEntity(any(), any(), any());
 		
-		when(mockNodeManager.get(any(), any())).thenReturn(new Node());
+		when(mockNodeManager.getNode(any(), any())).thenReturn(new Node());
 		when(mockNodeManager.getEntityPropertyAnnotations(any(), any())).thenReturn(new Annotations());
 		
 		String activityId = null;

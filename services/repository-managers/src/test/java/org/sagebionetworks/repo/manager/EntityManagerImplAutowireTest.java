@@ -2,14 +2,19 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,6 +47,8 @@ import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.FORMAT;
+import org.sagebionetworks.schema.adapter.org.json.JsonDateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -380,4 +387,101 @@ public class EntityManagerImplAutowireTest {
 		// should not create a new version.
 		assertFalse(wasNewVersionCreated);
 	}
+	
+	@Test
+	public void testGetEntityJson() {
+		Project project = new Project();
+		project.setName("some kind of test project");
+		String pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+		project = entityManager.getEntity(userInfo, pid, Project.class);
+		Annotations annotations = entityManager.getAnnotations(userInfo, pid);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "singleString", "one", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "listOfDoubles", Arrays.asList("1.2", "2.3"),
+				AnnotationsValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "parentId", "overrideMe!", AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(userInfo, pid, annotations);
+		project = entityManager.getEntity(userInfo, pid, Project.class);
+
+		// Call under test
+		JSONObject result = entityManager.getEntityJson(pid);
+		assertNotNull(result);
+		assertEquals(project.getId(), result.getString("id"));
+		assertEquals(project.getEtag(), result.getString("etag"));
+		assertEquals(project.getName(), result.getString("name"));
+		assertEquals(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, project.getCreatedOn()),
+				result.getString("createdOn"));
+		assertEquals(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, project.getModifiedOn()),
+				result.getString("modifiedOn"));
+		assertEquals(project.getModifiedBy(), result.getString("modifiedBy"));
+		assertEquals(project.getCreatedBy(), result.getString("createdBy"));
+		assertEquals(Project.class.getName(), result.getString("concreteType"));
+		// the 'parentId' annotation value should not override the real parentId.
+		assertEquals(project.getParentId(), result.getString("parentId"));
+		
+		// the annotations:
+		assertEquals("one", result.getString("singleString"));
+		JSONArray doubleArray = result.getJSONArray("listOfDoubles");
+		assertNotNull(doubleArray);
+		assertEquals(2, doubleArray.length());
+		assertEquals(new Double(1.2), doubleArray.getDouble(0));
+		assertEquals(new Double(2.3), doubleArray.getDouble(1));
+	}
+	
+	@Test
+	public void testUpdateEntityJson() {
+		Project project = new Project();
+		project.setName("some kind of test project");
+		String pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+		project = entityManager.getEntity(userInfo, pid, Project.class);
+		Annotations annotations = entityManager.getAnnotations(userInfo, pid);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "singleString", "one", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "listOfDoubles", Arrays.asList("1.2", "2.3"),
+				AnnotationsValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "parentId", "overrideMe!", AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(userInfo, pid, annotations);
+		project = entityManager.getEntity(userInfo, pid, Project.class);
+
+		JSONObject toUpdate = entityManager.getEntityJson(pid);
+		toUpdate.put("singleString", "two");
+		JSONArray doubleArray = new JSONArray();
+		doubleArray.put(new Double(4.5));
+		doubleArray.put(new Double(6.7));
+		toUpdate.put("listOfDoubles", doubleArray);
+		toUpdate.put("parentId", "ignoreMe");
+		
+		// Call under test
+		JSONObject result = entityManager.updateEntityJson(userInfo, pid, toUpdate);
+		
+		assertNotNull(result);
+		assertEquals(project.getId(), result.getString("id"));
+		// the etag must change
+		assertNotEquals(project.getEtag(), result.getString("etag"));
+		assertEquals(project.getName(), result.getString("name"));
+		// the 'parentId' annotation value should not override the real parentId.
+		assertEquals(project.getParentId(), result.getString("parentId"));
+		
+		// the annotations:
+		assertEquals("two", result.getString("singleString"));
+		doubleArray = result.getJSONArray("listOfDoubles");
+		assertNotNull(doubleArray);
+		assertEquals(2, doubleArray.length());
+		assertEquals(new Double(4.5), doubleArray.getDouble(0));
+		assertEquals(new Double(6.7), doubleArray.getDouble(1));
+		
+		Annotations afterAnnotations = entityManager.getAnnotations(adminUserInfo, pid);
+		assertNotNull(afterAnnotations);
+		assertEquals(project.getId(), afterAnnotations.getId());
+		Map<String, AnnotationsValue> map = afterAnnotations.getAnnotations();
+		assertNotNull(map);
+		assertEquals(2, map.size());
+		AnnotationsValue value = map.get("singleString");
+		assertEquals(AnnotationsValueType.STRING, value.getType());
+		assertEquals( Arrays.asList("two"), value.getType());
+		value = map.get("listOfDoubles");
+		assertEquals(AnnotationsValueType.DOUBLE, value.getType());
+		assertEquals( Arrays.asList("4.6","6.7"), value.getType());
+	}
+	
 }

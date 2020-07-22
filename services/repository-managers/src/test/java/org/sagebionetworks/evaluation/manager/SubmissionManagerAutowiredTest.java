@@ -132,7 +132,7 @@ public class SubmissionManagerAutowiredTest {
 		commit.setCreatedOn(new Date());
 		dockerCommitDao.createDockerCommit(nodeId, adminUserInfo.getId(), commit);
 		
-		retrievedNode = nodeManager.get(adminUserInfo, nodeId);
+		retrievedNode = nodeManager.getNode(adminUserInfo, nodeId);
 
 		// set up a submission
 		submission = new Submission();
