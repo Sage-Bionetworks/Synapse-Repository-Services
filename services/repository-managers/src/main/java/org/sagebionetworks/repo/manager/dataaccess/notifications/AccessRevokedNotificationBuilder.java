@@ -1,11 +1,14 @@
 package org.sagebionetworks.repo.manager.dataaccess.notifications;
 
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.velocity.Template;
+import org.apache.velocity.VelocityContext;
+import org.apache.velocity.app.VelocityEngine;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AccessApproval;
@@ -19,19 +22,21 @@ import org.springframework.stereotype.Service;
 @Service
 public class AccessRevokedNotificationBuilder implements DataAccessNotificationBuilder {
 	
-	private static final String TEMPLATE_FILE = "message/AccessApprovalRevokedTemplate.html";
-	private static final String SUBJECT_TEMPLATE = "%s Access Revoked";
-	private static final String REQUIREMENT_URL_TEMPLATE = "https://www.synapse.org/#!AccessRequirement:AR_ID=%s&TYPE=ENTITY&ID=syn%s";
+	static final String TEMPLATE_FILE = "message/AccessApprovalRevokedTemplate.html.vtl";
 	
-	private static final String PARAM_DISPLAY_NAME = "#displayName#";
-	private static final String PARAM_REQUIREMENT_DESCRIPTION = "#requirementDescription#";
-	private static final String PARAM_REQUIREMENT_URL = "#requirementUrl#";
+	static final String PARAM_DISPLAY_NAME = "displayName";
+	static final String PARAM_REQUIREMENT_ID = "requirementId";
+	static final String PARAM_REQUIREMENT_DESCRIPTION = "requirementDescription";
+
+	private static final String SUBJECT_TEMPLATE = "%s Access Revoked";
 	
 	private UserProfileManager userProfileManager;
+	private VelocityEngine velocityEngine;
 	
 	@Autowired
-	public AccessRevokedNotificationBuilder(final UserProfileManager userProfileManager) {
+	public AccessRevokedNotificationBuilder(final UserProfileManager userProfileManager, final VelocityEngine velocityEngine) {
 		this.userProfileManager = userProfileManager;
+		this.velocityEngine = velocityEngine;
 	}
 
 	@Override
@@ -52,51 +57,29 @@ public class AccessRevokedNotificationBuilder implements DataAccessNotificationB
 
 	@Override
 	public String buildMessageBody(ManagedACTAccessRequirement accessRequirement, AccessApproval approval, UserInfo recipient) {
-		final Map<String, String> templateValues = new HashMap<>();
+		 
+		Template template = velocityEngine.getTemplate(TEMPLATE_FILE, StandardCharsets.UTF_8.name());
+		VelocityContext context = buildContext(accessRequirement, approval, recipient);
 		
-		if (accessRequirement.getSubjectIds() == null || accessRequirement.getSubjectIds().isEmpty()) {
-			throw new IllegalStateException("The access requirement with id " + accessRequirement.getId() + " does not reference any subject.");
-		}
-		
-		// We need an entity to reference the AR in the web client, since we cannot back to the original submission from an access approval
-		// just take the first on the list
-		final String referenceEntityId = accessRequirement.getSubjectIds().get(0).getId();
-		
-		final String requirementUrl = String.format(REQUIREMENT_URL_TEMPLATE, accessRequirement.getId(), referenceEntityId);
-		
-		templateValues.put(PARAM_REQUIREMENT_URL, requirementUrl);
+		StringWriter writer = new StringWriter();
 
-		String description = accessRequirement.getDescription();
+		template.merge(context, writer);
 		
-		StringBuilder descriptionBuidler = new StringBuilder();
+		return writer.toString();
+	}
+	
+	VelocityContext buildContext(ManagedACTAccessRequirement accessRequirement, AccessApproval approval, UserInfo recipient) {
+		VelocityContext context = new VelocityContext();
 		
-		if (StringUtils.isBlank(description)) {
-			descriptionBuidler.append("an <a href=\"");
-			descriptionBuidler.append(requirementUrl);
-			descriptionBuidler.append("\">");
-		} else {
-			descriptionBuidler.append("the <a href=\"");
-			descriptionBuidler.append(requirementUrl);
-			descriptionBuidler.append("\">");
-			descriptionBuidler.append(description);
-			descriptionBuidler.append(" ");
-		}
+		final UserProfile profile = userProfileManager.getUserProfile(recipient.getId().toString());
 		
-		descriptionBuidler.append("access requirement (");
-		descriptionBuidler.append(accessRequirement.getId());
-		descriptionBuidler.append(")</a>");
+		final String displayName = EmailUtils.getDisplayNameOrUsername(profile);
 		
-		templateValues.put(PARAM_REQUIREMENT_DESCRIPTION, descriptionBuidler.toString());
+		context.put(PARAM_REQUIREMENT_ID, accessRequirement.getId());
+		context.put(PARAM_REQUIREMENT_DESCRIPTION, StringUtils.trimToNull(accessRequirement.getDescription()));
+		context.put(PARAM_DISPLAY_NAME, displayName);
 		
-		final String recipientId = recipient.getId().toString();
-		
-		UserProfile recipientProfile = userProfileManager.getUserProfile(recipientId);
-		
-		String displayName = EmailUtils.getDisplayNameWithUsername(recipientProfile);
-		
-		templateValues.put(PARAM_DISPLAY_NAME, displayName);
-		
-		return EmailUtils.readMailTemplate(TEMPLATE_FILE, templateValues);
+		return context;
 	}
 
 }

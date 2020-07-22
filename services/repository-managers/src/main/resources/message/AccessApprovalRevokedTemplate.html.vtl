@@ -1,10 +1,15 @@
 <html>
 <body>
 <p>
-Dear #displayName#,
+Dear $displayName,
 </p>
+#set($requirementUrl = "https://www.synapse.org/#!AccessRequirement:AR_ID=${requirementId}")
 <p>
-We did not receive your renewal information for #requirementDescription#, and your access has now been revoked.
+#if ($requirementDescription)
+We did not receive your renewal information for the <a href="$requirementUrl">$requirementDescription</a> access requirement (ID: $requirementId), and your access has now been revoked.
+#else
+We did not receive your renewal information for an <a href="$requirementUrl">access requirement (ID: $requirementId)</a>, and your access has now been revoked.
+#end
 </p>
 <p>
 Please delete all copies of the data and have the other members of your group do this as well. The terms of use also requires that you provide a brief summary of what you accomplished with the data.
@@ -13,7 +18,7 @@ Please delete all copies of the data and have the other members of your group do
 Should you wish to re-request access, you can do so at the following link:
 </p>
 <p>
-<a href="#requirementUrl#">#requirementUrl#</a>
+<a href="$requirementUrl">$requirementUrl</a>
 </p>
 
 <p style="-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;">

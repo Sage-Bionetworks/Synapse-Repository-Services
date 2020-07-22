@@ -118,10 +118,8 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 
 		UserInfo recipient = getRecipientForRevocation(approval);
 
-		// We need to check if an APPROVED access approval exists already for the same
-		// access requirement, in such a case
-		// there is no need to send a notification as the user is still considered
-		// APPROVED
+		// We need to check if an APPROVED access approval exists already for the same access requirement, in such a
+		// case there is no need to send a notification as the user is still considered APPROVED
 		if (!accessApprovalDao
 				.listApprovalsByAccessor(approval.getRequirementId().toString(), recipient.getId().toString())
 				.isEmpty()) {
@@ -193,7 +191,8 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 	 * 
 	 * @param approval      The approval
 	 * @param expectedState The expected state
-	 * @return True if the approval is in the expected state and refers to a {@link ManagedACTAccessRequirement} (of type entity)
+	 * @return True if the approval is in the expected state and refers to a {@link ManagedACTAccessRequirement} (of
+	 *         type entity)
 	 */
 	boolean discardAccessApproval(AccessApproval approval, ApprovalState expectedState) {
 		// Do not process approvals that are not in the given state
@@ -201,9 +200,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 			return true;
 		}
 
-		return getManagedAccessRequirement(approval.getRequirementId())
-				.map(ar -> false)
-				.orElse(true);
+		return getManagedAccessRequirement(approval.getRequirementId()).map(ar -> false).orElse(true);
 	}
 
 	void sendMessageIfNeeded(DataAccessNotificationType notificationType, AccessApproval approval, UserInfo recipient,
@@ -214,8 +211,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		final Long approvalId = approval.getId();
 
 		// We check if a notification was sent out already for the given requirement and recipient, we acquire a lock on
-		// the row if
-		// it exists
+		// the row if it exists
 		Optional<DBODataAccessNotification> notification = notificationDao.findForUpdate(notificationType,
 				requirementId, recipientId);
 
@@ -261,10 +257,10 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 
 		DataAccessNotificationBuilder notificationBuilder = getNotificationBuilder(notificationType);
 
-		ManagedACTAccessRequirement accessRequriement = getManagedAccessRequirement(approval.getRequirementId()).orElseThrow(() ->		
-			new IllegalStateException("Cannot send a notification for a non managed access requirement.")
-		);
-		
+		ManagedACTAccessRequirement accessRequriement = getManagedAccessRequirement(approval.getRequirementId())
+				.orElseThrow(() -> new IllegalStateException(
+						"Cannot send a notification for a non managed access requirement."));
+
 		UserInfo notificationsSender = getNotificationsSender();
 
 		String sender = notificationsSender.getId().toString();
@@ -325,22 +321,23 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		if (notificationBuilders == null) {
 			throw new IllegalStateException("The message builders were not initialized.");
 		}
-		
+
 		DataAccessNotificationBuilder messageBuilder = notificationBuilders.get(notificationType);
 
 		if (messageBuilder == null) {
-			throw new IllegalStateException("Could not find a message builder for " + notificationType + " notification type.");
+			throw new IllegalStateException(
+					"Could not find a message builder for " + notificationType + " notification type.");
 		}
 		return messageBuilder;
 	}
-	
+
 	Optional<ManagedACTAccessRequirement> getManagedAccessRequirement(Long requirementId) {
 		final AccessRequirement accessRequirement = accessRequirementDao.get(requirementId.toString());
 
 		if (!(accessRequirement instanceof ManagedACTAccessRequirement)) {
 			return Optional.empty();
 		}
-		
+
 		final ManagedACTAccessRequirement managedAccessRequirement = (ManagedACTAccessRequirement) accessRequirement;
 
 		if (!ACCESS_TYPE.DOWNLOAD.equals(managedAccessRequirement.getAccessType())) {
