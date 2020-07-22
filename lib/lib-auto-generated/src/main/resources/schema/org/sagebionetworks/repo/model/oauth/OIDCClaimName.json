@@ -105,6 +105,10 @@
     {
       "name": "refresh_token_id",
       "description": "The ID of the OAuth 2 refresh token affiliated with this access token, if one exists."
+    },
+    {
+      "name": "token_type",
+      "description": "The TokenType of this token."
     }
   ]
 }

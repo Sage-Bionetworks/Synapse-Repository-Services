@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
@@ -49,6 +50,15 @@ public interface OIDCTokenHelper {
 			String refreshTokenId, String accessTokenId, List<OAuthScope> scopes, Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims);
 
 	/**
+	 * Create a personal access token which is used as a bearer token to authorize requests.  The
+	 * authority is specified by the 'scopes' and 'oidcClaims' param's.
+	 * @param issuer the token issuer, Synapse
+	 * @param record the record of the personal access token
+	 * @return a serialized JSON Web Token
+	 */
+	String createPersonalAccessToken(String issuer, AccessTokenRecord record);
+
+	/**
 	 * Return the *public* side of the signature keys in the stack configuration, in the JSON Web Key Set (JWKS) format
 	 * @return a JSON object holding the JWKS
 	 */
@@ -65,7 +75,8 @@ public interface OIDCTokenHelper {
 	 * Parse and validate the given JWT
 	 * @param a serialized JSON Web Token
 	 * @return the parsed and validated JWT
-	 * @throws IllegalArgumentException if the token is not valid
+	 * @throws org.sagebionetworks.repo.web.OAuthUnauthenticatedException if the token has expired
+	 * @throws IllegalArgumentException if the token is otherwise not valid
 	 */
 	Jwt<JwsHeader,Claims> parseJWT(String token);
 

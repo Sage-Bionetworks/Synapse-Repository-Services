@@ -19,9 +19,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.authentication.PersonalAccessTokenManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
@@ -38,6 +40,7 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.TokenTypeHint;
+import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.OAuthBadRequestException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -70,6 +73,9 @@ public class OpenIDConnectManagerImplAutowiredTest {
 
 	@Autowired
 	OIDCTokenHelper oidcTokenHelper;
+
+	@Autowired
+	PersonalAccessTokenManager personalAccessTokenManager;
 
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
@@ -355,6 +361,23 @@ public class OpenIDConnectManagerImplAutowiredTest {
 
 		parsedAuthzRequest = EntityFactory.createEntityFromJSONString(authorizationRequest, OIDCAuthorizationRequest.class);
 		assertEquals(expectedAuthzRequest, parsedAuthzRequest);
+	}
+
+	@Test
+	public void testValidatePersonalAccessToken() {
+		// Issue a PAT to the user
+		String token = personalAccessTokenManager.issueToken(userInfo, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT).getToken();
+
+		// method under test
+		assertEquals(userInfo.getId().toString(), openIDConnectManager.validateAccessToken(token));
+
+		// Revoke the token
+		Claims claims = oidcTokenHelper.parseJWT(token).getBody();
+		String tokenId = claims.getId();
+		personalAccessTokenManager.revokeToken(userInfo, tokenId);
+
+		// method under test
+		assertThrows(ForbiddenException.class, () -> openIDConnectManager.validateAccessToken(token));
 	}
 }
 

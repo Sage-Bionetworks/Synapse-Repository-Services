@@ -42,6 +42,7 @@ import org.sagebionetworks.StackEncrypter;
 import org.sagebionetworks.manager.util.OAuthPermissionUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
+import org.sagebionetworks.repo.manager.authentication.PersonalAccessTokenManager;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.EmailClaimProvider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.EmailVerifiedClaimProvider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
@@ -55,6 +56,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.OAuthDao;
+import org.sagebionetworks.repo.model.auth.TokenType;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
@@ -73,6 +75,7 @@ import org.sagebionetworks.repo.model.oauth.TokenTypeHint;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
+import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.OAuthBadRequestException;
 import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
@@ -116,6 +119,9 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Mock
 	private OAuthRefreshTokenManager oauthRefreshTokenManager;
+
+	@Mock
+	private PersonalAccessTokenManager mockPersonalAccessTokenManager;
 
 	@InjectMocks
 	private OpenIDConnectManagerImpl openIDConnectManagerImpl;
@@ -1216,11 +1222,12 @@ public class OpenIDConnectManagerImplUnitTest {
 	}
 
 	@Test
-	public void testValidateAccessToken() {
+	public void testValidateOidcAccessToken() {
 		String refreshTokenId = "12345";
 		String token = "access token";
 		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
 		Claims claims = Jwts.claims();
+		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ACCESS_TOKEN.name());
 		claims.put(OIDCClaimName.refresh_token_id.name(), refreshTokenId);
 		ClaimsJsonUtil.addAccessClaims(Collections.emptyList(), Collections.emptyMap(), claims);
 		when(mockJWT.getBody()).thenReturn(claims);
@@ -1242,6 +1249,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		String token = "access token";
 		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
 		Claims claims = Jwts.claims();
+		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ACCESS_TOKEN.name());
 		ClaimsJsonUtil.addAccessClaims(Collections.emptyList(), Collections.emptyMap(), claims);
 		when(mockJWT.getBody()).thenReturn(claims);
 		claims.setAudience(OAUTH_CLIENT_ID);
@@ -1262,6 +1270,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		String token = "access token";
 		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
 		Claims claims = Jwts.claims();
+		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ACCESS_TOKEN.name());
 		claims.put(OIDCClaimName.refresh_token_id.name(), refreshTokenId);
 		ClaimsJsonUtil.addAccessClaims(Collections.emptyList(), Collections.emptyMap(), claims);
 		when(mockJWT.getBody()).thenReturn(claims);
@@ -1274,6 +1283,71 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		// method under test
 		assertThrows(OAuthUnauthenticatedException.class, () -> openIDConnectManagerImpl.validateAccessToken(token));
+
+		verify(oidcTokenHelper).parseJWT(token);
+	}
+
+	@Test
+	public void testValidateAccessToken_idToken() {
+		String token = "id token";
+		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
+		Claims claims = Jwts.claims();
+		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ID_TOKEN.name());
+		when(mockJWT.getBody()).thenReturn(claims);
+		claims.setAudience(OAUTH_CLIENT_ID);
+		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
+		String ppid = openIDConnectManagerImpl.ppid(USER_ID, OAUTH_CLIENT_ID);
+		claims.setSubject(ppid);
+
+		// method under test
+		assertThrows(OAuthUnauthenticatedException.class, () -> openIDConnectManagerImpl.validateAccessToken(token));
+
+		verify(oidcTokenHelper).parseJWT(token);
+	}
+
+	@Test
+	public void testValidateAccessToken_personalAccessToken_active() {
+		String token = "personal access token";
+		String tokenId = "9999";
+		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
+		Claims claims = Jwts.claims();
+		claims.setId(tokenId);
+		claims.put(OIDCClaimName.token_type.name(), TokenType.PERSONAL_ACCESS_TOKEN.name());
+		ClaimsJsonUtil.addAccessClaims(Collections.emptyList(), Collections.emptyMap(), claims);
+		when(mockJWT.getBody()).thenReturn(claims);
+		claims.setAudience(OAUTH_CLIENT_ID);
+		when(mockPersonalAccessTokenManager.isTokenActive(tokenId)).thenReturn(true);
+		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
+		String ppid = openIDConnectManagerImpl.ppid(USER_ID, OAUTH_CLIENT_ID);
+		claims.setSubject(ppid);
+
+		// method under test
+		assertEquals(USER_ID, openIDConnectManagerImpl.validateAccessToken(token));
+
+		verify(oidcTokenHelper).parseJWT(token);
+	}
+
+	@Test
+	public void testValidateAccessToken_personalAccessToken_inactive() {
+		String token = "personal access token";
+		String tokenId = "9999";
+		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
+		Claims claims = Jwts.claims();
+		claims.setId(tokenId);
+		claims.put(OIDCClaimName.token_type.name(), TokenType.PERSONAL_ACCESS_TOKEN.name());
+		ClaimsJsonUtil.addAccessClaims(Collections.emptyList(), Collections.emptyMap(), claims);
+		when(mockJWT.getBody()).thenReturn(claims);
+		claims.setAudience(OAUTH_CLIENT_ID);
+		when(mockPersonalAccessTokenManager.isTokenActive(tokenId)).thenReturn(false);
+		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
+		String ppid = openIDConnectManagerImpl.ppid(USER_ID, OAUTH_CLIENT_ID);
+		claims.setSubject(ppid);
+
+		// method under test
+		assertThrows(ForbiddenException.class, () -> openIDConnectManagerImpl.validateAccessToken(token));
 
 		verify(oidcTokenHelper).parseJWT(token);
 	}

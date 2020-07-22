@@ -93,6 +93,8 @@
 	<filter-mapping>
 		<filter-name>authFilter</filter-name>
 		<url-pattern>/auth/v1/secretKey</url-pattern>
+		<url-pattern>/auth/v1/personalAccessToken</url-pattern>
+		<url-pattern>/auth/v1/personalAccessToken/*</url-pattern>
 		<url-pattern>/auth/v1/oauth2/alias</url-pattern>
 		<url-pattern>/auth/v1/oauth2/client/*</url-pattern>
 		<url-pattern>/auth/v1/oauth2/consent</url-pattern>

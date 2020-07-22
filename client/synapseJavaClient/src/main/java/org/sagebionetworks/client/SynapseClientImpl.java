@@ -19,7 +19,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
@@ -104,6 +103,10 @@ import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
+import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
+import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
+import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
@@ -533,7 +536,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String AUTH_OAUTH_2_REfRESH_TOKEN_PARAM = "refresh_token";
 	public static final String AUTH_OAUTH_2_SCOPE_PARAM = "scope";
 	public static final String AUTH_OAUTH_2_CLAIMS_PARAM = "claims";
-	
+
+	public static final String AUTH_PERSONAL_ACCESS_TOKEN = "/personalAccessToken";
+
 	private static final String VERIFICATION_SUBMISSION = "/verificationSubmission";
 	private static final String CURRENT_VERIFICATION_STATE = "currentVerificationState";
 	private static final String VERIFICATION_STATE = "/state";
@@ -3612,6 +3617,33 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public String retrieveApiKey() throws SynapseException {
 		return getJSONEntity(getAuthEndpoint(),"/secretKey", SecretKey.class).getSecretKey();
+	}
+
+	@Override
+	public String createPersonalAccessToken(AccessTokenGenerationRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return postJSONEntity(getAuthEndpoint(), AUTH_PERSONAL_ACCESS_TOKEN, request, AccessTokenGenerationResponse.class).getToken();
+	}
+
+	@Override
+	public AccessTokenRecord retrievePersonalAccessTokenRecord(String tokenId) throws SynapseException {
+		ValidateArgument.required(tokenId, "tokenId");
+		return getJSONEntity(getAuthEndpoint(), AUTH_PERSONAL_ACCESS_TOKEN + "/" + tokenId, AccessTokenRecord.class);
+	}
+
+	@Override
+	public AccessTokenRecordList retrievePersonalAccessTokenRecords(String nextPageToken) throws SynapseException {
+		String uri = AUTH_PERSONAL_ACCESS_TOKEN;
+		if (nextPageToken != null) {
+			uri += "?" + NEXT_PAGE_TOKEN_PARAM + nextPageToken;
+		}
+		return getJSONEntity(getAuthEndpoint(), uri, AccessTokenRecordList.class);
+	}
+
+	@Override
+	public void revokePersonalAccessToken(String tokenId) throws SynapseException {
+		ValidateArgument.required(tokenId, "tokenId");
+		deleteUri(getAuthEndpoint(), AUTH_PERSONAL_ACCESS_TOKEN + "/" + tokenId);
 	}
 
 	@Override
