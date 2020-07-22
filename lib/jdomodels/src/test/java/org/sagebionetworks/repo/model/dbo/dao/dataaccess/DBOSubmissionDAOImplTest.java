@@ -301,7 +301,7 @@ public class DBOSubmissionDAOImplTest {
 		dtosToDelete.add( submissionDao.createSubmission(dto2).getSubmissionId() );
 
 		List<Submission> submissions = submissionDao.getSubmissions(accessRequirement.getId().toString(),
-				SubmissionState.SUBMITTED, null, SubmissionOrder.CREATED_ON,
+				SubmissionState.SUBMITTED, SubmissionOrder.CREATED_ON,
 				true, 10L, 0L);
 		assertNotNull(submissions);
 		assertEquals(2, submissions.size());
@@ -310,32 +310,13 @@ public class DBOSubmissionDAOImplTest {
 
 		assertEquals(new HashSet<Submission>(submissions),
 				new HashSet<Submission>(submissionDao.getSubmissions(
-				accessRequirement.getId().toString(), null, null, null, null, 10L, 0L)));
+				accessRequirement.getId().toString(), null, null, null, 10L, 0L)));
 
 		submissions = submissionDao.getSubmissions(accessRequirement.getId().toString(),
-				SubmissionState.APPROVED, null, SubmissionOrder.MODIFIED_ON,
+				SubmissionState.APPROVED, SubmissionOrder.MODIFIED_ON,
 				false, 10L, 0L);
 		assertNotNull(submissions);
 		assertEquals(0, submissions.size());
-	}
-	
-	@Test
-	public void testListSubmissionsWithSubmitter() {
-		Submission dto1 = createSubmission();
-		Submission dto2 = createSubmission();
-		
-		dto2.setSubmittedBy(user2.getId());
-		
-		dtosToDelete.add( submissionDao.createSubmission(dto1).getSubmissionId() );
-		dtosToDelete.add( submissionDao.createSubmission(dto2).getSubmissionId() );
-
-		List<Submission> submissions = submissionDao.getSubmissions(accessRequirement.getId().toString(),
-				SubmissionState.SUBMITTED, dto1.getSubmittedBy(), SubmissionOrder.CREATED_ON,
-				true, 10L, 0L);
-		
-		assertNotNull(submissions);
-		assertEquals(1, submissions.size());
-		assertEquals(dto1, submissions.get(0));
 	}
 	
 	private static SubmissionInfo createSubmissionInfo(ResearchProject rp, long modifiedOn) {

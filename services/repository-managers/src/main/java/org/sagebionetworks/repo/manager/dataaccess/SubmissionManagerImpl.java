@@ -322,7 +322,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		}
 		NextPageToken token = new NextPageToken(request.getNextPageToken());
 		List<Submission> submissions = submissionDao.getSubmissions(
-				request.getAccessRequirementId(), request.getFilterBy(), null, request.getOrderBy(),
+				request.getAccessRequirementId(), request.getFilterBy(), request.getOrderBy(),
 				request.getIsAscending(), token.getLimitForQuery(), token.getOffset());
 		SubmissionPage pageResult = new SubmissionPage();
 		pageResult.setResults(submissions);
