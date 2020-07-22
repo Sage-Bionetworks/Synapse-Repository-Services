@@ -21,6 +21,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
@@ -252,6 +253,43 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 	@Override
 	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
+	}
+
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(accessorId, createdBy, createdOn, eTag, expiredOn, id, modifiedBy, modifiedOn,
+				requirementId, requirementVersion, state, submitterId);
+	}
+
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		DBOAccessApproval other = (DBOAccessApproval) obj;
+		return Objects.equals(accessorId, other.accessorId) && Objects.equals(createdBy, other.createdBy)
+				&& createdOn == other.createdOn && Objects.equals(eTag, other.eTag) && expiredOn == other.expiredOn
+				&& Objects.equals(id, other.id) && Objects.equals(modifiedBy, other.modifiedBy)
+				&& modifiedOn == other.modifiedOn && Objects.equals(requirementId, other.requirementId)
+				&& Objects.equals(requirementVersion, other.requirementVersion) && Objects.equals(state, other.state)
+				&& Objects.equals(submitterId, other.submitterId);
+	}
+
+
+	@Override
+	public String toString() {
+		return "DBOAccessApproval [id=" + id + ", eTag=" + eTag + ", createdBy=" + createdBy + ", createdOn="
+				+ createdOn + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + ", expiredOn=" + expiredOn
+				+ ", requirementId=" + requirementId + ", accessorId=" + accessorId + ", requirementVersion="
+				+ requirementVersion + ", submitterId=" + submitterId + ", state=" + state + "]";
 	}
 
 }
