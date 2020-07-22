@@ -4,9 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
-import java.util.List;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -35,6 +32,9 @@ public class AccessRevokedNotificationBuilderTest {
 	private AccessApproval mockApproval;
 	
 	@Mock
+	private RestrictableObjectDescriptor mockObjectReference;
+	
+	@Mock
 	private UserInfo mockRecipient;
 	
 	@Mock
@@ -46,7 +46,7 @@ public class AccessRevokedNotificationBuilderTest {
 		String expected = "Data Access Revoked";
 		
 		// Call under test
-		String result = builder.buildSubject(mockRequirement, mockApproval, mockRecipient);
+		String result = builder.buildSubject(mockRequirement, mockApproval, mockObjectReference, mockRecipient);
 		
 		assertEquals(expected, result);
 	}
@@ -60,7 +60,7 @@ public class AccessRevokedNotificationBuilderTest {
 		when(mockRequirement.getDescription()).thenReturn(description);
 		
 		// Call under test
-		String result = builder.buildSubject(mockRequirement, mockApproval, mockRecipient);
+		String result = builder.buildSubject(mockRequirement, mockApproval, mockObjectReference, mockRecipient);
 		
 		assertEquals(expected, result);
 	}
@@ -68,15 +68,11 @@ public class AccessRevokedNotificationBuilderTest {
 	@Test
 	public void testBuildMessageBodyWithoutDescription() {
 		
-		RestrictableObjectDescriptor entityDescriptor = new RestrictableObjectDescriptor();
-		entityDescriptor.setId("1234");
-		
-		List<RestrictableObjectDescriptor> subjectIds = Collections.singletonList(entityDescriptor);
+		String entityId = "syn12345";
 		Long requirementId = 1L;
 		String firstName = "First";
 		String lastName = "Last";
 		String userName = "username";
-		
 		
 		when(mockUserProfile.getFirstName()).thenReturn(firstName);
 		when(mockUserProfile.getLastName()).thenReturn(lastName);
@@ -84,8 +80,7 @@ public class AccessRevokedNotificationBuilderTest {
 		
 		when(mockProfileManager.getUserProfile(any())).thenReturn(mockUserProfile);
 		when(mockRequirement.getId()).thenReturn(requirementId);
-		when(mockRequirement.getSubjectIds()).thenReturn(subjectIds);
-		
+		when(mockObjectReference.getId()).thenReturn(entityId);
 
 		String expected = "<html>\r\n" + 
 				"<body>\r\n" + 
@@ -93,7 +88,7 @@ public class AccessRevokedNotificationBuilderTest {
 				"Dear First Last (username),\r\n" + 
 				"</p>\r\n" + 
 				"<p>\r\n" + 
-				"We did not receive your renewal information for an <a href=\"https://www.synapse.org/#!AccessRequirement:AR_ID=1&TYPE=ENTITY&ID=syn1234\">access requirement (1)</a>, and your access has now been revoked.\r\n" + 
+				"We did not receive your renewal information for an <a href=\"https://www.synapse.org/#!AccessRequirement:AR_ID=1&TYPE=ENTITY&ID=syn12345\">access requirement (1)</a>, and your access has now been revoked.\r\n" + 
 				"</p>\r\n" + 
 				"<p>\r\n" + 
 				"Please delete all copies of the data and have the other members of your group do this as well. The terms of use also requires that you provide a brief summary of what you accomplished with the data.\r\n" + 
@@ -102,7 +97,7 @@ public class AccessRevokedNotificationBuilderTest {
 				"Should you wish to re-request access, you can do so at the following link:\r\n" + 
 				"</p>\r\n" + 
 				"<p>\r\n" + 
-				"<a href=\"https://www.synapse.org/#!AccessRequirement:AR_ID=1&TYPE=ENTITY&ID=syn1234\">https://www.synapse.org/#!AccessRequirement:AR_ID=1&TYPE=ENTITY&ID=syn1234</a>\r\n" + 
+				"<a href=\"https://www.synapse.org/#!AccessRequirement:AR_ID=1&TYPE=ENTITY&ID=syn12345\">https://www.synapse.org/#!AccessRequirement:AR_ID=1&TYPE=ENTITY&ID=syn12345</a>\r\n" + 
 				"</p>\r\n" + 
 				"\r\n" + 
 				"<p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\">\r\n" + 
@@ -116,7 +111,7 @@ public class AccessRevokedNotificationBuilderTest {
 				"</html>\r\n";
 		
 		// Call under test
-		String result = builder.buildMessageBody(mockRequirement, mockApproval, mockRecipient);
+		String result = builder.buildMessageBody(mockRequirement, mockApproval, mockObjectReference, mockRecipient);
 		
 		assertEquals(expected, result);
 	}
@@ -124,10 +119,7 @@ public class AccessRevokedNotificationBuilderTest {
 	@Test
 	public void testBuildMessageBodyWithDescription() {
 		
-		RestrictableObjectDescriptor entityDescriptor = new RestrictableObjectDescriptor();
-		entityDescriptor.setId("1234");
-		
-		List<RestrictableObjectDescriptor> subjectIds = Collections.singletonList(entityDescriptor);
+		String entityId = "syn12345";
 		Long requirementId = 1L;
 		String requirementDescription = "Some Dataset";
 		String firstName = "First";
@@ -142,8 +134,7 @@ public class AccessRevokedNotificationBuilderTest {
 		when(mockProfileManager.getUserProfile(any())).thenReturn(mockUserProfile);
 		when(mockRequirement.getId()).thenReturn(requirementId);
 		when(mockRequirement.getDescription()).thenReturn(requirementDescription);
-		when(mockRequirement.getSubjectIds()).thenReturn(subjectIds);
-		
+		when(mockObjectReference.getId()).thenReturn(entityId);
 
 		String expected = "<html>\r\n" + 
 				"<body>\r\n" + 
@@ -151,7 +142,7 @@ public class AccessRevokedNotificationBuilderTest {
 				"Dear First Last (username),\r\n" + 
 				"</p>\r\n" + 
 				"<p>\r\n" + 
-				"We did not receive your renewal information for the <a href=\"https://www.synapse.org/#!AccessRequirement:AR_ID=1&TYPE=ENTITY&ID=syn1234\">Some Dataset access requirement (1)</a>, and your access has now been revoked.\r\n" + 
+				"We did not receive your renewal information for the <a href=\"https://www.synapse.org/#!AccessRequirement:AR_ID=1&TYPE=ENTITY&ID=syn12345\">Some Dataset access requirement (1)</a>, and your access has now been revoked.\r\n" + 
 				"</p>\r\n" + 
 				"<p>\r\n" + 
 				"Please delete all copies of the data and have the other members of your group do this as well. The terms of use also requires that you provide a brief summary of what you accomplished with the data.\r\n" + 
@@ -160,7 +151,7 @@ public class AccessRevokedNotificationBuilderTest {
 				"Should you wish to re-request access, you can do so at the following link:\r\n" + 
 				"</p>\r\n" + 
 				"<p>\r\n" + 
-				"<a href=\"https://www.synapse.org/#!AccessRequirement:AR_ID=1&TYPE=ENTITY&ID=syn1234\">https://www.synapse.org/#!AccessRequirement:AR_ID=1&TYPE=ENTITY&ID=syn1234</a>\r\n" + 
+				"<a href=\"https://www.synapse.org/#!AccessRequirement:AR_ID=1&TYPE=ENTITY&ID=syn12345\">https://www.synapse.org/#!AccessRequirement:AR_ID=1&TYPE=ENTITY&ID=syn12345</a>\r\n" + 
 				"</p>\r\n" + 
 				"\r\n" + 
 				"<p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\">\r\n" + 
@@ -174,7 +165,7 @@ public class AccessRevokedNotificationBuilderTest {
 				"</html>\r\n";
 		
 		// Call under test
-		String result = builder.buildMessageBody(mockRequirement, mockApproval, mockRecipient);
+		String result = builder.buildMessageBody(mockRequirement, mockApproval, mockObjectReference, mockRecipient);
 		
 		assertEquals(expected, result);
 	}

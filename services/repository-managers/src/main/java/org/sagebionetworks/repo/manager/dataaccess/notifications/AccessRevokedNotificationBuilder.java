@@ -10,9 +10,11 @@ import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessNotificationType;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -40,7 +42,7 @@ public class AccessRevokedNotificationBuilder implements DataAccessNotificationB
 	}
 
 	@Override
-	public String buildSubject(ManagedACTAccessRequirement accessRequirement, AccessApproval approval, UserInfo recipient) {
+	public String buildSubject(ManagedACTAccessRequirement accessRequirement, AccessApproval approval, RestrictableObjectDescriptor objectReference, UserInfo recipient) {
 		String prefix = "Data";
 		
 		if (!StringUtils.isBlank(accessRequirement.getDescription())) {
@@ -51,16 +53,11 @@ public class AccessRevokedNotificationBuilder implements DataAccessNotificationB
 	}
 
 	@Override
-	public String buildMessageBody(ManagedACTAccessRequirement accessRequirement, AccessApproval approval, UserInfo recipient) {
+	public String buildMessageBody(ManagedACTAccessRequirement accessRequirement, AccessApproval approval, RestrictableObjectDescriptor objectReference, UserInfo recipient) {
 		final Map<String, String> templateValues = new HashMap<>();
 		
-		if (accessRequirement.getSubjectIds() == null || accessRequirement.getSubjectIds().isEmpty()) {
-			throw new IllegalStateException("The access requirement with id " + accessRequirement.getId() + " does not reference any subject.");
-		}
-		
-		// We need an entity to reference the AR in the web client, since we cannot back to the original submission from an access approval
-		// just take the first on the list
-		final String referenceEntityId = accessRequirement.getSubjectIds().get(0).getId();
+		// We need an entity to reference the AR in the web client
+		final Long referenceEntityId = KeyFactory.stringToKey(objectReference.getId());
 		
 		final String requirementUrl = String.format(REQUIREMENT_URL_TEMPLATE, accessRequirement.getId(), referenceEntityId);
 		

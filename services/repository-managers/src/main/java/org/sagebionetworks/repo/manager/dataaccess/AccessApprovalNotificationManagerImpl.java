@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.MessageManager;
@@ -28,10 +29,17 @@ import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessNotificationType;
+import org.sagebionetworks.repo.model.dataaccess.Submission;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessNotification;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationDao;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.feature.Feature;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -46,6 +54,8 @@ import org.springframework.stereotype.Service;
 public class AccessApprovalNotificationManagerImpl implements AccessApprovalNotificationManager {
 
 	private static final Logger LOG = LogManager.getLogger(AccessApprovalNotificationManagerImpl.class);
+	
+	private static final int SUBMISSION_LIMIT = 100;
 
 	private static final String MSG_NOT_DELIVERED = "{} notification (AR: {}, Recipient: {}, AP: {}) will not be delivered.";
 
@@ -53,6 +63,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 	private DataAccessNotificationDao notificationDao;
 	private AccessApprovalDAO accessApprovalDao;
 	private AccessRequirementDAO accessRequirementDao;
+	private SubmissionDAO submissionDao;
 	private FileHandleManager fileHandleManager;
 	private MessageManager messageManager;
 	private FeatureManager featureManager;
@@ -67,11 +78,13 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 	public AccessApprovalNotificationManagerImpl(final UserManager userManager,
 			final DataAccessNotificationDao notificationDao, final AccessApprovalDAO accessApprovalDao,
 			final AccessRequirementDAO accessRequirementDao, final FileHandleManager fileHandleManager,
-			final MessageManager messageManager, final FeatureManager featureTesting, final ProdDetector prodDetector) {
+			final SubmissionDAO submissionDao, final MessageManager messageManager, 
+			final FeatureManager featureTesting, final ProdDetector prodDetector) {
 		this.userManager = userManager;
 		this.notificationDao = notificationDao;
 		this.accessApprovalDao = accessApprovalDao;
 		this.accessRequirementDao = accessRequirementDao;
+		this.submissionDao = submissionDao;
 		this.fileHandleManager = fileHandleManager;
 		this.messageManager = messageManager;
 		this.featureManager = featureTesting;
@@ -214,8 +227,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		final Long approvalId = approval.getId();
 
 		// We check if a notification was sent out already for the given requirement and recipient, we acquire a lock on
-		// the row if
-		// it exists
+		// the row if it exists
 		Optional<DBODataAccessNotification> notification = notificationDao.findForUpdate(notificationType,
 				requirementId, recipientId);
 
@@ -223,6 +235,11 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		if (notification.isPresent() && !reSendCondition.canSend(notification.get(), approval)) {
 			return;
 		}
+		
+		// Try and find the submission for the approval
+		final Submission submission = findSubmissionForApprovalAndAccessor(approval, recipientId).orElseThrow(() -> 
+			new IllegalStateException("Could not find the submission for the access approval " + approvalId + " and accessor " + recipientId)
+		);
 
 		Long messageId = NO_MESSAGE_TO_USER;
 		Instant sentOn = Instant.now();
@@ -230,7 +247,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		// Check if the message can be delivered to the given recipient (e.g. on staging we usually do not want to send
 		// notifications)
 		if (deliverMessage(recipient)) {
-			MessageToUser messageToUser = createMessageToUser(notificationType, approval, recipient);
+			MessageToUser messageToUser = createMessageToUser(notificationType, approval, submission, recipient);
 			messageId = Long.valueOf(messageToUser.getId());
 			sentOn = messageToUser.getCreatedOn().toInstant();
 		} else {
@@ -255,22 +272,77 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 			notificationDao.update(toStore.getId(), toStore);
 		}
 	}
+	
+	RestrictableObjectDescriptor getSubmissionObjectReference(Submission submission, ManagedACTAccessRequirement accessRequirement) {
+		RestrictableObjectDescriptor descriptor = new RestrictableObjectDescriptor();
+		
+		if (!StringUtils.isBlank(submission.getSubjectId())) {
+			descriptor.setId(submission.getSubjectId());
+		} else {
+			List<RestrictableObjectDescriptor> subjects = accessRequirement.getSubjectIds();
+			if (subjects == null || subjects.isEmpty()) {
+				throw new IllegalStateException("The access requirement " + accessRequirement.getId() + " does not have any subjects.");
+			}
+			// Just take the first one, best guess -_-'
+			descriptor = subjects.iterator().next();
+		}
+		
+		// We know that the managed access requirement is of type DOWNLOAD
+		descriptor.setType(RestrictableObjectType.ENTITY);
+		
+		return descriptor;
+	}
+	
+	/**
+	 * @param approval
+	 * @param accessorId
+	 * @return The last submission whose submitter and access requirement is the same as the access approval and the accessor was 
+	 * part of the submission
+	 */
+	Optional<Submission> findSubmissionForApprovalAndAccessor(AccessApproval approval, Long accessorId) {
+		final String requirementId = approval.getRequirementId().toString();
+		final String submitterId = approval.getSubmitterId();
+		final String accessor = accessorId.toString();
+		
+		List<Submission> submissions = submissionDao.getSubmissions(requirementId, SubmissionState.APPROVED, submitterId, SubmissionOrder.MODIFIED_ON, false, 0, SUBMISSION_LIMIT);
+	
+		if (submissions.isEmpty()) {
+			return Optional.empty();
+		}
+		
+		for (Submission submission : submissions) {
+			if (submission.getAccessorChanges() == null) {
+				continue;
+			}
+			
+			Optional<AccessorChange> match = submission.getAccessorChanges().stream().filter( change -> 
+				change.getUserId().equals(accessor)
+			).findFirst();
+			
+			if (match.isPresent()) {
+				return Optional.of(submission);
+			}
+		}
+		
+		return Optional.empty();
+	}
 
-	MessageToUser createMessageToUser(DataAccessNotificationType notificationType, AccessApproval approval,
-			UserInfo recipient) {
+	MessageToUser createMessageToUser(DataAccessNotificationType notificationType, AccessApproval approval, Submission submission, UserInfo recipient) {
 
 		DataAccessNotificationBuilder notificationBuilder = getNotificationBuilder(notificationType);
-
+		
 		ManagedACTAccessRequirement accessRequirement = getManagedAccessRequirement(approval.getRequirementId()).orElseThrow(() ->		
 			new IllegalStateException("Cannot send a notification for a non managed access requirement.")
 		);
 		
+		RestrictableObjectDescriptor objectReference = getSubmissionObjectReference(submission, accessRequirement);
+		
 		UserInfo notificationsSender = getNotificationsSender();
 
 		String sender = notificationsSender.getId().toString();
-		String messageBody = notificationBuilder.buildMessageBody(accessRequirement, approval, recipient);
+		String messageBody = notificationBuilder.buildMessageBody(accessRequirement, approval, objectReference, recipient);
 		String mimeType = notificationBuilder.getMimeType();
-		String subject = notificationBuilder.buildSubject(accessRequirement, approval, recipient);
+		String subject = notificationBuilder.buildSubject(accessRequirement, approval, objectReference, recipient);
 
 		// The message to user requires a file handle where the body is stored
 		String fileHandleId = storeMessageBody(sender, messageBody, mimeType);
@@ -343,6 +415,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		
 		final ManagedACTAccessRequirement managedAccessRequirement = (ManagedACTAccessRequirement) accessRequirement;
 
+		// This check makes sure that the subjects are entities
 		if (!ACCESS_TYPE.DOWNLOAD.equals(managedAccessRequirement.getAccessType())) {
 			return Optional.empty();
 		}
