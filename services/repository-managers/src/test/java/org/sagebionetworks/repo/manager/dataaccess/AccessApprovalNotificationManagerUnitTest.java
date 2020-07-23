@@ -8,7 +8,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -30,6 +30,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -113,6 +114,9 @@ public class AccessApprovalNotificationManagerUnitTest {
 	
 	@Mock
 	private DBODataAccessNotification mockNotification;
+	
+	@Captor
+	private ArgumentCaptor<ReSendCondition> lambdaCaptor;
 	
 	@BeforeEach
 	public void before() {
@@ -860,7 +864,6 @@ public class AccessApprovalNotificationManagerUnitTest {
 		boolean discardChange = false;
 		boolean discardApproval = false;
 		
-		
 		List<Long> userApprovals = Collections.emptyList();
 		
 		when(approval.getRequirementId()).thenReturn(requirementId);
@@ -870,15 +873,19 @@ public class AccessApprovalNotificationManagerUnitTest {
 		when(mockFeatureManager.isFeatureEnabled(any())).thenReturn(featureEnabled);
 		when(mockAccessApprovalDao.get(any())).thenReturn(approval);
 		when(mockAccessApprovalDao.listApprovalsByAccessor(any(), any())).thenReturn(userApprovals);
-
+		when(mockNotification.getSentOn()).thenReturn(Timestamp.from(Instant.now()));
+		when(approval.getModifiedOn()).thenReturn(Date.from(Instant.now()));
+		
 		// We use a spy to mock internal calls that are already tested
 		AccessApprovalNotificationManagerImpl managerSpy = Mockito.spy(manager);
 		
 		doReturn(discardChange).when(managerSpy).discardChangeMessage(any());
 		doReturn(discardApproval).when(managerSpy).discardAccessApproval(any(), any());
 		doReturn(recipient).when(managerSpy).getRecipientForRevocation(any());
-		doNothing().when(managerSpy).sendMessageIfNeeded(any(), any(), any(), any());
-		
+		// We invoke the lambda when passed, so we can verify the method that is invoked in the manger
+		doAnswer((invocation) -> 
+			invocation.getArgument(3, ReSendCondition.class).canSend(mockNotification, approval)
+		).when(managerSpy).sendMessageIfNeeded(any(), any(), any(), lambdaCaptor.capture());
 		
 		// Call under test
 		managerSpy.processAccessApprovalChange(mockChangeMessage);
@@ -889,26 +896,9 @@ public class AccessApprovalNotificationManagerUnitTest {
 		verify(managerSpy).discardAccessApproval(approval, ApprovalState.REVOKED);
 		verify(managerSpy).getRecipientForRevocation(approval);
 		verify(mockAccessApprovalDao).listApprovalsByAccessor(requirementId.toString(), recipientId.toString());
-		
-		ArgumentCaptor<ReSendCondition> lambdaCaptor = ArgumentCaptor.forClass(ReSendCondition.class);
-		
-		verify(managerSpy).sendMessageIfNeeded(eq(notificationType), eq(approval), eq(recipient), lambdaCaptor.capture());
-		
-		// Verify that the correct function will be invoked
-		Instant sentOn = Instant.now();
-		Instant modifiedOn = Instant.now().minus(1, ChronoUnit.HOURS);
-		
-		when(mockNotification.getSentOn()).thenReturn(Timestamp.from(sentOn));
-		when(approval.getModifiedOn()).thenReturn(Date.from(modifiedOn));
-		
-		boolean expected = false;
-		boolean result = lambdaCaptor.getValue().canSend(mockNotification, approval);
-		
-		assertEquals(expected, result);
-		
-		verify(mockNotification).getSentOn();
-		verify(approval).getModifiedOn();
-		
+		verify(managerSpy).sendMessageIfNeeded(notificationType, approval, recipient, lambdaCaptor.getValue());
+		// Verify that the correct method would be invoked on the manager
+		verify(managerSpy).isSendRevocation(mockNotification, approval);
 	}
 	
 	@Test
