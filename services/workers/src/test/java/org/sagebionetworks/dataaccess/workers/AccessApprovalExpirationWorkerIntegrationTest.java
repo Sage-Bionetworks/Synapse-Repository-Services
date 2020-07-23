@@ -49,8 +49,8 @@ public class AccessApprovalExpirationWorkerIntegrationTest {
 	private FeatureStatusDao featureStatusDao;
 	
 	private UserInfo user;
-	private List<Long> accessRequirements;
-	private List<Long> accessApprovals;
+	private List<String> accessRequirements;
+	private List<String> accessApprovals;
 	
 	@BeforeEach
 	public void before() {
@@ -64,12 +64,8 @@ public class AccessApprovalExpirationWorkerIntegrationTest {
 	
 	@AfterEach
 	public void after() {
-		for (Long id : accessRequirements) {
-			accessRequirementDao.delete(id.toString());
-		}
-		for (Long id : accessApprovals) {
-			accessApprovalDao.delete(id.toString());
-		}
+		accessApprovals.forEach(accessApprovalDao::delete);
+		accessRequirements.forEach(accessRequirementDao::delete);
 		featureStatusDao.clear();
 	}
 	
@@ -95,7 +91,7 @@ public class AccessApprovalExpirationWorkerIntegrationTest {
 		accessRequirement.setConcreteType(ManagedACTAccessRequirement.class.getName());
 		
 		accessRequirement = accessRequirementDao.create(accessRequirement);
-		accessRequirements.add(accessRequirement.getId());
+		accessRequirements.add(accessRequirement.getId().toString());
 		return accessRequirement;
 	}
 	
@@ -113,7 +109,7 @@ public class AccessApprovalExpirationWorkerIntegrationTest {
 		accessApproval.setState(state);
 		
 		accessApproval = accessApprovalDao.create(accessApproval);
-		accessApprovals.add(accessApproval.getId());
+		accessApprovals.add(accessApproval.getId().toString());
 		
 		return accessApproval;
 	}

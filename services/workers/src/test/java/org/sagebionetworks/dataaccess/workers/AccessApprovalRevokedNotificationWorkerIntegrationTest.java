@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +26,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessNotification;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationDao;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationType;
@@ -44,7 +46,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ActiveProfiles("test-dataaccess-worker")
 public class AccessApprovalRevokedNotificationWorkerIntegrationTest {
 
-	private static final long WORKER_TIMEOUT = 2 * 60 * 1000;
+	private static final long WORKER_TIMEOUT = 3 * 60 * 1000;
 	
 	@Autowired
 	private UserManager userManager;
@@ -64,34 +66,41 @@ public class AccessApprovalRevokedNotificationWorkerIntegrationTest {
 	@Autowired
 	private MessageDAO messageDao;
 	
+	private UserInfo adminUser;
 	private UserInfo user;
-	private List<Long> accessRequirements;
-	private List<Long> accessApprovals;
+	private List<String> accessRequirements;
+	private List<String> accessApprovals;
+	private List<String> messages;
 	
 	@BeforeEach
 	public void before() {
 		featureStatusDao.clear();
-		user = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		
+		NewUser newUser = new NewUser();
+		newUser.setEmail(UUID.randomUUID().toString() + "@test.com");
+		newUser.setUserName(UUID.randomUUID().toString());
+		user = userManager.getUserInfo(userManager.createUser(newUser));
+		
 		// Enabled the features for testing, we need both the auto revocation and the notification workers running
 		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_AUTO_REVOCATION, true);
 		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_NOTIFICATIONS, true);
 		accessRequirements = new ArrayList<>();
 		accessApprovals = new ArrayList<>();
+		messages = new ArrayList<>();
 	}
 	
 	@AfterEach
 	public void after() {
-		for (Long id : accessRequirements) {
-			accessRequirementDao.delete(id.toString());
-		}
-		for (Long id : accessApprovals) {
-			accessApprovalDao.delete(id.toString());
-		}
+		accessApprovals.forEach(accessApprovalDao::delete);
+		accessRequirements.forEach(accessRequirementDao::delete);
+		messages.forEach(messageDao::deleteMessage);
+		userManager.deletePrincipal(adminUser, user.getId());
 		featureStatusDao.clear();
 	}
 	
 	@Test
-	public void testRun() throws Exception {
+	public void testRunWithAutoRevocation() throws Exception {
 		
 		// Will create an expired approval, one worker will expire it and another will act upon the change message to send the notification
 		AccessApproval ap = newApproval(newAccessRequirement(), ApprovalState.APPROVED, Instant.now().minus(1, ChronoUnit.DAYS));
@@ -99,18 +108,23 @@ public class AccessApprovalRevokedNotificationWorkerIntegrationTest {
 		TimeUtils.waitFor(WORKER_TIMEOUT, 1000L, () -> {
 			Optional<DBODataAccessNotification> result = notificationDao.find(DataAccessNotificationType.REVOCATION, ap.getRequirementId(), user.getId());
 			
-			// Verify that the message to user was created for the user
-			if (result.isPresent()) {
-				Long messageId = result.get().getMessageId();
-
-				MessageToUser message = messageDao.getMessage(messageId.toString());
-			
-				assertEquals(message.getCreatedBy(), BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId().toString());
-				assertEquals(message.getRecipients(), Collections.singleton(user.getId().toString()));
-				
+			if (!result.isPresent()) { 
+				return new Pair<>(false, null); 
 			}
 			
-			return new Pair<>(result.isPresent(), null);
+			// Verify that the message to user was created for the user (the workers are setup to act as prod so that
+			// the message is created and processed: no email is actually delivered)
+			Long messageId = result.get().getMessageId();
+
+			MessageToUser message = messageDao.getMessage(messageId.toString());
+		
+			messages.add(message.getId());
+			
+			assertEquals(message.getCreatedBy(), BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId().toString());
+			assertEquals(message.getRecipients(), Collections.singleton(user.getId().toString()));
+			
+			// Wait till the message is processed
+			return new Pair<>(messageDao.getMessageSent(message.getId()), null);
 		});
 		
 	}
@@ -125,7 +139,7 @@ public class AccessApprovalRevokedNotificationWorkerIntegrationTest {
 		accessRequirement.setConcreteType(ManagedACTAccessRequirement.class.getName());
 		
 		accessRequirement = accessRequirementDao.create(accessRequirement);
-		accessRequirements.add(accessRequirement.getId());
+		accessRequirements.add(accessRequirement.getId().toString());
 		return accessRequirement;
 	}
 	
@@ -143,7 +157,7 @@ public class AccessApprovalRevokedNotificationWorkerIntegrationTest {
 		accessApproval.setState(state);
 		
 		accessApproval = accessApprovalDao.create(accessApproval);
-		accessApprovals.add(accessApproval.getId());
+		accessApprovals.add(accessApproval.getId().toString());
 		
 		return accessApproval;
 	}

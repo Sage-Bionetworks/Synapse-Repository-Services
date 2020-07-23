@@ -86,6 +86,7 @@
 			<ref bean="messagePublisherTrigger" />
 			<ref bean="accessApprovalExpirationTrigger"/>
 			<ref bean="accessApprovalRevokedNotificationTrigger"/>
+			<ref bean="messageToUserQueueMessageReceiverTrigger"/>
 		</util:list>
 		<!-- We want to simulate the email sending (no email go out) so this must be prod -->
 		<bean id="prodDetector" class="org.sagebionetworks.StubProdDetector">
