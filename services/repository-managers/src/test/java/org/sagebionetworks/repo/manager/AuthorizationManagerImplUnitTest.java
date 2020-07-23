@@ -16,7 +16,7 @@ import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.docker.RegistryEventAction.pull;
 import static org.sagebionetworks.repo.model.docker.RegistryEventAction.push;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.download;
-import static org.sagebionetworks.repo.model.oauth.OAuthScope.*;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
 
 import java.util.ArrayList;
 import java.util.Arrays;

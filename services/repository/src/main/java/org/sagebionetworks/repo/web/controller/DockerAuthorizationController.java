@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.sagebionetworks.repo.model.oauth.OAuthScope.*;
-
 import java.util.List;
 
 import org.sagebionetworks.auth.HttpAuthUtil;
