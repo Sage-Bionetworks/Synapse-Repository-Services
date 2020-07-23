@@ -478,10 +478,10 @@ public class EntityManagerImplAutowireTest {
 		assertEquals(2, map.size());
 		AnnotationsValue value = map.get("singleString");
 		assertEquals(AnnotationsValueType.STRING, value.getType());
-		assertEquals( Arrays.asList("two"), value.getType());
+		assertEquals( Arrays.asList("two"), value.getValue());
 		value = map.get("listOfDoubles");
 		assertEquals(AnnotationsValueType.DOUBLE, value.getType());
-		assertEquals( Arrays.asList("4.6","6.7"), value.getType());
+		assertEquals( Arrays.asList("4.5","6.7"), value.getValue());
 	}
 	
 }
