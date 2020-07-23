@@ -4,7 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import org.apache.commons.lang3.StringUtils;
+import java.io.IOException;
+
 import org.apache.velocity.app.VelocityEngine;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -47,7 +49,7 @@ public class AccessRevokedNotificationBuilderIntegrationTest {
 	}
 	
 	@Test
-	public void testBuildMessageBodyWithDescription() {
+	public void testBuildMessageBodyWithDescription() throws IOException {
 		
 		Long recipientId = 4567L;
 		Long requirementId = 1234L;
@@ -62,25 +64,16 @@ public class AccessRevokedNotificationBuilderIntegrationTest {
 		when(accessRequirement.getId()).thenReturn(requirementId);
 		when(accessRequirement.getDescription()).thenReturn(requirementDescription);
 		
-		String expected = "<html>"
-				+ " <body>"
-				+ " <p> Dear First Second, </p>"
-				+ " <p> We did not receive your renewal information for the <a href=\"https://www.synapse.org/#!AccessRequirement:AR_ID=1234\">Some Dataset</a> access requirement (ID: 1234), and your access has now been revoked. </p>"
-				+ " <p> Please delete all copies of the data and have the other members of your group do this as well. The terms of use also requires that you provide a brief summary of what you accomplished with the data. </p>"
-				+ " <p> Should you wish to re-request access, you can do so at the following link: </p>"
-				+ " <p> <a href=\"https://www.synapse.org/#!AccessRequirement:AR_ID=1234\">https://www.synapse.org/#!AccessRequirement:AR_ID=1234</a> </p>"
-				+ " <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\"> Sincerely, </p>"
-				+ " <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\"> <img src=\"https://s3.amazonaws.com/static.synapse.org/images/SynapseLogo2.png\" style=\"display: inline;width: 40px;height: 40px;-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;border: 0;vertical-align: middle;\"> Synapse ACT Team </p>"
-				+ " </body> </html>";
+		String expected = TestUtils.loadFromClasspath("message/AccessApprovalRevokedNotificationWithDescription.html");
 
 		// Call under test
 		String result = builder.buildMessageBody(accessRequirement, approval, recipient);
 		
-		assertEquals(expected, StringUtils.normalizeSpace(result));
+		assertEquals(expected, result);
 	}
 	
 	@Test
-	public void testBuildMessageBodyWithoutDescription() {
+	public void testBuildMessageBodyWithoutDescription() throws IOException {
 		
 		Long recipientId = 4567L;
 		Long requirementId = 1234L;
@@ -95,25 +88,16 @@ public class AccessRevokedNotificationBuilderIntegrationTest {
 		when(accessRequirement.getId()).thenReturn(requirementId);
 		when(accessRequirement.getDescription()).thenReturn(requirementDescription);
 		
-		String expected = "<html>"
-				+ " <body>"
-				+ " <p> Dear First Second, </p>"
-				+ " <p> We did not receive your renewal information for an <a href=\"https://www.synapse.org/#!AccessRequirement:AR_ID=1234\">access requirement (ID: 1234)</a>, and your access has now been revoked. </p>"
-				+ " <p> Please delete all copies of the data and have the other members of your group do this as well. The terms of use also requires that you provide a brief summary of what you accomplished with the data. </p>"
-				+ " <p> Should you wish to re-request access, you can do so at the following link: </p>"
-				+ " <p> <a href=\"https://www.synapse.org/#!AccessRequirement:AR_ID=1234\">https://www.synapse.org/#!AccessRequirement:AR_ID=1234</a> </p>"
-				+ " <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\"> Sincerely, </p>"
-				+ " <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\"> <img src=\"https://s3.amazonaws.com/static.synapse.org/images/SynapseLogo2.png\" style=\"display: inline;width: 40px;height: 40px;-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;border: 0;vertical-align: middle;\"> Synapse ACT Team </p>"
-				+ " </body> </html>";
+		String expected = TestUtils.loadFromClasspath("message/AccessApprovalRevokedNotificationWithoutDescription.html");
 
 		// Call under test
 		String result = builder.buildMessageBody(accessRequirement, approval, recipient);
 		
-		assertEquals(expected, StringUtils.normalizeSpace(result));
+		assertEquals(expected, result);
 	}
 	
 	@Test
-	public void testBuildMessageBodyWithoutFirstLastName() {
+	public void testBuildMessageBodyWithoutFirstLastName() throws IOException {
 		
 		Long recipientId = 4567L;
 		Long requirementId = 1234L;
@@ -130,21 +114,12 @@ public class AccessRevokedNotificationBuilderIntegrationTest {
 		when(accessRequirement.getId()).thenReturn(requirementId);
 		when(accessRequirement.getDescription()).thenReturn(requirementDescription);
 		
-		String expected = "<html>"
-				+ " <body>"
-				+ " <p> Dear Synapse User, </p>"
-				+ " <p> We did not receive your renewal information for the <a href=\"https://www.synapse.org/#!AccessRequirement:AR_ID=1234\">Some Dataset</a> access requirement (ID: 1234), and your access has now been revoked. </p>"
-				+ " <p> Please delete all copies of the data and have the other members of your group do this as well. The terms of use also requires that you provide a brief summary of what you accomplished with the data. </p>"
-				+ " <p> Should you wish to re-request access, you can do so at the following link: </p>"
-				+ " <p> <a href=\"https://www.synapse.org/#!AccessRequirement:AR_ID=1234\">https://www.synapse.org/#!AccessRequirement:AR_ID=1234</a> </p>"
-				+ " <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\"> Sincerely, </p>"
-				+ " <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\"> <img src=\"https://s3.amazonaws.com/static.synapse.org/images/SynapseLogo2.png\" style=\"display: inline;width: 40px;height: 40px;-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;border: 0;vertical-align: middle;\"> Synapse ACT Team </p>"
-				+ " </body> </html>";
+		String expected = TestUtils.loadFromClasspath("message/AccessApprovalRevokedNotificationWithoutFirstLast.html");
 		
 		// Call under test
 		String result = builder.buildMessageBody(accessRequirement, approval, recipient);
 		
-		assertEquals(expected, StringUtils.normalizeSpace(result));
+		assertEquals(expected, result);
 	}
 	
 }
