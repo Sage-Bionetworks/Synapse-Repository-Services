@@ -51,9 +51,9 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessNotificationType;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessNotification;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationDao;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationType;
 import org.sagebionetworks.repo.model.dbo.feature.Feature;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -135,7 +135,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 	@Test
 	public void testConfigureNotificationBuildersWithMultiple() {
 		
-		List<DataAccessNotificationType> supportedTypes = Arrays.asList(DataAccessNotificationType.REVOCATION, DataAccessNotificationType.RENEWAL_REMINDER_1);
+		List<DataAccessNotificationType> supportedTypes = Arrays.asList(DataAccessNotificationType.REVOCATION, DataAccessNotificationType.FIRST_RENEWAL_REMINDER);
 		
 		when(mockNotificationBuilder.supportedTypes()).thenReturn(supportedTypes);
 		List<DataAccessNotificationBuilder> builders = Collections.singletonList(mockNotificationBuilder);
