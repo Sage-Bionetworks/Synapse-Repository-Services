@@ -4,11 +4,9 @@ import static org.sagebionetworks.repo.model.docker.RegistryEventAction.pull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sagebionetworks.StackConfigurationSingleton;
@@ -62,7 +60,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 public class AuthorizationManagerImpl implements AuthorizationManager {

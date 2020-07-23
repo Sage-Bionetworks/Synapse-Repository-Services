@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.manager.migration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -10,10 +10,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.ids.IdGenerator;
@@ -61,9 +61,9 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MigrationManagerImplAutowireTest {
 	
@@ -129,7 +129,7 @@ public class MigrationManagerImplAutowireTest {
 	ProgressCallback mockProgressCallbackVoid;
 	private long startId;
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 		mockProgressCallbackVoid = Mockito.mock(ProgressCallback.class);
@@ -198,7 +198,7 @@ public class MigrationManagerImplAutowireTest {
 		tableEntityManager.appendRows(adminUser, tableId, rowSet, mockProgressCallback, transactionId);
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception{
 		// Since this test can delete all data make sure bootstrap data gets put back.
 		entityBootstrapper.bootstrapAll();
@@ -491,4 +491,5 @@ public class MigrationManagerImplAutowireTest {
 		// validate all of the data was restored.
 		validateProjectsRestored();
 	}
+	
 }

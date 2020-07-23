@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -86,7 +87,15 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		Long id = idGenerator.generateNewId(IdType.DISCUSSION_THREAD_ID);
 		String messageKey = uploadDao.uploadThreadMessage(createThread.getMessageMarkdown(), createThread.getForumId(), id.toString());
 		DiscussionThreadBundle thread = threadDao.createThread(createThread.getForumId(), id.toString(), createThread.getTitle(), messageKey, userInfo.getId());
-		transactionalMessenger.sendMessageAfterCommit(""+id, ObjectType.THREAD, thread.getEtag(), ChangeType.CREATE, userInfo.getId());
+		
+		MessageToSend changeMessage = new MessageToSend()
+				.withUserId(userInfo.getId())
+				.withObjectType(ObjectType.THREAD)
+				.withObjectId(id.toString())
+				.withChangeType(ChangeType.CREATE);
+		
+		transactionalMessenger.sendMessageAfterCommit(changeMessage);
+		
 		subscriptionDao.create(userInfo.getId().toString(), id.toString(), SubscriptionObjectType.THREAD);
 		List<DiscussionThreadEntityReference> entityRefs = DiscussionUtils.getEntityReferences(createThread.getMessageMarkdown(), thread.getId());
 		entityRefs.addAll(DiscussionUtils.getEntityReferences(createThread.getTitle(), thread.getId()));
@@ -111,7 +120,15 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 			authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		}
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
-		transactionalMessenger.sendMessageAfterCommit(threadId, ObjectType.THREAD, thread.getEtag(),  ChangeType.UPDATE, userInfo.getId());
+		
+		MessageToSend changeMessage = new MessageToSend()
+				.withUserId(userInfo.getId())
+				.withObjectType(ObjectType.THREAD)
+				.withObjectId(threadId)
+				.withChangeType(ChangeType.UPDATE);
+				
+		transactionalMessenger.sendMessageAfterCommit(changeMessage);
+		
 		return thread;
 	}
 

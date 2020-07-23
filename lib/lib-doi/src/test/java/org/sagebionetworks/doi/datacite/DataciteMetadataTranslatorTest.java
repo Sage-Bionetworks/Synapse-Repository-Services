@@ -289,29 +289,6 @@ public class DataciteMetadataTranslatorTest {
 	}
 
 	@Test
-	@Ignore // Remove this annotation when PLFM-5145 is complete
-	public void testValidateCreatorWithNonNullNameIdentifiers() {
-		DoiCreator creator = new DoiCreator();
-		creator.setCreatorName("A name");
-
-		DoiNameIdentifier id1 = new DoiNameIdentifier();
-		id1.setIdentifier(validOrcid);
-		id1.setNameIdentifierScheme(NameIdentifierScheme.ORCID);
-
-		DoiNameIdentifier id2 = new DoiNameIdentifier();
-		id2.setIdentifier("Another Identifier");
-		id2.setNameIdentifierScheme(NameIdentifierScheme.ISNI);
-
-		List<DoiNameIdentifier> ids = new ArrayList<>();
-		ids.add(id1);
-		ids.add(id2);
-
-		creator.setNameIdentifiers(ids);
-		// Call under test
-		validateDoiCreator(creator);
-	}
-
-	@Test
 	public void testNameIdPass() {
 		DoiNameIdentifier nameIdentifier = new DoiNameIdentifier();
 		nameIdentifier.setNameIdentifierScheme(NameIdentifierScheme.ORCID);

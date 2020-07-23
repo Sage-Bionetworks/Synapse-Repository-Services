@@ -1060,6 +1060,16 @@ public class SqlConstants {
 	public static final String COL_OAUTH_REFRESH_TOKEN_MODIFIED_ON =					"MODIFIED_ON";
 	public static final String COL_OAUTH_REFRESH_TOKEN_ETAG =							"ETAG";
 
+	public static final String DDL_PERSONAL_ACCESS_TOKEN = 								"schema/PersonalAccessToken-ddl.sql";
+	public static final String TABLE_PERSONAL_ACCESS_TOKEN = 							"PERSONAL_ACCESS_TOKEN";
+	public static final String COL_PERSONAL_ACCESS_TOKEN_ID =							"ID";
+	public static final String COL_PERSONAL_ACCESS_TOKEN_NAME =							"NAME";
+	public static final String COL_PERSONAL_ACCESS_TOKEN_PRINCIPAL_ID =					"PRINCIPAL_ID";
+	public static final String COL_PERSONAL_ACCESS_TOKEN_SCOPES =						"SCOPES";
+	public static final String COL_PERSONAL_ACCESS_TOKEN_CLAIMS =						"CLAIMS";
+	public static final String COL_PERSONAL_ACCESS_TOKEN_CREATED_ON =					"CREATED_ON";
+	public static final String COL_PERSONAL_ACCESS_TOKEN_LAST_USED =					"LAST_USED";
+
 	// Status table for monthly statistics
 	public static final String TABLE_STATISTICS_MONTHLY_STATUS =						"STATISTICS_MONTHLY_STATUS";
 	public static final String DDL_STATISTICS_MONTHLY_STATUS =							"schema/statistics/StatisticsMonthlyStatus-ddl.sql";
@@ -1107,7 +1117,25 @@ public class SqlConstants {
 	public static final String COL_QUARANTINED_EMAILS_REASON_DETAILS =					"REASON_DETAILS";
 	public static final String COL_QUARANTINED_EMAILS_SES_MESSAGE_ID = 					"SES_MESSAGE_ID";
 	
+	// DataAccessNotification
+	public static final String DDL_DATA_ACCESS_NOTIFICATION = 							"schema/DataAccessNotification-ddl.sql";
+	public static final String TABLE_DATA_ACCESS_NOTIFICATION = 						"DATA_ACCESS_NOTIFICATION";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_ID = 						"ID";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_ETAG = 						"ETAG";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_TYPE = 						"NOTIFICATION_TYPE";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_REQUIREMENT_ID = 			"REQUIREMENT_ID";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_RECIPIENT_ID = 				"RECIPIENT_ID";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_APPROVAL_ID = 				"ACCESS_APPROVAL_ID";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_SENT_ON = 					"SENT_ON";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_MESSAGE_ID = 				"MESSAGE_ID";	
 	
+	// Feature testing
+	public static final String DDL_FEATURE_STATUS =										"schema/testing/FeatureStatus-ddl.sql";
+	public static final String TABLE_FEATURE_STATUS = 									"FEATURE_STATUS";
+	public static final String COL_FEATURE_STATUS_ID = 									"ID";
+	public static final String COL_FEATURE_STATUS_ETAG = 								"ETAG";
+	public static final String COL_FEATURE_STATUS_TYPE = 								"FEATURE_TYPE";
+	public static final String COL_FEATURE_STATUS_ENABLED =								"ENABLED";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

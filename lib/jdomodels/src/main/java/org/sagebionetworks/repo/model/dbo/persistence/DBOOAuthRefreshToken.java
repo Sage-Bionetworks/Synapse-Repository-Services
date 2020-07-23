@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_REFRESH_TOKEN_CLAIMS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_REFRESH_TOKEN_CLIENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_REFRESH_TOKEN_CREATED_ON;
@@ -62,7 +61,7 @@ public class DBOOAuthRefreshToken implements MigratableDatabaseObject<DBOOAuthRe
 		DBOOAuthRefreshToken token = new DBOOAuthRefreshToken();
 		token.setId(rs.getLong(COL_OAUTH_REFRESH_TOKEN_ID));
 		token.setTokenHash(rs.getString(COL_OAUTH_REFRESH_TOKEN_HASH));
-		token.setName(rs.getString(COL_OAUTH_CLIENT_NAME));
+		token.setName(rs.getString(COL_OAUTH_REFRESH_TOKEN_NAME));
 		token.setPrincipalId(rs.getLong(COL_OAUTH_REFRESH_TOKEN_PRINCIPAL_ID));
 		token.setClientId(rs.getLong(COL_OAUTH_REFRESH_TOKEN_CLIENT_ID));
 		token.setScopes(rs.getBytes(COL_OAUTH_REFRESH_TOKEN_SCOPES));

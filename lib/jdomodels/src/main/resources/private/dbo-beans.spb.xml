@@ -124,6 +124,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionSubmitter" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionStatus" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessNotification" />
 				<!-- Forms -->
 				<bean class="org.sagebionetworks.repo.model.dbo.form.DBOFormGroup" />
 				<bean class="org.sagebionetworks.repo.model.dbo.form.DBOFormData" />
@@ -144,6 +145,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSectorIdentifier"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthRefreshToken" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOPersonalAccessToken" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAuthorizationConsent" />
 				<!-- Statistics -->
 				<bean class="org.sagebionetworks.repo.model.dbo.statistics.DBOStatisticsMonthlyStatus" />
@@ -152,6 +154,8 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.ses.DBOSESNotification" />
 				<!-- Email Quarantine -->
 				<bean class="org.sagebionetworks.repo.model.dbo.ses.DBOQuarantinedEmail" />
+				<!-- Feature Status -->
+				<bean class="org.sagebionetworks.repo.model.dbo.feature.DBOFeatureStatus" />
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->
@@ -239,6 +243,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBORequest" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionSubmitter" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessNotification" />
 				<!-- Forms -->
 				<bean class="org.sagebionetworks.repo.model.dbo.form.DBOFormGroup" />
 				<bean class="org.sagebionetworks.repo.model.dbo.form.DBOFormData" />
@@ -257,6 +262,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSectorIdentifier"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthRefreshToken" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOPersonalAccessToken" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAuthorizationConsent" />
 				
 				<!-- SES Notifications -->
@@ -264,6 +270,9 @@
 		
 				<!-- Email Quarantine -->
 				<bean class="org.sagebionetworks.repo.model.dbo.ses.DBOQuarantinedEmail" />
+				
+				<!-- Feature Status -->
+				<bean class="org.sagebionetworks.repo.model.dbo.feature.DBOFeatureStatus" />
 		
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" /> <!-- THIS MUST ALWAYS BE THE LAST BEAN -->
 			</list>

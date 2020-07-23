@@ -20,6 +20,11 @@
 	<!-- We don't want to send emails during testing, so we stub out Amazon SES -->
 	<bean id="amazonSESClient" class="org.sagebionetworks.repo.manager.StubAmazonSimpleEmailServiceClient" />
 	
+	<!-- We don't want to contact prod during the worker testing -->
+	<bean id="prodDetector" class="org.sagebionetworks.StubProdDetector">
+		<constructor-arg value="false" />
+	</bean>
+	
 	<bean id="asynchronousJobWorkerHelper" class="org.sagebionetworks.AsynchronousJobWorkerHelperImpl"/>
 	
 	<!--  During integration tests we do not want to scan partitions -->
@@ -73,5 +78,18 @@
 			<ref bean="objectReplicationWorkerTrigger" />
 			<ref bean="viewColumnModelRequestWorkerTrigger" />
 		</util:list>
+	</beans>
+	
+	<!-- Profile with a subset of workers for data access workers only (Use with @ActiveProfiles("test-dataaccess-worker") -->
+	<beans profile="test-dataaccess-worker">
+		<util:list id="workerTriggersList">
+			<ref bean="messagePublisherTrigger" />
+			<ref bean="accessApprovalExpirationTrigger"/>
+			<ref bean="accessApprovalRevokedNotificationTrigger"/>
+		</util:list>
+		<!-- We want to simulate the email sending (no email go out) so this must be prod -->
+		<bean id="prodDetector" class="org.sagebionetworks.StubProdDetector">
+			<constructor-arg value="true" />
+		</bean>
 	</beans>
 </beans>

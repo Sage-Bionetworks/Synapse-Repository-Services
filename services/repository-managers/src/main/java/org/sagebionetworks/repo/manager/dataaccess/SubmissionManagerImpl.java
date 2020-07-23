@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.sagebionetworks.repo.manager.AccessRequirementManagerImpl;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -30,12 +29,10 @@ import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
-import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfo;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPageRequest;
-import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
@@ -44,6 +41,7 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -68,6 +66,8 @@ public class SubmissionManagerImpl implements SubmissionManager{
 	private SubscriptionDAO subscriptionDao;
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
+	@Autowired
+	private AccessApprovalManager accessAprovalManager;
 
 	@WriteTransaction
 	@Override
@@ -91,8 +91,15 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		prepareCreationFields(userInfo, submissionToCreate);
 		SubmissionStatus status = submissionDao.createSubmission(submissionToCreate);
 		subscriptionDao.create(userInfo.getId().toString(), status.getSubmissionId(), SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS);
-		transactionalMessenger.sendMessageAfterCommit(status.getSubmissionId(),
-				ObjectType.DATA_ACCESS_SUBMISSION, UUID.randomUUID().toString(), ChangeType.CREATE, userInfo.getId());
+
+		MessageToSend changeMessage = new MessageToSend()
+				.withUserId(userInfo.getId())
+				.withObjectType(ObjectType.DATA_ACCESS_SUBMISSION)
+				.withObjectId(status.getSubmissionId())
+				.withChangeType(ChangeType.CREATE);
+		
+		transactionalMessenger.sendMessageAfterCommit(changeMessage);
+		
 		return status;
 	}
 
@@ -218,23 +225,31 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		ValidateArgument.requirement(request.getNewState().equals(SubmissionState.APPROVED)
 				|| request.getNewState().equals(SubmissionState.REJECTED),
 				"Do not support changing to state: "+request.getNewState());
+		
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can perform this action.");
 		}
+		
 		Submission submission = submissionDao.getForUpdate(request.getSubmissionId());
+		
 		ValidateArgument.requirement(submission.getState().equals(SubmissionState.SUBMITTED),
 						"Cannot change state of a submission with "+submission.getState()+" state.");
+		
 		if (request.getNewState().equals(SubmissionState.APPROVED)) {
 			ManagedACTAccessRequirement ar = (ManagedACTAccessRequirement)accessRequirementDao.get(submission.getAccessRequirementId());
 			Date expiredOn = calculateExpiredOn(ar.getExpirationPeriod());
+			
 			List<AccessApproval> approvalsToCreateOrUpdate = new ArrayList<AccessApproval>();
 			List<String> accessorsToRevoke = new LinkedList<String>();
+			
 			String modifiedBy =  userInfo.getId().toString();
+			
 			createApprovalsForSubmission(submission, modifiedBy, expiredOn, approvalsToCreateOrUpdate, accessorsToRevoke);
 
 			if (!accessorsToRevoke.isEmpty()) {
-				accessApprovalDao.revokeBySubmitter(submission.getAccessRequirementId(), submission.getSubmittedBy(), accessorsToRevoke, modifiedBy);
+				accessAprovalManager.revokeGroup(userInfo, submission.getAccessRequirementId(), submission.getSubmittedBy(), accessorsToRevoke);
 			}
+			
 			if (!approvalsToCreateOrUpdate.isEmpty()) {
 				accessApprovalDao.createOrUpdateBatch(approvalsToCreateOrUpdate);
 			}
@@ -243,10 +258,19 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			 */
 			requestManager.updateApprovedRequest(submission.getRequestId());
 		}
+		
 		submission = submissionDao.updateSubmissionStatus(request.getSubmissionId(),
 				request.getNewState(), request.getRejectedReason(), userInfo.getId().toString(),
 				System.currentTimeMillis());
-		transactionalMessenger.sendMessageAfterCommit(submission.getId(), ObjectType.DATA_ACCESS_SUBMISSION_STATUS, submission.getEtag(), ChangeType.UPDATE, userInfo.getId());
+		
+		MessageToSend changeMessage = new MessageToSend()
+				.withUserId(userInfo.getId())
+				.withObjectType(ObjectType.DATA_ACCESS_SUBMISSION_STATUS)
+				.withObjectId(submission.getId())
+				.withChangeType(ChangeType.UPDATE);
+		
+		transactionalMessenger.sendMessageAfterCommit(changeMessage);
+		
 		return submission;
 	}
 

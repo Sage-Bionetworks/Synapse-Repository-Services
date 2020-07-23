@@ -10,19 +10,29 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
+import org.springframework.stereotype.Service;
 
-/*
- * Need this non-final implementation of SimpleHttpClient to allow
- * Spring MVC to inject into other classes.
+/**
+ * Pre-configured HTTP client singleton instance that can be injected into a service.
+ * 
+ * Defaults to a connection and connection request timeout of 10 seconds with a data reading timeout of 30 seconds.
  */
+@Service
 public class HttpClientImpl implements SimpleHttpClient {
+	
 	private SimpleHttpClient client;
 	
 	private static final Integer TIME_OUT = 30 * 1000; // 30 seconds
+	private static final int CONNECTION_REQUEST_TIMEOUT = 10 * 1000; // 10 seconds
+	private static final int CONNECTION_TIMEOUT = CONNECTION_REQUEST_TIMEOUT;
 
 	public HttpClientImpl() {
 		SimpleHttpClientConfig httpClientConfig = new SimpleHttpClientConfig();
+		
 		httpClientConfig.setSocketTimeoutMs(TIME_OUT);
+		httpClientConfig.setConnectionRequestTimeoutMs(CONNECTION_REQUEST_TIMEOUT);
+		httpClientConfig.setConnectTimeoutMs(CONNECTION_TIMEOUT);
+		
 		this.client = new SimpleHttpClientImpl(httpClientConfig);
 	}
 

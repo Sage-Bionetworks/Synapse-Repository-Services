@@ -310,9 +310,9 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 			aclDao.canAccess(user, versionInfo.getOrganizationId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE)
 					.checkAuthorizationOrElseThrow();
 		}
-		if(parsedId.getSemanticVersion() == null) {
+		if (parsedId.getSemanticVersion() == null) {
 			jsonSchemaDao.deleteSchema(versionInfo.getSchemaId());
-		}else {
+		} else {
 			jsonSchemaDao.deleteSchemaVersion(versionInfo.getVersionId());
 		}
 	}
@@ -405,10 +405,15 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 						baseSchema.getDefinitions().putAll(validationSubSchema.getDefinitions());
 					}
 					validationSubSchema.setDefinitions(null);
+					/*
+					 * The $id of each dependency schema with the definitions must exclude the $id.
+					 * See PLFM-6366
+					 */
+					validationSubSchema.set$id(null);
 					baseSchema.getDefinitions().put(subSchema.get$ref(), validationSubSchema);
 				}
 				// replace the $ref to the local $def
-				subSchema.set$ref("#/definitions/"+subSchema.get$ref());
+				subSchema.set$ref("#/definitions/" + subSchema.get$ref());
 			}
 		}
 		if (baseSchema.getDefinitions().isEmpty()) {
@@ -428,7 +433,14 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	public JsonSchema getSchema(String $id) {
 		ValidateArgument.required($id, "id");
 		String versionId = getSchemaVersionId($id);
-		return jsonSchemaDao.getSchema(versionId);
+		JsonSchema result = jsonSchemaDao.getSchema(versionId);
+		/*
+		 * The $id of the result must match the requested $id even for cases where the
+		 * result has a semantic version but the request $id did not include a semantic
+		 * version.
+		 */
+		result.set$id($id);
+		return result;
 	}
 
 	@Override

@@ -4,7 +4,6 @@ import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.ANONYMOU
 
 import java.io.IOException;
 import java.util.List;
-import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -27,6 +26,7 @@ import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.ReplyCount;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -36,7 +36,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
-	private static final DiscussionFilter DEFAULT_FILTER = DiscussionFilter.NO_FILTER;
+
 	@Autowired
 	private DiscussionThreadManager threadManager;
 	@Autowired
@@ -71,9 +71,25 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		String messageKey = uploadDao.uploadReplyMessage(createReply.getMessageMarkdown(), thread.getForumId(), threadId, replyId);
 		DiscussionReplyBundle reply = replyDao.createReply(threadId, replyId, messageKey, userInfo.getId());
 		subscriptionDao.create(userInfo.getId().toString(), threadId, SubscriptionObjectType.THREAD);
-		transactionalMessenger.sendMessageAfterCommit(replyId, ObjectType.REPLY, reply.getEtag(), ChangeType.CREATE, userInfo.getId());
+		
+		MessageToSend replyChange = new MessageToSend()
+				.withUserId(userInfo.getId())
+				.withObjectType(ObjectType.REPLY)
+				.withObjectId(replyId)
+				.withChangeType(ChangeType.CREATE);
+		
+		transactionalMessenger.sendMessageAfterCommit(replyChange);
+		
 		threadDao.insertEntityReference(DiscussionUtils.getEntityReferences(createReply.getMessageMarkdown(), threadId));
-		transactionalMessenger.sendMessageAfterCommit(threadId, ObjectType.THREAD, UUID.randomUUID().toString(), ChangeType.UPDATE, userInfo.getId());
+		
+		MessageToSend threadChange = new MessageToSend()
+				.withUserId(userInfo.getId())
+				.withObjectType(ObjectType.THREAD)
+				.withObjectId(threadId)
+				.withChangeType(ChangeType.UPDATE);
+		
+		transactionalMessenger.sendMessageAfterCommit(threadChange);
+		
 		return reply;
 	}
 

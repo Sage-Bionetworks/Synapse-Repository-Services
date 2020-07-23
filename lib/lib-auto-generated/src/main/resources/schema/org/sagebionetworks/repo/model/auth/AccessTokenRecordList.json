@@ -1,0 +1,16 @@
+{
+	"description": "Metadata for a paginated list of personal access token records.",
+	"properties": {
+		"results":{
+			"type": "array",
+			"items":{
+				"$ref": "org.sagebionetworks.repo.model.auth.AccessTokenRecord"
+			}
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "The token to get the next page of results."
+		}
+	}
+}
+

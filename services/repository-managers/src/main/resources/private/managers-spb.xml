@@ -36,8 +36,6 @@
 	<bean id="CloudMailInManager" class="org.sagebionetworks.repo.manager.CloudMailInManagerImpl" />
 	
 	<bean id="dockerManager" class="org.sagebionetworks.repo.manager.DockerManagerImpl" />
-	
-	<bean id="httpClient" class="org.sagebionetworks.repo.manager.http.HttpClientImpl" />
 
 	<bean id="companyClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.CompanyClaimProvider"/>
 	<bean id="emailClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.EmailClaimProvider"/>
@@ -276,10 +274,6 @@
 
 	<bean id="projectSettingsManager" class="org.sagebionetworks.repo.manager.ProjectSettingsManagerImpl" />
 
-	<bean id="accessRequirementManager" class="org.sagebionetworks.repo.manager.AccessRequirementManagerImpl" />
-
-	<bean id="accessApprovalManager" class="org.sagebionetworks.repo.manager.AccessApprovalManagerImpl" />
-
 	<bean id="userManager" class="org.sagebionetworks.repo.manager.UserManagerImpl" />
 
 	<bean id="userCredentialValidator" class="org.sagebionetworks.repo.manager.UserCredentialValidatorImpl" />
@@ -324,9 +318,6 @@
 		scope="singleton" factory-method="newFixedThreadPool">
 		<constructor-arg value="10" />
 	</bean>
-
-	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl"
-		scope="singleton" />
 
 	<bean id="s3Utility" class="org.sagebionetworks.repo.manager.AmazonS3UtilityImpl"
 		scope="singleton" />
