@@ -110,6 +110,34 @@ public class EmailUtilsTest {
 	}
 	
 	@Test
+	public void testGetDisplayNameOrUsernameWithoutFirstLast() {
+		UserProfile up = new UserProfile();
+		up.setUserName("user");
+		
+		assertEquals("user", EmailUtils.getDisplayNameOrUsername(up));
+	}
+	
+	@Test
+	public void testGetDisplayNameOrUsernameWithEmptyFirstLast() {
+		UserProfile up = new UserProfile();
+		up.setFirstName("");
+		up.setLastName(null);
+		up.setUserName("user");
+		
+		assertEquals("user", EmailUtils.getDisplayNameOrUsername(up));
+	}
+	
+	@Test
+	public void testGetDisplayNameOrUsernameWithFirstLast() {
+		UserProfile up = new UserProfile();
+		up.setFirstName("First");
+		up.setLastName("Last");
+		up.setUserName("user");
+		
+		assertEquals("First Last", EmailUtils.getDisplayNameOrUsername(up));
+	}
+	
+	@Test
 	public void testCreateSource() {
 		assertEquals("noreply@synapse.org", EmailUtils.createSource(null, null));
 		assertEquals("someuser@synapse.org", EmailUtils.createSource(null, "someuser"));
@@ -122,6 +150,7 @@ public class EmailUtilsTest {
 	@Test
 	public void testValidateSynapsePortalHostOK() throws Exception {
 		EmailUtils.validateSynapsePortalHost("https://www.synapse.org");
+		EmailUtils.validateSynapsePortalHost("https://synapse.org");
 		EmailUtils.validateSynapsePortalHost("http://localhost");
 		EmailUtils.validateSynapsePortalHost("http://127.0.0.1");
 		EmailUtils.validateSynapsePortalHost("https://synapse-staging.sagebase.org");

@@ -1117,7 +1117,25 @@ public class SqlConstants {
 	public static final String COL_QUARANTINED_EMAILS_REASON_DETAILS =					"REASON_DETAILS";
 	public static final String COL_QUARANTINED_EMAILS_SES_MESSAGE_ID = 					"SES_MESSAGE_ID";
 	
+	// DataAccessNotification
+	public static final String DDL_DATA_ACCESS_NOTIFICATION = 							"schema/DataAccessNotification-ddl.sql";
+	public static final String TABLE_DATA_ACCESS_NOTIFICATION = 						"DATA_ACCESS_NOTIFICATION";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_ID = 						"ID";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_ETAG = 						"ETAG";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_TYPE = 						"NOTIFICATION_TYPE";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_REQUIREMENT_ID = 			"REQUIREMENT_ID";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_RECIPIENT_ID = 				"RECIPIENT_ID";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_APPROVAL_ID = 				"ACCESS_APPROVAL_ID";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_SENT_ON = 					"SENT_ON";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_MESSAGE_ID = 				"MESSAGE_ID";	
 	
+	// Feature testing
+	public static final String DDL_FEATURE_STATUS =										"schema/testing/FeatureStatus-ddl.sql";
+	public static final String TABLE_FEATURE_STATUS = 									"FEATURE_STATUS";
+	public static final String COL_FEATURE_STATUS_ID = 									"ID";
+	public static final String COL_FEATURE_STATUS_ETAG = 								"ETAG";
+	public static final String COL_FEATURE_STATUS_TYPE = 								"FEATURE_TYPE";
+	public static final String COL_FEATURE_STATUS_ENABLED =								"ENABLED";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
