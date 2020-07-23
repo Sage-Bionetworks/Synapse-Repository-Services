@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -71,7 +73,9 @@ public class DBOAccessApprovalDAOImplTest {
 	
 	@BeforeEach
 	public void setUp() throws Exception {
-
+		accessApprovalDAO.clear();
+		accessRequirementDAO.clear();
+		
 		individualGroup = new UserGroup();
 		individualGroup.setIsIndividual(true);
 		individualGroup.setCreationDate(new Date());
@@ -117,21 +121,8 @@ public class DBOAccessApprovalDAOImplTest {
 	
 	@AfterEach
 	public void tearDown() throws Exception{
-		if (accessApproval!=null && accessApproval.getId()!=null) {
-			accessApprovalDAO.delete(accessApproval.getId().toString());
-		}
-		if (accessApproval2!=null && accessApproval2.getId()!=null) {
-			accessApprovalDAO.delete(accessApproval2.getId().toString());
-		}
-		if (accessApproval3!=null && accessApproval3.getId()!=null) {
-			accessApprovalDAO.delete(accessApproval3.getId().toString());
-		}
-		if (accessRequirement!=null && accessRequirement.getId()!=null) {
-			accessRequirementDAO.delete(accessRequirement.getId().toString());
-		}
-		if (accessRequirement2!=null && accessRequirement2.getId()!=null) {
-			accessRequirementDAO.delete(accessRequirement2.getId().toString());
-		}
+		accessApprovalDAO.clear();
+		accessRequirementDAO.clear();
 		if (node!=null && nodeDao!=null) {
 			nodeDao.delete(node.getId());
 			node = null;
@@ -836,6 +827,139 @@ public class DBOAccessApprovalDAOImplTest {
 		List<Long> expected = Arrays.asList(accessApproval.getId());		
 		List<Long> result = accessApprovalDAO.listApprovalsByAccessor(accessRequirementId, accessorId);
 		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListExpiredApprovalsForSubmittersWithDifferentRequirements() {
+		
+		LocalDate expirationDate = LocalDate.now(ZoneOffset.UTC);
+		int limit = 100;
+		
+		Instant beginningOfDay = expirationDate.atStartOfDay(ZoneOffset.UTC).toInstant();
+		
+		// Submitter1, expire at the beginning of the day
+		AccessApproval ap1 = newAccessApproval(individualGroup, accessRequirement);
+		ap1.setExpiredOn(Date.from(beginningOfDay));
+		
+		// Submitter1, same day, but different requriement
+		AccessApproval ap2 = newAccessApproval(individualGroup, accessRequirement2);
+		ap2.setExpiredOn(Date.from(beginningOfDay));
+		
+		// Submitter2, expiring at the beginning of the day as well
+		AccessApproval ap3 = newAccessApproval(individualGroup2, accessRequirement2);
+		ap3.setExpiredOn(Date.from(beginningOfDay));
+		
+		
+		ap1 = accessApprovalDAO.create(ap1);
+		ap2 = accessApprovalDAO.create(ap2);
+		ap3 = accessApprovalDAO.create(ap3);
+		
+		List<Long> expected = Arrays.asList(ap1.getId(), ap2.getId(), ap3.getId());
+		
+		List<Long> result = accessApprovalDAO.listExpiredApprovalsForSubmitters(expirationDate, limit);
+	
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListExpiredApprovalsForSubmittersWithExcludeAccessor() {
+		
+		LocalDate expirationDate = LocalDate.now(ZoneOffset.UTC);
+		int limit = 100;
+		
+		Instant beginningOfDay = expirationDate.atStartOfDay(ZoneOffset.UTC).toInstant();
+		
+		// Submitter1, expire at the beginning of the day
+		AccessApproval ap1 = newAccessApproval(individualGroup, accessRequirement);
+		ap1.setExpiredOn(Date.from(beginningOfDay));
+		
+		// Submitter1, same day, but not an accessor
+		AccessApproval ap2 = newAccessApproval(individualGroup, accessRequirement);
+		ap2.setExpiredOn(Date.from(beginningOfDay));
+		ap2.setAccessorId(individualGroup2.getId());		
+		
+		ap1 = accessApprovalDAO.create(ap1);
+		ap2 = accessApprovalDAO.create(ap2);
+		
+		List<Long> expected = Arrays.asList(ap1.getId());
+		
+		List<Long> result = accessApprovalDAO.listExpiredApprovalsForSubmitters(expirationDate, limit);
+	
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListExpiredApprovalsForSubmittersWithNoExpiration() {
+		
+		LocalDate expirationDate = LocalDate.now(ZoneOffset.UTC);
+		int limit = 100;
+		
+		// Approval with no expiration
+		AccessApproval ap1 = newAccessApproval(individualGroup, accessRequirement);
+		
+		ap1 = accessApprovalDAO.create(ap1);
+		
+		List<Long> expected = Collections.emptyList();
+		
+		List<Long> result = accessApprovalDAO.listExpiredApprovalsForSubmitters(expirationDate, limit);
+	
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListExpiredApprovalsForSubmittersWithPastApproval() {
+		
+		LocalDate expirationDate = LocalDate.now(ZoneOffset.UTC);
+		int limit = 100;
+		
+		Instant previousDay = Instant.now().minus(1, ChronoUnit.DAYS);
+		Instant beginningOfDay = expirationDate.atStartOfDay(ZoneOffset.UTC).toInstant();
+		
+		// Expires the same day
+		AccessApproval ap1 = newAccessApproval(individualGroup, accessRequirement);
+		ap1.setExpiredOn(Date.from(beginningOfDay));
+		
+		// Same approval for the same AR (but different version) but expired the previous day
+		AccessApproval ap2 = newAccessApproval(individualGroup, accessRequirement);
+		ap2.setRequirementVersion(accessRequirement.getVersionNumber() + 1);
+		ap2.setExpiredOn(Date.from(previousDay));
+		
+		ap1 = accessApprovalDAO.create(ap1);
+		ap2 = accessApprovalDAO.create(ap2);
+		
+		List<Long> expected = Arrays.asList(ap1.getId());
+		
+		List<Long> result = accessApprovalDAO.listExpiredApprovalsForSubmitters(expirationDate, limit);
+	
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListExpiredApprovalsForSubmittersWithFutureApproval() {
+		
+		LocalDate expirationDate = LocalDate.now(ZoneOffset.UTC);
+		int limit = 100;
+		
+		Instant beginningOfDay = expirationDate.atStartOfDay(ZoneOffset.UTC).toInstant();
+		Instant nextDay = expirationDate.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+		
+		// Expires the same day
+		AccessApproval ap1 = newAccessApproval(individualGroup, accessRequirement);
+		ap1.setExpiredOn(Date.from(beginningOfDay));
+		
+		// Another approval for the same AR (but different version) but expires the next day
+		AccessApproval ap2 = newAccessApproval(individualGroup, accessRequirement);
+		ap2.setRequirementVersion(accessRequirement.getVersionNumber() + 1);
+		ap2.setExpiredOn(Date.from(nextDay));
+		
+		ap1 = accessApprovalDAO.create(ap1);
+		ap2 = accessApprovalDAO.create(ap2);
+		
+		List<Long> expected = Arrays.asList(ap1.getId());
+		
+		List<Long> result = accessApprovalDAO.listExpiredApprovalsForSubmitters(expirationDate, limit);
+	
 		assertEquals(expected, result);
 	}
 }

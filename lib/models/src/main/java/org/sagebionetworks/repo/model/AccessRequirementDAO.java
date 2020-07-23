@@ -121,4 +121,8 @@ public interface AccessRequirementDAO {
 	 * @return
 	 */
 	public List<RestrictableObjectDescriptor> getSubjects(long accessRequirementId, long limit, long offset);
+	
+	// For testing
+	
+	void clear();
 }
