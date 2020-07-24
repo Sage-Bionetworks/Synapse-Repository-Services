@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.List;
 
+import org.json.JSONObject;
+import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
@@ -403,4 +405,45 @@ public interface EntityManager {
 	 * @return
 	 */
 	public void clearBoundSchema(UserInfo userInfo, String id);
+
+	/**
+	 * Get the flat JSON representation of an Entity that includes both Entity data
+	 * and its annotations. This flat JSON is suitable to validate an entity against
+	 * a JSON schema.
+	 * 
+	 * @param userInfo
+	 * @param id
+	 * @return
+	 */
+	public JSONObject getEntityJson(UserInfo userInfo, String id);
+	
+	/**
+	 * Same as : {@link #getEntityJson(UserInfo, String)} without an authorization check.
+	 * @param id
+	 * @return
+	 */
+	public JSONObject getEntityJson(String id);
+	
+	/**
+	 * Get the JsonSubject representation of an Entity with the given ID.
+	 * @param id
+	 * @return
+	 */
+	public JsonSubject getEntityJsonSubject(String id);
+	
+	/**
+	 * Update the annotation of an Entity by providing the flat JSON representation
+	 * of the entity.
+	 * 
+	 * @see {@link #getEntityJson(UserInfo, String)}. This method is part a CRUD
+	 *      workflow involving an Entity that is bound to a JSON schema the governs
+	 *      the validity of the Entity.
+	 * 
+	 * @param userInfo
+	 * @param request
+	 * @return
+	 */
+	public JSONObject updateEntityJson(UserInfo userInfo, String entityId, JSONObject request);
+
+
 }

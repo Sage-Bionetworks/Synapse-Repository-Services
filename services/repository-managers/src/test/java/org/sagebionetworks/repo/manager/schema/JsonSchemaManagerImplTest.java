@@ -884,20 +884,6 @@ public class JsonSchemaManagerImplTest {
 		verify(mockSchemaDao).getSchema(versionId);
 	}
 
-	@Test
-	public void testGetSchemaWithWithoutId() {
-		when(mockSchemaDao.getVersionId(any(), any(), any())).thenReturn(versionId);
-		when(mockSchemaDao.getSchema(any())).thenReturn(schema);
-		// request without a semantic version.
-		String $id = organizationName + "-" + schemaName + "-" + semanticVersionString;
-		// call under test
-		JsonSchema result = manager.getSchema($id);
-		assertEquals(schema, result);
-		verify(mockSchemaDao).getVersionId(organizationName, schemaName, semanticVersionString);
-		verify(mockSchemaDao, never()).getLatestVersionId(any(), any());
-		verify(mockSchemaDao).getSchema(versionId);
-	}
-
 	/**
 	 * For the get schema call, it is expected that the $id of the returned schema
 	 * exactly matches the $id from the request. Therefore, if the requested $id

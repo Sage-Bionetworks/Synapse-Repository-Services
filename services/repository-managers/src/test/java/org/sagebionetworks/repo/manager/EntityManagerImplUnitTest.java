@@ -13,7 +13,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.notNull;
 import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
@@ -29,6 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,9 +39,13 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.schema.AnnotationsTranslator;
+import org.sagebionetworks.repo.manager.schema.EntityJsonSubject;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
+import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DataType;
@@ -97,12 +102,19 @@ public class EntityManagerImplUnitTest {
 	private ObjectTypeManager mockObjectTypeManger;
 	@Mock
 	private JsonSchemaManager mockJsonSchemaManager;
+	@Mock
+	private AnnotationsTranslator mockAnnotationTranslator;
 
 	@Captor
 	private ArgumentCaptor<ChildStatsRequest> statsRequestCaptor;
 
 	@InjectMocks
 	private EntityManagerImpl entityManager;
+
+	@Spy
+	@InjectMocks
+	private EntityManagerImpl entityManagerSpy;
+
 	Long userId = 007L;
 
 	EntityChildrenRequest childRequest;
@@ -192,7 +204,7 @@ public class EntityManagerImplUnitTest {
 
 		Node node = mock(Node.class);
 		Annotations annos = new Annotations();
-		when(mockNodeManager.get(mockUser, id)).thenReturn(node);
+		when(mockNodeManager.getNode(mockUser, id)).thenReturn(node);
 		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, id)).thenReturn(annos);
 		when(node.getParentId()).thenReturn(parentId);
 
@@ -235,7 +247,7 @@ public class EntityManagerImplUnitTest {
 
 		Node node = mock(Node.class);
 		Annotations annos = new Annotations();
-		when(mockNodeManager.get(mockUser, id)).thenReturn(node);
+		when(mockNodeManager.getNode(mockUser, id)).thenReturn(node);
 		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, id)).thenReturn(annos);
 		when(node.getParentId()).thenReturn(parentId);
 
@@ -280,7 +292,7 @@ public class EntityManagerImplUnitTest {
 		Node node = new Node();
 		node.setFileHandleId("101");
 		Annotations annos = new Annotations();
-		when(mockNodeManager.get(mockUser, id)).thenReturn(node);
+		when(mockNodeManager.getNode(mockUser, id)).thenReturn(node);
 		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, id)).thenReturn(annos);
 
 		// Make file entity to update.
@@ -558,7 +570,7 @@ public class EntityManagerImplUnitTest {
 		Project project = new Project();
 		project.setId("syn123");
 		project.setParentId("syn456");
-		when(mockNodeManager.get(mockUser, project.getId())).thenReturn(new Node());
+		when(mockNodeManager.getNode(mockUser, project.getId())).thenReturn(new Node());
 		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, project.getId())).thenReturn(new Annotations());
 		// still have room for one more version
 		when(mockNodeManager.getCurrentRevisionNumber(project.getId()))
@@ -576,7 +588,7 @@ public class EntityManagerImplUnitTest {
 		Project project = new Project();
 		project.setId("syn123");
 		project.setParentId("syn456");
-		when(mockNodeManager.get(mockUser, project.getId())).thenReturn(new Node());
+		when(mockNodeManager.getNode(mockUser, project.getId())).thenReturn(new Node());
 		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, project.getId())).thenReturn(new Annotations());
 		long currentRevisionNumber = (long) EntityManagerImpl.MAX_NUMBER_OF_REVISIONS;
 		// still have room for one more version
@@ -599,42 +611,43 @@ public class EntityManagerImplUnitTest {
 		Project project = new Project();
 		project.setId("syn123");
 		project.setParentId("syn456");
-		when(mockNodeManager.get(mockUser, project.getId())).thenReturn(new Node());
+		when(mockNodeManager.getNode(mockUser, project.getId())).thenReturn(new Node());
 		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, project.getId())).thenReturn(new Annotations());
 		// call under test
 		entityManager.updateEntity(mockUser, project, newVersion, activityId);
 		verify(mockNodeManager).update(eq(mockUser), any(Node.class), any(Annotations.class), eq(newVersion));
 		verify(mockNodeManager, never()).getCurrentRevisionNumber(project.getId());
 	}
-	
+
 	// Test for both PLFM-6362 and PLFM-5702
 	@Test
 	public void testEntityUpdateWithNewVersionAndTableType() {
 
-		// Creates a spy so that we can mock some internal static method calls that would fail
+		// Creates a spy so that we can mock some internal static method calls that
+		// would fail
 		EntityManagerImpl entityManagerSpy = Mockito.spy(entityManager);
-		
+
 		// We mock this call since the mock we use is not a real instance
 		doNothing().when(entityManagerSpy).updateNodeAndAnnotationsFromEntity(any(), any(), any());
-		
-		when(mockNodeManager.get(any(), any())).thenReturn(new Node());
+
+		when(mockNodeManager.getNode(any(), any())).thenReturn(new Node());
 		when(mockNodeManager.getEntityPropertyAnnotations(any(), any())).thenReturn(new Annotations());
-		
+
 		String activityId = null;
 		boolean newVersion = true;
 
 		Table entity = Mockito.mock(Table.class);
-		
+
 		// call under test
 		boolean newVersionCreated = entityManagerSpy.updateEntity(mockUser, entity, newVersion, activityId);
-		
-		// Despite the newVersion flag true, a new version for Table types cannot be created this way
+
+		// Despite the newVersion flag true, a new version for Table types cannot be
+		// created this way
 		assertFalse(newVersionCreated);
 		verify(mockNodeManager).update(eq(mockUser), any(Node.class), any(Annotations.class), eq(false));
 		verify(mockNodeManager, never()).getCurrentRevisionNumber(any());
 	}
 
-	
 	@Test
 	public void testBindSchemaToEntity() {
 		when(mockPermissionsManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
@@ -710,7 +723,7 @@ public class EntityManagerImplUnitTest {
 	public void testGetBoundSchemaWithUnauthorized() {
 		String entityId = "syn123";
 		when(mockPermissionsManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.accessDenied("no"));
-		
+
 		assertThrows(UnauthorizedException.class, () -> {
 			entityManager.getBoundSchema(mockUser, entityId);
 		});
@@ -718,24 +731,24 @@ public class EntityManagerImplUnitTest {
 		verify(mockPermissionsManager).hasAccess(entityId, ACCESS_TYPE.READ, mockUser);
 		verify(mockNodeManager, never()).findFirstBoundJsonSchema(any());
 	}
-	
+
 	@Test
 	public void testGetBoundSchemaWithNullEntityId() {
 		String entityId = null;
-		assertThrows(IllegalArgumentException.class, ()->{
+		assertThrows(IllegalArgumentException.class, () -> {
 			entityManager.getBoundSchema(mockUser, entityId);
 		});
 	}
-	
+
 	@Test
 	public void testGetBoundSchemaWithNullUserId() {
 		String entityId = "syn123";
 		mockUser = null;
-		assertThrows(IllegalArgumentException.class, ()->{
+		assertThrows(IllegalArgumentException.class, () -> {
 			entityManager.getBoundSchema(mockUser, entityId);
 		});
 	}
-	
+
 	@Test
 	public void testClearBoundSchema() {
 		String entityId = "syn123";
@@ -745,35 +758,170 @@ public class EntityManagerImplUnitTest {
 		verify(mockPermissionsManager).hasAccess(entityId, ACCESS_TYPE.DELETE, mockUser);
 		verify(mockJsonSchemaManager).clearBoundSchema(123L, BoundObjectType.entity);
 	}
-	
+
 	@Test
 	public void testClearBoundSchemaWithUnauthorized() {
 		String entityId = "syn123";
-		when(mockPermissionsManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.accessDenied("nope"));
-		assertThrows(UnauthorizedException.class, ()->{
+		when(mockPermissionsManager.hasAccess(any(), any(), any()))
+				.thenReturn(AuthorizationStatus.accessDenied("nope"));
+		assertThrows(UnauthorizedException.class, () -> {
 			// call under test
 			entityManager.clearBoundSchema(mockUser, entityId);
 		});
 		verify(mockPermissionsManager).hasAccess(entityId, ACCESS_TYPE.DELETE, mockUser);
 		verify(mockJsonSchemaManager, never()).clearBoundSchema(any(), any());
 	}
-	
+
 	@Test
 	public void testClearBoundSchemaWithNullEntityId() {
 		String entityId = null;
-		assertThrows(IllegalArgumentException.class, ()->{
+		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			entityManager.clearBoundSchema(mockUser, entityId);
 		});
 	}
-	
+
 	@Test
 	public void testClearBoundSchemaWithNullUser() {
 		String entityId = "syn123";
 		mockUser = null;
-		assertThrows(IllegalArgumentException.class, ()->{
+		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			entityManager.clearBoundSchema(mockUser, entityId);
+		});
+	}
+
+	@Test
+	public void testGetEntityJson() {
+		String entityId = "syn123";
+		when(mockPermissionsManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		Project project = new Project();
+		project.setId(entityId);
+		doReturn(project).when(entityManagerSpy).getEntity(any(String.class), any());
+		org.sagebionetworks.repo.model.annotation.v2.Annotations annos = new org.sagebionetworks.repo.model.annotation.v2.Annotations();
+		when(mockNodeManager.getUserAnnotations(any())).thenReturn(annos);
+		JSONObject jsonResult = new JSONObject();
+		when(mockAnnotationTranslator.writeToJsonObject(any(), any())).thenReturn(jsonResult);
+		// call under test
+		JSONObject object = entityManagerSpy.getEntityJson(mockUser, entityId);
+		assertNotNull(object);
+		assertEquals(jsonResult, object);
+		verify(mockPermissionsManager).hasAccess(entityId, ACCESS_TYPE.READ, mockUser);
+		verify(entityManagerSpy).getEntity(entityId, null);
+		verify(mockNodeManager).getUserAnnotations(entityId);
+		verify(mockAnnotationTranslator).writeToJsonObject(project, annos);
+	}
+
+	@Test
+	public void testGetEntityJsonWithUnauthrorized() {
+		String entityId = "syn123";
+		when(mockPermissionsManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.accessDenied("no"));
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			entityManagerSpy.getEntityJson(mockUser, entityId);
+		});
+		verify(mockPermissionsManager).hasAccess(entityId, ACCESS_TYPE.READ, mockUser);
+		verifyNoMoreInteractions(mockNodeManager);
+		verifyNoMoreInteractions(mockAnnotationTranslator);
+	}
+	
+	@Test
+	public void testGetEntityJsonWithNullUser() {
+		String entityId = "syn123";
+		mockUser = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			entityManagerSpy.getEntityJson(mockUser, entityId);
+		});
+	}
+	
+	@Test
+	public void testGetEntityJsonWithNullEntityId() {
+		String entityId = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			entityManagerSpy.getEntityJson(mockUser, entityId);
+		});
+	}
+	
+	@Test
+	public void testGetEntityJsonSubject() {
+		String entityId = "syn123";
+		Project project = new Project();
+		project.setId(entityId);
+		project.setEtag("some-etag");
+		doReturn(project).when(entityManagerSpy).getEntity(any(String.class), any());
+		org.sagebionetworks.repo.model.annotation.v2.Annotations annos = new org.sagebionetworks.repo.model.annotation.v2.Annotations();
+		when(mockNodeManager.getUserAnnotations(any())).thenReturn(annos);
+		JSONObject jsonResult = new JSONObject();
+		when(mockAnnotationTranslator.writeToJsonObject(any(), any())).thenReturn(jsonResult);
+		// call under test
+		JsonSubject subject = entityManagerSpy.getEntityJsonSubject(entityId);
+		assertNotNull(subject);
+		assertEquals(project.getId(), subject.getObjectId());
+		assertEquals(project.getEtag(), subject.getObjectEtag());
+		assertEquals(org.sagebionetworks.repo.model.schema.ObjectType.entity, subject.getObjectType());
+		verify(entityManagerSpy).getEntity(entityId, null);
+		verify(mockNodeManager).getUserAnnotations(entityId);
+		verify(mockAnnotationTranslator).writeToJsonObject(project, annos);
+	}
+	
+	@Test
+	public void testGetEntityJsonSubjectWithNullEntityId() {
+		String entityId = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			entityManagerSpy.getEntityJsonSubject(entityId);
+		});
+		verifyNoMoreInteractions(mockNodeManager);
+		verifyNoMoreInteractions(mockAnnotationTranslator);
+	}
+	
+	@Test
+	public void testUpdateEntityJson() {
+		String entityId = "syn123";
+		JSONObject inputJson = new JSONObject();
+		JSONObject resultJson = new JSONObject();
+		doReturn(resultJson).when(entityManagerSpy).getEntityJson(any());
+		when(mockNodeManager.getNodeType(any(), any())).thenReturn(EntityType.project);
+		org.sagebionetworks.repo.model.annotation.v2.Annotations annos = new org.sagebionetworks.repo.model.annotation.v2.Annotations();
+		when(mockAnnotationTranslator.readFromJsonObject(any(), any())).thenReturn(annos);
+		// call under test
+		JSONObject result = entityManagerSpy.updateEntityJson(mockUser, entityId, inputJson);
+		assertEquals(resultJson, result);
+		verify(mockNodeManager).getNodeType(mockUser, entityId);
+		verify(mockNodeManager).updateUserAnnotations(mockUser, entityId, annos);
+		verify(mockAnnotationTranslator).readFromJsonObject(Project.class, inputJson);
+	}
+	
+	@Test
+	public void testUpdateEntityJsonWithNullUser() {
+		mockUser = null;
+		String entityId = "syn123";
+		JSONObject inputJson = new JSONObject();
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			entityManagerSpy.updateEntityJson(mockUser, entityId, inputJson);
+		});
+	}
+	
+	@Test
+	public void testUpdateEntityJsonWithNullEntityId() {
+		String entityId = null;
+		JSONObject inputJson = new JSONObject();
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			entityManagerSpy.updateEntityJson(mockUser, entityId, inputJson);
+		});
+	}
+	
+	@Test
+	public void testUpdateEntityJsonWithNullJson() {
+		String entityId = "syn123";
+		JSONObject inputJson = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			entityManagerSpy.updateEntityJson(mockUser, entityId, inputJson);
 		});
 	}
 }

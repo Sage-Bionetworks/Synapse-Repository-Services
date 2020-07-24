@@ -3,10 +3,14 @@ package org.sagebionetworks.repo.manager;
 import java.util.List;
 import java.util.Set;
 
+import org.json.JSONObject;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.MultipartUtils;
+import org.sagebionetworks.repo.manager.schema.AnnotationsTranslator;
+import org.sagebionetworks.repo.manager.schema.EntityJsonSubject;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
+import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DataType;
@@ -70,6 +74,8 @@ public class EntityManagerImpl implements EntityManager {
 	ObjectTypeManager objectTypeManager;
 	@Autowired
 	JsonSchemaManager jsonSchemaManager;
+	@Autowired
+	AnnotationsTranslator annotationsTranslator;
 
 	boolean allowCreationOfOldEntities = true;
 
@@ -103,29 +109,44 @@ public class EntityManagerImpl implements EntityManager {
 	@Override
 	public <T extends Entity> T getEntity(UserInfo userInfo, String entityId, Class<? extends T> entityClass)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
+		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(entityId, "entityId");
-		// Get the annotations for this entity
-		org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations = nodeManager
-				.getEntityPropertyAnnotations(userInfo, entityId);
-		// Fetch the current node from the server
-		Node node = nodeManager.get(userInfo, entityId);
-		// Does the node type match the requested type?
-		validateType(EntityTypeUtils.getEntityTypeForClass(entityClass), node.getNodeType(), entityId);
-		return populateEntityWithNodeAndAnnotations(entityClass, entityPropertyAnnotations, node);
+		entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).checkAuthorizationOrElseThrow();
+		return getEntity(entityId, entityClass);
 	}
 
 	@Override
 	public Entity getEntity(UserInfo user, String entityId)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
-		// Get the annotations for this entity
+		Class<? extends Entity> entityClass = null;
+		return getEntity(user, entityId, entityClass);
+	}
+	
+	/**
+	 * Get an entity without an authorization check.
+	 * @param <T>
+	 * @param entityId
+	 * @param entityClass
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public <T extends Entity> T getEntity(String entityId, Class<? extends T> entityClass)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		ValidateArgument.required(entityId, "entityId");
 		org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations = nodeManager
-				.getEntityPropertyAnnotations(user, entityId);
-		// Fetch the current node from the server
-		Node node = nodeManager.get(user, entityId);
-		return populateEntityWithNodeAndAnnotations(EntityTypeUtils.getClassForType(node.getNodeType()),
-				entityPropertyAnnotations, node);
+				.getEntityPropertyAnnotations(entityId);
+		Node node = nodeManager.getNode(entityId);
+		if(entityClass == null) {
+			entityClass = (Class<? extends T>) EntityTypeUtils.getClassForType(node.getNodeType());
+		}
+		// Does the node type match the requested type?
+		validateType(EntityTypeUtils.getEntityTypeForClass(entityClass), node.getNodeType(), entityId);
+		return populateEntityWithNodeAndAnnotations(entityClass, entityPropertyAnnotations, node);
 	}
 
+	
 	/**
 	 * Validate that the requested entity type matches the actual entity type. See
 	 * http://sagebionetworks.jira.com/browse/PLFM-431.
@@ -175,7 +196,7 @@ public class EntityManagerImpl implements EntityManager {
 	 * @param node
 	 * @return
 	 */
-	private <T extends Entity> T populateEntityWithNodeAndAnnotations(Class<? extends T> entityClass,
+	private static <T extends Entity> T populateEntityWithNodeAndAnnotations(Class<? extends T> entityClass,
 			org.sagebionetworks.repo.model.Annotations entityProperties, Node node)
 			throws DatastoreException, NotFoundException {
 		// Return the new object from the dataEntity
@@ -202,7 +223,7 @@ public class EntityManagerImpl implements EntityManager {
 	 * @param entityClass
 	 * @return
 	 */
-	private <T> T createNewEntity(Class<? extends T> entityClass) {
+	private static <T> T createNewEntity(Class<? extends T> entityClass) {
 		T newEntity;
 		try {
 			newEntity = entityClass.newInstance();
@@ -264,7 +285,7 @@ public class EntityManagerImpl implements EntityManager {
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException,
 			InvalidModelException {
 
-		Node node = nodeManager.get(userInfo, updated.getId());
+		Node node = nodeManager.getNode(userInfo, updated.getId());
 		// Now get the annotations for this node
 		org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations = nodeManager
 				.getEntityPropertyAnnotations(userInfo, updated.getId());
@@ -559,4 +580,40 @@ public class EntityManagerImpl implements EntityManager {
 		entityPermissionsManager.hasAccess(id, ACCESS_TYPE.DELETE, userInfo).checkAuthorizationOrElseThrow();
 		jsonSchemaManager.clearBoundSchema(KeyFactory.stringToKey(id), BoundObjectType.entity);
 	}
+
+	@Override
+	public JSONObject getEntityJson(UserInfo userInfo, String entityId) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(entityId, "entityId");
+		entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).checkAuthorizationOrElseThrow();
+		return getEntityJson(entityId);
+	}
+	
+	@Override
+	public JSONObject getEntityJson(String entityId) {
+		return getEntityJsonSubject(entityId).toJson();
+	}
+
+	@Override
+	public JSONObject updateEntityJson(UserInfo userInfo, String entityId, JSONObject jsonObject) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(jsonObject, "jsonObject");
+		EntityType type = nodeManager.getNodeType(userInfo, entityId);
+		Class<? extends Entity> entityClass = EntityTypeUtils.getClassForType(type);
+		Annotations newAnnotations = annotationsTranslator.readFromJsonObject(entityClass, jsonObject);
+		nodeManager.updateUserAnnotations(userInfo, entityId, newAnnotations);
+		return getEntityJson(entityId);
+	}
+
+	@Override
+	public JsonSubject getEntityJsonSubject(String entityId) {
+		ValidateArgument.required(entityId, "entityId");
+		Class<? extends Entity> entityClass = null;
+		Entity entity = getEntity(entityId, entityClass);
+		Annotations annotations = nodeManager.getUserAnnotations(entityId);
+		JSONObject json = annotationsTranslator.writeToJsonObject(entity, annotations);
+		return new EntityJsonSubject(entity, json);
+	}
+	
 }

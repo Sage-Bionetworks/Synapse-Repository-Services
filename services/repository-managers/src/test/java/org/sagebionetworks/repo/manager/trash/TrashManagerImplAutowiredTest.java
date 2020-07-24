@@ -124,7 +124,7 @@ public class TrashManagerImplAutowiredTest {
 		final String nodeId = nodeManager.createNewNode(node, testUserInfo);
 		assertNotNull(nodeId);
 		toClearList.add(nodeId);
-		Node nodeRetrieved = nodeManager.get(testUserInfo, nodeId);
+		Node nodeRetrieved = nodeManager.getNode(testUserInfo, nodeId);
 		assertNotNull(nodeRetrieved);
 		if (parentId!=null) assertEquals(parentId, nodeRetrieved.getParentId());
 		return nodeRetrieved;
@@ -142,7 +142,7 @@ public class TrashManagerImplAutowiredTest {
 		trashManager.moveToTrash(testUserInfo, nodeChildId, false);
 
 		Assertions.assertThrows(EntityInTrashCanException.class, () -> {
-			nodeManager.get(testUserInfo, nodeChildId);
+			nodeManager.getNode(testUserInfo, nodeChildId);
 		});
 
 		List<TrashedEntity> results = inspectUsersTrashCan(testUserInfo, 1);
@@ -158,7 +158,7 @@ public class TrashManagerImplAutowiredTest {
 
 		inspectUsersTrashCan(testUserInfo, 0);
 
-		Node nodeChildRetrieved = nodeManager.get(testUserInfo, nodeChildId);
+		Node nodeChildRetrieved = nodeManager.getNode(testUserInfo, nodeChildId);
 		assertNotNull(nodeChildRetrieved);
 		assertEquals(nodeChildId, nodeChildRetrieved.getId());
 		assertEquals(nodeChildName, nodeChildRetrieved.getName());
@@ -240,8 +240,8 @@ public class TrashManagerImplAutowiredTest {
 		assertNotNull(childId);
 		toClearList.add(childId);
 
-		Node nodeRetrieved = nodeManager.get(testUserInfo, nodeId);
-		Node childNodeRetrieved = nodeManager.get(testUserInfo, childId);
+		Node nodeRetrieved = nodeManager.getNode(testUserInfo, nodeId);
+		Node childNodeRetrieved = nodeManager.getNode(testUserInfo, childId);
 		assertNotNull(nodeRetrieved);
 		final String parentId = nodeRetrieved.getParentId();
 		assertNotNull(parentId);
@@ -250,7 +250,7 @@ public class TrashManagerImplAutowiredTest {
 		trashManager.moveToTrash(testUserInfo, nodeId, false);
 
 		Assertions.assertThrows(EntityInTrashCanException.class, () -> {
-			nodeManager.get(testUserInfo, nodeId);
+			nodeManager.getNode(testUserInfo, nodeId);
 		});
 
 		results = trashManager.listTrashedEntities(testUserInfo, testUserInfo, 0L, 1000L);
@@ -266,8 +266,8 @@ public class TrashManagerImplAutowiredTest {
 		results = trashManager.listTrashedEntities(testUserInfo, testUserInfo, 0L, 1000L);
 		assertEquals(0, results.size());
 
-		nodeRetrieved = nodeManager.get(testUserInfo, nodeId);
-		childNodeRetrieved = nodeManager.get(testUserInfo, childId);
+		nodeRetrieved = nodeManager.getNode(testUserInfo, nodeId);
+		childNodeRetrieved = nodeManager.getNode(testUserInfo, childId);
 		assertNotNull(nodeRetrieved);
 		assertEquals(nodeId, nodeRetrieved.getId());
 		assertEquals(nodeId, nodeDAO.getBenefactor(nodeRetrieved.getId()));
@@ -391,32 +391,32 @@ public class TrashManagerImplAutowiredTest {
 		assertEquals(nodeId12, nodeDAO.getBenefactor(nodeId22));
 
 		// Make sure we can read the nodes before moving the trash can
-		Node nodeBack00 = nodeManager.get(testUserInfo, nodeId00);
+		Node nodeBack00 = nodeManager.getNode(testUserInfo, nodeId00);
 		assertNotNull(nodeBack00);
 		final String parentId00 = nodeBack00.getParentId();
 		assertEquals(nodeIdA, parentId00);
 
-		Node nodeBack01 = nodeManager.get(testUserInfo, nodeId01);
+		Node nodeBack01 = nodeManager.getNode(testUserInfo, nodeId01);
 		assertNotNull(nodeBack01);
 		final String parentId01 = nodeBack01.getParentId();
 		assertEquals(nodeIdB, parentId01);
 
-		Node nodeBack11 = nodeManager.get(testUserInfo, nodeId11);
+		Node nodeBack11 = nodeManager.getNode(testUserInfo, nodeId11);
 		assertNotNull(nodeBack11);
 		final String parentId11 = nodeBack11.getParentId();
 		assertEquals(nodeId00, parentId11);
 
-		Node nodeBack12 = nodeManager.get(testUserInfo, nodeId12);
+		Node nodeBack12 = nodeManager.getNode(testUserInfo, nodeId12);
 		assertNotNull(nodeBack12);
 		final String parentId12 = nodeBack12.getParentId();
 		assertEquals(nodeId00, parentId12);
 
-		Node nodeBack21 = nodeManager.get(testUserInfo, nodeId21);
+		Node nodeBack21 = nodeManager.getNode(testUserInfo, nodeId21);
 		assertNotNull(nodeBack21);
 		final String parentId21 = nodeBack21.getParentId();
 		assertEquals(nodeId11, parentId21);
 
-		Node nodeBack22 = nodeManager.get(testUserInfo, nodeId22);
+		Node nodeBack22 = nodeManager.getNode(testUserInfo, nodeId22);
 		assertNotNull(nodeBack22);
 		final String parentId22 = nodeBack22.getParentId();
 		assertEquals(nodeId12, parentId22);
@@ -432,27 +432,27 @@ public class TrashManagerImplAutowiredTest {
 
 		// After moved to trash, the nodes are not accessible any more
 		Assertions.assertThrows(EntityInTrashCanException.class, () -> {
-			nodeManager.get(testUserInfo, nodeId00);
+			nodeManager.getNode(testUserInfo, nodeId00);
 		});
 
 		Assertions.assertThrows(EntityInTrashCanException.class, () -> {
-			nodeManager.get(testUserInfo, nodeId01);
+			nodeManager.getNode(testUserInfo, nodeId01);
 		});
 
 		Assertions.assertThrows(EntityInTrashCanException.class, () -> {
-			nodeManager.get(testUserInfo, nodeId11);
+			nodeManager.getNode(testUserInfo, nodeId11);
 		});
 
 		Assertions.assertThrows(EntityInTrashCanException.class, () -> {
-			nodeManager.get(testUserInfo, nodeId12);
+			nodeManager.getNode(testUserInfo, nodeId12);
 		});
 
 		Assertions.assertThrows(EntityInTrashCanException.class, () -> {
-			nodeManager.get(testUserInfo, nodeId21);
+			nodeManager.getNode(testUserInfo, nodeId21);
 		});
 
 		Assertions.assertThrows(EntityInTrashCanException.class, () -> {
-			nodeManager.get(testUserInfo, nodeId22);
+			nodeManager.getNode(testUserInfo, nodeId22);
 		});
 
 		// But we can see them in the trash can
@@ -465,31 +465,31 @@ public class TrashManagerImplAutowiredTest {
 		results = trashManager.listTrashedEntities(testUserInfo, testUserInfo, 0L, 1000L);
 		assertEquals(1, results.size());
 
-		nodeBack00 = nodeManager.get(testUserInfo, nodeId00);
+		nodeBack00 = nodeManager.getNode(testUserInfo, nodeId00);
 		assertNotNull(nodeBack00);
 		assertEquals(nodeId00, nodeBack00.getId());
 		assertEquals(nodeName00, nodeBack00.getName());
 		assertEquals(parentId00, nodeBack00.getParentId());
 
-		nodeBack11 = nodeManager.get(testUserInfo, nodeId11);
+		nodeBack11 = nodeManager.getNode(testUserInfo, nodeId11);
 		assertNotNull(nodeBack11);
 		assertEquals(nodeId11, nodeBack11.getId());
 		assertEquals(nodeName11, nodeBack11.getName());
 		assertEquals(parentId11, nodeBack11.getParentId());
 
-		nodeBack12 = nodeManager.get(testUserInfo, nodeId12);
+		nodeBack12 = nodeManager.getNode(testUserInfo, nodeId12);
 		assertNotNull(nodeBack12);
 		assertEquals(nodeId12, nodeBack12.getId());
 		assertEquals(nodeName12, nodeBack12.getName());
 		assertEquals(parentId12, nodeBack12.getParentId());
 
-		nodeBack21 = nodeManager.get(testUserInfo, nodeId21);
+		nodeBack21 = nodeManager.getNode(testUserInfo, nodeId21);
 		assertNotNull(nodeBack21);
 		assertEquals(nodeId21, nodeBack21.getId());
 		assertEquals(nodeName21, nodeBack21.getName());
 		assertEquals(parentId21, nodeBack21.getParentId());
 
-		nodeBack22 = nodeManager.get(testUserInfo, nodeId22);
+		nodeBack22 = nodeManager.getNode(testUserInfo, nodeId22);
 		assertNotNull(nodeBack22);
 		assertEquals(nodeId22, nodeBack22.getId());
 		assertEquals(nodeName22, nodeBack22.getName());
@@ -501,7 +501,7 @@ public class TrashManagerImplAutowiredTest {
 		results = trashManager.listTrashedEntities(testUserInfo, testUserInfo, 0L, 1000L);
 		assertEquals(0, results.size());
 
-		nodeBack01 = nodeManager.get(testUserInfo, nodeId01);
+		nodeBack01 = nodeManager.getNode(testUserInfo, nodeId01);
 		assertNotNull(nodeBack01);
 		assertEquals(nodeId01, nodeBack01.getId());
 		assertEquals(nodeName01, nodeBack01.getName());

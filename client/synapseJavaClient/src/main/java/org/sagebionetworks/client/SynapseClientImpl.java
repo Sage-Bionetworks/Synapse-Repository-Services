@@ -5819,5 +5819,19 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String url = "/entity/"+entityId+"/schema/binding";
 		deleteUri(getRepoEndpoint(), url);
 	}
+	
+	@Override
+	public JSONObject getEntityJson(String entityId) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		String url = "/entity/"+entityId+"/json";
+		return getJson(getRepoEndpoint(), url);
+	}
+	
+	@Override
+	public JSONObject updateEntityJson(String entityId, JSONObject json) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		String url = "/entity/"+entityId+"/json";
+		return putJson(getRepoEndpoint(), url, json.toString());
+	}
 
 }
