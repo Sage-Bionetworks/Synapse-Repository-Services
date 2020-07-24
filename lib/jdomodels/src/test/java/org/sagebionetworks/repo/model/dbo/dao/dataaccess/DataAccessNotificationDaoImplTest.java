@@ -27,7 +27,6 @@ import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessNotificationType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.test.context.ContextConfiguration;
@@ -218,7 +217,7 @@ public class DataAccessNotificationDaoImplTest {
 		AccessApproval approval = createApproval(accessRequirement);
 
 		DBODataAccessNotification notification = newNotification(type, accessRequirement, approval, -1L);
-		DBODataAccessNotification anotherNotification = newNotification(DataAccessNotificationType.RENEWAL_REMINDER_1,
+		DBODataAccessNotification anotherNotification = newNotification(DataAccessNotificationType.FIRST_RENEWAL_REMINDER,
 				accessRequirement, approval, -1L);
 
 		// Call under test
