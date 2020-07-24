@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.schema;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,13 +16,21 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
+import org.sagebionetworks.schema.FORMAT;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.schema.adapter.org.json.JsonDateUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
 
+import com.google.common.collect.Lists;
+
 @Service
 public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
+
+	private static final String ID = "id";
+	private static final String ETAG = "etag";
+	public static final String CONCRETE_TYPE = "concreteType";
 
 	@Override
 	public JSONObject writeToJsonObject(Entity entity, Annotations annotations) {
@@ -43,9 +52,15 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	public Annotations readFromJsonObject(Class<? extends Entity> entityClass, JSONObject jsonObject) {
 		ValidateArgument.required(entityClass, "entity");
 		ValidateArgument.required(jsonObject, "jsonObject");
+		validateHasKeys(Lists.newArrayList(ID, ETAG, CONCRETE_TYPE), jsonObject);
+		String entityId = jsonObject.getString(ID);
+		if (!entityClass.getName().equals(jsonObject.get(CONCRETE_TYPE))) {
+			throw new IllegalArgumentException(
+					"The value of 'concreteType' does not match the type of Entity: '" + entityId + "'");
+		}
 		Annotations annotations = new Annotations();
-		annotations.setId(jsonObject.getString("id"));
-		annotations.setEtag(jsonObject.getString("etag"));
+		annotations.setId(entityId);
+		annotations.setEtag(jsonObject.getString(ETAG));
 		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
 		annotations.setAnnotations(map);
 		jsonObject.keySet().stream().filter(key -> canUseKey(entityClass, key)).forEach((key) -> {
@@ -55,6 +70,14 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 		return annotations;
 	}
 
+	void validateHasKeys(List<String> expectedKeys, JSONObject jsonObject) {
+		for (String expectedKey : expectedKeys) {
+			if (!jsonObject.has(expectedKey)) {
+				throw new IllegalArgumentException("Expected JSON to include key: '" + expectedKey + "'");
+			}
+		}
+	}
+
 	/**
 	 * Read a single AnnotationValue for the given key from the given JSONObject.
 	 * 
@@ -62,11 +85,10 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 * @param jsonObject
 	 * @return
 	 */
-	public AnnotationsValue getAnnotationValueFromJsonObject(String key, JSONObject jsonObject) {
-		return Stream
-				.of(attemptToReadAsJSONArray(key, jsonObject), attemptToReadAsDouble(key, jsonObject),
-						attemptToReadAsLong(key, jsonObject), attemptToReadAsString(key, jsonObject))
-				.filter(Optional::isPresent).findFirst().get().get();
+	AnnotationsValue getAnnotationValueFromJsonObject(String key, JSONObject jsonObject) {
+		return Stream.of(attemptToReadAsJSONArray(key, jsonObject), attemptToReadAsDouble(key, jsonObject),
+				attemptToReadAsTimestamp(key, jsonObject), attemptToReadAsLong(key, jsonObject),
+				attemptToReadAsString(key, jsonObject)).filter(Optional::isPresent).findFirst().get().get();
 	}
 
 	/**
@@ -90,6 +112,28 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	}
 
 	/**
+	 * Attempt to read the value from the given key as a DATE_TIME formated string.
+	 * An empty Optional will be returned if the value is not a DATE_TIME formated
+	 * string.
+	 * 
+	 * @param key
+	 * @param jsonObject
+	 * @return
+	 */
+	Optional<AnnotationsValue> attemptToReadAsTimestamp(String key, JSONObject jsonObject) {
+		try {
+			String value = jsonObject.getString(key);
+			long timeMS = JsonDateUtils.convertStringToDate(FORMAT.DATE_TIME, value).getTime();
+			AnnotationsValue annValue = new AnnotationsValue();
+			annValue.setType(AnnotationsValueType.TIMESTAMP_MS);
+			annValue.setValue(java.util.Collections.singletonList(Long.toString(timeMS)));
+			return Optional.of(annValue);
+		} catch (IllegalArgumentException e) {
+			return Optional.empty();
+		}
+	}
+
+	/**
 	 * Attempt to read the value at the given index as a string. Note: This should
 	 * always work as any type can be read as a string.
 	 * 
@@ -107,6 +151,25 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	}
 
 	/**
+	 * Attempt to read the value at the given index as a DATE_TIME formated string.
+	 * If the value is not a DATE_TIME formated string an empty optional will be
+	 * returned.
+	 * 
+	 * @param index
+	 * @param array
+	 * @return
+	 */
+	Optional<ListValue> attemptToReadAsTimestamp(int index, JSONArray array) {
+		try {
+			String value = array.getString(index);
+			long timeMS = JsonDateUtils.convertStringToDate(FORMAT.DATE_TIME, value).getTime();
+			return Optional.of(new ListValue(AnnotationsValueType.TIMESTAMP_MS, Long.toString(timeMS)));
+		} catch (IllegalArgumentException e) {
+			return Optional.empty();
+		}
+	}
+
+	/**
 	 * Attempt to read the value for the given key as a double. If the value is not
 	 * a double an empty optional will be returned.
 	 * 
@@ -117,6 +180,11 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	Optional<AnnotationsValue> attemptToReadAsDouble(String key, JSONObject jsonObject) {
 		try {
 			Double value = jsonObject.getDouble(key);
+			String testString = jsonObject.getString(key);
+			if (!testString.equals(value.toString())) {
+				// data loss
+				return Optional.empty();
+			}
 			AnnotationsValue annValue = new AnnotationsValue();
 			annValue.setType(AnnotationsValueType.DOUBLE);
 			annValue.setValue(java.util.Collections.singletonList(value.toString()));
@@ -137,6 +205,11 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	Optional<ListValue> attemptToReadAsDouble(int index, JSONArray array) {
 		try {
 			Double value = array.getDouble(index);
+			String testString = array.getString(index);
+			if (!testString.equals(value.toString())) {
+				// data loss
+				return Optional.empty();
+			}
 			return Optional.of(new ListValue(AnnotationsValueType.DOUBLE, value.toString()));
 		} catch (JSONException e) {
 			return Optional.empty();
@@ -164,8 +237,8 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	}
 
 	/**
-	 * Attempt to read the value at the given index as a long.  If the value is not a long
-	 * an empty optional will be returned.
+	 * Attempt to read the value at the given index as a long. If the value is not a
+	 * long an empty optional will be returned.
 	 * 
 	 * @param index
 	 * @param array
@@ -181,8 +254,9 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	}
 
 	/**
-	 * Attempt to read the value for the given key as a JSONArray.  If the value is not a JSONArray
-	 * an empty optional will be returned.
+	 * Attempt to read the value for the given key as a JSONArray. If the value is
+	 * not a JSONArray an empty optional will be returned.
+	 * 
 	 * @param key
 	 * @param jsonObject
 	 * @return
@@ -193,8 +267,13 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 			List<String> valueList = new ArrayList<String>(array.length());
 			AnnotationsValueType lastType = null;
 			for (int i = 0; i < array.length(); i++) {
-				ListValue listValue = Stream.of(attemptToReadAsDouble(i, array), attemptToReadAsLong(i, array),
-						attemptToReadAsString(i, array)).filter(Optional::isPresent).findFirst().get().get();
+				ListValue listValue = Stream
+						.of(attemptToReadAsDouble(i, array), attemptToReadAsTimestamp(i, array),
+								attemptToReadAsLong(i, array), attemptToReadAsString(i, array))
+						.filter(Optional::isPresent).findFirst().get().get();
+				if (lastType != null && !lastType.equals(listValue.getType())) {
+					throw new IllegalArgumentException("List of mixed types found for key: '" + key + "'");
+				}
 				lastType = listValue.getType();
 				valueList.add(listValue.getValue());
 			}
@@ -235,8 +314,6 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 * @param jsonObject
 	 */
 	void writeAnnotationsToJSONObject(Annotations toWrite, JSONObject jsonObject) {
-		ValidateArgument.required(toWrite, "Annotations");
-		ValidateArgument.required(jsonObject, "JSONObject");
 		for (Entry<String, AnnotationsValue> entry : toWrite.getAnnotations().entrySet()) {
 			writeAnnotationValue(entry.getKey(), entry.getValue(), jsonObject);
 		}
@@ -261,8 +338,10 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 			jsonObject.put(key, Double.parseDouble(value));
 			break;
 		case LONG:
-		case TIMESTAMP_MS:
 			jsonObject.put(key, Long.parseLong(value));
+			break;
+		case TIMESTAMP_MS:
+			jsonObject.put(key, JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, new Date(Long.parseLong(value))));
 			break;
 		default:
 			throw new IllegalArgumentException("Unknown annotation type: " + type);
@@ -283,9 +362,13 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 			}
 			break;
 		case LONG:
-		case TIMESTAMP_MS:
 			for (String value : values) {
 				array.put(Long.parseLong(value));
+			}
+			break;
+		case TIMESTAMP_MS:
+			for (String value : values) {
+				array.put(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, new Date(Long.parseLong(value))));
 			}
 			break;
 		default:

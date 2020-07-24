@@ -1,260 +1,522 @@
 package org.sagebionetworks.repo.manager.schema;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.NextPageToken;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
-import org.sagebionetworks.repo.model.dbo.schema.BindSchemaRequest;
-import org.sagebionetworks.repo.model.dbo.schema.JsonSchemaDao;
-import org.sagebionetworks.repo.model.dbo.schema.NewSchemaVersionRequest;
-import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
-import org.sagebionetworks.repo.model.dbo.schema.SchemaDependency;
-import org.sagebionetworks.repo.model.schema.BoundObjectType;
-import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
-import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
-import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
-import org.sagebionetworks.repo.model.schema.JsonSchema;
-import org.sagebionetworks.repo.model.schema.JsonSchemaInfo;
-import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
-import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
-import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoRequest;
-import org.sagebionetworks.repo.model.schema.ListJsonSchemaInfoResponse;
-import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoRequest;
-import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
-import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
-import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
-import org.sagebionetworks.repo.model.schema.Organization;
-import org.sagebionetworks.repo.model.schema.Type;
-import org.sagebionetworks.repo.model.util.AccessControlListUtil;
-import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.schema.id.SchemaId;
-import org.sagebionetworks.schema.parser.SchemaIdParser;
+import org.sagebionetworks.schema.FORMAT;
+import org.sagebionetworks.schema.adapter.org.json.JsonDateUtils;
 
 import com.google.common.collect.Lists;
 
 @ExtendWith(MockitoExtension.class)
 public class AnnotationsTranslatorImplTest {
-	
+
+	Class<? extends Entity> entityClass;
+	JSONObject jsonObject;
+	JSONArray arrayOfLongs;
+	String entityId;
+	String etag;
+
+	Project project;
+	Annotations annotations;
+
 	AnnotationsTranslatorImpl translator;
-	
+
 	@BeforeEach
 	public void before() {
 		translator = new AnnotationsTranslatorImpl();
+
+		entityId = "syn123";
+		etag = "some-etag";
+
+		entityClass = Project.class;
+		jsonObject = new JSONObject();
+		// entity values
+		jsonObject.put("id", entityId);
+		jsonObject.put("etag", etag);
+		jsonObject.put("concreteType", Project.class.getName());
+
+		project = new Project();
+		project.setId(entityId);
+		project.setEtag(etag);
+		project.setCreatedBy("123");
+		project.setCreatedOn(new Date(1L));
+		project.setModifiedBy("444");
+		project.setModifiedOn(new Date(2L));
+		project.setName("foo");
+		project.setParentId("syn901");
+
+		annotations = new Annotations();
+		annotations.setId(project.getId());
+		annotations.setEtag(project.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(annotations, "aString", "some string!", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "listOfLongs", Lists.newArrayList("222", "333"),
+				AnnotationsValueType.LONG);
 	}
-	
+
 	@Test
-	public void testAttemptToReadAsString() {
+	public void testGetAnnotationValueFromJsonObjectWithString() {
 		String key = "theKey";
 		String value = "a string value";
 		JSONObject json = new JSONObject();
-		json.putOpt(key, value);
-		
+		json.put(key, value);
 		// call under test
-		Optional<AnnotationsValue> optional = translator.attemptToReadAsString(key, json);
-		assertNotNull(optional);
-		assertTrue(optional.isPresent());
-		AnnotationsValue annoValue = optional.get();
+		AnnotationsValue annoValue = translator.getAnnotationValueFromJsonObject(key, json);
+		assertNotNull(annoValue);
 		assertEquals(AnnotationsValueType.STRING, annoValue.getType());
-		assertNotNull(annoValue.getValue());
-		assertEquals(1, annoValue.getValue().size());
-		assertEquals(value, annoValue.getValue().get(0));
+		List<String> expected = Lists.newArrayList(value);
+		assertEquals(expected, annoValue.getValue());
 	}
-	
+
 	@Test
-	public void testAttemptToReadAsStringWithEmpty() {
+	public void testGetAnnotationValueFromJsonObjectWithEmtptyString() {
 		String key = "theKey";
 		String value = "";
 		JSONObject json = new JSONObject();
-		json.putOpt(key, value);
-		
+		json.put(key, value);
 		// call under test
-		Optional<AnnotationsValue> optional = translator.attemptToReadAsString(key, json);
-		assertNotNull(optional);
-		assertTrue(optional.isPresent());
-		AnnotationsValue annoValue = optional.get();
+		AnnotationsValue annoValue = translator.getAnnotationValueFromJsonObject(key, json);
+		assertNotNull(annoValue);
 		assertEquals(AnnotationsValueType.STRING, annoValue.getType());
-		assertNotNull(annoValue.getValue());
-		assertEquals(1, annoValue.getValue().size());
-		assertEquals(value, annoValue.getValue().get(0));
+		List<String> expected = Lists.newArrayList(value);
+		assertEquals(expected, annoValue.getValue());
 	}
-	
+
 	@Test
-	public void testAttemptToReadAsStringWithNull() {
+	public void testGetAnnotationValueFromJsonObjectWithLong() {
 		String key = "theKey";
-		String value = null;
+		Long value = 123456L;
 		JSONObject json = new JSONObject();
-		json.putOpt(key, value);
-		
+		json.put(key, value);
 		// call under test
-		Optional<AnnotationsValue> optional = translator.attemptToReadAsString(key, json);
-		assertNotNull(optional);
-		assertFalse(optional.isPresent());
-	}
-	
-	@Test
-	public void testAttemptToReadAsLong() {
-		String key = "theKey";
-		Long value = 123L;
-		JSONObject json = new JSONObject();
-		json.putOpt(key, value);
-		
-		// call under test
-		Optional<AnnotationsValue> optional = translator.attemptToReadAsLong(key, json);
-		assertNotNull(optional);
-		assertTrue(optional.isPresent());
-		AnnotationsValue annoValue = optional.get();
+		AnnotationsValue annoValue = translator.getAnnotationValueFromJsonObject(key, json);
+		assertNotNull(annoValue);
 		assertEquals(AnnotationsValueType.LONG, annoValue.getType());
-		assertNotNull(annoValue.getValue());
-		assertEquals(1, annoValue.getValue().size());
-		assertEquals(value.toString(), annoValue.getValue().get(0));
+		List<String> expected = Lists.newArrayList(value.toString());
+		assertEquals(expected, annoValue.getValue());
 	}
-	
+
 	@Test
-	public void testAttemptToReadAsLongWithInt() {
+	public void testGetAnnotationValueFromJsonObjectWithInteger() {
 		String key = "theKey";
 		Integer value = 123;
 		JSONObject json = new JSONObject();
-		json.putOpt(key, value);
-		
+		json.put(key, value);
 		// call under test
-		Optional<AnnotationsValue> optional = translator.attemptToReadAsLong(key, json);
-		assertNotNull(optional);
-		assertTrue(optional.isPresent());
-		AnnotationsValue annoValue = optional.get();
+		AnnotationsValue annoValue = translator.getAnnotationValueFromJsonObject(key, json);
+		assertNotNull(annoValue);
 		assertEquals(AnnotationsValueType.LONG, annoValue.getType());
-		assertNotNull(annoValue.getValue());
-		assertEquals(1, annoValue.getValue().size());
-		assertEquals(value.toString(), annoValue.getValue().get(0));
+		List<String> expected = Lists.newArrayList(value.toString());
+		assertEquals(expected, annoValue.getValue());
+	}
+
+	@Test
+	public void testGetAnnotationValueFromJsonObjectWithDouble() {
+		String key = "theKey";
+		Double value = new Double(3.14);
+		JSONObject json = new JSONObject();
+		json.put(key, value);
+		// call under test
+		AnnotationsValue annoValue = translator.getAnnotationValueFromJsonObject(key, json);
+		assertNotNull(annoValue);
+		assertEquals(AnnotationsValueType.DOUBLE, annoValue.getType());
+		List<String> expected = Lists.newArrayList(value.toString());
+		assertEquals(expected, annoValue.getValue());
 	}
 	
 	@Test
-	public void testAttemptToReadAsLongWithDouble() {
+	public void testGetAnnotationValueFromJsonObjectWithTimestamp() {
 		String key = "theKey";
-		Double value = 3.14;
+		String value = JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, new Date(222));
 		JSONObject json = new JSONObject();
-		json.putOpt(key, value);
-		
+		json.put(key, value);
 		// call under test
-		Optional<AnnotationsValue> optional = translator.attemptToReadAsLong(key, json);
-		assertNotNull(optional);
-		assertTrue(optional.isPresent());
-		AnnotationsValue annoValue = optional.get();
+		AnnotationsValue annoValue = translator.getAnnotationValueFromJsonObject(key, json);
+		assertNotNull(annoValue);
+		assertEquals(AnnotationsValueType.TIMESTAMP_MS, annoValue.getType());
+		List<String> expected = Lists.newArrayList("222");
+		assertEquals(expected, annoValue.getValue());
+	}
+
+	@Test
+	public void testGetAnnotationValueFromJsonObjectWithArrayOfStrings() {
+		String key = "theKey";
+		JSONArray value = new JSONArray();
+		value.put(0, "one");
+		value.put(1, "two");
+		JSONObject json = new JSONObject();
+		json.put(key, value);
+		// call under test
+		AnnotationsValue annoValue = translator.getAnnotationValueFromJsonObject(key, json);
+		assertNotNull(annoValue);
+		assertEquals(AnnotationsValueType.STRING, annoValue.getType());
+		List<String> expected = Lists.newArrayList("one", "two");
+		assertEquals(expected, annoValue.getValue());
+	}
+	
+	@Test
+	public void testGetAnnotationValueFromJsonObjectWithArrayOfTimestamps() {
+		String key = "theKey";
+		JSONArray value = new JSONArray();
+		value.put(0, JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, new Date(222)));
+		value.put(1, JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, new Date(333)));
+		JSONObject json = new JSONObject();
+		json.put(key, value);
+		// call under test
+		AnnotationsValue annoValue = translator.getAnnotationValueFromJsonObject(key, json);
+		assertNotNull(annoValue);
+		assertEquals(AnnotationsValueType.TIMESTAMP_MS, annoValue.getType());
+		List<String> expected = Lists.newArrayList("222", "333");
+		assertEquals(expected, annoValue.getValue());
+	}
+
+	@Test
+	public void testGetAnnotationValueFromJsonObjectWithArrayOfLongs() {
+		String key = "theKey";
+		JSONArray value = new JSONArray();
+		value.put(0, new Long(123));
+		value.put(1, new Long(456));
+		JSONObject json = new JSONObject();
+		json.put(key, value);
+		// call under test
+		AnnotationsValue annoValue = translator.getAnnotationValueFromJsonObject(key, json);
+		assertNotNull(annoValue);
 		assertEquals(AnnotationsValueType.LONG, annoValue.getType());
-		assertNotNull(annoValue.getValue());
-		assertEquals(1, annoValue.getValue().size());
-		// Note the data loss.  Doubles should be attempted before longs.
-		assertEquals("3", annoValue.getValue().get(0));
+		List<String> expected = Lists.newArrayList("123", "456");
+		assertEquals(expected, annoValue.getValue());
 	}
-	
+
 	@Test
-	public void testAttemptToReadAsLongWithString() {
+	public void testGetAnnotationValueFromJsonObjectWithArrayOfDoubles() {
 		String key = "theKey";
-		String value = "not a long";
+		JSONArray value = new JSONArray();
+		value.put(0, new Double(3.14));
+		value.put(1, new Double(4.56));
 		JSONObject json = new JSONObject();
-		json.putOpt(key, value);
-		
+		json.put(key, value);
 		// call under test
-		Optional<AnnotationsValue> optional = translator.attemptToReadAsLong(key, json);
-		assertNotNull(optional);
-		assertFalse(optional.isPresent());
-	}
-	
-	@Test
-	public void testAttemptToReadAsDouble() {
-		String key = "theKey";
-		Double value = 3.14;
-		JSONObject json = new JSONObject();
-		json.putOpt(key, value);
-		
-		// call under test
-		Optional<AnnotationsValue> optional = translator.attemptToReadAsDouble(key, json);
-		assertNotNull(optional);
-		assertTrue(optional.isPresent());
-		AnnotationsValue annoValue = optional.get();
+		AnnotationsValue annoValue = translator.getAnnotationValueFromJsonObject(key, json);
+		assertNotNull(annoValue);
 		assertEquals(AnnotationsValueType.DOUBLE, annoValue.getType());
-		assertNotNull(annoValue.getValue());
-		assertEquals(1, annoValue.getValue().size());
-		// Note the data loss.  Doubles should be attempted before longs.
-		assertEquals(value.toString(), annoValue.getValue().get(0));
+		List<String> expected = Lists.newArrayList("3.14", "4.56");
+		assertEquals(expected, annoValue.getValue());
 	}
-	
+
 	@Test
-	public void testAttemptToReadAsDoubleWithNoDecimals() {
+	public void testGetAnnotationValueFromJsonObjectWithArrayOfMixed() {
 		String key = "theKey";
-		Double value = new Double(3);
+		JSONArray value = new JSONArray();
+		value.put(0, "a string");
+		value.put(1, new Double(3.14));
+		value.put(2, new Long(123));
 		JSONObject json = new JSONObject();
-		json.putOpt(key, value);
-		System.out.println(json.toString(5));
-		
-		// call under test
-		Optional<AnnotationsValue> optional = translator.attemptToReadAsDouble(key, json);
-		assertNotNull(optional);
-		assertTrue(optional.isPresent());
-		AnnotationsValue annoValue = optional.get();
-		assertEquals(AnnotationsValueType.DOUBLE, annoValue.getType());
-		assertNotNull(annoValue.getValue());
-		assertEquals(1, annoValue.getValue().size());
-		// Note the data loss.  Doubles should be attempted before longs.
-		assertEquals(value.toString(), annoValue.getValue().get(0));
+		json.put(key, value);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			translator.getAnnotationValueFromJsonObject(key, json);
+		}).getMessage();
+		assertEquals("List of mixed types found for key: 'theKey'", message);
 	}
-	
+
 	@Test
 	public void testReadFromJsonObject() {
-		JSONObject json = new JSONObject();
-		json.put("name", "ignoreMe!");
-		json.put("id", "syn123");
-		json.put("etag", "the-etag");
-		
+		jsonObject.put("aString", "some string");
+		jsonObject.put("aLong", "123");
+		arrayOfLongs = new JSONArray();
+		arrayOfLongs.put(567);
+		arrayOfLongs.put(789);
+		jsonObject.put("listOfLongs", arrayOfLongs);
 		// call under test
-		translator.readFromJsonObject(Project.class, jsonObject)
+		Annotations annotations = translator.readFromJsonObject(entityClass, jsonObject);
+		assertNotNull(annotations);
+		assertEquals(entityId, annotations.getId());
+		assertEquals(etag, annotations.getEtag());
+		Map<String, AnnotationsValue> map = annotations.getAnnotations();
+		assertNotNull(map);
+		assertEquals(3, map.size());
+
+		AnnotationsValue value = map.get("aString");
+		assertNotNull(value);
+		assertEquals(AnnotationsValueType.STRING, value.getType());
+		assertEquals(Lists.newArrayList("some string"), value.getValue());
+
+		value = map.get("aLong");
+		assertNotNull(value);
+		assertEquals(AnnotationsValueType.LONG, value.getType());
+		assertEquals(Lists.newArrayList("123"), value.getValue());
+
+		value = map.get("listOfLongs");
+		assertNotNull(value);
+		assertEquals(AnnotationsValueType.LONG, value.getType());
+		assertEquals(Lists.newArrayList("567", "789"), value.getValue());
 	}
 
+	@Test
+	public void testReadFromJsonObjectWithUpdatesToEntityFields() {
+		jsonObject.put("id", "cannot override the 'id'");
+		jsonObject.put("etag", "cannot override 'etag'");
+		jsonObject.put("parentId", "cannot override 'parentId'");
+		jsonObject.put("createdOn", "cannot override 'createdOn'");
+		jsonObject.put("createdBy", "cannot override 'createdBy'");
+		jsonObject.put("modifiedOn", "cannot override 'modifiedOn'");
+		jsonObject.put("modifiedBy", "cannot override 'modifiedBy'");
+		jsonObject.put("name", "cannot override 'name'");
+		jsonObject.put("validKey", "validValue");
+		// call under test
+		Annotations annotations = translator.readFromJsonObject(entityClass, jsonObject);
+		assertNotNull(annotations);
+		Map<String, AnnotationsValue> map = annotations.getAnnotations();
+		assertNotNull(map);
+		// only the non-entity key should be in the annotations.
+		assertEquals(1, map.size());
 
+		AnnotationsValue value = map.get("validKey");
+		assertNotNull(value);
+		assertEquals(AnnotationsValueType.STRING, value.getType());
+		assertEquals(Lists.newArrayList("validValue"), value.getValue());
+	}
+
+	@Test
+	public void testReadFromJsonObjectWithNoId() {
+		jsonObject.remove("id");
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			translator.readFromJsonObject(entityClass, jsonObject);
+		}).getMessage();
+		assertEquals("Expected JSON to include key: 'id'", message);
+	}
+
+	@Test
+	public void testReadFromJsonObjectWithNoEtag() {
+		jsonObject.remove("etag");
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			translator.readFromJsonObject(entityClass, jsonObject);
+		}).getMessage();
+		assertEquals("Expected JSON to include key: 'etag'", message);
+	}
+
+	@Test
+	public void testReadFromJsonObjectWithNoConcreteType() {
+		jsonObject.remove("concreteType");
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			translator.readFromJsonObject(entityClass, jsonObject);
+		}).getMessage();
+		assertEquals("Expected JSON to include key: 'concreteType'", message);
+	}
+
+	@Test
+	public void testReadFromJsonObjectWithConcreteTypeDoesNotMatch() {
+		jsonObject.put("concreteType", Folder.class.getName());
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			translator.readFromJsonObject(entityClass, jsonObject);
+		}).getMessage();
+		assertEquals("The value of 'concreteType' does not match the type of Entity: 'syn123'", message);
+	}
+	
+	@Test
+	public void testReadFromJsonObjectWithNullClass() {
+		entityClass = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			translator.readFromJsonObject(entityClass, jsonObject);
+		});
+	}
+	
+	@Test
+	public void testReadFromJsonObjectWithNullJsonObject() {
+		jsonObject = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			translator.readFromJsonObject(entityClass, jsonObject);
+		});
+	}
+
+	@Test
+	public void testWriteToJsonObject() {
+		// call under test
+		JSONObject json = translator.writeToJsonObject(project, annotations);
+		assertNotNull(json);
+		assertEquals(project.getName(), json.getString("name"));
+		assertEquals(project.getId(), json.getString("id"));
+		assertEquals(project.getEtag(), json.getString("etag"));
+		assertEquals(project.getParentId(), json.getString("parentId"));
+		assertEquals(project.getCreatedBy(), json.getString("createdBy"));
+		assertEquals(project.getModifiedBy(), json.getString("modifiedBy"));
+		assertEquals(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, project.getCreatedOn()),
+				json.getString("createdOn"));
+		assertEquals(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, project.getModifiedOn()),
+				json.getString("modifiedOn"));
+		assertEquals(Project.class.getName(), json.getString("concreteType"));
+		// annotations
+		assertEquals("some string!", json.getString("aString"));
+		JSONArray array = json.getJSONArray("listOfLongs");
+		assertNotNull(array);
+		assertEquals(2, array.length());
+		assertEquals(new Long(222),array.getLong(0));
+		assertEquals(new Long(333),array.getLong(1));
+	}
+	
+	@Test
+	public void testWriteToJsonObjectWithAnnotationConflictWithEntity() {
+		
+		// All keys that conflict with entity field names should be ignored.
+		AnnotationsV2TestUtils.putAnnotations(annotations, "id", "ignore me!", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "name", "ignore me!", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "parentId", "ignore me!", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "createdBy", "ignore me!", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "createdOn", "ignore me!", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "modifiedOn", "ignore me!", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "modifiedBy", "ignore me!", AnnotationsValueType.STRING);
+		
+		// call under test
+		JSONObject json = translator.writeToJsonObject(project, annotations);
+		assertNotNull(json);
+		assertEquals(project.getName(), json.getString("name"));
+		assertEquals(project.getId(), json.getString("id"));
+		assertEquals(project.getEtag(), json.getString("etag"));
+		assertEquals(project.getParentId(), json.getString("parentId"));
+		assertEquals(project.getCreatedBy(), json.getString("createdBy"));
+		assertEquals(project.getModifiedBy(), json.getString("modifiedBy"));
+		assertEquals(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, project.getCreatedOn()),
+				json.getString("createdOn"));
+		assertEquals(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, project.getModifiedOn()),
+				json.getString("modifiedOn"));
+		assertEquals(Project.class.getName(), json.getString("concreteType"));
+		// annotations
+		assertEquals("some string!", json.getString("aString"));
+		JSONArray array = json.getJSONArray("listOfLongs");
+		assertNotNull(array);
+		assertEquals(2, array.length());
+		assertEquals(new Long(222),array.getLong(0));
+		assertEquals(new Long(333),array.getLong(1));
+	}
+	
+	@Test
+	public void testWriteToJsonObjectWithNullEntity() {
+		project = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			translator.writeToJsonObject(project, annotations);
+		});
+	}
+	
+	@Test
+	public void testWriteToJsonObjectWithNullAnnotations() {
+		annotations = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			translator.writeToJsonObject(project, annotations);
+		});
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithString() {
+		Annotations toWrite = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(toWrite, "aString", "someString", AnnotationsValueType.STRING);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json);
+		assertEquals("someString", json.getString("aString"));
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithLong() {
+		Annotations toWrite = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(toWrite, "aLong", "123", AnnotationsValueType.LONG);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json);
+		assertEquals(new Long(123), json.getLong("aLong"));
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithTimeStamp() {
+		Annotations toWrite = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(toWrite, "aTimestamp", "12345", AnnotationsValueType.TIMESTAMP_MS);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json);
+		assertEquals(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, new Date(12345)), json.getString("aTimestamp"));
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithDouble() {
+		Annotations toWrite = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(toWrite, "aDouble", "3.14", AnnotationsValueType.DOUBLE);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json);
+		assertEquals(new Double(3.14), json.getDouble("aDouble"));
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithListOfStrings() {
+		Annotations toWrite = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(toWrite, "aListOfStrings", Lists.newArrayList("one","two"), AnnotationsValueType.STRING);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json);
+		JSONArray array = json.getJSONArray("aListOfStrings");
+		assertNotNull(array);
+		assertEquals(2, array.length());
+		assertEquals("one", array.getString(0));
+		assertEquals("two", array.getString(1));
+	}
+
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithListOfLongs() {
+		Annotations toWrite = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(toWrite, "aListOfLongs", Lists.newArrayList("222","333"), AnnotationsValueType.LONG);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json);
+		JSONArray array = json.getJSONArray("aListOfLongs");
+		assertNotNull(array);
+		assertEquals(2, array.length());
+		assertEquals(new Long(222), array.getLong(0));
+		assertEquals(new Long(333), array.getLong(1));
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithListOfDoubles() {
+		Annotations toWrite = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(toWrite, "aListOfDoubles", Lists.newArrayList("1.22","2.33"), AnnotationsValueType.DOUBLE);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json);
+		JSONArray array = json.getJSONArray("aListOfDoubles");
+		assertNotNull(array);
+		assertEquals(2, array.length());
+		assertEquals(new Double(1.22), array.getDouble(0));
+		assertEquals(new Double(2.33), array.getDouble(1));
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithListOfTimeStamps() {
+		Annotations toWrite = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(toWrite, "aListOfDoubles", Lists.newArrayList("222","333"), AnnotationsValueType.TIMESTAMP_MS);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json);
+		JSONArray array = json.getJSONArray("aListOfDoubles");
+		assertNotNull(array);
+		assertEquals(2, array.length());
+		assertEquals(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, new Date(222)), array.getString(0));
+		assertEquals(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, new Date(333)), array.getString(1));
+	}
 }
