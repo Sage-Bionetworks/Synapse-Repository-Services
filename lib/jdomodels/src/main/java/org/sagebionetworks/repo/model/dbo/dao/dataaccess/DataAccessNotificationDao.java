@@ -4,7 +4,6 @@ import java.util.Optional;
 
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessNotificationType;
 
 public interface DataAccessNotificationDao {
 

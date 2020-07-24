@@ -45,7 +45,6 @@ public class AccessApprovalRevokedNotificationWorker implements ChangeMessageDri
 		try {
 			notificationManager.processAccessApprovalChange(message);
 		} catch (RecoverableMessageException e) {
-			System.out.println("Recoverable..." + e.getMessage());
 			throw e;
 		} catch (Throwable e) {
 			LOG.error(e.getMessage(), e);

@@ -5,7 +5,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessNotificationType;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationType;
 import org.springframework.util.MimeTypeUtils;
 
 public interface DataAccessNotificationBuilder {
