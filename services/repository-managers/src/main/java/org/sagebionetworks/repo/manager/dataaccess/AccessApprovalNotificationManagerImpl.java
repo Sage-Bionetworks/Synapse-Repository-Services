@@ -24,7 +24,6 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
-import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -109,39 +108,40 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 			return;
 		}
 
-		AccessApproval approval = accessApprovalDao.get(message.getObjectId());
+		processAccessApproval(DataAccessNotificationType.REVOCATION, Long.valueOf(message.getObjectId()));
+	}
+	
+	@Override
+	@WriteTransaction
+	public void processAccessApproval(DataAccessNotificationType notificationType, Long approvalId) throws RecoverableMessageException {
+		AccessApproval approval = accessApprovalDao.get(approvalId.toString());
 
-		// Should we process this approval change?
-		if (discardAccessApproval(approval, ApprovalState.REVOKED)) {
+		// Check that the type expected by the notification type matches
+		if (!notificationType.getExpectedState().equals(approval.getState())) {
 			return;
 		}
+		
+		sendMessageIfNeeded(notificationType, approval);
+	}
 
-		UserInfo recipient = getRecipientForRevocation(approval);
-
+	boolean isSendRevocation(DataAccessNotificationType notificationType, AccessApproval approval, DBODataAccessNotification notification) {
+		if (!DataAccessNotificationType.REVOCATION.equals(notificationType)) {
+			throw new UnsupportedOperationException("Unsupported notification type " + notificationType);
+		}
 		// We need to check if an APPROVED access approval exists already for the same access requirement, in such a
 		// case there is no need to send a notification as the user is still considered APPROVED
 		if (!accessApprovalDao
-				.listApprovalsByAccessor(approval.getRequirementId().toString(), recipient.getId().toString())
+				.listApprovalsByAccessor(approval.getRequirementId().toString(), approval.getAccessorId())
 				.isEmpty()) {
-			return;
+			return false;
 		}
-
-		sendMessageIfNeeded(DataAccessNotificationType.REVOCATION, approval, recipient, this::isSendRevocation);
-
-	}
-
-	/**
-	 * Checks if the the given approval modification date is after the sent on timestamp of the given notification.
-	 * Since we do not want to send the same notification too often to the same user we have a timeout in order to
-	 * re-send a notification of 7 days.
-	 * 
-	 * 
-	 * @param existingNotification An existing notification
-	 * @param approval             The changed approval
-	 * @return True if a new revocation notification should be sent to the access approval recipient, false otherwise
-	 */
-	boolean isSendRevocation(DBODataAccessNotification existingNotification, AccessApproval approval) {
-		Instant sentOn = existingNotification.getSentOn().toInstant();
+		
+		// A notification does not exist, we can send a new one
+		if (notification == null) {
+			return true;
+		}
+		
+		Instant sentOn = notification.getSentOn().toInstant();
 		Instant approvalModifiedOn = approval.getModifiedOn().toInstant();
 
 		// If it was sent after the approval modification then it was already processed
@@ -150,10 +150,9 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		}
 
 		// The approval was modified after the notification was sent (e.g. the user was
-		// added back and revoked again)
-		// We do not want to re-send another notification if the last one for the same
+		// added back and revoked again). We do not want to re-send another notification if the last one for the same
 		// approval was within the last week
-		if (sentOn.isAfter(approvalModifiedOn.minus(REVOKE_RESEND_TIMEOUT_DAYS, ChronoUnit.DAYS))) {
+		if (sentOn.isAfter(approvalModifiedOn.minus(RESEND_TIMEOUT_DAYS, ChronoUnit.DAYS))) {
 			return false;
 		}
 
@@ -186,37 +185,32 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		return false;
 	}
 
-	/**
-	 * Checks if the given access approval is valid and can be processed.
-	 * 
-	 * @param approval      The approval
-	 * @param expectedState The expected state
-	 * @return True if the approval is in the expected state and refers to a {@link ManagedACTAccessRequirement} (of
-	 *         type entity)
-	 */
-	boolean discardAccessApproval(AccessApproval approval, ApprovalState expectedState) {
-		// Do not process approvals that are not in the given state
-		if (!expectedState.equals(approval.getState())) {
-			return true;
-		}
-
-		return getManagedAccessRequirement(approval.getRequirementId()).map(ar -> false).orElse(true);
-	}
-
-	void sendMessageIfNeeded(DataAccessNotificationType notificationType, AccessApproval approval, UserInfo recipient,
-			ReSendCondition reSendCondition) throws RecoverableMessageException {
-
-		final Long requirementId = approval.getRequirementId();
-		final Long recipientId = recipient.getId();
+	void sendMessageIfNeeded(DataAccessNotificationType notificationType, AccessApproval approval) throws RecoverableMessageException {
+		
 		final Long approvalId = approval.getId();
-
+		final Long requirementId = approval.getRequirementId();
+		
+		// Checks that we are processing a managed access requirement
+		ManagedACTAccessRequirement requirement = getManagedAccessRequirement(requirementId).orElse(null);
+		
+		if (requirement == null) {
+			return;
+		}
+		
+		// Fetch the intended recipient for the notification type
+		final RecipientProvider recipientProvider = getRecipientProvider(notificationType);
+		
+		final UserInfo recipient = userManager.getUserInfo(recipientProvider.getRecipient(approval));
+		final Long recipientId = recipient.getId();
+		
 		// We check if a notification was sent out already for the given requirement and recipient, we acquire a lock on
 		// the row if it exists
-		Optional<DBODataAccessNotification> notification = notificationDao.findForUpdate(notificationType,
-				requirementId, recipientId);
+		Optional<DBODataAccessNotification> notification = notificationDao.findForUpdate(notificationType, requirementId, recipientId);
 
-		// If a notification is present we check if we should send another one
-		if (notification.isPresent() && !reSendCondition.canSend(notification.get(), approval)) {
+		final SendConditionProvider sendCondition = getSendConditionProvider(notificationType);
+		
+		// Validate that we can send the notification
+		if (!sendCondition.canSend(notificationType, approval, notification.orElse(null))) {
 			return;
 		}
 
@@ -226,11 +220,11 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		// Check if the message can be delivered to the given recipient (e.g. on staging we usually do not want to send
 		// notifications)
 		if (deliverMessage(recipient)) {
-			MessageToUser messageToUser = createMessageToUser(notificationType, approval, recipient);
+			MessageToUser messageToUser = createMessageToUser(notificationType, approval, requirement, recipient);
 			messageId = Long.valueOf(messageToUser.getId());
 			sentOn = messageToUser.getCreatedOn().toInstant();
 		} else {
-			LOG.warn(MSG_NOT_DELIVERED, notificationType, requirementId, recipientId, approvalId);
+			LOG.warn(MSG_NOT_DELIVERED, notificationType, requirementId, recipient.getId(), approvalId);
 		}
 
 		DBODataAccessNotification toStore = notification.orElse(new DBODataAccessNotification());
@@ -252,14 +246,10 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		}
 	}
 
-	MessageToUser createMessageToUser(DataAccessNotificationType notificationType, AccessApproval approval,
+	MessageToUser createMessageToUser(DataAccessNotificationType notificationType, AccessApproval approval, ManagedACTAccessRequirement accessRequriement,
 			UserInfo recipient) {
 
 		DataAccessNotificationBuilder notificationBuilder = getNotificationBuilder(notificationType);
-
-		ManagedACTAccessRequirement accessRequriement = getManagedAccessRequirement(approval.getRequirementId())
-				.orElseThrow(() -> new IllegalStateException(
-						"Cannot send a notification for a non managed access requirement."));
 
 		UserInfo notificationsSender = getNotificationsSender();
 
@@ -312,9 +302,23 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 	UserInfo getNotificationsSender() {
 		return userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId());
 	}
-
-	UserInfo getRecipientForRevocation(AccessApproval approval) {
-		return userManager.getUserInfo(Long.valueOf(approval.getAccessorId()));
+	
+	SendConditionProvider getSendConditionProvider(DataAccessNotificationType notificationType) {
+		switch (notificationType) {
+		case REVOCATION:
+			return this::isSendRevocation;
+		default:
+			throw new UnsupportedOperationException("Unsupported notification type " + notificationType.name());
+		}
+	}
+		
+	RecipientProvider getRecipientProvider(DataAccessNotificationType notificationType) {
+		switch (notificationType) {
+		case REVOCATION:
+			return (approval) -> Long.valueOf(approval.getAccessorId());
+		default:
+			throw new UnsupportedOperationException("Unsupported notification type " + notificationType.name());
+		}
 	}
 
 	DataAccessNotificationBuilder getNotificationBuilder(DataAccessNotificationType notificationType) {
@@ -348,20 +352,32 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 	}
 
 	/**
-	 * Internal functional interface to check if an existing notification should be resent for the given access approval
-	 * 
-	 * @author Marco Marasca
+	 * Internal functional interface to check if a notification for a given access approval should be sent
 	 */
 	@FunctionalInterface
-	public static interface ReSendCondition {
+	public static interface SendConditionProvider {
 
 		/**
-		 * @param existingNotification An existing notification that matches the approval requirement and recipient
-		 * @param approval             The approval that matches the given notification
+		 * @param notificationType The type of notification
+		 * @param approval         The approval to send the notification for
+		 * @param notification     An optional notification, can be null if no notification exist for the approval
 		 * @return True iff a new notification should be sent out at this time for the given approval, false otherwise
 		 */
-		boolean canSend(DBODataAccessNotification existingNotification, AccessApproval approval);
+		boolean canSend(DataAccessNotificationType notificationType, AccessApproval approval,
+				DBODataAccessNotification notification);
 
+	}
+
+	/**
+	 * Internal functional interface to fetch the recipient of a given approval
+	 */
+	@FunctionalInterface
+	public static interface RecipientProvider {
+		/**
+		 * @param approval
+		 * @return The id of the notification recipient for the given approval
+		 */
+		Long getRecipient(AccessApproval approval);
 	}
 
 }
