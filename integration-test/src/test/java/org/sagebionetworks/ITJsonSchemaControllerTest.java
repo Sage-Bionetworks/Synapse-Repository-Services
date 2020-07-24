@@ -27,6 +27,8 @@ import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
@@ -44,6 +46,7 @@ import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class ITJsonSchemaControllerTest {
@@ -387,7 +390,8 @@ public class ITJsonSchemaControllerTest {
 		// Call under test
 		JSONObject projectJSON = synapse.getEntityJson(project.getId());
 		assertNotNull(projectJSON);
-		System.out.println(projectJSON.toString(5));
+		assertEquals(project.getName(), projectJSON.get("name"));
+		assertEquals(project.getId(), projectJSON.get("id"));
 	}
 	
 	@Test
@@ -398,12 +402,16 @@ public class ITJsonSchemaControllerTest {
 		assertNotNull(projectJSON);
 		projectJSON.put("sample", "some value");
 		// call under test
-		projectJSON = synapse.updateEntityJson(project.getId(), projectJSON);
+		JSONObject updatedJson = synapse.updateEntityJson(project.getId(), projectJSON);
+		assertEquals("some value", updatedJson.getString("sample"));
 		System.out.println(projectJSON.toString(5));
 		Annotations annos = synapse.getAnnotationsV2(project.getId());
 		assertNotNull(annos);
 		assertNotNull(annos.getAnnotations());
-		assertEquals("some value", annos.getAnnotations().get("sample"));
+		AnnotationsValue value =  annos.getAnnotations().get("sample");
+		assertNotNull(value);
+		assertEquals(AnnotationsValueType.STRING, value.getType());
+		assertEquals(Lists.newArrayList("some value"), value.getValue());
 	}
 	
 

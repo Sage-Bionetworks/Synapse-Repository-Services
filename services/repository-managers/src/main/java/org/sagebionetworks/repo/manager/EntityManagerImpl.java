@@ -1,16 +1,14 @@
 package org.sagebionetworks.repo.manager;
 
-import java.lang.reflect.Field;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Set;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.MultipartUtils;
 import org.sagebionetworks.repo.manager.schema.AnnotationsTranslator;
+import org.sagebionetworks.repo.manager.schema.EntityJsonSubject;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -35,8 +33,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
@@ -50,8 +46,6 @@ import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -597,11 +591,7 @@ public class EntityManagerImpl implements EntityManager {
 	
 	@Override
 	public JSONObject getEntityJson(String entityId) {
-		ValidateArgument.required(entityId, "entityId");
-		Class<? extends Entity> entityClass = null;
-		Entity entity = getEntity(entityId, entityClass);
-		Annotations annotations = nodeManager.getUserAnnotations(entityId);
-		return annotationsTranslator.writeToJsonObject(entity, annotations);
+		return getEntityJsonSubject(entityId).toJson();
 	}
 
 	@Override
@@ -614,6 +604,16 @@ public class EntityManagerImpl implements EntityManager {
 		Annotations newAnnotations = annotationsTranslator.readFromJsonObject(entityClass, jsonObject);
 		nodeManager.updateUserAnnotations(userInfo, entityId, newAnnotations);
 		return getEntityJson(entityId);
+	}
+
+	@Override
+	public JsonSubject getEntityJsonSubject(String entityId) {
+		ValidateArgument.required(entityId, "entityId");
+		Class<? extends Entity> entityClass = null;
+		Entity entity = getEntity(entityId, entityClass);
+		Annotations annotations = nodeManager.getUserAnnotations(entityId);
+		JSONObject json = annotationsTranslator.writeToJsonObject(entity, annotations);
+		return new EntityJsonSubject(entity, json);
 	}
 	
 }

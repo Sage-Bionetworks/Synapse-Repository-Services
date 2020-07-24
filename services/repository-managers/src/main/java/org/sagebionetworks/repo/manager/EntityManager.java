@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import java.util.List;
 
 import org.json.JSONObject;
+import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
@@ -417,12 +418,19 @@ public interface EntityManager {
 	public JSONObject getEntityJson(UserInfo userInfo, String id);
 	
 	/**
-	 * Same as: {@link #getEntityJson(UserInfo, String)} but without the authorization check.
-	 * @param entityId
+	 * Same as : {@link #getEntityJson(UserInfo, String)} without an authorization check.
+	 * @param id
 	 * @return
 	 */
-	public JSONObject getEntityJson(String entityId);
-
+	public JSONObject getEntityJson(String id);
+	
+	/**
+	 * Get the JsonSubject representation of an Entity with the given ID.
+	 * @param id
+	 * @return
+	 */
+	public JsonSubject getEntityJsonSubject(String id);
+	
 	/**
 	 * Update the annotation of an Entity by providing the flat JSON representation
 	 * of the entity.
