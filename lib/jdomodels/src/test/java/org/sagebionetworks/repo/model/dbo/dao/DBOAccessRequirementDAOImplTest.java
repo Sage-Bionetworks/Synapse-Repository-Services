@@ -59,13 +59,12 @@ public class DBOAccessRequirementDAOImplTest {
 	private TermsOfUseAccessRequirement accessRequirement = null;
 	private TermsOfUseAccessRequirement accessRequirement2 = null;
 	private List<AccessRequirement> ars = null;
-	
-	private TermsOfUseAccessRequirement accessRequirement3 = null;
-	private TermsOfUseAccessRequirement accessRequirement4 = null;
 
 	
 	@BeforeEach
 	public void setUp() throws Exception {
+		accessRequirementDAO.clear();
+		ars = new ArrayList<>();
 		individualGroup = new UserGroup();
 		individualGroup.setIsIndividual(true);
 		individualGroup.setCreationDate(new Date());
@@ -83,22 +82,7 @@ public class DBOAccessRequirementDAOImplTest {
 	
 	@AfterEach
 	public void tearDown() throws Exception{
-		if (accessRequirement!=null && accessRequirement.getId()!=null) {
-			accessRequirementDAO.delete(accessRequirement.getId().toString());
-		}
-		if (accessRequirement2!=null && accessRequirement2.getId()!=null) {
-			accessRequirementDAO.delete(accessRequirement2.getId().toString());
-		}
-		if (accessRequirement3!=null && accessRequirement3.getId()!=null) {
-			accessRequirementDAO.delete(accessRequirement3.getId().toString());
-		}
-		if (accessRequirement4!=null && accessRequirement4.getId()!=null) {
-			accessRequirementDAO.delete(accessRequirement4.getId().toString());
-		}
-		if (ars!=null) {
-			for (AccessRequirement ar : ars) accessRequirementDAO.delete(ar.getId().toString());
-			ars.clear();
-		}
+		accessRequirementDAO.clear();
 		if (node!=null && nodeDao!=null) {
 			nodeDao.delete(node.getId());
 			node = null;
@@ -130,7 +114,6 @@ public class DBOAccessRequirementDAOImplTest {
 	// for PLFM-1730 test that if we create a number of access requirements, they come back in the creation order
 	@Test
 	public void testRetrievalOrder() throws Exception{
-		this.ars = new ArrayList<AccessRequirement>();
 		for (int i=0; i<10; i++) {
 			TermsOfUseAccessRequirement accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo_"+i);
 			ars.add(accessRequirementDAO.create(accessRequirement));

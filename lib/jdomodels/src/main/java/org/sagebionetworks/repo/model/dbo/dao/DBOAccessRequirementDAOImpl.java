@@ -394,4 +394,9 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			throw new NotFoundException("The resource you are attempting to access cannot be found");
 		}
 	}
+	
+	@Override
+	public void clear() {
+		jdbcTemplate.update("DELETE FROM " + TABLE_ACCESS_REQUIREMENT);
+	}
 }

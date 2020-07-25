@@ -18,6 +18,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -159,6 +161,13 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	private static final String SQL_SELECT_EXPIRED_APPROVALS = SQL_SELECT_APPROVED_IDS
 			+ " AND " + COL_ACCESS_APPROVAL_EXPIRED_ON + " BETWEEN ? AND ?"
 			+ " ORDER BY " + COL_ACCESS_APPROVAL_EXPIRED_ON
+			+ " LIMIT ?";
+	
+	private static final String SQL_SELECT_EXPIRED_APPORVALS_FOR_SUBMMITER = SQL_SELECT_APPROVED_IDS
+			+ " AND " + COL_ACCESS_APPROVAL_EXPIRED_ON + " >= ?"
+			+ " AND " + COL_ACCESS_APPROVAL_EXPIRED_ON + " < ?"
+			// Only the submitter approvals
+			+ " AND " + COL_ACCESS_APPROVAL_ACCESSOR_ID + " = " + COL_ACCESS_APPROVAL_SUBMITTER_ID
 			+ " LIMIT ?";
 	
 	private static final String SQL_SELECT_APPROVALS_BY_ACCESSOR = SQL_SELECT_APPROVED_IDS
@@ -403,6 +412,20 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	}
 	
 	@Override
+	public List<Long> listExpiredApprovalsForSubmitters(LocalDate expirationDate, int limit) {
+		ValidateArgument.required(expirationDate, "expirationDate");
+		ValidateArgument.requirement(limit > 0, "The limit must be greater than 0.");
+		
+		Instant startOfDay = expirationDate.atStartOfDay(ZoneOffset.UTC).toInstant();
+		Instant startOfNextDay = expirationDate.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+		
+		return jdbcTemplate.queryForList(SQL_SELECT_EXPIRED_APPORVALS_FOR_SUBMMITER, Long.class, 
+				startOfDay.toEpochMilli(), 
+				startOfNextDay.toEpochMilli(), 
+				limit);
+	}
+	
+	@Override
 	@WriteTransaction
 	public List<Long> revokeBatch(Long userId, List<Long> ids) {
 		ValidateArgument.required(userId, "userId");
@@ -441,5 +464,10 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		}
 		
 		return updatedIdsList;
+	}
+	
+	@Override
+	public void clear() {
+		jdbcTemplate.update("DELETE FROM " + TABLE_ACCESS_APPROVAL);
 	}
 }

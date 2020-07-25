@@ -8,7 +8,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -30,14 +30,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.dataaccess.AccessApprovalNotificationManagerImpl.ReSendCondition;
+import org.sagebionetworks.repo.manager.dataaccess.AccessApprovalNotificationManagerImpl.RecipientProvider;
+import org.sagebionetworks.repo.manager.dataaccess.AccessApprovalNotificationManagerImpl.SendConditionProvider;
 import org.sagebionetworks.repo.manager.dataaccess.notifications.DataAccessNotificationBuilder;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -47,7 +47,6 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
-import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -110,14 +109,13 @@ public class AccessApprovalNotificationManagerUnitTest {
 	private ChangeMessage mockChangeMessage;
 	
 	@Mock
-	private ReSendCondition mockResendCondition;
+	private SendConditionProvider mockSendConditionProvider;	
+	
+	@Mock
+	private RecipientProvider mockRecipientProvider;
 	
 	@Mock
 	private DBODataAccessNotification mockNotification;
-	
-	@Captor
-	private ArgumentCaptor<ReSendCondition> lambdaCaptor;
-	
 	@BeforeEach
 	public void before() {
 	}
@@ -189,22 +187,6 @@ public class AccessApprovalNotificationManagerUnitTest {
 		}).getMessage();
 		
 		assertEquals("The message builders were not initialized.", message);
-	}
-	
-	@Test
-	public void testGetRecipientForRevocation() {
-		
-		String accessorId = "1";
-		
-		when(mockAccessApproval.getAccessorId()).thenReturn(accessorId);
-		when(mockUserManager.getUserInfo(anyLong())).thenReturn(mockUser);
-		
-		// Call under test
-		UserInfo user = manager.getRecipientForRevocation(mockAccessApproval);
-		
-		assertEquals(mockUser, user);
-		verify(mockAccessApproval).getAccessorId();
-		verify(mockUserManager).getUserInfo(Long.valueOf(accessorId));
 	}
 	
 	@Test
@@ -347,7 +329,6 @@ public class AccessApprovalNotificationManagerUnitTest {
 		UserInfo sender = mockUser;
 		
 		Long senderId = 2L;
-		Long requirementId = 1L;
 		Long recipientId = 3L;
 		
 		String messageBody = "messageBody";
@@ -361,7 +342,6 @@ public class AccessApprovalNotificationManagerUnitTest {
 		doReturn(mockNotificationBuilder).when(managerSpy).getNotificationBuilder(any());
 		doReturn(sender).when(managerSpy).getNotificationsSender();
 		doReturn(fileHandleId).when(managerSpy).storeMessageBody(any(), any(), any());
-		doReturn(Optional.of(accessRequirement)).when(managerSpy).getManagedAccessRequirement(any());
 
 		when(mockNotificationBuilder.getMimeType()).thenReturn(mimeType);
 		when(mockNotificationBuilder.buildMessageBody(any(), any(), any())).thenReturn(messageBody);
@@ -369,17 +349,14 @@ public class AccessApprovalNotificationManagerUnitTest {
 		
 		when(recipient.getId()).thenReturn(recipientId);
 		when(sender.getId()).thenReturn(senderId);
-		when(approval.getRequirementId()).thenReturn(requirementId);
-		
 		when(mockMessageManager.createMessage(any(), any(), anyBoolean())).thenReturn(mockMessageToUser);
 		
 		// Call under test
-		MessageToUser result = managerSpy.createMessageToUser(notificationType, approval, recipient);
+		MessageToUser result = managerSpy.createMessageToUser(notificationType, approval, accessRequirement, recipient);
 		
 		assertEquals(mockMessageToUser, result);
 
 		verify(managerSpy).getNotificationBuilder(notificationType);
-		verify(managerSpy).getManagedAccessRequirement(requirementId);
 		verify(mockNotificationBuilder).getMimeType();
 		verify(mockNotificationBuilder).buildSubject(accessRequirement, approval, recipient);
 		verify(mockNotificationBuilder).buildMessageBody(accessRequirement, approval, recipient);
@@ -397,28 +374,6 @@ public class AccessApprovalNotificationManagerUnitTest {
 		expectedMessage.setRecipients(Collections.singleton(recipient.getId().toString()));
 		
 		verify(mockMessageManager).createMessage(sender, expectedMessage, true);
-	}
-	
-	@Test
-	public void testCreateMessageToUserWithNonManagedAccessRequirement() throws Exception {
-		
-		DataAccessNotificationType notificationType = DataAccessNotificationType.REVOCATION;
-		AccessApproval approval = mockAccessApproval;
-		AccessRequirement accessRequirement = null;
-		UserInfo recipient = mockUser;
-		
-		// We use a spy to mock out already tested methods
-		AccessApprovalNotificationManagerImpl managerSpy = Mockito.spy(manager);
-
-		doReturn(mockNotificationBuilder).when(managerSpy).getNotificationBuilder(any());
-		doReturn(Optional.ofNullable(accessRequirement)).when(managerSpy).getManagedAccessRequirement(any());
-		
-		String message = assertThrows(IllegalStateException.class, () -> {			
-			// Call under test
-			managerSpy.createMessageToUser(notificationType, approval, recipient);
-		}).getMessage();
-
-		assertEquals("Cannot send a notification for a non managed access requirement.", message);
 	}
 	
 	@Test
@@ -505,84 +460,13 @@ public class AccessApprovalNotificationManagerUnitTest {
 	}
 	
 	@Test
-	public void testDiscardAccessApproval() {
-		
-		ManagedACTAccessRequirement accessRequirement = mockManagedAccessRequirement;
-		AccessApproval approval = mockAccessApproval;
-		ApprovalState state = ApprovalState.REVOKED;
-		Long requirementId = 1L;
-		
-		when(approval.getState()).thenReturn(state);
-		when(approval.getRequirementId()).thenReturn(requirementId);
-		
-		AccessApprovalNotificationManagerImpl managerSpy = Mockito.spy(manager);
-		
-		doReturn(Optional.ofNullable(accessRequirement)).when(managerSpy).getManagedAccessRequirement(any());
-		
-		boolean expected = false;
-		
-		// Call under test
-		boolean result = managerSpy.discardAccessApproval(approval, state);
-		
-		assertEquals(expected, result);
-		
-		verify(approval).getRequirementId();
-		verify(approval).getState();
-		verify(managerSpy).getManagedAccessRequirement(requirementId);
-	}
-	
-	@Test
-	public void testDiscardAccessApprovalWithDifferentState() {
-		
-		AccessApproval approval = mockAccessApproval;
-		ApprovalState state = ApprovalState.REVOKED;
-		
-		when(approval.getState()).thenReturn(state);
-		
-		boolean expected = true;
-		
-		// Call under test
-		boolean result = manager.discardAccessApproval(approval, ApprovalState.APPROVED);
-		
-		assertEquals(expected, result);
-		
-		verify(approval).getState();
-	}
-	
-	@Test
-	public void testDiscardAccessApprovalWithUnsupportedAccessRequirementType() {
-		
-		ManagedACTAccessRequirement accessRequirement = null;
-		AccessApproval approval = mockAccessApproval;
-		ApprovalState state = ApprovalState.REVOKED;
-		Long requirementId = 1L;
-		
-		// We spy the manager to mock out already tested function
-		AccessApprovalNotificationManagerImpl managerSpy = Mockito.spy(manager);
-		
-		when(approval.getState()).thenReturn(state);
-		when(approval.getRequirementId()).thenReturn(requirementId);
-		doReturn(Optional.ofNullable(accessRequirement)).when(managerSpy).getManagedAccessRequirement(any());
-		
-		boolean expected = true;
-		
-		// Call under test
-		boolean result = managerSpy.discardAccessApproval(approval, state);
-		
-		assertEquals(expected, result);
-		
-		verify(approval).getRequirementId();
-		verify(approval).getState();
-		verify(managerSpy).getManagedAccessRequirement(requirementId);
-	}
-	
-	@Test
 	public void testSendMessageIfNeeded() throws RecoverableMessageException {
 		
 		DataAccessNotificationType notificationType = DataAccessNotificationType.REVOCATION;
 		AccessApproval approval = mockAccessApproval;
 		UserInfo recipient = mockUser;
 		DBODataAccessNotification existingNotification = null;
+		ManagedACTAccessRequirement accessRequirement = mockManagedAccessRequirement;
 		
 		Long approvalId = 5L;
 		Long requirementId = 1L;
@@ -590,32 +474,39 @@ public class AccessApprovalNotificationManagerUnitTest {
 		Long messageId = 123L;
 		Date createdOn = new Date();
 		
+		boolean canSend = true;
 		boolean deliverMessage = true;
 		
 		// We use a spy to mock out already tested methods
 		AccessApprovalNotificationManagerImpl managerSpy = Mockito.spy(manager);
 		
+		doReturn(Optional.of(accessRequirement)).when(managerSpy).getManagedAccessRequirement(any());
+		doReturn(mockRecipientProvider).when(managerSpy).getRecipientProvider(any());
+		doReturn(mockSendConditionProvider).when(managerSpy).getSendConditionProvider(any());
 		doReturn(deliverMessage).when(managerSpy).deliverMessage(any());
-		doReturn(mockMessageToUser).when(managerSpy).createMessageToUser(any(), any(), any());
+		doReturn(mockMessageToUser).when(managerSpy).createMessageToUser(any(), any(), any(), any());
 		
 		when(approval.getRequirementId()).thenReturn(requirementId);
 		when(approval.getId()).thenReturn(approvalId);
 		when(recipient.getId()).thenReturn(recipientId);
 		when(mockMessageToUser.getId()).thenReturn(messageId.toString());
 		when(mockMessageToUser.getCreatedOn()).thenReturn(createdOn);
-		
+		when(mockRecipientProvider.getRecipient(any())).thenReturn(recipientId);
+		when(mockUserManager.getUserInfo(any())).thenReturn(mockUser);
 		when(mockNotificationDao.findForUpdate(any(), any(), any())).thenReturn(Optional.ofNullable(existingNotification));
+		when(mockSendConditionProvider.canSend(any(), any(), any())).thenReturn(canSend);
 		
 		// Call under test 
-		managerSpy.sendMessageIfNeeded(notificationType, approval, recipient, mockResendCondition);
+		managerSpy.sendMessageIfNeeded(notificationType, approval);
 		
-		verify(approval).getRequirementId();
-		verify(approval).getId();
-		verify(recipient).getId();
+		verify(managerSpy).getManagedAccessRequirement(requirementId);
+		verify(managerSpy).getRecipientProvider(notificationType);
+		verify(mockRecipientProvider).getRecipient(approval);
 		verify(mockNotificationDao).findForUpdate(notificationType, requirementId, recipientId);
-		// The notification was not present
-		verifyZeroInteractions(mockResendCondition);
-		verify(managerSpy).createMessageToUser(notificationType, approval, recipient);
+		verify(managerSpy).getSendConditionProvider(notificationType);
+		verify(mockSendConditionProvider).canSend(notificationType, approval, existingNotification);
+		verify(managerSpy).deliverMessage(mockUser);
+		verify(managerSpy).createMessageToUser(notificationType, approval, accessRequirement, recipient);
 		
 		DBODataAccessNotification expectedNotification = new DBODataAccessNotification();
 		
@@ -636,35 +527,42 @@ public class AccessApprovalNotificationManagerUnitTest {
 		AccessApproval approval = mockAccessApproval;
 		UserInfo recipient = mockUser;
 		DBODataAccessNotification existingNotification = null;
+		ManagedACTAccessRequirement accessRequirement = mockManagedAccessRequirement;
 		
 		Long approvalId = 5L;
 		Long requirementId = 1L;
 		Long recipientId = 3L;
 		
+		boolean canSend = true;
 		boolean deliverMessage = false;
 		
 		// We use a spy to mock out already tested methods
 		AccessApprovalNotificationManagerImpl managerSpy = Mockito.spy(manager);
 		
+		doReturn(Optional.of(accessRequirement)).when(managerSpy).getManagedAccessRequirement(any());
+		doReturn(mockRecipientProvider).when(managerSpy).getRecipientProvider(any());
+		doReturn(mockSendConditionProvider).when(managerSpy).getSendConditionProvider(any());
 		doReturn(deliverMessage).when(managerSpy).deliverMessage(any());
 		
 		when(approval.getRequirementId()).thenReturn(requirementId);
 		when(approval.getId()).thenReturn(approvalId);
 		when(recipient.getId()).thenReturn(recipientId);
-		
+		when(mockRecipientProvider.getRecipient(any())).thenReturn(recipientId);
+		when(mockUserManager.getUserInfo(any())).thenReturn(mockUser);
 		when(mockNotificationDao.findForUpdate(any(), any(), any())).thenReturn(Optional.ofNullable(existingNotification));
+		when(mockSendConditionProvider.canSend(any(), any(), any())).thenReturn(canSend);
 		
 		// Call under test 
-		managerSpy.sendMessageIfNeeded(notificationType, approval, recipient, mockResendCondition);
+		managerSpy.sendMessageIfNeeded(notificationType, approval);
 		
-		verify(approval).getRequirementId();
-		verify(approval).getId();
-		verify(recipient).getId();
+		verify(managerSpy).getManagedAccessRequirement(requirementId);
+		verify(managerSpy).getRecipientProvider(notificationType);
+		verify(mockRecipientProvider).getRecipient(approval);
 		verify(mockNotificationDao).findForUpdate(notificationType, requirementId, recipientId);
-		// The notification was not present
-		verifyZeroInteractions(mockResendCondition);
-		
-		verify(managerSpy, never()).createMessageToUser(notificationType, approval, recipient);
+		verify(managerSpy).getSendConditionProvider(notificationType);
+		verify(mockSendConditionProvider).canSend(notificationType, approval, existingNotification);
+		verify(managerSpy).deliverMessage(mockUser);
+		verify(managerSpy, never()).createMessageToUser(any(), any(), any(), any());
 		
 		ArgumentCaptor<DBODataAccessNotification> notificationCaptor = ArgumentCaptor.forClass(DBODataAccessNotification.class);
 		
@@ -690,7 +588,8 @@ public class AccessApprovalNotificationManagerUnitTest {
 		DataAccessNotificationType notificationType = DataAccessNotificationType.REVOCATION;
 		AccessApproval approval = mockAccessApproval;
 		UserInfo recipient = mockUser;
-		
+		ManagedACTAccessRequirement accessRequirement = mockManagedAccessRequirement;
+
 		Long notificationId = 1234L;
 		Long approvalId = 5L;
 		Long requirementId = 1L;
@@ -702,35 +601,39 @@ public class AccessApprovalNotificationManagerUnitTest {
 		
 		existingNotification.setId(notificationId);
 		
+		boolean canSend = true;
 		boolean deliverMessage = true;
-		boolean canResend = true;
 		
 		// We use a spy to mock out already tested methods
 		AccessApprovalNotificationManagerImpl managerSpy = Mockito.spy(manager);
 		
+		doReturn(Optional.of(accessRequirement)).when(managerSpy).getManagedAccessRequirement(any());
+		doReturn(mockRecipientProvider).when(managerSpy).getRecipientProvider(any());
+		doReturn(mockSendConditionProvider).when(managerSpy).getSendConditionProvider(any());
 		doReturn(deliverMessage).when(managerSpy).deliverMessage(any());
-		doReturn(mockMessageToUser).when(managerSpy).createMessageToUser(any(), any(), any());
+		doReturn(mockMessageToUser).when(managerSpy).createMessageToUser(any(), any(), any(), any());
 		
 		when(approval.getRequirementId()).thenReturn(requirementId);
 		when(approval.getId()).thenReturn(approvalId);
 		when(recipient.getId()).thenReturn(recipientId);
-		
 		when(mockMessageToUser.getId()).thenReturn(messageId.toString());
 		when(mockMessageToUser.getCreatedOn()).thenReturn(createdOn);
-		
+		when(mockRecipientProvider.getRecipient(any())).thenReturn(recipientId);
+		when(mockUserManager.getUserInfo(any())).thenReturn(mockUser);
 		when(mockNotificationDao.findForUpdate(any(), any(), any())).thenReturn(Optional.ofNullable(existingNotification));
-		when(mockResendCondition.canSend(any(), any())).thenReturn(canResend);
+		when(mockSendConditionProvider.canSend(any(), any(), any())).thenReturn(canSend);
 		
 		// Call under test 
-		managerSpy.sendMessageIfNeeded(notificationType, approval, recipient, mockResendCondition);
+		managerSpy.sendMessageIfNeeded(notificationType, approval);
 		
-		verify(approval).getRequirementId();
-		verify(approval).getId();
-		verify(recipient).getId();
+		verify(managerSpy).getManagedAccessRequirement(requirementId);
+		verify(managerSpy).getRecipientProvider(notificationType);
+		verify(mockRecipientProvider).getRecipient(approval);
 		verify(mockNotificationDao).findForUpdate(notificationType, requirementId, recipientId);
-		// The notification was present, check that the condition was verified
-		verify(mockResendCondition).canSend(existingNotification, approval);
-		verify(managerSpy).createMessageToUser(notificationType, approval, recipient);
+		verify(managerSpy).getSendConditionProvider(notificationType);
+		verify(mockSendConditionProvider).canSend(notificationType, approval, existingNotification);
+		verify(managerSpy).deliverMessage(mockUser);
+		verify(managerSpy).createMessageToUser(notificationType, approval, accessRequirement, recipient);
 		
 		DBODataAccessNotification expectedNotification = new DBODataAccessNotification();
 		
@@ -746,49 +649,67 @@ public class AccessApprovalNotificationManagerUnitTest {
 	}
 	
 	@Test
-	public void testSendMessageIfNeededWithExistingAndDontSend() throws RecoverableMessageException {
-		
+	public void testSendMessageIfNeededAndDontSend() throws RecoverableMessageException {
 		DataAccessNotificationType notificationType = DataAccessNotificationType.REVOCATION;
 		AccessApproval approval = mockAccessApproval;
 		UserInfo recipient = mockUser;
+		DBODataAccessNotification existingNotification = null;
+		ManagedACTAccessRequirement accessRequirement = mockManagedAccessRequirement;
 		
-		Long notificationId = 1234L;
 		Long approvalId = 5L;
 		Long requirementId = 1L;
 		Long recipientId = 3L;
 		
-		DBODataAccessNotification existingNotification = new DBODataAccessNotification();
-		
-		existingNotification.setId(notificationId);
-		
-		boolean canResend = false;
+		boolean canSend = false;
 		
 		// We use a spy to mock out already tested methods
 		AccessApprovalNotificationManagerImpl managerSpy = Mockito.spy(manager);
 		
+		doReturn(Optional.of(accessRequirement)).when(managerSpy).getManagedAccessRequirement(any());
+		doReturn(mockRecipientProvider).when(managerSpy).getRecipientProvider(any());
+		doReturn(mockSendConditionProvider).when(managerSpy).getSendConditionProvider(any());
+		
 		when(approval.getRequirementId()).thenReturn(requirementId);
 		when(approval.getId()).thenReturn(approvalId);
 		when(recipient.getId()).thenReturn(recipientId);
-		
+		when(mockRecipientProvider.getRecipient(any())).thenReturn(recipientId);
+		when(mockUserManager.getUserInfo(any())).thenReturn(mockUser);
 		when(mockNotificationDao.findForUpdate(any(), any(), any())).thenReturn(Optional.ofNullable(existingNotification));
-		when(mockResendCondition.canSend(any(), any())).thenReturn(canResend);
+		when(mockSendConditionProvider.canSend(any(), any(), any())).thenReturn(canSend);
 		
 		// Call under test 
-		managerSpy.sendMessageIfNeeded(notificationType, approval, recipient, mockResendCondition);
+		managerSpy.sendMessageIfNeeded(notificationType, approval);
 		
-		verify(approval).getRequirementId();
-		verify(approval).getId();
-		verify(recipient).getId();
+		verify(managerSpy).getManagedAccessRequirement(requirementId);
+		verify(managerSpy).getRecipientProvider(notificationType);
+		verify(mockRecipientProvider).getRecipient(approval);
 		verify(mockNotificationDao).findForUpdate(notificationType, requirementId, recipientId);
-		// The notification was present, check that the condition was verified
-		verify(mockResendCondition).canSend(existingNotification, approval);
-		verify(managerSpy, never()).createMessageToUser(any(), any(), any());
+		verify(managerSpy).getSendConditionProvider(notificationType);
+		verify(mockSendConditionProvider).canSend(notificationType, approval, existingNotification);
+		verify(managerSpy, never()).deliverMessage(any());
+		verify(managerSpy, never()).createMessageToUser(any(), any(), any(), any());
 		verifyNoMoreInteractions(mockNotificationDao);
+	}
+	
+	@Test
+	public void testIsSendRevocationWithWrongNotificationType() {
+		
+		DataAccessNotificationType notificationType = DataAccessNotificationType.FIRST_RENEWAL_REMINDER;
+		AccessApproval approval = mockAccessApproval;
+		DBODataAccessNotification existingNotification = mockNotification;
+		
+		String errorMessage = assertThrows(UnsupportedOperationException.class, () -> {			
+			// Call under test
+			manager.isSendRevocation(notificationType, approval, existingNotification);
+		}).getMessage();
+	
+		assertEquals("Unsupported notification type " + notificationType, errorMessage);
 	}
 	
 	@Test
 	public void testIsSendRevocationWithModifiedOnBeforeSent() {
 		
+		DataAccessNotificationType notificationType = DataAccessNotificationType.REVOCATION;
 		AccessApproval approval = mockAccessApproval;
 		DBODataAccessNotification existingNotification = mockNotification;
 		
@@ -802,7 +723,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		boolean expected = false;
 		
 		// Call under test
-		boolean result = manager.isSendRevocation(existingNotification, approval);
+		boolean result = manager.isSendRevocation(notificationType, approval, existingNotification);
 	
 		assertEquals(expected, result);
 	}
@@ -810,6 +731,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 	@Test
 	public void testIsSendRevocationWithModifiedOnAfterSent() {
 		
+		DataAccessNotificationType notificationType = DataAccessNotificationType.REVOCATION;
 		AccessApproval approval = mockAccessApproval;
 		DBODataAccessNotification existingNotification = mockNotification;
 		
@@ -823,7 +745,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		boolean expected = false;
 		
 		// Call under test
-		boolean result = manager.isSendRevocation(existingNotification, approval);
+		boolean result = manager.isSendRevocation(notificationType, approval, existingNotification);
 	
 		assertEquals(expected, result);
 	}
@@ -831,12 +753,13 @@ public class AccessApprovalNotificationManagerUnitTest {
 	@Test
 	public void testIsSendRevocationWithModifiedOnAfterSentTimeout() {
 		
+		DataAccessNotificationType notificationType = DataAccessNotificationType.REVOCATION;
 		AccessApproval approval = mockAccessApproval;
 		DBODataAccessNotification existingNotification = mockNotification;
 		
 		Instant sentOn = Instant.now();
 		// Simulate an approval modified after 7 days
-		Instant modifiedOn = Instant.now().plus(AccessApprovalNotificationManager.REVOKE_RESEND_TIMEOUT_DAYS, ChronoUnit.DAYS);
+		Instant modifiedOn = Instant.now().plus(AccessApprovalNotificationManager.RESEND_TIMEOUT_DAYS, ChronoUnit.DAYS);
 		
 		when(existingNotification.getSentOn()).thenReturn(Timestamp.from(sentOn));
 		when(approval.getModifiedOn()).thenReturn(Date.from(modifiedOn));
@@ -844,7 +767,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		boolean expected = true;
 		
 		// Call under test
-		boolean result = manager.isSendRevocation(existingNotification, approval);
+		boolean result = manager.isSendRevocation(notificationType, approval, existingNotification);
 	
 		assertEquals(expected, result);
 	}
@@ -852,53 +775,28 @@ public class AccessApprovalNotificationManagerUnitTest {
 	@Test
 	public void testProcessAccessApprovalChange() throws RecoverableMessageException {
 		
-		Long requirementId = 1L;
 		Long approvalId = 2L;
-		Long recipientId = 5L;
 		
 		DataAccessNotificationType notificationType = DataAccessNotificationType.REVOCATION;
-		AccessApproval approval = mockAccessApproval;
-		UserInfo recipient = mockUser;
 		
 		boolean featureEnabled = true;
 		boolean discardChange = false;
-		boolean discardApproval = false;
-		
-		List<Long> userApprovals = Collections.emptyList();
-		
-		when(approval.getRequirementId()).thenReturn(requirementId);
-		when(recipient.getId()).thenReturn(recipientId);
 		
 		when(mockChangeMessage.getObjectId()).thenReturn(approvalId.toString());
 		when(mockFeatureManager.isFeatureEnabled(any())).thenReturn(featureEnabled);
-		when(mockAccessApprovalDao.get(any())).thenReturn(approval);
-		when(mockAccessApprovalDao.listApprovalsByAccessor(any(), any())).thenReturn(userApprovals);
-		when(mockNotification.getSentOn()).thenReturn(Timestamp.from(Instant.now()));
-		when(approval.getModifiedOn()).thenReturn(Date.from(Instant.now()));
 		
 		// We use a spy to mock internal calls that are already tested
 		AccessApprovalNotificationManagerImpl managerSpy = Mockito.spy(manager);
 		
 		doReturn(discardChange).when(managerSpy).discardChangeMessage(any());
-		doReturn(discardApproval).when(managerSpy).discardAccessApproval(any(), any());
-		doReturn(recipient).when(managerSpy).getRecipientForRevocation(any());
-		// We invoke the lambda when passed, so we can verify the method that is invoked in the manger
-		doAnswer((invocation) -> 
-			invocation.getArgument(3, ReSendCondition.class).canSend(mockNotification, approval)
-		).when(managerSpy).sendMessageIfNeeded(any(), any(), any(), lambdaCaptor.capture());
+		doNothing().when(managerSpy).processAccessApproval(any(), any());
 		
 		// Call under test
 		managerSpy.processAccessApprovalChange(mockChangeMessage);
 		
 		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_ACCESS_NOTIFICATIONS);
 		verify(managerSpy).discardChangeMessage(mockChangeMessage);
-		verify(mockAccessApprovalDao).get(approvalId.toString());
-		verify(managerSpy).discardAccessApproval(approval, ApprovalState.REVOKED);
-		verify(managerSpy).getRecipientForRevocation(approval);
-		verify(mockAccessApprovalDao).listApprovalsByAccessor(requirementId.toString(), recipientId.toString());
-		verify(managerSpy).sendMessageIfNeeded(notificationType, approval, recipient, lambdaCaptor.getValue());
-		// Verify that the correct method would be invoked on the manager
-		verify(managerSpy).isSendRevocation(mockNotification, approval);
+		verify(managerSpy).processAccessApproval(notificationType, approvalId);
 	}
 	
 	@Test
@@ -934,89 +832,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		
 		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_ACCESS_NOTIFICATIONS);
 		verify(managerSpy).discardChangeMessage(mockChangeMessage);
-		verifyZeroInteractions(mockAccessApprovalDao);
-		
-	}
-	
-	@Test
-	public void testProcessAccessApprovalChangeWithDiscardApproval() throws RecoverableMessageException {
-		
-		Long approvalId = 2L;
-		
-		AccessApproval approval = mockAccessApproval;
-		
-		boolean featureEnabled = true;
-		boolean discardChange = false;
-		boolean discardApproval = true;
-		
-		when(mockChangeMessage.getObjectId()).thenReturn(approvalId.toString());
-		when(mockFeatureManager.isFeatureEnabled(any())).thenReturn(featureEnabled);
-		when(mockAccessApprovalDao.get(any())).thenReturn(approval);
-
-		// We use a spy to mock internal calls that are already tested
-		AccessApprovalNotificationManagerImpl managerSpy = Mockito.spy(manager);
-		
-		doReturn(discardChange).when(managerSpy).discardChangeMessage(any());
-		doReturn(discardApproval).when(managerSpy).discardAccessApproval(any(), any());
-		
-		// Call under test
-		managerSpy.processAccessApprovalChange(mockChangeMessage);
-		
-		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_ACCESS_NOTIFICATIONS);
-		verify(managerSpy).discardChangeMessage(mockChangeMessage);
-		verify(mockAccessApprovalDao).get(approvalId.toString());
-		verify(managerSpy).discardAccessApproval(approval, ApprovalState.REVOKED);
-		
-		verifyNoMoreInteractions(mockAccessApprovalDao);
-		verify(managerSpy, never()).getRecipientForRevocation(any());
-		verify(managerSpy, never()).sendMessageIfNeeded(any(), any(), any(), any());
-		
-	}
-	
-	@Test
-	public void testProcessAccessApprovalChangeWithOtherApprovals() throws RecoverableMessageException {
-		
-		Long requirementId = 1L;
-		Long approvalId = 2L;
-		Long recipientId = 5L;
-		
-		AccessApproval approval = mockAccessApproval;
-		UserInfo recipient = mockUser;
-		
-		boolean featureEnabled = true;
-		boolean discardChange = false;
-		boolean discardApproval = false;
-		
-		
-		List<Long> userApprovals = Collections.singletonList(1L);
-		
-		when(approval.getRequirementId()).thenReturn(requirementId);
-		when(recipient.getId()).thenReturn(recipientId);
-		
-		when(mockChangeMessage.getObjectId()).thenReturn(approvalId.toString());
-		when(mockFeatureManager.isFeatureEnabled(any())).thenReturn(featureEnabled);
-		when(mockAccessApprovalDao.get(any())).thenReturn(approval);
-		when(mockAccessApprovalDao.listApprovalsByAccessor(any(), any())).thenReturn(userApprovals);
-
-		// We use a spy to mock internal calls that are already tested
-		AccessApprovalNotificationManagerImpl managerSpy = Mockito.spy(manager);
-		
-		doReturn(discardChange).when(managerSpy).discardChangeMessage(any());
-		doReturn(discardApproval).when(managerSpy).discardAccessApproval(any(), any());
-		doReturn(recipient).when(managerSpy).getRecipientForRevocation(any());
-		
-		// Call under test
-		managerSpy.processAccessApprovalChange(mockChangeMessage);
-		
-		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_ACCESS_NOTIFICATIONS);
-		verify(managerSpy).discardChangeMessage(mockChangeMessage);
-		verify(mockAccessApprovalDao).get(approvalId.toString());
-		verify(managerSpy).discardAccessApproval(approval, ApprovalState.REVOKED);
-		verify(managerSpy).getRecipientForRevocation(approval);
-		verify(mockAccessApprovalDao).listApprovalsByAccessor(requirementId.toString(), recipientId.toString());
-		
-		verify(managerSpy, never()).sendMessageIfNeeded(any(), any(), any(), any());
-		
+		verify(managerSpy, never()).sendMessageIfNeeded(any(), any());
 	}
 	
 	@Test
@@ -1074,4 +890,79 @@ public class AccessApprovalNotificationManagerUnitTest {
 		verify(mockAccessRequirementDao).get(requirementId.toString());
 		verify(accessRequirement).getAccessType();
 	}
+	
+	@Test
+	public void testGetRecipientProviderForRevocation() {
+		DataAccessNotificationType notificationType = DataAccessNotificationType.REVOCATION;
+		AccessApproval approval = mockAccessApproval;
+		
+		Long accessorId = 1L;
+		
+		when(approval.getAccessorId()).thenReturn(accessorId.toString());
+
+		// Call under test
+		RecipientProvider provider = manager.getRecipientProvider(notificationType);
+
+		assertEquals(accessorId, provider.getRecipient(mockAccessApproval));
+		
+		verify(mockAccessApproval).getAccessorId();
+		verifyNoMoreInteractions(mockAccessApproval);
+	}
+	
+	@Test
+	public void testGetRecipientProviderForReminder() {
+		
+		for (DataAccessNotificationType notificationType : DataAccessNotificationType.values()) {
+		
+			if (!notificationType.isReminder()) {
+				continue;
+			}
+	
+			String errorMessage = assertThrows(UnsupportedOperationException.class, () -> {			
+				// Call under test
+				manager.getRecipientProvider(notificationType);
+			}).getMessage();
+			
+			assertEquals("Unsupported notification type " + notificationType, errorMessage);
+		}
+	}
+	
+	@Test
+	public void testGetSendConditionProviderForRevocation() {
+		DataAccessNotificationType notificationType = DataAccessNotificationType.REVOCATION;
+		AccessApproval approval = mockAccessApproval;
+		DBODataAccessNotification notification = mockNotification;
+		
+		boolean canSend = false;
+		
+		AccessApprovalNotificationManagerImpl managerSpy = Mockito.spy(manager);
+		
+		doReturn(canSend).when(managerSpy).isSendRevocation(any(), any(), any());
+		
+		// Call under test
+		SendConditionProvider provider = managerSpy.getSendConditionProvider(notificationType);
+		
+		// If we invoke the provider then the correct manager function should be invoked
+		provider.canSend(notificationType, approval, notification);
+		
+		verify(managerSpy).isSendRevocation(notificationType, approval, notification);
+	}
+	
+	@Test
+	public void testGetSendConditionProviderForReminder() {
+		for (DataAccessNotificationType notificationType : DataAccessNotificationType.values()) {
+			
+			if (!notificationType.isReminder()) {
+				continue;
+			}
+			
+			String errorMessage = assertThrows(UnsupportedOperationException.class, () -> {
+				// Call under test
+				manager.getSendConditionProvider(notificationType);			
+			}).getMessage();
+			
+			assertEquals("Unsupported notification type " + notificationType, errorMessage);
+		}
+	}
+	
 }

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -14,7 +15,7 @@ public interface AccessApprovalNotificationManager {
 
 	// Do not re-send another notification if one was sent already within the last 7
 	// days
-	long REVOKE_RESEND_TIMEOUT_DAYS = 7;
+	long RESEND_TIMEOUT_DAYS = 7;
 
 	// Fake id for messages to that are not actually created, e.g. in staging we do not send the messages
 	// to avoid having duplicate messages sent out
@@ -32,5 +33,14 @@ public interface AccessApprovalNotificationManager {
 	 * @throws RecoverableMessageException If the message cannot be processed at this time
 	 */
 	void processAccessApprovalChange(ChangeMessage message) throws RecoverableMessageException;
+
+	/**
+	 * Process an access approval to check if a notification of the given type should be sent out
+	 * 
+	 * @param notificationType The type of notification to sent for the approval with the given id
+	 * @param approvalId The id of the approval
+	 * @throws RecoverableMessageException If the notification cannot be processed at the moment but could be processed at a later time
+	 */
+	void processAccessApproval(DataAccessNotificationType notificationType, Long approvalId) throws RecoverableMessageException;
 
 }
