@@ -21,7 +21,7 @@
 	<bean id="amazonSESClient" class="org.sagebionetworks.repo.manager.StubAmazonSimpleEmailServiceClient" />
 	
 	<!-- We don't want to contact prod during the worker testing -->
-	<bean id="prodDetector" class="org.sagebionetworks.StubProdDetector">
+	<bean id="prodDetector" class="org.sagebionetworks.repo.manager.testing.StubProdDetector">
 		<constructor-arg value="false" />
 	</bean>
 	
@@ -89,7 +89,7 @@
 			<ref bean="messageToUserQueueMessageReceiverTrigger"/>
 		</util:list>
 		<!-- We want to simulate the email sending (no email go out) so this must be prod -->
-		<bean id="prodDetector" class="org.sagebionetworks.StubProdDetector">
+		<bean id="prodDetector" class="org.sagebionetworks.repo.manager.testing.StubProdDetector">
 			<constructor-arg value="true" />
 		</bean>
 	</beans>

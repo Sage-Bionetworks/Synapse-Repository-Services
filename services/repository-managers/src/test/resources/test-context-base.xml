@@ -22,6 +22,11 @@
 	<bean id="amazonSESClient" class="org.sagebionetworks.repo.manager.StubAmazonSimpleEmailServiceClient" />	
 	
 	<bean id="jiraClient" class="org.sagebionetworks.repo.manager.TestJiraClient" />
+	
+	<!-- We don't want to contact prod during the worker testing -->
+	<bean id="prodDetector" class="org.sagebionetworks.repo.manager.testing.StubProdDetector">
+		<constructor-arg value="false" />
+	</bean>
 
 	<context:property-placeholder properties-ref="testProperties"/>
 

@@ -68,13 +68,15 @@ public class AccessApprovalRevokedNotificationWorkerIntegrationTest {
 	
 	private UserInfo adminUser;
 	private UserInfo user;
-	private List<String> accessRequirements;
-	private List<String> accessApprovals;
 	private List<String> messages;
 	
 	@BeforeEach
 	public void before() {
+		notificationDao.clear();
+		accessApprovalDao.clear();
+		accessRequirementDao.clear();
 		featureStatusDao.clear();
+		
 		adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
 		NewUser newUser = new NewUser();
@@ -85,18 +87,17 @@ public class AccessApprovalRevokedNotificationWorkerIntegrationTest {
 		// Enabled the features for testing, we need both the auto revocation and the notification workers running
 		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_AUTO_REVOCATION, true);
 		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_NOTIFICATIONS, true);
-		accessRequirements = new ArrayList<>();
-		accessApprovals = new ArrayList<>();
 		messages = new ArrayList<>();
 	}
 	
 	@AfterEach
 	public void after() {
-		accessApprovals.forEach(accessApprovalDao::delete);
-		accessRequirements.forEach(accessRequirementDao::delete);
-		messages.forEach(messageDao::deleteMessage);
-		userManager.deletePrincipal(adminUser, user.getId());
+		notificationDao.clear();
+		accessApprovalDao.clear();
+		accessRequirementDao.clear();
 		featureStatusDao.clear();
+		messages.forEach(id -> messageDao.deleteMessage(id));
+		userManager.deletePrincipal(adminUser, user.getId());
 	}
 	
 	@Test
@@ -138,9 +139,7 @@ public class AccessApprovalRevokedNotificationWorkerIntegrationTest {
 		accessRequirement.setModifiedOn(new Date());
 		accessRequirement.setConcreteType(ManagedACTAccessRequirement.class.getName());
 		
-		accessRequirement = accessRequirementDao.create(accessRequirement);
-		accessRequirements.add(accessRequirement.getId().toString());
-		return accessRequirement;
+		return accessRequirementDao.create(accessRequirement);
 	}
 	
 	private AccessApproval newApproval(AccessRequirement accessRequirement, ApprovalState state, Instant expiresOn) {
@@ -156,9 +155,6 @@ public class AccessApprovalRevokedNotificationWorkerIntegrationTest {
 		accessApproval.setExpiredOn(expiresOn == null ? null : Date.from(expiresOn));
 		accessApproval.setState(state);
 		
-		accessApproval = accessApprovalDao.create(accessApproval);
-		accessApprovals.add(accessApproval.getId().toString());
-		
-		return accessApproval;
+		return accessApprovalDao.create(accessApproval);
 	}
 }
