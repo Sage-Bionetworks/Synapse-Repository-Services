@@ -962,4 +962,94 @@ public class DBOAccessApprovalDAOImplTest {
 	
 		assertEquals(expected, result);
 	}
+	
+	@Test
+	public void testHasSubmmiterApproval() {
+		
+		Instant expireAfter = Instant.now();
+		
+		// An approval without an expiration
+		AccessApproval ap1 = newAccessApproval(individualGroup, accessRequirement);
+		
+		ap1 = accessApprovalDAO.create(ap1);
+		
+		boolean expected = true;
+		
+		boolean result = accessApprovalDAO.hasSubmitterApproval(accessRequirement.getId().toString(), individualGroup.getId(), expireAfter);
+	
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testHasSubmmiterApprovalWithAccessor() {
+		
+		Instant expireAfter = Instant.now();
+		
+		// An approval with no expiration, but the user is not the submitter
+		AccessApproval ap1 = newAccessApproval(individualGroup2, accessRequirement);
+		ap1.setAccessorId(individualGroup.getId());
+		
+		ap1 = accessApprovalDAO.create(ap1);
+		
+		boolean expected = false;
+		
+		boolean result = accessApprovalDAO.hasSubmitterApproval(accessRequirement.getId().toString(), individualGroup.getId(), expireAfter);
+	
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testHasSubmmiterApprovalWithExpireAfter() {
+
+		Instant expireAfter = Instant.now();
+		Instant nextDay = expireAfter.plus(1, ChronoUnit.DAYS);
+		
+		// An approval that expires the day after
+		AccessApproval ap1 = newAccessApproval(individualGroup, accessRequirement);
+		ap1.setExpiredOn(Date.from(nextDay));
+		
+		ap1 = accessApprovalDAO.create(ap1);
+		
+		boolean expected = true;
+		
+		boolean result = accessApprovalDAO.hasSubmitterApproval(accessRequirement.getId().toString(), individualGroup.getId(), expireAfter);
+	
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testHasSubmmiterApprovalWithExpireBefore() {
+
+		Instant expireAfter = Instant.now();
+		Instant previousDay = expireAfter.minus(1, ChronoUnit.DAYS);
+		
+		// An approval that expired the previous day
+		AccessApproval ap1 = newAccessApproval(individualGroup, accessRequirement);
+		ap1.setExpiredOn(Date.from(previousDay));
+		
+		ap1 = accessApprovalDAO.create(ap1);
+		
+		boolean expected = false;
+		
+		boolean result = accessApprovalDAO.hasSubmitterApproval(accessRequirement.getId().toString(), individualGroup.getId(), expireAfter);
+	
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testHasSubmmiterApprovalWithDifferentRequirement() {
+
+		Instant expireAfter = Instant.now();
+		
+		// An approval that does not expire but is for a different requirement
+		AccessApproval ap1 = newAccessApproval(individualGroup, accessRequirement2);
+		
+		ap1 = accessApprovalDAO.create(ap1);
+		
+		boolean expected = false;
+		
+		boolean result = accessApprovalDAO.hasSubmitterApproval(accessRequirement.getId().toString(), individualGroup.getId(), expireAfter);
+	
+		assertEquals(expected, result);
+	}
 }

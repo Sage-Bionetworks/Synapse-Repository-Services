@@ -163,12 +163,21 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+ " ORDER BY " + COL_ACCESS_APPROVAL_EXPIRED_ON
 			+ " LIMIT ?";
 	
-	private static final String SQL_SELECT_EXPIRED_APPORVALS_FOR_SUBMMITER = SQL_SELECT_APPROVED_IDS
+	private static final String SQL_SELECT_EXPIRED_APPROVALS_FOR_SUBMITTER = SQL_SELECT_APPROVED_IDS
 			+ " AND " + COL_ACCESS_APPROVAL_EXPIRED_ON + " >= ?"
 			+ " AND " + COL_ACCESS_APPROVAL_EXPIRED_ON + " < ?"
 			// Only the submitter approvals
 			+ " AND " + COL_ACCESS_APPROVAL_ACCESSOR_ID + " = " + COL_ACCESS_APPROVAL_SUBMITTER_ID
 			+ " LIMIT ?";
+	
+	private static final String SQL_SELECT_APPROVALS_FOR_SUBMITTER_COUNT =  "SELECT COUNT(" + COL_ACCESS_APPROVAL_ID + ")" 
+			+ " FROM " + TABLE_ACCESS_APPROVAL
+			+ " WHERE " + COL_ACCESS_APPROVAL_REQUIREMENT_ID + " = ?"
+			+ " AND " + COL_ACCESS_APPROVAL_SUBMITTER_ID + " = ?"
+			+ " AND " + COL_ACCESS_APPROVAL_STATE + " = '" + ApprovalState.APPROVED.name() + "'"
+			// Only the submitter approvals
+			+ " AND " + COL_ACCESS_APPROVAL_SUBMITTER_ID + " = " + COL_ACCESS_APPROVAL_ACCESSOR_ID
+			+ " AND (" + COL_ACCESS_APPROVAL_EXPIRED_ON + " > ? OR " + COL_ACCESS_APPROVAL_EXPIRED_ON + " = " + DEFAULT_NOT_EXPIRED + ")";
 	
 	private static final String SQL_SELECT_APPROVALS_BY_ACCESSOR = SQL_SELECT_APPROVED_IDS
 			+ " AND " + COL_ACCESS_APPROVAL_REQUIREMENT_ID + " = ?"
@@ -419,10 +428,22 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		Instant startOfDay = expirationDate.atStartOfDay(ZoneOffset.UTC).toInstant();
 		Instant startOfNextDay = expirationDate.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
 		
-		return jdbcTemplate.queryForList(SQL_SELECT_EXPIRED_APPORVALS_FOR_SUBMMITER, Long.class, 
+		return jdbcTemplate.queryForList(SQL_SELECT_EXPIRED_APPROVALS_FOR_SUBMITTER, Long.class, 
 				startOfDay.toEpochMilli(), 
 				startOfNextDay.toEpochMilli(), 
 				limit);
+	}
+	
+	@Override
+	public boolean hasSubmitterApproval(String accessRequirementId, String submitterId, Instant expireAfter) {
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		ValidateArgument.required(submitterId, "submitterId");
+		ValidateArgument.required(expireAfter, "expireAfter");
+		
+		return jdbcTemplate.queryForObject(SQL_SELECT_APPROVALS_FOR_SUBMITTER_COUNT, Long.class,
+				accessRequirementId,
+				submitterId, 
+				expireAfter.toEpochMilli()) > 0;
 	}
 	
 	@Override
