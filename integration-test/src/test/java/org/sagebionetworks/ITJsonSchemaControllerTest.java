@@ -404,7 +404,6 @@ public class ITJsonSchemaControllerTest {
 		// call under test
 		JSONObject updatedJson = synapse.updateEntityJson(project.getId(), projectJSON);
 		assertEquals("some value", updatedJson.getString("sample"));
-		System.out.println(projectJSON.toString(5));
 		Annotations annos = synapse.getAnnotationsV2(project.getId());
 		assertNotNull(annos);
 		assertNotNull(annos.getAnnotations());

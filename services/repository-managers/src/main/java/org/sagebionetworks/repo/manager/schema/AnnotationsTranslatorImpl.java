@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.manager.schema;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -86,9 +89,12 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 * @return
 	 */
 	AnnotationsValue getAnnotationValueFromJsonObject(String key, JSONObject jsonObject) {
-		return Stream.of(attemptToReadAsJSONArray(key, jsonObject), attemptToReadAsDouble(key, jsonObject),
-				attemptToReadAsTimestamp(key, jsonObject), attemptToReadAsLong(key, jsonObject),
-				attemptToReadAsString(key, jsonObject)).filter(Optional::isPresent).findFirst().get().get();
+		return Stream
+				.of(attemptToReadAsJSONArray(key, jsonObject), attemptToReadAsDouble(key, jsonObject),
+						attemptToReadAsTimestamp(key, jsonObject), attemptToReadAsLong(key, jsonObject),
+						attemptToReadAsString(key, jsonObject))
+				.filter(Optional::isPresent).findFirst().get().orElseThrow(
+						() -> new IllegalArgumentException("Cannot translate value at '" + key + "' to an Annotation"));
 	}
 
 	/**
@@ -104,7 +110,7 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 			String value = jsonObject.getString(key);
 			AnnotationsValue annValue = new AnnotationsValue();
 			annValue.setType(AnnotationsValueType.STRING);
-			annValue.setValue(java.util.Collections.singletonList(value));
+			annValue.setValue(Collections.singletonList(value));
 			return Optional.of(annValue);
 		} catch (JSONException e) {
 			return Optional.empty();
@@ -126,9 +132,9 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 			long timeMS = JsonDateUtils.convertStringToDate(FORMAT.DATE_TIME, value).getTime();
 			AnnotationsValue annValue = new AnnotationsValue();
 			annValue.setType(AnnotationsValueType.TIMESTAMP_MS);
-			annValue.setValue(java.util.Collections.singletonList(Long.toString(timeMS)));
+			annValue.setValue(Collections.singletonList(Long.toString(timeMS)));
 			return Optional.of(annValue);
-		} catch (IllegalArgumentException e) {
+		} catch (IllegalArgumentException | JSONException e) {
 			return Optional.empty();
 		}
 	}
@@ -164,7 +170,7 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 			String value = array.getString(index);
 			long timeMS = JsonDateUtils.convertStringToDate(FORMAT.DATE_TIME, value).getTime();
 			return Optional.of(new ListValue(AnnotationsValueType.TIMESTAMP_MS, Long.toString(timeMS)));
-		} catch (IllegalArgumentException e) {
+		} catch (IllegalArgumentException | JSONException e) {
 			return Optional.empty();
 		}
 	}
@@ -187,7 +193,7 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 			}
 			AnnotationsValue annValue = new AnnotationsValue();
 			annValue.setType(AnnotationsValueType.DOUBLE);
-			annValue.setValue(java.util.Collections.singletonList(value.toString()));
+			annValue.setValue(Collections.singletonList(value.toString()));
 			return Optional.of(annValue);
 		} catch (JSONException e) {
 			return Optional.empty();
@@ -229,7 +235,7 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 			Long value = jsonObject.getLong(key);
 			AnnotationsValue annValue = new AnnotationsValue();
 			annValue.setType(AnnotationsValueType.LONG);
-			annValue.setValue(java.util.Collections.singletonList(value.toString()));
+			annValue.setValue(Collections.singletonList(value.toString()));
 			return Optional.of(annValue);
 		} catch (JSONException e) {
 			return Optional.empty();
@@ -296,8 +302,9 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 */
 	public static boolean canUseKey(Class clazz, String key) {
 		try {
-			clazz.getDeclaredField(key);
-			return false;
+			Field field = clazz.getDeclaredField(key);
+			// static field names are allowed.
+			return Modifier.isStatic(field.getModifiers());
 		} catch (NoSuchFieldException e) {
 			return true;
 		} catch (SecurityException e) {
@@ -320,60 +327,32 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	}
 
 	void writeAnnotationValue(String key, AnnotationsValue value, JSONObject jsonObject) {
-		if (value.getValue() != null) {
-			if (value.getValue().size() > 1) {
-				writeAnnotationValueList(key, value.getType(), value.getValue(), jsonObject);
-			} else {
-				writeAnnotationSingle(key, value.getType(), value.getValue().get(0), jsonObject);
-			}
+		if (value == null || value.getValue() == null || value.getType() == null) {
+			return;
+		}
+		if (value.getValue().isEmpty()) {
+			jsonObject.put(key, "");
+		} else if (value.getValue().size() > 1) {
+			JSONArray array = new JSONArray();
+			jsonObject.put(key, array);
+			value.getValue().forEach(s -> array.put(stringToObject(value.getType(), s)));
+		} else {
+			jsonObject.put(key, stringToObject(value.getType(), value.getValue().get(0)));
 		}
 	}
 
-	void writeAnnotationSingle(String key, AnnotationsValueType type, String value, JSONObject jsonObject) {
+	Object stringToObject(AnnotationsValueType type, String value) {
 		switch (type) {
 		case STRING:
-			jsonObject.put(key, value);
-			break;
+			return value;
 		case DOUBLE:
-			jsonObject.put(key, Double.parseDouble(value));
-			break;
+			return Double.parseDouble(value);
 		case LONG:
-			jsonObject.put(key, Long.parseLong(value));
-			break;
+			return Long.parseLong(value);
 		case TIMESTAMP_MS:
-			jsonObject.put(key, JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, new Date(Long.parseLong(value))));
-			break;
+			return JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, new Date(Long.parseLong(value)));
 		default:
 			throw new IllegalArgumentException("Unknown annotation type: " + type);
 		}
-	}
-
-	void writeAnnotationValueList(String key, AnnotationsValueType type, List<String> values, JSONObject jsonObject) {
-		JSONArray array = new JSONArray();
-		switch (type) {
-		case STRING:
-			for (String value : values) {
-				array.put(value);
-			}
-			break;
-		case DOUBLE:
-			for (String value : values) {
-				array.put(Double.parseDouble(value));
-			}
-			break;
-		case LONG:
-			for (String value : values) {
-				array.put(Long.parseLong(value));
-			}
-			break;
-		case TIMESTAMP_MS:
-			for (String value : values) {
-				array.put(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, new Date(Long.parseLong(value))));
-			}
-			break;
-		default:
-			throw new IllegalArgumentException("Unknown annotation type: " + type);
-		}
-		jsonObject.put(key, array);
 	}
 }
