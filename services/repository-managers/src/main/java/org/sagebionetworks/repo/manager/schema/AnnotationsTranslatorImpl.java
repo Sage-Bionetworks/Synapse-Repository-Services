@@ -276,7 +276,8 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 				ListValue listValue = Stream
 						.of(attemptToReadAsDouble(i, array), attemptToReadAsTimestamp(i, array),
 								attemptToReadAsLong(i, array), attemptToReadAsString(i, array))
-						.filter(Optional::isPresent).findFirst().get().get();
+						.filter(Optional::isPresent).findFirst().get().orElseThrow(() -> new IllegalArgumentException(
+								"Cannot translate value at '" + key + "' to an Annotation"));
 				if (lastType != null && !lastType.equals(listValue.getType())) {
 					throw new IllegalArgumentException("List of mixed types found for key: '" + key + "'");
 				}
