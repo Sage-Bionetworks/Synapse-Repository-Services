@@ -719,11 +719,11 @@ public class AccessApprovalNotificationManagerUnitTest {
 		Long requirementId = 1L;
 		Long accessorId = 2L;
 		
-		List<Long> approvals = Collections.emptyList();
+		boolean hasApprovals = false;
 		
 		when(approval.getAccessorId()).thenReturn(accessorId.toString());
 		when(approval.getRequirementId()).thenReturn(requirementId);
-		when(mockAccessApprovalDao.listApprovalsByAccessor(any(), any())).thenReturn(approvals);
+		when(mockAccessApprovalDao.hasAccessorApproval(any(), any())).thenReturn(hasApprovals);
 		
 		boolean expected = true;
 		
@@ -731,7 +731,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		boolean result = manager.isSendRevocation(notificationType, approval, existingNotification);
 	
 		assertEquals(expected, result);
-		verify(mockAccessApprovalDao).listApprovalsByAccessor(requirementId.toString(), accessorId.toString());
+		verify(mockAccessApprovalDao).hasAccessorApproval(requirementId.toString(), accessorId.toString());
 	}
 	
 	@Test
@@ -744,11 +744,11 @@ public class AccessApprovalNotificationManagerUnitTest {
 		Long requirementId = 1L;
 		Long accessorId = 2L;
 		
-		List<Long> approvals = Arrays.asList(3L, 4L);
+		boolean hasApprovals = true;
 		
 		when(approval.getAccessorId()).thenReturn(accessorId.toString());
 		when(approval.getRequirementId()).thenReturn(requirementId);
-		when(mockAccessApprovalDao.listApprovalsByAccessor(any(), any())).thenReturn(approvals);
+		when(mockAccessApprovalDao.hasAccessorApproval(any(), any())).thenReturn(hasApprovals);
 		
 		boolean expected = false;
 		
@@ -756,7 +756,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		boolean result = manager.isSendRevocation(notificationType, approval, existingNotification);
 	
 		assertEquals(expected, result);
-		verify(mockAccessApprovalDao).listApprovalsByAccessor(requirementId.toString(), accessorId.toString());
+		verify(mockAccessApprovalDao).hasAccessorApproval(requirementId.toString(), accessorId.toString());
 	}
 	
 	@Test
@@ -773,11 +773,11 @@ public class AccessApprovalNotificationManagerUnitTest {
 		// Simulate an approval modified in the past minute
 		Instant modifiedOn = Instant.now().minus(1, ChronoUnit.MINUTES);
 		
-		List<Long> approvals = Collections.emptyList();
+		boolean hasApprovals = false;
 		
 		when(approval.getAccessorId()).thenReturn(accessorId.toString());
 		when(approval.getRequirementId()).thenReturn(requirementId);
-		when(mockAccessApprovalDao.listApprovalsByAccessor(any(), any())).thenReturn(approvals);
+		when(mockAccessApprovalDao.hasAccessorApproval(any(), any())).thenReturn(hasApprovals);
 		when(existingNotification.getSentOn()).thenReturn(Timestamp.from(sentOn));
 		when(approval.getModifiedOn()).thenReturn(Date.from(modifiedOn));
 		
@@ -787,7 +787,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		boolean result = manager.isSendRevocation(notificationType, approval, existingNotification);
 	
 		assertEquals(expected, result);
-		verify(mockAccessApprovalDao).listApprovalsByAccessor(requirementId.toString(), accessorId.toString());
+		verify(mockAccessApprovalDao).hasAccessorApproval(requirementId.toString(), accessorId.toString());
 	}
 	
 	@Test
@@ -804,11 +804,11 @@ public class AccessApprovalNotificationManagerUnitTest {
 		// Simulate an approval modified in the next hour
 		Instant modifiedOn = Instant.now().plus(1, ChronoUnit.HOURS);
 		
-		List<Long> approvals = Collections.emptyList();
+		boolean hasApprovals = false;
 		
 		when(approval.getAccessorId()).thenReturn(accessorId.toString());
 		when(approval.getRequirementId()).thenReturn(requirementId);
-		when(mockAccessApprovalDao.listApprovalsByAccessor(any(), any())).thenReturn(approvals);
+		when(mockAccessApprovalDao.hasAccessorApproval(any(), any())).thenReturn(hasApprovals);
 		when(existingNotification.getSentOn()).thenReturn(Timestamp.from(sentOn));
 		when(approval.getModifiedOn()).thenReturn(Date.from(modifiedOn));
 		
@@ -818,7 +818,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		boolean result = manager.isSendRevocation(notificationType, approval, existingNotification);
 	
 		assertEquals(expected, result);
-		verify(mockAccessApprovalDao).listApprovalsByAccessor(requirementId.toString(), accessorId.toString());
+		verify(mockAccessApprovalDao).hasAccessorApproval(requirementId.toString(), accessorId.toString());
 	}
 	
 	@Test
@@ -835,11 +835,11 @@ public class AccessApprovalNotificationManagerUnitTest {
 		// Simulate an approval modified after 7 days
 		Instant modifiedOn = Instant.now().plus(AccessApprovalNotificationManager.RESEND_TIMEOUT_DAYS, ChronoUnit.DAYS);
 		
-		List<Long> approvals = Collections.emptyList();
+		boolean hasApprovals = false;
 		
 		when(approval.getAccessorId()).thenReturn(accessorId.toString());
 		when(approval.getRequirementId()).thenReturn(requirementId);
-		when(mockAccessApprovalDao.listApprovalsByAccessor(any(), any())).thenReturn(approvals);
+		when(mockAccessApprovalDao.hasAccessorApproval(any(), any())).thenReturn(hasApprovals);
 		when(existingNotification.getSentOn()).thenReturn(Timestamp.from(sentOn));
 		when(approval.getModifiedOn()).thenReturn(Date.from(modifiedOn));
 		
@@ -849,7 +849,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		boolean result = manager.isSendRevocation(notificationType, approval, existingNotification);
 	
 		assertEquals(expected, result);
-		verify(mockAccessApprovalDao).listApprovalsByAccessor(requirementId.toString(), accessorId.toString());
+		verify(mockAccessApprovalDao).hasAccessorApproval(requirementId.toString(), accessorId.toString());
 	}
 	
 	@Test

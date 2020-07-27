@@ -179,6 +179,12 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+ " AND " + COL_ACCESS_APPROVAL_SUBMITTER_ID + " = " + COL_ACCESS_APPROVAL_ACCESSOR_ID
 			+ " AND (" + COL_ACCESS_APPROVAL_EXPIRED_ON + " > ? OR " + COL_ACCESS_APPROVAL_EXPIRED_ON + " = " + DEFAULT_NOT_EXPIRED + ")";
 	
+	private static final String SQL_SELECT_APPROVALS_FOR_ACCESSOR_COUNT =  "SELECT COUNT(" + COL_ACCESS_APPROVAL_ID + ")" 
+			+ " FROM " + TABLE_ACCESS_APPROVAL
+			+ " WHERE " + COL_ACCESS_APPROVAL_REQUIREMENT_ID + " = ?"
+			+ " AND " + COL_ACCESS_APPROVAL_ACCESSOR_ID + " = ?"
+			+ " AND " + COL_ACCESS_APPROVAL_STATE + " = '" + ApprovalState.APPROVED.name() + "'";
+	
 	private static final String SQL_SELECT_APPROVALS_BY_ACCESSOR = SQL_SELECT_APPROVED_IDS
 			+ " AND " + COL_ACCESS_APPROVAL_REQUIREMENT_ID + " = ?"
 			+ " AND " + COL_ACCESS_APPROVAL_ACCESSOR_ID + " = ?";
@@ -432,6 +438,16 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 				startOfDay.toEpochMilli(), 
 				startOfNextDay.toEpochMilli(), 
 				limit);
+	}
+	
+	@Override
+	public boolean hasAccessorApproval(String accessRequirementId, String accessorId) {
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		ValidateArgument.required(accessorId, "accessorId");
+		
+		return jdbcTemplate.queryForObject(SQL_SELECT_APPROVALS_FOR_ACCESSOR_COUNT, Long.class,
+				accessRequirementId,
+				accessorId) > 0;
 	}
 	
 	@Override

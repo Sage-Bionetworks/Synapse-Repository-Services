@@ -134,9 +134,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		}
 		// We need to check if an APPROVED access approval exists already for the same access requirement, in such a
 		// case there is no need to send a notification as the user is still considered APPROVED
-		if (!accessApprovalDao
-				.listApprovalsByAccessor(approval.getRequirementId().toString(), approval.getAccessorId())
-				.isEmpty()) {
+		if (accessApprovalDao.hasAccessorApproval(approval.getRequirementId().toString(), approval.getAccessorId())) {
 			return false;
 		}
 		

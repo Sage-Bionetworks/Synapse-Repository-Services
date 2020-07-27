@@ -153,6 +153,15 @@ public interface AccessApprovalDAO {
 	List<Long> listExpiredApprovalsForSubmitters(LocalDate expirationDate, int limit);
 	
 	/**
+	 * Checks if the accessor with the given id has any approval for the given access requirement.
+	 * 
+	 * @param accessRequirementId The id of the access requirement
+	 * @param accessorId The id of the accessor
+	 * @return True if the accessor has at least one approval for the requirement with the given id
+	 */
+	boolean hasAccessorApproval(String accessRequirementId, String accessorId);
+	
+	/**
 	 * Checks if the given submmiter has any approval for the given access requirement that does not have an expiration
 	 * date or that expires after the given instant.
 	 * 

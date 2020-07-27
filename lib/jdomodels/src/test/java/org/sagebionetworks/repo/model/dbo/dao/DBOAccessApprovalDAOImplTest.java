@@ -1052,4 +1052,86 @@ public class DBOAccessApprovalDAOImplTest {
 	
 		assertEquals(expected, result);
 	}
+	
+	@Test
+	public void testHasAccessorApproval() {
+		
+		AccessApproval ap1 = newAccessApproval(individualGroup, accessRequirement);
+		
+		ap1 = accessApprovalDAO.create(ap1);
+		
+		boolean expected = true;
+		
+		boolean result = accessApprovalDAO.hasAccessorApproval(ap1.getRequirementId().toString(), ap1.getAccessorId());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testHasAccessorApprovalWithRevoked() {
+		
+		// A REVOKED approval
+		AccessApproval ap1 = newAccessApproval(individualGroup, accessRequirement);
+		ap1.setState(ApprovalState.REVOKED);
+		
+		ap1 = accessApprovalDAO.create(ap1);
+		
+		boolean expected = false;
+		
+		boolean result = accessApprovalDAO.hasAccessorApproval(ap1.getRequirementId().toString(), ap1.getAccessorId());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testHasAccessorApprovalWithDifferentRequirement() {
+		
+		// An approval, but a different requirment
+		AccessApproval ap1 = newAccessApproval(individualGroup, accessRequirement2);
+		
+		ap1 = accessApprovalDAO.create(ap1);
+		
+		boolean expected = false;
+		
+		boolean result = accessApprovalDAO.hasAccessorApproval(accessRequirement.getId().toString(), ap1.getAccessorId());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testHasAccessorApprovalWithDifferentAccessor() {
+		
+		// An approval, but a different requirement
+		AccessApproval ap1 = newAccessApproval(individualGroup, accessRequirement);
+		ap1.setAccessorId(individualGroup2.getId());
+		
+		ap1 = accessApprovalDAO.create(ap1);
+		
+		boolean expected = false;
+		
+		boolean result = accessApprovalDAO.hasAccessorApproval(ap1.getRequirementId().toString(), individualGroup.getId());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testHasAccessorApprovalWithApprovedAndRevoked() {
+		
+		// A REVOKED approval
+		AccessApproval ap1 = newAccessApproval(individualGroup, accessRequirement);
+		ap1.setState(ApprovalState.REVOKED);
+		
+		// An approval on the same requirement, different submitter
+		AccessApproval ap2 = newAccessApproval(individualGroup2, accessRequirement);
+		ap2.setAccessorId(individualGroup.getId());
+		
+		ap1 = accessApprovalDAO.create(ap1);
+		ap2 = accessApprovalDAO.create(ap2);
+		
+		boolean expected = true;
+		
+		boolean result = accessApprovalDAO.hasAccessorApproval(ap1.getRequirementId().toString(), ap1.getAccessorId());
+		
+		assertEquals(expected, result);
+	}
 }
