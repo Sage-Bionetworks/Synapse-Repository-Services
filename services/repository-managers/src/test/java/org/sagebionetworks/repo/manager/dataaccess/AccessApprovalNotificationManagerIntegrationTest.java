@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -89,7 +90,7 @@ public class AccessApprovalNotificationManagerIntegrationTest {
 		users.addAll(Arrays.asList(submitter.getId(), accessor.getId()));
 	}
 	
-	//@AfterEach
+	@AfterEach
 	public void after() {
 		notificationDao.clear();
 		accessApprovalDao.clear();

@@ -17,6 +17,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -70,7 +71,7 @@ public class DataAccessNotificationDaoImplTest {
 		accessRequirementDao.clear();
 	}
 
-	//@AfterEach
+	@AfterEach
 	public void after() {
 		notificationDao.clear();
 		accessApprovalDao.clear();
