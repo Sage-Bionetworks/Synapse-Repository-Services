@@ -1,0 +1,24 @@
+#parse("message/AccessApprovalNotificationHeader.html.vtl")
+<p>
+#if ($requirementDescription)
+You approval for the <a href="$requirementUrl">$requirementDescription</a> access requirement (ID: $requirementId) requires renewal.
+#else
+You approval for an <a href="$requirementUrl">access requirement (ID: $requirementId)</a> requires renewal.
+#end
+</p>
+<p>
+To continue accessing these data for use in your independent research, you must complete a renewal application by <b>$renewalDate</b>. You may submit your application using the link above.
+</p>
+<p>
+Please note you can submit one renewal on behalf of others in your group by adding additional data requestors. You can also add or revoke access for data requestors when renewing your access.
+</p>
+You will be prompted to provide the necessary information including your intended data use statement.
+#if($ducRequired && $irbApprovalRequired)
+Additionally, you will need to provide your DUC with a current list of users in your group and your IRB Approval documentation.
+#elseif($irbApprovalRequired)
+Additionally, you will need to provide your IRB Approval documentation.
+#elseif($ducRequired)
+Additionally, you will need to provide your DUC with a current list of users in your group.
+#end
+</p>
+#parse("message/AccessApprovalNotificationFooter.html.vtl")

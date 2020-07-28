@@ -1,14 +1,17 @@
 package org.sagebionetworks.repo.manager.dataaccess.notifications;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import org.apache.velocity.Template;
@@ -28,8 +31,8 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationType;
 
 @ExtendWith(MockitoExtension.class)
-public class AccessRevokedNotificationBuilderUnitTest {
-
+public class AccessReminderNotificationBuilderUnitTest {
+	
 	@Mock
 	private UserProfileManager mockProfileManager;
 	
@@ -37,7 +40,7 @@ public class AccessRevokedNotificationBuilderUnitTest {
 	private VelocityEngine mockVelocityEngine;
 	
 	@InjectMocks
-	private AccessRevokedNotificationBuilder builder;
+	private AccessReminderNotificationBuilder builder;
 	
 	@Mock
 	private ManagedACTAccessRequirement mockRequirement;
@@ -56,7 +59,8 @@ public class AccessRevokedNotificationBuilderUnitTest {
 	
 	@Test
 	public void testSupportedTypes() {
-		List<DataAccessNotificationType> expected = Arrays.asList(DataAccessNotificationType.REVOCATION);
+		// We are explicit here so that the test will break if a new reminder type is added
+		List<DataAccessNotificationType> expected = Arrays.asList(DataAccessNotificationType.FIRST_RENEWAL_REMINDER, DataAccessNotificationType.SECOND_RENEWAL_REMINDER);
 		List<DataAccessNotificationType> result = builder.supportedTypes();
 		
 		assertEquals(expected, result);
@@ -70,7 +74,7 @@ public class AccessRevokedNotificationBuilderUnitTest {
 	@Test
 	public void testBuildSubjectWithoutDescription() {
 		
-		String expected = "Data Access Revoked";
+		String expected = "Data Access Renewal Reminder";
 		
 		// Call under test
 		String result = builder.buildSubject(mockRequirement, mockApproval, mockRecipient);
@@ -82,7 +86,7 @@ public class AccessRevokedNotificationBuilderUnitTest {
 	public void testBuildSubjectWithDescription() {
 		
 		String description = "Some Dataset";
-		String expected = description + " Access Revoked";
+		String expected = description + " Access Renewal Reminder";
 		
 		when(mockRequirement.getDescription()).thenReturn(description);
 		
@@ -98,17 +102,16 @@ public class AccessRevokedNotificationBuilderUnitTest {
 		Long requirementId = 1L;
 		String description = "Some Description";
 		Long recipientId = 2L;
-		String firstName = "First";
-		String lastName = "Last";
+		String userName = "Synapse User";
+		Date expiredOn = Date.from(LocalDate.of(2020, 7, 27).atStartOfDay(ZoneOffset.UTC).toInstant());
 		
 		when(mockRecipient.getId()).thenReturn(recipientId);
-		
-		when(mockUserProfile.getFirstName()).thenReturn(firstName);
-		when(mockUserProfile.getLastName()).thenReturn(lastName);
+		when(mockUserProfile.getUserName()).thenReturn(userName);
 		
 		when(mockProfileManager.getUserProfile(any())).thenReturn(mockUserProfile);
 		when(mockRequirement.getId()).thenReturn(requirementId);
 		when(mockRequirement.getDescription()).thenReturn(description);
+		when(mockApproval.getExpiredOn()).thenReturn(expiredOn);
 		when(mockVelocityEngine.getTemplate(any(), any())).thenReturn(mockTemplate);
 		doNothing().when(mockTemplate).merge(any(), any());
 		
@@ -116,12 +119,13 @@ public class AccessRevokedNotificationBuilderUnitTest {
 		builder.buildMessageBody(mockRequirement, mockApproval, mockRecipient);
 		
 		verify(mockProfileManager).getUserProfile(recipientId.toString());
-		verify(mockUserProfile).getFirstName();
-		verify(mockUserProfile).getLastName();
-		verify(mockUserProfile, never()).getUserName();
+		verify(mockUserProfile).getUserName();
+		verify(mockApproval).getExpiredOn();
 		verify(mockRequirement).getId();
 		verify(mockRequirement).getDescription();
-		verify(mockVelocityEngine).getTemplate(AccessRevokedNotificationBuilder.TEMPLATE_FILE, StandardCharsets.UTF_8.name());
+		verify(mockRequirement).getIsDUCRequired();
+		verify(mockRequirement).getIsIRBApprovalRequired();
+		verify(mockVelocityEngine).getTemplate(AccessReminderNotificationBuilder.TEMPLATE_FILE, StandardCharsets.UTF_8.name());
 
 		ArgumentCaptor<VelocityContext> contextCaptor = ArgumentCaptor.forClass(VelocityContext.class);
 		
@@ -129,9 +133,32 @@ public class AccessRevokedNotificationBuilderUnitTest {
 		
 		VelocityContext context = contextCaptor.getValue();
 		
-		assertEquals(firstName + " " + lastName, context.get(AccessRevokedNotificationBuilder.PARAM_DISPLAY_NAME));
-		assertEquals(requirementId, context.get(AccessRevokedNotificationBuilder.PARAM_REQUIREMENT_ID));
-		assertEquals(description, context.get(AccessRevokedNotificationBuilder.PARAM_REQUIREMENT_DESCRIPTION));
+		assertEquals(userName, context.get(AccessReminderNotificationBuilder.PARAM_DISPLAY_NAME));
+		assertEquals(requirementId, context.get(AccessReminderNotificationBuilder.PARAM_REQUIREMENT_ID));
+		assertEquals(description, context.get(AccessReminderNotificationBuilder.PARAM_REQUIREMENT_DESCRIPTION));
+		assertEquals("July 27, 2020", context.get(AccessReminderNotificationBuilder.PARAM_RENEWAL_DATE));
+		assertEquals(false, context.get(AccessReminderNotificationBuilder.PARAM_DUC_REQUIRED));
+		assertEquals(false, context.get(AccessReminderNotificationBuilder.PARAM_IRB_APPROVAL_REQUIRED));
 	}
+
+	@Test
+	public void testGetFormattedDate() {
+		Date date = Date.from(LocalDate.of(2020, 7, 4).atStartOfDay(ZoneOffset.UTC).toInstant());
+		String expected = "July 4, 2020";
+	
+		assertEquals(expected, AccessReminderNotificationBuilder.getFormattedDate(date));
+	}
+	
+	@Test
+	public void testGetFormattedDateWithNoDate() {
+		Date date = null;
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			AccessReminderNotificationBuilder.getFormattedDate(date);
+		}).getMessage();
+		
+		assertEquals("date is required.", errorMessage);
+	}
+	
 	
 }
