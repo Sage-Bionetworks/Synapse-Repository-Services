@@ -103,13 +103,7 @@ public class AccessApprovalNotificationManagerIntegrationTest {
 	
 	@Test
 	public void processAccessApprovalChangeWithNonExistingAccessApproval() throws RecoverableMessageException {
-		ChangeMessage message = new ChangeMessage();
-		
-		message.setChangeNumber(12345L);
-		message.setChangeType(ChangeType.UPDATE);
-		message.setObjectType(ObjectType.ACCESS_APPROVAL);
-		message.setTimestamp(new Date());
-		message.setObjectId("1");
+		ChangeMessage message = changeMessage(-1L);
 		
 		assertThrows(NotFoundException.class, () -> {			
 			manager.processAccessApprovalChange(message);
@@ -117,21 +111,97 @@ public class AccessApprovalNotificationManagerIntegrationTest {
 	}
 	
 	@Test
-	public void testProcessAccessApprovalReminderWithNoExpiration() throws RecoverableMessageException {
-		
+	public void processAccessApprovalChange() throws RecoverableMessageException {
 		AccessRequirement requirement = createManagedAR();
-		AccessApproval approval = createApproval(requirement, submitter, submitter, ApprovalState.APPROVED, null);
+		
+		AccessApproval approval = createApproval(requirement, submitter, submitter, ApprovalState.REVOKED, null);
+		
+		ChangeMessage message = changeMessage(approval.getId());
 		
 		// Call under test
-		manager.processAccessApproval(DataAccessNotificationType.FIRST_RENEWAL_REMINDER, approval.getId());
+		manager.processAccessApprovalChange(message);
 		
-		Optional<DBODataAccessNotification> result = notificationDao.findForUpdate(DataAccessNotificationType.FIRST_RENEWAL_REMINDER, requirement.getId(), submitter.getId());
-	
-		assertFalse(result.isPresent());
+		Optional<DBODataAccessNotification> result = notificationDao.findForUpdate(DataAccessNotificationType.REVOCATION, requirement.getId(), submitter.getId());
+		
+		assertTrue(result.isPresent());
 	}
 	
 	@Test
-	public void testProcessAccessApprovalReminderWithExpiration() throws RecoverableMessageException {
+	public void processAccessApprovalChangeReprocess() throws RecoverableMessageException {
+		AccessRequirement requirement = createManagedAR();
+		
+		AccessApproval approval = createApproval(requirement, submitter, submitter, ApprovalState.REVOKED, null);
+		
+		ChangeMessage message = changeMessage(approval.getId());
+		
+		// Call under test
+		manager.processAccessApprovalChange(message);
+		
+		Optional<DBODataAccessNotification> result = notificationDao.findForUpdate(DataAccessNotificationType.REVOCATION, requirement.getId(), submitter.getId());
+		
+		assertTrue(result.isPresent());
+	
+		DBODataAccessNotification notification = result.get();
+		
+		// Duplicate message
+		manager.processAccessApprovalChange(message);
+		
+		result = notificationDao.findForUpdate(DataAccessNotificationType.REVOCATION, requirement.getId(), submitter.getId());
+
+		// Make sure the notification didn't change
+		assertEquals(notification, result.get());
+	}
+	
+	@Test
+	public void processAccessApprovalChangeWithDifferentAccessors() throws RecoverableMessageException {
+		AccessRequirement requirement = createManagedAR();
+		
+		AccessApproval ap1 = createApproval(requirement, submitter, submitter, ApprovalState.REVOKED, null);
+		AccessApproval ap2 = createApproval(requirement, submitter, accessor, ApprovalState.REVOKED, null);
+		
+		ChangeMessage message1 = changeMessage(ap1.getId());
+		ChangeMessage message2 = changeMessage(ap2.getId());
+		
+		// Call under test
+		manager.processAccessApprovalChange(message1);
+		manager.processAccessApprovalChange(message2);
+		
+		Optional<DBODataAccessNotification> result1 = notificationDao.findForUpdate(DataAccessNotificationType.REVOCATION, requirement.getId(), submitter.getId());
+		
+		assertTrue(result1.isPresent());
+		
+		Optional<DBODataAccessNotification> result2 = notificationDao.findForUpdate(DataAccessNotificationType.REVOCATION, requirement.getId(), accessor.getId());
+		
+		assertTrue(result2.isPresent());
+	
+	}
+	
+	@Test
+	public void processAccessApprovalChangeWithMultipleRevocations() throws RecoverableMessageException {
+		AccessRequirement requirement = createManagedAR();
+		
+		// Simulates two revoked approvals for the same accessor but different submitters
+		AccessApproval ap1 = createApproval(requirement, submitter, accessor, ApprovalState.REVOKED, null);
+		AccessApproval ap2 = createApproval(requirement, accessor, accessor, ApprovalState.REVOKED, null);
+		
+		ChangeMessage message1 = changeMessage(ap1.getId());
+		ChangeMessage message2 = changeMessage(ap2.getId());
+		
+		// Call under test
+		manager.processAccessApprovalChange(message1);
+		manager.processAccessApprovalChange(message2);
+		
+		Optional<DBODataAccessNotification> result = notificationDao.findForUpdate(DataAccessNotificationType.REVOCATION, requirement.getId(), accessor.getId());
+		
+		assertTrue(result.isPresent());
+		
+		// The notification is sent for the first processed approval only 
+		assertEquals(ap1.getId(), result.get().getAccessApprovalId());
+		
+	}
+	
+	@Test
+	public void testProcessAccessApprovalReminder() throws RecoverableMessageException {
 		
 		DataAccessNotificationType notificationType = DataAccessNotificationType.FIRST_RENEWAL_REMINDER;
 		
@@ -300,13 +370,25 @@ public class AccessApprovalNotificationManagerIntegrationTest {
 		manager.processAccessApproval(DataAccessNotificationType.FIRST_RENEWAL_REMINDER, ap1.getId());
 		manager.processAccessApproval(DataAccessNotificationType.SECOND_RENEWAL_REMINDER, ap1.getId());
 		
-		// The first should not be re-processed
+		// The first should not be re-processed at this time
 		assertEquals(expected, notificationDao.findForUpdate(DataAccessNotificationType.FIRST_RENEWAL_REMINDER, requirement.getId(),
 				submitter.getId()).get());
 		
 		assertTrue(notificationDao.findForUpdate(DataAccessNotificationType.SECOND_RENEWAL_REMINDER, requirement.getId(),
 				submitter.getId()).isPresent());
 
+	}
+	
+	private ChangeMessage changeMessage(Long id) {
+		ChangeMessage message = new ChangeMessage();
+		
+		message.setChangeNumber(12345L);
+		message.setChangeType(ChangeType.UPDATE);
+		message.setObjectType(ObjectType.ACCESS_APPROVAL);
+		message.setTimestamp(new Date());
+		message.setObjectId(id.toString());
+		
+		return message;
 	}
 	
 	private UserInfo createUser(String prefix) {

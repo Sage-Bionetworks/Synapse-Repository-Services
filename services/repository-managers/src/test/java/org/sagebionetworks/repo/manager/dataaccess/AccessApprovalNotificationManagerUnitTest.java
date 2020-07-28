@@ -854,6 +854,37 @@ public class AccessApprovalNotificationManagerUnitTest {
 	}
 	
 	@Test
+	public void testIsSendReminderWithWrongNotificationType() {
+		DataAccessNotificationType notificationType = DataAccessNotificationType.REVOCATION;
+		AccessApproval approval = mockAccessApproval;
+		DBODataAccessNotification existingNotification = null;
+		
+		String errorMessage = assertThrows(UnsupportedOperationException.class, () -> {			
+			// Call under test
+			manager.isSendReminder(notificationType, approval, existingNotification);
+		}).getMessage();
+		
+		assertEquals("Unsupported notification type " + notificationType, errorMessage);
+	}
+	
+	@Test
+	public void testIsSendReminderWithNoExpiration() {
+		DataAccessNotificationType notificationType = DataAccessNotificationType.FIRST_RENEWAL_REMINDER;
+		AccessApproval approval = mockAccessApproval;
+		DBODataAccessNotification existingNotification = null;
+		
+		when(approval.getExpiredOn()).thenReturn(null);
+		
+		boolean expected = false;
+		
+		// Call under test
+		boolean result = manager.isSendReminder(notificationType, approval, existingNotification);
+		
+		assertEquals(expected, result);
+		verifyZeroInteractions(mockAccessApprovalDao);
+	}
+	
+	@Test
 	public void testIsSendReminderWithNotExisting() {
 		DataAccessNotificationType notificationType = DataAccessNotificationType.FIRST_RENEWAL_REMINDER;
 		AccessApproval approval = mockAccessApproval;
@@ -1025,7 +1056,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		assertEquals(expected, result);
 		verifyZeroInteractions(mockAccessApprovalDao);
 	}
-	
+		
 	@Test
 	public void testProcessAccessApprovalChange() throws RecoverableMessageException {
 		
