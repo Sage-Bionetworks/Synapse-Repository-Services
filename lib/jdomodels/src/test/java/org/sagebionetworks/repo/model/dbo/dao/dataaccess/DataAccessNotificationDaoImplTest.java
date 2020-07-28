@@ -399,7 +399,7 @@ public class DataAccessNotificationDaoImplTest {
 	}
 	
 	@Test
-	public void testListSubmitterApprovalsForUnSentReminder() {
+	public void testListSubmitterApprovalsForUnSentReminderWithNonMatchingNotification() {
 		
 		DataAccessNotificationType notificationType = DataAccessNotificationType.FIRST_RENEWAL_REMINDER;
 		AccessRequirement requirement = createManagedAR();
@@ -417,17 +417,11 @@ public class DataAccessNotificationDaoImplTest {
 		// Call under test
 		List<Long> result = notificationDao.listSubmmiterApprovalsForUnSentReminder(notificationType, today, limit);
 		
-		// Now simulates a notification sent today
-		notificationDao.create(newNotification(notificationType, requirement, approval, today.atStartOfDay(ZoneOffset.UTC).toInstant(), -1L));
-		
-		expected = Collections.emptyList();
-		result = notificationDao.listSubmmiterApprovalsForUnSentReminder(notificationType, today, limit);
-		
 		assertEquals(expected, result);
 	}
 	
 	@Test
-	public void testListSubmitterApprovalsForUnSentReminderWithExisting() {
+	public void testListSubmitterApprovalsForUnSentReminderWithMatchingNotifcation() {
 		
 		DataAccessNotificationType notificationType = DataAccessNotificationType.FIRST_RENEWAL_REMINDER;
 		AccessRequirement requirement = createManagedAR();

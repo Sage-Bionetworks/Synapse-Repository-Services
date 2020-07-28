@@ -31,20 +31,28 @@ public class DataAccessNotificationDaoImpl implements DataAccessNotificationDao 
 			+ SqlConstants.COL_DATA_ACCESS_NOTIFICATION_REQUIREMENT_ID + " = ?" + " AND "
 			+ SqlConstants.COL_DATA_ACCESS_NOTIFICATION_RECIPIENT_ID + " = ?";
 	
+	// We want all the access approvals for submitters (submitter == accessor) whose expiration date is in a 
+	// given range (e.g. on a specific day) for which a notification of a given type WAS NOT sent in within 
+	// given range (e.g. on a specific day)
+	//
+	// For example: If today I'm trying to process all the approvals that expire 30 days from now, I want to get back
+	// the list of approvals whose expiration date is 30 days (today + 30) excluding those approvals that have a notification
+	// of the same type that was sent today.
+	//
 	// WITH EXPIRING_APPROVALS AS (
-	// 	SELECT ID, ROW_NUMBER OVER (PARTITION BY REQUIREMENT_ID, SUBMITTER_ID ORDER BY EXPIRED_ON DESC) AS APPROVAL_N 
+	// 	SELECT ID, ROW_NUMBER() OVER (PARTITION BY REQUIREMENT_ID, SUBMITTER_ID ORDER BY EXPIRED_ON DESC) AS APPROVAL_N 
 	// 	FROM ACCESS_APPROVAL WHERE EXPIRED_ON >= ? AND EXPIRED_ON < ? AND STATE = 'APPROVED' AND SUBMITTER_ID = ACCESSOR_ID
 	// ) 
 	// SELECT DISTINCT(A.ID) FROM EXPIRING_APPROVALS A LEFT JOIN DATA_ACCESS_NOTIFICATION N 
 	// ON ( A.ID = N.ACCESS_APPROVAL_ID AND N.NOTIFICATION_TYPE = ? AND N.SENT_ON >= ? AND N.SENT_ON < ?) 
-	// WHERE A.APPROVAL_N = 1 AND N.ID IS NULL LIMIT ?	
+	// WHERE A.APPROVAL_N = 1 AND N.ID IS NULL LIMIT ?
 	private static final String SQL_SELECT_APPROVALS_FOR_UNSENT_SUBMITTER = "WITH EXPIRING_APPROVALS AS ("
 			+ " SELECT " + SqlConstants.COL_ACCESS_APPROVAL_ID + ","
 			// Provide a ranking over requirement and submitter so that only the most relevant approval is taken into account
 			+ " ROW_NUMBER() OVER (PARTITION BY " + SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_ID + ", " + SqlConstants.COL_ACCESS_APPROVAL_SUBMITTER_ID
 			+ " ORDER BY " + SqlConstants.COL_ACCESS_APPROVAL_EXPIRED_ON + " DESC) AS APPROVAL_N"
 			+ " FROM " + SqlConstants.TABLE_ACCESS_APPROVAL
-			// Filter by expiration date
+			// Filter by the approval expiration date
 			+ " WHERE " + SqlConstants.COL_ACCESS_APPROVAL_EXPIRED_ON + " >= ?"
 			+ " AND " + SqlConstants.COL_ACCESS_APPROVAL_EXPIRED_ON + " < ?"
 			+ " AND " + SqlConstants.COL_ACCESS_APPROVAL_STATE + " = '" + ApprovalState.APPROVED + "'"
@@ -52,11 +60,10 @@ public class DataAccessNotificationDaoImpl implements DataAccessNotificationDao 
 			+ " AND " + SqlConstants.COL_ACCESS_APPROVAL_SUBMITTER_ID + " = " + SqlConstants.COL_ACCESS_APPROVAL_ACCESSOR_ID
 			+ ")"
 			+ " SELECT DISTINCT(A." + SqlConstants.COL_ACCESS_APPROVAL_ID + ") FROM EXPIRING_APPROVALS A"
-			// Left join on the submitter
+			// Left outer join on the approval id, plus the type and range of the notification (this allows to filter notifications from the join)
 			+ " LEFT JOIN " + SqlConstants.TABLE_DATA_ACCESS_NOTIFICATION + " N"
 			+ " ON ("
 			+ " A." + SqlConstants.COL_ACCESS_APPROVAL_ID + " = N." + SqlConstants.COL_DATA_ACCESS_NOTIFICATION_APPROVAL_ID
-			// Filter on the type of notification and the day interval
 			+ " AND N." + SqlConstants.COL_DATA_ACCESS_NOTIFICATION_TYPE + " = ?"
 			+ " AND N." + SqlConstants.COL_DATA_ACCESS_NOTIFICATION_SENT_ON + " >= ?"
 			+ " AND N." + SqlConstants.COL_DATA_ACCESS_NOTIFICATION_SENT_ON + " < ?"
