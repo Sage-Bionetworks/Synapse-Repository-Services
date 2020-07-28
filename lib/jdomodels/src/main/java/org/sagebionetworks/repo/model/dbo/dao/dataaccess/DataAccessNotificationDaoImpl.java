@@ -2,11 +2,17 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_NOTIFICATION;
 
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -24,6 +30,42 @@ public class DataAccessNotificationDaoImpl implements DataAccessNotificationDao 
 			+ SqlConstants.COL_DATA_ACCESS_NOTIFICATION_TYPE + " = ?" + " AND "
 			+ SqlConstants.COL_DATA_ACCESS_NOTIFICATION_REQUIREMENT_ID + " = ?" + " AND "
 			+ SqlConstants.COL_DATA_ACCESS_NOTIFICATION_RECIPIENT_ID + " = ?";
+	
+	// WITH EXPIRING_APPROVALS AS (
+	// 	SELECT ID, ROW_NUMBER OVER (PARTITION BY REQUIREMENT_ID, SUBMITTER_ID ORDER BY EXPIRED_ON DESC) AS APPROVAL_N 
+	// 	FROM ACCESS_APPROVAL WHERE EXPIRED_ON >= ? AND EXPIRED_ON < ? AND STATE = 'APPROVED' AND SUBMITTER_ID = ACCESSOR_ID
+	// ) 
+	// SELECT DISTINCT(A.ID) FROM EXPIRING_APPROVALS A LEFT JOIN DATA_ACCESS_NOTIFICATION N 
+	// ON ( A.ID = N.ACCESS_APPROVAL_ID AND N.NOTIFICATION_TYPE = ? AND N.SENT_ON >= ? AND N.SENT_ON < ?) 
+	// WHERE A.APPROVAL_N = 1 AND N.ID IS NULL LIMIT ?	
+	private static final String SQL_SELECT_APPROVALS_FOR_UNSENT_SUBMITTER = "WITH EXPIRING_APPROVALS AS ("
+			+ " SELECT " + SqlConstants.COL_ACCESS_APPROVAL_ID + ","
+			// Provide a ranking over requirement and submitter so that only the most relevant approval is taken into account
+			+ " ROW_NUMBER() OVER (PARTITION BY " + SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_ID + ", " + SqlConstants.COL_ACCESS_APPROVAL_SUBMITTER_ID
+			+ " ORDER BY " + SqlConstants.COL_ACCESS_APPROVAL_EXPIRED_ON + " DESC) AS APPROVAL_N"
+			+ " FROM " + SqlConstants.TABLE_ACCESS_APPROVAL
+			// Filter by expiration date
+			+ " WHERE " + SqlConstants.COL_ACCESS_APPROVAL_EXPIRED_ON + " >= ?"
+			+ " AND " + SqlConstants.COL_ACCESS_APPROVAL_EXPIRED_ON + " < ?"
+			+ " AND " + SqlConstants.COL_ACCESS_APPROVAL_STATE + " = '" + ApprovalState.APPROVED + "'"
+			// Only submitters
+			+ " AND " + SqlConstants.COL_ACCESS_APPROVAL_SUBMITTER_ID + " = " + SqlConstants.COL_ACCESS_APPROVAL_ACCESSOR_ID
+			+ ")"
+			+ " SELECT DISTINCT(A." + SqlConstants.COL_ACCESS_APPROVAL_ID + ") FROM EXPIRING_APPROVALS A"
+			// Left join on the submitter
+			+ " LEFT JOIN " + SqlConstants.TABLE_DATA_ACCESS_NOTIFICATION + " N"
+			+ " ON ("
+			+ " A." + SqlConstants.COL_ACCESS_APPROVAL_ID + " = N." + SqlConstants.COL_DATA_ACCESS_NOTIFICATION_APPROVAL_ID
+			// Filter on the type of notification and the day interval
+			+ " AND N." + SqlConstants.COL_DATA_ACCESS_NOTIFICATION_TYPE + " = ?"
+			+ " AND N." + SqlConstants.COL_DATA_ACCESS_NOTIFICATION_SENT_ON + " >= ?"
+			+ " AND N." + SqlConstants.COL_DATA_ACCESS_NOTIFICATION_SENT_ON + " < ?"
+			+ ") WHERE"
+			// Take only the last approval of the day for the same requirement and submitter
+			+ " A.APPROVAL_N = 1"
+			// Only include the approvals that do not match (do not have such a notification)
+			+ " AND N." + SqlConstants.COL_DATA_ACCESS_NOTIFICATION_ID + " IS NULL"
+			+ " LIMIT ?";
 
 	private static final RowMapper<DBODataAccessNotification> ROW_MAPPER = new DBODataAccessNotification()
 			.getTableMapping()::mapRow;
@@ -89,6 +131,25 @@ public class DataAccessNotificationDaoImpl implements DataAccessNotificationDao 
 	public Optional<DBODataAccessNotification> findForUpdate(DataAccessNotificationType type, Long requirementId,
 			Long recipientId) {
 		return find(type, requirementId, recipientId, true);
+	}
+	
+	@Override
+	public List<Long> listSubmmiterApprovalsForUnSentReminder(DataAccessNotificationType notificationType, LocalDate sentOn,
+			int limit) {		
+		final LocalDate expirationDate = sentOn.plus(notificationType.getReminderPeriod());
+		
+		final Instant startOfExpiration = expirationDate.atStartOfDay(ZoneOffset.UTC).toInstant();
+		final Instant endOfExpiration = expirationDate.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+		final Instant startOfSentOn = sentOn.atStartOfDay(ZoneOffset.UTC).toInstant();
+		final Instant endOfSentOn = sentOn.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+		
+		return jdbcTemplate.queryForList(SQL_SELECT_APPROVALS_FOR_UNSENT_SUBMITTER, Long.class, 
+				startOfExpiration.toEpochMilli(),
+				endOfExpiration.toEpochMilli(),
+				notificationType.name(),
+				Timestamp.from(startOfSentOn),
+				Timestamp.from(endOfSentOn),
+				limit);
 	}
 
 	private Optional<DBODataAccessNotification> find(DataAccessNotificationType type, Long requirementId,

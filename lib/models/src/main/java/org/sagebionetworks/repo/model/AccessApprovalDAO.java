@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -142,15 +141,6 @@ public interface AccessApprovalDAO {
 	 * @return The list of approval ids that are expired
 	 */
 	List<Long> listExpiredApprovals(Instant expiredAfter, int limit);
-	
-	/**
-	 * Fetches the list of approval ids for submitters that expired on the given day.
-	 * 
-	 * @param expirationDate The expiration day
-	 * @param limit The maximum number of approval to fetch
-	 * @return The list of approval ids expired on the given day for a submitter
-	 */
-	List<Long> listExpiredApprovalsForSubmitters(LocalDate expirationDate, int limit);
 	
 	/**
 	 * Checks if the accessor with the given id has any approval for the given access requirement.

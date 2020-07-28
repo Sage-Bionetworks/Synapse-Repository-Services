@@ -9,12 +9,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.ArrayList;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,36 +51,32 @@ public class DataAccessNotificationDaoImplTest {
 	private UserGroupDAO userGroupDao;
 
 	private UserGroup user;
-
-	private List<Long> requirements;
-	private List<Long> approvals;
+	private UserGroup user2;
 
 	@BeforeEach
 	public void before() {
-		requirements = new ArrayList<>();
-		approvals = new ArrayList<>();
-
 		user = new UserGroup();
 		user.setIsIndividual(true);
 		user.setCreationDate(new Date());
 		user.setId(userGroupDao.create(user).toString());
+		
+		user2 = new UserGroup();
+		user2.setIsIndividual(true);
+		user2.setCreationDate(new Date());
+		user2.setId(userGroupDao.create(user2).toString());
 
 		notificationDao.clear();
+		accessApprovalDao.clear();
+		accessRequirementDao.clear();
 	}
 
-	@AfterEach
+	//@AfterEach
 	public void after() {
-
-		for (Long approval : approvals) {
-			accessApprovalDao.delete(approval.toString());
-		}
-
-		for (Long requirement : requirements) {
-			accessRequirementDao.delete(requirement.toString());
-		}
-
-		userGroupDao.delete(user.getId());
 		notificationDao.clear();
+		accessApprovalDao.clear();
+		accessRequirementDao.clear();
+		userGroupDao.delete(user.getId());
+		userGroupDao.delete(user2.getId());
 	}
 
 	@Test
@@ -398,20 +396,221 @@ public class DataAccessNotificationDaoImplTest {
 		
 		assertEquals("The sent on is required.", errorMessage);
 	}
+	
+	@Test
+	public void testListSubmitterApprovalsForUnSentReminder() {
+		
+		DataAccessNotificationType notificationType = DataAccessNotificationType.FIRST_RENEWAL_REMINDER;
+		AccessRequirement requirement = createManagedAR();
+		
+		LocalDate today = LocalDate.now(ZoneOffset.UTC);
+		LocalDate expirationDate = today.plus(notificationType.getReminderPeriod());
+
+		// The approval is expiring according to the reminder period
+		AccessApproval approval = createApproval(requirement, expirationDate.atStartOfDay(ZoneOffset.UTC).toInstant());
+		
+		int limit = 100;
+		
+		List<Long> expected = Arrays.asList(approval.getId());
+		
+		// Call under test
+		List<Long> result = notificationDao.listSubmmiterApprovalsForUnSentReminder(notificationType, today, limit);
+		
+		// Now simulates a notification sent today
+		notificationDao.create(newNotification(notificationType, requirement, approval, today.atStartOfDay(ZoneOffset.UTC).toInstant(), -1L));
+		
+		expected = Collections.emptyList();
+		result = notificationDao.listSubmmiterApprovalsForUnSentReminder(notificationType, today, limit);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListSubmitterApprovalsForUnSentReminderWithExisting() {
+		
+		DataAccessNotificationType notificationType = DataAccessNotificationType.FIRST_RENEWAL_REMINDER;
+		AccessRequirement requirement = createManagedAR();
+		
+		LocalDate today = LocalDate.now(ZoneOffset.UTC);
+		LocalDate expirationDate = today.plus(notificationType.getReminderPeriod());
+
+		// The approval is expiring according to the reminder period
+		AccessApproval approval = createApproval(requirement, expirationDate.atStartOfDay(ZoneOffset.UTC).toInstant());
+		
+		Instant sentOn = today.atStartOfDay(ZoneOffset.UTC).toInstant();
+		
+		// Notification sent today
+		notificationDao.create(newNotification(notificationType, requirement, approval, sentOn, -1L));
+		
+		int limit = 100;
+		
+		List<Long> expected = Collections.emptyList();
+		
+		// Call under test
+		List<Long> result = notificationDao.listSubmmiterApprovalsForUnSentReminder(notificationType, today, limit);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListSubmitterApprovalsForUnSentReminderWithPastExisting() {
+		
+		DataAccessNotificationType notificationType = DataAccessNotificationType.FIRST_RENEWAL_REMINDER;
+		AccessRequirement requirement = createManagedAR();
+		
+		LocalDate today = LocalDate.now(ZoneOffset.UTC);
+		LocalDate oneMonthAgo = today.minusMonths(1);
+		LocalDate expirationDate = today.plus(notificationType.getReminderPeriod());
+
+		// The approval is expiring according to the reminder period
+		AccessApproval approval = createApproval(requirement, expirationDate.atStartOfDay(ZoneOffset.UTC).toInstant());
+		
+		Instant sentOn = oneMonthAgo.atStartOfDay(ZoneOffset.UTC).toInstant();
+		
+		// Last notification sent a month ago
+		notificationDao.create(newNotification(notificationType, requirement, approval, sentOn, -1L));
+		
+		int limit = 100;
+		
+		List<Long> expected = Arrays.asList(approval.getId());
+		
+		// Call under test
+		List<Long> result = notificationDao.listSubmmiterApprovalsForUnSentReminder(notificationType, today, limit);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListSubmitterApprovalsForUnSentReminderWithDifferentType() {
+		
+		DataAccessNotificationType notificationType = DataAccessNotificationType.FIRST_RENEWAL_REMINDER;
+		AccessRequirement requirement = createManagedAR();
+		
+		LocalDate today = LocalDate.now(ZoneOffset.UTC);
+		LocalDate expirationDate = today.plus(notificationType.getReminderPeriod());
+
+		// The approval is expiring according to the reminder period
+		AccessApproval approval = createApproval(requirement, expirationDate.atStartOfDay(ZoneOffset.UTC).toInstant());
+		
+		Instant sentOn = today.atStartOfDay(ZoneOffset.UTC).toInstant();
+		
+		// Last processed notification was a revocation
+		notificationDao.create(newNotification(DataAccessNotificationType.REVOCATION, requirement, approval, sentOn, -1L));
+		
+		int limit = 100;
+		
+		List<Long> expected = Arrays.asList(approval.getId());
+		
+		// Call under test
+		List<Long> result = notificationDao.listSubmmiterApprovalsForUnSentReminder(notificationType, today, limit);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListSubmitterApprovalsForUnSentReminderWithDifferentSubmitters() {
+		
+		DataAccessNotificationType notificationType = DataAccessNotificationType.FIRST_RENEWAL_REMINDER;
+		AccessRequirement requirement = createManagedAR();
+		
+		LocalDate today = LocalDate.now(ZoneOffset.UTC);
+		LocalDate expirationDate = today.plus(notificationType.getReminderPeriod());
+
+		// The approval is expiring according to the reminder period
+		AccessApproval ap1 = createApproval(requirement, expirationDate.atStartOfDay(ZoneOffset.UTC).toInstant());
+		// An approval for the same requirement, but different submitter
+		AccessApproval ap2 = createApproval(requirement, user2, expirationDate.atStartOfDay(ZoneOffset.UTC).toInstant());
+		
+		int limit = 100;
+		
+		List<Long> expected = Arrays.asList(ap1.getId(), ap2.getId());
+		
+		// Call under test
+		List<Long> result = notificationDao.listSubmmiterApprovalsForUnSentReminder(notificationType, today, limit);
+		
+		Collections.sort(expected);
+		Collections.sort(result);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListSubmitterApprovalsForUnSentReminderWithDifferentRequirements() {
+		
+		DataAccessNotificationType notificationType = DataAccessNotificationType.FIRST_RENEWAL_REMINDER;
+		AccessRequirement requirement = createManagedAR();
+		AccessRequirement requirement2 = createManagedAR();
+		
+		LocalDate today = LocalDate.now(ZoneOffset.UTC);
+		LocalDate expirationDate = today.plus(notificationType.getReminderPeriod());
+
+		// The approval is expiring according to the reminder period
+		AccessApproval ap1 = createApproval(requirement, expirationDate.atStartOfDay(ZoneOffset.UTC).toInstant());
+		// An approval for another requirement
+		AccessApproval ap2 = createApproval(requirement2, expirationDate.atStartOfDay(ZoneOffset.UTC).toInstant());
+		
+		int limit = 100;
+		
+		List<Long> expected = Arrays.asList(ap1.getId(), ap2.getId());
+		
+		// Call under test
+		List<Long> result = notificationDao.listSubmmiterApprovalsForUnSentReminder(notificationType, today, limit);
+		
+		Collections.sort(expected);
+		Collections.sort(result);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListSubmitterApprovalsForUnSentReminderWithMultipleApprovals() {
+		
+		DataAccessNotificationType notificationType = DataAccessNotificationType.FIRST_RENEWAL_REMINDER;
+		AccessRequirement requirement = createManagedAR();
+		
+		LocalDate today = LocalDate.now(ZoneOffset.UTC);
+		LocalDate expirationDate = today.plus(notificationType.getReminderPeriod());
+
+		// The approval is expiring according to the reminder period
+		createApproval(requirement, expirationDate.atStartOfDay(ZoneOffset.UTC).toInstant());
+		// An approval for the same requirement (but different version) that expires a little later in the day
+		AccessApproval ap2 = createApproval(requirement, expirationDate.atStartOfDay(ZoneOffset.UTC).plusHours(5).toInstant());
+		
+		int limit = 100;
+		
+		List<Long> expected = Arrays.asList(ap2.getId());
+		
+		// Call under test
+		List<Long> result = notificationDao.listSubmmiterApprovalsForUnSentReminder(notificationType, today, limit);
+		
+		assertEquals(expected, result);
+	}
 
 	private DBODataAccessNotification newNotification(DataAccessNotificationType type, AccessRequirement requirement,
 			AccessApproval approval, Long messageId) {
 		return newNotification(type, requirement.getId(), Long.valueOf(approval.getAccessorId()), approval.getId(),
 				messageId);
 	}
+	
+	private DBODataAccessNotification newNotification(DataAccessNotificationType type, AccessRequirement requirement,
+			AccessApproval approval, Instant sentOn, Long messageId) {
+		return newNotification(type, requirement.getId(), Long.valueOf(approval.getAccessorId()), sentOn, approval.getId(),
+				messageId);
+	}
 
 	private DBODataAccessNotification newNotification(DataAccessNotificationType type, Long requirement, Long recipient,
+			Long approval, Long messageId) {
+		return newNotification(type, requirement, recipient, Instant.now(), approval, messageId);
+	}
+	
+	private DBODataAccessNotification newNotification(DataAccessNotificationType type, Long requirement, Long recipient,
+			Instant sentOn,
 			Long approval, Long messageId) {
 		DBODataAccessNotification notification = new DBODataAccessNotification();
 		notification.setNotificationType(type == null ? null : type.name());
 		notification.setRequirementId(requirement);
 		notification.setRecipientId(recipient);
-		notification.setSentOn(Timestamp.from(Instant.now()));
+		notification.setSentOn(Timestamp.from(sentOn));
 		notification.setAccessApprovalId(approval);
 		notification.setMessageId(messageId);
 		return notification;
@@ -426,29 +625,30 @@ public class DataAccessNotificationDaoImplTest {
 		accessRequirement.setModifiedOn(new Date());
 		accessRequirement.setConcreteType(ManagedACTAccessRequirement.class.getName());
 
-		accessRequirement = accessRequirementDao.create(accessRequirement);
-
-		requirements.add(accessRequirement.getId());
-
-		return accessRequirement;
+		return accessRequirementDao.create(accessRequirement);
+	}
+	
+	private AccessApproval createApproval(AccessRequirement accessRequirement) {
+		return createApproval(accessRequirement, null);
 	}
 
-	private AccessApproval createApproval(AccessRequirement accessRequirement) {
+	private AccessApproval createApproval(AccessRequirement accessRequirement, Instant expiresOn) {
+		return createApproval(accessRequirement, user, expiresOn);
+	}
+	
+	private AccessApproval createApproval(AccessRequirement accessRequirement, UserGroup submitter, Instant expiresOn) {
 		AccessApproval accessApproval = new AccessApproval();
-		accessApproval.setCreatedBy(user.getId());
+		accessApproval.setCreatedBy(submitter.getId());
 		accessApproval.setCreatedOn(new Date());
-		accessApproval.setModifiedBy(user.getId());
+		accessApproval.setModifiedBy(submitter.getId());
 		accessApproval.setModifiedOn(new Date());
-		accessApproval.setAccessorId(user.getId());
+		accessApproval.setAccessorId(submitter.getId());
+		accessApproval.setExpiredOn(expiresOn == null ? null : Date.from(expiresOn));
 		accessApproval.setRequirementId(accessRequirement.getId());
 		accessApproval.setRequirementVersion(accessRequirement.getVersionNumber());
-		accessApproval.setSubmitterId(user.getId());
+		accessApproval.setSubmitterId(submitter.getId());
 		accessApproval.setState(ApprovalState.APPROVED);
 
-		accessApproval = accessApprovalDao.create(accessApproval);
-
-		approvals.add(accessApproval.getId());
-
-		return accessApproval;
+		return accessApprovalDao.create(accessApproval);
 	}
 }

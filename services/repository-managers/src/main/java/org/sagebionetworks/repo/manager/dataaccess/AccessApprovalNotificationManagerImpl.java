@@ -127,11 +127,23 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		
 		sendMessageIfNeeded(notificationType, approval);
 	}
+	
+	@Override
+	public List<Long> listSubmitterApprovalsForUnsentReminder(DataAccessNotificationType notificationType, int limit) {
+		ValidateArgument.required(notificationType, "The notification type");
+		ValidateArgument.requirement(notificationType.isReminder(), "The notification type must be a reminder.");
+		ValidateArgument.requirement(limit > 0, "The limit must be greater than zero.");
+		
+		LocalDate today = LocalDate.now(ZoneOffset.UTC);
+		
+		return notificationDao.listSubmmiterApprovalsForUnSentReminder(notificationType, today, limit);
+	}
 
 	boolean isSendRevocation(DataAccessNotificationType notificationType, AccessApproval approval, DBODataAccessNotification notification) {
 		if (!DataAccessNotificationType.REVOCATION.equals(notificationType)) {
 			throw new UnsupportedOperationException("Unsupported notification type " + notificationType);
 		}
+		
 		// We need to check if an APPROVED access approval exists already for the same access requirement, in such a
 		// case there is no need to send a notification as the user is still considered APPROVED
 		if (accessApprovalDao.hasAccessorApproval(approval.getRequirementId().toString(), approval.getAccessorId())) {

@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -1284,6 +1285,65 @@ public class AccessApprovalNotificationManagerUnitTest {
 			
 			verify(managerSpy).isSendReminder(notificationType, approval, notification);
 		}
+	}
+	
+	@Test
+	public void testListSubmitterApprovalsForUnsentReminder() {
+		DataAccessNotificationType notificationType = DataAccessNotificationType.FIRST_RENEWAL_REMINDER;
+		int limit = 100;
+
+		List<Long> approvals = Arrays.asList(1L, 2L);
+		
+		when(mockNotificationDao.listSubmmiterApprovalsForUnSentReminder(any(), any(), anyInt())).thenReturn(approvals);
+
+		LocalDate today = LocalDate.now(ZoneOffset.UTC);
+		
+		// Call under test
+		List<Long> result = manager.listSubmitterApprovalsForUnsentReminder(notificationType, limit);
+	
+		assertEquals(approvals, result);
+		verify(mockNotificationDao).listSubmmiterApprovalsForUnSentReminder(notificationType, today, limit);
+	}
+	
+	@Test
+	public void testListSubmitterApprovalsForUnsentReminderWithNoType() {
+		DataAccessNotificationType notificationType = null;
+		int limit = 100;
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			manager.listSubmitterApprovalsForUnsentReminder(notificationType, limit);
+		}).getMessage();
+		
+		assertEquals("The notification type is required.", errorMessage);
+	}
+	
+	@Test
+	public void testListSubmitterApprovalsForUnsentReminderWithWrongType() {
+		DataAccessNotificationType notificationType = DataAccessNotificationType.REVOCATION;
+		int limit = 100;
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			manager.listSubmitterApprovalsForUnsentReminder(notificationType, limit);
+		}).getMessage();
+		
+		assertEquals("The notification type must be a reminder.", errorMessage);
+	}
+	
+	@Test
+	public void testListSubmitterApprovalsForUnsentReminderWithWrongLimit() {
+		DataAccessNotificationType notificationType = DataAccessNotificationType.FIRST_RENEWAL_REMINDER;
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			manager.listSubmitterApprovalsForUnsentReminder(notificationType, -1);
+		}).getMessage();
+		
+		assertEquals("The limit must be greater than zero.", errorMessage);
+		
+		errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			manager.listSubmitterApprovalsForUnsentReminder(notificationType, 0);
+		}).getMessage();
+		
+		assertEquals("The limit must be greater than zero.", errorMessage);
 	}
 	
 }
