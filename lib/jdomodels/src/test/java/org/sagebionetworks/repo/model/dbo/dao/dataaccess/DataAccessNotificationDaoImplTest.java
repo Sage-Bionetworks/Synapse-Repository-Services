@@ -434,7 +434,7 @@ public class DataAccessNotificationDaoImplTest {
 		
 		Instant sentOn = today.atStartOfDay(ZoneOffset.UTC).toInstant();
 		
-		// Notification sent today
+		// Notification sent today already
 		notificationDao.create(newNotification(notificationType, requirement, approval, sentOn, -1L));
 		
 		int limit = 100;
@@ -567,13 +567,107 @@ public class DataAccessNotificationDaoImplTest {
 		LocalDate expirationDate = today.plus(notificationType.getReminderPeriod());
 
 		// The approval is expiring according to the reminder period
-		createApproval(requirement, expirationDate.atStartOfDay(ZoneOffset.UTC).toInstant());
-		// An approval for the same requirement (but different version) that expires a little later in the day
+		AccessApproval ap1 = createApproval(requirement, expirationDate.atStartOfDay(ZoneOffset.UTC).toInstant());
+		
+		// Another approval for the same requirement (but different version) that expires a little later in the day
+		requirement.setVersionNumber(requirement.getVersionNumber() + 1);
 		AccessApproval ap2 = createApproval(requirement, expirationDate.atStartOfDay(ZoneOffset.UTC).plusHours(5).toInstant());
+		
+		// Make sure that 2 different approval were created
+		assertNotEquals(ap1.getId(), ap2.getId());
 		
 		int limit = 100;
 		
 		List<Long> expected = Arrays.asList(ap2.getId());
+		
+		// Call under test
+		List<Long> result = notificationDao.listSubmmiterApprovalsForUnSentReminder(notificationType, today, limit);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListSubmitterApprovalsForUnSentReminderWithNonExpiringApproval() {
+		
+		DataAccessNotificationType notificationType = DataAccessNotificationType.FIRST_RENEWAL_REMINDER;
+		AccessRequirement requirement = createManagedAR();
+		
+		LocalDate today = LocalDate.now(ZoneOffset.UTC);
+		LocalDate expirationDate = today.plus(notificationType.getReminderPeriod());
+
+		// One approval is expiring according to the reminder period
+		AccessApproval ap1 = createApproval(requirement, expirationDate.atStartOfDay(ZoneOffset.UTC).toInstant());
+		
+		// Another approval (for another requirement version) exist that never expires
+		requirement.setVersionNumber(requirement.getVersionNumber() + 1);
+		AccessApproval ap2 = createApproval(requirement);
+		
+		// Make sure that 2 different approval were created
+		assertNotEquals(ap1.getId(), ap2.getId());
+		
+		int limit = 100;
+		
+		List<Long> expected = Collections.emptyList();
+		
+		// Call under test
+		List<Long> result = notificationDao.listSubmmiterApprovalsForUnSentReminder(notificationType, today, limit);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListSubmitterApprovalsForUnSentReminderWithFutureExpiringApproval() {
+		
+		DataAccessNotificationType notificationType = DataAccessNotificationType.FIRST_RENEWAL_REMINDER;
+		AccessRequirement requirement = createManagedAR();
+		
+		LocalDate today = LocalDate.now(ZoneOffset.UTC);
+		LocalDate expirationDate = today.plus(notificationType.getReminderPeriod());
+
+		// One approval is expiring according to the reminder period
+		AccessApproval ap1 = createApproval(requirement, expirationDate.atStartOfDay(ZoneOffset.UTC).toInstant());
+		
+		// Another approval exist (for another requirement version) that expires in the future
+		requirement.setVersionNumber(requirement.getVersionNumber() + 1);
+		LocalDate futureExpirationDate = expirationDate.plusMonths(1);
+		AccessApproval ap2 = createApproval(requirement, futureExpirationDate.atStartOfDay(ZoneOffset.UTC).toInstant());
+		
+		// Make sure that 2 different approval were created
+		assertNotEquals(ap1.getId(), ap2.getId());
+		
+		int limit = 100;
+		
+		List<Long> expected = Collections.emptyList();
+		
+		// Call under test
+		List<Long> result = notificationDao.listSubmmiterApprovalsForUnSentReminder(notificationType, today, limit);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListSubmitterApprovalsForUnSentReminderWithNonSubmitterApproval() {
+		
+		DataAccessNotificationType notificationType = DataAccessNotificationType.FIRST_RENEWAL_REMINDER;
+		AccessRequirement requirement = createManagedAR();
+		
+		LocalDate today = LocalDate.now(ZoneOffset.UTC);
+		LocalDate expirationDate = today.plus(notificationType.getReminderPeriod());
+
+		// One approval is expiring according to the reminder period
+		AccessApproval ap1 = createApproval(requirement, expirationDate.atStartOfDay(ZoneOffset.UTC).toInstant());
+		
+		// Another approval exist in the future for the same submitter user, but the submitter itself is different
+		// (e.g. a different submission). We still want to process this approval
+		LocalDate futureExpirationDate = expirationDate.plusMonths(1);
+		AccessApproval ap2 = createApproval(requirement, user2, futureExpirationDate.atStartOfDay(ZoneOffset.UTC).toInstant());
+		
+		// Make sure that 2 different approval were created
+		assertNotEquals(ap1.getId(), ap2.getId());
+		
+		int limit = 100;
+		
+		List<Long> expected = Arrays.asList(ap1.getId());
 		
 		// Call under test
 		List<Long> result = notificationDao.listSubmmiterApprovalsForUnSentReminder(notificationType, today, limit);

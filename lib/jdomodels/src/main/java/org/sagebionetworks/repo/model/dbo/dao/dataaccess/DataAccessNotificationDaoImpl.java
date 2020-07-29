@@ -1,5 +1,18 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ACCESSOR_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_EXPIRED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_SUBMITTER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_NOTIFICATION_APPROVAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_NOTIFICATION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_NOTIFICATION_RECIPIENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_NOTIFICATION_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_NOTIFICATION_SENT_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_NOTIFICATION_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_APPROVAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_NOTIFICATION;
 
 import java.sql.Timestamp;
@@ -14,7 +27,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+import org.sagebionetworks.repo.model.dbo.dao.DBOAccessApprovalDAOImpl;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,52 +39,79 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class DataAccessNotificationDaoImpl implements DataAccessNotificationDao {
 
-	private static final String SQL_FIND = "SELECT * FROM " + SqlConstants.TABLE_DATA_ACCESS_NOTIFICATION + " WHERE "
-			+ SqlConstants.COL_DATA_ACCESS_NOTIFICATION_TYPE + " = ?" + " AND "
-			+ SqlConstants.COL_DATA_ACCESS_NOTIFICATION_REQUIREMENT_ID + " = ?" + " AND "
-			+ SqlConstants.COL_DATA_ACCESS_NOTIFICATION_RECIPIENT_ID + " = ?";
+	private static final String SQL_FIND = "SELECT * FROM " + TABLE_DATA_ACCESS_NOTIFICATION
+			+ " WHERE " + COL_DATA_ACCESS_NOTIFICATION_TYPE + " = ?" 
+			+ " AND " + COL_DATA_ACCESS_NOTIFICATION_REQUIREMENT_ID + " = ?" 
+			+ " AND " + COL_DATA_ACCESS_NOTIFICATION_RECIPIENT_ID + " = ?";
 	
 	// We want all the access approvals for submitters (submitter == accessor) whose expiration date is in a 
-	// given range (e.g. on a specific day) for which a notification of a given type WAS NOT sent in within 
-	// given range (e.g. on a specific day)
+	// given range (e.g. on a specific day) for which a notification of a given type WAS NOT sent within a
+	// given range (e.g. on a specific day). Additionally we need to make sure that we do not include approvals
+	// for which other approval exist with the same requirement and submitter that do not expire (expiredOn = 0)
+	// or that expire in the future.
 	//
 	// For example: If today I'm trying to process all the approvals that expire 30 days from now, I want to get back
 	// the list of approvals whose expiration date is 30 days (today + 30) excluding those approvals that have a notification
 	// of the same type that was sent today.
-	//
-	// WITH EXPIRING_APPROVALS AS (
-	// 	SELECT ID, ROW_NUMBER() OVER (PARTITION BY REQUIREMENT_ID, SUBMITTER_ID ORDER BY EXPIRED_ON DESC) AS APPROVAL_N 
-	// 	FROM ACCESS_APPROVAL WHERE EXPIRED_ON >= ? AND EXPIRED_ON < ? AND STATE = 'APPROVED' AND SUBMITTER_ID = ACCESSOR_ID
-	// ) 
-	// SELECT DISTINCT(A.ID) FROM EXPIRING_APPROVALS A LEFT JOIN DATA_ACCESS_NOTIFICATION N 
-	// ON ( A.ID = N.ACCESS_APPROVAL_ID AND N.NOTIFICATION_TYPE = ? AND N.SENT_ON >= ? AND N.SENT_ON < ?) 
-	// WHERE A.APPROVAL_N = 1 AND N.ID IS NULL LIMIT ?
-	private static final String SQL_SELECT_APPROVALS_FOR_UNSENT_SUBMITTER = "WITH EXPIRING_APPROVALS AS ("
-			+ " SELECT " + SqlConstants.COL_ACCESS_APPROVAL_ID + ","
-			// Provide a ranking over requirement and submitter so that only the most relevant approval is taken into account
-			+ " ROW_NUMBER() OVER (PARTITION BY " + SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_ID + ", " + SqlConstants.COL_ACCESS_APPROVAL_SUBMITTER_ID
-			+ " ORDER BY " + SqlConstants.COL_ACCESS_APPROVAL_EXPIRED_ON + " DESC) AS APPROVAL_N"
-			+ " FROM " + SqlConstants.TABLE_ACCESS_APPROVAL
+	
+	/*
+	 WITH EXPIRING_APPROVALS AS (
+	 		SELECT * FROM ACCESS_APPROVAL 
+			WHERE EXPIRED_ON >= ? AND EXPIRED_ON < ? 
+	 		AND STATE = 'APPROVED' AND SUBMITTER_ID = ACCESSOR_ID
+	 ),
+	 EXPIRED_APPROVALS AS (
+	 		SELECT E.* FROM EXPIRING_APPROVALS E LEFT JOIN ACCESS_APPROVAL A ON (
+				E.REQUIREMENT_ID = A.REQUIREMENT_ID 
+				AND E.SUBMITTER_ID = A.SUBMITTER_ID 
+				AND E.ACCESSOR_ID = A.ACCESSOR_ID 
+				AND E.STATE = A.STATE 
+				AND (A.EXPIRED_ON = 0 OR A.EXPIRED_ON > E.EXPIRED_ON) 
+			) WHERE A.ID IS NULL
+	 )
+	 SELECT DISTINCT(A.ID) FROM EXPIRED_APPROVALS A LEFT JOIN DATA_ACCESS_NOTIFICATION N ON (
+			A.ID = N.ACCESS_APPROVAL_ID 
+			AND N.NOTIFICATION_TYPE = ? 
+			AND N.SENT_ON >= ? AND N.SENT_ON < ?
+	 ) WHERE N.ID IS NULL LIMIT ?
+	*/
+	private static final String SQL_SELECT_UNSENT_EXPIRING_SUBMMITER_APPROVALS = 
+			// This is the set of approvals that expire in a given interval (e.g. in 30 days from now)
+			"WITH EXPIRING_APPROVALS AS ("
+			+ "SELECT * FROM " + TABLE_ACCESS_APPROVAL
 			// Filter by the approval expiration date
-			+ " WHERE " + SqlConstants.COL_ACCESS_APPROVAL_EXPIRED_ON + " >= ?"
-			+ " AND " + SqlConstants.COL_ACCESS_APPROVAL_EXPIRED_ON + " < ?"
-			+ " AND " + SqlConstants.COL_ACCESS_APPROVAL_STATE + " = '" + ApprovalState.APPROVED + "'"
-			// Only submitters
-			+ " AND " + SqlConstants.COL_ACCESS_APPROVAL_SUBMITTER_ID + " = " + SqlConstants.COL_ACCESS_APPROVAL_ACCESSOR_ID
-			+ ")"
-			+ " SELECT DISTINCT(A." + SqlConstants.COL_ACCESS_APPROVAL_ID + ") FROM EXPIRING_APPROVALS A"
-			// Left outer join on the approval id, plus the type and range of the notification (this allows to filter notifications from the join)
-			+ " LEFT JOIN " + SqlConstants.TABLE_DATA_ACCESS_NOTIFICATION + " N"
+			+ " WHERE " + COL_ACCESS_APPROVAL_EXPIRED_ON + " >= ?"
+			+ " AND " + COL_ACCESS_APPROVAL_EXPIRED_ON + " < ?"
+			// We are interested only in the approved ones
+			+ " AND " + COL_ACCESS_APPROVAL_STATE + " = '" + ApprovalState.APPROVED + "'"
+			// We are interested only in submitters
+			+ " AND " + COL_ACCESS_APPROVAL_SUBMITTER_ID + " = " + COL_ACCESS_APPROVAL_ACCESSOR_ID
+			+ "),"
+			
+			// Now we exclude from the set the approvals for which other approvals with the same requirement and submitter 
+			// exist that do not expire (expiredOn is 0) or that expire in the future
+			+ "EXPIRED_APPROVALS AS ("
+			+ " SELECT E.* FROM EXPIRING_APPROVALS E LEFT JOIN " + TABLE_ACCESS_APPROVAL + " A"
 			+ " ON ("
-			+ " A." + SqlConstants.COL_ACCESS_APPROVAL_ID + " = N." + SqlConstants.COL_DATA_ACCESS_NOTIFICATION_APPROVAL_ID
-			+ " AND N." + SqlConstants.COL_DATA_ACCESS_NOTIFICATION_TYPE + " = ?"
-			+ " AND N." + SqlConstants.COL_DATA_ACCESS_NOTIFICATION_SENT_ON + " >= ?"
-			+ " AND N." + SqlConstants.COL_DATA_ACCESS_NOTIFICATION_SENT_ON + " < ?"
-			+ ") WHERE"
-			// Take only the last approval of the day for the same requirement and submitter
-			+ " A.APPROVAL_N = 1"
-			// Only include the approvals that do not match (do not have such a notification)
-			+ " AND N." + SqlConstants.COL_DATA_ACCESS_NOTIFICATION_ID + " IS NULL"
+			+ " E." + COL_ACCESS_APPROVAL_REQUIREMENT_ID + " = A." + COL_ACCESS_APPROVAL_REQUIREMENT_ID 
+			+ " AND E." + COL_ACCESS_APPROVAL_SUBMITTER_ID + " = A." + COL_ACCESS_APPROVAL_SUBMITTER_ID 
+			+ " AND E." + COL_ACCESS_APPROVAL_ACCESSOR_ID + " = A." + COL_ACCESS_APPROVAL_ACCESSOR_ID
+			+ " AND E." + COL_ACCESS_APPROVAL_STATE + " = A." + COL_ACCESS_APPROVAL_STATE
+			+ " AND (A." + COL_ACCESS_APPROVAL_EXPIRED_ON + " = " + DBOAccessApprovalDAOImpl.DEFAULT_NOT_EXPIRED
+			+ " OR A." + COL_ACCESS_APPROVAL_EXPIRED_ON + " > E." + COL_ACCESS_APPROVAL_EXPIRED_ON + ")"
+			+ " ) WHERE A." + COL_ACCESS_APPROVAL_ID + " IS NULL"
+			+ ")"
+			
+			// Now we can filter the approvals for which we sent a notification in the given sentOn range
+			+ " SELECT DISTINCT(A." + COL_ACCESS_APPROVAL_ID + ") FROM EXPIRED_APPROVALS A"
+			// Left outer join on the approval id, plus the type and range of the notification (this allows to filter notifications from the join)
+			+ " LEFT JOIN " + TABLE_DATA_ACCESS_NOTIFICATION + " N"
+			+ " ON ("
+			+ " A." + COL_ACCESS_APPROVAL_ID + " = N." + COL_DATA_ACCESS_NOTIFICATION_APPROVAL_ID
+			+ " AND N." + COL_DATA_ACCESS_NOTIFICATION_TYPE + " = ?"
+			+ " AND N." + COL_DATA_ACCESS_NOTIFICATION_SENT_ON + " >= ?"
+			+ " AND N." + COL_DATA_ACCESS_NOTIFICATION_SENT_ON + " < ?"
+			+ ") WHERE N." + COL_DATA_ACCESS_NOTIFICATION_ID + " IS NULL"
 			+ " LIMIT ?";
 
 	private static final RowMapper<DBODataAccessNotification> ROW_MAPPER = new DBODataAccessNotification()
@@ -150,7 +190,7 @@ public class DataAccessNotificationDaoImpl implements DataAccessNotificationDao 
 		final Instant startOfSentOn = sentOn.atStartOfDay(ZoneOffset.UTC).toInstant();
 		final Instant endOfSentOn = sentOn.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
 		
-		return jdbcTemplate.queryForList(SQL_SELECT_APPROVALS_FOR_UNSENT_SUBMITTER, Long.class, 
+		return jdbcTemplate.queryForList(SQL_SELECT_UNSENT_EXPIRING_SUBMMITER_APPROVALS, Long.class, 
 				startOfExpiration.toEpochMilli(),
 				endOfExpiration.toEpochMilli(),
 				notificationType.name(),
