@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -144,15 +143,24 @@ public interface AccessApprovalDAO {
 	List<Long> listExpiredApprovals(Instant expiredAfter, int limit);
 	
 	/**
-	 * Fetches the list of approval ids for submitters that will expire on the given day. Note that the list
-	 * will not include approvals for which other approvals for the same requirement and submitter exist that 
-	 * expire after the given day.
+	 * Checks if the accessor with the given id has any approval for the given access requirement.
 	 * 
-	 * @param expirationDate The expiration day
-	 * @param limit The maximum number of approval to fetch
-	 * @return The list of approval ids expiring on the given day for a submitter
+	 * @param accessRequirementId The id of the access requirement
+	 * @param accessorId The id of the accessor
+	 * @return True if the accessor has at least one approval for the requirement with the given id
 	 */
-	List<Long> listExpiredApprovalsForSubmitters(LocalDate expirationDate, int limit);
+	boolean hasAccessorApproval(String accessRequirementId, String accessorId);
+	
+	/**
+	 * Checks if the given submmiter has any approval for the given access requirement that does not have an expiration
+	 * date or that expires after the given instant.
+	 * 
+	 * @param accessRequirementId The id of the access requirement
+	 * @param submitterId The id of the submitter
+	 * @param expireAfter The expiration instant to filter for, approvals that do not expire count towards the submitter approvals
+	 * @return True if the submmiter has at least one approval for the requirement with the given id that expire after the given instant, false otherwise
+	 */
+	boolean hasSubmitterApproval(String accessRequirementId, String submitterId, Instant expireAfter);
 
 	/**
 	 * Revokes the given batch of ids

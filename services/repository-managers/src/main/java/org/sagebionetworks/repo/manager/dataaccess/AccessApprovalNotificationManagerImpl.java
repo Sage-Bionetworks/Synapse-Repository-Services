@@ -3,6 +3,9 @@ package org.sagebionetworks.repo.manager.dataaccess;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.Date;
@@ -98,11 +101,6 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 	public void processAccessApprovalChange(ChangeMessage message) throws RecoverableMessageException {
 		ValidateArgument.required(message, "The change message");
 
-		// Check if the feature is enabled
-		if (!featureManager.isFeatureEnabled(Feature.DATA_ACCESS_NOTIFICATIONS)) {
-			return;
-		}
-
 		// Should we process this change?
 		if (discardChangeMessage(message)) {
 			return;
@@ -114,6 +112,12 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 	@Override
 	@WriteTransaction
 	public void processAccessApproval(DataAccessNotificationType notificationType, Long approvalId) throws RecoverableMessageException {
+		
+		// Check if the feature is enabled
+		if (!featureManager.isFeatureEnabled(Feature.DATA_ACCESS_NOTIFICATIONS)) {
+			return;
+		}
+		
 		AccessApproval approval = accessApprovalDao.get(approvalId.toString());
 
 		// Check that the type expected by the notification type matches
@@ -123,16 +127,26 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		
 		sendMessageIfNeeded(notificationType, approval);
 	}
+	
+	@Override
+	public List<Long> listSubmitterApprovalsForUnsentReminder(DataAccessNotificationType notificationType, int limit) {
+		ValidateArgument.required(notificationType, "The notification type");
+		ValidateArgument.requirement(notificationType.isReminder(), "The notification type must be a reminder.");
+		ValidateArgument.requirement(limit > 0, "The limit must be greater than zero.");
+		
+		LocalDate today = LocalDate.now(ZoneOffset.UTC);
+		
+		return notificationDao.listSubmmiterApprovalsForUnSentReminder(notificationType, today, limit);
+	}
 
 	boolean isSendRevocation(DataAccessNotificationType notificationType, AccessApproval approval, DBODataAccessNotification notification) {
 		if (!DataAccessNotificationType.REVOCATION.equals(notificationType)) {
 			throw new UnsupportedOperationException("Unsupported notification type " + notificationType);
 		}
+		
 		// We need to check if an APPROVED access approval exists already for the same access requirement, in such a
 		// case there is no need to send a notification as the user is still considered APPROVED
-		if (!accessApprovalDao
-				.listApprovalsByAccessor(approval.getRequirementId().toString(), approval.getAccessorId())
-				.isEmpty()) {
+		if (accessApprovalDao.hasAccessorApproval(approval.getRequirementId().toString(), approval.getAccessorId())) {
 			return false;
 		}
 		
@@ -141,8 +155,8 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 			return true;
 		}
 		
-		Instant sentOn = notification.getSentOn().toInstant();
-		Instant approvalModifiedOn = approval.getModifiedOn().toInstant();
+		final Instant sentOn = notification.getSentOn().toInstant();
+		final Instant approvalModifiedOn = approval.getModifiedOn().toInstant();
 
 		// If it was sent after the approval modification then it was already processed
 		if (sentOn.isAfter(approvalModifiedOn)) {
@@ -156,6 +170,44 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 			return false;
 		}
 
+		return true;
+	}
+	
+	boolean isSendReminder(DataAccessNotificationType notificationType, AccessApproval approval, DBODataAccessNotification notification) {
+		if (!notificationType.isReminder()) {
+			throw new UnsupportedOperationException("Unsupported notification type " + notificationType);
+		}
+		
+		// Reminders are not sent for approvals that do not expire
+		if (approval.getExpiredOn() == null) {
+			return false;
+		}
+		
+		final Instant expiredOn = approval.getExpiredOn().toInstant();
+		final LocalDate expiredDate = LocalDateTime.ofInstant(expiredOn, ZoneOffset.UTC).toLocalDate();
+		
+		// Double check the period
+		if (!LocalDate.now(ZoneOffset.UTC).plus(notificationType.getReminderPeriod()).equals(expiredDate)) {
+			return false;
+		}
+		
+		// We need to check if the submitter has another approval after the expiration of the approval (including approvals that do not expire)
+		if (accessApprovalDao.hasSubmitterApproval(approval.getRequirementId().toString(), approval.getSubmitterId(), expiredOn)) {
+			return false;
+		}
+		
+		// A notification does not exist, we can send a new one
+		if (notification == null) {
+			return true;
+		}
+		
+		final Instant sentOn = notification.getSentOn().toInstant();
+		
+		// A reminder was already sent, check if it was processed recently
+		if (sentOn.isAfter(Instant.now().minus(RESEND_TIMEOUT_DAYS, ChronoUnit.DAYS))) {
+			return false;
+		}
+		
 		return true;
 	}
 
@@ -307,6 +359,9 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		switch (notificationType) {
 		case REVOCATION:
 			return this::isSendRevocation;
+		case FIRST_RENEWAL_REMINDER:
+		case SECOND_RENEWAL_REMINDER:
+			return this::isSendReminder;
 		default:
 			throw new UnsupportedOperationException("Unsupported notification type " + notificationType.name());
 		}
@@ -316,6 +371,9 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		switch (notificationType) {
 		case REVOCATION:
 			return (approval) -> Long.valueOf(approval.getAccessorId());
+		case FIRST_RENEWAL_REMINDER:
+		case SECOND_RENEWAL_REMINDER:
+			return (approval) -> Long.valueOf(approval.getSubmitterId());
 		default:
 			throw new UnsupportedOperationException("Unsupported notification type " + notificationType.name());
 		}

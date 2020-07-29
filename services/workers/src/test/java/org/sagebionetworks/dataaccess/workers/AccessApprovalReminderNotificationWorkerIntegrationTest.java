@@ -3,7 +3,8 @@ package org.sagebionetworks.dataaccess.workers;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -35,12 +36,11 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = {"classpath:test-context.xml"})
 @ActiveProfiles("test-dataaccess-worker")
-public class AccessApprovalRevokedNotificationWorkerIntegrationTest {
-
+public class AccessApprovalReminderNotificationWorkerIntegrationTest {
+	
 	private static final long WORKER_TIMEOUT = 3 * 60 * 1000;
 	
 	@Autowired
@@ -51,62 +51,76 @@ public class AccessApprovalRevokedNotificationWorkerIntegrationTest {
 	
 	@Autowired
 	private DataAccessNotificationDao notificationDao;
+
+	@Autowired
+	private DataAccessTestHelper testHelper;
 	
 	@Autowired
 	private MessageDAO messageDao;
 	
-	@Autowired
-	private DataAccessTestHelper testHelper;
-	
-	private UserInfo adminUser;
+	private UserInfo admin;
 	private UserInfo user;
+	
 	private List<String> messages;
 	
 	@BeforeEach
 	public void before() {
-		notificationDao.clear();
-		featureStatusDao.clear();
-		testHelper.cleanUp();
+		messages = new ArrayList<>();
 		
-		adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		notificationDao.clear();
+		testHelper.cleanUp();
+		featureStatusDao.clear();
+		
+		admin = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
 		NewUser newUser = new NewUser();
 		newUser.setEmail(UUID.randomUUID().toString() + "@test.com");
 		newUser.setUserName(UUID.randomUUID().toString());
 		user = userManager.getUserInfo(userManager.createUser(newUser));
 		
-		// Enabled the features for testing, we need both the auto revocation and the notification workers running
-		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_AUTO_REVOCATION, true);
+		// Enabled the feature for testing
 		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_NOTIFICATIONS, true);
-		messages = new ArrayList<>();
 	}
 	
 	@AfterEach
 	public void after() {
+
 		notificationDao.clear();
-		featureStatusDao.clear();
 		testHelper.cleanUp();
-		messages.forEach(id -> messageDao.deleteMessage(id));
-		userManager.deletePrincipal(adminUser, user.getId());
+		featureStatusDao.clear();
+		messages.forEach(messageDao::deleteMessage);
+		userManager.deletePrincipal(admin, user.getId());
 	}
 	
 	@Test
-	public void testRunWithAutoRevocation() throws Exception {
+	public void testProcessReminders() throws Exception {
 		
-		AccessRequirement ar = testHelper.newAccessRequirement(user);
-		// Will create an expired approval, one worker will expire it and another will act upon the change message to send the notification
-		AccessApproval ap = testHelper.newApproval(ar, user, ApprovalState.APPROVED, Instant.now().minus(1, ChronoUnit.DAYS));
+		DataAccessNotificationType notificationType = DataAccessNotificationType.FIRST_RENEWAL_REMINDER;
+		AccessRequirement ar = testHelper.newAccessRequirement(admin);
+		
+		LocalDate today = LocalDate.now(ZoneOffset.UTC);
+		
+		Instant expiresOn = today.plus(notificationType.getReminderPeriod())
+				.atStartOfDay()
+				.toInstant(ZoneOffset.UTC);
+		
+		// Creates an approval that expires exactly the reminder period days from today
+		AccessApproval approval = testHelper.newApproval(ar, user, ApprovalState.APPROVED, expiresOn);
 		
 		TimeUtils.waitFor(WORKER_TIMEOUT, 1000L, () -> {
-			Optional<DBODataAccessNotification> result = notificationDao.find(DataAccessNotificationType.REVOCATION, ap.getRequirementId(), user.getId());
+			Optional<DBODataAccessNotification> result = notificationDao.find(notificationType, ar.getId(), user.getId());
 			
-			if (!result.isPresent()) { 
-				return new Pair<>(false, null); 
+			if (!result.isPresent()) {
+				return new Pair<>(false, null);
 			}
+
+			DBODataAccessNotification notification = result.get();
 			
-			// Verify that the message to user was created for the user (the workers are setup to act as prod so that
-			// the message is created and processed: no email is actually delivered)
-			Long messageId = result.get().getMessageId();
+			assertEquals(ar.getId(), notification.getRequirementId());
+			assertEquals(approval.getId(), notification.getAccessApprovalId());
+			assertEquals(user.getId(), notification.getRecipientId());
+			
+			Long messageId = notification.getMessageId();
 
 			MessageToUser message = messageDao.getMessage(messageId.toString());
 		
@@ -118,6 +132,6 @@ public class AccessApprovalRevokedNotificationWorkerIntegrationTest {
 			// Wait till the message is processed
 			return new Pair<>(messageDao.getMessageSent(message.getId()), null);
 		});
-		
 	}
+	
 }

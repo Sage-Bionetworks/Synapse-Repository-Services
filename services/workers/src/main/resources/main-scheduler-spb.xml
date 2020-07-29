@@ -118,6 +118,7 @@
 		<ref bean="getValidationSchemaTrigger" />
 		<ref bean="accessApprovalExpirationTrigger" />
 		<ref bean="accessApprovalRevokedNotificationTrigger" />
+		<ref bean="accessApprovalReminderNotificationWorkerTrigger" />
 	</util:list>
 
 	<bean id="mainScheduler"
