@@ -4,8 +4,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.annotation.PostConstruct;
-
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -26,7 +24,7 @@ public class AccessApprovalReminderNotificationWorker implements ProgressingRunn
 	private static final List<DataAccessNotificationType> REMINDER_TYPES = Stream.of(DataAccessNotificationType.values())
 			.filter(DataAccessNotificationType::isReminder).collect(Collectors.toList());
 	
-	protected static final int BATCH_SIZE = 100;
+	protected static final int BATCH_SIZE = 200;
 
 	private AccessApprovalNotificationManager notificationManager;
 	

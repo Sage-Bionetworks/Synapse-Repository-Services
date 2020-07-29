@@ -112,8 +112,8 @@
 		</property>
 		<!-- Longer start delay for the test -->
 		<property name="startDelay" value="30456" />
-		<!-- Once every 15 minutes, the worker process all the reminders for the day -->
-		<property name="repeatInterval" value="900000" />
+		<!-- Once every 5 minutes, the worker process a batch of reminders for the day -->
+		<property name="repeatInterval" value="300000" />
 	</bean>
 	
 </beans>
