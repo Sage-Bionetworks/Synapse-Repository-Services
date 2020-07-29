@@ -2342,6 +2342,51 @@ public class TableWorkerIntegrationTest {
 	}
 
 	@Test
+	public void testNotHasQuery() throws Exception{
+		// setup an EntityId column.
+		ColumnModel startColumn = new ColumnModel();
+		startColumn.setColumnType(ColumnType.STRING_LIST);
+		startColumn.setName("startColumn");
+		startColumn = columnManager.createColumnModel(adminUserInfo, startColumn);
+		schema = Lists.newArrayList(startColumn);
+		// build a table with this column.
+		createTableWithSchema();
+		TableStatus status = waitForTableProcessing(tableId);
+		if(status.getErrorDetails() != null){
+			System.out.println(status.getErrorDetails());
+		}
+		assertTrue(TableState.AVAILABLE.equals(status.getState()));
+
+
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(
+				TableModelTestUtils.createRow(null, null, "[\"asdf\",\"qwerty\",\"ggggg\"]"),
+				TableModelTestUtils.createRow(null, null, "[\"asdf\",\"ayyyyyy\",\"ggggg\"]"),
+				TableModelTestUtils.createRow(null, null, "[\"aAAAAAAA\",\"yeeeeet\",\"ggggg\"]")));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = appendRows(adminUserInfo, tableId,
+				rowSet, mockProgressCallback);
+
+		//query the column expecting the index table for it to be populated
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where startColumn not has ('asdf') order by row_id", null, null, (queryResult) -> {
+			assertEquals(1, queryResult.getQueryResults().getRows().size());
+			assertEquals(Arrays.asList("[\"aAAAAAAA\", \"yeeeeet\", \"ggggg\"]"), queryResult.getQueryResults().getRows().get(0).getValues());
+		});
+
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where startColumn not has ('ayyyyyy') order by row_id", null, null, (queryResult) -> {
+			assertEquals(2, queryResult.getQueryResults().getRows().size());
+			assertEquals(Arrays.asList("[\"asdf\", \"qwerty\", \"ggggg\"]"), queryResult.getQueryResults().getRows().get(0).getValues());
+			assertEquals(Arrays.asList("[\"aAAAAAAA\", \"yeeeeet\", \"ggggg\"]"), queryResult.getQueryResults().getRows().get(1).getValues());
+
+		});
+
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where startColumn not has ('ggggg') order by row_id", null, null, (queryResult) -> {
+			assertEquals(0, queryResult.getQueryResults().getRows().size());
+		});
+	}
+
+	@Test
 	public void testChangeListColumnMaximumListLength_valueBelowMaxLists() throws Exception{
 		// setup an EntityId column.
 		ColumnModel startColumn = new ColumnModel();

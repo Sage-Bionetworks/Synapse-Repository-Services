@@ -655,13 +655,13 @@ public class SQLTranslatorUtils {
 
 			//create a "IN" predicate that has the same right hand side as the "HAS" predicate for the subquery
 			ColumnReference unnestedColumn = SqlElementUntils.createColumnReference(SQLUtils.getUnnestedColumnNameForId(schemaColumnTranslationReference.getId()));
-			InPredicate subqueryInPredicate = new InPredicate(unnestedColumn, arrayHasPredicate.getNot(), arrayHasPredicate.getInPredicateValue());
+			InPredicate subqueryInPredicate = new InPredicate(unnestedColumn, null, arrayHasPredicate.getInPredicateValue());
 			subquery.getFirstElementOfType(Predicate.class).replaceChildren(subqueryInPredicate);
 
 			//replace the "HAS" with "IN" predicate containing the subquery
 			Predicate replacementPredicate = new Predicate(new InPredicate(
 					SqlElementUntils.createColumnReference(ROW_ID),
-					null,
+					arrayHasPredicate.getNot(),
 					new InPredicateValue(subquery)));
 
 			booleanPrimary.getPredicate().replaceChildren(replacementPredicate);
