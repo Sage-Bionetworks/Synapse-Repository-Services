@@ -49,7 +49,7 @@ public class DataAccessNotificationDaoImpl implements DataAccessNotificationDao 
 	
 	private static final String SQL_SELECT_FOR_RECIPIENTS = "SELECT * FROM " + TABLE_DATA_ACCESS_NOTIFICATION
 			+ " WHERE " + COL_DATA_ACCESS_NOTIFICATION_REQUIREMENT_ID + " = :" + COL_DATA_ACCESS_NOTIFICATION_REQUIREMENT_ID 
-			+ " AND " + COL_DATA_ACCESS_NOTIFICATION_RECIPIENT_ID + " = :" + COL_DATA_ACCESS_NOTIFICATION_RECIPIENT_ID
+			+ " AND " + COL_DATA_ACCESS_NOTIFICATION_RECIPIENT_ID + " IN (:" + COL_DATA_ACCESS_NOTIFICATION_RECIPIENT_ID + ")"
 			+ " ORDER BY " + COL_DATA_ACCESS_NOTIFICATION_SENT_ON;
 	
 	// We want all the access approvals for submitters (submitter == accessor) whose expiration date is in a 
