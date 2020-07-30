@@ -87,6 +87,8 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
@@ -3297,6 +3299,15 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	BatchAccessApprovalInfoResponse getBatchAccessApprovalInfo(BatchAccessApprovalInfoRequest request) throws SynapseException;
+	
+	/**
+	 * Fetch the notifications for an AR and a list of recipients
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	AccessApprovalNotificationResponse getAccessApprovalNotifications(AccessApprovalNotificationRequest request) throws SynapseException;
 
 	/**
 	 * Retrieve a page of subjects for a given access requirement ID.

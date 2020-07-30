@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.dataaccess;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -28,6 +29,8 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,6 +40,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.dataaccess.AccessApprovalNotificationManagerImpl.RecipientProvider;
@@ -54,7 +58,12 @@ import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotification;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
+import org.sagebionetworks.repo.model.dataaccess.NotificationType;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessNotification;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationDao;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationType;
@@ -84,6 +93,8 @@ public class AccessApprovalNotificationManagerUnitTest {
 	private FeatureManager mockFeatureManager;
 	@Mock
 	private ProdDetector mockProdDetector;
+	@Mock
+	private AuthorizationManager mockAuthManager;
 	
 	@InjectMocks
 	private AccessApprovalNotificationManagerImpl manager;
@@ -120,6 +131,10 @@ public class AccessApprovalNotificationManagerUnitTest {
 	
 	@Mock
 	private DBODataAccessNotification mockNotification;
+	
+	@Mock
+	private AccessApprovalNotificationRequest mockNotificationRequest;
+	
 	@BeforeEach
 	public void before() {
 	}
@@ -1377,4 +1392,144 @@ public class AccessApprovalNotificationManagerUnitTest {
 		assertEquals("The limit must be greater than zero.", errorMessage);
 	}
 	
+	@Test
+	public void testNotificationTypeMapping() {
+		for (DataAccessNotificationType type : DataAccessNotificationType.values()) {
+			assertNotNull(NotificationType.valueOf(type.name()));
+		}
+	}
+	
+	@Test
+	public void testListNotificationsRequest() {
+		
+		UserInfo user = mockUser;
+		AccessApprovalNotificationRequest request = mockNotificationRequest;
+		
+		Long requirementId = 1L;
+		Long recipientId = 2L;
+		Instant sentOn = Instant.now();
+		boolean isACT = true;
+		
+		List<DBODataAccessNotification> notifications = Arrays.asList(mockNotification);
+		
+		when(mockNotification.getRequirementId()).thenReturn(requirementId);
+		when(mockNotification.getRecipientId()).thenReturn(recipientId);
+		when(mockNotification.getNotificationType()).thenReturn("REVOCATION");
+		when(mockNotification.getSentOn()).thenReturn(Timestamp.from(sentOn));
+		when(mockAuthManager.isACTTeamMemberOrAdmin(any())).thenReturn(isACT);
+		when(mockNotificationDao.listForRecipients(any(), any())).thenReturn(notifications);
+		when(mockNotificationRequest.getRequirementId()).thenReturn(requirementId);
+		when(mockNotificationRequest.getRecipientIds()).thenReturn(Arrays.asList(recipientId));
+		
+		AccessApprovalNotificationResponse expected = new AccessApprovalNotificationResponse();
+		
+		expected.setRequirementId(requirementId);
+		
+		AccessApprovalNotification expectedDTO = new AccessApprovalNotification();
+		
+		expectedDTO.setRequirementId(requirementId);
+		expectedDTO.setRecipientId(recipientId);
+		expectedDTO.setNotificationType(NotificationType.REVOCATION);
+		expectedDTO.setSentOn(Date.from(sentOn));
+		
+		expected.setResults(Arrays.asList(expectedDTO));
+		
+		// Call under test
+		AccessApprovalNotificationResponse result = manager.listNotificationsRequest(user, request);
+		
+		assertEquals(expected, result);
+		
+		verify(mockAuthManager).isACTTeamMemberOrAdmin(user);
+		verify(mockNotificationDao).listForRecipients(requirementId, Arrays.asList(recipientId));
+	}
+	
+	@Test
+	public void testListNotificationsRequestWithNoUser() {
+		UserInfo user = null;
+		AccessApprovalNotificationRequest request = mockNotificationRequest;
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			 manager.listNotificationsRequest(user, request);
+		}).getMessage();
+		
+		assertEquals("The user is required.", errorMessage);
+	}
+	
+	@Test
+	public void testListNotificationsRequestWithNoRequest() {
+		UserInfo user = mockUser;
+		AccessApprovalNotificationRequest request = null;
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			 manager.listNotificationsRequest(user, request);
+		}).getMessage();
+		
+		assertEquals("The request is required.", errorMessage);
+	}
+	
+	@Test
+	public void testListNotificationsRequestWithNoRequirement() {
+		UserInfo user = mockUser;
+		AccessApprovalNotificationRequest request = mockNotificationRequest;
+		
+		when(request.getRequirementId()).thenReturn(null);
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			 manager.listNotificationsRequest(user, request);
+		}).getMessage();
+		
+		assertEquals("The request.requirementId is required.", errorMessage);
+	}
+	
+	@Test
+	public void testListNotificationsRequestWithNoRecipients() {
+		UserInfo user = mockUser;
+		AccessApprovalNotificationRequest request = mockNotificationRequest;
+		
+		when(request.getRequirementId()).thenReturn(1L);
+		when(request.getRecipientIds()).thenReturn(null);
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			 manager.listNotificationsRequest(user, request);
+		}).getMessage();
+		
+		assertEquals("The request.recipientIds is required.", errorMessage);
+	}
+	
+	@Test
+	public void testListNotificationsRequestWithRecipientsExceedMax() {
+		UserInfo user = mockUser;
+		AccessApprovalNotificationRequest request = mockNotificationRequest;
+		
+		when(request.getRequirementId()).thenReturn(1L);
+		when(request.getRecipientIds()).thenReturn(
+				LongStream.range(0, AccessApprovalNotificationManager.MAX_NOTIFICATION_REQUEST_RECIPIENTS + 1)
+				.boxed()
+			    .collect(Collectors.toList())
+		);
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			 manager.listNotificationsRequest(user, request);
+		}).getMessage();
+		
+		assertEquals("The maximum number of allowed recipient ids in the request is 25.", errorMessage);
+	}
+	
+	@Test
+	public void testListNotificationsRequestWithUnauthorized() {
+		UserInfo user = mockUser;
+		AccessApprovalNotificationRequest request = mockNotificationRequest;
+		
+		boolean isACT = false;
+		
+		when(request.getRequirementId()).thenReturn(1L);
+		when(request.getRecipientIds()).thenReturn(Arrays.asList(2L));
+		when(mockAuthManager.isACTTeamMemberOrAdmin(any())).thenReturn(isACT);
+		
+		String errorMessage = assertThrows(UnauthorizedException.class, () -> {
+			 manager.listNotificationsRequest(user, request);
+		}).getMessage();
+		
+		assertEquals("You must be a member of the ACT to perform this operation.", errorMessage);
+	}
 }

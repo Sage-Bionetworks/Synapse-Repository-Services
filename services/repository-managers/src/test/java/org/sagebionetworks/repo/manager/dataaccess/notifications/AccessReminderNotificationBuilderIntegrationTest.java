@@ -135,12 +135,12 @@ public class AccessReminderNotificationBuilderIntegrationTest {
 		Long requirementId = 1234L;
 		String requirementDescription = "Some Dataset";
 		String userName = "Synapse User";
-		Date epxpiresOn = Date.from(LocalDate.of(2020, 7, 27).atStartOfDay(ZoneOffset.UTC).toInstant());
+		Date expiresOn = Date.from(LocalDate.of(2020, 7, 27).atStartOfDay(ZoneOffset.UTC).toInstant());
 		
 		when(recipient.getId()).thenReturn(recipientId);
 		when(profileManager.getUserProfile(any())).thenReturn(mockProfile);
 		when(mockProfile.getUserName()).thenReturn(userName);
-		when(approval.getExpiredOn()).thenReturn(epxpiresOn);
+		when(approval.getExpiredOn()).thenReturn(expiresOn);
 		when(accessRequirement.getId()).thenReturn(requirementId);
 		when(accessRequirement.getDescription()).thenReturn(requirementDescription);
 		when(accessRequirement.getIsDUCRequired()).thenReturn(true);

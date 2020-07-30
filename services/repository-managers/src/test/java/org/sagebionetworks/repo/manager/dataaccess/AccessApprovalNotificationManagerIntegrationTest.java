@@ -32,6 +32,10 @@ import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotification;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
+import org.sagebionetworks.repo.model.dataaccess.NotificationType;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessNotification;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationDao;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationType;
@@ -378,6 +382,48 @@ public class AccessApprovalNotificationManagerIntegrationTest {
 		assertTrue(notificationDao.findForUpdate(DataAccessNotificationType.SECOND_RENEWAL_REMINDER, requirement.getId(),
 				submitter.getId()).isPresent());
 
+	}
+	
+	@Test
+	public void testListNotificationRequest() throws RecoverableMessageException {
+		
+		DataAccessNotificationType notificationType = DataAccessNotificationType.FIRST_RENEWAL_REMINDER;
+		
+		Instant expireOn = LocalDate.now(ZoneOffset.UTC)
+				.plus(notificationType.getReminderPeriod())
+				.atStartOfDay()
+				.toInstant(ZoneOffset.UTC);
+		
+		AccessRequirement requirement = createManagedAR();
+		
+		AccessApproval ap1 = createApproval(requirement, submitter, submitter, ApprovalState.APPROVED, expireOn);
+		
+		// Process the approval so that the notification is created
+		manager.processAccessApproval(notificationType, ap1.getId());
+		
+		
+		AccessApprovalNotificationRequest request = new AccessApprovalNotificationRequest();
+		
+		request.setRequirementId(requirement.getId());
+		request.setRecipientIds(Arrays.asList(submitter.getId()));
+		
+		AccessApprovalNotification expected = new AccessApprovalNotification();
+		
+		expected.setNotificationType(NotificationType.valueOf(notificationType.name()));
+		expected.setRequirementId(requirement.getId());
+		expected.setRecipientId(submitter.getId());
+		
+		// Call under test
+		AccessApprovalNotificationResponse response = manager.listNotificationsRequest(adminUser, request);
+		
+		assertEquals(1, response.getResults().size());
+		
+		AccessApprovalNotification result = response.getResults().iterator().next();
+		
+		expected.setSentOn(result.getSentOn());
+		
+		assertEquals(expected, result);
+		
 	}
 	
 	private ChangeMessage changeMessage(Long id) {

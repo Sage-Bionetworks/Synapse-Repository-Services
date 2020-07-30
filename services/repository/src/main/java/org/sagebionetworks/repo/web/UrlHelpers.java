@@ -539,11 +539,11 @@ public class UrlHelpers {
 	public static final String ACCESS_REQUIREMENT_VERSION = ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/version";
 
 	public static final String ACCESS_APPROVAL = "/accessApproval";
-	public static final String ACCESS_APPROVALS = "/accessApprovals";
 	public static final String ACCESS_APPROVAL_WITH_ENTITY_ID = ENTITY_ID+ACCESS_APPROVAL;
 	public static final String ACCESS_APPROVAL_WITH_APPROVAL_ID = ACCESS_APPROVAL+"/{approvalId}";
 	public static final String ACCESS_APPROVAL_GROUP = ACCESS_APPROVAL+"/group";
 	public static final String ACCESS_APPROVAL_GROUP_REVOKE = ACCESS_APPROVAL_GROUP+"/revoke";
+	public static final String ACCESS_APPROVAL_NOTIFICATIONS = ACCESS_APPROVAL + "/notifications";
 
 	public static final String ACCESS_APPROVAL_INFO = ACCESS_APPROVAL+"/information";
 

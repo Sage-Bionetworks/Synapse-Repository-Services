@@ -3,6 +3,9 @@ package org.sagebionetworks.repo.manager.dataaccess;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -24,6 +27,9 @@ public interface AccessApprovalNotificationManager {
 
 	// Do not process a change message if it's older than 24 hours
 	long CHANGE_TIMEOUT_HOURS = 24;
+	
+	// Maximum number of recipients allowed in a notification request
+	int MAX_NOTIFICATION_REQUEST_RECIPIENTS = 25;
 
 	/**
 	 * Process a change message for an access approval to check if a revocation notification should be sent out to the
@@ -56,5 +62,14 @@ public interface AccessApprovalNotificationManager {
 	 * reminder period}, excluding approvals for which a notification was sent today or that do not expire
 	 */
 	List<Long> listSubmitterApprovalsForUnsentReminder(DataAccessNotificationType notificationType, int limit);
+	
+	/**
+	 * Fetches the list of notifications according to the given request.
+	 * 
+	 * @param user The user making the request, must be an ACT member
+	 * @param request The request specification
+	 * @return The response containing the list of notifications
+	 */
+	AccessApprovalNotificationResponse listNotificationsRequest(UserInfo user, AccessApprovalNotificationRequest request);
 
 }

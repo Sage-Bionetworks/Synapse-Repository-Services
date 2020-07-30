@@ -13,9 +13,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.dataaccess.notifications.DataAccessNotificationBuilder;
@@ -28,8 +31,13 @@ import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotification;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
+import org.sagebionetworks.repo.model.dataaccess.NotificationType;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessNotification;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationDao;
@@ -50,6 +58,16 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 	private static final Logger LOG = LogManager.getLogger(AccessApprovalNotificationManagerImpl.class);
 
 	private static final String MSG_NOT_DELIVERED = "{} notification (AR: {}, Recipient: {}, AP: {}) will not be delivered.";
+	
+	// Simple inline DBO to DTO mapper
+	private static final Function<DBODataAccessNotification, AccessApprovalNotification> DTO_MAPPER = (dbo) -> {
+		AccessApprovalNotification dto = new AccessApprovalNotification();
+		dto.setRequirementId(dbo.getRequirementId());
+		dto.setNotificationType(NotificationType.valueOf(dbo.getNotificationType()));
+		dto.setRecipientId(dbo.getRecipientId());
+		dto.setSentOn(Date.from(dbo.getSentOn().toInstant()));
+		return dto;
+	};
 
 	private UserManager userManager;
 	private DataAccessNotificationDao notificationDao;
@@ -59,6 +77,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 	private MessageManager messageManager;
 	private FeatureManager featureManager;
 	private ProdDetector prodDetector;
+	private AuthorizationManager authManager;
 
 	/**
 	 * The map is initialized by {@link #configureDataAccessNotificationBuilders(List)} on bean creation
@@ -66,10 +85,16 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 	private Map<DataAccessNotificationType, DataAccessNotificationBuilder> notificationBuilders;
 
 	@Autowired
-	public AccessApprovalNotificationManagerImpl(final UserManager userManager,
-			final DataAccessNotificationDao notificationDao, final AccessApprovalDAO accessApprovalDao,
-			final AccessRequirementDAO accessRequirementDao, final FileHandleManager fileHandleManager,
-			final MessageManager messageManager, final FeatureManager featureTesting, final ProdDetector prodDetector) {
+	public AccessApprovalNotificationManagerImpl(
+			final UserManager userManager,
+			final DataAccessNotificationDao notificationDao, 
+			final AccessApprovalDAO accessApprovalDao,
+			final AccessRequirementDAO accessRequirementDao, 
+			final FileHandleManager fileHandleManager,
+			final MessageManager messageManager, 
+			final FeatureManager featureTesting, 
+			final ProdDetector prodDetector,
+			final AuthorizationManager authManager) {
 		this.userManager = userManager;
 		this.notificationDao = notificationDao;
 		this.accessApprovalDao = accessApprovalDao;
@@ -78,6 +103,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		this.messageManager = messageManager;
 		this.featureManager = featureTesting;
 		this.prodDetector = prodDetector;
+		this.authManager = authManager;
 	}
 
 	@Autowired
@@ -137,6 +163,36 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		LocalDate today = LocalDate.now(ZoneOffset.UTC);
 		
 		return notificationDao.listSubmmiterApprovalsForUnSentReminder(notificationType, today, limit);
+	}
+	
+	@Override
+	public AccessApprovalNotificationResponse listNotificationsRequest(UserInfo user, AccessApprovalNotificationRequest request) {
+		ValidateArgument.required(user, "The user");
+		ValidateArgument.required(request, "The request");
+		ValidateArgument.required(request.getRequirementId(), "The request.requirementId");
+		ValidateArgument.required(request.getRecipientIds(), "The request.recipientIds");
+		ValidateArgument.requirement(request.getRecipientIds().size() <= MAX_NOTIFICATION_REQUEST_RECIPIENTS,
+				"The maximum number of allowed recipient ids in the request is " + MAX_NOTIFICATION_REQUEST_RECIPIENTS
+						+ ".");
+		
+		if (!authManager.isACTTeamMemberOrAdmin(user)) {
+			throw new UnauthorizedException("You must be a member of the ACT to perform this operation.");
+		}
+
+		final Long requirementId = request.getRequirementId();
+		final List<Long> recipientIds = request.getRecipientIds();
+		
+		final AccessApprovalNotificationResponse response = new AccessApprovalNotificationResponse();
+		
+		List<AccessApprovalNotification> notifications = notificationDao.listForRecipients(requirementId, recipientIds)
+				.stream()
+				.map(DTO_MAPPER)
+				.collect(Collectors.toList());
+		
+		response.setRequirementId(requirementId);
+		response.setResults(notifications);
+		
+		return response;
 	}
 
 	boolean isSendRevocation(DataAccessNotificationType notificationType, AccessApproval approval, DBODataAccessNotification notification) {

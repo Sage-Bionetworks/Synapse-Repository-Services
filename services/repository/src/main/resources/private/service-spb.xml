@@ -39,10 +39,6 @@
 	<bean id="principalService"
 		class="org.sagebionetworks.repo.web.service.PrincipalServiceImpl" />
 
-	<!-- The AccessApproval Service -->
-	<bean id="accessApprovalService"
-		class="org.sagebionetworks.repo.web.service.AccessApprovalServiceImpl" />
-
 	<!-- The AccessRequirement Service -->
 	<bean id="accessRequirementService"
 		class="org.sagebionetworks.repo.web.service.AccessRequirementServiceImpl" />
