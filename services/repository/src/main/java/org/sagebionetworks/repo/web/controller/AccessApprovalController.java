@@ -17,6 +17,8 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
@@ -119,6 +121,25 @@ public class AccessApprovalController {
 			@RequestBody AccessorGroupRequest request
 			) throws UnauthorizedException, NotFoundException {	
 		return serviceProvider.getAccessApprovalService().listAccessorGroup(userId, request);
+	}
+	
+	/**
+	 * Fetches the notifications sent for an access requirement and a list of recipients.
+	 * This service is only available for ACT.
+	 * 
+	 * @param userId
+	 * @param accessApproval
+	 * @return
+	 * @throws UnauthorizedException If the user is not an ACT member
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_NOTIFICATIONS, method = RequestMethod.POST)
+	public @ResponseBody
+	AccessApprovalNotificationResponse listNotifications(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody AccessApprovalNotificationRequest request) throws UnauthorizedException {
+		return serviceProvider.getAccessApprovalService().listNotificationsRequest(userId, request);
 	}
 
 	/**

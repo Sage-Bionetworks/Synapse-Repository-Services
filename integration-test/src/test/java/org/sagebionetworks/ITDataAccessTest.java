@@ -29,6 +29,8 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessType;
@@ -217,6 +219,22 @@ public class ITDataAccessTest {
 		assertNotNull(synapseOne.getBatchAccessApprovalInfo(approvalInfoRequest ));
 
 		adminSynapse.revokeGroup(managedAR.getId().toString(), userId);
+	}
+	
+	// This test is used solely to verify the controller integration
+	@Test
+	public void testGetAccessAprovalNotifications() throws SynapseException {
+		
+		AccessApprovalNotificationRequest request = new AccessApprovalNotificationRequest();
+		
+		request.setRequirementId(actAR.getId());
+		request.setRecipientIds(Arrays.asList(userToDelete));
+		
+		AccessApprovalNotificationResponse result = synapseOne.getAccessApprovalNotifications(request);
+		
+		assertNotNull(result);
+		assertEquals(actAR.getId(), result.getRequirementId());
+		assertTrue(result.getResults().isEmpty());
 	}
 
 }
