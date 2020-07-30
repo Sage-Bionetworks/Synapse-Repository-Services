@@ -230,7 +230,7 @@ public class ITDataAccessTest {
 		request.setRequirementId(actAR.getId());
 		request.setRecipientIds(Arrays.asList(userToDelete));
 		
-		AccessApprovalNotificationResponse result = synapseOne.getAccessApprovalNotifications(request);
+		AccessApprovalNotificationResponse result = adminSynapse.getAccessApprovalNotifications(request);
 		
 		assertNotNull(result);
 		assertEquals(actAR.getId(), result.getRequirementId());
