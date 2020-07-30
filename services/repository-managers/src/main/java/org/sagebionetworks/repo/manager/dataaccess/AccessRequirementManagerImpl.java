@@ -45,7 +45,6 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	public static final Long MAX_LIMIT = 50L;
 	public static final Long DEFAULT_OFFSET = 0L;
 	public static final Long DEFAULT_EXPIRATION_PERIOD = 0L;
-	public static final Long ONE_YEAR = 365 * 24 * 60 * 60 * 1000L;
 	public static final int MAX_DESCRIPTION_LENGHT = 50;
 	
 	@Autowired
@@ -82,14 +81,8 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			
 			Long expirationPeriod = managedAR.getExpirationPeriod();
 			
-			if (expirationPeriod == null || expirationPeriod.equals(DEFAULT_EXPIRATION_PERIOD)) {
-				ValidateArgument.requirement(managedAR.getRenewalDetailsUrl() == null, "The renewal details URL can be supplied only with an expiration period");
-			} else {				
-				ValidateArgument.requirement(expirationPeriod >= ONE_YEAR, "When supplied, the minimum expiration period should be at least one year.");
-			}
-			
-			if (managedAR.getRenewalDetailsUrl() != null) {
-				ValidateArgument.validUrl(managedAR.getRenewalDetailsUrl(), "The provided renewal details URL");
+			if (expirationPeriod != null && !expirationPeriod.equals(DEFAULT_EXPIRATION_PERIOD)) {
+				ValidateArgument.requirement(expirationPeriod > DEFAULT_EXPIRATION_PERIOD, "When supplied, the expiration period should be greater than " + DEFAULT_EXPIRATION_PERIOD);
 			}
 		}
 	}
