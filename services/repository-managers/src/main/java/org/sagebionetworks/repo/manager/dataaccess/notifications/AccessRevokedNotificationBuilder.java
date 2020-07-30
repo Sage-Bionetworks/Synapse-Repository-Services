@@ -25,6 +25,7 @@ public class AccessRevokedNotificationBuilder implements DataAccessNotificationB
 	static final String TEMPLATE_FILE = "message/AccessApprovalRevokedTemplate.html.vtl";
 	
 	static final String PARAM_DISPLAY_NAME = "displayName";
+	static final String PARAM_SUBMITTER_DISPLAY_NAME = "submitterDisplayName";
 	static final String PARAM_REQUIREMENT_ID = "requirementId";
 	static final String PARAM_REQUIREMENT_DESCRIPTION = "requirementDescription";
 
@@ -71,15 +72,25 @@ public class AccessRevokedNotificationBuilder implements DataAccessNotificationB
 	VelocityContext buildContext(ManagedACTAccessRequirement accessRequirement, AccessApproval approval, UserInfo recipient) {
 		VelocityContext context = new VelocityContext();
 		
-		final UserProfile profile = userProfileManager.getUserProfile(recipient.getId().toString());
+		final String displayName = getDisplayNameForUser(recipient.getId().toString());
 		
-		final String displayName = EmailUtils.getDisplayNameOrUsername(profile);
+		String submitterDisplayName = null;
+		
+		if (!approval.getSubmitterId().equals(recipient.getId().toString())) {
+			submitterDisplayName = getDisplayNameForUser(approval.getSubmitterId());
+		}
 		
 		context.put(PARAM_REQUIREMENT_ID, accessRequirement.getId());
 		context.put(PARAM_REQUIREMENT_DESCRIPTION, StringUtils.trimToNull(accessRequirement.getDescription()));
 		context.put(PARAM_DISPLAY_NAME, displayName);
+		context.put(PARAM_SUBMITTER_DISPLAY_NAME, submitterDisplayName);
 		
 		return context;
+	}
+	
+	private String getDisplayNameForUser(String userId) {
+		final UserProfile profile = userProfileManager.getUserProfile(userId);
+		return EmailUtils.getDisplayNameOrUsername(profile);
 	}
 
 }

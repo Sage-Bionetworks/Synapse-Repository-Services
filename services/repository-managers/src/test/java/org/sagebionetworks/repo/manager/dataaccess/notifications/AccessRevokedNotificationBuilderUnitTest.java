@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.dataaccess.notifications;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
@@ -52,6 +53,9 @@ public class AccessRevokedNotificationBuilderUnitTest {
 	private UserProfile mockUserProfile;
 	
 	@Mock
+	private UserProfile mockSubmitterUserProfile;
+	
+	@Mock
 	private Template mockTemplate;
 	
 	@Test
@@ -93,20 +97,21 @@ public class AccessRevokedNotificationBuilderUnitTest {
 	}
 	
 	@Test
-	public void testBuildMessageBody() {
+	public void testBuildMessageBodyForSubmitter() {
 		
 		Long requirementId = 1L;
 		String description = "Some Description";
 		Long recipientId = 2L;
+		Long submitterId = recipientId;
 		String firstName = "First";
 		String lastName = "Last";
 		
 		when(mockRecipient.getId()).thenReturn(recipientId);
-		
+		when(mockApproval.getSubmitterId()).thenReturn(submitterId.toString());
 		when(mockUserProfile.getFirstName()).thenReturn(firstName);
 		when(mockUserProfile.getLastName()).thenReturn(lastName);
 		
-		when(mockProfileManager.getUserProfile(any())).thenReturn(mockUserProfile);
+		when(mockProfileManager.getUserProfile(recipientId.toString())).thenReturn(mockUserProfile);
 		when(mockRequirement.getId()).thenReturn(requirementId);
 		when(mockRequirement.getDescription()).thenReturn(description);
 		when(mockVelocityEngine.getTemplate(any(), any())).thenReturn(mockTemplate);
@@ -132,6 +137,59 @@ public class AccessRevokedNotificationBuilderUnitTest {
 		assertEquals(firstName + " " + lastName, context.get(AccessRevokedNotificationBuilder.PARAM_DISPLAY_NAME));
 		assertEquals(requirementId, context.get(AccessRevokedNotificationBuilder.PARAM_REQUIREMENT_ID));
 		assertEquals(description, context.get(AccessRevokedNotificationBuilder.PARAM_REQUIREMENT_DESCRIPTION));
+		assertNull(context.get(AccessRevokedNotificationBuilder.PARAM_SUBMITTER_DISPLAY_NAME));
+	}
+	
+	@Test
+	public void testBuildMessageBodyForNonSubmitter() {
+		
+		Long requirementId = 1L;
+		String description = "Some Description";
+		Long recipientId = 2L;
+		Long submitterId = 3L;
+		
+		String firstName = "First";
+		String lastName = "Last";
+		
+		String submitterUserName = "Submitter";
+		
+		when(mockRecipient.getId()).thenReturn(recipientId);
+		when(mockApproval.getSubmitterId()).thenReturn(submitterId.toString());
+		when(mockUserProfile.getFirstName()).thenReturn(firstName);
+		when(mockUserProfile.getLastName()).thenReturn(lastName);
+		when(mockSubmitterUserProfile.getUserName()).thenReturn(submitterUserName);
+		
+		when(mockProfileManager.getUserProfile(submitterId.toString())).thenReturn(mockSubmitterUserProfile);
+		when(mockProfileManager.getUserProfile(recipientId.toString())).thenReturn(mockUserProfile);
+		
+		when(mockRequirement.getId()).thenReturn(requirementId);
+		when(mockRequirement.getDescription()).thenReturn(description);
+		when(mockVelocityEngine.getTemplate(any(), any())).thenReturn(mockTemplate);
+		doNothing().when(mockTemplate).merge(any(), any());
+		
+		// Call under test
+		builder.buildMessageBody(mockRequirement, mockApproval, mockRecipient);
+		
+		verify(mockProfileManager).getUserProfile(recipientId.toString());
+		verify(mockProfileManager).getUserProfile(submitterId.toString());
+		verify(mockUserProfile).getFirstName();
+		verify(mockUserProfile).getLastName();
+		verify(mockUserProfile, never()).getUserName();
+		verify(mockSubmitterUserProfile).getUserName();
+		verify(mockRequirement).getId();
+		verify(mockRequirement).getDescription();
+		verify(mockVelocityEngine).getTemplate(AccessRevokedNotificationBuilder.TEMPLATE_FILE, StandardCharsets.UTF_8.name());
+
+		ArgumentCaptor<VelocityContext> contextCaptor = ArgumentCaptor.forClass(VelocityContext.class);
+		
+		verify(mockTemplate).merge(contextCaptor.capture(), any());
+		
+		VelocityContext context = contextCaptor.getValue();
+		
+		assertEquals(firstName + " " + lastName, context.get(AccessRevokedNotificationBuilder.PARAM_DISPLAY_NAME));
+		assertEquals(requirementId, context.get(AccessRevokedNotificationBuilder.PARAM_REQUIREMENT_ID));
+		assertEquals(description, context.get(AccessRevokedNotificationBuilder.PARAM_REQUIREMENT_DESCRIPTION));
+		assertEquals(submitterUserName, context.get(AccessRevokedNotificationBuilder.PARAM_SUBMITTER_DISPLAY_NAME));
 	}
 	
 }

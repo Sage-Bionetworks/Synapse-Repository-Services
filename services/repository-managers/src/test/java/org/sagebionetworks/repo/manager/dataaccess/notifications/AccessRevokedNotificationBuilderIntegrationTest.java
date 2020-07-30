@@ -37,6 +37,8 @@ public class AccessRevokedNotificationBuilderIntegrationTest {
 	@Mock
 	private UserProfile mockProfile;
 	@Mock
+	private UserProfile mockSubmitterProfile;
+	@Mock
 	private ManagedACTAccessRequirement accessRequirement;
 	@Mock
 	private AccessApproval approval;
@@ -58,6 +60,7 @@ public class AccessRevokedNotificationBuilderIntegrationTest {
 		String lastName = "Second";
 		
 		when(recipient.getId()).thenReturn(recipientId);
+		when(approval.getSubmitterId()).thenReturn(recipientId.toString());
 		when(profileManager.getUserProfile(any())).thenReturn(mockProfile);
 		when(mockProfile.getFirstName()).thenReturn(firstName);
 		when(mockProfile.getLastName()).thenReturn(lastName);
@@ -82,6 +85,7 @@ public class AccessRevokedNotificationBuilderIntegrationTest {
 		String lastName = "Second";
 		
 		when(recipient.getId()).thenReturn(recipientId);
+		when(approval.getSubmitterId()).thenReturn(recipientId.toString());
 		when(profileManager.getUserProfile(any())).thenReturn(mockProfile);
 		when(mockProfile.getFirstName()).thenReturn(firstName);
 		when(mockProfile.getLastName()).thenReturn(lastName);
@@ -107,6 +111,7 @@ public class AccessRevokedNotificationBuilderIntegrationTest {
 		String userName = "Synapse User";
 		
 		when(recipient.getId()).thenReturn(recipientId);
+		when(approval.getSubmitterId()).thenReturn(recipientId.toString());
 		when(profileManager.getUserProfile(any())).thenReturn(mockProfile);
 		when(mockProfile.getFirstName()).thenReturn(firstName);
 		when(mockProfile.getLastName()).thenReturn(lastName);
@@ -115,6 +120,33 @@ public class AccessRevokedNotificationBuilderIntegrationTest {
 		when(accessRequirement.getDescription()).thenReturn(requirementDescription);
 		
 		String expected = TestUtils.loadFromClasspath("message/AccessApprovalRevokedNotificationWithoutFirstLast.html");
+		
+		// Call under test
+		String result = builder.buildMessageBody(accessRequirement, approval, recipient);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testBuildMessageBodyForNonSubmitter() throws IOException {
+		
+		Long recipientId = 4567L;
+		Long submitterId = 7684L;
+		Long requirementId = 1234L;
+		String requirementDescription = "Some Dataset";
+		String userName = "Synapse User";
+		String submitterUserName = "Submitter User";
+		
+		when(recipient.getId()).thenReturn(recipientId);
+		when(approval.getSubmitterId()).thenReturn(submitterId.toString());
+		when(profileManager.getUserProfile(recipientId.toString())).thenReturn(mockProfile);
+		when(profileManager.getUserProfile(submitterId.toString())).thenReturn(mockSubmitterProfile);
+		when(mockProfile.getUserName()).thenReturn(userName);
+		when(mockSubmitterProfile.getUserName()).thenReturn(submitterUserName);
+		when(accessRequirement.getId()).thenReturn(requirementId);
+		when(accessRequirement.getDescription()).thenReturn(requirementDescription);
+		
+		String expected = TestUtils.loadFromClasspath("message/AccessApprovalRevokedNotificationForNonSubmitter.html");
 		
 		// Call under test
 		String result = builder.buildMessageBody(accessRequirement, approval, recipient);
