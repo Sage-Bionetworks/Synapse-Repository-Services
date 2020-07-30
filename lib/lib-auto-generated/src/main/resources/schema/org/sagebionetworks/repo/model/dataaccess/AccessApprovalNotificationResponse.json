@@ -1,0 +1,16 @@
+{
+	"description": "Contains the response for an <a href=\"${org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest}\">AccessApprovalNotificationRequest</a>.",
+	"properties": {
+		"requirementId": {
+			"type": "integer",
+			"description": "The id of the requested access requirement."
+		},
+		"results": {
+			"type": "array",
+			"description": "The list of notifications, sorted by the recipient and the sentOn date.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotification"
+			}
+		}
+	}
+}

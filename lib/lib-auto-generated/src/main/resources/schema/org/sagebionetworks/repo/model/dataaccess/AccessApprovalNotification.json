@@ -1,0 +1,37 @@
+{
+	"description": "Information about the a notification for an access approval.",
+	"properties": {
+		"notificationType": {
+			"type": "string",
+			"name": "NotificationType",
+			"id": "org.sagebionetworks.repo.model.dataaccess.NotificationType",
+			"enum": [
+                {
+                    "name": "REVOCATION",
+                    "description": "A notification sent to the accessor after the approval is revoked."
+                },
+                {
+                    "name": "FIRST_RENEWAL_REMINDER",
+                    "description": "A notification sent to the submitter 2 months before an approval expires."
+                },
+                {
+                    "name": "SECOND_RENEWAL_REMINDER",
+                    "description": "A notification sent to the submitter 1 months before an approval expires."
+                }
+            ]
+		},
+		"requirementId": {
+			"type": "integer",
+			"description": "The id of the access requirement."
+		},
+		"recipientId": {
+			"type": "integer",
+			"description": "The id of the recipient."
+		},
+		"sentOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "When the notification was sent."
+		}
+	}
+}
