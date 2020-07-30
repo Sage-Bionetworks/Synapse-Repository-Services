@@ -77,8 +77,8 @@ public class DataAccessNotificationDaoImpl implements DataAccessNotificationDao 
 				AND (A.EXPIRED_ON = 0 OR A.EXPIRED_ON > E.EXPIRED_ON) 
 			) WHERE A.ID IS NULL
 	 )
-	 SELECT DISTINCT(A.ID) FROM EXPIRED_APPROVALS A LEFT JOIN DATA_ACCESS_NOTIFICATION N ON (
-			A.ID = N.ACCESS_APPROVAL_ID 
+	 SELECT DISTINCT(EXPIRED_APPROVALS.ID) FROM EXPIRED_APPROVALS LEFT JOIN DATA_ACCESS_NOTIFICATION N ON (
+			EXPIRED_APPROVALS.ID = N.ACCESS_APPROVAL_ID 
 			AND N.NOTIFICATION_TYPE = ? 
 			AND N.SENT_ON >= ? AND N.SENT_ON < ?
 	 ) WHERE N.ID IS NULL LIMIT ?
@@ -111,11 +111,11 @@ public class DataAccessNotificationDaoImpl implements DataAccessNotificationDao 
 			+ ")"
 			
 			// Now we can filter the approvals for which we sent a notification in the given sentOn range
-			+ " SELECT DISTINCT(A." + COL_ACCESS_APPROVAL_ID + ") FROM EXPIRED_APPROVALS A"
+			+ " SELECT DISTINCT(EXPIRED_APPROVALS." + COL_ACCESS_APPROVAL_ID + ") FROM EXPIRED_APPROVALS "
 			// Left outer join on the approval id, plus the type and range of the notification (this allows to filter notifications from the join)
 			+ " LEFT JOIN " + TABLE_DATA_ACCESS_NOTIFICATION + " N"
 			+ " ON ("
-			+ " A." + COL_ACCESS_APPROVAL_ID + " = N." + COL_DATA_ACCESS_NOTIFICATION_APPROVAL_ID
+			+ " EXPIRED_APPROVALS." + COL_ACCESS_APPROVAL_ID + " = N." + COL_DATA_ACCESS_NOTIFICATION_APPROVAL_ID
 			+ " AND N." + COL_DATA_ACCESS_NOTIFICATION_TYPE + " = ?"
 			+ " AND N." + COL_DATA_ACCESS_NOTIFICATION_SENT_ON + " >= ?"
 			+ " AND N." + COL_DATA_ACCESS_NOTIFICATION_SENT_ON + " < ?"

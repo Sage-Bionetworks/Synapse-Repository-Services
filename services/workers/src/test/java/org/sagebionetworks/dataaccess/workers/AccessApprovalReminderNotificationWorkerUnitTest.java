@@ -117,7 +117,7 @@ public class AccessApprovalReminderNotificationWorkerUnitTest {
 		
 		IllegalArgumentException ex = new IllegalArgumentException("Some error");
 		DataAccessNotificationType failingType = DataAccessNotificationType.FIRST_RENEWAL_REMINDER;
-		Long failingApproval = 2L;
+		Long failingApproval = 1L;
 		
 		doNothing().when(mockNotificationManager).processAccessApproval(any(), anyLong());
 		doThrow(ex).when(mockNotificationManager).processAccessApproval(failingType, failingApproval);
