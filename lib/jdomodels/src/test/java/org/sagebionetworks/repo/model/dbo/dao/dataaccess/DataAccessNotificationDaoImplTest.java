@@ -11,11 +11,13 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -225,8 +227,7 @@ public class DataAccessNotificationDaoImplTest {
 
 		assertFalse(result.isPresent());
 
-		notificationDao.create(notification);
-		notificationDao.create(anotherNotification);
+		storeNotifications(notification, anotherNotification);
 
 		// Call under test
 		result = notificationDao.findForUpdate(type, accessRequirement.getId(), notification.getRecipientId());
@@ -435,7 +436,9 @@ public class DataAccessNotificationDaoImplTest {
 		Instant sentOn = today.atStartOfDay(ZoneOffset.UTC).toInstant();
 		
 		// Notification sent today already
-		notificationDao.create(newNotification(notificationType, requirement, approval, sentOn, -1L));
+		DBODataAccessNotification n1 = newNotification(notificationType, requirement, approval, sentOn, -1L);
+		
+		storeNotifications(n1);
 		
 		int limit = 100;
 		
@@ -463,7 +466,9 @@ public class DataAccessNotificationDaoImplTest {
 		Instant sentOn = oneMonthAgo.atStartOfDay(ZoneOffset.UTC).toInstant();
 		
 		// Last notification sent a month ago
-		notificationDao.create(newNotification(notificationType, requirement, approval, sentOn, -1L));
+		DBODataAccessNotification n1 = newNotification(notificationType, requirement, approval, sentOn, -1L);
+		
+		storeNotifications(n1);
 		
 		int limit = 100;
 		
@@ -490,7 +495,9 @@ public class DataAccessNotificationDaoImplTest {
 		Instant sentOn = today.atStartOfDay(ZoneOffset.UTC).toInstant();
 		
 		// Last processed notification was a revocation
-		notificationDao.create(newNotification(DataAccessNotificationType.REVOCATION, requirement, approval, sentOn, -1L));
+		DBODataAccessNotification n1 = newNotification(DataAccessNotificationType.REVOCATION, requirement, approval, sentOn, -1L);
+
+		storeNotifications(n1);
 		
 		int limit = 100;
 		
@@ -673,6 +680,108 @@ public class DataAccessNotificationDaoImplTest {
 		List<Long> result = notificationDao.listSubmmiterApprovalsForUnSentReminder(notificationType, today, limit);
 		
 		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListForRecipients() {
+		AccessRequirement requirement = createManagedAR();
+		
+		AccessApproval approval = createApproval(requirement);
+		
+		Instant sentOn = Instant.now();
+		
+		DBODataAccessNotification n1 = newNotification(DataAccessNotificationType.REVOCATION, requirement, approval, sentOn, -1L);
+		
+		Instant firstSentOn = sentOn.minus(2, ChronoUnit.DAYS);
+		
+		DBODataAccessNotification n2 = newNotification(DataAccessNotificationType.FIRST_RENEWAL_REMINDER, requirement, approval, firstSentOn, -1L);
+		
+		Instant secondSentOn = sentOn.minus(1, ChronoUnit.DAYS);
+		
+		DBODataAccessNotification n3 = newNotification(DataAccessNotificationType.SECOND_RENEWAL_REMINDER, requirement, approval, secondSentOn, -1L);
+		
+		storeNotifications(n1, n2, n3);
+		
+		Long requirementId = requirement.getId();
+		List<Long> recipientIds = Arrays.asList(Long.valueOf(approval.getAccessorId()));
+		
+		List<DBODataAccessNotification> expected = Arrays.asList(n2, n3, n1);
+		
+		// Call under test
+		List<DBODataAccessNotification> result = notificationDao.listForRecipients(requirementId, recipientIds);
+	
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListForRecipientsWithEmptyRecipientList() {
+		AccessRequirement requirement = createManagedAR();
+		
+		AccessApproval approval = createApproval(requirement);
+
+		// Creates a notification for the requirement
+		DBODataAccessNotification n1 = newNotification(DataAccessNotificationType.REVOCATION, requirement, approval, -1L);
+		
+		storeNotifications(n1);
+		
+		Long requirementId = requirement.getId();
+		List<Long> recipientIds = Collections.emptyList();
+		
+		List<DBODataAccessNotification> expected = Collections.emptyList();
+		
+		// Call under test
+		List<DBODataAccessNotification> result = notificationDao.listForRecipients(requirementId, recipientIds);
+	
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListForRecipientsWithDifferentRecipient() {
+		AccessRequirement requirement = createManagedAR();
+		
+		AccessApproval approval = createApproval(requirement);
+
+		// Creates a notification for the requirement
+		DBODataAccessNotification n1 = newNotification(DataAccessNotificationType.REVOCATION, requirement, approval, -1L);
+		
+		storeNotifications(n1);
+		
+		Long requirementId = requirement.getId();
+		List<Long> recipientIds = Arrays.asList(Long.valueOf(user2.getId()));
+		
+		List<DBODataAccessNotification> expected = Collections.emptyList();
+		
+		// Call under test
+		List<DBODataAccessNotification> result = notificationDao.listForRecipients(requirementId, recipientIds);
+	
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListForRecipientsWithDifferentRequirement() {
+		AccessRequirement requirement = createManagedAR();
+		AccessRequirement requirement2 = createManagedAR();
+		
+		AccessApproval approval = createApproval(requirement);
+
+		// Creates a notification for the first requirement
+		DBODataAccessNotification n1 = newNotification(DataAccessNotificationType.REVOCATION, requirement, approval, -1L);
+		
+		storeNotifications(n1);
+		
+		Long requirementId = requirement2.getId();
+		List<Long> recipientIds = Arrays.asList(Long.valueOf(approval.getAccessorId()));
+		
+		List<DBODataAccessNotification> expected = Collections.emptyList();
+		
+		// Call under test
+		List<DBODataAccessNotification> result = notificationDao.listForRecipients(requirementId, recipientIds);
+	
+		assertEquals(expected, result);
+	}
+	
+	private void storeNotifications(DBODataAccessNotification ...notifications) {
+		Stream.of(notifications).forEach(notificationDao::create);
 	}
 
 	private DBODataAccessNotification newNotification(DataAccessNotificationType type, AccessRequirement requirement,

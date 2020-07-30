@@ -47,6 +47,15 @@ public interface DataAccessNotificationDao {
 	 * @return An optional containing the notification data, empty if not found
 	 */
 	Optional<DBODataAccessNotification> findForUpdate(DataAccessNotificationType type, Long requirementId, Long recipientId);
+
+	/**
+	 * Fetches all the notifications for the requirement with the given id and the list of recipients
+	 * 
+	 * @param requirementId The id of an {@link AccessRequirement}
+	 * @param recipientIds The list of recipient ids
+	 * @return The list of notifications for the given requirement and list of recipients
+	 */
+	List<DBODataAccessNotification> listForRecipients(Long requirementId, List<Long> recipientIds);
 	
 	/**
 	 * Fetches the list of approval ids for which a reminder wasn't sent on the given date

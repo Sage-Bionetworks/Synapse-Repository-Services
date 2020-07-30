@@ -19,6 +19,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,6 +35,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -43,6 +46,11 @@ public class DataAccessNotificationDaoImpl implements DataAccessNotificationDao 
 			+ " WHERE " + COL_DATA_ACCESS_NOTIFICATION_TYPE + " = ?" 
 			+ " AND " + COL_DATA_ACCESS_NOTIFICATION_REQUIREMENT_ID + " = ?" 
 			+ " AND " + COL_DATA_ACCESS_NOTIFICATION_RECIPIENT_ID + " = ?";
+	
+	private static final String SQL_SELECT_FOR_RECIPIENTS = "SELECT * FROM " + TABLE_DATA_ACCESS_NOTIFICATION
+			+ " WHERE " + COL_DATA_ACCESS_NOTIFICATION_REQUIREMENT_ID + " = :" + COL_DATA_ACCESS_NOTIFICATION_REQUIREMENT_ID 
+			+ " AND " + COL_DATA_ACCESS_NOTIFICATION_RECIPIENT_ID + " = :" + COL_DATA_ACCESS_NOTIFICATION_RECIPIENT_ID
+			+ " ORDER BY " + COL_DATA_ACCESS_NOTIFICATION_SENT_ON;
 	
 	// We want all the access approvals for submitters (submitter == accessor) whose expiration date is in a 
 	// given range (e.g. on a specific day) for which a notification of a given type WAS NOT sent within a
@@ -119,13 +127,18 @@ public class DataAccessNotificationDaoImpl implements DataAccessNotificationDao 
 
 	private IdGenerator idGenerator;
 	private JdbcTemplate jdbcTemplate;
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	private DBOBasicDao basicDao;
 
 	@Autowired
-	public DataAccessNotificationDaoImpl(final IdGenerator idGenerator, final JdbcTemplate jdbcTemplate,
+	public DataAccessNotificationDaoImpl(
+			final IdGenerator idGenerator, 
+			final JdbcTemplate jdbcTemplate,
+			final NamedParameterJdbcTemplate namedJdbcTemplate,
 			final DBOBasicDao basicDao) {
 		this.idGenerator = idGenerator;
 		this.jdbcTemplate = jdbcTemplate;
+		this.namedJdbcTemplate = namedJdbcTemplate;
 		this.basicDao = basicDao;
 	}
 
@@ -178,6 +191,20 @@ public class DataAccessNotificationDaoImpl implements DataAccessNotificationDao 
 	public Optional<DBODataAccessNotification> findForUpdate(DataAccessNotificationType type, Long requirementId,
 			Long recipientId) {
 		return find(type, requirementId, recipientId, true);
+	}
+	
+	@Override
+	public List<DBODataAccessNotification> listForRecipients(Long requirementId, List<Long> recipientIds) {
+		if (recipientIds.isEmpty()) {
+			return Collections.emptyList();
+		}
+		
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		
+		params.addValue(COL_DATA_ACCESS_NOTIFICATION_REQUIREMENT_ID, requirementId);
+		params.addValue(COL_DATA_ACCESS_NOTIFICATION_RECIPIENT_ID, recipientIds);
+	
+		return namedJdbcTemplate.query(SQL_SELECT_FOR_RECIPIENTS, params, ROW_MAPPER);
 	}
 	
 	@Override
