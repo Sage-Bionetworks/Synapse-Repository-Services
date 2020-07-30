@@ -30,10 +30,6 @@
 			"type":"integer",
 			"description":  "After an AccessApproval is granted for this AccessRequirement, it will be expired after expirationPeriod miliseconds. Set this value to 0 to indicate that AccessApproval will never be expired."
 		},
-		"renewalDetailsUrl": {
-			"type": "string",
-			"description": "Optional URL that can be used for external informational material about the access renewal process. If present will be included in access renewnal notifications. Can be included only if the expirationPeriod is greater than 0."
-		},
 		"isIDUPublic": {
 			"type":"boolean",
 			"description":  "If true, the Intended Data Use Statements submitted to gain access to the data will be presented to public."
