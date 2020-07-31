@@ -119,6 +119,7 @@
 	<filter-mapping>
 		<filter-name>migrationServiceAuthFilter</filter-name>
 		<url-pattern>/repo/v1/migration/*</url-pattern>
+		<url-pattern>/repo/v1/admin/*</url-pattern>
 	</filter-mapping>
 
 	<!-- This filter will look for the session token as a cookie, if it finds
