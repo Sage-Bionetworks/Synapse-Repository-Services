@@ -18,6 +18,8 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
+import org.sagebionetworks.repo.model.feature.Feature;
+import org.sagebionetworks.repo.model.feature.FeatureStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
@@ -323,5 +325,39 @@ public class AdministrationController {
 																	 @PathVariable Long principalId)
 			throws NotFoundException, UnauthorizedException {
 		serviceProvider.getPrincipalService().redactPrincipalInformation(userId, principalId);
+	}
+	
+	/**
+	 * Fetches the status of the given feature
+	 * 
+	 * @param userId
+	 * @param feature
+	 * @return
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ADMIN_FEATURE_STATUS, method = RequestMethod.GET)
+	public @ResponseBody FeatureStatus getFeatureStatus(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, 
+			@PathVariable("feature") Feature feature) {
+		return serviceProvider.getAdministrationService().getFeatureStatus(userId, feature);
+	}
+	
+	/**
+	 * Sets the status for the given feature
+	 * 
+	 * @param userId
+	 * @param feature
+	 * @param status
+	 * @return
+	 */
+	@RequiredScope({view, modify})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ADMIN_FEATURE_STATUS, method = RequestMethod.POST)
+	public @ResponseBody FeatureStatus setFeatureStatus(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, 
+			@PathVariable("feature") Feature feature,
+			@RequestBody FeatureStatus status) {
+		return serviceProvider.getAdministrationService().setFeatureStatus(userId, feature, status);
 	}
 }

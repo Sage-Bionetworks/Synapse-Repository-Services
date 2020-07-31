@@ -23,7 +23,7 @@ public class MigrationServiceAuthFilter extends BasicAuthServiceFilter {
 		super(config, consumer, new StackConfigKeyAndSecretProvider(config, StackConfiguration.SERVICE_MIGRATION));
 	}
 	
-	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "This allows backward compatibility, remove after stack 318")
+	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "This allows backward compatibility")
 	@Override
 	protected boolean credentialsRequired() {
 		return false;
@@ -35,7 +35,7 @@ public class MigrationServiceAuthFilter extends BasicAuthServiceFilter {
 		return true;
 	}
 	
-	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "This allows backward compatibility, remove after stack 318")
+	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "This allows backward compatibility")
 	@Override
 	protected void validateCredentialsAndDoFilterInternal(HttpServletRequest httpRequest,
 			HttpServletResponse httpResponse, FilterChain filterChain, Optional<UserNameAndPassword> credentials)

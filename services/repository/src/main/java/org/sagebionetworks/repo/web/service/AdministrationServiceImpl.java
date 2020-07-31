@@ -11,6 +11,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.doi.DoiAdminManager;
+import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
 import org.sagebionetworks.repo.manager.stack.StackStatusManager;
@@ -27,6 +28,8 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.feature.Feature;
+import org.sagebionetworks.repo.model.feature.FeatureStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
@@ -81,6 +84,9 @@ public class AdministrationServiceImpl implements AdministrationService  {
 
 	@Autowired
 	PasswordValidator passwordValidator;
+	
+	@Autowired
+	FeatureManager featureManager;
 	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getStackStatus(java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
@@ -218,5 +224,18 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		export.setExportScript(script);
 		return export;
 	}
+	
+	@Override
+	public FeatureStatus getFeatureStatus(Long userId, Feature feature) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return featureManager.getFeatureStatus(user, feature);
+	}
+	
+	@Override
+	public FeatureStatus setFeatureStatus(Long userId, Feature feature, FeatureStatus status) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return featureManager.setFeatureStatus(user, feature, status);
+	};
+	
 
 }

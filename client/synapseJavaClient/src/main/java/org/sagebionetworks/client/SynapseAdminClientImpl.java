@@ -12,6 +12,8 @@ import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
+import org.sagebionetworks.repo.model.feature.Feature;
+import org.sagebionetworks.repo.model.feature.FeatureStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
@@ -396,5 +398,17 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		validateStringAsLong(principalId);
 		String uri = ADMIN + REDACT_USER + "/" + principalId;
 		voidPost(getRepoEndpoint(), uri, null, null);
+	}
+	
+	@Override
+	public FeatureStatus getFeatureStatus(Feature feature) throws SynapseException {
+		String uri = ADMIN + "/feature/" + feature.name() + "/status";
+		return getJSONEntity(getRepoEndpoint(), uri, FeatureStatus.class);
+	}
+	
+	@Override
+	public FeatureStatus setFeatureStatus(Feature feature, FeatureStatus status) throws SynapseException {
+		String uri = ADMIN + "/feature/" + feature.name() + "/status";
+		return postJSONEntity(getRepoEndpoint(), uri, status, FeatureStatus.class);
 	}
 }

@@ -621,6 +621,16 @@ public class UrlHelpers {
 	public static final String ADMIN_REDACT_USER = ADMIN + "/redact/user/{principalId}";
 
 	/**
+	 * Feature management endpoint
+	 */
+	public static final String ADMIN_FEATURE = ADMIN + "/feature";
+	
+	/**
+	 * Enable/disable a feature
+	 */
+	public static final String ADMIN_FEATURE_STATUS = ADMIN_FEATURE +"/{feature}/status";
+
+	/**
 	 * Public access for Synapse user and group info
 	 */
 	public static final String USER_GROUP_HEADERS = "/userGroupHeaders";
