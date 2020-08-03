@@ -1267,6 +1267,14 @@ public class JsonSchemaManagerImplTest {
 		assertEquals(1, validationSchema.getProperties().size());
 		assertEquals("#/definitions/two", validationSchema.getProperties().get("threeRefToTwo").get$ref());
 	}
+	
+	@Test
+	public void testGetValidationSchemaWithNullId() {
+		String $id = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.getValidationSchema($id);
+		});
+	}
 
 	@Test
 	public void testGetValidationSchemaWithCycles() throws JSONObjectAdapterException {

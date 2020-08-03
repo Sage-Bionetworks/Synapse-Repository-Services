@@ -372,6 +372,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	 */
 	@Override
 	public JsonSchema getValidationSchema(String id) {
+		ValidateArgument.required(id, "$id");
 		Deque<String> visitedStack = new ArrayDeque<String>();
 		return getValidationSchema(visitedStack, id);
 	}
