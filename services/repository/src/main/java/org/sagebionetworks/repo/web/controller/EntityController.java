@@ -1647,7 +1647,7 @@ public class EntityController {
 	 * </p>
 	 * <p>
 	 * Note: The caller must be granted the
-	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.UPDATE</a>
+	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.UPDATE and ACCESS_TYPE.READ</a>
 	 * permission on the Entity.
 	 * </p>
 	 * 

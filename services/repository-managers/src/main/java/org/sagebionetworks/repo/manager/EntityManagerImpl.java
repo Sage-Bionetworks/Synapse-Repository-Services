@@ -599,6 +599,7 @@ public class EntityManagerImpl implements EntityManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(entityId, "entityId");
 		ValidateArgument.required(jsonObject, "jsonObject");
+		// Note: Authorization checks occur at the node manager level.
 		EntityType type = nodeManager.getNodeType(userInfo, entityId);
 		Class<? extends Entity> entityClass = EntityTypeUtils.getClassForType(type);
 		Annotations newAnnotations = annotationsTranslator.readFromJsonObject(entityClass, jsonObject);

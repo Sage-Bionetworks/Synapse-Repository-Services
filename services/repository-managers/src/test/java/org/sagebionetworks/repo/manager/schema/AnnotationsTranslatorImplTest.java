@@ -1,10 +1,14 @@
 package org.sagebionetworks.repo.manager.schema;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.Collections;
 import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -97,6 +101,37 @@ public class AnnotationsTranslatorImplTest {
 		assertNotNull(annoValue);
 		assertEquals(AnnotationsValueType.STRING, annoValue.getType());
 		List<String> expected = Lists.newArrayList(value);
+		assertEquals(expected, annoValue.getValue());
+	}
+	
+	@Test
+	public void testGetAnnotationValueFromJsonObjectWithBoolean() {
+		String key = "theKey";
+		Boolean value = Boolean.TRUE;
+		JSONObject json = new JSONObject();
+		json.put(key, value);
+		// call under test
+		AnnotationsValue annoValue = translator.getAnnotationValueFromJsonObject(key, json);
+		assertNotNull(annoValue);
+		assertEquals(AnnotationsValueType.STRING, annoValue.getType());
+		List<String> expected = Lists.newArrayList(value.toString());
+		assertEquals(expected, annoValue.getValue());
+	}
+	
+	/**
+	 * Not sure we want to support this.
+	 */
+	@Test
+	public void testGetAnnotationValueFromJsonObjectWithObject() {
+		String key = "theKey";
+		Project value = new Project();
+		JSONObject json = new JSONObject();
+		json.put(key, value);
+		// call under test
+		AnnotationsValue annoValue = translator.getAnnotationValueFromJsonObject(key, json);
+		assertNotNull(annoValue);
+		assertEquals(AnnotationsValueType.STRING, annoValue.getType());
+		List<String> expected = Lists.newArrayList(value.toString());
 		assertEquals(expected, annoValue.getValue());
 	}
 
@@ -280,18 +315,23 @@ public class AnnotationsTranslatorImplTest {
 		jsonObject.put("modifiedBy", "cannot override 'modifiedBy'");
 		jsonObject.put("name", "cannot override 'name'");
 		jsonObject.put("validKey", "validValue");
+		jsonObject.put("_KEY_NAME", "valid name");
 		// call under test
 		Annotations annotations = translator.readFromJsonObject(entityClass, jsonObject);
 		assertNotNull(annotations);
 		Map<String, AnnotationsValue> map = annotations.getAnnotations();
 		assertNotNull(map);
 		// only the non-entity key should be in the annotations.
-		assertEquals(1, map.size());
+		assertEquals(2, map.size());
 
 		AnnotationsValue value = map.get("validKey");
 		assertNotNull(value);
 		assertEquals(AnnotationsValueType.STRING, value.getType());
 		assertEquals(Lists.newArrayList("validValue"), value.getValue());
+		value = map.get("_KEY_NAME");
+		assertNotNull(value);
+		assertEquals(AnnotationsValueType.STRING, value.getType());
+		assertEquals(Lists.newArrayList("valid name"), value.getValue());
 	}
 
 	@Test
@@ -422,6 +462,48 @@ public class AnnotationsTranslatorImplTest {
 			// call under test
 			translator.writeToJsonObject(project, annotations);
 		});
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithNullValue() {
+		Annotations toWrite = new Annotations();
+		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
+		map.put("nullValue", null);
+		toWrite.setAnnotations(map);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json);
+		assertFalse(json.has("nullValue"));
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithNullWithEmptyListValue() {
+		Annotations toWrite = new Annotations();
+		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
+		AnnotationsValue annoValue = new AnnotationsValue();
+		annoValue.setType(AnnotationsValueType.STRING);
+		annoValue.setValue(Collections.emptyList());
+		map.put("emptyList", annoValue);
+		toWrite.setAnnotations(map);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json);
+		assertEquals("", json.get("emptyList"));
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithNullWithNullType() {
+		Annotations toWrite = new Annotations();
+		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
+		AnnotationsValue annoValue = new AnnotationsValue();
+		annoValue.setType(null);
+		annoValue.setValue(Collections.singletonList("123"));
+		map.put("nullType", annoValue);
+		toWrite.setAnnotations(map);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json);
+		assertFalse(json.has("nullType"));
 	}
 	
 	@Test
