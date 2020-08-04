@@ -569,9 +569,15 @@ public class EntityManagerImpl implements EntityManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(id, "id");
 		entityPermissionsManager.hasAccess(id, ACCESS_TYPE.READ, userInfo).checkAuthorizationOrElseThrow();
-		Long boundEntityId = nodeManager.findFirstBoundJsonSchema(KeyFactory.stringToKey(id));
+		return getBoundSchema(id);
+	}
+	
+	@Override
+	public JsonSchemaObjectBinding getBoundSchema(String entityId) {
+		Long boundEntityId = nodeManager.findFirstBoundJsonSchema(KeyFactory.stringToKey(entityId));
 		return jsonSchemaManager.getJsonSchemaObjectBinding(boundEntityId, BoundObjectType.entity);
 	}
+	
 
 	@Override
 	public void clearBoundSchema(UserInfo userInfo, String id) {
@@ -616,5 +622,4 @@ public class EntityManagerImpl implements EntityManager {
 		JSONObject json = annotationsTranslator.writeToJsonObject(entity, annotations);
 		return new EntityJsonSubject(entity, json);
 	}
-	
 }
