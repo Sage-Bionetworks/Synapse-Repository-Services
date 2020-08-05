@@ -77,6 +77,7 @@ public class JsonSchemaValidationManagerImplTest {
 		assertEquals(objectId, result.getObjectId());
 		assertEquals(objectType, result.getObjectType());
 		assertEquals(objectEtag, result.getObjectEtag());
+		assertEquals("hasEnum", result.getSchema$id());
 		assertFalse(result.getIsValid());
 		assertNotNull(result.getValidatedOn());
 		assertEquals("#: only 1 subschema matches out of 2", result.getValidationErrorMessage());

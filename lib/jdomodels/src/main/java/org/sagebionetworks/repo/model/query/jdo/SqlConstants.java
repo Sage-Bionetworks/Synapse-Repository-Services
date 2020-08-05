@@ -164,6 +164,19 @@ public class SqlConstants {
 	public static final String COL_JSON_SCHEMA_BINDING_CREATED_ON		= "CREATED_ON";
 	public static final String DDL_FILE_JSON_SCHEMA_BINDING				= "schema/JsonSchemaBindObject-ddl.sql";
 	
+	// Table to track JSON schema validation results.
+	public static final String TABLE_SCHEMA_VALIDATION_RESULTS			= "JSON_SCHEMA_VALIDATION_RESULTS";
+	public static final String COL_JSON_SCHEMA_VALIDATION_OBJECT_ID		= "OBJECT_ID";
+	public static final String COL_JSON_SCHEMA_VALIDATION_OBJECT_TYPE	= "OBJECT_TYPE";
+	public static final String COL_JSON_SCHEMA_VALIDATION_OBJECT_ETAG	= "OBJECT_ETAG";
+	public static final String COL_JSON_SCHEMA_VALIDATION_SCHEMA_ID		= "SCHEMA_ID";
+	public static final String COL_JSON_SCHEMA_VALIDATION_IS_VALID		= "IS_VALID";
+	public static final String COL_JSON_SCHEMA_VALIDATION_VALIDATED_ON	= "VALIDATED_ON";
+	public static final String COL_JSON_SCHEMA_VALIDATION_ERROR_MESSAGE = "ERROR_MESSAGE";
+	public static final String COL_JSON_SCHEMA_VALIDATION_ALL_ERRORS	= "ALL_ERROR_MESSAGES";
+	public static final String COL_JSON_SCHEMA_VALIDATION_EXCEPTION		= "VALIDATION_EXCEPTION";
+	public static final String DDL_FILE_JSON_SCHEMA_VALIDATION_RESULTS	= "schema/JsonSchemaValidationResults-ddl.sql";
+	
 	// The Project Stats table
 	public static final String TABLE_PROJECT_STAT				= "PROJECT_STAT";
 	public static final String COL_PROJECT_STAT_ID				= "ID";
