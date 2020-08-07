@@ -259,6 +259,7 @@ import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsRequest;
@@ -5841,6 +5842,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(entityId, "entityId");
 		String url = "/entity/"+entityId+"/json";
 		return putJson(getRepoEndpoint(), url, json.toString());
+	}
+	
+	@Override
+	public ValidationResults getEntityValidationResults(String entityId) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		String url = "/entity/"+entityId+"/schema/validation";
+		return getJSONEntity(getRepoEndpoint(), url, ValidationResults.class);
 	}
 
 }

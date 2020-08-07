@@ -216,6 +216,7 @@ import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsRequest;
@@ -3799,5 +3800,14 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	JSONObject updateEntityJson(String entityId, JSONObject json) throws SynapseException;
+
+	/**
+	 * Get the validation results of an Entity against its bound JSON schema.
+	 * 
+	 * @param entityId
+	 * @return
+	 * @throws SynapseException
+	 */
+	ValidationResults getEntityValidationResults(String entityId) throws SynapseException;
 
 }
