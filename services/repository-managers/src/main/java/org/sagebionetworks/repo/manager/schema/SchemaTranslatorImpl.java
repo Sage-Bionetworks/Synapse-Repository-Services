@@ -25,7 +25,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Component;
 
 @Component
-public class SchemaTranslatorImp implements SchemaTranslator {
+public class SchemaTranslatorImpl implements SchemaTranslator {
 
 	public static final String CURRENT_$SCHEMA = "http://json-schema.org/draft-07/schema#";
 

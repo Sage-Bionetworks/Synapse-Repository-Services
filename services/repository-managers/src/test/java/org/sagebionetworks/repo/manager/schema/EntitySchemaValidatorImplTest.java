@@ -22,7 +22,7 @@ import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 @ExtendWith(MockitoExtension.class)
-public class EntitySchemaManagerImplTest {
+public class EntitySchemaValidatorImplTest {
 
 	@Mock
 	private EntityManager mockEntityManger;
@@ -34,7 +34,7 @@ public class EntitySchemaManagerImplTest {
 	private SchemaValidationResultDao mockSchemaValidationResultDao;
 
 	@InjectMocks
-	private EntitySchemaManagerImpl manager;
+	private EntitySchemaValidatorImpl manager;
 
 	String entityId;
 	String schema$id;
@@ -57,14 +57,14 @@ public class EntitySchemaManagerImplTest {
 	}
 
 	@Test
-	public void testValidateEntityAgainstBoundSchema() {
+	public void testValidateObject() {
 		when(mockEntityManger.getBoundSchema(entityId)).thenReturn(binding);
 		when(mockEntityManger.getEntityJsonSubject(entityId)).thenReturn(mockEntitySubject);
 		when(mockJsonSchemaManager.getValidationSchema(schema$id)).thenReturn(mockJsonSchema);
 		when(mockJsonSchemaValidationManager.validate(mockJsonSchema, mockEntitySubject))
 				.thenReturn(mockValidationResults);
 		// call under test
-		manager.validateEntityAgainstBoundSchema(entityId);
+		manager.validateObject(entityId);
 		verify(mockSchemaValidationResultDao).createOrUpdateResults(mockValidationResults);
 		verify(mockSchemaValidationResultDao, never()).clearResults(any(), any());
 		verify(mockEntityManger).getBoundSchema(entityId);
@@ -74,21 +74,21 @@ public class EntitySchemaManagerImplTest {
 	}
 	
 	@Test
-	public void testValidateEntityAgainstBoundSchemaWithNotFound() {
+	public void testValidateObjectWithNotFound() {
 		NotFoundException exception = new NotFoundException();
 		when(mockEntityManger.getBoundSchema(entityId)).thenThrow(exception);
 		// call under test
-		manager.validateEntityAgainstBoundSchema(entityId);
+		manager.validateObject(entityId);
 		verify(mockSchemaValidationResultDao, never()).createOrUpdateResults(any());
 		verify(mockSchemaValidationResultDao).clearResults(entityId, ObjectType.entity);
 	}
 	
 	@Test
-	public void testValidateEntityAgainstBoundSchemaWithNullEntityId() {
+	public void testValidateObjectWithNullEntityId() {
 		entityId = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.validateEntityAgainstBoundSchema(entityId);
+			manager.validateObject(entityId);
 		});
 	}
 }

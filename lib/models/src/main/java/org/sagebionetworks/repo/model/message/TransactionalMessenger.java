@@ -33,6 +33,8 @@ public interface TransactionalMessenger {
 	@Deprecated
 	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, ChangeType changeType);
 	
+	void sendMessageAfterCommit(String objectId, ObjectType objectType, ChangeType changeType);
+	
 	/**
 	 * Send a message after a commit.
 	 * @param toSend

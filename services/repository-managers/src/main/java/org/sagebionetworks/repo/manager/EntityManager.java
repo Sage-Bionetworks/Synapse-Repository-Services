@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
+import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -502,5 +503,13 @@ public interface EntityManager {
 	 * @return
 	 */
 	public JSONObject updateEntityJson(UserInfo userInfo, String entityId, JSONObject request);
+
+	/**
+	 * Get the ValidationResults for the given entity.
+	 * @param userInfo
+	 * @param entityId
+	 * @return
+	 */
+	public ValidationResults getEntityValidationResults(UserInfo userInfo, String entityId);
 
 }

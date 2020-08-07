@@ -13,7 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class EntitySchemaManagerImpl implements EntitySchemaManager {
+public class EntitySchemaValidatorImpl implements EntitySchemaValidator {
 
 	private EntityManager entityManger;
 	private JsonSchemaManager jsonSchemaManager;
@@ -21,7 +21,7 @@ public class EntitySchemaManagerImpl implements EntitySchemaManager {
 	private SchemaValidationResultDao schemaValidationResultDao;
 
 	@Autowired
-	public EntitySchemaManagerImpl(EntityManager entityManger, JsonSchemaManager jsonSchemaManager,
+	public EntitySchemaValidatorImpl(EntityManager entityManger, JsonSchemaManager jsonSchemaManager,
 			JsonSchemaValidationManager jsonSchemaValidationManager,
 			SchemaValidationResultDao schemaValidationResultDao) {
 		super();
@@ -33,7 +33,7 @@ public class EntitySchemaManagerImpl implements EntitySchemaManager {
 
 	@WriteTransaction
 	@Override
-	public void validateEntityAgainstBoundSchema(String entityId) {
+	public void validateObject(String entityId) {
 		ValidateArgument.required(entityId, "entityId");
 		try {
 			JsonSchemaObjectBinding binding = entityManger.getBoundSchema(entityId);
