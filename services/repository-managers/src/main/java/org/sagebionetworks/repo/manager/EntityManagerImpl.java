@@ -45,7 +45,10 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.schema.BoundObjectType;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsRequest;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsResponse;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
+import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -55,6 +58,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.google.common.collect.Lists;
 
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
+import org.sagebionetworks.repo.model.dbo.schema.EntitySchemaValidationResultDao;
 import org.sagebionetworks.repo.model.dbo.schema.SchemaValidationResultDao;
 /**
  *
@@ -82,7 +86,7 @@ public class EntityManagerImpl implements EntityManager {
 	@Autowired
 	AnnotationsTranslator annotationsTranslator;
 	@Autowired
-	SchemaValidationResultDao schemaValidationResultDao;
+	EntitySchemaValidationResultDao entitySchemaValidationResultDao;
 	@Autowired
 	TransactionalMessenger transactionalMessenger;
 
@@ -652,6 +656,40 @@ public class EntityManagerImpl implements EntityManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(entityId, "entityId");
 		entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).checkAuthorizationOrElseThrow();
-		return schemaValidationResultDao.getValidationResults(entityId, org.sagebionetworks.repo.model.schema.ObjectType.entity);
+		return entitySchemaValidationResultDao.getValidationResults(entityId);
+	}
+
+	@Override
+	public ValidationSummaryStatistics getEntityValidationStatistics(UserInfo userInfo, String entityId) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(entityId, "entityId");
+		Set<Long> childIdsToExclude = authorizedListChildren(userInfo, entityId);
+		return entitySchemaValidationResultDao.getEntityValidationStatistics(entityId, childIdsToExclude);
+	}
+
+	@Override
+	public ListValidationResultsResponse getInvalidEntitySchemaValidationResults(UserInfo userInfo,
+			ListValidationResultsRequest request) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getContainerId(), "request.containerId");
+		Set<Long> childIdsToExclude = authorizedListChildren(userInfo, request.getContainerId());
+		NextPageToken nextPage = new NextPageToken(request.getNextPageToken());
+		List<ValidationResults> page = entitySchemaValidationResultDao.getInvalidEntitySchemaValidationPage(
+				request.getContainerId(), childIdsToExclude, nextPage.getLimitForQuery(), nextPage.getOffset());
+		ListValidationResultsResponse response = new ListValidationResultsResponse();
+		response.setNextPageToken(nextPage.getNextPageTokenForCurrentResults(page));
+		response.setPage(page);
+		return response;
+	}
+	
+	Set<Long> authorizedListChildren(UserInfo userInfo, String containerId){
+		if (!ROOT_ID.equals(containerId)) {
+			// The caller must have read on the container.
+			entityPermissionsManager.hasAccess(containerId, ACCESS_TYPE.READ, userInfo)
+					.checkAuthorizationOrElseThrow();
+		}
+		// Find the children of this entity that the caller cannot see.
+		return entityPermissionsManager.getNonvisibleChildren(userInfo, containerId);
 	}
 }

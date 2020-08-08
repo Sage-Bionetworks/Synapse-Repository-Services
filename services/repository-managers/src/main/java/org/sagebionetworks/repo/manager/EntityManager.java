@@ -24,7 +24,10 @@ import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsRequest;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsResponse;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
+import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -506,10 +509,29 @@ public interface EntityManager {
 
 	/**
 	 * Get the ValidationResults for the given entity.
+	 * 
 	 * @param userInfo
 	 * @param entityId
 	 * @return
 	 */
 	public ValidationResults getEntityValidationResults(UserInfo userInfo, String entityId);
+
+	/**
+	 * Get the JSON schema validation statistics for the given container.
+	 * 
+	 * @param userInfo
+	 * @param entityId
+	 * @return
+	 */
+	public ValidationSummaryStatistics getEntityValidationStatistics(UserInfo userInfo, String entityId);
+
+	/**
+	 * 
+	 * @param userInfo
+	 * @param request
+	 * @return
+	 */
+	public ListValidationResultsResponse getInvalidEntitySchemaValidationResults(UserInfo userInfo,
+			ListValidationResultsRequest request);
 
 }

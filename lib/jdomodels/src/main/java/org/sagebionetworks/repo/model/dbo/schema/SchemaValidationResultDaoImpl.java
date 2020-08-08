@@ -17,7 +17,6 @@ import java.sql.Timestamp;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.schema.ObjectType;
@@ -29,7 +28,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -48,7 +46,7 @@ public class SchemaValidationResultDaoImpl implements SchemaValidationResultDao 
 		this.basicDao = basicDao;
 	}
 
-	static RowMapper<ValidationResults> MAPPER = new RowMapper<ValidationResults>() {
+	public RowMapper<ValidationResults> VALIDATION_RESULT_ROW_MAPPER = new RowMapper<ValidationResults>() {
 
 		@Override
 		public ValidationResults mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -151,7 +149,7 @@ public class SchemaValidationResultDaoImpl implements SchemaValidationResultDao 
 					"SELECT * FROM " + TABLE_SCHEMA_VALIDATION_RESULTS + " WHERE "
 							+ COL_JSON_SCHEMA_VALIDATION_OBJECT_ID + " = ? AND "
 							+ COL_JSON_SCHEMA_VALIDATION_OBJECT_TYPE + " = ?",
-					MAPPER, KeyFactory.stringToKey(objectid), objectType.name());
+					VALIDATION_RESULT_ROW_MAPPER, KeyFactory.stringToKey(objectid), objectType.name());
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("ValidationResults do not exist for objectId: '" + objectid
 					+ "' and objectType: '" + objectType + "'");
