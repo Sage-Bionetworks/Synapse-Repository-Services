@@ -989,12 +989,33 @@ public class AuthorizationManagerImplUnitTest {
 	}
 
 	@Test
+	public void testGetPermittedAccessTypesLimitedScope() throws Exception {
+		List<OAuthScope> downloadOnlyScope = Collections.singletonList(OAuthScope.download);
+		
+		// method under test:
+		Set<String> permitted = authorizationManager.
+				getPermittedDockerActions(USER_INFO, downloadOnlyScope, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+		
+		// user has permission to read and write, but scope is limited to view, so only 'pull' is granted
+		assertEquals(new HashSet(Arrays.asList(new String[]{pull.name()})), permitted);
+	}
+
+	@Test
 	public void testGetPermittedAccessTypesRegistry() throws Exception {
 		// method under test:
 		Set<String> permitted = authorizationManager.
-				getPermittedDockerActions(ADMIN_INFO,OAUTH_SCOPES, SERVICE, REGISTRY_TYPE, CATALOG_NAME, ALL_ACCESS_TYPES);
+				getPermittedDockerActions(ADMIN_INFO, Collections.singletonList(OAuthScope.view), SERVICE, REGISTRY_TYPE, CATALOG_NAME, ALL_ACCESS_TYPES);
 		
 		assertEquals(new HashSet(Arrays.asList(new String[]{ALL_ACCESS_TYPES})), permitted);
+	}
+
+	@Test
+	public void testGetPermittedAccessTypesRegistryNoViewScope() throws Exception {
+		// method under test:
+		Set<String> permitted = authorizationManager.
+				getPermittedDockerActions(ADMIN_INFO, Collections.EMPTY_LIST, SERVICE, REGISTRY_TYPE, CATALOG_NAME, ALL_ACCESS_TYPES);
+		
+		assertTrue(permitted.isEmpty());
 	}
 
 	@Test

@@ -549,7 +549,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		
 		String[] actionArray = actionTypes.split(",");
 		if (REGISTRY_TYPE.equalsIgnoreCase(type)) {
-			return getPermittedDockerRegistryActions(userInfo, service, name, actionArray);
+			return getPermittedDockerRegistryActions(userInfo, oauthScopes, service, name, actionArray);
 		} else if (REPOSITORY_TYPE.equalsIgnoreCase(type)) {
 			Set<RegistryEventAction> approvedActions = getPermittedDockerRepositoryActions(userInfo, oauthScopes, service, name, actionArray);
 			Set<String> result = new HashSet<String>();
@@ -560,10 +560,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		}
 	}
 
-	private Set<String> getPermittedDockerRegistryActions(UserInfo userInfo, String service, String name, String[] actionTypes) {
+	private Set<String> getPermittedDockerRegistryActions(UserInfo userInfo, List<OAuthScope> oauthScopes, String service, String name, String[] actionTypes) {
 		if (name.equalsIgnoreCase(REGISTRY_CATALOG)) {
 			// OK, it's a request to list the catalog
-			if (userInfo.isAdmin()) { 
+			if (userInfo.isAdmin() && oauthScopes.contains(OAuthScope.view)) { 
 				// an admin can do *anything*
 				return new HashSet<String>(Arrays.asList(actionTypes));
 			} else {
@@ -600,7 +600,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 					String parentId = validDockerRepositoryParentId(repositoryPath);
 					if (parentId==null) {
 						// can't push to a non-existent parent
-						as = AuthorizationStatus.accessDenied("");
+						as = AuthorizationStatus.accessDenied(""); //TODO: more informative message?
 					} else {
 						// check for create permission on parent
 						as = canCreate(userInfo, parentId, EntityType.dockerrepo);
