@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
+import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.sts.StsCredentials;
 import org.sagebionetworks.repo.model.sts.StsPermission;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -1663,5 +1664,33 @@ public class EntityController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(required = true) String id, @RequestBody(required = true) JSONObject request) {
 		return serviceProvider.getEntityService().updateEntityJson(userId, id, request);
+	}
+	
+	/**
+	 * Get the validation results of an Entity against its bound JSON schema. The
+	 * validation of an Entity against its bound schema is automatic and eventually
+	 * consistent. The validation results include the etag of the Entity at the time
+	 * of the last validation. If the returned etag does not match the current etag
+	 * of the Entity then the results should be considered out-of-date. If an Entity
+	 * has not been validated for the first time, or if the Entity does not have a
+	 * bound schema, this method will return a 404 (not-found). Keep checking for
+	 * the latest validation results.
+	 * <p>
+	 * Note: The caller must be granted the
+	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.READ</a>
+	 * permission on the Entity.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id
+	 * @return
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_ID_VALIDATION }, method = RequestMethod.GET)
+	public @ResponseBody ValidationResults getEntitySchemaValidationResults(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(required = true) String id) {
+		return serviceProvider.getEntityService().getEntitySchemaValidationResults(userId, id);
 	}
 }

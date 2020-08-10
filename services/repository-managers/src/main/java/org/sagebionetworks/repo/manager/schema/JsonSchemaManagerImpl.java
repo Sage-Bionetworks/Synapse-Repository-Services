@@ -365,32 +365,33 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	}
 
 	/**
-	 * 
+	 * Get the validation schema for the given $id.
 	 * 
 	 * @param id
 	 * @return
 	 */
 	@Override
-	public JsonSchema getValidationSchema(String id) {
+	public JsonSchema getValidationSchema(String $id) {
+		ValidateArgument.required($id, "$id");
 		Deque<String> visitedStack = new ArrayDeque<String>();
-		return getValidationSchema(visitedStack, id);
+		return getValidationSchema(visitedStack, $id);
 	}
 
 	/**
-	 * Recursively
+	 * Recursively build the validation schema for the given $id.
 	 * 
 	 * @param visitedSchemas
-	 * @param id
+	 * @param $id
 	 * @return
 	 */
-	JsonSchema getValidationSchema(Deque<String> visitedStack, String id) {
+	JsonSchema getValidationSchema(Deque<String> visitedStack, String $id) {
 		// duplicates are allowed but cycles are not
-		if (visitedStack.contains(id)) {
-			throw new IllegalArgumentException("Schema $id: '" + id + "' has a circular dependency");
+		if (visitedStack.contains($id)) {
+			throw new IllegalArgumentException("Schema $id: '" + $id + "' has a circular dependency");
 		}
-		visitedStack.push(id);
+		visitedStack.push($id);
 		// get the base schema
-		JsonSchema baseSchema = getSchema(id);
+		JsonSchema baseSchema = getSchema($id);
 		if (baseSchema.getDefinitions() == null) {
 			baseSchema.setDefinitions(new LinkedHashMap<String, JsonSchema>());
 		}

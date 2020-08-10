@@ -67,6 +67,7 @@
     <import resource="classpath:view-column-model-request-spb.xml" />
     <import resource="classpath:get-validation-schema-worker-spb.xml" />
     <import resource="classpath:dataaccess-worker-spb.xml" />
+    <import resource="classpath:schema-validation-worker-spb.xml" />
 
 	<util:list id="workerTriggersList">
 		<!-- workers -->
@@ -119,6 +120,7 @@
 		<ref bean="accessApprovalExpirationTrigger" />
 		<ref bean="accessApprovalRevokedNotificationTrigger" />
 		<ref bean="accessApprovalReminderNotificationWorkerTrigger" />
+		<ref bean="schemaValidationTrigger" />
 	</util:list>
 
 	<bean id="mainScheduler"

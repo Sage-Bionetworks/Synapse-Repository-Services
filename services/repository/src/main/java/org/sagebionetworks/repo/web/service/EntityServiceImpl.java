@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
+import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.sts.StsCredentials;
 import org.sagebionetworks.repo.model.sts.StsPermission;
 import org.sagebionetworks.repo.queryparser.ParseException;
@@ -725,5 +726,12 @@ public class EntityServiceImpl implements EntityService {
 		ValidateArgument.required(userId, "userId");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return entityManager.updateEntityJson(userInfo, entityId, request);
+	}
+
+	@Override
+	public ValidationResults getEntitySchemaValidationResults(Long userId, String id) {
+		ValidateArgument.required(userId, "userId");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.getEntityValidationResults(userInfo, id);
 	}
 }

@@ -8,6 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.InputStream;
+import java.util.Collections;
+import java.util.Optional;
+import java.util.function.Consumer;
 
 import org.apache.commons.io.IOUtils;
 import org.json.JSONException;
@@ -18,6 +21,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
+import org.sagebionetworks.AsynchronousJobWorkerHelperImpl.AsyncJobResponse;
+import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaValidationManager;
@@ -25,7 +30,13 @@ import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.manager.schema.SynapseSchemaBootstrap;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessNotification;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationType;
+import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
@@ -33,15 +44,23 @@ import org.sagebionetworks.repo.model.schema.GetValidationSchemaRequest;
 import org.sagebionetworks.repo.model.schema.GetValidationSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
+import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
+import org.sagebionetworks.repo.model.schema.ObjectType;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.TimeUtils;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+import junit.framework.AssertionFailedError;
+
 import static org.mockito.Mockito.when;
 
 @ExtendWith(SpringExtension.class)
@@ -61,9 +80,12 @@ public class JsonSchemaWorkerIntegrationTest {
 
 	@Autowired
 	UserManager userManager;
-	
+
 	@Autowired
 	JsonSchemaValidationManager jsonSchemaValidationManager;
+
+	@Autowired
+	EntityManager entityManager;
 
 	UserInfo adminUserInfo;
 	String organizationName;
@@ -72,8 +94,11 @@ public class JsonSchemaWorkerIntegrationTest {
 	JsonSchema basicSchema;
 	Organization organization;
 
+	String projectId;
+
 	@BeforeEach
 	public void before() {
+		jsonSchemaManager.truncateAll();
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		organizationName = "my.org.net";
 		schemaName = "some.schema";
@@ -90,6 +115,9 @@ public class JsonSchemaWorkerIntegrationTest {
 	@AfterEach
 	public void after() {
 		jsonSchemaManager.truncateAll();
+		if (projectId != null) {
+			entityManager.deleteEntity(adminUserInfo, projectId);
+		}
 	}
 
 	@Test
@@ -151,16 +179,17 @@ public class JsonSchemaWorkerIntegrationTest {
 		assertEquals("Schema $id: 'my.org.net-one' has a circular dependency", message);
 	}
 
-	public void registerSchemaFromClasspath(String name) throws Exception {
+	public CreateSchemaResponse registerSchemaFromClasspath(String name) throws Exception {
 		String json = loadStringFromClasspath(name);
 		JsonSchema schema = EntityFactory.createEntityFromJSONString(json, JsonSchema.class);
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(schema);
 		System.out.println("Creating schema: '" + schema.get$id() + "'");
-		asynchronousJobWorkerHelper.assertJobResponse(adminUserInfo, request, (CreateSchemaResponse response) -> {
-			assertNotNull(response);
-			System.out.println(response.getNewVersionInfo());
-		}, MAX_WAIT_MS);
+		return asynchronousJobWorkerHelper
+				.assertJobResponse(adminUserInfo, request, (CreateSchemaResponse response) -> {
+					assertNotNull(response);
+					System.out.println(response.getNewVersionInfo());
+				}, MAX_WAIT_MS).getResponse();
 	}
 
 	/**
@@ -181,11 +210,7 @@ public class JsonSchemaWorkerIntegrationTest {
 
 	@Test
 	public void testMainUseCase() throws Exception {
-		jsonSchemaManager.truncateAll();
-		schemaBootstrap.bootstrapSynapseSchemas();
-		CreateOrganizationRequest createOrgRequest = new CreateOrganizationRequest();
-		createOrgRequest.setOrganizationName("my.organization");
-		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createOrgRequest);
+		bootstrapAndCreateOrganization();
 		String[] schemasToRegister = { "pets/PetType.json", "pets/Pet.json", "pets/CatBreed.json", "pets/DogBreed.json",
 				"pets/Cat.json", "pets/Dog.json", "pets/PetPhoto.json" };
 		for (String fileName : schemasToRegister) {
@@ -216,7 +241,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		ValidationResults result = jsonSchemaValidationManager.validate(validationSchema, mockSubject);
 		assertNotNull(result);
 		assertTrue(result.getIsValid());
-		
+
 		// Changing the petType to dog should cause a schema violation.
 		validCat.put("petType", "dog");
 		result = jsonSchemaValidationManager.validate(validationSchema, mockSubject);
@@ -225,7 +250,15 @@ public class JsonSchemaWorkerIntegrationTest {
 		assertEquals("#: 0 subschemas matched instead of one", result.getValidationErrorMessage());
 		printJson(result);
 	}
-	
+
+	void bootstrapAndCreateOrganization() throws RecoverableMessageException {
+		jsonSchemaManager.truncateAll();
+		schemaBootstrap.bootstrapSynapseSchemas();
+		CreateOrganizationRequest createOrgRequest = new CreateOrganizationRequest();
+		createOrgRequest.setOrganizationName("my.organization");
+		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createOrgRequest);
+	}
+
 	@Test
 	public void testGetValidationSchemaWorker() throws AssertionError, AsynchJobFailedException {
 		CreateSchemaRequest createRequest = new CreateSchemaRequest();
@@ -238,15 +271,105 @@ public class JsonSchemaWorkerIntegrationTest {
 			assertEquals(adminUserInfo.getId().toString(), response.getNewVersionInfo().getCreatedBy());
 			assertEquals(semanticVersion, response.getNewVersionInfo().getSemanticVersion());
 		}, MAX_WAIT_MS);
-		
+
 		GetValidationSchemaRequest getRequest = new GetValidationSchemaRequest();
 		getRequest.set$id(basicSchema.get$id());
 		// Get the validation schema for this schema
-		asynchronousJobWorkerHelper.assertJobResponse(adminUserInfo, getRequest, (GetValidationSchemaResponse response) -> {
-			assertNotNull(response);
-			assertNotNull(response.getValidationSchema());
-			assertEquals(basicSchema, response.getValidationSchema());
-		}, MAX_WAIT_MS);
+		asynchronousJobWorkerHelper.assertJobResponse(adminUserInfo, getRequest,
+				(GetValidationSchemaResponse response) -> {
+					assertNotNull(response);
+					assertNotNull(response.getValidationSchema());
+					assertEquals(basicSchema, response.getValidationSchema());
+				}, MAX_WAIT_MS);
+	}
+
+	@Test
+	public void testEntitySchemaValidation() throws Exception {
+		bootstrapAndCreateOrganization();
+		String projectId = entityManager.createEntity(adminUserInfo, new Project(), null);
+		Project project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
+
+		// create the schema
+		String fileName = "schema/SimpleFolder.json";
+		CreateSchemaResponse createResponse = registerSchemaFromClasspath(fileName);
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+		// bind the schema to the project
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(projectId);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+
+		// add a folder to the project
+		Folder folder = new Folder();
+		folder.setParentId(project.getId());
+		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
+		JSONObject folderJson = entityManager.getEntityJson(folderId);
+		// Add the foo annotation to the folder
+		folderJson.put("foo", "bar");
+		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
+		Folder resultFolder = entityManager.getEntity(adminUserInfo, folderId, Folder.class);
+
+		// wait for the folder to be valid.
+		waitForValidationResults(adminUserInfo, folderId, (ValidationResults t) -> {
+			assertNotNull(t);
+			assertTrue(t.getIsValid());
+			assertEquals(schema$id, t.getSchema$id());
+			assertEquals(resultFolder.getId(), t.getObjectId());
+			assertEquals(ObjectType.entity, t.getObjectType());
+			assertEquals(resultFolder.getEtag(), t.getObjectEtag());
+		});
+		
+		// Removing the binding from the container should trigger removal of the results for the child.
+		entityManager.clearBoundSchema(adminUserInfo, projectId);
+		
+		waitForValidationResultsToBeNotFound(adminUserInfo, folderId);
+		
+	}
+
+	/**
+	 * Wait for the validation results
+	 * 
+	 * @param user
+	 * @param entityId
+	 * @return
+	 */
+	public ValidationResults waitForValidationResults(UserInfo user, String entityId,
+			Consumer<ValidationResults> consumer) {
+		try {
+			return TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+				try {
+					ValidationResults validationResults = entityManager.getEntityValidationResults(user, entityId);
+					consumer.accept(validationResults);
+					return new Pair<>(Boolean.TRUE, validationResults);
+				} catch (Throwable e) {
+					System.out.println("Waiting for expected ValidationResults..." + e.getMessage());
+					return new Pair<>(Boolean.FALSE, null);
+				}
+			});
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	/**
+	 * Wait for the validation results to be not found.
+	 * @param user
+	 * @param entityId
+	 */
+	public void waitForValidationResultsToBeNotFound(UserInfo user, String entityId) {
+		try {
+			TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+				try {
+					ValidationResults validationResults = entityManager.getEntityValidationResults(user, entityId);
+					System.out.println("Waiting for expected ValidationResults to be removed...");
+					return new Pair<>(Boolean.FALSE, null);
+				} catch (NotFoundException e) {
+					return new Pair<>(Boolean.TRUE, null);
+				}
+			});
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	public void printJson(JSONEntity entity) throws JSONException, JSONObjectAdapterException {

@@ -499,6 +499,7 @@ public class NodeManagerImpl implements NodeManager {
 		return getNodeType(nodeId);
 	}
 	
+	@Override
 	public EntityType getNodeType(String entityId) {
 		return nodeDao.getNodeTypeById(entityId);
 	}

@@ -40,9 +40,12 @@ import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.schema.BoundObjectType;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
+import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -51,6 +54,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Lists;
 
+import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
+import org.sagebionetworks.repo.model.dbo.schema.SchemaValidationResultDao;
 /**
  *
  */
@@ -76,6 +81,10 @@ public class EntityManagerImpl implements EntityManager {
 	JsonSchemaManager jsonSchemaManager;
 	@Autowired
 	AnnotationsTranslator annotationsTranslator;
+	@Autowired
+	SchemaValidationResultDao schemaValidationResultDao;
+	@Autowired
+	TransactionalMessenger transactionalMessenger;
 
 	boolean allowCreationOfOldEntities = true;
 
@@ -552,6 +561,7 @@ public class EntityManagerImpl implements EntityManager {
 		return objectTypeManager.changeObjectsDataType(userInfo, entityId, ObjectType.ENTITY, dataType);
 	}
 
+	@WriteTransaction
 	@Override
 	public JsonSchemaObjectBinding bindSchemaToEntity(UserInfo userInfo, BindSchemaToEntityRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
@@ -560,8 +570,10 @@ public class EntityManagerImpl implements EntityManager {
 		ValidateArgument.required(request.getSchema$id(), "request.schema$id");
 		entityPermissionsManager.hasAccess(request.getEntityId(), ACCESS_TYPE.UPDATE, userInfo)
 				.checkAuthorizationOrElseThrow();
-		return jsonSchemaManager.bindSchemaToObject(userInfo.getId(), request.getSchema$id(),
+		JsonSchemaObjectBinding binding = jsonSchemaManager.bindSchemaToObject(userInfo.getId(), request.getSchema$id(),
 				KeyFactory.stringToKey(request.getEntityId()), BoundObjectType.entity);
+		sendEntityUpdateNotifications(request.getEntityId());
+		return binding;
 	}
 
 	@Override
@@ -569,16 +581,34 @@ public class EntityManagerImpl implements EntityManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(id, "id");
 		entityPermissionsManager.hasAccess(id, ACCESS_TYPE.READ, userInfo).checkAuthorizationOrElseThrow();
-		Long boundEntityId = nodeManager.findFirstBoundJsonSchema(KeyFactory.stringToKey(id));
+		return getBoundSchema(id);
+	}
+	
+	@Override
+	public JsonSchemaObjectBinding getBoundSchema(String entityId) {
+		Long boundEntityId = nodeManager.findFirstBoundJsonSchema(KeyFactory.stringToKey(entityId));
 		return jsonSchemaManager.getJsonSchemaObjectBinding(boundEntityId, BoundObjectType.entity);
 	}
+	
 
+	@WriteTransaction
 	@Override
 	public void clearBoundSchema(UserInfo userInfo, String id) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(id, "id");
 		entityPermissionsManager.hasAccess(id, ACCESS_TYPE.DELETE, userInfo).checkAuthorizationOrElseThrow();
 		jsonSchemaManager.clearBoundSchema(KeyFactory.stringToKey(id), BoundObjectType.entity);
+		sendEntityUpdateNotifications(id);
+	}
+	
+	void sendEntityUpdateNotifications(String entityId) {
+		// Send a change for this entity.
+		transactionalMessenger.sendMessageAfterCommit(entityId, ObjectType.ENTITY, ChangeType.UPDATE);
+		EntityType type = nodeManager.getNodeType(entityId);
+		if(NodeUtils.isProjectOrFolder(type)){
+			// Send a recursive change to all children of this container.
+			transactionalMessenger.sendMessageAfterCommit(entityId, ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
+		}
 	}
 
 	@Override
@@ -616,5 +646,12 @@ public class EntityManagerImpl implements EntityManager {
 		JSONObject json = annotationsTranslator.writeToJsonObject(entity, annotations);
 		return new EntityJsonSubject(entity, json);
 	}
-	
+
+	@Override
+	public ValidationResults getEntityValidationResults(UserInfo userInfo, String entityId) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(entityId, "entityId");
+		entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).checkAuthorizationOrElseThrow();
+		return schemaValidationResultDao.getValidationResults(entityId, org.sagebionetworks.repo.model.schema.ObjectType.entity);
+	}
 }
