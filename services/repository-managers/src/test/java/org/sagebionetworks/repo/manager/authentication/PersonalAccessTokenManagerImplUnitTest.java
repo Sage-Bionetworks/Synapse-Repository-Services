@@ -26,6 +26,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.oauth.ClaimsJsonUtil;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
@@ -42,6 +43,12 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwt;
+import io.jsonwebtoken.impl.DefaultClaims;
+import io.jsonwebtoken.impl.DefaultJwt;
+
 @ExtendWith(MockitoExtension.class)
 public class PersonalAccessTokenManagerImplUnitTest {
 
@@ -53,9 +60,12 @@ public class PersonalAccessTokenManagerImplUnitTest {
 	private OIDCTokenHelper mockTokenHelper;
 	@Mock
 	private Clock mockClock;
+	
+	private Jwt<JwsHeader, Claims> accessTokenJwt;
 
 	private static final String OAUTH_ENDPOINT = "http://synapse.org/";
 	private static final String TOKEN_ID = "999";
+	private static final String ACCESS_TOKEN = "access-token";
 
 	private UserInfo userInfo;
 	private static final Long USER_ID = 123456L;
@@ -68,6 +78,10 @@ public class PersonalAccessTokenManagerImplUnitTest {
 	void beforeEach() {
 		userInfo = new UserInfo(false);
 		userInfo.setId(USER_ID);
+		
+		Claims accessTokenClaims = new DefaultClaims();
+		ClaimsJsonUtil.addAccessClaims(Arrays.asList(OAuthScope.values()), Collections.EMPTY_MAP, accessTokenClaims);
+		accessTokenJwt = new DefaultJwt(null, accessTokenClaims);
 	}
 
 	@Test
@@ -94,7 +108,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 	@Test
 	void testIssueToken() {
 		String tokenName = "My token name";
-		List<OAuthScope> scopes = Arrays.asList(OAuthScope.openid, OAuthScope.authorize);
+		List<OAuthScope> scopes = Arrays.asList(OAuthScope.openid, OAuthScope.view);
 		Map<String, OIDCClaimsRequestDetails> claims = new HashMap<>();
 		claims.put(OIDCClaimName.userid.name(), new OIDCClaimsRequestDetails());
 		claims.put("some invalid claim", null);
@@ -115,9 +129,10 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		when(mockClock.now()).thenReturn(new Date());
 		when(mockPersonalAccessTokenDao.createTokenRecord(recordCaptor.capture())).thenReturn(createdRecord);
 		when(mockTokenHelper.createPersonalAccessToken(OAUTH_ENDPOINT, createdRecord)).thenReturn(expectedToken);
-
+		when(mockTokenHelper.parseJWT(ACCESS_TOKEN)).thenReturn(accessTokenJwt);
+	
 		// method under test
-		String token = personalAccessTokenManager.issueToken(userInfo, request, OAUTH_ENDPOINT).getToken();
+		String token = personalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, request, OAUTH_ENDPOINT).getToken();
 
 		AccessTokenRecord captured = recordCaptor.getValue();
 		assertEquals(userInfo.getId().toString(), captured.getUserId());
@@ -132,12 +147,46 @@ public class PersonalAccessTokenManagerImplUnitTest {
 	}
 
 	@Test
+	void testIssueTokenLimitedAccessTokenScope() {
+		List<OAuthScope> scopes = Arrays.asList(OAuthScope.openid, OAuthScope.view, OAuthScope.authorize);
+		
+		Claims accessTokenClaims = new DefaultClaims();
+		// note, we omit 'modify'
+		ClaimsJsonUtil.addAccessClaims(Arrays.asList(OAuthScope.view, OAuthScope.authorize), Collections.EMPTY_MAP, accessTokenClaims);
+		accessTokenJwt = new DefaultJwt(null, accessTokenClaims);
+		
+		// we expect 'view' but not 'openid'.  We do not expect 'authorize'
+		List<OAuthScope> expectedScopes = Arrays.asList(OAuthScope.view);
+
+		AccessTokenGenerationRequest request = new AccessTokenGenerationRequest();
+		request.setScope(scopes);
+		request.setUserInfoClaims(new HashMap<>());
+
+		ArgumentCaptor<AccessTokenRecord> recordCaptor = ArgumentCaptor.forClass(AccessTokenRecord.class);
+
+		String expectedToken = "abc123";
+
+		AccessTokenRecord createdRecord = new AccessTokenRecord();
+		when(mockClock.now()).thenReturn(new Date());
+		when(mockPersonalAccessTokenDao.createTokenRecord(recordCaptor.capture())).thenReturn(createdRecord);
+		when(mockTokenHelper.createPersonalAccessToken(OAUTH_ENDPOINT, createdRecord)).thenReturn(expectedToken);
+		when(mockTokenHelper.parseJWT(ACCESS_TOKEN)).thenReturn(accessTokenJwt);
+	
+		// method under test
+		personalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, request, OAUTH_ENDPOINT).getToken();
+
+		AccessTokenRecord captured = recordCaptor.getValue();
+		assertEquals(userInfo.getId().toString(), captured.getUserId());
+		assertEquals(expectedScopes, captured.getScopes());
+	}
+
+	@Test
 	void testIssueToken_anonymous() {
 		UserInfo anonymousUserInfo = new UserInfo(false);
 		anonymousUserInfo.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
 		// method under test
-		assertThrows(UnauthenticatedException.class, () -> personalAccessTokenManager.issueToken(anonymousUserInfo, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT));
+		assertThrows(UnauthenticatedException.class, () -> personalAccessTokenManager.issueToken(anonymousUserInfo, ACCESS_TOKEN, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT));
 	}
 
 	@Test
@@ -158,9 +207,10 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		AccessTokenRecord createdRecord = new AccessTokenRecord();
 		when(mockPersonalAccessTokenDao.createTokenRecord(recordCaptor.capture())).thenReturn(createdRecord);
 		when(mockTokenHelper.createPersonalAccessToken(OAUTH_ENDPOINT, createdRecord)).thenReturn(expectedToken);
+		when(mockTokenHelper.parseJWT(ACCESS_TOKEN)).thenReturn(accessTokenJwt);
 
 		// method under test
-		personalAccessTokenManager.issueToken(userInfo, request, OAUTH_ENDPOINT);
+		personalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, request, OAUTH_ENDPOINT);
 
 		AccessTokenRecord captured = recordCaptor.getValue();
 		assertTrue(StringUtils.isNotBlank(captured.getName()));
@@ -187,12 +237,14 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		AccessTokenRecord createdRecord = new AccessTokenRecord();
 		when(mockPersonalAccessTokenDao.createTokenRecord(recordCaptor.capture())).thenReturn(createdRecord);
 		when(mockTokenHelper.createPersonalAccessToken(OAUTH_ENDPOINT, createdRecord)).thenReturn(expectedToken);
+		when(mockTokenHelper.parseJWT(ACCESS_TOKEN)).thenReturn(accessTokenJwt);
 
 		// method under test
-		personalAccessTokenManager.issueToken(userInfo, request, OAUTH_ENDPOINT);
+		personalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, request, OAUTH_ENDPOINT);
 
 		Set<OAuthScope> expectedScope = new HashSet<>();
 		Collections.addAll(expectedScope, OAuthScope.values());
+		expectedScope.remove(OAuthScope.authorize);
 
 		AccessTokenRecord captured = recordCaptor.getValue();
 		Set<OAuthScope> actualScope = new HashSet<>(captured.getScopes());
@@ -218,9 +270,10 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		AccessTokenRecord createdRecord = new AccessTokenRecord();
 		when(mockPersonalAccessTokenDao.createTokenRecord(recordCaptor.capture())).thenReturn(createdRecord);
 		when(mockTokenHelper.createPersonalAccessToken(OAUTH_ENDPOINT, createdRecord)).thenReturn(expectedToken);
+		when(mockTokenHelper.parseJWT(ACCESS_TOKEN)).thenReturn(accessTokenJwt);
 
 		// method under test
-		personalAccessTokenManager.issueToken(userInfo, request, OAUTH_ENDPOINT);
+		personalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, request, OAUTH_ENDPOINT);
 
 		Map<String, OIDCClaimsRequestDetails> expectedClaims = Collections.emptyMap();
 

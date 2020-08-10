@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.auth.DeprecatedUtils;
+import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
@@ -35,6 +36,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -369,10 +371,12 @@ public class AuthenticationController {
 	@RequestMapping(value = UrlHelpers.AUTH_PERSONAL_ACCESS_TOKEN, method = RequestMethod.POST)
 	public @ResponseBody AccessTokenGenerationResponse createPersonalAccessToken(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=false) String authorizationHeader,
 			@RequestBody(required=true) AccessTokenGenerationRequest request,
 			UriComponentsBuilder uriComponentsBuilder
 	) {
-		return authenticationService.createPersonalAccessToken(userId, request, OpenIDConnectController.getEndpoint(uriComponentsBuilder));
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
+		return authenticationService.createPersonalAccessToken(userId, accessToken, request, OpenIDConnectController.getEndpoint(uriComponentsBuilder));
 	}
 
 	/**
