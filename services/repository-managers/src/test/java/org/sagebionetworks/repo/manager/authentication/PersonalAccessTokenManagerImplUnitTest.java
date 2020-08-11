@@ -148,18 +148,19 @@ public class PersonalAccessTokenManagerImplUnitTest {
 
 	@Test
 	void testIssueTokenLimitedAccessTokenScope() {
-		List<OAuthScope> scopes = Arrays.asList(OAuthScope.openid, OAuthScope.view, OAuthScope.authorize);
+		List<OAuthScope> requestedScopes = Arrays.asList(OAuthScope.openid, OAuthScope.view, OAuthScope.authorize, OAuthScope.authorize);
+		List<OAuthScope> accessTokenScopes = Arrays.asList(OAuthScope.view, OAuthScope.authorize);
+		// expected scope is the intersection of requestedScopes and accessTokenScopes, minus 'authorize'
+		// so we expect 'view' but not 'openid'.  We do not expect 'authorize'
+		List<OAuthScope> expectedScopes = Arrays.asList(OAuthScope.view);
 		
 		Claims accessTokenClaims = new DefaultClaims();
 		// note, we omit 'modify'
-		ClaimsJsonUtil.addAccessClaims(Arrays.asList(OAuthScope.view, OAuthScope.authorize), Collections.EMPTY_MAP, accessTokenClaims);
+		ClaimsJsonUtil.addAccessClaims(accessTokenScopes, Collections.EMPTY_MAP, accessTokenClaims);
 		accessTokenJwt = new DefaultJwt(null, accessTokenClaims);
 		
-		// we expect 'view' but not 'openid'.  We do not expect 'authorize'
-		List<OAuthScope> expectedScopes = Arrays.asList(OAuthScope.view);
-
 		AccessTokenGenerationRequest request = new AccessTokenGenerationRequest();
-		request.setScope(scopes);
+		request.setScope(requestedScopes);
 		request.setUserInfoClaims(new HashMap<>());
 
 		ArgumentCaptor<AccessTokenRecord> recordCaptor = ArgumentCaptor.forClass(AccessTokenRecord.class);

@@ -358,7 +358,14 @@ public class AuthenticationController {
 
 
 	/**
-	 * Issues a personal access token to authorize scoped access to Synapse resources. To use the token, use the HTTP
+	 * Issues a personal access token to authorize scoped access to Synapse resources. 
+	 * <br/>
+	 * Note:  The scope of the personal access token is the intersection of the request scope
+	 * and the scope of the access token used to authorize the request and also omits `authorize` scope.
+	 * That is, the returned token cannot have `authorize` scope and cannot have greater scope than
+	 * the token used to authorize this request.
+	 * <br/>
+	 * To use the token to authorize other requests to Synapse, use the HTTP
 	 * header `Authorization: Bearer \<token\>`. The token will expire if unused for 180 days.
 	 * The token cannot be re-retrieved after the initial creation.
 	 * @param userId
