@@ -278,14 +278,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		Claims claims = oidcTokenHelper.parseJWT(jwtToken).getBody();
 
 		String userId = getUserIdFromPPID(claims.getSubject(), claims.getAudience());
-		TokenType tokenType;
-		try {
-			tokenType = TokenType.valueOf(claims.get(OIDCClaimName.token_type.name(), String.class));
-		} catch (IllegalArgumentException e) {
-			// Active OIDC access tokens without a token type will exist for up to 24 hours after release.
-			// This null case can be removed after this is live for 24 hours
-			tokenType = TokenType.OIDC_ACCESS_TOKEN;
-		}
+		TokenType tokenType = TokenType.valueOf(claims.get(OIDCClaimName.token_type.name(), String.class));
 		switch (tokenType) {
 			case OIDC_ACCESS_TOKEN:
 				// If the access token has an associated refresh token, we check to see if the refresh token has been revoked.
