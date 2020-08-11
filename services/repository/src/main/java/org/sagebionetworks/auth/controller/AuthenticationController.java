@@ -77,7 +77,7 @@ import org.springframework.web.util.UriComponentsBuilder;
  * </p>
  * <p>
  * Personal access tokens (PATs) are the preferred replacement for API keys, and can a user may freely generate up to 100
- * tokens with scoped access using <a href="${POST.personalAccessToken}>POST /personalAccessToken</a>. Like OAuth access tokens (ATs),
+ * tokens with scoped access using <a href="${POST.personalAccessToken}">POST /personalAccessToken</a>. Like OAuth access tokens (ATs),
  * personal access tokens are used by including one as a Bearer token in the Authorization header of all authorized requests.
  * Unlike OAuth access tokens,
  * <ul>
