@@ -1,0 +1,25 @@
+{
+	"name":"SubmissionRoundLimit",
+	"description": "Sets limits for maximum submissions in a SubmissionRound",
+	"properties":{
+		"totalSubmissionLimit": {
+			"type": "integer",
+			"description": "The maximum total number of submissions per team/participant for the entirety of the round."
+		},
+		"dailySubmissionLimit": {
+			"type": "integer",
+			"description": "The maximum total number of submissions per team/participant for each day of the round."
+		},
+		"weeklySubmissionLimit": {
+			"type": "integer",
+			"description": "The maximum total number of submissions per team/participant for every 7 days of the round."
+		},
+		"monthlySubmissionLimit": {
+			"type": {
+				"$ref": "org.sagebionetworks.evaluation.model.SubmissionRoundMonthlyLimit"
+			},
+			"description": "The maximum total number of submissions per team/participant per month. Unlike other limits, this can be configured to reset on the n-th day of every month.",
+
+		}
+	}
+}

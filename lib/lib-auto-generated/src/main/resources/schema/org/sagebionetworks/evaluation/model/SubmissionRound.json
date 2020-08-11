@@ -1,0 +1,28 @@
+{
+	"name":"SubmissionRound",
+	"description":"Defines the duration of a round and sets limits for maximum submissions per round",
+	"properties":{
+		"id": {
+			"type": "string",
+			"description": "The id of the SubmissionRound"
+		},
+		"roundStart": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date/time at which the first round begins.",
+			"required": true
+		},
+		"roundEnd":{
+			"type": "string",
+			"format": "date-time",
+			"description":"The date/time at which the round ends.",
+			"required": true
+		},
+		"submissionLimit": {
+			"type": {
+				"$ref": "org.sagebionetworks.evaluation.model.SubmissionRoundLimit"
+			},
+			"description": "Optional. Sets limits for maximum submissions in this round."
+		}
+	}
+}

@@ -1,0 +1,12 @@
+{
+	"properties": {
+		"dayOfMonth": {
+			"type": "integer",
+			"description": "Day of the month on which this date this limit is reset."
+		},
+		"limit": {
+			"type": "integer",
+			"description": "The maximum total number of submissions per team/participant per month."
+		}
+	}
+}

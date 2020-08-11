@@ -50,8 +50,20 @@
 		},
 		"quota": {
 			"type":"object",
-			"description":"Maximum submissions per team/participant per submission round",
+			"description":"DEPRECATED. Maximum submissions per team/participant per submission round",
 			"$ref":"org.sagebionetworks.evaluation.model.SubmissionQuota"
+		},
+
+		"timeZone": {
+			"type": "string",
+			"description": "The time zone to be used for all round configurations."
+		},
+
+		"rounds": {
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.evaluation.model.SubmissionRound"
+			}
 		}
 	}
 }
