@@ -110,11 +110,12 @@ public interface AuthenticationService {
 	/**
 	 * Creates a scoped personal access token for the requesting user.
 	 * @param userId
+	 * @param accessToken
 	 * @param request
 	 * @param oauthEndpoint
 	 * @return
 	 */
-	public AccessTokenGenerationResponse createPersonalAccessToken(Long userId, AccessTokenGenerationRequest request, String oauthEndpoint);
+	public AccessTokenGenerationResponse createPersonalAccessToken(Long userId, String accessToken, AccessTokenGenerationRequest request, String oauthEndpoint);
 
 	/**
 	 * Retrieves the list of issued personal access token records (both active and expired tokens) for the requesting user.

@@ -1,11 +1,14 @@
 package org.sagebionetworks.repo.manager.authentication;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
+import org.sagebionetworks.repo.manager.oauth.ClaimsJsonUtil;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
@@ -26,6 +29,10 @@ import org.sagebionetworks.util.EnumKeyedJsonMapUtil;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwt;
 
 @Service
 public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManager {
@@ -59,12 +66,19 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 
 	@WriteTransaction
 	@Override
-	public AccessTokenGenerationResponse issueToken(UserInfo userInfo, AccessTokenGenerationRequest request, String oauthEndpoint) {
+	public AccessTokenGenerationResponse issueToken(UserInfo userInfo, String accessToken, AccessTokenGenerationRequest request, String oauthEndpoint) {
 		ValidateArgument.required(request, "AccessTokenGenerationRequest");
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
 			throw new UnauthenticatedException("Anonymous users may not issue personal access tokens.");
 		}
-
+		
+		// now get the scopes permitted in the Synapse access token
+		List<OAuthScope> oauthScopes = Collections.EMPTY_LIST;
+		if (accessToken!=null) {
+			Jwt<JwsHeader, Claims> jwt = oidcTokenHelper.parseJWT(accessToken);
+			oauthScopes = ClaimsJsonUtil.getScopeFromClaims(jwt.getBody());
+		}
+		
 		// Replace an empty name with a UUID
 		if (StringUtils.isBlank(request.getName())) {
 			request.setName(UUID.randomUUID().toString());
@@ -77,6 +91,14 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 				request.getScope().add(scope);
 			}
 		}
+		
+		// cannot have more scopes than those granted by the authorizing access token
+		List<OAuthScope> grantedScopes = new ArrayList(request.getScope());
+		grantedScopes.retainAll(oauthScopes);
+		
+		// we do not grant 'authorize' scope
+		// Note, we use 'removeAll' rather than 'remove' to remove *all* occurrences of the disallowed scope.
+		grantedScopes.removeAll(Collections.singletonList(OAuthScope.authorize));
 
 		if (request.getUserInfoClaims() == null) {
 			request.setUserInfoClaims(new HashMap<>());
@@ -92,7 +114,7 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 		AccessTokenRecord record = new AccessTokenRecord();
 		record.setUserId(userInfo.getId().toString());
 		record.setName(request.getName());
-		record.setScopes(request.getScope());
+		record.setScopes(grantedScopes);
 		record.setUserInfoClaims(request.getUserInfoClaims());
 		Date now = clock.now();
 		record.setCreatedOn(now);

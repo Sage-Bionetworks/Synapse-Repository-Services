@@ -52,7 +52,9 @@ public class PersonalAccessTokenManagerAutowiredTest {
 
 	private static final String OAUTH_ENDPOINT = "http://synapse.org/";
 
-	List<String> tokenIdsToDelete;
+	private List<String> tokenIdsToDelete;
+	
+	private String fullAccessToken;
 
 	@BeforeEach
 	void beforeEach() {
@@ -68,6 +70,8 @@ public class PersonalAccessTokenManagerAutowiredTest {
 		userInfo = userManager.createOrGetTestUser(adminUserInfo, newUser, cred, tou);
 
 		tokenIdsToDelete = new ArrayList<>();
+		
+		fullAccessToken = oidcTokenHelper.createTotalAccessToken(userInfo.getId());
 	}
 
 	@AfterEach
@@ -86,7 +90,7 @@ public class PersonalAccessTokenManagerAutowiredTest {
 
 	// Helper for getting token and retrieving the ID
 	private String createTokenAndGetId() {
-		String tokenId = getTokenIdFromJwt(personalAccessTokenManager.issueToken(userInfo, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT).getToken());
+		String tokenId = getTokenIdFromJwt(personalAccessTokenManager.issueToken(userInfo, fullAccessToken, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT).getToken());
 		tokenIdsToDelete.add(tokenId);
 		return tokenId;
 	}
@@ -94,7 +98,7 @@ public class PersonalAccessTokenManagerAutowiredTest {
 	@Test
 	void testIssueAndRevokeToken() {
 		// method under test -- create
-		String token = personalAccessTokenManager.issueToken(userInfo, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT).getToken();
+		String token = personalAccessTokenManager.issueToken(userInfo, fullAccessToken, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT).getToken();
 		assertTrue(StringUtils.isNotBlank(token));
 
 		String tokenId = this.getTokenIdFromJwt(token);
