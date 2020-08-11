@@ -996,7 +996,7 @@ public class EvaluationController {
 	 * @return        The ACL created.
 	 */
 	@Deprecated
-	@RequiredScope({view,modify,authorize})
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ACL, method = RequestMethod.POST)
 	public @ResponseBody AccessControlList
@@ -1018,7 +1018,7 @@ public class EvaluationController {
 	 * @param acl     The ACL being updated.
 	 * @return        The updated ACL.
 	 */
-	@RequiredScope({view,modify,authorize})
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ACL, method = RequestMethod.PUT)
 	public @ResponseBody AccessControlList
@@ -1038,7 +1038,7 @@ public class EvaluationController {
 	 *
 	 */
 	@Deprecated
-	@RequiredScope({view,modify,authorize})
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ID_ACL, method = RequestMethod.DELETE)
 	public void deleteAcl()

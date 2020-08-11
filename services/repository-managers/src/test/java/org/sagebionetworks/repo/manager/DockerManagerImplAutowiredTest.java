@@ -14,6 +14,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -38,7 +39,7 @@ public class DockerManagerImplAutowiredTest {
 	private static final String TAG = "lastest";
 	private static final String DIGEST = "sha256:10010101";
 	private static final String MEDIA_TYPE = DockerManagerImpl.MANIFEST_MEDIA_TYPE;
-
+	
 	private String repositoryPath;
 	
 	@Autowired
@@ -53,6 +54,9 @@ public class DockerManagerImplAutowiredTest {
 	@Autowired
 	private DockerNodeDao dockerNodeDao;
 
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+	
 	private UserInfo adminUserInfo;
 	private String projectId;
 	
@@ -76,7 +80,9 @@ public class DockerManagerImplAutowiredTest {
 		// test to see if we can push to the project.  Answer should be yes!
 		List<String> scope = new ArrayList<String>();
 		scope.add(TYPE+":"+repositoryPath+":push");
-		DockerAuthorizationToken token = dockerManager.authorizeDockerAccess(adminUserInfo, SERVICE, scope);
+		String accessToken = oidcTokenHelper.createTotalAccessToken(adminUserInfo.getId());
+		
+		DockerAuthorizationToken token = dockerManager.authorizeDockerAccess(adminUserInfo, accessToken, SERVICE, scope);
 		assertNotNull(token.getToken());
 	}
 	

@@ -551,7 +551,7 @@ public class TeamController {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	@RequiredScope({view,modify,authorize})
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.TEAM_ACL, method = RequestMethod.PUT)
 	public @ResponseBody

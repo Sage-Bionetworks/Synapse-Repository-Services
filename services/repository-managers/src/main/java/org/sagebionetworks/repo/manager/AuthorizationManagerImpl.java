@@ -51,6 +51,7 @@ import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.util.DockerNameUtil;
@@ -538,8 +539,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public Set<String> getPermittedDockerActions(UserInfo userInfo, String service, String type, String name, String actionTypes) {
+	public Set<String> getPermittedDockerActions(UserInfo userInfo, List<OAuthScope> oauthScopes, String service, String type, String name, String actionTypes) {
 		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(oauthScopes, "oauthScopes");
 		ValidateArgument.required(service, "service");
 		ValidateArgument.required(type, "type");
 		ValidateArgument.required(name, "name");
@@ -547,9 +549,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		
 		String[] actionArray = actionTypes.split(",");
 		if (REGISTRY_TYPE.equalsIgnoreCase(type)) {
-			return getPermittedDockerRegistryActions(userInfo, service, name, actionArray);
+			return getPermittedDockerRegistryActions(userInfo, oauthScopes, service, name, actionArray);
 		} else if (REPOSITORY_TYPE.equalsIgnoreCase(type)) {
-			Set<RegistryEventAction> approvedActions = getPermittedDockerRepositoryActions(userInfo, service, name, actionArray);
+			Set<RegistryEventAction> approvedActions = getPermittedDockerRepositoryActions(userInfo, oauthScopes, service, name, actionArray);
 			Set<String> result = new HashSet<String>();
 			for (RegistryEventAction a : approvedActions) result.add(a.name());
 			return result;
@@ -558,10 +560,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		}
 	}
 
-	private Set<String> getPermittedDockerRegistryActions(UserInfo userInfo, String service, String name, String[] actionTypes) {
+	private Set<String> getPermittedDockerRegistryActions(UserInfo userInfo, List<OAuthScope> oauthScopes, String service, String name, String[] actionTypes) {
 		if (name.equalsIgnoreCase(REGISTRY_CATALOG)) {
 			// OK, it's a request to list the catalog
-			if (userInfo.isAdmin()) { 
+			if (userInfo.isAdmin() && oauthScopes.contains(OAuthScope.view)) { 
 				// an admin can do *anything*
 				return new HashSet<String>(Arrays.asList(actionTypes));
 			} else {
@@ -574,7 +576,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		}
 	}
 
-	private Set<RegistryEventAction> getPermittedDockerRepositoryActions(UserInfo userInfo, String service, String repositoryPath, String[] actionTypes) {		Set<RegistryEventAction> permittedActions = new HashSet<RegistryEventAction>();
+	private Set<RegistryEventAction> getPermittedDockerRepositoryActions(UserInfo userInfo, List<OAuthScope> oauthScopes, String service, String repositoryPath, String[] actionTypes) {		Set<RegistryEventAction> permittedActions = new HashSet<RegistryEventAction>();
 
 		String repositoryName = service+DockerNameUtil.REPO_NAME_PATH_SEP+repositoryPath;
 
@@ -589,6 +591,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			RegistryEventAction requestedAction = RegistryEventAction.valueOf(requestedActionString);
 			switch (requestedAction) {
 			case push:
+				if (!oauthScopes.contains(OAuthScope.modify)) {
+					break; // No need to check specific permissions
+				}
 				// check CREATE or UPDATE permission and add to permittedActions
 				AuthorizationStatus as = null;
 				if (existingDockerRepoId==null) {
@@ -612,6 +617,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				}
 				break;
 			case pull:
+				if (!oauthScopes.contains(OAuthScope.download)) {
+					break; // No need to check specific permissions
+				}
 				if (
 					// check DOWNLOAD permission and add to permittedActions
 					(existingDockerRepoId!=null && !isInTrash && canAccess(
