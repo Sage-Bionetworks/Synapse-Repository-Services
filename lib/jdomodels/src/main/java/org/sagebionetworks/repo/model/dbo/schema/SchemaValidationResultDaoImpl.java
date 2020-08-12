@@ -12,7 +12,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCH
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SCHEMA_VALIDATION_RESULTS;
 
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 
 import org.json.JSONArray;
@@ -36,6 +35,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class SchemaValidationResultDaoImpl implements SchemaValidationResultDao {
 
+	public static final String VALIDATION_EXCEPTION = "validationException";
+	public static final String ALL_VALIDATION_MESSAGES = "allValidationMessages";
 	private JdbcTemplate jdbcTemplate;
 	private DBOBasicDao basicDao;
 
@@ -46,39 +47,35 @@ public class SchemaValidationResultDaoImpl implements SchemaValidationResultDao 
 		this.basicDao = basicDao;
 	}
 
-	public RowMapper<ValidationResults> VALIDATION_RESULT_ROW_MAPPER = new RowMapper<ValidationResults>() {
-
-		@Override
-		public ValidationResults mapRow(ResultSet rs, int rowNum) throws SQLException {
-			ValidationResults dto = new ValidationResults();
-			String allErrorsJson = rs.getString(COL_JSON_SCHEMA_VALIDATION_ALL_ERRORS);
-			String validationExceptionJson = rs.getString(COL_JSON_SCHEMA_VALIDATION_EXCEPTION);
-			JSONObject json = new JSONObject();
-			if (allErrorsJson != null) {
-				json.put("allValidationMessages", new JSONArray(allErrorsJson));
-			}
-			if (validationExceptionJson != null) {
-				json.put("validationException", new JSONObject(validationExceptionJson));
-			}
-			try {
-				dto.initializeFromJSONObject(new JSONObjectAdapterImpl(json));
-			} catch (JSONObjectAdapterException e) {
-				throw new RuntimeException(e);
-			}
-			dto.setObjectType(ObjectType.valueOf(rs.getString(COL_JSON_SCHEMA_VALIDATION_OBJECT_TYPE)));
-			Long objectIdLong = rs.getLong(COL_JSON_SCHEMA_VALIDATION_OBJECT_ID);
-			if (ObjectType.entity.equals(dto.getObjectType())) {
-				dto.setObjectId(KeyFactory.keyToString(objectIdLong));
-			} else {
-				dto.setObjectId(objectIdLong.toString());
-			}
-			dto.setObjectEtag(rs.getString(COL_JSON_SCHEMA_VALIDATION_OBJECT_ETAG));
-			dto.setSchema$id(rs.getString(COL_JSON_SCHEMA_VALIDATION_SCHEMA_ID));
-			dto.setIsValid(rs.getBoolean(COL_JSON_SCHEMA_VALIDATION_IS_VALID));
-			dto.setValidatedOn(rs.getTimestamp(COL_JSON_SCHEMA_VALIDATION_VALIDATED_ON));
-			dto.setValidationErrorMessage(rs.getString(COL_JSON_SCHEMA_VALIDATION_ERROR_MESSAGE));
-			return dto;
+	public static RowMapper<ValidationResults> VALIDATION_RESULT_ROW_MAPPER = (ResultSet rs, int rowNum) -> {
+		ValidationResults dto = new ValidationResults();
+		String allErrorsJson = rs.getString(COL_JSON_SCHEMA_VALIDATION_ALL_ERRORS);
+		String validationExceptionJson = rs.getString(COL_JSON_SCHEMA_VALIDATION_EXCEPTION);
+		JSONObject json = new JSONObject();
+		if (allErrorsJson != null) {
+			json.put(ALL_VALIDATION_MESSAGES, new JSONArray(allErrorsJson));
 		}
+		if (validationExceptionJson != null) {
+			json.put(VALIDATION_EXCEPTION, new JSONObject(validationExceptionJson));
+		}
+		try {
+			dto.initializeFromJSONObject(new JSONObjectAdapterImpl(json));
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+		dto.setObjectType(ObjectType.valueOf(rs.getString(COL_JSON_SCHEMA_VALIDATION_OBJECT_TYPE)));
+		Long objectIdLong = rs.getLong(COL_JSON_SCHEMA_VALIDATION_OBJECT_ID);
+		if (ObjectType.entity.equals(dto.getObjectType())) {
+			dto.setObjectId(KeyFactory.keyToString(objectIdLong));
+		} else {
+			dto.setObjectId(objectIdLong.toString());
+		}
+		dto.setObjectEtag(rs.getString(COL_JSON_SCHEMA_VALIDATION_OBJECT_ETAG));
+		dto.setSchema$id(rs.getString(COL_JSON_SCHEMA_VALIDATION_SCHEMA_ID));
+		dto.setIsValid(rs.getBoolean(COL_JSON_SCHEMA_VALIDATION_IS_VALID));
+		dto.setValidatedOn(rs.getTimestamp(COL_JSON_SCHEMA_VALIDATION_VALIDATED_ON));
+		dto.setValidationErrorMessage(rs.getString(COL_JSON_SCHEMA_VALIDATION_ERROR_MESSAGE));
+		return dto;
 	};
 
 	@WriteTransaction
@@ -119,7 +116,7 @@ public class SchemaValidationResultDaoImpl implements SchemaValidationResultDao 
 		try {
 			results.writeToJSONObject(adapter);
 		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
+			throw new IllegalStateException(e);
 		}
 		DBOSchemaValidationResults dbo = new DBOSchemaValidationResults();
 		dbo.setObjectId(KeyFactory.stringToKey(results.getObjectId()));
@@ -129,12 +126,12 @@ public class SchemaValidationResultDaoImpl implements SchemaValidationResultDao 
 		dbo.setIsValid(results.getIsValid());
 		dbo.setValidatedOn(new Timestamp(results.getValidatedOn().getTime()));
 		dbo.setErrorMessage(results.getValidationErrorMessage());
-		if (json.has("allValidationMessages")) {
-			JSONArray allMessages = json.getJSONArray("allValidationMessages");
+		if (json.has(ALL_VALIDATION_MESSAGES)) {
+			JSONArray allMessages = json.getJSONArray(ALL_VALIDATION_MESSAGES);
 			dbo.setAllErrorMessages(allMessages.toString());
 		}
-		if (json.has("validationException")) {
-			JSONObject exception = json.getJSONObject("validationException");
+		if (json.has(VALIDATION_EXCEPTION)) {
+			JSONObject exception = json.getJSONObject(VALIDATION_EXCEPTION);
 			dbo.setValidationException(exception.toString());
 		}
 		return dbo;

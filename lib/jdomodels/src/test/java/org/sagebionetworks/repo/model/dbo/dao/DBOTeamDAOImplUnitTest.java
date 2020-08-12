@@ -78,7 +78,7 @@ public class DBOTeamDAOImplUnitTest {
 		ArgumentCaptor<ObjectType> objectTypeCapture = ArgumentCaptor.forClass(ObjectType.class);
 		ArgumentCaptor<String> etagCapture = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<ChangeType> typeCapture = ArgumentCaptor.forClass(ChangeType.class);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(idCapture.capture(), objectTypeCapture.capture(), etagCapture.capture(), typeCapture.capture());
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(idCapture.capture(), objectTypeCapture.capture(), typeCapture.capture());
 		assertEquals(team.getId(), idCapture.getValue());
 		assertEquals(ObjectType.PRINCIPAL, objectTypeCapture.getValue());
 		assertNotNull(etagCapture.getValue());
@@ -92,7 +92,7 @@ public class DBOTeamDAOImplUnitTest {
 		ArgumentCaptor<ObjectType> objectTypeCapture = ArgumentCaptor.forClass(ObjectType.class);
 		ArgumentCaptor<String> etagCapture = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<ChangeType> typeCapture = ArgumentCaptor.forClass(ChangeType.class);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(idCapture.capture(), objectTypeCapture.capture(), etagCapture.capture(), typeCapture.capture());
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(idCapture.capture(), objectTypeCapture.capture(), typeCapture.capture());
 		assertEquals(team.getId(), idCapture.getValue());
 		assertEquals(ObjectType.PRINCIPAL, objectTypeCapture.getValue());
 		assertNotNull(etagCapture.getValue());

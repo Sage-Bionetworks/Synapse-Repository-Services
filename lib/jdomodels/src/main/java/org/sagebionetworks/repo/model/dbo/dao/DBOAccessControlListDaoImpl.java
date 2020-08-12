@@ -260,8 +260,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		populateResourceAccess(dbo.getId(), acl.getResourceAccess());
 
 		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(),
-				ObjectType.ACCESS_CONTROL_LIST, acl.getEtag(),
-				ChangeType.CREATE);
+				ObjectType.ACCESS_CONTROL_LIST, ChangeType.CREATE);
 		return acl.getId(); // This preserves the "syn" prefix
 	}
 
@@ -433,8 +432,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		populateResourceAccess(dbo.getId(), acl.getResourceAccess());
 
 		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(),
-				ObjectType.ACCESS_CONTROL_LIST, acl.getEtag(),
-				ChangeType.UPDATE);
+				ObjectType.ACCESS_CONTROL_LIST, ChangeType.UPDATE);
 	}
 
 	@WriteTransaction
@@ -452,8 +450,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 			dboBasicDao.deleteObjectByPrimaryKey(DBOAccessControlList.class,
 					params);
 			transactionalMessenger.sendMessageAfterCommit(dboId.toString(),
-					ObjectType.ACCESS_CONTROL_LIST, UUID.randomUUID()
-							.toString(), ChangeType.DELETE);
+					ObjectType.ACCESS_CONTROL_LIST, ChangeType.DELETE);
 		} catch (NotFoundException e) {
 			// if there is no valid AclId for this ownerId and ownerType, do
 			// nothing
@@ -477,8 +474,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		List<Long> aclIds = getAclIds(ownerIds, ownerType);
 		for (Long aclId : aclIds) {
 			transactionalMessenger.sendMessageAfterCommit(aclId.toString(),
-					ObjectType.ACCESS_CONTROL_LIST, UUID.randomUUID()
-							.toString(), ChangeType.DELETE);
+					ObjectType.ACCESS_CONTROL_LIST, ChangeType.DELETE);
 		}
 
 		MapSqlParameterSource params = new MapSqlParameterSource();

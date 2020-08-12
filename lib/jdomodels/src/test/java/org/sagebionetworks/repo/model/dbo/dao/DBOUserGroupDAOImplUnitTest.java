@@ -83,7 +83,7 @@ public class DBOUserGroupDAOImplUnitTest {
 		ArgumentCaptor<ObjectType> objectTypeCapture = ArgumentCaptor.forClass(ObjectType.class);
 		ArgumentCaptor<String> etagCapture = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<ChangeType> typeCapture = ArgumentCaptor.forClass(ChangeType.class);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(idCapture.capture().toString(), objectTypeCapture.capture(), etagCapture.capture(), typeCapture.capture());
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(idCapture.capture().toString(), objectTypeCapture.capture(), typeCapture.capture());
 		assertEquals(idCapture.getValue(), id.toString());
 		assertEquals(ObjectType.PRINCIPAL, objectTypeCapture.getValue());
 		assertNotNull(etagCapture.getValue());
@@ -97,7 +97,7 @@ public class DBOUserGroupDAOImplUnitTest {
 		ArgumentCaptor<ObjectType> objectTypeCapture = ArgumentCaptor.forClass(ObjectType.class);
 		ArgumentCaptor<String> etagCapture = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<ChangeType> typeCapture = ArgumentCaptor.forClass(ChangeType.class);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(idCapture.capture().toString(), objectTypeCapture.capture(), etagCapture.capture(), typeCapture.capture());
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(idCapture.capture().toString(), objectTypeCapture.capture(), typeCapture.capture());
 		assertEquals(idCapture.getValue(), id.toString());
 		assertEquals(ObjectType.PRINCIPAL, objectTypeCapture.getValue());
 		assertNotNull(etagCapture.getValue());

@@ -34,7 +34,7 @@ public class EntitySchemaValidatorImplTest {
 	private SchemaValidationResultDao mockSchemaValidationResultDao;
 
 	@InjectMocks
-	private EntitySchemaValidatorImpl manager;
+	private EntitySchemaValidator manager;
 
 	String entityId;
 	String schema$id;

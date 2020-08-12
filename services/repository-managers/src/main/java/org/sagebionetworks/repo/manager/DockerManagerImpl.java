@@ -183,7 +183,7 @@ public class DockerManagerImpl implements DockerManager {
 		authStatus.checkAuthorizationOrElseThrow();
 		commit.setCreatedOn(new Date());
 		String newEntityEtag = dockerCommitDao.createDockerCommit(entityId, userInfo.getId(), commit);
-		transactionalMessenger.sendMessageAfterCommit(entityId, ObjectType.ENTITY, newEntityEtag, ChangeType.UPDATE);
+		transactionalMessenger.sendMessageAfterCommit(entityId, ObjectType.ENTITY, ChangeType.UPDATE);
 	}
 
 	@Override
