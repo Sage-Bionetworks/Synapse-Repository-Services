@@ -35,8 +35,8 @@ public class ITMigrationTest {
 		});
 		
 		// Set service basic auth
-		String key = stackConfig.getServiceAuthKey(StackConfiguration.SERVICE_MIGRATION);
-		String secret = stackConfig.getServiceAuthSecret(StackConfiguration.SERVICE_MIGRATION);
+		String key = stackConfig.getServiceAuthKey(StackConfiguration.SERVICE_ADMIN);
+		String secret = stackConfig.getServiceAuthSecret(StackConfiguration.SERVICE_ADMIN);
 		
 		adminSynapse.setBasicAuthorizationCredentials(key, secret);
 		

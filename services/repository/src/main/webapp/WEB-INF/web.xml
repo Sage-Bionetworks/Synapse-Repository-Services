@@ -105,9 +105,9 @@
 		<url-pattern>/file/v1/*</url-pattern>
 	</filter-mapping>
 	
-	<!-- Filter that authenticate the migration services using basic auth -->
+	<!-- Filter that authenticate the administrative and migration services using basic auth -->
 	<filter>
-		<filter-name>migrationServiceAuthFilter</filter-name>
+		<filter-name>adminServiceAuthFilter</filter-name>
 		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
 		<init-param>
 			<!-- Make sure the init-params are passed through the proxy to the bean -->
@@ -117,9 +117,9 @@
 	</filter>
 	
 	<filter-mapping>
-		<filter-name>migrationServiceAuthFilter</filter-name>
-		<url-pattern>/repo/v1/migration/*</url-pattern>
+		<filter-name>adminServiceAuthFilter</filter-name>
 		<url-pattern>/repo/v1/admin/*</url-pattern>
+		<url-pattern>/repo/v1/migration/*</url-pattern>
 	</filter-mapping>
 
 	<!-- This filter will look for the session token as a cookie, if it finds
