@@ -27,6 +27,7 @@ import static org.sagebionetworks.repo.manager.EntityManagerImpl.DEFAULT_SORT_DI
 import static org.sagebionetworks.repo.model.NextPageToken.DEFAULT_LIMIT;
 import static org.sagebionetworks.repo.model.NextPageToken.DEFAULT_OFFSET;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -1048,11 +1049,107 @@ public class EntityManagerImplUnitTest {
 	
 	@Test
 	public void testGetInvalidEntitySchemaValidationResults() {
-		Set<Long> nonVisibleChildren = Sets.newHashSet(111L,222L);
+		Set<Long> nonVisibleChildren = Sets.newHashSet(111L, 222L);
 		doReturn(nonVisibleChildren).when(entityManagerSpy).authorizedListChildren(any(), any());
-		when()
+		List<ValidationResults> page = createValidationResultsListOfSize(5);
+		when(mockEntitySchemaValidationResultDao.getInvalidEntitySchemaValidationPage(any(), any(), anyLong(), anyLong()))
+				.thenReturn(page);
 		ListValidationResultsRequest request = new ListValidationResultsRequest();
+		request.setContainerId(entityId);
+
 		// call under test
-		ListValidationResultsResponse response = entityManagerSpy.getInvalidEntitySchemaValidationResults(mockUser, request);
+		ListValidationResultsResponse response = entityManagerSpy.getInvalidEntitySchemaValidationResults(mockUser,
+				request);
+		assertNotNull(response);
+		assertEquals(page, response.getPage());
+		assertNull(response.getNextPageToken());
+		verify(entityManagerSpy).authorizedListChildren(mockUser, entityId);
+		long expectedLimit = NextPageToken.DEFAULT_LIMIT+1;
+		long expectedOffset = 0L;
+		verify(mockEntitySchemaValidationResultDao).getInvalidEntitySchemaValidationPage(entityId, nonVisibleChildren,
+				expectedLimit, expectedOffset);
 	}
+	
+	@Test
+	public void testGetInvalidEntitySchemaValidationResultsWithReturnedNextPageToken() {
+		Set<Long> nonVisibleChildren = Sets.newHashSet(111L, 222L);
+		doReturn(nonVisibleChildren).when(entityManagerSpy).authorizedListChildren(any(), any());
+		// first page results includes one more item than the default limit.
+		List<ValidationResults> page = createValidationResultsListOfSize((int) (NextPageToken.DEFAULT_LIMIT+1));
+		when(mockEntitySchemaValidationResultDao.getInvalidEntitySchemaValidationPage(any(), any(), anyLong(), anyLong()))
+				.thenReturn(page);
+		ListValidationResultsRequest request = new ListValidationResultsRequest();
+		request.setContainerId(entityId);
+
+		// call under test
+		ListValidationResultsResponse response = entityManagerSpy.getInvalidEntitySchemaValidationResults(mockUser,
+				request);
+		assertNotNull(response);
+		assertEquals(page, response.getPage());
+		String expectedNextPage = new NextPageToken(NextPageToken.DEFAULT_LIMIT, NextPageToken.DEFAULT_LIMIT).toToken();
+		assertEquals(expectedNextPage, response.getNextPageToken());
+		verify(entityManagerSpy).authorizedListChildren(mockUser, entityId);
+		long expectedLimit = NextPageToken.DEFAULT_LIMIT+1;
+		long expectedOffset = 0L;
+		verify(mockEntitySchemaValidationResultDao).getInvalidEntitySchemaValidationPage(entityId, nonVisibleChildren,
+				expectedLimit, expectedOffset);
+	}
+	
+	@Test
+	public void testGetInvalidEntitySchemaValidationResultsWithInputNextPage() {
+		Set<Long> nonVisibleChildren = Sets.newHashSet(111L, 222L);
+		doReturn(nonVisibleChildren).when(entityManagerSpy).authorizedListChildren(any(), any());
+		List<ValidationResults> page = createValidationResultsListOfSize(2);
+		when(mockEntitySchemaValidationResultDao.getInvalidEntitySchemaValidationPage(any(), any(), anyLong(), anyLong()))
+				.thenReturn(page);
+		ListValidationResultsRequest request = new ListValidationResultsRequest();
+		request.setContainerId(entityId);
+		long inputLimit = 25;
+		long inputOffset = 250;
+		request.setNextPageToken( new NextPageToken(inputLimit, inputOffset).toToken());
+
+		// call under test
+		ListValidationResultsResponse response = entityManagerSpy.getInvalidEntitySchemaValidationResults(mockUser,
+				request);
+		assertNotNull(response);
+		assertEquals(page, response.getPage());
+		String expectedNextPage = null;
+		assertEquals(expectedNextPage, response.getNextPageToken());
+		verify(entityManagerSpy).authorizedListChildren(mockUser, entityId);
+		long expectedLimit = inputLimit+1;
+		long expectedOffset = inputOffset;
+		verify(mockEntitySchemaValidationResultDao).getInvalidEntitySchemaValidationPage(entityId, nonVisibleChildren,
+				expectedLimit, expectedOffset);
+	}
+	
+	@Test
+	public void testGetInvalidEntitySchemaValidationResultsWithNullRequest() {
+		ListValidationResultsRequest request = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			entityManagerSpy.getInvalidEntitySchemaValidationResults(mockUser, request);
+		});
+	}
+	
+	@Test
+	public void testGetInvalidEntitySchemaValidationResultsWithNullContainerId() {
+		ListValidationResultsRequest request = new ListValidationResultsRequest();
+		request.setContainerId(null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			entityManagerSpy.getInvalidEntitySchemaValidationResults(mockUser, request);
+		});
+	}
+	
+	static public List<ValidationResults> createValidationResultsListOfSize(int size){
+		List<ValidationResults> list = new ArrayList<ValidationResults>(size);
+		for(int i=0; i<size; i++) {
+			ValidationResults r = new ValidationResults();
+			r.setObjectId(Integer.toString(i));
+			r.setObjectType(org.sagebionetworks.repo.model.schema.ObjectType.entity);
+			list.add(r);
+		}
+		return list;
+	}
+	
 }

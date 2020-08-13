@@ -258,8 +258,11 @@ import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoRequest;
 import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsRequest;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
+import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsRequest;
@@ -5849,6 +5852,21 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(entityId, "entityId");
 		String url = "/entity/"+entityId+"/schema/validation";
 		return getJSONEntity(getRepoEndpoint(), url, ValidationResults.class);
+	}
+	
+	@Override
+	public ValidationSummaryStatistics getEntitySchemaValidationStatistics(String entityId) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		String url = "/entity/"+entityId+"/schema/validation/statistics";
+		return getJSONEntity(getRepoEndpoint(), url, ValidationSummaryStatistics.class);
+	}
+	
+	@Override
+	public ListValidationResultsResponse getInvalidValidationResults(ListValidationResultsRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getContainerId(), "request.containerId");
+		String url = "/entity/"+request.getContainerId()+"/schema/validation/invalid";
+		return putJSONEntity(getRepoEndpoint(), url, request, ListValidationResultsResponse.class);
 	}
 
 }
