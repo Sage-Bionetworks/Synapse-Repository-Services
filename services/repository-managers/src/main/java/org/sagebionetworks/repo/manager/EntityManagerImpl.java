@@ -33,6 +33,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
+import org.sagebionetworks.repo.model.dbo.schema.EntitySchemaValidationResultDao;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
@@ -56,10 +58,6 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Lists;
-
-import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
-import org.sagebionetworks.repo.model.dbo.schema.EntitySchemaValidationResultDao;
-import org.sagebionetworks.repo.model.dbo.schema.SchemaValidationResultDao;
 /**
  *
  */
@@ -508,14 +506,8 @@ public class EntityManagerImpl implements EntityManager {
 		if (request.getSortDirection() == null) {
 			request.setSortDirection(DEFAULT_SORT_DIRECTION);
 		}
-		if (!ROOT_ID.equals(request.getParentId())) {
-			// Validate the caller has read access to the parent
-			entityPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, user)
-					.checkAuthorizationOrElseThrow();
-		}
-
 		// Find the children of this entity that the caller cannot see.
-		Set<Long> childIdsToExclude = entityPermissionsManager.getNonvisibleChildren(user, request.getParentId());
+		Set<Long> childIdsToExclude = authorizedListChildren(user, request.getParentId());
 		NextPageToken nextPage = new NextPageToken(request.getNextPageToken());
 		List<EntityHeader> page = nodeManager.getChildren(request.getParentId(), request.getIncludeTypes(),
 				childIdsToExclude, request.getSortBy(), request.getSortDirection(), nextPage.getLimitForQuery(),
@@ -543,7 +535,7 @@ public class EntityManagerImpl implements EntityManager {
 			// Null parentId is used to look up projects.
 			request.setParentId(ROOT_ID);
 		}
-		if (!ROOT_ID.equals(request.getParentId())) {
+		if (!NodeUtils.isRootEntityId(request.getParentId())) {
 			if (!entityPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, userInfo).isAuthorized()) {
 				throw new UnauthorizedException("Lack of READ permission on the parent entity.");
 			}
@@ -683,8 +675,14 @@ public class EntityManagerImpl implements EntityManager {
 		return response;
 	}
 	
+	/**
+	 * If the passed container ID is not the root Entity, then the caller must have the READ permission on the container.
+	 * @param userInfo
+	 * @param containerId
+	 * @return The children IDs of the container that the caller does not have the READ permission.
+	 */
 	Set<Long> authorizedListChildren(UserInfo userInfo, String containerId){
-		if (!ROOT_ID.equals(containerId)) {
+		if (!NodeUtils.isRootEntityId((containerId))) {
 			// The caller must have read on the container.
 			entityPermissionsManager.hasAccess(containerId, ACCESS_TYPE.READ, userInfo)
 					.checkAuthorizationOrElseThrow();
