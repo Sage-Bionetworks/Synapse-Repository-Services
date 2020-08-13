@@ -26,7 +26,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.dataaccess.AccessApprovalNotificationManager;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationType;
-import org.sagebionetworks.repo.model.dbo.feature.Feature;
+import org.sagebionetworks.repo.model.feature.Feature;
 
 @ExtendWith(MockitoExtension.class)
 public class AccessApprovalReminderNotificationWorkerUnitTest {
