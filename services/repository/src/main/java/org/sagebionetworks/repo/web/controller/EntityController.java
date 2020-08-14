@@ -1740,7 +1740,7 @@ public class EntityController {
 	 */
 	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.ENTITY_ID_VALIDATION_INVALID }, method = RequestMethod.PUT)
+	@RequestMapping(value = { UrlHelpers.ENTITY_ID_VALIDATION_INVALID }, method = RequestMethod.POST)
 	public @ResponseBody ListValidationResultsResponse getInvalidValidationResults(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(required = true) String id,

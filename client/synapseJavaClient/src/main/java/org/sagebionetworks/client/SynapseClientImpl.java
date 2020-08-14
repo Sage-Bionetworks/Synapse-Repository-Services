@@ -5866,7 +5866,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getContainerId(), "request.containerId");
 		String url = "/entity/"+request.getContainerId()+"/schema/validation/invalid";
-		return putJSONEntity(getRepoEndpoint(), url, request, ListValidationResultsResponse.class);
+		return postJSONEntity(getRepoEndpoint(), url, request, ListValidationResultsResponse.class);
 	}
 
 }
