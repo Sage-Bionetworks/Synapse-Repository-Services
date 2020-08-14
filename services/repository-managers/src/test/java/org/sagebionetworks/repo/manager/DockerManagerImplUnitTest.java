@@ -315,7 +315,7 @@ public class DockerManagerImplUnitTest {
 		
 		verify(dockerCommitDao).createDockerCommit(REPO_ENTITY_ID, USER_ID, commit);
 		verify(transactionalMessenger).sendMessageAfterCommit(
-				eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), any(), eq(ChangeType.UPDATE));
+				eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ChangeType.UPDATE));
 	}
 	
 	@Test(expected=IllegalArgumentException.class)

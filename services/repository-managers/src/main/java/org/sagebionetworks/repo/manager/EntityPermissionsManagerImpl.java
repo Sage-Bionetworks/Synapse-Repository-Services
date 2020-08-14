@@ -181,7 +181,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// Send a container message for projects or folders.
 		if(NodeUtils.isProjectOrFolder(node.getNodeType())){
 			// Notify listeners of the hierarchy change to this container.
-			transactionalMessenger.sendMessageAfterCommit(entityId, ObjectType.ENTITY_CONTAINER, newEtag, ChangeType.UPDATE);
+			transactionalMessenger.sendMessageAfterCommit(entityId, ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
 		}
 		return acl;
 	}
@@ -215,7 +215,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			 *  Notify listeners of the hierarchy change to this container.
 			 *  See PLFM-4410.
 			 */
-			transactionalMessenger.sendMessageAfterCommit(entityId, ObjectType.ENTITY_CONTAINER, newEtag, ChangeType.UPDATE);
+			transactionalMessenger.sendMessageAfterCommit(entityId, ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
 		}
 		
 		return aclDAO.get(benefactor, ObjectType.ENTITY);

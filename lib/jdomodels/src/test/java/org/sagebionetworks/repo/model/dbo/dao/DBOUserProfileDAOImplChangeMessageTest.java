@@ -52,7 +52,7 @@ public class DBOUserProfileDAOImplChangeMessageTest {
 	public void testCreate() {
 		dao.create(dto);
 		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(dto.getOwnerId(),
-				ObjectType.PRINCIPAL, dto.getEtag(), ChangeType.CREATE);
+				ObjectType.PRINCIPAL, ChangeType.CREATE);
 	}
 
 	@Test
@@ -62,7 +62,7 @@ public class DBOUserProfileDAOImplChangeMessageTest {
 		ArgumentCaptor<ObjectType> objectTypeArgCaptor = ArgumentCaptor.forClass(ObjectType.class);
 		ArgumentCaptor<ChangeType> changeTypeCaptor = ArgumentCaptor.forClass(ChangeType.class);
 		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(ownerIdArgCaptor.capture(),
-				objectTypeArgCaptor.capture(), Mockito.anyString(), changeTypeCaptor.capture());
+				objectTypeArgCaptor.capture(), changeTypeCaptor.capture());
 		assertEquals(ownerIdArgCaptor.getValue(), dto.getOwnerId());
 		assertEquals(objectTypeArgCaptor.getValue(), ObjectType.PRINCIPAL);
 		assertEquals(changeTypeCaptor.getValue(), ChangeType.UPDATE);

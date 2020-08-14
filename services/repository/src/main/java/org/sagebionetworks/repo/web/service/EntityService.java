@@ -27,7 +27,10 @@ import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsRequest;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsResponse;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
+import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.repo.model.sts.StsCredentials;
 import org.sagebionetworks.repo.model.sts.StsPermission;
 import org.sagebionetworks.repo.queryparser.ParseException;
@@ -681,4 +684,20 @@ public interface EntityService {
 	 * @return
 	 */
 	public ValidationResults getEntitySchemaValidationResults(Long userId, String id);
+
+	/**
+	 * Get the JSON schema validation statistics for the given container.
+	 * @param userId
+	 * @param entityId
+	 * @return
+	 */
+	public ValidationSummaryStatistics getEntitySchemaValidationSummaryStatistics(Long userId, String entityId);
+
+	/**
+	 * Get a single page of invalid JSON schema validation results for the given container.
+	 * @param userId
+	 * @param request
+	 * @return
+	 */
+	public ListValidationResultsResponse getInvalidEntitySchemaValidationResults(Long userId, ListValidationResultsRequest request);
 }

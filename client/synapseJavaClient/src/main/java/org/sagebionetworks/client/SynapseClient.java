@@ -215,8 +215,11 @@ import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoRequest;
 import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsRequest;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
+import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsRequest;
@@ -3809,5 +3812,27 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	ValidationResults getEntityValidationResults(String entityId) throws SynapseException;
+
+	/**
+	 * Get the The summary statistics of the JSON schema validation results for a
+	 * single container Entity such as a Project or Folder. Only direct children of
+	 * the container are included in the results. The statistics include the total
+	 * number of children in the container, and the counts for both the invalid and
+	 * valid children.
+	 * @param containerId
+	 * @return
+	 * @throws SynapseException
+	 */
+	ValidationSummaryStatistics getEntitySchemaValidationStatistics(String containerId) throws SynapseException;
+
+	/**
+	 * Get a single page of invalid JSON schema validation results for a container
+	 * Entity (Project or Folder).
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	ListValidationResultsResponse getInvalidValidationResults(ListValidationResultsRequest request)
+			throws SynapseException;
 
 }

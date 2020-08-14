@@ -235,7 +235,9 @@ public class UrlHelpers {
 	public static final String ENTITY_BIND_JSON_SCHEMA = ENTITY_ID+"/schema/binding";
 	
 	public static final String ENTITY_ID_JSON = ENTITY_ID+"/json";
-	public static final String ENTITY_ID_VALIDATION = ENTITY_ID+"/"+"schema/validation";
+	public static final String ENTITY_ID_VALIDATION = ENTITY_ID+"/schema/validation";
+	public static final String ENTITY_ID_VALIDATION_STATISTICS = ENTITY_ID_VALIDATION+"/statistics";
+	public static final String ENTITY_ID_VALIDATION_INVALID = ENTITY_ID_VALIDATION+"/invalid";
 	
 	public static final String BULK_FILE_DOWNLOAD = FILE + "/bulk";
 	public static final String BULK_FILE_DOWNLOAD_ASYNC_START = BULK_FILE_DOWNLOAD + ASYNC_START_REQUEST;

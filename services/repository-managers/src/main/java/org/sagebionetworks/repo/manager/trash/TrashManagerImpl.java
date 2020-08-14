@@ -138,7 +138,7 @@ public class TrashManagerImpl implements TrashManager {
 		// Clear the modified data and fill it in with the new data
 		if(NodeUtils.isProjectOrFolder(node.getNodeType())){
 			// This message will trigger a worker to send a message for each child of this hierarchy.
-			transactionalMessenger.sendMessageAfterCommit(node.getId(), ObjectType.ENTITY_CONTAINER, nextETag, changeType);
+			transactionalMessenger.sendMessageAfterCommit(node.getId(), ObjectType.ENTITY_CONTAINER, changeType);
 		}
 		// update the node
 		nodeDao.updateNode(node);
