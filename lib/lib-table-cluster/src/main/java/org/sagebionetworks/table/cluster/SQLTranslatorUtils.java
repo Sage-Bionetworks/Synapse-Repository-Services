@@ -1,22 +1,10 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.common.collect.Lists;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -27,12 +15,61 @@ import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslati
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.*;
+import org.sagebionetworks.table.query.model.ArrayFunctionSpecification;
+import org.sagebionetworks.table.query.model.ArrayFunctionType;
+import org.sagebionetworks.table.query.model.ArrayHasPredicate;
+import org.sagebionetworks.table.query.model.BacktickDelimitedIdentifier;
+import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
+import org.sagebionetworks.table.query.model.BooleanPrimary;
+import org.sagebionetworks.table.query.model.ColumnName;
+import org.sagebionetworks.table.query.model.ColumnNameReference;
+import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.DelimitedIdentifier;
+import org.sagebionetworks.table.query.model.DerivedColumn;
+import org.sagebionetworks.table.query.model.Element;
+import org.sagebionetworks.table.query.model.FromClause;
+import org.sagebionetworks.table.query.model.FunctionReturnType;
+import org.sagebionetworks.table.query.model.GroupByClause;
+import org.sagebionetworks.table.query.model.HasFunctionReturnType;
+import org.sagebionetworks.table.query.model.HasPredicate;
+import org.sagebionetworks.table.query.model.HasReferencedColumn;
+import org.sagebionetworks.table.query.model.HasReplaceableChildren;
+import org.sagebionetworks.table.query.model.InPredicate;
+import org.sagebionetworks.table.query.model.InPredicateValue;
+import org.sagebionetworks.table.query.model.IntervalLiteral;
+import org.sagebionetworks.table.query.model.JoinCondition;
+import org.sagebionetworks.table.query.model.JoinType;
+import org.sagebionetworks.table.query.model.OrderByClause;
+import org.sagebionetworks.table.query.model.OuterJoinType;
+import org.sagebionetworks.table.query.model.Pagination;
+import org.sagebionetworks.table.query.model.Predicate;
+import org.sagebionetworks.table.query.model.QualifiedJoin;
+import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.RegularIdentifier;
+import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.model.StringOverride;
+import org.sagebionetworks.table.query.model.TableExpression;
+import org.sagebionetworks.table.query.model.TableName;
+import org.sagebionetworks.table.query.model.TableReference;
+import org.sagebionetworks.table.query.model.UnsignedLiteral;
+import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
+import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
 
-import com.google.common.collect.Lists;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 /**
  * Helper methods to translate user generated queries
@@ -494,7 +531,6 @@ public class SQLTranslatorUtils {
 
 		// handle the right-hand-side values
 		Iterable<UnsignedLiteral> rightHandSide = predicate.getRightHandSideValues();
-		System.out.println(predicate.getRightHandSideValues().toString());
 		if(rightHandSide != null){
 			ColumnType columnType = columnTranslationReference.getColumnType();
 			//for the ArrayHasPredicate, we want its corresponding non-list type to be used
@@ -543,7 +579,6 @@ public class SQLTranslatorUtils {
 		
 		String key = BIND_PREFIX+parameters.size();
 		String value = element.toSqlWithoutQuotes();
-		System.out.println(value);
 		Object valueObject = null;
 		try{
 			valueObject = SQLUtils.parseValueForDB(type, value);

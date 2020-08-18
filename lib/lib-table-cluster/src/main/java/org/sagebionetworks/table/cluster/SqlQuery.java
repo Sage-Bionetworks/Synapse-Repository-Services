@@ -165,7 +165,6 @@ public class SqlQuery {
 
 		// This map will contain all of the 
 		this.parameters = new HashMap<String, Object>();
-		//Add the userId
 
 
 		this.columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(tableSchema);
