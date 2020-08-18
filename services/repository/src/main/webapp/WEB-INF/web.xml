@@ -32,8 +32,14 @@
 	 See PLFM-3205 & PLFM-3206  -->
 	<filter>
 		<filter-name>unexpectedExceptionFilter</filter-name>
-		<filter-class>org.sagebionetworks.repo.web.filter.UnexpectedExceptionFilter</filter-class>
+		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+		<init-param>
+			<!-- Make sure the init-params are passed through the proxy to the bean -->
+			<param-name>targetFilterLifecycle</param-name>
+			<param-value>true</param-value>
+		</init-param>
 	</filter>
+	
 	<filter-mapping>
 		<filter-name>unexpectedExceptionFilter</filter-name>
 		<url-pattern>/*</url-pattern>
