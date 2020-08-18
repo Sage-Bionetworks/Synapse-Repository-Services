@@ -79,6 +79,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
@@ -1415,6 +1416,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 		
 		return param;
+	}
+
+	@Override
+	public void refreshViewBenefactors(IdAndVersion viewId, ViewScopeType scopeType) {
+		ValidateArgument.required(viewId, "viewId");
+		ValidateArgument.required(scopeType, "scopeType");
+		ValidateArgument.required(scopeType.getObjectType(), "scopeType.objectType");
+		String sql = SQLUtils.generateSqlToRefreshViewBenefactors(viewId);
+		template.update(sql, scopeType.getObjectType().name());
 	}
 	
 }

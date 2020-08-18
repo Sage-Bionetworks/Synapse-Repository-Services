@@ -305,6 +305,7 @@ public class TableViewIntegrationTest {
 			for(String id: entitiesToDelete){
 				try {
 					entityManager.deleteEntity(adminUserInfo, id);
+
 				} catch (Exception e) {}
 			}
 		}
@@ -1289,6 +1290,95 @@ public class TableViewIntegrationTest {
 			List<Row> rows = extractRows(queryResults);
 			assertEquals(3, rows.size());
 		});
+	}
+	
+	/**
+	 * See PLFM-6398.
+	 * For this test a project is created with two folders, each with an ACL granting the caller read access.
+	 * The ACL at the project level does not grant the user read access.  At the start the user should be able
+	 * to see the files in the two folders but not the files in the project.  At that point a view snapshot is created.
+	 * Next the one of the ACLs is removed from one of the folders so the folder inherits its ACL from the project.
+	 * A query of the snapshot should now show only the files from the folder that still has an ACL.
+	 *  
+	 * @throws Exception
+	 */
+	@Test
+	public void testViewSnapshotPLFM_6398() throws Exception {
+		// Add a folder to the existing project
+		Folder folderOne = new Folder();
+		folderOne.setParentId(project.getId());
+		folderOne.setName("folderOne");
+		String folderOneId = entityManager.createEntity(adminUserInfo, folderOne, null);
+		entitiesToDelete.add(folderOneId);
+		// Add an ACL on the folder
+		AccessControlList acl = AccessControlListUtil.createACL(folderOneId, userInfo, Sets.newHashSet(ACCESS_TYPE.READ), new Date(System.currentTimeMillis()));
+		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
+		// Add a file to the folder
+		FileEntity fileOne = new FileEntity();
+		fileOne.setName("fileOne");
+		fileOne.setDataFileHandleId(sharedHandle.getId());
+		fileOne.setParentId(folderOneId);
+		String fileOneId = entityManager.createEntity(adminUserInfo, fileOne, null);
+		Long fileOneIdLong = KeyFactory.stringToKey(fileOneId);
+
+		Folder folderTwo = new Folder();
+		folderTwo.setParentId(project.getId());
+		folderTwo.setName("folderTwo");
+		String folderTwoId = entityManager.createEntity(adminUserInfo, folderTwo, null);
+		entitiesToDelete.add(folderTwoId);
+		// Add an ACL on the folder
+		acl = AccessControlListUtil.createACL(folderTwoId, userInfo, Sets.newHashSet(ACCESS_TYPE.READ), new Date(System.currentTimeMillis()));
+		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
+		// Add a file to the folder
+		FileEntity fileTwo = new FileEntity();
+		fileTwo.setName("fileTwo");
+		fileTwo.setDataFileHandleId(sharedHandle.getId());
+		fileTwo.setParentId(folderTwoId);
+		String fileTwoId = entityManager.createEntity(adminUserInfo, fileTwo, null);
+		Long fileTwoIdLong = KeyFactory.stringToKey(fileTwoId);
+		
+		// create the view for this scope
+		createFileView();
+		// grant the user read on the view.
+		acl = AccessControlListUtil.createACL(fileViewId, userInfo, Sets.newHashSet(ACCESS_TYPE.READ), new Date(System.currentTimeMillis()));
+		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
+		// wait for the view to be available for query
+		waitForEntityReplication(fileViewId, fileViewId);
+		
+		// Create a snapshot for this view
+		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
+		transactionRequest.setEntityId(fileViewId);
+		transactionRequest.setCreateSnapshot(true);
+		
+		startAndWaitForJob(adminUserInfo, transactionRequest, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+			assertEquals(new Long(1), response.getSnapshotVersionNumber());
+		});
+		
+		// query for the file that inherits from the folder.
+		String sql = "select * from "+fileViewId+".1 ORDER BY ROW_ID ASC";
+		
+		waitForConsistentQuery(userInfo, sql, (results) -> {			
+			List<Row> rows  = extractRows(results);
+			assertEquals(2, rows.size());
+			Row row = rows.get(0);
+			assertEquals(fileOneIdLong, row.getRowId());
+			row = rows.get(1);
+			assertEquals(fileTwoIdLong, row.getRowId());
+		});
+		
+		/*
+		 * Removing the ACL on the folder one should remove file one from the snapshot.
+		 */
+		entityPermissionsManager.restoreInheritance(folderOneId, adminUserInfo);
+		
+		waitForConsistentQuery(userInfo, sql, (results) -> {			
+			List<Row> rows  = extractRows(results);
+			assertEquals(1, rows.size());
+			Row row = rows.get(0);
+			assertEquals(fileTwoIdLong, row.getRowId());
+		});
+		
 	}
 	
 	/**

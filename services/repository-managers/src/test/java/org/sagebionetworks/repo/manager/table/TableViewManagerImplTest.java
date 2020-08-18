@@ -1226,7 +1226,7 @@ public class TableViewManagerImplTest {
 		String expectedKey = TableViewManagerImpl.VIEW_DELTA_KEY_PREFIX+idAndVersion.toString();
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedKey),
 				any());
-		verify(managerSpy).applyChangesToAvailableViewHoldingLock(idAndVersion);
+		verify(managerSpy).applyChangesToAvailableView(idAndVersion);
 	}
 	
 	/**
@@ -1306,7 +1306,7 @@ public class TableViewManagerImplTest {
 		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, scopeType, allContainersInScope,
 				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(rowsToUpdate);
 		// call under test
-		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
+		manager.applyChangesToAvailableView(idAndVersion);
 		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
 		verify(mockIndexManager, never()).updateViewRowsInTransaction(any(IdAndVersion.class), anySet(), any(),
 				anySet(), anyList());
@@ -1321,7 +1321,7 @@ public class TableViewManagerImplTest {
 		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, scopeType, allContainersInScope,
 				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(rowsToUpdate);
 		// call under test
-		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
+		manager.applyChangesToAvailableView(idAndVersion);
 		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, rowsToUpdate, scopeType,
 				allContainersInScope, viewSchema);
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
@@ -1335,7 +1335,7 @@ public class TableViewManagerImplTest {
 		// do no work when not available.
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.PROCESSING));
 		// call under test
-		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
+		manager.applyChangesToAvailableView(idAndVersion);
 		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
 		verifyNoMoreInteractions(mockTableManagerSupport);
 		verifyNoMoreInteractions(mockIndexManager);
@@ -1347,7 +1347,7 @@ public class TableViewManagerImplTest {
 		// do no work when not available.
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.empty());
 		// call under test
-		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
+		manager.applyChangesToAvailableView(idAndVersion);
 		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
 		verifyNoMoreInteractions(mockTableManagerSupport);
 		verifyNoMoreInteractions(mockIndexManager);
@@ -1366,7 +1366,7 @@ public class TableViewManagerImplTest {
 		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, scopeType, allContainersInScope,
 				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(pageOne, pageTwo);
 		// call under test
-		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
+		manager.applyChangesToAvailableView(idAndVersion);
 		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageOne, scopeType,
 				allContainersInScope, viewSchema);
 		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageTwo, scopeType,
@@ -1386,7 +1386,7 @@ public class TableViewManagerImplTest {
 		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, scopeType, allContainersInScope,
 				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(pageOne, pageTwo);
 		// call under test
-		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
+		manager.applyChangesToAvailableView(idAndVersion);
 		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageOne, scopeType,
 				allContainersInScope, viewSchema);
 		// page two should not be updated becuase of the swith to processing.
@@ -1409,7 +1409,7 @@ public class TableViewManagerImplTest {
 		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, scopeType, allContainersInScope,
 				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(pageOne, pageTwo);
 		// call under test
-		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
+		manager.applyChangesToAvailableView(idAndVersion);
 		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageOne, scopeType,
 				allContainersInScope, viewSchema);
 		// page two should be ignored since it overlaps with page one.
@@ -1436,7 +1436,7 @@ public class TableViewManagerImplTest {
 				anySet(), anyList());
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
+			manager.applyChangesToAvailableView(idAndVersion);
 		});
 		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageOne, scopeType,
 				allContainersInScope, viewSchema);

@@ -343,10 +343,9 @@ public class TableViewManagerImpl implements TableViewManager {
 	public void createOrUpdateViewIndex(IdAndVersion idAndVersion, ProgressCallback outerProgressCallback)
 			throws Exception {
 		Optional<TableState> optionalState = tableManagerSupport.getTableStatusState(idAndVersion);
-		if (optionalState.isPresent() && optionalState.get() == TableState.AVAILABLE
-				&& !idAndVersion.getVersion().isPresent()) {
+		if (optionalState.isPresent() && optionalState.get() == TableState.AVAILABLE) {
 			/*
-			 * The view is currently available and this is not a "snapshot". This route will
+			 * The view is currently available. This route will
 			 * attempt to apply any changes to an existing view while the view status
 			 * remains AVAILABLE. Users will be able to query the view during this
 			 * operation.
@@ -388,7 +387,7 @@ public class TableViewManagerImpl implements TableViewManager {
 						tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, key,
 								(ProgressCallback innerCallback) -> {
 									// while holding both locks do the work.
-									applyChangesToAvailableViewHoldingLock(idAndVersion);
+									applyChangesToAvailableView(idAndVersion);
 									return null;
 								});
 						return null;
@@ -398,12 +397,40 @@ public class TableViewManagerImpl implements TableViewManager {
 		}
 	}
 	
+	void applyChangesToAvailableViewOrSnapshot(IdAndVersion viewId) {
+		if(viewId.getVersion().isPresent()) {
+			// This is an available view snapshot, so we just need to ensure the benefactors are up-to-date.
+			refreshBenefactorsForViewSnapshot(viewId);
+		}else {
+			// This is not a snapshot so apply all changes as needed.
+			applyChangesToAvailableView(viewId);
+		}
+	}
+	
+	/**
+	 * Ensure the benefactor ID for the given view snapshot are up-to-date.
+	 * @param viewId
+	 */
+	void refreshBenefactorsForViewSnapshot(IdAndVersion viewId) {
+		try {
+			TableIndexManager indexManager = connectionFactory.connectToTableIndex(viewId);
+			ViewScopeType scopeType = tableManagerSupport.getViewScopeType(viewId);
+			indexManager.refreshViewBenefactors(viewId, scopeType);
+		}catch (Exception e) {
+			// failed.
+			tableManagerSupport.attemptToSetTableStatusToFailed(viewId, e);
+			throw e;
+		}
+
+	}
+	
+	
 	/**
 	 * Attempt to apply any changes to a view that will remain available for query during this operation.
 	 * The caller must hold an exclusive lock on the view-change during this operation.
 	 * @param viewId
 	 */
-	void applyChangesToAvailableViewHoldingLock(IdAndVersion viewId) {
+	void applyChangesToAvailableView(IdAndVersion viewId) {
 		try {
 			TableIndexManager indexManager = connectionFactory.connectToTableIndex(viewId);
 			ViewScopeType scopeType = tableManagerSupport.getViewScopeType(viewId);
