@@ -1,10 +1,9 @@
 package org.sagebionetworks.table.query.model;
 
-import com.sun.tools.javac.parser.Tokens;
 
 /**
  * 
- * NumericValueFunction ::= {@link MySqlFunction}
+ * NumericValueFunction ::= {@link MySqlFunction} | {@link CurrentUserFunction }
  *
  */
 public class NumericValueFunction extends SimpleBranch {
@@ -18,8 +17,4 @@ public class NumericValueFunction extends SimpleBranch {
 		super(currentUserFunction);
 	}
 
-    /*
-	public NumericValueFunction(SynapseFunction synapseFunction){
-		super(synapseFunction);
-	} */
 }
