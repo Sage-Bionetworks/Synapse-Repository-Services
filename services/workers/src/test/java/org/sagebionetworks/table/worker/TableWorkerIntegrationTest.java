@@ -2387,6 +2387,44 @@ public class TableWorkerIntegrationTest {
 	}
 
 	@Test
+	public void testCurrentUserQuery() throws Exception{
+		// setup an EntityId column.
+		ColumnModel userIDColumn = new ColumnModel();
+		userIDColumn.setColumnType(ColumnType.USERID);
+		userIDColumn.setName("userIDcolumn");
+		userIDColumn = columnManager.createColumnModel(adminUserInfo, userIDColumn);
+		schema = Lists.newArrayList(userIDColumn);
+		// build a table with this column.
+		createTableWithSchema();
+		TableStatus status = waitForTableProcessing(tableId);
+		if(status.getErrorDetails() != null){
+			System.out.println(status.getErrorDetails());
+		}
+		assertTrue(TableState.AVAILABLE.equals(status.getState()));
+
+
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(
+				TableModelTestUtils.createRow(null, null, adminUserInfo.getId().toString()),
+				TableModelTestUtils.createRow(null, null, "2"),
+				TableModelTestUtils.createRow(null, null, "3")));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = appendRows(adminUserInfo, tableId,
+				rowSet, mockProgressCallback);
+
+		//query the column expecting the index table for it to be populated
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where userIDcolumn = CURRENT_USER()", null, null, (queryResult) -> {
+			assertEquals(1, queryResult.getQueryResults().getRows().size());
+			assertEquals(Arrays.asList(adminUserInfo.getId().toString()), queryResult.getQueryResults().getRows().get(0).getValues());
+		});
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where userIDcolumn >= CURRENT_USER()", null, null, (queryResult) -> {
+			assertEquals(3, queryResult.getQueryResults().getRows().size());
+			assertEquals(Arrays.asList(adminUserInfo.getId().toString()), queryResult.getQueryResults().getRows().get(0).getValues());
+		});
+	}
+
+	@Test
 	public void testChangeListColumnMaximumListLength_valueBelowMaxLists() throws Exception{
 		// setup an EntityId column.
 		ColumnModel startColumn = new ColumnModel();

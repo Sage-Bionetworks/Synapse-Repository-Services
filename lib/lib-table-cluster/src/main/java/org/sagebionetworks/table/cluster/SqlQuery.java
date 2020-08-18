@@ -102,6 +102,7 @@ public class SqlQuery {
 	Long overrideOffset;
 	Long overrideLimit;
 	Long maxBytesPerPage;
+	Long userId;
 	
 	List<FacetColumnRequest> selectedFacets;
 	
@@ -123,7 +124,8 @@ public class SqlQuery {
 			Boolean includeEntityEtag,
 			EntityType tableType,
 			List<FacetColumnRequest> selectedFacets,
-			List<QueryFilter> additionalFilters
+			List<QueryFilter> additionalFilters,
+			Long userId
 			) {
 		ValidateArgument.required(tableSchema, "TableSchema");
 		if(tableSchema.isEmpty()){
@@ -136,6 +138,7 @@ public class SqlQuery {
 		this.selectedFacets = selectedFacets;
 		this.overrideLimit = overrideLimit;
 		this.overrideOffset = overrideOffset;
+		this.userId = userId;
 		
 		if(tableType == null){
 			// default to table
@@ -161,7 +164,10 @@ public class SqlQuery {
 		}
 
 		// This map will contain all of the 
-		this.parameters = new HashMap<String, Object>();	
+		this.parameters = new HashMap<String, Object>();
+		//Add the userId
+
+
 		this.columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(tableSchema);
 		ColumnTranslationReferenceLookup columnTranslationReferenceLookup = new ColumnTranslationReferenceLookup(tableSchema);
 
@@ -210,8 +216,12 @@ public class SqlQuery {
 		}else{
 			this.includesRowIdAndVersion = false;
 		}
+
 		SQLTranslatorUtils.translateModel(transformedModel, parameters, columnTranslationReferenceLookup);
 		this.outputSQL = transformedModel.toSql();
+		if(outputSQL.contains("CURRENT_USER()")){  // Non-SQL function
+			outputSQL = outputSQL.replace("CURRENT_USER()", ""+userId);
+		}
 	}
 	
 	/**

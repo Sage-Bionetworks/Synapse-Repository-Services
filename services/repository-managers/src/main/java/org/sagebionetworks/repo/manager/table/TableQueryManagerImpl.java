@@ -146,6 +146,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		ValidateArgument.required(query, "Query");
 		ValidateArgument.required(query.getSql(), "Query");
 		// 1. Parse the SQL string
+
 		QuerySpecification model = parserQuery(query.getSql());
 		// We now have the table's ID.
 		String tableId = model.getTableName();
@@ -159,7 +160,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		if (columnModels.isEmpty()) {
 			throw new EmptyResultException("Table schema is empty for: " + tableId, tableId);
 		}
-
 		// 4. Add row level filter as needed.
 		if (EntityTypeUtils.isViewType(tableType)) {
 			// Table views must have a row level filter applied to the query
@@ -169,7 +169,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		return new SqlQueryBuilder(model).tableSchema(columnModels).overrideOffset(query.getOffset())
 				.overrideLimit(query.getLimit()).maxBytesPerPage(maxBytesPerPage)
 				.includeEntityEtag(query.getIncludeEntityEtag()).selectedFacets(query.getSelectedFacets())
-				.sortList(query.getSort()).additionalFilters(query.getAdditionalFilters()).tableType(tableType).build();
+				.sortList(query.getSort()).additionalFilters(query.getAdditionalFilters()).tableType(tableType)
+				.userId(user.getId()).build();
 	}
 
 	/**

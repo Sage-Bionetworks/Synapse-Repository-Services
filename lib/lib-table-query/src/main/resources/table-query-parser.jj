@@ -1,4 +1,4 @@
-/* The BNF for this parser was derived from: https://github.com/ronsavage/SQL/blob/master/sql-92.bnf (SQL-92) 
+/* The BNF for this parser was derived from: https://github.com/ronsavage/SQL/blob/master/sql-92.bnf (SQL-92)
 * https://javacc.java.net/doc/docindex.html
 * The BNF can be viewed with UMLet file in this same directory: SQL92BNF.uxf
 * To debug changes to this file run:
@@ -24,7 +24,7 @@ public class TableQueryParser {
 
 	/**
 	 * Parse the passed query string into a TableQueryModel
-	 * 
+	 *
 	 * @param query
 	 * @return
 	 * @throws ParseException
@@ -45,7 +45,7 @@ PARSER_END(TableQueryParser)
 * to limit the scope of the <not_double_quote> token which is too broad
 * for other cases.
 */
-<DEFAULT> TOKEN: 
+<DEFAULT> TOKEN:
 {
 	< start_double_quote: "\""> : within_double_quote
 }
@@ -76,7 +76,7 @@ PARSER_END(TableQueryParser)
 * to limit the scope of the <not_backtick> token which is too broad
 * for other cases.
 */
-<DEFAULT> TOKEN: 
+<DEFAULT> TOKEN:
 {
 	< start_backtick: "`"> : within_backtick
 }
@@ -107,7 +107,7 @@ PARSER_END(TableQueryParser)
 * to limit the scope of the <not_quote> token which is too broad
 * for other cases.
 */
-<DEFAULT> TOKEN: 
+<DEFAULT> TOKEN:
 {
 	< start_single_quote: "'"> : within_single_quotes
 }
@@ -133,7 +133,7 @@ PARSER_END(TableQueryParser)
 
 /* Skip whitespace */
 SKIP : /* WHITE SPACE */
-{ 
+{
   " "
 | "\t"
 | "\r"
@@ -165,7 +165,7 @@ TOKEN [IGNORE_CASE]: {
 | < between: "BETWEEN" >
 | < desc: "DESC" >
 | < distinct: "DISTINCT">
-| < default_specification: "DEFAULT" > 
+| < default_specification: "DEFAULT" >
 | < escape: "ESCAPE">
 | < _false: "FALSE">
 | < from: "FROM">
@@ -234,6 +234,20 @@ TOKEN [IGNORE_CASE]: {
   >
 }
 
+/* Synapse functions
+TOKEN [IGNORE_CASE]: {
+  < synapse_function_name:
+   "CURRENT_USER"
+  >
+} */
+
+/* User Function */
+TOKEN [IGNORE_CASE]: {
+  < current_user_function:
+     "CURRENT_USER"
+    >
+}
+
 /* string functions */
 TOKEN [IGNORE_CASE]: {
   < string_function_name:
@@ -241,7 +255,7 @@ TOKEN [IGNORE_CASE]: {
    | "REPLACE"
    | "UPPER"
    | "LOWER"
-   | "TRIM" 
+   | "TRIM"
   >
 }
 
@@ -362,7 +376,7 @@ ApproximateNumericLiteral approximateNumericLiteral():
 UnsignedNumericLiteral unsignedNumericLiteral():
 {
 	ExactNumericLiteral exactNumericLiteral = null;
-	ApproximateNumericLiteral approximateNumericLiteral = null; 
+	ApproximateNumericLiteral approximateNumericLiteral = null;
 }
 {
 	exactNumericLiteral = exactNumericLiteral() { return new UnsignedNumericLiteral(exactNumericLiteral); }
@@ -464,7 +478,7 @@ ActualIdentifier actualIdentifier():
 	| entityId = entityId() { return new ActualIdentifier(entityId); }
 }
 DelimitedIdentifier delimitedIdentifier():
-{ 
+{
 	DoubleQuoteDelimitedIdentifier doubleQuoteDelimitedIdentifier;
 	BacktickDelimitedIdentifier backtickDelimitedIdentifier;
 }
@@ -473,13 +487,13 @@ DelimitedIdentifier delimitedIdentifier():
 	| backtickDelimitedIdentifier = backtickDelimitedIdentifier() { return new DelimitedIdentifier(backtickDelimitedIdentifier); }
 }
 DoubleQuoteDelimitedIdentifier doubleQuoteDelimitedIdentifier():
-{ 
+{
 	Token token = null;
 	StringBuilder builder = new StringBuilder();
 }
 {
 	<start_double_quote>
-	( 
+	(
 		token = <not_double_quote> { builder.append(token.image); }
 		| <escape_double_quote> { builder.append("\""); }
 	)*
@@ -487,13 +501,13 @@ DoubleQuoteDelimitedIdentifier doubleQuoteDelimitedIdentifier():
 	{ return new DoubleQuoteDelimitedIdentifier(builder.toString()); }
 }
 BacktickDelimitedIdentifier backtickDelimitedIdentifier():
-{ 
+{
 	Token token = null;
 	StringBuilder builder = new StringBuilder();
 }
 {
 	<start_backtick>
-	( 
+	(
 		token = <not_backtick> { builder.append(token.image); }
 		| <escape_backtick> { builder.append("`"); }
 	)*
@@ -560,7 +574,7 @@ TableExpression tableExpression():
 	FromClause fromClause = null;
 	WhereClause whereClause = null;
 	GroupByClause groupByClause = null;
-	OrderByClause orderByClause = null; 
+	OrderByClause orderByClause = null;
 	Pagination pagination = null;
 }
 {
@@ -601,12 +615,12 @@ SetQuantifier setQuantifier():
 	|<all> { return SetQuantifier.ALL;}
 }
 TableName tableName():
-{ 
+{
 	EntityId entityId = null;
 	RegularIdentifier regularIdentifier = null;
 }
-{	
-	entityId = entityId() { return new TableName(entityId); } 
+{
+	entityId = entityId() { return new TableName(entityId); }
 	| regularIdentifier = regularIdentifier() { return new TableName(regularIdentifier); }
 }
 SetFunctionSpecification setFunctionSpecification():
@@ -617,7 +631,7 @@ SetFunctionSpecification setFunctionSpecification():
 	| setFunction = generalSetFunction() { return setFunction;}
 }
 SetFunctionSpecification generalSetFunction():
-{ 
+{
 	SetFunctionType setFunctionType = null;
 	SetQuantifier setQuantifier = null;
 	ValueExpression valueExpression = null;
@@ -625,11 +639,11 @@ SetFunctionSpecification generalSetFunction():
 	Separator separatorClause = null;
 }
 {
-	setFunctionType = setFunctionType() 
+	setFunctionType = setFunctionType()
 	<left_paren>
 	 [ setQuantifier = setQuantifier() ] valueExpression = valueExpression()
 	 [ orderByClause = orderByClause() ]
-	 [ separatorClause = separatorClause() ] 
+	 [ separatorClause = separatorClause() ]
 	<right_paren>
 	{ return new SetFunctionSpecification(setFunctionType, setQuantifier, valueExpression, orderByClause, separatorClause);}
 }
@@ -693,7 +707,7 @@ SearchCondition searchCondition():
 }
 /**
 * The reference BNF definition for booleanTerm() is "left recursive"
-* which is not possible with javacc, so it was re-written. 
+* which is not possible with javacc, so it was re-written.
 */
 BooleanTerm booleanTerm():
 {
@@ -787,7 +801,7 @@ RowValueConstructorList rowValueConstructorList():
 {
 	rowValueConstructorElement = rowValueConstructorElement() { rowValueConstructorList.addRowValueConstructorElement(rowValueConstructorElement); }
 	(<comma> rowValueConstructorElement = rowValueConstructorElement() { rowValueConstructorList.addRowValueConstructorElement(rowValueConstructorElement); } )*
-	{ return rowValueConstructorList; } 
+	{ return rowValueConstructorList; }
 }
 RowValueConstructorElement rowValueConstructorElement():
 {
@@ -808,7 +822,7 @@ CompOp compOp():
 	|   <less_than_operator> { return CompOp.LESS_THAN_OPERATOR;}
 	|   <greater_than_operator> { return CompOp.GREATER_THAN_OPERATOR;}
 	|   <less_than_or_equals_operator> { return CompOp.LESS_THAN_OR_EQUALS_OPERATOR;}
-	|   <greater_than_or_equals_operator> {return CompOp.GREATER_THAN_OR_EQUALS_OPERATOR;} 
+	|   <greater_than_or_equals_operator> {return CompOp.GREATER_THAN_OR_EQUALS_OPERATOR;}
 }
 BetweenPredicate betweenPredicate(ColumnReference leftHandSide, Boolean notB):
 {
@@ -937,7 +951,7 @@ NumericValueExpression numericValueExpression():
 	(
 		termPrime = termPrime() { numericValueExpression.addTermPrime(termPrime); }
 	)*
-	{ return numericValueExpression; } 
+	{ return numericValueExpression; }
 }
 TermPrime termPrime():
 {
@@ -962,7 +976,7 @@ Term term():
 	(
 		factorPrime = factorPrime() { term.addFactorPrime(factorPrime); }
 	)*
-	{ return term; } 
+	{ return term; }
 }
 FactorPrime factorPrime():
 {
@@ -1000,10 +1014,32 @@ NumericPrimary numericPrimary():
 NumericValueFunction numericValueFunction():
 {
 	MySqlFunction mysqlFunction = null;
+	CurrentUserFunction currentUserFunction = null;
 }
 {
 	mysqlFunction = mysqlFunction() { return new NumericValueFunction(mysqlFunction); }
+	| currentUserFunction = currentUserFunction() {return new NumericValueFunction(currentUserFunction); }
 }
+
+CurrentUserFunction currentUserFunction():
+{
+	CurrentUserFunction currentUserFunction = null;
+	CurrentUserFunctionName currentUserFunctionName = null;
+}
+{
+	currentUserFunctionName = currentUserFunctionName() { currentUserFunction = new CurrentUserFunction(currentUserFunctionName); }
+		<left_paren>
+		<right_paren>
+	{ return currentUserFunction; }
+}
+CurrentUserFunctionName currentUserFunctionName():
+{
+	Token currentUserFunctionName  = null;
+}
+{
+	currentUserFunctionName  = <current_user_function> { return CurrentUserFunctionName.valueOf(currentUserFunctionName.image.toUpperCase()); }
+}
+
 MySqlFunction mysqlFunction():
 {
 	MySqlFunction mySqlFunction = null;
@@ -1012,9 +1048,9 @@ MySqlFunction mysqlFunction():
 }
 {
 	functionName = mySqlFunctionName() { mySqlFunction = new MySqlFunction(functionName); }
-	[ 
+	[
 		<left_paren> { mySqlFunction.startParentheses(); }
-		[  
+		[
 			valueExpression = valueExpression() { mySqlFunction.addParameter(valueExpression); }
 			(
 				<comma> valueExpression = valueExpression() { mySqlFunction.addParameter(valueExpression); }
@@ -1033,6 +1069,7 @@ MySqlFunctionName mySqlFunctionName():
 	| functionName = <string_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
 	| functionName = <date_time_field> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
 }
+
 StringValueExpression stringValueExpression():
 {
 	CharacterValueExpression characterValueExpression;
@@ -1086,7 +1123,7 @@ GroupingColumnReferenceList groupingColumnReferenceList():
 	 (
 	 	<comma> groupingColumnReference = groupingColumnReference() { groupingColumnReferenceList.addGroupingColumnReference(groupingColumnReference); }
 	 )*
-	 { return groupingColumnReferenceList; } 
+	 { return groupingColumnReferenceList; }
 }
 GroupingColumnReference groupingColumnReference():
 {

@@ -3,6 +3,7 @@ package org.sagebionetworks.table.cluster;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.QueryFilter;
@@ -24,6 +25,7 @@ public class SqlQueryBuilder {
 	EntityType tableType;
 	List<FacetColumnRequest> selectedFacets;
 	List<QueryFilter> additionalFilters;
+	Long userId;
 	
 	/**
 	 * Start with the SQL.
@@ -102,10 +104,14 @@ public class SqlQueryBuilder {
 		this.additionalFilters = filters;
 		return this;
 	}
+	public SqlQueryBuilder userId(Long userId){
+		this.userId = userId;
+		return this;
+	}
 
 	public SqlQuery build(){
 		return new SqlQuery(model, tableSchema, overrideOffset, overrideLimit, maxBytesPerPage, sortList,
-				includeEntityEtag, tableType, selectedFacets, additionalFilters);
+				includeEntityEtag, tableType, selectedFacets, additionalFilters, userId);
 	}
 
 
