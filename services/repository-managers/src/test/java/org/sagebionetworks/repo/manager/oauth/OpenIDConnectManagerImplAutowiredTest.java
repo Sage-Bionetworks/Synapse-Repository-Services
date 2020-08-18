@@ -80,6 +80,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
 	private OAuthClient oauthClient;
+	private String fullAccessToken;
 
 	@BeforeEach
 	public void setUp() throws Exception {
@@ -108,7 +109,8 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		// method under test
 		oauthClient = oauthClientManager.createOpenIDConnectClient(userInfo, toCreate);
 		assertNotNull(oauthClient.getClient_id());
-
+	
+		fullAccessToken = oidcTokenHelper.createTotalAccessToken(userInfo.getId());
 	}
 
 	@AfterEach
@@ -366,7 +368,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 	@Test
 	public void testValidatePersonalAccessToken() {
 		// Issue a PAT to the user
-		String token = personalAccessTokenManager.issueToken(userInfo, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT).getToken();
+		String token = personalAccessTokenManager.issueToken(userInfo, fullAccessToken, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT).getToken();
 
 		// method under test
 		assertEquals(userInfo.getId().toString(), openIDConnectManager.validateAccessToken(token));

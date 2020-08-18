@@ -235,6 +235,13 @@ public class NodeUtilsTest {
 	}
 	
 	@Test
+	public void testIsRootEntityIdWithSyn(){
+		String rootId = StackConfigurationSingleton.singleton().getRootFolderEntityId();
+		String rootWithSyn = KeyFactory.keyToString(KeyFactory.stringToKey(rootId));
+		assertTrue(NodeUtils.isRootEntityId(rootWithSyn));
+	}
+	
+	@Test
 	public void testTranslateAlias() {
 		assertEquals(null, NodeUtils.translateAlias(null));
 		assertEquals(null, NodeUtils.translateAlias(""));

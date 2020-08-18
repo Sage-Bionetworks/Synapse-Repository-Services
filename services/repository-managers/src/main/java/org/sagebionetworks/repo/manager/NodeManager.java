@@ -185,6 +185,13 @@ public interface NodeManager {
 	public EntityType getNodeType(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
+	 * Get the EntityType without an authorization call. 
+	 * @param entityId
+	 * @return
+	 */
+	EntityType getNodeType(String entityId);;
+	
+	/**
 	 * Get the node type of an entity for deletion
 	 * 
 	 * @param entityId

@@ -596,7 +596,7 @@ public class EntityPermissionsManagerImplUnitTest {
 
 		// call under test
 		entityPermissionsManager.overrideInheritance(acl, mockUser);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(projectId, ObjectType.ENTITY_CONTAINER, newEtag, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(projectId, ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
 	}
 	
 	@Test
@@ -618,7 +618,7 @@ public class EntityPermissionsManagerImplUnitTest {
 
 		// call under test
 		entityPermissionsManager.overrideInheritance(acl, mockUser);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(folderId, ObjectType.ENTITY_CONTAINER, newEtag, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(folderId, ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
 	}
 	
 	@Test
@@ -735,7 +735,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockNodeDao.getNodeTypeById(projectId)).thenReturn(EntityType.project);
 		// call under test
 		entityPermissionsManager.restoreInheritance(projectId, mockUser);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(projectId, ObjectType.ENTITY_CONTAINER, newEtag, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(projectId, ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
 	}
 	
 	@Test
@@ -747,7 +747,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockNodeDao.getNodeTypeById(folderId)).thenReturn(EntityType.folder);
 		// call under test
 		entityPermissionsManager.restoreInheritance(folderId, mockUser);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(folderId, ObjectType.ENTITY_CONTAINER, newEtag, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(folderId, ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
 	}
 	
 	@Test

@@ -32,8 +32,14 @@
 	 See PLFM-3205 & PLFM-3206  -->
 	<filter>
 		<filter-name>unexpectedExceptionFilter</filter-name>
-		<filter-class>org.sagebionetworks.repo.web.filter.UnexpectedExceptionFilter</filter-class>
+		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+		<init-param>
+			<!-- Make sure the init-params are passed through the proxy to the bean -->
+			<param-name>targetFilterLifecycle</param-name>
+			<param-value>true</param-value>
+		</init-param>
 	</filter>
+	
 	<filter-mapping>
 		<filter-name>unexpectedExceptionFilter</filter-name>
 		<url-pattern>/*</url-pattern>
@@ -105,9 +111,9 @@
 		<url-pattern>/file/v1/*</url-pattern>
 	</filter-mapping>
 	
-	<!-- Filter that authenticate the migration services using basic auth -->
+	<!-- Filter that authenticate the administrative and migration services using basic auth -->
 	<filter>
-		<filter-name>migrationServiceAuthFilter</filter-name>
+		<filter-name>adminServiceAuthFilter</filter-name>
 		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
 		<init-param>
 			<!-- Make sure the init-params are passed through the proxy to the bean -->
@@ -117,7 +123,8 @@
 	</filter>
 	
 	<filter-mapping>
-		<filter-name>migrationServiceAuthFilter</filter-name>
+		<filter-name>adminServiceAuthFilter</filter-name>
+		<url-pattern>/repo/v1/admin/*</url-pattern>
 		<url-pattern>/repo/v1/migration/*</url-pattern>
 	</filter-mapping>
 

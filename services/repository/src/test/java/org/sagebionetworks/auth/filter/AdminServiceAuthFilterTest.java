@@ -29,7 +29,7 @@ import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 
 @ExtendWith(MockitoExtension.class)
-public class MigrationServiceAuthFilterTest {
+public class AdminServiceAuthFilterTest {
 
 	@Mock
 	private StackConfiguration mockConfig;
@@ -52,17 +52,17 @@ public class MigrationServiceAuthFilterTest {
 	@Mock
 	private Enumeration<String> mockHeaderNames;
 
-	private MigrationServiceAuthFilter filter;
+	private AdminServiceAuthFilter filter;
 
 	private static final String KEY = "key";
 	private static final String SECRET = "secret";
 
 	@BeforeEach
 	public void before() {
-		when(mockConfig.getServiceAuthKey(StackConfiguration.SERVICE_MIGRATION)).thenReturn(KEY);
-		when(mockConfig.getServiceAuthSecret(StackConfiguration.SERVICE_MIGRATION)).thenReturn(SECRET);
+		when(mockConfig.getServiceAuthKey(StackConfiguration.SERVICE_ADMIN)).thenReturn(KEY);
+		when(mockConfig.getServiceAuthSecret(StackConfiguration.SERVICE_ADMIN)).thenReturn(SECRET);
 
-		filter = new MigrationServiceAuthFilter(mockConfig, mockConsumer);
+		filter = new AdminServiceAuthFilter(mockConfig, mockConsumer);
 	}
 
 	@Test
@@ -106,6 +106,6 @@ public class MigrationServiceAuthFilterTest {
 		
 		assertNotEquals(mockRequest, requestCaptor.getValue());
 		verifyNoMoreInteractions(mockFilterChain);
-		assertEquals(StackConfiguration.SERVICE_MIGRATION, requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME));
+		assertEquals(StackConfiguration.SERVICE_ADMIN, requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME));
 	}
 }

@@ -11,8 +11,8 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.dataaccess.AccessApprovalManager;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.dbo.feature.Feature;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.feature.Feature;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**

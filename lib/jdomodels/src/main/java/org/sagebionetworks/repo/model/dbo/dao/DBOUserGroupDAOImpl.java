@@ -152,7 +152,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		// Send a CREATE message
 		// Note: This message cannot be sent in the createPrivate method because
 		// bootstrapping is not transactional when called by the Spring initializer 
-		transactionalMessenger.sendMessageAfterCommit("" + dbo.getId(), ObjectType.PRINCIPAL, dbo.getEtag(), ChangeType.CREATE);
+		transactionalMessenger.sendMessageAfterCommit("" + dbo.getId(), ObjectType.PRINCIPAL, ChangeType.CREATE);
 		return dbo.getId();
 	}
 
@@ -236,7 +236,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		dbo.setEtag(UUID.randomUUID().toString());
 		
 		// Send a UPDATE message
-		transactionalMessenger.sendMessageAfterCommit("" + dbo.getId(), ObjectType.PRINCIPAL, dbo.getEtag(), ChangeType.UPDATE);
+		transactionalMessenger.sendMessageAfterCommit("" + dbo.getId(), ObjectType.PRINCIPAL, ChangeType.UPDATE);
 
 		basicDao.update(dbo);
 	}

@@ -163,7 +163,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 			InvalidModelException {
 		DBOUserProfile jdo = doCreate(dto);
 		transactionalMessenger.sendMessageAfterCommit("" + jdo.getOwnerId(),
-				ObjectType.PRINCIPAL, jdo.geteTag(), ChangeType.CREATE);
+				ObjectType.PRINCIPAL, ChangeType.CREATE);
 		return jdo.getOwnerId().toString();
 	}
 
@@ -270,7 +270,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 
 		// Send a UPDATE message
 		transactionalMessenger.sendMessageAfterCommit("" + dbo.getOwnerId(),
-				ObjectType.PRINCIPAL, dbo.geteTag(), ChangeType.UPDATE);
+				ObjectType.PRINCIPAL, ChangeType.UPDATE);
 
 		boolean success = basicDao.update(dbo);
 		if (!success)

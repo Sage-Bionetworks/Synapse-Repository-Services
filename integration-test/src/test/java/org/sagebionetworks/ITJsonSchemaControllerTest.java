@@ -24,8 +24,10 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
@@ -44,7 +46,14 @@ import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoRequest;
 import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsRequest;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsResponse;
+import org.sagebionetworks.repo.model.schema.ObjectType;
 import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.model.schema.ValidationResults;
+import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
+import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.TimeUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -350,7 +359,7 @@ public class ITJsonSchemaControllerTest {
 			assertNotNull(response);
 		}).getNewVersionInfo();
 
-		// will bind the schema to the project
+
 		project = new Project();
 		project = synapse.createEntity(project);
 
@@ -359,6 +368,7 @@ public class ITJsonSchemaControllerTest {
 		folder.setParentId(project.getId());
 		folder = synapse.createEntity(folder);
 
+		// will bind the schema to the project
 		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
 		bindRequest.setEntityId(project.getId());
 		bindRequest.setSchema$id(schema.get$id());
@@ -372,6 +382,31 @@ public class ITJsonSchemaControllerTest {
 		JsonSchemaObjectBinding childBinding = synapse.getJsonSchemaBindingForEntity(folder.getId());
 		assertNotNull(childBinding);
 		assertEquals(parentBinding.getJsonSchemaVersionInfo(), childBinding.getJsonSchemaVersionInfo());
+		
+		Folder folderToCompare = synapse.getEntity(folder.getId(), Folder.class);
+		
+		// Wait for the folder to be valid.
+		// call under test
+		waitForValidationResults(folder.getId(), (ValidationResults t) -> {
+			assertEquals(folderToCompare.getId(), t.getObjectId());
+			assertEquals(folderToCompare.getEtag(), t.getObjectEtag());
+			assertEquals(ObjectType.entity, t.getObjectType());
+			assertTrue(t.getIsValid());
+		});
+		
+		// call under test
+		ValidationSummaryStatistics stats = synapse.getEntitySchemaValidationStatistics(project.getId());
+		assertNotNull(stats);
+		assertEquals(project.getId(), stats.getContainerId());
+		assertEquals(new Long(1), stats.getTotalNumberOfChildren());
+		
+		ListValidationResultsRequest listRequest = new ListValidationResultsRequest();
+		listRequest.setContainerId(project.getId());
+		// call under test
+		ListValidationResultsResponse listResponse = synapse.getInvalidValidationResults(listRequest);
+		assertNotNull(listResponse);
+		assertNotNull(listResponse.getPage());
+		assertTrue(listResponse.getPage().isEmpty());
 
 		// clear the binding
 		// call under test
@@ -411,6 +446,31 @@ public class ITJsonSchemaControllerTest {
 		assertNotNull(value);
 		assertEquals(AnnotationsValueType.STRING, value.getType());
 		assertEquals(Lists.newArrayList("some value"), value.getValue());
+	}
+	
+	/**
+	 * Wait for the validation results
+	 * 
+	 * @param user
+	 * @param entityId
+	 * @return
+	 */
+	public ValidationResults waitForValidationResults(String entityId,
+			Consumer<ValidationResults> consumer) {
+		try {
+			return TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+				try {
+					ValidationResults validationResults = synapse.getEntityValidationResults(entityId);
+					consumer.accept(validationResults);
+					return new Pair<>(Boolean.TRUE, validationResults);
+				} catch (Throwable e) {
+					System.out.println("Waiting for expected ValidationResults..." + e.getMessage());
+					return new Pair<>(Boolean.FALSE, null);
+				}
+			});
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 

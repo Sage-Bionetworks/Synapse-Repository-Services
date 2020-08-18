@@ -379,7 +379,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), 
 					Collections.singletonList(userInfo.getId().toString()));
 		}
-		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.CERTIFIED_USER_PASSING_RECORD, "etag", ChangeType.CREATE);
+		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.CERTIFIED_USER_PASSING_RECORD, ChangeType.CREATE);
 		return passingRecord;
 	}
 	

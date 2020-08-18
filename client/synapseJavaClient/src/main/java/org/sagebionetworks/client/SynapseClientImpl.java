@@ -258,7 +258,11 @@ import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoRequest;
 import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsRequest;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.model.schema.ValidationResults;
+import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsRequest;
@@ -277,7 +281,6 @@ import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.repo.model.table.AppendableRowSet;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -5305,16 +5308,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public ColumnModelPage getPossibleColumnModelsForViewScope(ViewScope scope, String nextPageToken) throws SynapseException{
-		StringBuilder url = new StringBuilder("/column/view/scope");
-		if(nextPageToken != null){
-			url.append("?nextPageToken=");
-			url.append(nextPageToken);
-		}
-		return postJSONEntity(getRepoEndpoint(), url.toString(), scope, ColumnModelPage.class);
-	}
-	
-	@Override
 	public String startGetPossibleColumnModelsForViewScope(ViewColumnModelRequest request) throws SynapseException {
 		return startAsynchJob(AsynchJobType.ViewColumnModelRequest, request);
 	}
@@ -5841,6 +5834,28 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(entityId, "entityId");
 		String url = "/entity/"+entityId+"/json";
 		return putJson(getRepoEndpoint(), url, json.toString());
+	}
+	
+	@Override
+	public ValidationResults getEntityValidationResults(String entityId) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		String url = "/entity/"+entityId+"/schema/validation";
+		return getJSONEntity(getRepoEndpoint(), url, ValidationResults.class);
+	}
+	
+	@Override
+	public ValidationSummaryStatistics getEntitySchemaValidationStatistics(String entityId) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		String url = "/entity/"+entityId+"/schema/validation/statistics";
+		return getJSONEntity(getRepoEndpoint(), url, ValidationSummaryStatistics.class);
+	}
+	
+	@Override
+	public ListValidationResultsResponse getInvalidValidationResults(ListValidationResultsRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getContainerId(), "request.containerId");
+		String url = "/entity/"+request.getContainerId()+"/schema/validation/invalid";
+		return postJSONEntity(getRepoEndpoint(), url, request, ListValidationResultsResponse.class);
 	}
 
 }

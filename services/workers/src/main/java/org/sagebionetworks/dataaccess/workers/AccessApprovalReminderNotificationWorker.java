@@ -11,7 +11,7 @@ import org.sagebionetworks.common.util.progress.ProgressingRunner;
 import org.sagebionetworks.repo.manager.dataaccess.AccessApprovalNotificationManager;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationType;
-import org.sagebionetworks.repo.model.dbo.feature.Feature;
+import org.sagebionetworks.repo.model.feature.Feature;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**

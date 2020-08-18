@@ -6,6 +6,8 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
+import org.sagebionetworks.repo.model.feature.Feature;
+import org.sagebionetworks.repo.model.feature.FeatureStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
@@ -273,5 +275,24 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException
 	 */
 	void redactUserInformation(String principalId) throws SynapseException;
+	
+	/**
+	 * Returns the status of a feature
+	 * 
+	 * @param feature The feature name
+	 * @return The status of the feature
+	 * @throws SynapseException
+	 */
+	FeatureStatus getFeatureStatus(Feature feature) throws SynapseException;
+	
+	/**
+	 * Sets the status of a feature
+	 * 
+	 * @param feature The feature name
+	 * @param status The status of the feature
+	 * @return The status of the feature
+	 * @throws SynapseException
+	 */
+	FeatureStatus setFeatureStatus(Feature feature, FeatureStatus status) throws SynapseException;
 
 }

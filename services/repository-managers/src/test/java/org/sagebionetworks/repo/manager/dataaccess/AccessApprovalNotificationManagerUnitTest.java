@@ -67,7 +67,7 @@ import org.sagebionetworks.repo.model.dataaccess.NotificationType;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessNotification;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationDao;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationType;
-import org.sagebionetworks.repo.model.dbo.feature.Feature;
+import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;

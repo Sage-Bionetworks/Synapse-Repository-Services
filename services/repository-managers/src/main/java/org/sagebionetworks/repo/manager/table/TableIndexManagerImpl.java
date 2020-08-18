@@ -456,16 +456,6 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public ColumnModelPage getPossibleColumnModelsForView(
-			final Long viewId, String nextPageToken) {
-		ValidateArgument.required(viewId, "viewId");
-		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(viewId).build();
-		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(idAndVersion);
-		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, scopeType);
-		return getPossibleAnnotationDefinitionsForContainerIds(scopeType, containerIds, nextPageToken);
-	}
-	
-	@Override
 	public ColumnModelPage getPossibleColumnModelsForScope(ViewScope scope, String nextPageToken) {
 		ValidateArgument.required(scope, "scope");
 		ValidateArgument.required(scope.getScope(), "scope.scopeIds");

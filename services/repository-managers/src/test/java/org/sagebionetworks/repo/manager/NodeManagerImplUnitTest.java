@@ -712,7 +712,7 @@ public class NodeManagerImplUnitTest {
 		// call under test
 		nodeManager.update(mockUserInfo, mockNode, null, false);
 		// count check should occur
-		verify(transactionalMessenger).sendMessageAfterCommit(nodeId, ObjectType.ENTITY_CONTAINER, newEtag, ChangeType.UPDATE);
+		verify(transactionalMessenger).sendMessageAfterCommit(nodeId, ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
 	}
 	
 	@Test
@@ -764,7 +764,7 @@ public class NodeManagerImplUnitTest {
 		// call under test
 		nodeManager.update(mockUserInfo, mockNode, null, false);
 		// message should not be sent for a file.
-		verify(transactionalMessenger, never()).sendMessageAfterCommit(anyString(), any(ObjectType.class), anyString(), any(ChangeType.class));
+		verify(transactionalMessenger, never()).sendMessageAfterCommit(anyString(), any(ObjectType.class), any(ChangeType.class));
 	}
 	
 	@Test
@@ -785,7 +785,7 @@ public class NodeManagerImplUnitTest {
 		// call under test
 		nodeManager.update(mockUserInfo, mockNode, null, false);
 		// message should not be sent since this is not a parent change.
-		verify(transactionalMessenger, never()).sendMessageAfterCommit(anyString(), any(ObjectType.class), anyString(), any(ChangeType.class));
+		verify(transactionalMessenger, never()).sendMessageAfterCommit(anyString(), any(ObjectType.class), any(ChangeType.class));
 	}
 	
 	@Test

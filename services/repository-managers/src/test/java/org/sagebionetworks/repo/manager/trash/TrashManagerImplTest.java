@@ -166,8 +166,7 @@ public class TrashManagerImplTest {
 		trashManager.updateNodeForTrashCan(userInfo, testNode, changeType);
 		verify(mockNodeDAO).touch(userInfo.getId(), testNode.getId(), changeType);
 		// the entity is not a container so a message should not be sent.
-		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(anyString(), any(ObjectType.class), anyString(),
-				any(ChangeType.class));
+		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(anyString(), any(ObjectType.class), any(ChangeType.class));
 		verify(mockNodeDAO).updateNode(nodeCapture.capture());
 		Node capturedNode = nodeCapture.getValue();
 		assertNotNull(capturedNode);
@@ -184,7 +183,7 @@ public class TrashManagerImplTest {
 		trashManager.updateNodeForTrashCan(userInfo, testNode, changeType);
 		verify(mockNodeDAO).touch(userInfo.getId(), testNode.getId(), changeType);
 		// the entity is a container so a container event should be generated.
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(testNode.getId(), ObjectType.ENTITY_CONTAINER, newEtag, changeType);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(testNode.getId(), ObjectType.ENTITY_CONTAINER, changeType);
 	}
 
 	@Test
