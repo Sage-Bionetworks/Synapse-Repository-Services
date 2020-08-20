@@ -16,6 +16,12 @@
 		<param-value>/WEB-INF/shared-context.xml</param-value>
 	</context-param>
 
+	<!-- This listener will load other application context file in addition 
+		to springweb-servlet.xml -->
+	<listener>
+		<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+	</listener>
+
 	<!-- This is the filter to redirect http:// to https:// -->
 	<filter>
 		<filter-name>httpToHttpsFilter</filter-name>
@@ -32,7 +38,7 @@
 	 See PLFM-3205 & PLFM-3206  -->
 	<filter>
 		<filter-name>unexpectedExceptionFilter</filter-name>
-		<filter-class>org.sagebionetworks.repo.web.filter.UnexpectedExceptionFilter</filter-class>
+		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
 	</filter>
 	<filter-mapping>
 		<filter-name>unexpectedExceptionFilter</filter-name>
@@ -49,12 +55,6 @@
 		<filter-name>requestSizeThrottleFilter</filter-name>
 		<url-pattern>/*</url-pattern>
 	</filter-mapping>
-
-	<!-- This listener will load other application context file in addition 
-		to springweb-servlet.xml -->
-	<listener>
-		<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
-	</listener>
 
 	<!-- Some browsers do not support PUT and DELETE methods, this filter will 
 		examine the form field parameter _method -->
@@ -120,6 +120,7 @@
 		<filter-name>adminServiceAuthFilter</filter-name>
 		<url-pattern>/repo/v1/admin/*</url-pattern>
 		<url-pattern>/repo/v1/migration/*</url-pattern>
+		<url-pattern>/repo/v1/testing/*</url-pattern>
 	</filter-mapping>
 
 	<!-- This filter will look for the session token as a cookie, if it finds
@@ -240,6 +241,16 @@
 		<filter-name>userApiFrequencyThrottleFilter</filter-name>
 		<url-pattern>/repo/v1/*</url-pattern>
 		<url-pattern>/file/v1/*</url-pattern>
+	</filter-mapping>
+	
+	<filter>
+		<filter-name>throwingExceptionFilter</filter-name>
+		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+	</filter>
+	
+	<filter-mapping>
+		<filter-name>throwingExceptionFilter</filter-name>
+		<url-pattern>/repo/v1/testing/exception</url-pattern>
 	</filter-mapping>
 	
 	<filter>
