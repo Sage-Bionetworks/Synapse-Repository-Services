@@ -26,8 +26,8 @@ public class AccessApprovalExpirationWorker implements ProgressingRunner {
 	
 	protected static final int BATCH_SIZE = 100;
 
-	// We look only 60 days backward
-	protected static final int CUT_OFF_DAYS = 60;
+	// We look only 7 days backward
+	protected static final int CUT_OFF_DAYS = 7;
 	
 	private AccessApprovalManager accessApprovalManager;
 	private UserManager userManager;
