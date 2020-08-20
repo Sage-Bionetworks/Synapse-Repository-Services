@@ -11,9 +11,11 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -31,6 +33,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.Spy;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
@@ -112,6 +115,10 @@ public class TableManagerSupportTest {
 	
 	@InjectMocks
 	TableManagerSupportImpl manager;
+	
+	@Spy
+	@InjectMocks
+	TableManagerSupportImpl managerSpy;
 	
 	@Mock
 	DefaultColumnModel mockDefaultModel;
@@ -962,5 +969,39 @@ public class TableManagerSupportTest {
 				return (ColumnModel) invocation.getArguments()[0];
 			}
 		}).when(mockColumnModelManager).createColumnModel(any(ColumnModel.class));
+	}
+	
+	@Test
+	public void testSendAsynchronousActivitySignal() {
+		doReturn(ObjectType.ENTITY_VIEW).when(managerSpy).getTableType(idAndVersion);
+		// call under test
+		managerSpy.sendAsynchronousActivitySignal(idAndVersion);
+		verify(managerSpy).getTableType(idAndVersion);
+		MessageToSend expected = new MessageToSend().withObjectId(idAndVersion.getId().toString())
+				.withObjectVersion(null).withObjectType(ObjectType.ENTITY_VIEW)
+				.withChangeType(ChangeType.UPDATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(expected);
+	}
+	
+	@Test
+	public void testSendAsynchronousActivitySignalWithVersion() {
+		idAndVersion = IdAndVersion.parse("syn123.1");
+		doReturn(ObjectType.ENTITY_VIEW).when(managerSpy).getTableType(idAndVersion);
+		// call under test
+		managerSpy.sendAsynchronousActivitySignal(idAndVersion);
+		verify(managerSpy).getTableType(idAndVersion);
+		MessageToSend expected = new MessageToSend().withObjectId("123")
+				.withObjectVersion(new Long(1)).withObjectType(ObjectType.ENTITY_VIEW)
+				.withChangeType(ChangeType.UPDATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(expected);
+	}
+	
+	@Test
+	public void testSendAsynchronousActivitySignalWithNonView() {
+		doReturn(ObjectType.ENTITY).when(managerSpy).getTableType(idAndVersion);
+		// call under test
+		managerSpy.sendAsynchronousActivitySignal(idAndVersion);
+		verify(managerSpy).getTableType(idAndVersion);
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 }

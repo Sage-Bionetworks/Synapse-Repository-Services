@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.TableViewManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -350,13 +351,7 @@ public class TableViewIntegrationTest {
 		});
 		
 		
-		// grant the user read permission the project
-		AccessControlList projectAcl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
-		ResourceAccess access = new ResourceAccess();
-		access.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
-		access.setPrincipalId(userInfo.getId());
-		projectAcl.getResourceAccess().add(access);
-		entityPermissionsManager.updateACL(projectAcl, adminUserInfo);
+		grantUserReadAccessOnProject();
 		// wait for replication
 		waitForEntityReplication(fileViewId, fileViewId);
 		
@@ -1294,22 +1289,19 @@ public class TableViewIntegrationTest {
 	
 	/**
 	 * See PLFM-6398.
-	 * For this test a project is created with two folders, each with an ACL granting the caller read access.
-	 * The ACL at the project level does not grant the user read access.  At the start the user should be able
-	 * to see the files in the two folders but not the files in the project.  At that point a view snapshot is created.
-	 * Next the one of the ACLs is removed from one of the folders so the folder inherits its ACL from the project.
-	 * A query of the snapshot should now show only the files from the folder that still has an ACL.
 	 *  
 	 * @throws Exception
 	 */
 	@Test
 	public void testViewSnapshotPLFM_6398() throws Exception {
+		grantUserReadAccessOnProject();
 		// Add a folder to the existing project
 		Folder folderOne = new Folder();
 		folderOne.setParentId(project.getId());
 		folderOne.setName("folderOne");
 		String folderOneId = entityManager.createEntity(adminUserInfo, folderOne, null);
 		entitiesToDelete.add(folderOneId);
+		Long folderOneIdLong = KeyFactory.stringToKey(folderOneId);
 		// Add an ACL on the folder
 		AccessControlList acl = AccessControlListUtil.createACL(folderOneId, userInfo, Sets.newHashSet(ACCESS_TYPE.READ), new Date(System.currentTimeMillis()));
 		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
@@ -1319,23 +1311,8 @@ public class TableViewIntegrationTest {
 		fileOne.setDataFileHandleId(sharedHandle.getId());
 		fileOne.setParentId(folderOneId);
 		String fileOneId = entityManager.createEntity(adminUserInfo, fileOne, null);
+		fileOne = entityManager.getEntity(adminUserInfo, fileOneId, FileEntity.class);
 		Long fileOneIdLong = KeyFactory.stringToKey(fileOneId);
-
-		Folder folderTwo = new Folder();
-		folderTwo.setParentId(project.getId());
-		folderTwo.setName("folderTwo");
-		String folderTwoId = entityManager.createEntity(adminUserInfo, folderTwo, null);
-		entitiesToDelete.add(folderTwoId);
-		// Add an ACL on the folder
-		acl = AccessControlListUtil.createACL(folderTwoId, userInfo, Sets.newHashSet(ACCESS_TYPE.READ), new Date(System.currentTimeMillis()));
-		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
-		// Add a file to the folder
-		FileEntity fileTwo = new FileEntity();
-		fileTwo.setName("fileTwo");
-		fileTwo.setDataFileHandleId(sharedHandle.getId());
-		fileTwo.setParentId(folderTwoId);
-		String fileTwoId = entityManager.createEntity(adminUserInfo, fileTwo, null);
-		Long fileTwoIdLong = KeyFactory.stringToKey(fileTwoId);
 		
 		// create the view for this scope
 		createFileView();
@@ -1343,7 +1320,7 @@ public class TableViewIntegrationTest {
 		acl = AccessControlListUtil.createACL(fileViewId, userInfo, Sets.newHashSet(ACCESS_TYPE.READ), new Date(System.currentTimeMillis()));
 		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
 		// wait for the view to be available for query
-		waitForEntityReplication(fileViewId, fileViewId);
+		waitForEntityReplication(fileViewId, fileOneId);
 		
 		// Create a snapshot for this view
 		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
@@ -1355,20 +1332,29 @@ public class TableViewIntegrationTest {
 			assertEquals(new Long(1), response.getSnapshotVersionNumber());
 		});
 		
-		// query for the file that inherits from the folder.
-		String sql = "select * from "+fileViewId+".1 ORDER BY ROW_ID ASC";
+		// update the first file so the new etag does not match the etag from the snapshot
+		String fileOneOldEtag = fileOne.getEtag();
+		fileOne.setName("FileOne Renamed");
+		boolean newVersion = false;
+		String actvityId = null;
+		entityManager.updateEntity(adminUserInfo, fileOne, newVersion, actvityId);
+		fileOne = entityManager.getEntity(adminUserInfo, fileOneId, FileEntity.class);
+		assertFalse(fileOne.getEtag().equals(fileOneOldEtag));
 		
+		// query for the file that inherits from the folder.
+		String sql = "select name, etag, ROW_BENEFACTOR from "+fileViewId+".1 WHERE ROW_ID = "+fileOneIdLong;
+		// at this point the user should be able see the three files in the root project and the file in the folder.
 		waitForConsistentQuery(userInfo, sql, (results) -> {			
 			List<Row> rows  = extractRows(results);
-			assertEquals(2, rows.size());
+			assertEquals(1, rows.size());
 			Row row = rows.get(0);
 			assertEquals(fileOneIdLong, row.getRowId());
-			row = rows.get(1);
-			assertEquals(fileTwoIdLong, row.getRowId());
+			// the name and etag should not change in the snapshot results and the benefactor should be the folder
+			assertEquals(Lists.newArrayList("fileOne", fileOneOldEtag, folderOneIdLong.toString()), row.getValues());
 		});
 		
 		/*
-		 * Removing the ACL on the folder one should remove file one from the snapshot.
+		 * Remove the ACL on the folder.  
 		 */
 		entityPermissionsManager.restoreInheritance(folderOneId, adminUserInfo);
 		
@@ -1376,9 +1362,24 @@ public class TableViewIntegrationTest {
 			List<Row> rows  = extractRows(results);
 			assertEquals(1, rows.size());
 			Row row = rows.get(0);
-			assertEquals(fileTwoIdLong, row.getRowId());
+			assertEquals(fileOneIdLong, row.getRowId());
+			// the name and etag should not change in the snapshot results and the benefactor should now be the project.
+			assertEquals(Lists.newArrayList("fileOne", fileOneOldEtag, KeyFactory.stringToKey(project.getId()).toString()), row.getValues());
 		});
-		
+	}
+
+	/**
+	 * Grant the user read access on the project.
+	 * @throws ACLInheritanceException
+	 */
+	void grantUserReadAccessOnProject() throws ACLInheritanceException {
+		// grant the user read permission the project
+		AccessControlList projectAcl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
+		ResourceAccess access = new ResourceAccess();
+		access.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
+		access.setPrincipalId(userInfo.getId());
+		projectAcl.getResourceAccess().add(access);
+		entityPermissionsManager.updateACL(projectAcl, adminUserInfo);
 	}
 	
 	/**

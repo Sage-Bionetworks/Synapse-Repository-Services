@@ -562,6 +562,6 @@ public interface TableIndexDAO {
 	 * Ensure the benefactor ID within the given view snapshot are up-to-date with object replication.
 	 * @param viewId
 	 */
-	void refreshViewBenefactors(IdAndVersion viewId, ViewScopeType scopeType);
+	void refreshViewBenefactors(IdAndVersion viewId, ViewObjectType objectType);
 
 }

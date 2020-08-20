@@ -803,13 +803,10 @@ public class TableIndexManagerImpl implements TableIndexManager {
 				.build();
 	}
 	@Override
-	public void refreshViewBenefactors(final IdAndVersion viewId, final ViewScopeType scopeType) {
+	public void refreshViewBenefactors(final IdAndVersion viewId) {
 		ValidateArgument.required(viewId, "viewId");
-		tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
-			tableIndexDao.refreshViewBenefactors(viewId, scopeType);
-			return null;
-		});
-		
+		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(viewId);
+		tableIndexDao.refreshViewBenefactors(viewId, scopeType.getObjectType());
 	}
 
 }

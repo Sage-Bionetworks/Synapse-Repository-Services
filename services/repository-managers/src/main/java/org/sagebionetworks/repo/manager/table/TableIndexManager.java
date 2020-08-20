@@ -262,6 +262,6 @@ public interface TableIndexManager {
 	 * 
 	 * @param viewId
 	 */
-	void refreshViewBenefactors(IdAndVersion viewId, ViewScopeType scopeType);
+	void refreshViewBenefactors(IdAndVersion viewId);
 
 }

@@ -60,7 +60,6 @@ import org.sagebionetworks.repo.manager.replication.ReplicationManager;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.BucketAndKey;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
@@ -785,8 +784,8 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
 		// call under test
 		managerSpy.createOrUpdateViewIndex(idAndVersion, mockProgressCallback);
-		verify(managerSpy, never()).applyChangesToAvailableView(any(IdAndVersion.class), any(ProgressCallback.class));
-		verify(managerSpy).createOrRebuildView(idAndVersion, mockProgressCallback);
+		verify(managerSpy).applyChangesToAvailableView(any(IdAndVersion.class), any(ProgressCallback.class));
+		verify(managerSpy, never()).createOrRebuildView(idAndVersion, mockProgressCallback);
 	}
 	
 	@Test
@@ -830,6 +829,7 @@ public class TableViewManagerImplTest {
 		verify(mockViewSnapshotDao).getSnapshot(idAndVersion);
 		verify(mockS3Client).getObject(new GetObjectRequest("bucket", "key"), mockFile);
 		verify(mockIndexManager).populateViewFromSnapshot(eq(idAndVersion), any());
+		verify(mockIndexManager).refreshViewBenefactors(idAndVersion);
 		verify(mockFile).delete();
 	}
 	
@@ -1226,7 +1226,7 @@ public class TableViewManagerImplTest {
 		String expectedKey = TableViewManagerImpl.VIEW_DELTA_KEY_PREFIX+idAndVersion.toString();
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedKey),
 				any());
-		verify(managerSpy).applyChangesToAvailableView(idAndVersion);
+		verify(managerSpy).applyChangesToAvailableViewOrSnapshot(idAndVersion);
 	}
 	
 	/**
@@ -1266,7 +1266,7 @@ public class TableViewManagerImplTest {
 		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(String.class), any());
 		String expectedKey = TableViewManagerImpl.VIEW_DELTA_KEY_PREFIX+idAndVersion.toString();
 		// call under test
-		manager.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
+		managerSpy.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedKey),
 				any());
 		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), eq(idAndVersion),
@@ -1351,6 +1351,26 @@ public class TableViewManagerImplTest {
 		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
 		verifyNoMoreInteractions(mockTableManagerSupport);
 		verifyNoMoreInteractions(mockIndexManager);
+	}
+	
+	
+	@Test
+	public void testapplyChangesToAvailableViewWithNull() {
+		idAndVersion = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.applyChangesToAvailableView(idAndVersion);
+		});
+	}
+	
+	@Test
+	public void testapplyChangesToAvailableViewWithVersionNumber() {
+		idAndVersion = IdAndVersion.parse("syn123.1");
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.applyChangesToAvailableView(idAndVersion);
+		}).getMessage();
+		assertEquals("This method cannot be called on a view snapshot", message);
 	}
 	
 	/**
@@ -1442,6 +1462,51 @@ public class TableViewManagerImplTest {
 				allContainersInScope, viewSchema);
 		// should fail and change the table status.
 		verify(mockTableManagerSupport).attemptToSetTableStatusToFailed(idAndVersion, exception);
+	}
+	
+	@Test
+	public void testApplyChangesToAvailableViewOrSnapshotWithoutVersion() {
+		idAndVersion = IdAndVersion.parse("syn123");
+		// call under test
+		managerSpy.applyChangesToAvailableViewOrSnapshot(idAndVersion);
+		verify(managerSpy).applyChangesToAvailableView(idAndVersion);
+		verify(managerSpy, never()).refreshBenefactorsForViewSnapshot(any());
+	}
+	
+	@Test
+	public void testApplyChangesToAvailableViewOrSnapshotWithVersion() {
+		when(mockConnectionFactory.connectToTableIndex(any())).thenReturn(mockIndexManager);
+		idAndVersion = IdAndVersion.parse("syn123.1");
+		// call under test
+		managerSpy.applyChangesToAvailableViewOrSnapshot(idAndVersion);
+		verify(managerSpy, never()).applyChangesToAvailableView(any());
+		verify(managerSpy).refreshBenefactorsForViewSnapshot(idAndVersion);
+	}
+	
+	@Test
+	public void testApplyChangesToAvailableViewOrSnapshotWithoutNull() {
+		idAndVersion = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			managerSpy.applyChangesToAvailableViewOrSnapshot(idAndVersion);
+		});
+	}
+	
+	@Test
+	public void testRefreshBenefactorsForViewSnapshot() {
+		when(mockConnectionFactory.connectToTableIndex(any())).thenReturn(mockIndexManager);
+		// call under test
+		manager.refreshBenefactorsForViewSnapshot(idAndVersion);
+		verify(mockIndexManager).refreshViewBenefactors(idAndVersion);
+	}
+	
+	@Test
+	public void testRefreshBenefactorsForViewSnapshotWithNull() {
+		idAndVersion = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.refreshBenefactorsForViewSnapshot(idAndVersion);
+		});
 	}
 
 	/**
