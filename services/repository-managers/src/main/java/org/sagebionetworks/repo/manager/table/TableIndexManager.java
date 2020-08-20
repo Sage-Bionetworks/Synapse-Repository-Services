@@ -257,4 +257,11 @@ public interface TableIndexManager {
 	void updateViewRowsInTransaction(IdAndVersion viewId, Set<Long> rowsIdsWithChanges, ViewScopeType scopeType,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
 
+	/**
+	 * Ensure the benefactor IDs for the given view snapshot are up-to-date.
+	 * 
+	 * @param viewId
+	 */
+	void refreshViewBenefactors(IdAndVersion viewId);
+
 }
