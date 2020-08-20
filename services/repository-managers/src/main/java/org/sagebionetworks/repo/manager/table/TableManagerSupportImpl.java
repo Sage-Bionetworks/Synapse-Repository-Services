@@ -135,8 +135,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		// lookup the table type.
 		ObjectType tableType = getTableType(idAndVersion);
 
-		// Currently we only signal non-snapshot views.
-		if (ObjectType.ENTITY_VIEW.equals(tableType) && !idAndVersion.getVersion().isPresent()) {
+		// Currently we only signal views
+		if (ObjectType.ENTITY_VIEW.equals(tableType)) {
 			// notify all listeners.
 			transactionalMessenger
 					.sendMessageAfterCommit(new MessageToSend().withObjectId(idAndVersion.getId().toString())

@@ -54,9 +54,11 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.Table;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
@@ -4104,6 +4106,96 @@ public class TableIndexDAOImplTest {
 
 		//method under test
 		assertEquals(2, tableIndexDAO.tempTableListColumnMaxLength(tableId,columnId));
+	}
+	
+	@Test
+	public void testRefreshViewBenefactors() throws ParseException{
+		tableId = IdAndVersion.parse("syn123.45");
+		isView = true;
+		// delete all data
+		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteTable(tableId);
+		
+		// setup some hierarchy.
+		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
+		file1.setParentId(333L);
+		ObjectAnnotationDTO double1 = new ObjectAnnotationDTO();
+		double1.setKey("foo");
+		double1.setValue("NaN");
+		double1.setType(AnnotationType.DOUBLE);
+		double1.setObjectId(2L);
+		file1.setAnnotations(Arrays.asList(double1));
+		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
+		file2.setParentId(222L);
+		ObjectAnnotationDTO double2 = new ObjectAnnotationDTO();
+		double2.setKey("foo");
+		double2.setValue("Infinity");
+		double2.setType(AnnotationType.DOUBLE);
+		double2.setObjectId(3L);
+		file2.setAnnotations(Arrays.asList(double2));
+		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+		
+		// Create the schema for this table
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
+
+		// both parents
+		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
+		
+		List<String> subTypes = EnumUtils.names(EntityType.file);
+		boolean filterByObjectId = false;
+		
+		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		
+		// capture the results of the stream
+		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
+		tableIndexDAO.createViewSnapshotFromObjectReplication(tableId.getId(), scopeFilter, schema, fieldTypeMapper, stream);
+		List<String[]> rows = stream.getRows();
+		assertNotNull(rows);
+		assertEquals(3, rows.size());
+		
+		createOrUpdateTable(schema, tableId, isView);
+		long maxBytesPerBatch = 10;
+		tableIndexDAO.populateViewFromSnapshot(tableId, rows.iterator(), maxBytesPerBatch);
+		
+		SqlQuery query = new SqlQueryBuilder("select ROW_ID, ROW_BENEFACTOR from " + tableId, schema).build();
+		// Now query for the results
+		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		assertNotNull(results);
+		assertEquals(Lists.newArrayList(file1.getId().toString(),file1.getBenefactorId().toString()), results.getRows().get(0).getValues());
+		assertEquals(Lists.newArrayList(file2.getId().toString(),file2.getBenefactorId().toString()), results.getRows().get(1).getValues());
+		
+		// update the benefactors in the replication table
+		file1.setBenefactorId(new Long(3));
+		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(file1.getId()));
+		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1));
+		
+		// call under test
+		tableIndexDAO.refreshViewBenefactors(tableId, objectType);
+		
+		// The benefactors should be updated.
+		results = tableIndexDAO.query(mockProgressCallback, query);
+		assertNotNull(results);
+		// file one should change while file two should remain the same.
+		assertEquals(Lists.newArrayList(file1.getId().toString(),file1.getBenefactorId().toString()), results.getRows().get(0).getValues());
+		assertEquals(Lists.newArrayList(file2.getId().toString(),file2.getBenefactorId().toString()), results.getRows().get(1).getValues());
+	}
+	
+	@Test
+	public void testRefreshViewBenefactorsWithNullId() {
+		tableId = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.refreshViewBenefactors(tableId, objectType);
+		});
+	}
+	
+	@Test
+	public void testRefreshViewBenefactorsWithNullObjectType() {
+		objectType = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.refreshViewBenefactors(tableId, objectType);
+		});
 	}
 
 }
