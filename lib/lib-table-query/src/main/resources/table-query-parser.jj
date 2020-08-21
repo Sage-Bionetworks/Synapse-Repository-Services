@@ -234,18 +234,10 @@ TOKEN [IGNORE_CASE]: {
   >
 }
 
-/* Synapse functions
-TOKEN [IGNORE_CASE]: {
-  < synapse_function_name:
-   "CURRENT_USER"
-  >
-} */
 
-/* User Function */
+/* Synapse Functions */
 TOKEN [IGNORE_CASE]: {
-  < current_user_function:
-     "CURRENT_USER"
-    >
+  < current_user_function:"CURRENT_USER" >
 }
 
 /* string functions */
@@ -1024,20 +1016,21 @@ NumericValueFunction numericValueFunction():
 CurrentUserFunction currentUserFunction():
 {
 	CurrentUserFunction currentUserFunction = null;
-	CurrentUserFunctionName currentUserFunctionName = null;
+	SynapseFunctionName synapseFunctionName = null;
 }
 {
-	currentUserFunctionName = currentUserFunctionName() { currentUserFunction = new CurrentUserFunction(currentUserFunctionName); }
+	synapseFunctionName = synapseFunctionName() { currentUserFunction = new CurrentUserFunction(synapseFunctionName); }
 		<left_paren>
 		<right_paren>
 	{ return currentUserFunction; }
 }
-CurrentUserFunctionName currentUserFunctionName():
+
+SynapseFunctionName synapseFunctionName():
 {
-	Token currentUserFunctionName  = null;
+	Token synapseFunctionName  = null;
 }
 {
-	currentUserFunctionName  = <current_user_function> { return CurrentUserFunctionName.valueOf(currentUserFunctionName.image.toUpperCase()); }
+	synapseFunctionName  = <current_user_function> { return SynapseFunctionName.valueOf(synapseFunctionName.image.toUpperCase()); }
 }
 
 MySqlFunction mysqlFunction():

@@ -1,12 +1,5 @@
 package org.sagebionetworks.repo.manager.table;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -53,6 +46,13 @@ import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.BadSqlGrammarException;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 
 public class TableQueryManagerImpl implements TableQueryManager {
 
@@ -166,11 +166,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			model = addRowLevelFilter(user, model);
 		}
 		// Return the prepared query.
-		return new SqlQueryBuilder(model).tableSchema(columnModels).overrideOffset(query.getOffset())
+		return new SqlQueryBuilder(model, user.getId()).tableSchema(columnModels).overrideOffset(query.getOffset())
 				.overrideLimit(query.getLimit()).maxBytesPerPage(maxBytesPerPage)
 				.includeEntityEtag(query.getIncludeEntityEtag()).selectedFacets(query.getSelectedFacets())
-				.sortList(query.getSort()).additionalFilters(query.getAdditionalFilters()).tableType(tableType)
-				.userId(user.getId()).build();
+				.sortList(query.getSort()).additionalFilters(query.getAdditionalFilters()).tableType(tableType).build();
 	}
 
 	/**
@@ -203,7 +202,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 					final TableStatus status = validateTableIsAvailable(query.getTableId());
 					// run the query
 					QueryResultBundle bundle = queryAsStreamAfterAuthorization(progressCallback, query,
-							rowHandler, options);
+							rowHandler, options, user.getId());
 					// add the status to the result
 					if (rowHandler != null) {
 						// the etag is only returned for consistent queries.
@@ -258,7 +257,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableLockUnavailableException
 	 */
 	QueryResultBundle queryAsStreamAfterAuthorization(ProgressCallback progressCallback, SqlQuery query,
-			RowHandler rowHandler, final QueryOptions options)
+			RowHandler rowHandler, final QueryOptions options, Long userId)
 			throws TableUnavailableException, TableFailedException, LockUnavilableException {
 		// build up the response.
 		QueryResultBundle bundle = new QueryResultBundle();
@@ -272,7 +271,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		IdAndVersion idAndVersion = IdAndVersion.parse(query.getTableId());
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 
-		FacetModel facetModel = new FacetModel(query.getSelectedFacets(), query, options.returnFacets());
+		FacetModel facetModel = new FacetModel(query.getSelectedFacets(), query, options.returnFacets(), userId);
 
 		// determine whether or not to run with facet filters
 		SqlQuery queryToRun;

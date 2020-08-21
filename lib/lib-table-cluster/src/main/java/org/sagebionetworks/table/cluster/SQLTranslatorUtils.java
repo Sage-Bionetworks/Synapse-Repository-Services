@@ -24,9 +24,11 @@ import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.CurrentUserFunction;
 import org.sagebionetworks.table.query.model.DelimitedIdentifier;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.Element;
+import org.sagebionetworks.table.query.model.ExactNumericLiteral;
 import org.sagebionetworks.table.query.model.FromClause;
 import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.GroupByClause;
@@ -39,6 +41,7 @@ import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.IntervalLiteral;
 import org.sagebionetworks.table.query.model.JoinCondition;
 import org.sagebionetworks.table.query.model.JoinType;
+import org.sagebionetworks.table.query.model.NumericValueFunction;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.OuterJoinType;
 import org.sagebionetworks.table.query.model.Pagination;
@@ -52,6 +55,7 @@ import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.TableName;
 import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
+import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
@@ -80,7 +84,6 @@ public class SQLTranslatorUtils {
 
 	private static final String COLON = ":";
 	public static final String BIND_PREFIX = "b";
-	private static Long userId;
 
 
 	/**
@@ -301,7 +304,15 @@ public class SQLTranslatorUtils {
 	 */
 	public static void translateModel(QuerySpecification transformedModel,
 			Map<String, Object> parameters,
-		  ColumnTranslationReferenceLookup columnTranslationReferenceLookup) {
+		  ColumnTranslationReferenceLookup columnTranslationReferenceLookup, Long userId) {
+
+		// Insert userId if needed
+		Iterable<NumericValueFunction> hasUser = transformedModel.createIterable(NumericValueFunction.class);
+		for(NumericValueFunction pred: hasUser){
+			if(pred.getChild() instanceof CurrentUserFunction){
+				pred.replaceChildren(new UnsignedLiteral(new UnsignedNumericLiteral(new ExactNumericLiteral(userId))));
+			}
+		}
 
 		// Select columns
 		Iterable<HasReferencedColumn> selectColumns = transformedModel.getSelectList().createIterable(HasReferencedColumn.class);

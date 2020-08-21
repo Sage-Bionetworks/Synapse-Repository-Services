@@ -1,12 +1,12 @@
 package org.sagebionetworks.table.query.model;
 
-public enum CurrentUserFunctionName {
-    // date-time
-    CURRENT_USER(FunctionReturnType.STRING);
+public enum SynapseFunctionName {
+    // User
+    CURRENT_USER(FunctionReturnType.LONG);
 
     FunctionReturnType returnType;
 
-    CurrentUserFunctionName(FunctionReturnType returnType){
+    SynapseFunctionName(FunctionReturnType returnType){
         this.returnType = returnType;
     }
 

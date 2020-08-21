@@ -4,15 +4,15 @@ import java.util.List;
 
 public class CurrentUserFunction extends SQLElement{
 
-    CurrentUserFunctionName currentUserFunctionName;
+    SynapseFunctionName synapseFunctionName;
 
-    public CurrentUserFunction(CurrentUserFunctionName currentUserFunctionName){
-        this.currentUserFunctionName = currentUserFunctionName;
+    public CurrentUserFunction(SynapseFunctionName synapseFunctionName){
+        this.synapseFunctionName = synapseFunctionName;
     }
 
     @Override
     public void toSql(StringBuilder builder, ToSqlParameters parameters) {
-        builder.append(currentUserFunctionName.name());
+        builder.append(synapseFunctionName.name());
         builder.append("(");
         builder.append(")");
     }
