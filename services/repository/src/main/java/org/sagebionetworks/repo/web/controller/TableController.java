@@ -1313,7 +1313,10 @@ public class TableController {
 	ColumnModelPage getPossibleColumnModelsForView(
 			@RequestBody ViewScope viewScope,
 			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM, required = false) String nextPageToken) {
-		throw new DeprecatedServiceException("The service is deprecated, please refer to the new asynchronous service: https://rest-docs.synapse.org/rest/POST/column/view/scope/async/start.html");
+		ValidateArgument.required(viewScope, "viewScope");
+		return serviceProvider.getTableServices()
+				.getPossibleColumnModelsForScopeIds(viewScope,
+						nextPageToken);
 	}
 	
 	/**
