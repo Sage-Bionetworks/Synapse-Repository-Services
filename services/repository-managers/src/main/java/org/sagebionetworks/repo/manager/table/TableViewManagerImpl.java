@@ -343,10 +343,9 @@ public class TableViewManagerImpl implements TableViewManager {
 	public void createOrUpdateViewIndex(IdAndVersion idAndVersion, ProgressCallback outerProgressCallback)
 			throws Exception {
 		Optional<TableState> optionalState = tableManagerSupport.getTableStatusState(idAndVersion);
-		if (optionalState.isPresent() && optionalState.get() == TableState.AVAILABLE
-				&& !idAndVersion.getVersion().isPresent()) {
+		if (optionalState.isPresent() && optionalState.get() == TableState.AVAILABLE) {
 			/*
-			 * The view is currently available and this is not a "snapshot". This route will
+			 * The view is currently available. This route will
 			 * attempt to apply any changes to an existing view while the view status
 			 * remains AVAILABLE. Users will be able to query the view during this
 			 * operation.
@@ -354,7 +353,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			applyChangesToAvailableView(idAndVersion, outerProgressCallback);
 		}else {
 			/*
-			 * The view is not currently available or this is a "snapshot". This route will
+			 * The view is not currently available. This route will
 			 * create or rebuild the table from scratch with the view status set to
 			 * PROCESSING. Users will not be able to query the view during this operation.
 			 */
@@ -388,7 +387,7 @@ public class TableViewManagerImpl implements TableViewManager {
 						tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, key,
 								(ProgressCallback innerCallback) -> {
 									// while holding both locks do the work.
-									applyChangesToAvailableViewHoldingLock(idAndVersion);
+									applyChangesToAvailableViewOrSnapshot(idAndVersion);
 									return null;
 								});
 						return null;
@@ -398,12 +397,39 @@ public class TableViewManagerImpl implements TableViewManager {
 		}
 	}
 	
+	void applyChangesToAvailableViewOrSnapshot(IdAndVersion viewId) {
+		ValidateArgument.required(viewId, "viewId");
+		if(viewId.getVersion().isPresent()) {
+			// This is an available view snapshot, so we just need to ensure the benefactors are up-to-date.
+			refreshBenefactorsForViewSnapshot(viewId);
+		}else {
+			// This is not a snapshot so apply all changes as needed.
+			applyChangesToAvailableView(viewId);
+		}
+	}
+	
+	/**
+	 * Ensure the benefactor ID for the given view match the benefactors from the 
+	 * object replication.
+	 * @param viewId
+	 */
+	void refreshBenefactorsForViewSnapshot(IdAndVersion viewId) {
+		ValidateArgument.required(viewId, "viewId");
+		TableIndexManager indexManager = connectionFactory.connectToTableIndex(viewId);
+		indexManager.refreshViewBenefactors(viewId);
+	}
+	
+	
 	/**
 	 * Attempt to apply any changes to a view that will remain available for query during this operation.
 	 * The caller must hold an exclusive lock on the view-change during this operation.
 	 * @param viewId
 	 */
-	void applyChangesToAvailableViewHoldingLock(IdAndVersion viewId) {
+	void applyChangesToAvailableView(IdAndVersion viewId) {
+		ValidateArgument.required(viewId, "viewId");
+		if(viewId.getVersion().isPresent()) {
+			throw new IllegalArgumentException("This method cannot be called on a view snapshot");
+		}
 		try {
 			TableIndexManager indexManager = connectionFactory.connectToTableIndex(viewId);
 			ViewScopeType scopeType = tableManagerSupport.getViewScopeType(viewId);
@@ -553,6 +579,8 @@ public class TableViewManagerImpl implements TableViewManager {
 					StandardCharsets.UTF_8)))) {
 				indexManager.populateViewFromSnapshot(idAndVersion, reader);
 			}
+			// ensure the latest benefactors are used.
+			indexManager.refreshViewBenefactors(idAndVersion);
 			return snapshot.getSnapshotId();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
