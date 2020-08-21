@@ -117,7 +117,7 @@
 						<containerId>tomcat7x</containerId>
 						<!-- Download and install tomcat -->
 						<zipUrlInstaller>
-							<url>https://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local/apache-tomcat/apache-tomcat/${tomcat-version}/apache-tomcat-${tomcat-version}.zip</url>
+							<url>https://sagebionetworks.jfrog.io/sagebionetworks/libs-releases-local/apache-tomcat/apache-tomcat/${tomcat-version}/apache-tomcat-${tomcat-version}.zip</url>
 							<extractDir>${project.build.directory}/tomcat7x/container</extractDir>
 						</zipUrlInstaller>
 						<systemProperties>
