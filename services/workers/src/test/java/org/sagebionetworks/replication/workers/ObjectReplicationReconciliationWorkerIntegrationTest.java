@@ -6,9 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.Ignore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -39,7 +39,6 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.Lists;
 
-@Ignore
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 @ActiveProfiles("test-reconciliation-workers")
@@ -95,6 +94,7 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 		}
 	}
 	
+	@Disabled // see PLFM-6410
 	@Test
 	public void testReconciliation() throws Exception{
 		// Add a folder to the project
@@ -123,6 +123,7 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 	 * 
 	 * @throws InterruptedException
 	 */
+	@Disabled // see PLFM-6410
 	@Test
 	public void testPLFM_5352() throws InterruptedException {
 		// Add a folder to the project
