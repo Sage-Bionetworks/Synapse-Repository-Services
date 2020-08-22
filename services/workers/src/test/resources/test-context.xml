@@ -35,65 +35,6 @@
 
 	<bean id="testHelper" class="org.sagebionetworks.worker.TestHelper"/>
 	
-	<!-- Profile with a subset of workers for views (Use with @ActiveProfiles("test-view-workers") -->
-	<beans profile="test-view-workers">
-		<util:list id="workerTriggersList">
-			<ref bean="tableTransactionMessageTrigger" />
-			<ref bean="tableQueryQueueMessageReveiverTrigger" />
-			<ref bean="tableQueryNextPageQueueMessageReveiverTrigger" />
-			<!-- workers publish messages too -->
-			<ref bean="messagePublisherTrigger" />
-			<ref bean="tableViewWorkerTrigger" />
-			<ref bean="objectReplicationWorkerTrigger" />
-			<ref bean="objectReplicationReconciliationWorkerTrigger" />
-			<ref bean="entityHierarchyChangeWorkerTrigger" />
-		</util:list>
-	</beans>
+	<bean id="dataAccessTestHelper" class="org.sagebionetworks.dataaccess.workers.DataAccessTestHelper"/>
 	
-	<!-- Profile with a subset of workers for replication only (Use with @ActiveProfiles("test-replication-workers") -->
-	<beans profile="test-replication-workers">
-		<util:list id="workerTriggersList">
-			<!-- workers publish messages too -->
-			<ref bean="messagePublisherTrigger" />
-			<ref bean="objectReplicationWorkerTrigger" />
-		</util:list>
-	</beans>
-	
-	<!-- Profile with a subset of workers for reconciliation only (Use with @ActiveProfiles("test-reconciliation-workers") -->
-	<beans profile="test-reconciliation-workers">
-		<util:list id="workerTriggersList">
-			<!-- workers publish messages too -->
-			<ref bean="messagePublisherTrigger" />
-			<ref bean="tableViewWorkerTrigger" />
-			<ref bean="objectReplicationWorkerTrigger" />
-			<ref bean="objectReplicationReconciliationWorkerTrigger" />
-			<ref bean="entityHierarchyChangeWorkerTrigger" />
-		</util:list>
-	</beans>
-	
-	<!-- Profile with a subset of workers for ViewColumnModelRequestWorkerTrigger only (Use with @ActiveProfiles("test-view-column-model-request-worker") -->
-	<beans profile="test-view-column-model-request-worker">
-		<util:list id="workerTriggersList">
-			<ref bean="messagePublisherTrigger" />
-			<ref bean="objectReplicationWorkerTrigger" />
-			<ref bean="viewColumnModelRequestWorkerTrigger" />
-		</util:list>
-	</beans>
-	
-	<!-- Profile with a subset of workers for data access workers only (Use with @ActiveProfiles("test-dataaccess-worker") -->
-	<beans profile="test-dataaccess-worker">
-		<util:list id="workerTriggersList">
-			<ref bean="messagePublisherTrigger" />
-			<ref bean="accessApprovalExpirationTrigger"/>
-			<ref bean="accessApprovalRevokedNotificationTrigger"/>
-			<ref bean="accessApprovalReminderNotificationWorkerTrigger"/>
-			<ref bean="messageToUserQueueMessageReceiverTrigger"/>
-		</util:list>
-		<!-- We want to simulate the email sending (no email go out) so this must be prod -->
-		<bean id="prodDetector" class="org.sagebionetworks.repo.manager.testing.StubProdDetector">
-			<constructor-arg value="true" />
-		</bean>
-		
-		<bean id="dataAccessTestHelper" class="org.sagebionetworks.dataaccess.workers.DataAccessTestHelper"/>
-	</beans>
 </beans>
