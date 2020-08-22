@@ -1,6 +1,5 @@
 package org.sagebionetworks.replication.workers;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -9,13 +8,13 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -48,15 +47,13 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 	private static final int MAX_WAIT_MS = 2* 60 *1000;
 	
 	@Autowired
-	EntityManager entityManager;
+	private EntityManager entityManager;
 	@Autowired
-	ConnectionFactory tableConnectionFactory;
+	private ConnectionFactory tableConnectionFactory;
 	@Autowired
 	UserManager userManager;
 	@Autowired
-	TableManagerSupport tableManagerSupport;
-	@Autowired
-	TableViewManager viewManager;
+	private TableViewManager viewManager;
 	@Autowired
 	DefaultColumnModelMapper modelMapper;
 
@@ -97,29 +94,27 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 		}
 	}
 	
+	@Disabled // see PLFM-6410
 	@Test
 	public void testReconciliation() throws Exception{
-		// wait for the project to replicate from the entity creation event
-		ObjectDataDTO dto = waitForEntityDto(projectId);
+		// Add a folder to the project
+		Folder folder = addHierarchyToProject();
+		// wait for the folder to replicated
+		ObjectDataDTO dto = waitForEntityDto(folder.getId());
 		assertNotNull(dto);
-		assertEquals(projectIdLong, dto.getId());
-		
-		// create a view for this project
-		List<String> scope = Lists.newArrayList(project.getParentId());
-		long viewTypeMask = 0x02;
-		EntityView view = createView(scope, viewTypeMask);
-		IdAndVersion viewId = IdAndVersion.parse(view.getId());
 		
 		// Simulate out-of-synch by deleting the project's replication data
-		indexDao.deleteObjectData(viewObjectType, Lists.newArrayList(projectIdLong));
-			
-		// Getting the status of the view should trigger the reconciliation.
-		tableManagerSupport.getTableStatusOrCreateIfNotExists(viewId);
+		indexDao.deleteObjectData(viewObjectType, Lists.newArrayList(KeyFactory.stringToKey(folder.getId())));
+		
+		// ensure a sycn can occur.
+		indexDao.truncateReplicationSyncExpiration();
+		// by creating a view we trigger a reconcile.
+		List<String> scope = Lists.newArrayList(project.getId());
+		long viewTypeMask = 0x08;
+		createView(scope, viewTypeMask);
 		
 		// wait for reconciliation to restore the deleted data.
-		dto = waitForEntityDto(projectId);
-		assertNotNull(dto);
-		assertEquals(projectIdLong, dto.getId());
+		waitForEntityDto(folder.getId());
 	}
 	
 	/**
@@ -128,6 +123,7 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 	 * 
 	 * @throws InterruptedException
 	 */
+	@Disabled // see PLFM-6410
 	@Test
 	public void testPLFM_5352() throws InterruptedException {
 		// Add a folder to the project
@@ -136,24 +132,22 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 		ObjectDataDTO dto = waitForEntityDto(folder.getId());
 		assertNotNull(dto);
 		
-		// create a view for this project
-		List<String> scope = Lists.newArrayList(project.getParentId());
-		long viewTypeMask = 0x08;
-		EntityView view = createView(scope, viewTypeMask);
-		IdAndVersion viewId = IdAndVersion.parse(view.getId());
-		
 		// simulate a stale benefactor on the folder
 		indexDao.deleteObjectData(viewObjectType, Lists.newArrayList(KeyFactory.stringToKey(folder.getId())));
-		dto.setBenefactorId(dto.getParentId());
+		dto.setBenefactorId(KeyFactory.stringToKey(folder.getId()));
 		indexDao.addObjectData(viewObjectType, Lists.newArrayList(dto));
 		
-		// Getting the status of the view should trigger the reconciliation.
-		tableManagerSupport.getTableStatusOrCreateIfNotExists(viewId);
-		
+		// ensure a sycn can occur.
+		indexDao.truncateReplicationSyncExpiration();
+		// by creating a view we trigger a reconcile.
+		List<String> scope = Lists.newArrayList(project.getId());
+		long viewTypeMask = 0x08;
+		EntityView view = createView(scope, viewTypeMask);
+		IdAndVersion.parse(view.getId());
+	
 		// Wait for the benefactor to be fixed
 		Long expectedBenefactor = projectIdLong;
-		dto = waitForEntityDto(folder.getId(), expectedBenefactor);
-		assertNotNull(dto);
+		waitForEntityDto(folder.getId(), expectedBenefactor);
 	}
 	
 	EntityView createView(List<String> scopeIds, long viewTypeMask) {
