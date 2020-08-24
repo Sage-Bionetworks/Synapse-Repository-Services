@@ -57,7 +57,6 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.worker.TestHelper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -66,7 +65,6 @@ import com.google.common.collect.ImmutableMap;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-@ActiveProfiles("test-view-workers")
 public class SubmissionViewIntegrationTest {
 
 	private static final int MAX_WAIT = 2 * 60 * 1000;

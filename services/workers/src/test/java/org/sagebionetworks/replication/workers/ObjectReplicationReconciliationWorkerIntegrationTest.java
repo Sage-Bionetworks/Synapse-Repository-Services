@@ -8,7 +8,6 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -33,7 +32,6 @@ import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -41,7 +39,6 @@ import com.google.common.collect.Lists;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-@ActiveProfiles("test-reconciliation-workers")
 public class ObjectReplicationReconciliationWorkerIntegrationTest {
 	
 	private static final int MAX_WAIT_MS = 2* 60 *1000;
@@ -94,7 +91,6 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 		}
 	}
 	
-	@Disabled // see PLFM-6410
 	@Test
 	public void testReconciliation() throws Exception{
 		// Add a folder to the project
@@ -123,7 +119,6 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 	 * 
 	 * @throws InterruptedException
 	 */
-	@Disabled // see PLFM-6410
 	@Test
 	public void testPLFM_5352() throws InterruptedException {
 		// Add a folder to the project

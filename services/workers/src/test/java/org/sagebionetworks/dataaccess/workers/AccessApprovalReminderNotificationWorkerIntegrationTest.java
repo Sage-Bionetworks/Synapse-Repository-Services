@@ -6,7 +6,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -16,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.dataaccess.AccessApprovalNotificationManager;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.ApprovalState;
@@ -28,17 +28,14 @@ import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationD
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationType;
 import org.sagebionetworks.repo.model.dbo.feature.FeatureStatusDao;
 import org.sagebionetworks.repo.model.feature.Feature;
-import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = {"classpath:test-context.xml"})
-@ActiveProfiles("test-dataaccess-worker")
 public class AccessApprovalReminderNotificationWorkerIntegrationTest {
 	
 	private static final long WORKER_TIMEOUT = 3 * 60 * 1000;
@@ -110,27 +107,15 @@ public class AccessApprovalReminderNotificationWorkerIntegrationTest {
 		TimeUtils.waitFor(WORKER_TIMEOUT, 1000L, () -> {
 			Optional<DBODataAccessNotification> result = notificationDao.find(notificationType, ar.getId(), user.getId());
 			
-			if (!result.isPresent()) {
-				return new Pair<>(false, null);
-			}
-
-			DBODataAccessNotification notification = result.get();
+			result.ifPresent(notification -> {
+				assertEquals(ar.getId(), notification.getRequirementId());
+				assertEquals(approval.getId(), notification.getAccessApprovalId());
+				assertEquals(user.getId(), notification.getRecipientId());
+				// Makes sure that it didn't actually send a message
+				assertEquals(AccessApprovalNotificationManager.NO_MESSAGE_TO_USER, notification.getMessageId());
+			});
 			
-			assertEquals(ar.getId(), notification.getRequirementId());
-			assertEquals(approval.getId(), notification.getAccessApprovalId());
-			assertEquals(user.getId(), notification.getRecipientId());
-			
-			Long messageId = notification.getMessageId();
-
-			MessageToUser message = messageDao.getMessage(messageId.toString());
-		
-			messages.add(message.getId());
-			
-			assertEquals(message.getCreatedBy(), BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId().toString());
-			assertEquals(message.getRecipients(), Collections.singleton(user.getId().toString()));
-			
-			// Wait till the message is processed
-			return new Pair<>(messageDao.getMessageSent(message.getId()), null);
+			return new Pair<>(result.isPresent(), null);
 		});
 	}
 	
