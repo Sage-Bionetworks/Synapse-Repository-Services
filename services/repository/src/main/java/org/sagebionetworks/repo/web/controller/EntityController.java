@@ -1685,7 +1685,7 @@ public class EntityController {
 	 * </p>
 	 * 
 	 * @param userId
-	 * @param id
+	 * @param id     The ID of the Entity.
 	 * @return
 	 */
 	@RequiredScope({ view })
@@ -1702,12 +1702,18 @@ public class EntityController {
 	 * single container Entity such as a Project or Folder. Only direct children of
 	 * the container are included in the results. The statistics include the total
 	 * number of children in the container, and the counts for both the invalid and
-	 * valid children.
+	 * valid children. If an Entity has not been validated for the first time, or it
+	 * does not have bound schema it will be counted as 'unknown'.
+	 * <p>
+	 * The validation of an Entity against its bound schema is automatic and
+	 * eventually consistent. Keep checking this method to get the latest validation
+	 * statistics for the given container.
+	 * </p>
 	 * <p>
 	 * Note: The caller must be granted the
 	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.READ</a>
-	 * permission on the container Entity. The resulting statistics will only include
-	 * children that the caller has the READ permission on.
+	 * permission on the container Entity. The resulting statistics will only
+	 * include children that the caller has the READ permission on.
 	 * </p>
 	 * 
 	 * @param userId
@@ -1725,16 +1731,20 @@ public class EntityController {
 
 	/**
 	 * Get a single page of invalid JSON schema validation results for a container
-	 * Entity (Project or Folder).
+	 * Entity (Project or Folder). The validation of an Entity against its bound
+	 * schema is automatic and eventually consistent. The validation results include
+	 * the etag of the Entity at the time of the last validation. If the returned
+	 * etag does not match the current etag of the Entity then the results should be
+	 * considered out-of-date. 
 	 * <p>
 	 * Note: The caller must be granted the
 	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.READ</a>
-	 * permission on the container Entity. The results will only include
-	 * children that the caller has the READ permission on.
+	 * permission on the container Entity. The results will only include children
+	 * that the caller has the READ permission on.
 	 * </p>
 	 * 
 	 * @param userId
-	 * @param id
+	 * @param id      The ID of the container Entity.
 	 * @param request
 	 * @return
 	 */
