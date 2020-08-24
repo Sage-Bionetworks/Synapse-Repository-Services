@@ -2,7 +2,7 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
-public class CurrentUserFunction extends SQLElement{
+public class CurrentUserFunction extends SQLElement implements HasFunctionReturnType{
 
     SynapseFunctionName synapseFunctionName;
 
@@ -22,4 +22,8 @@ public class CurrentUserFunction extends SQLElement{
         // no sub-elements
     }
 
+    @Override
+    public FunctionReturnType getFunctionReturnType() {
+        return synapseFunctionName.getFunctionReturnType();
+    }
 }

@@ -832,6 +832,16 @@ public class SQLQueryTest {
 	}
 
 	@Test
+	public void testCurrentUserFunctionInSelectClause() throws ParseException {
+		sql = "select CURRENT_USER() from syn123";
+		SqlQuery query = new SqlQueryBuilder(sql, userId)
+				.tableSchema(tableSchema)
+				.tableType(EntityType.table)
+				.build();
+		assertEquals("SELECT 1, ROW_ID, ROW_VERSION FROM T123", query.getOutputSQL());
+	}
+
+	@Test
 	public void testAdditionalFilter_noExistingWHEREClause() throws ParseException {
 		sql = "select \"foo\" from syn123";
 
