@@ -334,15 +334,11 @@ public class SQLTranslatorUtils {
 
 		if(whereClause != null) {
 			// Translate all predicates
-
-
 			Iterable<HasPredicate> hasPredicates = whereClause.createIterable(HasPredicate.class);
 			for (HasPredicate predicate : hasPredicates) {
 				translate(predicate, parameters, columnTranslationReferenceLookup);
 			}
 
-			//once all row names are translated and predicate values are replaced with bind variables
-			//transform Synapse-specific predicate into MySQL
 			for (BooleanPrimary booleanPrimary : whereClause.createIterable(BooleanPrimary.class)) {
 				replaceBooleanFunction(booleanPrimary, columnTranslationReferenceLookup);
 				replaceArrayHasPredicate(booleanPrimary, columnTranslationReferenceLookup, originalSynId);
