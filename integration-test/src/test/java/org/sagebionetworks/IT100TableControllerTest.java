@@ -1,26 +1,7 @@
 package org.sagebionetworks;
 
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.Writer;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.UUID;
-import java.util.function.Consumer;
-
+import com.google.common.collect.Lists;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -83,7 +64,25 @@ import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 
-import com.google.common.collect.Lists;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.Writer;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.UUID;
+import java.util.function.Consumer;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for TableEntity and ColumnModel services.
@@ -95,7 +94,7 @@ public class IT100TableControllerTest {
 
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapse;
-	private static Long userToDelete;
+	private static Long userId;
 
 	private List<Entity> entitiesToDelete;
 	private List<TableEntity> tablesToDelete;
@@ -113,7 +112,8 @@ public class IT100TableControllerTest {
 		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+		userId = SynapseClientHelper.createUser(adminSynapse, synapse);
+
 	}
 	
 	@BeforeEach
@@ -140,7 +140,7 @@ public class IT100TableControllerTest {
 	public static void afterClass() throws Exception {
 		// This means proper cleanup was not done by the test 
 		try {
-			adminSynapse.deleteUser(userToDelete);
+			adminSynapse.deleteUser(userId);
 		} catch (Exception e) { }
 	}
 
@@ -303,6 +303,35 @@ public class IT100TableControllerTest {
 		
 		AsyncJobHelper.assertQueryBundleResults(synapse, tableId, "select one from " + table.getId(), 2L, 2L, mask, resultConsumer, MAX_QUERY_TIMEOUT_MS);
 		
+	}
+
+	@Test
+	public void testCurrentUserFunction() throws Exception{
+		// Create a few columns to add to a table entity
+		ColumnModel one = new ColumnModel();
+		one.setName("userId");
+		one.setColumnType(ColumnType.DOUBLE);
+		one = synapse.createColumnModel(one);
+
+		TableEntity table = createTable(Lists.newArrayList(one.getId()));
+
+		List<ColumnModel> columns = synapse.getColumnModelsForTableEntity(table.getId());
+
+		// Append some rows
+		RowSet set = new RowSet();
+		List<Row> rows = Lists.newArrayList(TableModelTestUtils.createRow(null, null, userId.toString()),
+				TableModelTestUtils.createRow(null, null, "2"),
+				TableModelTestUtils.createRow(null, null, "3"),
+				TableModelTestUtils.createRow(null, null, "4"));
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getSelectColumns(columns));
+		set.setTableId(table.getId());
+		synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT, table.getId());
+
+		assertCountResults("select * from " + table.getId() + " where userId = CURRENT_USER()", table.getId(), 1L);
+		assertQueryResults("select * from " + table.getId() + " where userId = CURRENT_USER()", null, null, table.getId(), (queryResults) -> {
+			assertEquals(userId.toString(), queryResults.getRows().get(0).getValues().get(0));
+		});
 	}
 
 	@Test
