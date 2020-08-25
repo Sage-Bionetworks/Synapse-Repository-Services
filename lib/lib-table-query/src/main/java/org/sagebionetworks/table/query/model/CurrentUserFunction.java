@@ -2,6 +2,11 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
+/**
+ *
+ * CurrentUserFunction ::= {@link SynapseFunctionName} left_paren right_paren
+ *
+ */
 public class CurrentUserFunction extends SQLElement implements HasFunctionReturnType{
 
     SynapseFunctionName synapseFunctionName;
