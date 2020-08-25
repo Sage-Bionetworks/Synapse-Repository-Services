@@ -127,7 +127,7 @@ public class SQLTranslatorUtilsTest {
 		
 		rowId = 123L;
 		rowVersion = 2L;
-		userId = new Long(1);
+		userId = 1L;
 		etag = "anEtag";
 		tableIdAndVersion = IdAndVersion.parse("syn123.456");
 	}
@@ -1761,6 +1761,19 @@ public class SQLTranslatorUtilsTest {
 		assertEquals(expectedSql,element.toSql());
 		assertEquals("asdf", parameters.get("b0"));
 		assertEquals("qwerty", parameters.get("b1"));
+	}
+
+	@Test
+	public void testTranslateModel_CurrentUserFunction() throws ParseException{
+		columnFoo.setColumnType(ColumnType.DOUBLE);//not a list type
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
+		QuerySpecification element = new TableQueryParser("select count(*) from syn123 where bar = CURRENT_USER()").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap, userId);
+		String expectedSql = "SELECT COUNT(*) FROM T123 WHERE _C333_ = :b0";
+		assertEquals(expectedSql,element.toSql());
+		assertEquals(userId.toString(), parameters.get("b0"));
 	}
 
 	@Test
