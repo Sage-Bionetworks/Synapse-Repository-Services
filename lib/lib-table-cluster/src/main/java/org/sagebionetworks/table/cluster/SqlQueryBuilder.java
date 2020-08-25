@@ -107,10 +107,6 @@ public class SqlQueryBuilder {
 		this.additionalFilters = filters;
 		return this;
 	}
-	public SqlQueryBuilder userId(Long userId){
-		this.userId = userId;
-		return this;
-	}
 
 	public SqlQuery build(){
 		return new SqlQuery(model, tableSchema, overrideOffset, overrideLimit, maxBytesPerPage, sortList,
