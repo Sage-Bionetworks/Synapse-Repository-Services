@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.worker.TestHelper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -40,7 +39,6 @@ import com.google.common.collect.ImmutableList;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-@ActiveProfiles("test-view-column-model-request-worker")
 public class ViewColumnModelRequestWorkerIntegrationTest {
 	
 	private static final int MAX_WAIT = 2 * 60 * 1000;

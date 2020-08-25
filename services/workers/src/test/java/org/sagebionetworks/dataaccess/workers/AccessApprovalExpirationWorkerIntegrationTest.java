@@ -18,13 +18,11 @@ import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = {"classpath:test-context.xml"})
-@ActiveProfiles("test-dataaccess-worker")
 public class AccessApprovalExpirationWorkerIntegrationTest {
 	
 	private static final long WORKER_TIMEOUT = 60 * 1000;
