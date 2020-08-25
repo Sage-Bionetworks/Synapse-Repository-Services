@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +24,9 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 public class OrganizationDaoImplTest {
 
 	@Autowired
-	OrganizationDao organizationDao;
+	private OrganizationDao organizationDao;
+	@Autowired
+	private JsonSchemaDao schemaDao;
 
 	Long adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
@@ -37,6 +40,7 @@ public class OrganizationDaoImplTest {
 	
 	@AfterEach
 	public void afterEach() {
+		schemaDao.truncateAll();
 		organizationDao.truncateAll();
 	}
 
@@ -125,5 +129,22 @@ public class OrganizationDaoImplTest {
 		assertEquals(2, page.size());
 		assertEquals("b", page.get(0).getName());
 		assertEquals("c", page.get(1).getName());
+	}
+	
+	@Test
+	public void testPLFM_6400() {
+		Organization org = organizationDao.createOrganization("b", adminUserId);
+		JsonSchema simpleSchema = new JsonSchema();
+		String schemaName = "simple";
+		simpleSchema.set$id(org.getName() + "-" + schemaName);
+		simpleSchema.setDescription("Super simple schema");
+		NewSchemaVersionRequest newRequest = new NewSchemaVersionRequest().withOrganizationId(org.getId())
+				.withJsonSchema(simpleSchema).withSchemaName(schemaName).withCreatedBy(adminUserId);
+		schemaDao.createNewSchemaVersion(newRequest);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			//call under test
+			organizationDao.deleteOrganization(org.getId());
+		}).getMessage();
+		assertEquals("All schemas defined under an organization must be deleted before the organization can be deleted.", message);
 	}
 }
