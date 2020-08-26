@@ -1028,6 +1028,11 @@ public class JsonSchemaDaoImplTest {
 		assertEquals(2, page.size());
 		assertInfoMatch(versions.get(2), page.get(0));
 		assertInfoMatch(versions.get(3), page.get(1));
+		
+		Organization org = organizationDao.getOrganizationByName(organizationName);
+		JsonSchemaInfo info = page.get(0);
+		// See PLFM-6411.  The created on of the schema should not match the organization created on.
+		assertFalse(org.getCreatedOn().equals(info.getCreatedOn()));
 	}
 
 	@Test

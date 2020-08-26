@@ -449,9 +449,10 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 	public List<JsonSchemaInfo> listSchemas(String organizationName, long limit, long offset) {
 		ValidateArgument.required(organizationName, "organizationName");
 		return jdbcTemplate.query(
-				"SELECT * FROM " + TABLE_ORGANIZATION + " O JOIN " + TABLE_JSON_SCHEMA + " S ON (O."
-						+ COL_ORGANIZATION_ID + " = " + COL_JSON_SCHEMA_ORG_ID + ") WHERE O." + COL_ORGANIZATION_NAME
-						+ " = ? ORDER BY S." + COL_JSON_SCHEMA_ID + " LIMIT ? OFFSET ?",
+				"SELECT O." + COL_ORGANIZATION_ID + ", O." + COL_ORGANIZATION_NAME + ", S.* FROM " + TABLE_ORGANIZATION
+						+ " O JOIN " + TABLE_JSON_SCHEMA + " S ON (O." + COL_ORGANIZATION_ID + " = "
+						+ COL_JSON_SCHEMA_ORG_ID + ") WHERE O." + COL_ORGANIZATION_NAME + " = ? ORDER BY S."
+						+ COL_JSON_SCHEMA_ID + " LIMIT ? OFFSET ?",
 				SCHEMA_INFO_MAPPER, organizationName, limit, offset);
 	}
 
