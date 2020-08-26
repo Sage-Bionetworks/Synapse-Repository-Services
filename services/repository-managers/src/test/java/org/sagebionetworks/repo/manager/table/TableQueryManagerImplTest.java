@@ -448,7 +448,7 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withRunCount(true);
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, userId).build();
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions, userId);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(null, results.getColumnModels());
 		assertEquals(null, results.getSelectColumns());
@@ -463,7 +463,7 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withReturnColumnModels(true);
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, userId).build();
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions, userId);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(models, results.getColumnModels());
 	}
@@ -475,7 +475,7 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withReturnSelectColumns(true);
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, userId).build();
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions, userId);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
 	}
@@ -497,7 +497,7 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withRunCount(true);
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId+" limit 11", models, userId).build();
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions, userId);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(new Long(11), results.getQueryCount());
 	}
@@ -511,7 +511,7 @@ public class TableQueryManagerImplTest {
 		RowHandler rowHandler = new SinglePageRowHandler();
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, userId).build();
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions, userId);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(null, results.getColumnModels());
 		assertEquals(null, results.getSelectColumns());
@@ -534,7 +534,7 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withRunCount(true).withRunQuery(true);
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, userId).build();
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions, userId);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(null, results.getColumnModels());
 		assertEquals(null, results.getSelectColumns());
@@ -557,7 +557,7 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withReturnLastUpdatedOn(true);
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, userId).build();
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions, userId);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(lastUpdatedOn, results.getLastUpdatedOn());
 	}
@@ -586,7 +586,7 @@ public class TableQueryManagerImplTest {
 		
 		assertEquals(1, facetRequestList.size());
 		
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions, userId);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(models, results.getColumnModels());
 		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
@@ -619,7 +619,7 @@ public class TableQueryManagerImplTest {
 		
 		assertEquals(1, facetRequestList.size());
 		
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions, userId);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertNull(results.getColumnModels());
 		assertNull(results.getSelectColumns());

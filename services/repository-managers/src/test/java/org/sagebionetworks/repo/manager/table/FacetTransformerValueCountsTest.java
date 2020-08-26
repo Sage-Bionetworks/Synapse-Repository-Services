@@ -93,7 +93,7 @@ public class FacetTransformerValueCountsTest {
 	
 	@Test
 	public void testConstructor() {
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, selectedValuesSet, userId);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, selectedValuesSet);
 
 		assertEquals(stringModel.getName(), ReflectionTestUtils.getField(facetTransformer, "columnName"));
 		assertEquals(facets, ReflectionTestUtils.getField(facetTransformer, "facets"));
@@ -109,7 +109,7 @@ public class FacetTransformerValueCountsTest {
 	/////////////////////////////////
 	@Test
 	public void testGenerateFacetSqlQuery(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, selectedValuesSet, userId);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, selectedValuesSet);
 
 		//check the non-transformed sql
 		String expectedString = "SELECT \"stringColumn\" AS value, COUNT(*) AS frequency"
@@ -126,7 +126,7 @@ public class FacetTransformerValueCountsTest {
 
 	@Test
 	public void testGenerateFacetSqlQuery_ForListTypes(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringListModel.getName(), true, facets, originalQuery, selectedValuesSet, userId);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringListModel.getName(), true, facets, originalQuery, selectedValuesSet);
 
 		//check the non-transformed sql
 		String expectedString = "SELECT UNNEST(\"stringListColumn\") AS value, COUNT(*) AS frequency"
@@ -148,13 +148,13 @@ public class FacetTransformerValueCountsTest {
 	////////////////////////////
 	@Test (expected = IllegalArgumentException.class)
 	public void testTranslateToResultNullRowSet(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, selectedValuesSet, userId);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, selectedValuesSet);
 		facetTransformer.translateToResult(null);
 	}
 	
 	@Test (expected = IllegalArgumentException.class)
 	public void testTranslateToResultWrongHeaders(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, selectedValuesSet, userId);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, selectedValuesSet);
 
 		rowSet.setHeaders(Collections.emptyList());
 		facetTransformer.translateToResult(rowSet);
@@ -162,7 +162,7 @@ public class FacetTransformerValueCountsTest {
 	
 	@Test 
 	public void testTranslateToResultNullValueColumn(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, selectedValuesSet, userId);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, selectedValuesSet);
 
 		Long row1Count = 42L;
 		rowSet.setHeaders(correctSelectList);
@@ -188,7 +188,7 @@ public class FacetTransformerValueCountsTest {
 	
 	@Test 
 	public void testTranslateToResultCorrectHeaders(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, selectedValuesSet, userId);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, selectedValuesSet);
 
 		Long row1Count = 42L;
 		Long row2Count = 23L;

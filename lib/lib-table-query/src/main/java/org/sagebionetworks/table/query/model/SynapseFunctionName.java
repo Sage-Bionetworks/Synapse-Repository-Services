@@ -5,7 +5,7 @@ package org.sagebionetworks.table.query.model;
  */
 public enum SynapseFunctionName {
     // User Id
-    CURRENT_USER(FunctionReturnType.LONG);
+    CURRENT_USER(FunctionReturnType.USERID);
 
     FunctionReturnType returnType;
 

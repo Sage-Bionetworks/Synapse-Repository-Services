@@ -202,7 +202,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 					final TableStatus status = validateTableIsAvailable(query.getTableId());
 					// run the query
 					QueryResultBundle bundle = queryAsStreamAfterAuthorization(progressCallback, query,
-							rowHandler, options, user.getId());
+							rowHandler, options);
 					// add the status to the result
 					if (rowHandler != null) {
 						// the etag is only returned for consistent queries.
@@ -257,7 +257,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableLockUnavailableException
 	 */
 	QueryResultBundle queryAsStreamAfterAuthorization(ProgressCallback progressCallback, SqlQuery query,
-			RowHandler rowHandler, final QueryOptions options, Long userId)
+			RowHandler rowHandler, final QueryOptions options)
 			throws TableUnavailableException, TableFailedException, LockUnavilableException {
 		// build up the response.
 		QueryResultBundle bundle = new QueryResultBundle();
@@ -271,7 +271,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		IdAndVersion idAndVersion = IdAndVersion.parse(query.getTableId());
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 
-		FacetModel facetModel = new FacetModel(query.getSelectedFacets(), query, options.returnFacets(), userId);
+		FacetModel facetModel = new FacetModel(query.getSelectedFacets(), query, options.returnFacets());
 
 		// determine whether or not to run with facet filters
 		SqlQuery queryToRun;

@@ -811,14 +811,14 @@ public class SQLQueryTest {
 
 	@Test
 	public void testCurrentUserFunctionInWhereClause() throws ParseException {
-		sql = "select COUNT(*) from syn123 where inttype = CURRENT_USER()";
+		sql = "select inttype from syn123 where inttype = CURRENT_USER()";
 		Map<String, Object> expectedParameters = Collections.singletonMap("b0", userId);
 		SqlQuery query = new SqlQueryBuilder(sql, userId)
 				.tableSchema(tableSchema)
 				.tableType(EntityType.table)
 				.build();
-		assertEquals("SELECT COUNT(*) FROM T123 WHERE _C888_ = :b0", query.getOutputSQL());
-		assertEquals(expectedParameters.entrySet(), query.getParameters().entrySet());
+		assertEquals("SELECT _C888_, ROW_ID, ROW_VERSION FROM T123 WHERE _C888_ = :b0", query.getOutputSQL());
+		assertEquals(expectedParameters, query.getParameters());
 	}
 
 	@Test

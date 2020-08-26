@@ -39,7 +39,7 @@ public class FacetModel {
 	 * @param sqlQuery the sqlQuery on which to base the generated facet queries.
 	 * @param returnFacets whether facet information will be returned back to the user
 	 */
-	public FacetModel(List<FacetColumnRequest> selectedFacets, SqlQuery sqlQuery, boolean returnFacets, Long userId) {
+	public FacetModel(List<FacetColumnRequest> selectedFacets, SqlQuery sqlQuery, boolean returnFacets) {
 		ValidateArgument.required(sqlQuery, "sqlQuery");
 	
 		//setting fields
@@ -49,7 +49,7 @@ public class FacetModel {
 		
 		//generate the faceted query and facet transformers
 		this.facetedQuery = generateFacetFilteredQuery(sqlQuery, this.validatedFacets);
-		this.facetTransformers = generateFacetQueryTransformers(sqlQuery, this.validatedFacets, userId);
+		this.facetTransformers = generateFacetQueryTransformers(sqlQuery, this.validatedFacets);
 	}
 	
 	/**
@@ -147,7 +147,7 @@ public class FacetModel {
 		try{
 			QuerySpecification modifiedQuerySpecification = FacetUtils.appendFacetSearchConditionToQuerySpecification(sqlQuery.getModel(), validatedFacets);
 
-			return new SqlQueryBuilder(modifiedQuerySpecification, sqlQuery.getTableSchema(), sqlQuery.getOverrideOffset(), sqlQuery.getOverrideLimit(), sqlQuery.getMaxBytesPerPage(), userId)
+			return new SqlQueryBuilder(modifiedQuerySpecification, sqlQuery.getTableSchema(), sqlQuery.getOverrideOffset(), sqlQuery.getOverrideLimit(), sqlQuery.getMaxBytesPerPage(), sqlQuery.getUserId())
 					.includeEntityEtag(sqlQuery.includeEntityEtag())
 					.includeRowIdAndRowVersion(sqlQuery.includesRowIdAndVersion())
 					.tableType(sqlQuery.getTableType())
@@ -158,7 +158,7 @@ public class FacetModel {
 		}
 	}
 	
-	static List<FacetTransformer> generateFacetQueryTransformers(SqlQuery sqlQuery, List<FacetRequestColumnModel> validatedFacets, Long userId){
+	static List<FacetTransformer> generateFacetQueryTransformers(SqlQuery sqlQuery, List<FacetRequestColumnModel> validatedFacets){
 		ValidateArgument.required(sqlQuery, "sqlQuery");
 		ValidateArgument.required(validatedFacets, "validatedFacets");
 		
@@ -171,7 +171,7 @@ public class FacetModel {
 					if ( facetValuesRequest != null){
 						selectedValues = facetValuesRequest.getFacetValues();
 					}
-					transformersList.add(new FacetTransformerValueCounts(facet.getColumnName(), facet.isColumnTypeIsList(), validatedFacets, sqlQuery, selectedValues, userId));
+					transformersList.add(new FacetTransformerValueCounts(facet.getColumnName(), facet.isColumnTypeIsList(), validatedFacets, sqlQuery, selectedValues));
 					break;
 				case range:
 					String selectedMin = null;

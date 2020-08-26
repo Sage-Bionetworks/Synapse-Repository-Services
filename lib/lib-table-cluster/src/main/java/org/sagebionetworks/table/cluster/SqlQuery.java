@@ -365,4 +365,8 @@ public class SqlQuery {
 	public Long getMaxBytesPerPage() {
 		return maxBytesPerPage;
 	}
+
+	public Long getUserId() {
+		return userId;
+	}
 }

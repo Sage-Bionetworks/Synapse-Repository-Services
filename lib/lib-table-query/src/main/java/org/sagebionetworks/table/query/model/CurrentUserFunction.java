@@ -9,7 +9,7 @@ import java.util.List;
  */
 public class CurrentUserFunction extends SQLElement implements HasFunctionReturnType{
 
-    SynapseFunctionName synapseFunctionName;
+    private SynapseFunctionName synapseFunctionName;
 
     public CurrentUserFunction(SynapseFunctionName synapseFunctionName){
         this.synapseFunctionName = synapseFunctionName;

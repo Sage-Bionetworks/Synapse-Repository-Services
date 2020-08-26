@@ -328,8 +328,10 @@ public class IT100TableControllerTest {
 		set.setTableId(table.getId());
 		synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT, table.getId());
 
-		assertCountResults("select * from " + table.getId() + " where userId = CURRENT_USER()", table.getId(), 1L);
-		assertQueryResults("select * from " + table.getId() + " where userId = CURRENT_USER()", null, null, table.getId(), (queryResults) -> {
+		assertCountResults("select userId from " + table.getId() + " where userId = CURRENT_USER()", table.getId(), 1L);
+		assertQueryResults("select userId from " + table.getId() + " where userId = CURRENT_USER()", null, null, table.getId(), (queryResults) -> {
+			assertEquals(1, queryResults.getRows().size());
+			assertEquals(1, queryResults.getRows().get(0).getValues().size());
 			assertEquals(userId.toString(), queryResults.getRows().get(0).getValues().get(0));
 		});
 	}

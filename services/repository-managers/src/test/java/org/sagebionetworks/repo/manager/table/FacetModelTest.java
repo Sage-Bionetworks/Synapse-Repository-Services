@@ -106,7 +106,7 @@ public class FacetModelTest {
 	/////////////////////
 	@Test
 	public void testConstructor(){
-		facetModel = new FacetModel(selectedFacets, query, true, userId);
+		facetModel = new FacetModel(selectedFacets, query, true);
 		//just checking that we will get some result back after construction of object.
 		//the results are unit tested later.
 		assertNotNull(facetModel.getFacetFilteredQuery());
@@ -123,17 +123,17 @@ public class FacetModelTest {
 	// hasFiltersApplied tests()
 	/////////////////////////////
 	public void testHasFiltersAppliedNullSelectedFacetsInConstructor(){
-		facetModel = new FacetModel(null, query, true, userId);
+		facetModel = new FacetModel(null, query, true);
 		assertFalse(facetModel.hasFiltersApplied());
 	}
 	
 	public void testHasFiltersAppliedEmptySelectedFacetsInConstructor(){
-		facetModel = new FacetModel(new ArrayList<FacetColumnRequest>(), query, true, userId);
+		facetModel = new FacetModel(new ArrayList<FacetColumnRequest>(), query, true);
 		assertFalse(facetModel.hasFiltersApplied());
 	}
 	
 	public void testHasFiltersAppliedNonEmptySelectedFacetsInConstructor(){
-		facetModel = new FacetModel(null, query, true, userId);
+		facetModel = new FacetModel(null, query, true);
 		assertTrue(facetModel.hasFiltersApplied());
 	}
 	
@@ -316,12 +316,12 @@ public class FacetModelTest {
 	///////////////////////////////////////////
 	@Test (expected = IllegalArgumentException.class)
 	public void testGenerateFacetQueryTransformersNullQuery() {
-		FacetModel.generateFacetQueryTransformers(null, validatedQueryFacetColumns, userId);
+		FacetModel.generateFacetQueryTransformers(null, validatedQueryFacetColumns);
 	}
 	
 	@Test (expected = IllegalArgumentException.class)
 	public void testGenerateFacetQueryTransformersNullList() {
-		FacetModel.generateFacetQueryTransformers(simpleQuery, null, userId);
+		FacetModel.generateFacetQueryTransformers(simpleQuery, null);
 	}
 	
 	@Test
@@ -329,7 +329,7 @@ public class FacetModelTest {
 		validatedQueryFacetColumns.add(new FacetRequestColumnModel(facetColumnModel, rangeRequest));
 		validatedQueryFacetColumns.add(new FacetRequestColumnModel(facetColumnModel2, valuesRequest));
 		
-		List<FacetTransformer> result = FacetModel.generateFacetQueryTransformers(simpleQuery, validatedQueryFacetColumns, userId);
+		List<FacetTransformer> result = FacetModel.generateFacetQueryTransformers(simpleQuery, validatedQueryFacetColumns);
 		//just check for the correct item types.  
 		//the transformers' unit tests already check that fields are set correctly
 		assertEquals(2, result.size());

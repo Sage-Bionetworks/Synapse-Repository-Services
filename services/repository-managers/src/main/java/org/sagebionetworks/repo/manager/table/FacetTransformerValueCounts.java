@@ -34,10 +34,9 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 	
 	private SqlQuery generatedFacetSqlQuery;
 	private Set<String> selectedValues;
-	private Long userId;
 	
 	public FacetTransformerValueCounts(String columnName, boolean columnTypeIsList, List<FacetRequestColumnModel> facets,
-									   SqlQuery originalQuery, Set<String> selectedValues, Long userId){
+									   SqlQuery originalQuery, Set<String> selectedValues){
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(facets, "facets");
 		ValidateArgument.required(originalQuery, "originalQuery");
@@ -45,7 +44,6 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		this.facets = facets;
 		this.selectedValues = selectedValues;
 		this.generatedFacetSqlQuery = generateFacetSqlQuery(originalQuery, columnTypeIsList);
-		this.userId = userId;
 	}
 	
 	
@@ -86,7 +84,7 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		builder.append(pagination.toSql());
 		
 		try {
-			return new SqlQueryBuilder(builder.toString(), originalQuery.getTableSchema(), userId).build();
+			return new SqlQueryBuilder(builder.toString(), originalQuery.getTableSchema(), originalQuery.getUserId()).build();
 		} catch (ParseException e) {
 			throw new RuntimeException(e);
 		}

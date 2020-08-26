@@ -1765,7 +1765,6 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testTranslateModel_CurrentUserFunction() throws ParseException{
-		columnFoo.setColumnType(ColumnType.DOUBLE);//not a list type
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 
 		QuerySpecification element = new TableQueryParser("select count(*) from syn123 where bar = CURRENT_USER()").querySpecification();

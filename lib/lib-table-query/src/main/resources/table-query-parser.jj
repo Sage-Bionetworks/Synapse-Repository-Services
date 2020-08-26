@@ -237,7 +237,7 @@ TOKEN [IGNORE_CASE]: {
 
 /* Synapse Functions */
 TOKEN [IGNORE_CASE]: {
-  < current_user_function:"CURRENT_USER" >
+  < current_user_function: "CURRENT_USER" >
 }
 
 /* string functions */

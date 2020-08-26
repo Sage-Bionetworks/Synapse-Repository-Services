@@ -306,13 +306,7 @@ public class SQLTranslatorUtils {
 			Map<String, Object> parameters,
 		  ColumnTranslationReferenceLookup columnTranslationReferenceLookup, Long userId) {
 
-		// Insert userId if needed
-		Iterable<NumericValueFunction> hasUser = transformedModel.createIterable(NumericValueFunction.class);
-		for(NumericValueFunction pred: hasUser){
-			if(pred.getChild() instanceof CurrentUserFunction){
-				pred.replaceChildren(new UnsignedLiteral(new UnsignedNumericLiteral(new ExactNumericLiteral(userId))));
-			}
-		}
+		translateSynapseFunctions(transformedModel, userId);
 
 		// Select columns
 		Iterable<HasReferencedColumn> selectColumns = transformedModel.getSelectList().createIterable(HasReferencedColumn.class);
@@ -561,9 +555,21 @@ public class SQLTranslatorUtils {
 				});
 		}
 	}
-	
-	
-	
+
+	/**
+	 *
+	 */
+	public static void translateSynapseFunctions(QuerySpecification transformedModel, Long userId){
+		// Insert userId if needed
+		Iterable<NumericValueFunction> hasUser = transformedModel.createIterable(NumericValueFunction.class);
+		for(NumericValueFunction pred: hasUser){
+			if(pred.getChild() instanceof CurrentUserFunction){
+				// UnsignedLiterals are needed in order for the value to be bound as a parameter
+				pred.replaceChildren(new UnsignedLiteral(new UnsignedNumericLiteral(new ExactNumericLiteral(userId))));
+			}
+		}
+	}
+
 	/**
 	 * Translate the right-hand-side of a predicate.
 	 * 
