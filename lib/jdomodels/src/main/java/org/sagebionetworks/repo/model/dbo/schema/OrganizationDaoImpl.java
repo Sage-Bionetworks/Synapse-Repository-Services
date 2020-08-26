@@ -89,9 +89,13 @@ public class OrganizationDaoImpl implements OrganizationDao {
 				throw new NotFoundException("Organization with id: '" + id + "' not found");
 			}
 		} catch (DataIntegrityViolationException e) {
-			throw new IllegalArgumentException(
-					"All schemas defined under an organization must be deleted before the organization can be deleted.",
-					e);
+			if(e.getMessage().contains("`J_S_ORG_ID_FK` FOREIGN KEY ")) {
+				throw new IllegalArgumentException(
+						"All schemas defined under an organization must be deleted before the organization can be deleted.",
+						e);
+			}else {
+				throw e;
+			}
 		}
 	}
 

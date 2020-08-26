@@ -131,8 +131,11 @@ public class OrganizationDaoImplTest {
 		assertEquals("c", page.get(1).getName());
 	}
 	
+	/**
+	 * See PLFM-6400.
+	 */
 	@Test
-	public void testPLFM_6400() {
+	public void testDeleteOrganizationWithScheam() {
 		Organization org = organizationDao.createOrganization("b", adminUserId);
 		JsonSchema simpleSchema = new JsonSchema();
 		String schemaName = "simple";

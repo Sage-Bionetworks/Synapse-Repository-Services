@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -736,8 +737,7 @@ public class JsonSchemaDaoImplTest {
 		String schemaName = "foo.bar";
 		String schemaId = jsonSchemaDao.getSchemaInfoForUpdate(lastInfo.getOrganizationId(), schemaName);
 		// call under test
-		int rowsUpdated = jsonSchemaDao.deleteSchema(schemaId);
-		assertEquals(1, rowsUpdated);
+		jsonSchemaDao.deleteSchema(schemaId);
 		assertThrows(NotFoundException.class, () -> {
 			jsonSchemaDao.getSchemaInfoForUpdate(organizationName, schemaName);
 		});
@@ -749,8 +749,7 @@ public class JsonSchemaDaoImplTest {
 	public void testDeleteSchemaNotFound() throws JSONObjectAdapterException {
 		String schemaId = "-1";
 		// call under test
-		int rowsUpdated = jsonSchemaDao.deleteSchema(schemaId);
-		assertEquals(0, rowsUpdated);
+		jsonSchemaDao.deleteSchema(schemaId);
 	}
 
 	@Test
@@ -897,6 +896,78 @@ public class JsonSchemaDaoImplTest {
 		String schemaId = jsonSchemaDao.getSchemaInfoForUpdate(stillExists.getOrganizationId(),
 				stillExists.getSchemaName());
 		assertEquals(stillExists.getSchemaId(), schemaId);
+	}
+	
+	@Test
+	public void testDeleteVersionWithVersionBoundToObject() throws JSONObjectAdapterException {
+		int index = 0;
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu-foo.bar-1.0.1", index++);
+		bindSchemaRequest.withSchemaId(one.getSchemaId());
+		bindSchemaRequest.withVersionId(one.getVersionId());
+		JsonSchemaObjectBinding result = jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			jsonSchemaDao.deleteSchemaVersion(one.getVersionId());
+		});
+		assertEquals("Cannot delete a schema version that is bound to an object", e.getMessage());
+		assertTrue(e.getCause() instanceof DataIntegrityViolationException);
+		jsonSchemaDao.clearBoundSchema(result.getObjectId(), result.getObjectType());
+		// call under test
+		jsonSchemaDao.deleteSchemaVersion(one.getVersionId());
+	}
+	
+	@Test
+	public void testDeleteVersionWithSchemaBoundToObject() throws JSONObjectAdapterException {
+		int index = 0;
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu-foo.bar", index++);
+		bindSchemaRequest.withSchemaId(one.getSchemaId());
+		bindSchemaRequest.withVersionId(null);
+		JsonSchemaObjectBinding result = jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			jsonSchemaDao.deleteSchemaVersion(one.getVersionId());
+		});
+		assertEquals("Cannot delete a schema that is bound to an object", e.getMessage());
+		assertTrue(e.getCause() instanceof DataIntegrityViolationException);
+		jsonSchemaDao.clearBoundSchema(result.getObjectId(), result.getObjectType());
+		// call under test
+		jsonSchemaDao.deleteSchemaVersion(one.getVersionId());
+	}
+	
+	@Test
+	public void testDeleteSchemaWithVersionBoundToObject() throws JSONObjectAdapterException {
+		int index = 0;
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu-foo.bar-1.0.1", index++);
+		bindSchemaRequest.withSchemaId(one.getSchemaId());
+		bindSchemaRequest.withVersionId(one.getVersionId());
+		JsonSchemaObjectBinding result = jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			jsonSchemaDao.deleteSchema(one.getSchemaId());
+		});
+		assertEquals("Cannot delete a schema that is bound to an object", e.getMessage());
+		assertTrue(e.getCause() instanceof DataIntegrityViolationException);
+		jsonSchemaDao.clearBoundSchema(result.getObjectId(), result.getObjectType());
+		// call under test
+		jsonSchemaDao.deleteSchema(one.getVersionId());
+	}
+	
+	@Test
+	public void testDeleteSchemaWithSchemaBoundToObject() throws JSONObjectAdapterException {
+		int index = 0;
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu-foo.bar", index++);
+		bindSchemaRequest.withSchemaId(one.getSchemaId());
+		bindSchemaRequest.withVersionId(null);
+		JsonSchemaObjectBinding result = jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			jsonSchemaDao.deleteSchema(one.getSchemaId());
+		});
+		assertEquals("Cannot delete a schema that is bound to an object", e.getMessage());
+		assertTrue(e.getCause() instanceof DataIntegrityViolationException);
+		jsonSchemaDao.clearBoundSchema(result.getObjectId(), result.getObjectType());
+		// call under test
+		jsonSchemaDao.deleteSchema(one.getVersionId());
 	}
 
 	/**
