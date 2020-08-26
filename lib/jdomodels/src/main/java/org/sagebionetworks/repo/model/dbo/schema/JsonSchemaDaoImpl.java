@@ -70,6 +70,11 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class JsonSchemaDaoImpl implements JsonSchemaDao {
 
+	public static final String FK_SCHEMA_DEPENDS_ON_SCHEMA_ID = "FK_SCHEMA_DEPENDS_ON_SCHEMA_ID";
+	private static final String FK_SCHEMA_DEPENDS_ON_VERSION_ID = "FK_SCHEMA_DEPENDS_ON_VERSION_ID";
+	private static final String FK_BOUND_DEPENDS_ON_SCHEMA_ID = "FK_BOUND_DEPENDS_ON_SCHEMA_ID";
+	private static final String FK_BOUND_DEPENDS_ON_VERSION_ID = "FK_BOUND_DEPENDS_ON_VERSION_ID";
+
 	public static final int MAX_SCHEMA_NAME_CHARS = 250;
 	public static final int MAX_SEMANTIC_VERSION_CHARS = 250;
 
@@ -294,7 +299,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 
 	@WriteTransaction
 	@Override
-	public int deleteSchema(String schemaId) {
+	public void deleteSchema(String schemaId) {
 		ValidateArgument.required(schemaId, "schemaId");
 		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA_LATEST_VERSION + " WHERE "
 				+ COL_JSON_SCHEMA_LATEST_VER_SCHEMA_ID + " = ?", schemaId);
@@ -302,11 +307,34 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 			jdbcTemplate.update(
 					"DELETE FROM " + TABLE_JSON_SCHEMA_VERSION + " WHERE " + COL_JSON_SCHEMA_VER_SCHEMA_ID + " = ?",
 					schemaId);
-			return jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA + " WHERE " + COL_JSON_SCHEMA_ID + " = ?",
+			jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA + " WHERE " + COL_JSON_SCHEMA_ID + " = ?",
 					schemaId);
 		} catch (DataIntegrityViolationException e) {
-			throw new IllegalArgumentException("Cannot delete a schema that is referenced by another schema");
+			boolean isSchemaVersion = false;
+			handelDataIntegrityViolationExceptionOnDelete(isSchemaVersion, e);
 		}
+	}
+	
+	/**
+	 * Handle 
+	 * @param schemaId
+	 * @param e
+	 */
+	void handelDataIntegrityViolationExceptionOnDelete(boolean isSchemaVersion, DataIntegrityViolationException e) {
+		String message = e.getMessage();
+		StringBuilder builder = new StringBuilder("Cannot delete a schema");
+		if(isSchemaVersion) {
+			builder.append(" version");
+		}
+		if (message.contains(FK_SCHEMA_DEPENDS_ON_SCHEMA_ID) || message.contains(FK_SCHEMA_DEPENDS_ON_VERSION_ID)) {
+			builder.append(" that is referenced by another schema");
+		} else if (message.contains(FK_BOUND_DEPENDS_ON_SCHEMA_ID) || message.contains(FK_BOUND_DEPENDS_ON_VERSION_ID)) {
+			builder.append(" that is bound to an object");
+		} else {
+			// Do not know what this is so throw the original exception.
+			throw e;
+		}
+		throw new IllegalArgumentException(builder.toString(), e);
 	}
 
 	@Override
@@ -351,7 +379,8 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 					"DELETE FROM " + TABLE_JSON_SCHEMA_VERSION + " WHERE " + COL_JSON_SCHEMA_VER_ID + " = ?",
 					versionId);
 		} catch (DataIntegrityViolationException e) {
-			throw new IllegalArgumentException("Cannot delete a schema version that is referenced by another schema");
+			boolean isSchemaVersion = true;
+			handelDataIntegrityViolationExceptionOnDelete(isSchemaVersion, e);
 		}
 		// find the latest version for the schema
 		Optional<Long> latestVersionIdOptional = findLatestVersionId(schemaId);
