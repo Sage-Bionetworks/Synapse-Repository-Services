@@ -368,6 +368,17 @@ public class SQLTranslatorUtilsTest {
 		assertEquals(ColumnType.DOUBLE, results.getColumnType());
 		assertEquals(null, results.getId());
 	}
+
+	@Test
+	public void testGetSelectColumnsCurrentUser() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("current_user()").derivedColumn();
+		// call under test
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertEquals("CURRENT_USER()", results.getName());
+		assertEquals(ColumnType.USERID, results.getColumnType());
+		assertEquals(null, results.getId());
+	}
 	
 	@Test
 	public void testGetSelectColumnsSpecial() throws ParseException{
