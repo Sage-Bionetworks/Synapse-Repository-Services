@@ -557,7 +557,10 @@ public class SQLTranslatorUtils {
 	}
 
 	/**
+	 * Translate instances of Synapse functions not supported by SQL
 	 *
+	 * @param transformedModel
+	 * @param userId
 	 */
 	public static void translateSynapseFunctions(QuerySpecification transformedModel, Long userId){
 		// Insert userId if needed
