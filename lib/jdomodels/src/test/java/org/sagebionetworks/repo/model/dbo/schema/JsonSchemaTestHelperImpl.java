@@ -61,7 +61,7 @@ public class JsonSchemaTestHelperImpl implements JsonSchemaTestHelper {
 		}
 		Organization organization = createOrganization(createdBy, organizationName);
 		try {
-			// sleep to ensure the organization created on is earlier than the schemas.
+			// sleep to ensure the organization created on is earlier than the schema's created on.
 			Thread.sleep(10L);
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
