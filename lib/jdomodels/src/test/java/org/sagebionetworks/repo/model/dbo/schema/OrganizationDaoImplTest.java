@@ -11,7 +11,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -135,7 +134,7 @@ public class OrganizationDaoImplTest {
 	 * See PLFM-6400.
 	 */
 	@Test
-	public void testDeleteOrganizationWithScheam() {
+	public void testDeleteOrganizationWithSchema() {
 		Organization org = organizationDao.createOrganization("b", adminUserId);
 		JsonSchema simpleSchema = new JsonSchema();
 		String schemaName = "simple";
