@@ -2408,8 +2408,14 @@ public class TableWorkerIntegrationTest {
 				rowSet, mockProgressCallback);
 
 		//query the column and check if the results match the userId
-		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where userIDcolumn = CURRENT_USER()", null, null, (queryResult) -> {
+		waitForConsistentQuery(adminUserInfo, "select userIDcolumn from " + tableId + " where userIDcolumn = CURRENT_USER()", null, null, (queryResult) -> {
 			assertEquals(1, queryResult.getQueryResults().getRows().size());
+			assertEquals(1, queryResult.getQueryResults().getRows().get(0).getValues().size());
+			assertEquals(Arrays.asList(adminUserInfo.getId().toString()), queryResult.getQueryResults().getRows().get(0).getValues());
+		});
+		waitForConsistentQuery(adminUserInfo, "select CURRENT_USER() from " + tableId + " where userIDcolumn = CURRENT_USER()", null, null, (queryResult) -> {
+			assertEquals(1, queryResult.getQueryResults().getRows().size());
+			assertEquals(1, queryResult.getQueryResults().getRows().get(0).getValues().size());
 			assertEquals(Arrays.asList(adminUserInfo.getId().toString()), queryResult.getQueryResults().getRows().get(0).getValues());
 		});
 	}

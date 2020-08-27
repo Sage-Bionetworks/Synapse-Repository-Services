@@ -26,6 +26,7 @@ import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
+import org.sagebionetworks.table.query.model.CurrentUserFunction;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.ExactNumericLiteral;
 import org.sagebionetworks.table.query.model.FromClause;
@@ -1777,13 +1778,23 @@ public class SQLTranslatorUtilsTest {
 	@Test
 	public void testTranslateModel_CurrentUserFunction() throws ParseException{
 		columnMap = new ColumnTranslationReferenceLookup(schema);
-
 		QuerySpecification element = new TableQueryParser("select count(*) from syn123 where bar = CURRENT_USER()").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap, userId);
 		String expectedSql = "SELECT COUNT(*) FROM T123 WHERE _C333_ = :b0";
-		assertEquals(expectedSql,element.toSql());
+		assertEquals(expectedSql, element.toSql());
 		assertEquals(userId.toString(), parameters.get("b0"));
+	}
+
+	@Test
+	public void testTranslateModel_translateSynapseFunctions() throws ParseException{
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+		QuerySpecification element = new TableQueryParser("select bar from syn123 where bar = CURRENT_USER()").querySpecification();
+		assertNotNull(element.getFirstElementOfType(CurrentUserFunction.class));
+		assertNull(element.getFirstElementOfType(UnsignedLiteral.class));
+		SQLTranslatorUtils.translateSynapseFunctions(element, userId);
+		assertNull(element.getFirstElementOfType(CurrentUserFunction.class));
+        assertNotNull(element.getFirstElementOfType(UnsignedLiteral.class));
 	}
 
 	@Test

@@ -141,7 +141,6 @@ public class TableQueryManagerImplTest {
 	private QueryOptions queryOptions;
 	
 	private Long sumFilesizes;
-	private Long userId;
 	
 	HashSet<Long> benfactors;
 	HashSet<Long> subSet;
@@ -204,7 +203,6 @@ public class TableQueryManagerImplTest {
 		
 		queryOptions = new QueryOptions().withRunQuery(true);
 		sumFilesizes = 9876L;
-		userId = 1L;
 		scopeType =  new ViewScopeType(ViewObjectType.ENTITY, ViewTypeMask.File.getMask());
 	}
 
@@ -299,7 +297,7 @@ public class TableQueryManagerImplTest {
 		setupQueryCallback();
 		
 		RowHandler rowHandler = new SinglePageRowHandler();
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, userId)
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, user.getId())
 		.build();
 		// call under test.
 		QueryResultBundle result = manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
@@ -320,7 +318,7 @@ public class TableQueryManagerImplTest {
 						any(ProgressingCallable.class))).thenThrow(
 				new NotFoundException("not found"));
 		RowHandler rowHandler = new SinglePageRowHandler();
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, userId)
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, user.getId())
 		.build();
 		assertThrows(NotFoundException.class, ()->{
 			// call under test.
@@ -335,7 +333,7 @@ public class TableQueryManagerImplTest {
 						any(ProgressingCallable.class))).thenThrow(
 				new TableUnavailableException(new TableStatus()));
 		RowHandler rowHandler = new SinglePageRowHandler();
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, userId)
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, user.getId())
 		.build();
 		assertThrows(TableUnavailableException.class, ()->{
 			// call under test.
@@ -350,7 +348,7 @@ public class TableQueryManagerImplTest {
 						any(ProgressingCallable.class))).thenThrow(
 				new TableFailedException(new TableStatus()));
 		RowHandler rowHandler = new SinglePageRowHandler();
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, userId)
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, user.getId())
 		.build();
 		assertThrows(TableFailedException.class, ()->{
 			// call under test.
@@ -365,7 +363,7 @@ public class TableQueryManagerImplTest {
 						any(ProgressingCallable.class))).thenThrow(
 				new LockUnavilableException());
 		RowHandler rowHandler = new SinglePageRowHandler();
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, userId)
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, user.getId())
 		.build();
 		assertThrows(LockUnavilableException.class, ()->{
 			// call under test.
@@ -381,7 +379,7 @@ public class TableQueryManagerImplTest {
 						any(ProgressingCallable.class))).thenThrow(
 				new EmptyResultException());
 		RowHandler rowHandler = new SinglePageRowHandler();
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, userId)
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, user.getId())
 		.build();
 		assertThrows(EmptyResultException.class, ()->{
 			// call under test.
@@ -446,7 +444,7 @@ public class TableQueryManagerImplTest {
 		// null handler indicates not to run the main query.
 		RowHandler rowHandler = null;
 		queryOptions = new QueryOptions().withRunCount(true);
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, userId).build();
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, user.getId()).build();
 		// call under test
 		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
@@ -461,7 +459,7 @@ public class TableQueryManagerImplTest {
 		// null handler indicates not to run the main query.
 		RowHandler rowHandler = null;
 		queryOptions = new QueryOptions().withReturnColumnModels(true);
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, userId).build();
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, user.getId()).build();
 		// call under test
 		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
@@ -473,7 +471,7 @@ public class TableQueryManagerImplTest {
 		// null handler indicates not to run the main query.
 		RowHandler rowHandler = null;
 		queryOptions = new QueryOptions().withReturnSelectColumns(true);
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, userId).build();
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, user.getId()).build();
 		// call under test
 		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
@@ -495,7 +493,7 @@ public class TableQueryManagerImplTest {
 		// null handler indicates not to run the main query.
 		RowHandler rowHandler = null;
 		queryOptions = new QueryOptions().withRunCount(true);
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId+" limit 11", models, userId).build();
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId+" limit 11", models, user.getId()).build();
 		// call under test
 		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
@@ -509,7 +507,7 @@ public class TableQueryManagerImplTest {
 		
 		// non-null handler indicates the query should be run.
 		RowHandler rowHandler = new SinglePageRowHandler();
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, userId).build();
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, user.getId()).build();
 		// call under test
 		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
@@ -532,7 +530,7 @@ public class TableQueryManagerImplTest {
 		// non-null handler indicates the query should be run.
 		RowHandler rowHandler = new SinglePageRowHandler();
 		queryOptions = new QueryOptions().withRunCount(true).withRunQuery(true);
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, userId).build();
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, user.getId()).build();
 		// call under test
 		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
@@ -555,7 +553,7 @@ public class TableQueryManagerImplTest {
 		// non-null handler indicates the query should be run.
 		RowHandler rowHandler = new SinglePageRowHandler();
 		queryOptions = new QueryOptions().withReturnLastUpdatedOn(true);
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, userId).build();
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, user.getId()).build();
 		// call under test
 		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
@@ -580,7 +578,7 @@ public class TableQueryManagerImplTest {
 		RowHandler rowHandler = null;
 		queryOptions = new QueryOptions().withRunCount(true).withReturnColumnModels(true).withReturnSelectColumns(true);
 		
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, userId)
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, user.getId())
 		.selectedFacets(facetRequestList)
 		.build();
 		
@@ -613,7 +611,7 @@ public class TableQueryManagerImplTest {
 		RowHandler rowHandler = null;
 		queryOptions = new QueryOptions().withReturnFacets(true).withRunCount(false);
 		
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, userId)
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, user.getId())
 		.selectedFacets(facetRequestList)
 		.build();
 		
@@ -639,7 +637,7 @@ public class TableQueryManagerImplTest {
 		setupQueryCallback();
 		
 		SinglePageRowHandler rowHandler = new SinglePageRowHandler();
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, userId).build();
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models, user.getId()).build();
 		// call under test
 		RowSet rowSet = manager.runQueryAsStream(mockProgressCallbackVoid, query, rowHandler, mockTableIndexDAO);
 		assertNotNull(rowSet);
@@ -1205,7 +1203,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testRunCountQuerySimpleAggregate() throws ParseException{
-		SqlQuery query = new SqlQueryBuilder("select max(i0) from "+tableId, models, userId).build();
+		SqlQuery query = new SqlQueryBuilder("select max(i0) from "+tableId, models, user.getId()).build();
 		long count = manager.runCountQuery(query, mockTableIndexDAO);
 		assertEquals(1l, count);
 		// no need to run a query for a simple aggregate
@@ -1214,7 +1212,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testRunCountQueryNoPagination() throws ParseException{
-		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" where i0 = 'aValue'", models, userId).build();
+		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" where i0 = 'aValue'", models, user.getId()).build();
 		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
 		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
@@ -1227,7 +1225,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testRunCountQueryWithLimitLessCount() throws ParseException{
-		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 100", models, userId).build();
+		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 100", models, user.getId()).build();
 		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
 		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
@@ -1238,7 +1236,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testRunCountQueryWithLimitMoreCount() throws ParseException{
-		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 300", models, userId).build();
+		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 300", models, user.getId()).build();
 		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
 		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
@@ -1249,7 +1247,7 @@ public class TableQueryManagerImplTest {
 		
 	@Test
 	public void testRunCountQueryWithLimitAndOffsetLessThanCount() throws ParseException{
-		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 100 offset 50", models, userId).build();
+		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 100 offset 50", models, user.getId()).build();
 		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
 		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
@@ -1260,7 +1258,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testRunCountQueryWithLimitAndOffsetMoreThanCount() throws ParseException{
-		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 100 offset 150", models, userId).build();
+		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 100 offset 150", models, user.getId()).build();
 		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
 		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
@@ -1271,7 +1269,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testRunCountQueryWithCountLessThanOffset() throws ParseException{
-		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 100 offset 150", models, userId).build();
+		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 100 offset 150", models, user.getId()).build();
 		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
 		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(149L);
@@ -1287,7 +1285,7 @@ public class TableQueryManagerImplTest {
 	 */
 	@Test
 	public void testRunCountQueryPLFM_3899() throws ParseException{
-		SqlQuery query = new SqlQueryBuilder("select i0 as bar from "+tableId+" group by bar", models, userId).build();
+		SqlQuery query = new SqlQueryBuilder("select i0 as bar from "+tableId+" group by bar", models, user.getId()).build();
 		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
 		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
@@ -1303,7 +1301,7 @@ public class TableQueryManagerImplTest {
 	 */
 	@Test
 	public void testRunCountQueryPLFM_3900() throws ParseException{
-		SqlQuery query = new SqlQueryBuilder("select distinct i0 as bar, i4 from "+tableId, models, userId).build();
+		SqlQuery query = new SqlQueryBuilder("select distinct i0 as bar, i4 from "+tableId, models, user.getId()).build();
 		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
 		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
@@ -1736,7 +1734,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableIndexDAO.getSumOfFileSizes(any(), any())).thenReturn(sumFilesizes);
 		
 		// query against an entity view.
-		SqlQuery query = new SqlQueryBuilder("select i0 from " + tableId + " limit 1000", models, userId)
+		SqlQuery query = new SqlQueryBuilder("select i0 from " + tableId + " limit 1000", models, user.getId())
 				.tableType(EntityType.entityview).build();
 		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 
@@ -1759,7 +1757,7 @@ public class TableQueryManagerImplTest {
 		List<Long> rowIds = createListOfSize(TableQueryManagerImpl.MAX_ROWS_PER_CALL + 1L);
 		when(mockTableIndexDAO.getRowIds(any(), any())).thenReturn(rowIds);
 		// query against an entity view.
-		SqlQuery query = new SqlQueryBuilder("select i0 from " + tableId, models, userId)
+		SqlQuery query = new SqlQueryBuilder("select i0 from " + tableId, models, user.getId())
 				.tableType(EntityType.entityview).build();
 
 		// call under test
@@ -1776,7 +1774,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testRunSumFileSizeNonEntityView() throws Exception {
 		// query against an entity view.
-		SqlQuery query = new SqlQueryBuilder("select i0 from " + tableId, models, userId)
+		SqlQuery query = new SqlQueryBuilder("select i0 from " + tableId, models, user.getId())
 				.tableType(EntityType.table).build();
 		// call under test
 		SumFileSizes sum = manager.runSumFileSize(query, mockTableIndexDAO);
@@ -1789,7 +1787,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testRunSumFileSizeAggregate() throws Exception {
-		SqlQuery query = new SqlQueryBuilder("select count(*) from " + tableId, models, userId)
+		SqlQuery query = new SqlQueryBuilder("select count(*) from " + tableId, models, user.getId())
 				.tableType(EntityType.entityview).build();
 		// call under test
 		SumFileSizes sum = manager.runSumFileSize(query, mockTableIndexDAO);
