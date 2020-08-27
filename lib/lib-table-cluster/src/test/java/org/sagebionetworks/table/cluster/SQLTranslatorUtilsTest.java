@@ -1795,6 +1795,7 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.translateSynapseFunctions(element, userId);
 		assertNull(element.getFirstElementOfType(CurrentUserFunction.class));
         assertNotNull(element.getFirstElementOfType(UnsignedLiteral.class));
+        assertEquals(element.getFirstElementOfType(UnsignedLiteral.class).toSql(), userId.toString());
 	}
 
 	@Test
