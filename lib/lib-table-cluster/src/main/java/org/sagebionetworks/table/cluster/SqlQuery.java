@@ -1,10 +1,5 @@
 package org.sagebionetworks.table.cluster;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
@@ -22,6 +17,11 @@ import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
 
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * Represents a SQL query for a table.
  * 
@@ -29,71 +29,71 @@ import org.sagebionetworks.util.ValidateArgument;
  *
  */
 public class SqlQuery {
-	
+
 	/**
 	 * The input SQL is parsed into this object model.
-	 * 
+	 *
 	 */
 	QuerySpecification model;
-	
+
 	/**
 	 * The model transformed to execute against the actual table.
 	 */
 	QuerySpecification transformedModel;
-	
+
 	/**
 	 * The full list of all of the columns of this table
 	 */
 	List<ColumnModel> tableSchema;
-	
+
 	/**
 	 * This map will contain all of the bind variable values for the translated query.
 	 */
 	Map<String, Object> parameters;
-	
+
 	/**
 	 * The map of column names to column models.
 	 */
 	LinkedHashMap<String, ColumnModel> columnNameToModelMap;
-	
+
 	/**
 	 * The translated SQL.
 	 */
 	String outputSQL;
-	
+
 	/**
 	 * The Id of the table.
 	 */
 	String tableId;
-	
+
 	/**
 	 * The maximum size of each query result row returned by this query.
 	 */
 	int maxRowSizeBytes;
-	
+
 	/**
 	 * The maximum number of rows per page for the given query
 	 */
 	Long maxRowsPerPage;
-	
+
 	/**
 	 * Does this query include ROW_ID and ROW_VERSION?
 	 */
 	boolean includesRowIdAndVersion;
-	
+
 	/**
 	 * Should the query results include the row's etag?
 	 * Note: This is true for view queries.
 	 */
 	boolean includeEntityEtag;
-	
+
 	/**
 	 * Aggregated results are queries that included one or more aggregation functions in the select clause.
 	 * These query results will not match columns in the table. In addition rowIDs and rowVersionNumbers
 	 * will be null when isAggregatedResults = true.
 	 */
 	boolean isAggregatedResult;
-	
+
 	/**
 	 * The list of all columns referenced in the select column.
 	 */
@@ -102,9 +102,10 @@ public class SqlQuery {
 	Long overrideOffset;
 	Long overrideLimit;
 	Long maxBytesPerPage;
-	
+	Long userId;
+
 	List<FacetColumnRequest> selectedFacets;
-	
+
 	EntityType tableType;
 
 	/**
@@ -123,7 +124,8 @@ public class SqlQuery {
 			Boolean includeEntityEtag,
 			EntityType tableType,
 			List<FacetColumnRequest> selectedFacets,
-			List<QueryFilter> additionalFilters
+			List<QueryFilter> additionalFilters,
+			Long userId
 			) {
 		ValidateArgument.required(tableSchema, "TableSchema");
 		if(tableSchema.isEmpty()){
@@ -136,7 +138,8 @@ public class SqlQuery {
 		this.selectedFacets = selectedFacets;
 		this.overrideLimit = overrideLimit;
 		this.overrideOffset = overrideOffset;
-		
+		this.userId = userId;
+
 		if(tableType == null){
 			// default to table
 			this.tableType = EntityType.table;
@@ -161,7 +164,9 @@ public class SqlQuery {
 		}
 
 		// This map will contain all of the 
-		this.parameters = new HashMap<String, Object>();	
+		this.parameters = new HashMap<String, Object>();
+
+
 		this.columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(tableSchema);
 		ColumnTranslationReferenceLookup columnTranslationReferenceLookup = new ColumnTranslationReferenceLookup(tableSchema);
 
@@ -170,7 +175,6 @@ public class SqlQuery {
 			SelectList expandedSelectList = SQLTranslatorUtils.createSelectListFromSchema(tableSchema);
 			this.model.replaceSelectList(expandedSelectList);
 		}
-
 
 		//Append additionalFilters onto the WHERE clause
 		if(additionalFilters != null && !additionalFilters.isEmpty()) {
@@ -210,7 +214,8 @@ public class SqlQuery {
 		}else{
 			this.includesRowIdAndVersion = false;
 		}
-		SQLTranslatorUtils.translateModel(transformedModel, parameters, columnTranslationReferenceLookup);
+
+		SQLTranslatorUtils.translateModel(transformedModel, parameters, columnTranslationReferenceLookup, userId);
 		this.outputSQL = transformedModel.toSql();
 	}
 	
@@ -359,5 +364,9 @@ public class SqlQuery {
 
 	public Long getMaxBytesPerPage() {
 		return maxBytesPerPage;
+	}
+
+	public Long getUserId() {
+		return userId;
 	}
 }

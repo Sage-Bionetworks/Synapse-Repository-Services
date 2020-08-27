@@ -1,34 +1,8 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_MAX_STRING_LENGTH;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_TYPE;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
-
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.StringJoiner;
-import java.util.stream.Collectors;
-
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.junit.jupiter.api.AfterEach;
@@ -54,11 +28,9 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.Table;
-import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
-import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
@@ -76,9 +48,34 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringJoiner;
+import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_MAX_STRING_LENGTH;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:table-cluster-spb.xml" })
@@ -109,6 +106,8 @@ public class TableIndexDAOImplTest {
 	
 	@SuppressWarnings("rawtypes")
 	Class<? extends Enum> objectSubType = EntityType.class;
+
+	Long userId;
 	
 	@BeforeEach
 	public void before() {
@@ -121,6 +120,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.deleteTable(tableId);
 		tableIndexDAO.truncateIndex();		
 		isView = false;
+		userId = 1L;
 		fieldTypeMapper = new ObjectFieldTypeMapper() {
 			
 			@Override
@@ -424,7 +424,7 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, allTypes);
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, allTypes).build();
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, allTypes, userId).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -491,7 +491,7 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, doubleColumn);
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, doubleColumn).build();
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, doubleColumn, userId).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -539,7 +539,7 @@ public class TableIndexDAOImplTest {
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		createOrUpdateOrDeleteRows(tableId, set, allTypes);
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, allTypes).build();
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, allTypes, userId).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -569,7 +569,7 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, allTypes);
 		// Now query for the results
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, allTypes).build();
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, allTypes, userId).build();
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
 		System.out.println(results);
@@ -620,7 +620,7 @@ public class TableIndexDAOImplTest {
 		createOrUpdateOrDeleteRows(tableId, set, allTypes);
 		// Now a count query
 		SqlQuery query = new SqlQueryBuilder("select count(*) from " + tableId,
-				allTypes).build();
+				allTypes, userId).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -677,7 +677,7 @@ public class TableIndexDAOImplTest {
 				"select foo, sum(bar) from "
 						+ tableId
 						+ " where foo is not null group by foo order by sum(bar) desc limit 1 offset 0",
-				schema).build();
+				schema, userId).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -730,7 +730,7 @@ public class TableIndexDAOImplTest {
 		// Now create the query
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId
 				+ " where ROW_ID = 104 AND Row_Version > 1 limit 1 offset 0",
-				schema).build();
+				schema, userId).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -1835,7 +1835,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
 
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select foo from " + tableId, schema).build();
+		SqlQuery query = new SqlQueryBuilder("select foo from " + tableId, schema, userId).build();
 		// Query the results
 		RowSet result = tableIndexDAO.query(mockProgressCallback, query);
 		assertEquals(2, result.getRows().size());
@@ -2664,7 +2664,7 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, doubleColumn);
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select 2 + 2, col1/10 from " + tableId, doubleColumn).build();
+		SqlQuery query = new SqlQueryBuilder("select 2 + 2, col1/10 from " + tableId, doubleColumn, userId).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -2699,7 +2699,7 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, doubleColumn);
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select col1 from " + tableId+" where col1 = -5*10", doubleColumn).build();
+		SqlQuery query = new SqlQueryBuilder("select col1 from " + tableId+" where col1 = -5*10", doubleColumn, userId).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -2735,7 +2735,7 @@ public class TableIndexDAOImplTest {
 		long timeFilter = System.currentTimeMillis() - 1000;
 		
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select aDate from " + tableId+" where aDate > " + timeFilter, schema).build();
+		SqlQuery query = new SqlQueryBuilder("select aDate from " + tableId+" where aDate > " + timeFilter, schema, userId).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -3959,7 +3959,7 @@ public class TableIndexDAOImplTest {
 		// call under test
 		tableIndexDAO.populateListColumnIndexTable(tableId, intListColumn, rowIds, false);
 
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schema).build();
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schema, userId).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -4157,7 +4157,7 @@ public class TableIndexDAOImplTest {
 		long maxBytesPerBatch = 10;
 		tableIndexDAO.populateViewFromSnapshot(tableId, rows.iterator(), maxBytesPerBatch);
 		
-		SqlQuery query = new SqlQueryBuilder("select ROW_ID, ROW_BENEFACTOR from " + tableId, schema).build();
+		SqlQuery query = new SqlQueryBuilder("select ROW_ID, ROW_BENEFACTOR from " + tableId, schema, userId).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);

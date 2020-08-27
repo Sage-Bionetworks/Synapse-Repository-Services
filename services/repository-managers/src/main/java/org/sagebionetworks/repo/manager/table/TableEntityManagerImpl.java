@@ -1,17 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
 import org.sagebionetworks.manager.util.CollectionUtils;
@@ -82,8 +72,17 @@ import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class TableEntityManagerImpl implements TableEntityManager {
 	
@@ -480,7 +479,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		String sql = SQLUtils.buildSelectRowIds(tableId, rows, columns);
 		final Map<Long, Row> rowMap = new HashMap<Long, Row>(rows.size());
 		try {
-			SqlQuery query = new SqlQueryBuilder(sql, columns).build();
+			SqlQuery query = new SqlQueryBuilder(sql, columns, userInfo.getId()).build();
 			indexDao.queryAsStream(null, query, new  RowHandler() {
 				@Override
 				public void nextRow(Row row) {
