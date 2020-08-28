@@ -65,6 +65,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRequest" />
 				<!-- Evaluation beans -->
 				<bean class="org.sagebionetworks.evaluation.dbo.EvaluationDBO" />
+				<bean class="org.sagebionetworks.evaluation.dbo.EvaluationRoundDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.EvaluationSubmissionsDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionContributorDBO" />

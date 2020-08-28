@@ -263,7 +263,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	}
 	@Override
 	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
-		return null;
+		return Arrays.asList(new EvaluationRoundDBO());
 	}
 	@Override
 	public String toString() {

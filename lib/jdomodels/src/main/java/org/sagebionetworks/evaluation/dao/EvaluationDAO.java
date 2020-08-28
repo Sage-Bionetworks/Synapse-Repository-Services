@@ -1,9 +1,12 @@
 package org.sagebionetworks.evaluation.dao;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -57,4 +60,78 @@ public interface EvaluationDAO {
 	 */
 	Set<Long> getAvailableEvaluations(List<Long> ids);
 
+	/**
+	 * Creates a new evaluation round
+	 * @param evaluationRound
+	 * @return the stored evaluation round
+	 */
+	public EvaluationRound createEvaluationRound(EvaluationRound evaluationRound);
+
+	/**
+	 * Update an existing evaluation round
+	 * @param evaluationRound
+	 */
+	public void updateEvaluationRound(EvaluationRound evaluationRound);
+
+	/**
+	 * Deletes the evaluation round identified by the provided ID
+	 * @param evaluationId
+	 * @param evaluationRoundId
+	 */
+	public void deleteEvaluationRound(String evaluationId, String evaluationRoundId);
+
+	/**
+	 * Get the evaluation round identified by the provided ID
+	 * @param evaluationId
+	 * @param evaluationRoundId
+	 * @return EvaluationRound for the current Id.
+	 */
+	public EvaluationRound getEvaluationRound(String evaluationId, String evaluationRoundId);
+
+	/**
+	 * Get evaluation rounds associated with the evaluationId.
+	 * Results will be ordered by Round's start date
+	 * @param evaluationId id of the Evaluation
+	 * @param limit maximum number of results to return
+	 * @param offset starting offset for results
+	 * @return EvaluationRounds associated with the evaluationId, ordered by roundStart dates in the EvaluationRound
+	 * Empty list if no results.
+	 */
+	public List<EvaluationRound> getAssociatedEvaluationRounds(String evaluationId, long limit, long offset);
+
+	/**
+	 * Get the EvaluationRound for a specified Evaluation ID such that the specified timestamp
+	 * resides between the EvaluationRound's start and end timestamps.
+	 *
+	 * The start timestamp is inclusive
+	 * The end timestamp is exclusive
+	 *
+	 * For example:
+	 * EvaluationRound A : start=5 , end=35
+	 * EvaluationRound B : start=40, end=55
+	 *
+	 * Any of {timestamp=25, timestamp=5} would return A
+	 * {timestamp=45, timestamp=40} return B,
+	 * {timestamp=35, timestamp=37, timestamp=4, timestamp=55, timestamp=56} return Optional.empty()
+	 *  @param evaluationId id of the Evaluation to search
+	 * @param timestamp the timestamp for which a matching EvaluationRound's round start and round end timestamp must encapsulate
+	 */
+	public Optional<EvaluationRound> getEvaluationRoundForTimestamp(String evaluationId, Instant timestamp);
+
+	/**
+	 *
+	 * @param evaluationId id of the Evaluation
+	 * @return true if the Evaluation has any EvaluationRounds associated with it. Otherwise, false.
+	 */
+	boolean hasEvaluationRounds(String evaluationId);
+
+	/**
+	 * Lists existing EvaluationRounds for which provided start-end timestamp range overlap
+	 *
+	 * @param evaluationId
+	 * @param startTimestamp
+	 * @param endTimestamp
+	 * @return existing EvaluationRounds for which provided start-end timestamp range overlap
+	 */
+	List<EvaluationRound> overlappingEvaluationRounds(String evaluationId, Instant startTimestamp, Instant endTimestamp);
 }

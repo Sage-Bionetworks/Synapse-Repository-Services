@@ -1,7 +1,11 @@
 package org.sagebionetworks.evaluation.dbo;
 
 public class DBOConstants {
-	
+
+	public static final String PARAM_LIMIT = "limit";
+	public static final String PARAM_OFFSET = "offset";
+
+
 	// Evaluation
 	public static final String PARAM_EVALUATION_ID 					= "id";
 	public static final String PARAM_EVALUATION_ETAG 				= "eTag";
@@ -16,8 +20,16 @@ public class DBOConstants {
 	public static final String PARAM_EVALUATION_SUBMISSIONS_ETAG 	= "submissionsEtag";
 	public static final String PARAM_EVALUATION_QUOTA				= "quota";
 	public static final String PARAM_EVALUATION_START_TIMESTAMP		= "startTimestamp";
-	public static final String PARAM_EVALUATION_END_TIMESTAMP		 	= "endTimestamp";
-	
+	public static final String PARAM_EVALUATION_END_TIMESTAMP		= "endTimestamp";
+
+	//Evaluation Round
+	public static final String PARAM_EVALUATION_ROUND_ID			= "id";
+	public static final String PARAM_EVALUATION_ROUND_ETAG			= "etag";
+	public static final String PARAM_EVALUATION_ROUND_EVALUATION_ID	= "evaluationId";
+	public static final String PARAM_EVALUATION_ROUND_ROUND_START	= "roundStart";
+	public static final String PARAM_EVALUATION_ROUND_ROUND_END		= "roundEnd";
+	public static final String PARAM_EVALUATION_ROUND_LIMITS_JSON		= "limitsJson";
+
 	// Submission
 	public static final String PARAM_SUBMISSION_ID 					= "id";
 	public static final String PARAM_SUBMISSION_USER_ID 			= "userId";

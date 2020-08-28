@@ -9,10 +9,15 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_E
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ETAG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_NAME;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ROUND_ETAG;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ROUND_EVALUATION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ROUND_ROUND_END;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ROUND_ROUND_START;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_START_TIMESTAMP;
 import static org.sagebionetworks.repo.model.query.SQLConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION_ROUND;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_TYPE;
@@ -21,16 +26,21 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
 
 import java.sql.ResultSet;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.dbo.EvaluationDBO;
 import org.sagebionetworks.evaluation.dbo.EvaluationDBOUtil;
+import org.sagebionetworks.evaluation.dbo.EvaluationRoundDBO;
+import org.sagebionetworks.evaluation.dbo.EvaluationRoundDBOUtil;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -38,7 +48,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -100,17 +109,29 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 			"SELECT ID FROM "+ TABLE_EVALUATION +
 			" WHERE "+ COL_EVALUATION_NAME + "=:" + NAME;
 	
-	private static final String SQL_ETAG_WITHOUT_LOCK = "SELECT " + COL_EVALUATION_ETAG + " FROM " +
-														TABLE_EVALUATION +" WHERE ID = ?";
-	
-	private static final String SQL_ETAG_FOR_UPDATE = SQL_ETAG_WITHOUT_LOCK + " FOR UPDATE";
+
+	private static final String SQL_ETAG_FOR_UPDATE_FORMAT = "SELECT %s FROM %s WHERE ID = ? FOR UPDATE";
 	
 	private static final String SQL_SELECT_AVAILABLE = "SELECT " + COL_EVALUATION_ID 
 			+ " FROM " + TABLE_EVALUATION + " WHERE " + COL_EVALUATION_ID + " IN (:" + ID + ")";
-	
-	private static final RowMapper<EvaluationDBO> rowMapper = ((new EvaluationDBO()).getTableMapping());
+
+	private static final String SELECT_ALL_ROUNDS_FOR_EVALUATION = "SELECT * FROM " + TABLE_EVALUATION_ROUND +
+			" WHERE " + COL_EVALUATION_ROUND_EVALUATION_ID + "= :" + DBOConstants.PARAM_EVALUATION_ROUND_EVALUATION_ID +
+			" ORDER BY " + COL_EVALUATION_ROUND_ROUND_START + " ASC " +
+			" LIMIT :" + DBOConstants.PARAM_LIMIT + " OFFSET :" + DBOConstants.PARAM_OFFSET;
+
+	private static final String PARAM_BETWEEN_DATE = "betweenDate";
+	private static final String SELECT_ROUND_BETWEEN_RANGE = "SELECT * FROM " + TABLE_EVALUATION_ROUND +
+			" WHERE " + COL_EVALUATION_ROUND_EVALUATION_ID + "= :" + DBOConstants.PARAM_EVALUATION_ROUND_EVALUATION_ID +
+			" AND " + COL_EVALUATION_ROUND_ROUND_START + "<= :"+PARAM_BETWEEN_DATE +" AND " + COL_EVALUATION_ROUND_ROUND_END + " > :"+PARAM_BETWEEN_DATE;
+
+	private static final RowMapper<EvaluationRoundDBO> EVALUATION_ROUND_ROW_MAPPER = new EvaluationRoundDBO().getTableMapping();
+
+	private static final RowMapper<EvaluationDBO> evaluationRowMapper = ((new EvaluationDBO()).getTableMapping());
 
 	private static final String EVALUATION_NOT_FOUND = "Evaluation could not be found with id :";
+
+	private static final String EVALUATION_ROUND_NOT_FOUND_FORMAT = "Evaluation Round with id=%s, belonging to Evaluation id=%s, could not be found.";
 
 	@Override
 	@WriteTransaction
@@ -208,7 +229,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
 
 		return namedJdbcTemplate.query(sql.toString(), param, (ResultSet rs, int rowNum) -> {
-			EvaluationDBO dbo = rowMapper.mapRow(rs, rowNum);
+			EvaluationDBO dbo = evaluationRowMapper.mapRow(rs, rowNum);
 			Evaluation dto = new Evaluation();
 			EvaluationDBOUtil.copyDboToDto(dbo, dto);
 			return dto;
@@ -223,7 +244,8 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		// we do this to preserve the EvaluationSubmissions etag
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, dto.getId());
-		String newEtag = lockAndGenerateEtag(dto.getId(), dto.getEtag(), ChangeType.UPDATE);
+		String newEtag = lockAndGenerateEtag(dto.getId(), dto.getEtag(),
+				TABLE_EVALUATION, COL_EVALUATION_ETAG, Evaluation.class);
 		dto.setEtag(newEtag);
 		
 		EvaluationDBO dbo = new EvaluationDBO();
@@ -273,35 +295,132 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	}
 
 
-	private String lockAndGenerateEtag(String id, String eTag, ChangeType changeType)
+	private String lockAndGenerateEtag(String id, String eTag, String tableName, String etagColName, Class<?> clazz)
 			throws NotFoundException, ConflictingUpdateException, DatastoreException {
-		String currentTag = lockForUpdate(id);
+		// Create a Select for update query
+		String sql = String.format(SQL_ETAG_FOR_UPDATE_FORMAT, etagColName, tableName);
+		String currentTag = jdbcTemplate.queryForObject(sql, String.class, id);
 		// Check the eTags
 		if(!currentTag.equals(eTag)){
-			throw new ConflictingUpdateException("Evaluation: " + id + " has been updated since " +
+			throw new ConflictingUpdateException(clazz.getSimpleName() + ": " + id + " has been updated since " +
 					"you last fetched it; please retrieve it again and re-apply the update");
 		}
-		// Get a new e-tag
-		EvaluationDBO dbo = getDBO(id);
-		dbo.seteTag(UUID.randomUUID().toString());
-		return dbo.getEtag();
-	}
-	
-	private EvaluationDBO getDBO(String id) throws NotFoundException {
-		EvaluationUtils.ensureNotNull(id, "Evaluation id");
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(DBOConstants.PARAM_EVALUATION_ID, id);
-		try {
-			EvaluationDBO dbo = basicDao.getObjectByPrimaryKey(EvaluationDBO.class, param);
-			return dbo;
-		} catch (NotFoundException e) {
-			throw new NotFoundException(EVALUATION_NOT_FOUND + id);
-		}
-	}
-	
-	private String lockForUpdate(String id) {
-		// Create a Select for update query
-		return jdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, id);
+		// Generate a new e-tag
+		return UUID.randomUUID().toString();
 	}
 
+	@Override
+	@WriteTransaction
+	public EvaluationRound createEvaluationRound(EvaluationRound evaluationRound){
+		//generate initial etag
+		evaluationRound.setEtag(UUID.randomUUID().toString());
+		EvaluationRoundDBO dbo = EvaluationRoundDBOUtil.toDBO(evaluationRound);
+
+		// create DBO
+		try {
+			dbo = basicDao.createNew(dbo);
+			return EvaluationRoundDBOUtil.toDTO(dbo);
+		} catch (Exception e) {
+			throw new DatastoreException(e);
+		}
+	}
+
+	@Override
+	@WriteTransaction
+	public void updateEvaluationRound(EvaluationRound evaluationRound) {
+		EvaluationRoundDBO dbo = EvaluationRoundDBOUtil.toDBO(evaluationRound);
+
+		try{
+			//update etag
+			String newEtag = lockAndGenerateEtag(dbo.getId().toString(), dbo.getEtag(),
+					TABLE_EVALUATION_ROUND, COL_EVALUATION_ROUND_ETAG, EvaluationRound.class);
+			dbo.setEtag(newEtag);
+		} catch (EmptyResultDataAccessException e){
+			throw new NotFoundException(String.format(EVALUATION_ROUND_NOT_FOUND_FORMAT, evaluationRound.getId(), evaluationRound.getEvaluationId()));
+		}
+
+
+		// create DBO
+		if( ! basicDao.update(dbo) ){
+			throw new NotFoundException(String.format(EVALUATION_ROUND_NOT_FOUND_FORMAT, evaluationRound.getId(), evaluationRound.getEvaluationId()));
+		}
+
+	}
+
+	@Override
+	@WriteTransaction
+	public void deleteEvaluationRound(String evaluationId, String evaluationRoundId) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(ID, evaluationRoundId);
+		if( ! basicDao.deleteObjectByPrimaryKey(EvaluationRoundDBO.class, param) ){
+			throw new NotFoundException(String.format(EVALUATION_ROUND_NOT_FOUND_FORMAT, evaluationRoundId, evaluationId));
+		}
+	}
+
+	@Override
+	public EvaluationRound getEvaluationRound(String evaluationId, String evaluationRoundId) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(ID, evaluationRoundId);
+		try {
+			EvaluationRoundDBO dbo = basicDao.getObjectByPrimaryKey(EvaluationRoundDBO.class, param);
+			EvaluationRound dto = EvaluationRoundDBOUtil.toDTO(dbo);
+			return dto;
+		} catch (NotFoundException e) {
+			throw new NotFoundException(String.format(EVALUATION_ROUND_NOT_FOUND_FORMAT, evaluationRoundId, evaluationId));
+		}
+	}
+
+	@Override
+	public List<EvaluationRound> getAssociatedEvaluationRounds(String evaluationId, long limit, long offset) {
+		MapSqlParameterSource sqlParameterSource = new MapSqlParameterSource();
+		sqlParameterSource.addValue(DBOConstants.PARAM_EVALUATION_ROUND_EVALUATION_ID, evaluationId);
+		sqlParameterSource.addValue(DBOConstants.PARAM_LIMIT, limit);
+		sqlParameterSource.addValue(DBOConstants.PARAM_OFFSET, offset);
+
+
+		return namedJdbcTemplate.query(SELECT_ALL_ROUNDS_FOR_EVALUATION, sqlParameterSource, (ResultSet resultSet, int rowNumber) ->{
+			return EvaluationRoundDBOUtil.toDTO(EVALUATION_ROUND_ROW_MAPPER.mapRow(resultSet, rowNumber));
+		});
+	}
+
+	@Override
+	public Optional<EvaluationRound> getEvaluationRoundForTimestamp(String evaluationId, Instant timestamp) {
+		MapSqlParameterSource sqlParameterSource = new MapSqlParameterSource();
+		sqlParameterSource.addValue(DBOConstants.PARAM_EVALUATION_ROUND_EVALUATION_ID, evaluationId);
+		sqlParameterSource.addValue(PARAM_BETWEEN_DATE, timestamp.toEpochMilli());
+
+		try {
+			Object result = namedJdbcTemplate.queryForObject(SELECT_ROUND_BETWEEN_RANGE, sqlParameterSource, (ResultSet resultSet, int rowNumber) -> {
+				return EvaluationRoundDBOUtil.toDTO(EVALUATION_ROUND_ROW_MAPPER.mapRow(resultSet, rowNumber));
+			});
+			return Optional.of((EvaluationRound) result);
+		} catch (EmptyResultDataAccessException e){
+			return Optional.empty();
+		}
+	}
+
+	@Override
+	public boolean hasEvaluationRounds(String evaluationId){
+		return jdbcTemplate.queryForObject("SELECT COUNT(*) > 0 FROM " + TABLE_EVALUATION_ROUND +
+						" WHERE " + COL_EVALUATION_ROUND_EVALUATION_ID +" = ? ",
+				new Object[]{evaluationId} ,
+				Boolean.class);
+	}
+
+	@Override
+	public List<EvaluationRound> overlappingEvaluationRounds(String evaluationId, Instant startTimestamp, Instant endTimestamp) {
+		MapSqlParameterSource sqlParameterSource = new MapSqlParameterSource();
+		sqlParameterSource.addValue(DBOConstants.PARAM_EVALUATION_ROUND_EVALUATION_ID, evaluationId);
+		sqlParameterSource.addValue(DBOConstants.PARAM_EVALUATION_ROUND_ROUND_START, startTimestamp.toEpochMilli());
+		sqlParameterSource.addValue(DBOConstants.PARAM_EVALUATION_ROUND_ROUND_END, endTimestamp.toEpochMilli());
+
+		return namedJdbcTemplate.query("SELECT * FROM " + TABLE_EVALUATION_ROUND +
+				" WHERE " + COL_EVALUATION_ROUND_EVALUATION_ID + "= :" + DBOConstants.PARAM_EVALUATION_ROUND_EVALUATION_ID +
+				" AND "+ COL_EVALUATION_ROUND_ROUND_END + " > :" + DBOConstants.PARAM_EVALUATION_ROUND_ROUND_START +
+				" AND " + COL_EVALUATION_ROUND_ROUND_START + " < :" + DBOConstants.PARAM_EVALUATION_ROUND_ROUND_END, sqlParameterSource,
+				(ResultSet resultSet, int rowNumber) -> {
+					return EvaluationRoundDBOUtil.toDTO(EVALUATION_ROUND_ROW_MAPPER.mapRow(resultSet, rowNumber));
+				}
+		);
+	}
 }

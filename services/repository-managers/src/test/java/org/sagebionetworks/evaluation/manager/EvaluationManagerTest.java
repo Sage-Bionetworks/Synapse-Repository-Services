@@ -1,12 +1,12 @@
 package org.sagebionetworks.evaluation.manager;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -15,6 +15,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -23,13 +26,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.dao.EvaluationFilter;
 import org.sagebionetworks.evaluation.dao.EvaluationSubmissionsDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -39,21 +46,24 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 public class EvaluationManagerTest {
 
-	private EvaluationManager evaluationManager;
 	private Evaluation eval;
 	private Evaluation evalWithId;
 	private List<Evaluation> evaluations;
+	Instant evaluationRoundStart;
+	Instant evaluationRoundEnd;
+	private EvaluationRound evaluationRound;
+
 
 	@Mock
 	private AuthorizationManager mockAuthorizationManager;
@@ -76,10 +86,16 @@ public class EvaluationManagerTest {
 	@Mock
 	private NodeDAO mockNodeDAO;
 
+	@Spy
+	@InjectMocks
+	private EvaluationManager evaluationManager = new EvaluationManagerImpl();
+
+
 	private final Long OWNER_ID = 123L;
 	private final Long USER_ID = 456L;
 	private UserInfo ownerInfo;
 	private UserInfo userInfo;
+	private String evaluationRoundId;
 
 	private final String EVALUATION_NAME = "test-evaluation";
 	private final String EVALUATION_ID = "1234";
@@ -112,20 +128,18 @@ public class EvaluationManagerTest {
 		evalWithId.setStatus(EvaluationStatus.PLANNED);
 		evalWithId.setEtag(EVALUATION_ETAG);
 
-		// Evaluation Manager
-		evaluationManager = new EvaluationManagerImpl();
-		ReflectionTestUtils.setField(evaluationManager, "evaluationDAO", mockEvaluationDAO);
-		ReflectionTestUtils.setField(evaluationManager, "idGenerator", mockIdGenerator);
-		ReflectionTestUtils.setField(evaluationManager, "authorizationManager", mockAuthorizationManager);
-		ReflectionTestUtils.setField(evaluationManager, "evaluationPermissionsManager", mockPermissionsManager);
-		ReflectionTestUtils.setField(evaluationManager, "evaluationSubmissionsDAO", mockEvaluationSubmissionsDAO);
-		ReflectionTestUtils.setField(evaluationManager, "submissionEligibilityManager", mockSubmissionEligibilityManager);
-		ReflectionTestUtils.setField(evaluationManager, "nodeDAO", mockNodeDAO);
-
+		evaluationRoundStart = Instant.now();
+		evaluationRoundEnd = evaluationRoundStart.plus(34, ChronoUnit.DAYS);
+		evaluationRoundId = "98765";
+		evaluationRound = new EvaluationRound();
+		evaluationRound.setId(evaluationRoundId);
+		evaluationRound.setEvaluationId(EVALUATION_ID);
+		evaluationRound.setRoundStart(Date.from(evaluationRoundStart));
+		evaluationRound.setRoundEnd(Date.from(evaluationRoundEnd));
 	}
 
 	@Test
-	public void testCreateEvaluation() throws Exception {		
+	public void testCreateEvaluation() {
 		when(mockIdGenerator.generateNewId(IdType.EVALUATION_ID)).thenReturn(Long.parseLong(EVALUATION_ID));
 		when(mockEvaluationDAO.create(any(Evaluation.class), eq(OWNER_ID))).thenReturn(EVALUATION_ID);
 		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
@@ -187,7 +201,7 @@ public class EvaluationManagerTest {
 
 
 	@Test
-	public void testGetEvaluationByContentSource() throws Exception {
+	public void testGetEvaluationByContentSource() {
 
 		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
 		evaluations= Collections.singletonList(evalWithId);
@@ -211,7 +225,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void testGetEvaluationByContentSourceActiveOnly() throws Exception {
+	public void testGetEvaluationByContentSourceActiveOnly() {
 		
 		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
 		evaluations= Collections.singletonList(evalWithId);
@@ -233,7 +247,7 @@ public class EvaluationManagerTest {
 	}
 	
 	@Test
-	public void testGetEvaluationByContentSourceWithEvaluationIdsFilter() throws Exception {
+	public void testGetEvaluationByContentSourceWithEvaluationIdsFilter() {
 
 		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
 		evaluations= Collections.singletonList(evalWithId);
@@ -258,7 +272,7 @@ public class EvaluationManagerTest {
 
 	
 	@Test
-	public void testGetEvaluationByContentSourceWithNullAccessType() throws Exception {
+	public void testGetEvaluationByContentSourceWithNullAccessType() {
 
 		ACCESS_TYPE accessType = null;
 		evaluations= Collections.singletonList(evalWithId);
@@ -285,20 +299,88 @@ public class EvaluationManagerTest {
 
 		evaluationManager.updateEvaluation(ownerInfo, evalWithId);
 		verify(mockEvaluationDAO).update(eq(evalWithId));
+		//no 'quota' field, so we skip this check
+		verify(mockEvaluationDAO, never()).hasEvaluationRounds(evalWithId.getId());
 	}
+
+	@Test
+	public void updateEvaluationAsOwner__QuotaDefined_hasEvaluationRounds() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
+		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
+
+		evaluations= Collections.singletonList(evalWithId);
+		when(mockPermissionsManager.hasAccess(eq(ownerInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.authorized());
+
+		assertNotNull(evalWithId.getCreatedOn());
+
+		//an evaluation round was defined
+		when(mockEvaluationDAO.hasEvaluationRounds(EVALUATION_ID)).thenReturn(true);
+		//quota set
+		evalWithId.setQuota(new SubmissionQuota());
+
+		assertThrows(IllegalArgumentException.class, () ->{
+			evaluationManager.updateEvaluation(ownerInfo, evalWithId);
+		});
+
+		verify(mockEvaluationDAO, never()).update(any());
+		verify(mockEvaluationDAO).hasEvaluationRounds(EVALUATION_ID);
+	}
+
+
+	@Test
+	public void updateEvaluationAsOwner__QuotaDefined_notHasEvaluationRounds() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
+		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
+
+		evaluations= Collections.singletonList(evalWithId);
+		when(mockPermissionsManager.hasAccess(eq(ownerInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.authorized());
+
+		assertNotNull(evalWithId.getCreatedOn());
+
+		//an evaluation round was defined
+		when(mockEvaluationDAO.hasEvaluationRounds(any())).thenReturn(false);
+		//quota set
+		evalWithId.setQuota(new SubmissionQuota());
+
+
+		//method under test
+		evaluationManager.updateEvaluation(ownerInfo, evalWithId);
+
+		verify(mockEvaluationDAO).update(eq(evalWithId));
+		verify(mockEvaluationDAO).hasEvaluationRounds(EVALUATION_ID);
+	}
+
+	@Test
+	public void updateEvaluationAsOwner__QuotaNull_hasEvaluationRounds() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
+		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
+
+		evaluations= Collections.singletonList(evalWithId);
+		when(mockPermissionsManager.hasAccess(eq(ownerInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.authorized());
+
+		assertNotNull(evalWithId.getCreatedOn());
+
+		//no quota set
+		evalWithId.setQuota(null);
+
+		//method under test
+		evaluationManager.updateEvaluation(ownerInfo, evalWithId);
+
+		verify(mockEvaluationDAO).update(eq(evalWithId));
+		// never called because quota was null
+		verify(mockEvaluationDAO, never()).hasEvaluationRounds(EVALUATION_ID);
+	}
+
+
 
 	@Test
 	public void testUpdateEvaluationAsUser() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException {
 
 		evaluations= Collections.singletonList(evalWithId);
+		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
 		when(mockPermissionsManager.hasAccess(eq(userInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.accessDenied(""));
 
-		try {
+		assertThrows(UnauthorizedException.class, () -> {
 			evaluationManager.updateEvaluation(userInfo, evalWithId);
-			fail("User should not have permission to update evaluation");
-		} catch (UnauthorizedException e) {
-			// expected
-		}
+		}, "User should not have permission to update evaluation");
+
 		verify(mockEvaluationDAO, never()).update(eq(eval));
 	}
 
@@ -315,7 +397,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void testGetAvailableEvaluations() throws Exception {
+	public void testGetAvailableEvaluations() {
 
 		evaluations= Collections.singletonList(evalWithId);
 		List<Long> evaluationIds = null;
@@ -338,7 +420,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void testGetAvailableEvaluationsActiveOnly() throws Exception {
+	public void testGetAvailableEvaluationsActiveOnly() {
 
 		evaluations = Collections.singletonList(evalWithId);
 		List<Long> evaluationIds = null;
@@ -361,7 +443,7 @@ public class EvaluationManagerTest {
 	}
 	
 	@Test
-	public void testGetAvailableEvaluationsWithEvaluationsIdsFilter() throws Exception {
+	public void testGetAvailableEvaluationsWithEvaluationsIdsFilter() {
 
 		evaluations= Collections.singletonList(evalWithId);
 		List<Long> evaluationIds = Collections.singletonList(Long.valueOf(EVALUATION_ID));
@@ -411,7 +493,7 @@ public class EvaluationManagerTest {
 	private static final String TEAM_ID = "101";
 
 	@Test
-	public void testGetTeamSubmissionEligibility() throws Exception {
+	public void testGetTeamSubmissionEligibility() {
 
 		evaluations= Collections.singletonList(evalWithId);
 
@@ -454,4 +536,182 @@ public class EvaluationManagerTest {
 		}
 	}
 
+	@Test
+	public void validateEvaluationAccess_nullUserInfo (){
+		UserInfo nullInfo = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			((EvaluationManagerImpl) evaluationManager).validateEvaluationAccess(nullInfo, EVALUATION_ID, ACCESS_TYPE.READ);
+		}).getMessage();
+
+		assertEquals("UserInfo cannot be null", message);
+		verifyZeroInteractions(mockEvaluationDAO);
+		verifyZeroInteractions(mockPermissionsManager);
+	}
+
+	@Test
+	public void validateEvaluationAccess_noPermissionToAcccess (){
+		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
+		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationStatus.accessDenied("nope"));
+
+		String message = assertThrows(UnauthorizedException.class, ()->{
+			((EvaluationManagerImpl) evaluationManager).validateEvaluationAccess(userInfo, EVALUATION_ID, ACCESS_TYPE.READ);
+		}).getMessage();
+
+		assertEquals("User 456 is not authorized to READ evaluation 1234 (test-evaluation)", message);
+		verify(mockEvaluationDAO).get(EVALUATION_ID);
+		verify(mockPermissionsManager).hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.READ);
+	}
+
+	@Test
+	public void validateEvaluationAccess_hasPermission (){
+		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
+
+
+		Evaluation result = ((EvaluationManagerImpl) evaluationManager).validateEvaluationAccess(userInfo, EVALUATION_ID, ACCESS_TYPE.READ);
+
+		assertEquals(evalWithId, result);
+		verify(mockEvaluationDAO).get(EVALUATION_ID);
+		verify(mockPermissionsManager).hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.READ);
+	}
+
+	@Test
+	public void validateNoDateRangeOverlap_hasOverlappingRounds(){
+		String overlappingId = "890890";
+		EvaluationRound overlappingRound = new EvaluationRound();
+		overlappingRound.setId(overlappingId);
+		when(mockEvaluationDAO.overlappingEvaluationRounds(EVALUATION_ID, evaluationRoundStart, evaluationRoundEnd))
+				.thenReturn(Arrays.asList(overlappingRound));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			((EvaluationManagerImpl) evaluationManager).validateNoDateRangeOverlap(evaluationRound);
+		}).getMessage();
+
+		assertEquals("This round's date range overlaps with the following rounds: ["+overlappingId+"]", message);
+		verify(mockEvaluationDAO).overlappingEvaluationRounds(EVALUATION_ID, evaluationRoundStart, evaluationRoundEnd);
+	}
+
+	@Test
+	public void validateNoDateRangeOverlap_noOverlappingRounds(){
+		when(mockEvaluationDAO.overlappingEvaluationRounds(EVALUATION_ID, evaluationRoundStart, evaluationRoundEnd))
+				.thenReturn(Collections.emptyList());
+		assertDoesNotThrow(() ->
+			((EvaluationManagerImpl) evaluationManager).validateNoDateRangeOverlap(evaluationRound)
+		);
+
+		verify(mockEvaluationDAO).overlappingEvaluationRounds(EVALUATION_ID, evaluationRoundStart, evaluationRoundEnd);
+	}
+
+	@Test
+	public void validateNoExistingQuotaDefined_hasQuota(){
+		evalWithId.setQuota(new SubmissionQuota());
+
+		String message = assertThrows(IllegalArgumentException.class, () ->
+				((EvaluationManagerImpl) evaluationManager).validateNoExistingQuotaDefined(evalWithId)
+		).getMessage();
+
+		assertEquals("A SubmissionQuota must not be defined for an Evaluation." +
+				" You must first remove your Evaluation's SubmisisonQuota in order to use EvaluationRounds", message);
+	}
+
+	@Test
+	public void validateNoExistingQuotaDefined_noQuota(){
+		evalWithId.setQuota(null);
+		assertDoesNotThrow(() ->
+				((EvaluationManagerImpl) evaluationManager).validateNoExistingQuotaDefined(evalWithId)
+		);
+	}
+
+
+	@Test
+	public void createEvaluationRound(){
+		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.CREATE))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
+		//fake round that gets "created"
+		EvaluationRound createdRound = new EvaluationRound();
+		when(mockEvaluationDAO.createEvaluationRound(evaluationRound)).thenReturn(createdRound);
+
+
+		EvaluationRound result = evaluationManager.createEvaluationRound(userInfo, evaluationRound);
+
+		assertEquals(createdRound, result);
+
+		verify(mockPermissionsManager).hasAccess(userInfo, EVALUATION_ID,ACCESS_TYPE.CREATE);
+		verify(mockEvaluationDAO).get(EVALUATION_ID);
+		verify(mockEvaluationDAO).overlappingEvaluationRounds(EVALUATION_ID, evaluationRoundStart, evaluationRoundEnd);
+		verify(mockEvaluationDAO).createEvaluationRound(evaluationRound);
+	}
+
+	@Test
+	public void updateEvaluationRound(){
+		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.UPDATE))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
+		when(mockEvaluationDAO.getEvaluationRound(EVALUATION_ID, evaluationRoundId)).thenReturn(evaluationRound);
+
+		EvaluationRound result = evaluationManager.updateEvaluationRound(userInfo, evaluationRound);
+
+		assertEquals(evaluationRound, result);
+
+		verify(mockPermissionsManager).hasAccess(userInfo, EVALUATION_ID,ACCESS_TYPE.UPDATE);
+		verify(mockEvaluationDAO).get(EVALUATION_ID);
+		verify(mockEvaluationDAO).overlappingEvaluationRounds(EVALUATION_ID, evaluationRoundStart, evaluationRoundEnd);
+		verify(mockEvaluationDAO).updateEvaluationRound(evaluationRound);
+		verify(mockEvaluationDAO).getEvaluationRound(EVALUATION_ID, evaluationRoundId);
+	}
+
+	@Test
+	public void deleteEvaluationRound(){
+		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.DELETE))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
+
+		evaluationManager.deleteEvaluationRound(userInfo ,EVALUATION_ID, evaluationRoundId);
+
+		verify(mockPermissionsManager).hasAccess(userInfo, EVALUATION_ID,ACCESS_TYPE.DELETE);
+		verify(mockEvaluationDAO).get(EVALUATION_ID);
+		verify(mockEvaluationDAO).deleteEvaluationRound(EVALUATION_ID, evaluationRoundId);
+	}
+
+	@Test
+	public void getEvaluationRound(){
+		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
+		when(mockEvaluationDAO.getEvaluationRound(EVALUATION_ID, evaluationRoundId)).thenReturn(evaluationRound);
+
+
+		EvaluationRound result = evaluationManager.getEvaluationRound(userInfo, EVALUATION_ID, evaluationRoundId);
+		assertEquals(evaluationRound, result);
+
+
+		verify(mockPermissionsManager).hasAccess(userInfo, EVALUATION_ID,ACCESS_TYPE.READ);
+		verify(mockEvaluationDAO).get(EVALUATION_ID);
+		verify(mockEvaluationDAO).getEvaluationRound(EVALUATION_ID, evaluationRoundId);
+	}
+
+	@Test
+	public void getAllEvaluationRounds(){
+		long limit = 50;
+		long offset = 0;
+		NextPageToken nextPageToken = new NextPageToken(limit, offset);
+		List<EvaluationRound> rounds = Collections.singletonList(evaluationRound);
+
+		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
+		when(mockEvaluationDAO.getAssociatedEvaluationRounds(EVALUATION_ID, limit+1, offset)).thenReturn(rounds);
+
+
+		List<EvaluationRound> result = evaluationManager.getAllEvaluationRounds(userInfo, EVALUATION_ID, nextPageToken);
+
+		assertEquals(rounds, result);
+
+		verify(mockPermissionsManager).hasAccess(userInfo, EVALUATION_ID,ACCESS_TYPE.READ);
+		verify(mockEvaluationDAO).get(EVALUATION_ID);
+		verify(mockEvaluationDAO).getAssociatedEvaluationRounds(EVALUATION_ID, limit+1, offset);
+	}
 }
