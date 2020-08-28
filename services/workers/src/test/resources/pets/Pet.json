@@ -4,7 +4,7 @@
 	"description": "Base type information shared by all pet types.",
 	"allOf": [
 		{
-			"$ref": "org.sagebionetworks-repo.model.FileEntity"
+			"$ref": "org.sagebionetworks-repo.model.FileEntity-1.0.0"
 		}
 	],
 	"properties": {
@@ -18,7 +18,7 @@
 			"format": "date-time"
 		},
 		"petType": {
-			"$ref": "my.organization-pets.PetType"
+			"$ref": "my.organization-pets.PetType-1.0.1"
 		}
 	}
 }
