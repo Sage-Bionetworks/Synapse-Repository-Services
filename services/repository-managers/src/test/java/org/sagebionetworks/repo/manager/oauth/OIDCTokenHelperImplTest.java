@@ -231,7 +231,7 @@ public class OIDCTokenHelperImplTest {
 	    // the Client SHOULD check the auth_time Claim value and request re-authentication if it determines too much time has elapsed 
 	    // since the last End-User authentication.
 		if (!isPersonalAccessToken) {
-			assertEquals(AUTH_TIME, claimsSet.get(OIDCClaimName.auth_time.name(), Date.class));
+			assertEquals((int)(AUTH_TIME.getTime()/1000L), claimsSet.get(OIDCClaimName.auth_time.name(), Integer.class));
 		} else {
 			// personal access tokens do not contain the auth time
 			assertNull(claimsSet.get(OIDCClaimName.auth_time.name()));

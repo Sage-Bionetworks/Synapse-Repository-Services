@@ -401,7 +401,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 					.createRefreshToken(authorizationRequest.getUserId(),
 							oauthClientId,
 							scopes,
-							normalizedClaims
+							normalizedClaims,
+							authTime
 					);
 			refreshTokenId = refreshToken.getMetadata().getTokenId();
 			result.setRefresh_token(refreshToken.getRefreshToken());

@@ -82,7 +82,7 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 			String tokenId,
 			Map<OIDCClaimName,Object> userInfo) {
 		
-		Claims claims = Jwts.claims();
+		ClaimsWithAuthTime claims = new ClaimsWithAuthTime();
 		
 		for (OIDCClaimName claimName: userInfo.keySet()) {
 			claims.put(claimName.name(), userInfo.get(claimName));
@@ -100,7 +100,7 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 
 		if (nonce!=null) claims.put(NONCE, nonce);
 		
-		if (authTime!=null) claims.put(OIDCClaimName.auth_time.name(), authTime);
+		claims.setAuthTime(authTime);
 
 		return createSignedJWT(claims);
 	}
@@ -118,7 +118,7 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 			List<OAuthScope> scopes,
 			Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims) {
 		
-		Claims claims = Jwts.claims();
+		ClaimsWithAuthTime claims = new ClaimsWithAuthTime();
 		
 		ClaimsJsonUtil.addAccessClaims(scopes, oidcClaims, claims);
 		
@@ -132,7 +132,7 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 
 		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ACCESS_TOKEN);
 
-		if (authTime!=null) claims.put(OIDCClaimName.auth_time.name(), authTime);
+		claims.setAuthTime(authTime);
 		if (refreshTokenId!=null) claims.put(OIDCClaimName.refresh_token_id.name(), refreshTokenId);
 		return createSignedJWT(claims);
 	}

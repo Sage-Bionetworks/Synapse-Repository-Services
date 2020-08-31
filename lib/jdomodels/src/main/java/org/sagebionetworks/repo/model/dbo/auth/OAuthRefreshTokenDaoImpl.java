@@ -154,7 +154,7 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 		dto.setPrincipalId(dbo.getPrincipalId().toString());
 		dto.setClientId(dbo.getClientId().toString());
 		// Timestamp must be converted to Date for .equals to work on the DTO
-		dto.setAuthorizedOn(new Date(dbo.getCreatedOn().getTime()));
+		dto.setAuthorizedOn(new Date(dbo.getCreatedOn().getTime())); // This is wrong.  It's not the date the token was created but when the user logged in
 		dto.setModifiedOn(new Date(dbo.getModifiedOn().getTime()));
 		dto.setLastUsed(new Date(dbo.getLastUsed().getTime()));
 		dto.setEtag(dbo.getEtag());

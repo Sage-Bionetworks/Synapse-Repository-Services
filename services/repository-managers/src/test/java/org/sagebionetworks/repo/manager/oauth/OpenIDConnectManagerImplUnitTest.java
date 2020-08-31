@@ -710,7 +710,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		expectedMetadata.setTokenId("REFRESH-TOKEN-ID");
 		expectedRefreshTokenAndId.setRefreshToken("REFRESH-TOKEN");
 		expectedRefreshTokenAndId.setMetadata(expectedMetadata);
-		when(oauthRefreshTokenManager.createRefreshToken(eq(USER_ID), eq(OAUTH_CLIENT_ID), any(), any())).thenReturn(expectedRefreshTokenAndId);
+		when(oauthRefreshTokenManager.createRefreshToken(eq(USER_ID), eq(OAUTH_CLIENT_ID), any(), any(), any())).thenReturn(expectedRefreshTokenAndId);
 
 		String expectedAccessToken = "ACCESS-TOKEN";
 		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), anyLong(),
@@ -795,7 +795,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		assertEquals("Bearer", tokenResponse.getToken_type());
 		assertEquals(EXPECTED_ACCESS_TOKEN_EXPIRATION_TIME_SECONDS, tokenResponse.getExpires_in());
 
-		verify(oauthRefreshTokenManager, never()).createRefreshToken(any(), any(), any(), any());
+		verify(oauthRefreshTokenManager, never()).createRefreshToken(any(), any(), any(), any(), any());
 		assertNull(tokenResponse.getRefresh_token());
 	}
 	

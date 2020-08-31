@@ -57,6 +57,7 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 	private static final String POLICY_URI = "https://client.uri.com/policy.html";
 	private static final String TOS_URI = "https://client.uri.com/termsOfService.html";
 	private static final List<String> REDIRCT_URIS = Collections.singletonList("https://client.com/redir");
+	private static final Date AUTH_TIME = new Date();
 
 	@Autowired
 	private UserManager userManager;
@@ -150,7 +151,7 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 		// Create a refresh token
 
 		// Call under test
-		OAuthRefreshTokenAndMetadata token = refreshTokenManager.createRefreshToken(user1.getId().toString(), client1.getClient_id(), scopes, claims);
+		OAuthRefreshTokenAndMetadata token = refreshTokenManager.createRefreshToken(user1.getId().toString(), client1.getClient_id(), scopes, claims, AUTH_TIME);
 		assertNotNull(token);
 		assertTrue(StringUtils.isNotBlank(token.getRefreshToken()));
 		OAuthRefreshTokenInformation tokenMetadata = token.getMetadata();
@@ -164,6 +165,7 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 		assertNotNull(tokenMetadata.getAuthorizedOn());
 		assertEquals(scopes, tokenMetadata.getScopes());
 		assertEquals(claims, tokenMetadata.getClaims());
+		assertEquals(AUTH_TIME, tokenMetadata.getAuthorizedOn());
 
 		// Retrieving the token with the token ID as a user
 		// Call under test
@@ -242,9 +244,9 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 	@Test
 	public void testAuditAndRevokeTokensForUserClientPair() throws Exception {
 		// Create two tokens for client 1, one token for client 2
-		OAuthRefreshTokenAndMetadata client1Token1 = refreshTokenManager.createRefreshToken(user1.getId().toString(), client1.getClient_id(), scopes, claims);
-		OAuthRefreshTokenAndMetadata client1Token2 = refreshTokenManager.createRefreshToken(user1.getId().toString(), client1.getClient_id(), scopes, claims);
-		OAuthRefreshTokenAndMetadata client2Token = refreshTokenManager.createRefreshToken(user1.getId().toString(), client2.getClient_id(), scopes, claims);
+		OAuthRefreshTokenAndMetadata client1Token1 = refreshTokenManager.createRefreshToken(user1.getId().toString(), client1.getClient_id(), scopes, claims, AUTH_TIME);
+		OAuthRefreshTokenAndMetadata client1Token2 = refreshTokenManager.createRefreshToken(user1.getId().toString(), client1.getClient_id(), scopes, claims, AUTH_TIME);
+		OAuthRefreshTokenAndMetadata client2Token = refreshTokenManager.createRefreshToken(user1.getId().toString(), client2.getClient_id(), scopes, claims, AUTH_TIME);
 
 		// Audit clients
 		// Call under test
@@ -304,7 +306,7 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 
 		// Revoke tokens
 		// Create a token between client 1 and user 2 (to ensure it isn't accidentally revoked when user 1 revokes client 1's tokens)
-		OAuthRefreshTokenAndMetadata user2Token = refreshTokenManager.createRefreshToken(user2.getId().toString(), client1.getClient_id(), scopes, claims);
+		OAuthRefreshTokenAndMetadata user2Token = refreshTokenManager.createRefreshToken(user2.getId().toString(), client1.getClient_id(), scopes, claims, AUTH_TIME);
 
 		// Call under test
 		refreshTokenManager.revokeRefreshTokensForUserClientPair(user1, client1.getClient_id());
@@ -330,7 +332,7 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 
 	@Test
 	public void testIsRefreshTokenActive() {
-		OAuthRefreshTokenAndMetadata token = refreshTokenManager.createRefreshToken(user1.getId().toString(), client1.getClient_id(), scopes, claims);
+		OAuthRefreshTokenAndMetadata token = refreshTokenManager.createRefreshToken(user1.getId().toString(), client1.getClient_id(), scopes, claims, AUTH_TIME);
 
 		// Call under test
 		assertTrue(refreshTokenManager.isRefreshTokenActive(token.getMetadata().getTokenId()));
