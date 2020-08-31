@@ -63,6 +63,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	// user authorization times out after one year
 	private static final long AUTHORIZATION_TIME_OUT_MILLIS = 1000L*3600L*24L*365L;
 	
+	private static final long ACCESS_TOKEN_EXPIRATION_TIME_SECONDS = 3600*24L; // a day
+	
 	// token_type=Bearer, as per https://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
 	private static final String TOKEN_TYPE_BEARER = "Bearer";
 
@@ -407,10 +409,11 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		String accessTokenId = UUID.randomUUID().toString();
 		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid,
-				oauthClientId, now, authTime, refreshTokenId, accessTokenId, scopes,
+				oauthClientId, now, ACCESS_TOKEN_EXPIRATION_TIME_SECONDS, authTime, refreshTokenId, accessTokenId, scopes,
 				EnumKeyedJsonMapUtil.convertKeysToEnums(normalizedClaims.getUserinfo(), OIDCClaimName.class));
 		result.setAccess_token(accessToken);
 		result.setToken_type(TOKEN_TYPE_BEARER);
+		result.setExpires_in(ACCESS_TOKEN_EXPIRATION_TIME_SECONDS);
 		return result;
 	}
 
@@ -471,9 +474,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		String accessTokenId = UUID.randomUUID().toString();
 		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid,
-				oauthClientId, now, authTime, refreshTokenMetadata.getTokenId(), accessTokenId, scopes, userInfoClaims);
+				oauthClientId, now,ACCESS_TOKEN_EXPIRATION_TIME_SECONDS,  authTime, refreshTokenMetadata.getTokenId(), accessTokenId, scopes, userInfoClaims);
 		result.setAccess_token(accessToken);
 		result.setToken_type(TOKEN_TYPE_BEARER);
+		result.setExpires_in(ACCESS_TOKEN_EXPIRATION_TIME_SECONDS);
 		return result;
 	}
 

@@ -100,6 +100,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	private static final String OAUTH_CLIENT_ID = "123";
 	private static final String OAUTH_ENDPOINT = "https://repo-prod.prod.sagebase.org/auth/v1";
 	private static final String EMAIL = "me@domain.com";
+	private static final long EXPECTED_ACCESS_TOKEN_EXPIRATION_TIME_SECONDS = 3600*24L; // a day
 	private String ppid;
 
 	@Mock
@@ -712,7 +713,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(oauthRefreshTokenManager.createRefreshToken(eq(USER_ID), eq(OAUTH_CLIENT_ID), any(), any())).thenReturn(expectedRefreshTokenAndId);
 
 		String expectedAccessToken = "ACCESS-TOKEN";
-		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(),
+		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), anyLong(),
 				eq(now), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
 
 		// elsewhere we test that we correctly build up the requested user-info
@@ -767,7 +768,7 @@ public class OpenIDConnectManagerImplUnitTest {
 				eq(NONCE), eq(now), anyString(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
 
 		String expectedAccessToken = "ACCESS-TOKEN";
-		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(),
+		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), anyLong(),
 				eq(now), isNull(), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
 		
 		// elsewhere we test that we correctly build up the requested user-info
@@ -792,6 +793,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		}
 
 		assertEquals("Bearer", tokenResponse.getToken_type());
+		assertEquals(EXPECTED_ACCESS_TOKEN_EXPIRATION_TIME_SECONDS, tokenResponse.getExpires_in());
 
 		verify(oauthRefreshTokenManager, never()).createRefreshToken(any(), any(), any(), any());
 		assertNull(tokenResponse.getRefresh_token());
@@ -892,7 +894,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		String code = authResponse.getAccess_code();
 
 		String expectedAccessToken = "ACCESS-TOKEN";
-		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), anyString(), eq(OAUTH_CLIENT_ID), anyLong(),
+		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), anyString(), eq(OAUTH_CLIENT_ID), anyLong(), anyLong(),
 				eq(now), isNull(), anyString(), (List<OAuthScope>)any(), (Map<OIDCClaimName, OIDCClaimsRequestDetails>)any())).thenReturn(expectedAccessToken);
 		
 		// method under test
@@ -976,7 +978,7 @@ public class OpenIDConnectManagerImplUnitTest {
 				isNull(), eq(initalAuthzOn), anyString(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
 
 		String expectedAccessToken = "ACCESS-TOKEN";
-		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(),
+		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), anyLong(),
 				eq(initalAuthzOn), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
 
 		String scope = "openid offline_access";
@@ -1004,6 +1006,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		assertEquals(expectedRefreshTokenAndId.getRefreshToken(), tokenResponse.getRefresh_token());
 		assertEquals("Bearer", tokenResponse.getToken_type());
+		assertEquals(EXPECTED_ACCESS_TOKEN_EXPIRATION_TIME_SECONDS, tokenResponse.getExpires_in());
 	}
 
 
@@ -1051,7 +1054,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(oauthRefreshTokenManager.rotateRefreshToken(refreshToken)).thenReturn(expectedRefreshTokenAndId);
 
 		String expectedAccessToken = "ACCESS-TOKEN";
-		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(),
+		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), anyLong(),
 				eq(initalAuthzOn), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
 
 		String scope = "offline_access"; // Do not request openid!
@@ -1092,7 +1095,7 @@ public class OpenIDConnectManagerImplUnitTest {
 				isNull(), eq(initalAuthzOn), anyString(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
 
 		String expectedAccessToken = "ACCESS-TOKEN";
-		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(),
+		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), anyLong(),
 				eq(initalAuthzOn), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
 
 		String scope = null; // Null scope = all previously granted scopes
