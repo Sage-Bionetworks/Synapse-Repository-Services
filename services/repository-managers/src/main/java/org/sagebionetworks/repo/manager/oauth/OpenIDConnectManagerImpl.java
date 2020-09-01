@@ -131,7 +131,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		try {
 			ValidateArgument.validUrl(authorizationRequest.getRedirectUri(), "Redirect URI");
 		} catch (IllegalArgumentException e) {
-			throw new OAuthBadRequestException(OAuthErrorCode.invalid_request, e.getMessage());
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_request, e);
 		}
 		if (!client.getRedirect_uris().contains(authorizationRequest.getRedirectUri())) {
 			throw new OAuthBadRequestException(OAuthErrorCode.invalid_grant, "Redirect URI "+authorizationRequest.getRedirectUri()+

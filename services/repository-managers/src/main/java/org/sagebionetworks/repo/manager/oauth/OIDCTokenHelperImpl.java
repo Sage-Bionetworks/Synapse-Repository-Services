@@ -82,13 +82,14 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 			String tokenId,
 			Map<OIDCClaimName,Object> userInfo) {
 		
-		ClaimsWithAuthTime claims = new ClaimsWithAuthTime();
+		ClaimsWithAuthTime claims = ClaimsWithAuthTime.newClaims();
 		
 		for (OIDCClaimName claimName: userInfo.keySet()) {
 			claims.put(claimName.name(), userInfo.get(claimName));
 		}
 		
-		claims.setIssuer(issuer)
+		claims.setAuthTime(authTime)
+			.setIssuer(issuer)
 			.setAudience(oauthClientId)
 			.setExpiration(new Date(now+ID_TOKEN_EXPIRATION_TIME_SECONDS*1000L))
 			.setNotBefore(new Date(now))
@@ -99,8 +100,6 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ID_TOKEN);
 
 		if (nonce!=null) claims.put(NONCE, nonce);
-		
-		claims.setAuthTime(authTime);
 
 		return createSignedJWT(claims);
 	}
@@ -118,11 +117,12 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 			List<OAuthScope> scopes,
 			Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims) {
 		
-		ClaimsWithAuthTime claims = new ClaimsWithAuthTime();
+		ClaimsWithAuthTime claims = ClaimsWithAuthTime.newClaims();
 		
 		ClaimsJsonUtil.addAccessClaims(scopes, oidcClaims, claims);
 		
-		claims.setIssuer(issuer)
+		claims.setAuthTime(authTime)
+			.setIssuer(issuer)
 			.setAudience(oauthClientId)
 			.setExpiration(new Date(now+expirationTimeSeconds*1000L))
 			.setNotBefore(new Date(now))
@@ -132,14 +132,13 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 
 		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ACCESS_TOKEN);
 
-		claims.setAuthTime(authTime);
 		if (refreshTokenId!=null) claims.put(OIDCClaimName.refresh_token_id.name(), refreshTokenId);
 		return createSignedJWT(claims);
 	}
 
 	@Override
 	public String createPersonalAccessToken(String issuer, AccessTokenRecord record) {
-		Claims claims = Jwts.claims();
+		ClaimsWithAuthTime claims = ClaimsWithAuthTime.newClaims();
 
 		ClaimsJsonUtil.addAccessClaims(record.getScopes(), EnumKeyedJsonMapUtil.convertKeysToEnums(record.getUserInfoClaims(), OIDCClaimName.class), claims);
 

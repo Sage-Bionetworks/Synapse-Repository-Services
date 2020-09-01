@@ -7,6 +7,10 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import io.jsonwebtoken.impl.DefaultClaims;
 
 public class ClaimsWithAuthTime extends DefaultClaims {
+	
+	public static ClaimsWithAuthTime newClaims() {return new ClaimsWithAuthTime();}
+	
+	private ClaimsWithAuthTime() {}
 
 	public ClaimsWithAuthTime setAuthTime(Date authTime) {
 		setDate(OIDCClaimName.auth_time.name(), authTime);

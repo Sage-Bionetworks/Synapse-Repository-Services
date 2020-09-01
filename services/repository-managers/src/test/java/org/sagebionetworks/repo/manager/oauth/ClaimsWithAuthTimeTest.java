@@ -11,7 +11,7 @@ class ClaimsWithAuthTimeTest {
 	@Test
 	void testRoundTrip() {
 		Date authDate = new Date();
-		ClaimsWithAuthTime claims = new ClaimsWithAuthTime();
+		ClaimsWithAuthTime claims = ClaimsWithAuthTime.newClaims();
 		claims.setAuthTime(authDate);
 		// By convention the time is represented as seconds, so when we do the comparison we must truncate the milliseconds
 		assertEquals(authDate.getTime()/1000L, claims.getAuthTime().getTime()/1000L);

@@ -237,13 +237,12 @@ public class OpenIDConnectManagerImplUnitTest {
 		expected.add(OAuthScope.openid);
 		assertEquals(expected, scopes);
 		
-		try {
+		OAuthBadRequestException ex = assertThrows(OAuthBadRequestException.class, () -> {
 			// method under test
 			OpenIDConnectManagerImpl.parseScopeString("openid foo");
-			fail("OAuthBadRequestException expected.");
-		} catch (OAuthBadRequestException e) {
-			// as expected
-		}
+		});
+		assertEquals(OAuthErrorCode.invalid_scope, ex.getError());
+		assertEquals("invalid_scope Unrecognized scope: foo", ex.getMessage());
 		
 		// what if url encoded?
 		// method under test
@@ -286,13 +285,12 @@ public class OpenIDConnectManagerImplUnitTest {
 		authorizationRequest.setRedirectUri("some invalid uri");
 		authorizationRequest.setResponseType(OAuthResponseType.code);
 		
-		try {
+		OAuthBadRequestException ex = assertThrows(OAuthBadRequestException.class, () -> {
 			// method under test
 			OpenIDConnectManagerImpl.validateAuthenticationRequest(authorizationRequest, client);
-			fail("Exception expected.");
-		} catch (OAuthBadRequestException e) {
-			assertEquals(OAuthErrorCode.invalid_request, e.getError());
-		}
+		});
+		assertEquals(OAuthErrorCode.invalid_request, ex.getError());
+		assertEquals("invalid_request Redirect URI is not a valid url: some invalid uri", ex.getMessage());
 	}
 
 	@Test
@@ -305,13 +303,12 @@ public class OpenIDConnectManagerImplUnitTest {
 		authorizationRequest.setRedirectUri(REDIRCT_URIS.get(0));
 		authorizationRequest.setResponseType(null);
 		
-		try {
+		OAuthBadRequestException ex = assertThrows(OAuthBadRequestException.class, () -> {
 			// method under test
 			OpenIDConnectManagerImpl.validateAuthenticationRequest(authorizationRequest, client);
-			fail("Exception expected.");
-		} catch (OAuthBadRequestException e) {
-			assertEquals(OAuthErrorCode.invalid_request, e.getError());
-		}
+		});
+		assertEquals(OAuthErrorCode.invalid_request, ex.getError());
+		assertEquals("invalid_request Missing response_type.", ex.getMessage());
 	}	
 
 	private static final String NONCE = UUID.randomUUID().toString();
@@ -415,22 +412,18 @@ public class OpenIDConnectManagerImplUnitTest {
 		authorizationRequest.setClientId("42");
 		when(mockOauthClientDao.getOAuthClient("42")).thenThrow(new NotFoundException());
 
-		try {
-			// method under test
-			openIDConnectManagerImpl.getAuthenticationRequestDescription(authorizationRequest);
-			fail("OAuthBadRequestException expected");
-		} catch (OAuthBadRequestException e) {
-			// as expected
-		}
-
+		OAuthBadRequestException ex = assertThrows(OAuthBadRequestException.class, ()->{
+				openIDConnectManagerImpl.getAuthenticationRequestDescription(authorizationRequest);
+		});
+		assertEquals(OAuthErrorCode.invalid_client, ex.getError());
+		assertEquals("invalid_client Invalid OAuth Client ID: 42", ex.getMessage());
+		
 		authorizationRequest.setClientId(null);
-		try {
+		
+		assertThrows(IllegalArgumentException.class, () -> {
 			// method under test
 			openIDConnectManagerImpl.getAuthenticationRequestDescription(authorizationRequest);
-			fail("IllegalArgumentException expected");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+		});
 
 	}
 
@@ -442,15 +435,12 @@ public class OpenIDConnectManagerImplUnitTest {
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 		authorizationRequest.setRedirectUri("some other redir uri");
 
-		try {
+		OAuthBadRequestException ex = assertThrows(OAuthBadRequestException.class, () -> {
 			// method under test
 			openIDConnectManagerImpl.getAuthenticationRequestDescription(authorizationRequest);
-			fail("OAuthBadRequestException expected");
-		} catch (OAuthBadRequestException e) {
-			// as expected
-			assertEquals(OAuthErrorCode.invalid_request, e.getError());
-		}
-
+		});
+		assertEquals(OAuthErrorCode.invalid_request, ex.getError());
+		assertEquals("invalid_request Redirect URI is not a valid url: some other redir uri", ex.getMessage());
 	}
 	
 	@Test
@@ -539,11 +529,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		
 		OIDCAuthorizationRequest authRequestFromCode = new OIDCAuthorizationRequest();
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(decrypted);
-		try {
-			authRequestFromCode.initializeFromJSONObject(adapter);
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
-		}
+		authRequestFromCode.initializeFromJSONObject(adapter);
 		
 		// make sure authorizedAt was set
 		assertNotNull(authRequestFromCode.getAuthorizedAt());
@@ -559,13 +545,10 @@ public class OpenIDConnectManagerImplUnitTest {
 	public void testAuthorizeClient_anonynmous() throws Exception {
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 
-		// method under test
-		try {
+		assertThrows(OAuthUnauthenticatedException.class, () -> {
+			// method under test
 			openIDConnectManagerImpl.authorizeClient(anonymousUserInfo, authorizationRequest);
-			fail("OAuthUnauthenticatedException expected");
-		} catch (OAuthUnauthenticatedException e) {
-			// as expected
-		}
+		});
 	}
 
 	@Test
@@ -574,13 +557,12 @@ public class OpenIDConnectManagerImplUnitTest {
 		authorizationRequest.setClientId("42");
 		when(mockOauthClientDao.getOAuthClient("42")).thenThrow(new NotFoundException());
 
-		try {
+		OAuthBadRequestException ex = assertThrows(OAuthBadRequestException.class, () -> {
 			// method under test
 			openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
-			fail("OAuthBadRequestException expected");
-		} catch (OAuthBadRequestException e) {
-			// as expected
-		}
+		});
+		assertEquals(OAuthErrorCode.invalid_client, ex.getError());
+		assertEquals("invalid_client Invalid OAuth Client ID: 42", ex.getMessage());
 	}
 
 	@Test
@@ -590,7 +572,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 
-		assertThrows(OAuthClientNotVerifiedException.class, ()-> {
+		assertThrows(OAuthClientNotVerifiedException.class, () -> {
 			// method under test
 			openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		});
@@ -740,6 +722,10 @@ public class OpenIDConnectManagerImplUnitTest {
 		}
 
 		assertEquals(expectedRefreshTokenAndId.getRefreshToken(), tokenResponse.getRefresh_token());
+		
+		verify(oidcTokenHelper).createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), anyLong(),
+				eq(now), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), anyString(), any(), any());
+
 	}
 
 	@Test
@@ -799,6 +785,13 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		verify(oauthRefreshTokenManager, never()).createRefreshToken(any(), any(), any(), any());
 		assertNull(tokenResponse.getRefresh_token());
+		
+		verify(oidcTokenHelper).createOIDCIdToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(),
+				eq(NONCE), eq(now), anyString(), any());
+
+		verify(oidcTokenHelper).createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), anyLong(),
+				eq(now), isNull(), anyString(), any(), any());
+
 	}
 	
 	@Test
@@ -808,23 +801,21 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		String incorrectlyEncryptedCode = "some invalid code";
 		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(incorrectlyEncryptedCode)).thenThrow(new RuntimeException());
-		try {
+
+		OAuthBadRequestException ex = assertThrows(OAuthBadRequestException.class, () -> {
 			// method under test
 			openIDConnectManagerImpl.generateTokenResponseWithAuthorizationCode(incorrectlyEncryptedCode, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
-			fail("OAuthBadRequestException expected");
-		}  catch (OAuthBadRequestException e) {
-			// as expected
-		}
-		
+		});
+		assertEquals(OAuthErrorCode.invalid_grant, ex.getError());
+		assertEquals("invalid_grant Invalid authorization code: some invalid code", ex.getMessage());
+
 		// this code is not a valid AuthorizationRequest object
 		String invalidAuthorizationObjectCode = "not correctly serialized json";
-		try {
+
+		assertThrows(IllegalStateException.class, () -> {
 			// method under test
 			openIDConnectManagerImpl.generateTokenResponseWithAuthorizationCode(invalidAuthorizationObjectCode, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
-			fail("IllegalStateException expected");
-		}  catch (IllegalStateException e) {
-			// as expected
-		}
+		});
 	}
 
 	@Test
@@ -845,14 +836,12 @@ public class OpenIDConnectManagerImplUnitTest {
 		// now let's return the clock to normal, making the token expire
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 
-		// method under test
-		try {
+		OAuthBadRequestException ex = assertThrows(OAuthBadRequestException.class, () -> {
+			// method under test
 			openIDConnectManagerImpl.generateTokenResponseWithAuthorizationCode(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
-			fail("OAuthBadRequestException expected");
-		}  catch (OAuthBadRequestException e) {
-			// as expected
-		}
-
+		});
+		assertEquals(OAuthErrorCode.invalid_grant, ex.getError());
+		assertEquals("invalid_grant Authorization code has expired.", ex.getMessage());
 	}
 
 	@Test
@@ -868,14 +857,13 @@ public class OpenIDConnectManagerImplUnitTest {
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 
 		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
-		// method under test
-		try {
+
+		OAuthBadRequestException ex = assertThrows(OAuthBadRequestException.class, () -> {
+			// method under test
 			openIDConnectManagerImpl.generateTokenResponseWithAuthorizationCode(authResponse.getAccess_code(), OAUTH_CLIENT_ID, "wrong redirect uri", OAUTH_ENDPOINT);
-			fail("OAuthBadRequestException expected");
-		}  catch (OAuthBadRequestException e) {
-			// as expected
-		}
-		
+		});
+		assertEquals(OAuthErrorCode.invalid_grant, ex.getError());
+		assertEquals("invalid_grant URI mismatch: https://client.com/redir vs. wrong redirect uri", ex.getMessage());
 	}
 	
 	@Test
@@ -902,6 +890,9 @@ public class OpenIDConnectManagerImplUnitTest {
 		// method under test
 		OIDCTokenResponse tokenResponse = openIDConnectManagerImpl.generateTokenResponseWithAuthorizationCode(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
 		
+		verify(oidcTokenHelper).createOIDCaccessToken(eq(OAUTH_ENDPOINT), anyString(), eq(OAUTH_CLIENT_ID), anyLong(), anyLong(),
+				eq(now), isNull(), anyString(), (List<OAuthScope>)any(), (Map<OIDCClaimName, OIDCClaimsRequestDetails>)any());
+
 		verify(oidcTokenHelper, never()).
 			createOIDCIdToken(anyString(), anyString(), anyString(), anyLong(), anyString(), (Date)any(), anyString(), (Map)any());
 		
@@ -1011,6 +1002,12 @@ public class OpenIDConnectManagerImplUnitTest {
 		assertEquals(expectedRefreshTokenAndId.getRefreshToken(), tokenResponse.getRefresh_token());
 		assertEquals("Bearer", tokenResponse.getToken_type());
 		assertEquals(EXPECTED_ACCESS_TOKEN_EXPIRATION_TIME_SECONDS, tokenResponse.getExpires_in());
+		
+		verify(oidcTokenHelper).createOIDCIdToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(),
+				isNull(), eq(authenticationTime), anyString(), any());
+
+		verify(oidcTokenHelper).createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), anyLong(),
+				eq(authenticationTime), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), anyString(), any(), any());
 	}
 
 
@@ -1061,7 +1058,8 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		String expectedAccessToken = "ACCESS-TOKEN";
 		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), anyLong(),
-				eq(authenticationTime), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
+				eq(authenticationTime), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), 
+				anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
 
 		String scope = "offline_access"; // Do not request openid!
 		// elsewhere we test that we correctly build up the requested user-info
@@ -1076,6 +1074,10 @@ public class OpenIDConnectManagerImplUnitTest {
 		assertEquals(expectedAccessToken, tokenResponse.getAccess_token());
 		assertEquals(Collections.singletonList(OAuthScope.offline_access), scopesCaptor.getValue());
 		assertEquals(expectedRefreshTokenAndId.getRefreshToken(), tokenResponse.getRefresh_token());
+		
+		verify(oidcTokenHelper).createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), anyLong(),
+				eq(authenticationTime), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), 
+				anyString(), any(), any());
 	}
 
 	@Test
@@ -1130,13 +1132,19 @@ public class OpenIDConnectManagerImplUnitTest {
 		}
 
 		assertEquals(expectedRefreshTokenAndId.getRefreshToken(), tokenResponse.getRefresh_token());
+		
+		verify(oidcTokenHelper).createOIDCIdToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(),
+				isNull(), eq(authenticationTime), anyString(), any());
+		
+		verify(oidcTokenHelper).createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), anyLong(),
+				eq(authenticationTime), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), anyString(), any(), any());
 	}
 	
 	private static final String ACCESS_TOKEN = "access token";
 
 	private void mockAccessToken(String oAuthClientId) {
 		when(oidcTokenHelper.parseJWT(ACCESS_TOKEN)).thenReturn(mockJWT);
-		Claims claims = Jwts.claims();
+		Claims claims = ClaimsWithAuthTime.newClaims();
 		claims.setAudience(oAuthClientId);
 		String ppid;
 		if (AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID.equals(oAuthClientId)) {
@@ -1237,7 +1245,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		String refreshTokenId = "12345";
 		String token = "access token";
 		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
-		Claims claims = Jwts.claims();
+		Claims claims = ClaimsWithAuthTime.newClaims();
 		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ACCESS_TOKEN.name());
 		claims.put(OIDCClaimName.refresh_token_id.name(), refreshTokenId);
 		ClaimsJsonUtil.addAccessClaims(Collections.emptyList(), Collections.emptyMap(), claims);
@@ -1259,7 +1267,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	public void testValidateAccessToken_noRefreshTokenId() {
 		String token = "access token";
 		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
-		Claims claims = Jwts.claims();
+		Claims claims = ClaimsWithAuthTime.newClaims();
 		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ACCESS_TOKEN.name());
 		ClaimsJsonUtil.addAccessClaims(Collections.emptyList(), Collections.emptyMap(), claims);
 		when(mockJWT.getBody()).thenReturn(claims);
@@ -1280,7 +1288,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		String refreshTokenId = "12345";
 		String token = "access token";
 		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
-		Claims claims = Jwts.claims();
+		Claims claims = ClaimsWithAuthTime.newClaims();
 		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ACCESS_TOKEN.name());
 		claims.put(OIDCClaimName.refresh_token_id.name(), refreshTokenId);
 		ClaimsJsonUtil.addAccessClaims(Collections.emptyList(), Collections.emptyMap(), claims);
@@ -1322,7 +1330,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		String token = "personal access token";
 		String tokenId = "9999";
 		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
-		Claims claims = Jwts.claims();
+		Claims claims = ClaimsWithAuthTime.newClaims();
 		claims.setId(tokenId);
 		claims.put(OIDCClaimName.token_type.name(), TokenType.PERSONAL_ACCESS_TOKEN.name());
 		ClaimsJsonUtil.addAccessClaims(Collections.emptyList(), Collections.emptyMap(), claims);
@@ -1345,7 +1353,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		String token = "personal access token";
 		String tokenId = "9999";
 		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
-		Claims claims = Jwts.claims();
+		Claims claims = ClaimsWithAuthTime.newClaims();
 		claims.setId(tokenId);
 		claims.put(OIDCClaimName.token_type.name(), TokenType.PERSONAL_ACCESS_TOKEN.name());
 		ClaimsJsonUtil.addAccessClaims(Collections.emptyList(), Collections.emptyMap(), claims);
