@@ -63,6 +63,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	// user authorization times out after one year
 	private static final long AUTHORIZATION_TIME_OUT_MILLIS = 1000L*3600L*24L*365L;
 	
+	private static final long ACCESS_TOKEN_EXPIRATION_TIME_SECONDS = 3600*24L; // a day
+	
 	// token_type=Bearer, as per https://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
 	private static final String TOKEN_TYPE_BEARER = "Bearer";
 
@@ -126,13 +128,21 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	}
 
 	public static void validateAuthenticationRequest(OIDCAuthorizationRequest authorizationRequest, OAuthClient client) {
-		ValidateArgument.validUrl(authorizationRequest.getRedirectUri(), "Redirect URI");
+		try {
+			ValidateArgument.validUrl(authorizationRequest.getRedirectUri(), "Redirect URI");
+		} catch (IllegalArgumentException e) {
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_request, e);
+		}
 		if (!client.getRedirect_uris().contains(authorizationRequest.getRedirectUri())) {
 			throw new OAuthBadRequestException(OAuthErrorCode.invalid_grant, "Redirect URI "+authorizationRequest.getRedirectUri()+
 					" is not registered for "+client.getClient_name());
 		}		
-		if (OAuthResponseType.code!=authorizationRequest.getResponseType()) 
-			throw new OAuthBadRequestException(OAuthErrorCode.unsupported_grant_type, "Unsupported response type "+authorizationRequest.getResponseType());
+		if (authorizationRequest.getResponseType()==null) {
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_request, "Missing response_type.");
+		}
+		if (OAuthResponseType.code!=authorizationRequest.getResponseType()) {
+			throw new OAuthBadRequestException(OAuthErrorCode.unsupported_response_type, "Unsupported response type "+authorizationRequest.getResponseType());
+		}
 	}
 
 	@Override
@@ -367,10 +377,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		OIDCClaimsRequest normalizedClaims = normalizeClaims(authorizationRequest.getClaims());
 
-		Date authTime = null;
-		if (authorizationRequest.getAuthenticatedAt()!=null) {
-			authTime = authorizationRequest.getAuthenticatedAt();
-		}
+		Date authTime = authorizationRequest.getAuthenticatedAt();
 
 		// The following implements 'pairwise' subject_type, https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
 		// Pairwise Pseudonymous Identifier (PPID)
@@ -407,10 +414,11 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		String accessTokenId = UUID.randomUUID().toString();
 		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid,
-				oauthClientId, now, authTime, refreshTokenId, accessTokenId, scopes,
+				oauthClientId, now, ACCESS_TOKEN_EXPIRATION_TIME_SECONDS, authTime, refreshTokenId, accessTokenId, scopes,
 				EnumKeyedJsonMapUtil.convertKeysToEnums(normalizedClaims.getUserinfo(), OIDCClaimName.class));
 		result.setAccess_token(accessToken);
 		result.setToken_type(TOKEN_TYPE_BEARER);
+		result.setExpires_in(ACCESS_TOKEN_EXPIRATION_TIME_SECONDS);
 		return result;
 	}
 
@@ -445,7 +453,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		// In the JWT, we will need to supply both the current time and the date/time of the initial authorization
 		long now = clock.currentTimeMillis();
-		Date authTime = refreshTokenMetadata.getAuthorizedOn();
+		Date authTime = authDao.getSessionValidatedOn(Long.parseLong(refreshTokenMetadata.getPrincipalId()));
 
 		// The following implements 'pairwise' subject_type, https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
 		// Pairwise Pseudonymous Identifier (PPID)
@@ -471,9 +479,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		String accessTokenId = UUID.randomUUID().toString();
 		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid,
-				oauthClientId, now, authTime, refreshTokenMetadata.getTokenId(), accessTokenId, scopes, userInfoClaims);
+				oauthClientId, now,ACCESS_TOKEN_EXPIRATION_TIME_SECONDS,  authTime, refreshTokenMetadata.getTokenId(), accessTokenId, scopes, userInfoClaims);
 		result.setAccess_token(accessToken);
 		result.setToken_type(TOKEN_TYPE_BEARER);
+		result.setExpires_in(ACCESS_TOKEN_EXPIRATION_TIME_SECONDS);
 		return result;
 	}
 
