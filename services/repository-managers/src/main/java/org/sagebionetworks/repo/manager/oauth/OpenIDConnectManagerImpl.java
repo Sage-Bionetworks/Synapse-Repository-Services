@@ -128,13 +128,21 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	}
 
 	public static void validateAuthenticationRequest(OIDCAuthorizationRequest authorizationRequest, OAuthClient client) {
-		ValidateArgument.validUrl(authorizationRequest.getRedirectUri(), "Redirect URI");
+		try {
+			ValidateArgument.validUrl(authorizationRequest.getRedirectUri(), "Redirect URI");
+		} catch (IllegalArgumentException e) {
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_request, e.getMessage());
+		}
 		if (!client.getRedirect_uris().contains(authorizationRequest.getRedirectUri())) {
 			throw new OAuthBadRequestException(OAuthErrorCode.invalid_grant, "Redirect URI "+authorizationRequest.getRedirectUri()+
 					" is not registered for "+client.getClient_name());
 		}		
-		if (OAuthResponseType.code!=authorizationRequest.getResponseType()) 
-			throw new OAuthBadRequestException(OAuthErrorCode.unsupported_grant_type, "Unsupported response type "+authorizationRequest.getResponseType());
+		if (authorizationRequest.getResponseType()==null) {
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_request, "Missing response_type.");
+		}
+		if (OAuthResponseType.code!=authorizationRequest.getResponseType()) {
+			throw new OAuthBadRequestException(OAuthErrorCode.unsupported_response_type, "Unsupported response type "+authorizationRequest.getResponseType());
+		}
 	}
 
 	@Override

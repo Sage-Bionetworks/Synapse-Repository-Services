@@ -78,6 +78,7 @@ import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.OAuthBadRequestException;
+import org.sagebionetworks.repo.web.OAuthErrorCode;
 import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -289,8 +290,8 @@ public class OpenIDConnectManagerImplUnitTest {
 			// method under test
 			OpenIDConnectManagerImpl.validateAuthenticationRequest(authorizationRequest, client);
 			fail("Exception expected.");
-		} catch (IllegalArgumentException e) {
-			// as expected
+		} catch (OAuthBadRequestException e) {
+			assertEquals(OAuthErrorCode.invalid_request, e.getError());
 		}
 	}
 
@@ -309,7 +310,7 @@ public class OpenIDConnectManagerImplUnitTest {
 			OpenIDConnectManagerImpl.validateAuthenticationRequest(authorizationRequest, client);
 			fail("Exception expected.");
 		} catch (OAuthBadRequestException e) {
-			// as expected
+			assertEquals(OAuthErrorCode.invalid_request, e.getError());
 		}
 	}	
 
@@ -444,9 +445,10 @@ public class OpenIDConnectManagerImplUnitTest {
 		try {
 			// method under test
 			openIDConnectManagerImpl.getAuthenticationRequestDescription(authorizationRequest);
-			fail("IllegalArgumentException expected");
-		} catch (IllegalArgumentException e) {
+			fail("OAuthBadRequestException expected");
+		} catch (OAuthBadRequestException e) {
 			// as expected
+			assertEquals(OAuthErrorCode.invalid_request, e.getError());
 		}
 
 	}
