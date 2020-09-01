@@ -710,7 +710,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		expectedMetadata.setTokenId("REFRESH-TOKEN-ID");
 		expectedRefreshTokenAndId.setRefreshToken("REFRESH-TOKEN");
 		expectedRefreshTokenAndId.setMetadata(expectedMetadata);
-		when(oauthRefreshTokenManager.createRefreshToken(eq(USER_ID), eq(OAUTH_CLIENT_ID), any(), any(), any())).thenReturn(expectedRefreshTokenAndId);
+		when(oauthRefreshTokenManager.createRefreshToken(eq(USER_ID), eq(OAUTH_CLIENT_ID), any(), any())).thenReturn(expectedRefreshTokenAndId);
 
 		String expectedAccessToken = "ACCESS-TOKEN";
 		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), anyLong(),
@@ -795,7 +795,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		assertEquals("Bearer", tokenResponse.getToken_type());
 		assertEquals(EXPECTED_ACCESS_TOKEN_EXPIRATION_TIME_SECONDS, tokenResponse.getExpires_in());
 
-		verify(oauthRefreshTokenManager, never()).createRefreshToken(any(), any(), any(), any(), any());
+		verify(oauthRefreshTokenManager, never()).createRefreshToken(any(), any(), any(), any());
 		assertNull(tokenResponse.getRefresh_token());
 	}
 	
@@ -963,6 +963,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID_LONG)).thenReturn(EMAIL);
 		when(mockUserProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
+		Date authenticationTime = new Date(now.getTime()-1000L*3600*24*7); // we logged in a week ago
+		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(authenticationTime);
 
 		// This will be the new token and metadata
 		OAuthRefreshTokenAndMetadata expectedRefreshTokenAndId = createRotatedToken();
@@ -975,11 +977,11 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		String expectedIdToken = "ID-TOKEN";
 		when(oidcTokenHelper.createOIDCIdToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(),
-				isNull(), eq(initalAuthzOn), anyString(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
+				isNull(), eq(authenticationTime), anyString(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
 
 		String expectedAccessToken = "ACCESS-TOKEN";
 		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), anyLong(),
-				eq(initalAuthzOn), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
+				eq(authenticationTime), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
 
 		String scope = "openid offline_access";
 		// elsewhere we test that we correctly build up the requested user-info
@@ -1043,6 +1045,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
+		Date authenticationTime = new Date(now.getTime()-1000L*3600*24*7); // we logged in a week ago
+		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(authenticationTime);
 
 		// This will be the new token and metadata
 		OAuthRefreshTokenAndMetadata expectedRefreshTokenAndId = createRotatedToken();
@@ -1055,7 +1059,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		String expectedAccessToken = "ACCESS-TOKEN";
 		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), anyLong(),
-				eq(initalAuthzOn), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
+				eq(authenticationTime), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
 
 		String scope = "offline_access"; // Do not request openid!
 		// elsewhere we test that we correctly build up the requested user-info
@@ -1079,6 +1083,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID_LONG)).thenReturn(EMAIL);
 		when(mockUserProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
+		Date authenticationTime = new Date(now.getTime()-1000L*3600*24*7); // we logged in a week ago
+		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(authenticationTime);
 
 		// This will be the new token and metadata
 		OAuthRefreshTokenAndMetadata expectedRefreshTokenAndId = createRotatedToken();
@@ -1092,11 +1098,11 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		String expectedIdToken = "ID-TOKEN";
 		when(oidcTokenHelper.createOIDCIdToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(),
-				isNull(), eq(initalAuthzOn), anyString(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
+				isNull(), eq(authenticationTime), anyString(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
 
 		String expectedAccessToken = "ACCESS-TOKEN";
 		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), anyLong(),
-				eq(initalAuthzOn), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
+				eq(authenticationTime), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
 
 		String scope = null; // Null scope = all previously granted scopes
 		// elsewhere we test that we correctly build up the requested user-info

@@ -163,7 +163,7 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 		String tokenId = UUID.randomUUID().toString();
 		long expirationInSeconds = 60L; // it's for internal use only, just has to last the duration of the current request
 		List<OAuthScope> allScopes = Arrays.asList(OAuthScope.values());  // everything!
-		return createOIDCaccessToken(issuer, subject, oauthClientId, clock.currentTimeMillis(),expirationInSeconds,  null,
+		return createOIDCaccessToken(issuer, subject, oauthClientId, clock.currentTimeMillis(), expirationInSeconds, null,
 				null, tokenId, allScopes, Collections.EMPTY_MAP);
 	}
 

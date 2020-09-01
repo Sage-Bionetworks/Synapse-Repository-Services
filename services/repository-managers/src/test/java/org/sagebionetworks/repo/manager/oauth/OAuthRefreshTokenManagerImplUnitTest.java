@@ -90,9 +90,9 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 
 		when(mockOAuthRefreshTokenDao.createRefreshToken(anyString(), captor.capture())).thenReturn(createdToken);
 
-		Date authTime = new Date(clock.currentTimeMillis()-60000L);
+
 		// Call under test
-		OAuthRefreshTokenAndMetadata actual = oauthRefreshTokenManager.createRefreshToken(USER_ID, CLIENT_ID, scopes, claimsRequest, authTime);
+		OAuthRefreshTokenAndMetadata actual = oauthRefreshTokenManager.createRefreshToken(USER_ID, CLIENT_ID, scopes, claimsRequest);
 		assertNotNull(actual);
 		assertEquals(TOKEN_ID, actual.getMetadata().getTokenId());
 		assertTrue(StringUtils.isNotBlank(actual.getRefreshToken()));
@@ -104,7 +104,7 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 		assertTrue(StringUtils.isNotBlank(captor.getValue().getName()));
 		assertTrue(StringUtils.isNotBlank(captor.getValue().getEtag()));
 		assertEquals(clock.now(), captor.getValue().getLastUsed());
-		assertEquals(authTime, captor.getValue().getAuthorizedOn());
+		assertEquals(clock.now(), captor.getValue().getAuthorizedOn());
 		assertEquals(clock.now(), captor.getValue().getModifiedOn());
 
 		verify(mockOAuthRefreshTokenDao).deleteLeastRecentlyUsedTokensOverLimit(USER_ID, CLIENT_ID, EXPECTED_MAX_REFRESH_TOKENS - 1);
@@ -120,7 +120,7 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 		claimsRequest.setUserinfo(Collections.emptyMap());
 		claimsRequest.setId_token(Collections.emptyMap());
 
-		assertThrows(UnauthorizedException.class, () -> oauthRefreshTokenManager.createRefreshToken(anonymousUser, CLIENT_ID, scopes, claimsRequest, clock.now()));
+		assertThrows(UnauthorizedException.class, () -> oauthRefreshTokenManager.createRefreshToken(anonymousUser, CLIENT_ID, scopes, claimsRequest));
 	}
 
 	@Test

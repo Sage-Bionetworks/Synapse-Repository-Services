@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -30,10 +29,9 @@ public interface OAuthRefreshTokenManager {
 	 * @param claims the OIDC claims that have been granted to the client. the {@link OIDCClaimsRequest} object also
 	 *                 specifies when that information is contained in the OIDC id_token, or returned when the client
 	 *                 makes a request at the userinfo endpoint
-	 * @param authTime the time when the user logged in
 	 * @return a generated refresh token, and the refresh token's unique ID.
 	 */
-	OAuthRefreshTokenAndMetadata createRefreshToken(String userId, String clientId, List<OAuthScope> scopes, OIDCClaimsRequest claims, Date authTime);
+	OAuthRefreshTokenAndMetadata createRefreshToken(String userId, String clientId, List<OAuthScope> scopes, OIDCClaimsRequest claims);
 
 	/**
 	 * Rotates a refresh token, returning the new token and its metadata.

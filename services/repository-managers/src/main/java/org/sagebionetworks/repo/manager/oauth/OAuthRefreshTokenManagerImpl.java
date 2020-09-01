@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -61,7 +60,7 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 
 	@WriteTransaction
 	@Override
-	public OAuthRefreshTokenAndMetadata createRefreshToken(String userId, String clientId, List<OAuthScope> scopes, OIDCClaimsRequest claims, Date authTime) {
+	public OAuthRefreshTokenAndMetadata createRefreshToken(String userId, String clientId, List<OAuthScope> scopes, OIDCClaimsRequest claims) {
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(clientId, "clientId");
 		// The OpenIDConnectManager will handle if scope/claims are semantically valid
@@ -89,7 +88,7 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 		tokenMetadata.setClaims(claims);
 		tokenMetadata.setName(UUID.randomUUID().toString());
 		tokenMetadata.setLastUsed(clock.now());
-		tokenMetadata.setAuthorizedOn(authTime);
+		tokenMetadata.setAuthorizedOn(clock.now());
 		tokenMetadata.setModifiedOn(clock.now());
 		tokenMetadata.setEtag(UUID.randomUUID().toString());
 
