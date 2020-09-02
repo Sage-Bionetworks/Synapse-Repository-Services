@@ -47,9 +47,9 @@ public class SubmissionQuotaUtilTest {
 				
 		// before the start of the round
 		Date now = new Date(0L);
-		assertFalse(SubmissionQuotaUtil.isSubmissionAllowed(eval, now));
+		assertFalse(SubmissionQuotaUtil.isSubmissionAllowed(eval.getQuota(), now));
 		try {
-			SubmissionQuotaUtil.getRoundInterval(eval, now);
+			SubmissionQuotaUtil.getRoundInterval(eval.getQuota(), now);
 			fail("exception expected");
 		} catch (IllegalArgumentException e) {
 			// as expected
@@ -57,32 +57,32 @@ public class SubmissionQuotaUtilTest {
 		
 		// at the start of the round
 		now = firstRoundStart;
-		assertTrue(SubmissionQuotaUtil.isSubmissionAllowed(eval, now));
+		assertTrue(SubmissionQuotaUtil.isSubmissionAllowed(eval.getQuota(), now));
 		checkPairEquals(new Pair<Date,Date>(firstRoundStart, new Date(firstRoundStart.getTime()+1000L)), 
-				SubmissionQuotaUtil.getRoundInterval(eval, now));
+				SubmissionQuotaUtil.getRoundInterval(eval.getQuota(), now));
 		
 		// beginning of second round
 		now = new Date(firstRoundStart.getTime()+1000L);
-		assertTrue(SubmissionQuotaUtil.isSubmissionAllowed(eval, now));
+		assertTrue(SubmissionQuotaUtil.isSubmissionAllowed(eval.getQuota(), now));
 		checkPairEquals(new Pair<Date,Date>(
 				new Date(firstRoundStart.getTime()+1000L), 
 					new Date(firstRoundStart.getTime()+2000L)), 
-				SubmissionQuotaUtil.getRoundInterval(eval, now));
+				SubmissionQuotaUtil.getRoundInterval(eval.getQuota(), now));
 		
 		// middle of second round
 		now = new Date(firstRoundStart.getTime()+1500L);
-		assertTrue(SubmissionQuotaUtil.isSubmissionAllowed(eval, now));
+		assertTrue(SubmissionQuotaUtil.isSubmissionAllowed(eval.getQuota(), now));
 		checkPairEquals(new Pair<Date,Date>(
 				new Date(firstRoundStart.getTime()+1000L), 
 					new Date(firstRoundStart.getTime()+2000L)), 
-				SubmissionQuotaUtil.getRoundInterval(eval, now));
+				SubmissionQuotaUtil.getRoundInterval(eval.getQuota(), now));
 		
 		
 		// end of the last round is considered beyond the end of the rounds
 		now = new Date(firstRoundStart.getTime()+2000L);
-		assertFalse(SubmissionQuotaUtil.isSubmissionAllowed(eval, now));
+		assertFalse(SubmissionQuotaUtil.isSubmissionAllowed(eval.getQuota(), now));
 		try {
-			SubmissionQuotaUtil.getRoundInterval(eval, now);
+			SubmissionQuotaUtil.getRoundInterval(eval.getQuota(), now);
 			fail("exception expected");
 		} catch (IllegalArgumentException e) {
 			// as expected
@@ -91,11 +91,11 @@ public class SubmissionQuotaUtilTest {
 		// if the challenge never ends, then it just keeps going
 		quota.setNumberOfRounds(null);
 		now = new Date(firstRoundStart.getTime()+2000L);
-		assertTrue(SubmissionQuotaUtil.isSubmissionAllowed(eval, now));
+		assertTrue(SubmissionQuotaUtil.isSubmissionAllowed(eval.getQuota(), now));
 		checkPairEquals(new Pair<Date,Date>(
 				new Date(firstRoundStart.getTime()+2000L), 
 					new Date(firstRoundStart.getTime()+3000L)), 
-				SubmissionQuotaUtil.getRoundInterval(eval, now));
+				SubmissionQuotaUtil.getRoundInterval(eval.getQuota(), now));
 	}
 	
 	@Test
@@ -105,9 +105,9 @@ public class SubmissionQuotaUtilTest {
 		eval.setQuota(quota);
 		quota.setSubmissionLimit(10L);
 
-		assertTrue(SubmissionQuotaUtil.isSubmissionAllowed(eval, new Date()));
+		assertTrue(SubmissionQuotaUtil.isSubmissionAllowed(eval.getQuota(), new Date()));
 		checkPairEquals(new Pair<Date,Date>(null, null), 
-				SubmissionQuotaUtil.getRoundInterval(eval, new Date()));
+				SubmissionQuotaUtil.getRoundInterval(eval.getQuota(), new Date()));
 	}
 
 }

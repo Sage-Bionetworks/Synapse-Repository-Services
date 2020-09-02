@@ -1,5 +1,7 @@
 package org.sagebionetworks.evaluation.manager;
 
+import static java.time.temporal.TemporalAdjusters.firstDayOfMonth;
+import static java.time.temporal.TemporalAdjusters.previousOrSame;
 import static org.sagebionetworks.evaluation.model.SubmissionStatusEnum.ACCEPTED;
 import static org.sagebionetworks.evaluation.model.SubmissionStatusEnum.CLOSED;
 import static org.sagebionetworks.evaluation.model.SubmissionStatusEnum.EVALUATION_IN_PROGRESS;
@@ -8,6 +10,11 @@ import static org.sagebionetworks.evaluation.model.SubmissionStatusEnum.RECEIVED
 import static org.sagebionetworks.evaluation.model.SubmissionStatusEnum.SCORED;
 import static org.sagebionetworks.evaluation.model.SubmissionStatusEnum.VALIDATED;
 
+import java.time.DayOfWeek;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -20,6 +27,9 @@ import java.util.Set;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
+import org.sagebionetworks.evaluation.model.EvaluationRoundLimit;
+import org.sagebionetworks.evaluation.model.EvaluationRoundLimitType;
 import org.sagebionetworks.evaluation.model.MemberSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.SubmissionEligibility;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
@@ -62,14 +72,13 @@ public class SubmissionEligibilityManagerImpl implements
 	// the submitter's quota
 	// statuses not in the enum: INVALID, REJECTED
 	public static final Set<SubmissionStatusEnum> STATUSES_COUNTED_TOWARD_QUOTA = 
-			new HashSet<SubmissionStatusEnum>(Arrays.asList(new SubmissionStatusEnum[]{
-					OPEN,
+			new HashSet<SubmissionStatusEnum>(Arrays.asList(OPEN,
 					CLOSED,
 					SCORED,
 					VALIDATED,
 					EVALUATION_IN_PROGRESS,
 					RECEIVED,
-					ACCEPTED}));
+					ACCEPTED));
 
 	
 	/**
@@ -101,8 +110,7 @@ public class SubmissionEligibilityManagerImpl implements
 		tse.setTeamId(teamId);
 		SubmissionEligibility teamEligibility = new SubmissionEligibility();
 		tse.setTeamEligibility(teamEligibility);
-		boolean isTeamEligible = true;
-		
+
 		// first check that the team is registered
 		Challenge challenge;
 		try {
@@ -114,17 +122,28 @@ public class SubmissionEligibilityManagerImpl implements
 			challenge=null;
 			teamEligibility.setIsRegistered(null);
 		}
-		isTeamEligible &= (teamEligibility.getIsRegistered()==null || teamEligibility.getIsRegistered());
+		boolean isTeamEligible = (teamEligibility.getIsRegistered()==null || teamEligibility.getIsRegistered());
 		
 		// now check whether the Team's quota is filled
 		Date now = new Date();
-		Pair<Date,Date> roundInterval = SubmissionQuotaUtil.getRoundInterval(evaluation, now);
-		int submissionCount = (int)submissionDAO.countSubmissionsByTeam(Long.parseLong(evaluation.getId()), 
-				Long.parseLong(teamId), roundInterval.getFirst(), 
-				roundInterval.getSecond(), STATUSES_COUNTED_TOWARD_QUOTA);
-		Integer submissionLimit = SubmissionQuotaUtil.getSubmissionQuota(evaluation);
-		teamEligibility.setIsQuotaFilled(submissionLimit!=null && submissionCount>=submissionLimit);
-		isTeamEligible &= !teamEligibility.getIsQuotaFilled();
+		//convert SubmissionQuota into EvaluationRound or lazily retrieve a defined EvaluationRound
+		EvaluationRound currentRound = SubmissionQuotaUtil.convertToCurrentEvaluationRound(evaluation.getQuota(), now)
+				.orElseGet(() -> evaluationDAO.getEvaluationRoundForTimestamp(evaluation.getId(), now.toInstant()));
+		if(currentRound == null) {
+			throw new IllegalArgumentException("The given date is outside the time range allowed for submissions.");
+		}
+
+		teamEligibility.setIsQuotaFilled(false);
+		if(currentRound.getLimits() != null) {
+			for (EvaluationRoundLimit limit : currentRound.getLimits()) {
+				Date submissionCountStartDate = submissionCountStartDate(limit.getLimitType(), currentRound.getRoundStart(), now);
+				int submissionCount = (int) submissionDAO.countSubmissionsByTeam(Long.parseLong(evaluation.getId()),
+						Long.parseLong(teamId), submissionCountStartDate,
+						currentRound.getRoundEnd(), STATUSES_COUNTED_TOWARD_QUOTA);
+				teamEligibility.setIsQuotaFilled(submissionCount >= limit.getMaximumSubmissions());
+				isTeamEligible = isTeamEligible && !teamEligibility.getIsQuotaFilled();
+			}
+		}
 		
 		// now put it all together to say whether the Team is eligible to submit to the Evaluation
 		teamEligibility.setIsEligible(isTeamEligible);
@@ -159,20 +178,25 @@ public class SubmissionEligibilityManagerImpl implements
 			se.setHasConflictingSubmission(false); // will update for those having conflicts, below
 			membersEligibilityMap.put(memberId, se);
 		}
-		
-		// now check, for each, whether they've exceeded their submission limit
-		Map<Long,Long> subsByMembers = submissionDAO.countSubmissionsByTeamMembers(Long.parseLong(evaluation.getId()), 
-				Long.parseLong(teamId), roundInterval.getFirst(), 
-				roundInterval.getSecond(), STATUSES_COUNTED_TOWARD_QUOTA);
-		for (Long principalId : subsByMembers.keySet()) {
-			MemberSubmissionEligibility se = membersEligibilityMap.get(principalId);
-			se.setIsQuotaFilled(submissionLimit!=null && subsByMembers.get(principalId)>=submissionLimit);
+
+		if(currentRound.getLimits() != null) {
+			for (EvaluationRoundLimit limit : currentRound.getLimits()) {
+				// now check, for each, whether they've exceeded their submission limit
+				Date submissionCountStart = submissionCountStartDate(limit.getLimitType(), currentRound.getRoundStart(), now);
+				Map<Long, Long> subsByMembers = submissionDAO.countSubmissionsByTeamMembers(Long.parseLong(evaluation.getId()),
+						Long.parseLong(teamId), submissionCountStart,
+						currentRound.getRoundEnd(), STATUSES_COUNTED_TOWARD_QUOTA);
+				for (Long principalId : subsByMembers.keySet()) {
+					MemberSubmissionEligibility se = membersEligibilityMap.get(principalId);
+					se.setIsQuotaFilled(se.getIsQuotaFilled() || subsByMembers.get(principalId) >= limit.getMaximumSubmissions());
+				}
+			}
 		}
- 		
+
 		// now see if members are ineligible because they've submitted elsewhere
-		List<Long> membersSubmittingElsewhere = submissionDAO.getTeamMembersSubmittingElsewhere(Long.parseLong(evaluation.getId()), 
-				Long.parseLong(teamId), roundInterval.getFirst(), 
-				roundInterval.getSecond(), STATUSES_COUNTED_TOWARD_QUOTA);
+		List<Long> membersSubmittingElsewhere = submissionDAO.getTeamMembersSubmittingElsewhere(Long.parseLong(evaluation.getId()),
+				Long.parseLong(teamId), currentRound.getRoundStart(),
+				currentRound.getRoundEnd(), STATUSES_COUNTED_TOWARD_QUOTA);
 		for (Long principalId : membersSubmittingElsewhere) {
 			MemberSubmissionEligibility se = membersEligibilityMap.get(principalId);
 			se.setHasConflictingSubmission(true);
@@ -200,7 +224,10 @@ public class SubmissionEligibilityManagerImpl implements
 	public AuthorizationStatus isTeamEligible(String evalId, String teamId, 
 			List<String> contributors, String submissionEligibilityHashString, Date now) throws DatastoreException, NotFoundException {
 		Evaluation evaluation = evaluationDAO.get(evalId);
-		if (!SubmissionQuotaUtil.isSubmissionAllowed(evaluation, now)) {
+		//convert SubmissionQuota into EvaluationRound or lazily retrieve a defined EvaluationRound
+		EvaluationRound currentRound = SubmissionQuotaUtil.convertToCurrentEvaluationRound(evaluation.getQuota(), now)
+				.orElseGet(() -> evaluationDAO.getEvaluationRoundForTimestamp(evalId, now.toInstant()));
+		if (currentRound == null) {
 			return AuthorizationStatus.accessDenied("It is currently outside of the time range allowed for submissions.");
 		}
 		
@@ -262,32 +289,70 @@ public class SubmissionEligibilityManagerImpl implements
 				// skip this check
 			}
 		}
-		if (!SubmissionQuotaUtil.isSubmissionAllowed(evaluation, now)) {
+
+		//convert SubmissionQuota into EvaluationRound or lazily retrieve a defined EvaluationRound
+		EvaluationRound currentRound = SubmissionQuotaUtil.convertToCurrentEvaluationRound(evaluation.getQuota(), now)
+				.orElseGet(() -> evaluationDAO.getEvaluationRoundForTimestamp(evalId, now.toInstant()));
+		if (currentRound == null) {
 			return AuthorizationStatus.accessDenied("It is currently outside of the time range allowed for submissions.");
 		}
-		Pair<Date,Date> roundInterval = SubmissionQuotaUtil.getRoundInterval(evaluation, now);
-		int submissionCount = (int)submissionDAO.countSubmissionsByContributor(Long.parseLong(evalId), 
-				Long.parseLong(principalId), roundInterval.getFirst(), 
-				roundInterval.getSecond(), STATUSES_COUNTED_TOWARD_QUOTA);
-		Integer submissionLimit = SubmissionQuotaUtil.getSubmissionQuota(evaluation);
+
 		String messageSuffix = ".";
-		if (!(roundInterval.getFirst()==null && roundInterval.getSecond()==null)) {
+		if (!(currentRound.getRoundStart()==null && currentRound.getRoundEnd()==null)) {
 			messageSuffix += " (for the current submission round).";
-			
 		}
-		if (submissionLimit!=null && submissionCount>=submissionLimit) {
-			return AuthorizationStatus.accessDenied("Submitter has reached the limit of "+submissionLimit+messageSuffix);
-		}
-		
-		if (submissionDAO.hasContributedToTeamSubmission(Long.parseLong(evalId), 
-				Long.parseLong(principalId), roundInterval.getFirst(), 
-				roundInterval.getSecond(), STATUSES_COUNTED_TOWARD_QUOTA)) {
+
+		//verify user has not already made submissions as a member of a team
+		if (submissionDAO.hasContributedToTeamSubmission(Long.parseLong(evalId),
+				Long.parseLong(principalId), currentRound.getRoundStart(),
+				currentRound.getRoundEnd(), STATUSES_COUNTED_TOWARD_QUOTA)) {
 			return AuthorizationStatus.accessDenied(
 					"Submitter may not submit as an individual when having submitted as part of a Team"+
-							messageSuffix	
-			);			
+							messageSuffix
+			);
 		}
+
+		//check each submission limit type
+		if (currentRound.getLimits() != null) {
+			long evalIdL = Long.parseLong(evalId);
+			long principalIdL = Long.parseLong(principalId);
+			for(EvaluationRoundLimit limit : currentRound.getLimits()){
+
+				Date submissionCountStartDate = submissionCountStartDate(limit.getLimitType(), currentRound.getRoundStart(), now);
+				long submissionCount = submissionDAO.countSubmissionsByContributor(evalIdL,principalIdL,
+						submissionCountStartDate,
+						currentRound.getRoundEnd(),
+						STATUSES_COUNTED_TOWARD_QUOTA);
+				if(submissionCount > limit.getMaximumSubmissions()) {
+					return AuthorizationStatus.accessDenied("Submitter has reached the "+
+							limit.getLimitType().name().toLowerCase() +" limit of " +
+							limit.getMaximumSubmissions() + messageSuffix);
+				}
+			}
+		}
+
 		return AuthorizationStatus.authorized();
+	}
+
+	Date submissionCountStartDate(EvaluationRoundLimitType type, Date roundStart, Date now){
+		ZoneOffset utc = ZoneOffset.UTC;
+		switch (type){
+			case TOTAL:
+				return roundStart;
+			case DAILY:
+				return Date.from(now.toInstant().atOffset(utc).toLocalDate()
+						.atStartOfDay().toInstant(utc));
+			case WEEKLY:
+				return Date.from(now.toInstant().atOffset(utc).toLocalDate()
+						.with(previousOrSame(DayOfWeek.MONDAY))
+						.atStartOfDay().toInstant(utc));
+			case MONTHLY:
+				return Date.from(now.toInstant().atOffset(utc).toLocalDate()
+						.with(firstDayOfMonth())
+						.atStartOfDay().toInstant(utc));
+			default:
+				throw new IllegalStateException("Unhandled limit type: " + type);
+		}
 	}
 
 

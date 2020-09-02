@@ -1,8 +1,9 @@
 package org.sagebionetworks.evaluation.manager;
 
-import java.time.Instant;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
@@ -10,6 +11,8 @@ import org.sagebionetworks.evaluation.dao.EvaluationFilter;
 import org.sagebionetworks.evaluation.dao.EvaluationSubmissionsDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationRound;
+import org.sagebionetworks.evaluation.model.EvaluationRoundLimit;
+import org.sagebionetworks.evaluation.model.EvaluationRoundLimitType;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
@@ -25,7 +28,6 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dataaccess.AccessType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
@@ -216,6 +218,10 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		Evaluation evaluation = validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.CREATE);
 		validateNoExistingQuotaDefined(evaluation);
 		validateNoDateRangeOverlap(evaluationRound);
+		validateEvaluationRoundLimits(evaluationRound.getLimits());
+
+		evaluationRound.setId(idGenerator.generateNewId(IdType.EVALUATION_ROUND_ID).toString());
+
 
 		return evaluationDAO.createEvaluationRound(evaluationRound);
 	}
@@ -225,7 +231,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		Evaluation evaluation = validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.UPDATE);
 		validateNoExistingQuotaDefined(evaluation);
 		validateNoDateRangeOverlap(evaluationRound);
-
+		validateEvaluationRoundLimits(evaluationRound.getLimits());
 		evaluationDAO.updateEvaluationRound(evaluationRound);
 		return evaluationDAO.getEvaluationRound(evaluationRound.getEvaluationId(), evaluationRound.getId());
 	}
@@ -299,5 +305,25 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		}
 	}
 
+	void validateEvaluationRoundLimits(List<EvaluationRoundLimit> evaluationRoundLimits){
+		//TODO: test
+		if(evaluationRoundLimits == null || evaluationRoundLimits.isEmpty()){
+			// nothing to validate
+			return;
+		}
+
+		Set<EvaluationRoundLimitType> limitTypes = EnumSet.noneOf(EvaluationRoundLimitType.class);
+		for(EvaluationRoundLimit limit : evaluationRoundLimits){
+			if(limit == null){
+				throw new IllegalArgumentException("EvaluationRoundLimit can not be null");
+			}
+
+			EvaluationRoundLimitType limitType = limit.getLimitType();
+			if(limitTypes.contains(limitType)){
+				throw new IllegalArgumentException("You may only have 1 limit of type:" + limitType);
+			}
+			limitTypes.add(limitType);
+		}
+	}
 
 }

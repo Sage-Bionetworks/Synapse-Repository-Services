@@ -1,16 +1,23 @@
 package org.sagebionetworks.evaluation.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.evaluation.manager.SubmissionEligibilityManagerImpl.STATUSES_COUNTED_TOWARD_QUOTA;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -18,12 +25,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
+import org.sagebionetworks.evaluation.model.EvaluationRoundLimitType;
 import org.sagebionetworks.evaluation.model.MemberSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.SubmissionEligibility;
 import org.sagebionetworks.evaluation.model.SubmissionQuota;
@@ -37,19 +51,30 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
+@ExtendWith(MockitoExtension.class)
 public class SubmissionEligibilityManagerTest {
-	
+
+	@InjectMocks
 	SubmissionEligibilityManagerImpl submissionEligibilityManager;
+	@Mock
 	private EvaluationDAO mockEvaluationDAO;
+	@Mock
 	private SubmissionDAO mockSubmissionDAO;
+	@Mock
 	private ChallengeDAO mockChallengeDAO;
+	@Mock
 	private ChallengeTeamDAO mockChallengeTeamDAO;
+	@Mock
 	private GroupMembersDAO mockGroupMembersDAO;
 	private Evaluation evaluation;
 	private Challenge challenge;
 	private List<UserGroup> challengeParticipants;
 	private List<UserGroup> submittingTeamMembers;
 	private UserInfo userInfo;
+
+	private Date roundStart;
+	private Date roundEnd;
+	private EvaluationRound evaluationRound;
 	private static final String EVAL_ID = "100";
 	private static final String CHALLENGE_ID = "200";
 	private static final String SUBMITTER_PRINCIPAL_ID = "300";
@@ -59,21 +84,8 @@ public class SubmissionEligibilityManagerTest {
 	private static final long MAX_SUBMISSIONS_PER_ROUND = 5L;
 
 	
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
-		submissionEligibilityManager = new SubmissionEligibilityManagerImpl();
-		mockEvaluationDAO = Mockito.mock(EvaluationDAO.class);
-		mockSubmissionDAO = Mockito.mock(SubmissionDAO.class);
-		mockChallengeDAO = Mockito.mock(ChallengeDAO.class);
-		mockChallengeTeamDAO = Mockito.mock(ChallengeTeamDAO.class);
-		mockGroupMembersDAO = Mockito.mock(GroupMembersDAO.class);
-		
-		ReflectionTestUtils.setField(submissionEligibilityManager, "evaluationDAO", mockEvaluationDAO);
-		ReflectionTestUtils.setField(submissionEligibilityManager, "submissionDAO", mockSubmissionDAO);
-		ReflectionTestUtils.setField(submissionEligibilityManager, "challengeDAO", mockChallengeDAO);
-		ReflectionTestUtils.setField(submissionEligibilityManager, "challengeTeamDAO", mockChallengeTeamDAO);
-		ReflectionTestUtils.setField(submissionEligibilityManager, "groupMembersDAO", mockGroupMembersDAO);
-		
 		evaluation = new Evaluation();
 		evaluation.setId(EVAL_ID);
 		evaluation.setContentSource(CHALLENGE_PROJECT_ID);
@@ -84,23 +96,29 @@ public class SubmissionEligibilityManagerTest {
 		quota.setRoundDurationMillis(10000L);
 		quota.setSubmissionLimit(MAX_SUBMISSIONS_PER_ROUND);
 		evaluation.setQuota(quota);
-		when(mockEvaluationDAO.get(EVAL_ID)).thenReturn(evaluation);
+		lenient().when(mockEvaluationDAO.get(EVAL_ID)).thenReturn(evaluation);
 		
 		challenge = new Challenge();
 		challenge.setId(CHALLENGE_ID);
 		challenge.setProjectId(CHALLENGE_PROJECT_ID);
 		challenge.setParticipantTeamId(CHALLENGE_PARTICIPANT_TEAM_ID);
-		when(mockChallengeDAO.getForProject(CHALLENGE_PROJECT_ID)).thenReturn(challenge);
+		lenient().when(mockChallengeDAO.getForProject(CHALLENGE_PROJECT_ID)).thenReturn(challenge);
 		
 		challengeParticipants = new ArrayList<UserGroup>();
-		when(mockGroupMembersDAO.getMembers(CHALLENGE_PARTICIPANT_TEAM_ID)).thenReturn(challengeParticipants);
+		lenient().when(mockGroupMembersDAO.getMembers(CHALLENGE_PARTICIPANT_TEAM_ID)).thenReturn(challengeParticipants);
 		
 		submittingTeamMembers = new ArrayList<UserGroup>();
-		when(mockGroupMembersDAO.getMembers(SUBMITTING_TEAM_ID)).thenReturn(submittingTeamMembers);
+		lenient().when(mockGroupMembersDAO.getMembers(SUBMITTING_TEAM_ID)).thenReturn(submittingTeamMembers);
 		
 		userInfo = new UserInfo(false);
 		userInfo.setId(Long.parseLong(SUBMITTER_PRINCIPAL_ID));
 		userInfo.setGroups(Collections.singleton(Long.parseLong(CHALLENGE_PARTICIPANT_TEAM_ID)));
+
+		roundStart = new Date(now);
+		roundEnd = new Date(now + 123123123);
+		evaluationRound = new EvaluationRound();
+		evaluationRound.setRoundStart(roundStart);
+		evaluationRound.setRoundEnd(roundEnd);
 	}
 	
 	private static UserGroup createUserGroup(String principalId) {
@@ -131,8 +149,15 @@ public class SubmissionEligibilityManagerTest {
 	@Test
 	public void testIsIndividualEligibleNoQuota() throws Exception {
 		evaluation.setQuota(null);
+		when(mockEvaluationDAO.getEvaluationRoundForTimestamp(eq(evaluation.getId()), any())).thenReturn(evaluationRound);
 		assertTrue(submissionEligibilityManager.
 			isIndividualEligible(EVAL_ID, userInfo, new Date()).isAuthorized());
+	}
+	@Test
+	public void testIsIndividualEligibleNoQuotaNoEvaluationRound() throws Exception {
+		evaluation.setQuota(null);
+		when(mockEvaluationDAO.getEvaluationRoundForTimestamp(eq(evaluation.getId()), any())).thenReturn(null);
+		assertFalse(submissionEligibilityManager.isIndividualEligible(EVAL_ID, userInfo, new Date()).isAuthorized());
 	}
 
 	@Test
@@ -162,11 +187,6 @@ public class SubmissionEligibilityManagerTest {
 
 	@Test
 	public void testIsIndividualSubmittedToAnotherTeam() throws Exception {
-		when(mockSubmissionDAO.
-				countSubmissionsByContributor(eq(Long.parseLong(EVAL_ID)), 
-						eq(Long.parseLong(SUBMITTER_PRINCIPAL_ID)), 
-						any(Date.class), any(Date.class), 
-						eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(MAX_SUBMISSIONS_PER_ROUND-1L);
 		when(mockSubmissionDAO.hasContributedToTeamSubmission(eq(Long.parseLong(EVAL_ID)), 
 				eq(Long.parseLong(SUBMITTER_PRINCIPAL_ID)), 
 				any(Date.class), any(Date.class), 
@@ -233,7 +253,8 @@ public class SubmissionEligibilityManagerTest {
 	public void testGetTeamSubmissionEligibilityNoQuota() throws Exception {
 		createValidTeamSubmissionState();
 		evaluation.setQuota(null);
-		
+		when(mockEvaluationDAO.getEvaluationRoundForTimestamp(eq(evaluation.getId()), any())).thenReturn(evaluationRound);
+
 		TeamSubmissionEligibility tse = submissionEligibilityManager.
 				getTeamSubmissionEligibility(evaluation, SUBMITTING_TEAM_ID);
 		
@@ -254,6 +275,20 @@ public class SubmissionEligibilityManagerTest {
 		assertFalse(mse.getIsQuotaFilled());
 		assertFalse(mse.getHasConflictingSubmission());
 		assertTrue(mse.getIsEligible());
+	}
+
+	@Test
+	public void testGetTeamSubmissionEligibilityNoQuotaNoEvaluationRound() throws Exception {
+		createValidTeamSubmissionState();
+		evaluation.setQuota(null);
+		when(mockEvaluationDAO.getEvaluationRoundForTimestamp(any(), any())).thenReturn(null);
+
+		String message = assertThrows(IllegalArgumentException.class, () ->
+				submissionEligibilityManager.getTeamSubmissionEligibility(evaluation, SUBMITTING_TEAM_ID)
+		).getMessage();
+
+		assertEquals("The given date is outside the time range allowed for submissions.", message);
+
 	}
 	
 	// here we test both that the team and the member are unregistered
@@ -513,4 +548,61 @@ public class SubmissionEligibilityManagerTest {
 						new Date()).isAuthorized());
 	}
 
+	@Test
+	public void submissionCountStartDate_TOTAL(){
+		Date now = new Date();
+		Date start = submissionEligibilityManager.submissionCountStartDate(EvaluationRoundLimitType.TOTAL, roundStart, now);
+		assertEquals(roundStart, start);
+	}
+
+	@Test
+	public void submissionCountStartDate_DAILY(){
+		Date now = Date.from(LocalDateTime.parse("2019-09-20T23:59:59").toInstant(ZoneOffset.UTC));
+
+		Date start = submissionEligibilityManager.submissionCountStartDate(EvaluationRoundLimitType.DAILY, roundStart, now);
+
+		Date expected = Date.from(LocalDateTime.parse("2019-09-20T00:00:00").toInstant(ZoneOffset.UTC));
+		assertEquals(expected, start);
+	}
+
+	@Test
+	public void submissionCountStartDate_WEEKLY_CurrentTimeOnMonday(){
+		//this test ensures the previous week's monday is not returned if we are already on a monday
+		Date now = Date.from(LocalDateTime.parse("2019-09-16T00:00:00").toInstant(ZoneOffset.UTC));
+
+		Date start = submissionEligibilityManager.submissionCountStartDate(EvaluationRoundLimitType.WEEKLY, roundStart, now);
+
+		Date expected = Date.from(LocalDateTime.parse("2019-09-16T00:00:00").toInstant(ZoneOffset.UTC));
+		assertEquals(expected, start);
+	}
+
+	@Test
+	public void submissionCountStartDate_WEEKLY_CurrentTimeNotOnMonday(){
+		Date now = Date.from(LocalDateTime.parse("2019-09-20T23:59:59").toInstant(ZoneOffset.UTC));
+
+		Date start = submissionEligibilityManager.submissionCountStartDate(EvaluationRoundLimitType.WEEKLY, roundStart, now);
+
+		Date expected = Date.from(LocalDateTime.parse("2019-09-16T00:00:00").toInstant(ZoneOffset.UTC));
+		assertEquals(expected, start);
+	}
+
+	@Test
+	public void submissionCountStartDate_MONTHLY(){
+		Date now = Date.from(LocalDateTime.parse("2019-09-20T23:59:59").toInstant(ZoneOffset.UTC));
+
+		Date start = submissionEligibilityManager.submissionCountStartDate(EvaluationRoundLimitType.MONTHLY, roundStart, now);
+
+		Date expected = Date.from(LocalDateTime.parse("2019-09-01T00:00:00").toInstant(ZoneOffset.UTC));
+		assertEquals(expected, start);
+	}
+
+	@Test
+	public void submissionCountStartDate_ensureImplementation(){
+		for(EvaluationRoundLimitType type : EvaluationRoundLimitType.values()) {
+			assertDoesNotThrow( ()->
+				submissionEligibilityManager.submissionCountStartDate(type,roundStart, new Date()),
+					"This test fails when a newly introduced EvaluationRoundLimitType is not handled"
+			);
+		}
+	}
 }

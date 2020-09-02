@@ -1,21 +1,34 @@
 {
 	"description": "Sets limits for maximum submissions in a SubmissionRound.",
 	"properties":{
-		"totalSubmissionLimit": {
-			"type": "integer",
-			"description": "The maximum total number of submissions per team/participant for the entirety of the round."
+		"limitType":{
+			"type": "string",
+			"name": "EvaluationRoundLimitType",
+			"required": true,
+			"enum": [
+				{
+					"name": "TOTAL",
+					"description": "Limits maximum submissions for the entire duration of the round."
+				},
+				{
+					"name": "DAILY",
+					"description": "Limits maximum submissions per day. Resets daily at 00:00:00 UTC"
+				},
+				{
+					"name": "WEEKLY",
+					"description": "Limits maximum submissions per calendar week. Resets every Monday at 00:00:00 UTC"
+				},
+				{
+					"name": "MONTHLY",
+					"description": "Limits maximum submissions per calendar month. Resets on the 1st day of every calendar month at 00:00:00 UTC"
+				}
+			]
 		},
-		"dailySubmissionLimit": {
+
+		"maximumSubmissions": {
 			"type": "integer",
-			"description": "The maximum submissions that can be made day. Resets at 00:00:00 UTC"
-		},
-		"weeklySubmissionLimit": {
-			"type": "integer",
-			"description": "The maximum submissions that can be made each week. Resets every Monday at 00:00:00 UTC"
-		},
-		"monthlySubmissionLimit": {
-			"type": "integer",
-			"description": "The maximum submissions that can be made each month. Resets on the 1st day of every calendar month at 00:00:00 UTC"
+			"required": true,
+			"description": "maximum number of submissions allowed within the time period defined by the the limitType"
 		}
 	}
 }

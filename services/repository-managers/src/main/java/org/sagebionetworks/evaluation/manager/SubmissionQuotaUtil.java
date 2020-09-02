@@ -1,8 +1,14 @@
 package org.sagebionetworks.evaluation.manager;
 
+import java.util.Collections;
 import java.util.Date;
+import java.util.Optional;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
+import org.sagebionetworks.evaluation.model.EvaluationRoundLimit;
+import org.sagebionetworks.evaluation.model.EvaluationRoundLimitType;
+import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.util.Pair;
@@ -39,9 +45,7 @@ public class SubmissionQuotaUtil {
 	 * Returns false if time segment(s) is/are defined and the given time is outside
 	 * of the allowed time range.
 	 */
-	public static boolean isSubmissionAllowed(Evaluation evaluation, Date now) {
-		if (evaluation==null) throw new IllegalArgumentException("evaluation is required.");
-		SubmissionQuota submissionQuota = evaluation.getQuota();
+	public static boolean isSubmissionAllowed(SubmissionQuota submissionQuota, Date now) {
 		if (submissionQuota==null || 
 				(submissionQuota.getFirstRoundStart()==null || 
 				submissionQuota.getRoundDurationMillis()==null))
@@ -61,20 +65,46 @@ public class SubmissionQuotaUtil {
 	 * interest is within the time range allowed for submissions.
 	 * 
 	 */
-	public static Pair<Date, Date> getRoundInterval(Evaluation evaluation, Date now) {
-		if (evaluation==null) throw new IllegalArgumentException("evaluation is required.");
+	public static Pair<Date, Date> getRoundInterval(SubmissionQuota submissionQuota, Date now) {
 		if (now==null) throw new IllegalArgumentException("current date is required.");
-		SubmissionQuota submissionQuota = evaluation.getQuota();
-		if (submissionQuota==null || 
+		if (submissionQuota==null ||
 				(submissionQuota.getFirstRoundStart()==null || 
 				submissionQuota.getRoundDurationMillis()==null))
 			return  new Pair<Date,Date>(null,null); // there is no start or end
-		if (!isSubmissionAllowed(evaluation, now)) 
+		if (!isSubmissionAllowed(submissionQuota, now))
 			throw new IllegalArgumentException("The given date is outside the time range allowed for submissions.");
 		long frs = submissionQuota.getFirstRoundStart().getTime();
 		long roundLen = submissionQuota.getRoundDurationMillis();
 		long start=frs+((now.getTime()-frs)/roundLen)*roundLen;
 		long end=start+roundLen;
 		return new Pair<Date,Date>(new Date(start),new Date(end));
+	}
+
+
+	//TODO: test
+	public static Optional<EvaluationRound> convertToCurrentEvaluationRound(SubmissionQuota quota, Date now){
+		if(quota == null || !SubmissionQuotaUtil.isSubmissionAllowed(quota, now)){
+			return Optional.empty();
+		}
+
+		Pair<Date, Date> startAndEnd = getRoundInterval(quota, now);
+
+		EvaluationRound evaluationRound = new EvaluationRound();
+		//set start
+		if(startAndEnd.getFirst() != null){
+			evaluationRound.setRoundStart(startAndEnd.getFirst());
+		}
+		//set end
+		if(startAndEnd.getSecond() != null){
+			evaluationRound.setRoundEnd(startAndEnd.getSecond());
+		}
+		//set total submission limit
+		if(quota.getSubmissionLimit() != null) {
+			EvaluationRoundLimit submissionLimits = new EvaluationRoundLimit();
+			submissionLimits.setLimitType(EvaluationRoundLimitType.TOTAL);
+			submissionLimits.setMaximumSubmissions(quota.getSubmissionLimit());
+			evaluationRound.setLimits(Collections.singletonList(submissionLimits));
+		}
+		return Optional.of(evaluationRound);
 	}
 }

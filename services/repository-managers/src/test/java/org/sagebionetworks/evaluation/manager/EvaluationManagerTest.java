@@ -634,11 +634,11 @@ public class EvaluationManagerTest {
 		EvaluationRound createdRound = new EvaluationRound();
 		when(mockEvaluationDAO.createEvaluationRound(evaluationRound)).thenReturn(createdRound);
 
-
 		EvaluationRound result = evaluationManager.createEvaluationRound(userInfo, evaluationRound);
 
 		assertEquals(createdRound, result);
 
+		verify(mockIdGenerator).generateNewId(IdType.EVALUATION_ROUND_ID);
 		verify(mockPermissionsManager).hasAccess(userInfo, EVALUATION_ID,ACCESS_TYPE.CREATE);
 		verify(mockEvaluationDAO).get(EVALUATION_ID);
 		verify(mockEvaluationDAO).overlappingEvaluationRounds(EVALUATION_ID, evaluationRoundStart, evaluationRoundEnd);

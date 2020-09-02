@@ -116,7 +116,7 @@ public interface EvaluationDAO {
 	 *  @param evaluationId id of the Evaluation to search
 	 * @param timestamp the timestamp for which a matching EvaluationRound's round start and round end timestamp must encapsulate
 	 */
-	public Optional<EvaluationRound> getEvaluationRoundForTimestamp(String evaluationId, Instant timestamp);
+	public EvaluationRound getEvaluationRoundForTimestamp(String evaluationId, Instant timestamp);
 
 	/**
 	 *

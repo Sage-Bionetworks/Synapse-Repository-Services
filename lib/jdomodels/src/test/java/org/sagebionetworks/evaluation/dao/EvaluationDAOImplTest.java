@@ -9,18 +9,15 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 
-import com.google.common.collect.Sets;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,7 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationRound;
 import org.sagebionetworks.evaluation.model.EvaluationRoundLimit;
-import org.sagebionetworks.evaluation.model.EvaluationRoundPeriodicLimit;
+import org.sagebionetworks.evaluation.model.EvaluationRoundLimitType;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -110,12 +107,14 @@ public class EvaluationDAOImplTest {
 		evaluationRound.setEvaluationId(evaluationId);
 		evaluationRound.setRoundStart(Date.from(evalRoundStart));
 		evaluationRound.setRoundEnd(Date.from(evalRoundEnd));
-		EvaluationRoundLimit evaluationRoundLimits = new EvaluationRoundLimit();
-		evaluationRoundLimits.setTotalSubmissionLimit(45L);
-		evaluationRoundLimits.setDailySubmissionLimit(3L);
-		evaluationRoundLimits.setMonthlySubmissionLimit(34L);
-		evaluationRoundLimits.setWeeklySubmissionLimit(9L);
-		evaluationRound.setSubmissionLimits(evaluationRoundLimits);
+		EvaluationRoundLimit totalRoundLimit = new EvaluationRoundLimit();
+		totalRoundLimit.setLimitType(EvaluationRoundLimitType.TOTAL);
+		totalRoundLimit.setMaximumSubmissions(45L);
+
+		EvaluationRoundLimit monthlyRoundLimit = new EvaluationRoundLimit();
+		monthlyRoundLimit.setLimitType(EvaluationRoundLimitType.MONTHLY);
+		monthlyRoundLimit.setMaximumSubmissions(34L);
+		evaluationRound.setLimits(Arrays.asList(totalRoundLimit, monthlyRoundLimit));
     }
 
 	@AfterEach
@@ -560,26 +559,26 @@ public class EvaluationDAOImplTest {
 		EvaluationRound createdRound = evaluationDAO.createEvaluationRound(evaluationRound);
 
 		//test between the dates
-		Optional<EvaluationRound> matchingRound = evaluationDAO.getEvaluationRoundForTimestamp(evaluationId, evalRoundStart.plus(1, ChronoUnit.HOURS));
-		assertTrue(matchingRound.isPresent());
-		assertEquals(createdRound, matchingRound.get());
+		EvaluationRound matchingRound = evaluationDAO.getEvaluationRoundForTimestamp(evaluationId, evalRoundStart.plus(1, ChronoUnit.HOURS));
+		assertNotNull(matchingRound);
+		assertEquals(createdRound, matchingRound);
 
 		//test on round start timestamp
 		matchingRound = evaluationDAO.getEvaluationRoundForTimestamp(evaluationId, evalRoundStart);
-		assertTrue(matchingRound.isPresent());
-		assertEquals(createdRound, matchingRound.get());
+		assertNotNull(matchingRound);
+		assertEquals(createdRound, matchingRound);
 
 		//test on round end timestamp
 		matchingRound = evaluationDAO.getEvaluationRoundForTimestamp(evaluationId, evalRoundEnd);
-		assertFalse(matchingRound.isPresent());
+		assertNull(matchingRound);
 
 		//test before round start timestamp
 		matchingRound = evaluationDAO.getEvaluationRoundForTimestamp(evaluationId, evalRoundStart.minus(1, ChronoUnit.DAYS));
-		assertFalse(matchingRound.isPresent());
+		assertNull(matchingRound);
 
 		//test after round end timestamp
 		matchingRound = evaluationDAO.getEvaluationRoundForTimestamp(evaluationId, evalRoundEnd.plus(1, ChronoUnit.DAYS));
-		assertFalse(matchingRound.isPresent());
+		assertNull(matchingRound);
 	}
 
 
