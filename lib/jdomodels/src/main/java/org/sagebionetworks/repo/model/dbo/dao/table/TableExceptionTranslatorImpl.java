@@ -41,9 +41,7 @@ public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 			// found a SQLException so we can translate it.
 			String originalMessage = sqlException.getMessage();
 			String newMessage = replaceColumnIdsAndTableNames(originalMessage);
-			if (newMessage.contains(UNKNOWN_COLUMN_MESSAGE)){
-				newMessage += UNKNOWN_COLUMN_ERROR_MESSAGE;
-			}
+			newMessage = addUnquotedKeyWordMessage(newMessage);
 			return new IllegalArgumentException(newMessage, exception);
 		} else if (exception instanceof RuntimeException) {
 			// did not find a SQLException but the exception is already a RuntimeException.
@@ -161,4 +159,13 @@ public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 		return replaceAllColumnReferences(input, coumnIdToNameMap);
 	}
 
+	/*
+	 * PLFM-6392 Add more informative error message for key words that must be quoted
+	 */
+	private String addUnquotedKeyWordMessage(String input){
+		if (input.contains(UNKNOWN_COLUMN_MESSAGE)){
+			return input + UNKNOWN_COLUMN_ERROR_MESSAGE;
+		}
+		return input;
+	}
 }
