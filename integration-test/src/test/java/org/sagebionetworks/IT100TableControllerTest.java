@@ -421,45 +421,6 @@ public class IT100TableControllerTest {
 		assertCountResults("select * from " + table.getId(), table.getId(), 40L);
 	}
 
-	@Test
-	public void testErrorMessageYear() throws Exception {
-		// Create a few columns to add to a table entity
-		ColumnModel one = new ColumnModel();
-		one.setName("year");
-		one.setColumnType(ColumnType.DOUBLE);
-		one = synapse.createColumnModel(one);
-
-		TableEntity table = createTable(Lists.newArrayList(one.getId()));
-
-		List<ColumnModel> columns = synapse.getColumnModelsForTableEntity(table.getId());
-
-		// Append some rows
-		for (int i = 0; i < 10; i++) {
-			RowSet set = new RowSet();
-			set.setRows(TableModelTestUtils.createRows(columns, 4));
-			set.setHeaders(TableModelUtils.getSelectColumns(columns));
-			set.setTableId(table.getId());
-			synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT, table.getId());
-		}
-        /*
-		// Now query for the table results
-		assertCountResults("select * from " + table.getId(), table.getId(), 40L);
-
-		adminSynapse.rebuildTableCacheAndIndex(table.getId());
-
-		final String asyncToken = synapse.queryTableEntityBundleAsyncStart("select * from " + table.getId(), null, null,
-				SynapseClient.COUNT_PARTMASK, table.getId());
-
-		assertThrows(SynapseResultNotReadyException.class, () -> {
-			synapse.queryTableEntityBundleAsyncGet(asyncToken, table.getId());
-		});
-
-		// Now query for the table results
-		assertCountResults("select * from " + table.getId(), table.getId(), 40L);
-
-        */
-	}
-
 	/**
 	 * Wait for a query results.
 	 * 
