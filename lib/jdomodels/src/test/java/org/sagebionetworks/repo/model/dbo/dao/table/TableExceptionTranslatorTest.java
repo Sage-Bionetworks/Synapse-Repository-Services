@@ -1,16 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anySetOf;
-import static org.mockito.Mockito.when;
-
-import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.common.collect.Sets;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,11 +11,24 @@ import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.UncategorizedSQLException;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.google.common.collect.Sets;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anySetOf;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TableExceptionTranslatorTest {
-	
+
+	private String UNKNOWN_COLUMN_ADDITIONAL_ERROR_MESSAGE = "\nNote: If a column name contains spaces, punctuation, " +
+			"or SQL key words, then the name must be enclosed in double quotes." +
+			" https://rest-docs.synapse.org/rest/org/sagebionetworks/repo/web/controller/TableExamples.html";
+
 	@Mock
 	ColumnNameProvider mockColumnNameProvider;
 	
@@ -35,6 +38,7 @@ public class TableExceptionTranslatorTest {
 	
 	UncategorizedSQLException uncategorizedSQLException;
 	BadSqlGrammarException badSqlException;
+	BadSqlGrammarException badSqlExceptionUnquotedKeyWord;
 	
 	@Before
 	public void before(){
@@ -61,6 +65,9 @@ public class TableExceptionTranslatorTest {
 		sql = "SELECT _C36450_, _C36451_, _C36452_, _C36453_, ROW_ID, ROW_VERSION FROM T3079449 WHERE parentld = Clinical_Data LIMIT ? OFFSET ?";
 		SQLException syntaxException = new SQLException("Unknown column '_C123_' in 'where clause'");
 		badSqlException = new BadSqlGrammarException(task, sql, syntaxException);
+
+		SQLException unknownColumnGroupByClause = new SQLException("Unknown column '_C123_' in 'group by clause'");
+		badSqlExceptionUnquotedKeyWord = new BadSqlGrammarException(task, sql, unknownColumnGroupByClause);
 	}
 	
 	@Test
@@ -122,7 +129,7 @@ public class TableExceptionTranslatorTest {
 	}
 	
 	/**
-	 * This is also a test for PLFM-4466
+	 * This is also a test for PLFM-4466 and PLFM-6392
 	 */
 	@Test
 	public void testTranslateExceptionBadSqlGrammarException() {
@@ -131,10 +138,29 @@ public class TableExceptionTranslatorTest {
 		assertNotNull(result);
 		assertTrue(result instanceof IllegalArgumentException);
 		IllegalArgumentException illegalArg = (IllegalArgumentException)result;
-		assertEquals("Unknown column 'foo' in 'where clause'", illegalArg.getMessage());
+		assertEquals("Unknown column 'foo' in 'where clause'" +
+						UNKNOWN_COLUMN_ADDITIONAL_ERROR_MESSAGE,
+				illegalArg.getMessage());
 		assertEquals(badSqlException, illegalArg.getCause());
 	}
-	
+
+
+	/**
+	 * Test for PLFM-6392
+	 */
+	@Test
+	public void testUnknownColumnErrorMessage(){
+		// call under test
+		Exception result = translator.translateException(badSqlExceptionUnquotedKeyWord);
+		assertNotNull(result);
+		assertTrue(result instanceof IllegalArgumentException);
+		IllegalArgumentException illegalArg = (IllegalArgumentException)result;
+		assertEquals("Unknown column 'foo' in 'group by clause'" +
+						UNKNOWN_COLUMN_ADDITIONAL_ERROR_MESSAGE,
+				illegalArg.getMessage());
+		assertEquals(badSqlExceptionUnquotedKeyWord, illegalArg.getCause());
+	}
+
 	@Test
 	public void testTranslateExceptionNonRuntime() {
 		Exception unknown = new Exception("This is an unknown type");

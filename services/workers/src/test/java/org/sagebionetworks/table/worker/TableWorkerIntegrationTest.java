@@ -142,6 +142,9 @@ public class TableWorkerIntegrationTest {
 	 * 
 	 */
 	public static final int MAX_WAIT_MS = 1000 * 60;
+	private String UNKNOWN_COLUMN_ADDITIONAL_ERROR_MESSAGE = "\nNote: If a column name contains spaces, punctuation, " +
+			"or SQL key words, then the name must be enclosed in double quotes." +
+			" https://rest-docs.synapse.org/rest/org/sagebionetworks/repo/web/controller/TableExamples.html";
 	
 	@Autowired
 	StackConfiguration config;
@@ -2831,7 +2834,7 @@ public class TableWorkerIntegrationTest {
 				assertEquals(Arrays.asList("2020"), queryResult.getQueryResults().getRows().get(0).getValues());
 			});
 		}catch (Exception e){
-			System.out.println(e.getMessage());
+			assertTrue(e.getMessage().contains(UNKNOWN_COLUMN_ADDITIONAL_ERROR_MESSAGE));
 		}
 	}
 

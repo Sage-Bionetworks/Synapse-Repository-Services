@@ -17,7 +17,10 @@ public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 	private static Pattern PATTERN_TABLE_NAME = Pattern.compile(SQLUtils.TABLE_PREFIX + "[0-9]+");
 	private static Pattern PATTERN_COLUMM_ID = Pattern
 			.compile(SQLUtils.COLUMN_PREFIX + "[0-9]+" + SQLUtils.COLUMN_POSTFIX);
-	private String UNKNOWN_COLUMN_ERROR_MESSAGE = "Unknown column";
+	private String UNKNOWN_COLUMN_MESSAGE = "Unknown column";
+	private String UNKNOWN_COLUMN_ERROR_MESSAGE = "\nNote: If a column name contains spaces, punctuation," +
+			" or SQL key words, then the name must be enclosed in double quotes. " +
+			"https://rest-docs.synapse.org/rest/org/sagebionetworks/repo/web/controller/TableExamples.html";
 
 	@Autowired
 	ColumnNameProvider columnNameProvider;
@@ -38,8 +41,8 @@ public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 			// found a SQLException so we can translate it.
 			String originalMessage = sqlException.getMessage();
 			String newMessage = replaceColumnIdsAndTableNames(originalMessage);
-			if (newMessage.contains(UNKNOWN_COLUMN_ERROR_MESSAGE)){
-				newMessage += addUnknownColumnInformativeMessage();
+			if (newMessage.contains(UNKNOWN_COLUMN_MESSAGE)){
+				newMessage += UNKNOWN_COLUMN_ERROR_MESSAGE;
 			}
 			return new IllegalArgumentException(newMessage, exception);
 		} else if (exception instanceof RuntimeException) {
@@ -156,12 +159,6 @@ public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 		// Lookup the name of each column
 		Map<Long, String> coumnIdToNameMap = columnNameProvider.getColumnNames(columnIds);
 		return replaceAllColumnReferences(input, coumnIdToNameMap);
-	}
-
-	public String addUnknownColumnInformativeMessage(){
-		return "\nNote: If a column name contains spaces, punctuation," +
-				" or SQL key words, then the name must be enclosed in double quotes. " +
-				"https://rest-docs.synapse.org/rest/org/sagebionetworks/repo/web/controller/TableExamples.html";
 	}
 
 }
