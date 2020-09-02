@@ -142,7 +142,7 @@ public class TableWorkerIntegrationTest {
 	 * 
 	 */
 	public static final int MAX_WAIT_MS = 1000 * 60;
-	private String UNKNOWN_COLUMN_ADDITIONAL_ERROR_MESSAGE = "\nNote: If a column name contains spaces, punctuation, " +
+	private final String UNQUOTED_KEYWORDS_ERROR_MESSAGE = "\nNote: If a column name contains spaces, punctuation, " +
 			"or SQL key words, then the name must be enclosed in double quotes." +
 			" https://rest-docs.synapse.org/rest/org/sagebionetworks/repo/web/controller/TableExamples.html";
 	
@@ -2826,16 +2826,30 @@ public class TableWorkerIntegrationTest {
 		referenceSet = appendRows(adminUserInfo, tableId,
 				rowSet, mockProgressCallback);
 
-		//query the column and check if the results match the userId
-		try {
+		Throwable selectClauseException = assertThrows(IllegalArgumentException.class, ()->{
 			waitForConsistentQuery(adminUserInfo, "select year from " + tableId, null, null, (queryResult) -> {
-				assertEquals(1, queryResult.getQueryResults().getRows().size());
-				assertEquals(1, queryResult.getQueryResults().getRows().get(0).getValues().size());
-				assertEquals(Arrays.asList("2020"), queryResult.getQueryResults().getRows().get(0).getValues());
+				fail("Throw IllegalArgumentException");
 			});
-		}catch (Exception e){
-			assertTrue(e.getMessage().contains(UNKNOWN_COLUMN_ADDITIONAL_ERROR_MESSAGE));
-		}
+		});
+		assertNotNull(selectClauseException);
+		assertNotNull(selectClauseException.getMessage());
+		assertTrue(selectClauseException.getMessage().contains(UNQUOTED_KEYWORDS_ERROR_MESSAGE));
+		Throwable whereClauseException = assertThrows(IllegalArgumentException.class, ()->{
+			waitForConsistentQuery(adminUserInfo, "select \"year\" from " + tableId + " where year = 2020", null, null, (queryResult) -> {
+				fail("Throw IllegalArgumentException");
+			});
+		});
+		assertNotNull(whereClauseException);
+		assertNotNull(whereClauseException.getMessage());
+		assertTrue(whereClauseException.getMessage().contains(UNQUOTED_KEYWORDS_ERROR_MESSAGE));
+		Throwable groupbyClauseException = assertThrows(IllegalArgumentException.class, ()->{
+			waitForConsistentQuery(adminUserInfo, "select \"year\" from " + tableId + " where \"year\" = 2020 group by year", null, null, (queryResult) -> {
+				fail("Throw IllegalArgumentException");
+			});
+		});
+		assertNotNull(groupbyClauseException);
+		assertNotNull(groupbyClauseException.getMessage());
+		assertTrue(groupbyClauseException.getMessage().contains(UNQUOTED_KEYWORDS_ERROR_MESSAGE));
 	}
 
 	@Test

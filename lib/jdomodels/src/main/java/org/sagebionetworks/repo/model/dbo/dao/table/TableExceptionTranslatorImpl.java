@@ -18,7 +18,7 @@ public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 	private static Pattern PATTERN_COLUMM_ID = Pattern
 			.compile(SQLUtils.COLUMN_PREFIX + "[0-9]+" + SQLUtils.COLUMN_POSTFIX);
 	private String UNKNOWN_COLUMN_MESSAGE = "Unknown column";
-	private String UNKNOWN_COLUMN_ERROR_MESSAGE = "\nNote: If a column name contains spaces, punctuation," +
+	private String UNQUOTED_KEYWORDS_ERROR_MESSAGE = "\nNote: If a column name contains spaces, punctuation," +
 			" or SQL key words, then the name must be enclosed in double quotes. " +
 			"https://rest-docs.synapse.org/rest/org/sagebionetworks/repo/web/controller/TableExamples.html";
 
@@ -164,7 +164,7 @@ public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 	 */
 	private String addUnquotedKeyWordMessage(String input){
 		if (input.contains(UNKNOWN_COLUMN_MESSAGE)){
-			return input + UNKNOWN_COLUMN_ERROR_MESSAGE;
+			return input + UNQUOTED_KEYWORDS_ERROR_MESSAGE;
 		}
 		return input;
 	}
