@@ -1,5 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
+import org.sagebionetworks.repo.model.dao.table.ColumnNameProvider;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.table.cluster.SQLUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Map;
@@ -7,16 +12,12 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.sagebionetworks.repo.model.dao.table.ColumnNameProvider;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.table.cluster.SQLUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-
 public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 
 	private static Pattern PATTERN_TABLE_NAME = Pattern.compile(SQLUtils.TABLE_PREFIX + "[0-9]+");
 	private static Pattern PATTERN_COLUMM_ID = Pattern
 			.compile(SQLUtils.COLUMN_PREFIX + "[0-9]+" + SQLUtils.COLUMN_POSTFIX);
+	private String UNKNOWN_COLUMN_ERROR_MESSAGE = "Unknown column";
 
 	@Autowired
 	ColumnNameProvider columnNameProvider;
@@ -37,6 +38,9 @@ public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 			// found a SQLException so we can translate it.
 			String originalMessage = sqlException.getMessage();
 			String newMessage = replaceColumnIdsAndTableNames(originalMessage);
+			if (newMessage.contains(UNKNOWN_COLUMN_ERROR_MESSAGE)){
+				newMessage += addUnknownColumnInformativeMessage();
+			}
 			return new IllegalArgumentException(newMessage, exception);
 		} else if (exception instanceof RuntimeException) {
 			// did not find a SQLException but the exception is already a RuntimeException.
@@ -152,6 +156,12 @@ public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 		// Lookup the name of each column
 		Map<Long, String> coumnIdToNameMap = columnNameProvider.getColumnNames(columnIds);
 		return replaceAllColumnReferences(input, coumnIdToNameMap);
+	}
+
+	public String addUnknownColumnInformativeMessage(){
+		return "\nNote: If a column name contains spaces, punctuation," +
+				" or SQL key words, then the name must be enclosed in double quotes. " +
+				"https://rest-docs.synapse.org/rest/org/sagebionetworks/repo/web/controller/TableExamples.html";
 	}
 
 }

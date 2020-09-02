@@ -1,5 +1,74 @@
 package org.sagebionetworks.table.cluster;
 
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import org.json.JSONArray;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.model.IdAndEtag;
+import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
+import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.ObjectField;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
+import org.sagebionetworks.repo.model.table.ViewScopeFilter;
+import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
+import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.model.Grouping;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
+import org.sagebionetworks.util.Callback;
+import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.util.csv.CSVWriterStream;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.BadSqlGrammarException;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.SingleColumnRowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_KEYS_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
@@ -39,78 +108,6 @@ import static org.sagebionetworks.repo.model.table.TableConstants.SUBTYPE_PARAM_
 import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_ANNOTATION_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_OBJECT_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE;
-
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import javax.sql.DataSource;
-
-import org.json.JSONArray;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.model.IdAndEtag;
-import org.sagebionetworks.repo.model.dao.table.RowHandler;
-import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
-import org.sagebionetworks.repo.model.table.AnnotationType;
-import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
-import org.sagebionetworks.repo.model.table.ObjectDataDTO;
-import org.sagebionetworks.repo.model.table.ObjectField;
-import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.repo.model.table.ViewObjectType;
-import org.sagebionetworks.repo.model.table.ViewScopeFilter;
-import org.sagebionetworks.repo.model.table.ViewScopeType;
-import org.sagebionetworks.table.cluster.SQLUtils.TableType;
-import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
-import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
-import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.table.model.Grouping;
-import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
-import org.sagebionetworks.util.Callback;
-import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.util.csv.CSVWriterStream;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.jdbc.BadSqlGrammarException;
-import org.springframework.jdbc.core.BatchPreparedStatementSetter;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowCallbackHandler;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.SingleColumnRowMapper;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.DefaultTransactionDefinition;
-import org.springframework.transaction.support.TransactionCallback;
-import org.springframework.transaction.support.TransactionTemplate;
-
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 public class TableIndexDAOImpl implements TableIndexDAO {
 
@@ -351,13 +348,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		ValidateArgument.required(query, "Query");
 		final ColumnTypeInfo[] infoArray = SQLTranslatorUtils.getColumnTypeInfoArray(query.getSelectColumns());
 		// We use spring to create create the prepared statement
-		namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowCallbackHandler() {
-			@Override
-			public void processRow(ResultSet rs) throws SQLException {
-				Row row = SQLTranslatorUtils.readRow(rs, query.includesRowIdAndVersion(), query.includeEntityEtag(), infoArray);
-				handler.nextRow(row);
-			}
-		});
+			namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowCallbackHandler() {
+				@Override
+				public void processRow(ResultSet rs) throws SQLException {
+					Row row = SQLTranslatorUtils.readRow(rs, query.includesRowIdAndVersion(), query.includeEntityEtag(), infoArray);
+					handler.nextRow(row);
+				}
+			});
 		return true;
 	}
 

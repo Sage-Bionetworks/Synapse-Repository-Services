@@ -2798,6 +2798,43 @@ public class TableWorkerIntegrationTest {
 		});
 	}
 
+	/**
+	 * PLFM-6392
+	 * @throws Exception
+	 */
+	@Test
+	public void testQueryWithUnquotedKeyword() throws Exception{
+		ColumnModel year = new ColumnModel();
+		year.setColumnType(ColumnType.STRING);
+		year.setMaximumSize(50L);
+		year.setName("year");
+		year = columnManager.createColumnModel(adminUserInfo, year);
+		schema = Lists.newArrayList(year);
+		// build a table with this column.
+		createTableWithSchema();
+		TableStatus status = waitForTableProcessing(tableId);
+		assertTrue(TableState.AVAILABLE.equals(status.getState()));
+
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(
+				TableModelTestUtils.createRow(null, null, "2020")));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = appendRows(adminUserInfo, tableId,
+				rowSet, mockProgressCallback);
+
+		//query the column and check if the results match the userId
+		try {
+			waitForConsistentQuery(adminUserInfo, "select year from " + tableId, null, null, (queryResult) -> {
+				assertEquals(1, queryResult.getQueryResults().getRows().size());
+				assertEquals(1, queryResult.getQueryResults().getRows().get(0).getValues().size());
+				assertEquals(Arrays.asList("2020"), queryResult.getQueryResults().getRows().get(0).getValues());
+			});
+		}catch (Exception e){
+			System.out.println(e.getMessage());
+		}
+	}
+
 	@Test
 	public void testQueryGroupConcat() throws Exception {
 		ColumnModel foo = new ColumnModel();
