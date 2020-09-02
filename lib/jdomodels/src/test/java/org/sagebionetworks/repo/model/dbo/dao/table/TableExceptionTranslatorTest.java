@@ -65,9 +65,6 @@ public class TableExceptionTranslatorTest {
 		sql = "SELECT _C36450_, _C36451_, _C36452_, _C36453_, ROW_ID, ROW_VERSION FROM T3079449 WHERE parentld = Clinical_Data LIMIT ? OFFSET ?";
 		SQLException syntaxException = new SQLException("Unknown column '_C123_' in 'where clause'");
 		badSqlException = new BadSqlGrammarException(task, sql, syntaxException);
-
-		SQLException unknownColumnGroupByClause = new SQLException("Unknown column '_C123_' in 'group by clause'");
-		badSqlExceptionUnquotedKeyWord = new BadSqlGrammarException(task, sql, unknownColumnGroupByClause);
 	}
 	
 	@Test
@@ -145,21 +142,6 @@ public class TableExceptionTranslatorTest {
 	}
 
 
-	/**
-	 * Test for PLFM-6392
-	 */
-	@Test
-	public void testUnknownColumnErrorMessage(){
-		// call under test
-		Exception result = translator.translateException(badSqlExceptionUnquotedKeyWord);
-		assertNotNull(result);
-		assertTrue(result instanceof IllegalArgumentException);
-		IllegalArgumentException illegalArg = (IllegalArgumentException)result;
-		assertEquals("Unknown column 'foo' in 'group by clause'" +
-						UNKNOWN_COLUMN_ADDITIONAL_ERROR_MESSAGE,
-				illegalArg.getMessage());
-		assertEquals(badSqlExceptionUnquotedKeyWord, illegalArg.getCause());
-	}
 
 	@Test
 	public void testTranslateExceptionNonRuntime() {
