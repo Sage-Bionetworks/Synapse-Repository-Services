@@ -1,11 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.util.List;
-
+import com.google.common.collect.Lists;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -19,10 +15,19 @@ import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 
-import com.google.common.collect.Lists;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TableQueryUtilsTest {
-	
+
+	private String UNQUOTED_KEYWORDS_ERROR_MESSAGE = "\nNote: If a column name contains spaces, punctuation," +
+			" or SQL key words, then the name must be enclosed in double quotes. " +
+			"https://rest-docs.synapse.org/rest/org/sagebionetworks/repo/web/controller/TableExamples.html";
+
 	String tableId;
 	String sql;
 	DownloadFromTableRequest downloadRequest;
@@ -163,5 +168,20 @@ public class TableQueryUtilsTest {
 		String sql = "select * from syn123 "+unknownChar;
 		String result = TableQueryUtils.extractTableIdFromSql(sql);
 		assertEquals("syn123", result);
+	}
+
+	@Test
+	/**
+	 * PLFM-6392 Add a more informative message to the user for cases where keywords
+	 * must be escaped.
+	 */
+	public void testUnquotedKeywordsErrorMessage() {
+		String sql = "select year from syn123 where year = 1";
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, ()->{
+			TableQueryUtils.extractTableIdFromSql(sql);
+		});
+		assertNotNull(exception);
+		assertNotNull(exception.getMessage());
+		assertTrue(exception.getMessage().contains(UNQUOTED_KEYWORDS_ERROR_MESSAGE));
 	}
 }
