@@ -38,7 +38,6 @@ public class TableExceptionTranslatorTest {
 	
 	UncategorizedSQLException uncategorizedSQLException;
 	BadSqlGrammarException badSqlException;
-	BadSqlGrammarException badSqlExceptionUnquotedKeyWord;
 	
 	@Before
 	public void before(){
@@ -140,8 +139,6 @@ public class TableExceptionTranslatorTest {
 				illegalArg.getMessage());
 		assertEquals(badSqlException, illegalArg.getCause());
 	}
-
-
 
 	@Test
 	public void testTranslateExceptionNonRuntime() {
