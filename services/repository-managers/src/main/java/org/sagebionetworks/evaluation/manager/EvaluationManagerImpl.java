@@ -210,7 +210,8 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	public TeamSubmissionEligibility getTeamSubmissionEligibility(UserInfo userInfo, String evalId, String teamId) throws NumberFormatException, DatastoreException, NotFoundException
 	{
 		evaluationPermissionsManager.canCheckTeamSubmissionEligibility(userInfo,  evalId,  teamId).checkAuthorizationOrElseThrow();
-		return submissionEligibilityManager.getTeamSubmissionEligibility(evaluationDAO.get(evalId), teamId);
+		Date now = new Date();
+		return submissionEligibilityManager.getTeamSubmissionEligibility(evaluationDAO.get(evalId), teamId, now);
 	}
 
 	@Override

@@ -102,6 +102,7 @@ public class EvaluationManagerTest {
 	private final String EVALUATION_CONTENT_SOURCE = "syn12358129748";
 	private final String EVALUATION_ETAG = "etag";
 
+	private Date now;
 	@BeforeEach
 	public void setUp() throws DatastoreException, NotFoundException, InvalidModelException {
 
@@ -110,9 +111,9 @@ public class EvaluationManagerTest {
 		userInfo = new UserInfo(false, USER_ID);
 
 		// Evaluation
-		Date date = new Date();
+		now = new Date();
 		eval = new Evaluation();
-		eval.setCreatedOn(date);
+		eval.setCreatedOn(now);
 		eval.setName(EVALUATION_NAME);
 		eval.setOwnerId(ownerInfo.getId().toString());
 		eval.setContentSource(EVALUATION_CONTENT_SOURCE);
@@ -120,7 +121,7 @@ public class EvaluationManagerTest {
 		eval.setEtag(EVALUATION_ETAG);
 
 		evalWithId = new Evaluation();
-		evalWithId.setCreatedOn(date);
+		evalWithId.setCreatedOn(now);
 		evalWithId.setId(EVALUATION_ID);
 		evalWithId.setName(EVALUATION_NAME);
 		evalWithId.setOwnerId(ownerInfo.getId().toString());
@@ -128,7 +129,7 @@ public class EvaluationManagerTest {
 		evalWithId.setStatus(EvaluationStatus.PLANNED);
 		evalWithId.setEtag(EVALUATION_ETAG);
 
-		evaluationRoundStart = Instant.now();
+		evaluationRoundStart = now.toInstant();
 		evaluationRoundEnd = evaluationRoundStart.plus(34, ChronoUnit.DAYS);
 		evaluationRoundId = "98765";
 		evaluationRound = new EvaluationRound();
@@ -503,7 +504,7 @@ public class EvaluationManagerTest {
 		TeamSubmissionEligibility tse = new TeamSubmissionEligibility();
 		tse.setEvaluationId(eval.getId());
 		tse.setTeamId(TEAM_ID);
-		when(mockSubmissionEligibilityManager.getTeamSubmissionEligibility(eval, TEAM_ID)).
+		when(mockSubmissionEligibilityManager.getTeamSubmissionEligibility(eq(eval), eq(TEAM_ID), any(Date.class))).
 		thenReturn(tse);
 		assertEquals(tse,
 				evaluationManager.getTeamSubmissionEligibility(userInfo, eval.getId(), TEAM_ID));

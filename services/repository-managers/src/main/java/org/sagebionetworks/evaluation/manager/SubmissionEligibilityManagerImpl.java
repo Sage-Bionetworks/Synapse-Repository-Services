@@ -104,7 +104,7 @@ public class SubmissionEligibilityManagerImpl implements
 	 * @throws NumberFormatException 
 	 */
 	@Override
-	public TeamSubmissionEligibility getTeamSubmissionEligibility(Evaluation evaluation, String teamId) throws DatastoreException, NumberFormatException, NotFoundException {
+	public TeamSubmissionEligibility getTeamSubmissionEligibility(Evaluation evaluation, String teamId, Date now) throws DatastoreException, NumberFormatException, NotFoundException {
 		TeamSubmissionEligibility tse = new TeamSubmissionEligibility();
 		tse.setEvaluationId(evaluation.getId());
 		tse.setTeamId(teamId);
@@ -125,7 +125,6 @@ public class SubmissionEligibilityManagerImpl implements
 		boolean isTeamEligible = (teamEligibility.getIsRegistered()==null || teamEligibility.getIsRegistered());
 		
 		// now check whether the Team's quota is filled
-		Date now = new Date();
 		//convert SubmissionQuota into EvaluationRound or lazily retrieve a defined EvaluationRound
 		EvaluationRound currentRound = SubmissionQuotaUtil.convertToCurrentEvaluationRound(evaluation.getQuota(), now)
 				.orElseGet(() -> evaluationDAO.getEvaluationRoundForTimestamp(evaluation.getId(), now.toInstant()));
@@ -140,8 +139,11 @@ public class SubmissionEligibilityManagerImpl implements
 				int submissionCount = (int) submissionDAO.countSubmissionsByTeam(Long.parseLong(evaluation.getId()),
 						Long.parseLong(teamId), submissionCountStartDate,
 						currentRound.getRoundEnd(), STATUSES_COUNTED_TOWARD_QUOTA);
-				teamEligibility.setIsQuotaFilled(submissionCount >= limit.getMaximumSubmissions());
-				isTeamEligible = isTeamEligible && !teamEligibility.getIsQuotaFilled();
+				if ( submissionCount > limit.getMaximumSubmissions()) {
+					teamEligibility.setIsQuotaFilled(true);
+					isTeamEligible = false;
+					break;
+				}
 			}
 		}
 		
@@ -188,7 +190,7 @@ public class SubmissionEligibilityManagerImpl implements
 						currentRound.getRoundEnd(), STATUSES_COUNTED_TOWARD_QUOTA);
 				for (Long principalId : subsByMembers.keySet()) {
 					MemberSubmissionEligibility se = membersEligibilityMap.get(principalId);
-					se.setIsQuotaFilled(se.getIsQuotaFilled() || subsByMembers.get(principalId) >= limit.getMaximumSubmissions());
+					se.setIsQuotaFilled(se.getIsQuotaFilled() || subsByMembers.get(principalId) > limit.getMaximumSubmissions());
 				}
 			}
 		}
@@ -239,7 +241,7 @@ public class SubmissionEligibilityManagerImpl implements
 		} catch (NumberFormatException e) {
 			return AuthorizationStatus.accessDenied("Submission Eligibilty Hash is invalid.");
 		}
-		TeamSubmissionEligibility tse = getTeamSubmissionEligibility(evaluation, teamId);
+		TeamSubmissionEligibility tse = getTeamSubmissionEligibility(evaluation, teamId, now);
 		if (seHash!=computeTeamSubmissionEligibilityHash(tse)) 
 			return AuthorizationStatus.accessDenied("Submissions or Team composition have changed.  Please try again.");
 

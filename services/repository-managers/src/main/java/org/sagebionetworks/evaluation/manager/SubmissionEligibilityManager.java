@@ -15,7 +15,7 @@ public interface SubmissionEligibilityManager {
 	/*
 	 * Compute the submission eligibility information for the given evaluation and team
 	 */
-	public TeamSubmissionEligibility getTeamSubmissionEligibility(Evaluation evaluation, String teamId) throws DatastoreException, NumberFormatException, NotFoundException;
+	public TeamSubmissionEligibility getTeamSubmissionEligibility(Evaluation evaluation, String teamId, Date now) throws DatastoreException, NumberFormatException, NotFoundException;
 	
 	/*
 	 * Determine whether a Team and its members are authorized to submit to 
