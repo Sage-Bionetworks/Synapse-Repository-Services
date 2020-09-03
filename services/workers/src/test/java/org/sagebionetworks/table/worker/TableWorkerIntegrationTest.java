@@ -1,34 +1,11 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.io.StringReader;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.UUID;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
+import au.com.bytecode.opencsv.CSVReader;
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -128,13 +105,34 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.StringReader;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
-import au.com.bytecode.opencsv.CSVReader;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -2338,6 +2336,87 @@ public class TableWorkerIntegrationTest {
 			//result should not have changed
 			assertEquals(Arrays.asList("[\"1\", \"2\", \"3\"]"), result.getQueryResults().getRows().get(0).getValues());
 			assertEquals(Arrays.asList("[\"3\", \"4\", \"5\"]"), result.getQueryResults().getRows().get(1).getValues());
+		});
+	}
+
+	@Test
+	public void testNotHasQuery() throws Exception{
+		// setup an EntityId column.
+		ColumnModel startColumn = new ColumnModel();
+		startColumn.setColumnType(ColumnType.STRING_LIST);
+		startColumn.setName("startColumn");
+		startColumn = columnManager.createColumnModel(adminUserInfo, startColumn);
+		schema = Lists.newArrayList(startColumn);
+		// build a table with this column.
+		createTableWithSchema();
+		TableStatus status = waitForTableProcessing(tableId);
+		if(status.getErrorDetails() != null){
+			System.out.println(status.getErrorDetails());
+		}
+		assertTrue(TableState.AVAILABLE.equals(status.getState()));
+
+
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(
+				TableModelTestUtils.createRow(null, null, "[\"asdf\",\"qwerty\",\"ggggg\"]"),
+				TableModelTestUtils.createRow(null, null, "[\"asdf\",\"ayyyyyy\",\"ggggg\"]"),
+				TableModelTestUtils.createRow(null, null, "[\"aAAAAAAA\",\"yeeeeet\",\"ggggg\"]")));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = appendRows(adminUserInfo, tableId,
+				rowSet, mockProgressCallback);
+
+		//query the column expecting the index table for it to be populated
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where startColumn not has ('asdf') order by row_id", null, null, (queryResult) -> {
+			assertEquals(1, queryResult.getQueryResults().getRows().size());
+			assertEquals(Arrays.asList("[\"aAAAAAAA\", \"yeeeeet\", \"ggggg\"]"), queryResult.getQueryResults().getRows().get(0).getValues());
+		});
+
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where startColumn not has ('ayyyyyy') order by row_id", null, null, (queryResult) -> {
+			assertEquals(2, queryResult.getQueryResults().getRows().size());
+			assertEquals(Arrays.asList("[\"asdf\", \"qwerty\", \"ggggg\"]"), queryResult.getQueryResults().getRows().get(0).getValues());
+			assertEquals(Arrays.asList("[\"aAAAAAAA\", \"yeeeeet\", \"ggggg\"]"), queryResult.getQueryResults().getRows().get(1).getValues());
+
+		});
+
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where startColumn not has ('ggggg') order by row_id", null, null, (queryResult) -> {
+			assertEquals(0, queryResult.getQueryResults().getRows().size());
+		});
+	}
+
+	@Test
+	public void testCurrentUserQuery() throws Exception{
+		// setup an EntityId column.
+		ColumnModel userIDColumn = new ColumnModel();
+		userIDColumn.setColumnType(ColumnType.USERID);
+		userIDColumn.setName("userIDcolumn");
+		userIDColumn = columnManager.createColumnModel(adminUserInfo, userIDColumn);
+		schema = Lists.newArrayList(userIDColumn);
+		// build a table with this column.
+		createTableWithSchema();
+		TableStatus status = waitForTableProcessing(tableId);
+		assertTrue(TableState.AVAILABLE.equals(status.getState()));
+
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(
+				TableModelTestUtils.createRow(null, null, adminUserInfo.getId().toString()),
+				TableModelTestUtils.createRow(null, null, "2"),
+				TableModelTestUtils.createRow(null, null, "3")));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = appendRows(adminUserInfo, tableId,
+				rowSet, mockProgressCallback);
+
+		//query the column and check if the results match the userId
+		waitForConsistentQuery(adminUserInfo, "select userIDcolumn from " + tableId + " where userIDcolumn = CURRENT_USER()", null, null, (queryResult) -> {
+			assertEquals(1, queryResult.getQueryResults().getRows().size());
+			assertEquals(1, queryResult.getQueryResults().getRows().get(0).getValues().size());
+			assertEquals(Arrays.asList(adminUserInfo.getId().toString()), queryResult.getQueryResults().getRows().get(0).getValues());
+		});
+		waitForConsistentQuery(adminUserInfo, "select CURRENT_USER() from " + tableId + " where userIDcolumn = CURRENT_USER()", null, null, (queryResult) -> {
+			assertEquals(1, queryResult.getQueryResults().getRows().size());
+			assertEquals(1, queryResult.getQueryResults().getRows().get(0).getValues().size());
+			assertEquals(Arrays.asList(adminUserInfo.getId().toString()), queryResult.getQueryResults().getRows().get(0).getValues());
 		});
 	}
 

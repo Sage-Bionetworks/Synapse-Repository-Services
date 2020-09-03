@@ -45,6 +45,10 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsRequest;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsResponse;
+import org.sagebionetworks.repo.model.schema.ValidationResults;
+import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.repo.model.sts.StsCredentials;
 import org.sagebionetworks.repo.model.sts.StsPermission;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -886,7 +890,7 @@ public class EntityController {
 	 *                                    header.
 	 * @throws ConflictingUpdateException
 	 */
-	@RequiredScope({ view, modify, authorize })
+	@RequiredScope({ view, modify })
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_ACL }, method = RequestMethod.POST)
 	public @ResponseBody AccessControlList createEntityAcl(@PathVariable String id,
@@ -944,7 +948,7 @@ public class EntityController {
 	 * @throws UnauthorizedException
 	 * @throws ConflictingUpdateException
 	 */
-	@RequiredScope({ view, modify, authorize })
+	@RequiredScope({ view, modify })
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_ACL }, method = RequestMethod.PUT)
 	public @ResponseBody AccessControlList updateEntityAcl(@PathVariable String id,
@@ -991,7 +995,7 @@ public class EntityController {
 	 * @throws UnauthorizedException
 	 * @throws ConflictingUpdateException
 	 */
-	@RequiredScope({ modify, authorize })
+	@RequiredScope({ modify })
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_ACL }, method = RequestMethod.DELETE)
 	public void deleteEntityACL(@PathVariable String id,
@@ -1642,13 +1646,13 @@ public class EntityController {
 	/**
 	 * Update the annotations of an entity using the raw JSON of the entity.
 	 * <p>
-	 * See: <a href="${GET.entity.id.json}">GET entity/{id}/json</a> to get the
-	 * JSON of an entity.
+	 * See: <a href="${GET.entity.id.json}">GET entity/{id}/json</a> to get the JSON
+	 * of an entity.
 	 * </p>
 	 * <p>
 	 * Note: The caller must be granted the
-	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.UPDATE</a>
-	 * permission on the Entity.
+	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.UPDATE
+	 * and ACCESS_TYPE.READ</a> permission on the Entity.
 	 * </p>
 	 * 
 	 * @param userId
@@ -1663,5 +1667,95 @@ public class EntityController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(required = true) String id, @RequestBody(required = true) JSONObject request) {
 		return serviceProvider.getEntityService().updateEntityJson(userId, id, request);
+	}
+
+	/**
+	 * Get the validation results of an Entity against its bound JSON schema. The
+	 * validation of an Entity against its bound schema is automatic and eventually
+	 * consistent. The validation results include the etag of the Entity at the time
+	 * of the last validation. If the returned etag does not match the current etag
+	 * of the Entity then the results should be considered out-of-date. If an Entity
+	 * has not been validated for the first time, or if the Entity does not have a
+	 * bound schema, this method will return a 404 (not-found). Keep checking for
+	 * the latest validation results.
+	 * <p>
+	 * Note: The caller must be granted the
+	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.READ</a>
+	 * permission on the Entity.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id     The ID of the Entity.
+	 * @return
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_ID_VALIDATION }, method = RequestMethod.GET)
+	public @ResponseBody ValidationResults getEntitySchemaValidationResults(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(required = true) String id) {
+		return serviceProvider.getEntityService().getEntitySchemaValidationResults(userId, id);
+	}
+
+	/**
+	 * Get the The summary statistics of the JSON schema validation results for a
+	 * single container Entity such as a Project or Folder. Only direct children of
+	 * the container are included in the results. The statistics include the total
+	 * number of children in the container, and the counts for both the invalid and
+	 * valid children. If an Entity has not been validated for the first time, or it
+	 * does not have bound schema it will be counted as 'unknown'.
+	 * <p>
+	 * The validation of an Entity against its bound schema is automatic and
+	 * eventually consistent. Keep checking this method to get the latest validation
+	 * statistics for the given container.
+	 * </p>
+	 * <p>
+	 * Note: The caller must be granted the
+	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.READ</a>
+	 * permission on the container Entity. The resulting statistics will only
+	 * include children that the caller has the READ permission on.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id     The ID of the container Entity.
+	 * @return
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_ID_VALIDATION_STATISTICS }, method = RequestMethod.GET)
+	public @ResponseBody ValidationSummaryStatistics getEntitySchemaValidationStatistics(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(required = true) String id) {
+		return serviceProvider.getEntityService().getEntitySchemaValidationSummaryStatistics(userId, id);
+	}
+
+	/**
+	 * Get a single page of invalid JSON schema validation results for a container
+	 * Entity (Project or Folder). The validation of an Entity against its bound
+	 * schema is automatic and eventually consistent. The validation results include
+	 * the etag of the Entity at the time of the last validation. If the returned
+	 * etag does not match the current etag of the Entity then the results should be
+	 * considered out-of-date. 
+	 * <p>
+	 * Note: The caller must be granted the
+	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.READ</a>
+	 * permission on the container Entity. The results will only include children
+	 * that the caller has the READ permission on.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id      The ID of the container Entity.
+	 * @param request
+	 * @return
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_ID_VALIDATION_INVALID }, method = RequestMethod.POST)
+	public @ResponseBody ListValidationResultsResponse getInvalidValidationResults(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(required = true) String id,
+			@RequestBody(required = true) ListValidationResultsRequest request) {
+		request.setContainerId(id);
+		return serviceProvider.getEntityService().getInvalidEntitySchemaValidationResults(userId, request);
 	}
 }

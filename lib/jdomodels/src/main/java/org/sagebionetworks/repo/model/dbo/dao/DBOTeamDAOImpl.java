@@ -301,7 +301,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		dbo.setEtag(UUID.randomUUID().toString());
 		dbo = basicDao.createNew(dbo);
 		Team result = TeamUtils.copyDboToDto(dbo);
-		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.PRINCIPAL, dbo.getEtag(), ChangeType.CREATE);
+		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.PRINCIPAL, ChangeType.CREATE);
 		return result;
 	}
 
@@ -449,7 +449,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		boolean success = basicDao.update(dbo);
 		if (!success) throw new DatastoreException("Unsuccessful updating Team in database.");
 		// update message.
-		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.PRINCIPAL, dbo.getEtag(), ChangeType.UPDATE);
+		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.PRINCIPAL, ChangeType.UPDATE);
 		Team resultantDto = TeamUtils.copyDboToDto(dbo);
 		
 		return resultantDto;

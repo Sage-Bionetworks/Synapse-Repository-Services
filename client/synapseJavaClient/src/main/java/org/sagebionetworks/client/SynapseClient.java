@@ -87,6 +87,8 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
@@ -213,7 +215,11 @@ import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoRequest;
 import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsRequest;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.model.schema.ValidationResults;
+import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsRequest;
@@ -3297,6 +3303,15 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	BatchAccessApprovalInfoResponse getBatchAccessApprovalInfo(BatchAccessApprovalInfoRequest request) throws SynapseException;
+	
+	/**
+	 * Fetch the notifications for an AR and a list of recipients
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	AccessApprovalNotificationResponse getAccessApprovalNotifications(AccessApprovalNotificationRequest request) throws SynapseException;
 
 	/**
 	 * Retrieve a page of subjects for a given access requirement ID.
@@ -3788,5 +3803,36 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	JSONObject updateEntityJson(String entityId, JSONObject json) throws SynapseException;
+
+	/**
+	 * Get the validation results of an Entity against its bound JSON schema.
+	 * 
+	 * @param entityId
+	 * @return
+	 * @throws SynapseException
+	 */
+	ValidationResults getEntityValidationResults(String entityId) throws SynapseException;
+
+	/**
+	 * Get the The summary statistics of the JSON schema validation results for a
+	 * single container Entity such as a Project or Folder. Only direct children of
+	 * the container are included in the results. The statistics include the total
+	 * number of children in the container, and the counts for both the invalid and
+	 * valid children.
+	 * @param containerId
+	 * @return
+	 * @throws SynapseException
+	 */
+	ValidationSummaryStatistics getEntitySchemaValidationStatistics(String containerId) throws SynapseException;
+
+	/**
+	 * Get a single page of invalid JSON schema validation results for a container
+	 * Entity (Project or Folder).
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	ListValidationResultsResponse getInvalidValidationResults(ListValidationResultsRequest request)
+			throws SynapseException;
 
 }

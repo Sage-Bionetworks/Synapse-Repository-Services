@@ -90,7 +90,7 @@ public interface JsonSchemaDao {
 	 * 
 	 * @param schemaId
 	 */
-	int deleteSchema(String schemaId);
+	void deleteSchema(String schemaId);
 
 	/**
 	 * Delete a specific version of a schema.

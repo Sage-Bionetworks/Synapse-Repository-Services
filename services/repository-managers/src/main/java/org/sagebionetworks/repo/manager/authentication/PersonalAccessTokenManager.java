@@ -15,7 +15,7 @@ public interface PersonalAccessTokenManager {
 	 * @param request
 	 * @return
 	 */
-	AccessTokenGenerationResponse issueToken(UserInfo userInfo, AccessTokenGenerationRequest request, String oauthEndpoint);
+	AccessTokenGenerationResponse issueToken(UserInfo userInfo, String accessToken, AccessTokenGenerationRequest request, String oauthEndpoint);
 
 	/**
 	 * Determine if a personal access token is active or not.

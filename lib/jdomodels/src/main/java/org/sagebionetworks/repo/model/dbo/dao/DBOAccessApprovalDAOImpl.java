@@ -18,8 +18,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -163,12 +161,20 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+ " ORDER BY " + COL_ACCESS_APPROVAL_EXPIRED_ON
 			+ " LIMIT ?";
 	
-	private static final String SQL_SELECT_EXPIRED_APPORVALS_FOR_SUBMMITER = SQL_SELECT_APPROVED_IDS
-			+ " AND " + COL_ACCESS_APPROVAL_EXPIRED_ON + " >= ?"
-			+ " AND " + COL_ACCESS_APPROVAL_EXPIRED_ON + " < ?"
+	private static final String SQL_SELECT_APPROVALS_FOR_SUBMITTER_COUNT =  "SELECT COUNT(" + COL_ACCESS_APPROVAL_ID + ")" 
+			+ " FROM " + TABLE_ACCESS_APPROVAL
+			+ " WHERE " + COL_ACCESS_APPROVAL_REQUIREMENT_ID + " = ?"
+			+ " AND " + COL_ACCESS_APPROVAL_SUBMITTER_ID + " = ?"
+			+ " AND " + COL_ACCESS_APPROVAL_STATE + " = '" + ApprovalState.APPROVED.name() + "'"
 			// Only the submitter approvals
-			+ " AND " + COL_ACCESS_APPROVAL_ACCESSOR_ID + " = " + COL_ACCESS_APPROVAL_SUBMITTER_ID
-			+ " LIMIT ?";
+			+ " AND " + COL_ACCESS_APPROVAL_SUBMITTER_ID + " = " + COL_ACCESS_APPROVAL_ACCESSOR_ID
+			+ " AND (" + COL_ACCESS_APPROVAL_EXPIRED_ON + " > ? OR " + COL_ACCESS_APPROVAL_EXPIRED_ON + " = " + DEFAULT_NOT_EXPIRED + ")";
+	
+	private static final String SQL_SELECT_APPROVALS_FOR_ACCESSOR_COUNT =  "SELECT COUNT(" + COL_ACCESS_APPROVAL_ID + ")" 
+			+ " FROM " + TABLE_ACCESS_APPROVAL
+			+ " WHERE " + COL_ACCESS_APPROVAL_REQUIREMENT_ID + " = ?"
+			+ " AND " + COL_ACCESS_APPROVAL_ACCESSOR_ID + " = ?"
+			+ " AND " + COL_ACCESS_APPROVAL_STATE + " = '" + ApprovalState.APPROVED.name() + "'";
 	
 	private static final String SQL_SELECT_APPROVALS_BY_ACCESSOR = SQL_SELECT_APPROVED_IDS
 			+ " AND " + COL_ACCESS_APPROVAL_REQUIREMENT_ID + " = ?"
@@ -412,17 +418,25 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	}
 	
 	@Override
-	public List<Long> listExpiredApprovalsForSubmitters(LocalDate expirationDate, int limit) {
-		ValidateArgument.required(expirationDate, "expirationDate");
-		ValidateArgument.requirement(limit > 0, "The limit must be greater than 0.");
+	public boolean hasAccessorApproval(String accessRequirementId, String accessorId) {
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		ValidateArgument.required(accessorId, "accessorId");
 		
-		Instant startOfDay = expirationDate.atStartOfDay(ZoneOffset.UTC).toInstant();
-		Instant startOfNextDay = expirationDate.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+		return jdbcTemplate.queryForObject(SQL_SELECT_APPROVALS_FOR_ACCESSOR_COUNT, Long.class,
+				accessRequirementId,
+				accessorId) > 0;
+	}
+	
+	@Override
+	public boolean hasSubmitterApproval(String accessRequirementId, String submitterId, Instant expireAfter) {
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		ValidateArgument.required(submitterId, "submitterId");
+		ValidateArgument.required(expireAfter, "expireAfter");
 		
-		return jdbcTemplate.queryForList(SQL_SELECT_EXPIRED_APPORVALS_FOR_SUBMMITER, Long.class, 
-				startOfDay.toEpochMilli(), 
-				startOfNextDay.toEpochMilli(), 
-				limit);
+		return jdbcTemplate.queryForObject(SQL_SELECT_APPROVALS_FOR_SUBMITTER_COUNT, Long.class,
+				accessRequirementId,
+				submitterId, 
+				expireAfter.toEpochMilli()) > 0;
 	}
 	
 	@Override

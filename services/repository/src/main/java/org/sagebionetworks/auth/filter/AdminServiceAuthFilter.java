@@ -15,15 +15,15 @@ import org.sagebionetworks.util.TemporaryCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-@Component("migrationServiceAuthFilter")
-public class MigrationServiceAuthFilter extends BasicAuthServiceFilter {
+@Component("adminServiceAuthFilter")
+public class AdminServiceAuthFilter extends BasicAuthServiceFilter {
 
 	@Autowired
-	public MigrationServiceAuthFilter(StackConfiguration config, Consumer consumer) {
-		super(config, consumer, new StackConfigKeyAndSecretProvider(config, StackConfiguration.SERVICE_MIGRATION));
+	public AdminServiceAuthFilter(StackConfiguration config, Consumer consumer) {
+		super(config, consumer, new StackConfigKeyAndSecretProvider(config, StackConfiguration.SERVICE_ADMIN));
 	}
 	
-	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "This allows backward compatibility, remove after stack 318")
+	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "This allows backward compatibility, can be removed once all the admin clients are updated.")
 	@Override
 	protected boolean credentialsRequired() {
 		return false;
@@ -35,7 +35,7 @@ public class MigrationServiceAuthFilter extends BasicAuthServiceFilter {
 		return true;
 	}
 	
-	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "This allows backward compatibility, remove after stack 318")
+	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "This allows backward compatibility, can be removed once all the admin clients are updated.")
 	@Override
 	protected void validateCredentialsAndDoFilterInternal(HttpServletRequest httpRequest,
 			HttpServletResponse httpResponse, FilterChain filterChain, Optional<UserNameAndPassword> credentials)

@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
@@ -81,12 +80,10 @@ public class DBOUserGroupDAOImplUnitTest {
 		userGroupDAO.create(ug);
 		ArgumentCaptor<Long> idCapture = ArgumentCaptor.forClass(Long.class);
 		ArgumentCaptor<ObjectType> objectTypeCapture = ArgumentCaptor.forClass(ObjectType.class);
-		ArgumentCaptor<String> etagCapture = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<ChangeType> typeCapture = ArgumentCaptor.forClass(ChangeType.class);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(idCapture.capture().toString(), objectTypeCapture.capture(), etagCapture.capture(), typeCapture.capture());
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(idCapture.capture().toString(), objectTypeCapture.capture(), typeCapture.capture());
 		assertEquals(idCapture.getValue(), id.toString());
 		assertEquals(ObjectType.PRINCIPAL, objectTypeCapture.getValue());
-		assertNotNull(etagCapture.getValue());
 		assertEquals(ChangeType.CREATE, typeCapture.getValue());
 	}
 	
@@ -95,12 +92,10 @@ public class DBOUserGroupDAOImplUnitTest {
 		userGroupDAO.update(ug);
 		ArgumentCaptor<Long> idCapture = ArgumentCaptor.forClass(Long.class);
 		ArgumentCaptor<ObjectType> objectTypeCapture = ArgumentCaptor.forClass(ObjectType.class);
-		ArgumentCaptor<String> etagCapture = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<ChangeType> typeCapture = ArgumentCaptor.forClass(ChangeType.class);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(idCapture.capture().toString(), objectTypeCapture.capture(), etagCapture.capture(), typeCapture.capture());
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(idCapture.capture().toString(), objectTypeCapture.capture(), typeCapture.capture());
 		assertEquals(idCapture.getValue(), id.toString());
 		assertEquals(ObjectType.PRINCIPAL, objectTypeCapture.getValue());
-		assertNotNull(etagCapture.getValue());
 		assertEquals(ChangeType.UPDATE, typeCapture.getValue());
 	}
 

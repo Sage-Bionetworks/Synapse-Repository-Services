@@ -2193,6 +2193,24 @@ public class TableIndexManagerImplTest {
 		assertEquals("The size of the column 'foo' is too small.  The column size needs to be at least 11 characters.", ex.getMessage());
 	}
 
+	@Test
+	public void testRefreshViewBenefactors() {
+		IdAndVersion viewId = IdAndVersion.parse("syn123");
+		when(mockManagerSupport.getViewScopeType(any())).thenReturn(scopeType);
+		// call under test
+		manager.refreshViewBenefactors(viewId);
+		verify(mockManagerSupport).getViewScopeType(viewId);
+		verify(mockIndexDao).refreshViewBenefactors(viewId, scopeType.getObjectType());
+	}
+	
+	@Test
+	public void testRefreshViewBenefactorsNullId() {
+		IdAndVersion viewId = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.refreshViewBenefactors(viewId);
+		});
+	}
 
 	
 	@SuppressWarnings("unchecked")

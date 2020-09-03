@@ -1,0 +1,14 @@
+{
+	"description": "The name of the feature that can be enabled or disabled globally",
+	"type": "string",
+	"enum": [
+        {
+            "name": "DATA_ACCESS_NOTIFICATIONS",
+            "description": "Data access automatic reminders and revocation notifications"
+        },
+        {
+            "name": "DATA_ACCESS_AUTO_REVOCATION",
+            "description": "Data access automatic revocation of expired approvals"
+        }
+    ]
+}

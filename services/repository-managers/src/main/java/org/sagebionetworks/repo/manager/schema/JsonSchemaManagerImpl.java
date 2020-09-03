@@ -58,6 +58,8 @@ import com.google.common.collect.Sets;
 @Service
 public class JsonSchemaManagerImpl implements JsonSchemaManager {
 
+	public static final String REFS_OF_VERSIONS_MUST_INCLUDE_SEMANTIC_VERSION = "The schema $id includes a semantic version, therefore all sub-schema references ($ref) must also include a semantic version.  The following $ref does not include a semantic version: '%s'";
+
 	public static final String SAGEBIONETWORKS_RESERVED_MESSAGE = "The name 'sagebionetworks' is reserved, and cannot be included in an Organziation's name";
 
 	public static final int MAX_ORGANZIATION_NAME_CHARS = 250;
@@ -189,7 +191,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 
 		AuthorizationUtils.disallowAnonymous(user);
 
-		SchemaId schemaId = SchemaIdParser.parseSchemaId(request.getSchema().get$id());
+		SchemaId schemaId = validateSchema(request.getSchema());
 
 		String semanticVersionString = null;
 		if (schemaId.getSemanticVersion() != null) {
@@ -215,6 +217,37 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		response.setNewVersionInfo(info);
 		response.setValidationSchema(validationSchema);
 		return response;
+	}
+	
+	/**
+	 * Validate the given schema.
+	 * 
+	 * @param schema
+	 * @return
+	 */
+	SchemaId validateSchema(JsonSchema schema) {
+		ValidateArgument.required(schema, "schema");
+		ValidateArgument.required(schema.get$id(), "schema.$id");
+		SchemaId schemaId = SchemaIdParser.parseSchemaId(schema.get$id());
+		if (schemaId.getSemanticVersion() != null) {
+			/*
+			 * Any schema that includes a semantic version in its $id must be immutable.
+			 * Part of enforcing immutability is to ensure that all referenced schemas are
+			 * also immutable. Therefore all $refs must also refer to a specific semantic
+			 * version.
+			 */
+			for (JsonSchema subSchema : SubSchemaIterable.depthFirstIterable(schema)) {
+				if (subSchema.get$ref() != null) {
+					SchemaId $ref$Id = SchemaIdParser.parseSchemaId(subSchema.get$ref());
+					if ($ref$Id.getSemanticVersion() == null) {
+						throw new IllegalArgumentException(
+								String.format(REFS_OF_VERSIONS_MUST_INCLUDE_SEMANTIC_VERSION, subSchema.get$ref()));
+					}
+				}
+			}
+		}
+
+		return schemaId;
 	}
 
 	/**
@@ -365,32 +398,33 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	}
 
 	/**
-	 * 
+	 * Get the validation schema for the given $id.
 	 * 
 	 * @param id
 	 * @return
 	 */
 	@Override
-	public JsonSchema getValidationSchema(String id) {
+	public JsonSchema getValidationSchema(String $id) {
+		ValidateArgument.required($id, "$id");
 		Deque<String> visitedStack = new ArrayDeque<String>();
-		return getValidationSchema(visitedStack, id);
+		return getValidationSchema(visitedStack, $id);
 	}
 
 	/**
-	 * Recursively
+	 * Recursively build the validation schema for the given $id.
 	 * 
 	 * @param visitedSchemas
-	 * @param id
+	 * @param $id
 	 * @return
 	 */
-	JsonSchema getValidationSchema(Deque<String> visitedStack, String id) {
+	JsonSchema getValidationSchema(Deque<String> visitedStack, String $id) {
 		// duplicates are allowed but cycles are not
-		if (visitedStack.contains(id)) {
-			throw new IllegalArgumentException("Schema $id: '" + id + "' has a circular dependency");
+		if (visitedStack.contains($id)) {
+			throw new IllegalArgumentException("Schema $id: '" + $id + "' has a circular dependency");
 		}
-		visitedStack.push(id);
+		visitedStack.push($id);
 		// get the base schema
-		JsonSchema baseSchema = getSchema(id);
+		JsonSchema baseSchema = getSchema($id);
 		if (baseSchema.getDefinitions() == null) {
 			baseSchema.setDefinitions(new LinkedHashMap<String, JsonSchema>());
 		}

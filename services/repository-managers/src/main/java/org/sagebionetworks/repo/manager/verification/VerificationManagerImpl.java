@@ -125,8 +125,7 @@ public class VerificationManagerImpl implements VerificationManager {
 		}
 		// Note: We use the user id instead of the verification submission id so that we record all the submissions of the user
 		// See (VerificationSubmissionObjectRecordWriter)
-		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.VERIFICATION_SUBMISSION, "etag",
-				ChangeType.CREATE);
+		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.VERIFICATION_SUBMISSION, ChangeType.CREATE);
 		return verificationDao.createVerificationSubmission(verificationSubmission);
 	}
 	
@@ -214,7 +213,7 @@ public class VerificationManagerImpl implements VerificationManager {
 		newState.setCreatedOn(new Date());
 	
 		verificationDao.appendVerificationSubmissionState(verificationSubmissionId, newState);
-		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.UPDATE);
+		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.VERIFICATION_SUBMISSION, ChangeType.UPDATE);
 	}
 	
 	@Override

@@ -395,7 +395,7 @@ public class NodeManagerImpl implements NodeManager {
 			
 			if(NodeUtils.isProjectOrFolder(updatedNode.getNodeType())){
 				// Notify listeners of the hierarchy change to this container.
-				transactionalMessenger.sendMessageAfterCommit(updatedNode.getId(), ObjectType.ENTITY_CONTAINER, nextETag, ChangeType.UPDATE);
+				transactionalMessenger.sendMessageAfterCommit(updatedNode.getId(), ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
 			}
 		}
 
@@ -499,6 +499,7 @@ public class NodeManagerImpl implements NodeManager {
 		return getNodeType(nodeId);
 	}
 	
+	@Override
 	public EntityType getNodeType(String entityId) {
 		return nodeDao.getNodeTypeById(entityId);
 	}

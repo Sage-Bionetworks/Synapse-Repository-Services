@@ -28,9 +28,9 @@ public abstract class OAuthException extends RuntimeException {
 	 * @param rootCause
 	 */
 	public OAuthException(OAuthErrorCode error, Throwable rootCause) {
-		super(error.name(), rootCause);
+		super(error.name() + " " + rootCause.getMessage(), rootCause);
 		this.error = error;
-		this.errorDescription = null;
+		this.errorDescription = rootCause.getMessage();
 	}
 
 	/**

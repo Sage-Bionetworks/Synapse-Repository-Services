@@ -1,22 +1,10 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.common.collect.Lists;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -36,9 +24,11 @@ import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.CurrentUserFunction;
 import org.sagebionetworks.table.query.model.DelimitedIdentifier;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.Element;
+import org.sagebionetworks.table.query.model.ExactNumericLiteral;
 import org.sagebionetworks.table.query.model.FromClause;
 import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.GroupByClause;
@@ -51,6 +41,7 @@ import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.IntervalLiteral;
 import org.sagebionetworks.table.query.model.JoinCondition;
 import org.sagebionetworks.table.query.model.JoinType;
+import org.sagebionetworks.table.query.model.NumericValueFunction;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.OuterJoinType;
 import org.sagebionetworks.table.query.model.Pagination;
@@ -64,13 +55,25 @@ import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.TableName;
 import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
+import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
 
-import com.google.common.collect.Lists;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 /**
  * Helper methods to translate user generated queries
@@ -301,7 +304,9 @@ public class SQLTranslatorUtils {
 	 */
 	public static void translateModel(QuerySpecification transformedModel,
 			Map<String, Object> parameters,
-		  ColumnTranslationReferenceLookup columnTranslationReferenceLookup) {
+		  ColumnTranslationReferenceLookup columnTranslationReferenceLookup, Long userId) {
+
+		translateSynapseFunctions(transformedModel, userId);
 
 		// Select columns
 		Iterable<HasReferencedColumn> selectColumns = transformedModel.getSelectList().createIterable(HasReferencedColumn.class);
@@ -320,6 +325,7 @@ public class SQLTranslatorUtils {
 
 		// Translate where
 		WhereClause whereClause = tableExpression.getWhereClause();
+
 		if(whereClause != null) {
 			// Translate all predicates
 			Iterable<HasPredicate> hasPredicates = whereClause.createIterable(HasPredicate.class);
@@ -327,8 +333,6 @@ public class SQLTranslatorUtils {
 				translate(predicate, parameters, columnTranslationReferenceLookup);
 			}
 
-			//once all row names are translated and predicate values are replaced with bind variables
-			//transform Synapse-specific predicate into MySQL
 			for (BooleanPrimary booleanPrimary : whereClause.createIterable(BooleanPrimary.class)) {
 				replaceBooleanFunction(booleanPrimary, columnTranslationReferenceLookup);
 				replaceArrayHasPredicate(booleanPrimary, columnTranslationReferenceLookup, originalSynId);
@@ -366,6 +370,7 @@ public class SQLTranslatorUtils {
 		 */
 		translateUnresolvedDelimitedIdentifiers(transformedModel);
 	}
+
 
 	/**
 	 * Translates FROM clause and returns the original Synapse IdAndVersion that was translated
@@ -550,9 +555,24 @@ public class SQLTranslatorUtils {
 				});
 		}
 	}
-	
-	
-	
+
+	/**
+	 * Translate instances of Synapse functions not supported by SQL
+	 *
+	 * @param transformedModel
+	 * @param userId
+	 */
+	public static void translateSynapseFunctions(QuerySpecification transformedModel, Long userId){
+		// Insert userId if needed
+		Iterable<NumericValueFunction> hasUser = transformedModel.createIterable(NumericValueFunction.class);
+		for(NumericValueFunction pred: hasUser){
+			if(pred.getChild() instanceof CurrentUserFunction){
+				// UnsignedLiterals are needed in order for the value to be bound as a parameter
+				pred.replaceChildren(new UnsignedLiteral(new UnsignedNumericLiteral(new ExactNumericLiteral(userId))));
+			}
+		}
+	}
+
 	/**
 	 * Translate the right-hand-side of a predicate.
 	 * 
@@ -655,13 +675,13 @@ public class SQLTranslatorUtils {
 
 			//create a "IN" predicate that has the same right hand side as the "HAS" predicate for the subquery
 			ColumnReference unnestedColumn = SqlElementUntils.createColumnReference(SQLUtils.getUnnestedColumnNameForId(schemaColumnTranslationReference.getId()));
-			InPredicate subqueryInPredicate = new InPredicate(unnestedColumn, arrayHasPredicate.getNot(), arrayHasPredicate.getInPredicateValue());
+			InPredicate subqueryInPredicate = new InPredicate(unnestedColumn, null, arrayHasPredicate.getInPredicateValue());
 			subquery.getFirstElementOfType(Predicate.class).replaceChildren(subqueryInPredicate);
 
 			//replace the "HAS" with "IN" predicate containing the subquery
 			Predicate replacementPredicate = new Predicate(new InPredicate(
 					SqlElementUntils.createColumnReference(ROW_ID),
-					null,
+					arrayHasPredicate.getNot(),
 					new InPredicateValue(subquery)));
 
 			booleanPrimary.getPredicate().replaceChildren(replacementPredicate);

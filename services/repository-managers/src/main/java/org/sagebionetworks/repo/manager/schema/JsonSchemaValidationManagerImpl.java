@@ -34,6 +34,7 @@ public class JsonSchemaValidationManagerImpl implements JsonSchemaValidationMana
 		result.setObjectId(subject.getObjectId());
 		result.setObjectType(subject.getObjectType());
 		result.setObjectEtag(subject.getObjectEtag());
+		result.setSchema$id(jsonSchema.get$id());
 		result.setValidatedOn(new Date());
 		String validationSchemaJson = EntityFactory.createJSONStringForEntity(jsonSchema);
 		Schema schemaValidator = SchemaLoader.load(new JSONObject(validationSchemaJson));

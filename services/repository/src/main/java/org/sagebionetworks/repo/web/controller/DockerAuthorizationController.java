@@ -1,9 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.sagebionetworks.repo.model.oauth.OAuthScope.authorize;
-
 import java.util.List;
 
+import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -14,6 +13,7 @@ import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -24,6 +24,13 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * 
  * These services allow Synapse to act as an authorization service for a Docker Registry.
  * For more details see: https://github.com/docker/distribution/blob/master/docs/spec/auth/token.md
+ * 
+ * Authorization is either:
+ * <ul>
+ * <li>User name and password, included in the request as a Basic Authorization header</li>
+ * <li>An oauth access token, passed as a Bearer Authorization header.  To execute 'docker pull' the access token must include 'download'
+ * scope; to execute 'docker push' the access token must include 'modify' scope and should include 'download' scope.</li>
+ * </ul>
  * 
  *
  */
@@ -42,15 +49,17 @@ public class DockerAuthorizationController {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	@RequiredScope({authorize})
+	@RequiredScope({}) // Note we apply the required scope at the manager level
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DOCKER_AUTHORIZATION, method = RequestMethod.GET)
 	public @ResponseBody
 	DockerAuthorizationToken authorizeDockerAccess(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=false) String authorizationHeader,
 			@RequestParam(value = AuthorizationConstants.DOCKER_SERVICE_PARAM, required=true) String service,
 			@RequestParam(value = AuthorizationConstants.DOCKER_SCOPE_PARAM, required=false) List<String> scopes
 			) throws NotFoundException {
-		return serviceProvider.getDockerService().authorizeDockerAccess(userId, service, scopes);
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
+		return serviceProvider.getDockerService().authorizeDockerAccess(userId, accessToken, service, scopes);
 	}
 }

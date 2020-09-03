@@ -337,7 +337,7 @@ public class ITOpenIDConnectTest {
 					"&code="+oauthAuthorizationResponse.getAccess_code()+
 					"&redirect_uri="+client.getRedirect_uris().get(0);
 			SimpleHttpResponse response = simpleClient.post(request, requestBody);
-			assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+			assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 			assertNotNull(response.getContent());
 		}
 

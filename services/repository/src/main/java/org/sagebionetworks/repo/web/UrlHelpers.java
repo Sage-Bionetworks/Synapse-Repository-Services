@@ -235,6 +235,9 @@ public class UrlHelpers {
 	public static final String ENTITY_BIND_JSON_SCHEMA = ENTITY_ID+"/schema/binding";
 	
 	public static final String ENTITY_ID_JSON = ENTITY_ID+"/json";
+	public static final String ENTITY_ID_VALIDATION = ENTITY_ID+"/schema/validation";
+	public static final String ENTITY_ID_VALIDATION_STATISTICS = ENTITY_ID_VALIDATION+"/statistics";
+	public static final String ENTITY_ID_VALIDATION_INVALID = ENTITY_ID_VALIDATION+"/invalid";
 	
 	public static final String BULK_FILE_DOWNLOAD = FILE + "/bulk";
 	public static final String BULK_FILE_DOWNLOAD_ASYNC_START = BULK_FILE_DOWNLOAD + ASYNC_START_REQUEST;
@@ -539,11 +542,11 @@ public class UrlHelpers {
 	public static final String ACCESS_REQUIREMENT_VERSION = ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/version";
 
 	public static final String ACCESS_APPROVAL = "/accessApproval";
-	public static final String ACCESS_APPROVALS = "/accessApprovals";
 	public static final String ACCESS_APPROVAL_WITH_ENTITY_ID = ENTITY_ID+ACCESS_APPROVAL;
 	public static final String ACCESS_APPROVAL_WITH_APPROVAL_ID = ACCESS_APPROVAL+"/{approvalId}";
 	public static final String ACCESS_APPROVAL_GROUP = ACCESS_APPROVAL+"/group";
 	public static final String ACCESS_APPROVAL_GROUP_REVOKE = ACCESS_APPROVAL_GROUP+"/revoke";
+	public static final String ACCESS_APPROVAL_NOTIFICATIONS = ACCESS_APPROVAL + "/notifications";
 
 	public static final String ACCESS_APPROVAL_INFO = ACCESS_APPROVAL+"/information";
 
@@ -619,6 +622,16 @@ public class UrlHelpers {
 	 * Principal/User information removal for administrators.
 	 */
 	public static final String ADMIN_REDACT_USER = ADMIN + "/redact/user/{principalId}";
+
+	/**
+	 * Feature management endpoint
+	 */
+	public static final String ADMIN_FEATURE = ADMIN + "/feature";
+	
+	/**
+	 * Enable/disable a feature
+	 */
+	public static final String ADMIN_FEATURE_STATUS = ADMIN_FEATURE +"/{feature}/status";
 
 	/**
 	 * Public access for Synapse user and group info

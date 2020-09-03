@@ -1,5 +1,11 @@
 package org.sagebionetworks.repo.model.util;
 
+import com.google.common.collect.Sets;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+
+import java.util.Collections;
+import java.util.Set;
+
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.CHANGE_PERMISSIONS;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.CHANGE_SETTINGS;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.CREATE;
@@ -14,12 +20,6 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.SUBMIT;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE_SUBMISSION;
-
-import java.util.Collections;
-import java.util.Set;
-
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import com.google.common.collect.Sets;
 
 
 /**

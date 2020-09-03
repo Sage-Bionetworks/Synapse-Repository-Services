@@ -13,7 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.dataaccess.AccessApprovalNotificationManager;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
-import org.sagebionetworks.repo.model.dbo.feature.Feature;
+import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 
 

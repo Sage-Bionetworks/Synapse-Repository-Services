@@ -9,6 +9,7 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
+import org.sagebionetworks.repo.model.feature.Feature;
 
 public class ITMigrationTest {
 	
@@ -29,14 +30,21 @@ public class ITMigrationTest {
 			adminSynapse.getMigrationTypes();
 		});
 		
+		assertThrows(SynapseForbiddenException.class, () -> {			
+			adminSynapse.getFeatureStatus(Feature.DATA_ACCESS_AUTO_REVOCATION);
+		});
+		
 		// Set service basic auth
-		String key = stackConfig.getServiceAuthKey(StackConfiguration.SERVICE_MIGRATION);
-		String secret = stackConfig.getServiceAuthSecret(StackConfiguration.SERVICE_MIGRATION);
+		String key = stackConfig.getServiceAuthKey(StackConfiguration.SERVICE_ADMIN);
+		String secret = stackConfig.getServiceAuthSecret(StackConfiguration.SERVICE_ADMIN);
 		
 		adminSynapse.setBasicAuthorizationCredentials(key, secret);
 		
 		// This should now work
 		assertNotNull(adminSynapse.getMigrationTypes());
+		
+		// Additionally admin services should work as well
+		assertNotNull(adminSynapse.getFeatureStatus(Feature.DATA_ACCESS_AUTO_REVOCATION));
 		
 		// Clear basic auth
 		adminSynapse.removeAuthorizationHeader();
@@ -49,8 +57,9 @@ public class ITMigrationTest {
 		adminSynapse.setUsername(migrationUser);
 		adminSynapse.setApiKey(migrationKey);
 		
-		// This should still work
+		// Both the migration and admin services should still work with the API key
 		assertNotNull(adminSynapse.getMigrationTypes());
+		assertNotNull(adminSynapse.getFeatureStatus(Feature.DATA_ACCESS_AUTO_REVOCATION));
 	}
 	
 

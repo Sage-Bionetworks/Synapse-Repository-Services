@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.TableViewManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -99,7 +100,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -108,7 +108,6 @@ import com.google.common.collect.Sets;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-@ActiveProfiles("test-view-workers")
 public class TableViewIntegrationTest {
 	
 	public static final int MAX_WAIT_MS = 1000 * 60 * 3;
@@ -305,6 +304,7 @@ public class TableViewIntegrationTest {
 			for(String id: entitiesToDelete){
 				try {
 					entityManager.deleteEntity(adminUserInfo, id);
+
 				} catch (Exception e) {}
 			}
 		}
@@ -349,13 +349,7 @@ public class TableViewIntegrationTest {
 		});
 		
 		
-		// grant the user read permission the project
-		AccessControlList projectAcl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
-		ResourceAccess access = new ResourceAccess();
-		access.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
-		access.setPrincipalId(userInfo.getId());
-		projectAcl.getResourceAccess().add(access);
-		entityPermissionsManager.updateACL(projectAcl, adminUserInfo);
+		grantUserReadAccessOnProject();
 		// wait for replication
 		waitForEntityReplication(fileViewId, fileViewId);
 		
@@ -1289,6 +1283,101 @@ public class TableViewIntegrationTest {
 			List<Row> rows = extractRows(queryResults);
 			assertEquals(3, rows.size());
 		});
+	}
+	
+	/**
+	 * See PLFM-6398.
+	 *  
+	 * @throws Exception
+	 */
+	@Test
+	public void testViewSnapshotPLFM_6398() throws Exception {
+		grantUserReadAccessOnProject();
+		// Add a folder to the existing project
+		Folder folderOne = new Folder();
+		folderOne.setParentId(project.getId());
+		folderOne.setName("folderOne");
+		String folderOneId = entityManager.createEntity(adminUserInfo, folderOne, null);
+		entitiesToDelete.add(folderOneId);
+		Long folderOneIdLong = KeyFactory.stringToKey(folderOneId);
+		// Add an ACL on the folder
+		AccessControlList acl = AccessControlListUtil.createACL(folderOneId, userInfo, Sets.newHashSet(ACCESS_TYPE.READ), new Date(System.currentTimeMillis()));
+		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
+		// Add a file to the folder
+		FileEntity fileOne = new FileEntity();
+		fileOne.setName("fileOne");
+		fileOne.setDataFileHandleId(sharedHandle.getId());
+		fileOne.setParentId(folderOneId);
+		String fileOneId = entityManager.createEntity(adminUserInfo, fileOne, null);
+		fileOne = entityManager.getEntity(adminUserInfo, fileOneId, FileEntity.class);
+		Long fileOneIdLong = KeyFactory.stringToKey(fileOneId);
+		
+		// create the view for this scope
+		createFileView();
+		// grant the user read on the view.
+		acl = AccessControlListUtil.createACL(fileViewId, userInfo, Sets.newHashSet(ACCESS_TYPE.READ), new Date(System.currentTimeMillis()));
+		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
+		// wait for the view to be available for query
+		waitForEntityReplication(fileViewId, fileOneId);
+		
+		// Create a snapshot for this view
+		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
+		transactionRequest.setEntityId(fileViewId);
+		transactionRequest.setCreateSnapshot(true);
+		
+		startAndWaitForJob(adminUserInfo, transactionRequest, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+			assertEquals(new Long(1), response.getSnapshotVersionNumber());
+		});
+		
+		// update the first file so the new etag does not match the etag from the snapshot
+		String fileOneOldEtag = fileOne.getEtag();
+		fileOne.setName("FileOne Renamed");
+		boolean newVersion = false;
+		String actvityId = null;
+		entityManager.updateEntity(adminUserInfo, fileOne, newVersion, actvityId);
+		fileOne = entityManager.getEntity(adminUserInfo, fileOneId, FileEntity.class);
+		assertFalse(fileOne.getEtag().equals(fileOneOldEtag));
+		
+		// query for the file that inherits from the folder.
+		String sql = "select name, etag, ROW_BENEFACTOR from "+fileViewId+".1 WHERE ROW_ID = "+fileOneIdLong;
+		// at this point the user should be able see the three files in the root project and the file in the folder.
+		waitForConsistentQuery(userInfo, sql, (results) -> {			
+			List<Row> rows  = extractRows(results);
+			assertEquals(1, rows.size());
+			Row row = rows.get(0);
+			assertEquals(fileOneIdLong, row.getRowId());
+			// the name and etag should not change in the snapshot results and the benefactor should be the folder
+			assertEquals(Lists.newArrayList("fileOne", fileOneOldEtag, folderOneIdLong.toString()), row.getValues());
+		});
+		
+		/*
+		 * Remove the ACL on the folder.  
+		 */
+		entityPermissionsManager.restoreInheritance(folderOneId, adminUserInfo);
+		
+		waitForConsistentQuery(userInfo, sql, (results) -> {			
+			List<Row> rows  = extractRows(results);
+			assertEquals(1, rows.size());
+			Row row = rows.get(0);
+			assertEquals(fileOneIdLong, row.getRowId());
+			// the name and etag should not change in the snapshot results and the benefactor should now be the project.
+			assertEquals(Lists.newArrayList("fileOne", fileOneOldEtag, KeyFactory.stringToKey(project.getId()).toString()), row.getValues());
+		});
+	}
+
+	/**
+	 * Grant the user read access on the project.
+	 * @throws ACLInheritanceException
+	 */
+	void grantUserReadAccessOnProject() throws ACLInheritanceException {
+		// grant the user read permission the project
+		AccessControlList projectAcl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
+		ResourceAccess access = new ResourceAccess();
+		access.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
+		access.setPrincipalId(userInfo.getId());
+		projectAcl.getResourceAccess().add(access);
+		entityPermissionsManager.updateACL(projectAcl, adminUserInfo);
 	}
 	
 	/**

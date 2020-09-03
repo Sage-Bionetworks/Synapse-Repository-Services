@@ -1,0 +1,16 @@
+{
+	"description": "A request to retrieve the notifications for an access requirement and a list of recipients.",
+	"properties": {
+		"requirementId": {
+			"type": "integer",
+			"description": "The id of the access requirement."
+		},
+		"recipientIds": {
+			"type": "array",
+			"description": "The list of recipient ids, max of 25 recipients allowed.",
+			"items": {
+				"type": "integer"
+			}
+		}
+	}
+}

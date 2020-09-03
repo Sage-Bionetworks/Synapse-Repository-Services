@@ -7,7 +7,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.dataaccess.AccessApprovalNotificationManager;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dbo.feature.Feature;
+import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -149,7 +149,7 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 
 		// get the lock on group principal
 		String etag = userGroupDAO.getEtagForUpdate(groupId);
-		transactionalMessenger.sendMessageAfterCommit(groupId, ObjectType.PRINCIPAL, etag, ChangeType.UPDATE);
+		transactionalMessenger.sendMessageAfterCommit(groupId, ObjectType.PRINCIPAL, ChangeType.UPDATE);
 
 		// Make sure the UserGroup corresponding to the ID holds a group, not an individual
 		if (userGroupDAO.get(Long.parseLong(groupId)).getIsIndividual()) {

@@ -16,6 +16,7 @@ public enum FunctionReturnType {
 	STRING(ColumnType.STRING),
 	LONG(ColumnType.INTEGER),
 	DOUBLE(ColumnType.DOUBLE),
+	USERID(ColumnType.USERID),
 	// Cases where the return type matches the parameter type.
 	MATCHES_PARAMETER(new MatchParameterFunctionReturnTypeHandler()),
 	// Cases where the parameter type is a list and the return type is the non-list version of that parameter type

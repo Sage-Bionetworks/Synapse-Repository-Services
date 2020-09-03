@@ -77,6 +77,7 @@ public class JsonSchemaValidationManagerImplTest {
 		assertEquals(objectId, result.getObjectId());
 		assertEquals(objectType, result.getObjectType());
 		assertEquals(objectEtag, result.getObjectEtag());
+		assertEquals("hasEnum", result.getSchema$id());
 		assertFalse(result.getIsValid());
 		assertNotNull(result.getValidatedOn());
 		assertEquals("#: only 1 subschema matches out of 2", result.getValidationErrorMessage());
@@ -115,6 +116,29 @@ public class JsonSchemaValidationManagerImplTest {
 		assertThrows(IllegalArgumentException.class, ()->{
 			 manager.validate(schema, subject);
 		});
+	}
+	
+	/**
+	 * Expect validation to ignore the 'source' attribute.
+	 * @throws Exception
+	 */
+	@Test
+	public void testValidationWithSourced() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/HasSource.json");
+		assertEquals("http://some.domain.org/original/work", schema.getSource());
+		JsonSubject subject = setupSubject();
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+		
+		assertNotNull(result);
+		assertEquals(objectId, result.getObjectId());
+		assertEquals(objectType, result.getObjectType());
+		assertEquals(objectEtag, result.getObjectEtag());
+		assertTrue(result.getIsValid());
+		assertNotNull(result.getValidatedOn());
+		assertNull(result.getValidationErrorMessage());
+		assertNull(result.getAllValidationMessages());
+		assertNull(result.getValidationException());
 	}
 	
 	public JsonSubject setupSubject() {

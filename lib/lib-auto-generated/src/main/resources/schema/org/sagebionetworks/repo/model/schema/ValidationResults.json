@@ -13,6 +13,10 @@
 			"type": "string",
 			"description": "The etag of the object at the time of validation.  Note: If this etag does not match the current etag of the object then these validation results should be considered out of date."
 		},
+		"schema$id": {
+			"type": "string",
+			"description": "The $id of the schema that the object was validated against."
+		},
 		"isValid": {
 			"type": "boolean",
 			"description": "True if the object is currently valid according to the schema."

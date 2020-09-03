@@ -1,4 +1,4 @@
-package org.sagebionetworks;
+package org.sagebionetworks.repo.manager.testing;
 
 import java.util.Optional;
 

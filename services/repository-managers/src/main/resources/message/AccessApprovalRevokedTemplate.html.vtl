@@ -1,30 +1,20 @@
-<html>
-<body>
-<p>
-Dear $displayName,
-</p>
-#set($requirementUrl = "https://www.synapse.org/#!AccessRequirement:AR_ID=${requirementId}")
+#parse("message/AccessApprovalNotificationHeader.html.vtl")
 <p>
 #if ($requirementDescription)
-We did not receive your renewal information for the <a href="$requirementUrl">$requirementDescription</a> access requirement (ID: $requirementId), and your access has now been revoked.
+Your approval for the <a href="$requirementUrl">$requirementDescription</a> access requirement (ID: $requirementId) has been revoked.
 #else
-We did not receive your renewal information for an <a href="$requirementUrl">access requirement (ID: $requirementId)</a>, and your access has now been revoked.
+Your approval for an <a href="$requirementUrl">access requirement (ID: $requirementId)</a> has been revoked.
 #end
 </p>
 <p>
 Please delete all copies of the data and have the other members of your group do this as well.
 </p>
 <p>
-If you would like to re-apply for access, you may follow the link above. 
+#if ($submitterDisplayName)
+The revoked approval was submitted on your behalf by $submitterDisplayName and they can re-apply for access for your entire group.
+If $submitterDisplayName is not able to submit a request, you can submit a new request using the link above.
+#else
+If you would like to re-apply for access, you may follow the link above.
+#end
 </p>
-<p>
-If you have any questions or concerns about your obligations to the data or this message, you may reply to this email and a member of our Access and Compliance Team will respond.
-</p>
-<p">
-Sincerely,
-</p>
-<p>
-Synapse Access and Compliance Team
-</p>
-</body>
-</html>
+#parse("message/AccessApprovalNotificationFooter.html.vtl")

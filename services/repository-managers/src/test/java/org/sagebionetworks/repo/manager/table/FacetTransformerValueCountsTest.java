@@ -1,20 +1,9 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
@@ -30,8 +19,17 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
 
 public class FacetTransformerValueCountsTest {
 	String selectedValue;
@@ -45,6 +43,7 @@ public class FacetTransformerValueCountsTest {
 	private Set<String> selectedValuesSet;
 	private ColumnModel stringModel;
 	private ColumnModel stringListModel;
+	private Long userId;
 
 	
 	@Before
@@ -75,8 +74,10 @@ public class FacetTransformerValueCountsTest {
 		valuesRequest.setFacetValues(selectedValuesSet);
 		facets.add(new FacetRequestColumnModel(schema.get(0), valuesRequest));//use column "i0"
 
+		userId = 1L;
+
 		originalSearchCondition = "\"stringColumn\" LIKE 'asdf%'";
-		originalQuery = new SqlQueryBuilder("SELECT * FROM syn123 WHERE " + originalSearchCondition, schema).build();
+		originalQuery = new SqlQueryBuilder("SELECT * FROM syn123 WHERE " + originalSearchCondition, schema, userId).build();
 		
 		rowSet = new RowSet();
 		

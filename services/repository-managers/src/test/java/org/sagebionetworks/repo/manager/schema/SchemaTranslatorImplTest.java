@@ -31,7 +31,7 @@ import com.google.common.collect.Lists;
 public class SchemaTranslatorImplTest {
 
 	@InjectMocks
-	SchemaTranslatorImp translator;
+	SchemaTranslatorImpl translator;
 	
 	@Test
 	public void testLoadSchemaFromClasspath() throws IOException, JSONObjectAdapterException {
@@ -281,7 +281,7 @@ public class SchemaTranslatorImplTest {
 		JsonSchema resultSchema = translator.translate(objectSchema);
 		assertNotNull(resultSchema);
 		assertEquals("org.sagebionetworks-repo.model.FileEntity", resultSchema.get$id());
-		assertEquals(SchemaTranslatorImp.CURRENT_$SCHEMA, resultSchema.get$schema());
+		assertEquals(SchemaTranslatorImpl.CURRENT_$SCHEMA, resultSchema.get$schema());
 	}
 	
 	@Test

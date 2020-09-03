@@ -11,8 +11,8 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.dataaccess.AccessApprovalManager;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.dbo.feature.Feature;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.feature.Feature;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -26,8 +26,8 @@ public class AccessApprovalExpirationWorker implements ProgressingRunner {
 	
 	protected static final int BATCH_SIZE = 100;
 
-	// We look only 60 days backward
-	protected static final int CUT_OFF_DAYS = 60;
+	// We look only 7 days backward
+	protected static final int CUT_OFF_DAYS = 7;
 	
 	private AccessApprovalManager accessApprovalManager;
 	private UserManager userManager;

@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class OrganizationDaoImpl implements OrganizationDao {
 
+	private static final String FK_SCHEMA_TO_ORGANIZATION = "FK_SCHEMA_TO_ORGANIZATION";
 	@Autowired
 	private IdGenerator idGenerator;
 	@Autowired
@@ -80,10 +82,20 @@ public class OrganizationDaoImpl implements OrganizationDao {
 	@Override
 	public void deleteOrganization(String id) {
 		ValidateArgument.required(id, "id");
-		int count = jdbcTemplate.update("DELETE FROM " + TABLE_ORGANIZATION + " WHERE " + COL_ORGANIZATION_ID + " = ?",
-				id);
-		if (count < 1) {
-			throw new NotFoundException("Organization with id: '" + id + "' not found");
+		try {
+			int count = jdbcTemplate.update("DELETE FROM " + TABLE_ORGANIZATION + " WHERE " + COL_ORGANIZATION_ID + " = ?",
+					id);
+			if (count < 1) {
+				throw new NotFoundException("Organization with id: '" + id + "' not found");
+			}
+		} catch (DataIntegrityViolationException e) {
+			if(e.getMessage().contains(FK_SCHEMA_TO_ORGANIZATION)) {
+				throw new IllegalArgumentException(
+						"All schemas defined under an organization must be deleted before the organization can be deleted.",
+						e);
+			}else {
+				throw e;
+			}
 		}
 	}
 

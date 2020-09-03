@@ -8,6 +8,8 @@ import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
@@ -15,23 +17,20 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessApprovalService {
 
-	public AccessApproval createAccessApproval(Long userId,
-			AccessApproval accessApproval) throws DatastoreException,
-			UnauthorizedException, NotFoundException, InvalidModelException,
-			IOException;
+	AccessApproval createAccessApproval(Long userId, AccessApproval accessApproval)
+			throws DatastoreException, UnauthorizedException, NotFoundException, InvalidModelException, IOException;
 
-	public AccessApproval getAccessApproval(
-			Long userId, String approvalId)
-			throws DatastoreException, UnauthorizedException,
-			NotFoundException;
+	AccessApproval getAccessApproval(Long userId, String approvalId)
+			throws DatastoreException, UnauthorizedException, NotFoundException;
 
-	public void revokeAccessApprovals(Long userId, String accessRequirementId, String accessorId);
+	void revokeAccessApprovals(Long userId, String accessRequirementId, String accessorId);
 
-	public AccessorGroupResponse listAccessorGroup(Long userId, AccessorGroupRequest request);
+	AccessorGroupResponse listAccessorGroup(Long userId, AccessorGroupRequest request);
 
-	public void revokeGroup(Long userId, AccessorGroupRevokeRequest request);
+	void revokeGroup(Long userId, AccessorGroupRevokeRequest request);
 
-	public BatchAccessApprovalInfoResponse getBatchAccessApprovalInfo(Long userId,
-			BatchAccessApprovalInfoRequest request);
+	BatchAccessApprovalInfoResponse getBatchAccessApprovalInfo(Long userId, BatchAccessApprovalInfoRequest request);
+
+	AccessApprovalNotificationResponse listNotificationsRequest(Long userId, AccessApprovalNotificationRequest request);
 
 }
