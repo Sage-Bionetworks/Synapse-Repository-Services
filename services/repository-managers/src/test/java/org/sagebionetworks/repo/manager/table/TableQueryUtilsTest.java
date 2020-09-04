@@ -175,7 +175,7 @@ public class TableQueryUtilsTest {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, ()->{
 			TableQueryUtils.extractTableIdFromSql(sql);
 		});
-		assertEquals(exception.getMessage(), "Encountered \" <date_time_field> \"year \"\" at line 1, column 31.\n" +
+		assertEquals("Encountered \" <date_time_field> \"year \"\" at line 1, column 31.\n" +
 				"Was expecting one of:\n" +
 				"    \"\\\"\" ...\n" +
 				"    \"`\" ...\n" +
@@ -185,6 +185,6 @@ public class TableQueryUtilsTest {
 				"    <entity_id> ...\n" +
 				"    <regular_identifier> ...\n" +
 				"    \"(\" ...\n" +
-				"    " + TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE);
+				"    " + TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE, exception.getMessage());
 	}
 }

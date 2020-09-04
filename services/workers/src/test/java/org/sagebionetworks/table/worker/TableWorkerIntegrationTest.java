@@ -2821,29 +2821,33 @@ public class TableWorkerIntegrationTest {
 				fail("This should have failed with an IllegalArgumentException");
 			});
 		});
-		assertEquals(selectClauseException.getMessage(), "Unknown column 'YEAR' in 'field list'" + TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE);
+		assertEquals("Unknown column 'YEAR' in 'field list'"
+				+ TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE, selectClauseException.getMessage());
 		Throwable whereClauseException = assertThrows(IllegalArgumentException.class, ()->{
-			waitForConsistentQuery(adminUserInfo, "select \"year\" from " + tableId + " where year = 2020", null, null, (queryResult) -> {
+			waitForConsistentQuery(adminUserInfo, "select \"year\" from " + tableId + " where year = 2020",
+					null, null, (queryResult) -> {
 				fail("This should have failed with an IllegalArgumentException");
 			});
 		});
-		assertEquals(whereClauseException.getMessage(), "Encountered \" <date_time_field> \"year \"\" at line 1, column 37.\n" +
-						"Was expecting one of:\n" +
-						"    \"\\\"\" ...\n" +
-						"    \"`\" ...\n" +
-						"    \"NOT\" ...\n" +
-						"    \"ISNAN\" ...\n" +
-						"    \"ISINFINITY\" ...\n" +
-						"    <entity_id> ...\n" +
-						"    <regular_identifier> ...\n" +
-						"    \"(\" ...\n" +
-						"    " + TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE);
+		assertEquals("Encountered \" <date_time_field> \"year \"\" at line 1, column 37.\n" +
+				"Was expecting one of:\n" +
+				"    \"\\\"\" ...\n" +
+				"    \"`\" ...\n" +
+				"    \"NOT\" ...\n" +
+				"    \"ISNAN\" ...\n" +
+				"    \"ISINFINITY\" ...\n" +
+				"    <entity_id> ...\n" +
+				"    <regular_identifier> ...\n" +
+				"    \"(\" ...\n" +
+				"    " + TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE, whereClauseException.getMessage());
 		Throwable groupbyClauseException = assertThrows(IllegalArgumentException.class, ()->{
-			waitForConsistentQuery(adminUserInfo, "select \"year\" from " + tableId + " where \"year\" = 2020 group by year", null, null, (queryResult) -> {
+			waitForConsistentQuery(adminUserInfo, "select \"year\" from " + tableId + " where \"year\" = 2020 group" +
+					" by year", null, null, (queryResult) -> {
 				fail("This should have failed with an IllegalArgumentException");
 			});
 		});
-		assertEquals(groupbyClauseException.getMessage(), "Unknown column 'YEAR' in 'group statement'"+TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE);
+		assertEquals("Unknown column 'YEAR' in 'group statement'" +
+				TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE, groupbyClauseException.getMessage());
 	}
 
 	@Test
