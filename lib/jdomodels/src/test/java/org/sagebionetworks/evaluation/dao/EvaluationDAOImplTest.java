@@ -604,27 +604,31 @@ public class EvaluationDAOImplTest {
 
 		EvaluationRound createdRound = evaluationDAO.createEvaluationRound(evaluationRound);
 
+		//does not overlap with itself
+		List<EvaluationRound> overlappingRounds = evaluationDAO.overlappingEvaluationRounds(evaluationId, createdRound.getId(), evalRoundStart, evalRoundStart.plus(1, ChronoUnit.MILLIS));
+		assertTrue(overlappingRounds.isEmpty());
+
 		//overlap start of created round
-		List<EvaluationRound> overlappingRounds = evaluationDAO.overlappingEvaluationRounds(evaluationId, evalRoundStart.minus(4, ChronoUnit.DAYS), evalRoundStart.plus(1, ChronoUnit.MILLIS));
+		overlappingRounds = evaluationDAO.overlappingEvaluationRounds(evaluationId, "otherId", evalRoundStart.minus(4, ChronoUnit.DAYS), evalRoundStart.plus(1, ChronoUnit.MILLIS));
 		assertFalse(overlappingRounds.isEmpty());
 		assertEquals(createdRound, overlappingRounds.get(0));
 
 		//overlap end of created round
-		overlappingRounds = evaluationDAO.overlappingEvaluationRounds(evaluationId, evalRoundEnd.minus(1, ChronoUnit.MILLIS), evalRoundEnd.plus(4, ChronoUnit.DAYS));
+		overlappingRounds = evaluationDAO.overlappingEvaluationRounds(evaluationId, "otherId", evalRoundEnd.minus(1, ChronoUnit.MILLIS), evalRoundEnd.plus(4, ChronoUnit.DAYS));
 		assertFalse(overlappingRounds.isEmpty());
 		assertEquals(createdRound, overlappingRounds.get(0));
 
 		//overlap inside of created round
-		overlappingRounds = evaluationDAO.overlappingEvaluationRounds(evaluationId, evalRoundStart, evalRoundEnd);
+		overlappingRounds = evaluationDAO.overlappingEvaluationRounds(evaluationId, "otherId", evalRoundStart, evalRoundEnd);
 		assertFalse(overlappingRounds.isEmpty());
 		assertEquals(createdRound, overlappingRounds.get(0));
 
 		//not overlapping, before created round
-		overlappingRounds = evaluationDAO.overlappingEvaluationRounds(evaluationId, evalRoundStart.minus(4, ChronoUnit.DAYS), evalRoundStart.minus(1, ChronoUnit.MILLIS));
+		overlappingRounds = evaluationDAO.overlappingEvaluationRounds(evaluationId, "otherId", evalRoundStart.minus(4, ChronoUnit.DAYS), evalRoundStart.minus(1, ChronoUnit.MILLIS));
 		assertTrue(overlappingRounds.isEmpty());
 
 		//not overlapping, after created round
-		overlappingRounds = evaluationDAO.overlappingEvaluationRounds(evaluationId, evalRoundEnd, evalRoundEnd.plus(4, ChronoUnit.DAYS));
+		overlappingRounds = evaluationDAO.overlappingEvaluationRounds(evaluationId, "otherId", evalRoundEnd, evalRoundEnd.plus(4, ChronoUnit.DAYS));
 		assertTrue(overlappingRounds.isEmpty());
 	}
 

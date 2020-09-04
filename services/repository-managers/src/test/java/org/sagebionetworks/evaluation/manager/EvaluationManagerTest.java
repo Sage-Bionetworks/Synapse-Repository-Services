@@ -585,26 +585,40 @@ public class EvaluationManagerTest {
 		String overlappingId = "890890";
 		EvaluationRound overlappingRound = new EvaluationRound();
 		overlappingRound.setId(overlappingId);
-		when(mockEvaluationDAO.overlappingEvaluationRounds(EVALUATION_ID, evaluationRoundStart, evaluationRoundEnd))
+		when(mockEvaluationDAO.overlappingEvaluationRounds(EVALUATION_ID, evaluationRoundId, evaluationRoundStart, evaluationRoundEnd))
 				.thenReturn(Arrays.asList(overlappingRound));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			((EvaluationManagerImpl) evaluationManager).validateNoDateRangeOverlap(evaluationRound);
+			((EvaluationManagerImpl) evaluationManager).validateNoDateRangeOverlap(evaluationRound, evaluationRoundId);
 		}).getMessage();
 
-		assertEquals("This round's date range overlaps with the following rounds: ["+overlappingId+"]", message);
-		verify(mockEvaluationDAO).overlappingEvaluationRounds(EVALUATION_ID, evaluationRoundStart, evaluationRoundEnd);
+		assertEquals("This round's date range overlaps with the following round IDs: ["+overlappingId+"]", message);
+		verify(mockEvaluationDAO).overlappingEvaluationRounds(EVALUATION_ID, evaluationRoundId, evaluationRoundStart, evaluationRoundEnd);
+	}
+
+	@Test
+	public void validateNoDateRangeOverlap_roundEndEarlierThanRoundStart(){
+		//swap start and end
+		evaluationRound.setRoundStart(Date.from(evaluationRoundEnd));
+		evaluationRound.setRoundEnd(Date.from(evaluationRoundStart));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			((EvaluationManagerImpl) evaluationManager).validateNoDateRangeOverlap(evaluationRound, evaluationRoundId);
+		}).getMessage();
+
+		assertEquals("Round can not end before it starts", message);
+		verifyZeroInteractions(mockEvaluationDAO);
 	}
 
 	@Test
 	public void validateNoDateRangeOverlap_noOverlappingRounds(){
-		when(mockEvaluationDAO.overlappingEvaluationRounds(EVALUATION_ID, evaluationRoundStart, evaluationRoundEnd))
+		when(mockEvaluationDAO.overlappingEvaluationRounds(EVALUATION_ID, evaluationRoundId, evaluationRoundStart, evaluationRoundEnd))
 				.thenReturn(Collections.emptyList());
 		assertDoesNotThrow(() ->
-			((EvaluationManagerImpl) evaluationManager).validateNoDateRangeOverlap(evaluationRound)
+			((EvaluationManagerImpl) evaluationManager).validateNoDateRangeOverlap(evaluationRound, evaluationRoundId)
 		);
 
-		verify(mockEvaluationDAO).overlappingEvaluationRounds(EVALUATION_ID, evaluationRoundStart, evaluationRoundEnd);
+		verify(mockEvaluationDAO).overlappingEvaluationRounds(EVALUATION_ID, evaluationRoundId, evaluationRoundStart, evaluationRoundEnd);
 	}
 
 	@Test
@@ -644,12 +658,12 @@ public class EvaluationManagerTest {
 		verify(evaluationManager).validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.CREATE);
 		verify(evaluationManager).validateNoExistingQuotaDefined(evalWithId);
 		verify(evaluationManager).validateEvaluationRoundLimits(evaluationRound.getLimits());
-		verify(evaluationManager).validateNoDateRangeOverlap(evaluationRound);
+		verify(evaluationManager).validateNoDateRangeOverlap(evaluationRound, EvaluationManagerImpl.NON_EXISTENT_ROUND_ID);
 
 		verify(mockIdGenerator).generateNewId(IdType.EVALUATION_ROUND_ID);
 		verify(mockPermissionsManager).hasAccess(userInfo, EVALUATION_ID,ACCESS_TYPE.CREATE);
 		verify(mockEvaluationDAO).get(EVALUATION_ID);
-		verify(mockEvaluationDAO).overlappingEvaluationRounds(EVALUATION_ID, evaluationRoundStart, evaluationRoundEnd);
+		verify(mockEvaluationDAO).overlappingEvaluationRounds(EVALUATION_ID, EvaluationManagerImpl.NON_EXISTENT_ROUND_ID, evaluationRoundStart, evaluationRoundEnd);
 		verify(mockEvaluationDAO).createEvaluationRound(evaluationRound);
 	}
 
@@ -667,11 +681,11 @@ public class EvaluationManagerTest {
 		verify(evaluationManager).validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.UPDATE);
 		verify(evaluationManager).validateNoExistingQuotaDefined(evalWithId);
 		verify(evaluationManager).validateEvaluationRoundLimits(evaluationRound.getLimits());
-		verify(evaluationManager).validateNoDateRangeOverlap(evaluationRound);
+		verify(evaluationManager).validateNoDateRangeOverlap(evaluationRound, evaluationRoundId);
 
 		verify(mockPermissionsManager).hasAccess(userInfo, EVALUATION_ID,ACCESS_TYPE.UPDATE);
 		verify(mockEvaluationDAO).get(EVALUATION_ID);
-		verify(mockEvaluationDAO).overlappingEvaluationRounds(EVALUATION_ID, evaluationRoundStart, evaluationRoundEnd);
+		verify(mockEvaluationDAO).overlappingEvaluationRounds(EVALUATION_ID, evaluationRoundId, evaluationRoundStart, evaluationRoundEnd);
 		verify(mockEvaluationDAO).updateEvaluationRound(evaluationRound);
 		verify(mockEvaluationDAO).getEvaluationRound(EVALUATION_ID, evaluationRoundId);
 	}

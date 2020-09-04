@@ -13,6 +13,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -42,6 +44,11 @@ import org.sagebionetworks.evaluation.dao.SubmissionField;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
+import org.sagebionetworks.evaluation.model.EvaluationRoundLimit;
+import org.sagebionetworks.evaluation.model.EvaluationRoundLimitType;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListRequest;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListResponse;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.MemberSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.Submission;
@@ -312,7 +319,53 @@ public class IT520SynapseJavaClientEvaluationTest {
 		
 		assertEquals(initialCount, synapseOne.getAvailableEvaluationsPaginated(100, 0).getResults().size());
 	}
-	
+
+	@Test
+	public void testEvaluationRound_RoundTrip() throws SynapseException {
+		eval1 = synapseOne.createEvaluation(eval1);
+		evaluationsToDelete.add(eval1.getId());
+
+		Instant now = Instant.now();
+		EvaluationRound round = new EvaluationRound();
+		round.setEvaluationId(eval1.getId());
+		round.setRoundStart(Date.from(now));
+		round.setRoundEnd(Date.from(now.plus(1, ChronoUnit.DAYS)));
+
+		//create
+		EvaluationRound created = synapseOne.createEvaluationRound(round);
+
+		//read
+		EvaluationRound retrieved = synapseOne.getEvaluationRound(created.getEvaluationId(), created.getId());
+		assertEquals(created, retrieved);
+
+		//read all
+		EvaluationRound round2 = new EvaluationRound();
+		round2.setEvaluationId(eval1.getId());
+		round2.setRoundStart(Date.from(now.plus(1, ChronoUnit.DAYS)));
+		round2.setRoundEnd(Date.from(now.plus(2, ChronoUnit.DAYS)));
+		EvaluationRound created2 = synapseOne.createEvaluationRound(round2);
+
+		EvaluationRoundListResponse listResponse = synapseOne.getAllEvaluationRounds(created.getEvaluationId(), new EvaluationRoundListRequest());
+		assertEquals(Arrays.asList(created, created2), listResponse.getPage());
+
+		//update
+		created.setLimits(Arrays.asList(newEvaluationRoundLimit(EvaluationRoundLimitType.DAILY, 45)));
+		EvaluationRound updated = synapseOne.updateEvaluationRound(created);
+		assertEquals(created.getLimits(), updated.getLimits());
+
+		//delete
+		synapseOne.deleteEvaluationRound(updated.getEvaluationId(), updated.getId());
+		listResponse = synapseOne.getAllEvaluationRounds(created.getEvaluationId(), null);
+		assertEquals(Arrays.asList(created2), listResponse.getPage());
+	}
+
+	private EvaluationRoundLimit newEvaluationRoundLimit(EvaluationRoundLimitType type, long maxSubmissions){
+		EvaluationRoundLimit limit = new EvaluationRoundLimit();
+		limit.setLimitType(type);
+		limit.setMaximumSubmissions(maxSubmissions);
+		return limit;
+	}
+
 	@Test
 	public void testSubmissionView() throws Exception {
 		eval1.setStatus(EvaluationStatus.OPEN);

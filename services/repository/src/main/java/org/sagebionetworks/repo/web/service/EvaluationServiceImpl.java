@@ -7,6 +7,9 @@ import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListRequest;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListResponse;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
@@ -26,6 +29,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
@@ -337,6 +341,47 @@ public class EvaluationServiceImpl implements EvaluationService {
 	public void processCancelSubmissionRequest(Long userId, String subId) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		submissionManager.processUserCancelRequest(userInfo, subId);
+	}
+
+	@Override
+	public EvaluationRound createEvaluationRound(Long userId, EvaluationRound evaluationRound){
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return evaluationManager.createEvaluationRound(userInfo, evaluationRound);
+	}
+
+	@Override
+	public EvaluationRound updateEvaluationRound(Long userId, EvaluationRound evaluationRound){
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return evaluationManager.updateEvaluationRound(userInfo, evaluationRound);
+	}
+
+	@Override
+	public EvaluationRound getEvaluationRound(Long userId, String evaluationId, String evaluationRoundId){
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return evaluationManager.getEvaluationRound(userInfo, evaluationId, evaluationRoundId);
+	}
+
+	@Override
+	public EvaluationRoundListResponse getAllEvaluationRounds(Long userId, String evaluationId, EvaluationRoundListRequest request){
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		String nextPageTokenStr = request == null ? null : request.getNextPageToken();
+		NextPageToken nextPageToken = new NextPageToken(nextPageTokenStr);
+
+		List<EvaluationRound> rounds = evaluationManager.getAllEvaluationRounds(userInfo, evaluationId, nextPageToken);
+
+		//build response
+		String newNextPageToken = nextPageToken.getNextPageTokenForCurrentResults(rounds);
+		EvaluationRoundListResponse response = new EvaluationRoundListResponse();
+		response.setNextPageToken(newNextPageToken);
+		response.setPage(rounds);
+
+		return response;
+	}
+
+	@Override
+	public void deleteEvaluationRound(Long userId, String evaluationId, String evaluationRoundId){
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		evaluationManager.deleteEvaluationRound(userInfo, evaluationId, evaluationRoundId);
 	}
 
 }

@@ -11,6 +11,7 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_I
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ROUND_ETAG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ROUND_EVALUATION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ROUND_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ROUND_ROUND_END;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ROUND_ROUND_START;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_START_TIMESTAMP;
@@ -409,16 +410,18 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	}
 
 	@Override
-	public List<EvaluationRound> overlappingEvaluationRounds(String evaluationId, Instant startTimestamp, Instant endTimestamp) {
+	public List<EvaluationRound> overlappingEvaluationRounds(String evaluationId, String currentRoundId, Instant startTimestamp, Instant endTimestamp) {
 		MapSqlParameterSource sqlParameterSource = new MapSqlParameterSource();
 		sqlParameterSource.addValue(DBOConstants.PARAM_EVALUATION_ROUND_EVALUATION_ID, evaluationId);
+		sqlParameterSource.addValue(DBOConstants.PARAM_EVALUATION_ROUND_ID, currentRoundId);
 		sqlParameterSource.addValue(DBOConstants.PARAM_EVALUATION_ROUND_ROUND_START, startTimestamp.toEpochMilli());
 		sqlParameterSource.addValue(DBOConstants.PARAM_EVALUATION_ROUND_ROUND_END, endTimestamp.toEpochMilli());
 
 		return namedJdbcTemplate.query("SELECT * FROM " + TABLE_EVALUATION_ROUND +
 				" WHERE " + COL_EVALUATION_ROUND_EVALUATION_ID + "= :" + DBOConstants.PARAM_EVALUATION_ROUND_EVALUATION_ID +
 				" AND "+ COL_EVALUATION_ROUND_ROUND_END + " > :" + DBOConstants.PARAM_EVALUATION_ROUND_ROUND_START +
-				" AND " + COL_EVALUATION_ROUND_ROUND_START + " < :" + DBOConstants.PARAM_EVALUATION_ROUND_ROUND_END, sqlParameterSource,
+				" AND " + COL_EVALUATION_ROUND_ROUND_START + " < :" + DBOConstants.PARAM_EVALUATION_ROUND_ROUND_END +
+				" AND " + COL_EVALUATION_ROUND_ID + "!= :" + DBOConstants.PARAM_EVALUATION_ROUND_ID, sqlParameterSource,
 				(ResultSet resultSet, int rowNumber) -> {
 					return EvaluationRoundDBOUtil.toDTO(EVALUATION_ROUND_ROW_MAPPER.mapRow(resultSet, rowNumber));
 				}

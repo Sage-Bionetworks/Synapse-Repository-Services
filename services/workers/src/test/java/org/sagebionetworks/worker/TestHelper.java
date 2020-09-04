@@ -212,7 +212,7 @@ public class TestHelper {
 		
 		if (team != null) {
 			submission.setTeamId(team.getId());
-			TeamSubmissionEligibility eligibility = submissionEligibilityManager.getTeamSubmissionEligibility(evaluation, team.getId());
+			TeamSubmissionEligibility eligibility = submissionEligibilityManager.getTeamSubmissionEligibility(evaluation, team.getId(), new Date());
 			teamEligibilityHash = String.valueOf(eligibility.getEligibilityStateHash());
 		}
 		

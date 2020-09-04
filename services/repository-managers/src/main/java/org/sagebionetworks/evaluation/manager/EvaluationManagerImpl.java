@@ -1,5 +1,6 @@
 package org.sagebionetworks.evaluation.manager;
 
+import java.time.Instant;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
@@ -59,6 +60,8 @@ public class EvaluationManagerImpl implements EvaluationManager {
 
 	@Autowired
 	private SubmissionEligibilityManager submissionEligibilityManager;
+
+	static final String NON_EXISTENT_ROUND_ID = "-1";
 
 	@Override
 	@WriteTransaction
@@ -215,11 +218,12 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		return submissionEligibilityManager.getTeamSubmissionEligibility(evaluationDAO.get(evalId), teamId, now);
 	}
 
+	@WriteTransaction
 	@Override
 	public EvaluationRound createEvaluationRound(UserInfo userInfo, EvaluationRound evaluationRound){
 		Evaluation evaluation = validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.CREATE);
 		validateNoExistingQuotaDefined(evaluation);
-		validateNoDateRangeOverlap(evaluationRound);
+		validateNoDateRangeOverlap(evaluationRound, NON_EXISTENT_ROUND_ID);
 		validateEvaluationRoundLimits(evaluationRound.getLimits());
 
 		evaluationRound.setId(idGenerator.generateNewId(IdType.EVALUATION_ROUND_ID).toString());
@@ -228,22 +232,31 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		return evaluationDAO.createEvaluationRound(evaluationRound);
 	}
 
+	@WriteTransaction
 	@Override
 	public EvaluationRound updateEvaluationRound(UserInfo userInfo, EvaluationRound evaluationRound){
 		Evaluation evaluation = validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.UPDATE);
 		validateNoExistingQuotaDefined(evaluation);
-		validateNoDateRangeOverlap(evaluationRound);
+		//TODO: disallow modifying start date if current time past start date unless zero submissions were made.
+		// disallow modifying end date if current time past end date unless zero submissions were made.
+		// requires first adding ability to tag submissions with evaluationID
+		validateNoDateRangeOverlap(evaluationRound, evaluationRound.getId());
 		validateEvaluationRoundLimits(evaluationRound.getLimits());
 		evaluationDAO.updateEvaluationRound(evaluationRound);
 		return evaluationDAO.getEvaluationRound(evaluationRound.getEvaluationId(), evaluationRound.getId());
 	}
 
+	@WriteTransaction
 	@Override
 	public void deleteEvaluationRound(UserInfo userInfo, String evaluationId, String evaluationRoundId){
 		validateEvaluationAccess(userInfo, evaluationId, ACCESS_TYPE.DELETE);
 
+		//TODO: disallow delete if current time past start date unless zero submissions were made.
+		// requires first adding ability to tag submissions with evaluationID
+
 		evaluationDAO.deleteEvaluationRound(evaluationId, evaluationRoundId);
 	}
+
 
 	@Override
 	public EvaluationRound getEvaluationRound(UserInfo userInfo, String evaluationId, String evaluationRoundId){
@@ -276,17 +289,25 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		return eval;
 	}
 
-	void validateNoDateRangeOverlap(EvaluationRound evaluationRound){
+	void validateNoDateRangeOverlap(EvaluationRound evaluationRound, String currentRoundId){
+		Instant roundStart = evaluationRound.getRoundStart().toInstant();
+		Instant roundEnd = evaluationRound.getRoundEnd().toInstant();
+
+		if(roundEnd.compareTo(roundStart) <= 0){
+			throw new IllegalArgumentException("EvaluationRound can not end before it starts");
+		}
+
 		List<EvaluationRound> overlappingRounds = evaluationDAO.overlappingEvaluationRounds(
 				evaluationRound.getEvaluationId(),
+				currentRoundId,
 				// roundStart and roundEnd are guaranteed not null by schema definition
-				evaluationRound.getRoundStart().toInstant(),
-				evaluationRound.getRoundEnd().toInstant()
+				roundStart,
+				roundEnd
 		);
 
 		if(!overlappingRounds.isEmpty()){
 			List<String> overlappingRoundIds = overlappingRounds.stream().map(EvaluationRound::getId).collect(Collectors.toList());
-			throw new IllegalArgumentException("This round's date range overlaps with the following rounds: " + overlappingRoundIds);
+			throw new IllegalArgumentException("This round's date range overlaps with the following round IDs: " + overlappingRoundIds);
 		}
 	}
 
