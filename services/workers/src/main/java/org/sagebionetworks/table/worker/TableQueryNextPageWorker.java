@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.TableFailedException;
@@ -33,6 +34,8 @@ public class TableQueryNextPageWorker implements MessageDrivenRunner {
 	private TableQueryManager tableQueryManger;
 	@Autowired
 	private UserManager userManger;
+	@Autowired
+	TableExceptionTranslator tableExceptionTranslator;
 
 	@Override
 	public void run(ProgressCallback progressCallback, Message message)
@@ -53,8 +56,10 @@ public class TableQueryNextPageWorker implements MessageDrivenRunner {
 			// This means we cannot use this table
 			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
 		}catch(Throwable e){
+			// Attempt to translate the exception into a 'user-friendly' message.
+			RuntimeException translatedException = tableExceptionTranslator.translateException(e);
 			// The job failed
-			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
+			asynchJobStatusManager.setJobFailed(status.getJobId(), translatedException);
 			log.error("Worker failed:", e);
 		}
 	}
