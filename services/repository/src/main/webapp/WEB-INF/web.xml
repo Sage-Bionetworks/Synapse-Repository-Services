@@ -243,6 +243,9 @@
 		<url-pattern>/file/v1/*</url-pattern>
 	</filter-mapping>
 	
+	<!-- This is a filter used only for integration testing (See ITUnhandledException) so that we can simulate an exception thrown at the filter level 
+	(before hitting the dispatcher servlet) in order to verify the correct exception handling from the unexpectedExceptionFilter.
+	 -->
 	<filter>
 		<filter-name>throwingExceptionFilter</filter-name>
 		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
@@ -280,7 +283,14 @@
 	</filter-mapping>
 
 	<!-- Rather than using multiple DispatcherServlet each with their own Spring 
-		context we are now using a singleton DispatcherServlet. See: PLFM-2530 -->
+		context we are now using a singleton DispatcherServlet. See: PLFM-2530.
+		Note that the context is loaded from the singleton-servlet.xml file and it's
+		a child context of the root application context which is setup above by the 
+		ContextLoaderListener from shared-context.xml.
+		The DispatcherServlet has access to all the beans defined in the root context, 
+		but not the other way around: the root context cannot access beans defined in the 
+		child contexts.
+	-->
 	<servlet>
 		<servlet-name>singleton</servlet-name>
 		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
