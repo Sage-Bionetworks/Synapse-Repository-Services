@@ -156,7 +156,7 @@ public class UnexpectedExceptionFilterTest {
 
 		logEvent.setDimension(dimensions);
 		
-		dimensions.put("exceptionClass", ex.getClass().getSimpleName());
+		dimensions.put("exceptionClass", ex.getClass().getName());
 		dimensions.put("requestUri", uri);
 		
 		if (withMessage) {

@@ -137,7 +137,7 @@ public class UnexpectedExceptionFilter extends OncePerRequestFilter {
 		Map<String, String> dimensions = new HashMap<>();
 		
 		dimensions.put(CLOUD_WATCH_DIMENSION_URI, requestData.getUri());
-		dimensions.put(CLOUD_WATCH_DIMENSION_EXCEPTION, e.getClass().getSimpleName());
+		dimensions.put(CLOUD_WATCH_DIMENSION_EXCEPTION, e.getClass().getName());
 		
 		if (withMessage) {
 			dimensions.put(CLOUD_WATCH_DIMENSION_MESSAGE, MetricUtils.stackTracetoString(e));
