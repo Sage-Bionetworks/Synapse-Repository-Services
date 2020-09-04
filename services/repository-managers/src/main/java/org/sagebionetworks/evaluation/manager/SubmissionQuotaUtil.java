@@ -81,7 +81,6 @@ public class SubmissionQuotaUtil {
 	}
 
 
-	//TODO: test
 	public static Optional<EvaluationRound> convertToCurrentEvaluationRound(SubmissionQuota quota, Date now){
 		if(quota == null || !SubmissionQuotaUtil.isSubmissionAllowed(quota, now)){
 			return Optional.empty();

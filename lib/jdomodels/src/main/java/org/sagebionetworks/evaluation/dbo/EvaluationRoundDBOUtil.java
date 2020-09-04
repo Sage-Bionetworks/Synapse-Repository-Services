@@ -5,6 +5,8 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.evaluation.model.EvaluationRound;
 import org.sagebionetworks.evaluation.model.EvaluationRoundLimit;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
@@ -15,10 +17,11 @@ import org.sagebionetworks.schema.adapter.org.json.JSONArrayAdapterImpl;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.util.ValidateArgument;
 
-//TODO: test
 public class EvaluationRoundDBOUtil {
 	public static EvaluationRoundDBO toDBO(EvaluationRound dto){
-		validate(dto);
+		ValidateArgument.requiredNotBlank(dto.getId(), "id");
+		ValidateArgument.requiredNotBlank(dto.getEtag(), "etag");
+		ValidateArgument.requiredNotBlank(dto.getEvaluationId(), "evaluationId");
 
 		EvaluationRoundDBO dbo = new EvaluationRoundDBO();
 
@@ -30,7 +33,7 @@ public class EvaluationRoundDBOUtil {
 		dbo.setRoundEnd(dto.getRoundEnd().getTime());
 
 		List<EvaluationRoundLimit> limit = dto.getLimits();
-		if(limit != null && !limit.isEmpty()) {
+		if(CollectionUtils.isNotEmpty(limit)) {
 			try {
 				JSONArrayAdapter jsonArray = new JSONArrayAdapterImpl();
 				for (int i = 0; i < limit.size(); i++) {
@@ -59,7 +62,7 @@ public class EvaluationRoundDBOUtil {
 		dto.setRoundEnd(new Date(dbo.getRoundEnd()));
 
 		String limitsJson = dbo.getLimitsJson();
-		if(limitsJson != null) {
+		if(StringUtils.isNotEmpty(limitsJson)) {
 			try {
 				List<EvaluationRoundLimit> limits = new ArrayList<EvaluationRoundLimit>();
 				JSONArrayAdapter jsonArray = new JSONArrayAdapterImpl(limitsJson);
@@ -78,13 +81,4 @@ public class EvaluationRoundDBOUtil {
 
 		return dto;
 	}
-
-	public static void validate(EvaluationRound evaluationRound){
-		ValidateArgument.requiredNotBlank(evaluationRound.getId(), "id");
-		ValidateArgument.requiredNotBlank(evaluationRound.getEtag(), "etag");
-		ValidateArgument.requiredNotBlank(evaluationRound.getEvaluationId(), "evaluationId");
-		ValidateArgument.required(evaluationRound.getRoundStart(), "roundStart");
-		ValidateArgument.required(evaluationRound.getRoundEnd(), "roundEnd");
-	}
-
 }

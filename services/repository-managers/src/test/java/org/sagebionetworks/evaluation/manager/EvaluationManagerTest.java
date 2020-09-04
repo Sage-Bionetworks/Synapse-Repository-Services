@@ -35,6 +35,8 @@ import org.sagebionetworks.evaluation.dao.EvaluationFilter;
 import org.sagebionetworks.evaluation.dao.EvaluationSubmissionsDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationRound;
+import org.sagebionetworks.evaluation.model.EvaluationRoundLimit;
+import org.sagebionetworks.evaluation.model.EvaluationRoundLimitType;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
@@ -88,7 +90,7 @@ public class EvaluationManagerTest {
 
 	@Spy
 	@InjectMocks
-	private EvaluationManager evaluationManager = new EvaluationManagerImpl();
+	private EvaluationManagerImpl evaluationManager = new EvaluationManagerImpl();
 
 
 	private final Long OWNER_ID = 123L;
@@ -639,6 +641,11 @@ public class EvaluationManagerTest {
 
 		assertEquals(createdRound, result);
 
+		verify(evaluationManager).validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.CREATE);
+		verify(evaluationManager).validateNoExistingQuotaDefined(evalWithId);
+		verify(evaluationManager).validateEvaluationRoundLimits(evaluationRound.getLimits());
+		verify(evaluationManager).validateNoDateRangeOverlap(evaluationRound);
+
 		verify(mockIdGenerator).generateNewId(IdType.EVALUATION_ROUND_ID);
 		verify(mockPermissionsManager).hasAccess(userInfo, EVALUATION_ID,ACCESS_TYPE.CREATE);
 		verify(mockEvaluationDAO).get(EVALUATION_ID);
@@ -657,6 +664,11 @@ public class EvaluationManagerTest {
 
 		assertEquals(evaluationRound, result);
 
+		verify(evaluationManager).validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.UPDATE);
+		verify(evaluationManager).validateNoExistingQuotaDefined(evalWithId);
+		verify(evaluationManager).validateEvaluationRoundLimits(evaluationRound.getLimits());
+		verify(evaluationManager).validateNoDateRangeOverlap(evaluationRound);
+
 		verify(mockPermissionsManager).hasAccess(userInfo, EVALUATION_ID,ACCESS_TYPE.UPDATE);
 		verify(mockEvaluationDAO).get(EVALUATION_ID);
 		verify(mockEvaluationDAO).overlappingEvaluationRounds(EVALUATION_ID, evaluationRoundStart, evaluationRoundEnd);
@@ -671,6 +683,8 @@ public class EvaluationManagerTest {
 		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
 
 		evaluationManager.deleteEvaluationRound(userInfo ,EVALUATION_ID, evaluationRoundId);
+
+		verify(evaluationManager).validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.DELETE);
 
 		verify(mockPermissionsManager).hasAccess(userInfo, EVALUATION_ID,ACCESS_TYPE.DELETE);
 		verify(mockEvaluationDAO).get(EVALUATION_ID);
@@ -688,6 +702,8 @@ public class EvaluationManagerTest {
 		EvaluationRound result = evaluationManager.getEvaluationRound(userInfo, EVALUATION_ID, evaluationRoundId);
 		assertEquals(evaluationRound, result);
 
+
+		verify(evaluationManager).validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.READ);
 
 		verify(mockPermissionsManager).hasAccess(userInfo, EVALUATION_ID,ACCESS_TYPE.READ);
 		verify(mockEvaluationDAO).get(EVALUATION_ID);
@@ -711,8 +727,66 @@ public class EvaluationManagerTest {
 
 		assertEquals(rounds, result);
 
+		verify(evaluationManager).validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.READ);
+
 		verify(mockPermissionsManager).hasAccess(userInfo, EVALUATION_ID,ACCESS_TYPE.READ);
 		verify(mockEvaluationDAO).get(EVALUATION_ID);
 		verify(mockEvaluationDAO).getAssociatedEvaluationRounds(EVALUATION_ID, limit+1, offset);
+	}
+
+	@Test
+	public void testValidateEvaluationRoundLimits_nullOrEmpty(){
+		assertDoesNotThrow(()->
+			((EvaluationManagerImpl) evaluationManager).validateEvaluationRoundLimits(null)
+		);
+		assertDoesNotThrow(()->
+			((EvaluationManagerImpl) evaluationManager).validateEvaluationRoundLimits(Collections.emptyList())
+		);
+	}
+
+	@Test
+	public void testValidateEvaluationRoundLimits_duplicateLimitType(){
+		List<EvaluationRoundLimit> duplicateTypeLimits = Arrays.asList(
+				newLimit(EvaluationRoundLimitType.DAILY, 123),
+				newLimit(EvaluationRoundLimitType.DAILY, 456)
+		);
+		String message = assertThrows(IllegalArgumentException.class, ()->
+			((EvaluationManagerImpl) evaluationManager).validateEvaluationRoundLimits(duplicateTypeLimits)
+		).getMessage();
+
+		assertEquals("You may only have 1 limit of type: DAILY", message);
+	}
+
+	@Test
+	public void testValidateEvaluationRoundLimits_negativeMaxSubmissions(){
+		List<EvaluationRoundLimit> negativeMaxSubmission = Arrays.asList(
+				newLimit(EvaluationRoundLimitType.DAILY, 123),
+				newLimit(EvaluationRoundLimitType.WEEKLY, -456),
+				newLimit(EvaluationRoundLimitType.MONTHLY, 789)
+		);
+		String message = assertThrows(IllegalArgumentException.class, ()->
+				((EvaluationManagerImpl) evaluationManager).validateEvaluationRoundLimits(negativeMaxSubmission)
+		).getMessage();
+
+		assertEquals("maxSubmissions must be a positive integer", message);
+	}
+
+	@Test
+	public void testValidateEvaluationRoundLimits_happy(){
+		List<EvaluationRoundLimit> negativeMaxSubmission = Arrays.asList(
+				newLimit(EvaluationRoundLimitType.DAILY, 123),
+				newLimit(EvaluationRoundLimitType.WEEKLY, 456),
+				newLimit(EvaluationRoundLimitType.MONTHLY, 789)
+		);
+		assertDoesNotThrow(()->
+			((EvaluationManagerImpl) evaluationManager).validateEvaluationRoundLimits(negativeMaxSubmission)
+		);
+	}
+
+	private EvaluationRoundLimit newLimit(EvaluationRoundLimitType type, long maxSubmission){
+		EvaluationRoundLimit evaluationRoundLimit = new EvaluationRoundLimit();
+		evaluationRoundLimit.setLimitType(type);
+		evaluationRoundLimit.setMaximumSubmissions(maxSubmission);
+		return evaluationRoundLimit;
 	}
 }

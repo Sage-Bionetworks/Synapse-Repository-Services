@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.dao.EvaluationFilter;
 import org.sagebionetworks.evaluation.dao.EvaluationSubmissionsDAO;
@@ -307,8 +308,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	}
 
 	void validateEvaluationRoundLimits(List<EvaluationRoundLimit> evaluationRoundLimits){
-		//TODO: test
-		if(evaluationRoundLimits == null || evaluationRoundLimits.isEmpty()){
+		if(CollectionUtils.isEmpty(evaluationRoundLimits)){
 			// nothing to validate
 			return;
 		}
@@ -321,9 +321,13 @@ public class EvaluationManagerImpl implements EvaluationManager {
 
 			EvaluationRoundLimitType limitType = limit.getLimitType();
 			if(limitTypes.contains(limitType)){
-				throw new IllegalArgumentException("You may only have 1 limit of type:" + limitType);
+				throw new IllegalArgumentException("You may only have 1 limit of type: " + limitType);
 			}
 			limitTypes.add(limitType);
+
+			if(limit.getMaximumSubmissions() < 0){
+				throw new IllegalArgumentException("maxSubmissions must be a positive integer");
+			}
 		}
 	}
 

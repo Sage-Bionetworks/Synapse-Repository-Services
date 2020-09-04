@@ -18,6 +18,7 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
@@ -177,5 +178,35 @@ public class EvaluationRoundDBO implements MigratableDatabaseObject<EvaluationRo
 
 	public void setLimitsJson(String limitsJson) {
 		this.limitsJson = limitsJson;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		EvaluationRoundDBO that = (EvaluationRoundDBO) o;
+		return roundStart == that.roundStart &&
+				roundEnd == that.roundEnd &&
+				Objects.equals(id, that.id) &&
+				Objects.equals(etag, that.etag) &&
+				Objects.equals(evaluationId, that.evaluationId) &&
+				Objects.equals(limitsJson, that.limitsJson);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(id, etag, evaluationId, roundStart, roundEnd, limitsJson);
+	}
+
+	@Override
+	public String toString() {
+		return "EvaluationRoundDBO{" +
+				"id=" + id +
+				", etag='" + etag + '\'' +
+				", evaluationId=" + evaluationId +
+				", roundStart=" + roundStart +
+				", roundEnd=" + roundEnd +
+				", limitsJson='" + limitsJson + '\'' +
+				'}';
 	}
 }

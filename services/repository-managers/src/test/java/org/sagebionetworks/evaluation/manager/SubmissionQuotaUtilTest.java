@@ -6,10 +6,17 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Collections;
 import java.util.Date;
+import java.util.Optional;
 
 import org.junit.Test;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
+import org.sagebionetworks.evaluation.model.EvaluationRoundLimit;
+import org.sagebionetworks.evaluation.model.EvaluationRoundLimitType;
 import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.util.Pair;
 
@@ -110,4 +117,73 @@ public class SubmissionQuotaUtilTest {
 				SubmissionQuotaUtil.getRoundInterval(eval.getQuota(), new Date()));
 	}
 
+	@Test
+	public void testConvertToCurrentEvaluationRound_null(){
+		SubmissionQuota nullQuota = null;
+		Optional<EvaluationRound> optionalEvaluationRound = SubmissionQuotaUtil.convertToCurrentEvaluationRound(nullQuota, new Date());
+		assertFalse(optionalEvaluationRound.isPresent());
+	}
+
+	@Test
+	public void testConvertToCurrentEvaluationRound_SubmissionNotAllowed(){
+		SubmissionQuota quota = new SubmissionQuota();
+		Instant now = Instant.now();
+		quota.setFirstRoundStart(Date.from(now));
+		long numRounds = 5;
+		long roundDuration = 40L;
+		quota.setNumberOfRounds(numRounds);
+		quota.setRoundDurationMillis(roundDuration);
+
+		Date roundAlreadyEnded = Date.from(now.plus(numRounds * roundDuration + 1, ChronoUnit.MILLIS));
+
+		Optional<EvaluationRound> optionalEvaluationRound = SubmissionQuotaUtil.convertToCurrentEvaluationRound(quota, roundAlreadyEnded);
+		assertFalse(optionalEvaluationRound.isPresent());
+	}
+
+	@Test
+	public void testConvertToCurrentEvaluationRound_noSubmissionLimit(){
+		SubmissionQuota quota = new SubmissionQuota();
+		Instant now = Instant.now();
+		quota.setFirstRoundStart(Date.from(now));
+		long numRounds = 5;
+		long roundDuration = 40L;
+		quota.setNumberOfRounds(numRounds);
+		quota.setRoundDurationMillis(roundDuration);
+
+		Date thirdRound = Date.from(now.plus(2 * roundDuration + 1, ChronoUnit.MILLIS));
+
+		Optional<EvaluationRound> optionalEvaluationRound = SubmissionQuotaUtil.convertToCurrentEvaluationRound(quota, thirdRound);
+		assertTrue(optionalEvaluationRound.isPresent());
+		EvaluationRound evaluationRound = optionalEvaluationRound.get();
+
+		assertEquals(Date.from(now.plus(2 * roundDuration, ChronoUnit.MILLIS)), evaluationRound.getRoundStart());
+		assertEquals(Date.from(now.plus(3 * roundDuration, ChronoUnit.MILLIS)), evaluationRound.getRoundEnd());
+		assertNull(evaluationRound.getLimits());
+	}
+
+	@Test
+	public void testConvertToCurrentEvaluationRound_hasSubmissionLimit(){
+		SubmissionQuota quota = new SubmissionQuota();
+		Instant now = Instant.now();
+		quota.setFirstRoundStart(Date.from(now));
+		long numRounds = 5;
+		long roundDuration = 40L;
+		long submissionLimit = 35L;
+		quota.setNumberOfRounds(numRounds);
+		quota.setRoundDurationMillis(roundDuration);
+		quota.setSubmissionLimit(submissionLimit);
+
+		Date thirdRound = Date.from(now.plus(2 * roundDuration + 1, ChronoUnit.MILLIS));
+
+		Optional<EvaluationRound> optionalEvaluationRound = SubmissionQuotaUtil.convertToCurrentEvaluationRound(quota, thirdRound);
+		assertTrue(optionalEvaluationRound.isPresent());
+		EvaluationRound evaluationRound = optionalEvaluationRound.get();
+
+		assertEquals(Date.from(now.plus(2 * roundDuration, ChronoUnit.MILLIS)), evaluationRound.getRoundStart());
+		assertEquals(Date.from(now.plus(3 * roundDuration, ChronoUnit.MILLIS)), evaluationRound.getRoundEnd());
+		EvaluationRoundLimit expectedLimit = new EvaluationRoundLimit();
+		expectedLimit.setMaximumSubmissions(submissionLimit);
+		expectedLimit.setLimitType(EvaluationRoundLimitType.TOTAL);
+		assertEquals(Collections.singletonList(expectedLimit), evaluationRound.getLimits());
+	}
 }
