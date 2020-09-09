@@ -355,7 +355,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 
 		//delete
 		synapseOne.deleteEvaluationRound(updated.getEvaluationId(), updated.getId());
-		listResponse = synapseOne.getAllEvaluationRounds(created.getEvaluationId(), null);
+		listResponse = synapseOne.getAllEvaluationRounds(created.getEvaluationId(), new EvaluationRoundListRequest());
 		assertEquals(Arrays.asList(created2), listResponse.getPage());
 	}
 

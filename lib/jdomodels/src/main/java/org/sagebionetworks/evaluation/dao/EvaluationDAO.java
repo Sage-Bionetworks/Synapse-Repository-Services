@@ -113,10 +113,11 @@ public interface EvaluationDAO {
 	 * Any of {timestamp=25, timestamp=5} would return A
 	 * {timestamp=45, timestamp=40} return B,
 	 * {timestamp=35, timestamp=37, timestamp=4, timestamp=55, timestamp=56} return Optional.empty()
-	 *  @param evaluationId id of the Evaluation to search
+	 * @param evaluationId id of the Evaluation to search
 	 * @param timestamp the timestamp for which a matching EvaluationRound's round start and round end timestamp must encapsulate
+	 * @return
 	 */
-	public EvaluationRound getEvaluationRoundForTimestamp(String evaluationId, Instant timestamp);
+	public Optional<EvaluationRound> getEvaluationRoundForTimestamp(String evaluationId, Instant timestamp);
 
 	/**
 	 *

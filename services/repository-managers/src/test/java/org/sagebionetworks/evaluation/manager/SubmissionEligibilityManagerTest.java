@@ -29,6 +29,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -189,14 +190,16 @@ public class SubmissionEligibilityManagerTest {
 	@Test
 	public void testIsIndividualEligibleNoQuota() throws Exception {
 		evaluation.setQuota(null);
-		when(mockEvaluationDAO.getEvaluationRoundForTimestamp(eq(evaluation.getId()), any())).thenReturn(evaluationRound);
+		when(mockEvaluationDAO.hasEvaluationRounds(EVAL_ID)).thenReturn(true);
+		when(mockEvaluationDAO.getEvaluationRoundForTimestamp(eq(evaluation.getId()), any())).thenReturn(Optional.of(evaluationRound));
 		assertTrue(submissionEligibilityManager.
 			isIndividualEligible(EVAL_ID, userInfo, now).isAuthorized());
 	}
 	@Test
-	public void testIsIndividualEligibleNoQuotaNoEvaluationRound() throws Exception {
+	public void testIsIndividualEligibleNoQuota_NoCurrentEvaluationRound() throws Exception {
 		evaluation.setQuota(null);
-		when(mockEvaluationDAO.getEvaluationRoundForTimestamp(eq(evaluation.getId()), any())).thenReturn(null);
+		when(mockEvaluationDAO.hasEvaluationRounds(EVAL_ID)).thenReturn(true);
+		when(mockEvaluationDAO.getEvaluationRoundForTimestamp(eq(evaluation.getId()), any())).thenReturn(Optional.empty());
 		assertFalse(submissionEligibilityManager.isIndividualEligible(EVAL_ID, userInfo, now).isAuthorized());
 	}
 
@@ -247,7 +250,8 @@ public class SubmissionEligibilityManagerTest {
 						eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(monthlyLimitCount);
 
 		evaluation.setQuota(null);
-		when(mockEvaluationDAO.getEvaluationRoundForTimestamp(evaluation.getId(), now.toInstant())).thenReturn(evaluationRound);
+		when(mockEvaluationDAO.hasEvaluationRounds(EVAL_ID)).thenReturn(true);
+		when(mockEvaluationDAO.getEvaluationRoundForTimestamp(evaluation.getId(), now.toInstant())).thenReturn(Optional.of(evaluationRound));
 
 		// method under test
 		assertTrue(submissionEligibilityManager.
@@ -288,7 +292,8 @@ public class SubmissionEligibilityManagerTest {
 						eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(weeklyLimitCount + 1);
 
 		evaluation.setQuota(null);
-		when(mockEvaluationDAO.getEvaluationRoundForTimestamp(evaluation.getId(), now.toInstant())).thenReturn(evaluationRound);
+		when(mockEvaluationDAO.hasEvaluationRounds(EVAL_ID)).thenReturn(true);
+		when(mockEvaluationDAO.getEvaluationRoundForTimestamp(evaluation.getId(), now.toInstant())).thenReturn(Optional.of(evaluationRound));
 
 		// method under test
 		assertFalse(submissionEligibilityManager.
@@ -381,7 +386,8 @@ public class SubmissionEligibilityManagerTest {
 	public void testGetTeamSubmissionEligibilityNoQuota() throws Exception {
 		createValidTeamSubmissionState();
 		evaluation.setQuota(null);
-		when(mockEvaluationDAO.getEvaluationRoundForTimestamp(eq(evaluation.getId()), any())).thenReturn(evaluationRound);
+		when(mockEvaluationDAO.hasEvaluationRounds(EVAL_ID)).thenReturn(true);
+		when(mockEvaluationDAO.getEvaluationRoundForTimestamp(eq(evaluation.getId()), any())).thenReturn(Optional.of(evaluationRound));
 
 		TeamSubmissionEligibility tse = submissionEligibilityManager.
 				getTeamSubmissionEligibility(evaluation, SUBMITTING_TEAM_ID, now);
@@ -409,7 +415,8 @@ public class SubmissionEligibilityManagerTest {
 	public void testGetTeamSubmissionEligibilityNoQuotaNoEvaluationRound() throws Exception {
 		createValidTeamSubmissionState();
 		evaluation.setQuota(null);
-		when(mockEvaluationDAO.getEvaluationRoundForTimestamp(any(), any())).thenReturn(null);
+		when(mockEvaluationDAO.hasEvaluationRounds(EVAL_ID)).thenReturn(true);
+		when(mockEvaluationDAO.getEvaluationRoundForTimestamp(any(), any())).thenReturn(Optional.empty());
 
 		String message = assertThrows(IllegalArgumentException.class, () ->
 				submissionEligibilityManager.getTeamSubmissionEligibility(evaluation, SUBMITTING_TEAM_ID, now)
@@ -533,7 +540,8 @@ public class SubmissionEligibilityManagerTest {
 
 		evaluation.setQuota(null);
 		evaluationRound.setLimits(Arrays.asList(dailyLimit, weeklyLimit, monthlyLimit));
-		when(mockEvaluationDAO.getEvaluationRoundForTimestamp(eq(EVAL_ID), any(Instant.class))).thenReturn(evaluationRound);
+		when(mockEvaluationDAO.hasEvaluationRounds(EVAL_ID)).thenReturn(true);
+		when(mockEvaluationDAO.getEvaluationRoundForTimestamp(eq(EVAL_ID), any(Instant.class))).thenReturn(Optional.of(evaluationRound));
 
 
 		when(mockSubmissionDAO.countSubmissionsByTeam(eq(Long.parseLong(EVAL_ID)),eq(Long.parseLong(SUBMITTING_TEAM_ID)),
@@ -595,7 +603,8 @@ public class SubmissionEligibilityManagerTest {
 
 		evaluation.setQuota(null);
 		evaluationRound.setLimits(Arrays.asList(dailyLimit, weeklyLimit, monthlyLimit));
-		when(mockEvaluationDAO.getEvaluationRoundForTimestamp(eq(EVAL_ID), any(Instant.class))).thenReturn(evaluationRound);
+		when(mockEvaluationDAO.hasEvaluationRounds(EVAL_ID)).thenReturn(true);
+		when(mockEvaluationDAO.getEvaluationRoundForTimestamp(eq(EVAL_ID), any(Instant.class))).thenReturn(Optional.of(evaluationRound));
 
 
 		when(mockSubmissionDAO.countSubmissionsByTeam(eq(Long.parseLong(EVAL_ID)),eq(Long.parseLong(SUBMITTING_TEAM_ID)),

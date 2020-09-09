@@ -8,6 +8,7 @@ import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_ID;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_USER_ID;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,6 +27,7 @@ import org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
 import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
@@ -183,10 +185,17 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		String principalId = userInfo.getId().toString();
 		
 		submission.setUserId(principalId);
-		
+
+		// tag the submission with the current submission round if it is present
+		// if it doesn't exist it could possibly be because the user does not exist yet
+		evaluationDAO.getEvaluationRoundForTimestamp(evalId, Instant.now())
+			.ifPresent((EvaluationRound round) -> {
+				submission.setEvaluationRoundId(round.getId());
+			});
+
 		// validate permissions
 		evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).checkAuthorizationOrElseThrow();
-		
+
 		// validate eTag
 		String entityId = submission.getEntityId();
 		Node node = nodeManager.getNode(userInfo, entityId);

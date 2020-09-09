@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
@@ -126,11 +127,14 @@ public class SubmissionEligibilityManagerImpl implements
 		
 		// now check whether the Team's quota is filled
 		//convert SubmissionQuota into EvaluationRound or lazily retrieve a defined EvaluationRound
-		EvaluationRound currentRound = SubmissionQuotaUtil.convertToCurrentEvaluationRound(evaluation.getQuota(), now)
-				.orElseGet(() -> evaluationDAO.getEvaluationRoundForTimestamp(evaluation.getId(), now.toInstant()));
-		if(currentRound == null) {
-			throw new IllegalArgumentException("The given date is outside the time range allowed for submissions.");
-		}
+		EvaluationRound currentRound = (evaluationDAO.hasEvaluationRounds(evaluation.getId()) ?
+				// get current evaluation round if the evaluation has any defined
+				evaluationDAO.getEvaluationRoundForTimestamp(evaluation.getId(), now.toInstant())
+				// or attempt to convert a SubmissionQuota
+				: SubmissionQuotaUtil.convertToCurrentEvaluationRound(evaluation.getQuota(), now))
+				.orElseThrow(() ->
+					new IllegalArgumentException("The given date is outside the time range allowed for submissions.")
+				);
 
 		teamEligibility.setIsQuotaFilled(false);
 		if(currentRound.getLimits() != null) {
@@ -227,9 +231,11 @@ public class SubmissionEligibilityManagerImpl implements
 			List<String> contributors, String submissionEligibilityHashString, Date now) throws DatastoreException, NotFoundException {
 		Evaluation evaluation = evaluationDAO.get(evalId);
 		//convert SubmissionQuota into EvaluationRound or lazily retrieve a defined EvaluationRound
-		EvaluationRound currentRound = SubmissionQuotaUtil.convertToCurrentEvaluationRound(evaluation.getQuota(), now)
-				.orElseGet(() -> evaluationDAO.getEvaluationRoundForTimestamp(evalId, now.toInstant()));
-		if (currentRound == null) {
+
+		Optional<EvaluationRound> currentRound = evaluationDAO.hasEvaluationRounds(evalId) ?
+				evaluationDAO.getEvaluationRoundForTimestamp(evalId, now.toInstant())
+				: SubmissionQuotaUtil.convertToCurrentEvaluationRound(evaluation.getQuota(), now);
+		if (!currentRound.isPresent()) {
 			return AuthorizationStatus.accessDenied("It is currently outside of the time range allowed for submissions.");
 		}
 		
@@ -293,8 +299,10 @@ public class SubmissionEligibilityManagerImpl implements
 		}
 
 		//convert SubmissionQuota into EvaluationRound or lazily retrieve a defined EvaluationRound
-		EvaluationRound currentRound = SubmissionQuotaUtil.convertToCurrentEvaluationRound(evaluation.getQuota(), now)
-				.orElseGet(() -> evaluationDAO.getEvaluationRoundForTimestamp(evalId, now.toInstant()));
+		EvaluationRound currentRound = (evaluationDAO.hasEvaluationRounds(evalId) ?
+				evaluationDAO.getEvaluationRoundForTimestamp(evalId, now.toInstant())
+				: SubmissionQuotaUtil.convertToCurrentEvaluationRound(evaluation.getQuota(), now))
+				.orElse(null);
 		if (currentRound == null) {
 			return AuthorizationStatus.accessDenied("It is currently outside of the time range allowed for submissions.");
 		}

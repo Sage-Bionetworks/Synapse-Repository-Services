@@ -6,6 +6,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -17,6 +19,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.repo.manager.NodeManager;
@@ -188,6 +191,27 @@ public class SubmissionManagerAutowiredTest {
 		// voila, the repository name is filled in!
 		assertEquals(DOCKER_REPOSITORY_NAME, retrieved.getDockerRepositoryName());
 		assertEquals(DOCKER_DIGEST, retrieved.getDockerDigest());
+	}
+
+	@Test
+	public void testCreateSubmission_taggedWithCurrentEvaluationRound() throws Exception {
+		Instant now = Instant.now();
+		EvaluationRound evaluationRound = new EvaluationRound();
+		evaluationRound.setEvaluationId(evalId);
+		evaluationRound.setRoundStart(Date.from(now));
+		evaluationRound.setRoundEnd(Date.from(now.plus(42, ChronoUnit.HOURS)));
+		evaluationRound = evaluationManager.createEvaluationRound(adminUserInfo, evaluationRound);
+
+		// create a docker repository
+		submission = submissionManager.createSubmission(adminUserInfo, submission,
+				retrievedNode.getETag(), null, bundle);
+
+		assertNotNull(submission.getId());
+
+		// retrieve the submission
+		Submission retrieved = submissionManager.getSubmission(adminUserInfo, submission.getId());
+		assertEquals(evaluationRound.getId(), retrieved.getEvaluationRoundId());
+
 	}
 	
 	@Test

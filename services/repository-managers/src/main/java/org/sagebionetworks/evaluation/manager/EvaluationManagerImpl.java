@@ -1,5 +1,6 @@
 package org.sagebionetworks.evaluation.manager;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.EnumSet;
@@ -11,6 +12,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.dao.EvaluationFilter;
 import org.sagebionetworks.evaluation.dao.EvaluationSubmissionsDAO;
+import org.sagebionetworks.evaluation.dao.SubmissionDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationRound;
 import org.sagebionetworks.evaluation.model.EvaluationRoundLimit;
@@ -59,9 +61,14 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	private EvaluationSubmissionsDAO evaluationSubmissionsDAO;
 
 	@Autowired
+	private SubmissionDAO submissionDAO;
+
+	@Autowired
 	private SubmissionEligibilityManager submissionEligibilityManager;
 
 	static final String NON_EXISTENT_ROUND_ID = "-1";
+	//used to provide some leeway in allowed time window for updating/deleting a EvaluationRound
+	static final Duration ONE_SECOND = Duration.ofSeconds(1);
 
 	@Override
 	@WriteTransaction
@@ -221,8 +228,20 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	@WriteTransaction
 	@Override
 	public EvaluationRound createEvaluationRound(UserInfo userInfo, EvaluationRound evaluationRound){
-		Evaluation evaluation = validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.CREATE);
+		// Creating evaluation rounds are seen as updates to the Evaluation itself
+		Evaluation evaluation = validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.UPDATE);
 		validateNoExistingQuotaDefined(evaluation);
+
+		Instant now = Instant.now();
+		// verify start of round
+		if(now.minus(ONE_SECOND).isAfter(evaluationRound.getRoundStart().toInstant())){
+			throw new IllegalArgumentException("Can not create an EvaluationRound with a start date in the past.");
+		}
+		// verify end of round
+		if( now.isAfter(evaluationRound.getRoundEnd().toInstant()) ){
+			throw new IllegalArgumentException("Can not create an EvaluationRound with an end date in the past.");
+		}
+
 		validateNoDateRangeOverlap(evaluationRound, NON_EXISTENT_ROUND_ID);
 		validateEvaluationRoundLimits(evaluationRound.getLimits());
 
@@ -237,11 +256,24 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	public EvaluationRound updateEvaluationRound(UserInfo userInfo, EvaluationRound evaluationRound){
 		Evaluation evaluation = validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.UPDATE);
 		validateNoExistingQuotaDefined(evaluation);
-		//TODO: disallow modifying start date if current time past start date unless zero submissions were made.
-		// disallow modifying end date if current time past end date unless zero submissions were made.
-		// requires first adding ability to tag submissions with evaluationID
+
+		Instant now = Instant.now();
+		EvaluationRound storedRound = evaluationDAO.getEvaluationRound(evaluationRound.getEvaluationId(), evaluationRound.getId());
+		// verify updating start of round
+		if( !storedRound.getRoundStart().equals(evaluationRound.getRoundStart())
+				&& now.minus(ONE_SECOND).isAfter(evaluationRound.getRoundStart().toInstant())
+				&& submissionDAO.hasSubmissionForEvaluationRound(evaluationRound.getEvaluationId(), evaluationRound.getId())){
+				throw new IllegalArgumentException("Can not update an EvaluationRound's start date after it has already started and Submissions have been made");
+		}
+		// verify updating end of round
+		if( !storedRound.getRoundEnd().equals(evaluationRound.getRoundEnd())
+				&& now.isAfter(evaluationRound.getRoundEnd().toInstant()) ){
+			throw new IllegalArgumentException("Can not update an EvaluationRound's end date to a time in the past.");
+		}
+
 		validateNoDateRangeOverlap(evaluationRound, evaluationRound.getId());
 		validateEvaluationRoundLimits(evaluationRound.getLimits());
+
 		evaluationDAO.updateEvaluationRound(evaluationRound);
 		return evaluationDAO.getEvaluationRound(evaluationRound.getEvaluationId(), evaluationRound.getId());
 	}
@@ -249,10 +281,14 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	@WriteTransaction
 	@Override
 	public void deleteEvaluationRound(UserInfo userInfo, String evaluationId, String evaluationRoundId){
-		validateEvaluationAccess(userInfo, evaluationId, ACCESS_TYPE.DELETE);
+		// Deleting evaluation rounds are seen as updates to the Evaluation itself
+		validateEvaluationAccess(userInfo, evaluationId, ACCESS_TYPE.UPDATE);
 
-		//TODO: disallow delete if current time past start date unless zero submissions were made.
-		// requires first adding ability to tag submissions with evaluationID
+		EvaluationRound round = evaluationDAO.getEvaluationRound(evaluationId, evaluationRoundId);
+		if(Instant.now().minus(ONE_SECOND).isAfter(round.getRoundStart().toInstant())
+			&& submissionDAO.hasSubmissionForEvaluationRound(evaluationId, evaluationRoundId)){
+			throw new IllegalArgumentException("Can not delete an EvaluationRound after it has already started and Submissions have been made");
+		}
 
 		evaluationDAO.deleteEvaluationRound(evaluationId, evaluationRoundId);
 	}
@@ -293,7 +329,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		Instant roundStart = evaluationRound.getRoundStart().toInstant();
 		Instant roundEnd = evaluationRound.getRoundEnd().toInstant();
 
-		if(roundEnd.compareTo(roundStart) <= 0){
+		if(roundStart.isAfter(roundEnd)){
 			throw new IllegalArgumentException("EvaluationRound can not end before it starts");
 		}
 

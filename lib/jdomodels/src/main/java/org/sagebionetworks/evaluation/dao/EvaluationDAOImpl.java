@@ -385,7 +385,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	}
 
 	@Override
-	public EvaluationRound getEvaluationRoundForTimestamp(String evaluationId, Instant timestamp) {
+	public Optional<EvaluationRound> getEvaluationRoundForTimestamp(String evaluationId, Instant timestamp) {
 		MapSqlParameterSource sqlParameterSource = new MapSqlParameterSource();
 		sqlParameterSource.addValue(DBOConstants.PARAM_EVALUATION_ROUND_EVALUATION_ID, evaluationId);
 		sqlParameterSource.addValue(PARAM_BETWEEN_DATE, timestamp.toEpochMilli());
@@ -393,11 +393,11 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		try {
 			return namedJdbcTemplate.queryForObject(SELECT_ROUND_BETWEEN_RANGE, sqlParameterSource,
 					(ResultSet resultSet, int rowNumber) -> {
-						return EvaluationRoundDBOUtil.toDTO(EVALUATION_ROUND_ROW_MAPPER.mapRow(resultSet, rowNumber));
+						return Optional.of(EvaluationRoundDBOUtil.toDTO(EVALUATION_ROUND_ROW_MAPPER.mapRow(resultSet, rowNumber)));
 					}
 			);
 		} catch (EmptyResultDataAccessException e){
-			return null;
+			return Optional.empty();
 		}
 	}
 

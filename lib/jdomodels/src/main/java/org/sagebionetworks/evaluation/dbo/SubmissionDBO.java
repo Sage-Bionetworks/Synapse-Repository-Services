@@ -7,11 +7,13 @@ import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_E
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_ENTITY_ID;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_ENTITY_VERSION;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_EVAL_ID;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_EVAL_ROUND_ID;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_ID;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_NAME;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_SUBMITTER_ALIAS;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_TEAM_ID;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_USER_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_SUBMISSIONS_EVAL_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_DOCKER_DIGEST;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_DOCKER_REPO_NAME;
@@ -19,6 +21,7 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_E
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ENTITY_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ENTITY_VERSION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_EVAL_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_EVAL_ROUND_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_SUBMITTER_ALIAS;
@@ -51,6 +54,7 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 			new FieldColumn(PARAM_SUBMISSION_ID, COL_SUBMISSION_ID, true).withIsBackupId(true),
 			new FieldColumn(PARAM_SUBMISSION_USER_ID, COL_SUBMISSION_USER_ID),
 			new FieldColumn(PARAM_SUBMISSION_EVAL_ID, COL_SUBMISSION_EVAL_ID),
+			new FieldColumn(PARAM_SUBMISSION_EVAL_ROUND_ID, COL_SUBMISSION_EVAL_ROUND_ID),
 			new FieldColumn(PARAM_SUBMISSION_ENTITY_ID, COL_SUBMISSION_ENTITY_ID),
 			new FieldColumn(PARAM_SUBMISSION_ENTITY_BUNDLE, COL_SUBMISSION_ENTITY_BUNDLE),
 			new FieldColumn(PARAM_SUBMISSION_ENTITY_VERSION, COL_SUBMISSION_ENTITY_VERSION),
@@ -71,6 +75,11 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 				sub.setUserId(rs.getLong(COL_SUBMISSION_USER_ID));
 				sub.setSubmitterAlias(rs.getString(COL_SUBMISSION_SUBMITTER_ALIAS));
 				sub.setEvalId(rs.getLong(COL_SUBMISSION_EVAL_ID));
+
+				Long evalRoundId = rs.getLong(COL_SUBMISSION_EVAL_ROUND_ID);
+				evalRoundId = rs.wasNull() ? null : evalRoundId;
+				sub.setEvalRoundId(evalRoundId);
+
 				sub.setEntityId(rs.getLong(COL_SUBMISSION_ENTITY_ID));
 				sub.setVersionNumber(rs.getLong(COL_SUBMISSION_ENTITY_VERSION));
 				sub.setName(rs.getString(COL_SUBMISSION_NAME));
@@ -110,6 +119,7 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 	private Long userId;
 	private String submitterAlias;
 	private Long evalId;
+	private Long evalRoundId;
 	private Long entityId;
 	private byte[] entityBundle;
 	private Long versionNumber;
@@ -145,7 +155,15 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 	public void setEvalId(Long evalId) {
 		this.evalId = evalId;
 	}
-	
+
+	public Long getEvalRoundId() {
+		return evalRoundId;
+	}
+
+	public void setEvalRoundId(Long evalRoundId) {
+		this.evalRoundId = evalRoundId;
+	}
+
 	public Long getEntityId() {
 		return entityId;
 	}

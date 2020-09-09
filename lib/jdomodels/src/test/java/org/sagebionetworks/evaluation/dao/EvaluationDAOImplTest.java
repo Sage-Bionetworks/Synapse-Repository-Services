@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 
@@ -559,26 +560,26 @@ public class EvaluationDAOImplTest {
 		EvaluationRound createdRound = evaluationDAO.createEvaluationRound(evaluationRound);
 
 		//test between the dates
-		EvaluationRound matchingRound = evaluationDAO.getEvaluationRoundForTimestamp(evaluationId, evalRoundStart.plus(1, ChronoUnit.HOURS));
-		assertNotNull(matchingRound);
-		assertEquals(createdRound, matchingRound);
+		Optional<EvaluationRound> matchingRound = evaluationDAO.getEvaluationRoundForTimestamp(evaluationId, evalRoundStart.plus(1, ChronoUnit.HOURS));
+		assertTrue(matchingRound.isPresent());
+		assertEquals(createdRound, matchingRound.get());
 
 		//test on round start timestamp
 		matchingRound = evaluationDAO.getEvaluationRoundForTimestamp(evaluationId, evalRoundStart);
-		assertNotNull(matchingRound);
-		assertEquals(createdRound, matchingRound);
+		assertTrue(matchingRound.isPresent());
+		assertEquals(createdRound, matchingRound.get());
 
 		//test on round end timestamp
 		matchingRound = evaluationDAO.getEvaluationRoundForTimestamp(evaluationId, evalRoundEnd);
-		assertNull(matchingRound);
+		assertFalse(matchingRound.isPresent());
 
 		//test before round start timestamp
 		matchingRound = evaluationDAO.getEvaluationRoundForTimestamp(evaluationId, evalRoundStart.minus(1, ChronoUnit.DAYS));
-		assertNull(matchingRound);
+		assertFalse(matchingRound.isPresent());
 
 		//test after round end timestamp
 		matchingRound = evaluationDAO.getEvaluationRoundForTimestamp(evaluationId, evalRoundEnd.plus(1, ChronoUnit.DAYS));
-		assertNull(matchingRound);
+		assertFalse(matchingRound.isPresent());
 	}
 
 

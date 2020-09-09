@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +34,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.dao.EvaluationFilter;
 import org.sagebionetworks.evaluation.dao.EvaluationSubmissionsDAO;
+import org.sagebionetworks.evaluation.dao.SubmissionDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationRound;
 import org.sagebionetworks.evaluation.model.EvaluationRoundLimit;
@@ -55,6 +57,10 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 @ExtendWith(MockitoExtension.class)
 public class EvaluationManagerTest {
@@ -81,6 +87,9 @@ public class EvaluationManagerTest {
 
 	@Mock
 	private EvaluationSubmissionsDAO mockEvaluationSubmissionsDAO;
+
+	@Mock
+	private SubmissionDAO mockSubmissionDAO;
 
 	@Mock
 	private SubmissionEligibilityManager mockSubmissionEligibilityManager;
@@ -606,7 +615,7 @@ public class EvaluationManagerTest {
 			((EvaluationManagerImpl) evaluationManager).validateNoDateRangeOverlap(evaluationRound, evaluationRoundId);
 		}).getMessage();
 
-		assertEquals("Round can not end before it starts", message);
+		assertEquals("EvaluationRound can not end before it starts", message);
 		verifyZeroInteractions(mockEvaluationDAO);
 	}
 
@@ -644,7 +653,7 @@ public class EvaluationManagerTest {
 
 	@Test
 	public void createEvaluationRound(){
-		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.CREATE))
+		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.UPDATE))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
 		//fake round that gets "created"
@@ -655,16 +664,44 @@ public class EvaluationManagerTest {
 
 		assertEquals(createdRound, result);
 
-		verify(evaluationManager).validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.CREATE);
+		verify(evaluationManager).validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.UPDATE);
 		verify(evaluationManager).validateNoExistingQuotaDefined(evalWithId);
 		verify(evaluationManager).validateEvaluationRoundLimits(evaluationRound.getLimits());
 		verify(evaluationManager).validateNoDateRangeOverlap(evaluationRound, EvaluationManagerImpl.NON_EXISTENT_ROUND_ID);
 
 		verify(mockIdGenerator).generateNewId(IdType.EVALUATION_ROUND_ID);
-		verify(mockPermissionsManager).hasAccess(userInfo, EVALUATION_ID,ACCESS_TYPE.CREATE);
+		verify(mockPermissionsManager).hasAccess(userInfo, EVALUATION_ID,ACCESS_TYPE.UPDATE);
 		verify(mockEvaluationDAO).get(EVALUATION_ID);
 		verify(mockEvaluationDAO).overlappingEvaluationRounds(EVALUATION_ID, EvaluationManagerImpl.NON_EXISTENT_ROUND_ID, evaluationRoundStart, evaluationRoundEnd);
 		verify(mockEvaluationDAO).createEvaluationRound(evaluationRound);
+	}
+
+	@Test
+	public void createEvaluationRound_startDateInPast(){
+		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.UPDATE))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
+
+		evaluationRound.setRoundStart(Date.from(Instant.now().minus(3, ChronoUnit.SECONDS)));
+
+		String message = assertThrows(IllegalArgumentException.class,
+				() -> evaluationManager.createEvaluationRound(userInfo, evaluationRound)
+		).getMessage();
+		assertEquals("Can not create an EvaluationRound with a start date in the past.", message);
+	}
+
+	@Test
+	public void createEvaluationRound_endDateInPast(){
+		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.UPDATE))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
+
+		evaluationRound.setRoundEnd(Date.from(Instant.now().minus(2, ChronoUnit.SECONDS)));
+
+		String message = assertThrows(IllegalArgumentException.class,
+				() -> evaluationManager.createEvaluationRound(userInfo, evaluationRound)
+		).getMessage();
+		assertEquals("Can not create an EvaluationRound with an end date in the past.", message);
 	}
 
 	@Test
@@ -687,20 +724,98 @@ public class EvaluationManagerTest {
 		verify(mockEvaluationDAO).get(EVALUATION_ID);
 		verify(mockEvaluationDAO).overlappingEvaluationRounds(EVALUATION_ID, evaluationRoundId, evaluationRoundStart, evaluationRoundEnd);
 		verify(mockEvaluationDAO).updateEvaluationRound(evaluationRound);
+		verify(mockEvaluationDAO, times(2)).getEvaluationRound(EVALUATION_ID, evaluationRoundId);
+	}
+
+	@Test
+	public void updateEvaluationRound_StartDateChangedToBeforeCurrentTime() throws JSONObjectAdapterException {
+		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.UPDATE))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
+		when(mockEvaluationDAO.getEvaluationRound(EVALUATION_ID, evaluationRoundId)).thenReturn(evaluationRound);
+
+		JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(evaluationRound);
+		EvaluationRound evaluationRoundModified = EntityFactory.createEntityFromJSONObject(jsonObject, EvaluationRound.class);
+		evaluationRoundModified.setRoundEnd(Date.from(Instant.now().minus(2, ChronoUnit.SECONDS)));
+
+
+		String message = assertThrows(IllegalArgumentException.class, () ->
+				evaluationManager.updateEvaluationRound(userInfo, evaluationRoundModified)
+		).getMessage();
+
+		assertEquals("Can not update an EvaluationRound's end date to a time in the past.", message);
+	}
+
+	@Test
+	public void updateEvaluationRound_EndDateChangedToBeforeCurrentTime() throws JSONObjectAdapterException {
+		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.UPDATE))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
+		when(mockEvaluationDAO.getEvaluationRound(EVALUATION_ID, evaluationRoundId)).thenReturn(evaluationRound);
+
+		JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(evaluationRound);
+		EvaluationRound evaluationRoundModified = EntityFactory.createEntityFromJSONObject(jsonObject, EvaluationRound.class);
+		evaluationRoundModified.setRoundStart(Date.from(Instant.now().minus(2, ChronoUnit.SECONDS)));
+		when(mockSubmissionDAO.hasSubmissionForEvaluationRound(EVALUATION_ID, evaluationRoundId)).thenReturn(true);
+
+		String message = assertThrows(IllegalArgumentException.class, () ->
+				evaluationManager.updateEvaluationRound(userInfo, evaluationRoundModified)
+		).getMessage();
+
+		assertEquals("Can not update an EvaluationRound's start date after it has already started and Submissions have been made", message);
+	}
+
+	@Test
+	public void deleteEvaluationRound_afterRoundStarted_hasSubmissionRounds(){
+		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.UPDATE))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
+
+		evaluationRound.setRoundStart(Date.from(Instant.now().minus(2, ChronoUnit.SECONDS)));
+		when(mockEvaluationDAO.getEvaluationRound(EVALUATION_ID, evaluationRoundId)).thenReturn(evaluationRound);
+		when(mockSubmissionDAO.hasSubmissionForEvaluationRound(EVALUATION_ID, evaluationRoundId)).thenReturn(true);
+
+
+		String message = assertThrows(IllegalArgumentException.class, () ->
+				evaluationManager.deleteEvaluationRound(userInfo, EVALUATION_ID, evaluationRoundId)
+		).getMessage();
+
+		assertEquals("Can not delete an EvaluationRound after it has already started and Submissions have been made", message);
+	}
+	@Test
+	public void deleteEvaluationRound_afterRoundStarted_NoSubmissionRounds(){
+		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.UPDATE))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
+		when(mockEvaluationDAO.getEvaluationRound(EVALUATION_ID, evaluationRoundId)).thenReturn(evaluationRound);
+
+		evaluationRound.setRoundStart(Date.from(Instant.now().minus(2, ChronoUnit.SECONDS)));
+		when(mockEvaluationDAO.getEvaluationRound(EVALUATION_ID, evaluationRoundId)).thenReturn(evaluationRound);
+		when(mockSubmissionDAO.hasSubmissionForEvaluationRound(EVALUATION_ID, evaluationRoundId)).thenReturn(false);
+
+		assertDoesNotThrow(() ->
+			evaluationManager.deleteEvaluationRound(userInfo ,EVALUATION_ID, evaluationRoundId)
+		);
+
+		verify(evaluationManager).validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.UPDATE);
 		verify(mockEvaluationDAO).getEvaluationRound(EVALUATION_ID, evaluationRoundId);
+		verify(mockPermissionsManager).hasAccess(userInfo, EVALUATION_ID,ACCESS_TYPE.UPDATE);
+		verify(mockEvaluationDAO).get(EVALUATION_ID);
+		verify(mockEvaluationDAO).deleteEvaluationRound(EVALUATION_ID, evaluationRoundId);
 	}
 
 	@Test
 	public void deleteEvaluationRound(){
-		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.DELETE))
+		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.UPDATE))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
+		when(mockEvaluationDAO.getEvaluationRound(EVALUATION_ID, evaluationRoundId)).thenReturn(evaluationRound);
 
 		evaluationManager.deleteEvaluationRound(userInfo ,EVALUATION_ID, evaluationRoundId);
 
-		verify(evaluationManager).validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.DELETE);
-
-		verify(mockPermissionsManager).hasAccess(userInfo, EVALUATION_ID,ACCESS_TYPE.DELETE);
+		verify(evaluationManager).validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.UPDATE);
+		verify(mockEvaluationDAO).getEvaluationRound(EVALUATION_ID, evaluationRoundId);
+		verify(mockPermissionsManager).hasAccess(userInfo, EVALUATION_ID,ACCESS_TYPE.UPDATE);
 		verify(mockEvaluationDAO).get(EVALUATION_ID);
 		verify(mockEvaluationDAO).deleteEvaluationRound(EVALUATION_ID, evaluationRoundId);
 	}

@@ -121,7 +121,11 @@ public class SubmissionQuotaUtilTest {
 	public void testConvertToCurrentEvaluationRound_null(){
 		SubmissionQuota nullQuota = null;
 		Optional<EvaluationRound> optionalEvaluationRound = SubmissionQuotaUtil.convertToCurrentEvaluationRound(nullQuota, new Date());
-		assertFalse(optionalEvaluationRound.isPresent());
+		assertTrue(optionalEvaluationRound.isPresent());
+		optionalEvaluationRound.ifPresent((round) ->{
+			assertNull(round.getRoundStart());
+			assertNull(round.getRoundEnd());
+		});
 	}
 
 	@Test

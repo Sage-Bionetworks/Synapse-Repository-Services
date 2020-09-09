@@ -11,6 +11,7 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_D
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ENTITY_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ENTITY_VERSION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_EVAL_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_EVAL_ROUND_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_SUBMITTER_ALIAS;
@@ -23,6 +24,7 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ST
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_VERSION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION_ROUND;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBMISSION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBMISSION_CONTRIBUTOR;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS;
@@ -868,6 +870,19 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		jdbcTemplate.update("DELETE FROM " + TABLE_SUBMISSION);
 		jdbcTemplate.update("DELETE FROM " + TABLE_EVALUATION);
 	}
+
+	@Override
+	public boolean hasSubmissionForEvaluationRound(String evalId, String evalRoundId){
+		MapSqlParameterSource parameterSource = new MapSqlParameterSource();
+		parameterSource.addValue(DBOConstants.PARAM_SUBMISSION_EVAL_ID, evalId);
+		parameterSource.addValue(DBOConstants.PARAM_SUBMISSION_EVAL_ROUND_ID, evalRoundId);
+
+		String sql = "SELECT COUNT(*) > 0 FROM " + TABLE_SUBMISSION +
+				" WHERE " + COL_SUBMISSION_EVAL_ROUND_ID + " = :" + DBOConstants.PARAM_SUBMISSION_EVAL_ROUND_ID +
+				" AND " + COL_SUBMISSION_EVAL_ID + " = :" + DBOConstants.PARAM_SUBMISSION_EVAL_ID;
+
+		return namedJdbcTemplate.queryForObject(sql, parameterSource, Boolean.class);
+	}
 	
 	private static ObjectDataDTO mapSubmissionDataRow(ResultSet rs, int index, int maxAnnotationChars) throws SQLException {
 		ObjectDataDTO data = new ObjectDataDTO();
@@ -939,6 +954,5 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		
 		return map.values().stream().collect(Collectors.toList());
 	}
-
 
 }

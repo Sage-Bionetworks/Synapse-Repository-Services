@@ -21,6 +21,11 @@
 			"description": "The Synapse ID of the Evaluation this Submission is for.",
 			"transient": true
 		},
+		"evaluationRoundId": {
+			"type": "string",
+			"description": "The Synapse ID of the EvaluationRound to which this was submitted. This field is only present if the Evaluation is configured with an EvaluationRound",
+			"transient": true
+		},
 		"entityId": {
 			"type": "string",
 			"description": "The Synapse ID of the Entity in this Submission.",

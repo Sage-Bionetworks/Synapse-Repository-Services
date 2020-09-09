@@ -17,6 +17,7 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -79,6 +80,7 @@ public class EvaluationRoundDBO implements MigratableDatabaseObject<EvaluationRo
 
 	@Override
 	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
+//		return Arrays.asList(new SubmissionDBO());
 		return null;
 	}
 

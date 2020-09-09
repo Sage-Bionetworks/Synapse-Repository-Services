@@ -82,7 +82,8 @@ public class SubmissionQuotaUtil {
 
 
 	public static Optional<EvaluationRound> convertToCurrentEvaluationRound(SubmissionQuota quota, Date now){
-		if(quota == null || !SubmissionQuotaUtil.isSubmissionAllowed(quota, now)){
+		//TODO: modify behavior to create a EvaluationRound for null
+		if(!SubmissionQuotaUtil.isSubmissionAllowed(quota, now)){
 			return Optional.empty();
 		}
 
@@ -98,7 +99,7 @@ public class SubmissionQuotaUtil {
 			evaluationRound.setRoundEnd(startAndEnd.getSecond());
 		}
 		//set total submission limit
-		if(quota.getSubmissionLimit() != null) {
+		if(quota != null && quota.getSubmissionLimit() != null) {
 			EvaluationRoundLimit submissionLimits = new EvaluationRoundLimit();
 			submissionLimits.setLimitType(EvaluationRoundLimitType.TOTAL);
 			submissionLimits.setMaximumSubmissions(quota.getSubmissionLimit());

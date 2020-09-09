@@ -35,6 +35,7 @@ public class DBOConstants {
 	public static final String PARAM_SUBMISSION_USER_ID 			= "userId";
 	public static final String PARAM_SUBMISSION_SUBMITTER_ALIAS 	= "submitterAlias";
 	public static final String PARAM_SUBMISSION_EVAL_ID 			= "evalId";
+	public static final String PARAM_SUBMISSION_EVAL_ROUND_ID		= "evalRoundId";
 	public static final String PARAM_SUBMISSION_ENTITY_ID 			= "entityId";
 	public static final String PARAM_SUBMISSION_ENTITY_BUNDLE 		= "entityBundle";
 	public static final String PARAM_SUBMISSION_ENTITY_VERSION 		= "versionNumber";
