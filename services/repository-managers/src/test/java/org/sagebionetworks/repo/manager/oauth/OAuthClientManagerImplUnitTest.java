@@ -494,7 +494,6 @@ public class OAuthClientManagerImplUnitTest {
 		
 		// verify IS scrubbed of private info
 		assertNull(oauthClient.getCreatedBy());
-		assertNull(oauthClient.getRedirect_uris());
 		assertNull(oauthClient.getSector_identifier());
 		assertNull(oauthClient.getCreatedOn());
 		assertNull(oauthClient.getModifiedOn());

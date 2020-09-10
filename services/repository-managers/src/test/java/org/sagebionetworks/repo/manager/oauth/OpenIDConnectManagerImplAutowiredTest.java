@@ -305,7 +305,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 
 		// Try to use the refresh token to get a new access token, asking for a different scope than was originally granted
 		// method under test
-		assertThrows(IllegalArgumentException.class, () ->
+		assertThrows(OAuthBadRequestException.class, () ->
 				openIDConnectManager.generateTokenResponseWithRefreshToken(tokenResponse.getRefresh_token(), oauthClient.getClient_id(), OAuthScope.download.name(), OAUTH_ENDPOINT)
 		);
 
