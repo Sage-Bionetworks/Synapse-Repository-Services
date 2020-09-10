@@ -26,7 +26,13 @@
 			"description": "Array of Redirection URI values used by the Client. One of these registered Redirection URI values MUST exactly match the redirect_uri parameter value used in each Authorization Request. If the 'sector_identifier_uri' is provided then the URIs in this list must be in the list of URIs in the JSON document referenced by the sector_identifier_uri.",
 			"items":{
 				"type": "string"
-			}
+			},
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
 		},
 		"verified": {
 			"type": "boolean",

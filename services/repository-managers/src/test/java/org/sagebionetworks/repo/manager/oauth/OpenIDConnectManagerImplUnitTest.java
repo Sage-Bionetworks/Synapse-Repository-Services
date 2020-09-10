@@ -289,8 +289,8 @@ public class OpenIDConnectManagerImplUnitTest {
 			// method under test
 			OpenIDConnectManagerImpl.validateAuthenticationRequest(authorizationRequest, client);
 		});
-		assertEquals(OAuthErrorCode.invalid_request, ex.getError());
-		assertEquals("invalid_request Redirect URI is not a valid url: some invalid uri", ex.getMessage());
+		assertEquals(OAuthErrorCode.invalid_redirect_uri, ex.getError());
+		assertEquals("invalid_redirect_uri Redirect URI is not a valid url: some invalid uri", ex.getMessage());
 	}
 
 	@Test
@@ -439,8 +439,8 @@ public class OpenIDConnectManagerImplUnitTest {
 			// method under test
 			openIDConnectManagerImpl.getAuthenticationRequestDescription(authorizationRequest);
 		});
-		assertEquals(OAuthErrorCode.invalid_request, ex.getError());
-		assertEquals("invalid_request Redirect URI is not a valid url: some other redir uri", ex.getMessage());
+		assertEquals(OAuthErrorCode.invalid_redirect_uri, ex.getError());
+		assertEquals("invalid_redirect_uri Redirect URI is not a valid url: some other redir uri", ex.getMessage());
 	}
 	
 	@Test
@@ -1036,7 +1036,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		String scope = "openid offline_access authorize"; // Authorize was not previously granted
 
 		// method under test
-		assertThrows(IllegalArgumentException.class, () -> openIDConnectManagerImpl.generateTokenResponseWithRefreshToken(refreshToken, OAUTH_CLIENT_ID, scope, OAUTH_ENDPOINT));
+		OAuthBadRequestException e = assertThrows(OAuthBadRequestException.class, () -> openIDConnectManagerImpl.generateTokenResponseWithRefreshToken(refreshToken, OAUTH_CLIENT_ID, scope, OAUTH_ENDPOINT));
+		assertEquals(OAuthErrorCode.invalid_scope, e.getError());
 	}
 
 	@Test
