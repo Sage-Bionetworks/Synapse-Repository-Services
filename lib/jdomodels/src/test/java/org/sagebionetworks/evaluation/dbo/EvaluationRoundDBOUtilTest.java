@@ -101,6 +101,19 @@ class EvaluationRoundDBOUtilTest {
 		assertNull(dto.getLimits());
 	}
 
+	@Test
+	public void testToDTO_JsonStringContainsNullElement(){
+		EvaluationRoundDBO dbo = EvaluationRoundDBOUtil.toDBO(evaluationRound);
+		assertNotNull(dbo.getLimitsJson());
+
+		dbo.setLimitsJson("[{\"limitType\":\"TOTAL\", \"maximumSubmissions\":42},null]");
+		String message = assertThrows(IllegalStateException.class, () ->
+				EvaluationRoundDBOUtil.toDTO(dbo)
+		).getMessage();
+
+		assertEquals("null value should not have been stored", message);
+	}
+
 	private EvaluationRoundLimit newLimit(EvaluationRoundLimitType type, long maximumSubmissions){
 		EvaluationRoundLimit limit = new EvaluationRoundLimit();
 		limit.setLimitType(EvaluationRoundLimitType.TOTAL);

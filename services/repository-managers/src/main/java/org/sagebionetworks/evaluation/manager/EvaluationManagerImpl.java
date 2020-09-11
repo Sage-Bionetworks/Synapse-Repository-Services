@@ -2,6 +2,7 @@ package org.sagebionetworks.evaluation.manager;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
@@ -17,10 +18,13 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationRound;
 import org.sagebionetworks.evaluation.model.EvaluationRoundLimit;
 import org.sagebionetworks.evaluation.model.EvaluationRoundLimitType;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListRequest;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListResponse;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -67,8 +71,6 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	private SubmissionEligibilityManager submissionEligibilityManager;
 
 	static final String NON_EXISTENT_ROUND_ID = "-1";
-	//used to provide some leeway in allowed time window for updating/deleting a EvaluationRound
-	static final Duration ONE_SECOND = Duration.ofSeconds(1);
 
 	@Override
 	@WriteTransaction
@@ -234,7 +236,8 @@ public class EvaluationManagerImpl implements EvaluationManager {
 
 		Instant now = Instant.now();
 		// verify start of round
-		if(now.minus(ONE_SECOND).isAfter(evaluationRound.getRoundStart().toInstant())){
+		// allow 1 second leeway for cases where someone wants to create a round starting "now"
+		if(now.minus(1, ChronoUnit.SECONDS).isAfter(evaluationRound.getRoundStart().toInstant())){
 			throw new IllegalArgumentException("Can not create an EvaluationRound with a start date in the past.");
 		}
 		// verify end of round
@@ -254,6 +257,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	@WriteTransaction
 	@Override
 	public EvaluationRound updateEvaluationRound(UserInfo userInfo, EvaluationRound evaluationRound){
+
 		Evaluation evaluation = validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.UPDATE);
 		validateNoExistingQuotaDefined(evaluation);
 
@@ -261,7 +265,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		EvaluationRound storedRound = evaluationDAO.getEvaluationRound(evaluationRound.getEvaluationId(), evaluationRound.getId());
 		// verify updating start of round
 		if( !storedRound.getRoundStart().equals(evaluationRound.getRoundStart())
-				&& now.minus(ONE_SECOND).isAfter(evaluationRound.getRoundStart().toInstant())
+				&& now.isAfter(evaluationRound.getRoundStart().toInstant())
 				&& submissionDAO.hasSubmissionForEvaluationRound(evaluationRound.getEvaluationId(), evaluationRound.getId())){
 				throw new IllegalArgumentException("Can not update an EvaluationRound's start date after it has already started and Submissions have been made");
 		}
@@ -285,7 +289,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		validateEvaluationAccess(userInfo, evaluationId, ACCESS_TYPE.UPDATE);
 
 		EvaluationRound round = evaluationDAO.getEvaluationRound(evaluationId, evaluationRoundId);
-		if(Instant.now().minus(ONE_SECOND).isAfter(round.getRoundStart().toInstant())
+		if(Instant.now().isAfter(round.getRoundStart().toInstant())
 			&& submissionDAO.hasSubmissionForEvaluationRound(evaluationId, evaluationRoundId)){
 			throw new IllegalArgumentException("Can not delete an EvaluationRound after it has already started and Submissions have been made");
 		}
@@ -301,9 +305,23 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	}
 
 	@Override
-	public List<EvaluationRound> getAllEvaluationRounds(UserInfo userInfo, String evaluationId, NextPageToken nextPageToken){
+	public EvaluationRoundListResponse getAllEvaluationRounds(UserInfo userInfo, String evaluationId, EvaluationRoundListRequest request){
+		ValidateArgument.required(request, "request");
+
 		validateEvaluationAccess(userInfo, evaluationId, ACCESS_TYPE.READ);
-		return evaluationDAO.getAssociatedEvaluationRounds(evaluationId, nextPageToken.getLimitForQuery(), nextPageToken.getOffset());
+
+		//TODO: test
+		NextPageToken nextPageToken = new NextPageToken(request.getNextPageToken());
+
+		List<EvaluationRound> rounds = evaluationDAO.getAssociatedEvaluationRounds(evaluationId, nextPageToken.getLimitForQuery(), nextPageToken.getOffset());
+
+		//build response
+		String newNextPageToken = nextPageToken.getNextPageTokenForCurrentResults(rounds);
+		EvaluationRoundListResponse response = new EvaluationRoundListResponse();
+		response.setNextPageToken(newNextPageToken);
+		response.setPage(rounds);
+
+		return response;
 	}
 
 

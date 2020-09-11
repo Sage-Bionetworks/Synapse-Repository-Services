@@ -952,7 +952,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			map.put(field.getColumnName(), annotationValue);
 		}
 		
-		return map.values().stream().collect(Collectors.toList());
+		return new ArrayList<>(map.values());
 	}
 
 }

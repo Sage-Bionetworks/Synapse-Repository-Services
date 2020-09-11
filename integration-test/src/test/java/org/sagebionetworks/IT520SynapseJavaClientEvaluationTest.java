@@ -338,13 +338,14 @@ public class IT520SynapseJavaClientEvaluationTest {
 		EvaluationRound retrieved = synapseOne.getEvaluationRound(created.getEvaluationId(), created.getId());
 		assertEquals(created, retrieved);
 
-		//read all
+		// create second round
 		EvaluationRound round2 = new EvaluationRound();
 		round2.setEvaluationId(eval1.getId());
 		round2.setRoundStart(Date.from(now.plus(1, ChronoUnit.DAYS)));
 		round2.setRoundEnd(Date.from(now.plus(2, ChronoUnit.DAYS)));
 		EvaluationRound created2 = synapseOne.createEvaluationRound(round2);
 
+		//read all
 		EvaluationRoundListResponse listResponse = synapseOne.getAllEvaluationRounds(created.getEvaluationId(), new EvaluationRoundListRequest());
 		assertEquals(Arrays.asList(created, created2), listResponse.getPage());
 
@@ -357,6 +358,34 @@ public class IT520SynapseJavaClientEvaluationTest {
 		synapseOne.deleteEvaluationRound(updated.getEvaluationId(), updated.getId());
 		listResponse = synapseOne.getAllEvaluationRounds(created.getEvaluationId(), new EvaluationRoundListRequest());
 		assertEquals(Arrays.asList(created2), listResponse.getPage());
+	}
+
+	@Test
+	public void testEvaluationRoundLimitEnforcement() throws SynapseException {
+		eval1.setStatus(EvaluationStatus.OPEN);
+		eval1 = synapseOne.createEvaluation(eval1);
+		evaluationsToDelete.add(eval1.getId());
+
+
+		//create a new EvaluationRound
+		Instant now = Instant.now();
+		EvaluationRound round = new EvaluationRound();
+		round.setEvaluationId(eval1.getId());
+		round.setRoundStart(Date.from(now));
+		round.setRoundEnd(Date.from(now.plus(1, ChronoUnit.DAYS)));
+		round.setLimits(Collections.singletonList(newEvaluationRoundLimit(EvaluationRoundLimitType.WEEKLY, 1L)));
+		EvaluationRound created = synapseOne.createEvaluationRound(round);
+
+
+		sub1 = synapseOne.createIndividualSubmission(sub1, fileEntity.getEtag(), MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		submissionsToDelete.add(sub1.getId());
+
+		//TODO: change exception class
+		// second submission should fail:
+		assertThrows(Exception.class , () ->
+			synapseOne.createIndividualSubmission(sub2, fileEntity.getEtag(), MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT)
+		);
+
 	}
 
 	private EvaluationRoundLimit newEvaluationRoundLimit(EvaluationRoundLimitType type, long maxSubmissions){

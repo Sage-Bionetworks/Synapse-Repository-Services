@@ -82,7 +82,6 @@ public class SubmissionQuotaUtil {
 
 
 	public static Optional<EvaluationRound> convertToCurrentEvaluationRound(SubmissionQuota quota, Date now){
-		//TODO: modify behavior to create a EvaluationRound for null
 		if(!SubmissionQuotaUtil.isSubmissionAllowed(quota, now)){
 			return Optional.empty();
 		}

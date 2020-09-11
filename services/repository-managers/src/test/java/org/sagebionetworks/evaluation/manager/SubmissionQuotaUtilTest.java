@@ -120,12 +120,15 @@ public class SubmissionQuotaUtilTest {
 	@Test
 	public void testConvertToCurrentEvaluationRound_null(){
 		SubmissionQuota nullQuota = null;
+
+		// method under test
 		Optional<EvaluationRound> optionalEvaluationRound = SubmissionQuotaUtil.convertToCurrentEvaluationRound(nullQuota, new Date());
 		assertTrue(optionalEvaluationRound.isPresent());
-		optionalEvaluationRound.ifPresent((round) ->{
-			assertNull(round.getRoundStart());
-			assertNull(round.getRoundEnd());
-		});
+
+		//should convert into an empty EvaluationRound
+		EvaluationRound expected = new EvaluationRound();
+
+		assertEquals(expected, optionalEvaluationRound.get());
 	}
 
 	@Test
@@ -140,6 +143,7 @@ public class SubmissionQuotaUtilTest {
 
 		Date roundAlreadyEnded = Date.from(now.plus(numRounds * roundDuration + 1, ChronoUnit.MILLIS));
 
+		// method under test
 		Optional<EvaluationRound> optionalEvaluationRound = SubmissionQuotaUtil.convertToCurrentEvaluationRound(quota, roundAlreadyEnded);
 		assertFalse(optionalEvaluationRound.isPresent());
 	}
@@ -156,13 +160,16 @@ public class SubmissionQuotaUtilTest {
 
 		Date thirdRound = Date.from(now.plus(2 * roundDuration + 1, ChronoUnit.MILLIS));
 
+		// method under test
 		Optional<EvaluationRound> optionalEvaluationRound = SubmissionQuotaUtil.convertToCurrentEvaluationRound(quota, thirdRound);
 		assertTrue(optionalEvaluationRound.isPresent());
-		EvaluationRound evaluationRound = optionalEvaluationRound.get();
 
-		assertEquals(Date.from(now.plus(2 * roundDuration, ChronoUnit.MILLIS)), evaluationRound.getRoundStart());
-		assertEquals(Date.from(now.plus(3 * roundDuration, ChronoUnit.MILLIS)), evaluationRound.getRoundEnd());
-		assertNull(evaluationRound.getLimits());
+		EvaluationRound expected = new EvaluationRound();
+		expected.setRoundStart(Date.from(now.plus(2 * roundDuration, ChronoUnit.MILLIS)));
+		expected.setRoundEnd(Date.from(now.plus(3 * roundDuration, ChronoUnit.MILLIS)));
+		expected.setLimits(null);
+
+		assertEquals(expected, optionalEvaluationRound.get());
 	}
 
 	@Test
@@ -179,15 +186,18 @@ public class SubmissionQuotaUtilTest {
 
 		Date thirdRound = Date.from(now.plus(2 * roundDuration + 1, ChronoUnit.MILLIS));
 
+		// method under test
 		Optional<EvaluationRound> optionalEvaluationRound = SubmissionQuotaUtil.convertToCurrentEvaluationRound(quota, thirdRound);
 		assertTrue(optionalEvaluationRound.isPresent());
-		EvaluationRound evaluationRound = optionalEvaluationRound.get();
 
-		assertEquals(Date.from(now.plus(2 * roundDuration, ChronoUnit.MILLIS)), evaluationRound.getRoundStart());
-		assertEquals(Date.from(now.plus(3 * roundDuration, ChronoUnit.MILLIS)), evaluationRound.getRoundEnd());
+		EvaluationRound expected = new EvaluationRound();
+		expected.setRoundStart(Date.from(now.plus(2 * roundDuration, ChronoUnit.MILLIS)));
+		expected.setRoundEnd(Date.from(now.plus(3 * roundDuration, ChronoUnit.MILLIS)));
 		EvaluationRoundLimit expectedLimit = new EvaluationRoundLimit();
 		expectedLimit.setMaximumSubmissions(submissionLimit);
 		expectedLimit.setLimitType(EvaluationRoundLimitType.TOTAL);
-		assertEquals(Collections.singletonList(expectedLimit), evaluationRound.getLimits());
+		expected.setLimits(Collections.singletonList(expectedLimit));
+
+		assertEquals(expected, optionalEvaluationRound.get());
 	}
 }

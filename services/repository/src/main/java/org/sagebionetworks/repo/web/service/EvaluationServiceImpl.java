@@ -364,18 +364,8 @@ public class EvaluationServiceImpl implements EvaluationService {
 	@Override
 	public EvaluationRoundListResponse getAllEvaluationRounds(Long userId, String evaluationId, EvaluationRoundListRequest request){
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		String nextPageTokenStr = request == null ? null : request.getNextPageToken();
-		NextPageToken nextPageToken = new NextPageToken(nextPageTokenStr);
 
-		List<EvaluationRound> rounds = evaluationManager.getAllEvaluationRounds(userInfo, evaluationId, nextPageToken);
-
-		//build response
-		String newNextPageToken = nextPageToken.getNextPageTokenForCurrentResults(rounds);
-		EvaluationRoundListResponse response = new EvaluationRoundListResponse();
-		response.setNextPageToken(newNextPageToken);
-		response.setPage(rounds);
-
-		return response;
+		return evaluationManager.getAllEvaluationRounds(userInfo, evaluationId, request);
 	}
 
 	@Override

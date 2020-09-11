@@ -64,12 +64,13 @@ public class EvaluationRoundDBOUtil {
 		String limitsJson = dbo.getLimitsJson();
 		if(StringUtils.isNotEmpty(limitsJson)) {
 			try {
-				List<EvaluationRoundLimit> limits = new ArrayList<EvaluationRoundLimit>();
 				JSONArrayAdapter jsonArray = new JSONArrayAdapterImpl(limitsJson);
+				List<EvaluationRoundLimit> limits = new ArrayList<>(jsonArray.length());
 				for (int i = 0; i<jsonArray.length(); i ++) {
-					if(!jsonArray.isNull(i)) {
-						limits.add(new EvaluationRoundLimit(jsonArray.getJSONObject(i)));
+					if(jsonArray.isNull(i)) {
+						throw new IllegalStateException("null value should not have been stored");
 					}
+					limits.add(new EvaluationRoundLimit(jsonArray.getJSONObject(i)));
 				}
 				if (!limits.isEmpty()){
 					dto.setLimits(limits);

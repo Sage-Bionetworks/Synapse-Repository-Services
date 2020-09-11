@@ -343,6 +343,17 @@ public class SubmissionManagerTest {
 			submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);		
 		});
 	}
+
+	@Test
+	public void testCreateSubmissionAsUser_NonNullEvaluationRoundId() throws Exception {
+		sub.setEvaluationRoundId("2234");
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);
+		}).getMessage();
+
+		assertEquals("Please do not specify any evaluationRoundId. This will be filled automatically based upon the time of creation.", message);
+	}
 	
 	@Test
 	public void testCRUDAsUser() throws NotFoundException, DatastoreException, JSONObjectAdapterException {

@@ -2999,6 +2999,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public EvaluationRound createEvaluationRound(EvaluationRound round) throws SynapseException {
+		ValidateArgument.required(round, "round");
 		ValidateArgument.required(round.getEvaluationId(), "round.evaluationId");
 		String uri = EVALUATION_URI_PATH + "/" + round.getEvaluationId() + EVALUATION_ROUND;
 		return postJSONEntity(getRepoEndpoint(), uri, round, EvaluationRound.class);
@@ -3017,6 +3018,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public EvaluationRoundListResponse getAllEvaluationRounds(String evalId, EvaluationRoundListRequest request) throws SynapseException {
 		ValidateArgument.required(evalId, "Evaluation ID");
+		ValidateArgument.required(request, "request");
 
 		String uri = EVALUATION_URI_PATH + "/" + evalId + EVALUATION_ROUND + LIST;
 
@@ -3025,6 +3027,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public EvaluationRound updateEvaluationRound(EvaluationRound round) throws SynapseException {
+		ValidateArgument.required(round, "round");
 		ValidateArgument.required(round.getEvaluationId(), "round.evaluationId");
 		ValidateArgument.required(round.getId(), "round.id");
 

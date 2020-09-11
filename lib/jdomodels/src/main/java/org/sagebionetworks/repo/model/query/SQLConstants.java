@@ -37,7 +37,7 @@ public class SQLConstants {
 
 	// Evaluation Round table constants
 	public static final String DDL_FILE_EVALUATION_ROUND			= "schema/evaluation/EvaluationRound-ddl.sql";
-	public static final String TABLE_EVALUATION_ROUND				= "JDOEVALUATIONROUNDS";
+	public static final String TABLE_EVALUATION_ROUND				= "EVALUATION_ROUNDS";
 	public static final String COL_EVALUATION_ROUND_ID				= "ID";
 	public static final String COL_EVALUATION_ROUND_ETAG			= "ETAG";
 	public static final String COL_EVALUATION_ROUND_EVALUATION_ID	= "EVALUATION_ID";

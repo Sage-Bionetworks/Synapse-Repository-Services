@@ -17,12 +17,9 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -30,7 +27,7 @@ import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslat
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
-public class EvaluationRoundDBO implements MigratableDatabaseObject<EvaluationRoundDBO, EvaluationRoundDBO>, ObservableEntity {
+public class EvaluationRoundDBO implements MigratableDatabaseObject<EvaluationRoundDBO, EvaluationRoundDBO>{
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn(PARAM_EVALUATION_ROUND_ID, COL_EVALUATION_ROUND_ID, true).withIsBackupId(true),
@@ -40,23 +37,14 @@ public class EvaluationRoundDBO implements MigratableDatabaseObject<EvaluationRo
 			new FieldColumn(PARAM_EVALUATION_ROUND_ROUND_END, COL_EVALUATION_ROUND_ROUND_END),
 			new FieldColumn(PARAM_EVALUATION_ROUND_LIMITS_JSON, COL_EVALUATION_ROUND_LIMITS)
 	};
+	private static final BasicMigratableTableTranslation<EvaluationRoundDBO> BASIC_MIGRATION_TABLE_TRANSLATION = new BasicMigratableTableTranslation<>();
 
 	private Long id;
 	private String etag;
 	private Long evaluationId;
-	private long roundStart;
-	private long roundEnd;
+	private Long roundStart;
+	private Long roundEnd;
 	private String limitsJson;
-
-	@Override
-	public String getIdString() {
-		return id.toString();
-	}
-
-	@Override
-	public ObjectType getObjectType() {
-		return ObjectType.EVALUATION_ROUND;
-	}
 
 	@Override
 	public MigrationType getMigratableTableType() {
@@ -65,7 +53,7 @@ public class EvaluationRoundDBO implements MigratableDatabaseObject<EvaluationRo
 
 	@Override
 	public MigratableTableTranslation<EvaluationRoundDBO, EvaluationRoundDBO> getTranslator() {
-		return new BasicMigratableTableTranslation<>();
+		return BASIC_MIGRATION_TABLE_TRANSLATION;
 	}
 
 	@Override
@@ -80,7 +68,6 @@ public class EvaluationRoundDBO implements MigratableDatabaseObject<EvaluationRo
 
 	@Override
 	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
-//		return Arrays.asList(new SubmissionDBO());
 		return null;
 	}
 
@@ -141,7 +128,6 @@ public class EvaluationRoundDBO implements MigratableDatabaseObject<EvaluationRo
 		this.id = id;
 	}
 
-	@Override
 	public String getEtag() {
 		return etag;
 	}

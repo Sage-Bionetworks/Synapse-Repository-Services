@@ -186,6 +186,10 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		
 		submission.setUserId(principalId);
 
+		if(submission.getEvaluationRoundId() != null){
+			throw new IllegalArgumentException("Please do not specify any evaluationRoundId. This will be filled automatically based upon the time of creation.");
+		}
+
 		// tag the submission with the current submission round if it is present
 		// if it doesn't exist it could possibly be because the user does not exist yet
 		evaluationDAO.getEvaluationRoundForTimestamp(evalId, Instant.now())

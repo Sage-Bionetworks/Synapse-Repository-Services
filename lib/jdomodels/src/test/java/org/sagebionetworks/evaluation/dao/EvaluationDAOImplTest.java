@@ -103,7 +103,7 @@ public class EvaluationDAOImplTest {
 		evaluationRound = new EvaluationRound();
 		evaluationRoundId = "123455";
 		evaluationRound.setId(evaluationRoundId);
-		evalRoundStart = Instant.now();
+		evalRoundStart = Instant.parse("2222-02-22T02:22:22.22Z");
 		evalRoundEnd = evalRoundStart.plus(2, ChronoUnit.DAYS);
 		evaluationRound.setEvaluationId(evaluationId);
 		evaluationRound.setRoundStart(Date.from(evalRoundStart));
@@ -510,12 +510,11 @@ public class EvaluationDAOImplTest {
 	public void getAssociatedEvaluationRounds(){
 		String evalId = evaluationDAO.create(eval, EVALUATION_OWNER_ID);
 		toDelete.add(evalId);
-
-    	long evaluationRound2Id = 1122334455L;
+		long evaluationRound2Id = 1122334455L;
 		EvaluationRound evaluationRound2 = new EvaluationRound();
 		evaluationRound2.setId(Long.toString(evaluationRound2Id));
 		evaluationRound2.setEvaluationId(evaluationId);
-		Instant evaluationRound2Start = Instant.now().plus(4, ChronoUnit.DAYS);
+		Instant evaluationRound2Start = evalRoundStart.plus(4, ChronoUnit.DAYS);
 		Instant evaluationRound2End = evaluationRound2Start.plus(42, ChronoUnit.DAYS);
 		evaluationRound2.setRoundStart(Date.from(evaluationRound2Start));
 		evaluationRound2.setRoundEnd(Date.from(evaluationRound2End));
@@ -527,30 +526,29 @@ public class EvaluationDAOImplTest {
 		long offset = 0;
 		//method under test
 		List<EvaluationRound> rounds = evaluationDAO.getAssociatedEvaluationRounds(evaluationId, limit, offset);
-		assertEquals(2, rounds.size());
-		assertEquals(createdRound, rounds.get(0));
-		assertEquals(createdRound2, rounds.get(1));
+		assertEquals(Arrays.asList(createdRound, createdRound2), rounds);
 
 		limit = 5;
 		offset = 1;
 		//method under test
 		rounds = evaluationDAO.getAssociatedEvaluationRounds(evaluationId, limit, offset);
-		assertEquals(1, rounds.size());
-		assertEquals(createdRound2, rounds.get(0));
+		assertEquals(Arrays.asList(createdRound2), rounds);
+
 
 		limit = 1;
 		offset = 0;
 		//method under test
 		rounds = evaluationDAO.getAssociatedEvaluationRounds(evaluationId, limit, offset);
-		assertEquals(1, rounds.size());
-		assertEquals(createdRound, rounds.get(0));
+		assertEquals(Arrays.asList(createdRound), rounds);
+
 
 		//for a evaluation id that does not exist
 		//method under test
-		String nonExistentRoundId = "9999999999";
-		rounds = evaluationDAO.getAssociatedEvaluationRounds(nonExistentRoundId, limit, offset);
-		assertEquals(0, rounds.size());
-    }
+		String nonExistentEvaluationId = "9999999999";
+		rounds = evaluationDAO.getAssociatedEvaluationRounds(nonExistentEvaluationId, limit, offset);
+		assertEquals(Collections.emptyList(), rounds);
+
+	}
 
 	@Test
 	public void testGetEvaluationRoundForTimestamp(){
@@ -585,7 +583,7 @@ public class EvaluationDAOImplTest {
 
 	@Test
 	public void testHasEvaluationRound(){
-    	//false before any are created
+		//false before any are created
 		assertFalse(evaluationDAO.hasEvaluationRounds(evaluationId));
 
 		String evalId = evaluationDAO.create(eval, EVALUATION_OWNER_ID);
@@ -607,30 +605,28 @@ public class EvaluationDAOImplTest {
 
 		//does not overlap with itself
 		List<EvaluationRound> overlappingRounds = evaluationDAO.overlappingEvaluationRounds(evaluationId, createdRound.getId(), evalRoundStart, evalRoundStart.plus(1, ChronoUnit.MILLIS));
-		assertTrue(overlappingRounds.isEmpty());
+		assertEquals(Collections.emptyList(), overlappingRounds);
 
 		//overlap start of created round
 		overlappingRounds = evaluationDAO.overlappingEvaluationRounds(evaluationId, "otherId", evalRoundStart.minus(4, ChronoUnit.DAYS), evalRoundStart.plus(1, ChronoUnit.MILLIS));
-		assertFalse(overlappingRounds.isEmpty());
-		assertEquals(createdRound, overlappingRounds.get(0));
+		assertEquals(Collections.singletonList(createdRound), overlappingRounds);
 
 		//overlap end of created round
 		overlappingRounds = evaluationDAO.overlappingEvaluationRounds(evaluationId, "otherId", evalRoundEnd.minus(1, ChronoUnit.MILLIS), evalRoundEnd.plus(4, ChronoUnit.DAYS));
-		assertFalse(overlappingRounds.isEmpty());
-		assertEquals(createdRound, overlappingRounds.get(0));
+		assertEquals(Collections.singletonList(createdRound), overlappingRounds);
 
 		//overlap inside of created round
 		overlappingRounds = evaluationDAO.overlappingEvaluationRounds(evaluationId, "otherId", evalRoundStart, evalRoundEnd);
-		assertFalse(overlappingRounds.isEmpty());
-		assertEquals(createdRound, overlappingRounds.get(0));
+		assertEquals(Collections.singletonList(createdRound), overlappingRounds);
+
 
 		//not overlapping, before created round
 		overlappingRounds = evaluationDAO.overlappingEvaluationRounds(evaluationId, "otherId", evalRoundStart.minus(4, ChronoUnit.DAYS), evalRoundStart.minus(1, ChronoUnit.MILLIS));
-		assertTrue(overlappingRounds.isEmpty());
+		assertEquals(Collections.emptyList(), overlappingRounds);
 
 		//not overlapping, after created round
 		overlappingRounds = evaluationDAO.overlappingEvaluationRounds(evaluationId, "otherId", evalRoundEnd, evalRoundEnd.plus(4, ChronoUnit.DAYS));
-		assertTrue(overlappingRounds.isEmpty());
+		assertEquals(Collections.emptyList(), overlappingRounds);
 	}
 
 }

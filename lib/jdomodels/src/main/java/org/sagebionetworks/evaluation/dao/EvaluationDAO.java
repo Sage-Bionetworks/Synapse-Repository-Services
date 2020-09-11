@@ -17,7 +17,7 @@ public interface EvaluationDAO {
 	/**
 	 * Lookup a Evaluation ID by name. Returns null if the name is not in use.
 	 */
-	public String lookupByName(String name) throws DatastoreException;
+	String lookupByName(String name) throws DatastoreException;
 
 	/**
 	 * Create a new Evaluation
@@ -25,13 +25,13 @@ public interface EvaluationDAO {
 	 * @param dto object to be created
 	 * @return the id of the newly created object
 	 */
-	public String create(Evaluation dto, Long ownerId) throws DatastoreException,
+	String create(Evaluation dto, Long ownerId) throws DatastoreException,
 			InvalidModelException;
 
 	/**
 	 * Retrieve the object given its id
 	 */
-	public Evaluation get(String id) throws DatastoreException, NotFoundException;
+	Evaluation get(String id) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * @return The list of evaluations that match the given filter
@@ -52,7 +52,7 @@ public interface EvaluationDAO {
 	 * 
 	 * @param id the id of the object to be deleted
 	 */
-	public void delete(String id) throws DatastoreException, NotFoundException;
+	void delete(String id) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * @param ids
@@ -65,20 +65,20 @@ public interface EvaluationDAO {
 	 * @param evaluationRound
 	 * @return the stored evaluation round
 	 */
-	public EvaluationRound createEvaluationRound(EvaluationRound evaluationRound);
+	EvaluationRound createEvaluationRound(EvaluationRound evaluationRound);
 
 	/**
 	 * Update an existing evaluation round
 	 * @param evaluationRound
 	 */
-	public void updateEvaluationRound(EvaluationRound evaluationRound);
+	void updateEvaluationRound(EvaluationRound evaluationRound);
 
 	/**
 	 * Deletes the evaluation round identified by the provided ID
 	 * @param evaluationId
 	 * @param evaluationRoundId
 	 */
-	public void deleteEvaluationRound(String evaluationId, String evaluationRoundId);
+	void deleteEvaluationRound(String evaluationId, String evaluationRoundId);
 
 	/**
 	 * Get the evaluation round identified by the provided ID
@@ -86,7 +86,7 @@ public interface EvaluationDAO {
 	 * @param evaluationRoundId
 	 * @return EvaluationRound for the current Id.
 	 */
-	public EvaluationRound getEvaluationRound(String evaluationId, String evaluationRoundId);
+	EvaluationRound getEvaluationRound(String evaluationId, String evaluationRoundId);
 
 	/**
 	 * Get evaluation rounds associated with the evaluationId.
@@ -97,7 +97,7 @@ public interface EvaluationDAO {
 	 * @return EvaluationRounds associated with the evaluationId, ordered by roundStart dates in the EvaluationRound
 	 * Empty list if no results.
 	 */
-	public List<EvaluationRound> getAssociatedEvaluationRounds(String evaluationId, long limit, long offset);
+	List<EvaluationRound> getAssociatedEvaluationRounds(String evaluationId, long limit, long offset);
 
 	/**
 	 * Get the EvaluationRound for a specified Evaluation ID such that the specified timestamp
@@ -117,7 +117,7 @@ public interface EvaluationDAO {
 	 * @param timestamp the timestamp for which a matching EvaluationRound's round start and round end timestamp must encapsulate
 	 * @return
 	 */
-	public Optional<EvaluationRound> getEvaluationRoundForTimestamp(String evaluationId, Instant timestamp);
+	Optional<EvaluationRound> getEvaluationRoundForTimestamp(String evaluationId, Instant timestamp);
 
 	/**
 	 *
@@ -129,9 +129,11 @@ public interface EvaluationDAO {
 	/**
 	 * Lists existing EvaluationRounds for which provided start-end timestamp range overlap
 	 *
-	 * @param evaluationId
-	 * @param startTimestamp
-	 * @param endTimestamp
+	 * @param evaluationId id of the Evaluation that owns EvaluationRounds
+	 * @param currentRoundId id of the EvaluationRound id to ignore
+	 *                          so that an EvaluationRound's start-end range will not overlap with itself
+	 * @param startTimestamp start of the EvaluationRound's time range
+	 * @param endTimestamp end of the EvaluationRound's time range
 	 * @return existing EvaluationRounds for which provided start-end timestamp range overlap
 	 */
 	List<EvaluationRound> overlappingEvaluationRounds(String evaluationId, String currentRoundId, Instant startTimestamp, Instant endTimestamp);

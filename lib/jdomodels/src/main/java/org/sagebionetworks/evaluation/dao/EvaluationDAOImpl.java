@@ -49,6 +49,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -60,6 +61,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 public class EvaluationDAOImpl implements EvaluationDAO {
 	
@@ -318,12 +320,8 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		EvaluationRoundDBO dbo = EvaluationRoundDBOUtil.toDBO(evaluationRound);
 
 		// create DBO
-		try {
-			dbo = basicDao.createNew(dbo);
-			return EvaluationRoundDBOUtil.toDTO(dbo);
-		} catch (Exception e) {
-			throw new DatastoreException(e);
-		}
+		dbo = basicDao.createNew(dbo);
+		return EvaluationRoundDBOUtil.toDTO(dbo);
 	}
 
 	@Override
@@ -337,7 +335,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 					TABLE_EVALUATION_ROUND, COL_EVALUATION_ROUND_ETAG, EvaluationRound.class);
 			dbo.setEtag(newEtag);
 		} catch (EmptyResultDataAccessException e){
-			throw new NotFoundException(String.format(EVALUATION_ROUND_NOT_FOUND_FORMAT, evaluationRound.getId(), evaluationRound.getEvaluationId()));
+			throw new NotFoundException(String.format(EVALUATION_ROUND_NOT_FOUND_FORMAT, evaluationRound.getId(), evaluationRound.getEvaluationId()), e);
 		}
 
 
@@ -351,8 +349,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	@Override
 	@WriteTransaction
 	public void deleteEvaluationRound(String evaluationId, String evaluationRoundId) {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID, evaluationRoundId);
+		SqlParameterSource param = new SinglePrimaryKeySqlParameterSource(evaluationRoundId);
 		if( ! basicDao.deleteObjectByPrimaryKey(EvaluationRoundDBO.class, param) ){
 			throw new NotFoundException(String.format(EVALUATION_ROUND_NOT_FOUND_FORMAT, evaluationRoundId, evaluationId));
 		}
@@ -360,15 +357,13 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 
 	@Override
 	public EvaluationRound getEvaluationRound(String evaluationId, String evaluationRoundId) {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID, evaluationRoundId);
-		try {
-			EvaluationRoundDBO dbo = basicDao.getObjectByPrimaryKey(EvaluationRoundDBO.class, param);
-			EvaluationRound dto = EvaluationRoundDBOUtil.toDTO(dbo);
-			return dto;
-		} catch (NotFoundException e) {
-			throw new NotFoundException(String.format(EVALUATION_ROUND_NOT_FOUND_FORMAT, evaluationRoundId, evaluationId));
-		}
+		SqlParameterSource param = new SinglePrimaryKeySqlParameterSource(evaluationRoundId);
+
+		EvaluationRoundDBO dbo = basicDao.getObjectByPrimaryKeyIfExists(EvaluationRoundDBO.class, param).orElseThrow(
+				() -> new NotFoundException(String.format(EVALUATION_ROUND_NOT_FOUND_FORMAT, evaluationRoundId, evaluationId))
+		);
+		EvaluationRound dto = EvaluationRoundDBOUtil.toDTO(dbo);
+		return dto;
 	}
 
 	@Override
@@ -405,8 +400,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	public boolean hasEvaluationRounds(String evaluationId){
 		return jdbcTemplate.queryForObject("SELECT COUNT(*) > 0 FROM " + TABLE_EVALUATION_ROUND +
 						" WHERE " + COL_EVALUATION_ROUND_EVALUATION_ID +" = ? ",
-				new Object[]{evaluationId} ,
-				Boolean.class);
+				Boolean.class, evaluationId);
 	}
 
 	@Override
@@ -421,7 +415,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 				" WHERE " + COL_EVALUATION_ROUND_EVALUATION_ID + "= :" + DBOConstants.PARAM_EVALUATION_ROUND_EVALUATION_ID +
 				" AND "+ COL_EVALUATION_ROUND_ROUND_END + " > :" + DBOConstants.PARAM_EVALUATION_ROUND_ROUND_START +
 				" AND " + COL_EVALUATION_ROUND_ROUND_START + " < :" + DBOConstants.PARAM_EVALUATION_ROUND_ROUND_END +
-				" AND " + COL_EVALUATION_ROUND_ID + "!= :" + DBOConstants.PARAM_EVALUATION_ROUND_ID, sqlParameterSource,
+				" AND " + COL_EVALUATION_ROUND_ID + "<> :" + DBOConstants.PARAM_EVALUATION_ROUND_ID, sqlParameterSource,
 				(ResultSet resultSet, int rowNumber) -> {
 					return EvaluationRoundDBOUtil.toDTO(EVALUATION_ROUND_ROW_MAPPER.mapRow(resultSet, rowNumber));
 				}

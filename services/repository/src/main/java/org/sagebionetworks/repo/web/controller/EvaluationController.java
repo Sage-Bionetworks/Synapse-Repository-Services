@@ -1198,6 +1198,8 @@ public class EvaluationController {
 	@Deprecated
 	/**
 	 * Creates a new EvaluationRound to associate with a Evaluation.
+	 * You must have UPDATE permissions for the associated Evaluation in order to create an EvaluationRound.
+	 *
 	 * This is a replacement for the deprecated <a href="${org.sagebionetworks.evaluation.model.SubmissionQuota}">SubmissionQuota</a>
 	 * which is a property inside of <a href="${org.sagebionetworks.evaluation.model.Evaluation}">Evaluation</a>.
 	 *
@@ -1232,6 +1234,8 @@ public class EvaluationController {
 	@Deprecated
 	/**
 	 * Retrieve an existing EvaluationRound associated with a Evaluation.
+	 * You must have READ permissions for the associated Evaluation in order to retrieve an EvaluationRound.
+	 *
 	 * This is a replacement for the deprecated <a href="${org.sagebionetworks.evaluation.model.SubmissionQuota}">SubmissionQuota</a>
 	 * which is a property inside of <a href="${org.sagebionetworks.evaluation.model.Evaluation}">Evaluation</a>.
 	 *
@@ -1246,7 +1250,7 @@ public class EvaluationController {
 	 * @throws JSONObjectAdapterException
 	 */
 	@RequiredScope({view})
-	@ResponseStatus(HttpStatus.CREATED)
+	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ROUND_WITH_ROUND_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	EvaluationRound getEvaluationRound(
@@ -1260,6 +1264,8 @@ public class EvaluationController {
 	@Deprecated
 	/**
 	 * Retrieve all EvaluationRounds associated with a Evaluation.
+	 * You must have READ permissions for the associated Evaluation in order to retrieve all EvaluationRounds.
+	 *
 	 * This is a replacement for the deprecated <a href="${org.sagebionetworks.evaluation.model.SubmissionQuota}">SubmissionQuota</a>
 	 * which is a property inside of <a href="${org.sagebionetworks.evaluation.model.Evaluation}">Evaluation</a>.
 	 *
@@ -1274,7 +1280,7 @@ public class EvaluationController {
 	 * @throws JSONObjectAdapterException
 	 */
 	@RequiredScope({view})
-	@ResponseStatus(HttpStatus.CREATED)
+	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ROUND + UrlHelpers.LIST, method = RequestMethod.POST)
 	public @ResponseBody
 	EvaluationRoundListResponse getAllEvaluationRounds(
@@ -1288,6 +1294,8 @@ public class EvaluationController {
 	@Deprecated
 	/**
 	 * Update an existing EvaluationRound to associate with a Evaluation.
+	 * You must have UPDATE permissions for the associated Evaluation in order to update an EvaluationRound.
+	 *
 	 * This is a replacement for the deprecated <a href="${org.sagebionetworks.evaluation.model.SubmissionQuota}">SubmissionQuota</a>
 	 * which is a property inside of <a href="${org.sagebionetworks.evaluation.model.Evaluation}">Evaluation</a>.
 	 *
@@ -1302,7 +1310,7 @@ public class EvaluationController {
 	 * @throws JSONObjectAdapterException
 	 */
 	@RequiredScope({view,modify})
-	@ResponseStatus(HttpStatus.CREATED)
+	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ROUND_WITH_ROUND_ID, method = RequestMethod.PUT)
 	public @ResponseBody
 	EvaluationRound updateEvaluationRound(
@@ -1322,7 +1330,9 @@ public class EvaluationController {
 	//TODO:Not deprecated, using flag to hide from documentation until ready
 	@Deprecated
 	/**
-	 * Update an existing EvaluationRound to associate with a Evaluation.
+	 * Delete an existing EvaluationRound to associate with a Evaluation.
+	 * You must have UPDATE permissions for the associated Evaluation in order to delete an EvaluationRound.
+	 *
 	 * This is a replacement for the deprecated <a href="${org.sagebionetworks.evaluation.model.SubmissionQuota}">SubmissionQuota</a>
 	 * which is a property inside of <a href="${org.sagebionetworks.evaluation.model.Evaluation}">Evaluation</a>.
 	 *
@@ -1337,7 +1347,7 @@ public class EvaluationController {
 	 * @throws JSONObjectAdapterException
 	 */
 	@RequiredScope({view,modify})
-	@ResponseStatus(HttpStatus.CREATED)
+	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ROUND_WITH_ROUND_ID, method = RequestMethod.DELETE)
 	public @ResponseBody
 	void deleteEvaluationRound(

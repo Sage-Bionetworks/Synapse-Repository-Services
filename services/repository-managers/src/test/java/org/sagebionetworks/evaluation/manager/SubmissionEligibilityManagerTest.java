@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.checkerframework.checker.nullness.Opt;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,6 +43,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionDAO;
+import org.sagebionetworks.evaluation.dao.SubmissionUtils;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationRound;
 import org.sagebionetworks.evaluation.model.EvaluationRoundLimit;
@@ -383,7 +386,7 @@ public class SubmissionEligibilityManagerTest {
 	}
 
 	@Test
-	public void testGetTeamSubmissionEligibilityNoQuota() throws Exception {
+	public void testGetTeamSubmissionEligibility_NoQuota_HasEvaluationRound_CurrentEvaluationRoundDefined() throws Exception {
 		createValidTeamSubmissionState();
 		evaluation.setQuota(null);
 		when(mockEvaluationDAO.hasEvaluationRounds(EVAL_ID)).thenReturn(true);
@@ -412,7 +415,7 @@ public class SubmissionEligibilityManagerTest {
 	}
 
 	@Test
-	public void testGetTeamSubmissionEligibilityNoQuotaNoEvaluationRound() throws Exception {
+	public void testGetTeamSubmissionEligibility_NoQuota_HasEvaluationRound_CurrentEvaluationRoundNotDefined() throws Exception {
 		createValidTeamSubmissionState();
 		evaluation.setQuota(null);
 		when(mockEvaluationDAO.hasEvaluationRounds(EVAL_ID)).thenReturn(true);
@@ -547,7 +550,7 @@ public class SubmissionEligibilityManagerTest {
 		when(mockSubmissionDAO.countSubmissionsByTeam(eq(Long.parseLong(EVAL_ID)),eq(Long.parseLong(SUBMITTING_TEAM_ID)),
 				eq(dailyStart), eq(roundEnd),
 				eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(dailyLimitCount);
-		//exceeds the monthly limit
+		//exceeds the weekly limit
 		when(mockSubmissionDAO.countSubmissionsByTeam(eq(Long.parseLong(EVAL_ID)),eq(Long.parseLong(SUBMITTING_TEAM_ID)),
 				eq(weeklyStart), eq(roundEnd),
 				eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(weeklyLimitCount + 1);
@@ -567,6 +570,7 @@ public class SubmissionEligibilityManagerTest {
 				monthlyStart, roundEnd,
 				STATUSES_COUNTED_TOWARD_QUOTA)).thenReturn(monthlyMemberSubmissionCounts);
 
+		// method under test
 		TeamSubmissionEligibility tse = submissionEligibilityManager.
 				getTeamSubmissionEligibility(evaluation, SUBMITTING_TEAM_ID, now);
 
@@ -632,6 +636,7 @@ public class SubmissionEligibilityManagerTest {
 				monthlyStart, roundEnd,
 				STATUSES_COUNTED_TOWARD_QUOTA)).thenReturn(monthlyMemberSubmissionCounts);
 
+		// method under test
 		TeamSubmissionEligibility tse = submissionEligibilityManager.
 				getTeamSubmissionEligibility(evaluation, SUBMITTING_TEAM_ID, now);
 
@@ -850,12 +855,14 @@ public class SubmissionEligibilityManagerTest {
 
 	@Test
 	public void submissionCountStartDate_MONTHLY(){
-		Date now = Date.from(LocalDateTime.parse("2019-09-20T23:59:59").toInstant(ZoneOffset.UTC));
+		for( int month = 1; month <= 12; month++) {
+			Date now = Date.from(LocalDateTime.parse(String.format("2019-%02d-20T23:59:59", month)).toInstant(ZoneOffset.UTC));
 
-		Date start = submissionEligibilityManager.submissionCountStartDate(EvaluationRoundLimitType.MONTHLY, roundStart, now);
+			Date start = submissionEligibilityManager.submissionCountStartDate(EvaluationRoundLimitType.MONTHLY, roundStart, now);
 
-		Date expected = Date.from(LocalDateTime.parse("2019-09-01T00:00:00").toInstant(ZoneOffset.UTC));
-		assertEquals(expected, start);
+			Date expected = Date.from(LocalDateTime.parse(String.format("2019-%02d-01T00:00:00", month)).toInstant(ZoneOffset.UTC));
+			assertEquals(expected, start);
+		}
 	}
 
 	@Test
@@ -866,5 +873,29 @@ public class SubmissionEligibilityManagerTest {
 					"This test fails when a newly introduced EvaluationRoundLimitType is not handled"
 			);
 		}
+	}
+
+	@Test
+	public void testGetCurrentEvaluationRoundOrConvertSubmissionQuota_hasEvaluationRoundsDefinedTrue(){
+		when(mockEvaluationDAO.hasEvaluationRounds(evaluation.getId())).thenReturn(true);
+		Optional<EvaluationRound> mockedReturn = Optional.of(new EvaluationRound());
+		when(mockEvaluationDAO.getEvaluationRoundForTimestamp(evaluation.getId(), now.toInstant())).thenReturn(mockedReturn);
+
+		Optional<EvaluationRound> result = submissionEligibilityManager.getCurrentEvaluationRoundOrConvertSubmissionQuota(evaluation, now);
+		assertSame(mockedReturn, result);
+
+		verify(mockEvaluationDAO).hasEvaluationRounds(evaluation.getId());
+		verify(mockEvaluationDAO).getEvaluationRoundForTimestamp(evaluation.getId(), now.toInstant());
+	}
+
+	@Test
+	public void testGetCurrentEvaluationRoundOrConvertSubmissionQuota_hasEvaluationRoundsDefinedFalse(){
+		when(mockEvaluationDAO.hasEvaluationRounds(evaluation.getId())).thenReturn(false);
+
+		Optional<EvaluationRound> result = submissionEligibilityManager.getCurrentEvaluationRoundOrConvertSubmissionQuota(evaluation, now);
+		assertEquals(SubmissionQuotaUtil.convertToCurrentEvaluationRound(evaluation.getQuota(), now), result);
+
+		verify(mockEvaluationDAO).hasEvaluationRounds(evaluation.getId());
+		verify(mockEvaluationDAO,never()).getEvaluationRoundForTimestamp(any(), any());
 	}
 }

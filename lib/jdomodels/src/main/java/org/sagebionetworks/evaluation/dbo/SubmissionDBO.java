@@ -35,6 +35,7 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
@@ -217,111 +218,53 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 	public void setDockerDigest(String dockerDigest) {
 		this.dockerDigest = dockerDigest;
 	}
-	
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		SubmissionDBO that = (SubmissionDBO) o;
+		return Objects.equals(id, that.id) &&
+				Objects.equals(userId, that.userId) &&
+				Objects.equals(submitterAlias, that.submitterAlias) &&
+				Objects.equals(evalId, that.evalId) &&
+				Objects.equals(evalRoundId, that.evalRoundId) &&
+				Objects.equals(entityId, that.entityId) &&
+				Arrays.equals(entityBundle, that.entityBundle) &&
+				Objects.equals(versionNumber, that.versionNumber) &&
+				Objects.equals(createdOn, that.createdOn) &&
+				Objects.equals(name, that.name) &&
+				Objects.equals(teamId, that.teamId) &&
+				Objects.equals(dockerRepositoryName, that.dockerRepositoryName) &&
+				Objects.equals(dockerDigest, that.dockerDigest);
+	}
+
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result
-				+ ((createdOn == null) ? 0 : createdOn.hashCode());
-		result = prime * result
-				+ ((dockerDigest == null) ? 0 : dockerDigest.hashCode());
-		result = prime
-				* result
-				+ ((dockerRepositoryName == null) ? 0 : dockerRepositoryName
-						.hashCode());
-		result = prime * result + Arrays.hashCode(entityBundle);
-		result = prime * result
-				+ ((entityId == null) ? 0 : entityId.hashCode());
-		result = prime * result + ((evalId == null) ? 0 : evalId.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((name == null) ? 0 : name.hashCode());
-		result = prime * result
-				+ ((submitterAlias == null) ? 0 : submitterAlias.hashCode());
-		result = prime * result + ((teamId == null) ? 0 : teamId.hashCode());
-		result = prime * result + ((userId == null) ? 0 : userId.hashCode());
-		result = prime * result
-				+ ((versionNumber == null) ? 0 : versionNumber.hashCode());
+		int result = Objects.hash(id, userId, submitterAlias, evalId, evalRoundId, entityId, versionNumber, createdOn, name, teamId, dockerRepositoryName, dockerDigest);
+		result = 31 * result + Arrays.hashCode(entityBundle);
 		return result;
 	}
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		SubmissionDBO other = (SubmissionDBO) obj;
-		if (createdOn == null) {
-			if (other.createdOn != null)
-				return false;
-		} else if (!createdOn.equals(other.createdOn))
-			return false;
-		if (dockerDigest == null) {
-			if (other.dockerDigest != null)
-				return false;
-		} else if (!dockerDigest.equals(other.dockerDigest))
-			return false;
-		if (dockerRepositoryName == null) {
-			if (other.dockerRepositoryName != null)
-				return false;
-		} else if (!dockerRepositoryName.equals(other.dockerRepositoryName))
-			return false;
-		if (!Arrays.equals(entityBundle, other.entityBundle))
-			return false;
-		if (entityId == null) {
-			if (other.entityId != null)
-				return false;
-		} else if (!entityId.equals(other.entityId))
-			return false;
-		if (evalId == null) {
-			if (other.evalId != null)
-				return false;
-		} else if (!evalId.equals(other.evalId))
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (name == null) {
-			if (other.name != null)
-				return false;
-		} else if (!name.equals(other.name))
-			return false;
-		if (submitterAlias == null) {
-			if (other.submitterAlias != null)
-				return false;
-		} else if (!submitterAlias.equals(other.submitterAlias))
-			return false;
-		if (teamId == null) {
-			if (other.teamId != null)
-				return false;
-		} else if (!teamId.equals(other.teamId))
-			return false;
-		if (userId == null) {
-			if (other.userId != null)
-				return false;
-		} else if (!userId.equals(other.userId))
-			return false;
-		if (versionNumber == null) {
-			if (other.versionNumber != null)
-				return false;
-		} else if (!versionNumber.equals(other.versionNumber))
-			return false;
-		return true;
-	}
+
 	@Override
 	public String toString() {
-		return "SubmissionDBO [id=" + id + ", userId=" + userId
-				+ ", submitterAlias=" + submitterAlias + ", evalId=" + evalId
-				+ ", entityId=" + entityId + ", entityBundle="
-				+ Arrays.toString(entityBundle) + ", versionNumber="
-				+ versionNumber + ", createdOn=" + createdOn + ", name=" + name
-				+ ", teamId=" + teamId + ", dockerRepositoryName="
-				+ dockerRepositoryName + ", dockerDigest=" + dockerDigest + "]";
+		return "SubmissionDBO{" +
+				"id=" + id +
+				", userId=" + userId +
+				", submitterAlias='" + submitterAlias + '\'' +
+				", evalId=" + evalId +
+				", evalRoundId=" + evalRoundId +
+				", entityId=" + entityId +
+				", entityBundle=" + Arrays.toString(entityBundle) +
+				", versionNumber=" + versionNumber +
+				", createdOn=" + createdOn +
+				", name='" + name + '\'' +
+				", teamId=" + teamId +
+				", dockerRepositoryName='" + dockerRepositoryName + '\'' +
+				", dockerDigest='" + dockerDigest + '\'' +
+				'}';
 	}
+
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.SUBMISSION;

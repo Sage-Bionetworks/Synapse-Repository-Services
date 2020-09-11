@@ -195,18 +195,20 @@ public class SubmissionManagerAutowiredTest {
 
 	@Test
 	public void testCreateSubmission_taggedWithCurrentEvaluationRound() throws Exception {
-		Instant now = Instant.now();
 		EvaluationRound evaluationRound = new EvaluationRound();
 		evaluationRound.setEvaluationId(evalId);
+		Instant now = Instant.now();
 		evaluationRound.setRoundStart(Date.from(now));
 		evaluationRound.setRoundEnd(Date.from(now.plus(42, ChronoUnit.HOURS)));
 		evaluationRound = evaluationManager.createEvaluationRound(adminUserInfo, evaluationRound);
+
+		//TODO: fix foreign key
 
 		// create a docker repository
 		submission = submissionManager.createSubmission(adminUserInfo, submission,
 				retrievedNode.getETag(), null, bundle);
 
-		assertNotNull(submission.getId());
+		assertEquals(evaluationRound.getId(), submission.getEvaluationRoundId());
 
 		// retrieve the submission
 		Submission retrieved = submissionManager.getSubmission(adminUserInfo, submission.getId());

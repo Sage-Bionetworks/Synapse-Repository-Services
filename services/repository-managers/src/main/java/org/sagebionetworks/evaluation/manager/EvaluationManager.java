@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationRound;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListRequest;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListResponse;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -88,5 +90,5 @@ public interface EvaluationManager {
 
 	EvaluationRound getEvaluationRound(UserInfo userInfo, String evaluationId, String evaluationRoundId);
 
-	List<EvaluationRound> getAllEvaluationRounds(UserInfo userInfo, String evaluationId, NextPageToken nextPageToken);
+	EvaluationRoundListResponse getAllEvaluationRounds(UserInfo userInfo, String evaluationId, EvaluationRoundListRequest request);
 }

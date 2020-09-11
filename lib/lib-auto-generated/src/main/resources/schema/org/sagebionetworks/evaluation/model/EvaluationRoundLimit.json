@@ -1,5 +1,5 @@
 {
-	"description": "Sets limits for maximum submissions in a SubmissionRound.",
+	"description": "Sets limits for maximum submissions in a SubmissionRound. Each limitType may only appear once in an EvaluationRound's list of limits",
 	"properties":{
 		"limitType":{
 			"type": "string",
