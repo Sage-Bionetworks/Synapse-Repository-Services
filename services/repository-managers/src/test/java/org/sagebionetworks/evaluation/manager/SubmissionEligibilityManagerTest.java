@@ -240,17 +240,17 @@ public class SubmissionEligibilityManagerTest {
 				countSubmissionsByContributor(eq(Long.parseLong(EVAL_ID)),
 						eq(Long.parseLong(SUBMITTER_PRINCIPAL_ID)),
 						eq(dailyStart), eq(roundEnd),
-						eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(dailyLimitCount);
+						eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(dailyLimitCount-1);
 		when(mockSubmissionDAO.
 				countSubmissionsByContributor(eq(Long.parseLong(EVAL_ID)),
 						eq(Long.parseLong(SUBMITTER_PRINCIPAL_ID)),
 						eq(weeklyStart), eq(roundEnd),
-						eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(weeklyLimitCount);
+						eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(weeklyLimitCount-1);
 		when(mockSubmissionDAO.
 				countSubmissionsByContributor(eq(Long.parseLong(EVAL_ID)),
 						eq(Long.parseLong(SUBMITTER_PRINCIPAL_ID)),
 						eq(monthlyStart), eq(roundEnd),
-						eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(monthlyLimitCount);
+						eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(monthlyLimitCount-1);
 
 		evaluation.setQuota(null);
 		when(mockEvaluationDAO.hasEvaluationRounds(EVAL_ID)).thenReturn(true);
@@ -285,14 +285,14 @@ public class SubmissionEligibilityManagerTest {
 				countSubmissionsByContributor(eq(Long.parseLong(EVAL_ID)),
 						eq(Long.parseLong(SUBMITTER_PRINCIPAL_ID)),
 						eq(dailyStart), eq(roundEnd),
-						eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(dailyLimitCount);
+						eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(dailyLimitCount-1);
 
 		//make weekly limit exceeded
 		when(mockSubmissionDAO.
 				countSubmissionsByContributor(eq(Long.parseLong(EVAL_ID)),
 						eq(Long.parseLong(SUBMITTER_PRINCIPAL_ID)),
 						eq(weeklyStart), eq(roundEnd),
-						eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(weeklyLimitCount + 1);
+						eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(weeklyLimitCount);
 
 		evaluation.setQuota(null);
 		when(mockEvaluationDAO.hasEvaluationRounds(EVAL_ID)).thenReturn(true);
@@ -549,23 +549,23 @@ public class SubmissionEligibilityManagerTest {
 
 		when(mockSubmissionDAO.countSubmissionsByTeam(eq(Long.parseLong(EVAL_ID)),eq(Long.parseLong(SUBMITTING_TEAM_ID)),
 				eq(dailyStart), eq(roundEnd),
-				eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(dailyLimitCount);
+				eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(dailyLimitCount-1);
 		//exceeds the weekly limit
 		when(mockSubmissionDAO.countSubmissionsByTeam(eq(Long.parseLong(EVAL_ID)),eq(Long.parseLong(SUBMITTING_TEAM_ID)),
 				eq(weeklyStart), eq(roundEnd),
-				eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(weeklyLimitCount + 1);
+				eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(weeklyLimitCount);
 
-		Map<Long,Long> dailyMemberSubmissionCounts = Collections.singletonMap(new Long(SUBMITTER_PRINCIPAL_ID), dailyLimitCount);
+		Map<Long,Long> dailyMemberSubmissionCounts = Collections.singletonMap(new Long(SUBMITTER_PRINCIPAL_ID), dailyLimitCount-1);
 		when(mockSubmissionDAO.countSubmissionsByTeamMembers(Long.parseLong(EVAL_ID),Long.parseLong(SUBMITTING_TEAM_ID),
 				dailyStart, roundEnd,
 				STATUSES_COUNTED_TOWARD_QUOTA)).thenReturn(dailyMemberSubmissionCounts);
 
-		Map<Long,Long> weeklyMemberSubmissionCounts = Collections.singletonMap(new Long(SUBMITTER_PRINCIPAL_ID), weeklyLimitCount + 1);
+		Map<Long,Long> weeklyMemberSubmissionCounts = Collections.singletonMap(new Long(SUBMITTER_PRINCIPAL_ID), weeklyLimitCount);
 		when(mockSubmissionDAO.countSubmissionsByTeamMembers(Long.parseLong(EVAL_ID),Long.parseLong(SUBMITTING_TEAM_ID),
 				weeklyStart, roundEnd,
 				STATUSES_COUNTED_TOWARD_QUOTA)).thenReturn(weeklyMemberSubmissionCounts);
 
-		Map<Long,Long> monthlyMemberSubmissionCounts = Collections.singletonMap(new Long(SUBMITTER_PRINCIPAL_ID), monthlyLimitCount);
+		Map<Long,Long> monthlyMemberSubmissionCounts = Collections.singletonMap(new Long(SUBMITTER_PRINCIPAL_ID), monthlyLimitCount-1);
 		when(mockSubmissionDAO.countSubmissionsByTeamMembers(Long.parseLong(EVAL_ID),Long.parseLong(SUBMITTING_TEAM_ID),
 				monthlyStart, roundEnd,
 				STATUSES_COUNTED_TOWARD_QUOTA)).thenReturn(monthlyMemberSubmissionCounts);
@@ -613,25 +613,25 @@ public class SubmissionEligibilityManagerTest {
 
 		when(mockSubmissionDAO.countSubmissionsByTeam(eq(Long.parseLong(EVAL_ID)),eq(Long.parseLong(SUBMITTING_TEAM_ID)),
 				eq(dailyStart), eq(roundEnd),
-				eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(dailyLimitCount);
+				eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(dailyLimitCount-1);
 		when(mockSubmissionDAO.countSubmissionsByTeam(eq(Long.parseLong(EVAL_ID)),eq(Long.parseLong(SUBMITTING_TEAM_ID)),
 				eq(weeklyStart), eq(roundEnd),
-				eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(weeklyLimitCount);
+				eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(weeklyLimitCount-1);
 		when(mockSubmissionDAO.countSubmissionsByTeam(eq(Long.parseLong(EVAL_ID)),eq(Long.parseLong(SUBMITTING_TEAM_ID)),
 				eq(monthlyStart), eq(roundEnd),
-				eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(monthlyLimitCount);
+				eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(monthlyLimitCount-1);
 
-		Map<Long,Long> dailyMemberSubmissionCounts = Collections.singletonMap(new Long(SUBMITTER_PRINCIPAL_ID), dailyLimitCount);
+		Map<Long,Long> dailyMemberSubmissionCounts = Collections.singletonMap(new Long(SUBMITTER_PRINCIPAL_ID), dailyLimitCount-1);
 		when(mockSubmissionDAO.countSubmissionsByTeamMembers(Long.parseLong(EVAL_ID),Long.parseLong(SUBMITTING_TEAM_ID),
 				dailyStart, roundEnd,
 				STATUSES_COUNTED_TOWARD_QUOTA)).thenReturn(dailyMemberSubmissionCounts);
 
-		Map<Long,Long> weeklyMemberSubmissionCounts = Collections.singletonMap(new Long(SUBMITTER_PRINCIPAL_ID), weeklyLimitCount);
+		Map<Long,Long> weeklyMemberSubmissionCounts = Collections.singletonMap(new Long(SUBMITTER_PRINCIPAL_ID), weeklyLimitCount-1);
 		when(mockSubmissionDAO.countSubmissionsByTeamMembers(Long.parseLong(EVAL_ID),Long.parseLong(SUBMITTING_TEAM_ID),
 				weeklyStart, roundEnd,
 				STATUSES_COUNTED_TOWARD_QUOTA)).thenReturn(weeklyMemberSubmissionCounts);
 
-		Map<Long,Long> monthlyMemberSubmissionCounts = Collections.singletonMap(new Long(SUBMITTER_PRINCIPAL_ID), monthlyLimitCount);
+		Map<Long,Long> monthlyMemberSubmissionCounts = Collections.singletonMap(new Long(SUBMITTER_PRINCIPAL_ID), monthlyLimitCount-1);
 		when(mockSubmissionDAO.countSubmissionsByTeamMembers(Long.parseLong(EVAL_ID),Long.parseLong(SUBMITTING_TEAM_ID),
 				monthlyStart, roundEnd,
 				STATUSES_COUNTED_TOWARD_QUOTA)).thenReturn(monthlyMemberSubmissionCounts);

@@ -307,10 +307,10 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	@Override
 	public EvaluationRoundListResponse getAllEvaluationRounds(UserInfo userInfo, String evaluationId, EvaluationRoundListRequest request){
 		ValidateArgument.required(request, "request");
+		ValidateArgument.requiredNotBlank(evaluationId, "evaluationId");
 
 		validateEvaluationAccess(userInfo, evaluationId, ACCESS_TYPE.READ);
 
-		//TODO: test
 		NextPageToken nextPageToken = new NextPageToken(request.getNextPageToken());
 
 		List<EvaluationRound> rounds = evaluationDAO.getAssociatedEvaluationRounds(evaluationId, nextPageToken.getLimitForQuery(), nextPageToken.getOffset());

@@ -39,6 +39,7 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.evaluation.dao.SubmissionField;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
@@ -376,16 +377,19 @@ public class IT520SynapseJavaClientEvaluationTest {
 		round.setLimits(Collections.singletonList(newEvaluationRoundLimit(EvaluationRoundLimitType.WEEKLY, 1L)));
 		EvaluationRound created = synapseOne.createEvaluationRound(round);
 
-
+		// create a submission
+		sub1.setEvaluationId(eval1.getId());
+		sub1.setEntityId(fileEntity.getId());
 		sub1 = synapseOne.createIndividualSubmission(sub1, fileEntity.getEtag(), MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		submissionsToDelete.add(sub1.getId());
 
-		//TODO: change exception class
-		// second submission should fail:
-		assertThrows(Exception.class , () ->
-			synapseOne.createIndividualSubmission(sub2, fileEntity.getEtag(), MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT)
-		);
+		sub2.setEvaluationId(eval1.getId());
+		sub2.setEntityId(fileEntity.getId());
+		String message = assertThrows(SynapseForbiddenException.class, () -> {
+			sub2 = synapseOne.createIndividualSubmission(sub2, fileEntity.getEtag(), MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		}).getMessage();
 
+		assertEquals("Submitter has reached the weekly limit of 1. (for the current submission round).", message);
 	}
 
 	private EvaluationRoundLimit newEvaluationRoundLimit(EvaluationRoundLimitType type, long maxSubmissions){

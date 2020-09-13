@@ -37,6 +37,47 @@ public class EvaluationRoundDBO implements MigratableDatabaseObject<EvaluationRo
 			new FieldColumn(PARAM_EVALUATION_ROUND_ROUND_END, COL_EVALUATION_ROUND_ROUND_END),
 			new FieldColumn(PARAM_EVALUATION_ROUND_LIMITS_JSON, COL_EVALUATION_ROUND_LIMITS)
 	};
+
+	private static final TableMapping<EvaluationRoundDBO> TABLE_MAPPING = new TableMapping<EvaluationRoundDBO>() {
+		@Override
+		public String getTableName() {
+			return TABLE_EVALUATION_ROUND;
+		}
+
+		@Override
+		public String getDDLFileName() {
+			return DDL_FILE_EVALUATION_ROUND;
+		}
+
+		@Override
+		public FieldColumn[] getFieldColumns() {
+			return FIELDS;
+		}
+
+		@Override
+		public Class<? extends EvaluationRoundDBO> getDBOClass() {
+			return EvaluationRoundDBO.class;
+		}
+
+		@Override
+		public EvaluationRoundDBO mapRow(ResultSet resultSet, int rowNum) throws SQLException {
+			EvaluationRoundDBO evaluationRoundDBO = new EvaluationRoundDBO();
+			evaluationRoundDBO.setId(resultSet.getLong(COL_EVALUATION_ROUND_ID));
+			evaluationRoundDBO.setEtag(resultSet.getString(COL_EVALUATION_ROUND_ETAG));
+			evaluationRoundDBO.setEvaluationId(resultSet.getLong(COL_EVALUATION_ROUND_EVALUATION_ID));
+			evaluationRoundDBO.setRoundStart(resultSet.getLong(COL_EVALUATION_ROUND_ROUND_START));
+			if (resultSet.wasNull()) {
+				throw new IllegalStateException("roundStart should never be null");
+			}
+			evaluationRoundDBO.setRoundEnd(resultSet.getLong(COL_EVALUATION_ROUND_ROUND_END));
+			if (resultSet.wasNull()) {
+				throw new IllegalStateException("roundEnd should never be null");
+			}
+			evaluationRoundDBO.setLimitsJson(resultSet.getString(COL_EVALUATION_ROUND_LIMITS));
+			return evaluationRoundDBO;
+		}
+	};
+
 	private static final BasicMigratableTableTranslation<EvaluationRoundDBO> BASIC_MIGRATION_TABLE_TRANSLATION = new BasicMigratableTableTranslation<>();
 
 	private Long id;
@@ -73,45 +114,7 @@ public class EvaluationRoundDBO implements MigratableDatabaseObject<EvaluationRo
 
 	@Override
 	public TableMapping<EvaluationRoundDBO> getTableMapping() {
-		return new TableMapping<EvaluationRoundDBO>() {
-			@Override
-			public String getTableName() {
-				return TABLE_EVALUATION_ROUND;
-			}
-
-			@Override
-			public String getDDLFileName() {
-				return DDL_FILE_EVALUATION_ROUND;
-			}
-
-			@Override
-			public FieldColumn[] getFieldColumns() {
-				return FIELDS;
-			}
-
-			@Override
-			public Class<? extends EvaluationRoundDBO> getDBOClass() {
-				return EvaluationRoundDBO.class;
-			}
-
-			@Override
-			public EvaluationRoundDBO mapRow(ResultSet resultSet, int rowNum) throws SQLException {
-				EvaluationRoundDBO evaluationRoundDBO = new EvaluationRoundDBO();
-				evaluationRoundDBO.setId(resultSet.getLong(COL_EVALUATION_ROUND_ID));
-				evaluationRoundDBO.setEtag(resultSet.getString(COL_EVALUATION_ROUND_ETAG));
-				evaluationRoundDBO.setEvaluationId(resultSet.getLong(COL_EVALUATION_ROUND_EVALUATION_ID));
-				evaluationRoundDBO.setRoundStart(resultSet.getLong(COL_EVALUATION_ROUND_ROUND_START));
-				if (resultSet.wasNull()){
-					throw new IllegalStateException("roundStart should never be null");
-				}
-				evaluationRoundDBO.setRoundEnd(resultSet.getLong(COL_EVALUATION_ROUND_ROUND_END));
-				if (resultSet.wasNull()){
-					throw new IllegalStateException("roundEnd should never be null");
-				}
-				evaluationRoundDBO.setLimitsJson(resultSet.getString(COL_EVALUATION_ROUND_LIMITS));
-				return evaluationRoundDBO;
-			}
-		};
+		return TABLE_MAPPING;
 	}
 
 
@@ -173,11 +176,11 @@ public class EvaluationRoundDBO implements MigratableDatabaseObject<EvaluationRo
 		if (this == o) return true;
 		if (o == null || getClass() != o.getClass()) return false;
 		EvaluationRoundDBO that = (EvaluationRoundDBO) o;
-		return roundStart == that.roundStart &&
-				roundEnd == that.roundEnd &&
-				Objects.equals(id, that.id) &&
+		return Objects.equals(id, that.id) &&
 				Objects.equals(etag, that.etag) &&
 				Objects.equals(evaluationId, that.evaluationId) &&
+				Objects.equals(roundStart, that.roundStart) &&
+				Objects.equals(roundEnd, that.roundEnd) &&
 				Objects.equals(limitsJson, that.limitsJson);
 	}
 

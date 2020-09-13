@@ -202,8 +202,6 @@ public class SubmissionManagerAutowiredTest {
 		evaluationRound.setRoundEnd(Date.from(now.plus(42, ChronoUnit.HOURS)));
 		evaluationRound = evaluationManager.createEvaluationRound(adminUserInfo, evaluationRound);
 
-		//TODO: fix foreign key
-
 		// create a docker repository
 		submission = submissionManager.createSubmission(adminUserInfo, submission,
 				retrievedNode.getETag(), null, bundle);

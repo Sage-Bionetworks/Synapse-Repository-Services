@@ -139,7 +139,7 @@ public class SubmissionEligibilityManagerImpl implements
 				int submissionCount = (int) submissionDAO.countSubmissionsByTeam(Long.parseLong(evaluation.getId()),
 						Long.parseLong(teamId), submissionCountStartDate,
 						currentRound.getRoundEnd(), STATUSES_COUNTED_TOWARD_QUOTA);
-				if ( submissionCount > limit.getMaximumSubmissions()) {
+				if ( submissionCount >= limit.getMaximumSubmissions()) {
 					teamEligibility.setIsQuotaFilled(true);
 					isTeamEligible = false;
 					break;
@@ -190,7 +190,7 @@ public class SubmissionEligibilityManagerImpl implements
 						currentRound.getRoundEnd(), STATUSES_COUNTED_TOWARD_QUOTA);
 				for (Long principalId : subsByMembers.keySet()) {
 					MemberSubmissionEligibility se = membersEligibilityMap.get(principalId);
-					se.setIsQuotaFilled(se.getIsQuotaFilled() || subsByMembers.get(principalId) > limit.getMaximumSubmissions());
+					se.setIsQuotaFilled(se.getIsQuotaFilled() || subsByMembers.get(principalId) >= limit.getMaximumSubmissions());
 				}
 			}
 		}
@@ -324,7 +324,7 @@ public class SubmissionEligibilityManagerImpl implements
 						submissionCountStartDate,
 						currentRound.getRoundEnd(),
 						STATUSES_COUNTED_TOWARD_QUOTA);
-				if(submissionCount > limit.getMaximumSubmissions()) {
+				if(submissionCount >= limit.getMaximumSubmissions()) {
 					return AuthorizationStatus.accessDenied("Submitter has reached the "+
 							limit.getLimitType().name().toLowerCase() +" limit of " +
 							limit.getMaximumSubmissions() + messageSuffix);

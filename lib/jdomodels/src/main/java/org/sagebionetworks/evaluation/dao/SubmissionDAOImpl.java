@@ -297,6 +297,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			+ ", s." + COL_SUBMISSION_NAME
 			+ ", r." + COL_SUBSTATUS_ETAG
 			+ ", s." + COL_SUBMISSION_EVAL_ID + " AS " + SubmissionField.evaluationid.getColumnAlias()
+			+ ", s." + COL_SUBMISSION_EVAL_ROUND_ID + " AS " + SubmissionField.evaluationroundid.getColumnAlias()
 			+ ", e." + COL_EVALUATION_CONTENT_SOURCE + " AS " + PROJECT_ID
 			+ ", r." + COL_SUBSTATUS_VERSION
 			+ ", s." + COL_SUBMISSION_CREATED_ON

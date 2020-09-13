@@ -39,6 +39,8 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationRound;
 import org.sagebionetworks.evaluation.model.EvaluationRoundLimit;
 import org.sagebionetworks.evaluation.model.EvaluationRoundLimitType;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListRequest;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListResponse;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
@@ -841,11 +843,48 @@ public class EvaluationManagerTest {
 		verify(mockEvaluationDAO).getEvaluationRound(EVALUATION_ID, evaluationRoundId);
 	}
 
+
 	@Test
-	public void getAllEvaluationRounds(){
+	public void testGetAllEvaluationRounds_nullEmptyEvaluationId(){
+		EvaluationRoundListRequest request = new EvaluationRoundListRequest();
+		String message = assertThrows(IllegalArgumentException.class, () ->
+				evaluationManager.getAllEvaluationRounds(userInfo, null, request)
+		).getMessage();
+
+		assertEquals("evaluationId is required and must not be the empty string.", message);
+
+		message = assertThrows(IllegalArgumentException.class, () ->
+				evaluationManager.getAllEvaluationRounds(userInfo, "", request)
+		).getMessage();
+
+		assertEquals("evaluationId is required and must not be the empty string.", message);
+
+		message = assertThrows(IllegalArgumentException.class, () ->
+				evaluationManager.getAllEvaluationRounds(userInfo, "       ", request)
+		).getMessage();
+
+		assertEquals("evaluationId is required and must not be a blank string.", message);
+	}
+
+	@Test
+	public void testGetAllEvaluationRounds_nullRequest(){
+
+		EvaluationRoundListRequest nullRequest = null;
+		String message = assertThrows(IllegalArgumentException.class, () ->
+				evaluationManager.getAllEvaluationRounds(userInfo, EVALUATION_ID, nullRequest)
+		).getMessage();
+
+		assertEquals("request is required.", message);
+	}
+
+
+	@Test
+	public void testGetAllEvaluationRounds(){
 		long limit = 50;
 		long offset = 0;
 		NextPageToken nextPageToken = new NextPageToken(limit, offset);
+		EvaluationRoundListRequest request = new EvaluationRoundListRequest();
+		request.setNextPageToken(nextPageToken.toToken());
 		List<EvaluationRound> rounds = Collections.singletonList(evaluationRound);
 
 		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.READ))
@@ -854,10 +893,12 @@ public class EvaluationManagerTest {
 		when(mockEvaluationDAO.getAssociatedEvaluationRounds(EVALUATION_ID, limit+1, offset)).thenReturn(rounds);
 
 
-		//TODO: fix
-//		List<EvaluationRound> result = evaluationManager.getAllEvaluationRounds(userInfo, EVALUATION_ID, nextPageToken);
+		EvaluationRoundListResponse result = evaluationManager.getAllEvaluationRounds(userInfo, EVALUATION_ID, request);
 
-//		assertEquals(rounds, result);
+		EvaluationRoundListResponse expected = new EvaluationRoundListResponse();
+		expected.setPage(rounds);
+
+		assertEquals(expected, result);
 
 		verify(evaluationManager).validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.READ);
 
