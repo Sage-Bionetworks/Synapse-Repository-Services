@@ -1,5 +1,6 @@
 package org.sagebionetworks.evaluation.dbo;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
@@ -29,8 +30,8 @@ public class EvaluationRoundDBOUtil {
 		dbo.setEtag(dto.getEtag());
 		dbo.setEvaluationId(Long.parseLong(dto.getEvaluationId()));
 
-		dbo.setRoundStart(dto.getRoundStart().getTime());
-		dbo.setRoundEnd(dto.getRoundEnd().getTime());
+		dbo.setRoundStart(new Timestamp(dto.getRoundStart().getTime()));
+		dbo.setRoundEnd(new Timestamp(dto.getRoundEnd().getTime()));
 
 		List<EvaluationRoundLimit> limit = dto.getLimits();
 		if(CollectionUtils.isNotEmpty(limit)) {
@@ -58,8 +59,8 @@ public class EvaluationRoundDBOUtil {
 		dto.setEtag(dbo.getEtag());
 		dto.setEvaluationId(dbo.getEvaluationId().toString());
 
-		dto.setRoundStart(new Date(dbo.getRoundStart()));
-		dto.setRoundEnd(new Date(dbo.getRoundEnd()));
+		dto.setRoundStart(dbo.getRoundStart());
+		dto.setRoundEnd(dbo.getRoundEnd());
 
 		String limitsJson = dbo.getLimitsJson();
 		if(StringUtils.isNotEmpty(limitsJson)) {

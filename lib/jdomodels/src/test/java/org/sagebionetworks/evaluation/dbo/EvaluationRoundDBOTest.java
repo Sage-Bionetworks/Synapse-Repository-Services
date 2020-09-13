@@ -2,6 +2,9 @@ package org.sagebionetworks.evaluation.dbo;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.Date;
 import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
@@ -58,8 +61,9 @@ class EvaluationRoundDBOTest {
 		evaluationRoundDBO.setId(id);
 		evaluationRoundDBO.setEvaluationId(evaluationId);
 		evaluationRoundDBO.setLimitsJson(null);
-		evaluationRoundDBO.setRoundStart(System.currentTimeMillis());
-		evaluationRoundDBO.setRoundStart(System.currentTimeMillis() + 59);
+		Instant now = Instant.now();
+		evaluationRoundDBO.setRoundStart(Timestamp.from(now));
+		evaluationRoundDBO.setRoundEnd(Timestamp.from(now.plusSeconds(43 )));
 
 		//create
 		EvaluationRoundDBO created = dboBasicDao.createNew(evaluationRoundDBO);

@@ -27,6 +27,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
 
 import java.sql.ResultSet;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
@@ -383,7 +384,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	public Optional<EvaluationRound> getEvaluationRoundForTimestamp(String evaluationId, Instant timestamp) {
 		MapSqlParameterSource sqlParameterSource = new MapSqlParameterSource();
 		sqlParameterSource.addValue(DBOConstants.PARAM_EVALUATION_ROUND_EVALUATION_ID, evaluationId);
-		sqlParameterSource.addValue(PARAM_BETWEEN_DATE, timestamp.toEpochMilli());
+		sqlParameterSource.addValue(PARAM_BETWEEN_DATE, Timestamp.from(timestamp));
 
 		try {
 			return namedJdbcTemplate.queryForObject(SELECT_ROUND_BETWEEN_RANGE, sqlParameterSource,
@@ -408,8 +409,8 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		MapSqlParameterSource sqlParameterSource = new MapSqlParameterSource();
 		sqlParameterSource.addValue(DBOConstants.PARAM_EVALUATION_ROUND_EVALUATION_ID, evaluationId);
 		sqlParameterSource.addValue(DBOConstants.PARAM_EVALUATION_ROUND_ID, currentRoundId);
-		sqlParameterSource.addValue(DBOConstants.PARAM_EVALUATION_ROUND_ROUND_START, startTimestamp.toEpochMilli());
-		sqlParameterSource.addValue(DBOConstants.PARAM_EVALUATION_ROUND_ROUND_END, endTimestamp.toEpochMilli());
+		sqlParameterSource.addValue(DBOConstants.PARAM_EVALUATION_ROUND_ROUND_START, Timestamp.from(startTimestamp));
+		sqlParameterSource.addValue(DBOConstants.PARAM_EVALUATION_ROUND_ROUND_END, Timestamp.from(endTimestamp));
 
 		return namedJdbcTemplate.query("SELECT * FROM " + TABLE_EVALUATION_ROUND +
 				" WHERE " + COL_EVALUATION_ROUND_EVALUATION_ID + "= :" + DBOConstants.PARAM_EVALUATION_ROUND_EVALUATION_ID +

@@ -17,6 +17,7 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Objects;
 
@@ -65,14 +66,8 @@ public class EvaluationRoundDBO implements MigratableDatabaseObject<EvaluationRo
 			evaluationRoundDBO.setId(resultSet.getLong(COL_EVALUATION_ROUND_ID));
 			evaluationRoundDBO.setEtag(resultSet.getString(COL_EVALUATION_ROUND_ETAG));
 			evaluationRoundDBO.setEvaluationId(resultSet.getLong(COL_EVALUATION_ROUND_EVALUATION_ID));
-			evaluationRoundDBO.setRoundStart(resultSet.getLong(COL_EVALUATION_ROUND_ROUND_START));
-			if (resultSet.wasNull()) {
-				throw new IllegalStateException("roundStart should never be null");
-			}
-			evaluationRoundDBO.setRoundEnd(resultSet.getLong(COL_EVALUATION_ROUND_ROUND_END));
-			if (resultSet.wasNull()) {
-				throw new IllegalStateException("roundEnd should never be null");
-			}
+			evaluationRoundDBO.setRoundStart(resultSet.getTimestamp(COL_EVALUATION_ROUND_ROUND_START));
+			evaluationRoundDBO.setRoundEnd(resultSet.getTimestamp(COL_EVALUATION_ROUND_ROUND_END));
 			evaluationRoundDBO.setLimitsJson(resultSet.getString(COL_EVALUATION_ROUND_LIMITS));
 			return evaluationRoundDBO;
 		}
@@ -83,8 +78,8 @@ public class EvaluationRoundDBO implements MigratableDatabaseObject<EvaluationRo
 	private Long id;
 	private String etag;
 	private Long evaluationId;
-	private Long roundStart;
-	private Long roundEnd;
+	private Timestamp roundStart;
+	private Timestamp roundEnd;
 	private String limitsJson;
 
 	@Override
@@ -147,19 +142,19 @@ public class EvaluationRoundDBO implements MigratableDatabaseObject<EvaluationRo
 		this.evaluationId = evaluationId;
 	}
 
-	public long getRoundStart() {
+	public Timestamp getRoundStart() {
 		return roundStart;
 	}
 
-	public void setRoundStart(long roundStart) {
+	public void setRoundStart(Timestamp roundStart) {
 		this.roundStart = roundStart;
 	}
 
-	public long getRoundEnd() {
+	public Timestamp getRoundEnd() {
 		return roundEnd;
 	}
 
-	public void setRoundEnd(long roundEnd) {
+	public void setRoundEnd(Timestamp roundEnd) {
 		this.roundEnd = roundEnd;
 	}
 
