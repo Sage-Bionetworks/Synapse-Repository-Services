@@ -1,9 +1,5 @@
 package org.sagebionetworks.repo.manager.team;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -20,6 +16,10 @@ import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 public interface TeamManager {
 
@@ -237,6 +237,15 @@ public interface TeamManager {
 	 * @return
 	 */
 	public String getIconURL(UserInfo userInfo, String teamId) throws NotFoundException;
+
+	/**
+	 * Return the pre-signed URL for the icon preview of the given Team
+	 *
+	 * @param userInfo The info about the user that is requesting the pre-signed URL
+	 * @param teamId
+	 * @return
+	 */
+	public String getIconPreviewURL(UserInfo userInfo, String teamId) throws NotFoundException;
 
 	/**
 	 * Create the notification content

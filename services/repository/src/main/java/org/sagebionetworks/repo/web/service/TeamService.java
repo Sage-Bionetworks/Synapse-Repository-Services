@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.util.List;
-
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Count;
@@ -18,6 +16,8 @@ import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
+
+import java.util.List;
 
 public interface TeamService {
 	/**
@@ -85,6 +85,16 @@ public interface TeamService {
 	 * @throws NotFoundException
 	 */
 	public String getIconURL(Long userId, String teamId) throws DatastoreException, NotFoundException;
+
+	/**
+	 *
+	 * @param userId
+	 * @param teamId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public String getIconPreviewURL(Long userId, String teamId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * 
