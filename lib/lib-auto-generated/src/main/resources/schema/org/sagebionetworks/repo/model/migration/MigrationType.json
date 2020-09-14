@@ -131,6 +131,10 @@
 			"description": "TODO: Auto-generated description"
 		},
 		{
+			"name": "EVALUATION_ROUND",
+			"description": "Rounds defined within a specific Evaluation"
+		},
+		{
 			"name": "EVALUATION_SUBMISSIONS",
 			"description": "TODO: Auto-generated description"
 		},

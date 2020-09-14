@@ -3,11 +3,15 @@ package org.sagebionetworks.evaluation.manager;
 import java.util.List;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListRequest;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListResponse;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -77,6 +81,14 @@ public interface EvaluationManager {
 	void updateEvaluationEtag(String evalId) throws NotFoundException;
 	
 	public TeamSubmissionEligibility getTeamSubmissionEligibility(UserInfo userInfo, String evalId, String teamId) throws NumberFormatException, DatastoreException, NotFoundException;
-	
 
+	EvaluationRound createEvaluationRound(UserInfo userInfo, EvaluationRound evaluationRound);
+
+	EvaluationRound updateEvaluationRound(UserInfo userInfo, EvaluationRound evaluationRound);
+
+	void deleteEvaluationRound(UserInfo userInfo, String evaluationId, String evaluationRoundId);
+
+	EvaluationRound getEvaluationRound(UserInfo userInfo, String evaluationId, String evaluationRoundId);
+
+	EvaluationRoundListResponse getAllEvaluationRounds(UserInfo userInfo, String evaluationId, EvaluationRoundListRequest request);
 }

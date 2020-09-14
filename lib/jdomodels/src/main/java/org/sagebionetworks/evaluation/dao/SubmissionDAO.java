@@ -233,4 +233,11 @@ public interface SubmissionDAO {
 	// For testing
 	void truncateAll();
 
+	/**
+	 *
+	 * @param evalId
+	 * @param evalRoundId
+	 * @return true if any Submissions are associated with the evalRoundId. false otherwise.
+	 */
+	boolean hasSubmissionForEvaluationRound(String evalId, String evalRoundId);
 }

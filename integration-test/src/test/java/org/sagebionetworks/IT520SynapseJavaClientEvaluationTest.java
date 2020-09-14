@@ -13,6 +13,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -37,11 +39,17 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.evaluation.dao.SubmissionField;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
+import org.sagebionetworks.evaluation.model.EvaluationRoundLimit;
+import org.sagebionetworks.evaluation.model.EvaluationRoundLimitType;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListRequest;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListResponse;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.MemberSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.Submission;
@@ -312,7 +320,85 @@ public class IT520SynapseJavaClientEvaluationTest {
 		
 		assertEquals(initialCount, synapseOne.getAvailableEvaluationsPaginated(100, 0).getResults().size());
 	}
-	
+
+	@Test
+	public void testEvaluationRound_RoundTrip() throws SynapseException {
+		eval1 = synapseOne.createEvaluation(eval1);
+		evaluationsToDelete.add(eval1.getId());
+
+		Instant now = Instant.now();
+		EvaluationRound round = new EvaluationRound();
+		round.setEvaluationId(eval1.getId());
+		round.setRoundStart(Date.from(now));
+		round.setRoundEnd(Date.from(now.plus(1, ChronoUnit.DAYS)));
+
+		//create
+		EvaluationRound created = synapseOne.createEvaluationRound(round);
+
+		//read
+		EvaluationRound retrieved = synapseOne.getEvaluationRound(created.getEvaluationId(), created.getId());
+		assertEquals(created, retrieved);
+
+		// create second round
+		EvaluationRound round2 = new EvaluationRound();
+		round2.setEvaluationId(eval1.getId());
+		round2.setRoundStart(Date.from(now.plus(1, ChronoUnit.DAYS)));
+		round2.setRoundEnd(Date.from(now.plus(2, ChronoUnit.DAYS)));
+		EvaluationRound created2 = synapseOne.createEvaluationRound(round2);
+
+		//read all
+		EvaluationRoundListResponse listResponse = synapseOne.getAllEvaluationRounds(created.getEvaluationId(), new EvaluationRoundListRequest());
+		assertEquals(Arrays.asList(created, created2), listResponse.getPage());
+
+		//update
+		created.setLimits(Arrays.asList(newEvaluationRoundLimit(EvaluationRoundLimitType.DAILY, 45)));
+		EvaluationRound updated = synapseOne.updateEvaluationRound(created);
+		assertEquals(created.getLimits(), updated.getLimits());
+
+		//delete
+		synapseOne.deleteEvaluationRound(updated.getEvaluationId(), updated.getId());
+		listResponse = synapseOne.getAllEvaluationRounds(created.getEvaluationId(), new EvaluationRoundListRequest());
+		assertEquals(Arrays.asList(created2), listResponse.getPage());
+	}
+
+	@Test
+	public void testEvaluationRoundLimitEnforcement() throws SynapseException {
+		eval1.setStatus(EvaluationStatus.OPEN);
+		eval1 = synapseOne.createEvaluation(eval1);
+		evaluationsToDelete.add(eval1.getId());
+
+
+		//create a new EvaluationRound
+		Instant now = Instant.now();
+		EvaluationRound round = new EvaluationRound();
+		round.setEvaluationId(eval1.getId());
+		round.setRoundStart(Date.from(now));
+		round.setRoundEnd(Date.from(now.plus(1, ChronoUnit.DAYS)));
+		round.setLimits(Collections.singletonList(newEvaluationRoundLimit(EvaluationRoundLimitType.WEEKLY, 1L)));
+		EvaluationRound created = synapseOne.createEvaluationRound(round);
+
+		// create a submission
+		sub1.setEvaluationId(eval1.getId());
+		sub1.setEntityId(fileEntity.getId());
+		sub1 = synapseOne.createIndividualSubmission(sub1, fileEntity.getEtag(), MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		submissionsToDelete.add(sub1.getId());
+
+		sub2.setEvaluationId(eval1.getId());
+		sub2.setEntityId(fileEntity.getId());
+		String message = assertThrows(SynapseForbiddenException.class, () -> {
+			sub2 = synapseOne.createIndividualSubmission(sub2, fileEntity.getEtag(), MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		}).getMessage();
+
+		assertEquals("Submitter has reached the weekly limit of 1. (for the current submission round).", message);
+	}
+
+	private EvaluationRoundLimit newEvaluationRoundLimit(EvaluationRoundLimitType type, long maxSubmissions){
+		EvaluationRoundLimit limit = new EvaluationRoundLimit();
+		limit.setLimitType(type);
+		limit.setMaximumSubmissions(maxSubmissions);
+		return limit;
+	}
+
 	@Test
 	public void testSubmissionView() throws Exception {
 		eval1.setStatus(EvaluationStatus.OPEN);

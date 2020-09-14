@@ -43,6 +43,11 @@ public class SubmissionUtils {
 		} catch (NumberFormatException e) {
 			throw new NumberFormatException("Invalid Evaluation ID: " + dto.getEvaluationId());
 		}
+		try {
+			dbo.setEvalRoundId(dto.getEvaluationRoundId() == null ? null : Long.parseLong(dto.getEvaluationRoundId()));
+		} catch (NumberFormatException e) {
+			throw new NumberFormatException("Invalid Round Evaluation ID: " + dto.getEvaluationId());
+		}
 		dbo.setEntityId(dto.getEntityId() == null ? null : KeyFactory.stringToKey(dto.getEntityId()));
 		dbo.setVersionNumber(dto.getVersionNumber());
 		dbo.setName(dto.getName());
@@ -68,6 +73,7 @@ public class SubmissionUtils {
 		dto.setUserId(dbo.getUserId() == null ? null : dbo.getUserId().toString());
 		dto.setSubmitterAlias(dbo.getSubmitterAlias());
 		dto.setEvaluationId(dbo.getEvalId() == null ? null : dbo.getEvalId().toString());
+		dto.setEvaluationRoundId(dbo.getEvalRoundId() == null ? null : dbo.getEvalRoundId().toString());
 		dto.setEntityId(dbo.getEntityId() == null ? null : KeyFactory.keyToString(dbo.getEntityId()));
 		dto.setVersionNumber(dbo.getVersionNumber());
 		dto.setName(dbo.getName());
