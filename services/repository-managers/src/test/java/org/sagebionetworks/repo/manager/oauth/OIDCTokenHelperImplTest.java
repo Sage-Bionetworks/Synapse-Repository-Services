@@ -28,7 +28,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
+import org.sagebionetworks.repo.model.auth.TokenType;
 import org.sagebionetworks.repo.model.oauth.JsonWebKey;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
@@ -51,7 +53,8 @@ public class OIDCTokenHelperImplTest {
 	private static final String CLIENT_ID = "client-01234";
 	private static final long NOW = System.currentTimeMillis();
 	private static final Date AUTH_TIME = new Date();
-	private static final long ONE_YEAR_MILLIS = 1000L * 60 * 60 * 24 * 365;
+	private static final long ONE_DAY_MILLIS = 1000L * 60 * 60 * 24;
+	private static final long ONE_YEAR_MILLIS = ONE_DAY_MILLIS * 365;
 	private static final String REFRESH_TOKEN_ID = "123456";
 	private static final String TOKEN_ID = UUID.randomUUID().toString();
 	private static final String NONCE = UUID.randomUUID().toString();
@@ -148,14 +151,23 @@ public class OIDCTokenHelperImplTest {
 		assertTrue(claims.get(OIDCClaimName.email_verified.name(), Boolean.class));
 		assertEquals("University of Example", claims.get(OIDCClaimName.company.name(), String.class));
 		assertEquals(TOKEN_ID, claims.getId());
+		assertEquals(TokenType.OIDC_ID_TOKEN.name(), claims.get(OIDCClaimName.token_type.name(), String.class));
 		
 		// This checks the other fields set in the method under test
-		clientValidation(oidcToken, NONCE);
+		jwtValidation(oidcToken, false, NONCE);
 	}
 
-    // let's check that our JWTs fulfill the OIDC spec by checking that they meet the requirements for client validation:	
-	// https://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation
-	private void clientValidation(String jwtString, String nonce) throws ParseException {
+	/**
+	 * This method lets us check that our JWTs fulfill the OIDC spec by checking that they meet the requirements for client validation.
+	 * See https://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation
+	 *
+	 * For code reuse, we also use this method to check the validity of personal access tokens, but by design, PATs are not OIDC-compliant.
+	 * @param jwtString
+	 * @param isPersonalAccessToken
+	 * @param nonce
+	 * @throws ParseException
+	 */
+	private void jwtValidation(String jwtString, boolean isPersonalAccessToken, String nonce) throws ParseException {
 		// If the ID Token is received via direct communication between the Client and the Token Endpoint (which it is in this flow), 
 	    // the TLS server validation MAY be used to validate the issuer in place of checking the token signature. The Client MUST 
 	    // validate the signature of all other ID Tokens according to JWS using the algorithm specified in the JWT alg Header 
@@ -172,7 +184,12 @@ public class OIDCTokenHelperImplTest {
 	    // the iss (issuer) Claim as an audience. The aud (audience) Claim MAY contain an array with more than one element. The ID 
 	    // Token MUST be rejected if the ID Token does not list the Client as a valid audience, or if it contains additional 
 	    // audiences not trusted by the Client.
-	    assertEquals(CLIENT_ID, claimsSet.getAudience());
+		if (!isPersonalAccessToken) {
+			assertEquals(CLIENT_ID, claimsSet.getAudience());
+		} else {
+			// The audience for personal access tokens is the internal OAuth client
+			assertEquals(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID, claimsSet.getAudience());
+		}
 		// If the ID Token contains multiple audiences, the Client SHOULD verify that an azp Claim is present.
 	    // 	(Note the above verifies that there are NOT multiple audiences.)
 
@@ -186,8 +203,13 @@ public class OIDCTokenHelperImplTest {
 	    assertEquals("RS256", signedJWT.getHeader().getAlgorithm());
 	    
 		// The current time MUST be before the time represented by the exp Claim.
-	    Date exp = claimsSet.getExpiration();
-	    assertTrue(exp.getTime()>System.currentTimeMillis());
+		if (!isPersonalAccessToken) {
+			Date exp = claimsSet.getExpiration();
+			assertTrue(exp.getTime() > System.currentTimeMillis());
+		} else {
+			// personal access tokens have no expiration
+			assertNull(claimsSet.getExpiration());
+		}
 
 		// The iat Claim can be used to reject tokens that were issued too far away from the current time, limiting the amount of time
 	    // that nonces need to be stored to prevent attacks. The acceptable range is Client specific.
@@ -208,8 +230,12 @@ public class OIDCTokenHelperImplTest {
 		// If the auth_time Claim was requested, either through a specific request for this Claim or by using the max_age parameter, 
 	    // the Client SHOULD check the auth_time Claim value and request re-authentication if it determines too much time has elapsed 
 	    // since the last End-User authentication.
-	    assertEquals(AUTH_TIME, claimsSet.get(OIDCClaimName.auth_time.name(), Date.class));
-
+		if (!isPersonalAccessToken) {
+			assertEquals((int)(AUTH_TIME.getTime()/1000L), claimsSet.get(OIDCClaimName.auth_time.name(), Integer.class));
+		} else {
+			// personal access tokens do not contain the auth time
+			assertNull(claimsSet.get(OIDCClaimName.auth_time.name()));
+		}
 	    // The access token (not the ID token) will contain a refresh token ID, if it is associated with one
 		if (claimsSet.containsKey(OIDCClaimName.refresh_token_id.name())) {
 			assertEquals(REFRESH_TOKEN_ID, claimsSet.get(OIDCClaimName.refresh_token_id.name(), String.class));
@@ -232,6 +258,7 @@ public class OIDCTokenHelperImplTest {
 				SUBJECT_ID, 
 				CLIENT_ID,
 				NOW, 
+				ONE_DAY_MILLIS,
 				AUTH_TIME,
 				REFRESH_TOKEN_ID,
 				TOKEN_ID,
@@ -244,9 +271,10 @@ public class OIDCTokenHelperImplTest {
 		// in the test for ClaimsJsonUtil.addAccessClaims() we check 
 		// that the content is correct
 		assertNotNull(claims.get("access"));
-		
+		assertEquals(TokenType.OIDC_ACCESS_TOKEN.name(), claims.get(OIDCClaimName.token_type.name(), String.class));
+
 		// This checks the other fields set in the method under test
-		clientValidation(accessToken, null/* no nonce */);
+		jwtValidation(accessToken, false, null/* no nonce */);
 	}
 
 	
@@ -278,6 +306,40 @@ public class OIDCTokenHelperImplTest {
 		String expiredAccessToken = oidcTokenHelper.createTotalAccessToken(principalId);
 		assertThrows(OAuthUnauthenticatedException.class, () ->
 				oidcTokenHelper.parseJWT(expiredAccessToken));
+	}
+
+	@Test
+	public void testCreatePersonalAccessToken() throws Exception {
+		List<OAuthScope> grantedScopes = Collections.singletonList(OAuthScope.openid);
+		Map<String,OIDCClaimsRequestDetails> expectedClaims = new HashMap<>();
+		expectedClaims.put(OIDCClaimName.email.name(), ESSENTIAL);
+		expectedClaims.put(OIDCClaimName.given_name.name(), NON_ESSENTIAL);
+		expectedClaims.put(OIDCClaimName.family_name.name(), null);
+		OIDCClaimsRequestDetails details = new OIDCClaimsRequestDetails();
+		details.setValues(Collections.singletonList("101"));
+		expectedClaims.put(OIDCClaimName.team.name(), details);
+
+		AccessTokenRecord personalAccessTokenRecord = new AccessTokenRecord();
+		personalAccessTokenRecord.setId("1234");
+		personalAccessTokenRecord.setCreatedOn(new Date());
+		personalAccessTokenRecord.setScopes(grantedScopes);
+		personalAccessTokenRecord.setUserInfoClaims(expectedClaims);
+
+		// method under test
+		String accessToken = oidcTokenHelper.createPersonalAccessToken(
+				ISSUER,
+				personalAccessTokenRecord);
+
+		Jwt<JwsHeader,Claims> jwt = Jwts.parser().setSigningKey(getPublicSigningKey()).parse(accessToken);
+		Claims claims = jwt.getBody();
+		// here we just check that the 'access' claim has been added
+		// in the test for ClaimsJsonUtil.addAccessClaims() we check
+		// that the content is correct
+		assertNotNull(claims.get("access"));
+		assertEquals(TokenType.PERSONAL_ACCESS_TOKEN.name(), claims.get(OIDCClaimName.token_type.name(), String.class));
+
+		// This checks the other fields set in the method under test
+		jwtValidation(accessToken, true, null/* no nonce */);
 	}
 
 }

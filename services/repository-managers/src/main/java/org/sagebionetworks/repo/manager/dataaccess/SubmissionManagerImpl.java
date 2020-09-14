@@ -66,6 +66,8 @@ public class SubmissionManagerImpl implements SubmissionManager{
 	private SubscriptionDAO subscriptionDao;
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
+	@Autowired
+	private AccessApprovalManager accessAprovalManager;
 
 	@WriteTransaction
 	@Override
@@ -223,23 +225,31 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		ValidateArgument.requirement(request.getNewState().equals(SubmissionState.APPROVED)
 				|| request.getNewState().equals(SubmissionState.REJECTED),
 				"Do not support changing to state: "+request.getNewState());
+		
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can perform this action.");
 		}
+		
 		Submission submission = submissionDao.getForUpdate(request.getSubmissionId());
+		
 		ValidateArgument.requirement(submission.getState().equals(SubmissionState.SUBMITTED),
 						"Cannot change state of a submission with "+submission.getState()+" state.");
+		
 		if (request.getNewState().equals(SubmissionState.APPROVED)) {
 			ManagedACTAccessRequirement ar = (ManagedACTAccessRequirement)accessRequirementDao.get(submission.getAccessRequirementId());
 			Date expiredOn = calculateExpiredOn(ar.getExpirationPeriod());
+			
 			List<AccessApproval> approvalsToCreateOrUpdate = new ArrayList<AccessApproval>();
 			List<String> accessorsToRevoke = new LinkedList<String>();
+			
 			String modifiedBy =  userInfo.getId().toString();
+			
 			createApprovalsForSubmission(submission, modifiedBy, expiredOn, approvalsToCreateOrUpdate, accessorsToRevoke);
 
 			if (!accessorsToRevoke.isEmpty()) {
-				accessApprovalDao.revokeBySubmitter(submission.getAccessRequirementId(), submission.getSubmittedBy(), accessorsToRevoke, modifiedBy);
+				accessAprovalManager.revokeGroup(userInfo, submission.getAccessRequirementId(), submission.getSubmittedBy(), accessorsToRevoke);
 			}
+			
 			if (!approvalsToCreateOrUpdate.isEmpty()) {
 				accessApprovalDao.createOrUpdateBatch(approvalsToCreateOrUpdate);
 			}
@@ -248,6 +258,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			 */
 			requestManager.updateApprovedRequest(submission.getRequestId());
 		}
+		
 		submission = submissionDao.updateSubmissionStatus(request.getSubmissionId(),
 				request.getNewState(), request.getRejectedReason(), userInfo.getId().toString(),
 				System.currentTimeMillis());

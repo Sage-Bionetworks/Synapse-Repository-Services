@@ -119,7 +119,7 @@ public class AuthorizationManagerImplTest {
 		Node node = createDTO(name, creator.getId(), modifiedBy, parentId, activityId);
 		String nodeId = nodeManager.createNewNode(node, creator);
 		assertNotNull(nodeId);
-		node = nodeManager.get(creator, nodeId);
+		node = nodeManager.getNode(creator, nodeId);
 		return node;
 	}
 

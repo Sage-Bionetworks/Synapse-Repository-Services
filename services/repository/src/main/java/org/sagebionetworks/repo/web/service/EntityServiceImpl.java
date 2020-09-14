@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.service;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.json.JSONObject;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
@@ -38,6 +39,10 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsRequest;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsResponse;
+import org.sagebionetworks.repo.model.schema.ValidationResults;
+import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.repo.model.sts.StsCredentials;
 import org.sagebionetworks.repo.model.sts.StsPermission;
 import org.sagebionetworks.repo.queryparser.ParseException;
@@ -710,5 +715,42 @@ public class EntityServiceImpl implements EntityService {
 		ValidateArgument.required(userId, "userId");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		entityManager.clearBoundSchema(userInfo, id);
+	}
+
+	@Override
+	public JSONObject getEntityJson(Long userId, String id) {
+		ValidateArgument.required(userId, "userId");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.getEntityJson(userInfo, id);
+	}
+
+	@Override
+	public JSONObject updateEntityJson(Long userId, String entityId, JSONObject request) {
+		ValidateArgument.required(userId, "userId");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.updateEntityJson(userInfo, entityId, request);
+	}
+
+	@Override
+	public ValidationResults getEntitySchemaValidationResults(Long userId, String id) {
+		ValidateArgument.required(userId, "userId");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.getEntityValidationResults(userInfo, id);
+	}
+
+	@Override
+	public ValidationSummaryStatistics getEntitySchemaValidationSummaryStatistics(Long userId, String entityId) {
+		ValidateArgument.required(userId, "userId");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.getEntityValidationStatistics(userInfo, entityId);
+	}
+
+	@Override
+	public ListValidationResultsResponse getInvalidEntitySchemaValidationResults(Long userId,
+			ListValidationResultsRequest request) {
+		ValidateArgument.required(userId, "userId");
+		ValidateArgument.required(request, "request");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.getInvalidEntitySchemaValidationResults(userInfo, request);
 	}
 }

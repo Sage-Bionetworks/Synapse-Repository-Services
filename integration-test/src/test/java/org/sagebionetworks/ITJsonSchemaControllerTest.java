@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.function.Consumer;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,13 +24,19 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.GetValidationSchemaRequest;
+import org.sagebionetworks.repo.model.schema.GetValidationSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
@@ -39,11 +46,17 @@ import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoRequest;
 import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsRequest;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsResponse;
+import org.sagebionetworks.repo.model.schema.ObjectType;
 import org.sagebionetworks.repo.model.schema.Organization;
-import org.sagebionetworks.repo.model.schema.GetValidationSchemaResponse;
+import org.sagebionetworks.repo.model.schema.ValidationResults;
+import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
+import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.TimeUtils;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import org.sagebionetworks.repo.model.schema.GetValidationSchemaResponse;
 
 public class ITJsonSchemaControllerTest {
 
@@ -346,7 +359,7 @@ public class ITJsonSchemaControllerTest {
 			assertNotNull(response);
 		}).getNewVersionInfo();
 
-		// will bind the schema to the project
+
 		project = new Project();
 		project = synapse.createEntity(project);
 
@@ -355,6 +368,7 @@ public class ITJsonSchemaControllerTest {
 		folder.setParentId(project.getId());
 		folder = synapse.createEntity(folder);
 
+		// will bind the schema to the project
 		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
 		bindRequest.setEntityId(project.getId());
 		bindRequest.setSchema$id(schema.get$id());
@@ -368,6 +382,31 @@ public class ITJsonSchemaControllerTest {
 		JsonSchemaObjectBinding childBinding = synapse.getJsonSchemaBindingForEntity(folder.getId());
 		assertNotNull(childBinding);
 		assertEquals(parentBinding.getJsonSchemaVersionInfo(), childBinding.getJsonSchemaVersionInfo());
+		
+		Folder folderToCompare = synapse.getEntity(folder.getId(), Folder.class);
+		
+		// Wait for the folder to be valid.
+		// call under test
+		waitForValidationResults(folder.getId(), (ValidationResults t) -> {
+			assertEquals(folderToCompare.getId(), t.getObjectId());
+			assertEquals(folderToCompare.getEtag(), t.getObjectEtag());
+			assertEquals(ObjectType.entity, t.getObjectType());
+			assertTrue(t.getIsValid());
+		});
+		
+		// call under test
+		ValidationSummaryStatistics stats = synapse.getEntitySchemaValidationStatistics(project.getId());
+		assertNotNull(stats);
+		assertEquals(project.getId(), stats.getContainerId());
+		assertEquals(new Long(1), stats.getTotalNumberOfChildren());
+		
+		ListValidationResultsRequest listRequest = new ListValidationResultsRequest();
+		listRequest.setContainerId(project.getId());
+		// call under test
+		ListValidationResultsResponse listResponse = synapse.getInvalidValidationResults(listRequest);
+		assertNotNull(listResponse);
+		assertNotNull(listResponse.getPage());
+		assertTrue(listResponse.getPage().isEmpty());
 
 		// clear the binding
 		// call under test
@@ -378,6 +417,62 @@ public class ITJsonSchemaControllerTest {
 			synapse.getJsonSchemaBindingForEntity(folderId);
 		});
 	}
+	
+	@Test
+	public void testGetEntityJson() throws SynapseException {
+		project = new Project();
+		project = synapse.createEntity(project);
+		// Call under test
+		JSONObject projectJSON = synapse.getEntityJson(project.getId());
+		assertNotNull(projectJSON);
+		assertEquals(project.getName(), projectJSON.get("name"));
+		assertEquals(project.getId(), projectJSON.get("id"));
+	}
+	
+	@Test
+	public void testUpdateEntityJson() throws SynapseException {
+		project = new Project();
+		project = synapse.createEntity(project);
+		JSONObject projectJSON = synapse.getEntityJson(project.getId());
+		assertNotNull(projectJSON);
+		projectJSON.put("sample", "some value");
+		// call under test
+		JSONObject updatedJson = synapse.updateEntityJson(project.getId(), projectJSON);
+		assertEquals("some value", updatedJson.getString("sample"));
+		Annotations annos = synapse.getAnnotationsV2(project.getId());
+		assertNotNull(annos);
+		assertNotNull(annos.getAnnotations());
+		AnnotationsValue value =  annos.getAnnotations().get("sample");
+		assertNotNull(value);
+		assertEquals(AnnotationsValueType.STRING, value.getType());
+		assertEquals(Lists.newArrayList("some value"), value.getValue());
+	}
+	
+	/**
+	 * Wait for the validation results
+	 * 
+	 * @param user
+	 * @param entityId
+	 * @return
+	 */
+	public ValidationResults waitForValidationResults(String entityId,
+			Consumer<ValidationResults> consumer) {
+		try {
+			return TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+				try {
+					ValidationResults validationResults = synapse.getEntityValidationResults(entityId);
+					consumer.accept(validationResults);
+					return new Pair<>(Boolean.TRUE, validationResults);
+				} catch (Throwable e) {
+					System.out.println("Waiting for expected ValidationResults..." + e.getMessage());
+					return new Pair<>(Boolean.FALSE, null);
+				}
+			});
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
 
 	/**
 	 * Wait for the schema to be created.

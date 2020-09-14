@@ -17,6 +17,7 @@ public enum OAuthErrorCode {
 	invalid_token,
 	unauthorized_client,
 	unsupported_grant_type,
+	unsupported_response_type,
 	invalid_scope,
 	insufficient_scope,
 	unsupported_token_type,

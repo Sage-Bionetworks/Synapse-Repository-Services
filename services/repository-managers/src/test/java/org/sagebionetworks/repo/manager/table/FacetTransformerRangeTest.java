@@ -1,12 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-
-import java.util.ArrayList;
-import java.util.List;
-
+import com.google.common.collect.Lists;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,7 +19,12 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 
 @RunWith(MockitoJUnitRunner.class)
 public class FacetTransformerRangeTest {
@@ -39,6 +38,7 @@ public class FacetTransformerRangeTest {
 	private List<FacetRequestColumnModel> facets;
 	private RowSet rowSet;
 	private List<SelectColumn> correctSelectList;
+	private Long userId;
 	@Before
 	public void before() throws ParseException{
 		schema = TableModelTestUtils.createOneOfEachType(true);
@@ -53,7 +53,8 @@ public class FacetTransformerRangeTest {
 		selectedMin = "12";
 		selectedMax = "34";
 		originalSearchCondition = "i0 LIKE 'asdf%'";
-		originalQuery = new SqlQueryBuilder("SELECT * FROM syn123 WHERE " + originalSearchCondition, schema).build();
+		userId = 1L;
+		originalQuery = new SqlQueryBuilder("SELECT * FROM syn123 WHERE " + originalSearchCondition, schema, userId).build();
 		
 		rowSet = new RowSet();
 		

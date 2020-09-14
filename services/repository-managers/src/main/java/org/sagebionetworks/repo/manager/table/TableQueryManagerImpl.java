@@ -1,12 +1,5 @@
 package org.sagebionetworks.repo.manager.table;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -53,6 +46,13 @@ import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.BadSqlGrammarException;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 
 public class TableQueryManagerImpl implements TableQueryManager {
 
@@ -146,6 +146,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		ValidateArgument.required(query, "Query");
 		ValidateArgument.required(query.getSql(), "Query");
 		// 1. Parse the SQL string
+
 		QuerySpecification model = parserQuery(query.getSql());
 		// We now have the table's ID.
 		String tableId = model.getTableName();
@@ -159,14 +160,13 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		if (columnModels.isEmpty()) {
 			throw new EmptyResultException("Table schema is empty for: " + tableId, tableId);
 		}
-
 		// 4. Add row level filter as needed.
 		if (EntityTypeUtils.isViewType(tableType)) {
 			// Table views must have a row level filter applied to the query
 			model = addRowLevelFilter(user, model);
 		}
 		// Return the prepared query.
-		return new SqlQueryBuilder(model).tableSchema(columnModels).overrideOffset(query.getOffset())
+		return new SqlQueryBuilder(model, user.getId()).tableSchema(columnModels).overrideOffset(query.getOffset())
 				.overrideLimit(query.getLimit()).maxBytesPerPage(maxBytesPerPage)
 				.includeEntityEtag(query.getIncludeEntityEtag()).selectedFacets(query.getSelectedFacets())
 				.sortList(query.getSort()).additionalFilters(query.getAdditionalFilters()).tableType(tableType).build();

@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.auth;
 
+import java.util.Date;
+
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface PersonalAccessTokenDao {
@@ -10,6 +12,14 @@ public interface PersonalAccessTokenDao {
 	 * @throws NotFoundException if the token does not exist
 	 */
 	AccessTokenRecord getTokenRecord(String tokenId) throws NotFoundException;
+
+	/**
+	 * Get the last used date of the token, if the record exists.
+	 * @param tokenId the unique ID of the token record to retrieve
+	 * @throws NotFoundException if the token does not exist
+	 */
+	Date getLastUsedDate(String tokenId) throws NotFoundException;
+
 
 	/**
 	 * Create a record for a personal access token. Note that the actual token is a signed JWT, and this record merely

@@ -11,6 +11,8 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
+import org.sagebionetworks.repo.model.feature.Feature;
+import org.sagebionetworks.repo.model.feature.FeatureStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
@@ -137,4 +139,21 @@ public interface AdministrationService {
 	 * @return
 	 */
 	public IdGeneratorExport createIdGeneratorExport(Long userId);
+	
+	/**
+	 * @param userId
+	 * @param feature
+	 * @return The status of the feature
+	 */
+	FeatureStatus getFeatureStatus(Long userId, Feature feature);
+	
+	/**
+	 * Sets the status of the feature
+	 * 
+	 * @param userId
+	 * @param feature
+	 * @param status
+	 * @return
+	 */
+	FeatureStatus setFeatureStatus(Long userId, Feature feature, FeatureStatus status);
 }

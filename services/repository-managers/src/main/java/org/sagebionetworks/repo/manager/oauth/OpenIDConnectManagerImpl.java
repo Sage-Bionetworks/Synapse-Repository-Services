@@ -17,6 +17,7 @@ import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackEncrypter;
 import org.sagebionetworks.manager.util.OAuthPermissionUtils;
+import org.sagebionetworks.repo.manager.authentication.PersonalAccessTokenManager;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
@@ -24,6 +25,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.OAuthDao;
+import org.sagebionetworks.repo.model.auth.TokenType;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
@@ -37,6 +39,7 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.OAuthBadRequestException;
 import org.sagebionetworks.repo.web.OAuthErrorCode;
@@ -60,6 +63,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	// user authorization times out after one year
 	private static final long AUTHORIZATION_TIME_OUT_MILLIS = 1000L*3600L*24L*365L;
 	
+	private static final long ACCESS_TOKEN_EXPIRATION_TIME_SECONDS = 3600*24L; // a day
+	
 	// token_type=Bearer, as per https://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
 	private static final String TOKEN_TYPE_BEARER = "Bearer";
 
@@ -71,6 +76,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	@Autowired
 	private OAuthRefreshTokenManager oauthRefreshTokenManager;
+
+	@Autowired
+	private PersonalAccessTokenManager personalAccessTokenManager;
 
 	@Autowired
 	private AuthenticationDAO authDao;
@@ -120,13 +128,21 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	}
 
 	public static void validateAuthenticationRequest(OIDCAuthorizationRequest authorizationRequest, OAuthClient client) {
-		ValidateArgument.validUrl(authorizationRequest.getRedirectUri(), "Redirect URI");
+		try {
+			ValidateArgument.validUrl(authorizationRequest.getRedirectUri(), "Redirect URI");
+		} catch (IllegalArgumentException e) {
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_request, e);
+		}
 		if (!client.getRedirect_uris().contains(authorizationRequest.getRedirectUri())) {
 			throw new OAuthBadRequestException(OAuthErrorCode.invalid_grant, "Redirect URI "+authorizationRequest.getRedirectUri()+
 					" is not registered for "+client.getClient_name());
 		}		
-		if (OAuthResponseType.code!=authorizationRequest.getResponseType()) 
-			throw new OAuthBadRequestException(OAuthErrorCode.unsupported_grant_type, "Unsupported response type "+authorizationRequest.getResponseType());
+		if (authorizationRequest.getResponseType()==null) {
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_request, "Missing response_type.");
+		}
+		if (OAuthResponseType.code!=authorizationRequest.getResponseType()) {
+			throw new OAuthBadRequestException(OAuthErrorCode.unsupported_response_type, "Unsupported response type "+authorizationRequest.getResponseType());
+		}
 	}
 
 	@Override
@@ -168,11 +184,11 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		// https://openid.net/specs/openid-connect-core-1_0.html#Introduction
 		if (scopes.contains(OAuthScope.openid) && authorizationRequest.getClaims() != null) {
 			if (authorizationRequest.getClaims().getUserinfo() != null && !authorizationRequest.getClaims().getUserinfo().isEmpty()) {
-				Map<OIDCClaimName,OIDCClaimsRequestDetails> userinfoClaims = EnumKeyedJsonMapUtil.convertToEnum(authorizationRequest.getClaims().getUserinfo(), OIDCClaimName.class);
+				Map<OIDCClaimName,OIDCClaimsRequestDetails> userinfoClaims = EnumKeyedJsonMapUtil.convertKeysToEnums(authorizationRequest.getClaims().getUserinfo(), OIDCClaimName.class);
 				scopeDescriptions.addAll(getDescriptionsForClaims(userinfoClaims));
 			}
 			if (authorizationRequest.getClaims().getId_token() != null && !authorizationRequest.getClaims().getId_token().isEmpty()) {
-				Map<OIDCClaimName,OIDCClaimsRequestDetails> idTokenClaims = EnumKeyedJsonMapUtil.convertToEnum(authorizationRequest.getClaims().getId_token(), OIDCClaimName.class);
+				Map<OIDCClaimName,OIDCClaimsRequestDetails> idTokenClaims = EnumKeyedJsonMapUtil.convertKeysToEnums(authorizationRequest.getClaims().getId_token(), OIDCClaimName.class);
 				scopeDescriptions.addAll(getDescriptionsForClaims(idTokenClaims));
 			}
 		}
@@ -268,11 +284,30 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	
 	@Override
 	public String validateAccessToken(String jwtToken) {
+		// Parsing the JWT handles tokens that have expired
 		Claims claims = oidcTokenHelper.parseJWT(jwtToken).getBody();
+
 		String userId = getUserIdFromPPID(claims.getSubject(), claims.getAudience());
-		String refreshTokenId = claims.get(OIDCClaimName.refresh_token_id.name(), String.class);
-		if (refreshTokenId != null && !oauthRefreshTokenManager.isRefreshTokenActive(refreshTokenId)) {
-			throw new OAuthUnauthenticatedException(OAuthErrorCode.invalid_token, "The access token has been revoked");
+		TokenType tokenType = TokenType.valueOf(claims.get(OIDCClaimName.token_type.name(), String.class));
+		switch (tokenType) {
+			case OIDC_ACCESS_TOKEN:
+				// If the access token has an associated refresh token, we check to see if the refresh token has been revoked.
+				String refreshTokenId = claims.get(OIDCClaimName.refresh_token_id.name(), String.class);
+				if (refreshTokenId != null && !oauthRefreshTokenManager.isRefreshTokenActive(refreshTokenId)) {
+					throw new OAuthUnauthenticatedException(OAuthErrorCode.invalid_token, "The access token has been revoked.");
+				}
+				break;
+			case PERSONAL_ACCESS_TOKEN:
+				String personalAccessTokenId = claims.getId();
+				if (personalAccessTokenManager.isTokenActive(personalAccessTokenId)) {
+					personalAccessTokenManager.updateLastUsedTime(personalAccessTokenId);
+				} else {
+					throw new ForbiddenException("The provided personal access token has expired or has been revoked.");
+				}
+				break;
+			case OIDC_ID_TOKEN:
+				throw new OAuthUnauthenticatedException(OAuthErrorCode.invalid_token, "The provided token is an OIDC ID token and cannot be used to authenticate requests.");
+
 		}
 		return userId;
 	}
@@ -342,10 +377,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		OIDCClaimsRequest normalizedClaims = normalizeClaims(authorizationRequest.getClaims());
 
-		Date authTime = null;
-		if (authorizationRequest.getAuthenticatedAt()!=null) {
-			authTime = authorizationRequest.getAuthenticatedAt();
-		}
+		Date authTime = authorizationRequest.getAuthenticatedAt();
 
 		// The following implements 'pairwise' subject_type, https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
 		// Pairwise Pseudonymous Identifier (PPID)
@@ -359,7 +391,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		if (scopes.contains(OAuthScope.openid)) {
 			String idTokenId = UUID.randomUUID().toString();
 			Map<OIDCClaimName,Object> userInfo = getUserInfo(authorizationRequest.getUserId(), 
-					scopes, EnumKeyedJsonMapUtil.convertToEnum(normalizedClaims.getId_token(), OIDCClaimName.class));
+					scopes, EnumKeyedJsonMapUtil.convertKeysToEnums(normalizedClaims.getId_token(), OIDCClaimName.class));
 			String idToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, 
 					authorizationRequest.getNonce(), authTime, idTokenId, userInfo);
 			result.setId_token(idToken);
@@ -382,10 +414,11 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		String accessTokenId = UUID.randomUUID().toString();
 		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid,
-				oauthClientId, now, authTime, refreshTokenId, accessTokenId, scopes,
-				EnumKeyedJsonMapUtil.convertToEnum(normalizedClaims.getUserinfo(), OIDCClaimName.class));
+				oauthClientId, now, ACCESS_TOKEN_EXPIRATION_TIME_SECONDS, authTime, refreshTokenId, accessTokenId, scopes,
+				EnumKeyedJsonMapUtil.convertKeysToEnums(normalizedClaims.getUserinfo(), OIDCClaimName.class));
 		result.setAccess_token(accessToken);
 		result.setToken_type(TOKEN_TYPE_BEARER);
+		result.setExpires_in(ACCESS_TOKEN_EXPIRATION_TIME_SECONDS);
 		return result;
 	}
 
@@ -420,7 +453,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		// In the JWT, we will need to supply both the current time and the date/time of the initial authorization
 		long now = clock.currentTimeMillis();
-		Date authTime = refreshTokenMetadata.getAuthorizedOn();
+		Date authTime = authDao.getSessionValidatedOn(Long.parseLong(refreshTokenMetadata.getPrincipalId()));
 
 		// The following implements 'pairwise' subject_type, https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
 		// Pairwise Pseudonymous Identifier (PPID)
@@ -432,8 +465,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		// Use of [the OpenID Connect] extension [to OAuth 2.0] is requested by Clients by including the openid scope value in the Authorization Request.
 		// https://openid.net/specs/openid-connect-core-1_0.html#Introduction
-		Map<OIDCClaimName, OIDCClaimsRequestDetails> idTokenClaims = EnumKeyedJsonMapUtil.convertToEnum(refreshTokenMetadata.getClaims().getId_token(), OIDCClaimName.class);
-		Map<OIDCClaimName, OIDCClaimsRequestDetails> userInfoClaims = EnumKeyedJsonMapUtil.convertToEnum(refreshTokenMetadata.getClaims().getUserinfo(), OIDCClaimName.class);
+		Map<OIDCClaimName, OIDCClaimsRequestDetails> idTokenClaims = EnumKeyedJsonMapUtil.convertKeysToEnums(refreshTokenMetadata.getClaims().getId_token(), OIDCClaimName.class);
+		Map<OIDCClaimName, OIDCClaimsRequestDetails> userInfoClaims = EnumKeyedJsonMapUtil.convertKeysToEnums(refreshTokenMetadata.getClaims().getUserinfo(), OIDCClaimName.class);
 		if (scopes.contains(OAuthScope.openid)) {
 			String idTokenId = UUID.randomUUID().toString();
 			Map<OIDCClaimName,Object> userInfo = getUserInfo(refreshTokenMetadata.getPrincipalId(), scopes, idTokenClaims);
@@ -446,9 +479,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		String accessTokenId = UUID.randomUUID().toString();
 		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid,
-				oauthClientId, now, authTime, refreshTokenMetadata.getTokenId(), accessTokenId, scopes, userInfoClaims);
+				oauthClientId, now,ACCESS_TOKEN_EXPIRATION_TIME_SECONDS,  authTime, refreshTokenMetadata.getTokenId(), accessTokenId, scopes, userInfoClaims);
 		result.setAccess_token(accessToken);
 		result.setToken_type(TOKEN_TYPE_BEARER);
+		result.setExpires_in(ACCESS_TOKEN_EXPIRATION_TIME_SECONDS);
 		return result;
 	}
 
@@ -470,8 +504,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		} else {
 			// Converting the key to enum and back to string will drop unrecognized claims
 			claims.setId_token(
-					EnumKeyedJsonMapUtil.convertToString(
-							EnumKeyedJsonMapUtil.convertToEnum(claims.getId_token(), OIDCClaimName.class)
+					EnumKeyedJsonMapUtil.convertKeysToStrings(
+							EnumKeyedJsonMapUtil.convertKeysToEnums(claims.getId_token(), OIDCClaimName.class)
 					)
 			);
 		}
@@ -479,8 +513,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			claims.setUserinfo(Collections.emptyMap());
 		} else {
 			claims.setUserinfo(
-					EnumKeyedJsonMapUtil.convertToString(
-							EnumKeyedJsonMapUtil.convertToEnum(claims.getUserinfo(), OIDCClaimName.class)
+					EnumKeyedJsonMapUtil.convertKeysToStrings(
+							EnumKeyedJsonMapUtil.convertKeysToEnums(claims.getUserinfo(), OIDCClaimName.class)
 					)
 			);
 		}

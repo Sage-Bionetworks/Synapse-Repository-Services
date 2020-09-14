@@ -1,0 +1,15 @@
+{
+	"description": "A single page of the JSON schema validation results.",
+	"properties": {
+		"page": {
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.schema.ValidationResults"
+			}
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "Forward this token to get the next page of results."
+		}
+	}
+}

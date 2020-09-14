@@ -307,7 +307,7 @@ public class OpenIDConnectController {
 	 * @throws OAuthClientNotVerifiedException if the client is not verified
 	 */
 	@RequiredScope({})
-	@ResponseStatus(HttpStatus.CREATED)
+	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_TOKEN, method = RequestMethod.POST)
 	public @ResponseBody
 	OIDCTokenResponse getTokenResponse(

@@ -79,19 +79,19 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	@WriteTransaction
 	@Override
 	public void sendDeleteMessageAfterCommit(String objectId, ObjectType objectType) {
-		String etag = null;
-		sendMessageAfterCommit(objectId, objectType, etag, ChangeType.DELETE);
+		sendMessageAfterCommit(objectId, objectType, ChangeType.DELETE);
 	}
 	
 	@WriteTransaction
 	@Override
-	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, ChangeType changeType) {
+	public void sendMessageAfterCommit(String objectId, ObjectType objectType, ChangeType changeType) {
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeType(changeType);
 		message.setObjectType(objectType);
 		message.setObjectId(objectId);
 		sendMessageAfterCommit(message);
 	}
+	
 	
 	@WriteTransaction
 	@Override

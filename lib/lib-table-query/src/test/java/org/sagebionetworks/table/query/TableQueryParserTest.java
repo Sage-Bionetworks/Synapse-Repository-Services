@@ -433,7 +433,35 @@ public class TableQueryParserTest {
 	@Test
 	public void testUnknownCharacters() throws ParseException {
 		char unknownChar = 0xffff;
-		QuerySpecification element = TableQueryParser.parserQuery("select * from syn123 "+unknownChar);
+		QuerySpecification element = TableQueryParser.parserQuery("select * from syn123 " +unknownChar);
 		assertEquals("SELECT * FROM syn123", element.toSql());
 	}
+
+	@Test
+	public void testCurrentUser() throws ParseException {
+		QuerySpecification element = TableQueryParser.parserQuery("select * from syn123 where user = CURRENT_USER()");
+		assertEquals("SELECT * FROM syn123 WHERE user = CURRENT_USER()", element.toSql());
+	}
+
+	@Test
+	public void testCurrentUserInvalidPlacement() throws ParseException {
+		assertThrows(ParseException.class, ()->{
+			TableQueryParser.parserQuery("select * from syn123 where CURRENT_USER() = CURRENT_USER()");
+		});
+	}
+
+	@Test
+	public void testCurrentUserInvalidPlacement2() throws ParseException {
+		assertThrows(ParseException.class, ()->{
+			TableQueryParser.parserQuery("select * from CURRENT_USER() where foo = CURRENT_USER()");
+		});
+	}
+
+	@Test
+	public void testCurrentUserInvalidSpelling() throws ParseException {
+		assertThrows(ParseException.class, ()->{
+			TableQueryParser.parserQuery("select * from syn123 where foo = CURRENT_USER");
+		});
+	}
+
 }

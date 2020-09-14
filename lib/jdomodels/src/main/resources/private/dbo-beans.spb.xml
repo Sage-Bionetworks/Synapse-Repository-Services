@@ -65,6 +65,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRequest" />
 				<!-- Evaluation beans -->
 				<bean class="org.sagebionetworks.evaluation.dbo.EvaluationDBO" />
+				<bean class="org.sagebionetworks.evaluation.dbo.EvaluationRoundDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.EvaluationSubmissionsDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionContributorDBO" />
@@ -124,6 +125,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionSubmitter" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionStatus" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessNotification" />
 				<!-- Forms -->
 				<bean class="org.sagebionetworks.repo.model.dbo.form.DBOFormGroup" />
 				<bean class="org.sagebionetworks.repo.model.dbo.form.DBOFormData" />
@@ -135,6 +137,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.schema.DBOJsonSchemaLatestVersion" />
 				<bean class="org.sagebionetworks.repo.model.dbo.schema.DBOJsonSchemaDependency" />
 				<bean class="org.sagebionetworks.repo.model.dbo.schema.DBOJsonSchemaBindObject" />
+				<bean class="org.sagebionetworks.repo.model.dbo.schema.DBOSchemaValidationResults" />
 				<!-- Download -->
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadList" />
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadListItem" />
@@ -153,6 +156,8 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.ses.DBOSESNotification" />
 				<!-- Email Quarantine -->
 				<bean class="org.sagebionetworks.repo.model.dbo.ses.DBOQuarantinedEmail" />
+				<!-- Feature Status -->
+				<bean class="org.sagebionetworks.repo.model.dbo.feature.DBOFeatureStatus" />
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->
@@ -198,6 +203,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRequest" />
 
 				<bean class="org.sagebionetworks.evaluation.dbo.EvaluationDBO" />
+				<bean class="org.sagebionetworks.evaluation.dbo.EvaluationRoundDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.EvaluationSubmissionsDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionContributorDBO" />
@@ -240,6 +246,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBORequest" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionSubmitter" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessNotification" />
 				<!-- Forms -->
 				<bean class="org.sagebionetworks.repo.model.dbo.form.DBOFormGroup" />
 				<bean class="org.sagebionetworks.repo.model.dbo.form.DBOFormData" />
@@ -266,6 +273,9 @@
 		
 				<!-- Email Quarantine -->
 				<bean class="org.sagebionetworks.repo.model.dbo.ses.DBOQuarantinedEmail" />
+				
+				<!-- Feature Status -->
+				<bean class="org.sagebionetworks.repo.model.dbo.feature.DBOFeatureStatus" />
 		
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" /> <!-- THIS MUST ALWAYS BE THE LAST BEAN -->
 			</list>

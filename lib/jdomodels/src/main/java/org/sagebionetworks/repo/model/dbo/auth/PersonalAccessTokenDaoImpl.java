@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
@@ -41,6 +42,10 @@ public class PersonalAccessTokenDaoImpl implements PersonalAccessTokenDao {
 	private static final String PARAM_LIMIT = "limitParam";
 	private static final String PARAM_OFFSET = "offsetParam";
 	private static final String PARAM_MAX_NUM_TOKENS = "maxNumberOfTokens";
+
+	private static final String SELECT_LAST_USED_DATE_BY_ID =
+			"SELECT " + COL_PERSONAL_ACCESS_TOKEN_LAST_USED + " FROM " + TABLE_PERSONAL_ACCESS_TOKEN
+			+ " WHERE " + COL_PERSONAL_ACCESS_TOKEN_ID + " = :" + PARAM_TOKEN_ID;
 
 	private static final String SELECT_TOKENS_FOR_PRINCIPAL = "SELECT * FROM " + TABLE_PERSONAL_ACCESS_TOKEN
 			+ " WHERE " + COL_PERSONAL_ACCESS_TOKEN_PRINCIPAL_ID + " = :" + PARAM_PRINCIPAL_ID
@@ -122,6 +127,19 @@ public class PersonalAccessTokenDaoImpl implements PersonalAccessTokenDao {
 		SinglePrimaryKeySqlParameterSource params = new SinglePrimaryKeySqlParameterSource(tokenId);
 		DBOPersonalAccessToken dbo =  basicDao.getObjectByPrimaryKey(DBOPersonalAccessToken.class, params);
 		return personalAccessTokenDboToDto(dbo);
+	}
+
+	@Override
+	public Date getLastUsedDate(String tokenId) throws NotFoundException {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(PARAM_TOKEN_ID, tokenId);
+		Date result;
+		try {
+			result = namedParameterJdbcTemplate.queryForObject(SELECT_LAST_USED_DATE_BY_ID, params, Date.class);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("The token record does not exist.");
+		}
+		return result;
 	}
 
 	@WriteTransaction

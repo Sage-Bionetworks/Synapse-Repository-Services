@@ -15,6 +15,8 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.docker.RegistryEventAction.pull;
 import static org.sagebionetworks.repo.model.docker.RegistryEventAction.push;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.download;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -76,11 +78,13 @@ import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
@@ -160,6 +164,8 @@ public class AuthorizationManagerImplUnitTest {
 	private static final String CATALOG_NAME = "catalog";
 	private static final String ALL_ACCESS_TYPES = "*";
 	
+	private static final List<OAuthScope> OAUTH_SCOPES = ImmutableList.of(download, modify);
+
 	private UserInfo userInfo;
 	private UserInfo anonymousUserInfo;
 	private UserInfo adminUser;
@@ -948,28 +954,28 @@ public class AuthorizationManagerImplUnitTest {
 	@Test
 	public void testGetPermittedAccessTypesNullUserInfo() throws Exception{
 		assertThrows(IllegalArgumentException.class, ()-> {
-			authorizationManager.getPermittedDockerActions(null, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+			authorizationManager.getPermittedDockerActions(null, OAUTH_SCOPES, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 		});
 	}
 	
 	@Test
 	public void testGetPermittedAccessTypesNullService() throws Exception{
 		assertThrows(IllegalArgumentException.class, ()-> {
-			authorizationManager.getPermittedDockerActions(USER_INFO, null, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+			authorizationManager.getPermittedDockerActions(USER_INFO, OAUTH_SCOPES, null, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 		});
 	}
 	
 	@Test
 	public void testGetPermittedAccessTypesNullRepositoryPath() throws Exception{
 		assertThrows(IllegalArgumentException.class, ()-> {
-			authorizationManager.getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, null, ACCESS_TYPES_STRING);
+			authorizationManager.getPermittedDockerActions(USER_INFO, OAUTH_SCOPES, SERVICE, REPOSITORY_TYPE, null, ACCESS_TYPES_STRING);
 		});
 	}
 	
 	@Test
 	public void testGetPermittedAccessTypesNullAction() throws Exception{
 		assertThrows(IllegalArgumentException.class, ()-> {
-			authorizationManager.getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, null);
+			authorizationManager.getPermittedDockerActions(USER_INFO, OAUTH_SCOPES, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, null);
 		});
 	}
 	
@@ -977,25 +983,46 @@ public class AuthorizationManagerImplUnitTest {
 	public void testGetPermittedAccessTypesHappyCase() throws Exception {
 		// method under test:
 		Set<String> permitted = authorizationManager.
-				getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+				getPermittedDockerActions(USER_INFO, OAUTH_SCOPES, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 		
 		assertEquals(new HashSet(Arrays.asList(new String[]{push.name(), pull.name()})), permitted);
+	}
+
+	@Test
+	public void testGetPermittedAccessTypesLimitedScope() throws Exception {
+		List<OAuthScope> downloadOnlyScope = Collections.singletonList(OAuthScope.download);
+		
+		// method under test:
+		Set<String> permitted = authorizationManager.
+				getPermittedDockerActions(USER_INFO, downloadOnlyScope, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+		
+		// user has permission to read and write, but scope is limited to view, so only 'pull' is granted
+		assertEquals(new HashSet(Arrays.asList(new String[]{pull.name()})), permitted);
 	}
 
 	@Test
 	public void testGetPermittedAccessTypesRegistry() throws Exception {
 		// method under test:
 		Set<String> permitted = authorizationManager.
-				getPermittedDockerActions(ADMIN_INFO, SERVICE, REGISTRY_TYPE, CATALOG_NAME, ALL_ACCESS_TYPES);
+				getPermittedDockerActions(ADMIN_INFO, Collections.singletonList(OAuthScope.view), SERVICE, REGISTRY_TYPE, CATALOG_NAME, ALL_ACCESS_TYPES);
 		
 		assertEquals(new HashSet(Arrays.asList(new String[]{ALL_ACCESS_TYPES})), permitted);
+	}
+
+	@Test
+	public void testGetPermittedAccessTypesRegistryNoViewScope() throws Exception {
+		// method under test:
+		Set<String> permitted = authorizationManager.
+				getPermittedDockerActions(ADMIN_INFO, Collections.EMPTY_LIST, SERVICE, REGISTRY_TYPE, CATALOG_NAME, ALL_ACCESS_TYPES);
+		
+		assertTrue(permitted.isEmpty());
 	}
 
 	@Test
 	public void testGetPermittedAccessTypesRegistryNotAdmin() throws Exception {
 		// method under test:
 		Set<String> permitted = authorizationManager.
-				getPermittedDockerActions(USER_INFO, SERVICE, REGISTRY_TYPE, CATALOG_NAME, ALL_ACCESS_TYPES);
+				getPermittedDockerActions(USER_INFO, OAUTH_SCOPES, SERVICE, REGISTRY_TYPE, CATALOG_NAME, ALL_ACCESS_TYPES);
 		
 		assertTrue(permitted.isEmpty());
 	}
@@ -1004,7 +1031,7 @@ public class AuthorizationManagerImplUnitTest {
 	public void testGetPermittedAccessTypesRegistryNotCatalog() throws Exception {
 		// method under test:
 		Set<String> permitted = authorizationManager.
-				getPermittedDockerActions(ADMIN_INFO, SERVICE, REGISTRY_TYPE, "not-catalog", ALL_ACCESS_TYPES);
+				getPermittedDockerActions(ADMIN_INFO, OAUTH_SCOPES, SERVICE, REGISTRY_TYPE, "not-catalog", ALL_ACCESS_TYPES);
 		
 		assertTrue(permitted.isEmpty());
 	}
@@ -1015,7 +1042,7 @@ public class AuthorizationManagerImplUnitTest {
 		
 		// method under test:
 		Set<String> permitted = authorizationManager.
-				getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, repositoryPath, ACCESS_TYPES_STRING);
+				getPermittedDockerActions(USER_INFO, OAUTH_SCOPES, SERVICE, REPOSITORY_TYPE, repositoryPath, ACCESS_TYPES_STRING);
 		
 		assertTrue(permitted.isEmpty());
 	}
@@ -1031,7 +1058,7 @@ public class AuthorizationManagerImplUnitTest {
 
 		// method under test:
 		Set<String> permitted = authorizationManager.
-				getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, repositoryPath, ACCESS_TYPES_STRING);
+				getPermittedDockerActions(USER_INFO, OAUTH_SCOPES, SERVICE, REPOSITORY_TYPE, repositoryPath, ACCESS_TYPES_STRING);
 		
 		// client needs both push and pull access to push a not-yet-existing repo to the registry
 		assertEquals(new HashSet(Arrays.asList(new String[]{push.name(), pull.name()})), permitted);
@@ -1047,7 +1074,7 @@ public class AuthorizationManagerImplUnitTest {
 		
 		// method under test:
 		Set<String> permitted = authorizationManager.
-				getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+				getPermittedDockerActions(USER_INFO, OAUTH_SCOPES, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 
 		// Note, we DO have create access, but that doesn't let us 'push' since the repo already exists
 		assertTrue(permitted.isEmpty(), permitted.toString());
@@ -1068,7 +1095,7 @@ public class AuthorizationManagerImplUnitTest {
 
 		// method under test:
 		Set<String> permitted = authorizationManager.
-				getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+				getPermittedDockerActions(USER_INFO, OAUTH_SCOPES, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 
 		// Note, we can pull (but not push!) since we have admin access to evaluation
 		assertEquals(new HashSet(Arrays.asList(new String[]{pull.name()})), permitted);
@@ -1084,7 +1111,7 @@ public class AuthorizationManagerImplUnitTest {
 		
 		// method under test:
 		Set<String> permitted = authorizationManager.
-				getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, "pull");
+				getPermittedDockerActions(USER_INFO, OAUTH_SCOPES, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, "pull");
 
 		// it's allowed because it's *DOWNLOAD* permission, not *READ* permission which we must have
 		assertEquals(new HashSet(Arrays.asList(new String[]{pull.name()})), permitted);
@@ -1105,7 +1132,7 @@ public class AuthorizationManagerImplUnitTest {
 		
 		// method under test:
 		Set<String> permitted = authorizationManager.
-				getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, repositoryPath, ACCESS_TYPES_STRING);
+				getPermittedDockerActions(USER_INFO, OAUTH_SCOPES, SERVICE, REPOSITORY_TYPE, repositoryPath, ACCESS_TYPES_STRING);
 
 		// Note, we DO have update access, but that doesn't let us 'push' since the repo doesn't exist
 		assertTrue(permitted.isEmpty(), permitted.toString());
@@ -1117,7 +1144,7 @@ public class AuthorizationManagerImplUnitTest {
 
 		// method under test:
 		Set<String> permitted = authorizationManager.
-				getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+				getPermittedDockerActions(USER_INFO, OAUTH_SCOPES, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 		
 		assertTrue(permitted.isEmpty(), permitted.toString());
 	}
@@ -1134,7 +1161,7 @@ public class AuthorizationManagerImplUnitTest {
 
 		// method under test:
 		Set<String> permitted = authorizationManager.
-				getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+				getPermittedDockerActions(USER_INFO, OAUTH_SCOPES, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 
 		// Note, we can pull (but not push!) since we have admin access to evaluation
 		assertEquals(Collections.singleton(pull.name()), permitted);

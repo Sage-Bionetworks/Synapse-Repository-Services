@@ -1,0 +1,9 @@
+{
+  "description": "Response body generated when creating a personal access token.",
+  "properties": {
+    "token":{
+      "type":"string",
+      "description":"The generated token. The token cannot be retrieved again after the time of creation."
+    }
+  }
+}

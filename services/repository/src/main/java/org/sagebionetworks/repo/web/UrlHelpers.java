@@ -234,6 +234,11 @@ public class UrlHelpers {
 	public static final String ENTITY_DATA_TYPE = ENTITY_ID+"/datatype";
 	public static final String ENTITY_BIND_JSON_SCHEMA = ENTITY_ID+"/schema/binding";
 	
+	public static final String ENTITY_ID_JSON = ENTITY_ID+"/json";
+	public static final String ENTITY_ID_VALIDATION = ENTITY_ID+"/schema/validation";
+	public static final String ENTITY_ID_VALIDATION_STATISTICS = ENTITY_ID_VALIDATION+"/statistics";
+	public static final String ENTITY_ID_VALIDATION_INVALID = ENTITY_ID_VALIDATION+"/invalid";
+	
 	public static final String BULK_FILE_DOWNLOAD = FILE + "/bulk";
 	public static final String BULK_FILE_DOWNLOAD_ASYNC_START = BULK_FILE_DOWNLOAD + ASYNC_START_REQUEST;
 	public static final String BULK_FILE_DOWNLOAD_ASYNC_GET = BULK_FILE_DOWNLOAD + ASYNC_GET_REQUEST;
@@ -537,11 +542,11 @@ public class UrlHelpers {
 	public static final String ACCESS_REQUIREMENT_VERSION = ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/version";
 
 	public static final String ACCESS_APPROVAL = "/accessApproval";
-	public static final String ACCESS_APPROVALS = "/accessApprovals";
 	public static final String ACCESS_APPROVAL_WITH_ENTITY_ID = ENTITY_ID+ACCESS_APPROVAL;
 	public static final String ACCESS_APPROVAL_WITH_APPROVAL_ID = ACCESS_APPROVAL+"/{approvalId}";
 	public static final String ACCESS_APPROVAL_GROUP = ACCESS_APPROVAL+"/group";
 	public static final String ACCESS_APPROVAL_GROUP_REVOKE = ACCESS_APPROVAL_GROUP+"/revoke";
+	public static final String ACCESS_APPROVAL_NOTIFICATIONS = ACCESS_APPROVAL + "/notifications";
 
 	public static final String ACCESS_APPROVAL_INFO = ACCESS_APPROVAL+"/information";
 
@@ -617,6 +622,16 @@ public class UrlHelpers {
 	 * Principal/User information removal for administrators.
 	 */
 	public static final String ADMIN_REDACT_USER = ADMIN + "/redact/user/{principalId}";
+
+	/**
+	 * Feature management endpoint
+	 */
+	public static final String ADMIN_FEATURE = ADMIN + "/feature";
+	
+	/**
+	 * Enable/disable a feature
+	 */
+	public static final String ADMIN_FEATURE_STATUS = ADMIN_FEATURE +"/{feature}/status";
 
 	/**
 	 * Public access for Synapse user and group info
@@ -721,7 +736,12 @@ public class UrlHelpers {
 	public static final String EVALUATION_WITH_NAME = EVALUATION + "/name/{name}";
 	public static final String EVALUATION_COUNT = EVALUATION + "/count";
 	public static final String EVALUATION_AVAILABLE = EVALUATION+"/available";
-	
+
+	//EvaluationRounds
+	public static final String EVALUATION_ROUND = EVALUATION_WITH_ID + "/round";
+	public static final String EVALUATION_ROUND_ID_PATH_VAR = "{roundId}";
+	public static final String EVALUATION_ROUND_WITH_ROUND_ID = EVALUATION_ROUND + "/" + EVALUATION_ROUND_ID_PATH_VAR;
+
 	public static final String PARTICIPANT = EVALUATION_WITH_ID + "/participant";
 	public static final String PARTICIPANT_WITH_ID = PARTICIPANT + "/{partId}";
 	public static final String PARTICIPANT_COUNT = PARTICIPANT + "/count";
@@ -1107,7 +1127,10 @@ public class UrlHelpers {
 
 	public static final String AUTH_TERMS_OF_USE = "/termsOfUse";
 	public static final String AUTH_SECRET_KEY = "/secretKey";
-	
+
+	public static final String AUTH_PERSONAL_ACCESS_TOKEN = "/personalAccessToken";
+	public static final String AUTH_PERSONAL_ACCESS_TOKEN_ID = AUTH_PERSONAL_ACCESS_TOKEN + ID;
+
 	public static final String AUTH_OAUTH_2 = "/oauth2";
 	public static final String AUTH_OAUTH_2_AUTH_URL = AUTH_OAUTH_2+"/authurl";
 	public static final String AUTH_OAUTH_2_SESSION = AUTH_OAUTH_2+"/session";

@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -51,8 +53,6 @@ import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.util.ValidateArgument;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 /**
  * Utilities for creating SQL elements

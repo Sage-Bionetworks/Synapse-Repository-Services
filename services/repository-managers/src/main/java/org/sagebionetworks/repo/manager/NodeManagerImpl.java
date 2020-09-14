@@ -294,17 +294,16 @@ public class NodeManagerImpl implements NodeManager {
 	}
 	
 	@Override
-	public Node get(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
+	public Node getNode(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Validate the username
 		UserInfo.validateUserInfo(userInfo);
-		String userName = userInfo.getId().toString();
 		authorizationManager.canAccess(userInfo, nodeId, ObjectType. ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
-		
-		Node result = nodeDao.getNode(nodeId);
-		if(log.isDebugEnabled()){
-			log.debug("username "+userName+" fetched node: "+result.getId());
-		}
-		return result;
+		return getNode(nodeId);
+	}
+	
+	@Override
+	public Node getNode(String nodeId) {
+		return nodeDao.getNode(nodeId);
 	}
 
 	@Override
@@ -353,7 +352,7 @@ public class NodeManagerImpl implements NodeManager {
 		}
 		updateNode(userInfo, updatedNode, entityPropertyAnnotations, newVersion, ChangeType.UPDATE, oldNode);
 
-		return get(userInfo, updatedNode.getId());
+		return getNode(userInfo, updatedNode.getId());
 	}
 
 	private void updateNode(UserInfo userInfo, Node updatedNode, org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations, boolean newVersion,
@@ -396,7 +395,7 @@ public class NodeManagerImpl implements NodeManager {
 			
 			if(NodeUtils.isProjectOrFolder(updatedNode.getNodeType())){
 				// Notify listeners of the hierarchy change to this container.
-				transactionalMessenger.sendMessageAfterCommit(updatedNode.getId(), ObjectType.ENTITY_CONTAINER, nextETag, ChangeType.UPDATE);
+				transactionalMessenger.sendMessageAfterCommit(updatedNode.getId(), ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
 			}
 		}
 
@@ -429,9 +428,14 @@ public class NodeManagerImpl implements NodeManager {
 
 	@Override
 	public Annotations getUserAnnotations(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
-		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
-		UserInfo.validateUserInfo(userInfo);
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(nodeId, "nodeId");
 		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		return getUserAnnotations(nodeId);
+	}
+	
+	@Override
+	public Annotations getUserAnnotations(String nodeId) {
 		return nodeDao.getUserAnnotations(nodeId);
 	}
 
@@ -448,6 +452,12 @@ public class NodeManagerImpl implements NodeManager {
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
 		UserInfo.validateUserInfo(userInfo);
 		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		return nodeDao.getEntityPropertyAnnotations(nodeId);
+	}
+	
+	@Override
+	public org.sagebionetworks.repo.model.Annotations getEntityPropertyAnnotations(String nodeId) {
+		ValidateArgument.required(nodeId, "entityId");
 		return nodeDao.getEntityPropertyAnnotations(nodeId);
 	}
 
@@ -483,8 +493,15 @@ public class NodeManagerImpl implements NodeManager {
 
 	@Override
 	public EntityType getNodeType(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
-		Node node = get(userInfo, nodeId);
-		return node.getNodeType();
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(nodeId, "nodeId");
+		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		return getNodeType(nodeId);
+	}
+	
+	@Override
+	public EntityType getNodeType(String entityId) {
+		return nodeDao.getNodeTypeById(entityId);
 	}
 	
 	@Override
@@ -622,7 +639,7 @@ public class NodeManagerImpl implements NodeManager {
 	public void setActivityForNode(UserInfo userInfo, String nodeId,
 			String activityId) throws NotFoundException, UnauthorizedException,
 			DatastoreException {
-		Node toUpdate = get(userInfo, nodeId);		
+		Node toUpdate = getNode(userInfo, nodeId);		
 		toUpdate.setActivityId(activityId);
 		update(userInfo, toUpdate, null, false);
 	}
@@ -631,7 +648,7 @@ public class NodeManagerImpl implements NodeManager {
 	@Override
 	public void deleteActivityLinkToNode(UserInfo userInfo, String nodeId)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
-		Node toUpdate = get(userInfo, nodeId);
+		Node toUpdate = getNode(userInfo, nodeId);
 		toUpdate.setActivityId(NodeDAO.DELETE_ACTIVITY_VALUE);
 		update(userInfo, toUpdate, null , false);
 	}	

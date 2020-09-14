@@ -182,7 +182,7 @@ public class VerificationManagerImplTest {
 		assertEquals(FILE_HANDLE_ID, verificationSubmission.getAttachments().get(0).getId());
 		assertEquals(FILE_NAME, verificationSubmission.getAttachments().get(0).getFileName());
 		assertEquals(PRIMARY_EMAIL, verificationSubmission.getNotificationEmail());
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(USER_ID.toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.CREATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(USER_ID.toString(), ObjectType.VERIFICATION_SUBMISSION, ChangeType.CREATE);
 	}
 
 	@Test
@@ -249,7 +249,7 @@ public class VerificationManagerImplTest {
 		state.setState(VerificationStateEnum.SUSPENDED);
 		verificationManager.
 			createVerificationSubmission(userInfo, verificationSubmission);
-		verify(mockTransactionalMessenger, Mockito.times(2)).sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.CREATE);
+		verify(mockTransactionalMessenger, Mockito.times(2)).sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.VERIFICATION_SUBMISSION, ChangeType.CREATE);
 	}
 	
 	@Test
@@ -384,7 +384,7 @@ public class VerificationManagerImplTest {
 		assertNotNull(state.getCreatedOn());
 		
 		verify(mockVerificationDao).appendVerificationSubmissionState(VERIFICATION_ID, state);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(USER_ID.toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.UPDATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(USER_ID.toString(), ObjectType.VERIFICATION_SUBMISSION, ChangeType.UPDATE);
 	}
 	
 	@Test

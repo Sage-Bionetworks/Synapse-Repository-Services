@@ -142,7 +142,7 @@ public class NodeManagerImplAutoWiredTest {
 			String id = nodeManager.createNewNode(newNode, userInfo);
 			assertNotNull(id);
 			nodesToDelete.add(id);
-			newNode = nodeManager.get(userInfo, id);
+			newNode = nodeManager.getNode(userInfo, id);
 			// A parent node should have been assigned to this node.
 			assertNotNull(newNode.getParentId());
 			// What is the parent path?
@@ -211,7 +211,7 @@ public class NodeManagerImplAutoWiredTest {
 		assertNotNull(start);
 		nodesToDelete.add(start.getId());
 		//Make sure we can get the node
-		Node fetched = nodeManager.get(adminUserInfo, start.getId());
+		Node fetched = nodeManager.getNode(adminUserInfo, start.getId());
 		assertNotNull(fetched);
 		assertEquals(start, fetched);
 		assertEquals(userInfo.getId().toString(), fetched.getCreatedByPrincipalId().toString());
@@ -231,7 +231,7 @@ public class NodeManagerImplAutoWiredTest {
 		// Make sure the result has a new eTag
 		assertFalse(startingETag.equals(updated.getETag()));
 		// Now get it again
-		Node fetchedAfterUpdate = nodeManager.get(adminUserInfo, start.getId());
+		Node fetchedAfterUpdate = nodeManager.getNode(adminUserInfo, start.getId());
 		assertNotNull(fetchedAfterUpdate);
 		assertEquals(updated, fetchedAfterUpdate);
 		assertEquals("mySecondName", fetchedAfterUpdate.getName());
@@ -250,7 +250,7 @@ public class NodeManagerImplAutoWiredTest {
 		String id = nodeManager.createNewNode(newNode, adminUserInfo);
 		assertNotNull(id);
 		nodesToDelete.add(id);
-		Node node = nodeManager.get(adminUserInfo, id);
+		Node node = nodeManager.getNode(adminUserInfo, id);
 		// Now update
 		node.setName("newName");
 		nodeManager.update(adminUserInfo, node, null, false);
@@ -267,7 +267,7 @@ public class NodeManagerImplAutoWiredTest {
 		startNode.setNodeType(EntityType.project);
 		UserInfo userInfo = adminUserInfo;
 		String id = nodeManager.createNewNode(startNode, userInfo);
-		startNode = nodeManager.get(userInfo, id);
+		startNode = nodeManager.getNode(userInfo, id);
 		assertNotNull(id);
 		nodesToDelete.add(id);
 		// First get the annotations for this node
@@ -288,7 +288,7 @@ public class NodeManagerImplAutoWiredTest {
 		assertEquals(updated,copy);
 		// Make sure the eTag has changed
 		assertEquals(updated.getEtag(), copy.getEtag());
-		Node updatedNode = nodeManager.get(userInfo, id);
+		Node updatedNode = nodeManager.getNode(userInfo, id);
 		assertNotNull(updatedNode);
 		assertNotNull(updatedNode.getETag());
 		assertEquals(updated.getEtag(), updatedNode.getETag());
@@ -343,7 +343,7 @@ public class NodeManagerImplAutoWiredTest {
 
 		// In a typical new version scenario we will update a the node and annotations at the same
 		// times as creating a new version.
-		Node updatedNode = nodeManager.get(userInfo, id);
+		Node updatedNode = nodeManager.getNode(userInfo, id);
 		// The current version for this node should be one
 		assertEquals(new Long(1), updatedNode.getVersionNumber());
 		org.sagebionetworks.repo.model.Annotations annosToUpdate = nodeManager.getEntityPropertyAnnotations(userInfo, id);
@@ -361,7 +361,7 @@ public class NodeManagerImplAutoWiredTest {
 			// expected
 		}
 		// Validate that the changes were not applied to the node or the annotations
-		updatedNode = nodeManager.get(userInfo, id);
+		updatedNode = nodeManager.getNode(userInfo, id);
 		assertEquals("Since updating failed, the eTag should not have changed",eTagBeforeUpdate, updatedNode.getETag());
 		annosToUpdate = nodeManager.getEntityPropertyAnnotations(userInfo, id);
 		assertEquals("The version comment should have rolled back to its origianl value on a failure.",newNode.getVersionComment(), updatedNode.getVersionComment());
@@ -381,7 +381,7 @@ public class NodeManagerImplAutoWiredTest {
 		assertFalse("The etag should have been different after an update.", afterUpdate.getETag().equals(eTagBeforeUpdate));
 
 		// Now check that the update went through
-		Node currentNode = nodeManager.get(userInfo, id);
+		Node currentNode = nodeManager.getNode(userInfo, id);
 		assertNotNull(currentNode);
 		org.sagebionetworks.repo.model.Annotations currentAnnos = nodeManager.getEntityPropertyAnnotations(userInfo, id);
 		assertNotNull(currentAnnos);
@@ -424,7 +424,7 @@ public class NodeManagerImplAutoWiredTest {
 		assertNotNull(node.getCreatedOn());
 		assertEquals(node.getCreatedOn(), node.getModifiedOn());
 		
-		Node updated = nodeManager.get(userInfo, node.getId());
+		Node updated = nodeManager.getNode(userInfo, node.getId());
 		updated.setName("nameChanged");
 		updated.setVersionLabel("v2");
 		Annotations annos = nodeManager.getUserAnnotations(adminUserInfo, node.getId());
@@ -462,21 +462,21 @@ public class NodeManagerImplAutoWiredTest {
 		// Now create a few versions
 		int numberVersions = 3;
 		for(int i=0; i<numberVersions; i++){
-			Node node = nodeManager.get(userInfo, id);
+			Node node = nodeManager.getNode(userInfo, id);
 			assertNotNull(node);
 			node.setVersionComment("Comment:"+i);
 			node.setVersionLabel("0.0."+i+1);
 			nodeManager.update(userInfo, node, null, true);
 		}
 		// Get the eTag before the delete
-		Node beforeDelete = nodeManager.get(userInfo, id);
+		Node beforeDelete = nodeManager.getNode(userInfo, id);
 		assertNotNull(beforeDelete);
 		assertNotNull(beforeDelete.getETag());
 		String eTagBeforeDelete = beforeDelete.getETag();
 		// Now delete the current version
 		nodeManager.deleteVersion(userInfo, id, new Long(1));
 		// Make sure 
-		Node afterDelete = nodeManager.get(userInfo, id);
+		Node afterDelete = nodeManager.getNode(userInfo, id);
 		assertNotNull(afterDelete);
 		assertNotNull(afterDelete.getETag());
 		assertFalse("Deleting a version failed to increment the eTag", afterDelete.getETag().equals(eTagBeforeDelete));
@@ -514,7 +514,7 @@ public class NodeManagerImplAutoWiredTest {
 		nodesToDelete.add(newProjectId);
 		
 		//get the child node and verify the state of it's parentId
-		Node fetchedChild = nodeManager.get(adminUserInfo, childId);
+		Node fetchedChild = nodeManager.getNode(adminUserInfo, childId);
 		assertNotNull(fetchedChild);
 		assertEquals(childId, fetchedChild.getId());
 		assertEquals(rootId, fetchedChild.getParentId());
@@ -527,7 +527,7 @@ public class NodeManagerImplAutoWiredTest {
 		assertEquals(newProjectId, updatedChild.getParentId());
 		
 		//check and make sure update is in database
-		Node childFromDB = nodeManager.get(adminUserInfo, childId);
+		Node childFromDB = nodeManager.getNode(adminUserInfo, childId);
 		assertNotNull(childFromDB);
 		assertEquals(childId, childFromDB.getId());
 		assertEquals(newProjectId, childFromDB.getParentId());
@@ -564,11 +564,11 @@ public class NodeManagerImplAutoWiredTest {
 		nodesToDelete.add(childId);
 		
 		// Get the folder
-		Node folder = nodeManager.get(adminUserInfo, folderId);
+		Node folder = nodeManager.getNode(adminUserInfo, folderId);
 		assertNotNull(folder);
 		assertNotNull(folder.getETag());
 		// Get the child
-		Node child = nodeManager.get(adminUserInfo, childId);
+		Node child = nodeManager.getNode(adminUserInfo, childId);
 		assertNotNull(child);
 		assertNotNull(child.getETag());
 		String childStartEtag = child.getETag();
@@ -576,7 +576,7 @@ public class NodeManagerImplAutoWiredTest {
 		folder.setName("MyNewName");
 		folder = nodeManager.update(adminUserInfo, folder, null, false);
 		// Validate that the child etag did not change
-		child = nodeManager.get(adminUserInfo, childId);
+		child = nodeManager.getNode(adminUserInfo, childId);
 		assertNotNull(child);
 		assertEquals("Updating a parent object should not have changed the child's etag",childStartEtag, child.getETag());
 	}
@@ -604,17 +604,17 @@ public class NodeManagerImplAutoWiredTest {
 		String nodeId = newNode.getId();
 		assertNotNull(nodeId);
 		nodesToDelete.add(nodeId);
-		Node createdNode = nodeManager.get(adminUserInfo, nodeId);
+		Node createdNode = nodeManager.getNode(adminUserInfo, nodeId);
 		assertEquals(actId, createdNode.getActivityId());
 
 		// update activity id
 		nodeManager.setActivityForNode(adminUserInfo, nodeId, act2Id);		
-		Node updatedNode = nodeManager.get(adminUserInfo, nodeId);
+		Node updatedNode = nodeManager.getNode(adminUserInfo, nodeId);
 		assertEquals(act2Id, updatedNode.getActivityId());
 		
 		// delete
 		nodeManager.deleteActivityLinkToNode(adminUserInfo, nodeId);
-		updatedNode = nodeManager.get(adminUserInfo, nodeId);
+		updatedNode = nodeManager.getNode(adminUserInfo, nodeId);
 		assertEquals(null, updatedNode.getActivityId());
 	}
 

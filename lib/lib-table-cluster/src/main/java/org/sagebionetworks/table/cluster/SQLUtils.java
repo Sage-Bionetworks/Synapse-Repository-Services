@@ -57,6 +57,7 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.parser.AllLongTypeParser;
 import org.sagebionetworks.repo.model.table.parser.BooleanParser;
 import org.sagebionetworks.repo.model.table.parser.DoubleParser;
@@ -2037,6 +2038,15 @@ public class SQLUtils {
 			return OBJECT_REPLICATION_COL_OBJECT_ID;
 		}
 		return OBJECT_REPLICATION_COL_PARENT_ID;
+	}
+
+	public static String generateSqlToRefreshViewBenefactors(IdAndVersion viewId) {
+		ValidateArgument.required(viewId, "viewId");
+		String viewName = SQLUtils.getTableNameForId(viewId, TableType.INDEX);
+		return String.format("UPDATE %1$s T JOIN " + OBJECT_REPLICATION_TABLE + " O ON (T." + ROW_ID + " = O."
+				+ OBJECT_REPLICATION_COL_OBJECT_ID + " AND O." + OBJECT_REPLICATION_COL_OBJECT_TYPE + " = ?) SET T."
+				+ ROW_BENEFACTOR + " = O." + OBJECT_REPLICATION_COL_BENEFACTOR_ID + " WHERE T." + ROW_BENEFACTOR
+				+ " <> O." + OBJECT_REPLICATION_COL_BENEFACTOR_ID, viewName);
 	}
 
 }

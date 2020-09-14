@@ -791,6 +791,7 @@ public class JsonSchemaManagerImplTest {
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockSchemaDao.createNewSchemaVersion(any())).thenReturn(versionInfo);
 		doReturn(validationSchema).when(managerSpy).getValidationSchema(schema.get$id());
+		doReturn(SchemaIdParser.parseSchemaId(schema.get$id())).when(managerSpy).validateSchema(any());
 		// call under test
 		CreateSchemaResponse response = managerSpy.createJsonSchema(user, createSchemaRequest);
 		assertNotNull(response);
@@ -804,6 +805,7 @@ public class JsonSchemaManagerImplTest {
 				.withDependencies(new ArrayList<SchemaDependency>());
 		verify(mockSchemaDao).createNewSchemaVersion(expectedNewSchemaRequest);
 		verify(managerSpy).getValidationSchema(schema.get$id());
+		verify(managerSpy).validateSchema(schema);
 	}
 
 	@Test
@@ -814,6 +816,7 @@ public class JsonSchemaManagerImplTest {
 		when(mockSchemaDao.createNewSchemaVersion(any())).thenReturn(versionInfo);
 		schema.set$id(organizationName + "-" + schemaName);
 		doReturn(validationSchema).when(managerSpy).getValidationSchema(schema.get$id());
+		doReturn(SchemaIdParser.parseSchemaId(schema.get$id())).when(managerSpy).validateSchema(any());
 		// call under test
 		CreateSchemaResponse response = managerSpy.createJsonSchema(user, createSchemaRequest);
 		assertNotNull(response);
@@ -824,6 +827,94 @@ public class JsonSchemaManagerImplTest {
 				.withOrganizationId(organization.getId()).withSchemaName(schemaName).withCreatedBy(user.getId())
 				.withJsonSchema(schema).withSemanticVersion(null).withDependencies(new ArrayList<SchemaDependency>());
 		verify(mockSchemaDao).createNewSchemaVersion(expectedNewSchemaRequest);
+		verify(managerSpy).validateSchema(schema);
+	}
+	
+	@Test
+	public void testValidateSchemaWithNoSubSchema() {
+		// call under test
+		SchemaId id = manager.validateSchema(schema);
+		assertEquals(SchemaIdParser.parseSchemaId(schema.get$id()), id);
+	}
+	
+	@Test
+	public void testValidateSchemaWithSubWihout$Ref() {
+		JsonSchema subSchema = new JsonSchema();
+		subSchema.set$ref(null);
+		schema.setAllOf(Lists.newArrayList(subSchema));
+		// call under test
+		SchemaId id = manager.validateSchema(schema);
+		assertEquals(SchemaIdParser.parseSchemaId(schema.get$id()), id);
+	}
+	
+	@Test
+	public void testValidateSchemaWith$IdWithoutVersion$RefWithoutVersion() {
+		schema.set$id("org-name");
+		JsonSchema subSchema = new JsonSchema();
+		subSchema.set$ref("org-other");
+		schema.setAllOf(Lists.newArrayList(subSchema));
+		// call under test
+		SchemaId id = manager.validateSchema(schema);
+		assertEquals(SchemaIdParser.parseSchemaId(schema.get$id()), id);
+	}
+	
+	@Test
+	public void testValidateSchemaWith$IdWithoutVersion$RefWithVersion() {
+		schema.set$id("org-name");
+		JsonSchema subSchema = new JsonSchema();
+		subSchema.set$ref("org-other-2.0.4");
+		schema.setAllOf(Lists.newArrayList(subSchema));
+		// call under test
+		SchemaId id = manager.validateSchema(schema);
+		assertEquals(SchemaIdParser.parseSchemaId(schema.get$id()), id);
+	}
+	
+	@Test
+	public void testValidateSchemaWith$IdWithVersion$RefWithVersion() {
+		schema.set$id("org-name-1.0.1");
+		JsonSchema subSchema = new JsonSchema();
+		subSchema.set$ref("org-other-2.0.4");
+		schema.setAllOf(Lists.newArrayList(subSchema));
+		// call under test
+		SchemaId id = manager.validateSchema(schema);
+		assertEquals(SchemaIdParser.parseSchemaId(schema.get$id()), id);
+	}
+	
+	@Test
+	public void testValidateSchemaWith$IdWithVersion$RefWithoutVersion() {
+		schema.set$id("org-name-1.0.1");
+		JsonSchema subSchema = new JsonSchema();
+		subSchema.set$ref("org-other");
+		schema.setAllOf(Lists.newArrayList(subSchema));
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.validateSchema(schema);
+		}).getMessage();
+		assertEquals(
+				"The schema $id includes a semantic version, therefore all sub-schema"
+				+ " references ($ref) must also include a semantic version."
+				+ "  The following $ref does not include a semantic version: 'org-other'",
+				message);
+	}
+	
+	@Test
+	public void testValidateSchemaWithNullSchema() {
+		schema = null;
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.validateSchema(schema);
+		}).getMessage();
+		assertEquals("schema is required.", message);
+	}
+	
+	@Test
+	public void testValidateSchemaWithNull$Id() {
+		schema.set$id(null);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.validateSchema(schema);
+		}).getMessage();
+		assertEquals("schema.$id is required.", message);
 	}
 
 	@Test
@@ -879,20 +970,6 @@ public class JsonSchemaManagerImplTest {
 		JsonSchema result = manager.getSchema($id);
 		assertEquals(schema, result);
 		assertEquals($id, result.get$id());
-		verify(mockSchemaDao).getVersionId(organizationName, schemaName, semanticVersionString);
-		verify(mockSchemaDao, never()).getLatestVersionId(any(), any());
-		verify(mockSchemaDao).getSchema(versionId);
-	}
-
-	@Test
-	public void testGetSchemaWithWithoutId() {
-		when(mockSchemaDao.getVersionId(any(), any(), any())).thenReturn(versionId);
-		when(mockSchemaDao.getSchema(any())).thenReturn(schema);
-		// request without a semantic version.
-		String $id = organizationName + "-" + schemaName + "-" + semanticVersionString;
-		// call under test
-		JsonSchema result = manager.getSchema($id);
-		assertEquals(schema, result);
 		verify(mockSchemaDao).getVersionId(organizationName, schemaName, semanticVersionString);
 		verify(mockSchemaDao, never()).getLatestVersionId(any(), any());
 		verify(mockSchemaDao).getSchema(versionId);
@@ -1280,6 +1357,14 @@ public class JsonSchemaManagerImplTest {
 		assertNotNull(validationSchema.getProperties());
 		assertEquals(1, validationSchema.getProperties().size());
 		assertEquals("#/definitions/two", validationSchema.getProperties().get("threeRefToTwo").get$ref());
+	}
+	
+	@Test
+	public void testGetValidationSchemaWithNullId() {
+		String $id = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.getValidationSchema($id);
+		});
 	}
 
 	@Test

@@ -3,12 +3,16 @@ package org.sagebionetworks.auth.services;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.authentication.PersonalAccessTokenManager;
 import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
-import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
+import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
+import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
+import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -45,7 +49,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	private MessageManager messageManager;
 
 	@Autowired
-	private OpenIDConnectManager oidcManager;
+	private PersonalAccessTokenManager personalAccessTokenManager;
 
 	@Override
 	@WriteTransaction
@@ -194,5 +198,29 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	public PrincipalAlias lookupUserForAuthentication(String alias) {
 		return userManager.lookupUserByUsernameOrEmail(alias);
 	}
-	
+
+	@Override
+	public AccessTokenGenerationResponse createPersonalAccessToken(Long userId, String accessToken, AccessTokenGenerationRequest request, String oauthEndpoint) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return personalAccessTokenManager.issueToken(userInfo, accessToken, request, oauthEndpoint);
+	}
+
+	@Override
+	public AccessTokenRecordList getPersonalAccessTokenRecords(Long userId, String nextPageToken) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return personalAccessTokenManager.getTokenRecords(userInfo, nextPageToken);
+	}
+
+	@Override
+	public AccessTokenRecord getPersonalAccessTokenRecord(Long userId, Long tokenId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return personalAccessTokenManager.getTokenRecord(userInfo, tokenId.toString());
+	}
+
+	@Override
+	public void revokePersonalAccessToken(Long userId, Long tokenId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		personalAccessTokenManager.revokeToken(userInfo, tokenId.toString());
+	}
+
 }

@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.util.Callback;
@@ -556,5 +557,11 @@ public interface TableIndexDAO {
 	 * @return the entity DTO for a given entity ID
 	 */
 	ObjectDataDTO getObjectData(ViewObjectType objectType, Long objectId);
+
+	/**
+	 * Ensure the benefactor ID within the given view snapshot are up-to-date with object replication.
+	 * @param viewId
+	 */
+	void refreshViewBenefactors(IdAndVersion viewId, ViewObjectType objectType);
 
 }

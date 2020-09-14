@@ -802,5 +802,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 				.withContainerIds(containerIds)
 				.build();
 	}
+	@Override
+	public void refreshViewBenefactors(final IdAndVersion viewId) {
+		ValidateArgument.required(viewId, "viewId");
+		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(viewId);
+		tableIndexDao.refreshViewBenefactors(viewId, scopeType.getObjectType());
+	}
 
 }

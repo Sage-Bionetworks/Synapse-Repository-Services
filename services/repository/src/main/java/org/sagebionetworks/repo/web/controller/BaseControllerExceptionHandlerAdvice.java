@@ -114,10 +114,6 @@ import com.amazonaws.AmazonServiceException;
  * </ul>
  * <p>
  * 
- * TODO when our integration test framework is in place, add tests for stuff
- * managed by error pages in web.xml since we can't test that with our unit
- * tests
- * 
  * @author deflaux
  */
 @ControllerAdvice

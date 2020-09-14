@@ -17,6 +17,9 @@ import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListRequest;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListResponse;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
@@ -79,11 +82,16 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
+import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
+import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
@@ -210,7 +218,11 @@ import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoRequest;
 import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsRequest;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.model.schema.ValidationResults;
+import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsRequest;
@@ -954,6 +966,16 @@ public interface SynapseClient extends BaseClient {
 
 	public void deleteEvaluation(String evalId) throws SynapseException;
 
+	EvaluationRound createEvaluationRound(EvaluationRound round) throws SynapseException;
+
+	EvaluationRound getEvaluationRound(String evalId, String roundId) throws SynapseException;
+
+	EvaluationRoundListResponse getAllEvaluationRounds(String evalId, EvaluationRoundListRequest request) throws SynapseException;
+
+	EvaluationRound updateEvaluationRound(EvaluationRound round) throws SynapseException;
+
+	void deleteEvaluationRound(String evalId, String roundId) throws SynapseException;
+
 	/**
 	 * 
 	 * @param sub
@@ -1110,7 +1132,15 @@ public interface SynapseClient extends BaseClient {
 	public List<EntityHeader> getEntityHeaderByMd5(String md5) throws SynapseException;
 
 	public String retrieveApiKey() throws SynapseException;
-	
+
+	public String createPersonalAccessToken(AccessTokenGenerationRequest request) throws SynapseException;
+
+	public AccessTokenRecord retrievePersonalAccessTokenRecord(String tokenId) throws SynapseException;
+
+	public AccessTokenRecordList retrievePersonalAccessTokenRecords(String nextPageToken) throws SynapseException;
+
+	public void revokePersonalAccessToken(String tokenId) throws SynapseException;
+
 	public AccessControlList updateEvaluationAcl(AccessControlList acl)
 			throws SynapseException;
 
@@ -3286,6 +3316,15 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	BatchAccessApprovalInfoResponse getBatchAccessApprovalInfo(BatchAccessApprovalInfoRequest request) throws SynapseException;
+	
+	/**
+	 * Fetch the notifications for an AR and a list of recipients
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	AccessApprovalNotificationResponse getAccessApprovalNotifications(AccessApprovalNotificationRequest request) throws SynapseException;
 
 	/**
 	 * Retrieve a page of subjects for a given access requirement ID.
@@ -3758,5 +3797,55 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	void clearSchemaBindingForEntity(String entityId) throws SynapseException;
+
+	/**
+	 * Get the JSONObject representation of an Entity that can be used to validate
+	 * the entity against a JSON schema.
+	 * 
+	 * @param entityId
+	 * @return
+	 * @throws SynapseException
+	 */
+	JSONObject getEntityJson(String entityId) throws SynapseException;
+
+	/**
+	 * Update an Entity's annotations using the JSONObject representation of the Entity.
+	 * @param entityId
+	 * @param json
+	 * @return
+	 * @throws SynapseException
+	 */
+	JSONObject updateEntityJson(String entityId, JSONObject json) throws SynapseException;
+
+	/**
+	 * Get the validation results of an Entity against its bound JSON schema.
+	 * 
+	 * @param entityId
+	 * @return
+	 * @throws SynapseException
+	 */
+	ValidationResults getEntityValidationResults(String entityId) throws SynapseException;
+
+	/**
+	 * Get the The summary statistics of the JSON schema validation results for a
+	 * single container Entity such as a Project or Folder. Only direct children of
+	 * the container are included in the results. The statistics include the total
+	 * number of children in the container, and the counts for both the invalid and
+	 * valid children.
+	 * @param containerId
+	 * @return
+	 * @throws SynapseException
+	 */
+	ValidationSummaryStatistics getEntitySchemaValidationStatistics(String containerId) throws SynapseException;
+
+	/**
+	 * Get a single page of invalid JSON schema validation results for a container
+	 * Entity (Project or Folder).
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	ListValidationResultsResponse getInvalidValidationResults(ListValidationResultsRequest request)
+			throws SynapseException;
 
 }

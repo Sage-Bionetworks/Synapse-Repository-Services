@@ -1,17 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -25,8 +15,17 @@ import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class FacetModelTest {
 	FacetModel facetModel;
@@ -50,7 +49,8 @@ public class FacetModelTest {
 	FacetColumnRangeRequest rangeRequest;
 	FacetColumnValuesRequest valuesRequest;
 	ArrayList<FacetColumnRequest> selectedFacets;
-	
+
+	Long userId;
 	SqlQuery query;
 	
 	@Before
@@ -92,19 +92,21 @@ public class FacetModelTest {
 		valuesRequest = new FacetColumnValuesRequest();
 		valuesRequest.setColumnName(facetColumnName2);
 		valuesRequest.setFacetValues(Sets.newHashSet(selectedValue));
-		
-		simpleQuery = new SqlQueryBuilder("select * from " + tableId, facetSchema).build();
+
+		userId = 1L;
+
+		simpleQuery = new SqlQueryBuilder("select * from " + tableId, facetSchema, userId).build();
 		selectedFacets = Lists.newArrayList((FacetColumnRequest)rangeRequest, (FacetColumnRequest)valuesRequest);
-		
+
 		query = new SqlQueryBuilder("select * from " + tableId + " where asdf <> ayy and asdf < 'taco bell'",
-				facetSchema).build();
+				facetSchema, userId).build();
 	}
 	/////////////////////
 	// Constructor tests
 	/////////////////////
 	@Test
 	public void testConstructor(){
-		facetModel = new FacetModel(selectedFacets, query, true);		
+		facetModel = new FacetModel(selectedFacets, query, true);
 		//just checking that we will get some result back after construction of object.
 		//the results are unit tested later.
 		assertNotNull(facetModel.getFacetFilteredQuery());
@@ -292,7 +294,7 @@ public class FacetModelTest {
 	@Test
 	public void testGenerateFacetFilteredQueryNonEmptyFacetColumnsList() throws ParseException {
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId + " where asdf <> 'ayy' and asdf < 'taco bell'",
-				facetSchema).build();
+				facetSchema, userId).build();
 
 		validatedQueryFacetColumns.add(new FacetRequestColumnModel(facetColumnModel, rangeRequest));
 

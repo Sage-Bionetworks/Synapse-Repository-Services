@@ -164,6 +164,19 @@ public class SqlConstants {
 	public static final String COL_JSON_SCHEMA_BINDING_CREATED_ON		= "CREATED_ON";
 	public static final String DDL_FILE_JSON_SCHEMA_BINDING				= "schema/JsonSchemaBindObject-ddl.sql";
 	
+	// Table to track JSON schema validation results.
+	public static final String TABLE_SCHEMA_VALIDATION_RESULTS			= "JSON_SCHEMA_VALIDATION_RESULTS";
+	public static final String COL_JSON_SCHEMA_VALIDATION_OBJECT_ID		= "OBJECT_ID";
+	public static final String COL_JSON_SCHEMA_VALIDATION_OBJECT_TYPE	= "OBJECT_TYPE";
+	public static final String COL_JSON_SCHEMA_VALIDATION_OBJECT_ETAG	= "OBJECT_ETAG";
+	public static final String COL_JSON_SCHEMA_VALIDATION_SCHEMA_ID		= "SCHEMA_ID";
+	public static final String COL_JSON_SCHEMA_VALIDATION_IS_VALID		= "IS_VALID";
+	public static final String COL_JSON_SCHEMA_VALIDATION_VALIDATED_ON	= "VALIDATED_ON";
+	public static final String COL_JSON_SCHEMA_VALIDATION_ERROR_MESSAGE = "ERROR_MESSAGE";
+	public static final String COL_JSON_SCHEMA_VALIDATION_ALL_ERRORS	= "ALL_ERROR_MESSAGES";
+	public static final String COL_JSON_SCHEMA_VALIDATION_EXCEPTION		= "VALIDATION_EXCEPTION";
+	public static final String DDL_FILE_JSON_SCHEMA_VALIDATION_RESULTS	= "schema/JsonSchemaValidationResults-ddl.sql";
+	
 	// The Project Stats table
 	public static final String TABLE_PROJECT_STAT				= "PROJECT_STAT";
 	public static final String COL_PROJECT_STAT_ID				= "ID";
@@ -1117,7 +1130,25 @@ public class SqlConstants {
 	public static final String COL_QUARANTINED_EMAILS_REASON_DETAILS =					"REASON_DETAILS";
 	public static final String COL_QUARANTINED_EMAILS_SES_MESSAGE_ID = 					"SES_MESSAGE_ID";
 	
+	// DataAccessNotification
+	public static final String DDL_DATA_ACCESS_NOTIFICATION = 							"schema/DataAccessNotification-ddl.sql";
+	public static final String TABLE_DATA_ACCESS_NOTIFICATION = 						"DATA_ACCESS_NOTIFICATION";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_ID = 						"ID";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_ETAG = 						"ETAG";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_TYPE = 						"NOTIFICATION_TYPE";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_REQUIREMENT_ID = 			"REQUIREMENT_ID";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_RECIPIENT_ID = 				"RECIPIENT_ID";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_APPROVAL_ID = 				"ACCESS_APPROVAL_ID";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_SENT_ON = 					"SENT_ON";
+	public static final String COL_DATA_ACCESS_NOTIFICATION_MESSAGE_ID = 				"MESSAGE_ID";	
 	
+	// Feature testing
+	public static final String DDL_FEATURE_STATUS =										"schema/testing/FeatureStatus-ddl.sql";
+	public static final String TABLE_FEATURE_STATUS = 									"FEATURE_STATUS";
+	public static final String COL_FEATURE_STATUS_ID = 									"ID";
+	public static final String COL_FEATURE_STATUS_ETAG = 								"ETAG";
+	public static final String COL_FEATURE_STATUS_TYPE = 								"FEATURE_TYPE";
+	public static final String COL_FEATURE_STATUS_ENABLED =								"ENABLED";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

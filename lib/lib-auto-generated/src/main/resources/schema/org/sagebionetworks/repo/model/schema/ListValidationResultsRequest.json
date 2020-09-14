@@ -1,0 +1,13 @@
+{
+	"description": "Request to get a single page of JSON schema validation results for a given Entity container.",
+	"properties": {
+		"containerId": {
+			"type": "string",
+			"description": "The ID of the Entity container to get."
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "Forward the returned 'nextPageToken' to get the next page of results."
+		}
+	}
+}

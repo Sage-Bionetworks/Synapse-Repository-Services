@@ -294,7 +294,7 @@ public class SubmissionManagerTest {
     	when(mockSubmissionStatusDAO.get(eq(SUB_ID))).thenReturn(subStatus);
     	when(mockNode.getNodeType()).thenReturn(EntityType.file);
     	when(mockNode.getETag()).thenReturn(ETAG);
-    	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);
+    	when(mockNodeManager.getNode(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
     	when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
     	when(mockSubmissionStatusDAO.getEvaluationIdForBatch((List<SubmissionStatus>)anyObject())).thenReturn(Long.parseLong(EVAL_ID));
@@ -343,6 +343,17 @@ public class SubmissionManagerTest {
 			submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);		
 		});
 	}
+
+	@Test
+	public void testCreateSubmissionAsUser_NonNullEvaluationRoundId() throws Exception {
+		sub.setEvaluationRoundId("2234");
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);
+		}).getMessage();
+
+		assertEquals("Please do not specify any evaluationRoundId. This will be filled automatically based upon the time of creation.", message);
+	}
 	
 	@Test
 	public void testCRUDAsUser() throws NotFoundException, DatastoreException, JSONObjectAdapterException {
@@ -351,7 +362,7 @@ public class SubmissionManagerTest {
     	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);
     	when(mockNode.getNodeType()).thenReturn(EntityType.file);
     	when(mockNode.getETag()).thenReturn(ETAG);
-    	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);    	    	
+    	when(mockNodeManager.getNode(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);    	    	
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
        	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(AuthorizationStatus.accessDenied(""));
        	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.UPDATE_SUBMISSION))).thenReturn(AuthorizationStatus.accessDenied(""));
@@ -406,7 +417,7 @@ public class SubmissionManagerTest {
     	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);
     	when(mockNode.getNodeType()).thenReturn(EntityType.file);
     	when(mockNode.getETag()).thenReturn(ETAG);
-    	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);    	
+    	when(mockNodeManager.getNode(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);    	
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
     	// by default we say that individual submissions are within quota
     	// (specific tests will change this)
@@ -432,7 +443,7 @@ public class SubmissionManagerTest {
     	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);
     	when(mockNode.getNodeType()).thenReturn(EntityType.file);
     	when(mockNode.getETag()).thenReturn(ETAG);
-    	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);
+    	when(mockNodeManager.getNode(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
 
     	// by default we say that individual submissions are within quota
@@ -463,7 +474,7 @@ public class SubmissionManagerTest {
     	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);
     	when(mockNode.getNodeType()).thenReturn(EntityType.file);
     	when(mockNode.getETag()).thenReturn(ETAG);
-    	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);    	
+    	when(mockNodeManager.getNode(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);    	
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
     	
 		assertNull(sub.getContributors());
@@ -501,7 +512,7 @@ public class SubmissionManagerTest {
 	public void testContributorListButNoTeamId() throws Exception {
     	when(mockNode.getNodeType()).thenReturn(EntityType.file);
     	when(mockNode.getETag()).thenReturn(ETAG);
-    	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);    	
+    	when(mockNodeManager.getNode(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);    	
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
     	
 		assertNull(sub.getContributors());
@@ -519,7 +530,7 @@ public class SubmissionManagerTest {
 	public void testIndividualSubmissionWithHash() throws Exception {
     	when(mockNode.getNodeType()).thenReturn(EntityType.file);
     	when(mockNode.getETag()).thenReturn(ETAG);
-    	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);
+    	when(mockNodeManager.getNode(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
     	
 		assertNull(sub.getContributors());
@@ -540,7 +551,7 @@ public class SubmissionManagerTest {
 	
 	@Test
 	public void testUnauthorizedEntity() throws NotFoundException, DatastoreException, JSONObjectAdapterException {
-    	when(mockNodeManager.get(eq(userInfo), eq(ENTITY2_ID))).thenThrow(new UnauthorizedException());
+    	when(mockNodeManager.getNode(eq(userInfo), eq(ENTITY2_ID))).thenThrow(new UnauthorizedException());
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
        
 		Assertions.assertThrows(UnauthorizedException.class, ()-> {
@@ -556,7 +567,7 @@ public class SubmissionManagerTest {
     	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);
     	when(mockNode.getNodeType()).thenReturn(EntityType.file);
     	when(mockNode.getETag()).thenReturn(ETAG);
-    	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);    	
+    	when(mockNodeManager.getNode(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);    	
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
     	when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
     	when(mockSubmissionEligibilityManager.isIndividualEligible(eq(EVAL_ID), any(UserInfo.class), any(Date.class))).
@@ -575,7 +586,7 @@ public class SubmissionManagerTest {
     	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);
     	when(mockDockerRepoNode.getNodeType()).thenReturn(EntityType.dockerrepo);
     	when(mockDockerRepoNode.getETag()).thenReturn(ETAG);
-    	when(mockNodeManager.get(any(UserInfo.class), eq(DOCKER_REPO_ENTITY_ID))).thenReturn(mockDockerRepoNode);
+    	when(mockNodeManager.getNode(any(UserInfo.class), eq(DOCKER_REPO_ENTITY_ID))).thenReturn(mockDockerRepoNode);
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());    	when(mockSubmissionEligibilityManager.isIndividualEligible(eq(EVAL_ID), any(UserInfo.class), any(Date.class))).
     		thenReturn(AuthorizationStatus.authorized());
     	
@@ -596,7 +607,7 @@ public class SubmissionManagerTest {
 	public void testCreateDockerRepoSubmissionNoDigest() throws Exception {
     	when(mockDockerRepoNode.getNodeType()).thenReturn(EntityType.dockerrepo);
     	when(mockDockerRepoNode.getETag()).thenReturn(ETAG);
-    	when(mockNodeManager.get(any(UserInfo.class), eq(DOCKER_REPO_ENTITY_ID))).thenReturn(mockDockerRepoNode);    	
+    	when(mockNodeManager.getNode(any(UserInfo.class), eq(DOCKER_REPO_ENTITY_ID))).thenReturn(mockDockerRepoNode);    	
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
     	
 		sub.setEntityId(DOCKER_REPO_ENTITY_ID);
@@ -610,7 +621,7 @@ public class SubmissionManagerTest {
 	public void testCreateDockerRepoSubmissionInvalidDigest() throws Exception {
 		when(mockDockerRepoNode.getNodeType()).thenReturn(EntityType.dockerrepo);
     	when(mockDockerRepoNode.getETag()).thenReturn(ETAG);
-    	when(mockNodeManager.get(any(UserInfo.class), eq(DOCKER_REPO_ENTITY_ID))).thenReturn(mockDockerRepoNode);    	
+    	when(mockNodeManager.getNode(any(UserInfo.class), eq(DOCKER_REPO_ENTITY_ID))).thenReturn(mockDockerRepoNode);    	
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
     	
 		sub.setEntityId(DOCKER_REPO_ENTITY_ID);
@@ -634,7 +645,7 @@ public class SubmissionManagerTest {
 	@Test
 	public void testInvalidEtag() throws Exception {
     	when(mockNode.getETag()).thenReturn(ETAG);
-    	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);    	
+    	when(mockNodeManager.getNode(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);    	
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
        	
 		Assertions.assertThrows(IllegalArgumentException.class, ()-> {

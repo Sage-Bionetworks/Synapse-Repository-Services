@@ -1,0 +1,12 @@
+{
+    "description": "The status of a particular feature",
+    "properties": {
+        "feature": {
+            "$ref": "org.sagebionetworks.repo.model.feature.Feature"
+        },
+        "enabled": {
+            "type": "boolean",
+            "description": "True if the feature is enabled, false otherwise"
+        }
+    }
+}

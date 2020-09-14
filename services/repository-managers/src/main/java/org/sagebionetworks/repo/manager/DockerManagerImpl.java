@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import static org.sagebionetworks.repo.model.util.DockerNameUtil.REPO_NAME_PATH_SEP;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -10,6 +11,8 @@ import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.oauth.ClaimsJsonUtil;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DockerCommitDao;
 import org.sagebionetworks.repo.model.DockerNodeDao;
@@ -27,13 +30,16 @@ import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.util.DockerNameUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwt;
 
 public class DockerManagerImpl implements DockerManager {
 	@Autowired
@@ -60,6 +66,9 @@ public class DockerManagerImpl implements DockerManager {
 	@Autowired
 	StackConfiguration stackConfiguration;
 	
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+	
 	public static String MANIFEST_MEDIA_TYPE = "application/vnd.docker.distribution.manifest.v2+json";
 
 	/**
@@ -72,7 +81,7 @@ public class DockerManagerImpl implements DockerManager {
 	 * @return
 	 */
 	@Override
-	public DockerAuthorizationToken authorizeDockerAccess(UserInfo userInfo, String service, List<String> scopes) {
+	public DockerAuthorizationToken authorizeDockerAccess(UserInfo userInfo, String accessToken, String service, List<String> scopes) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(service, "service");
 		
@@ -87,7 +96,15 @@ public class DockerManagerImpl implements DockerManager {
 				String name = scopeParts[1]; // if type is 'repository' then this is the name. if type is 'registry' this might be 'catalog'
 				
 				String actionTypes = scopeParts[2]; // e.g. push, pull
-				Set<String> permittedActions = authorizationManager.getPermittedDockerActions(userInfo,  service, type, name, actionTypes);
+				
+				// now get the scopes permitted in the Synapse access token
+				List<OAuthScope> oauthScopes = Collections.EMPTY_LIST;
+				if (accessToken!=null) {
+					Jwt<JwsHeader, Claims> jwt = oidcTokenHelper.parseJWT(accessToken);
+					oauthScopes = ClaimsJsonUtil.getScopeFromClaims(jwt.getBody());
+				}
+				
+				Set<String> permittedActions = authorizationManager.getPermittedDockerActions(userInfo, oauthScopes, service, type, name, actionTypes);
 				
 				accessPermissions.add(new DockerScopePermission(type, name, permittedActions));
 			}
@@ -183,7 +200,7 @@ public class DockerManagerImpl implements DockerManager {
 		authStatus.checkAuthorizationOrElseThrow();
 		commit.setCreatedOn(new Date());
 		String newEntityEtag = dockerCommitDao.createDockerCommit(entityId, userInfo.getId(), commit);
-		transactionalMessenger.sendMessageAfterCommit(entityId, ObjectType.ENTITY, newEntityEtag, ChangeType.UPDATE);
+		transactionalMessenger.sendMessageAfterCommit(entityId, ObjectType.ENTITY, ChangeType.UPDATE);
 	}
 
 	@Override

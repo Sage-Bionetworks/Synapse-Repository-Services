@@ -19,7 +19,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
@@ -34,6 +33,9 @@ import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListRequest;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListResponse;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
@@ -104,6 +106,10 @@ import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
+import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
+import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
+import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
@@ -113,6 +119,8 @@ import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
@@ -253,7 +261,11 @@ import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoRequest;
 import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsRequest;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.model.schema.ValidationResults;
+import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsRequest;
@@ -399,6 +411,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			+ REDIRECT_PARAMETER;
 
 	private static final String EVALUATION_URI_PATH = "/evaluation";
+	private static final String EVALUATION_ROUND = "/round";
 	private static final String AVAILABLE_EVALUATION_URI_PATH = "/evaluation/available";
 	private static final String NAME = "name";
 	private static final String ALL = "/all";
@@ -533,7 +546,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String AUTH_OAUTH_2_REfRESH_TOKEN_PARAM = "refresh_token";
 	public static final String AUTH_OAUTH_2_SCOPE_PARAM = "scope";
 	public static final String AUTH_OAUTH_2_CLAIMS_PARAM = "claims";
-	
+
+	public static final String AUTH_PERSONAL_ACCESS_TOKEN = "/personalAccessToken";
+
 	private static final String VERIFICATION_SUBMISSION = "/verificationSubmission";
 	private static final String CURRENT_VERIFICATION_STATE = "currentVerificationState";
 	private static final String VERIFICATION_STATE = "/state";
@@ -2983,6 +2998,55 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
+	public EvaluationRound createEvaluationRound(EvaluationRound round) throws SynapseException {
+		ValidateArgument.required(round, "round");
+		ValidateArgument.required(round.getEvaluationId(), "round.evaluationId");
+		String uri = EVALUATION_URI_PATH + "/" + round.getEvaluationId() + EVALUATION_ROUND;
+		return postJSONEntity(getRepoEndpoint(), uri, round, EvaluationRound.class);
+	}
+
+	@Override
+	public EvaluationRound getEvaluationRound(String evalId, String roundId) throws SynapseException {
+		ValidateArgument.required(evalId, "Evaluation ID");
+		ValidateArgument.required(roundId, "EvaluationRound ID");
+
+		String uri = EVALUATION_URI_PATH + "/" + evalId + EVALUATION_ROUND + "/" + roundId;
+
+		return getJSONEntity(getRepoEndpoint(), uri, EvaluationRound.class);
+	}
+
+	@Override
+	public EvaluationRoundListResponse getAllEvaluationRounds(String evalId, EvaluationRoundListRequest request) throws SynapseException {
+		ValidateArgument.required(evalId, "Evaluation ID");
+		ValidateArgument.required(request, "request");
+
+		String uri = EVALUATION_URI_PATH + "/" + evalId + EVALUATION_ROUND + LIST;
+
+		return postJSONEntity(getRepoEndpoint(), uri, request, EvaluationRoundListResponse.class);
+	}
+
+	@Override
+	public EvaluationRound updateEvaluationRound(EvaluationRound round) throws SynapseException {
+		ValidateArgument.required(round, "round");
+		ValidateArgument.required(round.getEvaluationId(), "round.evaluationId");
+		ValidateArgument.required(round.getId(), "round.id");
+
+		String uri = EVALUATION_URI_PATH + "/" + round.getEvaluationId() + EVALUATION_ROUND + "/" + round.getId();
+
+		return putJSONEntity(getRepoEndpoint(), uri, round, EvaluationRound.class);
+	}
+
+	@Override
+	public void deleteEvaluationRound(String evalId, String roundId) throws SynapseException {
+		ValidateArgument.required(evalId, "evalId");
+		ValidateArgument.required(roundId, "roundId");
+
+		String uri = EVALUATION_URI_PATH + "/" + evalId + EVALUATION_ROUND + "/" + roundId;
+
+		deleteUri(getRepoEndpoint(), uri);
+	}
+
+	@Override
 	public Submission createIndividualSubmission(Submission sub, String etag,
 			String challengeEndpoint, String notificationUnsubscribeEndpoint)
 			throws SynapseException {
@@ -3612,6 +3676,33 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public String retrieveApiKey() throws SynapseException {
 		return getJSONEntity(getAuthEndpoint(),"/secretKey", SecretKey.class).getSecretKey();
+	}
+
+	@Override
+	public String createPersonalAccessToken(AccessTokenGenerationRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return postJSONEntity(getAuthEndpoint(), AUTH_PERSONAL_ACCESS_TOKEN, request, AccessTokenGenerationResponse.class).getToken();
+	}
+
+	@Override
+	public AccessTokenRecord retrievePersonalAccessTokenRecord(String tokenId) throws SynapseException {
+		ValidateArgument.required(tokenId, "tokenId");
+		return getJSONEntity(getAuthEndpoint(), AUTH_PERSONAL_ACCESS_TOKEN + "/" + tokenId, AccessTokenRecord.class);
+	}
+
+	@Override
+	public AccessTokenRecordList retrievePersonalAccessTokenRecords(String nextPageToken) throws SynapseException {
+		String uri = AUTH_PERSONAL_ACCESS_TOKEN;
+		if (nextPageToken != null) {
+			uri += "?" + NEXT_PAGE_TOKEN_PARAM + nextPageToken;
+		}
+		return getJSONEntity(getAuthEndpoint(), uri, AccessTokenRecordList.class);
+	}
+
+	@Override
+	public void revokePersonalAccessToken(String tokenId) throws SynapseException {
+		ValidateArgument.required(tokenId, "tokenId");
+		deleteUri(getAuthEndpoint(), AUTH_PERSONAL_ACCESS_TOKEN + "/" + tokenId);
 	}
 
 	@Override
@@ -5454,6 +5545,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(request, "request");
 		return postJSONEntity(getRepoEndpoint(), ACCESS_APPROVAL+"/information", request, BatchAccessApprovalInfoResponse.class);
 	}
+	
+	@Override
+	public AccessApprovalNotificationResponse getAccessApprovalNotifications(AccessApprovalNotificationRequest request)
+			throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return postJSONEntity(getRepoEndpoint(), ACCESS_APPROVAL+"/notifications", request, AccessApprovalNotificationResponse.class);
+	}
 
 	@Override
 	public RestrictableObjectDescriptorResponse getSubjects(String requirementId, String nextPageToken)
@@ -5786,6 +5884,42 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(entityId, "entityId");
 		String url = "/entity/"+entityId+"/schema/binding";
 		deleteUri(getRepoEndpoint(), url);
+	}
+	
+	@Override
+	public JSONObject getEntityJson(String entityId) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		String url = "/entity/"+entityId+"/json";
+		return getJson(getRepoEndpoint(), url);
+	}
+	
+	@Override
+	public JSONObject updateEntityJson(String entityId, JSONObject json) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		String url = "/entity/"+entityId+"/json";
+		return putJson(getRepoEndpoint(), url, json.toString());
+	}
+	
+	@Override
+	public ValidationResults getEntityValidationResults(String entityId) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		String url = "/entity/"+entityId+"/schema/validation";
+		return getJSONEntity(getRepoEndpoint(), url, ValidationResults.class);
+	}
+	
+	@Override
+	public ValidationSummaryStatistics getEntitySchemaValidationStatistics(String entityId) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		String url = "/entity/"+entityId+"/schema/validation/statistics";
+		return getJSONEntity(getRepoEndpoint(), url, ValidationSummaryStatistics.class);
+	}
+	
+	@Override
+	public ListValidationResultsResponse getInvalidValidationResults(ListValidationResultsRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getContainerId(), "request.containerId");
+		String url = "/entity/"+request.getContainerId()+"/schema/validation/invalid";
+		return postJSONEntity(getRepoEndpoint(), url, request, ListValidationResultsResponse.class);
 	}
 
 }

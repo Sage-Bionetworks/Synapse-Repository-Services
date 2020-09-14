@@ -112,7 +112,7 @@ public class KeyPairUtil {
 	}
 
 	private static String bigIntToBase64URLEncoded(BigInteger i) {
-		return Base64.getUrlEncoder().encodeToString(i.toByteArray());
+		return Base64.getUrlEncoder().withoutPadding().encodeToString(i.toByteArray());
 	}
 
 	public static JsonWebKeySet getJSONWebKeySetForPEMEncodedRsaKeys(List<String> pemEncodedKeyPairs) {

@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+       http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
+	<aop:aspectj-autoproxy proxy-target-class="true"/>
+
+	<!-- This worker checks for expired approvals and change their status -->
+	<bean id="accessApprovalExpirationWorker" class="org.sagebionetworks.dataaccess.workers.AccessApprovalExpirationWorker" scope="singleton" />
+
+	<!-- Trigger for the access approval expiration worker -->
+	<bean id="accessApprovalExpirationTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean" scope="singleton">
+		<property name="jobDetail">
+			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject">
+					<bean class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStack">
+						<constructor-arg index="0" ref="countingSemaphore" />
+						<constructor-arg index="1">
+							<bean class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStackConfiguration">
+								<property name="progressingRunner" ref="accessApprovalExpirationWorker"/>
+								<property name="semaphoreLockKey" value="accessApprovalExpirationWorker" />
+								<property name="semaphoreMaxLockCount" value="1" />
+								<property name="semaphoreLockTimeoutSec" value="60" />
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+								</property>
+
+							</bean>
+						</constructor-arg>
+					</bean>
+				</property>
+				<property name="targetMethod" value="run" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<property name="startDelay" value="1012" />
+		<!-- Once every 30 seconds -->
+		<property name="repeatInterval" value="30000" />
+	</bean>
+	
+	<!-- This worker will process change messages from access approvals in order to send a notification if needed -->
+	<bean id="accessApprovalRevokedNotificationWorker" class="org.sagebionetworks.dataaccess.workers.AccessApprovalRevokedNotificationWorker" scope="singleton" />
+	
+	<bean id="accessApprovalRevokedNotificationTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
+		scope="singleton">
+		<property name="jobDetail">
+			<bean
+				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject">
+					<bean
+						class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStack">
+						<constructor-arg index="0" ref="countingSemaphore" />
+						<constructor-arg index="1" ref="awsSQSClient" />
+						<constructor-arg index="2">
+							<bean
+								class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStackConfig">
+								<property name="runner" ref="accessApprovalRevokedNotificationWorker" />
+								<property name="semaphoreLockKey" value="accessApprovalRevokedNotificationWorker" />
+								<property name="semaphoreMaxLockCount" value="1" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="60" />
+								<property name="queueName" value="#{stackConfiguration.getQueueName('DATA_ACCESS_NOTIFICATIONS')}" />
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+								</property>
+
+							</bean>
+						</constructor-arg>
+					</bean>
+				</property>
+				<property name="targetMethod" value="run" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<!-- We stager the start delay of each trigger to spread out the timing -->
+		<property name="startDelay" value="1567" />
+		<property name="repeatInterval" value="2043" />
+	</bean>
+	
+	<!-- This worker checks the approvals that are expiring and sends a reminder if needed -->
+	<bean id="accessApprovalReminderNotificationWorker" class="org.sagebionetworks.dataaccess.workers.AccessApprovalReminderNotificationWorker" scope="singleton" />
+
+	<!-- Trigger for the access approval expiration worker -->
+	<bean id="accessApprovalReminderNotificationWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean" scope="singleton">
+		<property name="jobDetail">
+			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject">
+					<bean class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStack">
+						<constructor-arg index="0" ref="countingSemaphore" />
+						<constructor-arg index="1">
+							<bean class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStackConfiguration">
+								<property name="progressingRunner" ref="accessApprovalReminderNotificationWorker"/>
+								<property name="semaphoreLockKey" value="accessApprovalReminderNotificationWorker" />
+								<property name="semaphoreMaxLockCount" value="1" />
+								<property name="semaphoreLockTimeoutSec" value="120" />
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+								</property>
+
+							</bean>
+						</constructor-arg>
+					</bean>
+				</property>
+				<property name="targetMethod" value="run" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<!-- Longer start delay for the test -->
+		<property name="startDelay" value="30456" />
+		<!-- Once every 5 minutes, the worker process a batch of reminders for the day -->
+		<property name="repeatInterval" value="300000" />
+	</bean>
+	
+</beans>

@@ -3081,5 +3081,22 @@ public class SQLUtilsTest {
 		return new ViewScopeFilter(ViewObjectType.ENTITY, subTypes, filterByObjectId, Collections.emptySet());
 	}
 
+	
+	@Test
+	public void testGenerateSqlToRefreshViewBenefactors() {
+		// call under test
+		String sql = SQLUtils.generateSqlToRefreshViewBenefactors(tableId);
+		assertEquals(
+				"UPDATE T999 T JOIN OBJECT_REPLICATION O ON (T.ROW_ID = O.OBJECT_ID AND O.OBJECT_TYPE = ?)"
+				+ " SET T.ROW_BENEFACTOR = O.BENEFACTOR_ID WHERE T.ROW_BENEFACTOR <> O.BENEFACTOR_ID",
+				sql);
+	}
+	
+	@Test
+	public void testGenerateSqlToRefreshViewBenefactorsWithNull() {
+		assertThrows(IllegalArgumentException.class, ()->{
+			SQLUtils.generateSqlToRefreshViewBenefactors(null);
+		});
+	}
 
 }

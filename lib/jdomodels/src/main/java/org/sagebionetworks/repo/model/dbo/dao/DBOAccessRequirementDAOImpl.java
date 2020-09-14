@@ -52,7 +52,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	public static final String LIMIT_PARAM = "LIMIT";
 	public static final String OFFSET_PARAM = "OFFSET";
@@ -391,5 +393,10 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		}catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("The resource you are attempting to access cannot be found");
 		}
+	}
+	
+	@Override
+	public void clear() {
+		jdbcTemplate.update("DELETE FROM " + TABLE_ACCESS_REQUIREMENT);
 	}
 }

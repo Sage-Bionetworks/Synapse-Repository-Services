@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.service;
 
 import java.util.List;
 
+import org.json.JSONObject;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -26,6 +27,10 @@ import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsRequest;
+import org.sagebionetworks.repo.model.schema.ListValidationResultsResponse;
+import org.sagebionetworks.repo.model.schema.ValidationResults;
+import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.repo.model.sts.StsCredentials;
 import org.sagebionetworks.repo.model.sts.StsPermission;
 import org.sagebionetworks.repo.queryparser.ParseException;
@@ -653,4 +658,46 @@ public interface EntityService {
 	 * @return
 	 */
 	public void clearBoundSchema(Long userId, String id);
+
+	/**
+	 * Get the JSON representation of an Entity and its annotations for JSON schema validation.
+	 * @param userId
+	 * @param entityId
+	 * @return
+	 */
+	public JSONObject getEntityJson(Long userId, String entityId);
+
+	/**
+	 * Update an Entity's annotations from the JSON representation of the entity.
+	 * @param userId
+	 * @param entityId
+	 * @param request
+	 * @return
+	 */
+	public JSONObject updateEntityJson(Long userId, String entityId, JSONObject request);
+
+	/**
+	 * Get the validation results of Entity against its bound JSON schema.
+	 * 
+	 * @param userId
+	 * @param id
+	 * @return
+	 */
+	public ValidationResults getEntitySchemaValidationResults(Long userId, String id);
+
+	/**
+	 * Get the JSON schema validation statistics for the given container.
+	 * @param userId
+	 * @param entityId
+	 * @return
+	 */
+	public ValidationSummaryStatistics getEntitySchemaValidationSummaryStatistics(Long userId, String entityId);
+
+	/**
+	 * Get a single page of invalid JSON schema validation results for the given container.
+	 * @param userId
+	 * @param request
+	 * @return
+	 */
+	public ListValidationResultsResponse getInvalidEntitySchemaValidationResults(Long userId, ListValidationResultsRequest request);
 }

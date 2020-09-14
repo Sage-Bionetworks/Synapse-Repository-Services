@@ -17,6 +17,8 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeUtility;
 
 import com.google.common.net.InternetDomainName;
+
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
@@ -66,8 +68,8 @@ public class EmailUtils {
 	public static final String DEFAULT_EMAIL_ADDRESS_LOCAL_PART = "noreply";
 
 	public static String getDisplayName(UserProfile userProfile) {
-		String firstName = userProfile.getFirstName();
-		String lastName = userProfile.getLastName();
+		String firstName = StringUtils.stripToNull(userProfile.getFirstName());
+		String lastName = StringUtils.stripToNull(userProfile.getLastName());
 		return getDisplayName(firstName, lastName);
 	}
 
@@ -95,6 +97,18 @@ public class EmailUtils {
 
 	public static String getDisplayNameWithUsername(UserProfile userProfile) {
 		return getDisplayNameWithUsername(userProfile.getFirstName(), userProfile.getLastName(), userProfile.getUserName());
+	}
+	
+	public static String getDisplayNameOrUsername(UserProfile userProfile) {
+		ValidateArgument.required(userProfile, "userName");
+		
+		final String displayName = getDisplayName(userProfile);
+		
+		if (StringUtils.isEmpty(displayName)) {
+			return userProfile.getUserName();
+		}
+		
+		return displayName;
 	}
 	
 	public static String getEmailAddressForPrincipalName(String principalAlias) {

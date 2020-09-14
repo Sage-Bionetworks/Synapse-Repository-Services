@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p"
 	xmlns:context="http://www.springframework.org/schema/context"
 	xmlns:util="http://www.springframework.org/schema/util"
 	xsi:schemaLocation="
@@ -11,17 +12,23 @@
                            http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
 
 	<!--This bean will intercept all HTTP calls and check the status -->
-	<bean id="stackStatusInterceptor" class="org.sagebionetworks.repo.web.StackStatusInterceptor" />
+	<bean id="stackStatusInterceptor"
+		class="org.sagebionetworks.repo.web.StackStatusInterceptor" />
 
 
 	<!-- This bean will intercept all HTTP calls and records access records -->
-	<bean id="accessInterceptor" class="org.sagebionetworks.repo.web.AccessInterceptor" />
-	
-	<!-- This bean will intercept all HTTP calls and check for required OAuth scope -->
-	<bean id="oauthScopeInterceptor" class="org.sagebionetworks.repo.web.OAuthScopeInterceptor" />
-	
-	<!-- This bean will intercept gather extra data from controller methods for auditing. -->
-	<bean id="controllerAuditAspect" class="org.sagebionetworks.repo.web.ControllerAuditAspect" />
+	<bean id="accessInterceptor"
+		class="org.sagebionetworks.repo.web.AccessInterceptor" />
+
+	<!-- This bean will intercept all HTTP calls and check for required OAuth 
+		scope -->
+	<bean id="oauthScopeInterceptor"
+		class="org.sagebionetworks.repo.web.OAuthScopeInterceptor" />
+
+	<!-- This bean will intercept gather extra data from controller methods 
+		for auditing. -->
+	<bean id="controllerAuditAspect"
+		class="org.sagebionetworks.repo.web.ControllerAuditAspect" />
 
 	<!-- To enable @RequestMapping process on type level and method level -->
 	<bean id="jsonDefaultAnnotationHandler"
@@ -35,21 +42,16 @@
 		</property>
 	</bean>
 
+	<bean id="jsonObjectHttpMessageConverter"
+		class="org.sagebionetworks.repo.web.controller.JSONObjectHttpMessageConverter" />
+
 	<!-- Setup our own JSON processing. -->
 	<bean id="platformMessageConverters"
 		class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter">
 		<property name="messageConverters">
 			<list>
+				<ref bean="jsonObjectHttpMessageConverter" />
 				<ref bean="jwtTypeSerializer" />
-				<ref bean="objectTypeSerializer" />
-			</list>
-		</property>
-    </bean>
-	<!-- Setup our own JSON processing. -->
-	<bean id="platformExceptionHandlers"
-		class="org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver">
-		<property name="messageConverters">
-			<list>
 				<ref bean="objectTypeSerializer" />
 			</list>
 		</property>

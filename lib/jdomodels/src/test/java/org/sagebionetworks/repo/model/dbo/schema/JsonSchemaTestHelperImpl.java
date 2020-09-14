@@ -60,6 +60,12 @@ public class JsonSchemaTestHelperImpl implements JsonSchemaTestHelper {
 			semanticVersion = schemaId.getSemanticVersion().toString();
 		}
 		Organization organization = createOrganization(createdBy, organizationName);
+		try {
+			// sleep to ensure the organization created on is earlier than the schema's created on.
+			Thread.sleep(10L);
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
 		JsonSchema schema = new JsonSchema();
 		schema.set$id(id);
 		schema.setDescription("index:" + index);

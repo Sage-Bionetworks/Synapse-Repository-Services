@@ -108,8 +108,7 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 			}
 		}
 		String projectSettingsId = dbo.getId().toString();
-		transactionalMessenger.sendMessageAfterCommit(projectSettingsId, ObjectType.PROJECT_SETTING, dbo.getEtag(),
-				ChangeType.CREATE);
+		transactionalMessenger.sendMessageAfterCommit(projectSettingsId, ObjectType.PROJECT_SETTING, ChangeType.CREATE);
 
 		return projectSettingsId;
 	}
@@ -192,8 +191,7 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 		// re-get, so we don't clobber the object we put in the dbo directly with setData
 		dbo = basicDao.getObjectByPrimaryKey(DBOProjectSetting.class,
 				new SinglePrimaryKeySqlParameterSource(dto.getId()));
-		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.PROJECT_SETTING, dbo.getEtag(),
-				ChangeType.UPDATE);
+		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.PROJECT_SETTING, ChangeType.UPDATE);
 		return convertDboToDto(dbo);
 	}
 

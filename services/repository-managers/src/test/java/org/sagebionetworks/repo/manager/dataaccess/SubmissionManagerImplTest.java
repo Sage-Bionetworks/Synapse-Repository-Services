@@ -29,7 +29,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
@@ -104,9 +103,12 @@ public class SubmissionManagerImplTest {
 	@Mock
 	private TransactionalMessenger mockTransactionalMessenger;
 	@Mock
+	private AccessApprovalManager mockAccessAprovalManager;
+	@Mock
 	private RequestManager mockRequestManager;
 	@InjectMocks
 	private SubmissionManagerImpl manager;
+	
 	private Renewal request;
 	private String userId;
 	private Long userIdLong;
@@ -129,8 +131,6 @@ public class SubmissionManagerImplTest {
 
 	@BeforeEach
 	public void before() {
-		MockitoAnnotations.initMocks(this);
-
 		userId = "1";
 		userIdLong = 1L;
 		requestId = "2";
@@ -726,19 +726,14 @@ public class SubmissionManagerImplTest {
 		when(mockSubmissionDao.updateSubmissionStatus(eq(submissionId),
 				eq(SubmissionState.APPROVED), eq(reason), eq(userId),
 				anyLong())).thenReturn(submission);
+		
 		// call under test
 		assertEquals(submission, manager.updateStatus(mockUser, request));
-
-		ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
+		
+		verify(mockAccessAprovalManager).revokeGroup(mockUser, accessRequirementId, userId, Arrays.asList(userId, "2"));
+		
 		ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
-		verify(mockAccessApprovalDao).revokeBySubmitter(stringCaptor.capture(),
-				stringCaptor.capture(), captor.capture(), stringCaptor.capture());
-		List accessorsToRevoke = captor.getValue();
-		assertNotNull(accessorsToRevoke);
-		assertEquals(2, accessorsToRevoke.size());
-		assertTrue(accessorsToRevoke.contains(userId));
-		assertTrue(accessorsToRevoke.contains("2"));
-
+		
 		verify(mockAccessApprovalDao).createOrUpdateBatch(captor.capture());
 		List<AccessApproval> approvals = captor.getValue();
 		assertEquals(2, approvals.size());
@@ -781,21 +776,18 @@ public class SubmissionManagerImplTest {
 		request.setRejectedReason(reason);
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
 		submission.setAccessorChanges(accessors);
+		
 		when(mockSubmissionDao.getForUpdate(submissionId)).thenReturn(submission);
 		when(mockSubmissionDao.updateSubmissionStatus(eq(submissionId),
 				eq(SubmissionState.APPROVED), eq(reason), eq(userId),
 				anyLong())).thenReturn(submission);
+		
 		// call under test
 		assertEquals(submission, manager.updateStatus(mockUser, request));
 
-		ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
+		verify(mockAccessAprovalManager).revokeGroup(mockUser, accessRequirementId, userId, Arrays.asList(userId));
+		
 		ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
-		verify(mockAccessApprovalDao).revokeBySubmitter(stringCaptor.capture(),
-				stringCaptor.capture(), captor.capture(), stringCaptor.capture());
-		List accessorsToRevoke = captor.getValue();
-		assertNotNull(accessorsToRevoke);
-		assertEquals(1, accessorsToRevoke.size());
-		assertTrue(accessorsToRevoke.contains(userId));
 
 		verify(mockAccessApprovalDao).createOrUpdateBatch(captor.capture());
 		List<AccessApproval> approvals = captor.getValue();

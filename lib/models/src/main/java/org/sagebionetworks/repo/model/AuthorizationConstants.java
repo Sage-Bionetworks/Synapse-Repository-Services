@@ -19,7 +19,9 @@ public class AuthorizationConstants {
 		ADMINISTRATORS_GROUP(2L),
 		ACCESS_AND_COMPLIANCE_GROUP(464532L),
 		TRUSTED_MESSAGE_SENDER_GROUP(4L),
-		SYNAPSE_REPORT_GROUP(5L);
+		SYNAPSE_REPORT_GROUP(5L),
+		DATA_ACCESS_NOTFICATIONS_SENDER(3412389L), // The synapse user used to send data access notifications
+		SYNAPSE_TESTING_GROUP(6L); // Internal group that can be used to enable features on a subset of users
 
 		private final long principalId;
 		

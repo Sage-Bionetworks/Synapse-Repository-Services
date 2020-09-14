@@ -1,15 +1,12 @@
 package org.sagebionetworks.repo.manager.table;
 
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.util.List;
-
+import com.google.common.collect.Lists;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
@@ -19,10 +16,13 @@ import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 
-import com.google.common.collect.Lists;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TableQueryUtilsTest {
-	
+
 	String tableId;
 	String sql;
 	DownloadFromTableRequest downloadRequest;
@@ -163,5 +163,28 @@ public class TableQueryUtilsTest {
 		String sql = "select * from syn123 "+unknownChar;
 		String result = TableQueryUtils.extractTableIdFromSql(sql);
 		assertEquals("syn123", result);
+	}
+
+	@Test
+	/**
+	 * PLFM-6392 Add a more informative message to the user for cases where keywords
+	 * must be escaped.
+	 */
+	public void testExtractTableIdFromSqlWithParserException() {
+		String sql = "select year from syn123 where year = 1";
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, ()->{
+			TableQueryUtils.extractTableIdFromSql(sql);
+		});
+		assertEquals("Encountered \" <date_time_field> \"year \"\" at line 1, column 31.\n" +
+				"Was expecting one of:\n" +
+				"    \"\\\"\" ...\n" +
+				"    \"`\" ...\n" +
+				"    \"NOT\" ...\n" +
+				"    \"ISNAN\" ...\n" +
+				"    \"ISINFINITY\" ...\n" +
+				"    <entity_id> ...\n" +
+				"    <regular_identifier> ...\n" +
+				"    \"(\" ...\n" +
+				"    " + TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE, exception.getMessage());
 	}
 }

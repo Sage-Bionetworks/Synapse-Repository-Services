@@ -39,10 +39,6 @@
 	<bean id="principalService"
 		class="org.sagebionetworks.repo.web.service.PrincipalServiceImpl" />
 
-	<!-- The AccessApproval Service -->
-	<bean id="accessApprovalService"
-		class="org.sagebionetworks.repo.web.service.AccessApprovalServiceImpl" />
-
 	<!-- The AccessRequirement Service -->
 	<bean id="accessRequirementService"
 		class="org.sagebionetworks.repo.web.service.AccessRequirementServiceImpl" />
@@ -176,4 +172,14 @@
 	<bean id="dataAccessService"
 		class="org.sagebionetworks.repo.web.service.dataaccess.DataAccessServiceImpl"
 		scope="singleton" />
+		
+	<!-- Setup for annotation based exception handling. -->
+	<bean id="platformExceptionHandlers"
+		class="org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver">
+		<property name="messageConverters">
+			<list>
+				<ref bean="objectTypeSerializer" />
+			</list>
+		</property>
+	</bean>
 </beans>

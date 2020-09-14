@@ -7,7 +7,7 @@ import java.util.Map;
 import org.apache.commons.lang3.EnumUtils;
 
 /**
- * Utils for converting between maps that should be enum-keyed, but are string-keyed due to limitations in schema-to-pojo
+ * Utils for converting between maps that should be enum-keyed, but are string-keyed due to limitations in schema-to-pojo. See PLFM-6254.
  *
  * Note: you should only use this class if your schema property MUST be a JSON map (e.g. to adhere to a formal specification).
  * If you need a non-string keyed POJO, but don't care about the JSON format, use `tuplearraymap` in your schema-to-pojo schema
@@ -24,7 +24,7 @@ public class EnumKeyedJsonMapUtil {
 	 * @param enumClazz
 	 * @return a map containing entries with keys that mapped to valid enums.
 	 */
-	public static <E extends Enum<E>, V> Map<E, V> convertToEnum(Map<String, V> map, Class<E> enumClazz) {
+	public static <E extends Enum<E>, V> Map<E, V> convertKeysToEnums(Map<String, V> map, Class<E> enumClazz) {
 		Map<E, V> enumMap = new EnumMap<>(enumClazz);
 		for (Map.Entry<String, V> entry : map.entrySet()) {
 			if (EnumUtils.isValidEnum(enumClazz, entry.getKey())) {
@@ -40,7 +40,7 @@ public class EnumKeyedJsonMapUtil {
 	 * @param <V>
 	 * @return
 	 */
-	public static <V> Map<String, V> convertToString(Map<? extends Enum<?>, V> map) {
+	public static <V> Map<String, V> convertKeysToStrings(Map<? extends Enum<?>, V> map) {
 		Map<String, V> stringMap = new HashMap<>();
 		for (Map.Entry<? extends Enum<?>, V> entry : map.entrySet()) {
 			stringMap.put(entry.getKey().name(), entry.getValue());

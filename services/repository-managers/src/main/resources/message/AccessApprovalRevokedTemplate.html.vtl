@@ -1,0 +1,20 @@
+#parse("message/AccessApprovalNotificationHeader.html.vtl")
+<p>
+#if ($requirementDescription)
+Your approval for the <a href="$requirementUrl">$requirementDescription</a> access requirement (ID: $requirementId) has been revoked.
+#else
+Your approval for an <a href="$requirementUrl">access requirement (ID: $requirementId)</a> has been revoked.
+#end
+</p>
+<p>
+Please delete all copies of the data and have the other members of your group do this as well.
+</p>
+<p>
+#if ($submitterDisplayName)
+The revoked approval was submitted on your behalf by $submitterDisplayName and they can re-apply for access for your entire group.
+If $submitterDisplayName is not able to submit a request, you can submit a new request using the link above.
+#else
+If you would like to re-apply for access, you may follow the link above.
+#end
+</p>
+#parse("message/AccessApprovalNotificationFooter.html.vtl")

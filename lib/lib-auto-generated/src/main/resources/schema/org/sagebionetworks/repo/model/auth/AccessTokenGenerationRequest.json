@@ -1,0 +1,26 @@
+{
+  "description": "Request body for creating a personal access token.",
+  "properties": {
+    "scope":{
+      "type":"array",
+      "items": {
+        "$ref":"org.sagebionetworks.repo.model.oauth.OAuthScope"
+      },
+      "description":"The scopes that have been granted to this token"
+    },
+    "userInfoClaims":{
+      "type": "map",
+      "description":"The OIDC claims that can be accessed using this token.",
+      "key": {
+        "$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimName"
+      },
+      "value": {
+        "$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails"
+      }
+    },
+    "name": {
+      "type": "string",
+      "description": "A unique, typically human-readable name for the token"
+    }
+  }
+}
