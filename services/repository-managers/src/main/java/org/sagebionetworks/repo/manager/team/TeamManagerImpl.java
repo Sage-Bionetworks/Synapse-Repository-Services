@@ -719,6 +719,10 @@ public class TeamManagerImpl implements TeamManager {
 
 		String fileHandlePreviewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
 
+		if (fileHandlePreviewId == null) {
+			throw new NotFoundException("Team " + teamId + " has no icon preview file handle.");
+		}
+
 		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandlePreviewId)
 				.withAssociation(FileHandleAssociateType.TeamAttachment, teamId);
 

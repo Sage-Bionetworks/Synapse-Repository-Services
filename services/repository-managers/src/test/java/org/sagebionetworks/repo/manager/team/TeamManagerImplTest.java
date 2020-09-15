@@ -1,29 +1,7 @@
 package org.sagebionetworks.repo.manager.team;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -86,8 +64,29 @@ import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class TeamManagerImplTest {
@@ -769,6 +768,29 @@ public class TeamManagerImplTest {
 		
 		verify(mockFileHandleManager).getRedirectURLForFileHandle(eq(urlRequest));
 		
+		assertEquals(expectedUrl, url);
+	}
+
+	@Test
+	public void testGetIconPreviewURL() {
+		String iconFileHandleId = "101";
+
+		Team team = createTeam(null, "name", "description", null, iconFileHandleId, null, null, null, null);
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+
+		String iconPreviewFileHandleId = mockFileHandleManager.getPreviewFileHandleId(iconFileHandleId);
+
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, iconPreviewFileHandleId)
+				.withAssociation(FileHandleAssociateType.TeamAttachment, TEAM_ID);
+
+		String expectedUrl = "https://testurl.org";
+
+		when(mockFileHandleManager.getRedirectURLForFileHandle(eq(urlRequest))).thenReturn(expectedUrl);
+
+		String url = teamManagerImpl.getIconPreviewURL(userInfo, TEAM_ID);
+
+		verify(mockFileHandleManager).getRedirectURLForFileHandle(eq(urlRequest));
+
 		assertEquals(expectedUrl, url);
 	}
 	
