@@ -1426,7 +1426,7 @@ public class EntityController {
 	 * string. NOTE: This will return a subset of at most 200 entity headers that is the
 	 * intersection of the set of the most recently created entity headers with the specified MD5 string and
 	 * the set of entities which the user has access to. To look at MD5 values of entities
-	 * in a specific project, creating a file view is another option.
+	 * in a specific project, create a file view.
 	 * See <a href="https://docs.synapse.org/articles/views.html">https://docs.synapse.org/articles/views.html</a>
 	 *
 	 *
