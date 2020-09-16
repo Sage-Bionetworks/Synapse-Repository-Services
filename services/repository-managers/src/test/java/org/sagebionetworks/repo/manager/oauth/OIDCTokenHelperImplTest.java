@@ -53,7 +53,8 @@ public class OIDCTokenHelperImplTest {
 	private static final String CLIENT_ID = "client-01234";
 	private static final long NOW = System.currentTimeMillis();
 	private static final Date AUTH_TIME = new Date();
-	private static final long ONE_YEAR_MILLIS = 1000L * 60 * 60 * 24 * 365;
+	private static final long ONE_DAY_MILLIS = 1000L * 60 * 60 * 24;
+	private static final long ONE_YEAR_MILLIS = ONE_DAY_MILLIS * 365;
 	private static final String REFRESH_TOKEN_ID = "123456";
 	private static final String TOKEN_ID = UUID.randomUUID().toString();
 	private static final String NONCE = UUID.randomUUID().toString();
@@ -230,7 +231,7 @@ public class OIDCTokenHelperImplTest {
 	    // the Client SHOULD check the auth_time Claim value and request re-authentication if it determines too much time has elapsed 
 	    // since the last End-User authentication.
 		if (!isPersonalAccessToken) {
-			assertEquals(AUTH_TIME, claimsSet.get(OIDCClaimName.auth_time.name(), Date.class));
+			assertEquals((int)(AUTH_TIME.getTime()/1000L), claimsSet.get(OIDCClaimName.auth_time.name(), Integer.class));
 		} else {
 			// personal access tokens do not contain the auth time
 			assertNull(claimsSet.get(OIDCClaimName.auth_time.name()));
@@ -257,6 +258,7 @@ public class OIDCTokenHelperImplTest {
 				SUBJECT_ID, 
 				CLIENT_ID,
 				NOW, 
+				ONE_DAY_MILLIS,
 				AUTH_TIME,
 				REFRESH_TOKEN_ID,
 				TOKEN_ID,

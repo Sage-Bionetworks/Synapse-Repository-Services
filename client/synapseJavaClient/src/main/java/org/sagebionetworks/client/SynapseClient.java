@@ -17,6 +17,9 @@ import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListRequest;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListResponse;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
@@ -962,6 +965,16 @@ public interface SynapseClient extends BaseClient {
 	public Evaluation updateEvaluation(Evaluation eval) throws SynapseException;
 
 	public void deleteEvaluation(String evalId) throws SynapseException;
+
+	EvaluationRound createEvaluationRound(EvaluationRound round) throws SynapseException;
+
+	EvaluationRound getEvaluationRound(String evalId, String roundId) throws SynapseException;
+
+	EvaluationRoundListResponse getAllEvaluationRounds(String evalId, EvaluationRoundListRequest request) throws SynapseException;
+
+	EvaluationRound updateEvaluationRound(EvaluationRound round) throws SynapseException;
+
+	void deleteEvaluationRound(String evalId, String roundId) throws SynapseException;
 
 	/**
 	 * 

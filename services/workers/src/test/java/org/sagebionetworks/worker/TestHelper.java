@@ -1,5 +1,7 @@
 package org.sagebionetworks.worker;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -11,6 +13,7 @@ import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.manager.SubmissionEligibilityManager;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
@@ -34,6 +37,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.ImmutableSet;
@@ -195,6 +199,18 @@ public class TestHelper {
 
 		return evaluation;
 	}
+
+	public EvaluationRound createEvaluationRound(UserInfo userInfo, String evaluationId){
+		EvaluationRound round = new EvaluationRound();
+		Instant now = Instant.now();
+		round.setRoundStart(Date.from(now));
+		round.setRoundEnd(Date.from(now.plus(1, ChronoUnit.DAYS)));
+		round.setEvaluationId(evaluationId);
+
+		// cleaning up the evaluation will cascade delete the round
+
+		return evaluationManager.createEvaluationRound(userInfo, round);
+	}
 	
 	public SubmissionBundle createSubmission(UserInfo submitter, Evaluation evaluation, Entity entity) throws Exception {
 		return createSubmission(submitter, evaluation, entity, null);
@@ -212,7 +228,7 @@ public class TestHelper {
 		
 		if (team != null) {
 			submission.setTeamId(team.getId());
-			TeamSubmissionEligibility eligibility = submissionEligibilityManager.getTeamSubmissionEligibility(evaluation, team.getId());
+			TeamSubmissionEligibility eligibility = submissionEligibilityManager.getTeamSubmissionEligibility(evaluation, team.getId(), new Date());
 			teamEligibilityHash = String.valueOf(eligibility.getEligibilityStateHash());
 		}
 		

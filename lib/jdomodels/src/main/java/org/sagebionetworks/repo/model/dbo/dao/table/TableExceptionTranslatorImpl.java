@@ -17,10 +17,7 @@ public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 	private static Pattern PATTERN_TABLE_NAME = Pattern.compile(SQLUtils.TABLE_PREFIX + "[0-9]+");
 	private static Pattern PATTERN_COLUMM_ID = Pattern
 			.compile(SQLUtils.COLUMN_PREFIX + "[0-9]+" + SQLUtils.COLUMN_POSTFIX);
-	private String UNKNOWN_COLUMN_MESSAGE = "Unknown column";
-	private String UNQUOTED_KEYWORDS_ERROR_MESSAGE = "\nNote: If a column name contains spaces, punctuation," +
-			" or SQL key words, then the name must be enclosed in double quotes. " +
-			"https://rest-docs.synapse.org/rest/org/sagebionetworks/repo/web/controller/TableExamples.html";
+	private static String UNKNOWN_COLUMN_MESSAGE = "Unknown column";
 
 	@Autowired
 	ColumnNameProvider columnNameProvider;
@@ -41,7 +38,7 @@ public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 			// found a SQLException so we can translate it.
 			String originalMessage = sqlException.getMessage();
 			String newMessage = replaceColumnIdsAndTableNames(originalMessage);
-			newMessage = addUnquotedKeyWordMessage(newMessage);
+			newMessage = appendUnquotedKeyWordMessage(newMessage);
 			return new IllegalArgumentException(newMessage, exception);
 		} else if (exception instanceof RuntimeException) {
 			// did not find a SQLException but the exception is already a RuntimeException.
@@ -162,9 +159,9 @@ public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 	/*
 	 * PLFM-6392 Add more informative error message for key words that must be quoted
 	 */
-	private String addUnquotedKeyWordMessage(String input){
-		if (input.contains(UNKNOWN_COLUMN_MESSAGE)){
-			return input + UNQUOTED_KEYWORDS_ERROR_MESSAGE;
+	private static String appendUnquotedKeyWordMessage(String input) {
+		if (input.contains(UNKNOWN_COLUMN_MESSAGE)) {
+			return input + TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE;
 		}
 		return input;
 	}

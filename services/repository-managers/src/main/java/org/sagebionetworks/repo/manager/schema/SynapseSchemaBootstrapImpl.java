@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.NormalizedJsonSchema;
+import org.sagebionetworks.repo.model.schema.SubSchemaIterable;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.ObjectSchemaImpl;
@@ -65,6 +66,7 @@ public class SynapseSchemaBootstrapImpl implements SynapseSchemaBootstrap {
 
 		for (ObjectSchema objectSchema : allSchemasToBootstrap) {
 			JsonSchema jsonSchema = translator.translate(objectSchema);
+			replaceReferencesWithLatestVersion(jsonSchema);
 			registerSchemaIfDoesNotExist(adminUser, jsonSchema);
 		}
 	}
@@ -113,6 +115,23 @@ public class SynapseSchemaBootstrapImpl implements SynapseSchemaBootstrap {
 		schema.set$id(builder.toString());
 		request.setSchema(schema);
 		jsonSchemaManager.createJsonSchema(admin, request);
+	}
+	
+	/**
+	 * Use the latest version of each referenced schema.
+	 * @param schema
+	 */
+	void replaceReferencesWithLatestVersion(JsonSchema schema) {
+		for (JsonSchema subSchema : SubSchemaIterable.depthFirstIterable(schema)) {
+			if (subSchema.get$ref() != null) {
+				SchemaId refId = SchemaIdParser.parseSchemaId(subSchema.get$ref());
+				if (refId.getSemanticVersion() == null) {
+					JsonSchemaVersionInfo versionInfo = jsonSchemaManager
+							.getLatestVersion(refId.getOrganizationName().toString(), refId.getSchemaName().toString());
+					subSchema.set$ref(versionInfo.get$id());
+				}
+			}
+		}
 	}
 
 	/**
