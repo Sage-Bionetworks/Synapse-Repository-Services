@@ -1423,9 +1423,13 @@ public class EntityController {
 
 	/**
 	 * Gets all FileEntities whose file's MD5 is the same as the specified MD5
-	 * string. NOTE: This will return a subset of entity headers that is the
-	 * intersection of the set of entity headers with the specified MD5 string and
-	 * the set of entities which the user has access to.
+	 * string. NOTE: This will return a subset of at most 200 entity headers that is the
+	 * intersection of the set of the most recently created entity headers with the specified MD5 string and
+	 * the set of entities which the user has access to. To look at MD5 values of entities
+	 * in a specific project, creating a file view is another option.
+	 * See https://docs.synapse.org/articles/views.html.
+	 *
+	 *
 	 * 
 	 * @param md5
 	 * @param userId The user making the request
