@@ -2340,11 +2340,15 @@ public class NodeDAOImplTest {
 		assertEquals(expected, n1.getColumnModelIds());
 	}
 
+	/**
+	 * PLFM-5960
+	 * @throws Exception
+	 */
 	@Test
 	public void testGetEntityHeaderByMd5() throws Exception {
 
 		// Nothing yet
-		List<EntityHeader> results = nodeDao.getEntityHeaderByMd5("md5");
+		List<EntityHeader> results = nodeDao.getEntityHeaderByMd5(fileHandle3.getContentMd5());
 		assertNotNull(results);
 		assertEquals(0, results.size());
 
