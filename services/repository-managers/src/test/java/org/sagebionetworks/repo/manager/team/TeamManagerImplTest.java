@@ -778,7 +778,9 @@ public class TeamManagerImplTest {
 		Team team = createTeam(null, "name", "description", null, iconFileHandleId, null, null, null, null);
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
 
-		String iconPreviewFileHandleId = mockFileHandleManager.getPreviewFileHandleId(iconFileHandleId);
+		String iconPreviewFileHandleId = "102";
+
+		when(mockFileHandleManager.getPreviewFileHandleId(iconFileHandleId)).thenReturn(iconPreviewFileHandleId);
 
 		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, iconPreviewFileHandleId)
 				.withAssociation(FileHandleAssociateType.TeamAttachment, TEAM_ID);
