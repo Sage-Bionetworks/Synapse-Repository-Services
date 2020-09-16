@@ -118,6 +118,116 @@ public class JsonSchemaValidationManagerImplTest {
 		});
 	}
 	
+	/**
+	 * Expect validation to ignore the 'source' attribute.
+	 * @throws Exception
+	 */
+	@Test
+	public void testValidationWithSourced() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/HasSource.json");
+		assertEquals("http://some.domain.org/original/work", schema.getSource());
+		JsonSubject subject = setupSubject();
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+		
+		assertNotNull(result);
+		assertEquals(objectId, result.getObjectId());
+		assertEquals(objectType, result.getObjectType());
+		assertEquals(objectEtag, result.getObjectEtag());
+		assertTrue(result.getIsValid());
+		assertNotNull(result.getValidatedOn());
+		assertNull(result.getValidationErrorMessage());
+		assertNull(result.getAllValidationMessages());
+		assertNull(result.getValidationException());
+	}
+	
+	/**
+	 * Test for PLFM-6316 to add the 'required' key word.
+	 */
+	@Test
+	public void testValidationWithRequiredWithRequired() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/HasRequired.json");
+		assertNotNull(schema.getProperties());
+		assertEquals(3, schema.getProperties().size());
+		List<String> requiredValues = schema.getRequired();
+		assertNotNull(requiredValues);
+		assertEquals(Lists.newArrayList("requireMe","requireMeToo"), schema.getRequired());
+		
+		// include all three values for this test
+		JsonSubject subject = setupSubject();
+		subject.toJson().put("requireMe", "one");
+		subject.toJson().put("requireMeToo", "two");
+		subject.toJson().put("notRequired", "two");
+
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+
+		assertNotNull(result);
+		assertEquals(objectId, result.getObjectId());
+		assertEquals(objectType, result.getObjectType());
+		assertEquals(objectEtag, result.getObjectEtag());
+		assertTrue(result.getIsValid());
+		assertNotNull(result.getValidatedOn());
+		assertNull(result.getValidationErrorMessage());
+		assertNull(result.getAllValidationMessages());
+		assertNull(result.getValidationException());
+	}
+	
+	@Test
+	public void testValidationWithRequiredWithOutRequired() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/HasRequired.json");
+		assertNotNull(schema.getProperties());
+		assertEquals(3, schema.getProperties().size());
+		List<String> requiredValues = schema.getRequired();
+		assertNotNull(requiredValues);
+		assertEquals(Lists.newArrayList("requireMe","requireMeToo"), schema.getRequired());
+		
+		// exclude the optional value
+		JsonSubject subject = setupSubject();
+		subject.toJson().put("requireMe", "one");
+		subject.toJson().put("requireMeToo", "two");
+
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+
+		assertNotNull(result);
+		assertEquals(objectId, result.getObjectId());
+		assertEquals(objectType, result.getObjectType());
+		assertEquals(objectEtag, result.getObjectEtag());
+		assertTrue(result.getIsValid());
+		assertNotNull(result.getValidatedOn());
+		assertNull(result.getValidationErrorMessage());
+		assertNull(result.getAllValidationMessages());
+		assertNull(result.getValidationException());
+	}
+	
+	@Test
+	public void testValidationWithRequiredWithMissingRequired() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/HasRequired.json");
+		assertNotNull(schema.getProperties());
+		assertEquals(3, schema.getProperties().size());
+		List<String> requiredValues = schema.getRequired();
+		assertNotNull(requiredValues);
+		assertEquals(Lists.newArrayList("requireMe","requireMeToo"), schema.getRequired());
+		
+		// include the optional but exclude one of the required
+		JsonSubject subject = setupSubject();
+		subject.toJson().put("requireMe", "one");
+		subject.toJson().put("notRequired", "two");
+
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+
+		assertNotNull(result);
+		assertEquals(objectId, result.getObjectId());
+		assertEquals(objectType, result.getObjectType());
+		assertEquals(objectEtag, result.getObjectEtag());
+		assertFalse(result.getIsValid());
+		assertNotNull(result.getValidatedOn());
+		assertEquals("required key [requireMeToo] not found", result.getValidationErrorMessage());
+	}
+
+	
 	public JsonSubject setupSubject() {
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put("objectId", objectId);

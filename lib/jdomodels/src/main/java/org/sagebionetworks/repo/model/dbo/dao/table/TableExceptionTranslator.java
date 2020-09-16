@@ -7,6 +7,10 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
  */
 public interface TableExceptionTranslator {
 
+	String UNQUOTED_KEYWORDS_ERROR_MESSAGE = " Note: If a column name contains spaces, punctuation," +
+			" or SQL key words, then the name must be enclosed in double quotes. " +
+			"See https://rest-docs.synapse.org/rest/org/sagebionetworks/repo/web/controller/TableExamples.html";
+
 	/**
 	 * Replace all ColumnIds with column names, and replace all tables
 	 * names with the syn123 name.

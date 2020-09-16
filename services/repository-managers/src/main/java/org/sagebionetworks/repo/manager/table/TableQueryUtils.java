@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.table;
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.Query;
@@ -19,9 +20,6 @@ import java.util.List;
 
 public class TableQueryUtils {
 
-	private static final String UNQUOTED_KEYWORDS_ERROR_MESSAGE = "\nNote: If a column name contains spaces, punctuation, " +
-			"or SQL key words, then the name must be enclosed in double quotes." +
-			" https://rest-docs.synapse.org/rest/org/sagebionetworks/repo/web/controller/TableExamples.html";
 	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
 			.alias("Query", Query.class)
 			.allowTypes(Query.class)
@@ -133,7 +131,8 @@ public class TableQueryUtils {
 		} catch (TokenMgrError e) {
 			throw new IllegalArgumentException("The provided SQL query could not be parsed.",e);
 		}catch (ParseException e) {
-			throw new IllegalArgumentException(new ParseException(e.getMessage() + UNQUOTED_KEYWORDS_ERROR_MESSAGE));
+			throw new IllegalArgumentException(e.getMessage() + TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE, e);
+
 		}
 	}
 }

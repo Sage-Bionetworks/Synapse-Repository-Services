@@ -1,0 +1,34 @@
+{
+	"description": "Sets limits for maximum submissions in a SubmissionRound. Each limitType may only appear once in an EvaluationRound's list of limits",
+	"properties":{
+		"limitType":{
+			"type": "string",
+			"name": "EvaluationRoundLimitType",
+			"required": true,
+			"enum": [
+				{
+					"name": "TOTAL",
+					"description": "Limits maximum submissions for the entire duration of the round."
+				},
+				{
+					"name": "DAILY",
+					"description": "Limits maximum submissions per day. Resets daily at 00:00:00 UTC"
+				},
+				{
+					"name": "WEEKLY",
+					"description": "Limits maximum submissions per calendar week. Resets every Monday at 00:00:00 UTC"
+				},
+				{
+					"name": "MONTHLY",
+					"description": "Limits maximum submissions per calendar month. Resets on the 1st day of every calendar month at 00:00:00 UTC"
+				}
+			]
+		},
+
+		"maximumSubmissions": {
+			"type": "integer",
+			"required": true,
+			"description": "maximum number of submissions allowed within the time period defined by the the limitType"
+		}
+	}
+}

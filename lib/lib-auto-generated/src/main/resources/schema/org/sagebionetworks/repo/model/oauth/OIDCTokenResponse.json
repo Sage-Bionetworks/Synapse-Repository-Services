@@ -16,6 +16,10 @@
 		"token_type": {
 			"type": "string",
 			"description": "The type of token returned"
+		},
+		"expires_in": {
+			"type":"integer",
+			"description": "The lifetime in seconds of the access token. See RFC6749."
 		}
 	}
 }

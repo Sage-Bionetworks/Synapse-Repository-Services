@@ -51,6 +51,7 @@ import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -142,9 +143,6 @@ public class TableWorkerIntegrationTest {
 	 * 
 	 */
 	public static final int MAX_WAIT_MS = 1000 * 60;
-	private final String UNQUOTED_KEYWORDS_ERROR_MESSAGE = "\nNote: If a column name contains spaces, punctuation, " +
-			"or SQL key words, then the name must be enclosed in double quotes." +
-			" https://rest-docs.synapse.org/rest/org/sagebionetworks/repo/web/controller/TableExamples.html";
 	
 	@Autowired
 	StackConfiguration config;
@@ -2806,7 +2804,7 @@ public class TableWorkerIntegrationTest {
 	 * @throws Exception
 	 */
 	@Test
-	public void testQueryWithUnquotedKeyword() throws Exception{
+	public void testQueryWithUnquotedKeyword() throws Exception {
 		ColumnModel year = new ColumnModel();
 		year.setColumnType(ColumnType.STRING);
 		year.setMaximumSize(50L);
@@ -2818,38 +2816,38 @@ public class TableWorkerIntegrationTest {
 		TableStatus status = waitForTableProcessing(tableId);
 		assertTrue(TableState.AVAILABLE.equals(status.getState()));
 
-		RowSet rowSet = new RowSet();
-		rowSet.setRows(Lists.newArrayList(
-				TableModelTestUtils.createRow(null, null, "2020")));
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
-		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
-
 		Throwable selectClauseException = assertThrows(IllegalArgumentException.class, ()->{
 			waitForConsistentQuery(adminUserInfo, "select year from " + tableId, null, null, (queryResult) -> {
-				fail("Throw IllegalArgumentException");
+				fail("This should have failed with an IllegalArgumentException");
 			});
 		});
-		assertNotNull(selectClauseException);
-		assertNotNull(selectClauseException.getMessage());
-		assertTrue(selectClauseException.getMessage().contains(UNQUOTED_KEYWORDS_ERROR_MESSAGE));
+		assertEquals("Unknown column 'YEAR' in 'field list'"
+				+ TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE, selectClauseException.getMessage());
 		Throwable whereClauseException = assertThrows(IllegalArgumentException.class, ()->{
-			waitForConsistentQuery(adminUserInfo, "select \"year\" from " + tableId + " where year = 2020", null, null, (queryResult) -> {
-				fail("Throw IllegalArgumentException");
+			waitForConsistentQuery(adminUserInfo, "select \"year\" from " + tableId + " where year = 2020",
+					null, null, (queryResult) -> {
+				fail("This should have failed with an IllegalArgumentException");
 			});
 		});
-		assertNotNull(whereClauseException);
-		assertNotNull(whereClauseException.getMessage());
-		assertTrue(whereClauseException.getMessage().contains(UNQUOTED_KEYWORDS_ERROR_MESSAGE));
+		assertEquals("Encountered \" <date_time_field> \"year \"\" at line 1, column 37.\n" +
+				"Was expecting one of:\n" +
+				"    \"\\\"\" ...\n" +
+				"    \"`\" ...\n" +
+				"    \"NOT\" ...\n" +
+				"    \"ISNAN\" ...\n" +
+				"    \"ISINFINITY\" ...\n" +
+				"    <entity_id> ...\n" +
+				"    <regular_identifier> ...\n" +
+				"    \"(\" ...\n" +
+				"    " + TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE, whereClauseException.getMessage());
 		Throwable groupbyClauseException = assertThrows(IllegalArgumentException.class, ()->{
-			waitForConsistentQuery(adminUserInfo, "select \"year\" from " + tableId + " where \"year\" = 2020 group by year", null, null, (queryResult) -> {
-				fail("Throw IllegalArgumentException");
+			waitForConsistentQuery(adminUserInfo, "select \"year\" from " + tableId + " where \"year\" = 2020 group" +
+					" by year", null, null, (queryResult) -> {
+				fail("This should have failed with an IllegalArgumentException");
 			});
 		});
-		assertNotNull(groupbyClauseException);
-		assertNotNull(groupbyClauseException.getMessage());
-		assertTrue(groupbyClauseException.getMessage().contains(UNQUOTED_KEYWORDS_ERROR_MESSAGE));
+		assertEquals("Unknown column 'YEAR' in 'group statement'" +
+				TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE, groupbyClauseException.getMessage());
 	}
 
 	@Test

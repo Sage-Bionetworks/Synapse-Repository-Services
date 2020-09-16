@@ -211,7 +211,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 
 	private static final Logger LOG = LogManager.getLogger(AsynchronousJobWorkerHelperImpl.class);
 	private static final int STATUS_CHECK_FREQUENCY = 1000;
-	private static final int MAX_QUERY_RETRY = 10;
+	private static final int MAX_QUERY_RETRY = 20;
 
 	@Autowired
 	private AsynchJobStatusManager asynchJobStatusManager;

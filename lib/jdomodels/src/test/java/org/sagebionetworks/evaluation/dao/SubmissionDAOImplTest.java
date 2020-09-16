@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.sagebionetworks.evaluation.model.SubmissionStatusEnum.REJECTED;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -26,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.evaluation.dbo.SubmissionDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
@@ -646,18 +649,19 @@ public class SubmissionDAOImplTest {
     	bundles = submissionDAO.getAllBundlesByEvaluationAndUser(evalId, userId2, 10, 0);
     	assertTrue(bundles.isEmpty());
     }
-    
+
     @Test
     public void testDtoToDbo() {
     	Submission subDTO = new Submission();
     	Submission subDTOclone = new Submission();
     	SubmissionDBO subDBO = new SubmissionDBO();
     	SubmissionDBO subDBOclone = new SubmissionDBO();
-    	
+
     	subDTO.setEvaluationId("123");
     	subDTO.setCreatedOn(new Date());
     	subDTO.setEntityId("syn456");
     	subDTO.setId("789");
+    	subDTO.setEvaluationRoundId("44444");
     	subDTO.setName("name");
     	subDTO.setUserId("42");
     	subDTO.setSubmitterAlias("Team Awesome");
@@ -665,22 +669,22 @@ public class SubmissionDAOImplTest {
     	subDTO.setEntityBundleJSON("foo");
     	subDTO.setDockerRepositoryName("docker.synapse.org/syn789/arepo");
     	subDTO.setDockerDigest("sha256:abcdef0123456");
-    	    	
+
     	SubmissionUtils.copyDtoToDbo(subDTO, subDBO);
     	SubmissionUtils.copyDboToDto(subDBO, subDTOclone);
     	SubmissionUtils.copyDtoToDbo(subDTOclone, subDBOclone);
-    	
+
     	assertEquals(subDTO, subDTOclone);
     	assertEquals(subDBO, subDBOclone);
     }
-    
+
     @Test
     public void testDtoToDboNullColumn() {
     	Submission subDTO = new Submission();
     	Submission subDTOclone = new Submission();
     	SubmissionDBO subDBO = new SubmissionDBO();
     	SubmissionDBO subDBOclone = new SubmissionDBO();
-    	
+
     	subDTO.setEvaluationId("123");
     	subDTO.setCreatedOn(new Date());
     	subDTO.setEntityId("syn456");
@@ -690,11 +694,11 @@ public class SubmissionDAOImplTest {
     	subDTO.setSubmitterAlias("Team Awesome");
     	subDTO.setVersionNumber(1L);
     	// null EntityBundle
-    	    	
+
     	SubmissionUtils.copyDtoToDbo(subDTO, subDBO);
     	SubmissionUtils.copyDboToDto(subDBO, subDTOclone);
     	SubmissionUtils.copyDtoToDbo(subDTOclone, subDBOclone);
-    	
+
     	assertEquals(subDTO, subDTOclone);
     	assertEquals(subDBO, subDBOclone);
     	assertNull(subDTOclone.getEntityBundleJSON());
@@ -1164,6 +1168,29 @@ public class SubmissionDAOImplTest {
 		
 		assertAnnotationValue("fooValue", AnnotationType.STRING, annotationsMap.get("foo"));
 		assertAnnotationValue("42", AnnotationType.LONG, annotationsMap.get("bar"));
+	}
+
+	@Test
+	public void testHasSubmissionForEvaluationRound(){
+		Instant now = Instant.now();
+		EvaluationRound evaluationRound = new EvaluationRound();
+		evaluationRound.setId("2020");
+		evaluationRound.setEvaluationId(evalId);
+		evaluationRound.setRoundStart(Date.from(now));
+		evaluationRound.setRoundEnd(Date.from(now.plus(10, ChronoUnit.DAYS)));
+		evaluationRound = evaluationDAO.createEvaluationRound(evaluationRound);
+
+		//no associated submissions yet
+		assertFalse(submissionDAO.hasSubmissionForEvaluationRound(evalId, evaluationRound.getId()));
+
+		submission.setEvaluationRoundId(evaluationRound.getId());
+		String submissionId = submissionDAO.create(submission);
+
+		assertTrue(submissionDAO.hasSubmissionForEvaluationRound(evalId, evaluationRound.getId()));
+
+		submissionDAO.delete(submissionId);
+		assertFalse(submissionDAO.hasSubmissionForEvaluationRound(evalId, evaluationRound.getId()));
+
 	}
 
 	private Map<String, ObjectAnnotationDTO> verifyObjectData(ObjectDataDTO data) {
