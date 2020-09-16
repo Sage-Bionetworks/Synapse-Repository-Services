@@ -400,10 +400,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final int NODE_VERSION_LIMIT_BY_FILE_MD5 = 200;
 	private static final String SELECT_NODE_VERSION_BY_FILE_MD5 =
 			ENTITY_HEADER_SELECT
-			+ " FROM " + TABLE_REVISION + " R, " + TABLE_FILES + " F, "+TABLE_NODE+" N"
+			+ " FROM " + TABLE_REVISION + " R, " + TABLE_FILES + " F, " + TABLE_NODE + " N"
 			+ " WHERE R." + COL_REVISION_OWNER_NODE + " = N."+COL_NODE_ID+" AND  R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID
 			+ " AND F." + COL_FILES_CONTENT_MD5 + " = :" + COL_FILES_CONTENT_MD5
-			+ " ORDER BY N." + COL_NODE_ID
+			+ " ORDER BY N." + COL_NODE_CREATED_ON + " DESC"
 			+ " LIMIT " + NODE_VERSION_LIMIT_BY_FILE_MD5;
 	
 	/**
