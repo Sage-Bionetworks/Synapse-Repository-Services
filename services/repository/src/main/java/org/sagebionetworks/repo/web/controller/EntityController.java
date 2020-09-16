@@ -1423,7 +1423,7 @@ public class EntityController {
 
 	/**
 	 * Gets all FileEntities whose file's MD5 is the same as the specified MD5
-	 * string. NOTE: This will return a subset of entity headers that is the
+	 * string. NOTE: This will return a subset of entity headers which is the
 	 * intersection of the set of entity headers with the specified MD5 string and
 	 * the set of entities which the user has access to.
 	 * 
