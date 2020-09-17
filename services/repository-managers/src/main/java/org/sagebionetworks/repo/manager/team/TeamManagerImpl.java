@@ -693,14 +693,11 @@ public class TeamManagerImpl implements TeamManager {
 
 	@Override
 	public String getIconURL(UserInfo userInfo, String teamId) throws NotFoundException {
-		Team team = teamDAO.get(teamId);
-		
-		String fileHandleId = team.getIcon();
-		
-		if (fileHandleId == null) {
-			throw new NotFoundException("Team " + teamId + " has no icon file handle.");
-		}
-		
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(teamId, "teamId");
+
+		String fileHandleId = getFileHandleId(teamId);
+
 		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandleId)
 				.withAssociation(FileHandleAssociateType.TeamAttachment, teamId);
 		
@@ -709,24 +706,32 @@ public class TeamManagerImpl implements TeamManager {
 
 	@Override
 	public String getIconPreviewURL(UserInfo userInfo, String teamId) throws NotFoundException {
-		Team team = teamDAO.get(teamId);
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(teamId, "teamId");
 
-		String fileHandleId = team.getIcon();
-
-		if (fileHandleId == null) {
-			throw new NotFoundException("Team " + teamId + " has no icon file handle.");
-		}
-
-		String fileHandlePreviewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
-
-		if (fileHandlePreviewId == null) {
-			throw new NotFoundException("Team " + teamId + " has no icon preview file handle.");
+		String fileHandleId = getFileHandleId(teamId);
+		String fileHandlePreviewId = "";
+		try {
+			fileHandlePreviewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
+		} catch(NotFoundException e) {
+			throw new NotFoundException(e.getMessage() + " icon file handle or icon preview file handle not found" +
+					" for team " + teamId, e);
 		}
 
 		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandlePreviewId)
 				.withAssociation(FileHandleAssociateType.TeamAttachment, teamId);
 
 		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
+	}
+
+	public String getFileHandleId(String teamId) throws NotFoundException {
+		Team team = teamDAO.get(teamId);
+		String fileHandleId = team.getIcon();
+
+		if (fileHandleId == null) {
+			throw new NotFoundException("Team " + team.getId() + " has no icon file handle.");
+		}
+		return fileHandleId;
 	}
 
 	@Override

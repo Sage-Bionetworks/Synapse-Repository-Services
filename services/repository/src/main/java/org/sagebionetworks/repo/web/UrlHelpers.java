@@ -920,7 +920,7 @@ public class UrlHelpers {
 	public static final String NAME_FRAGMENT_FILTER = "fragment";
 	public static final String MEMBER_TYPE_FILTER = "memberType";
 	public static final String TEAM_ID_ICON = TEAM_ID+"/icon";
-	public static final String TEAM_ID_ICON_PREVIEW = TEAM_ID+"/icon/preview";
+	public static final String TEAM_ID_ICON_PREVIEW = TEAM_ID+TEAM_ID_ICON+"/preview";
 	private static final String MEMBER = "/member";
 	public static final String PRINCIPAL_ID_PATH_VARIABLE = "principalId";
 	public static final String PRINCIPAL_ID = "/{"+PRINCIPAL_ID_PATH_VARIABLE+"}";

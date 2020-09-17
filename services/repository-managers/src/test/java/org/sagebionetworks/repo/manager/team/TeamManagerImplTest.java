@@ -76,6 +76,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -772,6 +773,22 @@ public class TeamManagerImplTest {
 	}
 
 	@Test
+	public void testGetIconURLUserInfo() {
+		Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+			teamManagerImpl.getIconURL(null, TEAM_ID);
+		});
+		assertEquals("userInfo is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testGetIconURLTeamId() {
+		Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+			teamManagerImpl.getIconURL(userInfo, null);
+		});
+		assertEquals("teamId is required.", exception.getMessage());
+	}
+
+	@Test
 	public void testGetIconPreviewURL() {
 		String iconFileHandleId = "101";
 
@@ -787,13 +804,51 @@ public class TeamManagerImplTest {
 
 		String expectedUrl = "https://testurl.org";
 
-		when(mockFileHandleManager.getRedirectURLForFileHandle(eq(urlRequest))).thenReturn(expectedUrl);
+		when(mockFileHandleManager.getRedirectURLForFileHandle(any())).thenReturn(expectedUrl);
 
+		// Call under test
 		String url = teamManagerImpl.getIconPreviewURL(userInfo, TEAM_ID);
 
-		verify(mockFileHandleManager).getRedirectURLForFileHandle(eq(urlRequest));
+		verify(mockFileHandleManager).getRedirectURLForFileHandle(urlRequest);
 
 		assertEquals(expectedUrl, url);
+	}
+
+	@Test
+	public void testGetIconPreviewURLUserInfo() {
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+			teamManagerImpl.getIconPreviewURL(null, TEAM_ID);
+		});
+        assertEquals("userInfo is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testGetIconPreviewURLTeamId() {
+		Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+			teamManagerImpl.getIconPreviewURL(userInfo, null);
+		});
+		assertEquals("teamId is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testGetFileHandleIdNotFoundException() {
+		Team team = createTeam(TEAM_ID, "name", "description", null, null, null, null, null, null);
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+		Exception exception = assertThrows(NotFoundException.class, () -> {
+			// Call under test
+			teamManagerImpl.getFileHandleId(TEAM_ID);
+		});
+		assertEquals("Team " + TEAM_ID + " has no icon file handle.", exception.getMessage());
+	}
+
+	@Test
+	public void testGetFileHandleId() {
+		String iconFileHandleId = "101";
+		Team team = createTeam(TEAM_ID, "name", "description", null, "101", null, null, null, null);
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+		// Call under test
+		String result = teamManagerImpl.getFileHandleId(TEAM_ID);
+		assertEquals(iconFileHandleId, result);
 	}
 	
 	@Test
