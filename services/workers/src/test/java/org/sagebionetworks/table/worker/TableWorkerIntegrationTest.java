@@ -51,6 +51,7 @@ import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -2796,6 +2797,57 @@ public class TableWorkerIntegrationTest {
 		waitForConsistentQuery(anonymousUser, query, queryOptions, (results) -> {			
 			assertNotNull(results);
 		});
+	}
+
+	/**
+	 * PLFM-6392
+	 * @throws Exception
+	 */
+	@Test
+	public void testQueryWithUnquotedKeyword() throws Exception {
+		ColumnModel year = new ColumnModel();
+		year.setColumnType(ColumnType.STRING);
+		year.setMaximumSize(50L);
+		year.setName("year");
+		year = columnManager.createColumnModel(adminUserInfo, year);
+		schema = Lists.newArrayList(year);
+		// build a table with this column.
+		createTableWithSchema();
+		TableStatus status = waitForTableProcessing(tableId);
+		assertTrue(TableState.AVAILABLE.equals(status.getState()));
+
+		Throwable selectClauseException = assertThrows(IllegalArgumentException.class, ()->{
+			waitForConsistentQuery(adminUserInfo, "select year from " + tableId, null, null, (queryResult) -> {
+				fail("This should have failed with an IllegalArgumentException");
+			});
+		});
+		assertEquals("Unknown column 'YEAR' in 'field list'"
+				+ TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE, selectClauseException.getMessage());
+		Throwable whereClauseException = assertThrows(IllegalArgumentException.class, ()->{
+			waitForConsistentQuery(adminUserInfo, "select \"year\" from " + tableId + " where year = 2020",
+					null, null, (queryResult) -> {
+				fail("This should have failed with an IllegalArgumentException");
+			});
+		});
+		assertEquals("Encountered \" <date_time_field> \"year \"\" at line 1, column 37.\n" +
+				"Was expecting one of:\n" +
+				"    \"\\\"\" ...\n" +
+				"    \"`\" ...\n" +
+				"    \"NOT\" ...\n" +
+				"    \"ISNAN\" ...\n" +
+				"    \"ISINFINITY\" ...\n" +
+				"    <entity_id> ...\n" +
+				"    <regular_identifier> ...\n" +
+				"    \"(\" ...\n" +
+				"    " + TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE, whereClauseException.getMessage());
+		Throwable groupbyClauseException = assertThrows(IllegalArgumentException.class, ()->{
+			waitForConsistentQuery(adminUserInfo, "select \"year\" from " + tableId + " where \"year\" = 2020 group" +
+					" by year", null, null, (queryResult) -> {
+				fail("This should have failed with an IllegalArgumentException");
+			});
+		});
+		assertEquals("Unknown column 'YEAR' in 'group statement'" +
+				TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE, groupbyClauseException.getMessage());
 	}
 
 	@Test

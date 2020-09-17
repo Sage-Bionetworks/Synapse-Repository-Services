@@ -34,6 +34,16 @@ public class SQLConstants {
 	public static final String COL_EVALUATION_QUOTA				= "QUOTA";
 	public static final String COL_EVALUATION_START_TIMESTAMP		= "START_TIMESTAMP";
 	public static final String COL_EVALUATION_END_TIMESTAMP		= "END_TIMESTAMP";
+
+	// Evaluation Round table constants
+	public static final String DDL_FILE_EVALUATION_ROUND			= "schema/evaluation/EvaluationRound-ddl.sql";
+	public static final String TABLE_EVALUATION_ROUND				= "EVALUATION_ROUNDS";
+	public static final String COL_EVALUATION_ROUND_ID				= "ID";
+	public static final String COL_EVALUATION_ROUND_ETAG			= "ETAG";
+	public static final String COL_EVALUATION_ROUND_EVALUATION_ID	= "EVALUATION_ID";
+	public static final String COL_EVALUATION_ROUND_ROUND_START		= "ROUND_START";
+	public static final String COL_EVALUATION_ROUND_ROUND_END		= "ROUND_END";
+	public static final String COL_EVALUATION_ROUND_LIMITS			= "LIMITS";
 	
 	public static final String TABLE_EVALUATION_SUBMISSIONS = "EVALUATION_SUBMISSIONS";
 	public static final String COL_EVALUATION_SUBMISSIONS_ID = "ID";
@@ -45,6 +55,7 @@ public class SQLConstants {
 	public static final String TABLE_SUBMISSION					= "JDOSUBMISSION";
 	public static final String COL_SUBMISSION_ID 				= "ID";
 	public static final String COL_SUBMISSION_EVAL_ID 			= "EVALUATION_ID";
+	public static final String COL_SUBMISSION_EVAL_ROUND_ID 	= "EVALUATION_ROUND_ID";
 	public static final String COL_SUBMISSION_USER_ID 			= "USER_ID";
 	public static final String COL_SUBMISSION_SUBMITTER_ALIAS 	= "SUBMITTER_ALIAS";
 	public static final String COL_SUBMISSION_ENTITY_ID 		= "ENTITY_ID";

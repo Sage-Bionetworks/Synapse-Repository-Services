@@ -736,7 +736,12 @@ public class UrlHelpers {
 	public static final String EVALUATION_WITH_NAME = EVALUATION + "/name/{name}";
 	public static final String EVALUATION_COUNT = EVALUATION + "/count";
 	public static final String EVALUATION_AVAILABLE = EVALUATION+"/available";
-	
+
+	//EvaluationRounds
+	public static final String EVALUATION_ROUND = EVALUATION_WITH_ID + "/round";
+	public static final String EVALUATION_ROUND_ID_PATH_VAR = "{roundId}";
+	public static final String EVALUATION_ROUND_WITH_ROUND_ID = EVALUATION_ROUND + "/" + EVALUATION_ROUND_ID_PATH_VAR;
+
 	public static final String PARTICIPANT = EVALUATION_WITH_ID + "/participant";
 	public static final String PARTICIPANT_WITH_ID = PARTICIPANT + "/{partId}";
 	public static final String PARTICIPANT_COUNT = PARTICIPANT + "/count";

@@ -1,11 +1,9 @@
 package org.sagebionetworks.repo.manager.table;
 
-import java.io.StringWriter;
-import java.util.List;
-
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.Query;
@@ -16,6 +14,9 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.TokenMgrError;
 import org.sagebionetworks.util.ValidateArgument;
+
+import java.io.StringWriter;
+import java.util.List;
 
 public class TableQueryUtils {
 
@@ -130,7 +131,8 @@ public class TableQueryUtils {
 		} catch (TokenMgrError e) {
 			throw new IllegalArgumentException("The provided SQL query could not be parsed.",e);
 		}catch (ParseException e) {
-			throw new IllegalArgumentException(e);
+			throw new IllegalArgumentException(e.getMessage() + TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE, e);
+
 		}
 	}
 }

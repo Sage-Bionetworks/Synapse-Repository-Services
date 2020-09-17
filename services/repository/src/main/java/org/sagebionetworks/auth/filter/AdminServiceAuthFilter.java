@@ -45,7 +45,7 @@ public class AdminServiceAuthFilter extends BasicAuthServiceFilter {
 			return;
 		}
 		// Pass through to allow the previous auth mechanism to work
-		filterChain.doFilter(httpRequest, httpResponse);	
+		filterChain.doFilter(httpRequest, httpResponse);
 	}
 
 }

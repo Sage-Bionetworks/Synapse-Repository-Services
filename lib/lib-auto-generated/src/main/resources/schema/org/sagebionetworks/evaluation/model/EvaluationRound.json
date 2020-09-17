@@ -1,0 +1,37 @@
+{
+	"description":"Defines the duration of a round and sets limits for maximum submissions per round",
+	"properties":{
+		"id": {
+			"type": "string",
+			"description": "The id of the EvaluationRound"
+		},
+		"etag": {
+			"type": "string",
+			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. The eTag changes every time an EvaluationRound is updated; it is used to detect when a client's copy of an Evaluation is out-of-date."
+		},
+		"evaluationId": {
+			"type": "string",
+			"description": "The Evaluation to which this EvaluationRound belongs",
+			"required": true
+		},
+		"roundStart": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date/time at which the first round begins.",
+			"required": true
+		},
+		"roundEnd":{
+			"type": "string",
+			"format": "date-time",
+			"description":"The date/time at which the round ends.",
+			"required": true
+		},
+		"limits": {
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.evaluation.model.EvaluationRoundLimit"
+			},
+			"description": "Optional. Sets limits for maximum submissions in this round."
+		}
+	}
+}

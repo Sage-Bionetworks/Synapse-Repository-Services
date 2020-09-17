@@ -172,4 +172,14 @@
 	<bean id="dataAccessService"
 		class="org.sagebionetworks.repo.web.service.dataaccess.DataAccessServiceImpl"
 		scope="singleton" />
+		
+	<!-- Setup for annotation based exception handling. -->
+	<bean id="platformExceptionHandlers"
+		class="org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver">
+		<property name="messageConverters">
+			<list>
+				<ref bean="objectTypeSerializer" />
+			</list>
+		</property>
+	</bean>
 </beans>
