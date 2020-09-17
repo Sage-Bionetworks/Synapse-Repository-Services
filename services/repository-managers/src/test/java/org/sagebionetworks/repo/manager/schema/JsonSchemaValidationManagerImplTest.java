@@ -19,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.ObjectType;
 import org.sagebionetworks.repo.model.schema.ValidationException;
@@ -225,6 +226,83 @@ public class JsonSchemaValidationManagerImplTest {
 		assertFalse(result.getIsValid());
 		assertNotNull(result.getValidatedOn());
 		assertEquals("required key [requireMeToo] not found", result.getValidationErrorMessage());
+	}
+	
+	/**
+	 * Test for PLFM-6403
+	 * @throws Exception
+	 */
+	@Test
+	public void testValidationWithIntegerTypeAndIntegerValue() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/HasInteger.json");
+		assertNotNull(schema.getProperties());
+		assertEquals(1, schema.getProperties().size());
+		JsonSchema subSchema = schema.getProperties().get("someInteger");
+		assertNotNull(subSchema);
+		assertEquals(Type.integer, subSchema.getType());
+		JsonSubject subject = setupSubject();
+		subject.toJson().put("someInteger", 123);
+
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+
+		assertNotNull(result);
+		assertEquals(objectId, result.getObjectId());
+		assertEquals(objectType, result.getObjectType());
+		assertEquals(objectEtag, result.getObjectEtag());
+		assertTrue(result.getIsValid());
+		assertNotNull(result.getValidatedOn());
+		assertNull(result.getValidationErrorMessage());
+		assertNull(result.getAllValidationMessages());
+		assertNull(result.getValidationException());
+	}
+
+	@Test
+	public void testValidationWithIntegerTypeAndNegativeIntegerValue() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/HasInteger.json");
+		assertNotNull(schema.getProperties());
+		assertEquals(1, schema.getProperties().size());
+		JsonSchema subSchema = schema.getProperties().get("someInteger");
+		assertNotNull(subSchema);
+		assertEquals(Type.integer, subSchema.getType());
+		JsonSubject subject = setupSubject();
+		subject.toJson().put("someInteger", -123);
+
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+
+		assertNotNull(result);
+		assertEquals(objectId, result.getObjectId());
+		assertEquals(objectType, result.getObjectType());
+		assertEquals(objectEtag, result.getObjectEtag());
+		assertTrue(result.getIsValid());
+		assertNotNull(result.getValidatedOn());
+		assertNull(result.getValidationErrorMessage());
+		assertNull(result.getAllValidationMessages());
+		assertNull(result.getValidationException());
+	}
+
+	@Test
+	public void testValidationWithIntegerTypeAndDoubleValue() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/HasInteger.json");
+		assertNotNull(schema.getProperties());
+		assertEquals(1, schema.getProperties().size());
+		JsonSchema subSchema = schema.getProperties().get("someInteger");
+		assertNotNull(subSchema);
+		assertEquals(Type.integer, subSchema.getType());
+		JsonSubject subject = setupSubject();
+		subject.toJson().put("someInteger", 123.456);
+
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+
+		assertNotNull(result);
+		assertEquals(objectId, result.getObjectId());
+		assertEquals(objectType, result.getObjectType());
+		assertEquals(objectEtag, result.getObjectEtag());
+		assertFalse(result.getIsValid());
+		assertNotNull(result.getValidatedOn());
+		assertEquals("expected type: Integer, found: Double", result.getValidationErrorMessage());
 	}
 
 	
