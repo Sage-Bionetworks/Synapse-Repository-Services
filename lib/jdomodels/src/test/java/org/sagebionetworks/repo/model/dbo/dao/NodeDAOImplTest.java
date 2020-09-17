@@ -2340,35 +2340,39 @@ public class NodeDAOImplTest {
 		assertEquals(expected, n1.getColumnModelIds());
 	}
 
+
+
 	/**
 	 * PLFM-5960
 	 * @throws Exception
 	 */
 	@Test
-	public void testGetEntityHeaderByMd5() throws Exception {
-
-		// Nothing yet
+	public void testGetEntityHeaderByMd5NoMatches() {
+		// Call under test
 		List<EntityHeader> results = nodeDao.getEntityHeaderByMd5(fileHandle3.getContentMd5());
 		assertNotNull(results);
 		assertEquals(0, results.size());
+	}
 
-		for(int i = 0; i < 202; i++) {
+	/**
+	 * PLFM-5960
+	 */
+	@Test
+	public void testGetEntityHeaderByMd5WithOver200Matching() {
+
+		for(int i = 0; i < NodeDAO.NODE_VERSION_LIMIT_BY_FILE_MD5 + 1; i++) {
 			// Add a node with a file handle
 			Node curr = NodeTestUtils.createNew("testGetEntityHeaderByMd5 node " + i, creatorUserGroupId);
 			curr.setFileHandleId(fileHandle3.getId());
-			final String nodeLabel = "" + i;
-			curr.setVersionLabel(nodeLabel);
 			final String id = nodeDao.createNew(curr);
-			curr = nodeDao.getNode(id);
 			assertNotNull(id);
 			toDelete.add(id);
-			curr.setId(id);
 		}
 
-		results = nodeDao.getEntityHeaderByMd5(fileHandle3.getContentMd5());
+		// Call under test
+		List<EntityHeader> results = nodeDao.getEntityHeaderByMd5(fileHandle3.getContentMd5());
 		assertNotNull(results);
-		assertEquals(200, results.size());
-
+		assertEquals(NodeDAO.NODE_VERSION_LIMIT_BY_FILE_MD5, results.size());
 	}
 	
 	@Test
