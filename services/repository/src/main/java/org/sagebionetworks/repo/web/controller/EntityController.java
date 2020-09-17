@@ -1,17 +1,5 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.sagebionetworks.repo.model.oauth.OAuthScope.authorize;
-import static org.sagebionetworks.repo.model.oauth.OAuthScope.download;
-import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
-import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.json.JSONObject;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.SchemaManager;
@@ -70,6 +58,17 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.authorize;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.download;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 
 /**
  * <p>
@@ -1423,8 +1422,10 @@ public class EntityController {
 	}
 
 	/**
-	 * Gets all FileEntities whose file's MD5 is the same as the specified MD5
-	 * string.
+	 * Gets at most 200 FileEntities matching the given MD5 string which the
+	 * user has read access to. NOTE: Another option is to create a file view that includes MD5 values.
+	 * See <a href="https://docs.synapse.org/articles/views.html">https://docs.synapse.org/articles/views.html</a>
+	 *
 	 * 
 	 * @param md5
 	 * @param userId The user making the request

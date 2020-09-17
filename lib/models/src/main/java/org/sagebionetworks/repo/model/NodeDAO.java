@@ -1,11 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.NameIdType;
@@ -19,6 +13,12 @@ import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
 /**
  * Interface for all Node C.R.U.D. operations.
  * 
@@ -31,7 +31,8 @@ public interface NodeDAO {
 	 * the value to pass into the node to remove the generatedBy link between node and activity
 	 * 
 	 */
-	public static String DELETE_ACTIVITY_VALUE = "-1";
+	String DELETE_ACTIVITY_VALUE = "-1";
+	int NODE_VERSION_LIMIT_BY_FILE_MD5 = 200;
 	
 	/**
 	 * use: {@link #createNewNode(Node)}
