@@ -710,12 +710,11 @@ public class TeamManagerImpl implements TeamManager {
 		ValidateArgument.required(teamId, "teamId");
 
 		String fileHandleId = getFileHandleId(teamId);
-		String fileHandlePreviewId = "";
+		String fileHandlePreviewId = null;
 		try {
 			fileHandlePreviewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
 		} catch(NotFoundException e) {
-			throw new NotFoundException(e.getMessage() + " icon file handle or icon preview file handle not found" +
-					" for team " + teamId, e);
+			throw new NotFoundException(e.getMessage() + "No preview was found for the icon of the team with id: " + teamId, e);
 		}
 
 		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandlePreviewId)
@@ -724,7 +723,7 @@ public class TeamManagerImpl implements TeamManager {
 		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
 	}
 
-	public String getFileHandleId(String teamId) throws NotFoundException {
+	String getFileHandleId(String teamId) throws NotFoundException {
 		Team team = teamDAO.get(teamId);
 		String fileHandleId = team.getIcon();
 

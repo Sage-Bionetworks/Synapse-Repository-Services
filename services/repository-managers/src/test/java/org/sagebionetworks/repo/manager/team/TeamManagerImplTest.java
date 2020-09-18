@@ -773,7 +773,7 @@ public class TeamManagerImplTest {
 	}
 
 	@Test
-	public void testGetIconURLUserInfo() {
+	public void testGetIconURLWithNullUserInfo() {
 		Exception exception = assertThrows(IllegalArgumentException.class, () -> {
 			teamManagerImpl.getIconURL(null, TEAM_ID);
 		});
@@ -781,7 +781,7 @@ public class TeamManagerImplTest {
 	}
 
 	@Test
-	public void testGetIconURLTeamId() {
+	public void testGetIconURLWithNullTeamId() {
 		Exception exception = assertThrows(IllegalArgumentException.class, () -> {
 			teamManagerImpl.getIconURL(userInfo, null);
 		});
@@ -815,7 +815,7 @@ public class TeamManagerImplTest {
 	}
 
 	@Test
-	public void testGetIconPreviewURLUserInfo() {
+	public void testGetIconPreviewURLWithNullUserInfo() {
         Exception exception = assertThrows(IllegalArgumentException.class, () -> {
 			teamManagerImpl.getIconPreviewURL(null, TEAM_ID);
 		});
@@ -823,7 +823,7 @@ public class TeamManagerImplTest {
 	}
 
 	@Test
-	public void testGetIconPreviewURLTeamId() {
+	public void testGetIconPreviewURLWithNullTeamId() {
 		Exception exception = assertThrows(IllegalArgumentException.class, () -> {
 			teamManagerImpl.getIconPreviewURL(userInfo, null);
 		});
@@ -844,7 +844,7 @@ public class TeamManagerImplTest {
 	@Test
 	public void testGetFileHandleId() {
 		String iconFileHandleId = "101";
-		Team team = createTeam(TEAM_ID, "name", "description", null, "101", null, null, null, null);
+		Team team = createTeam(TEAM_ID, "name", "description", null, iconFileHandleId, null, null, null, null);
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
 		// Call under test
 		String result = teamManagerImpl.getFileHandleId(TEAM_ID);
