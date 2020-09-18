@@ -67,7 +67,7 @@ public class DockerNameUtilTest {
 		// names with host
 		assertIsRepoName("docker.syn-apse.org/prject/repo");
 		assertIsRepoName("docker.synapse.org:443/prject/repo");
-		assertIsNOTRepoName("docker.synapse.org/prject"); // per PLFM-6193m we insist on a name beyond just the project ID
+		assertIsNOTRepoName("docker.synapse.org/prject"); // per PLFM-6193 we insist on a name beyond just the project ID
 		assertIsNOTRepoName("docker.synapse.org:443");
 		assertIsNOTRepoName("docker.synapse.org:443/");
 		assertIsNOTRepoName("https://docker.synapse.org:443/prject/repo");
