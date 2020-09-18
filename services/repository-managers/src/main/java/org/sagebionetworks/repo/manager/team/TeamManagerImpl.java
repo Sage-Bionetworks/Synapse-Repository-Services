@@ -714,7 +714,7 @@ public class TeamManagerImpl implements TeamManager {
 		try {
 			fileHandlePreviewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
 		} catch(NotFoundException e) {
-			throw new NotFoundException(e.getMessage() + "No preview was found for the icon of the team with id: " + teamId, e);
+			throw new NotFoundException("No preview was found for the icon of the team with id: " + teamId, e);
 		}
 
 		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandlePreviewId)

@@ -789,6 +789,25 @@ public class TeamManagerImplTest {
 	}
 
 	@Test
+	public void testGetIconPreviewURLPreviewFileHandleIdNotFoundException() {
+
+		NotFoundException cause = new NotFoundException("inner exception");
+		String iconFileHandleId = "";
+		Team team = createTeam(TEAM_ID, "name", "description", null, iconFileHandleId, null, null, null, null);
+        when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+		when(mockFileHandleManager.getPreviewFileHandleId(iconFileHandleId)).thenThrow(cause);
+
+		NotFoundException exception = assertThrows(NotFoundException.class, () -> {
+			// Call under test
+			teamManagerImpl.getIconPreviewURL(userInfo, TEAM_ID);
+		});
+
+		assertEquals("No preview was found for the icon of the team with id: " + TEAM_ID, exception.getMessage());
+		assertEquals(cause, exception.getCause());
+		assertEquals(cause.getMessage(), exception.getCause().getMessage());
+	}
+
+	@Test
 	public void testGetIconPreviewURL() {
 		String iconFileHandleId = "101";
 
