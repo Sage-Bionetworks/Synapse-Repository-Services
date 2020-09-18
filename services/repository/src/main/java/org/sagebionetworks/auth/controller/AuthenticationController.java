@@ -360,13 +360,15 @@ public class AuthenticationController {
 	/**
 	 * Issues a personal access token to authorize scoped access to Synapse resources. 
 	 * <br/>
+	 * <br/>
 	 * Note:  The scope of the personal access token is the intersection of the request scope
 	 * and the scope of the access token used to authorize the request and also omits `authorize` scope.
 	 * That is, the returned token cannot have `authorize` scope and cannot have greater scope than
 	 * the token used to authorize this request.
 	 * <br/>
+	 * <br/>
 	 * To use the token to authorize other requests to Synapse, use the HTTP
-	 * header `Authorization: Bearer \<token\>`. The token will expire if unused for 180 days.
+	 * header `Authorization: Bearer &lt;token&gt;`. The token will expire if unused for 180 days.
 	 * The token cannot be re-retrieved after the initial creation.
 	 * @param userId
 	 * @param request
@@ -407,7 +409,7 @@ public class AuthenticationController {
 	/**
 	 * Retrieve metadata for a particular personal access token. Metadata for revoked tokens cannot be retrieved.
 	 * @param userId
-	 * @param tokenId
+	 * @param id The unique ID of the token, which is the unique ID (the "jti" claim) contained in the JWT
 	 * @return
 	 */
 	@RequiredScope({view})
@@ -416,24 +418,24 @@ public class AuthenticationController {
 	public @ResponseBody
 	AccessTokenRecord getPersonalAccessToken(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) Long tokenId
+			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) Long id
 	) {
-		return authenticationService.getPersonalAccessTokenRecord(userId, tokenId);
+		return authenticationService.getPersonalAccessTokenRecord(userId, id);
 	}
 
 	/**
 	 * Revoke a personal access token. The token cannot be re-enabled after being revoked.
 	 * @param userId
-	 * @param tokenId The unique ID of the token, which is the unique ID (the "jti" claim) contained in the JWT
+	 * @param id The unique ID of the token, which is the unique ID (the "jti" claim) contained in the JWT
 	 */
 	@RequiredScope({modify, authorize})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_PERSONAL_ACCESS_TOKEN_ID, method = RequestMethod.DELETE)
 	public void revokePersonalAccessToken(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) Long tokenId
+			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) Long id
 	) {
-		authenticationService.revokePersonalAccessToken(userId, tokenId);
+		authenticationService.revokePersonalAccessToken(userId, id);
 
 	}
 
