@@ -11,6 +11,7 @@ public class DockerNameUtil {
 
 	// one alpha numeric or several alphanumerics with hyphens internally
 	public static final String hostnameComponentRegexp = "([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])";
+	// periods/dots permitted internally
 	public static final String hostnameRegexp = hostnameComponentRegexp+
 									"(\\.|"+hostnameComponentRegexp+")*"+"(:[0-9]+)?";
 	
@@ -28,7 +29,7 @@ public class DockerNameUtil {
 	// separator characters we can differentiate between a host name (like 'quay.io') and a repo name.
 	// This is consistent with the use of repo paths in Dockerhub (where the first field is a user or
 	// organzation name, with no separator characters) and Synapse (where the first field is a Synapse ID).
-	public static final String PathRegexp = alphaNumericRegexp+"("+REPO_NAME_PATH_SEP+nameComponentRegexp+")*";
+	public static final String PathRegexp = alphaNumericRegexp+"("+REPO_NAME_PATH_SEP+nameComponentRegexp+")+";
 	
 	public static final String NameRegexp = "("+hostnameRegexp+REPO_NAME_PATH_SEP+")?"+PathRegexp;
 	
