@@ -1,25 +1,5 @@
 package org.sagebionetworks.repo.manager.team;
 
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_ID;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_WEB_LINK;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_USER_ID;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.manager.util.Validate;
@@ -80,6 +60,26 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_ID;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_WEB_LINK;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_USER_ID;
 
 
 /**
@@ -693,18 +693,44 @@ public class TeamManagerImpl implements TeamManager {
 
 	@Override
 	public String getIconURL(UserInfo userInfo, String teamId) throws NotFoundException {
-		Team team = teamDAO.get(teamId);
-		
-		String fileHandleId = team.getIcon();
-		
-		if (fileHandleId == null) {
-			throw new NotFoundException("Team " + teamId + " has no icon file handle.");
-		}
-		
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(teamId, "teamId");
+
+		String fileHandleId = getFileHandleId(teamId);
+
 		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandleId)
 				.withAssociation(FileHandleAssociateType.TeamAttachment, teamId);
 		
 		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
+	}
+
+	@Override
+	public String getIconPreviewURL(UserInfo userInfo, String teamId) throws NotFoundException {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(teamId, "teamId");
+
+		String fileHandleId = getFileHandleId(teamId);
+		String fileHandlePreviewId = null;
+		try {
+			fileHandlePreviewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
+		} catch(NotFoundException e) {
+			throw new NotFoundException("No preview was found for the icon of the team with id: " + teamId, e);
+		}
+
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandlePreviewId)
+				.withAssociation(FileHandleAssociateType.TeamAttachment, teamId);
+
+		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
+	}
+
+	String getFileHandleId(String teamId) throws NotFoundException {
+		Team team = teamDAO.get(teamId);
+		String fileHandleId = team.getIcon();
+
+		if (fileHandleId == null) {
+			throw new NotFoundException("Team " + team.getId() + " has no icon file handle.");
+		}
+		return fileHandleId;
 	}
 
 	@Override
