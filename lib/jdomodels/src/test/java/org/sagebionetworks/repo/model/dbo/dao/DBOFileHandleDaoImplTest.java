@@ -76,7 +76,7 @@ public class DBOFileHandleDaoImplTest {
 	
 	@AfterEach
 	public void after(){
-		fileHandleDao.truncateTable();
+		//fileHandleDao.truncateTable();
 		for (Long storageLocationId : storageLocationsToDelete) {
 			storageLocationDao.delete(storageLocationId);
 		}
@@ -720,5 +720,95 @@ public class DBOFileHandleDaoImplTest {
 			assertEquals(ChangeType.CREATE, message.getChangeType());
 			assertEquals(ObjectType.FILE, message.getObjectType());
 		}
+	}
+	
+	@Test
+	public void testIsMatchingMD5() {
+		S3FileHandle source = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		S3FileHandle target = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		
+		fileHandleDao.createBatch(Arrays.asList(source, target));
+		
+		// Call under test
+		boolean matchResult = fileHandleDao.isMatchingMD5(source.getId(), target.getId());
+	
+		assertTrue(matchResult);
+	}
+	
+	@Test
+	public void testIsMatchingMD5WithNoMatch() {
+		S3FileHandle source = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		S3FileHandle target = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		
+		source.setContentMd5("md51");
+		target.setConcreteType("md52");
+		
+		fileHandleDao.createBatch(Arrays.asList(source, target));
+		
+		// Call under test
+		boolean matchResult = fileHandleDao.isMatchingMD5(source.getId(), target.getId());
+	
+		assertFalse(matchResult);
+	}
+	
+	@Test
+	public void testIsMatchingMD5WithNonExisting() {
+		S3FileHandle source = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		source.setContentMd5("md51");
+		
+		fileHandleDao.createBatch(Arrays.asList(source));
+		
+		// Call under test
+		boolean matchResult = fileHandleDao.isMatchingMD5(source.getId(), "-1");
+	
+		assertFalse(matchResult);
+	}
+	
+	@Test
+	public void testIsMatchingMD5WithNullSourceMD5() {
+		S3FileHandle source = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		S3FileHandle target = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		
+		source.setContentMd5(null);
+		target.setConcreteType("md52");
+		
+		fileHandleDao.createBatch(Arrays.asList(source, target));
+		
+		// Call under test
+		boolean matchResult = fileHandleDao.isMatchingMD5(source.getId(), target.getId());
+	
+		assertFalse(matchResult);
+	}
+	
+	@Test
+	public void testIsMatchingMD5WithNullTargetMD5() {
+		S3FileHandle source = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		S3FileHandle target = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		
+		source.setContentMd5("md51");
+		target.setConcreteType(null);
+		
+		fileHandleDao.createBatch(Arrays.asList(source, target));
+		
+		// Call under test
+		boolean matchResult = fileHandleDao.isMatchingMD5(source.getId(), target.getId());
+	
+		assertFalse(matchResult);
+	}
+	
+	@Test
+	public void testIsMatchingMD5WithBothNull() {
+		S3FileHandle source = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		S3FileHandle target = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		
+		source.setContentMd5(null);
+		target.setConcreteType(null);
+		
+		fileHandleDao.createBatch(Arrays.asList(source, target));
+		
+		// Call under test
+		boolean matchResult = fileHandleDao.isMatchingMD5(source.getId(), target.getId());
+	
+		assertFalse(matchResult);
 	}
 }

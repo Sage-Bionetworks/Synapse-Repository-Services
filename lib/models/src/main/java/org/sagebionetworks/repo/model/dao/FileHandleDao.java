@@ -142,6 +142,15 @@ public interface FileHandleDao {
 	public void createBatch(List<FileHandle> toCreate);
 	
 	/**
+	 * Checks if the MD5 of the file handles identified by the given ids is not null and matches.
+	 * 
+	 * @param sourceFileHandleId The id of the source file handle
+	 * @param targetFileHandleId The id of the target file handle
+	 * @return True if the MD5 of the two file handles is not null and matches
+	 */
+	boolean isMatchingMD5(String sourceFileHandleId, String targetFileHandleId);
+	
+	/**
 	 * Deleted all file data
 	 */
 	public void truncateTable();
