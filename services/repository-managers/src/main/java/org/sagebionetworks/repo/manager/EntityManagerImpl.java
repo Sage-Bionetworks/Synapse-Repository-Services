@@ -301,12 +301,15 @@ public class EntityManagerImpl implements EntityManager {
 		org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations = nodeManager
 				.getEntityPropertyAnnotations(userInfo, updated.getId());
 
-		// Auto-version FileEntity See PLFM-1744
+		// Auto-version FileEntity when the id of the file handle is changed (and the MD5 is different) See PLFM-1744 and PLFM-6429
 		if (!newVersion && (updated instanceof FileEntity)) {
 			FileEntity updatedFile = (FileEntity) updated;
-			if (!updatedFile.getDataFileHandleId().equals(node.getFileHandleId())) {
+			String currentFileHandlId = node.getFileHandleId();
+			String updatedFileHandleId = updatedFile.getDataFileHandleId();
+			if (!currentFileHandlId.equals(updatedFileHandleId) && !fileHandleManager.isMatchingMD5(currentFileHandlId, updatedFileHandleId)) {
 				newVersion = true;
-				// setting this to null we cause the revision id to be used.
+				// Since this is an automatic action we reset the version label, by default creating a new revision with a null
+				// version label will automatically set it to the revision id (See NodeDAOImpl.createNewVersion).
 				updatedFile.setVersionLabel(null);
 				updatedFile.setVersionComment(null);
 			}

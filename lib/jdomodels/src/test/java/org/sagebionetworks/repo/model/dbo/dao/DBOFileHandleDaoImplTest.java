@@ -1,6 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.net.MalformedURLException;
 import java.sql.Timestamp;
@@ -37,7 +43,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
@@ -752,7 +757,7 @@ public class DBOFileHandleDaoImplTest {
 	}
 	
 	@Test
-	public void testIsMatchingMD5WithNonExisting() {
+	public void testIsMatchingMD5WithNonExistingSource() {
 		S3FileHandle source = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		source.setContentMd5("md51");
 		
@@ -760,6 +765,19 @@ public class DBOFileHandleDaoImplTest {
 		
 		// Call under test
 		boolean matchResult = fileHandleDao.isMatchingMD5(source.getId(), "-1");
+	
+		assertFalse(matchResult);
+	}
+	
+	@Test
+	public void testIsMatchingMD5WithNonExistingTarget() {
+		S3FileHandle target = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		target.setContentMd5("md52");
+		
+		fileHandleDao.createBatch(Arrays.asList(target));
+		
+		// Call under test
+		boolean matchResult = fileHandleDao.isMatchingMD5("-1", target.getId());
 	
 		assertFalse(matchResult);
 	}

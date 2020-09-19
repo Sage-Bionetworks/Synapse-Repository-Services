@@ -302,34 +302,86 @@ public class EntityManagerImplUnitTest {
 	}
 
 	@Test
-	public void testUpdateFileHandleId() throws Exception {
+	public void testUpdateEntityAndNoNewVersionWithNewFileHandleId() throws Exception {
 		// Mock dependencies.
 		String id = "123";
 		String parentId = "456";
+		String sourceFileHandleId = "101";
 
 		Node node = new Node();
-		node.setFileHandleId("101");
+		node.setFileHandleId(sourceFileHandleId);
 		Annotations annos = new Annotations();
+		
 		when(mockNodeManager.getNode(mockUser, id)).thenReturn(node);
 		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, id)).thenReturn(annos);
-
+		
+		boolean matchingMD5 = false;
+		
+		when(mockFileHandleManager.isMatchingMD5(any(), any())).thenReturn(matchingMD5);
+		
 		// Make file entity to update.
 		FileEntity entity = new FileEntity();
 		entity.setId(id);
 		entity.setParentId(parentId);
-		String dataFileHandleId = "202"; // i.e. we are updating from 101 to 202
-		entity.setDataFileHandleId(dataFileHandleId);
+		String targetFileHandleId = "202"; // i.e. we are updating from 101 to 202
+		entity.setDataFileHandleId(targetFileHandleId);
 		entity.setVersionComment("a comment for the original version");
 		entity.setVersionLabel("a label for the original version");
 
 		boolean newVersion = false; // even though new version is false the
-		// modified file handle will trigger a version update
+		// modified file handle will trigger a version update since the MD5 does not match
 
 		// method under test
 		entityManager.updateEntity(mockUser, entity, newVersion, null);
+		
+		verify(mockNodeManager).getNode(mockUser, id);
+		verify(mockNodeManager).getEntityPropertyAnnotations(mockUser, id);
+		verify(mockFileHandleManager).isMatchingMD5(sourceFileHandleId, targetFileHandleId);
+		verify(mockNodeManager).update(mockUser, node, annos, !newVersion);
 
 		assertNull(node.getVersionComment());
 		assertNull(node.getVersionLabel());
+	}
+	
+	@Test
+	public void testUpdateEntityAndNoNewVersionWithNewFileHandleIdSameMD5() throws Exception {
+		// Mock dependencies.
+		String id = "123";
+		String parentId = "456";
+		String sourceFileHandleId = "101";
+
+		Node node = new Node();
+		node.setFileHandleId(sourceFileHandleId);
+		Annotations annos = new Annotations();
+		
+		when(mockNodeManager.getNode(mockUser, id)).thenReturn(node);
+		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, id)).thenReturn(annos);
+		
+		boolean matchingMD5 = true;
+		
+		when(mockFileHandleManager.isMatchingMD5(any(), any())).thenReturn(matchingMD5);
+		
+		// Make file entity to update.
+		FileEntity entity = new FileEntity();
+		entity.setId(id);
+		entity.setParentId(parentId);
+		String targetFileHandleId = "202"; // i.e. we are updating from 101 to 202
+		entity.setDataFileHandleId(targetFileHandleId);
+		entity.setVersionComment("a comment for the original version");
+		entity.setVersionLabel("a label for the original version");
+
+		boolean newVersion = false;
+
+		// method under test
+		entityManager.updateEntity(mockUser, entity, newVersion, null);
+		
+		verify(mockNodeManager).getNode(mockUser, id);
+		verify(mockNodeManager).getEntityPropertyAnnotations(mockUser, id);
+		verify(mockFileHandleManager).isMatchingMD5(sourceFileHandleId, targetFileHandleId);
+		verify(mockNodeManager).update(mockUser, node, annos, newVersion);
+
+		assertEquals(entity.getVersionComment(), node.getVersionComment());
+		assertEquals(node.getVersionLabel(), node.getVersionLabel());
 	}
 
 	@Test
