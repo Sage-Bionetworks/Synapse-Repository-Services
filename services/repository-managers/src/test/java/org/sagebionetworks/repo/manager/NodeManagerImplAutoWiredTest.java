@@ -1,19 +1,20 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -41,7 +42,7 @@ import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 /**
  * This is an integration test for the NodeManagerImpl.  Most of the testing should occur
@@ -49,7 +50,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * @author John
  *
  */
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class NodeManagerImplAutoWiredTest {
 	
@@ -83,7 +84,7 @@ public class NodeManagerImplAutoWiredTest {
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
 	
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		assertNotNull(nodeManager);
 		nodesToDelete = new ArrayList<String>();
@@ -105,7 +106,7 @@ public class NodeManagerImplAutoWiredTest {
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		if(nodeManager != null && nodesToDelete != null){
 			for(String id: nodesToDelete){
@@ -157,7 +158,7 @@ public class NodeManagerImplAutoWiredTest {
 			}else if(ACL_SCHEME.GRANT_CREATOR_ALL == expectedSchem){
 				// This node should inherit from itself
 				String benefactorId = nodeDAO.getBenefactor(id);
-				assertEquals("This node should inherit from its parent",id, benefactorId);
+				assertEquals(id, benefactorId, "This node should inherit from its parent");
 				AccessControlList acl = aclDAO.get(id, ObjectType.ENTITY);
 				assertNotNull(acl);
 				assertEquals(id, acl.getId());
@@ -241,7 +242,7 @@ public class NodeManagerImplAutoWiredTest {
 		assertTrue(start.getModifiedOn().getTime() < fetchedAfterUpdate.getModifiedOn().getTime());
 	}
 	
-	@Test (expected=ConflictingUpdateException.class)
+	@Test
 	public void testNodeUpdateConflict() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testCreateNode");
@@ -254,9 +255,13 @@ public class NodeManagerImplAutoWiredTest {
 		// Now update
 		node.setName("newName");
 		nodeManager.update(adminUserInfo, node, null, false);
+		
 		// Now update again without a new eTag
 		node.setName("Not going to take");
-		nodeManager.update(adminUserInfo, node, null, false);
+		assertThrows(ConflictingUpdateException.class, () -> {
+			// Call under test
+			nodeManager.update(adminUserInfo, node, null, false);
+		});
 	}
 	
 	@Test
@@ -301,7 +306,7 @@ public class NodeManagerImplAutoWiredTest {
 		assertEquals(startNode.getCreatedOn(), updatedNode.getCreatedOn());
 	}
 	
-	@Test (expected=ConflictingUpdateException.class)
+	@Test
 	public void testUpdateUserAnnotations_UpdateConflict() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateUserAnnotations_UpdateConflict");
@@ -315,10 +320,15 @@ public class NodeManagerImplAutoWiredTest {
 		AnnotationsV2TestUtils.putAnnotations(annos, "stringKey", "should take", AnnotationsValueType.STRING);
 		String startingEtag = annos.getEtag();
 		nodeManager.updateUserAnnotations(userInfo, id, annos);
+		
 		// Try it again without changing the eTag
 		annos.setEtag(startingEtag);
 		AnnotationsV2TestUtils.putAnnotations(annos, "stringKey", "should not take", AnnotationsValueType.STRING);
-		nodeManager.updateUserAnnotations(userInfo, id, annos);
+		
+		assertThrows(ConflictingUpdateException.class, () -> {
+			// Call under test
+			nodeManager.updateUserAnnotations(userInfo, id, annos);
+		});
 	}
 
 	@Test
@@ -362,10 +372,10 @@ public class NodeManagerImplAutoWiredTest {
 		}
 		// Validate that the changes were not applied to the node or the annotations
 		updatedNode = nodeManager.getNode(userInfo, id);
-		assertEquals("Since updating failed, the eTag should not have changed",eTagBeforeUpdate, updatedNode.getETag());
+		assertEquals(eTagBeforeUpdate, updatedNode.getETag(), "Since updating failed, the eTag should not have changed");
 		annosToUpdate = nodeManager.getEntityPropertyAnnotations(userInfo, id);
-		assertEquals("The version comment should have rolled back to its origianl value on a failure.",newNode.getVersionComment(), updatedNode.getVersionComment());
-		assertEquals("The annoations should have rolled back to its origianl value on a failure.",null, annosToUpdate.getSingleValue("longKey"));
+		assertEquals(newNode.getVersionComment(), updatedNode.getVersionComment(), "The version comment should have rolled back to its origianl value on a failure.");
+		assertEquals(null, annosToUpdate.getSingleValue("longKey"), "The annoations should have rolled back to its origianl value on a failure.");
 
 		// Now try the update again but with a new version label so the update should take.
 		updatedNode.setVersionComment("This this comment should get applied this time.");
@@ -378,7 +388,7 @@ public class NodeManagerImplAutoWiredTest {
 		Node afterUpdate = nodeManager.update(adminUserInfo, updatedNode,  annosToUpdate, true);
 		assertNotNull(afterUpdate);
 		assertNotNull(afterUpdate.getETag());
-		assertFalse("The etag should have been different after an update.", afterUpdate.getETag().equals(eTagBeforeUpdate));
+		assertFalse(afterUpdate.getETag().equals(eTagBeforeUpdate), "The etag should have been different after an update.");
 
 		// Now check that the update went through
 		Node currentNode = nodeManager.getNode(userInfo, id);
@@ -479,7 +489,7 @@ public class NodeManagerImplAutoWiredTest {
 		Node afterDelete = nodeManager.getNode(userInfo, id);
 		assertNotNull(afterDelete);
 		assertNotNull(afterDelete.getETag());
-		assertFalse("Deleting a version failed to increment the eTag", afterDelete.getETag().equals(eTagBeforeDelete));
+		assertFalse(afterDelete.getETag().equals(eTagBeforeDelete), "Deleting a version failed to increment the eTag");
 	}
 
 	/**
@@ -578,7 +588,7 @@ public class NodeManagerImplAutoWiredTest {
 		// Validate that the child etag did not change
 		child = nodeManager.getNode(adminUserInfo, childId);
 		assertNotNull(child);
-		assertEquals("Updating a parent object should not have changed the child's etag",childStartEtag, child.getETag());
+		assertEquals(childStartEtag, child.getETag(), "Updating a parent object should not have changed the child's etag");
 	}
 
 	@Test
