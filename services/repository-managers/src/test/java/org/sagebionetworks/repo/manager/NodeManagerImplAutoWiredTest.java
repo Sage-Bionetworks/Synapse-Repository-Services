@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -15,6 +16,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -35,8 +38,12 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -77,6 +84,12 @@ public class NodeManagerImplAutoWiredTest {
 	
 	@Autowired
 	private ProjectSettingsManager projectSettingsManager;
+	
+	@Autowired
+	private IdGenerator idGenerator;
+	
+	@Autowired
+	private FileHandleDao fileHandleDao;
 
 	private List<String> nodesToDelete;
 	private List<String> activitiesToDelete;
@@ -89,6 +102,7 @@ public class NodeManagerImplAutoWiredTest {
 		assertNotNull(nodeManager);
 		nodesToDelete = new ArrayList<String>();
 		activitiesToDelete = new ArrayList<String>();
+		fileHandleDao.truncateTable();
 		
 		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
 		tou.setAgreesToTermsOfUse(Boolean.TRUE);
@@ -128,6 +142,7 @@ public class NodeManagerImplAutoWiredTest {
 		}
 		
 		userManager.deletePrincipal(adminUserInfo, userInfo.getId());
+		fileHandleDao.truncateTable();
 	}
 	
 	@Test
@@ -626,6 +641,100 @@ public class NodeManagerImplAutoWiredTest {
 		nodeManager.deleteActivityLinkToNode(adminUserInfo, nodeId);
 		updatedNode = nodeManager.getNode(adminUserInfo, nodeId);
 		assertEquals(null, updatedNode.getActivityId());
+	}
+	
+	@Test
+	public void testUpdateNodeFileHandle() {
+		FileHandle oldFileHandle = createTestFileHandle("Old", userInfo.getId().toString());
+		FileHandle newFileHandle = createTestFileHandle("New", userInfo.getId().toString());
+		
+		Node node = new Node();
+		
+		node.setName("FileEntity");
+		node.setNodeType(EntityType.file);
+		node.setFileHandleId(oldFileHandle.getId());
+		
+		node = nodeManager.createNode(node, userInfo);
+		
+		nodesToDelete.add(node.getId());
+		
+		String currentEtag = node.getETag();
+		
+		FileHandleUpdateRequest updateRequest = new FileHandleUpdateRequest();
+		
+		updateRequest.setOldFileHandleId(oldFileHandle.getId());
+		updateRequest.setNewFileHandleId(newFileHandle.getId());
+		
+		// Call under test
+		nodeManager.updateNodeFileHandle(userInfo, node.getId(), node.getVersionNumber(), updateRequest);
+		
+		node = nodeManager.getNode(userInfo, node.getId());
+		
+		assertNotEquals(currentEtag, node.getETag());
+		assertEquals(newFileHandle.getId(), node.getFileHandleId());
+		
+	}
+	
+	@Test
+	public void testUpdateNodeFileHandleWithDifferentVersion() {
+		FileHandle oldFileHandle = createTestFileHandle("Old", userInfo.getId().toString());
+		FileHandle newFileHandle = createTestFileHandle("New", userInfo.getId().toString());
+		
+		Node node = new Node();
+		
+		node.setName("FileEntity");
+		node.setNodeType(EntityType.file);
+		node.setFileHandleId(oldFileHandle.getId());
+		
+		node = nodeManager.createNode(node, userInfo);
+		
+		Long firstVersionNumber = node.getVersionNumber();
+		
+		nodesToDelete.add(node.getId());
+		
+		node.setVersionComment("New version comment");
+		node.setVersionLabel("New version label");
+		// Creates a new version
+		node = nodeManager.update(userInfo, node, null, true);
+		
+		String currentEtag = node.getETag();
+		
+		FileHandleUpdateRequest updateRequest = new FileHandleUpdateRequest();
+		
+		updateRequest.setOldFileHandleId(oldFileHandle.getId());
+		updateRequest.setNewFileHandleId(newFileHandle.getId());
+		
+		// Call under test
+		nodeManager.updateNodeFileHandle(userInfo, node.getId(), firstVersionNumber, updateRequest);
+		
+		// Fetch the latest version
+		node = nodeManager.getNode(node.getId());
+		
+		assertNotEquals(currentEtag, node.getETag());
+		
+		// The latest version retains the old file handle
+		assertEquals(oldFileHandle.getId(), node.getFileHandleId());
+		
+		// Fetch the previous version
+		node = nodeManager.getNodeForVersionNumber(userInfo, node.getId(), firstVersionNumber);
+		
+		assertEquals(newFileHandle.getId(), node.getFileHandleId());
+		
+		
+	}
+	
+	private S3FileHandle createTestFileHandle(String fileName, String createdById){
+		S3FileHandle fileHandle = new S3FileHandle();
+		fileHandle.setBucketName("bucket");
+		fileHandle.setKey("key");
+		fileHandle.setCreatedBy(createdById);
+		fileHandle.setFileName(fileName);
+		fileHandle.setContentMd5("MD5");
+		fileHandle.setContentSize(1024L);
+		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		fileHandle.setEtag(UUID.randomUUID().toString());
+		fileHandle = (S3FileHandle) fileHandleDao.createFile(fileHandle);
+		return fileHandle;
 	}
 
 }
