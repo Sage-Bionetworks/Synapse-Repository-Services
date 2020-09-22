@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
+import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
@@ -206,6 +207,20 @@ public interface EntityService {
 	public <T extends Entity> T updateEntity(Long userId, T updatedEntity, boolean newVersion, String activityId)
 			throws NotFoundException, ConflictingUpdateException, DatastoreException, InvalidModelException,
 			UnauthorizedException;
+
+	/**
+	 * Update request for the file handle of an entity revision
+	 * 
+	 * @param userId
+	 * @param entityId
+	 * @param versionNumber
+	 * @param updateRequest
+	 * @throws NotFoundException
+	 * @throws ConflictingUpdateException
+	 * @throws UnauthorizedException
+	 */
+	void updateEntityFileHandle(Long userId, String entityId, Long versionNumber, FileHandleUpdateRequest updateRequest)
+			throws NotFoundException, ConflictingUpdateException, UnauthorizedException;
 
 	/**
 	 * Delete a specific entity

@@ -364,6 +364,8 @@ public class UrlHelpers {
 	 * Get the generating activity for a specific version of an entity
 	 */
 	public static final String ENTITY_VERSION_GENERATED_BY = ENTITY_VERSION_NUMBER+GENERATED_BY;
+	
+	public static final String ENTITY_VERSION_FILE_HANDLE = ENTITY_VERSION_NUMBER + "/filehandle";
 
 	/**
 	 * DOI (Digital Object Identifier).

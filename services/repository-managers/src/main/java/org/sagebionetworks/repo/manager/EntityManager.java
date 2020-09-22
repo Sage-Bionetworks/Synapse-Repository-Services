@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
+import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.ListValidationResultsRequest;
@@ -248,6 +249,22 @@ public interface EntityManager {
 	public <T extends Entity> boolean updateEntity(UserInfo userInfo, T updated, boolean newVersion, String activityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException,
 			InvalidModelException;
+	
+	/**
+	 * Updates the file handle id of the entity revision with the given id and version.
+	 * 
+	 * @param userInfo      The user performing the update
+	 * @param entityId      The id of the entity
+	 * @param versionNumber The version number
+	 * @param request       The update request
+	 * @throws NotFoundException          If the entity revision or the file handle do not exist
+	 * @throws ConflictingUpdateException If the {@link FileHandleUpdateRequest#getOldFileHandleId()} does not match the
+	 *                                    entity revision file handle id, or if the MD5 of the two file handle does not match
+	 * @throws UnauthorizedException      If the user is not authorized to read or update the given entity or if the
+	 *                                    {@link FileHandleUpdateRequest#getNewFileHandleId()} is not owned by the user
+	 */
+	void updateEntityFileHandle(UserInfo userInfo, String entityId, Long versionNumber, FileHandleUpdateRequest request)
+			throws NotFoundException, ConflictingUpdateException, UnauthorizedException;
 
 	/**
 	 * Get a specific version of an entity.

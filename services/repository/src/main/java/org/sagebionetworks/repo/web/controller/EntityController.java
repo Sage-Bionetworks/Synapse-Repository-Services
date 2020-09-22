@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestResourceList;
@@ -40,6 +41,7 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
+import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.request.ReferenceList;
@@ -407,6 +409,29 @@ public class EntityController {
 			newVersionBoolean = Boolean.parseBoolean(newVersion);
 		}
 		return serviceProvider.getEntityService().updateEntity(userId, entity, newVersionBoolean, generatedBy);
+	}
+	
+	/**
+	 * Updates the <a href="${org.sagebionetworks.repo.model.file.FileHandle}">FileHandle</a> associated with the <a href= "${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a>
+	 * with the provided entity id and version.
+	 * 
+	 * @param id The id of the file entity
+	 * @param versionNumber The entity version
+	 * 
+	 * @throws NotFoundException If a <a href= "${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a> with the given id does not exist
+	 * @throws ConflictingUpdateException If the old file handle id specified in the request does not match the current id of the entity or if the MD5 of the file handles does not match
+	 * @throws UnauthorizedException If the user is not authorized to read and update the entity or if the new file handle id specified in the request is not owned by the user
+	 */
+	@RequiredScope({ view, modify })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION_FILE_HANDLE }, method = RequestMethod.PUT)
+	public void updateEntityFileHandle(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id,
+			@PathVariable Long versionNumber,
+			@RequestBody FileHandleUpdateRequest fileHandleUpdateRequest) 
+					throws NotFoundException, ConflictingUpdateException, UnauthorizedException {
+		serviceProvider.getEntityService().updateEntityFileHandle(userId, id, versionNumber, fileHandleUpdateRequest);
 	}
 
 	/**
