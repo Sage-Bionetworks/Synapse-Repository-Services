@@ -236,8 +236,7 @@ public class TeamServiceImpl implements TeamService {
 		boolean memberAdded = addMemberIntern(Long.parseLong(joinTeamToken.getUserId()), joinTeamToken.getTeamId(), joinTeamToken.getMemberId(), teamEndpoint, notificationUnsubscribeEndpoint);
 		ResponseMessage responseMessage = new ResponseMessage();
 		UserProfile userProfile = userProfileManager.getUserProfile(joinTeamToken.getMemberId());
-		String teamId = joinTeamToken.getTeamId();
-		Team team = teamManager.get(teamId);
+		Team team = teamManager.get(joinTeamToken.getTeamId());
 
 		String responseMessageText;
 		if (memberAdded) {
