@@ -1,25 +1,5 @@
 package org.sagebionetworks.repo.manager.team;
 
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_ID;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_WEB_LINK;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_USER_ID;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.manager.util.Validate;
@@ -80,6 +60,26 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_ID;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_WEB_LINK;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_USER_ID;
 
 
 /**
@@ -335,7 +335,8 @@ public class TeamManagerImpl implements TeamManager {
 
 	@Override
 	public PaginatedResults<TeamMember> listMembers(String teamId, TeamMemberTypeFilterOptions memberType, long limit,
-			long offset) throws DatastoreException {
+			long offset) throws DatastoreException, NotFoundException {
+		get(teamId);
 		List<TeamMember> results;
 		Set<Long> adminIds = teamDAO.getAdminTeamMemberIds(teamId).stream().map(Long::valueOf).collect(Collectors.toSet());
 		switch (memberType) {
@@ -367,7 +368,8 @@ public class TeamManagerImpl implements TeamManager {
 	@Override
 	public PaginatedResults<TeamMember> listMembersForPrefix(String fragment, String teamId,
 															 TeamMemberTypeFilterOptions memberType,
-															 long limit, long offset) throws DatastoreException {
+															 long limit, long offset) throws DatastoreException, NotFoundException {
+		get(teamId);
 		List<Long> prefixMemberIds;
 		switch (memberType) {
 			case ADMIN:
@@ -437,8 +439,12 @@ public class TeamManagerImpl implements TeamManager {
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#get(java.lang.String)
 	 */
 	@Override
-	public Team get(String id) throws DatastoreException, NotFoundException {
-		return teamDAO.get(id);
+	public Team get(String teamId) throws DatastoreException, NotFoundException {
+		try {
+			return teamDAO.get(teamId);
+		} catch (NotFoundException e) {
+			throw new NotFoundException("Team does not exist for teamId: " + teamId ,e);
+		}
 	}
 
 	/* (non-Javadoc)
@@ -693,7 +699,7 @@ public class TeamManagerImpl implements TeamManager {
 
 	@Override
 	public String getIconURL(UserInfo userInfo, String teamId) throws NotFoundException {
-		Team team = teamDAO.get(teamId);
+		Team team = get(teamId);
 		
 		String fileHandleId = team.getIcon();
 		

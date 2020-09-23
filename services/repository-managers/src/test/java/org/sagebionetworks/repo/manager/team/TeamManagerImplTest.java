@@ -1,29 +1,7 @@
 package org.sagebionetworks.repo.manager.team;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -86,8 +64,29 @@ import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class TeamManagerImplTest {
@@ -869,6 +868,43 @@ public class TeamManagerImplTest {
 		verify(mockPrincipalPrefixDao, times(1)).listTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), 10L, 0L);
 		verify(mockTeamDAO, times(1)).listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Arrays.asList(adminMemberId, nonAdminMemberId));
 		assertEquals(Arrays.asList(adminMember, nonAdminMember), actual);
+	}
+
+	@Test
+	public void testListMembersForPrefixInvalidTeam() {
+		String prefix = "pfx";
+		String invalidTeamId = "000";
+		NotFoundException ex = new NotFoundException("teamDAO");
+		when(mockTeamDAO.get(invalidTeamId)).thenThrow(ex);
+		NotFoundException exception = Assertions.assertThrows(NotFoundException.class, () -> {
+			teamManagerImpl.listMembersForPrefix(prefix, invalidTeamId, null, 10L, 0L);
+		});
+		assertEquals("Team does not exist for teamId: " + invalidTeamId, exception.getMessage());
+        assertEquals(ex, exception.getCause());
+	}
+
+	@Test
+	public void testgetIconURLInvalidTeam() {
+		String invalidTeamId = "000";
+		NotFoundException ex = new NotFoundException("teamDAO");
+		when(mockTeamDAO.get(invalidTeamId)).thenThrow(ex);
+		NotFoundException exception = Assertions.assertThrows(NotFoundException.class, () -> {
+			teamManagerImpl.getIconURL(userInfo, invalidTeamId);
+		});
+		assertEquals("Team does not exist for teamId: " + invalidTeamId, exception.getMessage());
+		assertEquals(ex, exception.getCause());
+	}
+
+	@Test
+	public void testListMembersInvalidTeam() {
+		String invalidTeamId = "000";
+		NotFoundException ex = new NotFoundException("teamDAO");
+		when(mockTeamDAO.get(invalidTeamId)).thenThrow(ex);
+		NotFoundException exception = Assertions.assertThrows(NotFoundException.class, () -> {
+			teamManagerImpl.listMembers(invalidTeamId, null, 10L, 0L);
+		});
+		assertEquals("Team does not exist for teamId: " + invalidTeamId, exception.getMessage());
+		assertEquals(ex, exception.getCause());
 	}
 	
 	@Test

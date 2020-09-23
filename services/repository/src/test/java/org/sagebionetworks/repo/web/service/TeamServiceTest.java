@@ -26,7 +26,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.sagebionetworks.repo.web.NotFoundException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -167,14 +166,12 @@ public class TeamServiceTest {
 	}
 
 	@Test
-	public void testGetMembersWithNonExistentTeam() {
-		NotFoundException exception  = Assertions.assertThrows(NotFoundException.class)
-		teamService.getMembers("1234", "", null, 1, 1);
-	}
-
-	@Test
-	public void testGetMembersWithValidTeamId() {
-		teamService.getMembers("1234", "", null, 1, 1);
+	public void testGetMembersWithNullTeamId() {
+		IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// Call under test
+			teamService.getMembers(null, null, TeamMemberTypeFilterOptions.ALL, 1, 0);
+		});
+		assertEquals("The teamId is required.", ex.getMessage());
 	}
 	
 	@Test

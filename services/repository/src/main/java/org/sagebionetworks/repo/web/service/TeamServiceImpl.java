@@ -118,14 +118,10 @@ public class TeamServiceImpl implements TeamService {
 	public PaginatedResults<TeamMember> getMembers(String teamId,
 			String fragment, TeamMemberTypeFilterOptions memberType, long limit, long offset)
 			throws DatastoreException, NotFoundException {
-		ValidateArgument.required(teamId, "the teamId cannot be null");
+		ValidateArgument.required(teamId, "The teamId");
 		ValidateArgument.requirement(limit > 0 && limit <= MAX_LIMIT, "limit must be between 1 and "+MAX_LIMIT);
 		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
 
-		Team team = teamManager.get(teamId);
-		if (team == null){
-			throw new NotFoundException("Team does not exist for teamId: " + teamId);
-		}
 		if (memberType == null) memberType = TeamMemberTypeFilterOptions.ALL;
 		PaginatedResults<TeamMember> results;
 		if (fragment==null || fragment.trim().length()==0) {
@@ -234,7 +230,9 @@ public class TeamServiceImpl implements TeamService {
 		boolean memberAdded = addMemberIntern(Long.parseLong(joinTeamToken.getUserId()), joinTeamToken.getTeamId(), joinTeamToken.getMemberId(), teamEndpoint, notificationUnsubscribeEndpoint);
 		ResponseMessage responseMessage = new ResponseMessage();
 		UserProfile userProfile = userProfileManager.getUserProfile(joinTeamToken.getMemberId());
-		Team team = teamManager.get(joinTeamToken.getTeamId());
+		String teamId = joinTeamToken.getTeamId();
+		Team team = teamManager.get(teamId);
+
 		String responseMessageText;
 		if (memberAdded) {
 			responseMessageText = "User "+
