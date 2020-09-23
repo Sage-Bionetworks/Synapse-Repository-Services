@@ -134,6 +134,10 @@ public class PrincipalManagerImplAutowiredTest {
 		profile.setLocation("Seattle");
 		profile.setOpenIds(Collections.singletonList("OpenID1"));
 		profile.setProfilePicureFileHandleId(fileHandleId);
+		profile.setRStudioUrl("https://foo.bar");
+		profile.setSummary("this is my bio");
+		profile.setTeamName("awesome team");
+		profile.setUrl("https://all.about.me");
 		userProfileDAO.update(profile);
 
 		UserInfo adminUserInfo = new UserInfo(true);
@@ -160,6 +164,11 @@ public class PrincipalManagerImplAutowiredTest {
 		assertEquals(1, pas.size());
 		assertEquals(AliasType.USER_EMAIL, pas.get(0).getType());
 		assertEquals("gdpr-synapse+" + testUser.getId() + "@sagebase.org", pas.get(0).getAlias());
+		
+		assertNull(profile.getRStudioUrl());
+		assertNull(profile.getSummary());
+		assertNull(profile.getTeamName());
+		assertNull(profile.getUrl());
 
 		// Verify that the password has been changed
 		assertThrows(UnauthenticatedException.class, () -> authenticationManager.login(loginRequest));
