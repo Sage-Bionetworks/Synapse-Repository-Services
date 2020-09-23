@@ -98,7 +98,7 @@ public class NextPageToken {
 	 * @param results
 	 * @return
 	 */
-	public String getNextPageTokenForCurrentResults(List results) {
+	public String getNextPageTokenForCurrentResults(List<?> results) {
 		if (results.size() > limit) {
 			long newOffset = limit + offset;
 			results.remove((int) limit);

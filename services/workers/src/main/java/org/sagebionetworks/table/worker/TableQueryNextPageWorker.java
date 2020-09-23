@@ -59,7 +59,7 @@ public class TableQueryNextPageWorker implements MessageDrivenRunner {
 			// Attempt to translate the exception into a 'user-friendly' message.
 			RuntimeException translatedException = tableExceptionTranslator.translateException(e);
 			// The job failed
-			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
+			asynchJobStatusManager.setJobFailed(status.getJobId(), translatedException);
 			log.error("Worker failed:", e);
 		}
 	}

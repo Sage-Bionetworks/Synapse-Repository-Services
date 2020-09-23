@@ -1,0 +1,15 @@
+{
+	"description": "A single page of the EvaluationRounds currently associated with an Evaluation",
+	"properties": {
+		"page": {
+			"type": "array",
+			"items":{
+				"$ref" : "org.sagebionetworks.evaluation.model.EvaluationRound"
+			}
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "Forward this token to get the next page of results."
+		}
+	}
+}

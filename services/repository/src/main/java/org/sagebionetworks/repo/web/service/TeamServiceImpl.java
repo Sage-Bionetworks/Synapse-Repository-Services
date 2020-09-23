@@ -194,6 +194,12 @@ public class TeamServiceImpl implements TeamService {
 		return teamManager.getIconURL(userInfo, teamId);
 	}
 
+	public String getIconPreviewURL(Long userId, String teamId) throws DatastoreException,
+			NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return teamManager.getIconPreviewURL(userInfo, teamId);
+	}
+
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.TeamService#update(java.lang.String, org.sagebionetworks.repo.model.Team)
 	 */

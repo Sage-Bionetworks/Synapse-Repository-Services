@@ -1,27 +1,32 @@
 package org.sagebionetworks.repo.web.filter;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import javax.servlet.Filter;
 import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpStatus;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.cloudwatch.Consumer;
+import org.sagebionetworks.cloudwatch.MetricUtils;
+import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.ErrorResponse;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.repo.web.controller.BaseControllerExceptionHandlerAdvice;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.servlet.HandlerExceptionResolver;
+
+import com.amazonaws.services.cloudwatch.model.StandardUnit;
 
 /**
  * This filter is our last chance to log any type of unexpected error. Errors
@@ -30,73 +35,117 @@ import org.springframework.web.servlet.NoHandlerFoundException;
  * status codes with error messages, so those exceptions will never be seen
  * here. This filter is designed to capture unexpected errors that occur above
  * the controller in all other filters or interceptors. See PLFM-3204 &
- * PLFM-3205
+ * PLFM-3205. This implementation reuses the same {@link HandlerExceptionResolver} 
+ * configured in spring, so that the exception handling logic is implemented in a single place 
+ * (E.g. The {@link BaseControllerExceptionHandlerAdvice}). When an exception occurs at this
+ * an event is logged in cloudwatch.
  * 
  * @author John
  * 
  */
-public class UnexpectedExceptionFilter implements Filter {
+@Component("unexpectedExceptionFilter")
+public class UnexpectedExceptionFilter extends OncePerRequestFilter {
+	
+	private static final String CLOUD_WATCH_NAMESPACE_PREFIX = "UnexpectedExceptionFilter";
+	private static final String CLOUD_WATCH_METRIC_NAME = "UnhandledException";
+	private static final String CLOUD_WATCH_DIMENSION_EXCEPTION = "exceptionClass";
+	private static final String CLOUD_WATCH_DIMENSION_URI = "requestUri";
+	private static final String CLOUD_WATCH_DIMENSION_MESSAGE = "message";
 
 	private static Log log = LogFactory.getLog(UnexpectedExceptionFilter.class);
-
-	@Override
-	public void init(FilterConfig filterConfig) throws ServletException {
+	
+	private StackConfiguration config;
+	private Consumer consumer;
+	private List<HandlerExceptionResolver> exceptionResolvers;
+	
+	@Autowired
+	public UnexpectedExceptionFilter(StackConfiguration config, Consumer consumer) {
+		this.config = config;
+		this.consumer = consumer;
+	}
+	
+	@Autowired
+	public void configureExceptionResolvers(List<HandlerExceptionResolver> exceptionResolvers) {
+		if (exceptionResolvers == null || exceptionResolvers.isEmpty()) {
+			throw new IllegalStateException("No exception resolver found");
+		}
+		this.exceptionResolvers = exceptionResolvers;
 	}
 
 	@Override
-	public void doFilter(ServletRequest request, ServletResponse response,
-			FilterChain chain) throws IOException, ServletException {
+	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException{
 		try {
 			chain.doFilter(request, response);
 		} catch (Exception e) {
-			/*
-			 * Exceptions thrown at the controller or lower should already be
-			 * converted to error status codes and will not be seen here. Only
-			 * unexpected exceptions that are thrown by filters or interceptors
-			 * will be seen here. We need to gather as much information as
-			 * possible from the request and log it.
-			 */
-			HttpServletRequestData data = new HttpServletRequestData(
-					(HttpServletRequest) request);
-			// capture the full stack trace and request data.
-			log.error(data.toString(), e);
-			/*
-			 * All known causes of exceptions at this level are due to load. By
-			 * returning 503, clients will back-off.  We assume the server can
-			 * recover from these errors.
-			 */
-			HttpServletResponse res = (HttpServletResponse) response;
-			res.setStatus(HttpStatus.SC_SERVICE_UNAVAILABLE);
-			ErrorResponse er = new ErrorResponse();
-			er.setReason("Server error, try again later: " + e.getMessage());
-			JSONObjectAdapter joa = new JSONObjectAdapterImpl();
-			try {
-				er.writeToJSONObject(joa);
-				res.setContentType(MediaType.APPLICATION_JSON_VALUE);
-				res.getWriter().println(joa.toJSONString());
-			} catch (JSONObjectAdapterException e2) {
-				// give up here, just write constant string
-				res.getWriter().println(AuthorizationConstants.REASON_SERVER_ERROR);
+			logUnhandledException(request, e);
+			
+			boolean resolved = tryResolveException(request, response, e);			
+			
+			if (!resolved) {
+				// No resolver was configured for the exception, just throw back a generic 500
+				response.setStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+				response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+				response.getWriter().println(AuthorizationConstants.REASON_SERVER_ERROR);
 			}
-		}catch(Error e){
-			/*
-			 * Errors are far worse than exceptions.
-			 */
-			HttpServletRequestData data = new HttpServletRequestData(
-					(HttpServletRequest) request);
-			// capture the full stack trace and request data.
-			log.error(data.toString(), e);
-			/*
-			 * Assume the server will not recover from an error so report generic 500.
-			 */
-			HttpServletResponse res = (HttpServletResponse) response;
-			res.setStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR);
-			res.getWriter().println(AuthorizationConstants.REASON_SERVER_ERROR);
 		}
 	}
+	
+	private void logUnhandledException(HttpServletRequest request, Throwable e) {
+		Date timestamp = new Date();
 
-	@Override
-	public void destroy() {
+		HttpServletRequestData data = new HttpServletRequestData((HttpServletRequest) request);
+		
+		// capture the full stack trace and request data.
+		log.error(data.toString(), e);
+		
+		List<ProfileData> profileData = new ArrayList<>();
+		
+		profileData.add(generateProfileData(data, timestamp, e, false));
+		profileData.add(generateProfileData(data, timestamp, e, true));
+		
+		consumer.addProfileData(profileData);
+	}
+	
+	/**
+	 * Delegates the handling of the exception to the handlers we setup for the dispatcher servlet
+	 */
+	private boolean tryResolveException(HttpServletRequest request, HttpServletResponse response, Exception e) {
+		boolean resolved = false;
+		for (HandlerExceptionResolver exceptionResolver : exceptionResolvers) {
+			
+			// Try to resolve this exception, and simply stops whenever a revolver was able to handle the exception
+			resolved = exceptionResolver.resolveException(request, response, null, e) != null;
+			
+			if (resolved) {
+				break;
+			}
+		}
+		return resolved;
+	}
+	
+	private ProfileData generateProfileData(HttpServletRequestData requestData, Date timestamp, Throwable e, boolean withMessage) {
+		ProfileData logEvent = new ProfileData();
+
+		String stackInstance = config.getStackInstance();
+		
+		logEvent.setNamespace(String.format("%s - %s", CLOUD_WATCH_NAMESPACE_PREFIX, stackInstance));
+		logEvent.setName(CLOUD_WATCH_METRIC_NAME);
+		logEvent.setValue(1.0);
+		logEvent.setUnit(StandardUnit.Count.toString());
+		logEvent.setTimestamp(timestamp);
+		
+		Map<String, String> dimensions = new HashMap<>();
+		
+		dimensions.put(CLOUD_WATCH_DIMENSION_URI, requestData.getUri());
+		dimensions.put(CLOUD_WATCH_DIMENSION_EXCEPTION, e.getClass().getName());
+		
+		if (withMessage) {
+			dimensions.put(CLOUD_WATCH_DIMENSION_MESSAGE, MetricUtils.stackTracetoString(e));
+		}
+
+		logEvent.setDimension(dimensions);
+		
+		return logEvent;
 	}
 
 }

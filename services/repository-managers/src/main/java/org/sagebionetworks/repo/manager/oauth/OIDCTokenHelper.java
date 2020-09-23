@@ -39,6 +39,7 @@ public interface OIDCTokenHelper {
 	 * @param subject the subject of this token, the Synapse user
 	 * @param oauthClientId the ID of the registered OAuth cliewnt
 	 * @param now the current time stamp
+	 * @param expirationTimeSeconds the time, in seconds, until the access token expires
 	 * @param authTime The timestamp for the event in which the user most recently logged in to Synapse
 	 * @param refreshTokenId the ID of an associated refresh token, if one exists. can be null.
 	 * @param accessTokenId a unique ID for this token
@@ -46,7 +47,7 @@ public interface OIDCTokenHelper {
 	 * @param oidcClaims the fine-grained details about what user info can be accessed by this access token
 	 * @return a serialized JSON Web Token
 	 */
-	String createOIDCaccessToken(String issuer, String subject, String oauthClientId, long now, Date authTime,
+	String createOIDCaccessToken(String issuer, String subject, String oauthClientId, long now, long expirationTimeSeconds, Date authTime,
 			String refreshTokenId, String accessTokenId, List<OAuthScope> scopes, Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims);
 
 	/**

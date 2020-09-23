@@ -25,10 +25,6 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class TableExceptionTranslatorTest {
 
-	private String UNQUOTED_KEYWORDS_ERROR_MESSAGE = "\nNote: If a column name contains spaces, punctuation, " +
-			"or SQL key words, then the name must be enclosed in double quotes." +
-			" https://rest-docs.synapse.org/rest/org/sagebionetworks/repo/web/controller/TableExamples.html";
-
 	@Mock
 	ColumnNameProvider mockColumnNameProvider;
 	
@@ -135,7 +131,7 @@ public class TableExceptionTranslatorTest {
 		assertTrue(result instanceof IllegalArgumentException);
 		IllegalArgumentException illegalArg = (IllegalArgumentException)result;
 		assertEquals("Unknown column 'foo' in 'where clause'" +
-						UNQUOTED_KEYWORDS_ERROR_MESSAGE,
+						TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE,
 				illegalArg.getMessage());
 		assertEquals(badSqlException, illegalArg.getCause());
 	}

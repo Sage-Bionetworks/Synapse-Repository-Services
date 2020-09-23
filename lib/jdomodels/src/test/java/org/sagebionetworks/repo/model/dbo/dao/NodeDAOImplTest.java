@@ -1,38 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl.TRASH_FOLDER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
-
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
-
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -112,9 +82,38 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.UnexpectedRollbackException;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl.TRASH_FOLDER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -170,6 +169,7 @@ public class NodeDAOImplTest {
 	
 	private S3FileHandle fileHandle = null;
 	private S3FileHandle fileHandle2 = null;
+	private S3FileHandle fileHandle3 = null;
 
 	private String user1;
 	private String user2;
@@ -195,6 +195,7 @@ public class NodeDAOImplTest {
 		// Create file handles that can be used in tests
 		fileHandle = createTestFileHandle("One", creatorUserGroupId.toString());
 		fileHandle2 = createTestFileHandle("Two", creatorUserGroupId.toString());
+		fileHandle3 = createTestFileHandle("Three", creatorUserGroupId.toString());
 
 		UserGroup user = new UserGroup();
 		user.setIsIndividual(true);
@@ -2339,80 +2340,39 @@ public class NodeDAOImplTest {
 		assertEquals(expected, n1.getColumnModelIds());
 	}
 
-	@Test
-	public void testGetEntityHeaderByMd5() throws Exception {
 
-		// Nothing yet
-		List<EntityHeader> results = nodeDao.getEntityHeaderByMd5("md5");
+
+	/**
+	 * PLFM-5960
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetEntityHeaderByMd5NoMatches() {
+		// Call under test
+		List<EntityHeader> results = nodeDao.getEntityHeaderByMd5(fileHandle3.getContentMd5());
 		assertNotNull(results);
 		assertEquals(0, results.size());
+	}
 
-		// Add a node with a file handle
-		Node node1 = NodeTestUtils.createNew("testGetEntityHeaderByMd5 node 1", creatorUserGroupId);
-		node1.setFileHandleId(fileHandle.getId());
-		final String node1Label1 = "1";
-		node1.setVersionLabel(node1Label1);
-		final String id1 = nodeDao.createNew(node1);
-		node1 = nodeDao.getNode(id1);
-		assertNotNull(id1);
-		toDelete.add(id1);
-		node1.setId(id1);
+	/**
+	 * PLFM-5960
+	 */
+	@Test
+	public void testGetEntityHeaderByMd5WithOver200Matching() {
 
-		results = nodeDao.getEntityHeaderByMd5(fileHandle.getContentMd5());
+		for(int i = 0; i < NodeDAO.NODE_VERSION_LIMIT_BY_FILE_MD5 + 1; i++) {
+			// Add a node with a file handle
+			Node curr = NodeTestUtils.createNew("testGetEntityHeaderByMd5 node " + i, creatorUserGroupId);
+			curr.setFileHandleId(fileHandle3.getId());
+			final String id = nodeDao.createNew(curr);
+			assertNotNull(id);
+			toDelete.add(id);
+		}
+
+		// Call under test
+		List<EntityHeader> results = nodeDao.getEntityHeaderByMd5(fileHandle3.getContentMd5());
 		assertNotNull(results);
-		assertEquals(1, results.size());
-		assertEquals(id1, results.get(0).getId());
-		assertNotNull(results.get(0).getBenefactorId());
-		assertEquals(Long.valueOf(1L), results.get(0).getVersionNumber());
-		assertEquals(node1Label1, results.get(0).getVersionLabel());
-		assertEquals(node1.getCreatedByPrincipalId().toString(), results.get(0).getCreatedBy());
-		assertEquals(node1.getCreatedOn(), results.get(0).getCreatedOn());
-		assertEquals(node1.getModifiedByPrincipalId().toString(), results.get(0).getModifiedBy());
-		assertEquals(node1.getModifiedOn(), results.get(0).getModifiedOn());
-
-		// Create a new version of the node of the same file
-		final String node1Label2 = "Node 1 version label 2";
-		node1.setVersionLabel(node1Label2);
-		nodeDao.createNewVersion(node1);
-
-		results = nodeDao.getEntityHeaderByMd5(fileHandle.getContentMd5());
-		assertNotNull(results);
-		assertEquals(2, results.size());
-		assertEquals(id1, results.get(0).getId());
-		assertEquals(id1, results.get(1).getId());
-		assertFalse(results.get(0).getVersionNumber().equals(results.get(1).getVersionNumber()));
-
-		// Add a new node with no file handle
-		Node node2 = NodeTestUtils.createNew("testGetEntityHeaderByMd5 node 2", creatorUserGroupId);
-		final String node2Label1 = "Node 2 version label 1";
-		node1.setVersionLabel(node2Label1);
-		final String id2 = nodeDao.createNew(node2);
-		assertNotNull(id2);
-		toDelete.add(id2);
-		node2.setId(id2);
-
-		results = nodeDao.getEntityHeaderByMd5(fileHandle.getContentMd5());
-		assertNotNull(results);
-		assertEquals(2, results.size());
-		assertEquals(id1, results.get(0).getId());
-		assertEquals(id1, results.get(1).getId());
-
-		// Create a new version of node 2 with file handle
-		final String node2Label2 = "Node 2 version label 2";
-		node2.setVersionLabel(node2Label2);
-		node2.setFileHandleId(fileHandle2.getId());
-		nodeDao.createNewVersion(node2);
-
-		results = nodeDao.getEntityHeaderByMd5(fileHandle.getContentMd5());
-		assertNotNull(results);
-		assertEquals(2, results.size());
-		assertEquals(id1, results.get(0).getId());
-		assertEquals(id1, results.get(1).getId());
-		results = nodeDao.getEntityHeaderByMd5(fileHandle2.getContentMd5());
-		assertNotNull(results);
-		assertEquals(1, results.size());
-		assertEquals(id2, results.get(0).getId());
-		assertEquals(Long.valueOf(2L), results.get(0).getVersionNumber());
+		assertEquals(NodeDAO.NODE_VERSION_LIMIT_BY_FILE_MD5, results.size());
 	}
 	
 	@Test

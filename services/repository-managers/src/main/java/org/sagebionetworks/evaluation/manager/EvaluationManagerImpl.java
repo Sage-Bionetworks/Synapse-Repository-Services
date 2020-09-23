@@ -1,22 +1,37 @@
 package org.sagebionetworks.evaluation.manager;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.dao.EvaluationFilter;
 import org.sagebionetworks.evaluation.dao.EvaluationSubmissionsDAO;
+import org.sagebionetworks.evaluation.dao.SubmissionDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
+import org.sagebionetworks.evaluation.model.EvaluationRoundLimit;
+import org.sagebionetworks.evaluation.model.EvaluationRoundLimitType;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListRequest;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListResponse;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -50,7 +65,12 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	private EvaluationSubmissionsDAO evaluationSubmissionsDAO;
 
 	@Autowired
+	private SubmissionDAO submissionDAO;
+
+	@Autowired
 	private SubmissionEligibilityManager submissionEligibilityManager;
+
+	static final String NON_EXISTENT_ROUND_ID = "-1";
 
 	@Override
 	@WriteTransaction
@@ -96,12 +116,8 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	public Evaluation getEvaluation(UserInfo userInfo, String id)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		EvaluationUtils.ensureNotNull(id, "Evaluation ID");
-		
-		Evaluation evaluation = evaluationDAO.get(id);
-		
-		evaluationPermissionsManager.hasAccess(userInfo, id, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
-		
-		return evaluation;
+
+		return validateEvaluationAccess(userInfo, id, ACCESS_TYPE.READ);
 	}
 	
 	@Override
@@ -147,14 +163,12 @@ public class EvaluationManagerImpl implements EvaluationManager {
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		EvaluationUtils.ensureNotNull(name, "Name");
 		String evalId = evaluationDAO.lookupByName(name);
-		Evaluation eval = evaluationDAO.get(evalId);
-		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized()) {
-			eval = null;
-		}
-		if (eval == null) {
+
+		try {
+			return validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.READ);
+		} catch(NotFoundException | UnauthorizedException e){
 			throw new NotFoundException("No Evaluation found with name " + name);
 		}
-		return eval;
 	}
 	
 	@Override
@@ -163,22 +177,15 @@ public class EvaluationManagerImpl implements EvaluationManager {
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		// validate arguments
 		EvaluationUtils.ensureNotNull(eval, "Evaluation");
-		UserInfo.validateUserInfo(userInfo);
 		final String evalId = eval.getId();
-		
-		// validate permissions
-		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE).isAuthorized()) {
-			throw new UnauthorizedException("User " + userInfo.getId().toString() +
-					" is not authorized to update evaluation " + evalId +
-					" (" + eval.getName() + ")");
-		}
 
 		// fetch the existing Evaluation and validate changes		
-		Evaluation old = evaluationDAO.get(evalId);
-		if (old == null) {
-			throw new NotFoundException("No Evaluation found with id " + eval.getId());
-		}
+		Evaluation old = validateEvaluationAccess(userInfo, evalId,ACCESS_TYPE.UPDATE);
 		validateEvaluation(old, eval);
+		if(eval.getQuota() != null && evaluationDAO.hasEvaluationRounds(evalId)){
+			throw new IllegalArgumentException("A EvaluationRound must not be defined for an Evaluation." +
+					" You must first delete your Evaluation's EvaluationRounds in order to use SubmissionQuota");
+		}
 		
 		// perform the update
 		evaluationDAO.update(eval);
@@ -196,10 +203,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	@WriteTransaction
 	public void deleteEvaluation(UserInfo userInfo, String id) throws DatastoreException, NotFoundException, UnauthorizedException {
 		EvaluationUtils.ensureNotNull(id, "Evaluation ID");
-		UserInfo.validateUserInfo(userInfo);
-		Evaluation eval = evaluationDAO.get(id);
-		if (eval == null) throw new NotFoundException("No Evaluation found with id " + id);
-		evaluationPermissionsManager.hasAccess(userInfo, id, ACCESS_TYPE.DELETE).checkAuthorizationOrElseThrow();
+		validateEvaluationAccess(userInfo, id, ACCESS_TYPE.DELETE);
 		evaluationPermissionsManager.deleteAcl(userInfo, id);
 		// lock out multi-submission access (e.g. batch updates)
 		evaluationSubmissionsDAO.deleteForEvaluation(Long.parseLong(id));
@@ -219,7 +223,187 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	public TeamSubmissionEligibility getTeamSubmissionEligibility(UserInfo userInfo, String evalId, String teamId) throws NumberFormatException, DatastoreException, NotFoundException
 	{
 		evaluationPermissionsManager.canCheckTeamSubmissionEligibility(userInfo,  evalId,  teamId).checkAuthorizationOrElseThrow();
-		return submissionEligibilityManager.getTeamSubmissionEligibility(evaluationDAO.get(evalId), teamId);
+		Date now = new Date();
+		return submissionEligibilityManager.getTeamSubmissionEligibility(evaluationDAO.get(evalId), teamId, now);
+	}
+
+	@WriteTransaction
+	@Override
+	public EvaluationRound createEvaluationRound(UserInfo userInfo, EvaluationRound evaluationRound){
+		// Creating evaluation rounds are seen as updates to the Evaluation itself
+		Evaluation evaluation = validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.UPDATE);
+		validateNoExistingQuotaDefined(evaluation);
+
+		Instant now = Instant.now();
+		// verify start of round
+		// allow 1 second leeway for cases where someone wants to create a round starting "now"
+		if(now.minus(1, ChronoUnit.SECONDS).isAfter(evaluationRound.getRoundStart().toInstant())){
+			throw new IllegalArgumentException("Can not create an EvaluationRound with a start date in the past.");
+		}
+		// verify end of round
+		if( now.isAfter(evaluationRound.getRoundEnd().toInstant()) ){
+			throw new IllegalArgumentException("Can not create an EvaluationRound with an end date in the past.");
+		}
+
+		validateNoDateRangeOverlap(evaluationRound, NON_EXISTENT_ROUND_ID);
+		validateEvaluationRoundLimits(evaluationRound.getLimits());
+
+		evaluationRound.setId(idGenerator.generateNewId(IdType.EVALUATION_ROUND_ID).toString());
+
+
+		return evaluationDAO.createEvaluationRound(evaluationRound);
+	}
+
+	@WriteTransaction
+	@Override
+	public EvaluationRound updateEvaluationRound(UserInfo userInfo, EvaluationRound evaluationRound){
+
+		Evaluation evaluation = validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.UPDATE);
+		validateNoExistingQuotaDefined(evaluation);
+
+		Instant now = Instant.now();
+		EvaluationRound storedRound = evaluationDAO.getEvaluationRound(evaluationRound.getEvaluationId(), evaluationRound.getId());
+		// verify updating start of round
+		if( !storedRound.getRoundStart().equals(evaluationRound.getRoundStart())
+				&& now.isAfter(evaluationRound.getRoundStart().toInstant())
+				&& submissionDAO.hasSubmissionForEvaluationRound(evaluationRound.getEvaluationId(), evaluationRound.getId())){
+				throw new IllegalArgumentException("Can not update an EvaluationRound's start date after it has already started and Submissions have been made");
+		}
+		// verify updating end of round
+		if( !storedRound.getRoundEnd().equals(evaluationRound.getRoundEnd())
+				&& now.isAfter(evaluationRound.getRoundEnd().toInstant()) ){
+			throw new IllegalArgumentException("Can not update an EvaluationRound's end date to a time in the past.");
+		}
+
+		validateNoDateRangeOverlap(evaluationRound, evaluationRound.getId());
+		validateEvaluationRoundLimits(evaluationRound.getLimits());
+
+		evaluationDAO.updateEvaluationRound(evaluationRound);
+		return evaluationDAO.getEvaluationRound(evaluationRound.getEvaluationId(), evaluationRound.getId());
+	}
+
+	@WriteTransaction
+	@Override
+	public void deleteEvaluationRound(UserInfo userInfo, String evaluationId, String evaluationRoundId){
+		// Deleting evaluation rounds are seen as updates to the Evaluation itself
+		validateEvaluationAccess(userInfo, evaluationId, ACCESS_TYPE.UPDATE);
+
+		EvaluationRound round = evaluationDAO.getEvaluationRound(evaluationId, evaluationRoundId);
+		if(Instant.now().isAfter(round.getRoundStart().toInstant())
+			&& submissionDAO.hasSubmissionForEvaluationRound(evaluationId, evaluationRoundId)){
+			throw new IllegalArgumentException("Can not delete an EvaluationRound after it has already started and Submissions have been made");
+		}
+
+		evaluationDAO.deleteEvaluationRound(evaluationId, evaluationRoundId);
+	}
+
+
+	@Override
+	public EvaluationRound getEvaluationRound(UserInfo userInfo, String evaluationId, String evaluationRoundId){
+		validateEvaluationAccess(userInfo, evaluationId, ACCESS_TYPE.READ);
+		return evaluationDAO.getEvaluationRound(evaluationId, evaluationRoundId);
+	}
+
+	@Override
+	public EvaluationRoundListResponse getAllEvaluationRounds(UserInfo userInfo, String evaluationId, EvaluationRoundListRequest request){
+		ValidateArgument.required(request, "request");
+		ValidateArgument.requiredNotBlank(evaluationId, "evaluationId");
+
+		validateEvaluationAccess(userInfo, evaluationId, ACCESS_TYPE.READ);
+
+		NextPageToken nextPageToken = new NextPageToken(request.getNextPageToken());
+
+		List<EvaluationRound> rounds = evaluationDAO.getAssociatedEvaluationRounds(evaluationId, nextPageToken.getLimitForQuery(), nextPageToken.getOffset());
+
+		//build response
+		String newNextPageToken = nextPageToken.getNextPageTokenForCurrentResults(rounds);
+		EvaluationRoundListResponse response = new EvaluationRoundListResponse();
+		response.setNextPageToken(newNextPageToken);
+		response.setPage(rounds);
+
+		return response;
+	}
+
+
+	Evaluation validateEvaluationAccess(UserInfo userInfo, String evaluationId, ACCESS_TYPE accessType){
+		// validate arguments
+		UserInfo.validateUserInfo(userInfo);
+
+		// verify the Evaluation exists
+		// NotFoundError is thrown by DAO if Evaluation does not exist
+		Evaluation eval = evaluationDAO.get(evaluationId);
+
+		// validate permissions
+		if (!evaluationPermissionsManager.hasAccess(userInfo, evaluationId, accessType).isAuthorized()) {
+			throw new UnauthorizedException("User " + userInfo.getId().toString() +
+					" is not authorized to "+ accessType.name() +" evaluation " + evaluationId +
+					" (" + eval.getName() + ")");
+		}
+
+		return eval;
+	}
+
+	void validateNoDateRangeOverlap(EvaluationRound evaluationRound, String currentRoundId){
+		Instant roundStart = evaluationRound.getRoundStart().toInstant();
+		Instant roundEnd = evaluationRound.getRoundEnd().toInstant();
+
+		if(roundStart.isAfter(roundEnd)){
+			throw new IllegalArgumentException("EvaluationRound can not end before it starts");
+		}
+
+		List<EvaluationRound> overlappingRounds = evaluationDAO.overlappingEvaluationRounds(
+				evaluationRound.getEvaluationId(),
+				currentRoundId,
+				// roundStart and roundEnd are guaranteed not null by schema definition
+				roundStart,
+				roundEnd
+		);
+
+		if(!overlappingRounds.isEmpty()){
+			List<String> overlappingRoundIds = overlappingRounds.stream().map(EvaluationRound::getId).collect(Collectors.toList());
+			throw new IllegalArgumentException("This round's date range overlaps with the following round IDs: " + overlappingRoundIds);
+		}
+	}
+
+	/**
+	 * Verifies that the current Evaluation does not have a SubmissionQuota defined.
+	 * SubmissionQuotas and Evaluation rounds are different ways of defining rounds withing an Evaluation,
+	 * and therefore can not be used in conjunction.
+	 *
+	 * The eventual goal is to migrate all round definitions over to the EvaluationRounds
+	 * once all clients have removed support for SubmissionQuotas and added support for EvaluationRounds.
+	 * @param evaluation
+	 * @return
+	 */
+	void validateNoExistingQuotaDefined(Evaluation evaluation){
+		if(evaluation.getQuota() != null){
+			throw new IllegalArgumentException("A SubmissionQuota must not be defined for an Evaluation." +
+					" You must first remove your Evaluation's SubmisisonQuota in order to use EvaluationRounds");
+		}
+	}
+
+	void validateEvaluationRoundLimits(List<EvaluationRoundLimit> evaluationRoundLimits){
+		if(CollectionUtils.isEmpty(evaluationRoundLimits)){
+			// nothing to validate
+			return;
+		}
+
+		Set<EvaluationRoundLimitType> limitTypes = EnumSet.noneOf(EvaluationRoundLimitType.class);
+		for(EvaluationRoundLimit limit : evaluationRoundLimits){
+			if(limit == null){
+				throw new IllegalArgumentException("EvaluationRoundLimit can not be null");
+			}
+
+			EvaluationRoundLimitType limitType = limit.getLimitType();
+			if(limitTypes.contains(limitType)){
+				throw new IllegalArgumentException("You may only have 1 limit of type: " + limitType);
+			}
+			limitTypes.add(limitType);
+
+			if(limit.getMaximumSubmissions() < 0){
+				throw new IllegalArgumentException("maxSubmissions must be a positive integer");
+			}
+		}
 	}
 
 }

@@ -38,7 +38,6 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 	private static final String NONCE = "nonce";
 	// the time window during which the client will consider the returned claims to be valid
 	private static final long ID_TOKEN_EXPIRATION_TIME_SECONDS = 60L; // a minute
-	private static final long ACCESS_TOKEN_EXPIRATION_TIME_SECONDS = 3600*24L; // a day
 	
 	private String oidcSignatureKeyId;
 	private PrivateKey oidcSignaturePrivateKey;
@@ -83,13 +82,14 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 			String tokenId,
 			Map<OIDCClaimName,Object> userInfo) {
 		
-		Claims claims = Jwts.claims();
+		ClaimsWithAuthTime claims = ClaimsWithAuthTime.newClaims();
 		
 		for (OIDCClaimName claimName: userInfo.keySet()) {
 			claims.put(claimName.name(), userInfo.get(claimName));
 		}
 		
-		claims.setIssuer(issuer)
+		claims.setAuthTime(authTime)
+			.setIssuer(issuer)
 			.setAudience(oauthClientId)
 			.setExpiration(new Date(now+ID_TOKEN_EXPIRATION_TIME_SECONDS*1000L))
 			.setNotBefore(new Date(now))
@@ -100,8 +100,6 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ID_TOKEN);
 
 		if (nonce!=null) claims.put(NONCE, nonce);
-		
-		if (authTime!=null) claims.put(OIDCClaimName.auth_time.name(), authTime);
 
 		return createSignedJWT(claims);
 	}
@@ -111,20 +109,22 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 			String issuer,
 			String subject, 
 			String oauthClientId,
-			long now, 
+			long now,
+			long expirationTimeSeconds,
 			Date authTime,
 			String refreshTokenId,
 			String accessTokenId,
 			List<OAuthScope> scopes,
 			Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims) {
 		
-		Claims claims = Jwts.claims();
+		ClaimsWithAuthTime claims = ClaimsWithAuthTime.newClaims();
 		
 		ClaimsJsonUtil.addAccessClaims(scopes, oidcClaims, claims);
 		
-		claims.setIssuer(issuer)
+		claims.setAuthTime(authTime)
+			.setIssuer(issuer)
 			.setAudience(oauthClientId)
-			.setExpiration(new Date(now+ACCESS_TOKEN_EXPIRATION_TIME_SECONDS*1000L))
+			.setExpiration(new Date(now+expirationTimeSeconds*1000L))
 			.setNotBefore(new Date(now))
 			.setIssuedAt(new Date(now))
 			.setId(accessTokenId)
@@ -132,14 +132,13 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 
 		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ACCESS_TOKEN);
 
-		if (authTime!=null) claims.put(OIDCClaimName.auth_time.name(), authTime);
 		if (refreshTokenId!=null) claims.put(OIDCClaimName.refresh_token_id.name(), refreshTokenId);
 		return createSignedJWT(claims);
 	}
 
 	@Override
 	public String createPersonalAccessToken(String issuer, AccessTokenRecord record) {
-		Claims claims = Jwts.claims();
+		ClaimsWithAuthTime claims = ClaimsWithAuthTime.newClaims();
 
 		ClaimsJsonUtil.addAccessClaims(record.getScopes(), EnumKeyedJsonMapUtil.convertKeysToEnums(record.getUserInfoClaims(), OIDCClaimName.class), claims);
 
@@ -161,8 +160,9 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 		String subject = principalId.toString(); // we don't encrypt the subject
 		String oauthClientId = ""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID;
 		String tokenId = UUID.randomUUID().toString();
+		long expirationInSeconds = 60L; // it's for internal use only, just has to last the duration of the current request
 		List<OAuthScope> allScopes = Arrays.asList(OAuthScope.values());  // everything!
-		return createOIDCaccessToken(issuer, subject, oauthClientId, clock.currentTimeMillis(), null,
+		return createOIDCaccessToken(issuer, subject, oauthClientId, clock.currentTimeMillis(), expirationInSeconds, null,
 				null, tokenId, allScopes, Collections.EMPTY_MAP);
 	}
 

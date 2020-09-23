@@ -50,7 +50,7 @@
 		},
 		"quota": {
 			"type":"object",
-			"description":"Maximum submissions per team/participant per submission round",
+			"description":"DEPRECATED: use EvaluationRound API instead. Maximum submissions per team/participant per submission round",
 			"$ref":"org.sagebionetworks.evaluation.model.SubmissionQuota"
 		}
 	}

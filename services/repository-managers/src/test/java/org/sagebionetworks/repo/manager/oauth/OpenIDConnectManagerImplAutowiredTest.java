@@ -174,6 +174,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		assertNotNull(tokenResponse.getAccess_token());
 		assertNotNull(tokenResponse.getId_token());
 		assertNotNull(tokenResponse.getRefresh_token());
+		assertNotNull(tokenResponse.getExpires_in());
 
 		oidcTokenHelper.validateJWT(tokenResponse.getId_token());
 

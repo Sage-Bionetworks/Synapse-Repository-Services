@@ -221,17 +221,17 @@ public class JsonSchemaWorkerIntegrationTest {
 		assertNotNull(schemaBootstrap);
 		printJson(validationSchema);
 		assertNotNull(validationSchema.getDefinitions());
-		assertTrue(validationSchema.getDefinitions().containsKey("my.organization-pets.PetType"));
+		assertTrue(validationSchema.getDefinitions().containsKey("my.organization-pets.PetType-1.0.1"));
 		assertTrue(validationSchema.getDefinitions().containsKey("my.organization-pets.Pet"));
 		assertTrue(validationSchema.getDefinitions().containsKey("my.organization-pets.Pet-1.0.3"));
 		assertTrue(validationSchema.getDefinitions().containsKey("my.organization-pets.dog.Breed"));
 		assertTrue(validationSchema.getDefinitions().containsKey("my.organization-pets.cat.Breed"));
 		assertTrue(validationSchema.getDefinitions().containsKey("my.organization-pets.cat.Cat"));
 		assertTrue(validationSchema.getDefinitions().containsKey("my.organization-pets.dog.Dog"));
-		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.Entity"));
-		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.Versionable"));
-		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.VersionableEntity"));
-		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.FileEntity"));
+		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.Entity-1.0.0"));
+		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.Versionable-1.0.0"));
+		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.VersionableEntity-1.0.0"));
+		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.FileEntity-1.0.0"));
 
 		String validCatJsonString = loadStringFromClasspath("pets/ValidCat.json");
 		JSONObject validCat = new JSONObject(validCatJsonString);

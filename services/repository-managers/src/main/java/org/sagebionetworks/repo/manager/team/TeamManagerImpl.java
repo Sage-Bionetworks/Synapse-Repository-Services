@@ -699,18 +699,44 @@ public class TeamManagerImpl implements TeamManager {
 
 	@Override
 	public String getIconURL(UserInfo userInfo, String teamId) throws NotFoundException {
-		Team team = get(teamId);
-		
-		String fileHandleId = team.getIcon();
-		
-		if (fileHandleId == null) {
-			throw new NotFoundException("Team " + teamId + " has no icon file handle.");
-		}
-		
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(teamId, "teamId");
+
+		String fileHandleId = getFileHandleId(teamId);
+
 		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandleId)
 				.withAssociation(FileHandleAssociateType.TeamAttachment, teamId);
 		
 		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
+	}
+
+	@Override
+	public String getIconPreviewURL(UserInfo userInfo, String teamId) throws NotFoundException {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(teamId, "teamId");
+
+		String fileHandleId = getFileHandleId(teamId);
+		String fileHandlePreviewId = null;
+		try {
+			fileHandlePreviewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
+		} catch(NotFoundException e) {
+			throw new NotFoundException("No preview was found for the icon of the team with id: " + teamId, e);
+		}
+
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandlePreviewId)
+				.withAssociation(FileHandleAssociateType.TeamAttachment, teamId);
+
+		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
+	}
+
+	String getFileHandleId(String teamId) throws NotFoundException {
+		Team team = get(teamId);
+		String fileHandleId = team.getIcon();
+
+		if (fileHandleId == null) {
+			throw new NotFoundException("Team " + team.getId() + " has no icon file handle.");
+		}
+		return fileHandleId;
 	}
 
 	@Override

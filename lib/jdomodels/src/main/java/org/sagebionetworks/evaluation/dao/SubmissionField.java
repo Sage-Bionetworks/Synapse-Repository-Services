@@ -24,6 +24,7 @@ public enum SubmissionField implements DefaultField {
 	status				("STATUS", 			ColumnType.STRING, 		 null, FacetType.enumeration, 	SubmissionStatusEnum.class, AnnotationType.STRING, 	false),
 	// The id of the evaluation that the submission belongs to
 	evaluationid		("EVALUATION_ID", 	ColumnType.EVALUATIONID, null, FacetType.enumeration, 	null, 						AnnotationType.LONG,	false),
+	evaluationroundid 	("EVALUATION_ROUND_ID",	ColumnType.INTEGER,  null, FacetType.enumeration, 	null,  						AnnotationType.LONG, 	true),
 	// The id of the submitter, can be the user or the team id
 	submitterid			("SUBMITTER_ID", 	ColumnType.USERID,		 null, FacetType.enumeration, 	null, 						AnnotationType.LONG, 	false),
 	// The optional submitter alias

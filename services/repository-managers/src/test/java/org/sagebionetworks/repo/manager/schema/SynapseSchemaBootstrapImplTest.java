@@ -292,6 +292,7 @@ public class SynapseSchemaBootstrapImplTest {
 		when(mockTranslator.translate(any())).thenReturn(jsonSchema, jsonSchemaTwo);
 		doNothing().when(bootstrapSpy).registerSchemaIfDoesNotExist(any(),any());
 		doNothing().when(bootstrapSpy).createOrganizationIfDoesNotExist(any());
+		doNothing().when(bootstrapSpy).replaceReferencesWithLatestVersion(any());
 		// call under test
 		bootstrapSpy.bootstrapSynapseSchemas();
 		verify(mockUserManager).getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
@@ -300,6 +301,57 @@ public class SynapseSchemaBootstrapImplTest {
 		verify(mockTranslator).translate(objectSchemaTwo);
 		verify(bootstrapSpy).registerSchemaIfDoesNotExist(admin, jsonSchema);
 		verify(bootstrapSpy).registerSchemaIfDoesNotExist(admin, jsonSchemaTwo);
+		verify(bootstrapSpy).replaceReferencesWithLatestVersion(jsonSchema);
+		verify(bootstrapSpy).replaceReferencesWithLatestVersion(jsonSchemaTwo);
+	}
+	
+	@Test
+	public void testReplaceReferencesWithNoSubSchema() {
+		//call under test
+		bootstrap.replaceReferencesWithLatestVersion(jsonSchema);
+		verify(mockJsonSchemaManager, never()).getLatestVersion(any(), any());
+	}
+	
+	@Test
+	public void testReplaceReferencesWithSubSchemaWithoutReferences() {
+		JsonSchema subSchema = new JsonSchema();
+		subSchema.set$ref(null);
+		subSchema.setDescription("not a $ref");
+		// add a sub schema
+		jsonSchema.setAllOf(Lists.newArrayList(subSchema));
+		//call under test
+		bootstrap.replaceReferencesWithLatestVersion(jsonSchema);
+		verify(mockJsonSchemaManager, never()).getLatestVersion(any(), any());;
+	}
+	
+	@Test
+	public void testReplaceReferencesWithLatestVersionWithSubSchemaWithRefWithVersion() {
+		String sub$ref = "org-sub.name-1.0.1";
+		JsonSchema subSchema = new JsonSchema();
+		subSchema.set$ref(sub$ref);
+		// add a sub schema
+		jsonSchema.setAllOf(Lists.newArrayList(subSchema));
+		//call under test
+		bootstrap.replaceReferencesWithLatestVersion(jsonSchema);
+		verify(mockJsonSchemaManager, never()).getLatestVersion(any(), any());;
+	}
+	
+	@Test
+	public void testReplaceReferencesWithLatestVersion() {
+		String sub$ref = "org-sub.name";
+		JsonSchema subSchema = new JsonSchema();
+		subSchema.set$ref(sub$ref);
+		JsonSchemaVersionInfo versionInfo = new JsonSchemaVersionInfo();
+		String latestSub$id = sub$ref+"-1.0.1";
+		versionInfo.set$id(latestSub$id);
+		when(mockJsonSchemaManager.getLatestVersion(any(), any())).thenReturn(versionInfo);
+		// add a sub schema
+		jsonSchema.setAllOf(Lists.newArrayList(subSchema));
+		//call under test
+		bootstrap.replaceReferencesWithLatestVersion(jsonSchema);
+		verify(mockJsonSchemaManager).getLatestVersion("org", "sub.name");
+		// the $ref should be change to match the latest version
+		assertEquals(jsonSchema.getAllOf().get(0).get$ref(), versionInfo.get$id());
 	}
 
 	public JsonSchema cloneJsonSchema(JsonSchema schema) {

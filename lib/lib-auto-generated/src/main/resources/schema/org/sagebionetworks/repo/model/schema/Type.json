@@ -25,6 +25,10 @@
 		{
 			"name": "string",
             "description":"A string of Unicode code points, from the JSON \"string\" production"
+		},
+		{
+			"name": "integer",
+            "description":"A number with no fractional part (no decimals)."
 		}
 	]
 }
