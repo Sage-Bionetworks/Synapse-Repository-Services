@@ -281,6 +281,10 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		profile.setLocation(null);
 		profile.setCompany(null);
 		profile.setPosition(null);
+		profile.setRStudioUrl(null);
+		profile.setSummary(null);
+		profile.setTeamName(null);
+		profile.setUrl(null);
 		userProfileDAO.update(profile);
 
 		// Reset the password
