@@ -6,11 +6,8 @@
 		<groupId>org.sagebionetworks</groupId>
 		<version>develop-SNAPSHOT</version>
 	</parent>
-
-	<groupId>org.sagebionetworks</groupId>
 	<artifactId>lib-auto-generated</artifactId>
 	<name>lib-auto-generated</name>
-	<version>develop-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<description>This project contains JSON schemas and the POJOs auto-generated from the schemas</description>
 	<build>
