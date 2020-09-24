@@ -3,13 +3,13 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_IS_PREVIEW;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_PREVIEW_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_STORAGE_LOCATION_ID;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -71,9 +71,6 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	private static final String SQL_SELECT_PREVIEW_ID = "SELECT "+COL_FILES_PREVIEW_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
 	private static final String UPDATE_PREVIEW_AND_ETAG = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_PREVIEW_ID+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
 	private static final String UPDATE_MARK_FILE_AS_PREVIEW  = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_IS_PREVIEW+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
-	private static final String UPDATE_STORAGE_LOCATION_ID_BATCH = "UPDATE " + TABLE_FILES + " SET " + COL_FILES_STORAGE_LOCATION_ID + " = :id, " 
-			+ COL_FILES_ETAG + " = UUID() WHERE " + COL_FILES_STORAGE_LOCATION_ID + " IN ( " + IDS_PARAM + " )";
-
 	/**
 	 * Used to detect if a file object already exists.
 	 */
@@ -83,6 +80,12 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			+ COL_FILES_METADATA_TYPE + " = ? AND "
 			+ COL_FILES_BUCKET_NAME + " = ? AND `"
 			+ COL_FILES_KEY + "` = ?";
+	
+	private static final String SQL_IS_MATCHING_MD5 = "SELECT COUNT(S." + COL_FILES_ID + ") > 0"
+			+ " FROM " + TABLE_FILES + " S JOIN " + TABLE_FILES + " T"
+			+ " ON S." + COL_FILES_CONTENT_MD5 + " = T." + COL_FILES_CONTENT_MD5
+			+ " WHERE S." + COL_FILES_ID + "= ?"
+			+ " AND T." + COL_FILES_ID + "= ?";
 	
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
@@ -339,6 +342,11 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 		}
 		basicDao.createBatch(dbos);
+	}
+	
+	@Override
+	public boolean isMatchingMD5(String sourceFileHandleId, String targetFileHandleId) {
+		return jdbcTemplate.queryForObject(SQL_IS_MATCHING_MD5, Boolean.class, sourceFileHandleId, targetFileHandleId);
 	}
 
 	@WriteTransaction

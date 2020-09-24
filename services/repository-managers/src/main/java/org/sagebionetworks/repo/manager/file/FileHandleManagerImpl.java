@@ -1471,4 +1471,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 		return result;
 	}
+	
+	@Override
+	public boolean isMatchingMD5(String sourceFileHandleId, String targetFileHandleId) {
+		ValidateArgument.required(sourceFileHandleId, "The sourceFileHandleId");
+		ValidateArgument.required(targetFileHandleId, "The targetFileHandleId");
+		
+		return fileHandleDao.isMatchingMD5(sourceFileHandleId, targetFileHandleId);
+	}
 }

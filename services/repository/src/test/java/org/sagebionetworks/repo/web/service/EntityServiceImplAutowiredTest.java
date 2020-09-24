@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -38,7 +39,6 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -84,11 +84,12 @@ public class EntityServiceImplAutowiredTest  {
 	
 	private S3FileHandle fileHandle1;
 	private S3FileHandle fileHandle2;
+	private S3FileHandle fileHandle3;
 	
 	private ColumnModel column;
 	
 	@BeforeEach
-	public void before() throws Exception{
+	public void before() throws Exception {
 		toDelete = new LinkedList<String>();
 		// Map test objects to their urls
 		// Make sure we have a valid user.
@@ -126,16 +127,28 @@ public class EntityServiceImplAutowiredTest  {
 		fileHandle2.setConcreteType("text/plain");
 		fileHandle2.setEtag("etag");
 		fileHandle2.setFileName("two.txt");
-		fileHandle2.setContentMd5("md5");
+		fileHandle2.setContentMd5("md52");
 		fileHandle2.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileHandle2.setEtag(UUID.randomUUID().toString());
+		
+		fileHandle3 = new S3FileHandle();
+		fileHandle3.setBucketName("bucket");
+		fileHandle3.setKey("key3");
+		fileHandle3.setCreatedBy(adminUserInfo.getId().toString());
+		fileHandle3.setCreatedOn(new Date());
+		fileHandle3.setContentSize(123l);
+		fileHandle3.setConcreteType("text/plain");
+		fileHandle3.setEtag("etag");
+		fileHandle3.setFileName("three.txt");
+		fileHandle3.setContentMd5(fileHandle1.getContentMd5());
+		fileHandle3.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		fileHandle3.setEtag(UUID.randomUUID().toString());
 
-		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
-		fileHandleToCreate.add(fileHandle1);
-		fileHandleToCreate.add(fileHandle2);
-		fileHandleDao.createBatch(fileHandleToCreate);
+		fileHandleDao.createBatch(Arrays.asList(fileHandle1, fileHandle2, fileHandle3));
+		
 		fileHandle1 = (S3FileHandle) fileHandleDao.get(fileHandle1.getId());
 		fileHandle2 = (S3FileHandle) fileHandleDao.get(fileHandle2.getId());
+		fileHandle3 = (S3FileHandle) fileHandleDao.get(fileHandle3.getId());
 		
 		column = new ColumnModel();
 		column.setColumnType(ColumnType.INTEGER);
@@ -151,12 +164,7 @@ public class EntityServiceImplAutowiredTest  {
 				} catch (Exception e) {	}
 			}
 		}
-		if(fileHandle1 != null){
-			fileHandleDao.delete(fileHandle1.getId());
-		}
-		if(fileHandle2 != null){
-			fileHandleDao.delete(fileHandle2.getId());
-		}
+		fileHandleDao.truncateTable();
 	}
 	
 	/**
@@ -216,6 +224,8 @@ public class EntityServiceImplAutowiredTest  {
 	
 	/**
 	 * PLFM-1744 "Any change to a FileEntity's 'dataFileHandleId' should trigger a new version."
+	 * ...as long as the MD5 does not match (See PLFM-6429)
+	 * 
 	 * @throws NotFoundException 
 	 * @throws UnauthorizedException 
 	 * @throws InvalidModelException 
@@ -238,6 +248,22 @@ public class EntityServiceImplAutowiredTest  {
 		file.setName("newName");
 		file = entityService.updateEntity(adminUserId, file, false, null);
 		assertEquals(new Long(2), file.getVersionNumber(), "A new version should not have been created when a name changed");
+	}
+	
+	// See PLFM-6429
+	@Test
+	public void testUpdateEntityFileHandleNoAutoVersionWhenMD5Matches() throws Exception {
+		FileEntity file = new FileEntity();
+		file.setParentId(project.getId());
+		file.setDataFileHandleId(fileHandle1.getId());
+		file = entityService.createEntity(adminUserId, file, null);
+		assertNotNull(file);
+		assertEquals(1L, file.getVersionNumber(), "Should start off as version one");
+		// Make sure we can update it 
+		file.setDataFileHandleId(fileHandle3.getId());
+		file = entityService.updateEntity(adminUserId, file, false, null);
+		// This should NOT trigger a version change.
+		assertEquals(1L, file.getVersionNumber());
 	}
 
 	@Test

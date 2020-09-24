@@ -18,7 +18,6 @@ import org.junit.Assert;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -38,7 +37,6 @@ import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.PaginatedTeamIds;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
@@ -415,24 +413,6 @@ public class ServletTestHelper {
 				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + entity.getId(), userId, token(userId),
 				entity);
 		ServletTestHelperUtils.addExtraParams(request, extraParams);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return (T) objectMapper.readValue(response.getContentAsString(),
-				entity.getClass());
-	}
-
-	/**
-	 * Update an entity
-	 */
-	@SuppressWarnings("unchecked")
-	public <T extends VersionableEntity> T createNewVersion(
-			HttpServlet dispatchServlet, T entity, Long userId)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + entity.getId()
-						+ UrlHelpers.VERSION, userId, token(userId), entity);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
