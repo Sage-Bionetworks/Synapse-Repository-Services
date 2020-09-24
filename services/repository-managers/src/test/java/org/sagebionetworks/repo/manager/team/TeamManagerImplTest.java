@@ -415,6 +415,18 @@ public class TeamManagerImplTest {
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
 		assertEquals(team, teamManagerImpl.get(TEAM_ID));
 	}
+
+	@Test
+	public void testGetByInvalidId() {
+		String invalidTeamId = "000";
+		NotFoundException ex = new NotFoundException("teamDAO");
+		when(mockTeamDAO.get(invalidTeamId)).thenThrow(ex);
+		NotFoundException exception = Assertions.assertThrows(NotFoundException.class, () -> {
+			teamManagerImpl.get(invalidTeamId);
+		});
+		assertEquals("Team does not exist for teamId: " + invalidTeamId, exception.getMessage());
+		assertEquals(ex, exception.getCause());
+	}
 	
 	@Test
 	public void testGetBatch() {
@@ -1005,6 +1017,8 @@ public class TeamManagerImplTest {
 		assertEquals("Team does not exist for teamId: " + invalidTeamId, exception.getMessage());
 		assertEquals(ex, exception.getCause());
 	}
+
+
 	
 	@Test
 	public void testNoAdmins() {
