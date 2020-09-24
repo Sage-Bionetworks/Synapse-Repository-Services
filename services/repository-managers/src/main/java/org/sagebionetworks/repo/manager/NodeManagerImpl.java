@@ -13,6 +13,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.manager.util.CollectionUtils;
+import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -82,6 +83,8 @@ public class NodeManagerImpl implements NodeManager {
 	private ActivityManager activityManager;
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
+	@Autowired
+	private StsManager stsManager;
 
 	/*
 	 * (non-Javadoc)
@@ -459,6 +462,10 @@ public class NodeManagerImpl implements NodeManager {
 		if (!fileHandleDao.isMatchingMD5(currentFileHandleId, newFileHandleId)) {
 			throw new ConflictingUpdateException("The MD5 of the new file handle does not match the MD5 of the current file handle, a new version must be created.");
 		}
+		
+		final String parentId = nodeDao.getParentId(nodeId);
+		
+		stsManager.validateCanAddFile(userInfo, newFileHandleId, parentId);
 		
 		nodeDao.touch(userInfo.getId(), nodeId);
 		
