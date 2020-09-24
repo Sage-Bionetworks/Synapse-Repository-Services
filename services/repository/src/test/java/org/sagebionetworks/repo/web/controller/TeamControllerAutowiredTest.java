@@ -77,6 +77,7 @@ public class TeamControllerAutowiredTest extends AbstractAutowiredControllerTest
 	public void testGetTeamMembersByInvalidId() throws Exception {
 		String invalidTeamId = "000";
 		NotFoundException exception = Assertions.assertThrows(NotFoundException.class, () -> {
+			// Call under test
 			servletTestHelper.getTeamMembersWithTeamId(dispatchServlet, adminUserId, invalidTeamId);
 		});
 		Assert.assertEquals("{\"reason\":\"Team does not exist for teamId: " + invalidTeamId + "\"}", exception.getMessage());
@@ -86,6 +87,7 @@ public class TeamControllerAutowiredTest extends AbstractAutowiredControllerTest
 	public void testGetTeamMembersByValidId() throws Exception {
 		String expectedResponse = "{\"totalNumberOfResults\":1,\"results\":[{\"teamId\":\"" + teamToDelete.getId() + "\",\"member\":" +
 				"{\"ownerId\":\"1\",\"userName\":\"migrationAdmin\",\"isIndividual\":true},\"isAdmin\":true}]}";
+		// Call under test
 		MockHttpServletResponse response = servletTestHelper.getTeamMembersWithTeamId(dispatchServlet, adminUserId, teamToDelete.getId());
 		Assert.assertEquals(expectedResponse, response.getContentAsString());
 	}

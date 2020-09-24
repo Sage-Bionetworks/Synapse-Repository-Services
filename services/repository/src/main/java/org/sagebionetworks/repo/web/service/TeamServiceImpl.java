@@ -237,7 +237,6 @@ public class TeamServiceImpl implements TeamService {
 		ResponseMessage responseMessage = new ResponseMessage();
 		UserProfile userProfile = userProfileManager.getUserProfile(joinTeamToken.getMemberId());
 		Team team = teamManager.get(joinTeamToken.getTeamId());
-
 		String responseMessageText;
 		if (memberAdded) {
 			responseMessageText = "User "+

@@ -422,6 +422,7 @@ public class TeamManagerImplTest {
 		NotFoundException ex = new NotFoundException("teamDAO");
 		when(mockTeamDAO.get(invalidTeamId)).thenThrow(ex);
 		NotFoundException exception = Assertions.assertThrows(NotFoundException.class, () -> {
+			// Call under test
 			teamManagerImpl.get(invalidTeamId);
 		});
 		assertEquals("Team does not exist for teamId: " + invalidTeamId, exception.getMessage());
@@ -988,6 +989,7 @@ public class TeamManagerImplTest {
 		NotFoundException ex = new NotFoundException("teamDAO");
 		when(mockTeamDAO.get(invalidTeamId)).thenThrow(ex);
 		NotFoundException exception = Assertions.assertThrows(NotFoundException.class, () -> {
+			// Call under test
 			teamManagerImpl.listMembersForPrefix(prefix, invalidTeamId, null, 10L, 0L);
 		});
 		assertEquals("Team does not exist for teamId: " + invalidTeamId, exception.getMessage());
@@ -1000,6 +1002,7 @@ public class TeamManagerImplTest {
 		NotFoundException ex = new NotFoundException("teamDAO");
 		when(mockTeamDAO.get(invalidTeamId)).thenThrow(ex);
 		NotFoundException exception = Assertions.assertThrows(NotFoundException.class, () -> {
+			// Call under test
 			teamManagerImpl.getIconURL(userInfo, invalidTeamId);
 		});
 		assertEquals("Team does not exist for teamId: " + invalidTeamId, exception.getMessage());
@@ -1012,6 +1015,7 @@ public class TeamManagerImplTest {
 		NotFoundException ex = new NotFoundException("teamDAO");
 		when(mockTeamDAO.get(invalidTeamId)).thenThrow(ex);
 		NotFoundException exception = Assertions.assertThrows(NotFoundException.class, () -> {
+			// Call under test
 			teamManagerImpl.listMembers(invalidTeamId, null, 10L, 0L);
 		});
 		assertEquals("Team does not exist for teamId: " + invalidTeamId, exception.getMessage());
