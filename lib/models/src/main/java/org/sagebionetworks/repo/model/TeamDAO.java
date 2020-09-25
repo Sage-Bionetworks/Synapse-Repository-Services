@@ -28,7 +28,7 @@ public interface TeamDAO {
 
 
 	/**
-	 * Checks if team exists, if the team does not exists, throws an exception
+	 * Validates that team exists, if the team does not exist, throws an exception
 	 *
 	 * @param teamId
 	 * @return

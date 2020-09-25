@@ -466,15 +466,12 @@ public class DBOTeamDAOImplTest {
 	@Test
 	public void testValidateTeamExists() {
 		UserGroup group = new UserGroup();
-		group.setIsIndividual(false);
 		group.setId(userGroupDAO.create(group).toString());
 		teamsToDelete.add(group.getId());
 
 		Team team = new Team();
 		Long id = Long.parseLong(group.getId());
 		team.setId("" +id);
-		team.setCreatedOn(new Date());
-		team.setModifiedOn(new Date());
 		teamDAO.create(team);
 		// Call under test
 		teamDAO.validateTeamExists(team.getId());
