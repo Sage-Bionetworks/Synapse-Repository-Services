@@ -193,7 +193,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 				+" FROM "+TeamUtils.ALL_TEAMS_AND_ADMIN_MEMBERS_CORE
 				+" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=:"+COL_GROUP_MEMBERS_MEMBER_ID;
 
-	private static final String SELECT_CHECK_TEAM_EXISTS = "SELECT COUNT(*) FROM " + TABLE_TEAM + " tm WHERE tm." + COL_TEAM_ID + " = ? LIMIT 1";
+	private static final String SELECT_CHECK_TEAM_EXISTS = "SELECT COUNT(*) FROM " + TABLE_TEAM + " WHERE " + COL_TEAM_ID + " = ? LIMIT 1";
 
 	private static final String ORDER_BY_TEAM_NAME = " ORDER BY LOWER(pa." + COL_PRINCIPAL_ALIAS_DISPLAY + ")";
 	private static final String ASC = " ASC ";
