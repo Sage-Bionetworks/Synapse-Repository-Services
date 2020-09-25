@@ -27,7 +27,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE_SUBMISSION;
  */
 public class ModelConstants {
 
-	public static final String VALID_ENTITY_NAME_REGEX = "^[a-zA-Z0-9,_. \\-+()]+";
+	public static final String VALID_ENTITY_NAME_REGEX = "^[a-zA-Z0-9,_. \\-+()']+";
 
 	public static final Set<ACCESS_TYPE> ENTITY_ADMIN_ACCESS_PERMISSIONS =
 			Sets.newHashSet(READ, DOWNLOAD, UPDATE, DELETE, CREATE, CHANGE_PERMISSIONS, CHANGE_SETTINGS, MODERATE);

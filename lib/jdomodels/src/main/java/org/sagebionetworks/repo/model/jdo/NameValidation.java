@@ -41,7 +41,7 @@ public class NameValidation {
 			throw new IllegalArgumentException(
 					"Invalid Name: '"
 							+ key
-							+ "'. Names may only contain: letters, numbers, spaces, underscores, hyphens, periods, plus signs, and parentheses");
+							+ "'. Names may only contain: letters, numbers, spaces, underscores, hyphens, periods, plus signs, apostrophes, and parentheses");
 		}
 		return key;
 	}
