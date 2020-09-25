@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
+import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -327,6 +328,17 @@ public class EntityServiceImpl implements EntityService {
 		fireAfterUpdateEntityEvent(userInfo, updatedEntity, type, wasNewVersionCrated);
 		// Return the updated entity
 		return getEntity(userInfo, entityId, clazz, eventType);
+	}
+	
+	@Override
+	@WriteTransaction
+	public void updateEntityFileHandle(Long userId, String entityId, Long versionNumber, FileHandleUpdateRequest updateRequest)
+			throws NotFoundException, ConflictingUpdateException, UnauthorizedException {
+		ValidateArgument.required(userId, "The user id");
+		
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		
+		entityManager.updateEntityFileHandle(userInfo, entityId, versionNumber, updateRequest);
 	}
 	
 	@WriteTransaction

@@ -421,24 +421,6 @@ public class ServletTestHelper {
 	}
 
 	/**
-	 * Update an entity
-	 */
-	@SuppressWarnings("unchecked")
-	public <T extends VersionableEntity> T createNewVersion(
-			HttpServlet dispatchServlet, T entity, Long userId)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + entity.getId()
-						+ UrlHelpers.VERSION, userId, token(userId), entity);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return (T) objectMapper.readValue(response.getContentAsString(),
-				entity.getClass());
-	}
-
-	/**
 	 * Get all objects of type
 	 */
 	public PaginatedResults<VersionInfo> getAllVersionsOfEntity(

@@ -228,9 +228,11 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 
 		S3FileHandle handleOne = TestUtils.createS3FileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleOne.setKey("EntityControllerTest.testGetFileHandle1");
-
+		handleOne.setContentMd5("md51");
+		
 		S3FileHandle handleTwo = TestUtils.createS3FileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleTwo.setKey("EntityControllerTest.testGetFileHandle2");
+		handleTwo.setContentMd5("md52");
 
 		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
 		fileHandleToCreate.add(handleOne);

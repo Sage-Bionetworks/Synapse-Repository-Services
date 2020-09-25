@@ -9,11 +9,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -33,6 +36,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.manager.util.CollectionUtils;
+import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -51,6 +55,8 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -86,7 +92,11 @@ public class NodeManagerImplUnitTest {
 	private Node mockNode;
 	@Mock
 	private TransactionalMessenger transactionalMessenger;
-
+	@Mock
+	private FileHandleDao mockFileHandleDao;
+	@Mock
+	private StsManager mockStsManager;
+	
 	@InjectMocks
 	private NodeManagerImpl nodeManager = null;
 		
@@ -1381,4 +1391,481 @@ public class NodeManagerImplUnitTest {
 		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		verify(mockNodeDao, never()).getNodeName(anyString());
 	}
+	
+	@Test
+	public void testUpdateNodeFileHandle() {
+		String nodeId = this.nodeId;
+		Long versionNumber = 1L;
+		String oldFileHandleId = "123";
+		String newFileHandleId = "456";
+		
+		FileHandleUpdateRequest updateRequest = new FileHandleUpdateRequest();
+		
+		updateRequest.setOldFileHandleId(oldFileHandleId);
+		updateRequest.setNewFileHandleId(newFileHandleId);
+		
+		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		
+		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.file);
+		when(mockNodeDao.getFileHandleIdForVersion(any(), any())).thenReturn(oldFileHandleId);
+		when(mockFileHandleDao.isMatchingMD5(any(), any())).thenReturn(true);
+		when(mockNodeDao.getParentId(any())).thenReturn(parentId);
+		doNothing().when(mockStsManager).validateCanAddFile(any(), any(), any());
+		when(mockNodeDao.updateRevisionFileHandle(any(), any(), any())).thenReturn(true);
+	
+		// Call under test
+		nodeManager.updateNodeFileHandle(mockUserInfo, nodeId, versionNumber, updateRequest);
+		
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
+		verify(mockAuthManager).canAccessRawFileHandleById(mockUserInfo, newFileHandleId);
+		
+		verify(mockNodeDao).getNodeTypeById(nodeId);
+		verify(mockNodeDao).lockNode(nodeId);
+		verify(mockNodeDao).getFileHandleIdForVersion(nodeId, versionNumber);
+		verify(mockFileHandleDao).isMatchingMD5(oldFileHandleId, newFileHandleId);
+		verify(mockNodeDao).getParentId(nodeId);
+		verify(mockStsManager).validateCanAddFile(mockUserInfo, newFileHandleId, parentId);
+		verify(mockNodeDao).touch(mockUserInfo.getId(), nodeId);
+		verify(mockNodeDao).updateRevisionFileHandle(nodeId, versionNumber, newFileHandleId);
+		
+		verifyNoMoreInteractions(mockAuthManager);
+		verifyNoMoreInteractions(mockNodeDao);
+		verifyNoMoreInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockStsManager);
+		
+	}
+	
+	@Test
+	public void testUpdateNodeFileHandleWithNoReadAccess() {
+		String nodeId = this.nodeId;
+		Long versionNumber = 1L;
+		String oldFileHandleId = "123";
+		String newFileHandleId = "456";
+		
+		FileHandleUpdateRequest updateRequest = new FileHandleUpdateRequest();
+		
+		updateRequest.setOldFileHandleId(oldFileHandleId);
+		updateRequest.setNewFileHandleId(newFileHandleId);
+		
+		when(mockAuthManager.canAccess(any(), any(), any(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.accessDenied("Denied"));
+		
+		String errorMessage = assertThrows(UnauthorizedException.class, () -> {			
+			// Call under test
+			nodeManager.updateNodeFileHandle(mockUserInfo, nodeId, versionNumber, updateRequest);
+		}).getMessage();
+		
+		assertEquals("Denied", errorMessage);
+		
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		
+		verifyNoMoreInteractions(mockAuthManager);
+		verifyNoMoreInteractions(mockNodeDao);
+		verifyNoMoreInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockStsManager);
+	}
+	
+	@Test
+	public void testUpdateNodeFileHandleWithNoUpdateAccess() {
+		String nodeId = this.nodeId;
+		Long versionNumber = 1L;
+		String oldFileHandleId = "123";
+		String newFileHandleId = "456";
+		
+		FileHandleUpdateRequest updateRequest = new FileHandleUpdateRequest();
+		
+		updateRequest.setOldFileHandleId(oldFileHandleId);
+		updateRequest.setNewFileHandleId(newFileHandleId);
+		
+		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccess(any(), any(), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.accessDenied("Denied"));
+		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.file);
+		when(mockNodeDao.getFileHandleIdForVersion(any(), any())).thenReturn(oldFileHandleId);
+		
+		String errorMessage = assertThrows(UnauthorizedException.class, () -> {			
+			// Call under test
+			nodeManager.updateNodeFileHandle(mockUserInfo, nodeId, versionNumber, updateRequest);
+		}).getMessage();
+		
+		assertEquals("Denied", errorMessage);
+		
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+		verify(mockNodeDao).getNodeTypeById(nodeId);
+		verify(mockNodeDao).lockNode(nodeId);
+		verify(mockNodeDao).getFileHandleIdForVersion(nodeId, versionNumber);
+		
+		verifyNoMoreInteractions(mockAuthManager);
+		verifyNoMoreInteractions(mockNodeDao);
+		verifyNoMoreInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockStsManager);
+	}
+	
+	@Test
+	public void testUpdateNodeFileHandleWithNoUploadAccess() {
+		String nodeId = this.nodeId;
+		Long versionNumber = 1L;
+		String oldFileHandleId = "123";
+		String newFileHandleId = "456";
+		
+		FileHandleUpdateRequest updateRequest = new FileHandleUpdateRequest();
+		
+		updateRequest.setOldFileHandleId(oldFileHandleId);
+		updateRequest.setNewFileHandleId(newFileHandleId);
+		
+		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccess(any(), any(), any(), eq(ACCESS_TYPE.UPLOAD))).thenReturn(AuthorizationStatus.accessDenied("Denied"));
+		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.file);
+		when(mockNodeDao.getFileHandleIdForVersion(any(), any())).thenReturn(oldFileHandleId);
+		
+		String errorMessage = assertThrows(UnauthorizedException.class, () -> {			
+			// Call under test
+			nodeManager.updateNodeFileHandle(mockUserInfo, nodeId, versionNumber, updateRequest);
+		}).getMessage();
+		
+		assertEquals("Denied", errorMessage);
+		
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
+		verify(mockNodeDao).getNodeTypeById(nodeId);
+		verify(mockNodeDao).lockNode(nodeId);
+		verify(mockNodeDao).getFileHandleIdForVersion(nodeId, versionNumber);
+		
+		verifyNoMoreInteractions(mockAuthManager);
+		verifyNoMoreInteractions(mockNodeDao);
+		verifyNoMoreInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockStsManager);
+	}
+	
+	@Test
+	public void testUpdateNodeFileHandleWithNoRawFileHandleAccess() {
+		String nodeId = this.nodeId;
+		Long versionNumber = 1L;
+		String oldFileHandleId = "123";
+		String newFileHandleId = "456";
+		
+		FileHandleUpdateRequest updateRequest = new FileHandleUpdateRequest();
+		
+		updateRequest.setOldFileHandleId(oldFileHandleId);
+		updateRequest.setNewFileHandleId(newFileHandleId);
+		
+		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandleById(mockUserInfo, newFileHandleId)).thenReturn(AuthorizationStatus.accessDenied("Denied"));
+		
+		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.file);
+		when(mockNodeDao.getFileHandleIdForVersion(any(), any())).thenReturn(oldFileHandleId);
+		
+		String errorMessage = assertThrows(UnauthorizedException.class, () -> {			
+			// Call under test
+			nodeManager.updateNodeFileHandle(mockUserInfo, nodeId, versionNumber, updateRequest);
+		}).getMessage();
+		
+		assertEquals("Denied", errorMessage);
+		
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
+		verify(mockAuthManager).canAccessRawFileHandleById(mockUserInfo, newFileHandleId);
+		
+		verify(mockNodeDao).getNodeTypeById(nodeId);
+		verify(mockNodeDao).lockNode(nodeId);
+		verify(mockNodeDao).getFileHandleIdForVersion(nodeId, versionNumber);
+		
+		verifyNoMoreInteractions(mockAuthManager);
+		verifyNoMoreInteractions(mockNodeDao);
+		verifyNoMoreInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockStsManager);
+	}
+	
+	@Test
+	public void testUpdateNodeFileHandleWithWrongType() {
+		String nodeId = this.nodeId;
+		Long versionNumber = 1L;
+		String oldFileHandleId = "123";
+		String newFileHandleId = "456";
+		
+		FileHandleUpdateRequest updateRequest = new FileHandleUpdateRequest();
+		
+		updateRequest.setOldFileHandleId(oldFileHandleId);
+		updateRequest.setNewFileHandleId(newFileHandleId);
+		
+		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		
+		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.project);
+		
+		String errorMessage = assertThrows(NotFoundException.class, () -> {			
+			// Call under test
+			nodeManager.updateNodeFileHandle(mockUserInfo, nodeId, versionNumber, updateRequest);
+		}).getMessage();
+		
+		assertEquals("A file entity with id 123 and revision 1 does not exist.", errorMessage);
+		
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		
+		verify(mockNodeDao).getNodeTypeById(nodeId);
+		verify(mockNodeDao).lockNode(nodeId);
+		verify(mockNodeDao).getFileHandleIdForVersion(nodeId, versionNumber);
+		
+		verifyNoMoreInteractions(mockAuthManager);
+		verifyNoMoreInteractions(mockNodeDao);
+		verifyNoMoreInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockStsManager);
+	}
+	
+	@Test
+	public void testUpdateNodeFileHandleWithWrongVersion() {
+		String nodeId = this.nodeId;
+		Long versionNumber = 1L;
+		String oldFileHandleId = "123";
+		String newFileHandleId = "456";
+		
+		FileHandleUpdateRequest updateRequest = new FileHandleUpdateRequest();
+		
+		updateRequest.setOldFileHandleId(oldFileHandleId);
+		updateRequest.setNewFileHandleId(newFileHandleId);
+		
+		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		
+		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.file);
+		when(mockNodeDao.getFileHandleIdForVersion(any(), any())).thenReturn(null);
+		
+		String errorMessage = assertThrows(NotFoundException.class, () -> {			
+			// Call under test
+			nodeManager.updateNodeFileHandle(mockUserInfo, nodeId, versionNumber, updateRequest);
+		}).getMessage();
+		
+		assertEquals("A file entity with id 123 and revision 1 does not exist.", errorMessage);
+		
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		
+		verify(mockNodeDao).getNodeTypeById(nodeId);
+		verify(mockNodeDao).lockNode(nodeId);
+		verify(mockNodeDao).getFileHandleIdForVersion(nodeId, versionNumber);
+		
+		verifyNoMoreInteractions(mockAuthManager);
+		verifyNoMoreInteractions(mockNodeDao);
+		verifyNoMoreInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockStsManager);
+	}
+	
+	@Test
+	public void testUpdateNodeFileHandleWithConflictingFileHandle() {
+		String nodeId = this.nodeId;
+		Long versionNumber = 1L;
+		String oldFileHandleId = "123";
+		String newFileHandleId = "456";
+		
+		FileHandleUpdateRequest updateRequest = new FileHandleUpdateRequest();
+		
+		updateRequest.setOldFileHandleId(oldFileHandleId);
+		updateRequest.setNewFileHandleId(newFileHandleId);
+		
+		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		
+		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.file);
+		when(mockNodeDao.getFileHandleIdForVersion(any(), any())).thenReturn(oldFileHandleId + "_wrong");
+	
+		String errorMessage = assertThrows(ConflictingUpdateException.class, () -> {			
+			// Call under test
+			nodeManager.updateNodeFileHandle(mockUserInfo, nodeId, versionNumber, updateRequest);
+		}).getMessage();
+		
+		assertEquals("The id of the provided file handle id (request.oldFileHandleId: 123) does not match the current file handle id.", errorMessage);
+		
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
+		verify(mockAuthManager).canAccessRawFileHandleById(mockUserInfo, newFileHandleId);
+		
+		verify(mockNodeDao).getNodeTypeById(nodeId);
+		verify(mockNodeDao).lockNode(nodeId);
+		verify(mockNodeDao).getFileHandleIdForVersion(nodeId, versionNumber);
+		
+		verifyNoMoreInteractions(mockAuthManager);
+		verifyNoMoreInteractions(mockNodeDao);
+		verifyNoMoreInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockStsManager);
+	}
+	
+	@Test
+	public void testUpdateNodeFileHandleWithNoChanges() {
+		String nodeId = this.nodeId;
+		Long versionNumber = 1L;
+		String oldFileHandleId = "123";
+		String newFileHandleId = oldFileHandleId;
+		
+		FileHandleUpdateRequest updateRequest = new FileHandleUpdateRequest();
+		
+		updateRequest.setOldFileHandleId(oldFileHandleId);
+		updateRequest.setNewFileHandleId(newFileHandleId);
+		
+		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		
+		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.file);
+		when(mockNodeDao.getFileHandleIdForVersion(any(), any())).thenReturn(oldFileHandleId);
+	
+		// Call under test
+		nodeManager.updateNodeFileHandle(mockUserInfo, nodeId, versionNumber, updateRequest);
+		
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
+		verify(mockAuthManager).canAccessRawFileHandleById(mockUserInfo, newFileHandleId);
+		
+		verify(mockNodeDao).getNodeTypeById(nodeId);
+		verify(mockNodeDao).lockNode(nodeId);
+		verify(mockNodeDao).getFileHandleIdForVersion(nodeId, versionNumber);
+		
+		verifyNoMoreInteractions(mockAuthManager);
+		verifyNoMoreInteractions(mockNodeDao);
+		verifyNoMoreInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockStsManager);
+	}
+	
+	@Test
+	public void testUpdateNodeFileHandleWithMismatchingMD5() {
+		String nodeId = this.nodeId;
+		Long versionNumber = 1L;
+		String oldFileHandleId = "123";
+		String newFileHandleId = "456";
+		
+		FileHandleUpdateRequest updateRequest = new FileHandleUpdateRequest();
+		
+		updateRequest.setOldFileHandleId(oldFileHandleId);
+		updateRequest.setNewFileHandleId(newFileHandleId);
+		
+		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		
+		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.file);
+		when(mockNodeDao.getFileHandleIdForVersion(any(), any())).thenReturn(oldFileHandleId);
+		when(mockFileHandleDao.isMatchingMD5(any(), any())).thenReturn(false);
+		
+		String errorMessage = assertThrows(ConflictingUpdateException.class, () -> {			
+			// Call under test
+			nodeManager.updateNodeFileHandle(mockUserInfo, nodeId, versionNumber, updateRequest);
+		}).getMessage();
+		
+		assertEquals("The MD5 of the new file handle does not match the MD5 of the current file handle, a new version must be created.", errorMessage);
+		
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
+		verify(mockAuthManager).canAccessRawFileHandleById(mockUserInfo, newFileHandleId);
+		
+		verify(mockNodeDao).getNodeTypeById(nodeId);
+		verify(mockNodeDao).lockNode(nodeId);
+		verify(mockNodeDao).getFileHandleIdForVersion(nodeId, versionNumber);
+		verify(mockFileHandleDao).isMatchingMD5(oldFileHandleId, newFileHandleId);
+		
+		verifyNoMoreInteractions(mockAuthManager);
+		verifyNoMoreInteractions(mockNodeDao);
+		verifyNoMoreInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockStsManager);
+	}
+	
+	@Test
+	public void testUpdateNodeFileHandleWithUnsuccessfulUpdate() {
+		String nodeId = this.nodeId;
+		Long versionNumber = 1L;
+		String oldFileHandleId = "123";
+		String newFileHandleId = "456";
+		
+		FileHandleUpdateRequest updateRequest = new FileHandleUpdateRequest();
+		
+		updateRequest.setOldFileHandleId(oldFileHandleId);
+		updateRequest.setNewFileHandleId(newFileHandleId);
+		
+		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		
+		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.file);
+		when(mockNodeDao.getFileHandleIdForVersion(any(), any())).thenReturn(oldFileHandleId);
+		when(mockFileHandleDao.isMatchingMD5(any(), any())).thenReturn(true);
+		when(mockNodeDao.getParentId(any())).thenReturn(parentId);
+		doNothing().when(mockStsManager).validateCanAddFile(any(), any(), any());
+		when(mockNodeDao.updateRevisionFileHandle(any(), any(), any())).thenReturn(false);
+	
+		String errorMesssage = assertThrows(ConflictingUpdateException.class, () -> {			
+			// Call under test
+			nodeManager.updateNodeFileHandle(mockUserInfo, nodeId, versionNumber, updateRequest);
+		}).getMessage();
+		
+		assertEquals("Could not perform the update on node 123 with revision 1", errorMesssage);
+		
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
+		verify(mockAuthManager).canAccessRawFileHandleById(mockUserInfo, newFileHandleId);
+		
+		verify(mockNodeDao).getNodeTypeById(nodeId);
+		verify(mockNodeDao).lockNode(nodeId);
+		verify(mockNodeDao).getFileHandleIdForVersion(nodeId, versionNumber);
+		verify(mockFileHandleDao).isMatchingMD5(oldFileHandleId, newFileHandleId);
+		verify(mockNodeDao).getParentId(nodeId);
+		verify(mockStsManager).validateCanAddFile(mockUserInfo, newFileHandleId, parentId);
+		verify(mockNodeDao).touch(mockUserInfo.getId(), nodeId);
+		verify(mockNodeDao).updateRevisionFileHandle(nodeId, versionNumber, newFileHandleId);
+		
+		verifyNoMoreInteractions(mockAuthManager);
+		verifyNoMoreInteractions(mockNodeDao);
+		verifyNoMoreInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockStsManager);
+		
+	}
+	
+	@Test
+	public void testUpdateNodeFileHandleWithStsValidationFailure() {
+		String nodeId = this.nodeId;
+		Long versionNumber = 1L;
+		String oldFileHandleId = "123";
+		String newFileHandleId = "456";
+		
+		FileHandleUpdateRequest updateRequest = new FileHandleUpdateRequest();
+		
+		updateRequest.setOldFileHandleId(oldFileHandleId);
+		updateRequest.setNewFileHandleId(newFileHandleId);
+		
+		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		
+		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.file);
+		when(mockNodeDao.getFileHandleIdForVersion(any(), any())).thenReturn(oldFileHandleId);
+		when(mockFileHandleDao.isMatchingMD5(any(), any())).thenReturn(true);
+		when(mockNodeDao.getParentId(any())).thenReturn(parentId);
+		
+		IllegalArgumentException expectedException = new IllegalArgumentException("Some STS failure");
+		
+		doThrow(expectedException).when(mockStsManager).validateCanAddFile(any(), any(), any());
+	
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			nodeManager.updateNodeFileHandle(mockUserInfo, nodeId, versionNumber, updateRequest);
+		});
+		
+		assertEquals(expectedException, ex);
+		
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
+		verify(mockAuthManager).canAccessRawFileHandleById(mockUserInfo, newFileHandleId);
+		
+		verify(mockNodeDao).getNodeTypeById(nodeId);
+		verify(mockNodeDao).lockNode(nodeId);
+		verify(mockNodeDao).getFileHandleIdForVersion(nodeId, versionNumber);
+		verify(mockFileHandleDao).isMatchingMD5(oldFileHandleId, newFileHandleId);
+		verify(mockNodeDao).getParentId(nodeId);
+		verify(mockStsManager).validateCanAddFile(mockUserInfo, newFileHandleId, parentId);
+		
+		verifyNoMoreInteractions(mockAuthManager);
+		verifyNoMoreInteractions(mockNodeDao);
+		verifyNoMoreInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockStsManager);
+	}
+	
 }

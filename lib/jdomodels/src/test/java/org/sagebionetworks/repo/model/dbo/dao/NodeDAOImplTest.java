@@ -4408,4 +4408,56 @@ public class NodeDAOImplTest {
 			nodeDao.getEntityIdOfFirstBoundSchema(nodeId);
 		});
 	}
+	
+	@Test
+	public void testUpdateRevisionFileHandle() {
+		Node node = NodeTestUtils.createNew("Node", creatorUserGroupId);
+		node.setNodeType(EntityType.file);
+		node.setFileHandleId(fileHandle.getId());
+		node = nodeDao.createNewNode(node);
+		
+		toDelete.add(node.getId());
+		
+		String nodeId = node.getId();
+		Long versionNumber = node.getVersionNumber();
+		String newFileHandleId = fileHandle2.getId();
+		
+		// Call under test
+		boolean result = nodeDao.updateRevisionFileHandle(nodeId, versionNumber, newFileHandleId);
+		
+		assertTrue(result);
+	}
+	
+	@Test
+	public void testUpdateRevisionFileHandleWithNonExistingNode() {
+		
+		String nodeId = "123";
+		Long versionNumber = 2L;
+		String newFileHandleId = fileHandle2.getId();
+		
+		// Call under test
+		boolean result = nodeDao.updateRevisionFileHandle(nodeId, versionNumber, newFileHandleId);
+		
+		assertFalse(result);
+	}
+	
+	@Test
+	public void testUpdateRevisionFileHandleWithNonExistingRevision() {
+		
+		Node node = NodeTestUtils.createNew("Node", creatorUserGroupId);
+		node.setNodeType(EntityType.file);
+		node.setFileHandleId(fileHandle.getId());
+		node = nodeDao.createNewNode(node);
+		
+		toDelete.add(node.getId());
+		
+		String nodeId = node.getId();
+		Long versionNumber = node.getVersionNumber() + 1;
+		String newFileHandleId = fileHandle2.getId();
+		
+		// Call under test
+		boolean result = nodeDao.updateRevisionFileHandle(nodeId, versionNumber, newFileHandleId);
+		
+		assertFalse(result);
+	}
 }
