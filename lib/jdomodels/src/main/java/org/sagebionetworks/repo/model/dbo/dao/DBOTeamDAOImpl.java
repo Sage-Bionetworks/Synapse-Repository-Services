@@ -36,7 +36,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -194,7 +193,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 				+" FROM "+TeamUtils.ALL_TEAMS_AND_ADMIN_MEMBERS_CORE
 				+" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=:"+COL_GROUP_MEMBERS_MEMBER_ID;
 
-	private static final String SELECT_CHECK_TEAM_EXISTS = "SELECT 1 FROM " + TABLE_TEAM + " WHERE " + COL_TEAM_ID + " = ?";
+	private static final String SELECT_CHECK_TEAM_EXISTS = "SELECT COUNT(*) FROM " + TABLE_TEAM + " tm WHERE tm." + COL_TEAM_ID + " = ? LIMIT 1";
 
 	private static final String ORDER_BY_TEAM_NAME = " ORDER BY LOWER(pa." + COL_PRINCIPAL_ALIAS_DISPLAY + ")";
 	private static final String ASC = " ASC ";
@@ -320,10 +319,11 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		return dto;
 	}
 
-	public Optional<Long> checkTeamExists(String teamId) throws DatastoreException, NotFoundException {
+	public void validateTeamExists(String teamId) throws DatastoreException, NotFoundException {
 		Long exists = jdbcTemplate.queryForObject(SELECT_CHECK_TEAM_EXISTS, Long.class, teamId);
-		Optional<Long> count = Optional.of(exists);
-        return count;
+		if (exists == 0) {
+			throw new NotFoundException("Team does not exist for teamId: " + teamId);
+		}
 	}
 	
 	@Override

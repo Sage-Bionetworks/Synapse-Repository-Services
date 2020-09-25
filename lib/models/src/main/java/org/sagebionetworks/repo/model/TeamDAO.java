@@ -5,7 +5,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 public interface TeamDAO {
@@ -29,14 +28,14 @@ public interface TeamDAO {
 
 
 	/**
-	 * Returns an Optional of type Long, if there is no Long value present the team does not exist
+	 * Checks if team exists, if the team does not exists, throws an exception
 	 *
 	 * @param teamId
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public Optional<Long> checkTeamExists(String teamId) throws DatastoreException, NotFoundException;
+	public void validateTeamExists(String teamId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * 

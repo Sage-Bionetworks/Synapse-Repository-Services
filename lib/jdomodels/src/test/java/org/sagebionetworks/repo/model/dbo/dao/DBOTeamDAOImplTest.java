@@ -1,26 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -45,9 +29,26 @@ import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOTeamDAOImplTest {
 	
@@ -73,7 +74,7 @@ public class DBOTeamDAOImplTest {
 	private String aclToDelete;
 	private List<String> usersToDelete;
 
-	@Before
+	@BeforeEach
 	public void setup() {
 		List<Team> teams = teamDAO.getInRange(1000, 0);
 		for (Team team : teams) {
@@ -83,7 +84,7 @@ public class DBOTeamDAOImplTest {
 		usersToDelete = new ArrayList<>();
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
 		if (aclToDelete!=null) aclDAO.delete(aclToDelete, ObjectType.TEAM);
 		for (String teamId : teamsToDelete) {
@@ -219,7 +220,6 @@ public class DBOTeamDAOImplTest {
 		assertTrue(teamDAO.listMembers(Collections.singletonList(Long.parseLong(team.getId())), Collections.emptyList()).getList().isEmpty());
 	}
 
-
 	@Test
 	public void testAddRemoveUser(){
 		Team team = createTeam("Test Add Remove User Team");
@@ -349,10 +349,10 @@ public class DBOTeamDAOImplTest {
 		for (Team t : expectedAllTeamsAndMembers.keySet()) {
 			Collection<TeamMember> expectedTeamMembers = expectedAllTeamsAndMembers.get(t);
 			Collection<TeamMember> actualTeamMembers = actualAllTeamsAndMembers.get(t);
-			assertNotNull("Missing key "+t, actualTeamMembers);
+			Assertions.assertNotNull(actualTeamMembers, "Missing key "+t);
 			assertEquals(expectedTeamMembers.size(), actualTeamMembers.size());
 			for (TeamMember m : expectedTeamMembers) {
-				assertTrue("expected "+m+" but found "+actualTeamMembers, actualTeamMembers.contains(m));
+				Assertions.assertTrue(actualTeamMembers.contains(m), "expected "+m+" but found "+actualTeamMembers);
 			}
 		}
 	}
@@ -399,7 +399,6 @@ public class DBOTeamDAOImplTest {
 
 		return user;
 	}
-
 
 	@Test
 	public void testGetIdsForMemberNoOrder() {
@@ -462,6 +461,34 @@ public class DBOTeamDAOImplTest {
 		} catch (IllegalArgumentException e) {
 			// As expected
 		}
+	}
+
+	@Test
+	public void testValidateTeamExists() {
+		UserGroup group = new UserGroup();
+		group.setIsIndividual(false);
+		group.setId(userGroupDAO.create(group).toString());
+		teamsToDelete.add(group.getId());
+
+		Team team = new Team();
+		Long id = Long.parseLong(group.getId());
+		team.setId("" +id);
+		team.setCreatedOn(new Date());
+		team.setModifiedOn(new Date());
+		teamDAO.create(team);
+		// Call under test
+		teamDAO.validateTeamExists(team.getId());
+	}
+
+	@Test
+	public void testValidateTeamExistsNotFound() {
+		String invalidTeamId = "404";
+		String expected = "Team does not exist for teamId: " + invalidTeamId;
+		NotFoundException exception = Assertions.assertThrows(NotFoundException.class, () -> {
+			// Call under test
+			teamDAO.validateTeamExists(invalidTeamId);
+		});
+		Assertions.assertEquals(expected, exception.getMessage());
 	}
 
 	private Team createTeam(String teamName) {

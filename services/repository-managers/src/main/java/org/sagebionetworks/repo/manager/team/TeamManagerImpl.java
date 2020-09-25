@@ -71,7 +71,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -337,10 +336,7 @@ public class TeamManagerImpl implements TeamManager {
 	@Override
 	public PaginatedResults<TeamMember> listMembers(String teamId, TeamMemberTypeFilterOptions memberType, long limit,
 			long offset) throws DatastoreException, NotFoundException {
-		Optional<Long> exists = teamDAO.checkTeamExists(teamId);
-		if (!exists.isPresent()){
-			throw new NotFoundException("Team does not exist for teamId: " + teamId);
-		}
+		teamDAO.validateTeamExists(teamId);
 		List<TeamMember> results;
 		Set<Long> adminIds = teamDAO.getAdminTeamMemberIds(teamId).stream().map(Long::valueOf).collect(Collectors.toSet());
 		switch (memberType) {
@@ -373,10 +369,7 @@ public class TeamManagerImpl implements TeamManager {
 	public PaginatedResults<TeamMember> listMembersForPrefix(String fragment, String teamId,
 															 TeamMemberTypeFilterOptions memberType,
 															 long limit, long offset) throws DatastoreException, NotFoundException {
-		Optional<Long> exists = teamDAO.checkTeamExists(teamId);
-		if (!exists.isPresent()){
-			throw new NotFoundException("Team does not exist for teamId: " + teamId);
-		}
+		teamDAO.validateTeamExists(teamId);
 		List<Long> prefixMemberIds;
 		switch (memberType) {
 			case ADMIN:
