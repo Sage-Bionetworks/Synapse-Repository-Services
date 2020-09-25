@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyListOf;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -69,10 +68,10 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.dbo.schema.EntitySchemaValidationResultDao;
-import org.sagebionetworks.repo.model.dbo.schema.SchemaValidationResultDao;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
+import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
@@ -87,7 +86,6 @@ import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -1191,6 +1189,22 @@ public class EntityManagerImplUnitTest {
 			// call under test
 			entityManagerSpy.getInvalidEntitySchemaValidationResults(mockUser, request);
 		});
+	}
+	
+	@Test
+	public void testUpdateEntityFileHandle() {
+		Long versionNumber = 1L;
+		
+		FileHandleUpdateRequest updateRequest = new FileHandleUpdateRequest();
+		updateRequest.setOldFileHandleId("123");
+		updateRequest.setNewFileHandleId("456");
+		
+		doNothing().when(mockNodeManager).updateNodeFileHandle(any(), any(), any(), any());
+		
+		// Call under test
+		entityManager.updateEntityFileHandle(mockUser, entityId, versionNumber, updateRequest);
+		
+		verify(mockNodeManager).updateNodeFileHandle(mockUser, entityId, versionNumber, updateRequest);
 	}
 	
 	static public List<ValidationResults> createValidationResultsListOfSize(int size){

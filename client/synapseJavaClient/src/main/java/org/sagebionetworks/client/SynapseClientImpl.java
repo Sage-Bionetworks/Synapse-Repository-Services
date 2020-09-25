@@ -161,6 +161,7 @@ import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
+import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
@@ -5920,6 +5921,19 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(request.getContainerId(), "request.containerId");
 		String url = "/entity/"+request.getContainerId()+"/schema/validation/invalid";
 		return postJSONEntity(getRepoEndpoint(), url, request, ListValidationResultsResponse.class);
+	}
+	
+	@Override
+	public void updateEntityFileHandle(String entityId, Long versionNumber, FileHandleUpdateRequest request)
+			throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(versionNumber, "versionNumber");
+		ValidateArgument.required(request, "request");
+		
+		String url = "/entity/" + entityId + "/version/" + versionNumber + "/filehandle";
+		
+		voidPut(getRepoEndpoint(), url, request);
+		
 	}
 
 }

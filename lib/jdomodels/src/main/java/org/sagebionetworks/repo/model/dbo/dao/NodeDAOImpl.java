@@ -423,6 +423,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 	private static final String SQL_STRING_CONTAINERS_TYPES = String.join(",", "'" + EntityType.project.name() + "'", "'" + EntityType.folder.name() + "'");
 
+	private static final String UPDATE_REVISION_FILE_HANDLE = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_FILE_HANDLE_ID
+			+ " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
+	
 	// Track the trash folder.
 	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
 
@@ -946,6 +949,19 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		// Update the revision
 		this.jdbcTemplate.update(UPDATE_REVISION, newActivity, newComment, newLabel, newFileHandleId, newColumns,
 				newScope, newReferences, nodeId, currentRevision);
+	}
+	
+	@Override
+	@WriteTransaction
+	public boolean updateRevisionFileHandle(String nodeId, Long versionNumber, String fileHandleId) {
+		ValidateArgument.required(nodeId, "The nodeId");
+		ValidateArgument.required(versionNumber, "The versionNumber");
+		ValidateArgument.required(fileHandleId, "The fileHandleId");
+		
+		final Long nodeIdLong = KeyFactory.stringToKey(nodeId);
+		final Long fileHandleIdLong = NodeUtils.translateFileHandleId(fileHandleId);
+		
+		return jdbcTemplate.update(UPDATE_REVISION_FILE_HANDLE, fileHandleIdLong, nodeIdLong, versionNumber) > 0;
 	}
 
 	@WriteTransaction

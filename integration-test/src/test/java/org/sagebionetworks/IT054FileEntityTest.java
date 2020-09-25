@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
@@ -346,6 +347,40 @@ public class IT054FileEntityTest {
 		assertNotNull(summary.getPage());
 		assertEquals(1, summary.getPage().size());
 		assertEquals(order.getOrderId(), summary.getPage().get(0).getOrderId());
+	}
+	
+	@Test
+	public void testUpdateFileHandle() throws Exception {
+		// Make a copy of the file handle
+		BatchFileHandleCopyRequest batch = new BatchFileHandleCopyRequest();
+		batch.setCopyRequests(new ArrayList<>());
+
+
+		FileHandleCopyRequest copyRequest = new FileHandleCopyRequest();
+		copyRequest.setOriginalFile(association);
+		copyRequest.setNewFileName("NewFileName");
+		
+		batch.getCopyRequests().add(copyRequest);
+
+		FileHandleCopyResult copyResult = synapse.copyFileHandles(batch).getCopyResults().get(0);
+		
+		String newFileHandleId = copyResult.getNewFileHandle().getId();
+		String oldFileHandleId = file.getDataFileHandleId();
+		
+		FileHandleUpdateRequest request = new FileHandleUpdateRequest();
+		
+		request.setOldFileHandleId(oldFileHandleId);
+		request.setNewFileHandleId(newFileHandleId);
+		
+		Long currentVersion = file.getVersionNumber();
+		
+		synapse.updateEntityFileHandle(file.getId(), file.getVersionNumber(), request);
+		
+		file = synapse.getEntity(file.getId(), FileEntity.class);
+
+		assertEquals(currentVersion, file.getVersionNumber());
+		assertEquals(newFileHandleId, file.getDataFileHandleId());
+
 	}
 
 	/**

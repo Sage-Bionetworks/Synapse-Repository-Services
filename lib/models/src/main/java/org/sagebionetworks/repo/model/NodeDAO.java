@@ -648,4 +648,14 @@ public interface NodeDAO {
 	 */
 	public Long getEntityIdOfFirstBoundSchema(Long entityId);
 
+	/**
+	 * Updates the file handle of the node with the given id and version
+	 * 
+	 * @param nodeId The id of the node to update
+	 * @param versionNumber The version number of the node
+	 * @param fileHandleId The new file handle id
+	 * @return True if the node was updated, false otherwise
+	 */
+	boolean updateRevisionFileHandle(String nodeId, Long versionNumber, String fileHandleId);
+
 }

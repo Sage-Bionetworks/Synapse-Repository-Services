@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.dbo.schema.EntitySchemaValidationResultDao
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
+import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
@@ -347,6 +348,14 @@ public class EntityManagerImpl implements EntityManager {
 		// Now update both at the same time
 		nodeManager.update(userInfo, node, entityPropertyAnnotations, newVersionFinal);
 		return newVersionFinal;
+	}
+	
+	@Override
+	@WriteTransaction
+	public void updateEntityFileHandle(UserInfo userInfo, String entityId, Long versionNumber,
+			FileHandleUpdateRequest updateRequest)
+			throws NotFoundException, ConflictingUpdateException, UnauthorizedException {
+		nodeManager.updateNodeFileHandle(userInfo, entityId, versionNumber, updateRequest);
 	}
 
 	/**
