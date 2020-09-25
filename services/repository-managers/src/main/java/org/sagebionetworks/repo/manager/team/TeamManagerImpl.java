@@ -726,6 +726,7 @@ public class TeamManagerImpl implements TeamManager {
 	}
 
 	String getFileHandleId(String teamId) throws NotFoundException {
+		teamDAO.validateTeamExists(teamId);
 		Team team = get(teamId);
 		String fileHandleId = team.getIcon();
 

@@ -991,6 +991,16 @@ public class TeamManagerImplTest {
 	}
 
 	@Test
+	public void testGetFileHandleIdCheckTeamExists() {
+		Team team = new Team();
+		team.setIcon("filehandleIcon");
+		team.setId(TEAM_ID);
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+		teamManagerImpl.getFileHandleId(TEAM_ID);
+		verify(mockTeamDAO).validateTeamExists(TEAM_ID);
+	}
+
+	@Test
 	public void testNoAdmins() {
 		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(Collections.EMPTY_LIST);
 
