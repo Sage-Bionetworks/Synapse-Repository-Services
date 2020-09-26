@@ -248,7 +248,7 @@ public class SchemaUtils {
 	 * @param schema
 	 * @return
 	 */
-	public static ObjectSchemaModel translateToModel(ObjectSchema schema, List<TypeReference> knownImplementaions) {
+	public static ObjectSchemaModel translateToModel(ObjectSchema schema, List<TypeReference> knownImplementations) {
 		ObjectSchemaModel results = new ObjectSchemaModel();
 		results.setDescription(schema.getDescription());
 		results.setEffectiveSchema(schema.getSchema());
@@ -279,8 +279,19 @@ public class SchemaUtils {
 				enumValues.add(en);
 			}
 		}
-		results.setKnownImplementations(knownImplementaions);
-		results.setIsInterface(knownImplementaions != null);
+		results.setKnownImplementations(knownImplementations);
+		results.setIsInterface(knownImplementations != null);
+		
+		if (results.getIsInterface() && schema.getDefaultConcreteType() != null && knownImplementations != null) {
+			knownImplementations
+				.stream()
+				.filter(typeReference -> schema.getDefaultConcreteType().equals(typeReference.getId()))
+				.findFirst()
+				.ifPresent(defaultImplementation -> {
+					results.setDefaultImplementation(defaultImplementation);
+				});
+		}
+		
 		return results;
 	}
 	
@@ -315,7 +326,7 @@ public class SchemaUtils {
 		} else if (TYPE.TUPLE_ARRAY_MAP == type.getType() || TYPE.MAP == type.getType()) {
 			isMap = true;
 		}
-		return new TypeReference(isArray, isUnique, isMap, display, href);
+		return new TypeReference(type.getId(), isArray, isUnique, isMap, display, href);
 	}
 	
 	/**
