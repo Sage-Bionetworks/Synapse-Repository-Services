@@ -87,8 +87,6 @@ public class EntityControllerTest extends AbstractAutowiredControllerJunit5TestB
 		handleOne = TestUtils.createS3FileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleOne.setBucketName(S3_BUCKET_NAME);
 		handleOne.setKey("EntityControllerTest.mainFileKey");
-		handleOne.setContentMd5("MD51");
-		
 		// Create a preview
 		previewOne = TestUtils.createPreviewFileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		previewOne.setBucketName(S3_BUCKET_NAME);
@@ -98,8 +96,6 @@ public class EntityControllerTest extends AbstractAutowiredControllerJunit5TestB
 		handleTwo = TestUtils.createS3FileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleTwo.setBucketName(S3_BUCKET_NAME);
 		handleTwo.setKey("EntityControllerTest.mainFileKeyTwo");
-		handleTwo.setContentMd5("MD52");
-		
 		// Create a preview
 		previewTwo = TestUtils.createPreviewFileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		previewTwo.setBucketName(S3_BUCKET_NAME);
@@ -404,7 +400,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerJunit5TestB
 		file.setDataFileHandleId(handleTwo.getId());
 		file.setVersionComment("V2 comment");
 		file.setVersionLabel("V2");
-		file = (FileEntity) entityServletHelper.updateEntity(file, adminUserId);
+		file = (FileEntity) entityServletHelper.createNewVersion(adminUserId, file);
 		// Validate we are on V3
 		assertEquals(new Long(2), file.getVersionNumber());
 		// First get the URL for the current version

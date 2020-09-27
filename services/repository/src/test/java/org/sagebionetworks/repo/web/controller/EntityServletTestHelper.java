@@ -367,6 +367,22 @@ public class EntityServletTestHelper {
 				response.getContentAsString(), ObjectSchemaImpl.class);
 	}
 
+	/**
+	 * Creates a new version of an entity
+	 */
+	public VersionableEntity createNewVersion(Long userId, VersionableEntity entity)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + entity.getId()
+						+ "/version", userId, token(userId), entity);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), VersionableEntity.class);
+	}
+
 	// ///////////////////////
 	// Evaluation Services //
 	// ///////////////////////
