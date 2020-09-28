@@ -1,11 +1,14 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -13,9 +16,10 @@ import java.util.Map;
 
 import javax.servlet.ServletException;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -30,6 +34,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -55,7 +60,6 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.SubmissionView;
-import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -67,7 +71,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * 
  */
 
-public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredControllerJunit5TestBase {
+public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredControllerTestBase {
 
 	// Used for cleanup
 	@Autowired
@@ -101,11 +105,9 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 	private List<String> toDelete;
 	S3FileHandle handleOne;
 	ColumnModel columnModelOne;
-	
-	Map<String, String> newVersionParams = Collections.singletonMap("newVersion", "true");
 
 
-	@BeforeEach
+	@Before
 	public void before() throws DatastoreException, NotFoundException {
 		assertNotNull(entityController);
 		toDelete = new ArrayList<String>();
@@ -140,7 +142,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		columnModelOne = columnModelDao.createColumnModel(columnModelOne);
 	}
 
-	@AfterEach
+	@After
 	public void after() throws Exception {
 		if (entityController != null && toDelete != null) {
 			UserInfo userInfo = userManager.getUserInfo(userId);
@@ -455,11 +457,10 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		List<Entity> created = createEntitesOfEachType(1);
 		assertNotNull(created);
 		assertTrue(created.size() >= EntityType.values().length);
-		
 		// Now update each
 		for(Entity entity: created){
 			// Cannot directly create version of tables or views
-			if(entity instanceof Table) {
+			if(entity instanceof TableEntity || entity instanceof EntityView || entity instanceof SubmissionView) {
 				continue;
 			}
 			// We can only create new versions for versionable entities.
@@ -472,7 +473,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				// We must give it a new version label or it will fail
 				versionableEntity.setVersionLabel("1.1.99");
 				versionableEntity.setVersionComment("Testing the DefaultController.createNewVersion()");
-				VersionableEntity newVersion = servletTestHelper.updateEntity(dispatchServlet, versionableEntity, userId, newVersionParams);
+				VersionableEntity newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
 				assertNotNull(newVersion);
 				// Make sure we have a new version number.
 				assertEquals(new Long(2), newVersion.getVersionNumber());
@@ -488,7 +489,6 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		List<Entity> created = createEntitesOfEachType(1);
 		assertNotNull(created);
 		assertTrue(created.size() >= EntityType.values().length);
-		
 		// Now update each
 		for(Entity entity: created){
 			// Cannot directly create version of tables or views
@@ -503,7 +503,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				// We must give it a new version label or it will fail
 				versionableEntity.setVersionLabel("1.1.99");
 				versionableEntity.setVersionComment("Testing the DefaultController.testGetVersion()");
-				VersionableEntity newVersion = servletTestHelper.updateEntity(dispatchServlet, versionableEntity, userId, newVersionParams);
+				VersionableEntity newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
 				assertNotNull(newVersion);
 				// Make sure we have a new version number.
 				assertEquals(new Long(2), newVersion.getVersionNumber());
@@ -530,7 +530,6 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		List<Entity> created = createEntitesOfEachType(1);
 		assertNotNull(created);
 		assertTrue(created.size() >= EntityType.values().length);
-		
 		// Now update each
 		int numberVersion = 4;
 		for(Entity entity: created){
@@ -547,7 +546,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 					versionableEntity = servletTestHelper.getEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), userId);
 					versionableEntity.setVersionLabel("1.1."+i);
 					versionableEntity.setVersionComment("Comment: "+i);
-					servletTestHelper.updateEntity(dispatchServlet, versionableEntity, userId, newVersionParams);
+					servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
 				}
 				long currentVersion = numberVersion+1;
 				long previousVersion = currentVersion-1;
@@ -586,7 +585,6 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		List<Entity> created = createEntitesOfEachType(1);
 		assertNotNull(created);
 		assertTrue(created.size() >= EntityType.values().length);
-		
 		// Now update each
 		for(Entity entity: created){
 			// Cannot directly create version of tables or views
@@ -610,7 +608,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				versionableEntity = servletTestHelper.getEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), userId);
 				versionableEntity.setVersionLabel("1.1.80");
 				versionableEntity.setVersionComment("Testing the DefaultController.EntityAnnotationsForVersion()");
-				VersionableEntity newVersion = servletTestHelper.updateEntity(dispatchServlet, versionableEntity, userId, newVersionParams);
+				VersionableEntity newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
 				assertNotNull(newVersion);
 				
 				// Make sure the new version has the annotations
@@ -660,7 +658,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				versionableEntity = servletTestHelper.getEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), userId);
 				versionableEntity.setVersionLabel("1.1.80");
 				versionableEntity.setVersionComment("Testing the DefaultController.testDeleteVersion()");
-				VersionableEntity newVersion = servletTestHelper.updateEntity(dispatchServlet, versionableEntity, userId, newVersionParams);
+				VersionableEntity newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
 				assertNotNull(newVersion);
 				
 				// There should be two versions
