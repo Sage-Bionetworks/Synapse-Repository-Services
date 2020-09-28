@@ -1,13 +1,23 @@
 {
-	"description": "A single pre-signed URL for uploading a part of a multi-part file.",
+	"description": "A single pre-signed URL for uploading or coping a part of a multi-part request.",
 	"properties": {
 		"partNumber": {
 			"type": "integer",
 			"description": "The part number matching this pre-signed URL."
 		},
 		"uploadPresignedUrl": {
-			"description": "A pre-signed URL to upload a part of multi-part file upload.  The part should be uploaded as an HTTP PUT using this URL. Each URL will expire after 15 minutes.",
+			"description": "A pre-signed URL to upload or copy a part of multi-part request.  The part should be uploaded or copied as an HTTP PUT using this URL. Each URL will expire after 15 minutes. Any header in the returned requestHeader map must be included in the request.",
 			"type": "string"
+		},
+		"requestHeaders": {
+			"description": "A key/value pair map of additional headers that must be included in the PUT request for the request to suceed.",
+			"type":"tuplearraymap",
+			"key":{
+				"type": "string"
+			},
+		   	"value":{
+				"type": "string"
+			}
 		}
 	}
 }
