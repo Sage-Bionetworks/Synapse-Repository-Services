@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -60,10 +61,12 @@ import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -613,6 +616,65 @@ public class EntityController {
 			@RequestBody Annotations updatedAnnotations, HttpServletRequest request) throws ConflictingUpdateException,
 			NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		return serviceProvider.getEntityService().updateEntityAnnotations(userId, id, updatedAnnotations);
+	}
+
+	/**
+	 * This is a duplicate method to update.
+	 * 
+	 * @param userId
+	 * @param generatedBy
+	 * @param header
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws ConflictingUpdateException
+	 * @throws JSONObjectAdapterException
+	 */
+	@Deprecated
+	@RequiredScope({ view, modify })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION }, method = RequestMethod.PUT)
+	public @ResponseBody Versionable createNewVersion(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
+			@RequestHeader HttpHeaders header, HttpServletRequest request)
+			throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, IOException,
+			ConflictingUpdateException, JSONObjectAdapterException {
+
+		// This is simply an update with a new version created.
+		return (Versionable) updateEntityImpl(userId, header, true, generatedBy, request);
+	}
+
+	/**
+	 * This is a duplicate of update and will be removed.
+	 * 
+	 * @param header
+	 * @param etag
+	 * @param newVersion - Should a new version be created to do this update?
+	 * @param request
+	 * @return
+	 * @throws IOException
+	 * @throws NotFoundException
+	 * @throws ConflictingUpdateException
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 */
+	@Deprecated
+	@RequiredScope({ view, modify })
+	private Entity updateEntityImpl(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			HttpHeaders header, boolean newVersion, String activityId, HttpServletRequest request)
+			throws IOException, NotFoundException, ConflictingUpdateException, DatastoreException,
+			InvalidModelException, UnauthorizedException, JSONObjectAdapterException {
+		Entity entity = JSONEntityHttpMessageConverter.readEntity(request.getReader());
+		// validate the entity
+		entity = serviceProvider.getEntityService().updateEntity(userId, entity, newVersion, activityId);
+		// Return the result
+		return entity;
 	}
 
 	/**
