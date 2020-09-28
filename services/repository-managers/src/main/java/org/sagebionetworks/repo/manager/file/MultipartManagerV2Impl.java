@@ -48,37 +48,29 @@ import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAOProvid
 import org.sagebionetworks.upload.multipart.MultipartUploadUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-
+@Service
 public class MultipartManagerV2Impl implements MultipartManagerV2 {
 
 	@Autowired
-	CloudServiceMultipartUploadDAOProvider cloudServiceMultipartUploadDAOProvider;
+	private CloudServiceMultipartUploadDAOProvider cloudServiceMultipartUploadDAOProvider;
 
 	@Autowired
-	MultipartUploadDAO multipartUploadDAO;
+	private MultipartUploadDAO multipartUploadDAO;
 
 	@Autowired
-	FileHandleDao fileHandleDao;
+	private FileHandleDao fileHandleDao;
 
 	@Autowired
-	ProjectSettingsManager projectSettingsManager;
+	private ProjectSettingsManager projectSettingsManager;
 
 	@Autowired
-	IdGenerator idGenerator;
+	private IdGenerator idGenerator;
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.sagebionetworks.repo.manager.file.MultipartManagerV2#
-	 * startOrResumeMultipartUpload(org.sagebionetworks.repo.model.UserInfo,
-	 * org.sagebionetworks.repo.model.file.MultipartUploadRequest,
-	 * java.lang.Boolean)
-	 */
 	@WriteTransaction
 	@Override
-	public MultipartUploadStatus startOrResumeMultipartUpload(UserInfo user,
-															  MultipartUploadRequest request, boolean forceRestart) {
+	public MultipartUploadStatus startOrResumeMultipartUpload(UserInfo user, MultipartUploadRequest request, boolean forceRestart) {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(user.getId(), "UserInfo.getId");
 		ValidateArgument.required(request, "MultipartUploadRequest");
@@ -227,13 +219,6 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.sagebionetworks.repo.manager.file.MultipartManagerV2#
-	 * getBatchPresignedUploadUrls(org.sagebionetworks.repo.model.UserInfo,
-	 * org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest)
-	 */
 	@Override
 	public BatchPresignedUploadUrlResponse getBatchPresignedUploadUrls(
 			UserInfo user, BatchPresignedUploadUrlRequest request) {
@@ -438,14 +423,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		return status;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.sagebionetworks.repo.manager.file.MultipartManagerV2#getRequestForUpload
-	 * (java.lang.String)
-	 */
-	public MultipartUploadRequest getRequestForUpload(String uploadId) {
+	MultipartUploadRequest getRequestForUpload(String uploadId) {
 		String requestJson = multipartUploadDAO.getUploadRequest(uploadId);
 		try {
 			return EntityFactory.createEntityFromJSONString(requestJson,
@@ -463,9 +441,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	 * @param request
 	 * @return
 	 */
-	@WriteTransaction
-	@Override
-	public CloudProviderFileHandleInterface createFileHandle(long fileSize, CompositeMultipartUploadStatus composite, MultipartUploadRequest request){
+	CloudProviderFileHandleInterface createFileHandle(long fileSize, CompositeMultipartUploadStatus composite, MultipartUploadRequest request){
 		// Convert all of the data to a file handle.
 		CloudProviderFileHandleInterface fileHandle;
 		if (composite.getUploadType().equals(UploadType.S3)) {

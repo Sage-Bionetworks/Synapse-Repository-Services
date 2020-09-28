@@ -18,7 +18,7 @@ public interface CloudServiceMultipartUploadDAO {
 	 * @param request
 	 * @return an access token, if needed for the multi-part upload
 	 */
-	public String initiateMultipartUpload(String bucket, String key, MultipartUploadRequest request);
+	String initiateMultipartUpload(String bucket, String key, MultipartUploadRequest request);
 	
 	/**
 	 * Create a pre-signed URL to upload a part of multi-part file upload.
@@ -28,19 +28,19 @@ public interface CloudServiceMultipartUploadDAO {
      * the signature.
 	 * @return
 	 */
-	public URL createPreSignedPutUrl(String bucket, String partKey, String contentType);
+	URL createPreSignedPutUrl(String bucket, String partKey, String contentType);
 
 	/**
 	 * Add a part to a multi-part upload. This call may delete the temporary part file, depending on implementation.
 	 * @param request
 	 */
-	public void validateAndAddPart(AddPartRequest request);
+	void validateAndAddPart(AddPartRequest request);
 
 	/**
 	 * Complete a multi-part upload.
 	 * @param request
 	 * @return The size of the resulting file.
 	 */
-	public long completeMultipartUpload(CompleteMultipartRequest request);
+	long completeMultipartUpload(CompleteMultipartRequest request);
 
 }

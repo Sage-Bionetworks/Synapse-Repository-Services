@@ -103,6 +103,7 @@ public class MultipartManagerV2ImplTest {
 	S3FileHandle fileHandle;
 	GoogleCloudFileHandle googleCloudFileHandle;
 	List<PartMD5> addedParts;
+	String synapseBucket;
 	
 	@BeforeEach
 	public void before(){
@@ -211,6 +212,7 @@ public class MultipartManagerV2ImplTest {
 		}).when(mockS3multipartUploadDAO).createPreSignedPutUrl(anyString(), anyString(), anyString());
 		
 		forceRestart = false;
+		synapseBucket = StackConfigurationSingleton.singleton().getS3Bucket();
 	}
 	
 	@Test
@@ -248,7 +250,7 @@ public class MultipartManagerV2ImplTest {
 	@Test
 	public void testCalculateMD5AsHex(){
 		// This md5 was generated from the json string of the request.
-		String expected = "7c6ab3ed2219a64b4e86726e4eb0fee0";
+		String expected = "384da31359066d7e06e31b49b3971739";
 		//call under test
 		String md5Hex = MultipartManagerV2Impl.calculateMD5AsHex(request);
 		assertEquals(expected, md5Hex);
@@ -272,7 +274,7 @@ public class MultipartManagerV2ImplTest {
 		ArgumentCaptor<CreateMultipartRequest> requestCapture = ArgumentCaptor.forClass(CreateMultipartRequest.class);
 		verify(mockMultiparUploadDAO).createUploadStatus(requestCapture.capture());
 		assertEquals(uploadToken, requestCapture.getValue().getUploadToken());
-		assertEquals(StackConfigurationSingleton.singleton().getS3Bucket(), requestCapture.getValue().getBucket());
+		assertEquals(synapseBucket, requestCapture.getValue().getBucket());
 		assertNotNull(requestCapture.getValue().getKey());
 		assertEquals(requestJson, requestCapture.getValue().getRequestBody());
 		assertEquals(userInfo.getId(), requestCapture.getValue().getUserId());
