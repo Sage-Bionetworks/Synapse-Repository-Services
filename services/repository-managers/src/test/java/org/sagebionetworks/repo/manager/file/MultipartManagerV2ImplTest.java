@@ -16,8 +16,6 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.calculateMD5AsHex;
-import static org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.createRequestJSON;
 
 import java.net.URL;
 import java.util.Arrays;
@@ -47,6 +45,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
+import org.sagebionetworks.repo.model.dbo.file.MultipartRequestUtils;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
@@ -118,8 +117,8 @@ public class MultipartManagerV2ImplTest {
 		request.setStorageLocationId(789L);
 		request.setContentType("plain/text");
 		
-		requestJson = createRequestJSON(request);
-		requestHash = calculateMD5AsHex(request);
+		requestJson = MultipartRequestUtils.createRequestJSON(request);
+		requestHash = MultipartRequestUtils.calculateMD5AsHex(request);
 		
 		uploadId = "123456";
 		uploadToken = "someUploadToken";
@@ -245,15 +244,6 @@ public class MultipartManagerV2ImplTest {
 
 		//call under test
 		assertThrows(IllegalArgumentException.class, () -> manager.startOrResumeMultipartUpload(userInfo, request, forceRestart));
-	}
-
-	@Test
-	public void testCalculateMD5AsHex(){
-		// This md5 was generated from the json string of the request.
-		String expected = "384da31359066d7e06e31b49b3971739";
-		//call under test
-		String md5Hex = MultipartManagerV2Impl.calculateMD5AsHex(request);
-		assertEquals(expected, md5Hex);
 	}
 	
 	@Test

@@ -284,9 +284,6 @@
 	<bean id="stackStatusDao" class="org.sagebionetworks.repo.model.jdo.StackStatusDaoImpl"
 		scope="singleton" />	
 
-	<bean id="multipartUplaodDAO" class="org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAOImpl"
-		scope="singleton" />
-
 	<bean id="multipartUploadComposerDAO" class="org.sagebionetworks.repo.model.dbo.file.MultipartUploadComposerDAOImpl"
 		  scope="singleton" />
 
