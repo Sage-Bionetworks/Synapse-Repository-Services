@@ -999,6 +999,7 @@ public class TeamManagerImplTest {
 
 	@Test
 	public void testGetFileHandleIdCheckTeamExists() {
+		//when(mockTeamDAO.validateTeamExists(TEAM_ID)).thenThrow(NotFoundException.class);
 		Team team = new Team();
 		team.setIcon("filehandleIcon");
 		team.setId(TEAM_ID);
@@ -1012,7 +1013,8 @@ public class TeamManagerImplTest {
 		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(Collections.EMPTY_LIST);
 
 		List<TeamMember> actual = teamManagerImpl.listMembers(TEAM_ID, TeamMemberTypeFilterOptions.ADMIN, 10L, 0L).getResults();
-		
+
+		verify(mockTeamDAO).validateTeamExists(TEAM_ID);
 		assertTrue(actual.isEmpty());
 	}
 
@@ -1030,6 +1032,7 @@ public class TeamManagerImplTest {
 		verify(mockTeamDAO, times(1)).getMembersInRange(TEAM_ID, adminIdsSet, null,10L, 0L);
 		assertEquals(Collections.singletonList(adminMember), actual);
 		verify(mockTeamDAO, times(1)).getAdminTeamMemberIds(TEAM_ID); // Once for each invocation
+		verify(mockTeamDAO).validateTeamExists(TEAM_ID);
 	}
 
 	@Test
@@ -1046,6 +1049,7 @@ public class TeamManagerImplTest {
 		verify(mockTeamDAO, times(1)).getMembersInRange(TEAM_ID, null, adminIdsSet,10L, 0L);
 		assertEquals(Collections.singletonList(nonAdminMember), actual);
 		verify(mockTeamDAO, times(1)).getAdminTeamMemberIds(TEAM_ID); // Once for each invocation
+		verify(mockTeamDAO).validateTeamExists(TEAM_ID);
 	}
 
 	@Test
@@ -1062,6 +1066,7 @@ public class TeamManagerImplTest {
 		verify(mockTeamDAO, times(1)).getMembersInRange(TEAM_ID, null, null,10L, 0L);
 		assertEquals(Arrays.asList(adminMember, nonAdminMember), actual);
 		verify(mockTeamDAO, times(1)).getAdminTeamMemberIds(TEAM_ID); // Once for each invocation
+		verify(mockTeamDAO).validateTeamExists(TEAM_ID);
 	}
 
 	@Test

@@ -1455,6 +1455,18 @@ public class ServletTestHelper {
 		return response;
 	}
 
+	public MockHttpServletResponse getIconPreviewWithTeamId(HttpServlet dispatchServlet, Long userId,
+															String teamId) throws Exception {
+		String uri = UrlHelpers.TEAM_ID_ICON_PREVIEW;
+		uri = uri.replace("{id}", teamId);
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, uri, userId,
+				token(userId), null);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+		return response;
+	}
+
 	public void deleteTeam(HttpServlet dispatchServlet, Long userId,
 			Team team) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(

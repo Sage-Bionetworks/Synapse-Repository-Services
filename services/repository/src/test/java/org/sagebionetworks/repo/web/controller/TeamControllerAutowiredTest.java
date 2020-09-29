@@ -98,4 +98,19 @@ public class TeamControllerAutowiredTest extends AbstractAutowiredControllerJuni
 		MockHttpServletResponse response = servletTestHelper.getTeamMembersWithTeamId(dispatchServlet, adminUserId, teamToDelete.getId());
 		assertEquals(expectedResponse, response.getContentAsString());
 	}
+
+	@Test
+	public void testTeamDAOGetFunctionValidId() throws Exception {
+		// Call under test
+		MockHttpServletResponse response = servletTestHelper.getIconPreviewWithTeamId(dispatchServlet, adminUserId, teamToDelete.getId());
+
+	}
+
+	@Test
+	public void testTeamDAOGetFunctionInvalidId() throws Exception {
+		String invalidTeamId = "404";
+		// Call under test
+		MockHttpServletResponse response = servletTestHelper.getIconPreviewWithTeamId(dispatchServlet, adminUserId, invalidTeamId);
+		//assertEquals(expectedResponse, response.getContentAsString());
+	}
 }
