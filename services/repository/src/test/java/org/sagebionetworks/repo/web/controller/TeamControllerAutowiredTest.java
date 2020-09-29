@@ -22,6 +22,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 /**
  * Simplistic test to see if things are wired up correctly
  * All messages are retrieved oldest first
@@ -85,7 +87,7 @@ public class TeamControllerAutowiredTest extends AbstractAutowiredControllerJuni
 			// Call under test
 			servletTestHelper.getTeamMembersWithTeamId(dispatchServlet, adminUserId, invalidTeamId);
 		});
-		Assertions.assertEquals(expectedResponse, exception.getMessage());
+		assertEquals(expectedResponse, exception.getMessage());
 	}
 
 	@Test
@@ -94,6 +96,6 @@ public class TeamControllerAutowiredTest extends AbstractAutowiredControllerJuni
 				"{\"ownerId\":\"1\",\"userName\":\"migrationAdmin\",\"isIndividual\":true},\"isAdmin\":true}]}";
 		// Call under test
 		MockHttpServletResponse response = servletTestHelper.getTeamMembersWithTeamId(dispatchServlet, adminUserId, teamToDelete.getId());
-		Assertions.assertEquals(expectedResponse, response.getContentAsString());
+		assertEquals(expectedResponse, response.getContentAsString());
 	}
 }

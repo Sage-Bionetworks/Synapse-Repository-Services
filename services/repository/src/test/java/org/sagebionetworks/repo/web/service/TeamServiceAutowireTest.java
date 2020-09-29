@@ -106,7 +106,16 @@ public class TeamServiceAutowireTest {
 			// Call under test
 			teamService.getMembers(invalidTeamId, null, TeamMemberTypeFilterOptions.ALL, 1, 0 );
 		});
-		Assertions.assertEquals(expectedResponse, exception.getMessage());
+		assertEquals(expectedResponse, exception.getMessage());
+	}
+
+	/**
+	 * PLFM-6390
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetMembersValidTeamId() throws Exception {
+		teamService.getMembers(teamId, null, TeamMemberTypeFilterOptions.ALL, 1, 0 );
 	}
 
 }

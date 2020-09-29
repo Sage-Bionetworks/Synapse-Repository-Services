@@ -28,14 +28,13 @@ public interface TeamDAO {
 
 
 	/**
-	 * Validates that team exists, if the team does not exist, throws an exception
+	 * Validates that team exists, if the team does not exist, throws a NotFoundException
 	 *
 	 * @param teamId
 	 * @return
-	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public void validateTeamExists(String teamId) throws DatastoreException, NotFoundException;
+	void validateTeamExists(String teamId) throws NotFoundException;
 
 	/**
 	 * 

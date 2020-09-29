@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -349,10 +349,10 @@ public class DBOTeamDAOImplTest {
 		for (Team t : expectedAllTeamsAndMembers.keySet()) {
 			Collection<TeamMember> expectedTeamMembers = expectedAllTeamsAndMembers.get(t);
 			Collection<TeamMember> actualTeamMembers = actualAllTeamsAndMembers.get(t);
-			Assertions.assertNotNull(actualTeamMembers, "Missing key "+t);
+			assertNotNull(actualTeamMembers, "Missing key "+t);
 			assertEquals(expectedTeamMembers.size(), actualTeamMembers.size());
 			for (TeamMember m : expectedTeamMembers) {
-				Assertions.assertTrue(actualTeamMembers.contains(m), "expected "+m+" but found "+actualTeamMembers);
+				assertTrue(actualTeamMembers.contains(m), "expected "+m+" but found "+actualTeamMembers);
 			}
 		}
 	}
@@ -464,6 +464,34 @@ public class DBOTeamDAOImplTest {
 	}
 
 	@Test
+	public void testGetValidTeam() {
+		UserGroup group = new UserGroup();
+		group.setId(userGroupDAO.create(group).toString());
+		teamsToDelete.add(group.getId());
+
+		Team team = new Team();
+		Long id = Long.parseLong(group.getId());
+		team.setId("" +id);
+		teamDAO.create(team);
+		// Call under test
+		teamDAO.get(team.getId());
+	}
+
+	@Test
+	public void testGetNonexistentTeam() {
+		String invalidTeamId = "404";
+		String innerExceptionMessage = "The resource you are attempting to access cannot be found";
+		String expected = "Team does not exist for teamId: " + invalidTeamId;
+		NotFoundException exception = assertThrows(NotFoundException.class, () -> {
+			// Call under test
+			teamDAO.get(invalidTeamId);
+		});
+		assertEquals(expected, exception.getMessage());
+		assertNotNull(exception.getCause());
+		assertEquals(innerExceptionMessage ,exception.getCause().getMessage());
+	}
+
+	@Test
 	public void testValidateTeamExists() {
 		UserGroup group = new UserGroup();
 		group.setId(userGroupDAO.create(group).toString());
@@ -481,11 +509,11 @@ public class DBOTeamDAOImplTest {
 	public void testValidateTeamExistsNotFound() {
 		String invalidTeamId = "404";
 		String expected = "Team does not exist for teamId: " + invalidTeamId;
-		NotFoundException exception = Assertions.assertThrows(NotFoundException.class, () -> {
+		NotFoundException exception = assertThrows(NotFoundException.class, () -> {
 			// Call under test
 			teamDAO.validateTeamExists(invalidTeamId);
 		});
-		Assertions.assertEquals(expected, exception.getMessage());
+		assertEquals(expected, exception.getMessage());
 	}
 
 	private Team createTeam(String teamName) {

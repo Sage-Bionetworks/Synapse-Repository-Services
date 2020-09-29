@@ -193,7 +193,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 				+" FROM "+TeamUtils.ALL_TEAMS_AND_ADMIN_MEMBERS_CORE
 				+" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=:"+COL_GROUP_MEMBERS_MEMBER_ID;
 
-	private static final String SELECT_CHECK_TEAM_EXISTS = "SELECT COUNT(*) FROM " + TABLE_TEAM + " WHERE " + COL_TEAM_ID + " = ? LIMIT 1";
+	private static final String SELECT_CHECK_TEAM_EXISTS = "SELECT COUNT(*) FROM " + TABLE_TEAM + " WHERE " + COL_TEAM_ID + " = ?";
 
 	private static final String ORDER_BY_TEAM_NAME = " ORDER BY LOWER(pa." + COL_PRINCIPAL_ALIAS_DISPLAY + ")";
 	private static final String ASC = " ASC ";
@@ -314,14 +314,20 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	public Team get(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_TEAM_ID.toLowerCase(), id);
-		DBOTeam dbo = basicDao.getObjectByPrimaryKey(DBOTeam.class, param);
+		DBOTeam dbo = null;
+		try {
+			dbo = basicDao.getObjectByPrimaryKey(DBOTeam.class, param);
+		} catch(NotFoundException e) {
+			throw new NotFoundException("Team does not exist for teamId: " + id, e);
+		}
 		Team dto = TeamUtils.copyDboToDto(dbo);
 		return dto;
 	}
 
-	public void validateTeamExists(String teamId) throws DatastoreException, NotFoundException {
-		Long exists = jdbcTemplate.queryForObject(SELECT_CHECK_TEAM_EXISTS, Long.class, teamId);
-		if (exists == 0) {
+	@Override
+	public void validateTeamExists(String teamId) {
+		boolean exists = jdbcTemplate.queryForObject(SELECT_CHECK_TEAM_EXISTS, boolean.class, teamId);
+		if (!exists) {
 			throw new NotFoundException("Team does not exist for teamId: " + teamId);
 		}
 	}
