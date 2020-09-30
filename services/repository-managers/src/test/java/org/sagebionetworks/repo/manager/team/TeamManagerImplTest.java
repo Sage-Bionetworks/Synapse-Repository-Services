@@ -83,6 +83,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -883,6 +884,7 @@ public class TeamManagerImplTest {
 		TeamMember tm = createTeamMember("101", false);
 		List<TeamMember> tms = Collections.singletonList(tm);
 		when(mockTeamDAO.getMembersInRange(TEAM_ID, null, null,10, 0)).thenReturn(tms);
+		doNothing().when(mockTeamDAO).validateTeamExists(TEAM_ID);
 		// Call under test
 		PaginatedResults<TeamMember> pg = teamManagerImpl.listMembers(TEAM_ID, TeamMemberTypeFilterOptions.ALL, 10, 0);
 		assertEquals(tms, pg.getResults());
@@ -907,7 +909,8 @@ public class TeamManagerImplTest {
 				.thenReturn(Arrays.asList(101L));
 		when(mockTeamDAO.listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Collections.singletonList(101L)))
 				.thenReturn(lw);
-
+		doNothing().when(mockTeamDAO).validateTeamExists(TEAM_ID);
+		// Call under test
 		PaginatedResults<TeamMember> pg = teamManagerImpl.listMembersForPrefix(prefix, TEAM_ID, TeamMemberTypeFilterOptions.ALL, 10, 0);
 		assertEquals(tms, pg.getResults());
 		assertEquals(1L, pg.getTotalNumberOfResults());
@@ -928,7 +931,8 @@ public class TeamManagerImplTest {
 		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(adminIds);
 		when(mockPrincipalPrefixDao.listCertainTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), adminIdsSet, null,10L, 0L)).thenReturn(Collections.singletonList(adminMemberId));
 		when(mockTeamDAO.listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Collections.singletonList(adminMemberId))).thenReturn(ListWrapper.wrap(Collections.singletonList(adminMember), TeamMember.class));
-
+		doNothing().when(mockTeamDAO).validateTeamExists(TEAM_ID);
+		// Call under test
 		List<TeamMember> actual = teamManagerImpl.listMembersForPrefix(prefix, TEAM_ID, TeamMemberTypeFilterOptions.ADMIN, 10L, 0L).getResults();
 		verify(mockPrincipalPrefixDao, times(1)).listCertainTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), adminIdsSet, null,10L, 0L);
 		verify(mockTeamDAO, times(1)).listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Collections.singletonList(adminMemberId));
@@ -949,7 +953,8 @@ public class TeamManagerImplTest {
 		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(adminIds);
 		when(mockPrincipalPrefixDao.listCertainTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), null, adminIdsSet,10L, 0L)).thenReturn(Collections.singletonList(nonAdminMemberId));
 		when(mockTeamDAO.listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Collections.singletonList(nonAdminMemberId))).thenReturn(ListWrapper.wrap(Collections.singletonList(nonAdminMember), TeamMember.class));
-
+		doNothing().when(mockTeamDAO).validateTeamExists(TEAM_ID);
+		// Call under test
 		List<TeamMember> actual = teamManagerImpl.listMembersForPrefix(prefix, TEAM_ID, TeamMemberTypeFilterOptions.MEMBER, 10L, 0L).getResults();
 		verify(mockPrincipalPrefixDao, times(1)).listCertainTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), null, adminIdsSet,10L, 0L);
 		verify(mockTeamDAO, times(1)).listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Collections.singletonList(nonAdminMemberId));
@@ -969,33 +974,16 @@ public class TeamManagerImplTest {
 
 		when(mockPrincipalPrefixDao.listTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID),10L, 0L)).thenReturn(Arrays.asList(adminMemberId, nonAdminMemberId));		
 		when(mockTeamDAO.listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Arrays.asList(adminMemberId, nonAdminMemberId))).thenReturn(ListWrapper.wrap(Arrays.asList(adminMember, nonAdminMember), TeamMember.class));
-
+		doNothing().when(mockTeamDAO).validateTeamExists(TEAM_ID);
+		// Call under test
 		List<TeamMember> actual = teamManagerImpl.listMembersForPrefix(prefix, TEAM_ID, TeamMemberTypeFilterOptions.ALL, 10L, 0L).getResults();
-		
 		verify(mockPrincipalPrefixDao, times(1)).listTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), 10L, 0L);
 		verify(mockTeamDAO, times(1)).listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Arrays.asList(adminMemberId, nonAdminMemberId));
 		assertEquals(Arrays.asList(adminMember, nonAdminMember), actual);
 		verify(mockTeamDAO).validateTeamExists(TEAM_ID);
 	}
 
-
-	@Test
-	public void testListMembersForPrefixCheckTeamExists() {
-		ArrayList<Long> list = new ArrayList<Long>();
-		list.add(Long.parseLong(TEAM_ID));
-		when(mockTeamDAO.listMembers(list, Arrays.asList())).thenReturn(ListWrapper.wrap(Arrays.asList(), TeamMember.class));
-		String prefix = "pfx";
-		// Call under test
-		teamManagerImpl.listMembersForPrefix(prefix, TEAM_ID, TeamMemberTypeFilterOptions.ALL, 10L, 0L);
-		verify(mockTeamDAO).validateTeamExists(TEAM_ID);
-	}
-
-
-	@Test
-	public void testListMembersCheckTeamExists() {
-		teamManagerImpl.listMembers(TEAM_ID, TeamMemberTypeFilterOptions.ALL, 10L, 0L);
-		verify(mockTeamDAO).validateTeamExists(TEAM_ID);
-	}
+ /*
 
 	@Test
 	public void testGetFileHandleIdCheckTeamExists() {
@@ -1003,17 +991,49 @@ public class TeamManagerImplTest {
 		Team team = new Team();
 		team.setIcon("filehandleIcon");
 		team.setId(TEAM_ID);
+		doNothing().when(mockTeamDAO).validateTeamExists(TEAM_ID);
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
 		teamManagerImpl.getFileHandleId(TEAM_ID);
 		verify(mockTeamDAO).validateTeamExists(TEAM_ID);
+	} */
+
+	@Test
+	public void testListMembersWithPrefixInvalidTeamNotFound() {
+		String invalidId = "100";
+		String prefix = "pfx";
+		String expectedMessage = "Team does not exist for teamId: " + invalidId;
+		NotFoundException ex = new NotFoundException(expectedMessage);
+		doThrow(ex).when(mockTeamDAO).validateTeamExists(invalidId);
+		NotFoundException exception = assertThrows(NotFoundException.class, () -> {
+			// Call under test
+			teamManagerImpl.listMembersForPrefix(prefix, invalidId ,any(), 10L, 0L);
+		});
+		verify(mockTeamDAO).validateTeamExists(invalidId);
+		assertEquals(ex, exception);
+		assertEquals(expectedMessage, exception.getMessage());
+	}
+
+	@Test
+	public void testListMembersInvalidTeamNotFound() {
+		String invalidId = "100";
+		String expectedMessage = "Team does not exist for teamId: " + invalidId;
+		NotFoundException ex = new NotFoundException(expectedMessage);
+		doThrow(ex).when(mockTeamDAO).validateTeamExists(invalidId);
+		NotFoundException exception = assertThrows(NotFoundException.class, () -> {
+			// Call under test
+			teamManagerImpl.listMembers(invalidId, any(), 10L, 0L);
+		});
+		verify(mockTeamDAO).validateTeamExists(invalidId);
+		assertEquals(ex, exception);
+		assertEquals(expectedMessage, exception.getMessage());
 	}
 
 	@Test
 	public void testNoAdmins() {
 		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(Collections.EMPTY_LIST);
-
+		doNothing().when(mockTeamDAO).validateTeamExists(TEAM_ID);
+		// Call under test
 		List<TeamMember> actual = teamManagerImpl.listMembers(TEAM_ID, TeamMemberTypeFilterOptions.ADMIN, 10L, 0L).getResults();
-
 		verify(mockTeamDAO).validateTeamExists(TEAM_ID);
 		assertTrue(actual.isEmpty());
 	}
@@ -1027,7 +1047,8 @@ public class TeamManagerImplTest {
 
 		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(adminIds);
 		when(mockTeamDAO.getMembersInRange(TEAM_ID, adminIdsSet, null,10L, 0L)).thenReturn(Collections.singletonList(adminMember));
-
+		doNothing().when(mockTeamDAO).validateTeamExists(TEAM_ID);
+		// Call under test
 		List<TeamMember> actual = teamManagerImpl.listMembers(TEAM_ID, TeamMemberTypeFilterOptions.ADMIN, 10L, 0L).getResults();
 		verify(mockTeamDAO, times(1)).getMembersInRange(TEAM_ID, adminIdsSet, null,10L, 0L);
 		assertEquals(Collections.singletonList(adminMember), actual);
@@ -1044,7 +1065,8 @@ public class TeamManagerImplTest {
 
 		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(adminIds);
 		when(mockTeamDAO.getMembersInRange(TEAM_ID, null, adminIdsSet,10L, 0L)).thenReturn(Collections.singletonList(nonAdminMember));
-
+		doNothing().when(mockTeamDAO).validateTeamExists(TEAM_ID);
+		// Call under test
 		List<TeamMember> actual = teamManagerImpl.listMembers(TEAM_ID, TeamMemberTypeFilterOptions.MEMBER, 10L, 0L).getResults();
 		verify(mockTeamDAO, times(1)).getMembersInRange(TEAM_ID, null, adminIdsSet,10L, 0L);
 		assertEquals(Collections.singletonList(nonAdminMember), actual);
@@ -1061,7 +1083,8 @@ public class TeamManagerImplTest {
 
 		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(adminIds);
 		when(mockTeamDAO.getMembersInRange(TEAM_ID, null, null,10L, 0L)).thenReturn(Arrays.asList(adminMember, nonAdminMember));
-
+		doNothing().when(mockTeamDAO).validateTeamExists(TEAM_ID);
+		// Call under test
 		List<TeamMember> actual = teamManagerImpl.listMembers(TEAM_ID, TeamMemberTypeFilterOptions.ALL, 10L, 0L).getResults();
 		verify(mockTeamDAO, times(1)).getMembersInRange(TEAM_ID, null, null,10L, 0L);
 		assertEquals(Arrays.asList(adminMember, nonAdminMember), actual);
