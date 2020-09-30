@@ -8,6 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -104,7 +105,7 @@ public class TeamServiceAutowireTest {
 		String expectedResponse = "Team does not exist for teamId: " + invalidTeamId;
 		NotFoundException exception = Assertions.assertThrows(NotFoundException.class, () -> {
 			// Call under test
-			teamService.getMembers(invalidTeamId, null, any(), 1, 0 );
+			teamService.getMembers(invalidTeamId, null, any(TeamMemberTypeFilterOptions.class), 1, 0 );
 		});
 		assertEquals(expectedResponse, exception.getMessage());
 	}
@@ -115,7 +116,7 @@ public class TeamServiceAutowireTest {
 	 */
 	@Test
 	public void testGetMembersValidTeamId() throws Exception {
-		teamService.getMembers(teamId, null, any(), 1, 0 );
+		teamService.getMembers(teamId, null, any(TeamMemberTypeFilterOptions.class), 1, 0 );
 	}
 
 }
