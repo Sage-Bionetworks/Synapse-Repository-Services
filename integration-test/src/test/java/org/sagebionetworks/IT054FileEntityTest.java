@@ -10,9 +10,13 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -381,6 +385,49 @@ public class IT054FileEntityTest {
 		assertEquals(currentVersion, file.getVersionNumber());
 		assertEquals(newFileHandleId, file.getDataFileHandleId());
 
+	}
+	
+	/**
+	 * Test for PLFM-6439, which is a request to allow apostrophe in file names.
+	 * @throws FileNotFoundException
+	 * @throws SynapseException
+	 * @throws IOException
+	 */
+	@Test
+	public void testApostropheInName() throws FileNotFoundException, SynapseException, IOException {
+		String name = "HasApostrophe'";
+		String fileContents = "some data";
+		File source = File.createTempFile(name, ".txt");
+		File downloaded = File.createTempFile(name, ".txt");
+		try {
+			FileUtils.write(source, "some data", StandardCharsets.UTF_8);
+			fileHandle = synapse.multipartUpload(source, null, true, true);
+			fileHandlesToDelete.add(fileHandle.getId());
+			
+			file = new FileEntity();
+			file.setName(name);
+			file.setParentId(folder.getId());
+			file.setDataFileHandleId(this.fileHandle.getId());
+			file = this.synapse.createEntity(file);
+			
+			FileHandleAssociation fileHandleAssociation = new FileHandleAssociation();
+			fileHandleAssociation.setAssociateObjectId(file.getId());
+			fileHandleAssociation.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+			fileHandleAssociation.setFileHandleId(fileHandle.getId());
+			URL url = this.synapse.getFileURL(fileHandleAssociation);
+			System.out.println(url.toString());
+			// download the file to a temp file using the pre-signed URL.
+			FileUtils.copyURLToFile(url, downloaded);
+			String resultContent = FileUtils.readFileToString(downloaded, StandardCharsets.UTF_8);
+			assertEquals(fileContents, resultContent);
+		}finally {
+			if(source != null) {
+				source.delete();
+			}
+			if(downloaded != null) {
+				downloaded.delete();
+			}
+		}
 	}
 
 	/**

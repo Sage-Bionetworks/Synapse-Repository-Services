@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,22 +11,40 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 
 public class NameValidationTest {
 
-	
 	@Test
 	public void testInvalidNames() {
 		// There are all invalid names
-		String[] invalidNames = new String[] { "~", "!", "@", "#", "$", "%",
-				"^", "&", "*", "\"", "\n\t", "'", "?", "<", ">", "/",
-				";", "{", "}", "|", "=", "White\n\t Space", "" };
+		String[] invalidNames = new String[] { "~", "!", "@", "#", "$", "%", "^", "&", "*", "\"", "?", "<",
+				">", "/", ";", "{", "}", "|", "=", "White\n\t Space" };
 		for (int i = 0; i < invalidNames.length; i++) {
-			try {
+			int index = i;
+			String message = assertThrows(IllegalArgumentException.class, () -> {
 				// These are all bad names
-				 NameValidation.validateName(invalidNames[i]);
-				fail("Name: " + invalidNames[i] + " is invalid");
-			} catch (IllegalArgumentException e) {
-				// Expected
-			}
+				NameValidation.validateName(invalidNames[index]);
+			}).getMessage();
+			String expected = String.format(
+					"Invalid Name: '%s'. Names may only contain: letters, numbers, spaces, underscores, hyphens, periods, plus signs, apostrophes, and parentheses",
+					invalidNames[index]);
+			assertEquals(expected, message);
 		}
+	}
+	
+	@Test
+	public void testInvalidNamesWhiteSpaceOnly() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// These are all bad names
+			NameValidation.validateName("\n\t");
+		}).getMessage();
+		assertEquals("Name cannot be only whitespace or empty string", message);
+	}
+	
+	@Test
+	public void testInvalidNamesWhiteEmpty() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// These are all bad names
+			NameValidation.validateName("");
+		}).getMessage();
+		assertEquals("Name cannot be only whitespace or empty string", message);
 	}
 
 	@Test
@@ -56,7 +75,7 @@ public class NameValidationTest {
 		validNames.add("o.2");
 		for (int i = 0; i < validNames.size(); i++) {
 			// These are all bad names
-			 NameValidation.validateName(validNames.get(i));
+			NameValidation.validateName(validNames.get(i));
 		}
 	}
 }

@@ -20,6 +20,12 @@
 								#if (${model.description})
 								<p>${model.description}</p>
 								#end
+								#if(${model.defaultImplementation})
+								<h6>Default Implementation:</h6>
+									#if($model.defaultImplementation.href && $model.defaultImplementation.href[0]) 
+										<a href="$model.defaultImplementation.href[0]">$model.defaultImplementation.display[0]</a>
+									#end
+								#end
 								#if(${model.knownImplementations})
 								<h6>Known Implementations:</h6>
 									#foreach( $imp in $model.knownImplementations )
