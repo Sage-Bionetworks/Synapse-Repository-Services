@@ -24,7 +24,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
 
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 @ExtendWith(SpringExtension.class)
@@ -105,7 +104,7 @@ public class TeamServiceAutowireTest {
 		String expectedResponse = "Team does not exist for teamId: " + invalidTeamId;
 		NotFoundException exception = Assertions.assertThrows(NotFoundException.class, () -> {
 			// Call under test
-			teamService.getMembers(invalidTeamId, null, any(TeamMemberTypeFilterOptions.class), 1, 0 );
+			teamService.getMembers(invalidTeamId, null, TeamMemberTypeFilterOptions.ALL, 1, 0 );
 		});
 		assertEquals(expectedResponse, exception.getMessage());
 	}
@@ -116,7 +115,7 @@ public class TeamServiceAutowireTest {
 	 */
 	@Test
 	public void testGetMembersValidTeamId() throws Exception {
-		teamService.getMembers(teamId, null, any(TeamMemberTypeFilterOptions.class), 1, 0 );
+		teamService.getMembers(teamId, null, TeamMemberTypeFilterOptions.ALL, 1, 0 );
 	}
 
 }
