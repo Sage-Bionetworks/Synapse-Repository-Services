@@ -22,7 +22,6 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.manager.principal.PrincipalManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Count;
@@ -63,6 +62,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.sagebionetworks.repo.model.AccessControlList;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -313,7 +313,7 @@ public class TeamManagerImplTest {
 		// verify that group, acl were created
 		assertEquals(TEAM_ID, created.getId());
 		verify(mockTeamDAO).create(team);
-		verify(mockAclDAO).create((AccessControlList)any(), eq(ObjectType.TEAM));
+		verify(mockAclDAO).create(any(), eq(ObjectType.TEAM));
 		verify(mockGroupMembersDAO).addMembers(TEAM_ID, Arrays.asList(new String[]{MEMBER_PRINCIPAL_ID}));
 		// verify that ID and dates are set in returned team
 		assertNotNull(created.getCreatedOn());
@@ -363,7 +363,7 @@ public class TeamManagerImplTest {
 		verify(mockPrincipalAliasDAO, times(2)).bindAliasToPrincipal(any(PrincipalAlias.class));
 		verify(mockPrincipalManager, times(2)).isAliasValid(any(String.class), eq(AliasType.TEAM_NAME));
 		verify(mockTeamDAO, times(2)).create(any(Team.class));
-		verify(mockAclDAO, times(2)).create(any(AccessControlList.class), eq(ObjectType.TEAM));
+		verify(mockAclDAO, times(2)).create(any(org.sagebionetworks.repo.model.AccessControlList.class), eq(ObjectType.TEAM));
 	}
 	
 	@Test
@@ -415,6 +415,7 @@ public class TeamManagerImplTest {
 		Team team = createTeam(TEAM_ID, "name", "description", "etag", "101", null, null, null, null);
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
 		assertEquals(team, teamManagerImpl.get(TEAM_ID));
+		verify(mockTeamDAO).get(TEAM_ID);
 	}
 	
 	@Test
@@ -495,6 +496,7 @@ public class TeamManagerImplTest {
 		verify(mockTeamDAO).delete(TEAM_ID);
 		verify(mockAclDAO).delete(TEAM_ID, ObjectType.TEAM);
 		verify(mockUserGroupDAO).delete(TEAM_ID);
+		verify(mockTeamDAO).get(TEAM_ID);
 	}
 	
 	@Test
@@ -559,6 +561,7 @@ public class TeamManagerImplTest {
 					thenReturn(hasUnmetAccessRqmtResponse);
 		// I can no longer join
 		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false), TeamManagerImpl.UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_AR_SELF);
+		verify(mockTeamDAO).get(TEAM_ID);
 	}
 	
 	@Test
@@ -663,7 +666,7 @@ public class TeamManagerImplTest {
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
 		teamManagerImpl.removeMember(userInfo, TEAM_ID, memberPrincipalId);
 		verify(mockGroupMembersDAO).removeMembers(TEAM_ID, Arrays.asList(new String[]{memberPrincipalId}));
-		verify(mockAclDAO).update((AccessControlList)any(), eq(ObjectType.TEAM));
+		verify(mockAclDAO).update(any(), eq(ObjectType.TEAM));
 		assertEquals(1, acl.getResourceAccess().size());
 	}
 	
@@ -715,7 +718,7 @@ public class TeamManagerImplTest {
 		when(mockGroupMembersDAO.getMemberIdsForUpdate(Long.valueOf(TEAM_ID))).thenReturn(Collections.singleton(123L));
 		teamManagerImpl.removeMember(userInfo, TEAM_ID, memberPrincipalId);
 		verify(mockGroupMembersDAO, times(0)).removeMembers(TEAM_ID, Arrays.asList(new String[]{memberPrincipalId}));
-		verify(mockAclDAO, times(0)).update((AccessControlList)any(), eq(ObjectType.TEAM));		
+		verify(mockAclDAO, times(0)).update(any(), eq(ObjectType.TEAM));
 	}
 	
 	@Test
@@ -769,7 +772,7 @@ public class TeamManagerImplTest {
 		String url = teamManagerImpl.getIconURL(userInfo, TEAM_ID);
 		
 		verify(mockFileHandleManager).getRedirectURLForFileHandle(eq(urlRequest));
-		
+		verify(mockTeamDAO).get(TEAM_ID);
 		assertEquals(expectedUrl, url);
 	}
 
@@ -802,7 +805,7 @@ public class TeamManagerImplTest {
 			// Call under test
 			teamManagerImpl.getIconPreviewURL(userInfo, TEAM_ID);
 		});
-
+		verify(mockTeamDAO).get(TEAM_ID);
 		assertEquals("No preview was found for the icon of the team with id: " + TEAM_ID, exception.getMessage());
 		assertEquals(cause, exception.getCause());
 		assertEquals(cause.getMessage(), exception.getCause().getMessage());
@@ -830,7 +833,7 @@ public class TeamManagerImplTest {
 		String url = teamManagerImpl.getIconPreviewURL(userInfo, TEAM_ID);
 
 		verify(mockFileHandleManager).getRedirectURLForFileHandle(urlRequest);
-
+		verify(mockTeamDAO).get(TEAM_ID);
 		assertEquals(expectedUrl, url);
 	}
 
@@ -983,20 +986,6 @@ public class TeamManagerImplTest {
 		verify(mockTeamDAO).validateTeamExists(TEAM_ID);
 	}
 
- /*
-
-	@Test
-	public void testGetFileHandleIdCheckTeamExists() {
-		//when(mockTeamDAO.validateTeamExists(TEAM_ID)).thenThrow(NotFoundException.class);
-		Team team = new Team();
-		team.setIcon("filehandleIcon");
-		team.setId(TEAM_ID);
-		doNothing().when(mockTeamDAO).validateTeamExists(TEAM_ID);
-		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
-		teamManagerImpl.getFileHandleId(TEAM_ID);
-		verify(mockTeamDAO).validateTeamExists(TEAM_ID);
-	} */
-
 	@Test
 	public void testListMembersWithPrefixInvalidTeamNotFound() {
 		String invalidId = "100";
@@ -1099,7 +1088,7 @@ public class TeamManagerImplTest {
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
 		String principalId = "321";
 		teamManagerImpl.setPermissions(userInfo, TEAM_ID, principalId, true);
-		verify(mockAclDAO).update((AccessControlList)any(), eq(ObjectType.TEAM));
+		verify(mockAclDAO).update(any(), eq(ObjectType.TEAM));
 		// now check that user is actually an admin
 		boolean foundRA=false;
 		for (ResourceAccess ra: acl.getResourceAccess()) {
@@ -1167,6 +1156,7 @@ public class TeamManagerImplTest {
 		// unless it's an open team
 		team.setCanPublicJoin(true);
 		assertFalse(teamManagerImpl.isMembershipApprovalRequired(userInfo, TEAM_ID));
+		verify(mockTeamDAO, times(2)).get(TEAM_ID);
 	}
 	
 	@Test
@@ -1308,6 +1298,7 @@ public class TeamManagerImplTest {
 					"</html>\r\n";
 			assertEquals(expected, result.getBody());
 		}
+		verify(mockTeamDAO).get(TEAM_ID);
 	}
 	
 	@Test
@@ -1357,6 +1348,7 @@ public class TeamManagerImplTest {
 				"  </body>\r\n" + 
 				"</html>\r\n";
 		assertEquals(expected, result.getBody());
+		verify(mockTeamDAO).get(TEAM_ID);
 	}
 	
 	@Test
@@ -1399,6 +1391,7 @@ public class TeamManagerImplTest {
 		verify(mockTeamDAO).delete(TEAM_ID);
 		verify(mockAclDAO).delete(TEAM_ID, ObjectType.TEAM);
 		verify(mockUserGroupDAO).delete(TEAM_ID);
+		verify(mockTeamDAO).get(TEAM_ID);
 
 	}
 
