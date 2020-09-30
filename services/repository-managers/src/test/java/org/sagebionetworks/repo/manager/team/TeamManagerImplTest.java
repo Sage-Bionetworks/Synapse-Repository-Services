@@ -313,7 +313,7 @@ public class TeamManagerImplTest {
 		// verify that group, acl were created
 		assertEquals(TEAM_ID, created.getId());
 		verify(mockTeamDAO).create(team);
-		verify(mockAclDAO).create(any(), eq(ObjectType.TEAM));
+		verify(mockAclDAO).create((AccessControlList)any(), eq(ObjectType.TEAM));
 		verify(mockGroupMembersDAO).addMembers(TEAM_ID, Arrays.asList(new String[]{MEMBER_PRINCIPAL_ID}));
 		// verify that ID and dates are set in returned team
 		assertNotNull(created.getCreatedOn());
@@ -363,7 +363,7 @@ public class TeamManagerImplTest {
 		verify(mockPrincipalAliasDAO, times(2)).bindAliasToPrincipal(any(PrincipalAlias.class));
 		verify(mockPrincipalManager, times(2)).isAliasValid(any(String.class), eq(AliasType.TEAM_NAME));
 		verify(mockTeamDAO, times(2)).create(any(Team.class));
-		verify(mockAclDAO, times(2)).create(any(org.sagebionetworks.repo.model.AccessControlList.class), eq(ObjectType.TEAM));
+		verify(mockAclDAO, times(2)).create(any(AccessControlList.class), eq(ObjectType.TEAM));
 	}
 	
 	@Test
@@ -666,7 +666,7 @@ public class TeamManagerImplTest {
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
 		teamManagerImpl.removeMember(userInfo, TEAM_ID, memberPrincipalId);
 		verify(mockGroupMembersDAO).removeMembers(TEAM_ID, Arrays.asList(new String[]{memberPrincipalId}));
-		verify(mockAclDAO).update(any(), eq(ObjectType.TEAM));
+		verify(mockAclDAO).update((AccessControlList)any(), eq(ObjectType.TEAM));
 		assertEquals(1, acl.getResourceAccess().size());
 	}
 	
@@ -718,7 +718,7 @@ public class TeamManagerImplTest {
 		when(mockGroupMembersDAO.getMemberIdsForUpdate(Long.valueOf(TEAM_ID))).thenReturn(Collections.singleton(123L));
 		teamManagerImpl.removeMember(userInfo, TEAM_ID, memberPrincipalId);
 		verify(mockGroupMembersDAO, times(0)).removeMembers(TEAM_ID, Arrays.asList(new String[]{memberPrincipalId}));
-		verify(mockAclDAO, times(0)).update(any(), eq(ObjectType.TEAM));
+		verify(mockAclDAO, times(0)).update((AccessControlList)any(), eq(ObjectType.TEAM));
 	}
 	
 	@Test
@@ -1088,7 +1088,7 @@ public class TeamManagerImplTest {
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
 		String principalId = "321";
 		teamManagerImpl.setPermissions(userInfo, TEAM_ID, principalId, true);
-		verify(mockAclDAO).update(any(), eq(ObjectType.TEAM));
+		verify(mockAclDAO).update((AccessControlList)any(), eq(ObjectType.TEAM));
 		// now check that user is actually an admin
 		boolean foundRA=false;
 		for (ResourceAccess ra: acl.getResourceAccess()) {
