@@ -561,7 +561,7 @@ public class TeamManagerImplTest {
 					thenReturn(hasUnmetAccessRqmtResponse);
 		// I can no longer join
 		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false), TeamManagerImpl.UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_AR_SELF);
-		verify(mockTeamDAO).get(TEAM_ID);
+		verify(mockTeamDAO, times(7)).get(TEAM_ID);
 	}
 	
 	@Test
