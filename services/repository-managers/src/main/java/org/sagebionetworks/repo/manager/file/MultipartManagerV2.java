@@ -4,6 +4,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
+import org.sagebionetworks.repo.model.file.MultipartUploadCopyRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 
@@ -20,6 +21,15 @@ public interface MultipartManagerV2 {
 	 * @return
 	 */
 	MultipartUploadStatus startOrResumeMultipartUpload(UserInfo user, MultipartUploadRequest request, boolean forceRestart);
+	
+	/**
+	 * Start or resume a multi-part upload copying from a given source.
+	 * @param user
+	 * @param request
+	 * @param forceRestart
+	 * @return
+	 */
+	MultipartUploadStatus startOrResumeMultipartUploadCopy(UserInfo user, MultipartUploadCopyRequest request, boolean forceRestart);
 	
 	/**
 	 * Get batch of pre-signed upload URLs for multi-part upload.

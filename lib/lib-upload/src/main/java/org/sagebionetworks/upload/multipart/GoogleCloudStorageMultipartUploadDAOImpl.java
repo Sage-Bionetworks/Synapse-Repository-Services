@@ -11,6 +11,8 @@ import org.sagebionetworks.repo.model.dbo.file.DBOMultipartUploadComposerPartSta
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadComposerDAO;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.MultipartUploadCopyRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.upload.PartRange;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -34,6 +36,11 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 	public String initiateMultipartUpload(String bucket, String key, MultipartUploadRequest request) {
 		// Google cloud uploads do not require a token, so just return an empty string.
 		return "";
+	}
+	
+	@Override
+	public String initiateMultipartUploadCopy(String bucket, String key, MultipartUploadCopyRequest request, FileHandle fileHandle) {
+		throw new UnsupportedOperationException("Copying from a Google Cloud Bucket is not supported yet.");
 	}
 
 	@Override

@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.manager.file;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -12,12 +13,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.junit.After;
 import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
@@ -44,14 +45,14 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.amazonaws.util.BinaryUtils;
 import com.amazonaws.util.Md5Utils;
 import com.amazonaws.util.StringInputStream;
 import com.google.common.collect.Lists;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MultipartManagerV2ImplAutowireTest {
 
@@ -91,12 +92,12 @@ public class MultipartManagerV2ImplAutowireTest {
 
 	ExternalGoogleCloudStorageLocationSetting googleCloudStorageLocationSetting;
 
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() {
 		simpleHttpClient = new SimpleHttpClientImpl();
 	}
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		// used to put data to a pre-signed url.
 		fileHandlesToDelete = new LinkedList<>();
@@ -130,7 +131,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		}
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		if (fileHandlesToDelete != null) {
 			for (String id : fileHandlesToDelete) {

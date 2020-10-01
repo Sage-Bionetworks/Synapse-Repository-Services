@@ -9,8 +9,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.MultipartUploadCopyRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.PartMD5;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.util.ContentDispositionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -25,6 +28,7 @@ import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PartETag;
+import com.amazonaws.services.s3.model.Region;
 import com.amazonaws.util.BinaryUtils;
 
 /**
@@ -48,21 +52,52 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 	@Override
 	public String initiateMultipartUpload(String bucket, String key,
 			MultipartUploadRequest request) {
-		String contentType = request.getContentType();
-		if (StringUtils.isEmpty(contentType)) {
-			contentType = "application/octet-stream";
+		final String contentType = getContentType(request.getContentType());
+		
+		return initiateMultipartUpload(bucket, key, contentType, request.getFileName(), request.getContentMD5Hex());
+	}
+	
+	@Override
+	public String initiateMultipartUploadCopy(String bucket, String key, MultipartUploadCopyRequest request, FileHandle fileHandle) {
+		final String contentType = getContentType(fileHandle.getContentType());
+		
+		if (!(fileHandle instanceof S3FileHandle)) {
+			throw new UnsupportedOperationException("The file handle must point to an S3 location.");
 		}
+
+		validateSameRegionCopy(((S3FileHandle) fileHandle).getBucketName(), bucket);
+		
+		return initiateMultipartUpload(bucket, key, contentType, request.getFileName(), fileHandle.getContentMd5());
+	}
+	
+	private String initiateMultipartUpload(String bucket, String key, String contentType, String fileName, String contentMD5) {
 		ObjectMetadata objectMetadata = new ObjectMetadata();
+		
 		objectMetadata.setContentType(contentType);
-		objectMetadata.setContentDisposition(ContentDispositionUtils
-				.getContentDispositionValue(request.getFileName()));
-		objectMetadata.setContentMD5(BinaryUtils.toBase64(BinaryUtils
-				.fromHex(request.getContentMD5Hex())));
+		objectMetadata.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(fileName));
+		objectMetadata.setContentMD5(BinaryUtils.toBase64(BinaryUtils.fromHex(contentMD5)));
+		
 		InitiateMultipartUploadResult result = s3Client
-				.initiateMultipartUpload(new InitiateMultipartUploadRequest(
-						bucket, key, objectMetadata)
+				.initiateMultipartUpload(new InitiateMultipartUploadRequest(bucket, key, objectMetadata)
 				.withCannedACL(CannedAccessControlList.BucketOwnerFullControl));
+		
 		return result.getUploadId();
+	}
+	
+	private void validateSameRegionCopy(String sourceBucket, String destinationBucket) {
+		Region sourceRegion = s3Client.getRegionForBucket(sourceBucket);
+		Region targetRegion = s3Client.getRegionForBucket(destinationBucket);
+		
+		if (!sourceRegion.equals(targetRegion)) {
+			throw new UnsupportedOperationException("Copying a file that is stored in a different region than the destination is not supported.");
+		}
+	}
+	
+	private static String getContentType(String contentType) {
+		if (StringUtils.isEmpty(contentType)) {
+			return "application/octet-stream";
+		}
+		return contentType;
 	}
 
 	/*

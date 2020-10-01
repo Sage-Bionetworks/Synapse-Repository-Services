@@ -10,15 +10,19 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.endsWith;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.net.URL;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,7 +33,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -42,9 +45,11 @@ import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
+import org.sagebionetworks.repo.model.dbo.file.MultiPartRequestType;
 import org.sagebionetworks.repo.model.dbo.file.MultipartRequestUtils;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
@@ -53,7 +58,10 @@ import org.sagebionetworks.repo.model.file.AddPartState;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
+import org.sagebionetworks.repo.model.file.MultipartUploadCopyRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadState;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
@@ -61,6 +69,7 @@ import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAOProvider;
 import org.sagebionetworks.upload.multipart.MultipartUploadUtils;
 import org.sagebionetworks.upload.multipart.S3MultipartUploadDAOImpl;
@@ -85,6 +94,8 @@ public class MultipartManagerV2ImplTest {
 	FileHandleDao mockFileHandleDao;
 	@Mock
 	IdGenerator mockIdGenerator;
+	@Mock
+	FileHandleAuthorizationManager mockAuthManager;
 
 	@InjectMocks
 	MultipartManagerV2Impl manager;
@@ -104,9 +115,11 @@ public class MultipartManagerV2ImplTest {
 	List<PartMD5> addedParts;
 	String synapseBucket;
 	
+	@Mock
+	private S3StorageLocationSetting mockStorageLocation;
+	
 	@BeforeEach
 	public void before(){
-		MockitoAnnotations.initMocks(this);
 		when(userInfo.getId()).thenReturn(456L);
 		
 		request = new MultipartUploadRequest();
@@ -248,6 +261,10 @@ public class MultipartManagerV2ImplTest {
 	
 	@Test
 	public void testStartOrResumeMultipartUploadNotStarted(){
+		
+		when(mockStorageLocation.getUploadType()).thenReturn(UploadType.S3);
+		when(mockProjectSettingsManager.getStorageLocationSetting(any())).thenReturn(mockStorageLocation);
+		
 		// setup the case where the status does not exist
 		when(mockMultiparUploadDAO.getUploadStatus(anyLong(), anyString())).thenReturn(null);
 		// call under test
@@ -306,7 +323,11 @@ public class MultipartManagerV2ImplTest {
 	}
 	
 	@Test
-	public void testStartOrResumeMultipartUploadForceRestartFalse(){
+	public void testStartOrResumeMultipartUploadForceRestartFalse() {
+
+		when(mockStorageLocation.getUploadType()).thenReturn(UploadType.S3);
+		when(mockProjectSettingsManager.getStorageLocationSetting(any())).thenReturn(mockStorageLocation);
+		
 		forceRestart = false;
 		// call under test
 		MultipartUploadStatus status = manager.startOrResumeMultipartUpload(userInfo, request, forceRestart);
@@ -316,6 +337,10 @@ public class MultipartManagerV2ImplTest {
 	
 	@Test
 	public void testStartOrResumeMultipartUploadForceRestartTrue(){
+
+		when(mockStorageLocation.getUploadType()).thenReturn(UploadType.S3);
+		when(mockProjectSettingsManager.getStorageLocationSetting(any())).thenReturn(mockStorageLocation);
+		
 		forceRestart = true;
 		// call under test
 		MultipartUploadStatus status = manager.startOrResumeMultipartUpload(userInfo, request, forceRestart);
@@ -765,5 +790,389 @@ public class MultipartManagerV2ImplTest {
 		verify(mockFileHandleDao, never()).createFile(any(S3FileHandle.class));
 		verify(mockS3multipartUploadDAO, never()).completeMultipartUpload(any(CompleteMultipartRequest.class));
 		verify(mockMultiparUploadDAO, never()).setUploadComplete(uploadId, fileHandle.getId());		
+	}
+	
+	@Test
+	public void testStartOrResumeMultipartUploadCopy() {
+		
+		Long userId = 123456L;
+		Long contentSize = 5242880 * 10L;
+		String contentMd5 = "md5";
+		
+		fileHandle.setFileName("fileName");
+		fileHandle.setContentSize(contentSize);
+		fileHandle.setContentMd5(contentMd5);
+		
+		String fileEntityId = "456";
+		Long storageLocationId = 789L;
+		
+		FileHandleAssociation association = new FileHandleAssociation();
+		
+		association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+		association.setAssociateObjectId(fileEntityId);
+		association.setFileHandleId(fileHandle.getId());
+		
+		MultipartUploadCopyRequest request = new MultipartUploadCopyRequest();
+		
+		request.setFileName("targetFileName");
+		request.setSourceFileHandleAssociation(association);
+		request.setPartSizeBytes(5242880L);
+		request.setStorageLocationId(storageLocationId);
+		
+		String requestHash = MultipartRequestUtils.calculateMD5AsHex(request);
+		String requestJson = MultipartRequestUtils.createRequestJSON(request);
+		boolean forceRestart = false;
+		
+		MultipartUploadStatus status = new MultipartUploadStatus();
+		
+		status.setStartedBy(String.valueOf(userInfo.getId()));
+		status.setState(MultipartUploadState.UPLOADING);
+		status.setUploadId(uploadId);
+		status.setPartsState("00000");
+		
+		CompositeMultipartUploadStatus compositeStatus = new CompositeMultipartUploadStatus();
+		
+		compositeStatus.setMultipartUploadStatus(status);
+		compositeStatus.setUploadToken(uploadToken);
+		compositeStatus.setNumberOfParts(10);
+		
+		when(userInfo.getId()).thenReturn(userId);
+		when(mockMultiparUploadDAO.getUploadStatus(any(), any())).thenReturn(null);
+		when(mockStorageLocation.getCreatedBy()).thenReturn(userId);
+		when(mockStorageLocation.getUploadType()).thenReturn(UploadType.S3);
+		when(mockProjectSettingsManager.getStorageLocationSetting(any())).thenReturn(mockStorageLocation);
+		when(mockAuthManager.canDownLoadFile(any(), any())).thenReturn(Collections.singletonList(new FileHandleAssociationAuthorizationStatus(association, AuthorizationStatus.authorized())));
+		when(mockFileHandleDao.get(any())).thenReturn(fileHandle);
+		when(mockUploadDAOProvider.getCloudServiceMultipartUploadDao(UploadType.S3)).thenReturn(mockS3multipartUploadDAO);
+		when(mockS3multipartUploadDAO.initiateMultipartUploadCopy(any(), any(), any(), any())).thenReturn(uploadToken);
+		when(mockMultiparUploadDAO.createUploadStatus(any())).thenReturn(compositeStatus);
+		when(mockMultiparUploadDAO.getPartsState(any(), anyInt())).thenReturn(status.getPartsState());
+		
+		// Call under test
+		MultipartUploadStatus result = manager.startOrResumeMultipartUploadCopy(userInfo, request, forceRestart);
+		
+		assertEquals(status, result);
+		
+		verify(mockMultiparUploadDAO).getUploadStatus(userId, requestHash);
+		verify(mockProjectSettingsManager).getStorageLocationSetting(storageLocationId);
+		verify(mockAuthManager).canDownLoadFile(userInfo, Collections.singletonList(association));
+		verify(mockFileHandleDao).get(fileHandle.getId());
+		verify(mockS3multipartUploadDAO).initiateMultipartUploadCopy(eq(synapseBucket), endsWith(request.getFileName()), eq(request), eq(fileHandle));
+		
+		ArgumentCaptor<CreateMultipartRequest> captor = ArgumentCaptor.forClass(CreateMultipartRequest.class);
+		
+		verify(mockMultiparUploadDAO).createUploadStatus(captor.capture());
+		
+		CreateMultipartRequest capturedRequest = captor.getValue();
+		
+		assertEquals(userId, capturedRequest.getUserId());
+		assertEquals(synapseBucket, capturedRequest.getBucket());
+		assertEquals(contentSize, capturedRequest.getFileSize());
+		assertEquals(request.getPartSizeBytes(), capturedRequest.getPartSize());
+		assertEquals(requestHash, capturedRequest.getHash());
+		assertEquals(compositeStatus.getNumberOfParts(), capturedRequest.getNumberOfParts());
+		assertEquals(uploadToken, capturedRequest.getUploadToken());
+		assertEquals(UploadType.S3, capturedRequest.getUploadType());
+		assertEquals(MultiPartRequestType.COPY, capturedRequest.getRequestType());
+		assertEquals(requestJson, capturedRequest.getRequestBody());
+		
+		verify(mockMultiparUploadDAO).getPartsState(uploadId, compositeStatus.getNumberOfParts());
+	}
+	
+	@Test
+	public void testStartOrResumeMultipartUploadCopyAndNotAuthorized() {
+		
+		Long userId = 123456L;
+		Long contentSize = 5242880 * 10L;
+		String contentMd5 = "md5";
+		
+		fileHandle.setFileName("fileName");
+		fileHandle.setContentSize(contentSize);
+		fileHandle.setContentMd5(contentMd5);
+		
+		String fileEntityId = "456";
+		Long storageLocationId = 789L;
+		
+		FileHandleAssociation association = new FileHandleAssociation();
+		
+		association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+		association.setAssociateObjectId(fileEntityId);
+		association.setFileHandleId(fileHandle.getId());
+		
+		MultipartUploadCopyRequest request = new MultipartUploadCopyRequest();
+		
+		request.setFileName("targetFileName");
+		request.setSourceFileHandleAssociation(association);
+		request.setPartSizeBytes(5242880L);
+		request.setStorageLocationId(storageLocationId);
+		
+		String requestHash = MultipartRequestUtils.calculateMD5AsHex(request);
+		boolean forceRestart = false;
+		
+		when(userInfo.getId()).thenReturn(userId);
+		when(mockMultiparUploadDAO.getUploadStatus(any(), any())).thenReturn(null);
+		when(mockStorageLocation.getCreatedBy()).thenReturn(userId);
+		when(mockStorageLocation.getUploadType()).thenReturn(UploadType.S3);
+		when(mockProjectSettingsManager.getStorageLocationSetting(any())).thenReturn(mockStorageLocation);
+		when(mockAuthManager.canDownLoadFile(any(), any())).thenReturn(Collections.singletonList(new FileHandleAssociationAuthorizationStatus(association, AuthorizationStatus.accessDenied("Denied"))));
+		
+		String errorMessage = assertThrows(UnauthorizedException.class, () -> {			
+			// Call under test
+			manager.startOrResumeMultipartUploadCopy(userInfo, request, forceRestart);
+		}).getMessage();
+		
+		assertEquals("The user is not authorized to access the source file.", errorMessage);
+		verify(mockMultiparUploadDAO).getUploadStatus(userId, requestHash);
+		verify(mockProjectSettingsManager).getStorageLocationSetting(storageLocationId);
+		verify(mockAuthManager).canDownLoadFile(userInfo, Collections.singletonList(association));
+		verifyNoMoreInteractions(mockMultiparUploadDAO);
+		verifyNoMoreInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockS3multipartUploadDAO);
+	}
+	
+	@Test
+	public void testStartOrResumeMultipartUploadCopyAndNotStorageLocationOwner() {
+		
+		Long userId = 123456L;
+		Long contentSize = 5242880 * 10L;
+		String contentMd5 = "md5";
+		
+		fileHandle.setFileName("fileName");
+		fileHandle.setContentSize(contentSize);
+		fileHandle.setContentMd5(contentMd5);
+		
+		String fileEntityId = "456";
+		Long storageLocationId = 789L;
+		
+		FileHandleAssociation association = new FileHandleAssociation();
+		
+		association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+		association.setAssociateObjectId(fileEntityId);
+		association.setFileHandleId(fileHandle.getId());
+		
+		MultipartUploadCopyRequest request = new MultipartUploadCopyRequest();
+		
+		request.setFileName("targetFileName");
+		request.setSourceFileHandleAssociation(association);
+		request.setPartSizeBytes(5242880L);
+		request.setStorageLocationId(storageLocationId);
+		
+		String requestHash = MultipartRequestUtils.calculateMD5AsHex(request);
+		boolean forceRestart = false;
+		
+		when(userInfo.getId()).thenReturn(userId);
+		when(mockMultiparUploadDAO.getUploadStatus(any(), any())).thenReturn(null);
+		when(mockStorageLocation.getCreatedBy()).thenReturn(userId + 1);
+		when(mockStorageLocation.getUploadType()).thenReturn(UploadType.S3);
+		when(mockProjectSettingsManager.getStorageLocationSetting(any())).thenReturn(mockStorageLocation);
+		when(mockAuthManager.canDownLoadFile(any(), any())).thenReturn(Collections.singletonList(new FileHandleAssociationAuthorizationStatus(association, AuthorizationStatus.authorized())));
+		
+		String errorMessage = assertThrows(UnauthorizedException.class, () -> {			
+			// Call under test
+			manager.startOrResumeMultipartUploadCopy(userInfo, request, forceRestart);
+		}).getMessage();
+		
+		assertEquals("The user does not own the storage location.", errorMessage);
+		
+		verify(mockMultiparUploadDAO).getUploadStatus(userId, requestHash);
+		verify(mockProjectSettingsManager).getStorageLocationSetting(storageLocationId);
+		verify(mockAuthManager).canDownLoadFile(userInfo, Collections.singletonList(association));
+		verifyNoMoreInteractions(mockMultiparUploadDAO);
+		verifyNoMoreInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockS3multipartUploadDAO);
+	}
+	
+	@Test
+	public void testStartOrResumeMultipartUploadCopyAndFileWithNoContentSize() {
+		
+		Long userId = 123456L;
+		Long contentSize = null;
+		String contentMd5 = "md5";
+		
+		fileHandle.setFileName("fileName");
+		fileHandle.setContentSize(contentSize);
+		fileHandle.setContentMd5(contentMd5);
+		
+		String fileEntityId = "456";
+		Long storageLocationId = 789L;
+		
+		FileHandleAssociation association = new FileHandleAssociation();
+		
+		association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+		association.setAssociateObjectId(fileEntityId);
+		association.setFileHandleId(fileHandle.getId());
+		
+		MultipartUploadCopyRequest request = new MultipartUploadCopyRequest();
+		
+		request.setFileName("targetFileName");
+		request.setSourceFileHandleAssociation(association);
+		request.setPartSizeBytes(5242880L);
+		request.setStorageLocationId(storageLocationId);
+		
+		String requestHash = MultipartRequestUtils.calculateMD5AsHex(request);
+		
+		boolean forceRestart = false;
+		
+		when(userInfo.getId()).thenReturn(userId);
+		when(mockMultiparUploadDAO.getUploadStatus(any(), any())).thenReturn(null);
+		when(mockStorageLocation.getCreatedBy()).thenReturn(userId);
+		when(mockStorageLocation.getUploadType()).thenReturn(UploadType.S3);
+		when(mockProjectSettingsManager.getStorageLocationSetting(any())).thenReturn(mockStorageLocation);
+		when(mockAuthManager.canDownLoadFile(any(), any())).thenReturn(Collections.singletonList(new FileHandleAssociationAuthorizationStatus(association, AuthorizationStatus.authorized())));
+		when(mockFileHandleDao.get(any())).thenReturn(fileHandle);
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.startOrResumeMultipartUploadCopy(userInfo, request, forceRestart);
+		}).getMessage();
+
+		assertEquals("The source file handle does not define its size.", errorMessage);
+		verify(mockMultiparUploadDAO).getUploadStatus(userId, requestHash);
+		verify(mockProjectSettingsManager).getStorageLocationSetting(storageLocationId);
+		verify(mockAuthManager).canDownLoadFile(userInfo, Collections.singletonList(association));
+		verify(mockFileHandleDao).get(fileHandle.getId());
+		verifyNoMoreInteractions(mockMultiparUploadDAO);
+		verifyNoMoreInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockS3multipartUploadDAO);
+	}
+	
+	@Test
+	public void testStartOrResumeMultipartUploadCopyAndFileWithNoMD5() {
+		
+		Long userId = 123456L;
+		Long contentSize = 5242880 * 10L;
+		String contentMd5 = null;
+		
+		fileHandle.setFileName("fileName");
+		fileHandle.setContentSize(contentSize);
+		fileHandle.setContentMd5(contentMd5);
+		
+		String fileEntityId = "456";
+		Long storageLocationId = 789L;
+		
+		FileHandleAssociation association = new FileHandleAssociation();
+		
+		association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+		association.setAssociateObjectId(fileEntityId);
+		association.setFileHandleId(fileHandle.getId());
+		
+		MultipartUploadCopyRequest request = new MultipartUploadCopyRequest();
+		
+		request.setFileName("targetFileName");
+		request.setSourceFileHandleAssociation(association);
+		request.setPartSizeBytes(5242880L);
+		request.setStorageLocationId(storageLocationId);
+		
+		String requestHash = MultipartRequestUtils.calculateMD5AsHex(request);
+		
+		boolean forceRestart = false;
+		
+		when(userInfo.getId()).thenReturn(userId);
+		when(mockMultiparUploadDAO.getUploadStatus(any(), any())).thenReturn(null);
+		when(mockStorageLocation.getCreatedBy()).thenReturn(userId);
+		when(mockStorageLocation.getUploadType()).thenReturn(UploadType.S3);
+		when(mockProjectSettingsManager.getStorageLocationSetting(any())).thenReturn(mockStorageLocation);
+		when(mockAuthManager.canDownLoadFile(any(), any())).thenReturn(Collections.singletonList(new FileHandleAssociationAuthorizationStatus(association, AuthorizationStatus.authorized())));
+		when(mockFileHandleDao.get(any())).thenReturn(fileHandle);
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.startOrResumeMultipartUploadCopy(userInfo, request, forceRestart);
+		}).getMessage();
+
+		assertEquals("The source file handle does not define its content MD5.", errorMessage);
+		verify(mockMultiparUploadDAO).getUploadStatus(userId, requestHash);
+		verify(mockProjectSettingsManager).getStorageLocationSetting(storageLocationId);
+		verify(mockAuthManager).canDownLoadFile(userInfo, Collections.singletonList(association));
+		verify(mockFileHandleDao).get(fileHandle.getId());
+		verifyNoMoreInteractions(mockMultiparUploadDAO);
+		verifyNoMoreInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockS3multipartUploadDAO);
+	}
+	
+	@Test
+	public void testStartOrResumeMultipartUploadCopyWithNoAssociation() {
+		
+		Long userId = 123456L;
+		Long contentSize = 5242880 * 10L;
+		String contentMd5 = "md5";
+		
+		fileHandle.setFileName("fileName");
+		fileHandle.setContentSize(contentSize);
+		fileHandle.setContentMd5(contentMd5);
+		
+		Long storageLocationId = 789L;
+		
+		FileHandleAssociation association = null;
+		
+		MultipartUploadCopyRequest request = new MultipartUploadCopyRequest();
+		
+		request.setFileName("targetFileName");
+		request.setSourceFileHandleAssociation(association);
+		request.setPartSizeBytes(5242880L);
+		request.setStorageLocationId(storageLocationId);
+		
+		boolean forceRestart = false;
+		
+		when(userInfo.getId()).thenReturn(userId);
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.startOrResumeMultipartUploadCopy(userInfo, request, forceRestart);
+		}).getMessage();
+		
+		assertEquals("MultipartUploadCopyRequest.sourceFileHandleAssociation is required.", errorMessage);
+		
+		verifyZeroInteractions(mockMultiparUploadDAO);
+		verifyZeroInteractions(mockProjectSettingsManager);
+		verifyZeroInteractions(mockAuthManager);
+		verifyZeroInteractions(mockFileHandleDao);
+		verifyZeroInteractions(mockUploadDAOProvider);
+	}
+	
+	@Test
+	public void testStartOrResumeMultipartUploadCopyWithNoStorageLocation() {
+		
+		Long userId = 123456L;
+		Long contentSize = 5242880 * 10L;
+		String contentMd5 = "md5";
+		
+		fileHandle.setFileName("fileName");
+		fileHandle.setContentSize(contentSize);
+		fileHandle.setContentMd5(contentMd5);
+		
+		Long storageLocationId = null;
+		
+		String fileEntityId = "456";
+		
+		FileHandleAssociation association = new FileHandleAssociation();
+		
+		association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+		association.setAssociateObjectId(fileEntityId);
+		association.setFileHandleId(fileHandle.getId());
+		
+		MultipartUploadCopyRequest request = new MultipartUploadCopyRequest();
+		
+		request.setFileName("targetFileName");
+		request.setSourceFileHandleAssociation(association);
+		request.setPartSizeBytes(5242880L);
+		request.setStorageLocationId(storageLocationId);
+		
+		boolean forceRestart = false;
+		
+		when(userInfo.getId()).thenReturn(userId);
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.startOrResumeMultipartUploadCopy(userInfo, request, forceRestart);
+		}).getMessage();
+		
+		assertEquals("MultipartUploadCopyRequest.storageLocationId is required.", errorMessage);
+		
+		verifyZeroInteractions(mockMultiparUploadDAO);
+		verifyZeroInteractions(mockProjectSettingsManager);
+		verifyZeroInteractions(mockAuthManager);
+		verifyZeroInteractions(mockFileHandleDao);
+		verifyZeroInteractions(mockUploadDAOProvider);
 	}
 }
