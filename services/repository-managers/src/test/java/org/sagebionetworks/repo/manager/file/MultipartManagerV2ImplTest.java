@@ -147,6 +147,7 @@ public class MultipartManagerV2ImplTest {
 		composite.setKey("someKey");
 		composite.setUploadToken(uploadToken);
 		composite.setUploadType(UploadType.S3);
+		composite.setRequestType(MultiPartRequestType.UPLOAD);
 		
 		fileHandle = new S3FileHandle();
 		fileHandle.setId("9999");
@@ -868,14 +869,13 @@ public class MultipartManagerV2ImplTest {
 		
 		assertEquals(userId, capturedRequest.getUserId());
 		assertEquals(synapseBucket, capturedRequest.getBucket());
-		assertEquals(contentSize, capturedRequest.getFileSize());
 		assertEquals(request.getPartSizeBytes(), capturedRequest.getPartSize());
 		assertEquals(requestHash, capturedRequest.getHash());
 		assertEquals(compositeStatus.getNumberOfParts(), capturedRequest.getNumberOfParts());
 		assertEquals(uploadToken, capturedRequest.getUploadToken());
 		assertEquals(UploadType.S3, capturedRequest.getUploadType());
-		assertEquals(MultiPartRequestType.COPY, capturedRequest.getRequestType());
 		assertEquals(requestJson, capturedRequest.getRequestBody());
+		assertEquals(fileHandle.getId(), capturedRequest.getSourceFileHandleId());
 		
 		verify(mockMultiparUploadDAO).getPartsState(uploadId, compositeStatus.getNumberOfParts());
 	}

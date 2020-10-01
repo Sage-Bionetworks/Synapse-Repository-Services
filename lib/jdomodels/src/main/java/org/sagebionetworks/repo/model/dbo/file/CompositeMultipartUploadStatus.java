@@ -19,8 +19,13 @@ public class CompositeMultipartUploadStatus {
 	private Integer numberOfParts;
 	private UploadType uploadType;
 	private MultiPartRequestType requestType;
-	private Long fileSize;
 	private Long partSize;
+
+	// The following is pulled in if the request type is a copy
+	private Long sourceFileHandleId;
+	private String sourceBucket;
+	private String sourceKey;
+	private Long fileSize;
 
 	public MultipartUploadStatus getMultipartUploadStatus() {
 		return multipartUploadStatus;
@@ -86,6 +91,30 @@ public class CompositeMultipartUploadStatus {
 		this.requestType = requestType;
 	}
 
+	public Long getSourceFileHandleId() {
+		return sourceFileHandleId;
+	}
+
+	public void setSourceFileHandleId(Long sourceFileHandleId) {
+		this.sourceFileHandleId = sourceFileHandleId;
+	}
+
+	public String getSourceBucket() {
+		return sourceBucket;
+	}
+
+	public void setSourceBucket(String sourceBucket) {
+		this.sourceBucket = sourceBucket;
+	}
+
+	public String getSourceKey() {
+		return sourceKey;
+	}
+
+	public void setSourceKey(String sourceKey) {
+		this.sourceKey = sourceKey;
+	}
+
 	public Long getFileSize() {
 		return fileSize;
 	}
@@ -105,7 +134,7 @@ public class CompositeMultipartUploadStatus {
 	@Override
 	public int hashCode() {
 		return Objects.hash(bucket, etag, fileSize, key, multipartUploadStatus, numberOfParts, partSize, requestType,
-				uploadToken, uploadType);
+				sourceBucket, sourceFileHandleId, sourceKey, uploadToken, uploadType);
 	}
 
 	@Override
@@ -124,7 +153,9 @@ public class CompositeMultipartUploadStatus {
 				&& Objects.equals(fileSize, other.fileSize) && Objects.equals(key, other.key)
 				&& Objects.equals(multipartUploadStatus, other.multipartUploadStatus)
 				&& Objects.equals(numberOfParts, other.numberOfParts) && Objects.equals(partSize, other.partSize)
-				&& requestType == other.requestType && Objects.equals(uploadToken, other.uploadToken)
+				&& requestType == other.requestType && Objects.equals(sourceBucket, other.sourceBucket)
+				&& Objects.equals(sourceFileHandleId, other.sourceFileHandleId)
+				&& Objects.equals(sourceKey, other.sourceKey) && Objects.equals(uploadToken, other.uploadToken)
 				&& uploadType == other.uploadType;
 	}
 
@@ -132,8 +163,9 @@ public class CompositeMultipartUploadStatus {
 	public String toString() {
 		return "CompositeMultipartUploadStatus [multipartUploadStatus=" + multipartUploadStatus + ", etag=" + etag
 				+ ", uploadToken=" + uploadToken + ", bucket=" + bucket + ", key=" + key + ", numberOfParts="
-				+ numberOfParts + ", uploadType=" + uploadType + ", requestType=" + requestType + ", fileSize="
-				+ fileSize + ", partSize=" + partSize + "]";
+				+ numberOfParts + ", uploadType=" + uploadType + ", requestType=" + requestType + ", partSize="
+				+ partSize + ", sourceFileHandleId=" + sourceFileHandleId + ", sourceBucket=" + sourceBucket
+				+ ", sourceKey=" + sourceKey + ", fileSize=" + fileSize + "]";
 	}
 
 }

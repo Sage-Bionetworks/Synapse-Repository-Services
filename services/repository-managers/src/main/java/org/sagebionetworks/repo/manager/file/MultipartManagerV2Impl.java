@@ -17,7 +17,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
-import org.sagebionetworks.repo.model.dbo.file.MultiPartRequestType;
 import org.sagebionetworks.repo.model.dbo.file.MultipartRequestUtils;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
@@ -174,9 +173,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		return multipartUploadDAO
 				.createUploadStatus(new CreateMultipartRequest(user.getId(),
 						requestHash, requestJson, uploadToken, uploadType,
-						bucket, key, numberParts, MultiPartRequestType.UPLOAD, 
-						request.getFileSizeBytes(), 
-						request.getPartSizeBytes()));
+						bucket, key, numberParts, request.getPartSizeBytes()));
 	}
 	
 	private CompositeMultipartUploadStatus createNewMultipartUploadCopy(UserInfo user, MultipartUploadCopyRequest request, String requestHash, StorageLocationSetting storageLocation) {
@@ -226,9 +223,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		return multipartUploadDAO
 				.createUploadStatus(new CreateMultipartRequest(user.getId(),
 						requestHash, requestJson, uploadToken, uploadType,
-						bucket, key, numberParts, MultiPartRequestType.COPY, 
-						fileHandle.getContentSize(), 
-						request.getPartSizeBytes()));
+						bucket, key, numberParts, request.getPartSizeBytes(), fileHandle.getId()));
 	}
 	
 	private CloudServiceMultipartUploadDAO getCloudServiceMultipartDao(UploadType uploadType) {

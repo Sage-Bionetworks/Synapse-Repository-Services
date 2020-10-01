@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.model.dbo.file;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_BUCKET;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_FILE_HANDLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_FILE_SIZE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_SOURCE_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_NUMBER_OF_PARTS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_ERROR_DETAILS;
@@ -21,8 +21,13 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPAR
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_REQUEST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MULTIPART_UPLOAD;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MULTIPART_UPLOAD_PART_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
@@ -85,18 +90,24 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 	private static final String SQL_TRUNCATE_ALL = "DELETE FROM " + TABLE_MULTIPART_UPLOAD + " WHERE "
 			+ COL_MULTIPART_UPLOAD_ID + " > -1";
 
-	private static final String STATUS_SELECT = COL_MULTIPART_UPLOAD_ID + "," + COL_MULTIPART_STARTED_BY + ","
-			+ COL_MULTIPART_STARTED_ON + "," + COL_MULTIPART_UPDATED_ON + "," + COL_MULTIPART_FILE_HANDLE_ID + ","
-			+ COL_MULTIPART_STATE + "," + COL_MULTIPART_UPLOAD_TOKEN + "," + COL_MULTIPART_UPLOAD_TYPE + ","
-			+ COL_MULTIPART_BUCKET + "," + COL_MULTIPART_KEY + "," + COL_MULTIPART_NUMBER_OF_PARTS + ","
-			+ COL_MULTIPART_UPLOAD_ETAG + "," + COL_MULTIPART_REQUEST_TYPE + ", " + COL_MULTIPART_FILE_SIZE + ","
-			+ COL_MULTIPART_PART_SIZE;
+	private static final String STATUS_SELECT = "U." + COL_MULTIPART_UPLOAD_ID + ",U." + COL_MULTIPART_STARTED_BY + ",U."
+			+ COL_MULTIPART_STARTED_ON + ",U." + COL_MULTIPART_UPDATED_ON + ",U." + COL_MULTIPART_FILE_HANDLE_ID + ",U."
+			+ COL_MULTIPART_STATE + ",U." + COL_MULTIPART_UPLOAD_TOKEN + ",U." + COL_MULTIPART_UPLOAD_TYPE + ",U."
+			+ COL_MULTIPART_BUCKET + ",U." + COL_MULTIPART_KEY + ",U." + COL_MULTIPART_NUMBER_OF_PARTS + ",U."
+			+ COL_MULTIPART_UPLOAD_ETAG + ",U." + COL_MULTIPART_REQUEST_TYPE + ", " + COL_MULTIPART_PART_SIZE + ",U."
+			+ COL_MULTIPART_SOURCE_FILE_HANDLE_ID + ",F." + COL_FILES_BUCKET_NAME + ",F." + COL_FILES_KEY + ",F."
+			+ COL_FILES_CONTENT_SIZE;
+	
+	private static final String LEFT_JOIN_ON_SOURCE_FILE = " U LEFT JOIN " + TABLE_FILES + " F "
+			+ "ON U." + COL_MULTIPART_SOURCE_FILE_HANDLE_ID + " = F." + COL_FILES_ID;
 
-	private static final String SELECT_BY_ID = "SELECT " + STATUS_SELECT + " FROM " + TABLE_MULTIPART_UPLOAD + " WHERE "
-			+ COL_MULTIPART_UPLOAD_ID + " = ?";
+	private static final String SELECT_BY_ID = "SELECT " + STATUS_SELECT 
+			+ " FROM " + TABLE_MULTIPART_UPLOAD + LEFT_JOIN_ON_SOURCE_FILE
+			+ " WHERE U." + COL_MULTIPART_UPLOAD_ID + " = ?";
 
-	private static final String SELECT_BY_USER_AND_HASH = "SELECT " + STATUS_SELECT + " FROM " + TABLE_MULTIPART_UPLOAD
-			+ " WHERE " + COL_MULTIPART_STARTED_BY + " = ? AND " + COL_MULTIPART_REQUEST_HASH + " = ?";
+	private static final String SELECT_BY_USER_AND_HASH = "SELECT " + STATUS_SELECT 
+			+ " FROM " + TABLE_MULTIPART_UPLOAD + LEFT_JOIN_ON_SOURCE_FILE
+			+ " WHERE U." + COL_MULTIPART_STARTED_BY + " = ? AND U." + COL_MULTIPART_REQUEST_HASH + " = ?";
 
 	private static final RowMapper<CompositeMultipartUploadStatus> STATUS_MAPPER = (rs, rowNum) -> {
 		CompositeMultipartUploadStatus dto = new CompositeMultipartUploadStatus();
@@ -115,8 +126,19 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 		dto.setNumberOfParts((int) rs.getLong(COL_MULTIPART_NUMBER_OF_PARTS));
 		dto.setEtag(rs.getString(COL_MULTIPART_UPLOAD_ETAG));
 		dto.setRequestType(MultiPartRequestType.valueOf(rs.getString(COL_MULTIPART_REQUEST_TYPE)));
-		dto.setFileSize(rs.getLong(COL_MULTIPART_FILE_SIZE));
 		dto.setPartSize(rs.getLong(COL_MULTIPART_PART_SIZE));
+		
+		// The following are pulled in from the source file handle id
+		dto.setSourceFileHandleId(rs.getLong(COL_MULTIPART_SOURCE_FILE_HANDLE_ID));
+		
+		if (rs.wasNull()) {
+			dto.setSourceFileHandleId(null);
+		} else {
+			dto.setFileSize(rs.getLong(COL_FILES_CONTENT_SIZE));
+			dto.setSourceBucket(rs.getString(COL_FILES_BUCKET_NAME));
+			dto.setSourceKey(rs.getString(COL_FILES_KEY));
+		}
+		
 		return dto;
 	};
 
@@ -205,11 +227,10 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 		ValidateArgument.required(createRequest.getBucket(), "Bucket");
 		ValidateArgument.required(createRequest.getKey(), "Key");
 		ValidateArgument.required(createRequest.getNumberOfParts(), "NumberOfParts");
-		ValidateArgument.required(createRequest.getRequestType(), "requestType");
-		ValidateArgument.required(createRequest.getFileSize(), "fileSize");
 		ValidateArgument.required(createRequest.getPartSize(), "partSize");
 
 		DBOMultipartUpload dbo = new DBOMultipartUpload();
+		
 		dbo.setId(idGenerator.generateNewId(IdType.MULTIPART_UPLOAD_ID));
 		dbo.setEtag(UUID.randomUUID().toString());
 		dbo.setRequestHash(createRequest.getHash());
@@ -223,9 +244,14 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 		dbo.setBucket(createRequest.getBucket());
 		dbo.setKey(createRequest.getKey());
 		dbo.setNumberOfParts(createRequest.getNumberOfParts());
-		dbo.setRequestType(createRequest.getRequestType().name());
 		dbo.setPartSize(createRequest.getPartSize());
-		dbo.setFileSize(createRequest.getFileSize());
+		
+		if (createRequest.getSourceFileHandleId() == null) {
+			dbo.setRequestType(MultiPartRequestType.UPLOAD.name());
+		} else {
+			dbo.setRequestType(MultiPartRequestType.COPY.name());
+			dbo.setSourceFileHandleId(Long.valueOf(createRequest.getSourceFileHandleId()));
+		}
 
 		basicDao.createNew(dbo);
 

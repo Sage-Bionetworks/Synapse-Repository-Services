@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.model.dbo.file;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_BUCKET;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_DDL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_FILE_HANDLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_FILE_SIZE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_SOURCE_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_NUMBER_OF_PARTS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_SIZE;
@@ -58,8 +58,8 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		new FieldColumn("key", COL_MULTIPART_KEY),
 		new FieldColumn("numberOfParts", COL_MULTIPART_NUMBER_OF_PARTS),
 		new FieldColumn("requestType", COL_MULTIPART_REQUEST_TYPE),
-		new FieldColumn("fileSize", COL_MULTIPART_FILE_SIZE),
 		new FieldColumn("partSize", COL_MULTIPART_PART_SIZE),
+		new FieldColumn("sourceFileHandleId", COL_MULTIPART_SOURCE_FILE_HANDLE_ID),
 	};
 	
 	private static final TableMapping<DBOMultipartUpload> TABLE_MAPPING = new TableMapping<DBOMultipartUpload>() {
@@ -86,13 +86,13 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 			dbo.setKey(rs.getString(COL_MULTIPART_KEY));
 			dbo.setNumberOfParts(rs.getInt(COL_MULTIPART_NUMBER_OF_PARTS));
 			dbo.setRequestType(rs.getString(COL_MULTIPART_REQUEST_TYPE));
-			dbo.setFileSize(rs.getLong(COL_MULTIPART_FILE_SIZE));
-			if (rs.wasNull()) {
-				dbo.setFileSize(null);
-			}
 			dbo.setPartSize(rs.getLong(COL_MULTIPART_PART_SIZE));
 			if (rs.wasNull()) {
 				dbo.setPartSize(null);
+			}
+			dbo.setSourceFileHandleId(rs.getLong(COL_MULTIPART_SOURCE_FILE_HANDLE_ID));
+			if (rs.wasNull()) {
+				dbo.setSourceFileHandleId(null);
 			}
 			return dbo;
 		}
@@ -131,7 +131,6 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		
 				// Backfill the old data from the request
 				backup.setRequestType(MultiPartRequestType.UPLOAD.name());
-				backup.setFileSize(request.getFileSizeBytes());
 				backup.setPartSize(request.getPartSizeBytes());
 				
 				// Recompute the request body and hash, since from now on the request will include the concrete type
@@ -162,8 +161,8 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 	private Integer numberOfParts;
 	private String uploadType;
 	private String requestType;
-	private Long fileSize;
 	private Long partSize;
+	private Long sourceFileHandleId;
 
 	@Override
 	public TableMapping<DBOMultipartUpload> getTableMapping() {
@@ -317,13 +316,13 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 	public void setRequestType(String requestType) {
 		this.requestType = requestType;
 	}
-	
-	public Long getFileSize() {
-		return fileSize;
+
+	public Long getSourceFileHandleId() {
+		return sourceFileHandleId;
 	}
 	
-	public void setFileSize(Long fileSize) {
-		this.fileSize = fileSize;
+	public void setSourceFileHandleId(Long sourceFileHandleId) {
+		this.sourceFileHandleId = sourceFileHandleId;
 	}
 	
 	public Long getPartSize() {
@@ -339,8 +338,9 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + Arrays.hashCode(requestBlob);
-		result = prime * result + Objects.hash(bucket, etag, fileHandleId, fileSize, id, key, numberOfParts, partSize,
-				requestHash, requestType, startedBy, startedOn, state, updatedOn, uploadToken, uploadType);
+		result = prime * result
+				+ Objects.hash(bucket, etag, fileHandleId, id, key, numberOfParts, partSize, requestHash, requestType,
+						sourceFileHandleId, startedBy, startedOn, state, updatedOn, uploadToken, uploadType);
 		return result;
 	}
 
@@ -357,14 +357,14 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		}
 		DBOMultipartUpload other = (DBOMultipartUpload) obj;
 		return Objects.equals(bucket, other.bucket) && Objects.equals(etag, other.etag)
-				&& Objects.equals(fileHandleId, other.fileHandleId) && Objects.equals(fileSize, other.fileSize)
-				&& Objects.equals(id, other.id) && Objects.equals(key, other.key)
-				&& Objects.equals(numberOfParts, other.numberOfParts) && Objects.equals(partSize, other.partSize)
-				&& Arrays.equals(requestBlob, other.requestBlob) && Objects.equals(requestHash, other.requestHash)
-				&& Objects.equals(requestType, other.requestType) && Objects.equals(startedBy, other.startedBy)
-				&& Objects.equals(startedOn, other.startedOn) && Objects.equals(state, other.state)
-				&& Objects.equals(updatedOn, other.updatedOn) && Objects.equals(uploadToken, other.uploadToken)
-				&& Objects.equals(uploadType, other.uploadType);
+				&& Objects.equals(fileHandleId, other.fileHandleId) && Objects.equals(id, other.id)
+				&& Objects.equals(key, other.key) && Objects.equals(numberOfParts, other.numberOfParts)
+				&& Objects.equals(partSize, other.partSize) && Arrays.equals(requestBlob, other.requestBlob)
+				&& Objects.equals(requestHash, other.requestHash) && Objects.equals(requestType, other.requestType)
+				&& Objects.equals(sourceFileHandleId, other.sourceFileHandleId)
+				&& Objects.equals(startedBy, other.startedBy) && Objects.equals(startedOn, other.startedOn)
+				&& Objects.equals(state, other.state) && Objects.equals(updatedOn, other.updatedOn)
+				&& Objects.equals(uploadToken, other.uploadToken) && Objects.equals(uploadType, other.uploadType);
 	}
 
 	@Override
@@ -373,7 +373,8 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 				+ Arrays.toString(requestBlob) + ", startedBy=" + startedBy + ", startedOn=" + startedOn
 				+ ", updatedOn=" + updatedOn + ", fileHandleId=" + fileHandleId + ", state=" + state + ", uploadToken="
 				+ uploadToken + ", bucket=" + bucket + ", key=" + key + ", numberOfParts=" + numberOfParts
-				+ ", uploadType=" + uploadType + ", requestType=" + requestType + ", fileSize=" + fileSize
-				+ ", partSize=" + partSize + "]";
+				+ ", uploadType=" + uploadType + ", requestType=" + requestType + ", partSize=" + partSize
+				+ ", sourceFileHandleId=" + sourceFileHandleId + "]";
 	}
+
 }

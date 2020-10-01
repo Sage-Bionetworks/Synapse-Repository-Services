@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.file;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -55,15 +56,14 @@ public class MultipartUploadDAOImplTest {
 	Integer numberOfParts;
 	CreateMultipartRequest createRequest;
 	String requestJSON;
-	S3FileHandle file;
 
 	@BeforeEach
 	public void before() throws JSONObjectAdapterException {
 
 		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
-		fileHandleDao.truncateTable();
 		multipartUplaodDAO.truncateAll();
+		fileHandleDao.truncateTable();
 
 		hash = "someHash";
 		Long storageLocationId = null;
@@ -83,13 +83,13 @@ public class MultipartUploadDAOImplTest {
 		requestJSON = EntityFactory.createJSONStringForEntity(request);
 
 		createRequest = new CreateMultipartRequest(userId, hash, requestJSON, uploadToken, uploadType, bucket, key,
-				numberOfParts, MultiPartRequestType.UPLOAD, request.getFileSizeBytes(), request.getPartSizeBytes());
+				numberOfParts, request.getPartSizeBytes());
 	}
 	
 	@AfterEach
 	public void after() {
-		fileHandleDao.truncateTable();
 		multipartUplaodDAO.truncateAll();
+		fileHandleDao.truncateTable();
 	}
 
 
@@ -110,9 +110,41 @@ public class MultipartUploadDAOImplTest {
 		assertEquals(bucket, composite.getBucket());
 		assertEquals(key, composite.getKey());
 		assertEquals(numberOfParts, composite.getNumberOfParts());
-		assertEquals(createRequest.getRequestType(), composite.getRequestType());
-		assertEquals(createRequest.getFileSize(), composite.getFileSize());
+		assertEquals(MultiPartRequestType.UPLOAD, composite.getRequestType());
 		assertEquals(createRequest.getPartSize(), composite.getPartSize());
+		assertNull(composite.getSourceFileHandleId());
+		assertNull(composite.getFileSize());
+		assertNull(composite.getSourceBucket());
+		assertNull(composite.getSourceKey());
+	}
+	
+	@Test
+	public void testCreateWithSourceFileHandleId() throws JSONObjectAdapterException {
+		S3FileHandle file = TestUtils.createS3FileHandle(userId.toString(), idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		file = (S3FileHandle) fileHandleDao.createFile(file);
+		
+		createRequest.setSourceFileHandleId(file.getId());
+		// call under test
+		CompositeMultipartUploadStatus composite = multipartUplaodDAO.createUploadStatus(createRequest);
+		assertNotNull(composite);
+		MultipartUploadStatus status = composite.getMultipartUploadStatus();
+		assertNotNull(status);
+		assertNotNull(status.getUploadId());
+		assertNotNull(status.getStartedOn());
+		assertNotNull(status.getUpdatedOn());
+		assertEquals("" + userId, status.getStartedBy());
+		assertEquals(MultipartUploadState.UPLOADING, status.getState());
+		assertEquals(null, status.getResultFileHandleId());
+		assertEquals(uploadToken, composite.getUploadToken());
+		assertEquals(bucket, composite.getBucket());
+		assertEquals(key, composite.getKey());
+		assertEquals(numberOfParts, composite.getNumberOfParts());
+		assertEquals(MultiPartRequestType.COPY, composite.getRequestType());
+		assertEquals(createRequest.getPartSize(), composite.getPartSize());
+		assertEquals(createRequest.getSourceFileHandleId(), composite.getSourceFileHandleId());
+		assertEquals(file.getBucketName(), composite.getSourceBucket());
+		assertEquals(file.getKey(), composite.getSourceKey());
+		assertEquals(file.getContentSize(), composite.getFileSize());
 	}
 
 	@Test
@@ -164,30 +196,6 @@ public class MultipartUploadDAOImplTest {
 			// call under test
 			multipartUplaodDAO.createUploadStatus(createRequest);
 		});
-	}
-	
-	@Test
-	public void testCreateRequestWithNoRequestType() throws JSONObjectAdapterException {
-		createRequest.setRequestType(null);
-
-		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			multipartUplaodDAO.createUploadStatus(createRequest);
-		}).getMessage();
-		
-		assertEquals("requestType is required.", errorMessage);
-	}
-	
-	@Test
-	public void testCreateRequestWithNoFileSize() throws JSONObjectAdapterException {
-		createRequest.setFileSize(null);
-
-		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			multipartUplaodDAO.createUploadStatus(createRequest);
-		}).getMessage();
-		
-		assertEquals("fileSize is required.", errorMessage);
 	}
 	
 	@Test

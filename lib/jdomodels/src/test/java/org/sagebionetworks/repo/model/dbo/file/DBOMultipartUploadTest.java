@@ -35,7 +35,6 @@ public class DBOMultipartUploadTest {
 		assertEquals("{\"concreteType\":\"org.sagebionetworks.repo.model.file.MultipartUploadRequest\",\"partSizeBytes\":5,\"fileSizeBytes\":1024}", new String(result.getRequestBlob(), StandardCharsets.UTF_8));
 		assertEquals("UPLOAD", result.getRequestType());
 		assertEquals("a1c51581494bde3a04b61c4f57184d36", result.getRequestHash());
-		assertEquals(1024L, result.getFileSize());
 		assertEquals(5L, result.getPartSize());
 	}
 	

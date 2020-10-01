@@ -18,22 +18,10 @@ public class CreateMultipartRequest {
 	private String bucket;
 	private String key;
 	private Integer numberOfParts;
-	private MultiPartRequestType requestType;
-	private Long fileSize;
 	private Long partSize;
+	private String sourceFileHandleId;
 
-	/**
-	 * 
-	 * @param userId      The Id of the user that started the upload.
-	 * @param hash        The hash represents request.
-	 * @param requestBody
-	 * @param uploadToken
-	 * @param bucket
-	 * @param key
-	 */
-	public CreateMultipartRequest(Long userId, String hash, String requestBody, String uploadToken,
-			UploadType uploadType, String bucket, String key, Integer numberOfParts, MultiPartRequestType requestType,
-			Long fileSize, Long partSize) {
+	public CreateMultipartRequest(Long userId, String hash, String requestBody, String uploadToken, UploadType uploadType, String bucket, String key, Integer numberOfParts, Long partSize) {
 		this.userId = userId;
 		this.hash = hash;
 		this.requestBody = requestBody;
@@ -42,9 +30,13 @@ public class CreateMultipartRequest {
 		this.bucket = bucket;
 		this.key = key;
 		this.numberOfParts = numberOfParts;
-		this.requestType = requestType;
-		this.fileSize = fileSize;
 		this.partSize = partSize;
+	}
+	
+	public CreateMultipartRequest(Long userId, String hash, String requestBody, String uploadToken,
+			UploadType uploadType, String bucket, String key, Integer numberOfParts, Long partSize, String sourceFileHandleId) {
+		this(userId, hash, requestBody, uploadToken, uploadType, bucket, key, numberOfParts, partSize);
+		this.sourceFileHandleId = sourceFileHandleId;
 	}
 
 	public Long getUserId() {
@@ -111,20 +103,12 @@ public class CreateMultipartRequest {
 		this.numberOfParts = numberOfParts;
 	}
 
-	public MultiPartRequestType getRequestType() {
-		return requestType;
+	public String getSourceFileHandleId() {
+		return sourceFileHandleId;
 	}
-
-	public void setRequestType(MultiPartRequestType requestType) {
-		this.requestType = requestType;
-	}
-
-	public Long getFileSize() {
-		return fileSize;
-	}
-
-	public void setFileSize(Long fileSize) {
-		this.fileSize = fileSize;
+	
+	public void setSourceFileHandleId(String sourceFileHandleId) {
+		this.sourceFileHandleId = sourceFileHandleId;
 	}
 
 	public Long getPartSize() {
@@ -137,7 +121,7 @@ public class CreateMultipartRequest {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(bucket, fileSize, hash, key, numberOfParts, partSize, requestBody, requestType, uploadToken,
+		return Objects.hash(bucket, hash, key, numberOfParts, partSize, requestBody, sourceFileHandleId, uploadToken,
 				uploadType, userId);
 	}
 
@@ -153,10 +137,10 @@ public class CreateMultipartRequest {
 			return false;
 		}
 		CreateMultipartRequest other = (CreateMultipartRequest) obj;
-		return Objects.equals(bucket, other.bucket) && Objects.equals(fileSize, other.fileSize)
-				&& Objects.equals(hash, other.hash) && Objects.equals(key, other.key)
-				&& Objects.equals(numberOfParts, other.numberOfParts) && Objects.equals(partSize, other.partSize)
-				&& Objects.equals(requestBody, other.requestBody) && requestType == other.requestType
+		return Objects.equals(bucket, other.bucket) && Objects.equals(hash, other.hash)
+				&& Objects.equals(key, other.key) && Objects.equals(numberOfParts, other.numberOfParts)
+				&& Objects.equals(partSize, other.partSize) && Objects.equals(requestBody, other.requestBody)
+				&& Objects.equals(sourceFileHandleId, other.sourceFileHandleId)
 				&& Objects.equals(uploadToken, other.uploadToken) && uploadType == other.uploadType
 				&& Objects.equals(userId, other.userId);
 	}
@@ -165,8 +149,8 @@ public class CreateMultipartRequest {
 	public String toString() {
 		return "CreateMultipartRequest [userId=" + userId + ", hash=" + hash + ", requestBody=" + requestBody
 				+ ", uploadToken=" + uploadToken + ", uploadType=" + uploadType + ", bucket=" + bucket + ", key=" + key
-				+ ", numberOfParts=" + numberOfParts + ", requestType=" + requestType + ", fileSize=" + fileSize
-				+ ", partSize=" + partSize + "]";
+				+ ", numberOfParts=" + numberOfParts + ", partSize=" + partSize + ", sourceFileHandleId="
+				+ sourceFileHandleId + "]";
 	}
 
 }
