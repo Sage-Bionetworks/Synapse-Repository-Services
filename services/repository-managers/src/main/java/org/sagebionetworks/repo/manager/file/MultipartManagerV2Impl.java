@@ -1,9 +1,8 @@
 package org.sagebionetworks.repo.manager.file;
 
-import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
@@ -47,6 +46,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAO;
 import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAOProvider;
 import org.sagebionetworks.upload.multipart.MultipartUploadUtils;
+import org.sagebionetworks.upload.multipart.PresignedUrl;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -231,7 +231,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 						request.getPartSizeBytes()));
 	}
 	
-	CloudServiceMultipartUploadDAO getCloudServiceMultipartDao(UploadType uploadType) {
+	private CloudServiceMultipartUploadDAO getCloudServiceMultipartDao(UploadType uploadType) {
 		return cloudServiceMultipartUploadDAOProvider.getCloudServiceMultipartUploadDao(uploadType);
 	}
 
@@ -266,39 +266,68 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	}
 
 	@Override
-	public BatchPresignedUploadUrlResponse getBatchPresignedUploadUrls(
-			UserInfo user, BatchPresignedUploadUrlRequest request) {
+	public BatchPresignedUploadUrlResponse getBatchPresignedUploadUrls(UserInfo user, BatchPresignedUploadUrlRequest request) {
 
 		ValidateArgument.required(request, "BatchPresignedUploadUrlRequest");
-		ValidateArgument.required(request.getPartNumbers(),
-				"BatchPresignedUploadUrlRequest.partNumbers");
+		ValidateArgument.required(request.getPartNumbers(), "BatchPresignedUploadUrlRequest.partNumbers");
+		
 		if (request.getPartNumbers().isEmpty()) {
-			throw new IllegalArgumentException(
-					"BatchPresignedUploadUrlRequest.partNumbers must contain at least one value");
+			throw new IllegalArgumentException("BatchPresignedUploadUrlRequest.partNumbers must contain at least one value");
 		}
+		
 		// lookup this upload.
-		CompositeMultipartUploadStatus status = multipartUploadDAO
-				.getUploadStatus(request.getUploadId());
-		int numberOfParts = status.getNumberOfParts();
+		CompositeMultipartUploadStatus status = multipartUploadDAO.getUploadStatus(request.getUploadId());
 
 		// validate the caller is the user that started this upload.
 		validateStartedBy(user, status);
-		List<PartPresignedUrl> partUrls = new LinkedList<>();
-		for (Long partNumberL : request.getPartNumbers()) {
+		
+		List<PartPresignedUrl> partUrls;
+		
+		switch (status.getRequestType()) {
+		case UPLOAD:
+			partUrls = getPresignedUrlsforUpload(status, request.getPartNumbers(), request.getContentType());
+			break;
+		default:
+			throw new IllegalStateException("Unsupported request type: " + status.getRequestType());
+		}
+		
+		BatchPresignedUploadUrlResponse response = new BatchPresignedUploadUrlResponse();
+		
+		response.setPartPresignedUrls(partUrls);
+		
+		return response;
+	}
+	
+	private List<PartPresignedUrl> getPresignedUrlsforUpload(CompositeMultipartUploadStatus status, List<Long> partNumbers, String contentType) {
+		int numberOfParts = status.getNumberOfParts();
+		
+		List<PartPresignedUrl> partUrls = new ArrayList<>(partNumbers.size());
+		CloudServiceMultipartUploadDAO cloudServiceMultipartDao = getCloudServiceMultipartDao(status.getUploadType());
+		
+		for (Long partNumberL : partNumbers) {
 			ValidateArgument.required(partNumberL, "PartNumber cannot be null");
 			int partNumber = partNumberL.intValue();
+			
 			validatePartNumber(partNumber, numberOfParts);
+			
 			String partKey = MultipartUploadUtils.createPartKey(status.getKey(), partNumber);
-			URL url = getCloudServiceMultipartDao(status.getUploadType())
-					.createPreSignedPutUrl(status.getBucket(), partKey, request.getContentType());
-			PartPresignedUrl part = new PartPresignedUrl();
-			part.setPartNumber((long) partNumber);
-			part.setUploadPresignedUrl(url.toString());
-			partUrls.add(part);
+			
+			PresignedUrl url = cloudServiceMultipartDao.createPartUploadPreSignedUrl(status.getBucket(), partKey, contentType);
+			
+			partUrls.add(map(url, partNumberL));
 		}
-		BatchPresignedUploadUrlResponse response = new BatchPresignedUploadUrlResponse();
-		response.setPartPresignedUrls(partUrls);
-		return response;
+		
+		return partUrls;
+	}
+	
+	private static PartPresignedUrl map(PresignedUrl presignedUrl, Long partNumber) {
+		PartPresignedUrl part = new PartPresignedUrl();
+		
+		part.setPartNumber(partNumber);
+		part.setUploadPresignedUrl(presignedUrl.getUrl().toString());
+		part.setRequestHeaders(presignedUrl.getSignedHeaders());
+		
+		return part;
 	}
 
 	/**

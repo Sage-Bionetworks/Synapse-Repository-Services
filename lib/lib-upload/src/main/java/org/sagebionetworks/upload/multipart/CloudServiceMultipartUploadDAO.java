@@ -1,7 +1,5 @@
 package org.sagebionetworks.upload.multipart;
 
-import java.net.URL;
-
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -40,8 +38,8 @@ public interface CloudServiceMultipartUploadDAO {
      * the signature.
 	 * @return
 	 */
-	URL createPreSignedPutUrl(String bucket, String partKey, String contentType);
-
+	PresignedUrl createPartUploadPreSignedUrl(String bucket, String partKey, String contentType);
+	
 	/**
 	 * Add a part to a multi-part upload. This call may delete the temporary part file, depending on implementation.
 	 * @param request

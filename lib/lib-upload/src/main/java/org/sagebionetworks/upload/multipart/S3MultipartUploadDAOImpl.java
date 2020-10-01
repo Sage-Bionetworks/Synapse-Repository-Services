@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpHeaders;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
@@ -107,15 +108,24 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 	 * createPreSignedPutUrl(java.lang.String, java.lang.String)
 	 */
 	@Override
-	public URL createPreSignedPutUrl(String bucket, String partKey, String contentType) {
+	public PresignedUrl createPartUploadPreSignedUrl(String bucket, String partKey, String contentType) {
 		long expiration = System.currentTimeMillis()+ PRE_SIGNED_URL_EXPIRATION_MS;
 		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(
 				bucket, partKey).withMethod(HttpMethod.PUT).withExpiration(
 				new Date(expiration));
+		
+		PresignedUrl presignedUrl = new PresignedUrl();
+		
 		if(StringUtils.isNotEmpty(contentType)){
 			request.setContentType(contentType);
+			presignedUrl.withSignedHeader(HttpHeaders.CONTENT_TYPE, contentType);
 		}
-		return s3Client.generatePresignedUrl(request);
+		
+		URL url = s3Client.generatePresignedUrl(request);
+
+		presignedUrl.withUrl(url);
+		
+		return presignedUrl;
 	}
 
 	/*

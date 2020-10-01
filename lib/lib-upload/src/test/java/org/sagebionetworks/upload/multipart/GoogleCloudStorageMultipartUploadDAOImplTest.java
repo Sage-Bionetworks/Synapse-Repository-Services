@@ -86,7 +86,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 		when(mockStorageClient.createSignedUrl(BUCKET_NAME, KEY_NAME, 15 * 1000 * 60, HttpMethod.PUT)).thenReturn(new URL("http://google.com/"));
 
 		// Call under test
-		assertNotNull(googleMpuDAO.createPreSignedPutUrl(BUCKET_NAME, KEY_NAME, CONTENT_TYPE));
+		assertNotNull(googleMpuDAO.createPartUploadPreSignedUrl(BUCKET_NAME, KEY_NAME, CONTENT_TYPE));
 		verify(mockStorageClient).createSignedUrl(BUCKET_NAME, KEY_NAME, 15 * 1000 * 60, HttpMethod.PUT);
 	}
 
@@ -95,7 +95,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 		when(mockStorageClient.createSignedUrl(BUCKET_NAME, KEY_NAME, 15 * 1000 * 60, HttpMethod.PUT)).thenReturn(new URL("http://google.com/"));
 
 		// Call under test
-		assertNotNull(googleMpuDAO.createPreSignedPutUrl(BUCKET_NAME, KEY_NAME, null));
+		assertNotNull(googleMpuDAO.createPartUploadPreSignedUrl(BUCKET_NAME, KEY_NAME, null));
 		verify(mockStorageClient).createSignedUrl(BUCKET_NAME, KEY_NAME, 15 * 1000 * 60, HttpMethod.PUT);
 	}
 

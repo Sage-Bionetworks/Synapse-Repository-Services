@@ -72,6 +72,7 @@ import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAOProvider;
 import org.sagebionetworks.upload.multipart.MultipartUploadUtils;
+import org.sagebionetworks.upload.multipart.PresignedUrl;
 import org.sagebionetworks.upload.multipart.S3MultipartUploadDAOImpl;
 
 import com.google.common.collect.Lists;
@@ -214,14 +215,14 @@ public class MultipartManagerV2ImplTest {
 			}}).when(mockMultiparUploadDAO).getPartsState(anyString(), anyInt());
 					
 		// simulate a presigned url.
-		doAnswer(new Answer<URL>() {
+		doAnswer(new Answer<PresignedUrl>() {
 			@Override
-			public URL answer(InvocationOnMock invocation) throws Throwable {
+			public PresignedUrl answer(InvocationOnMock invocation) throws Throwable {
 				String bucket = (String) invocation.getArguments()[0];
 				String key = (String) invocation.getArguments()[1];
-				return new URL("http", "amazon.com", bucket+"/"+key);
+				return new PresignedUrl().withUrl(new URL("http", "amazon.com", bucket+"/"+key));
 			}
-		}).when(mockS3multipartUploadDAO).createPreSignedPutUrl(anyString(), anyString(), anyString());
+		}).when(mockS3multipartUploadDAO).createPartUploadPreSignedUrl(anyString(), anyString(), anyString());
 		
 		forceRestart = false;
 		synapseBucket = StackConfigurationSingleton.singleton().getS3Bucket();
