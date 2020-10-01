@@ -21,6 +21,6 @@
 		"storageLocationId": {
 			"type": "integer",
 			"description": "The identifier of the storage location where this file should be stored.  A value of null indicates the default synapse storage."
-		},
+		}
 	}
 }

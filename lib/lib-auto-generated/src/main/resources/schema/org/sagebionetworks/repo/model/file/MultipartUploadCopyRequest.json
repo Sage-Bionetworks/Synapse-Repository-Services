@@ -13,6 +13,6 @@
 		"storageLocationId": {
 			"type": "integer",
 			"description": "The identifier of the storage location where this file should be copied to. The user must be the owner of the storage location."
-		},
+		}
 	}
 }
