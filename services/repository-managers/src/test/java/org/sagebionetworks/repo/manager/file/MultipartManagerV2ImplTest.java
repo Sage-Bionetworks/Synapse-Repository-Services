@@ -43,6 +43,7 @@ import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
+import org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.FileHandleCreateRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -727,17 +728,19 @@ public class MultipartManagerV2ImplTest {
 	}
 	
 	@Test
-	public void testGetRequestForUpload(){
+	public void testGetOriginalRequest(){
 		String uploadId = composite.getMultipartUploadStatus().getUploadId();
 		when(mockMultiparUploadDAO.getUploadRequest(uploadId)).thenReturn(requestJson);
 		// call under test
-		MultipartUploadRequest returnedRequest = manager.getRequestForUpload(uploadId);
+		MultipartUploadRequest returnedRequest = manager.getOriginalRequest(uploadId, MultipartUploadRequest.class);
 		assertEquals(request, returnedRequest);
 	}
 	
 	@Test
-	public void testCreateFileHandle(){
+	public void testCreateFileHandle() {
 
+		FileHandleCreateRequest request = new FileHandleCreateRequest("fileName", "contentType", "md5", 123L, true);
+		
 		long fileSize = 123;
 		// call under test
 		S3FileHandle result = (S3FileHandle) manager.createFileHandle(fileSize, composite, request);
@@ -749,8 +752,9 @@ public class MultipartManagerV2ImplTest {
 		S3FileHandle capturedFileHandle = capture.getValue();
 		assertEquals(composite.getBucket(), capturedFileHandle.getBucketName());
 		assertEquals(composite.getKey(), capturedFileHandle.getKey());
-		assertEquals(request.getContentMD5Hex(), capturedFileHandle.getContentMd5());
+		assertEquals(request.getContentMD5(), capturedFileHandle.getContentMd5());
 		assertEquals(request.getContentType(), capturedFileHandle.getContentType());
+		assertEquals(123L, capturedFileHandle.getStorageLocationId());
 		assertEquals(new Long(fileSize), capturedFileHandle.getContentSize());
 		assertEquals(""+userInfo.getId(), capturedFileHandle.getCreatedBy());
 		assertNotNull(capturedFileHandle.getCreatedOn());
@@ -760,9 +764,11 @@ public class MultipartManagerV2ImplTest {
 	}
 	
 	@Test
-	public void testcreateFileHandleNoPreview(){
+	public void testcreateFileHandleNoPreview() {
 		long fileSize = 123;
-		request.setGeneratePreview(false);
+		
+		FileHandleCreateRequest request = new FileHandleCreateRequest("fileName", "contentType", "md5", 123L, false);
+		
 		// call under test
 		S3FileHandle result = (S3FileHandle) manager.createFileHandle(fileSize, composite, request);
 		assertEquals(fileHandle, result);
@@ -773,9 +779,29 @@ public class MultipartManagerV2ImplTest {
 		// preview should not be generated
 		assertEquals(capture.getValue().getPreviewId(), result.getId());
 	}
+	
 	@Test
-	public void testCreateFileHandleGoogleCloud(){
+	public void testcreateFileHandleNullPreview() {
+		long fileSize = 123;
+		
+		FileHandleCreateRequest request = new FileHandleCreateRequest("fileName", "contentType", "md5", 123L, null);
+		
+		// call under test
+		S3FileHandle result = (S3FileHandle) manager.createFileHandle(fileSize, composite, request);
+		assertEquals(fileHandle, result);
+		
+		ArgumentCaptor<S3FileHandle> capture = ArgumentCaptor.forClass(S3FileHandle.class);
+		verify(mockFileHandleDao).createFile(capture.capture());
+		
+		// preview should be generated
+		assertNull(capture.getValue().getPreviewId());
+	}
+	
+	@Test
+	public void testCreateFileHandleGoogleCloud() {
 
+		FileHandleCreateRequest request = new FileHandleCreateRequest("fileName", "contentType", "md5", 123L, true);
+		
 		long fileSize = 123;
 		composite.setUploadType(UploadType.GOOGLECLOUDSTORAGE);
 		// call under test
@@ -788,7 +814,7 @@ public class MultipartManagerV2ImplTest {
 		GoogleCloudFileHandle capturedFileHandle = capture.getValue();
 		assertEquals(composite.getBucket(), capturedFileHandle.getBucketName());
 		assertEquals(composite.getKey(), capturedFileHandle.getKey());
-		assertEquals(request.getContentMD5Hex(), capturedFileHandle.getContentMd5());
+		assertEquals(request.getContentMD5(), capturedFileHandle.getContentMd5());
 		assertEquals(request.getContentType(), capturedFileHandle.getContentType());
 		assertEquals(new Long(fileSize), capturedFileHandle.getContentSize());
 		assertEquals(""+userInfo.getId(), capturedFileHandle.getCreatedBy());
@@ -860,6 +886,36 @@ public class MultipartManagerV2ImplTest {
 		verify(mockFileHandleDao, never()).createFile(any(S3FileHandle.class));
 		verify(mockS3multipartUploadDAO, never()).completeMultipartUpload(any(CompleteMultipartRequest.class));
 		verify(mockMultiparUploadDAO, never()).setUploadComplete(uploadId, fileHandle.getId());		
+	}
+	
+	@Test
+	public void testCompleteMultipartUploadWithCopyRequest() {
+		composite.setRequestType(MultiPartRequestType.COPY);
+		composite.setSourceFileHandleId(Long.valueOf(fileHandle.getId()));
+		
+		when(mockFileHandleDao.get(any())).thenReturn(fileHandle);
+		
+		//call under test
+		MultipartUploadStatus status = manager.completeMultipartUpload(userInfo, uploadId);
+		
+		assertNotNull(status);
+		assertEquals(MultipartUploadState.COMPLETED, status.getState());
+		assertEquals("11", status.getPartsState());
+		assertEquals(fileHandle.getId(), status.getResultFileHandleId());
+		
+		verify(mockMultiparUploadDAO).getUploadStatus(uploadId);
+		verify(mockMultiparUploadDAO).getAddedPartMD5s(uploadId);
+		verify(mockFileHandleDao).get(fileHandle.getId());
+		verify(mockFileHandleDao).createFile(any(S3FileHandle.class));
+		
+		ArgumentCaptor<CompleteMultipartRequest> completeCpature = ArgumentCaptor.forClass(CompleteMultipartRequest.class);
+		verify(mockS3multipartUploadDAO).completeMultipartUpload(completeCpature.capture());
+		assertEquals(composite.getBucket(), completeCpature.getValue().getBucket());
+		assertEquals(composite.getKey(), completeCpature.getValue().getKey());
+		assertEquals(uploadToken, completeCpature.getValue().getUploadToken());
+		assertEquals(addedParts, completeCpature.getValue().getAddedParts());
+		
+		verify(mockMultiparUploadDAO).setUploadComplete(uploadId, fileHandle.getId());
 	}
 	
 	@Test

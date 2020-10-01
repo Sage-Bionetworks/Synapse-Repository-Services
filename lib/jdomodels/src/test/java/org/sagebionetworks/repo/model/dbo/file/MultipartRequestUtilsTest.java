@@ -81,10 +81,10 @@ public class MultipartRequestUtilsTest {
 	}
 	
 	@Test
-	public void testGetRequestForUpload() {
+	public void testGetRequestFromJson() {
 		String json = MultipartRequestUtils.createRequestJSON(uploadRequest);
 	
-		MultipartUploadRequest request = MultipartRequestUtils.getRequestForUpload(json);
+		MultipartUploadRequest request = MultipartRequestUtils.getRequestFromJson(json, MultipartUploadRequest.class);
 	
 		assertEquals(uploadRequest, request);
 	}

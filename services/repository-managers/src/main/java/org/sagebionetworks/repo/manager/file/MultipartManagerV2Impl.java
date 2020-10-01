@@ -114,11 +114,12 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	}
 	
 	private void validateMultipartRequest(UserInfo user, MultipartRequest request) {
-		String requestClass = request.getClass().getSimpleName();
-		
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(user.getId(), "UserInfo.getId");
-		ValidateArgument.required(request, requestClass);
+		ValidateArgument.required(request, "request");
+		
+		String requestClass = request.getClass().getSimpleName();
+		
 		ValidateArgument.required(request.getPartSizeBytes(), requestClass + ".PartSizeBytes");
 
 		// anonymous cannot upload. See: PLFM-2621.
@@ -205,10 +206,10 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 			throw new IllegalArgumentException("The source file handle does not define its content MD5.");
 		}
 		
-		String requestJson = MultipartRequestUtils.createRequestJSON(request);
-		
-		// Sets a file name for the S3 dao
+		// Sets a file name as it is optional, but we save it in the request (the has won't contain this)
 		request.setFileName(StringUtils.isBlank(request.getFileName()) ? fileHandle.getFileName() : request.getFileName());
+		
+		String requestJson = MultipartRequestUtils.createRequestJSON(request);
 		
 		// the bucket depends on the upload location used.
 		String bucket = MultipartUtils.getBucket(storageLocation);
@@ -447,38 +448,67 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 			String uploadId) {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(uploadId, "uploadId");
-		CompositeMultipartUploadStatus composite = multipartUploadDAO
-				.getUploadStatus(uploadId);
+		
+		CompositeMultipartUploadStatus composite = multipartUploadDAO.getUploadStatus(uploadId);
+		
 		// validate the user started this upload.
 		validateStartedBy(user, composite);
+		
 		// Is the upload already complete?
-		if (MultipartUploadState.COMPLETED.equals(composite
-				.getMultipartUploadStatus().getState())) {
+		if (MultipartUploadState.COMPLETED.equals(composite.getMultipartUploadStatus().getState())) {
 			// nothing left to do.
 			return prepareCompleteStatus(composite);
 		}
+		
 		// Are all parts added?
-		List<PartMD5> addedParts = multipartUploadDAO
-				.getAddedPartMD5s(uploadId);
+		List<PartMD5> addedParts = multipartUploadDAO.getAddedPartMD5s(uploadId);
+		
 		validateParts(composite.getNumberOfParts(), addedParts);
+		
 		// complete the upload
 		CompleteMultipartRequest request = new CompleteMultipartRequest();
+		
 		request.setUploadId(Long.valueOf(uploadId));
 		request.setNumberOfParts(composite.getNumberOfParts().longValue());
 		request.setAddedParts(addedParts);
 		request.setBucket(composite.getBucket());
 		request.setKey(composite.getKey());
 		request.setUploadToken(composite.getUploadToken());
-		long fileContentSize = getCloudServiceMultipartDao(composite.getUploadType())
-				.completeMultipartUpload(request);
-
-		// Get the original request
-		MultipartUploadRequest originalRequest = getRequestForUpload(uploadId);
+		
+		long fileContentSize = getCloudServiceMultipartDao(composite.getUploadType()).completeMultipartUpload(request);
+		
+		FileHandleCreateRequest fileHandleRequest;
+		
+		switch (composite.getRequestType()) {
+		case UPLOAD:
+			fileHandleRequest = createFileHandleRequestForUpload(composite, getOriginalRequest(uploadId, MultipartUploadRequest.class));
+			break;
+		case COPY:
+			fileHandleRequest = createFileHandleRequestForUploadCopy(composite, getOriginalRequest(uploadId, MultipartUploadCopyRequest.class));
+			break;
+		default:
+			throw new IllegalStateException("Unsupported request type: " + composite.getRequestType());
+		}
+		
 		// create a file handle to represent this file.
-		String resultFileHandleId = createFileHandle(fileContentSize, composite, originalRequest).getId();
+		String resultFileHandleId = createFileHandle(fileContentSize, composite, fileHandleRequest).getId();
+		
 		// complete the upload.
 		composite = multipartUploadDAO.setUploadComplete(uploadId, resultFileHandleId);
+		
 		return prepareCompleteStatus(composite);
+	}
+	
+	private FileHandleCreateRequest createFileHandleRequestForUpload(CompositeMultipartUploadStatus composite, MultipartUploadRequest request) {
+		return new FileHandleCreateRequest(request.getFileName(), request.getContentType(), request.getContentMD5Hex(), request.getStorageLocationId(), request.getGeneratePreview());
+	}
+
+	private FileHandleCreateRequest createFileHandleRequestForUploadCopy(CompositeMultipartUploadStatus composite, MultipartUploadCopyRequest request) {
+		FileHandle fileHandle = fileHandleDao.get(composite.getSourceFileHandleId().toString());
+		
+		// Note that the filename in the request is optional, but we do save the file handle name in the request if not supplied
+		return new FileHandleCreateRequest(request.getFileName(), fileHandle.getContentType(), fileHandle.getContentMd5(), request.getStorageLocationId(), request.getGeneratePreview());
+		
 	}
 
 	/**
@@ -519,9 +549,10 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		return status;
 	}
 
-	MultipartUploadRequest getRequestForUpload(String uploadId) {
+	<T extends MultipartRequest> T getOriginalRequest(String uploadId, Class<T> clazz) {
 		String requestJson = multipartUploadDAO.getUploadRequest(uploadId);
-		return MultipartRequestUtils.getRequestForUpload(requestJson);
+		
+		return MultipartRequestUtils.getRequestFromJson(requestJson, clazz);
 	}
 	
 	/**
@@ -532,7 +563,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	 * @param request
 	 * @return
 	 */
-	CloudProviderFileHandleInterface createFileHandle(long fileSize, CompositeMultipartUploadStatus composite, MultipartUploadRequest request){
+	CloudProviderFileHandleInterface createFileHandle(long fileSize, CompositeMultipartUploadStatus composite, FileHandleCreateRequest request){
 		// Convert all of the data to a file handle.
 		CloudProviderFileHandleInterface fileHandle;
 		if (composite.getUploadType().equals(UploadType.S3)) {
@@ -549,11 +580,12 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		fileHandle.setCreatedBy(composite.getMultipartUploadStatus().getStartedBy());
 		fileHandle.setCreatedOn(new Date(System.currentTimeMillis()));
 		fileHandle.setEtag(UUID.randomUUID().toString());
-		fileHandle.setContentMd5(request.getContentMD5Hex());
+		fileHandle.setContentMd5(request.getContentMD5());
 		fileHandle.setStorageLocationId(request.getStorageLocationId());
 		fileHandle.setContentSize(fileSize);
-		// By default a preview should be created.
 		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		
+		// By default a preview should be created.
 		if(request.getGeneratePreview() != null && !request.getGeneratePreview()){
 			fileHandle.setPreviewId(fileHandle.getId());
 		}
@@ -565,6 +597,8 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	public void truncateAll() {
 		this.multipartUploadDAO.truncateAll();
 	}
+	
+	// Internal interfaces and DTOs
 	
 	@FunctionalInterface
 	private static interface MultipartRequestValidator<T extends MultipartRequest> {
@@ -584,6 +618,46 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	private static interface PresignedUrlProvider {
 		
 		PresignedUrl create(CompositeMultipartUploadStatus status, CloudServiceMultipartUploadDAO cloudDao, long partNumber, String contentType);
+	
+	}
+	
+	// Internal DTO for customizing the file handle data
+	static class FileHandleCreateRequest {
+		
+		private String fileName;
+		private String contentType;
+		private String contentMD5;
+		private Long storageLocationId;
+		private Boolean generatePreview;
+		
+		FileHandleCreateRequest(String fileName, String contentType, String contentMD5, Long storageLocationId, Boolean generatePreview) {
+			this.fileName = fileName;
+			this.contentType = contentType;
+			this.contentMD5 = contentMD5;
+			this.storageLocationId = storageLocationId;
+			this.generatePreview = generatePreview;
+		}
+		
+		public String getFileName() {
+			return fileName;
+		}
+		
+		public String getContentType() {
+			return contentType;
+		}
+		
+		public String getContentMD5() {
+			return contentMD5;
+		}
+		
+		public Long getStorageLocationId() {
+			return storageLocationId;
+		}
+
+		public Boolean getGeneratePreview() {
+			return generatePreview;
+		}
+		
 	}
 
 }

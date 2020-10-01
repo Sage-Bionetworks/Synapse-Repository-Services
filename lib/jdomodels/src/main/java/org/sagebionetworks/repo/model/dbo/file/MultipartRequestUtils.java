@@ -6,7 +6,6 @@ import java.security.NoSuchAlgorithmException;
 
 import org.apache.commons.codec.binary.Hex;
 import org.sagebionetworks.repo.model.file.MultipartRequest;
-import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
@@ -27,9 +26,16 @@ public class MultipartRequestUtils {
 		}
 	}
 	
-	public static MultipartUploadRequest getRequestForUpload(String requestJson) {
+	/**
+	 * De-serialize the request from the json string
+	 * @param <T>
+	 * @param requestJson
+	 * @param clazz
+	 * @return
+	 */
+	public static <T extends MultipartRequest> T getRequestFromJson(String requestJson, Class<T> clazz) {
 		try {
-			return EntityFactory.createEntityFromJSONString(requestJson, MultipartUploadRequest.class);
+			return EntityFactory.createEntityFromJSONString(requestJson, clazz);
 		} catch (JSONObjectAdapterException e) {
 			throw new IllegalArgumentException(e);
 		}

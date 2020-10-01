@@ -239,12 +239,15 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 	@Override
 	public long completeMultipartUpload(CompleteMultipartRequest request) {
 		CompleteMultipartUploadRequest cmur = new CompleteMultipartUploadRequest();
+		
 		cmur.setBucketName(request.getBucket());
 		cmur.setKey(request.getKey());
 		cmur.setUploadId(request.getUploadToken());
 		// convert the parts MD5s to etags
 		List<PartETag> partEtags = new LinkedList<PartETag>();
+		
 		cmur.setPartETags(partEtags);
+		
 		for (PartMD5 partMD5 : request.getAddedParts()) {
 			String partEtag = partMD5.getPartMD5Hex();
 			partEtags.add(new PartETag(partMD5.getPartNumber(), partEtag));
@@ -254,11 +257,12 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 			s3Client.completeMultipartUpload(cmur);
 		} catch (AmazonS3Exception e) {
 			// thrown when given a bad request.
-			throw new IllegalArgumentException(e.getMessage());
+			throw new IllegalArgumentException(e.getMessage(), e);
 		}
+		
 		// Lookup the final size of this file
-		ObjectMetadata resultFileMetadata = s3Client.getObjectMetadata(
-				request.getBucket(), request.getKey());
+		ObjectMetadata resultFileMetadata = s3Client.getObjectMetadata(request.getBucket(), request.getKey());
+		
 		return resultFileMetadata.getContentLength();
 	}
 

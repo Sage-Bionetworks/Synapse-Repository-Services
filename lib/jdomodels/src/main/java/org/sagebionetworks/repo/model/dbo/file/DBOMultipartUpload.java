@@ -124,7 +124,7 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 			if (backup.getRequestType() == null) {
 				String requestJson = new String(backup.getRequestBlob(), StandardCharsets.UTF_8);
 				
-				MultipartUploadRequest request = MultipartRequestUtils.getRequestForUpload(requestJson);
+				MultipartUploadRequest request = MultipartRequestUtils.getRequestFromJson(requestJson, MultipartUploadRequest.class);
 				
 				// Makes sure to save the concrete type as well
 				request.setConcreteType(MultipartUploadRequest.class.getName());
