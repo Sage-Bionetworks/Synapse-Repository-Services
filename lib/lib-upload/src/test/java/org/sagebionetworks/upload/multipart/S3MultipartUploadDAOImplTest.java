@@ -16,6 +16,7 @@ import java.net.URL;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
@@ -35,6 +37,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.util.ContentDispositionUtils;
 
 import com.amazonaws.AmazonClientException;
+import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
@@ -46,6 +49,7 @@ import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.Region;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 @ExtendWith(MockitoExtension.class)
@@ -379,6 +383,235 @@ public class S3MultipartUploadDAOImplTest {
 		
 		assertEquals("Copying a file that is stored in a different region than the destination is not supported.", errorMessage);
 
+	}
+	
+	@Test
+	public void testCreatePartUploadCopyPresignedUrl() throws MalformedURLException {
+
+		Long fileHandleId = 123L;
+		Long fileSize = 1024 * 1024L;
+		Long partSize = 1024L;
+		
+		String sourceBucket = "sourceBucket";
+		String sourceKey = "sourceKey";
+		long partNumber = 1;
+		String contentType = "plain/text";
+		
+		CompositeMultipartUploadStatus status = new CompositeMultipartUploadStatus();
+		
+		status.setUploadToken(uploadId);
+		status.setBucket(bucket);
+		status.setKey(key);
+		status.setPartSize(partSize);
+		
+		status.setSourceFileHandleId(fileHandleId);
+		status.setFileSize(fileSize);
+		status.setSourceBucket(sourceBucket);
+		status.setSourceKey(sourceKey);
+		
+		URL url = new URL("http", "amazon.com", bucket + "/" + key);
+		
+		when(mockS3Client.generatePresignedUrl(any())).thenReturn(url);
+		
+		// Call under test
+		PresignedUrl result = dao.createPartUploadCopyPresignedUrl(status, partNumber, contentType);
+		
+		assertEquals(url, result.getUrl());
+		
+		Map<String, String> expectedSignedHeaders = ImmutableMap.of(
+				"x-amz-copy-source", sourceBucket + "/" + sourceKey,
+				"x-amz-copy-source-range", "bytes=0-1023",
+				"Content-Type", contentType
+		);
+		
+		assertEquals(expectedSignedHeaders, result.getSignedHeaders());
+		
+		ArgumentCaptor<GeneratePresignedUrlRequest> captor = ArgumentCaptor.forClass(GeneratePresignedUrlRequest.class);
+		
+		verify(mockS3Client).generatePresignedUrl(captor.capture());
+		
+		GeneratePresignedUrlRequest request = captor.getValue();
+		
+		assertEquals(bucket, request.getBucketName());
+		assertEquals(key, request.getKey());
+		assertEquals(HttpMethod.PUT, request.getMethod());
+		assertEquals(contentType, request.getContentType());
+		assertNotNull(request.getExpiration());
+		
+		assertEquals(ImmutableMap.of(
+				"partNumber", String.valueOf(partNumber),
+				"uploadId", uploadId
+		), request.getRequestParameters());
+		
+		assertEquals(ImmutableMap.of(
+				"x-amz-copy-source", sourceBucket + "/" + sourceKey,
+				"x-amz-copy-source-range", "bytes=0-1023"
+		), request.getCustomRequestHeaders());
+		
+	}
+	
+	@Test
+	public void testCreatePartUploadCopyPresignedUrlWithNoSourceFile() {
+
+		Long fileHandleId = null;
+		Long fileSize = 1024 * 1024L;
+		Long partSize = 1024L;
+		
+		String sourceBucket = "sourceBucket";
+		String sourceKey = "sourceKey";
+		long partNumber = 1;
+		String contentType = "plain/text";
+		
+		CompositeMultipartUploadStatus status = new CompositeMultipartUploadStatus();
+		
+		status.setUploadToken(uploadId);
+		status.setBucket(bucket);
+		status.setKey(key);
+		status.setPartSize(partSize);
+		
+		status.setSourceFileHandleId(fileHandleId);
+		status.setFileSize(fileSize);
+		status.setSourceBucket(sourceBucket);
+		status.setSourceKey(sourceKey);
+		
+		String errorMessage = assertThrows(IllegalStateException.class, () -> {			
+			// Call under test
+			dao.createPartUploadCopyPresignedUrl(status, partNumber, contentType);
+		}).getMessage();
+		
+		assertEquals("Expected a source file, found none.", errorMessage);
+		
+	}
+	
+	@Test
+	public void testCreatePartUploadCopyPresignedUrlWithNoFileSize() {
+
+		Long fileHandleId = 123L;
+		Long fileSize = null;
+		Long partSize = 1024L;
+		
+		String sourceBucket = "sourceBucket";
+		String sourceKey = "sourceKey";
+		long partNumber = 1;
+		String contentType = "plain/text";
+		
+		CompositeMultipartUploadStatus status = new CompositeMultipartUploadStatus();
+		
+		status.setUploadToken(uploadId);
+		status.setBucket(bucket);
+		status.setKey(key);
+		status.setPartSize(partSize);
+		
+		status.setSourceFileHandleId(fileHandleId);
+		status.setFileSize(fileSize);
+		status.setSourceBucket(sourceBucket);
+		status.setSourceKey(sourceKey);
+		
+		String errorMessage = assertThrows(IllegalStateException.class, () -> {			
+			// Call under test
+			dao.createPartUploadCopyPresignedUrl(status, partNumber, contentType);
+		}).getMessage();
+		
+		assertEquals("Expected the source file size, found none.", errorMessage);
+		
+	}
+	
+	@Test
+	public void testCreatePartUploadCopyPresignedUrlWithNoPartSize() {
+
+		Long fileHandleId = 123L;
+		Long fileSize = 1024 * 1024L;
+		Long partSize = null;
+		
+		String sourceBucket = "sourceBucket";
+		String sourceKey = "sourceKey";
+		long partNumber = 1;
+		String contentType = "plain/text";
+		
+		CompositeMultipartUploadStatus status = new CompositeMultipartUploadStatus();
+		
+		status.setUploadToken(uploadId);
+		status.setBucket(bucket);
+		status.setKey(key);
+		status.setPartSize(partSize);
+		
+		status.setSourceFileHandleId(fileHandleId);
+		status.setFileSize(fileSize);
+		status.setSourceBucket(sourceBucket);
+		status.setSourceKey(sourceKey);
+		
+		String errorMessage = assertThrows(IllegalStateException.class, () -> {			
+			// Call under test
+			dao.createPartUploadCopyPresignedUrl(status, partNumber, contentType);
+		}).getMessage();
+		
+		assertEquals("Expected a part size, found none.", errorMessage);
+		
+	}
+	
+	@Test
+	public void testCreatePartUploadCopyPresignedUrlWithSourceBucket() {
+
+		Long fileHandleId = 123L;
+		Long fileSize = 1024 * 1024L;
+		Long partSize = 1024L;
+		
+		String sourceBucket = null;
+		String sourceKey = "sourceKey";
+		long partNumber = 1;
+		String contentType = "plain/text";
+		
+		CompositeMultipartUploadStatus status = new CompositeMultipartUploadStatus();
+		
+		status.setUploadToken(uploadId);
+		status.setBucket(bucket);
+		status.setKey(key);
+		status.setPartSize(partSize);
+		
+		status.setSourceFileHandleId(fileHandleId);
+		status.setFileSize(fileSize);
+		status.setSourceBucket(sourceBucket);
+		status.setSourceKey(sourceKey);
+		
+		String errorMessage = assertThrows(IllegalStateException.class, () -> {			
+			// Call under test
+			dao.createPartUploadCopyPresignedUrl(status, partNumber, contentType);
+		}).getMessage();
+		
+		assertEquals("Expected the source file bucket, found none.", errorMessage);
+		
+	}
+	
+	@Test
+	public void testCreatePartUploadCopyPresignedUrlWithSourceBucketKey() {
+
+		Long fileHandleId = 123L;
+		Long fileSize = 1024 * 1024L;
+		Long partSize = 1024L;
+		
+		String sourceBucket = "sourceBucket";
+		String sourceKey = null;
+		long partNumber = 1;
+		String contentType = "plain/text";
+		
+		CompositeMultipartUploadStatus status = new CompositeMultipartUploadStatus();
+		
+		status.setUploadToken(uploadId);
+		status.setBucket(bucket);
+		status.setKey(key);
+		status.setPartSize(partSize);
+		
+		status.setSourceFileHandleId(fileHandleId);
+		status.setFileSize(fileSize);
+		status.setSourceBucket(sourceBucket);
+		status.setSourceKey(sourceKey);
+		
+		String errorMessage = assertThrows(IllegalStateException.class, () -> {			
+			// Call under test
+			dao.createPartUploadCopyPresignedUrl(status, partNumber, contentType);
+		}).getMessage();
+		
+		assertEquals("Expected the source file bucket key, found none.", errorMessage);
 		
 	}
 

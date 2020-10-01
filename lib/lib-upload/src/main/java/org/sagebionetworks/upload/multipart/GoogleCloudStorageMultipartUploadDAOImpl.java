@@ -7,6 +7,7 @@ import java.util.List;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
+import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.DBOMultipartUploadComposerPartState;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadComposerDAO;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
@@ -22,6 +23,8 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.HttpMethod;
 
 public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO {
+
+	private static final String UNSUPPORTED_COPY_MSG = "Copying from a Google Cloud Bucket is not supported yet.";
 
 	// 15 minutes
 	private static final int PRE_SIGNED_URL_EXPIRATION_MS = 15 * 1000 * 60;
@@ -40,7 +43,7 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 	
 	@Override
 	public String initiateMultipartUploadCopy(String bucket, String key, MultipartUploadCopyRequest request, FileHandle fileHandle) {
-		throw new UnsupportedOperationException("Copying from a Google Cloud Bucket is not supported yet.");
+		throw new UnsupportedOperationException(UNSUPPORTED_COPY_MSG);
 	}
 
 	@Override
@@ -52,6 +55,12 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 		presignedUrl.withUrl(url);
 		
 		return presignedUrl;
+	}
+	
+	@Override
+	public PresignedUrl createPartUploadCopyPresignedUrl(CompositeMultipartUploadStatus status, long partNumber,
+			String contentType) {
+		throw new UnsupportedOperationException(UNSUPPORTED_COPY_MSG);
 	}
 
 	@WriteTransaction

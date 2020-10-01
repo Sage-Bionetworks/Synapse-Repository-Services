@@ -20,6 +20,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
@@ -443,6 +444,51 @@ public class MultipartManagerV2ImplTest {
 		request.setPartNumbers(Lists.newArrayList(new Long(composite.getNumberOfParts()+1)));
 		// call under test
 		assertThrows(IllegalArgumentException.class, () -> manager.getBatchPresignedUploadUrls(userInfo, request));
+	}
+	
+	@Test
+	public void testGetBatchPresignedUploadUrlsForCopyRequest() throws MalformedURLException{
+		String uploadId = composite.getMultipartUploadStatus().getUploadId();
+		
+		Long contentSize = 5242880 * 10L;
+		
+		composite.setRequestType(MultiPartRequestType.COPY);
+		composite.setSourceFileHandleId(Long.valueOf(fileHandle.getId()));
+		composite.setFileSize(contentSize);
+		
+		PresignedUrl presignedUrl = new PresignedUrl();
+		
+		presignedUrl.withUrl(new URL("http", "amazon.com", "bucket/key"));
+		presignedUrl.withSignedHeader("some", "header");
+		
+		// setup the case where the status already exists
+		when(mockMultiparUploadDAO.getUploadStatus(any())).thenReturn(composite);
+		when(mockS3multipartUploadDAO.createPartUploadCopyPresignedUrl(any(), anyLong(), any())).thenReturn(presignedUrl);
+		
+		long partNumber = 1;
+		
+		BatchPresignedUploadUrlRequest request = new BatchPresignedUploadUrlRequest();
+		request.setUploadId(uploadId);
+		request.setPartNumbers(Arrays.asList(partNumber));
+		request.setContentType("plain/text");
+		
+		PartPresignedUrl partUrl = new PartPresignedUrl();
+		
+		partUrl.setPartNumber(partNumber);
+		partUrl.setUploadPresignedUrl(presignedUrl.getUrl().toString());
+		partUrl.setRequestHeaders(presignedUrl.getSignedHeaders());
+		
+		BatchPresignedUploadUrlResponse expected = new BatchPresignedUploadUrlResponse();
+		expected.setPartPresignedUrls(Arrays.asList(partUrl));
+		
+		// call under test
+		BatchPresignedUploadUrlResponse response = manager.getBatchPresignedUploadUrls(userInfo, request);
+		
+		assertEquals(expected, response);
+		
+		verify(mockMultiparUploadDAO).getUploadStatus(uploadId);
+		verify(mockS3multipartUploadDAO).createPartUploadCopyPresignedUrl(composite, partNumber, "plain/text");
+	
 	}
 	
 	@Test

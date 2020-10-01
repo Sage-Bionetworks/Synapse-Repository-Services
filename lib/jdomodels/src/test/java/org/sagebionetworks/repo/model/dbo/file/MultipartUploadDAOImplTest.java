@@ -141,7 +141,7 @@ public class MultipartUploadDAOImplTest {
 		assertEquals(numberOfParts, composite.getNumberOfParts());
 		assertEquals(MultiPartRequestType.COPY, composite.getRequestType());
 		assertEquals(createRequest.getPartSize(), composite.getPartSize());
-		assertEquals(createRequest.getSourceFileHandleId(), composite.getSourceFileHandleId());
+		assertEquals(Long.valueOf(createRequest.getSourceFileHandleId()), composite.getSourceFileHandleId());
 		assertEquals(file.getBucketName(), composite.getSourceBucket());
 		assertEquals(file.getKey(), composite.getSourceKey());
 		assertEquals(file.getContentSize(), composite.getFileSize());

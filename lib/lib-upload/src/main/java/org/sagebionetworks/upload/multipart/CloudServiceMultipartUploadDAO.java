@@ -1,5 +1,6 @@
 package org.sagebionetworks.upload.multipart;
 
+import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -39,6 +40,16 @@ public interface CloudServiceMultipartUploadDAO {
 	 * @return
 	 */
 	PresignedUrl createPartUploadPreSignedUrl(String bucket, String partKey, String contentType);
+	
+	/**
+	 * Creates a pre-signed URL to copy a part of a multi-part file copy
+	 * 
+	 * @param upload
+	 * @param partNumber
+	 * @param contentType
+	 * @return
+	 */
+	PresignedUrl createPartUploadCopyPresignedUrl(CompositeMultipartUploadStatus status, long partNumber, String contentType);
 	
 	/**
 	 * Add a part to a multi-part upload. This call may delete the temporary part file, depending on implementation.

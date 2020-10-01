@@ -276,14 +276,33 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		// validate the caller is the user that started this upload.
 		validateStartedBy(user, status);
 		
-		List<PartPresignedUrl> partUrls;
+		int numberOfParts = status.getNumberOfParts();
+		
+		List<PartPresignedUrl> partUrls = new ArrayList<>(request.getPartNumbers().size());
+		
+		PresignedUrlProvider presignedUrlProvider;
 		
 		switch (status.getRequestType()) {
 		case UPLOAD:
-			partUrls = getPresignedUrlsforUpload(status, request.getPartNumbers(), request.getContentType());
+			presignedUrlProvider = this::getPresignedUrlForUpload;
+			break;
+		case COPY:
+			presignedUrlProvider = this::getPresignedUrlForUploadCopy;
 			break;
 		default:
 			throw new IllegalStateException("Unsupported request type: " + status.getRequestType());
+		}
+		
+		CloudServiceMultipartUploadDAO cloudServiceMultipartDao = getCloudServiceMultipartDao(status.getUploadType());
+		
+		for (Long partNumber : request.getPartNumbers()) {
+			ValidateArgument.required(partNumber, "PartNumber cannot be null");
+			
+			validatePartNumber(partNumber.intValue(), numberOfParts);
+			
+			PresignedUrl url = presignedUrlProvider.create(status, cloudServiceMultipartDao, partNumber, request.getContentType());
+			
+			partUrls.add(map(url, partNumber));
 		}
 		
 		BatchPresignedUploadUrlResponse response = new BatchPresignedUploadUrlResponse();
@@ -293,26 +312,14 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		return response;
 	}
 	
-	private List<PartPresignedUrl> getPresignedUrlsforUpload(CompositeMultipartUploadStatus status, List<Long> partNumbers, String contentType) {
-		int numberOfParts = status.getNumberOfParts();
+	private PresignedUrl getPresignedUrlForUpload(CompositeMultipartUploadStatus status, CloudServiceMultipartUploadDAO cloudDao, long partNumber, String contentType) {
+		String partKey = MultipartUploadUtils.createPartKey(status.getKey(), partNumber);
 		
-		List<PartPresignedUrl> partUrls = new ArrayList<>(partNumbers.size());
-		CloudServiceMultipartUploadDAO cloudServiceMultipartDao = getCloudServiceMultipartDao(status.getUploadType());
-		
-		for (Long partNumberL : partNumbers) {
-			ValidateArgument.required(partNumberL, "PartNumber cannot be null");
-			int partNumber = partNumberL.intValue();
-			
-			validatePartNumber(partNumber, numberOfParts);
-			
-			String partKey = MultipartUploadUtils.createPartKey(status.getKey(), partNumber);
-			
-			PresignedUrl url = cloudServiceMultipartDao.createPartUploadPreSignedUrl(status.getBucket(), partKey, contentType);
-			
-			partUrls.add(map(url, partNumberL));
-		}
-		
-		return partUrls;
+		return cloudDao.createPartUploadPreSignedUrl(status.getBucket(), partKey, contentType);
+	}
+	
+	private PresignedUrl getPresignedUrlForUploadCopy(CompositeMultipartUploadStatus status, CloudServiceMultipartUploadDAO cloudDao, long partNumber, String contentType) {
+		return cloudDao.createPartUploadCopyPresignedUrl(status, partNumber, contentType);
 	}
 	
 	private static PartPresignedUrl map(PresignedUrl presignedUrl, Long partNumber) {
@@ -372,15 +379,13 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 
 	@WriteTransaction
 	@Override
-	public AddPartResponse addMultipartPart(UserInfo user, String uploadId,
-			Integer partNumber, String partMD5Hex) {
+	public AddPartResponse addMultipartPart(UserInfo user, String uploadId, Integer partNumber, String partMD5Hex) {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(uploadId, "uploadId");
 		ValidateArgument.required(partNumber, "partNumber");
 		ValidateArgument.required(partMD5Hex, "partMD5Hex");
 		// lookup this upload.
-		CompositeMultipartUploadStatus composite = multipartUploadDAO
-				.getUploadStatus(uploadId);
+		CompositeMultipartUploadStatus composite = multipartUploadDAO.getUploadStatus(uploadId);
 		// block add if the upload is complete
 		if(MultipartUploadState.COMPLETED.equals(composite.getMultipartUploadStatus().getState())){
 			throw new IllegalArgumentException("Cannot add parts to completed file upload.");
@@ -549,6 +554,12 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		
 		CompositeMultipartUploadStatus initiate(UserInfo user, T request, String requestHash, StorageLocationSetting storageLocation);
 		
+	}
+	
+	@FunctionalInterface
+	private static interface PresignedUrlProvider {
+		
+		PresignedUrl create(CompositeMultipartUploadStatus status, CloudServiceMultipartUploadDAO cloudDao, long partNumber, String contentType);
 	}
 
 }

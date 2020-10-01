@@ -8,6 +8,7 @@ import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -36,6 +37,14 @@ import com.amazonaws.util.BinaryUtils;
  * This class handles the interaction with S3 during the steps of a multi-part upload
  */
 public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO {
+
+	private static final String S3_HEADER_COPY_RANGE = "x-amz-copy-source-range";
+
+	private static final String S3_HEADER_COPY_SOURCE = "x-amz-copy-source";
+
+	private static final String S3_PARAM_UPLOAD_ID = "uploadId";
+
+	private static final String S3_PARAM_PART_NUMBER = "partNumber";
 
 	// 15 minute.
 	private static final int PRE_SIGNED_URL_EXPIRATION_MS = 1000 * 60 * 15;
@@ -110,16 +119,76 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 	@Override
 	public PresignedUrl createPartUploadPreSignedUrl(String bucket, String partKey, String contentType) {
 		long expiration = System.currentTimeMillis()+ PRE_SIGNED_URL_EXPIRATION_MS;
+		
 		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(
 				bucket, partKey).withMethod(HttpMethod.PUT).withExpiration(
 				new Date(expiration));
 		
 		PresignedUrl presignedUrl = new PresignedUrl();
 		
-		if(StringUtils.isNotEmpty(contentType)){
+		if (StringUtils.isNotEmpty(contentType)){
 			request.setContentType(contentType);
 			presignedUrl.withSignedHeader(HttpHeaders.CONTENT_TYPE, contentType);
 		}
+		
+		URL url = s3Client.generatePresignedUrl(request);
+
+		presignedUrl.withUrl(url);
+		
+		return presignedUrl;
+	}
+	
+	@Override
+	public PresignedUrl createPartUploadCopyPresignedUrl(CompositeMultipartUploadStatus status, long partNumber,
+			String contentType) {
+		if (status.getSourceFileHandleId() == null) {
+			throw new IllegalStateException("Expected a source file, found none.");
+		}
+		
+		if (status.getFileSize() == null) {
+			throw new IllegalStateException("Expected the source file size, found none.");
+		}
+		
+		if (status.getPartSize() == null) {
+			throw new IllegalStateException("Expected a part size, found none.");
+		}
+		
+		if (status.getSourceBucket() == null) {
+			throw new IllegalStateException("Expected the source file bucket, found none.");
+		}
+		
+		if (status.getSourceKey() == null) {
+			throw new IllegalStateException("Expected the source file bucket key, found none.");
+		}
+		
+		// Computes the byte range
+		long bytePosition = (partNumber - 1) * status.getPartSize();
+		
+		// The last part might be smaller than partSize, so check to make sure that lastByte isn't beyond the end of the object.
+		long lastByte = Math.min(bytePosition + status.getPartSize() - 1, status.getFileSize() - 1);
+		
+		long expiration = System.currentTimeMillis()+ PRE_SIGNED_URL_EXPIRATION_MS;
+		
+		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(status.getBucket(), status.getKey())
+				.withMethod(HttpMethod.PUT)
+				.withExpiration(new Date(expiration));
+		
+		request.addRequestParameter(S3_PARAM_PART_NUMBER, String.valueOf(partNumber));
+		request.addRequestParameter(S3_PARAM_UPLOAD_ID, status.getUploadToken());
+		
+		request.putCustomRequestHeader(S3_HEADER_COPY_SOURCE, status.getSourceBucket() + "/" + status.getSourceKey());
+		request.putCustomRequestHeader(S3_HEADER_COPY_RANGE, String.format("bytes=%s-%s", bytePosition, lastByte));
+		
+		PresignedUrl presignedUrl = new PresignedUrl();
+		
+		if (StringUtils.isNotEmpty(contentType)){
+			request.setContentType(contentType);
+			presignedUrl.withSignedHeader(HttpHeaders.CONTENT_TYPE, contentType);
+		}
+		
+		request.getCustomRequestHeaders().forEach((headerKey, headerValue) -> {
+			presignedUrl.withSignedHeader(headerKey, headerValue);
+		});
 		
 		URL url = s3Client.generatePresignedUrl(request);
 
