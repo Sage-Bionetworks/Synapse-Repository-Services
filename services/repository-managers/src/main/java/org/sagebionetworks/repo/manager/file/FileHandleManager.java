@@ -390,4 +390,13 @@ public interface FileHandleManager {
 	 * @return
 	 */
 	BatchFileHandleCopyResult copyFileHandles(UserInfo userInfo, BatchFileHandleCopyRequest request);
+	
+	/**
+	 * Checks if the MD5 of the two file handles matches
+	 * 
+	 * @param sourceFileHandleId The id of the source file handle
+	 * @param targetFileHandleId The id of the target file handle
+	 * @return True if the MD5 of the source and target file handle matches, false otherwise
+	 */
+	boolean isMatchingMD5(String sourceFileHandleId, String targetFileHandleId);
 }

@@ -124,6 +124,7 @@ import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
+import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
@@ -3847,5 +3848,13 @@ public interface SynapseClient extends BaseClient {
 	 */
 	ListValidationResultsResponse getInvalidValidationResults(ListValidationResultsRequest request)
 			throws SynapseException;
+	
+	/**
+	 * Updates the file handle of the version of the entity with the given id
+	 * 
+	 * @param request Body of the request containing the old and new file handle
+	 * @throws SynapseException
+	 */
+	void updateEntityFileHandle(String entityId, Long versionNumber, FileHandleUpdateRequest request) throws SynapseException;
 
 }

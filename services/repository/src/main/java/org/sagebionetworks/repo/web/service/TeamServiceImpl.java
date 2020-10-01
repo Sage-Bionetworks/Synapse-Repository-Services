@@ -118,7 +118,7 @@ public class TeamServiceImpl implements TeamService {
 	public PaginatedResults<TeamMember> getMembers(String teamId,
 			String fragment, TeamMemberTypeFilterOptions memberType, long limit, long offset)
 			throws DatastoreException, NotFoundException {
-		
+		ValidateArgument.required(teamId, "The teamId");
 		ValidateArgument.requirement(limit > 0 && limit <= MAX_LIMIT, "limit must be between 1 and "+MAX_LIMIT);
 		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
 

@@ -56,8 +56,9 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 	public static final int MAX_FILES_PER_DOWNLOAD_LIST = 100;
 	public static final long QUERY_ONLY_PART_MASK = 0x1;
 
-	public static final String EXCEEDED_MAX_NUMBER_ROWS = "Exceeded the maximum number of "
-			+ MAX_FILES_PER_DOWNLOAD_LIST + " files.";
+	public static final String EXCEEDED_MAX_NUMBER_ROWS = "We’re Sorry. Our current Download List allowance is "+
+			MAX_FILES_PER_DOWNLOAD_LIST+
+			" files. Please use either Programmatic Options for Download, remove existing files from your Download List, or change the size of your query.";
 
 	@Autowired
 	EntityManager entityManager;

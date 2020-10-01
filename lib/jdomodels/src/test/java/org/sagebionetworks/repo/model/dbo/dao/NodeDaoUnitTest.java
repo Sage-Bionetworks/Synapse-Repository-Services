@@ -3,7 +3,9 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -32,6 +34,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -267,5 +270,65 @@ public class NodeDaoUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			nodeDao.updateAnnotations("syn123", null, "any columname works");
 		});
+	}
+	
+	@Test
+	public void testUpdateRevisionFileHandle() {
+		String nodeId = "123";
+		Long versionNumber = 1L;
+		String newFileHandleId = "1234";
+		
+		int updatedRows = 1;
+		
+		when(mockJdbcTemplate.update(anyString(), anyLong(), anyLong(), anyLong())).thenReturn(updatedRows);
+		
+		// Call under test
+		boolean result = nodeDao.updateRevisionFileHandle(nodeId, versionNumber, newFileHandleId);
+	
+		assertTrue(result);
+		
+		verify(mockJdbcTemplate).update("UPDATE JDOREVISION SET FILE_HANDLE_ID = ? WHERE OWNER_NODE_ID = ? AND NUMBER = ?", Long.valueOf(newFileHandleId), KeyFactory.stringToKey(nodeId), versionNumber);
+	}
+	
+	@Test
+	public void testUpdateRevisionFileHandleWithNoId() {
+		String nodeId = null;
+		Long versionNumber = 1L;
+		String newFileHandleId = "1234";
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			nodeDao.updateRevisionFileHandle(nodeId, versionNumber, newFileHandleId);
+		}).getMessage();
+		
+		assertEquals("The nodeId is required.", errorMessage);
+	}
+	
+	@Test
+	public void testUpdateRevisionFileHandleWithNoRevision() {
+		String nodeId = "123";
+		Long versionNumber = null;
+		String newFileHandleId = "1234";
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			nodeDao.updateRevisionFileHandle(nodeId, versionNumber, newFileHandleId);
+		}).getMessage();
+		
+		assertEquals("The versionNumber is required.", errorMessage);
+	}
+	
+	@Test
+	public void testUpdateRevisionFileHandleWithNoFileHandle() {
+		String nodeId = "123";
+		Long versionNumber = 1L;
+		String newFileHandleId = null;
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			nodeDao.updateRevisionFileHandle(nodeId, versionNumber, newFileHandleId);
+		}).getMessage();
+		
+		assertEquals("The fileHandleId is required.", errorMessage);
 	}
 }

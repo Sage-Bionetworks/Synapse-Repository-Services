@@ -46,11 +46,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <a href="${org.sagebionetworks.repo.model.project.StorageLocationSetting}">StorageLocationSetting</a> can then be set in the <b>locations</b> property of 
  * the <a href="${org.sagebionetworks.repo.model.project.UploadDestinationListSetting}">UploadDestinationListSetting</a>.
  * </p>
- * When uploading a file the id of a custom <a href="${org.sagebionetworks.repo.model.project.StorageLocationSetting}">StorageLocationSetting</a> can be retrieved
+ * When uploading a file the id of the default <a href="${org.sagebionetworks.repo.model.project.StorageLocationSetting}">StorageLocationSetting</a> to be used on a folder can be retrieved
  * using the <a href="${GET.entity.id.uploadDestination}">GET /entity/{id}/uploadDestination</a> service using the id of the parent entity (e.g. a folder or a project).
  * </p>
- * By setting a custom storage location, users can store the data in their own S3 or Google Cloud bucket. For a guide on setting a custom storage location,
- * see the <a href="http://docs.synapse.org/articles/custom_storage_location.html">Custom Storage Location</a> documentation
+ * By setting a custom storage location, users can store the data in their own S3 or Google Cloud bucket. Note that when a folder or a project is configured to use a custom storage location,
+ * only future uploads through Synapse are affected (e.g. changing the storage location does not automatically change the location of existing files).
+ * For a guide on setting a custom storage location, see the <a href="http://docs.synapse.org/articles/custom_storage_location.html">Custom Storage Location</a> documentation
  * article.
  * </p>
  */
@@ -122,7 +123,7 @@ public class ProjectSettingsController {
 	 * Currently supports:
 	 * 
 	 * <ul>
-	 * <li><a href="${org.sagebionetworks.repo.model.project.UploadDestinationListSetting}">UploadDestinationListSetting</a>: Used to customize the storage location for files in a project.
+	 * <li><a href="${org.sagebionetworks.repo.model.project.UploadDestinationListSetting}">UploadDestinationListSetting</a>: Used to customize the storage location for files in a project or folder.
 	 *  The id within the <b>locations</b> property must reference existing <a href="${org.sagebionetworks.repo.model.project.StorageLocationSetting}">StorageLocationSetting</a> that the user created.</li>
 	 * <li><a href="${org.sagebionetworks.repo.model.project.ProjectCertificationSetting}">ProjectCertificationSetting</a>: Used to customize the certification requirement on a project. Only an ACT member can create this setting.</li>
 	 * </ul>

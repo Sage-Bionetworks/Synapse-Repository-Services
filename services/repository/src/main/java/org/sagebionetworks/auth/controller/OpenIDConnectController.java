@@ -338,7 +338,7 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.GET})
 	public @ResponseBody
 	Object getUserInfoGET(
-			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=false) String authorizationHeader,
 			UriComponentsBuilder uriComponentsBuilder
 			)  throws NotFoundException, OAuthClientNotVerifiedException {
 		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
@@ -360,7 +360,7 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.POST})
 	public @ResponseBody
 	Object getUserInfoPOST(
-			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=false) String authorizationHeader,
 			UriComponentsBuilder uriComponentsBuilder
 			)  throws NotFoundException, OAuthClientNotVerifiedException {
 		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);

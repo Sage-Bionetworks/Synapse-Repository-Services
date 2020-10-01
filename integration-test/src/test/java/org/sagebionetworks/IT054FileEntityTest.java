@@ -10,9 +10,13 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -28,6 +32,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
@@ -346,6 +351,83 @@ public class IT054FileEntityTest {
 		assertNotNull(summary.getPage());
 		assertEquals(1, summary.getPage().size());
 		assertEquals(order.getOrderId(), summary.getPage().get(0).getOrderId());
+	}
+	
+	@Test
+	public void testUpdateFileHandle() throws Exception {
+		// Make a copy of the file handle
+		BatchFileHandleCopyRequest batch = new BatchFileHandleCopyRequest();
+		batch.setCopyRequests(new ArrayList<>());
+
+
+		FileHandleCopyRequest copyRequest = new FileHandleCopyRequest();
+		copyRequest.setOriginalFile(association);
+		copyRequest.setNewFileName("NewFileName");
+		
+		batch.getCopyRequests().add(copyRequest);
+
+		FileHandleCopyResult copyResult = synapse.copyFileHandles(batch).getCopyResults().get(0);
+		
+		String newFileHandleId = copyResult.getNewFileHandle().getId();
+		String oldFileHandleId = file.getDataFileHandleId();
+		
+		FileHandleUpdateRequest request = new FileHandleUpdateRequest();
+		
+		request.setOldFileHandleId(oldFileHandleId);
+		request.setNewFileHandleId(newFileHandleId);
+		
+		Long currentVersion = file.getVersionNumber();
+		
+		synapse.updateEntityFileHandle(file.getId(), file.getVersionNumber(), request);
+		
+		file = synapse.getEntity(file.getId(), FileEntity.class);
+
+		assertEquals(currentVersion, file.getVersionNumber());
+		assertEquals(newFileHandleId, file.getDataFileHandleId());
+
+	}
+	
+	/**
+	 * Test for PLFM-6439, which is a request to allow apostrophe in file names.
+	 * @throws FileNotFoundException
+	 * @throws SynapseException
+	 * @throws IOException
+	 */
+	@Test
+	public void testApostropheInName() throws FileNotFoundException, SynapseException, IOException {
+		String name = "HasApostrophe'";
+		String fileContents = "some data";
+		File source = File.createTempFile(name, ".txt");
+		File downloaded = File.createTempFile(name, ".txt");
+		try {
+			FileUtils.write(source, "some data", StandardCharsets.UTF_8);
+			fileHandle = synapse.multipartUpload(source, null, true, true);
+			fileHandlesToDelete.add(fileHandle.getId());
+			
+			file = new FileEntity();
+			file.setName(name);
+			file.setParentId(folder.getId());
+			file.setDataFileHandleId(this.fileHandle.getId());
+			file = this.synapse.createEntity(file);
+			
+			FileHandleAssociation fileHandleAssociation = new FileHandleAssociation();
+			fileHandleAssociation.setAssociateObjectId(file.getId());
+			fileHandleAssociation.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+			fileHandleAssociation.setFileHandleId(fileHandle.getId());
+			URL url = this.synapse.getFileURL(fileHandleAssociation);
+			System.out.println(url.toString());
+			// download the file to a temp file using the pre-signed URL.
+			FileUtils.copyURLToFile(url, downloaded);
+			String resultContent = FileUtils.readFileToString(downloaded, StandardCharsets.UTF_8);
+			assertEquals(fileContents, resultContent);
+		}finally {
+			if(source != null) {
+				source.delete();
+			}
+			if(downloaded != null) {
+				downloaded.delete();
+			}
+		}
 	}
 
 	/**

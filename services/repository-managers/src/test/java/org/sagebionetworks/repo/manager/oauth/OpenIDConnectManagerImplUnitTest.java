@@ -1241,6 +1241,12 @@ public class OpenIDConnectManagerImplUnitTest {
 	}
 
 	@Test
+	public void testGetUserInfoNoAccessToken() {
+		// method under test
+		assertThrows(IllegalArgumentException.class, () -> openIDConnectManagerImpl.getUserInfo(null, OAUTH_ENDPOINT));
+	}
+
+	@Test
 	public void testValidateOidcAccessToken() {
 		String refreshTokenId = "12345";
 		String token = "access token";

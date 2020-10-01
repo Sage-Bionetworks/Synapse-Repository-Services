@@ -523,6 +523,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	@Override
 	public Object getUserInfo(String accessTokenParam, String oauthEndpoint) {
+		ValidateArgument.required(accessTokenParam, "Access token");
 		Jwt<JwsHeader,Claims> accessToken = oidcTokenHelper.parseJWT(accessTokenParam);
 		Claims accessTokenClaims = accessToken.getBody();
 		String oauthClientId = accessTokenClaims.getAudience();

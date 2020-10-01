@@ -335,7 +335,8 @@ public class TeamManagerImpl implements TeamManager {
 
 	@Override
 	public PaginatedResults<TeamMember> listMembers(String teamId, TeamMemberTypeFilterOptions memberType, long limit,
-			long offset) throws DatastoreException {
+			long offset) throws DatastoreException, NotFoundException {
+		teamDAO.validateTeamExists(teamId);
 		List<TeamMember> results;
 		Set<Long> adminIds = teamDAO.getAdminTeamMemberIds(teamId).stream().map(Long::valueOf).collect(Collectors.toSet());
 		switch (memberType) {
@@ -367,7 +368,8 @@ public class TeamManagerImpl implements TeamManager {
 	@Override
 	public PaginatedResults<TeamMember> listMembersForPrefix(String fragment, String teamId,
 															 TeamMemberTypeFilterOptions memberType,
-															 long limit, long offset) throws DatastoreException {
+															 long limit, long offset) throws DatastoreException, NotFoundException {
+		teamDAO.validateTeamExists(teamId);
 		List<Long> prefixMemberIds;
 		switch (memberType) {
 			case ADMIN:
@@ -437,8 +439,8 @@ public class TeamManagerImpl implements TeamManager {
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#get(java.lang.String)
 	 */
 	@Override
-	public Team get(String id) throws DatastoreException, NotFoundException {
-		return teamDAO.get(id);
+	public Team get(String teamId) throws DatastoreException, NotFoundException {
+		return teamDAO.get(teamId);
 	}
 
 	/* (non-Javadoc)

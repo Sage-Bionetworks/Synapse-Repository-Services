@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.dbo.schema.EntitySchemaValidationResultDao
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
+import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
@@ -301,12 +302,15 @@ public class EntityManagerImpl implements EntityManager {
 		org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations = nodeManager
 				.getEntityPropertyAnnotations(userInfo, updated.getId());
 
-		// Auto-version FileEntity See PLFM-1744
+		// Auto-version FileEntity when the id of the file handle is changed (and the MD5 is different) See PLFM-1744 and PLFM-6429
 		if (!newVersion && (updated instanceof FileEntity)) {
 			FileEntity updatedFile = (FileEntity) updated;
-			if (!updatedFile.getDataFileHandleId().equals(node.getFileHandleId())) {
+			String currentFileHandlId = node.getFileHandleId();
+			String updatedFileHandleId = updatedFile.getDataFileHandleId();
+			if (!currentFileHandlId.equals(updatedFileHandleId) && !fileHandleManager.isMatchingMD5(currentFileHandlId, updatedFileHandleId)) {
 				newVersion = true;
-				// setting this to null we cause the revision id to be used.
+				// Since this is an automatic action we reset the version label, by default creating a new revision with a null
+				// version label will automatically set it to the revision id (See NodeDAOImpl.createNewVersion).
 				updatedFile.setVersionLabel(null);
 				updatedFile.setVersionComment(null);
 			}
@@ -344,6 +348,14 @@ public class EntityManagerImpl implements EntityManager {
 		// Now update both at the same time
 		nodeManager.update(userInfo, node, entityPropertyAnnotations, newVersionFinal);
 		return newVersionFinal;
+	}
+	
+	@Override
+	@WriteTransaction
+	public void updateEntityFileHandle(UserInfo userInfo, String entityId, Long versionNumber,
+			FileHandleUpdateRequest updateRequest)
+			throws NotFoundException, ConflictingUpdateException, UnauthorizedException {
+		nodeManager.updateNodeFileHandle(userInfo, entityId, versionNumber, updateRequest);
 	}
 
 	/**

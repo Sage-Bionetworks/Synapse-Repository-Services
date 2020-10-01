@@ -1,6 +1,7 @@
 package org.sagebionetworks.javadoc.velocity.schema;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * All type are either a single type or an array of types or a map of type to type. Any array of types can also be
@@ -12,19 +13,28 @@ import java.util.Arrays;
  */
 public class TypeReference {
 	
+	private String id;
 	private boolean isArray;
 	private boolean isMap;
 	private boolean isUnique;
 	private String[] display;
 	private String[] href;
 	
-	public TypeReference(boolean isArray, boolean isUnique, boolean isMap, String[] display, String[] href) {
-		super();
+	public TypeReference(String id, boolean isArray, boolean isUnique, boolean isMap, String[] display, String[] href) {
+		this.id = id;
 		this.isArray = isArray;
 		this.isMap = isMap;
 		this.isUnique = isUnique;
 		this.display = display;
 		this.href = href;
+	}
+	
+	public String getId() {
+		return id;
+	}
+	
+	public void setId(String id) {
+		this.id = id;
 	}
 	
 	public boolean getIsArray() {
@@ -72,37 +82,31 @@ public class TypeReference {
 		int result = 1;
 		result = prime * result + Arrays.hashCode(display);
 		result = prime * result + Arrays.hashCode(href);
-		result = prime * result + (isArray ? 1231 : 1237);
-		result = prime * result + (isMap ? 1231 : 1237);
-		result = prime * result + (isUnique ? 1231 : 1237);
+		result = prime * result + Objects.hash(id, isArray, isMap, isUnique);
 		return result;
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (obj == null) {
 			return false;
-		if (getClass() != obj.getClass())
+		}
+		if (getClass() != obj.getClass()) {
 			return false;
+		}
 		TypeReference other = (TypeReference) obj;
-		if (!Arrays.equals(display, other.display))
-			return false;
-		if (!Arrays.equals(href, other.href))
-			return false;
-		if (isArray != other.isArray)
-			return false;
-		if (isMap != other.isMap)
-			return false;
-		if (isUnique != other.isUnique)
-			return false;
-		return true;
+		return Arrays.equals(display, other.display) && Arrays.equals(href, other.href) && Objects.equals(id, other.id)
+				&& isArray == other.isArray && isMap == other.isMap && isUnique == other.isUnique;
 	}
 
 	@Override
 	public String toString() {
-		return "TypeReference [isArray=" + isArray + ", isMap=" + isMap + ", isUnique=" + isUnique + ", display=" + Arrays.toString(display)
-				+ ", href=" + Arrays.toString(href) + "]";
+		return "TypeReference [id=" + id + ", isArray=" + isArray + ", isMap=" + isMap + ", isUnique=" + isUnique
+				+ ", display=" + Arrays.toString(display) + ", href=" + Arrays.toString(href) + "]";
 	}
+
+	
 }

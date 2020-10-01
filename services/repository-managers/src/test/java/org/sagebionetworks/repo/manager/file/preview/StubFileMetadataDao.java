@@ -137,6 +137,12 @@ public class StubFileMetadataDao implements FileHandleDao {
 		map.put(id, metadata);
 		return metadata;
 	}
+	
+	@Override
+	public boolean isMatchingMD5(String sourceFileHandleId, String targetFileHandleId) {
+		// TODO Auto-generated method stub
+		return false;
+	}
 
 	@Override
 	public void truncateTable() {
