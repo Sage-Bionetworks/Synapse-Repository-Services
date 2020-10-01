@@ -56,6 +56,14 @@ public interface CloudServiceMultipartUploadDAO {
 	 * @param request
 	 */
 	void validateAndAddPart(AddPartRequest request);
+	
+	/**
+	 * Validates the added copy part
+	 * 
+	 * @param status
+	 * @param partNumber
+	 */
+	void validatePartCopy(CompositeMultipartUploadStatus status, long partNumber, String partMD5Hex);
 
 	/**
 	 * Complete a multi-part upload.

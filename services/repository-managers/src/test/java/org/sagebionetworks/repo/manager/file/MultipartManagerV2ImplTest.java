@@ -650,6 +650,28 @@ public class MultipartManagerV2ImplTest {
 	}
 	
 	@Test
+	public void testAddMultipartPartWithCopyRequest() {
+		
+		composite.setRequestType(MultiPartRequestType.COPY);
+		
+		String partMD5Hex = "8356accbaa8bfc6ddc6c612224c6c9b3";
+		int partNumber = 2;
+
+		// Call under test
+		AddPartResponse response = manager.addMultipartPart(userInfo, uploadId, partNumber, partMD5Hex);
+		
+		assertNotNull(response);
+		assertEquals(uploadId, response.getUploadId());
+		assertNotNull(response.getPartNumber());
+		assertEquals(partNumber, response.getPartNumber().intValue());
+		assertEquals(AddPartState.ADD_SUCCESS, response.getAddPartState());
+
+		verify(mockS3multipartUploadDAO).validatePartCopy(composite, partNumber, partMD5Hex);
+		// the part state should be saved
+		verify(mockMultiparUploadDAO).addPartToUpload(uploadId, partNumber, partMD5Hex);
+	}
+	
+	@Test
 	public void testValidatePartsHappy(){
 		List<PartMD5> addedParts = Lists.newArrayList(new PartMD5(2, "partMD5HexTwo"), new PartMD5(1, "partMD5HexOne"));
 		int numberOfParts = 2;

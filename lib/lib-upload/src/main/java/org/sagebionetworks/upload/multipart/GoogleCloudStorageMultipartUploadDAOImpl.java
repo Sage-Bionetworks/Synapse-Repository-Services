@@ -69,6 +69,11 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 		validatePartMd5(request);
 		addPart(request.getUploadId(), request.getBucket(), request.getKey(), request.getPartNumber(), request.getPartNumber(), request.getTotalNumberOfParts());
 	}
+	
+	@Override
+	public void validatePartCopy(CompositeMultipartUploadStatus status, long partNumber, String partMD5Hex) {
+		throw new UnsupportedOperationException(UNSUPPORTED_COPY_MSG);
+	}
 
 	void validatePartMd5(AddPartRequest request) {
 		Blob uploadedPart = googleCloudStorageClient.getObject(request.getBucket(), request.getPartKey());

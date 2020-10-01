@@ -387,35 +387,59 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		// lookup this upload.
 		CompositeMultipartUploadStatus composite = multipartUploadDAO.getUploadStatus(uploadId);
 		// block add if the upload is complete
-		if(MultipartUploadState.COMPLETED.equals(composite.getMultipartUploadStatus().getState())){
+		if (MultipartUploadState.COMPLETED.equals(composite.getMultipartUploadStatus().getState())){
 			throw new IllegalArgumentException("Cannot add parts to completed file upload.");
 		}
+		
 		validatePartNumber(partNumber, composite.getNumberOfParts());
 		// validate the user started this upload.
 		validateStartedBy(user, composite);
-		String partKey = MultipartUploadUtils.createPartKey(composite.getKey(), partNumber);
-
+		
 		AddPartResponse response = new AddPartResponse();
+		
 		response.setPartNumber(new Long(partNumber));
 		response.setUploadId(uploadId);
+
+		CloudServiceMultipartUploadDAO cloudDao = getCloudServiceMultipartDao(composite.getUploadType());
+		
 		try {
-			getCloudServiceMultipartDao(composite.getUploadType())
-					.validateAndAddPart(new AddPartRequest(uploadId, composite
-							.getUploadToken(), composite.getBucket(), composite
-							.getKey(), partKey, partMD5Hex, partNumber, composite.getNumberOfParts()));
+			switch (composite.getRequestType()) {
+			case UPLOAD:
+				validatePartAddedForUpload(cloudDao, composite, partNumber, partMD5Hex);
+				break;
+			case COPY:
+				validatePartAddedForUploadCopy(cloudDao, composite, partNumber, partMD5Hex);
+				break;
+			default:
+				throw new IllegalStateException("Unsupported request type: " + composite.getRequestType());
+			}
+			
 			// added the part successfully.
-			multipartUploadDAO
-					.addPartToUpload(uploadId, partNumber, partMD5Hex);
+			multipartUploadDAO.addPartToUpload(uploadId, partNumber, partMD5Hex);
 			response.setAddPartState(AddPartState.ADD_SUCCESS);
 		} catch (Exception e) {
 			response.setErrorMessage(e.getMessage());
 			response.setAddPartState(AddPartState.ADD_FAILED);
 			String errorDetails = ExceptionUtils.getStackTrace(e);
-			multipartUploadDAO.setPartToFailed(uploadId, partNumber,
-					errorDetails);
+			multipartUploadDAO.setPartToFailed(uploadId, partNumber, errorDetails);
 		}
 		return response;
 	}
+	
+	private void validatePartAddedForUpload(CloudServiceMultipartUploadDAO cloudDao, CompositeMultipartUploadStatus status, long partNumber, String partMD5Hex) {
+		String partKey = MultipartUploadUtils.createPartKey(status.getKey(), partNumber);
+		
+		cloudDao.validateAndAddPart(
+				new AddPartRequest(status.getMultipartUploadStatus().getUploadId(), status
+						.getUploadToken(), status.getBucket(), status
+						.getKey(), partKey, partMD5Hex, partNumber, status.getNumberOfParts())
+		);
+	}
+	
+	private void validatePartAddedForUploadCopy(CloudServiceMultipartUploadDAO cloudDao, CompositeMultipartUploadStatus status, long partNumber, String partMD5Hex) {
+		cloudDao.validatePartCopy(status, partNumber, partMD5Hex);
+	}
+
 
 	@WriteTransaction
 	@Override

@@ -233,6 +233,16 @@ public class S3MultipartUploadDAOImplTest {
 		verify(mockS3Client, never()).deleteObject(any(), any());
 	}
 	
+	@Test
+	public void testValidatePartCopy() {
+		long partNumber = 1;
+		String partMD5Hex = "md5";
+
+		dao.validatePartCopy(new CompositeMultipartUploadStatus(), partNumber, partMD5Hex);
+		
+		verifyZeroInteractions(mockS3Client);
+	}
+	
 	
 	@Test
 	public void testCompleteMultipartUpload(){

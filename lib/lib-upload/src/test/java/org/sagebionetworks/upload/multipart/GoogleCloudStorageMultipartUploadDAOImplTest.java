@@ -318,6 +318,19 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 		verify(mockMultipartUploadComposerDAO).deletePartsInRange(UPLOAD_ID, existingDboLowerBound, existingDboUpperBound);
 		verify(mockMultipartUploadComposerDAO).addPartToUpload(UPLOAD_ID, existingDboLowerBound, existingDboUpperBound);
 	}
+	
+	@Test
+	public void testValidatePartCopy() {
+		long partNumber = 1;
+		String partMD5Hex = "md5";
+		
+		String errorMessage = assertThrows(UnsupportedOperationException.class, () -> {
+			// Call under test
+			googleMpuDAO.validatePartCopy(new CompositeMultipartUploadStatus(), partNumber, partMD5Hex);
+		}).getMessage();
+		
+		assertEquals("Copying from a Google Cloud Bucket is not supported yet.", errorMessage);
+	}
 
 
 	private List<DBOMultipartUploadComposerPartState> createDboList(long uploadId,

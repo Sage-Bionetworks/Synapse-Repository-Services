@@ -224,6 +224,11 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 		s3Client.deleteObject(request.getBucket(), request.getPartKey());
 	}
 
+	@Override
+	public void validatePartCopy(CompositeMultipartUploadStatus status, long partNumber, String partMD5Hex) {
+		// Nothing to validate
+	}
+	
 	/*
 	 * (non-Javadoc)
 	 * 
