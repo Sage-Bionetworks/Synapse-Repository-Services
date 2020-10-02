@@ -45,7 +45,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationList;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
-import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
+import org.sagebionetworks.repo.model.file.MultipartRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -73,7 +73,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * <p>
- * FileHandle is an abstraction for a reference to a file in Synapse.  For details on the various types see: <a
+ * A FileHandle is an abstraction for a reference to a file in Synapse.  For details on the various types see: <a
  * href="${org.sagebionetworks.repo.model.file.FileHandle}">FileHandle</a>.
  * </p>
  * <p>
@@ -104,7 +104,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * following: <a href="${POST.file.multipart}">POST /file/multipart</a> which
  * will return an <a
  * href="${org.sagebionetworks.repo.model.file.MultipartUploadStatus}"
- * >MultipartUploadStatus</a>. The client is expected the use
+ * >MultipartUploadStatus</a>. The client is expected to use
  * MultipartUploadStatus to drive the upload. The client will need to upload
  * each missing part (parts with '0' in the partsState) as follows:
  * </p>
@@ -128,6 +128,44 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * the upload fails for any reason, the client should start over ( <a
  * href="${POST.file.multipart}">POST /file/multipart</a>) and continue by
  * uploading any parts that are reported as missing.
+ * </p>
+ * <p>
+ * <b>Multi-part File Copy API</b>
+ * </p>
+ * <p>
+ * The multipart API supports a robust copy of existing files to other locations (e.g. in case of a data migration)
+ * without the need to download and re-upload the file. This is currently supported only from and to S3 storage locations.
+ * In order to initiate a multipart copy, a <a href="${POST.file.multipart}">POST /file/multipart</a> request can be sent
+ * using as the body of the request a <a href="${org.sagebionetworks.repo.model.file.MultipartUploadCopyRequest}">MultipartUploadCopyRequest</a>.
+ * </p>
+ * <p>
+ * Once the multipart copy is initiated the process is the same as the multipart upload:
+ * </p>
+ * <p>
+ * <ol>
+ * <li>
+ * Get the pre-signed URLs using: <a
+ * href="${POST.file.multipart.uploadId.presigned.url.batch}">POST
+ * /file/multipart/{uploadId}/presigned/url/batch</a>
+ * </li>
+ * <li>
+ * For each pre-signed URL perform an HTTP PUT request with no body, the response of the previous endpoint contains a map of headers that are 
+ * signed with the URL, all of the headers MUST be included in the PUT request.
+ * </li>
+ * <li>
+ * Add the part to the multi-part copy using: <a
+ * href="${PUT.file.multipart.uploadId.add.partNumber}">PUT
+ * /file/multipart/{uploadId}/add/{partNumber}</a>. 
+ * The value of the partMD5Hex parameter will be MD5 returned by the request sent to the pre-signed URL.
+ * </li>
+ * <li>
+ * Once all parts have been successfully added to the multi-part copy, the
+ * copy can be completed using: <a
+ * href="${PUT.file.multipart.uploadId.complete}">PUT
+ * /file/multipart/{uploadId}/complete</a> to produce a new <a
+ * href="${org.sagebionetworks.repo.model.file.FileHandle}">FileHandle</a>
+ * </li>
+ * </ol>
  * </p>
  * <p>
  * <b>Associating FileHandles with Synapse objects</b>
@@ -795,9 +833,17 @@ public class UploadController {
 	}
 
 	/**
-	 * Start or resume a multi-part upload of a file. By default this method is
+	 * Start or resume a multi-part upload or copy of a file. By default this method is
 	 * idempotent, so subsequent calls will simply return the current status of
-	 * the file upload.
+	 * the file upload/copy.
+	 * 
+	 * <p>
+	 * The body of the request will determine if an upload or a copy is performed: 
+	 * Using a <a href="${org.sagebionetworks.repo.model.file.MultipartUploadRequest}">MultipartUploadRequest</a> will start
+	 * a normal multipart upload, while posting a 
+	 * <a href="${org.sagebionetworks.repo.model.file.MultipartUploadCopyRequest}">MultipartUploadCopyRequest</a> will start
+	 * a multipart copy.
+	 * </p>
 	 * 
 	 * @param userId
 	 * @param request
@@ -811,11 +857,11 @@ public class UploadController {
 	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.FILE_MULTIPART, method = RequestMethod.POST)
-	public @ResponseBody MultipartUploadStatus startMultipartUpload(
+	public @ResponseBody MultipartUploadStatus startMultipartOperation(
 			@RequestParam(required = true, value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody(required = true) MultipartUploadRequest request,
+			@RequestBody(required = true) MultipartRequest request,
 			@RequestParam(required = false, defaultValue = "false") boolean forceRestart) {
-		return fileService.startMultipartUpload(userId, request, forceRestart);
+		return fileService.startMultipart(userId, request, forceRestart);
 	}
 
 	/**

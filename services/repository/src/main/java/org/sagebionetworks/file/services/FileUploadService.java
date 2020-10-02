@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationList;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
+import org.sagebionetworks.repo.model.file.MultipartRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -257,8 +258,7 @@ public interface FileUploadService {
 	 * @param forceRestart
 	 * @return
 	 */
-	MultipartUploadStatus startMultipartUpload(Long userId,
-			MultipartUploadRequest request, boolean forceRestart);
+	MultipartUploadStatus startMultipart(Long userId, MultipartRequest request, boolean forceRestart);
 
 	/**
 	 * Get a batch of pre-signed urls.

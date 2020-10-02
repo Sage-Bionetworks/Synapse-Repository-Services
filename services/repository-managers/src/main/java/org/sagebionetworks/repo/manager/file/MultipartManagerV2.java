@@ -4,6 +4,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
+import org.sagebionetworks.repo.model.file.MultipartRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadCopyRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
@@ -13,6 +14,16 @@ import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
  *
  */
 public interface MultipartManagerV2 {
+	
+	/**
+	 * Starts one of the supported ({@link MultipartUploadRequest} or {@link MultipartUploadCopyRequest}) multipart operations.
+	 * 
+	 * @param user
+	 * @param request
+	 * @param forceRestart
+	 * @return
+	 */
+	MultipartUploadStatus startOrResumeMultipartOperation(UserInfo user, MultipartRequest request, boolean forceRestart);
 	
 	/**
 	 * Start or resume an multi-part upload for a given file.

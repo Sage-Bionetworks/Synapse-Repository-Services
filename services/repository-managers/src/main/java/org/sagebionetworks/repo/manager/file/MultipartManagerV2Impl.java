@@ -70,6 +70,21 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	
 	@Autowired
 	private FileHandleAuthorizationManager authManager;
+	
+
+	@Override
+	@WriteTransaction
+	public MultipartUploadStatus startOrResumeMultipartOperation(UserInfo user, MultipartRequest request, boolean forceRestart) {
+		ValidateArgument.required(request, "request");
+		
+		if (request instanceof MultipartUploadRequest) {
+			return startOrResumeMultipartUpload(user, (MultipartUploadRequest) request, forceRestart);
+		} else if (request instanceof MultipartUploadCopyRequest) {
+			return startOrResumeMultipartUploadCopy(user, (MultipartUploadCopyRequest) request, forceRestart);
+		}
+		
+		throw new UnsupportedOperationException("Request type unsupported: " + request.getClass().getSimpleName());
+	}
 
 	@Override
 	@WriteTransaction
