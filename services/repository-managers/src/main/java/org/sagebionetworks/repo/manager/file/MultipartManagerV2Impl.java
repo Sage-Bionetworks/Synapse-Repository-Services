@@ -343,7 +343,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		
 		part.setPartNumber(partNumber);
 		part.setUploadPresignedUrl(presignedUrl.getUrl().toString());
-		part.setRequestHeaders(presignedUrl.getSignedHeaders());
+		part.setSignedHeaders(presignedUrl.getSignedHeaders());
 		
 		return part;
 	}

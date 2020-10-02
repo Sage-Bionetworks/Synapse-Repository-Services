@@ -288,7 +288,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		PartPresignedUrl preSignedUrl = getPresignedURLForPart(status.getUploadId(), null);
 		
 		// Make the request to S3
-		String eTag = emptyPUT(preSignedUrl.getUploadPresignedUrl(), preSignedUrl.getRequestHeaders());
+		String eTag = emptyPUT(preSignedUrl.getUploadPresignedUrl(), preSignedUrl.getSignedHeaders());
 		
 		// Add the part
 		addPart(status.getUploadId(), eTag);

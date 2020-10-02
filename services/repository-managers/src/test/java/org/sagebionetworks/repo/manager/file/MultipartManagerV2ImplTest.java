@@ -477,7 +477,7 @@ public class MultipartManagerV2ImplTest {
 		
 		partUrl.setPartNumber(partNumber);
 		partUrl.setUploadPresignedUrl(presignedUrl.getUrl().toString());
-		partUrl.setRequestHeaders(presignedUrl.getSignedHeaders());
+		partUrl.setSignedHeaders(presignedUrl.getSignedHeaders());
 		
 		BatchPresignedUploadUrlResponse expected = new BatchPresignedUploadUrlResponse();
 		expected.setPartPresignedUrls(Arrays.asList(partUrl));
