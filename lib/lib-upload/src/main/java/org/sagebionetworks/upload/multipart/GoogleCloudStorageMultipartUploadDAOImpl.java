@@ -7,10 +7,13 @@ import java.util.List;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
+import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.DBOMultipartUploadComposerPartState;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadComposerDAO;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.MultipartUploadCopyRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.upload.PartRange;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -20,6 +23,8 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.HttpMethod;
 
 public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO {
+
+	private static final String UNSUPPORTED_COPY_MSG = "Copying from a Google Cloud Bucket is not supported yet.";
 
 	// 15 minutes
 	private static final int PRE_SIGNED_URL_EXPIRATION_MS = 15 * 1000 * 60;
@@ -35,10 +40,27 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 		// Google cloud uploads do not require a token, so just return an empty string.
 		return "";
 	}
+	
+	@Override
+	public String initiateMultipartUploadCopy(String bucket, String key, MultipartUploadCopyRequest request, FileHandle fileHandle) {
+		throw new UnsupportedOperationException(UNSUPPORTED_COPY_MSG);
+	}
 
 	@Override
-	public URL createPreSignedPutUrl(String bucket, String partKey, String contentType) {
-		return googleCloudStorageClient.createSignedUrl(bucket, partKey, PRE_SIGNED_URL_EXPIRATION_MS, HttpMethod.PUT);
+	public PresignedUrl createPartUploadPreSignedUrl(String bucket, String partKey, String contentType) {
+		PresignedUrl presignedUrl = new PresignedUrl();
+		
+		URL url = googleCloudStorageClient.createSignedUrl(bucket, partKey, PRE_SIGNED_URL_EXPIRATION_MS, HttpMethod.PUT);
+	
+		presignedUrl.withUrl(url);
+		
+		return presignedUrl;
+	}
+	
+	@Override
+	public PresignedUrl createPartUploadCopyPresignedUrl(CompositeMultipartUploadStatus status, long partNumber,
+			String contentType) {
+		throw new UnsupportedOperationException(UNSUPPORTED_COPY_MSG);
 	}
 
 	@WriteTransaction
@@ -46,6 +68,11 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 	public void validateAndAddPart(AddPartRequest request) {
 		validatePartMd5(request);
 		addPart(request.getUploadId(), request.getBucket(), request.getKey(), request.getPartNumber(), request.getPartNumber(), request.getTotalNumberOfParts());
+	}
+	
+	@Override
+	public void validatePartCopy(CompositeMultipartUploadStatus status, long partNumber, String partMD5Hex) {
+		throw new UnsupportedOperationException(UNSUPPORTED_COPY_MSG);
 	}
 
 	void validatePartMd5(AddPartRequest request) {
