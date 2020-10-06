@@ -91,9 +91,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * </p>
  * <p>
  * The first task in multi-part upload is choosing a part size. The minimum part
- * size is 5 MB (1024*1024*5). Therefore, any file with a size less than or
- * equal to 5 MB will have a single part and a partSize=5242880. The maximum
- * number of parts for a single file 10,000 parts. The following should be used
+ * size is 5 MB (1024*1024*5) and the maximum part size is 5 GB (1024*1024*1024*5). 
+ * Therefore, any file with a size less than or equal to 5 MB will have a single part and a partSize=5242880. 
+ * The maximum number of parts for a single file 10,000 parts. The following should be used
  * to choose a part size:
  * </p>
  * <p>
@@ -139,12 +139,16 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * using as the body of the request a <a href="${org.sagebionetworks.repo.model.file.MultipartUploadCopyRequest}">MultipartUploadCopyRequest</a>.
  * </p>
  * <p>
+ * The part size allows to parallelize the copy in multiple sub-parts, the same limits of the upload applies to the copy (e.g. it is possible to copy 
+ * a file in a single part up to 5 GB).
+ * </p>
+ * <p>
  * Once the multipart copy is initiated the process is the same as the multipart upload:
  * </p>
  * <p>
  * <ol>
  * <li>
- * Get the pre-signed URLs using: <a
+ * Get the part copy pre-signed URLs using: <a
  * href="${POST.file.multipart.uploadId.presigned.url.batch}">POST
  * /file/multipart/{uploadId}/presigned/url/batch</a>
  * </li>
@@ -156,7 +160,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * Add the part to the multi-part copy using: <a
  * href="${PUT.file.multipart.uploadId.add.partNumber}">PUT
  * /file/multipart/{uploadId}/add/{partNumber}</a>. 
- * The value of the partMD5Hex parameter will be MD5 returned by the request sent to the pre-signed URL.
+ * The value of the partMD5Hex parameter will be MD5 checksum returned in the response of the request sent to the pre-signed URL.
  * </li>
  * <li>
  * Once all parts have been successfully added to the multi-part copy, the

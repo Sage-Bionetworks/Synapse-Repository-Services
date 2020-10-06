@@ -135,7 +135,9 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		
 		String requestClass = request.getClass().getSimpleName();
 		
-		ValidateArgument.required(request.getPartSizeBytes(), requestClass + ".PartSizeBytes");
+		ValidateArgument.required(request.getPartSizeBytes(), requestClass + ".partSizeBytes");
+		
+		PartUtils.validatePartSize(request.getPartSizeBytes());
 
 		// anonymous cannot upload. See: PLFM-2621.
 		if (AuthorizationUtils.isUserAnonymous(user)) {
@@ -145,9 +147,11 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	
 	private void validateMultipartUpload(UserInfo user, MultipartUploadRequest request) {
 		validateMultipartRequest(user, request);
+		
 		ValidateArgument.requiredNotEmpty(request.getFileName(), "MultipartUploadRequest.fileName");
 		ValidateArgument.required(request.getFileSizeBytes(), "MultipartUploadRequest.fileSizeBytes");
 		ValidateArgument.requiredNotEmpty(request.getContentMD5Hex(), "MultipartUploadRequest.MD5Hex");
+		PartUtils.validateFileSize(request.getFileSizeBytes());
 
 		//validate file name
 		NameValidation.validateName(request.getFileName());
@@ -155,6 +159,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	
 	private void validateMultipartUploadCopy(UserInfo user, MultipartUploadCopyRequest request) {
 		validateMultipartRequest(user, request);
+		
 		ValidateArgument.required(request.getSourceFileHandleAssociation(), "MultipartUploadCopyRequest.sourceFileHandleAssociation");
 		ValidateArgument.required(request.getStorageLocationId(), "MultipartUploadCopyRequest.storageLocationId");
 		
@@ -535,10 +540,8 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	public static void validateParts(int numberOfParts,
 			List<PartMD5> addedParts) {
 		if (addedParts.size() < numberOfParts) {
-			int missingPartCount = numberOfParts
-					- addedParts.size();
-			throw new IllegalArgumentException(
-					"Missing "
+			int missingPartCount = numberOfParts - addedParts.size();
+			throw new IllegalArgumentException("Missing "
 							+ missingPartCount
 							+ " part(s).  All parts must be successfully added before a file upload can be completed.");
 		}
