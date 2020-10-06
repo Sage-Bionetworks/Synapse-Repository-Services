@@ -95,6 +95,10 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 	}
 	
 	private void validateSameRegionCopy(String sourceBucket, String destinationBucket) {
+		if (sourceBucket.equals(destinationBucket)) {
+			return;
+		}
+		
 		Region sourceRegion = s3Client.getRegionForBucket(sourceBucket);
 		Region targetRegion = s3Client.getRegionForBucket(destinationBucket);
 		

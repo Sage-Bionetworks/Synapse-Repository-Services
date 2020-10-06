@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -348,6 +349,7 @@ public class S3MultipartUploadDAOImplTest {
 		assertEquals(CannedAccessControlList.BucketOwnerFullControl, capture.getValue().getCannedACL());
 	}
 	
+	
 	@Test
 	public void testInitiateMultipartUploadCopyWithUnsupportedFileHandleType() {
 		ExternalFileHandle sourceFile = new ExternalFileHandle();
@@ -394,6 +396,43 @@ public class S3MultipartUploadDAOImplTest {
 		assertEquals("Copying a file that is stored in a different region than the destination is not supported.", errorMessage);
 
 	}
+	
+	@Test
+	public void testInitiateMultipartUploadCopySameBucket() {
+		S3FileHandle sourceFile = new S3FileHandle();
+		
+		sourceFile.setBucketName(bucket);
+		sourceFile.setFileName("filename");
+		sourceFile.setContentType("text/plain");
+		sourceFile.setContentMd5("8356accbaa8bfc6ddc6c612224c6c9b3");
+		
+		MultipartUploadCopyRequest request = new MultipartUploadCopyRequest();
+		request.setFileName("targetFileName");
+		
+		when(mockResult.getUploadId()).thenReturn(uploadId);
+		when(mockS3Client.initiateMultipartUpload(any())).thenReturn(mockResult);
+		
+		// Call under test
+		String result = dao.initiateMultipartUploadCopy(bucket, key, request, sourceFile);
+		
+		assertEquals(uploadId, result);
+		
+		ArgumentCaptor<InitiateMultipartUploadRequest> capture = ArgumentCaptor.forClass(InitiateMultipartUploadRequest.class);
+		
+		// Since the source and target bucket are the same there is no need to invoke the getRegionForBucket
+		verify(mockS3Client, times(0)).getRegionForBucket(any());
+		verify(mockS3Client).initiateMultipartUpload(capture.capture());
+		
+		InitiateMultipartUploadRequest s3Request = capture.getValue();
+		
+		assertEquals(bucket, s3Request.getBucketName());
+		assertEquals(key, s3Request.getKey());
+		assertEquals(ContentDispositionUtils.getContentDispositionValue(request.getFileName()), s3Request.getObjectMetadata().getContentDisposition());
+		assertEquals("text/plain", s3Request.getObjectMetadata().getContentType());
+		assertEquals("g1asy6qL/G3cbGEiJMbJsw==", s3Request.getObjectMetadata().getContentMD5());
+		assertEquals(CannedAccessControlList.BucketOwnerFullControl, capture.getValue().getCannedACL());
+	}
+	
 	
 	@Test
 	public void testCreatePartUploadCopyPresignedUrl() throws MalformedURLException {
