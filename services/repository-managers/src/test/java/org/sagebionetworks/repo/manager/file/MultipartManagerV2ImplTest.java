@@ -1097,7 +1097,7 @@ public class MultipartManagerV2ImplTest {
 			manager.startOrResumeMultipartUploadCopy(userInfo, request, forceRestart);
 		}).getMessage();
 		
-		assertEquals("The user does not own the storage location.", errorMessage);
+		assertEquals("The user does not own the destination storage location.", errorMessage);
 		
 		verify(mockMultiparUploadDAO).getUploadStatus(userId, requestHash);
 		verify(mockProjectSettingsManager).getStorageLocationSetting(storageLocationId);

@@ -213,7 +213,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		
 		// Makes sure the user owns the storage location, note that the storage location id is required in the request
 		if (!user.isAdmin() && !user.getId().equals(storageLocation.getCreatedBy())) {
-			throw new UnauthorizedException("The user does not own the storage location.");
+			throw new UnauthorizedException("The user does not own the destination storage location.");
 		}
 		
 		FileHandle fileHandle = fileHandleDao.get(association.getFileHandleId());
@@ -226,7 +226,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 			throw new IllegalArgumentException("The source file handle does not define its content MD5.");
 		}
 		
-		// Sets a file name as it is optional, but we save it in the request (the has won't contain this)
+		// Sets a file name as it is optional, but we save it in the request (the hash won't contain this)
 		request.setFileName(StringUtils.isBlank(request.getFileName()) ? fileHandle.getFileName() : request.getFileName());
 		
 		String requestJson = MultipartRequestUtils.createRequestJSON(request);
