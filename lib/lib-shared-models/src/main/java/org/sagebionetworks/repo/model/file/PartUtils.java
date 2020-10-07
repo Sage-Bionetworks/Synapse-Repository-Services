@@ -79,5 +79,22 @@ public class PartUtils {
 			throw new IllegalArgumentException("The part size must not exceed " + MAX_PART_SIZE_BYTES + " bytes.");
 		}
 	}
+	
+	/**
+	 * Returns the byte range of a part given a part size and the total file size
+	 * 
+	 * @param partNumber The part number
+	 * @param partSizeBytes The part size in bytes
+	 * @param fileSizeBytes The total file size in bytes
+	 * @return An array of two elements containing the start and end bytes of the range
+	 */
+	public static long[] getPartRange(long partNumber, long partSizeBytes, long fileSizeBytes) {
+		long firstByte = (partNumber - 1) * partSizeBytes;
+		
+		// The last part might be smaller than partSizeBytes, so check to make sure that lastByte isn't beyond the fileSizeBytes
+		long lastByte = Math.min(firstByte + partSizeBytes - 1, fileSizeBytes - 1);
+		
+		return new long[] {firstByte, lastByte};
+	}
 
 }

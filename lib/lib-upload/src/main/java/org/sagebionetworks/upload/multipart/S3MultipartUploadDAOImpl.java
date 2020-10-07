@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.MultipartUploadCopyRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.PartMD5;
+import org.sagebionetworks.repo.model.file.PartUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.util.ContentDispositionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,8 @@ import com.amazonaws.util.BinaryUtils;
  * This class handles the interaction with S3 during the steps of a multi-part upload
  */
 public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO {
+
+	private static final String S3_HEADER_COPY_RANGE_VALUE_TEMPLATE = "bytes=%d-%d";
 
 	private static final String S3_HEADER_COPY_RANGE = "x-amz-copy-source-range";
 
@@ -164,14 +167,9 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 		if (status.getSourceKey() == null) {
 			throw new IllegalStateException("Expected the source file bucket key, found none.");
 		}
-		
-		// Computes the byte range
-		long bytePosition = (partNumber - 1) * status.getPartSize();
-		
-		// The last part might be smaller than partSize, so check to make sure that lastByte isn't beyond the end of the object.
-		long lastByte = Math.min(bytePosition + status.getPartSize() - 1, status.getFileSize() - 1);
-		
-		long expiration = System.currentTimeMillis()+ PRE_SIGNED_URL_EXPIRATION_MS;
+
+		final long[] byteRange = PartUtils.getPartRange(partNumber, status.getPartSize(), status.getFileSize());
+		final long expiration = System.currentTimeMillis() + PRE_SIGNED_URL_EXPIRATION_MS;
 		
 		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(status.getBucket(), status.getKey())
 				.withMethod(HttpMethod.PUT)
@@ -181,7 +179,7 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 		request.addRequestParameter(S3_PARAM_UPLOAD_ID, status.getUploadToken());
 		
 		request.putCustomRequestHeader(S3_HEADER_COPY_SOURCE, status.getSourceBucket() + "/" + status.getSourceKey());
-		request.putCustomRequestHeader(S3_HEADER_COPY_RANGE, String.format("bytes=%s-%s", bytePosition, lastByte));
+		request.putCustomRequestHeader(S3_HEADER_COPY_RANGE, String.format(S3_HEADER_COPY_RANGE_VALUE_TEMPLATE, byteRange[0], byteRange[1]));
 		
 		PresignedUrl presignedUrl = new PresignedUrl();
 		
