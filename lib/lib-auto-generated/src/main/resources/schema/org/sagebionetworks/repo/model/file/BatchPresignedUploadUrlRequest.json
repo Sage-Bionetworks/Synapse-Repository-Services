@@ -15,6 +15,13 @@
 		"contentType": {
 			"type": "string",
 			"description": "Optional parameter.  When included each pre-signed URL will be signed with the given Content-Type.  This is necessary for clients that must include the header 'Content-Type' with all HTTP GET calls."
+		},
+		"partMD5Hex": {
+			"type": "array",
+			"description": "Optional list of MD5 checksums represented as hexadecimal string for each part to check against. If present must match the size of the partNumbers list and will be added as a constraint to the pre-signed URL.",
+			"items": {
+				"type": "string"
+			}
 		}
 	}
 }

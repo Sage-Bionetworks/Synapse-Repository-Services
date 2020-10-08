@@ -47,7 +47,7 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 	}
 
 	@Override
-	public PresignedUrl createPartUploadPreSignedUrl(String bucket, String partKey, String contentType) {
+	public PresignedUrl createPartUploadPreSignedUrl(String bucket, String partKey, String contentType, String partMD5Hex) {		
 		PresignedUrl presignedUrl = new PresignedUrl();
 		
 		URL url = googleCloudStorageClient.createSignedUrl(bucket, partKey, PRE_SIGNED_URL_EXPIRATION_MS, HttpMethod.PUT);
@@ -59,7 +59,7 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 	
 	@Override
 	public PresignedUrl createPartUploadCopyPresignedUrl(CompositeMultipartUploadStatus status, long partNumber,
-			String contentType) {
+			String contentType, String partMD5Hex) {
 		throw new UnsupportedOperationException(UNSUPPORTED_COPY_MSG);
 	}
 

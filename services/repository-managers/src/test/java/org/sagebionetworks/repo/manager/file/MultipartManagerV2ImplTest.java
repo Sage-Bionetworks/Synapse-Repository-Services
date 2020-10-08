@@ -225,7 +225,7 @@ public class MultipartManagerV2ImplTest {
 				String key = (String) invocation.getArguments()[1];
 				return new PresignedUrl().withUrl(new URL("http", "amazon.com", bucket+"/"+key));
 			}
-		}).when(mockS3multipartUploadDAO).createPartUploadPreSignedUrl(anyString(), anyString(), anyString());
+		}).when(mockS3multipartUploadDAO).createPartUploadPreSignedUrl(anyString(), anyString(), any(), any());
 		
 		forceRestart = false;
 		synapseBucket = StackConfigurationSingleton.singleton().getS3Bucket();
@@ -464,7 +464,7 @@ public class MultipartManagerV2ImplTest {
 		
 		// setup the case where the status already exists
 		when(mockMultiparUploadDAO.getUploadStatus(any())).thenReturn(composite);
-		when(mockS3multipartUploadDAO.createPartUploadCopyPresignedUrl(any(), anyLong(), any())).thenReturn(presignedUrl);
+		when(mockS3multipartUploadDAO.createPartUploadCopyPresignedUrl(any(), anyLong(), any(), any())).thenReturn(presignedUrl);
 		
 		long partNumber = 1;
 		
@@ -488,7 +488,53 @@ public class MultipartManagerV2ImplTest {
 		assertEquals(expected, response);
 		
 		verify(mockMultiparUploadDAO).getUploadStatus(uploadId);
-		verify(mockS3multipartUploadDAO).createPartUploadCopyPresignedUrl(composite, partNumber, "plain/text");
+		verify(mockS3multipartUploadDAO).createPartUploadCopyPresignedUrl(composite, partNumber, "plain/text", null);
+	
+	}
+	
+	@Test
+	public void testGetBatchPresignedUploadUrlsForCopyRequestWithContentMD5Hex() throws MalformedURLException{
+		String uploadId = composite.getMultipartUploadStatus().getUploadId();
+		
+		Long contentSize = 5242880 * 10L;
+		
+		composite.setRequestType(MultiPartRequestType.COPY);
+		composite.setSourceFileHandleId(Long.valueOf(fileHandle.getId()));
+		composite.setFileSize(contentSize);
+		
+		PresignedUrl presignedUrl = new PresignedUrl();
+		
+		presignedUrl.withUrl(new URL("http", "amazon.com", "bucket/key"));
+		presignedUrl.withSignedHeader("some", "header");
+		
+		// setup the case where the status already exists
+		when(mockMultiparUploadDAO.getUploadStatus(any())).thenReturn(composite);
+		when(mockS3multipartUploadDAO.createPartUploadCopyPresignedUrl(any(), anyLong(), any(), any())).thenReturn(presignedUrl);
+		
+		long partNumber = 1;
+		
+		BatchPresignedUploadUrlRequest request = new BatchPresignedUploadUrlRequest();
+		request.setUploadId(uploadId);
+		request.setPartNumbers(Arrays.asList(partNumber));
+		request.setPartMD5Hex(Arrays.asList("md5"));
+		request.setContentType("plain/text");
+		
+		PartPresignedUrl partUrl = new PartPresignedUrl();
+		
+		partUrl.setPartNumber(partNumber);
+		partUrl.setUploadPresignedUrl(presignedUrl.getUrl().toString());
+		partUrl.setSignedHeaders(presignedUrl.getSignedHeaders());
+		
+		BatchPresignedUploadUrlResponse expected = new BatchPresignedUploadUrlResponse();
+		expected.setPartPresignedUrls(Arrays.asList(partUrl));
+		
+		// call under test
+		BatchPresignedUploadUrlResponse response = manager.getBatchPresignedUploadUrls(userInfo, request);
+		
+		assertEquals(expected, response);
+		
+		verify(mockMultiparUploadDAO).getUploadStatus(uploadId);
+		verify(mockS3multipartUploadDAO).createPartUploadCopyPresignedUrl(composite, partNumber, "plain/text", "md5");
 	
 	}
 	

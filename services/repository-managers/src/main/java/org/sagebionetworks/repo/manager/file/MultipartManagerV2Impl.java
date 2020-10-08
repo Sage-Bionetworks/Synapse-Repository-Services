@@ -290,6 +290,10 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		if (request.getPartNumbers().isEmpty()) {
 			throw new IllegalArgumentException("BatchPresignedUploadUrlRequest.partNumbers must contain at least one value");
 		}
+
+		if (request.getPartMD5Hex() != null && !request.getPartMD5Hex().isEmpty()) {
+			ValidateArgument.requirement(request.getPartNumbers().size() == request.getPartMD5Hex().size(), "The number of MD5 checksums must match the number of parts.");
+		}
 		
 		// lookup this upload.
 		CompositeMultipartUploadStatus status = multipartUploadDAO.getUploadStatus(request.getUploadId());
@@ -316,16 +320,28 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		
 		CloudServiceMultipartUploadDAO cloudServiceMultipartDao = getCloudServiceMultipartDao(status.getUploadType());
 		
-		for (Long partNumber : request.getPartNumbers()) {
+		final List<Long> partNumbers = request.getPartNumbers();
+		final List<String> partMd5List = request.getPartMD5Hex();
+
+		for (int i = 0; i < partNumbers.size(); i++) {
+
+			final Long partNumber = partNumbers.get(i);
+
 			ValidateArgument.required(partNumber, "PartNumber cannot be null");
-			
+
 			validatePartNumber(partNumber.intValue(), numberOfParts);
+
+			String partMD5Hex = null;
 			
-			PresignedUrl url = presignedUrlProvider.create(status, cloudServiceMultipartDao, partNumber, request.getContentType());
-			
+			if (partMd5List != null && !partMd5List.isEmpty()) {
+				partMD5Hex = partMd5List.get(i);
+			}
+
+			PresignedUrl url = presignedUrlProvider.create(status, cloudServiceMultipartDao, partNumber, request.getContentType(), partMD5Hex);
+
 			partUrls.add(map(url, partNumber));
 		}
-		
+
 		BatchPresignedUploadUrlResponse response = new BatchPresignedUploadUrlResponse();
 		
 		response.setPartPresignedUrls(partUrls);
@@ -333,14 +349,14 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		return response;
 	}
 	
-	private PresignedUrl getPresignedUrlForUpload(CompositeMultipartUploadStatus status, CloudServiceMultipartUploadDAO cloudDao, long partNumber, String contentType) {
+	private PresignedUrl getPresignedUrlForUpload(CompositeMultipartUploadStatus status, CloudServiceMultipartUploadDAO cloudDao, long partNumber, String contentType, String partMD5Hex) {
 		String partKey = MultipartUploadUtils.createPartKey(status.getKey(), partNumber);
 		
-		return cloudDao.createPartUploadPreSignedUrl(status.getBucket(), partKey, contentType);
+		return cloudDao.createPartUploadPreSignedUrl(status.getBucket(), partKey, contentType, partMD5Hex);
 	}
 	
-	private PresignedUrl getPresignedUrlForUploadCopy(CompositeMultipartUploadStatus status, CloudServiceMultipartUploadDAO cloudDao, long partNumber, String contentType) {
-		return cloudDao.createPartUploadCopyPresignedUrl(status, partNumber, contentType);
+	private PresignedUrl getPresignedUrlForUploadCopy(CompositeMultipartUploadStatus status, CloudServiceMultipartUploadDAO cloudDao, long partNumber, String contentType, String partMD5Hex) {
+		return cloudDao.createPartUploadCopyPresignedUrl(status, partNumber, contentType, partMD5Hex);
 	}
 	
 	private static PartPresignedUrl map(PresignedUrl presignedUrl, Long partNumber) {
@@ -635,7 +651,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	@FunctionalInterface
 	private static interface PresignedUrlProvider {
 		
-		PresignedUrl create(CompositeMultipartUploadStatus status, CloudServiceMultipartUploadDAO cloudDao, long partNumber, String contentType);
+		PresignedUrl create(CompositeMultipartUploadStatus status, CloudServiceMultipartUploadDAO cloudDao, long partNumber, String contentType, String partMD5Hex);
 	
 	}
 	

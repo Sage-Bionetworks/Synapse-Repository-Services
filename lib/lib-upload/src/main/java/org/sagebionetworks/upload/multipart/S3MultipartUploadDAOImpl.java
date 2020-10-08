@@ -44,6 +44,8 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 	private static final String S3_HEADER_COPY_RANGE = "x-amz-copy-source-range";
 
 	private static final String S3_HEADER_COPY_SOURCE = "x-amz-copy-source";
+	
+	private static final String S3_HEADER_COPY_SOURCE_IF_MATCH = "x-amz-copy-source-if-match";
 
 	private static final String S3_PARAM_UPLOAD_ID = "uploadId";
 
@@ -124,18 +126,24 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 	 * createPreSignedPutUrl(java.lang.String, java.lang.String)
 	 */
 	@Override
-	public PresignedUrl createPartUploadPreSignedUrl(String bucket, String partKey, String contentType) {
+	public PresignedUrl createPartUploadPreSignedUrl(String bucket, String partKey, String contentType, String partMD5Hex) {
 		long expiration = System.currentTimeMillis()+ PRE_SIGNED_URL_EXPIRATION_MS;
 		
-		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(
-				bucket, partKey).withMethod(HttpMethod.PUT).withExpiration(
-				new Date(expiration));
+		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, partKey)
+				.withMethod(HttpMethod.PUT)
+				.withExpiration(new Date(expiration));
 		
 		PresignedUrl presignedUrl = new PresignedUrl();
 		
-		if (StringUtils.isNotEmpty(contentType)){
+		if (StringUtils.isNotEmpty(contentType)) {
 			request.setContentType(contentType);
 			presignedUrl.withSignedHeader(HttpHeaders.CONTENT_TYPE, contentType);
+		}
+		
+		if (StringUtils.isNotEmpty(partMD5Hex)) {
+			String partMD5Encoded = BinaryUtils.toBase64(BinaryUtils.fromHex(partMD5Hex));
+			request.setContentMd5(partMD5Encoded);
+			presignedUrl.withSignedHeader(HttpHeaders.CONTENT_MD5, partMD5Encoded);
 		}
 		
 		URL url = s3Client.generatePresignedUrl(request);
@@ -147,7 +155,7 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 	
 	@Override
 	public PresignedUrl createPartUploadCopyPresignedUrl(CompositeMultipartUploadStatus status, long partNumber,
-			String contentType) {
+			String contentType, String partMD5Hex) {
 		if (status.getSourceFileHandleId() == null) {
 			throw new IllegalStateException("Expected a source file, found none.");
 		}
@@ -180,6 +188,11 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 		
 		request.putCustomRequestHeader(S3_HEADER_COPY_SOURCE, status.getSourceBucket() + "/" + status.getSourceKey());
 		request.putCustomRequestHeader(S3_HEADER_COPY_RANGE, String.format(S3_HEADER_COPY_RANGE_VALUE_TEMPLATE, byteRange[0], byteRange[1]));
+		
+		if (StringUtils.isNotEmpty(partMD5Hex)) {
+			// Note, the value of this header should not be base64 encoded apparently (???)
+			request.putCustomRequestHeader(S3_HEADER_COPY_SOURCE_IF_MATCH, partMD5Hex);
+		}
 		
 		PresignedUrl presignedUrl = new PresignedUrl();
 		
