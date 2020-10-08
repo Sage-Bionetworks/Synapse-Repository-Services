@@ -134,7 +134,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * </p>
  * <p>
  * The multipart API supports a robust copy of existing files to other locations (e.g. in case of a data migration)
- * without the need to download and re-upload the file. This is currently supported only from and to S3 storage locations.
+ * without the need to download and re-upload the file. This is currently supported only from and to S3 storage locations that reside in the same region.
  * In order to initiate a multipart copy, a <a href="${POST.file.multipart}">POST /file/multipart</a> request can be sent
  * using as the body of the request a <a href="${org.sagebionetworks.repo.model.file.MultipartUploadCopyRequest}">MultipartUploadCopyRequest</a>.
  * </p>
@@ -156,8 +156,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * For each pre-signed URL perform an HTTP PUT request with no body, the response of the previous endpoint contains a map of headers that are 
  * signed with the URL, all of the headers MUST be included in the PUT request.
  * </li>
- * <li>
- * Add the part to the multi-part copy using: <a
+ * <li>Once the copy request is performed, add the part to the multi-part copy using: <a
  * href="${PUT.file.multipart.uploadId.add.partNumber}">PUT
  * /file/multipart/{uploadId}/add/{partNumber}</a>. 
  * The value of the partMD5Hex parameter will be MD5 checksum returned in the response of the request sent to the pre-signed URL.
@@ -170,6 +169,16 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * href="${org.sagebionetworks.repo.model.file.FileHandle}">FileHandle</a>
  * </li>
  * </ol>
+ * </p>
+ * <p>
+ * Note about the copy integrity: The resulting file handle will have the same content MD5 of the source file handle, but synapse
+ * does not try to re-compute or verify this value. Instead, the integrity is performed by the cloud provider (currently only S3)
+ * during the copy request for the part (the request sent to the pre-signed URL). When requesting a batch of pre-signed URLs using the 
+ * <a
+ * href="${POST.file.multipart.uploadId.presigned.url.batch}">POST
+ * /file/multipart/{uploadId}/presigned/url/batch</a> service it is possible to specify a list of MD5 checksums for each requested part,
+ * the pre-signed URL returned will be signed to include a special header that is checked by the underlying cloud provider. This might be
+ * useful when a copy is performed from a file whose content might change during the copy.
  * </p>
  * <p>
  * <b>Associating FileHandles with Synapse objects</b>
@@ -869,12 +878,18 @@ public class UploadController {
 	}
 
 	/**
-	 * Get a batch of pre-signed URLS that should be used to upload file parts.
-	 * Each part will require a unique pre-signed URL. The client is expected to
-	 * PUT the contents of each part to the corresponding pre-signed URL. Each
-	 * per-signed URL will expire 15 minute after issued. If a URL has expired,
-	 * the client will need to request a new URL for that part.
-	 * 
+	 * <p>
+	 * Get a batch of pre-signed URLS that should be used to upload or copy file parts.
+	 * Each part will require a unique pre-signed URL. For an upload the client is expected to
+	 * PUT the contents of each part to the corresponding pre-signed URL, while for a copy the request body should be empty. 
+	 * </p>
+	 * <p>
+	 * The response will include for each part a pre-signed URL together with a map of signed headers. All the signed headers
+	 * will need to be sent along with the PUT request.
+	 * </p>
+	 * <p>
+	 * Each per-signed URL will expire 15 minute after issued. If a URL has expired, the client will need to request a new URL for that part.
+	 * </p>
 	 * @param userId
 	 * @param uploadId
 	 *            The unique identifier of the file upload.
@@ -893,10 +908,13 @@ public class UploadController {
 	}
 
 	/**
-	 * After the contents of part have been upload (PUT to a pre-signed URL)
-	 * this method is used to added the part to the multipart upload. If the
-	 * upload part can be found, and the provided MD5 matches the MD5 of the
-	 * part, the part will be accepted and added to the multipart upload.
+	 * After the contents of part have been uploaded or copied with the PUT to the part pre-signed URL
+	 * this service is used to confirm the addition of the part to the multipart upload or copy. 
+	 * When uploading a file if the upload part can be found, and the provided MD5 matches the MD5 of the part, 
+	 * the part will be accepted and added to the multipart upload. 
+	 * For a copy this is used only to keep track of the MD5 of each part which is returned as part of 
+	 * the response of the pre-signed URL request and needed to complete the multipart copy.
+	 * 
 	 * <p>
 	 * If add part fails for any reason, the client must re-upload the part and
 	 * then re-attempt to add the part to the upload.
@@ -926,7 +944,7 @@ public class UploadController {
 
 	/**
 	 * After all of the parts have been upload and added successfully, this
-	 * method is called to complete the upload resulting in the creation of a
+	 * service is called to complete the upload resulting in the creation of a
 	 * new file handle.
 	 * 
 	 * @param userId
