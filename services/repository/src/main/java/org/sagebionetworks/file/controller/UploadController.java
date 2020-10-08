@@ -178,7 +178,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * href="${POST.file.multipart.uploadId.presigned.url.batch}">POST
  * /file/multipart/{uploadId}/presigned/url/batch</a> service it is possible to specify a list of MD5 checksums for each requested part,
  * the pre-signed URL returned will be signed to include a special header that is checked by the underlying cloud provider. This might be
- * useful when a copy is performed from a file whose content might change during the copy.
+ * useful when a copy is performed on a file that might change while the copy operation has not completed.
  * </p>
  * <p>
  * <b>Associating FileHandles with Synapse objects</b>
@@ -888,7 +888,7 @@ public class UploadController {
 	 * will need to be sent along with the PUT request.
 	 * </p>
 	 * <p>
-	 * Each per-signed URL will expire 15 minute after issued. If a URL has expired, the client will need to request a new URL for that part.
+	 * Each pre-signed URL will expire 15 minute after issued. If a URL has expired, the client will need to request a new URL for that part.
 	 * </p>
 	 * @param userId
 	 * @param uploadId
