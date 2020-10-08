@@ -8,8 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -213,9 +213,30 @@ public class MultipartManagerV2ImplAutowireTest {
 		MultipartUploadStatus status = startUpload();
 		String contentType = null;
 		// step two get pre-signed URLs for the parts
-		String preSignedUrl = getPresignedURLForPart(status.getUploadId(), contentType).getUploadPresignedUrl();
+		PartPresignedUrl preSignedUrl = getPresignedURLForPart(status.getUploadId(), contentType);
 		// step three put the part to the URL
-		putStringToURL(preSignedUrl, fileDataString, contentType);
+		putStringToURL(preSignedUrl.getUploadPresignedUrl(), fileDataString, preSignedUrl.getSignedHeaders());
+		// step four add the part to the upload
+		addPart(status.getUploadId(), fileMD5Hex);
+		// Step five complete the upload
+		MultipartUploadStatus finalStatus = completeUpload(status.getUploadId());
+		// validate the results
+		assertNotNull(finalStatus);
+		assertEquals("1", finalStatus.getPartsState());
+		assertEquals(MultipartUploadState.COMPLETED, finalStatus.getState());
+		assertNotNull(finalStatus.getResultFileHandleId());
+		fileHandlesToDelete.add(finalStatus.getResultFileHandleId());
+	}
+	
+	@Test
+	public void testMultipartUploadWithPartMD5() throws Exception {
+		// step one start the upload.
+		MultipartUploadStatus status = startUpload();
+		String contentType = null;
+		// step two get pre-signed URLs for the parts
+		PartPresignedUrl preSignedUrl = getPresignedURLForPart(status.getUploadId(), contentType, fileMD5Hex);
+		// step three put the part to the URL
+		putStringToURL(preSignedUrl.getUploadPresignedUrl(), fileDataString, preSignedUrl.getSignedHeaders());
 		// step four add the part to the upload
 		addPart(status.getUploadId(), fileMD5Hex);
 		// Step five complete the upload
@@ -236,9 +257,9 @@ public class MultipartManagerV2ImplAutowireTest {
 		MultipartUploadStatus status = startUpload();
 		String contentType = "application/octet-stream";
 		// step two get pre-signed URLs for the parts
-		String preSignedUrl = getPresignedURLForPart(status.getUploadId(), contentType).getUploadPresignedUrl();
+		PartPresignedUrl preSignedUrl = getPresignedURLForPart(status.getUploadId(), contentType);
 		// step three put the part to the URL
-		putStringToURL(preSignedUrl, fileDataString, contentType);
+		putStringToURL(preSignedUrl.getUploadPresignedUrl(), fileDataString, preSignedUrl.getSignedHeaders());
 		// step four add the part to the upload
 		addPart(status.getUploadId(), fileMD5Hex);
 		// Step five complete the upload
@@ -258,9 +279,9 @@ public class MultipartManagerV2ImplAutowireTest {
 		MultipartUploadStatus status = startUpload();
 		String contentType = "application/octet-stream";
 		// step two get pre-signed URLs for the parts
-		String preSignedUrl = getPresignedURLForPart(status.getUploadId(), contentType).getUploadPresignedUrl();
+		PartPresignedUrl preSignedUrl = getPresignedURLForPart(status.getUploadId(), contentType);
 		// step three put the part to the URL
-		putStringToURL(preSignedUrl, fileDataString, contentType);
+		putStringToURL(preSignedUrl.getUploadPresignedUrl(), fileDataString, preSignedUrl.getSignedHeaders());
 		// step four add the part to the upload
 		addPart(status.getUploadId(), fileMD5Hex);
 		// Step five complete the upload
@@ -286,6 +307,41 @@ public class MultipartManagerV2ImplAutowireTest {
 		
 		// Fetch the part pre-signed url
 		PartPresignedUrl preSignedUrl = getPresignedURLForPart(status.getUploadId(), null);
+		
+		// Make the request to S3
+		String eTag = emptyPUT(preSignedUrl.getUploadPresignedUrl(), preSignedUrl.getSignedHeaders());
+		
+		// Add the part
+		addPart(status.getUploadId(), eTag);
+		
+		// Complete the copy
+		status = completeUpload(status.getUploadId());
+		
+		assertEquals(MultipartUploadState.COMPLETED, status.getState());
+		
+		copyFileHandle = (S3FileHandle) fileHandleDao.get(status.getResultFileHandleId());
+		
+		assertNotEquals(sourceFileHandle.getId(), copyFileHandle.getId());
+		assertEquals(sourceFileHandle.getFileName(), copyFileHandle.getFileName());
+		assertEquals(sourceFileHandle.getContentMd5(), copyFileHandle.getContentMd5());
+	}
+	
+	@Test
+	public void testMultipartUploadCopyWithPartMd5Check() throws Exception {
+		FileHandleAssociation association = new FileHandleAssociation();
+		
+		association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+		association.setAssociateObjectId(sourceEntity.getId());
+		association.setFileHandleId(sourceFileHandle.getId());
+		
+		// Since we transfer in one part, the part MD5 is the whole file MD5
+		String fileMD5Hex = sourceFileHandle.getContentMd5();
+		
+		// Starts the multipart copy
+		MultipartUploadStatus status = startUploadCopy(association, destination.getStorageLocationId());
+		
+		// Fetch the part pre-signed url
+		PartPresignedUrl preSignedUrl = getPresignedURLForPart(status.getUploadId(), null, fileMD5Hex);
 		
 		// Make the request to S3
 		String eTag = emptyPUT(preSignedUrl.getUploadPresignedUrl(), preSignedUrl.getSignedHeaders());
@@ -335,10 +391,17 @@ public class MultipartManagerV2ImplAutowireTest {
 	}
 	
 	private PartPresignedUrl getPresignedURLForPart(String uploadId, String contentType){
+		return getPresignedURLForPart(uploadId, contentType, null);
+	}
+	
+	private PartPresignedUrl getPresignedURLForPart(String uploadId, String contentType, String partMd5){
 		BatchPresignedUploadUrlRequest batchURLRequest = new BatchPresignedUploadUrlRequest();
 		batchURLRequest.setUploadId(uploadId);
 		batchURLRequest.setContentType(contentType);
 		Long partNumber = 1L;
+		if (partMd5 != null) {
+			batchURLRequest.setPartMD5Hex(Arrays.asList(partMd5));
+		}
 		batchURLRequest.setPartNumbers(Lists.newArrayList(partNumber));
 		BatchPresignedUploadUrlResponse bpuur = multipartManagerV2
 				.getBatchPresignedUploadUrls(adminUserInfo, batchURLRequest);
@@ -355,14 +418,10 @@ public class MultipartManagerV2ImplAutowireTest {
 	 * @param contentType
 	 * @throws Exception
 	 */
-	private void putStringToURL(String url, String toUpload, String contentType) throws Exception{
+	private void putStringToURL(String url, String toUpload, Map<String, String> headers) throws Exception{
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri(url);
-		if(contentType != null){
-			Map<String, String> headers = new HashMap<String, String>();
-			headers.put("Content-Type", contentType);
-			request.setHeaders(headers);
-		}
+		request.setHeaders(headers);
 		InputStream toPut = new StringInputStream(toUpload);
 		SimpleHttpResponse response = simpleHttpClient.putToURL(request, toPut, toUpload.getBytes("UTF-8").length);
 		assertEquals(200, response.getStatusCode());

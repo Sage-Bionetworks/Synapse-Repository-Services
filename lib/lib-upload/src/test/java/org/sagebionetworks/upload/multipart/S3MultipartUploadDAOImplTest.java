@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -131,8 +132,9 @@ public class S3MultipartUploadDAOImplTest {
 	public void testCreatePreSignedPutUrl() throws AmazonClientException, MalformedURLException{
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("http", "amazon.com", "bucket/key"));
 		String contentType = null;
+		String partMd5Hex = null;
 		//call under test.
-		PresignedUrl url = dao.createPartUploadPreSignedUrl("bucket", "key", contentType);
+		PresignedUrl url = dao.createPartUploadPreSignedUrl("bucket", "key", contentType, partMd5Hex);
 		assertNotNull(url.getUrl());
 		assertNull(url.getSignedHeaders());
 		ArgumentCaptor<GeneratePresignedUrlRequest> capture = ArgumentCaptor.forClass(GeneratePresignedUrlRequest.class);
@@ -149,8 +151,9 @@ public class S3MultipartUploadDAOImplTest {
 	public void testCreatePreSignedPutUrlEmptyContentType() throws AmazonClientException, MalformedURLException{
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("http", "amazon.com", "bucket/key"));
 		String contentType = "";
+		String partMd5Hex = null;
 		//call under test.
-		PresignedUrl url = dao.createPartUploadPreSignedUrl("bucket", "key", contentType);
+		PresignedUrl url = dao.createPartUploadPreSignedUrl("bucket", "key", contentType, partMd5Hex);
 		assertNotNull(url.getUrl());
 		assertNull(url.getSignedHeaders());
 		ArgumentCaptor<GeneratePresignedUrlRequest> capture = ArgumentCaptor.forClass(GeneratePresignedUrlRequest.class);
@@ -167,8 +170,9 @@ public class S3MultipartUploadDAOImplTest {
 	public void testCreatePreSignedPutUrlWithContentType() throws AmazonClientException, MalformedURLException{
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("http", "amazon.com", "bucket/key"));
 		String contentType = "text/plain";
+		String partMd5Hex = null;
 		//call under test.
-		PresignedUrl url = dao.createPartUploadPreSignedUrl("bucket", "key", contentType);
+		PresignedUrl url = dao.createPartUploadPreSignedUrl("bucket", "key", contentType, partMd5Hex);
 		assertNotNull(url.getUrl());
 		assertEquals(Collections.singletonMap("Content-Type", contentType), url.getSignedHeaders());
 		ArgumentCaptor<GeneratePresignedUrlRequest> capture = ArgumentCaptor.forClass(GeneratePresignedUrlRequest.class);
@@ -176,6 +180,26 @@ public class S3MultipartUploadDAOImplTest {
 		assertEquals("bucket", capture.getValue().getBucketName());
 		assertEquals("key", capture.getValue().getKey());
 		assertEquals("text/plain", capture.getValue().getContentType());
+		// expiration should be set for the future.
+		Date now = new Date(System.currentTimeMillis());
+		assertTrue(now.before( capture.getValue().getExpiration()));
+	}
+	
+	@Test
+	public void testCreatePreSignedPutUrlWithPartMd5Hex() throws AmazonClientException, MalformedURLException{
+		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("http", "amazon.com", "bucket/key"));
+		String contentType = "text/plain";
+		String partMd5Hex = "8356accbaa8bfc6ddc6c612224c6c9b3";
+		//call under test.
+		PresignedUrl url = dao.createPartUploadPreSignedUrl("bucket", "key", contentType, partMd5Hex);
+		assertNotNull(url.getUrl());
+		assertEquals(ImmutableMap.of("Content-Type", contentType, "Content-MD5", "g1asy6qL/G3cbGEiJMbJsw=="), url.getSignedHeaders());
+		ArgumentCaptor<GeneratePresignedUrlRequest> capture = ArgumentCaptor.forClass(GeneratePresignedUrlRequest.class);
+		verify(mockS3Client).generatePresignedUrl(capture.capture());
+		assertEquals("bucket", capture.getValue().getBucketName());
+		assertEquals("key", capture.getValue().getKey());
+		assertEquals("text/plain", capture.getValue().getContentType());
+		assertEquals("g1asy6qL/G3cbGEiJMbJsw==", capture.getValue().getContentMd5());
 		// expiration should be set for the future.
 		Date now = new Date(System.currentTimeMillis());
 		assertTrue(now.before( capture.getValue().getExpiration()));
@@ -348,6 +372,7 @@ public class S3MultipartUploadDAOImplTest {
 		assertEquals(CannedAccessControlList.BucketOwnerFullControl, capture.getValue().getCannedACL());
 	}
 	
+	
 	@Test
 	public void testInitiateMultipartUploadCopyWithUnsupportedFileHandleType() {
 		ExternalFileHandle sourceFile = new ExternalFileHandle();
@@ -396,6 +421,43 @@ public class S3MultipartUploadDAOImplTest {
 	}
 	
 	@Test
+	public void testInitiateMultipartUploadCopySameBucket() {
+		S3FileHandle sourceFile = new S3FileHandle();
+		
+		sourceFile.setBucketName(bucket);
+		sourceFile.setFileName("filename");
+		sourceFile.setContentType("text/plain");
+		sourceFile.setContentMd5("8356accbaa8bfc6ddc6c612224c6c9b3");
+		
+		MultipartUploadCopyRequest request = new MultipartUploadCopyRequest();
+		request.setFileName("targetFileName");
+		
+		when(mockResult.getUploadId()).thenReturn(uploadId);
+		when(mockS3Client.initiateMultipartUpload(any())).thenReturn(mockResult);
+		
+		// Call under test
+		String result = dao.initiateMultipartUploadCopy(bucket, key, request, sourceFile);
+		
+		assertEquals(uploadId, result);
+		
+		ArgumentCaptor<InitiateMultipartUploadRequest> capture = ArgumentCaptor.forClass(InitiateMultipartUploadRequest.class);
+		
+		// Since the source and target bucket are the same there is no need to invoke the getRegionForBucket
+		verify(mockS3Client, times(0)).getRegionForBucket(any());
+		verify(mockS3Client).initiateMultipartUpload(capture.capture());
+		
+		InitiateMultipartUploadRequest s3Request = capture.getValue();
+		
+		assertEquals(bucket, s3Request.getBucketName());
+		assertEquals(key, s3Request.getKey());
+		assertEquals(ContentDispositionUtils.getContentDispositionValue(request.getFileName()), s3Request.getObjectMetadata().getContentDisposition());
+		assertEquals("text/plain", s3Request.getObjectMetadata().getContentType());
+		assertEquals("g1asy6qL/G3cbGEiJMbJsw==", s3Request.getObjectMetadata().getContentMD5());
+		assertEquals(CannedAccessControlList.BucketOwnerFullControl, capture.getValue().getCannedACL());
+	}
+	
+	
+	@Test
 	public void testCreatePartUploadCopyPresignedUrl() throws MalformedURLException {
 
 		Long fileHandleId = 123L;
@@ -406,6 +468,7 @@ public class S3MultipartUploadDAOImplTest {
 		String sourceKey = "sourceKey";
 		long partNumber = 1;
 		String contentType = "plain/text";
+		String partMd5Hex = "8356accbaa8bfc6ddc6c612224c6c9b3";
 		
 		CompositeMultipartUploadStatus status = new CompositeMultipartUploadStatus();
 		
@@ -424,13 +487,14 @@ public class S3MultipartUploadDAOImplTest {
 		when(mockS3Client.generatePresignedUrl(any())).thenReturn(url);
 		
 		// Call under test
-		PresignedUrl result = dao.createPartUploadCopyPresignedUrl(status, partNumber, contentType);
+		PresignedUrl result = dao.createPartUploadCopyPresignedUrl(status, partNumber, contentType, partMd5Hex);
 		
 		assertEquals(url, result.getUrl());
 		
 		Map<String, String> expectedSignedHeaders = ImmutableMap.of(
 				"x-amz-copy-source", sourceBucket + "/" + sourceKey,
 				"x-amz-copy-source-range", "bytes=0-1023",
+				"x-amz-copy-source-if-match", partMd5Hex,
 				"Content-Type", contentType
 		);
 		
@@ -455,7 +519,8 @@ public class S3MultipartUploadDAOImplTest {
 		
 		assertEquals(ImmutableMap.of(
 				"x-amz-copy-source", sourceBucket + "/" + sourceKey,
-				"x-amz-copy-source-range", "bytes=0-1023"
+				"x-amz-copy-source-range", "bytes=0-1023",
+				"x-amz-copy-source-if-match", partMd5Hex
 		), request.getCustomRequestHeaders());
 		
 	}
@@ -471,6 +536,7 @@ public class S3MultipartUploadDAOImplTest {
 		String sourceKey = "sourceKey";
 		long partNumber = 1;
 		String contentType = "plain/text";
+		String partMd5Hex = "md5";
 		
 		CompositeMultipartUploadStatus status = new CompositeMultipartUploadStatus();
 		
@@ -486,7 +552,7 @@ public class S3MultipartUploadDAOImplTest {
 		
 		String errorMessage = assertThrows(IllegalStateException.class, () -> {			
 			// Call under test
-			dao.createPartUploadCopyPresignedUrl(status, partNumber, contentType);
+			dao.createPartUploadCopyPresignedUrl(status, partNumber, contentType, partMd5Hex);
 		}).getMessage();
 		
 		assertEquals("Expected a source file, found none.", errorMessage);
@@ -499,6 +565,7 @@ public class S3MultipartUploadDAOImplTest {
 		Long fileHandleId = 123L;
 		Long fileSize = null;
 		Long partSize = 1024L;
+		String partMd5Hex = "md5";
 		
 		String sourceBucket = "sourceBucket";
 		String sourceKey = "sourceKey";
@@ -519,7 +586,7 @@ public class S3MultipartUploadDAOImplTest {
 		
 		String errorMessage = assertThrows(IllegalStateException.class, () -> {			
 			// Call under test
-			dao.createPartUploadCopyPresignedUrl(status, partNumber, contentType);
+			dao.createPartUploadCopyPresignedUrl(status, partNumber, contentType, partMd5Hex);
 		}).getMessage();
 		
 		assertEquals("Expected the source file size, found none.", errorMessage);
@@ -532,6 +599,7 @@ public class S3MultipartUploadDAOImplTest {
 		Long fileHandleId = 123L;
 		Long fileSize = 1024 * 1024L;
 		Long partSize = null;
+		String partMd5Hex = "md5";
 		
 		String sourceBucket = "sourceBucket";
 		String sourceKey = "sourceKey";
@@ -552,7 +620,7 @@ public class S3MultipartUploadDAOImplTest {
 		
 		String errorMessage = assertThrows(IllegalStateException.class, () -> {			
 			// Call under test
-			dao.createPartUploadCopyPresignedUrl(status, partNumber, contentType);
+			dao.createPartUploadCopyPresignedUrl(status, partNumber, contentType, partMd5Hex);
 		}).getMessage();
 		
 		assertEquals("Expected a part size, found none.", errorMessage);
@@ -565,6 +633,7 @@ public class S3MultipartUploadDAOImplTest {
 		Long fileHandleId = 123L;
 		Long fileSize = 1024 * 1024L;
 		Long partSize = 1024L;
+		String partMd5Hex = "md5";
 		
 		String sourceBucket = null;
 		String sourceKey = "sourceKey";
@@ -585,7 +654,7 @@ public class S3MultipartUploadDAOImplTest {
 		
 		String errorMessage = assertThrows(IllegalStateException.class, () -> {			
 			// Call under test
-			dao.createPartUploadCopyPresignedUrl(status, partNumber, contentType);
+			dao.createPartUploadCopyPresignedUrl(status, partNumber, contentType, partMd5Hex);
 		}).getMessage();
 		
 		assertEquals("Expected the source file bucket, found none.", errorMessage);
@@ -598,6 +667,7 @@ public class S3MultipartUploadDAOImplTest {
 		Long fileHandleId = 123L;
 		Long fileSize = 1024 * 1024L;
 		Long partSize = 1024L;
+		String partMd5Hex = "md5";
 		
 		String sourceBucket = "sourceBucket";
 		String sourceKey = null;
@@ -618,7 +688,7 @@ public class S3MultipartUploadDAOImplTest {
 		
 		String errorMessage = assertThrows(IllegalStateException.class, () -> {			
 			// Call under test
-			dao.createPartUploadCopyPresignedUrl(status, partNumber, contentType);
+			dao.createPartUploadCopyPresignedUrl(status, partNumber, contentType, partMd5Hex);
 		}).getMessage();
 		
 		assertEquals("Expected the source file bucket key, found none.", errorMessage);

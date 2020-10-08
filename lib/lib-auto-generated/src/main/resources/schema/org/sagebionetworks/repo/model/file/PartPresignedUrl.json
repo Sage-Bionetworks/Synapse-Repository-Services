@@ -11,7 +11,7 @@
 		},
 		"signedHeaders": {
 			"description": "A key/value pair map of additional headers that must be included in the PUT request for the request to succeed.",
-			"type":"tuplearraymap",
+			"type":"map",
 			"key":{
 				"type": "string"
 			},
