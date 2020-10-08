@@ -135,7 +135,9 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		
 		String requestClass = request.getClass().getSimpleName();
 		
-		ValidateArgument.required(request.getPartSizeBytes(), requestClass + ".PartSizeBytes");
+		ValidateArgument.required(request.getPartSizeBytes(), requestClass + ".partSizeBytes");
+		
+		PartUtils.validatePartSize(request.getPartSizeBytes());
 
 		// anonymous cannot upload. See: PLFM-2621.
 		if (AuthorizationUtils.isUserAnonymous(user)) {
@@ -145,9 +147,11 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	
 	private void validateMultipartUpload(UserInfo user, MultipartUploadRequest request) {
 		validateMultipartRequest(user, request);
+		
 		ValidateArgument.requiredNotEmpty(request.getFileName(), "MultipartUploadRequest.fileName");
 		ValidateArgument.required(request.getFileSizeBytes(), "MultipartUploadRequest.fileSizeBytes");
 		ValidateArgument.requiredNotEmpty(request.getContentMD5Hex(), "MultipartUploadRequest.MD5Hex");
+		PartUtils.validateFileSize(request.getFileSizeBytes());
 
 		//validate file name
 		NameValidation.validateName(request.getFileName());
@@ -155,6 +159,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	
 	private void validateMultipartUploadCopy(UserInfo user, MultipartUploadCopyRequest request) {
 		validateMultipartRequest(user, request);
+		
 		ValidateArgument.required(request.getSourceFileHandleAssociation(), "MultipartUploadCopyRequest.sourceFileHandleAssociation");
 		ValidateArgument.required(request.getStorageLocationId(), "MultipartUploadCopyRequest.storageLocationId");
 		
@@ -208,7 +213,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		
 		// Makes sure the user owns the storage location, note that the storage location id is required in the request
 		if (!user.isAdmin() && !user.getId().equals(storageLocation.getCreatedBy())) {
-			throw new UnauthorizedException("The user does not own the storage location.");
+			throw new UnauthorizedException("The user does not own the destination storage location.");
 		}
 		
 		FileHandle fileHandle = fileHandleDao.get(association.getFileHandleId());
@@ -221,7 +226,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 			throw new IllegalArgumentException("The source file handle does not define its content MD5.");
 		}
 		
-		// Sets a file name as it is optional, but we save it in the request (the has won't contain this)
+		// Sets a file name as it is optional, but we save it in the request (the hash won't contain this)
 		request.setFileName(StringUtils.isBlank(request.getFileName()) ? fileHandle.getFileName() : request.getFileName());
 		
 		String requestJson = MultipartRequestUtils.createRequestJSON(request);
@@ -285,6 +290,10 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		if (request.getPartNumbers().isEmpty()) {
 			throw new IllegalArgumentException("BatchPresignedUploadUrlRequest.partNumbers must contain at least one value");
 		}
+
+		if (request.getPartMD5Hex() != null && !request.getPartMD5Hex().isEmpty()) {
+			ValidateArgument.requirement(request.getPartNumbers().size() == request.getPartMD5Hex().size(), "The number of MD5 checksums must match the number of parts.");
+		}
 		
 		// lookup this upload.
 		CompositeMultipartUploadStatus status = multipartUploadDAO.getUploadStatus(request.getUploadId());
@@ -311,16 +320,28 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		
 		CloudServiceMultipartUploadDAO cloudServiceMultipartDao = getCloudServiceMultipartDao(status.getUploadType());
 		
-		for (Long partNumber : request.getPartNumbers()) {
+		final List<Long> partNumbers = request.getPartNumbers();
+		final List<String> partMd5List = request.getPartMD5Hex();
+
+		for (int i = 0; i < partNumbers.size(); i++) {
+
+			final Long partNumber = partNumbers.get(i);
+
 			ValidateArgument.required(partNumber, "PartNumber cannot be null");
-			
+
 			validatePartNumber(partNumber.intValue(), numberOfParts);
+
+			String partMD5Hex = null;
 			
-			PresignedUrl url = presignedUrlProvider.create(status, cloudServiceMultipartDao, partNumber, request.getContentType());
-			
+			if (partMd5List != null && !partMd5List.isEmpty()) {
+				partMD5Hex = partMd5List.get(i);
+			}
+
+			PresignedUrl url = presignedUrlProvider.create(status, cloudServiceMultipartDao, partNumber, request.getContentType(), partMD5Hex);
+
 			partUrls.add(map(url, partNumber));
 		}
-		
+
 		BatchPresignedUploadUrlResponse response = new BatchPresignedUploadUrlResponse();
 		
 		response.setPartPresignedUrls(partUrls);
@@ -328,14 +349,14 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		return response;
 	}
 	
-	private PresignedUrl getPresignedUrlForUpload(CompositeMultipartUploadStatus status, CloudServiceMultipartUploadDAO cloudDao, long partNumber, String contentType) {
+	private PresignedUrl getPresignedUrlForUpload(CompositeMultipartUploadStatus status, CloudServiceMultipartUploadDAO cloudDao, long partNumber, String contentType, String partMD5Hex) {
 		String partKey = MultipartUploadUtils.createPartKey(status.getKey(), partNumber);
 		
-		return cloudDao.createPartUploadPreSignedUrl(status.getBucket(), partKey, contentType);
+		return cloudDao.createPartUploadPreSignedUrl(status.getBucket(), partKey, contentType, partMD5Hex);
 	}
 	
-	private PresignedUrl getPresignedUrlForUploadCopy(CompositeMultipartUploadStatus status, CloudServiceMultipartUploadDAO cloudDao, long partNumber, String contentType) {
-		return cloudDao.createPartUploadCopyPresignedUrl(status, partNumber, contentType);
+	private PresignedUrl getPresignedUrlForUploadCopy(CompositeMultipartUploadStatus status, CloudServiceMultipartUploadDAO cloudDao, long partNumber, String contentType, String partMD5Hex) {
+		return cloudDao.createPartUploadCopyPresignedUrl(status, partNumber, contentType, partMD5Hex);
 	}
 	
 	private static PartPresignedUrl map(PresignedUrl presignedUrl, Long partNumber) {
@@ -535,10 +556,8 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	public static void validateParts(int numberOfParts,
 			List<PartMD5> addedParts) {
 		if (addedParts.size() < numberOfParts) {
-			int missingPartCount = numberOfParts
-					- addedParts.size();
-			throw new IllegalArgumentException(
-					"Missing "
+			int missingPartCount = numberOfParts - addedParts.size();
+			throw new IllegalArgumentException("Missing "
 							+ missingPartCount
 							+ " part(s).  All parts must be successfully added before a file upload can be completed.");
 		}
@@ -632,7 +651,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	@FunctionalInterface
 	private static interface PresignedUrlProvider {
 		
-		PresignedUrl create(CompositeMultipartUploadStatus status, CloudServiceMultipartUploadDAO cloudDao, long partNumber, String contentType);
+		PresignedUrl create(CompositeMultipartUploadStatus status, CloudServiceMultipartUploadDAO cloudDao, long partNumber, String contentType, String partMD5Hex);
 	
 	}
 	
