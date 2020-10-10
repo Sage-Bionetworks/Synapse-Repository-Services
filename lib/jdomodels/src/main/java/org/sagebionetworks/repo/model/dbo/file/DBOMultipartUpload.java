@@ -3,12 +3,12 @@ package org.sagebionetworks.repo.model.dbo.file;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_BUCKET;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_DDL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_FILE_HANDLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_SOURCE_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_NUMBER_OF_PARTS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_SIZE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_REQUEST_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_REQUEST_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_SOURCE_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STARTED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STARTED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STATE;
@@ -23,6 +23,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MULTIP
 import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
@@ -133,9 +135,14 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 				backup.setRequestType(MultiPartRequestType.UPLOAD.name());
 				backup.setPartSize(request.getPartSizeBytes());
 				
-				// Recompute the request body and hash, since from now on the request will include the concrete type
+				// Recompute the request body since from now on the request will include the concrete type
 				backup.setRequestBlob(MultipartRequestUtils.createRequestJSON(request).getBytes(StandardCharsets.UTF_8));
-				backup.setRequestHash(MultipartRequestUtils.calculateMD5AsHex(request));
+
+				if (backup.getStartedOn().toInstant().isAfter(Instant.now().minus(5, ChronoUnit.DAYS))) {
+					// Recompute the has if the upload was started in the last 5 days, since we have old duplicated request in the database
+					// and recomputing the hash would lead to updates and mistmatches between prod and staging.
+					backup.setRequestHash(MultipartRequestUtils.calculateMD5AsHex(request));
+				}
 			}
 			return backup;
 		}
