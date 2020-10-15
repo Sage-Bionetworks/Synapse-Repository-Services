@@ -114,6 +114,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		CompositeMultipartUploadStatus status = multipartUploadDAO.getUploadStatus(user.getId(), requestMD5Hex);
 		
 		if (status == null) {
+			// This storage location might be null if the request does not specify an id (the id is required for the copy, while it's not for the upload)
 			StorageLocationSetting storageLocation = projectSettingsManager.getStorageLocationSetting(request.getStorageLocationId());
 
 			// Since the status for this file does not exist, create it.
@@ -224,6 +225,10 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		
 		if (fileHandle.getContentMd5() == null) {
 			throw new IllegalArgumentException("The source file handle does not define its content MD5.");
+		}
+
+		if (storageLocation.getStorageLocationId().equals(fileHandle.getStorageLocationId())) {
+			throw new IllegalArgumentException("The source file handle is already in the given destination storage location.");
 		}
 		
 		// Sets a file name as it is optional, but we save it in the request (the hash won't contain this)

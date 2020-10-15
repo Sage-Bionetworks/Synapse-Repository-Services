@@ -1346,4 +1346,61 @@ public class MultipartManagerV2ImplTest {
 		verifyZeroInteractions(mockFileHandleDao);
 		verifyZeroInteractions(mockUploadDAOProvider);
 	}
+	
+	@Test
+	public void testStartOrResumeMultipartUploadCopyAndSameStorageLocation() {
+		
+		Long userId = 123456L;
+		Long contentSize = 5242880 * 10L;
+		String contentMd5 = "md5";
+		
+		String fileEntityId = "456";
+		Long storageLocationId = 789L;
+
+		fileHandle.setFileName("fileName");
+		fileHandle.setContentSize(contentSize);
+		fileHandle.setContentMd5(contentMd5);
+		fileHandle.setStorageLocationId(storageLocationId);
+		
+		FileHandleAssociation association = new FileHandleAssociation();
+		
+		association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+		association.setAssociateObjectId(fileEntityId);
+		association.setFileHandleId(fileHandle.getId());
+		
+		MultipartUploadCopyRequest request = new MultipartUploadCopyRequest();
+		
+		request.setFileName("targetFileName");
+		request.setSourceFileHandleAssociation(association);
+		request.setPartSizeBytes(5242880L);
+		request.setStorageLocationId(storageLocationId);
+		
+		String requestHash = MultipartRequestUtils.calculateMD5AsHex(request);
+		
+		boolean forceRestart = false;
+		
+		when(userInfo.getId()).thenReturn(userId);
+		when(mockMultiparUploadDAO.getUploadStatus(any(), any())).thenReturn(null);
+		// Same storage location as the source file handle
+		when(mockStorageLocation.getStorageLocationId()).thenReturn(storageLocationId);
+		when(mockStorageLocation.getCreatedBy()).thenReturn(userId);
+		when(mockStorageLocation.getUploadType()).thenReturn(UploadType.S3);
+		when(mockProjectSettingsManager.getStorageLocationSetting(any())).thenReturn(mockStorageLocation);
+		when(mockAuthManager.canDownLoadFile(any(), any())).thenReturn(Collections.singletonList(new FileHandleAssociationAuthorizationStatus(association, AuthorizationStatus.authorized())));
+		when(mockFileHandleDao.get(any())).thenReturn(fileHandle);
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.startOrResumeMultipartUploadCopy(userInfo, request, forceRestart);
+		}).getMessage();
+
+		assertEquals("The source file handle is already in the given destination storage location.", errorMessage);
+		verify(mockMultiparUploadDAO).getUploadStatus(userId, requestHash);
+		verify(mockProjectSettingsManager).getStorageLocationSetting(storageLocationId);
+		verify(mockAuthManager).canDownLoadFile(userInfo, Collections.singletonList(association));
+		verify(mockFileHandleDao).get(fileHandle.getId());
+		verifyNoMoreInteractions(mockMultiparUploadDAO);
+		verifyNoMoreInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockS3multipartUploadDAO);
+	}
 }
