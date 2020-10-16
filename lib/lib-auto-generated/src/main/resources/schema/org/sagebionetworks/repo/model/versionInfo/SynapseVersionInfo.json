@@ -1,9 +1,13 @@
 {
-    "description":"The Version of the stack",
+    "description": "Information about the version of the stack",
     "properties":{
-        "version":{
-            "type":"string",
-            "description":"The version of this stack"
-        }  
+        "version": {
+            "type": "string",
+            "description": "The version of this stack"
+        },
+        "stackInstance": {
+        	"type": "string",
+        	"description": "The current stack instance number assigned to the stack"
+        }
     }
 }
