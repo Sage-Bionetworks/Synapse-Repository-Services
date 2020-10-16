@@ -19,9 +19,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.ObjectType;
+import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.model.schema.ValidationException;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -30,7 +30,6 @@ import com.google.common.collect.Lists;
 
 @ExtendWith(MockitoExtension.class)
 public class JsonSchemaValidationManagerImplTest {
-
 
 	@InjectMocks
 	JsonSchemaValidationManagerImpl manager;
@@ -55,7 +54,7 @@ public class JsonSchemaValidationManagerImplTest {
 		subject.toJson().put("enumKey", "a");
 		// call under test
 		ValidationResults result = manager.validate(schema, subject);
-		
+
 		assertNotNull(result);
 		assertEquals(objectId, result.getObjectId());
 		assertEquals(objectType, result.getObjectType());
@@ -66,7 +65,7 @@ public class JsonSchemaValidationManagerImplTest {
 		assertNull(result.getAllValidationMessages());
 		assertNull(result.getValidationException());
 	}
-	
+
 	@Test
 	public void testValidationWithInvalid() throws Exception {
 		JsonSchema schema = loadSchemaFromClasspath("schemas/Enum.json");
@@ -100,27 +99,28 @@ public class JsonSchemaValidationManagerImplTest {
 		assertEquals("#/enumKey", subException.getPointerToViolation());
 		assertNull(subException.getSchemaLocation());
 	}
-	
+
 	@Test
 	public void testValidationWithNullSchema() {
 		JsonSchema schema = null;
-		JsonSubject subject =  Mockito.mock(JsonSubject.class);
-		assertThrows(IllegalArgumentException.class, ()->{
-			 manager.validate(schema, subject);
+		JsonSubject subject = Mockito.mock(JsonSubject.class);
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.validate(schema, subject);
 		});
 	}
-	
+
 	@Test
 	public void testValidationWithNullSubject() throws Exception {
 		JsonSchema schema = loadSchemaFromClasspath("schemas/Enum.json");
 		JsonSubject subject = null;
-		assertThrows(IllegalArgumentException.class, ()->{
-			 manager.validate(schema, subject);
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.validate(schema, subject);
 		});
 	}
-	
+
 	/**
 	 * Expect validation to ignore the 'source' attribute.
+	 * 
 	 * @throws Exception
 	 */
 	@Test
@@ -130,7 +130,7 @@ public class JsonSchemaValidationManagerImplTest {
 		JsonSubject subject = setupSubject();
 		// call under test
 		ValidationResults result = manager.validate(schema, subject);
-		
+
 		assertNotNull(result);
 		assertEquals(objectId, result.getObjectId());
 		assertEquals(objectType, result.getObjectType());
@@ -141,7 +141,7 @@ public class JsonSchemaValidationManagerImplTest {
 		assertNull(result.getAllValidationMessages());
 		assertNull(result.getValidationException());
 	}
-	
+
 	/**
 	 * Test for PLFM-6316 to add the 'required' key word.
 	 */
@@ -152,8 +152,8 @@ public class JsonSchemaValidationManagerImplTest {
 		assertEquals(3, schema.getProperties().size());
 		List<String> requiredValues = schema.getRequired();
 		assertNotNull(requiredValues);
-		assertEquals(Lists.newArrayList("requireMe","requireMeToo"), schema.getRequired());
-		
+		assertEquals(Lists.newArrayList("requireMe", "requireMeToo"), schema.getRequired());
+
 		// include all three values for this test
 		JsonSubject subject = setupSubject();
 		subject.toJson().put("requireMe", "one");
@@ -173,7 +173,7 @@ public class JsonSchemaValidationManagerImplTest {
 		assertNull(result.getAllValidationMessages());
 		assertNull(result.getValidationException());
 	}
-	
+
 	@Test
 	public void testValidationWithRequiredWithOutRequired() throws Exception {
 		JsonSchema schema = loadSchemaFromClasspath("schemas/HasRequired.json");
@@ -181,8 +181,8 @@ public class JsonSchemaValidationManagerImplTest {
 		assertEquals(3, schema.getProperties().size());
 		List<String> requiredValues = schema.getRequired();
 		assertNotNull(requiredValues);
-		assertEquals(Lists.newArrayList("requireMe","requireMeToo"), schema.getRequired());
-		
+		assertEquals(Lists.newArrayList("requireMe", "requireMeToo"), schema.getRequired());
+
 		// exclude the optional value
 		JsonSubject subject = setupSubject();
 		subject.toJson().put("requireMe", "one");
@@ -201,7 +201,7 @@ public class JsonSchemaValidationManagerImplTest {
 		assertNull(result.getAllValidationMessages());
 		assertNull(result.getValidationException());
 	}
-	
+
 	@Test
 	public void testValidationWithRequiredWithMissingRequired() throws Exception {
 		JsonSchema schema = loadSchemaFromClasspath("schemas/HasRequired.json");
@@ -209,8 +209,8 @@ public class JsonSchemaValidationManagerImplTest {
 		assertEquals(3, schema.getProperties().size());
 		List<String> requiredValues = schema.getRequired();
 		assertNotNull(requiredValues);
-		assertEquals(Lists.newArrayList("requireMe","requireMeToo"), schema.getRequired());
-		
+		assertEquals(Lists.newArrayList("requireMe", "requireMeToo"), schema.getRequired());
+
 		// include the optional but exclude one of the required
 		JsonSubject subject = setupSubject();
 		subject.toJson().put("requireMe", "one");
@@ -227,9 +227,10 @@ public class JsonSchemaValidationManagerImplTest {
 		assertNotNull(result.getValidatedOn());
 		assertEquals("required key [requireMeToo] not found", result.getValidationErrorMessage());
 	}
-	
+
 	/**
 	 * Test for PLFM-6403
+	 * 
 	 * @throws Exception
 	 */
 	@Test
@@ -305,13 +306,248 @@ public class JsonSchemaValidationManagerImplTest {
 		assertEquals("expected type: Integer, found: Double", result.getValidationErrorMessage());
 	}
 
+	@Test
+	public void testValidationWithPattern() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/HasPattern.json");
+		assertNotNull(schema.getProperties());
+		assertEquals(1, schema.getProperties().size());
+		JsonSchema subSchema = schema.getProperties().get("somePattern");
+		assertNotNull(subSchema);
+		assertEquals(Type.string, subSchema.getType());
+		assertEquals("^(\\([0-9]{3}\\))?[0-9]{3}-[0-9]{4}$", subSchema.getPattern());
+
+		JsonSubject subject = setupSubject();
+		subject.toJson().put("somePattern", "(888)555-1212");
+
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertTrue(result.getIsValid());
+
+		// should not be valid against the pattern
+		subject.toJson().put("somePattern", "(800)FLOWERS");
+		// call under test
+		result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertFalse(result.getIsValid());
+		assertEquals("string [(800)FLOWERS] does not match pattern ^(\\([0-9]{3}\\))?[0-9]{3}-[0-9]{4}$",
+				result.getValidationErrorMessage());
+	}
+
+	@Test
+	public void testValidationWithMaxLength() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/HasMaxLength.json");
+		assertNotNull(schema.getProperties());
+		assertEquals(1, schema.getProperties().size());
+		JsonSchema subSchema = schema.getProperties().get("someBoundString");
+		assertNotNull(subSchema);
+		assertEquals(Type.string, subSchema.getType());
+		assertEquals(10L, subSchema.getMaxLength());
+
+		JsonSubject subject = setupSubject();
+		subject.toJson().put("someBoundString", "1234567890");
+
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertTrue(result.getIsValid());
+
+		// more then ten chars
+		subject.toJson().put("someBoundString", "12345678901");
+		// call under test
+		result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertFalse(result.getIsValid());
+		assertEquals("expected maxLength: 10, actual: 11", result.getValidationErrorMessage());
+	}
+
+	@Test
+	public void testValidationWithMinLength() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/HasMinLength.json");
+		assertNotNull(schema.getProperties());
+		assertEquals(1, schema.getProperties().size());
+		JsonSchema subSchema = schema.getProperties().get("someBoundString");
+		assertNotNull(subSchema);
+		assertEquals(Type.string, subSchema.getType());
+		assertEquals(2L, subSchema.getMinLength());
+
+		JsonSubject subject = setupSubject();
+		subject.toJson().put("someBoundString", "12");
+
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertTrue(result.getIsValid());
+
+		// more less than two chars
+		subject.toJson().put("someBoundString", "1");
+		// call under test
+		result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertFalse(result.getIsValid());
+		assertEquals("expected minLength: 2, actual: 1", result.getValidationErrorMessage());
+	}
+
+	@Test
+	public void testIfThenElse() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/IfThenElse.json");
+		
+		// this case hits the else
+		JsonSubject subject = setupSubject();
+		subject.toJson().put("skyColor", "red");
+		subject.toJson().put("timeOfDay", "night");
+		subject.toJson().put("sailors", "delight");
+		
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertTrue(result.getIsValid());
+		
+		// this case hits the then
+		subject = setupSubject();
+		subject.toJson().put("skyColor", "red");
+		subject.toJson().put("timeOfDay", "morning");
+		subject.toJson().put("sailors", "warning");
+		
+		// call under test
+		result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertTrue(result.getIsValid());
+		
+		// this case is invalid
+		subject = setupSubject();
+		subject.toJson().put("skyColor", "red");
+		subject.toJson().put("timeOfDay", "morning");
+		subject.toJson().put("sailors", "delight");
+		
+		// call under test
+		result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertFalse(result.getIsValid());
+	}
 	
+	/**
+	 * This test uses a schema containing if/then/else which was added to JSON schema
+	 * in draft-07.  The validation library we are using silently ignores all features
+	 * added after draft-04 when the provided JSON schema has a null value for the
+	 * $schema field.  This causes unexpected validation results. 
+	 * @throws Exception
+	 */
+	@Test
+	public void testNull$Schema() throws Exception {
+		// This schema uses if/then/else which was added in JSON schema draft-07.
+		JsonSchema schema = loadSchemaFromClasspath("schemas/IfThenElse.json");
+		// when the $schema is null we want to default to draft-07
+		schema.set$schema(null);
+		
+		// Draft-07 is required to detect that this case is invalid. 
+		JsonSubject subject = setupSubject();
+		subject.toJson().put("skyColor", "red");
+		subject.toJson().put("timeOfDay", "morning");
+		subject.toJson().put("sailors", "delight");
+		
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertFalse(result.getIsValid());
+	}
+	
+	@Test
+	public void testEmpty$Schema() throws Exception {
+		// This schema uses if/then/else which was added in JSON schema draft-07.
+		JsonSchema schema = loadSchemaFromClasspath("schemas/IfThenElse.json");
+		// when the $schema is empty we want to default to draft-07
+		schema.set$schema("");
+		
+		// Draft-07 is required to detect that this case is invalid. 
+		JsonSubject subject = setupSubject();
+		subject.toJson().put("skyColor", "red");
+		subject.toJson().put("timeOfDay", "morning");
+		subject.toJson().put("sailors", "delight");
+		
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertFalse(result.getIsValid());
+	}
+
+
+	/**
+	 * Test added for JSON schema conditional logic (if, then, else) PLFM-6315. This
+	 * test is derived from from
+	 * https://json-schema.org/understanding-json-schema/reference/conditionals.html
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testHasConditional() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/HasConditional.json");
+		assertNotNull(schema.getProperties());
+		assertEquals(2, schema.getProperties().size());
+		List<JsonSchema> allOf = schema.getAllOf();
+		assertNotNull(allOf);
+		assertEquals(3, allOf.size());
+		JsonSchema usDef = allOf.get(0);
+		assertNotNull(usDef);
+		JsonSchema _if = usDef.get_if();
+		assertNotNull(_if);
+		JsonSchema _then = usDef.getThen();
+		assertNotNull(_then);
+		JsonSchema usPostalCode = _then.getProperties().get("postal_code");
+		assertEquals("[0-9]{5}(-[0-9]{4})?", usPostalCode.getPattern());
+
+		// US
+		JsonSubject subject = setupSubject();
+		subject.toJson().put("street_address", "1600 Pennsylvania Avenue NW");
+		subject.toJson().put("country", "United States of America");
+		subject.toJson().put("postal_code", "20500");
+
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertTrue(result.getIsValid());
+
+		// Canadian
+		subject = setupSubject();
+		subject.toJson().put("street_address", "24 Sussex Drive");
+		subject.toJson().put("country", "Canada");
+		subject.toJson().put("postal_code", "K1M 1M4");
+
+		// call under test
+		result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertTrue(result.getIsValid());
+
+		// Netherlands
+		subject = setupSubject();
+		subject.toJson().put("street_address", "Adriaan Goekooplaan");
+		subject.toJson().put("country", "Netherlands");
+		subject.toJson().put("postal_code", "2517 JX");
+
+		// call under test
+		result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertTrue(result.getIsValid());
+
+		// Invalid combination
+		subject = setupSubject();
+		subject.toJson().put("street_address", "24 Sussex Drive");
+		subject.toJson().put("country", "Canada");
+		subject.toJson().put("postal_code", "10000");
+
+		// call under test
+		result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertFalse(result.getIsValid());
+		assertEquals("#: only 1 subschema matches out of 2", result.getValidationErrorMessage());
+	}
+
 	public JsonSubject setupSubject() {
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put("objectId", objectId);
 		jsonObject.put("objectType", objectType);
 		jsonObject.put("objectEtag", objectEtag);
-		
+
 		JsonSubject subject = Mockito.mock(JsonSubject.class);
 		when(subject.getObjectId()).thenReturn(objectId);
 		when(subject.getObjectEtag()).thenReturn(objectEtag);
