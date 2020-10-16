@@ -98,7 +98,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		return startOrResumeMultipartRequest(handler, user, request, forceRestart);
 	}
 	
-	private <T extends MultipartRequest> MultipartUploadStatus startOrResumeMultipartRequest(MultipartRequestHandler<T> handler, UserInfo user, T request, boolean forceRestart) {
+	<T extends MultipartRequest> MultipartUploadStatus startOrResumeMultipartRequest(MultipartRequestHandler<T> handler, UserInfo user, T request, boolean forceRestart) {
 		
 		// Common validation of the request
 		validateMultipartRequest(user, request);
@@ -214,7 +214,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 
 			final Long partNumber = partNumbers.get(i);
 
-			ValidateArgument.required(partNumber, "PartNumber cannot be null");
+			ValidateArgument.required(partNumber, "PartNumber");
 
 			validatePartNumber(partNumber.intValue(), numberOfParts);
 
