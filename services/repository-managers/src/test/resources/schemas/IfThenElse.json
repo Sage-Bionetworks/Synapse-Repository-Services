@@ -1,0 +1,49 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "ifThenElse",
+	"description": "test of if, then, and else",
+	"properties": {
+		"skyColor": {
+			"enum": [
+				"red",
+				"blue"
+			]
+		},
+		"timeOfDay": {
+			"enum": [
+				"morning",
+				"night"
+			]
+		},
+		"sailors": {
+			"enum": [
+				"delight",
+				"warning"
+			]
+		}
+	},
+	"if": {
+		"properties": {
+			"timeOfDay": {
+				"const": "morning"
+			},
+			"skyColor": {
+				"const": "red"
+			}
+		}
+	},
+	"then": {
+		"properties": {
+			"sailors": {
+				"const": "warning"
+			}
+		}
+	},
+	"else": {
+		"properties": {
+			"sailors": {
+				"const": "delight"
+			}
+		}
+	}
+}
