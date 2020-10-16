@@ -64,7 +64,6 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import com.amazonaws.util.BinaryUtils;
 import com.amazonaws.util.Md5Utils;
 import com.amazonaws.util.StringInputStream;
-import com.google.common.collect.Lists;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -303,7 +302,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		association.setFileHandleId(sourceFileHandle.getId());
 		
 		// Starts the multipart copy
-		MultipartUploadStatus status = startUploadCopy(association, destination.getStorageLocationId());
+		MultipartUploadStatus status = startUploadCopy(association, destination.getStorageLocationId(), PartUtils.MIN_PART_SIZE_BYTES);
 		
 		// Fetch the part pre-signed url
 		PartPresignedUrl preSignedUrl = getPresignedURLForPart(status.getUploadId(), null);
@@ -338,7 +337,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		String fileMD5Hex = sourceFileHandle.getContentMd5();
 		
 		// Starts the multipart copy
-		MultipartUploadStatus status = startUploadCopy(association, destination.getStorageLocationId());
+		MultipartUploadStatus status = startUploadCopy(association, destination.getStorageLocationId(), PartUtils.MIN_PART_SIZE_BYTES);
 		
 		// Fetch the part pre-signed url
 		PartPresignedUrl preSignedUrl = getPresignedURLForPart(status.getUploadId(), null, fileMD5Hex);
@@ -360,7 +359,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		assertEquals(sourceFileHandle.getFileName(), copyFileHandle.getFileName());
 		assertEquals(sourceFileHandle.getContentMd5(), copyFileHandle.getContentMd5());
 	}
-
+	
 	/**
 	 * Start the upload.
 	 * @return
@@ -375,13 +374,13 @@ public class MultipartManagerV2ImplAutowireTest {
 		return status;
 	}
 	
-	private MultipartUploadStatus startUploadCopy(FileHandleAssociation association, Long storageLocationId) {
+	private MultipartUploadStatus startUploadCopy(FileHandleAssociation association, Long storageLocationId, Long partSizeBytes) {
 		
 		MultipartUploadCopyRequest request = new MultipartUploadCopyRequest();
 		
 		request.setSourceFileHandleAssociation(association);
 		request.setStorageLocationId(storageLocationId);
-		request.setPartSizeBytes(PartUtils.MIN_PART_SIZE_BYTES);
+		request.setPartSizeBytes(partSizeBytes);
 		
 		boolean forceRestart = true;
 		MultipartUploadStatus status = multipartManagerV2.startOrResumeMultipartUploadCopy(adminUserInfo, request, forceRestart);
@@ -395,20 +394,27 @@ public class MultipartManagerV2ImplAutowireTest {
 	}
 	
 	private PartPresignedUrl getPresignedURLForPart(String uploadId, String contentType, String partMd5){
+		List<Long> partNumbers = Arrays.asList(1L);
+		List<String> partsMd5 = null;
+		
+		if (partMd5 != null) {
+			partsMd5 = Arrays.asList(partMd5);
+		}
+		
+		List<PartPresignedUrl> urls = getPresignedUrlForParts(uploadId, contentType, partNumbers, partsMd5);
+		
+		assertEquals(1, urls.size());
+		return urls.get(0);
+	}
+	
+	private List<PartPresignedUrl> getPresignedUrlForParts(String uploadId, String contentType, List<Long> partNumbers, List<String> partMd5) {
 		BatchPresignedUploadUrlRequest batchURLRequest = new BatchPresignedUploadUrlRequest();
 		batchURLRequest.setUploadId(uploadId);
 		batchURLRequest.setContentType(contentType);
-		Long partNumber = 1L;
-		if (partMd5 != null) {
-			batchURLRequest.setPartMD5Hex(Arrays.asList(partMd5));
-		}
-		batchURLRequest.setPartNumbers(Lists.newArrayList(partNumber));
-		BatchPresignedUploadUrlResponse bpuur = multipartManagerV2
-				.getBatchPresignedUploadUrls(adminUserInfo, batchURLRequest);
-		assertNotNull(bpuur);
-		assertNotNull(bpuur.getPartPresignedUrls());
-		assertEquals(1, bpuur.getPartPresignedUrls().size());
-		return bpuur.getPartPresignedUrls().get(0);
+		batchURLRequest.setPartNumbers(partNumbers);
+		batchURLRequest.setPartMD5Hex(partMd5);
+		BatchPresignedUploadUrlResponse bpuur = multipartManagerV2.getBatchPresignedUploadUrls(adminUserInfo, batchURLRequest);
+		return bpuur.getPartPresignedUrls();
 	}
 	
 	/**
