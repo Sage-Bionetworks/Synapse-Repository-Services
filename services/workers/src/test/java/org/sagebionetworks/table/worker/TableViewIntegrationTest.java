@@ -61,6 +61,10 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
+import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -183,20 +187,7 @@ public class TableViewIntegrationTest {
 		userInfo = userManager.getUserInfo(userId);
 		
 		// create a shared fileHandle
-		sharedHandle = new S3FileHandle();
-		sharedHandle.setBucketName("fakeBucket");
-		sharedHandle.setKey("fakeKey");
-		sharedHandle.setContentMd5("md5");
-		sharedHandle.setContentSize(123L);
-		sharedHandle.setContentType("text/plain");
-		sharedHandle.setCreatedBy(""+adminUserInfo.getId());
-		sharedHandle.setCreatedOn(new Date(System.currentTimeMillis()));
-		sharedHandle.setEtag(UUID.randomUUID().toString());
-		sharedHandle.setFileName("foo.txt");
-		sharedHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		sharedHandle.setEtag(UUID.randomUUID().toString());
-		sharedHandle.setPreviewId(sharedHandle.getId());
-		sharedHandle = (S3FileHandle) fileHandleDao.createFile(sharedHandle);
+		sharedHandle = createNewFileHandle();
 		
 		entitiesToDelete = new LinkedList<String>();
 		
@@ -258,6 +249,28 @@ public class TableViewIntegrationTest {
 		
 		viewObjectType = ViewObjectType.ENTITY;
 	}
+	
+	/**
+	 * Helper to create a new FileHandle
+	 * @return
+	 */
+	public S3FileHandle createNewFileHandle() {
+		S3FileHandle fh = new S3FileHandle();
+		fh.setBucketName("fakeBucket");
+		fh.setKey("fakeKey");
+		fh.setContentMd5("md5");
+		fh.setContentSize(123L);
+		fh.setContentType("text/plain");
+		fh.setCreatedBy(""+adminUserInfo.getId());
+		fh.setCreatedOn(new Date(System.currentTimeMillis()));
+		fh.setEtag(UUID.randomUUID().toString());
+		fh.setFileName("foo.txt");
+		fh.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		fh.setEtag(UUID.randomUUID().toString());
+		fh.setPreviewId(fh.getId());
+		fh = (S3FileHandle) fileHandleDao.createFile(fh);
+		return fh;
+	}
 
 	/**
 	 * Create a File View using the project as a scope.
@@ -309,9 +322,7 @@ public class TableViewIntegrationTest {
 			}
 		}
 		
-		if(sharedHandle != null){
-			fileHandleDao.delete(sharedHandle.getId());
-		}
+		fileHandleDao.truncateTable();
 		
 		if(userInfo != null){
 			userManager.deletePrincipal(adminUserInfo, userInfo.getId());
@@ -1825,6 +1836,78 @@ public class TableViewIntegrationTest {
 			assertEquals(sharedHandle.getContentMd5(), row.getValues().get(0));
 			assertEquals(sharedHandle.getContentSize().toString(), row.getValues().get(1));
 		});
+	}
+	
+	/**
+	 * This is a test added for PLFM-6468.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testAddViewSnapshotToDownloadList() throws Exception {
+		createFileView();
+		String firstFileId = fileIds.get(0);
+		asyncHelper.waitForEntityReplication(adminUserInfo, fileViewId, firstFileId, MAX_WAIT_MS);
+
+		// create a snapshot of the view
+		SnapshotRequest snapshotOptions = new SnapshotRequest();
+		snapshotOptions.setSnapshotComment("first snapshot");
+		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
+		transactionRequest.setEntityId(fileViewId);
+		transactionRequest.setChanges(null);
+		transactionRequest.setCreateSnapshot(true);
+		transactionRequest.setSnapshotOptions(snapshotOptions);
+		Long snaphsotVersionNumber = startAndWaitForJob(adminUserInfo, transactionRequest, (TableUpdateTransactionResponse response) -> {				
+			assertNotNull(response);
+			assertNotNull(response.getSnapshotVersionNumber());
+		}).getSnapshotVersionNumber();
+
+		// Query the snapshot
+		Query query = new Query();
+		query.setSql("select * from " + fileViewId + "." + snaphsotVersionNumber+" where id='"+firstFileId+"'");
+		query.setIncludeEntityEtag(true);
+		
+		QueryResultBundle bundle = waitForConsistentQuery(adminUserInfo, query, (queryResults) -> {			
+			assertNotNull(queryResults);
+			List<Row> rows = extractRows(queryResults);
+			assertEquals(1, rows.size());
+		});
+		Row firstRow = extractRows(bundle).get(0);
+		assertEquals(KeyFactory.stringToKey(firstFileId), firstRow.getRowId());
+		assertEquals(1L, firstRow.getVersionNumber());
+
+		FileEntity firstFile = entityManager.getEntity(adminUserInfo, firstFileId, FileEntity.class);
+		String versionOneFileHandleId = firstFile.getDataFileHandleId();
+		assertEquals(sharedHandle.getId(), versionOneFileHandleId);
+		// Create a new version of the file with a new file handle
+		S3FileHandle newFileHandle = createNewFileHandle();
+		firstFile.setDataFileHandleId(newFileHandle.getId());
+		firstFile.setVersionLabel("added a new data file");
+		boolean createNewVersion = true;
+		String activityId = null;
+		// create a new version of the file
+		entityManager.updateEntity(adminUserInfo, firstFile, createNewVersion, activityId);
+		firstFile = entityManager.getEntity(adminUserInfo, firstFileId, FileEntity.class);
+		assertEquals(2L, firstFile.getVersionNumber());
+		assertEquals(newFileHandle.getId(), firstFile.getDataFileHandleId());
+		
+		// finally, use a query on the view snapshot to add the files the user's download list
+		AddFileToDownloadListRequest request = new AddFileToDownloadListRequest();
+		request.setQuery(query);
+		
+		// call under test
+		asyncHelper.assertJobResponse(adminUserInfo, request, (AddFileToDownloadListResponse response) -> {		
+			assertNotNull(response);
+			assertNotNull(response.getDownloadList());
+			List<FileHandleAssociation> list = response.getDownloadList().getFilesToDownload();
+			assertNotNull(list);
+			assertEquals(1, list.size());
+			FileHandleAssociation association = list.get(0);
+			assertEquals(firstFileId, association.getAssociateObjectId());
+			assertEquals(FileHandleAssociateType.FileEntity, association.getAssociateObjectType());
+			assertEquals(versionOneFileHandleId, association.getFileHandleId());
+		}, MAX_WAIT_MS);
+		
 	}
 	
 	/**
