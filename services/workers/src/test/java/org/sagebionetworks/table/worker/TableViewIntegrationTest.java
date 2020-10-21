@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.repo.manager.file.download.BulkDownloadManager;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
@@ -129,21 +130,21 @@ public class TableViewIntegrationTest {
 	@Autowired
 	private TableViewManager tableViewManager;
 	@Autowired
-	EntityPermissionsManager entityPermissionsManager;
+	private EntityPermissionsManager entityPermissionsManager;
 	@Autowired
-	ConnectionFactory tableConnectionFactory;
-	@Autowired
-	AsynchJobStatusManager asynchJobStatusManager;
+	private ConnectionFactory tableConnectionFactory;
 	@Autowired
 	private IdGenerator idGenerator;
 	@Autowired
-	TableStatusDAO tableStatusDao;
+	private TableStatusDAO tableStatusDao;
 	@Autowired
-	RepositoryMessagePublisher repositoryMessagePublisher;
+	private RepositoryMessagePublisher repositoryMessagePublisher;
 	@Autowired
-	DBOChangeDAO changeDAO;
+	private DBOChangeDAO changeDAO;
 	@Autowired
-	AsynchronousJobWorkerHelper asyncHelper;
+	private AsynchronousJobWorkerHelper asyncHelper;
+	@Autowired
+	private BulkDownloadManager bulkDownloadManager;
 	
 	
 	ProgressCallback mockProgressCallbackVoid;
@@ -180,6 +181,7 @@ public class TableViewIntegrationTest {
 		viewEntityType = ViewEntityType.entityview;
 		mockProgressCallbackVoid= Mockito.mock(ProgressCallback.class);
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		bulkDownloadManager.truncateAllDownloadDataForAllUsers(adminUserInfo);
 		NewUser user = new NewUser();
 		user.setUserName(UUID.randomUUID().toString());
 		user.setEmail(user.getUserName() + "@bond.com");
