@@ -376,6 +376,51 @@ public class BulkDownloadManagerImplTest {
 		assertEquals(FileHandleAssociateType.FileEntity, association.getAssociateObjectType());
 		assertEquals("90", association.getFileHandleId());
 	}
+	
+	@Test
+	public void testAddFilesFromQueryWithSnapshot() throws Exception {
+		// dot version number indicates a query from a snapshot.
+		tableIdAndVersion = IdAndVersion.parse(tableId+".12");
+		query.setSql("select * from "+tableIdAndVersion.toString());
+		when(mockBulkDownloadDao.addFilesToDownloadList(any(String.class), any())).thenReturn(addedFiles);
+		when(mockNodeDao.getFileHandleIdForVersion("0", 24L)).thenReturn("89");
+		when(mockNodeDao.getFileHandleIdForVersion("1", 25L)).thenReturn("90");
+		when(mockTableQueryManager.queryBundle(any(ProgressCallback.class), any(UserInfo.class),any(QueryBundleRequest.class))).thenReturn(queryResult);
+		when(mockEntityManager.getEntityType(userInfo, tableIdAndVersion.getId().toString())).thenReturn(EntityType.entityview);
+		
+		// call under test
+		DownloadList result = manager.addFilesFromQuery(mockProgressCallback, userInfo, query);
+		assertNotNull(result);
+		verify(mockTableQueryManager).queryBundle(any(ProgressCallback.class), any(UserInfo.class),
+				queryBundleCaptor.capture());
+		verify(mockNodeDao, times(2)).getFileHandleIdForVersion(any(), any());
+		verify(mockNodeDao).getFileHandleIdForVersion("0", 24L);
+		verify(mockNodeDao).getFileHandleIdForVersion("1", 25L);
+		verify(mockBulkDownloadDao).addFilesToDownloadList(any(String.class), associationCaptor.capture());
+
+		// validate query request
+		QueryBundleRequest queryRequest = queryBundleCaptor.getValue();
+		assertNotNull(queryRequest);
+		assertEquals(new Long(BulkDownloadManagerImpl.QUERY_ONLY_PART_MASK), queryRequest.getPartMask());
+		assertNotNull(queryRequest.getQuery());
+		assertEquals(new Long(BulkDownloadManagerImpl.MAX_FILES_PER_DOWNLOAD_LIST + 1),
+				queryRequest.getQuery().getLimit());
+		assertEquals(query, queryRequest.getQuery());
+
+		// validate add
+		List<FileHandleAssociation> associations = associationCaptor.getValue();
+		assertNotNull(associations);
+		assertEquals(2, associations.size());
+		FileHandleAssociation association = associations.get(0);
+		assertEquals("0", association.getAssociateObjectId());
+		assertEquals(FileHandleAssociateType.FileEntity, association.getAssociateObjectType());
+		assertEquals("89", association.getFileHandleId());
+		
+		association = associations.get(1);
+		assertEquals("1", association.getAssociateObjectId());
+		assertEquals(FileHandleAssociateType.FileEntity, association.getAssociateObjectType());
+		assertEquals("90", association.getFileHandleId());
+	}
 
 	@Test
 	public void testAddFilesFromQueryNotAview() throws Exception {
