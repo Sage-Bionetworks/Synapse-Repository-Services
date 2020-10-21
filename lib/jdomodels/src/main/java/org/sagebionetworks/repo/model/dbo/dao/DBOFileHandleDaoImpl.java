@@ -352,7 +352,12 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	@WriteTransaction
 	@Override
 	public void truncateTable() {
-		jdbcTemplate.update("DELETE FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" > -1");
+		try {
+			jdbcTemplate.update("SET FOREIGN_KEY_CHECKS = ?", false);
+			jdbcTemplate.update("DELETE FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" > -1");
+		}finally {
+			jdbcTemplate.update("SET FOREIGN_KEY_CHECKS = ?", true);
+		}
 	}
 
 }
