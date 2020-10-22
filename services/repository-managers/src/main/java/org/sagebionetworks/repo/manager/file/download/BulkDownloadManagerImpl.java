@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.download.BulkDownloadDAO;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.DownloadList;
@@ -24,6 +25,7 @@ import org.sagebionetworks.repo.model.file.DownloadOrderSummaryRequest;
 import org.sagebionetworks.repo.model.file.DownloadOrderSummaryResponse;
 import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileResult;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -41,11 +43,13 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class BulkDownloadManagerImpl implements BulkDownloadManager {
 
@@ -141,8 +145,8 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 			query.setLimit(MAX_FILES_PER_DOWNLOAD_LIST + 1L);
 			QueryResultBundle queryResult = this.tableQueryManager.queryBundle(progressCallback, user, queryBundle);
 			// validate this is query against a file view.
-			String tableId = queryResult.getQueryResult().getQueryResults().getTableId();
-			EntityType tableType = entityManager.getEntityType(user, tableId);
+			IdAndVersion idAndVersion = IdAndVersion.parse(queryResult.getQueryResult().getQueryResults().getTableId());
+			EntityType tableType = entityManager.getEntityType(user, idAndVersion.getId().toString());
 			if (!EntityType.entityview.equals(tableType)) {
 				throw new IllegalArgumentException(FILES_CAN_ONLY_BE_ADDED_FROM_A_FILE_VIEW_QUERY);
 			}
@@ -150,13 +154,16 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 			if (rows.size() > MAX_FILES_PER_DOWNLOAD_LIST) {
 				throw new IllegalArgumentException(EXCEEDED_MAX_NUMBER_ROWS);
 			}
-			// get the files handles for the resulting files
-			List<String> entityIds = new LinkedList<>();
+			// lookup the file handle for each row.
+			List<FileHandleAssociation> toAdd = new ArrayList<FileHandleAssociation>(rows.size());
 			for (Row row : rows) {
-				entityIds.add(row.getRowId().toString());
+				String fileHandleId = nodeDoa.getFileHandleIdForVersion(row.getRowId().toString(), row.getVersionNumber());
+				FileHandleAssociation fa = new FileHandleAssociation();
+				fa.setAssociateObjectId(row.getRowId().toString());
+				fa.setFileHandleId(fileHandleId);
+				fa.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+				toAdd.add(fa);
 			}
-			// get the files handle associations for each file.
-			List<FileHandleAssociation> toAdd = nodeDoa.getFileHandleAssociationsForCurrentVersion(entityIds);
 			return attemptToAddFilesToUsersDownloadList(user, toAdd);
 
 		} catch (LockUnavilableException | TableUnavailableException e) {
