@@ -20,7 +20,11 @@ public class CreateMultipartRequest {
 	private Integer numberOfParts;
 	private Long partSize;
 	private String sourceFileHandleId;
+	private String sourceFileEtag;
 
+	/**
+	 * User for a normal upload request
+	 */
 	public CreateMultipartRequest(Long userId, String hash, String requestBody, String uploadToken, UploadType uploadType, String bucket, String key, Integer numberOfParts, Long partSize) {
 		this.userId = userId;
 		this.hash = hash;
@@ -33,10 +37,16 @@ public class CreateMultipartRequest {
 		this.partSize = partSize;
 	}
 	
+	/**
+	 * Used when the request is a copy from a source file
+	 */
 	public CreateMultipartRequest(Long userId, String hash, String requestBody, String uploadToken,
-			UploadType uploadType, String bucket, String key, Integer numberOfParts, Long partSize, String sourceFileHandleId) {
+			UploadType uploadType, String bucket, String key, Integer numberOfParts, Long partSize, 
+			String sourceFileHandleId,
+			String sourceFileEtag) {
 		this(userId, hash, requestBody, uploadToken, uploadType, bucket, key, numberOfParts, partSize);
 		this.sourceFileHandleId = sourceFileHandleId;
+		this.sourceFileEtag = sourceFileEtag;
 	}
 
 	public Long getUserId() {
@@ -110,6 +120,14 @@ public class CreateMultipartRequest {
 	public void setSourceFileHandleId(String sourceFileHandleId) {
 		this.sourceFileHandleId = sourceFileHandleId;
 	}
+	
+	public String getSourceFileEtag() {
+		return sourceFileEtag;
+	}
+	
+	public void setSourceFileEtag(String sourceFileEtag) {
+		this.sourceFileEtag = sourceFileEtag;
+	}
 
 	public Long getPartSize() {
 		return partSize;
@@ -121,8 +139,8 @@ public class CreateMultipartRequest {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(bucket, hash, key, numberOfParts, partSize, requestBody, sourceFileHandleId, uploadToken,
-				uploadType, userId);
+		return Objects.hash(bucket, hash, key, numberOfParts, partSize, requestBody, sourceFileEtag, sourceFileHandleId,
+				uploadToken, uploadType, userId);
 	}
 
 	@Override
@@ -140,6 +158,7 @@ public class CreateMultipartRequest {
 		return Objects.equals(bucket, other.bucket) && Objects.equals(hash, other.hash)
 				&& Objects.equals(key, other.key) && Objects.equals(numberOfParts, other.numberOfParts)
 				&& Objects.equals(partSize, other.partSize) && Objects.equals(requestBody, other.requestBody)
+				&& Objects.equals(sourceFileEtag, other.sourceFileEtag)
 				&& Objects.equals(sourceFileHandleId, other.sourceFileHandleId)
 				&& Objects.equals(uploadToken, other.uploadToken) && uploadType == other.uploadType
 				&& Objects.equals(userId, other.userId);
@@ -150,7 +169,7 @@ public class CreateMultipartRequest {
 		return "CreateMultipartRequest [userId=" + userId + ", hash=" + hash + ", requestBody=" + requestBody
 				+ ", uploadToken=" + uploadToken + ", uploadType=" + uploadType + ", bucket=" + bucket + ", key=" + key
 				+ ", numberOfParts=" + numberOfParts + ", partSize=" + partSize + ", sourceFileHandleId="
-				+ sourceFileHandleId + "]";
+				+ sourceFileHandleId + ", sourceFileEtag=" + sourceFileEtag + "]";
 	}
 
 }

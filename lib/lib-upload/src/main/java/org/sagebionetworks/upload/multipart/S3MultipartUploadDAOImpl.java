@@ -153,7 +153,11 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 			throw new IllegalStateException("Expected a source file, found none.");
 		}
 		
-		if (status.getFileSize() == null) {
+		if (status.getSourceFileEtag() == null) {
+			throw new IllegalStateException("Expected the source file etag, found none.");
+		}
+		
+		if (status.getSourceFileSize() == null) {
 			throw new IllegalStateException("Expected the source file size, found none.");
 		}
 		
@@ -169,7 +173,7 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 			throw new IllegalStateException("Expected the source file bucket key, found none.");
 		}
 
-		final long[] byteRange = PartUtils.getPartRange(partNumber, status.getPartSize(), status.getFileSize());
+		final long[] byteRange = PartUtils.getPartRange(partNumber, status.getPartSize(), status.getSourceFileSize());
 		final long expiration = System.currentTimeMillis() + PRE_SIGNED_URL_EXPIRATION_MS;
 		
 		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(status.getBucket(), status.getKey())
@@ -181,6 +185,7 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 		
 		request.putCustomRequestHeader(S3_HEADER_COPY_SOURCE, status.getSourceBucket() + "/" + status.getSourceKey());
 		request.putCustomRequestHeader(S3_HEADER_COPY_RANGE, String.format(S3_HEADER_COPY_RANGE_VALUE_TEMPLATE, byteRange[0], byteRange[1]));
+		request.putCustomRequestHeader(S3_HEADER_COPY_SOURCE_IF_MATCH, status.getSourceFileEtag());
 		
 		PresignedUrl presignedUrl = new PresignedUrl();
 		
@@ -267,6 +272,16 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 		ObjectMetadata resultFileMetadata = s3Client.getObjectMetadata(request.getBucket(), request.getKey());
 		
 		return resultFileMetadata.getContentLength();
+	}
+
+	@Override
+	public String getObjectEtag(String bucket, String key) {
+		try {
+			ObjectMetadata metaData = s3Client.getObjectMetadata(bucket, key);
+			return metaData.getETag();
+		} catch (AmazonS3Exception e) {
+			throw new IllegalArgumentException(e.getMessage(), e);
+		}
 	}
 
 }

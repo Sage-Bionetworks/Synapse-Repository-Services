@@ -71,5 +71,12 @@ public interface CloudServiceMultipartUploadDAO {
 	 * @return The size of the resulting file.
 	 */
 	long completeMultipartUpload(CompleteMultipartRequest request);
+	
+	/**
+	 * @param bucket
+	 * @param key
+	 * @return The etag assigned to the object in the given bucket and with the given key
+	 */
+	String getObjectEtag(String bucket, String key);
 
 }

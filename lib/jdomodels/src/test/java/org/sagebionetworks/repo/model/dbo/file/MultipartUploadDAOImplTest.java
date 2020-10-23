@@ -113,7 +113,8 @@ public class MultipartUploadDAOImplTest {
 		assertEquals(MultiPartRequestType.UPLOAD, composite.getRequestType());
 		assertEquals(createRequest.getPartSize(), composite.getPartSize());
 		assertNull(composite.getSourceFileHandleId());
-		assertNull(composite.getFileSize());
+		assertNull(composite.getSourceFileEtag());
+		assertNull(composite.getSourceFileSize());
 		assertNull(composite.getSourceBucket());
 		assertNull(composite.getSourceKey());
 	}
@@ -121,9 +122,14 @@ public class MultipartUploadDAOImplTest {
 	@Test
 	public void testCreateWithSourceFileHandleId() throws JSONObjectAdapterException {
 		S3FileHandle file = TestUtils.createS3FileHandle(userId.toString(), idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		
 		file = (S3FileHandle) fileHandleDao.createFile(file);
 		
+		String fileEtag = "s3Etag";
+		
 		createRequest.setSourceFileHandleId(file.getId());
+		createRequest.setSourceFileEtag(fileEtag);
+		
 		// call under test
 		CompositeMultipartUploadStatus composite = multipartUplaodDAO.createUploadStatus(createRequest);
 		assertNotNull(composite);
@@ -142,9 +148,10 @@ public class MultipartUploadDAOImplTest {
 		assertEquals(MultiPartRequestType.COPY, composite.getRequestType());
 		assertEquals(createRequest.getPartSize(), composite.getPartSize());
 		assertEquals(Long.valueOf(createRequest.getSourceFileHandleId()), composite.getSourceFileHandleId());
+		assertEquals(createRequest.getSourceFileEtag(), composite.getSourceFileEtag());
 		assertEquals(file.getBucketName(), composite.getSourceBucket());
 		assertEquals(file.getKey(), composite.getSourceKey());
-		assertEquals(file.getContentSize(), composite.getFileSize());
+		assertEquals(file.getContentSize(), composite.getSourceFileSize());
 	}
 
 	@Test

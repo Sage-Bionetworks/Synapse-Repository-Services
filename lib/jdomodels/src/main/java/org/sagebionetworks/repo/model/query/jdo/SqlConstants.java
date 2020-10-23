@@ -355,6 +355,7 @@ public class SqlConstants {
 	public static final String COL_MULTIPART_REQUEST_TYPE   		= "REQUEST_TYPE";
 	public static final String COL_MULTIPART_PART_SIZE				= "PART_SIZE";
 	public static final String COL_MULTIPART_SOURCE_FILE_HANDLE_ID	= "SOURCE_FILE_HANDLE_ID";
+	public static final String COL_MULTIPART_SOURCE_FILE_ETAG		= "SOURCE_FILE_ETAG";
 	public static final String COL_MULTIPART_DDL					= "schema/MultipartUpload-ddl.sql";
 	
 	// multipart upload part state

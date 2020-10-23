@@ -26,6 +26,8 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
 import org.sagebionetworks.repo.model.dbo.file.MultipartRequestUtils;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.MultipartUploadCopyRequest;
@@ -80,6 +82,9 @@ public class MultipartUploadCopyRequestHandlerTest {
 		sourceFileHandle.setContentMd5("contentMd5");
 		sourceFileHandle.setContentSize(1024L);
 		sourceFileHandle.setConcreteType("plain/text");
+		sourceFileHandle.setBucketName("bucket");
+		sourceFileHandle.setKey("key");
+		
 		fileHandleAssociation = new FileHandleAssociation();
 		fileHandleAssociation.setAssociateObjectType(FileHandleAssociateType.FileEntity);
 		fileHandleAssociation.setAssociateObjectId(sourceFileEntityId);
@@ -173,6 +178,7 @@ public class MultipartUploadCopyRequestHandlerTest {
 		Long userId = 123456L;
 		String requestHash = "hash";
 		String uploadToken = "token";
+		String sourceEtag = "etag";
 		UploadType uploadType = UploadType.S3;
 		
 		when(mockRequest.getSourceFileHandleAssociation()).thenReturn(fileHandleAssociation);
@@ -184,13 +190,14 @@ public class MultipartUploadCopyRequestHandlerTest {
 		when(mockAuthManager.canDownLoadFile(any(), any())).thenReturn(Collections.singletonList(new FileHandleAssociationAuthorizationStatus(fileHandleAssociation, AuthorizationStatus.authorized())));
 		when(mockFileHandleDao.get(any())).thenReturn(sourceFileHandle);
 		when(mockCloudDaoProvider.getCloudServiceMultipartUploadDao(any())).thenReturn(mockCloudDao);
+		when(mockCloudDao.getObjectEtag(any(), any())).thenReturn(sourceEtag);
 		when(mockCloudDao.initiateMultipartUploadCopy(any(), any(), any(), any())).thenReturn(uploadToken);
 		
 		String requestBody = MultipartRequestUtils.createRequestJSON(mockRequest);
 		
 		CreateMultipartRequest expected = new CreateMultipartRequest(userId,
 				requestHash, requestBody, uploadToken, uploadType,
-				null, null, 1, partSize, sourceFileHandle.getId());
+				null, null, 1, partSize, sourceFileHandle.getId(), sourceEtag);
 		
 		// Call under test
 		CreateMultipartRequest result = handler.initiateRequest(mockUser, mockRequest, requestHash, mockStorageLocation);
@@ -203,7 +210,45 @@ public class MultipartUploadCopyRequestHandlerTest {
 		verify(mockAuthManager).canDownLoadFile(mockUser, Collections.singletonList(fileHandleAssociation));
 		verify(mockFileHandleDao).get(sourceFileHandle.getId());
 		verify(mockCloudDaoProvider).getCloudServiceMultipartUploadDao(uploadType);
+		verify(mockCloudDao).getObjectEtag(sourceFileHandle.getBucketName(), sourceFileHandle.getKey());
 		verify(mockCloudDao).initiateMultipartUploadCopy(result.getBucket(), result.getKey(), mockRequest, sourceFileHandle);		
+	}
+	
+	@Test
+	public void testInitiateRequestWithWrongFileHandleType() {
+		Long storageLocationId = 456L;
+		Long userId = 123456L;
+		String requestHash = "hash";
+		UploadType uploadType = UploadType.S3;
+		
+		// Not a CloudProviderFileHandleInterface
+		FileHandle sourceFileHandle = new ExternalFileHandle();
+		
+		sourceFileHandle.setId("123");
+		sourceFileHandle.setFileName("filename");
+		sourceFileHandle.setContentMd5("contentMd5");
+		sourceFileHandle.setContentSize(1024L);
+		sourceFileHandle.setConcreteType("plain/text");
+		
+		when(mockRequest.getSourceFileHandleAssociation()).thenReturn(fileHandleAssociation);
+		when(mockUser.getId()).thenReturn(userId);
+		when(mockStorageLocation.getStorageLocationId()).thenReturn(storageLocationId);
+		when(mockStorageLocation.getCreatedBy()).thenReturn(userId);
+		when(mockStorageLocation.getUploadType()).thenReturn(uploadType);
+		when(mockAuthManager.canDownLoadFile(any(), any())).thenReturn(Collections.singletonList(new FileHandleAssociationAuthorizationStatus(fileHandleAssociation, AuthorizationStatus.authorized())));
+		when(mockFileHandleDao.get(any())).thenReturn(sourceFileHandle);
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			handler.initiateRequest(mockUser, mockRequest, requestHash, mockStorageLocation);
+		}).getMessage();
+		
+		assertEquals("The source file must be stored in a cloud bucket accessible by Synapse.", errorMessage);
+		
+		verify(mockAuthManager).canDownLoadFile(mockUser, Collections.singletonList(fileHandleAssociation));
+		verify(mockFileHandleDao).get(sourceFileHandle.getId());
+		verifyZeroInteractions(mockCloudDaoProvider);
+		verifyZeroInteractions(mockCloudDao);	
 	}
 	
 	@Test

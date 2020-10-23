@@ -410,4 +410,15 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 		verify(mockBlob, never()).delete();
 		verify(mockBlob).getSize();
 	}
+	
+	@Test
+	public void testGetObjectEtag() {
+		
+		String errorMessage = assertThrows(UnsupportedOperationException.class, () -> {
+			// Call under test
+			googleMpuDAO.getObjectEtag(BUCKET_NAME, KEY_NAME);
+		}).getMessage();
+		
+		assertEquals("Copying from a Google Cloud Bucket is not supported yet.", errorMessage);
+	}
 }

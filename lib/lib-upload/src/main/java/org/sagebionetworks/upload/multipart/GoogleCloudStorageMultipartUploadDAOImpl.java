@@ -145,5 +145,10 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 		}
 		return googleCloudStorageClient.getObject(request.getBucket(), request.getKey()).getSize();
 	}
+	
+	@Override
+	public String getObjectEtag(String bucket, String key) {
+		throw new UnsupportedOperationException(UNSUPPORTED_COPY_MSG);
+	}
 
 }

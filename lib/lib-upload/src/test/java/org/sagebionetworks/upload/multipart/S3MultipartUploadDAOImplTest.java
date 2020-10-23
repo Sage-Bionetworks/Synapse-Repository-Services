@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
@@ -69,6 +70,8 @@ public class S3MultipartUploadDAOImplTest {
 	private String uploadId;
 	private String filename;
 
+	@Mock
+	private ObjectMetadata mockObjectMetadata;
 	
 	@BeforeEach
 	public void before() {
@@ -442,6 +445,7 @@ public class S3MultipartUploadDAOImplTest {
 		
 		String sourceBucket = "sourceBucket";
 		String sourceKey = "sourceKey";
+		String sourceEtag = "sourceEtag";
 		long partNumber = 1;
 		String contentType = "plain/text";
 		
@@ -453,7 +457,8 @@ public class S3MultipartUploadDAOImplTest {
 		status.setPartSize(partSize);
 		
 		status.setSourceFileHandleId(fileHandleId);
-		status.setFileSize(fileSize);
+		status.setSourceFileEtag(sourceEtag);
+		status.setSourceFileSize(fileSize);
 		status.setSourceBucket(sourceBucket);
 		status.setSourceKey(sourceKey);
 		
@@ -469,6 +474,7 @@ public class S3MultipartUploadDAOImplTest {
 		Map<String, String> expectedSignedHeaders = ImmutableMap.of(
 				"x-amz-copy-source", sourceBucket + "/" + sourceKey,
 				"x-amz-copy-source-range", "bytes=0-1023",
+				"x-amz-copy-source-if-match", sourceEtag,
 				"Content-Type", contentType
 		);
 		
@@ -493,7 +499,8 @@ public class S3MultipartUploadDAOImplTest {
 		
 		assertEquals(ImmutableMap.of(
 				"x-amz-copy-source", sourceBucket + "/" + sourceKey,
-				"x-amz-copy-source-range", "bytes=0-1023"
+				"x-amz-copy-source-range", "bytes=0-1023",
+				"x-amz-copy-source-if-match", sourceEtag
 		), request.getCustomRequestHeaders());
 		
 	}
@@ -518,7 +525,7 @@ public class S3MultipartUploadDAOImplTest {
 		status.setPartSize(partSize);
 		
 		status.setSourceFileHandleId(fileHandleId);
-		status.setFileSize(fileSize);
+		status.setSourceFileSize(fileSize);
 		status.setSourceBucket(sourceBucket);
 		status.setSourceKey(sourceKey);
 		
@@ -540,6 +547,7 @@ public class S3MultipartUploadDAOImplTest {
 		
 		String sourceBucket = "sourceBucket";
 		String sourceKey = "sourceKey";
+		String sourceEtag = "sourceEtag";
 		long partNumber = 1;
 		String contentType = "plain/text";
 		
@@ -551,7 +559,8 @@ public class S3MultipartUploadDAOImplTest {
 		status.setPartSize(partSize);
 		
 		status.setSourceFileHandleId(fileHandleId);
-		status.setFileSize(fileSize);
+		status.setSourceFileEtag(sourceEtag);
+		status.setSourceFileSize(fileSize);
 		status.setSourceBucket(sourceBucket);
 		status.setSourceKey(sourceKey);
 		
@@ -573,6 +582,7 @@ public class S3MultipartUploadDAOImplTest {
 		
 		String sourceBucket = "sourceBucket";
 		String sourceKey = "sourceKey";
+		String sourceEtag = "sourceEtag";
 		long partNumber = 1;
 		String contentType = "plain/text";
 		
@@ -584,7 +594,8 @@ public class S3MultipartUploadDAOImplTest {
 		status.setPartSize(partSize);
 		
 		status.setSourceFileHandleId(fileHandleId);
-		status.setFileSize(fileSize);
+		status.setSourceFileEtag(sourceEtag);
+		status.setSourceFileSize(fileSize);
 		status.setSourceBucket(sourceBucket);
 		status.setSourceKey(sourceKey);
 		
@@ -606,6 +617,7 @@ public class S3MultipartUploadDAOImplTest {
 		
 		String sourceBucket = null;
 		String sourceKey = "sourceKey";
+		String sourceEtag = "sourceEtag";
 		long partNumber = 1;
 		String contentType = "plain/text";
 		
@@ -617,7 +629,8 @@ public class S3MultipartUploadDAOImplTest {
 		status.setPartSize(partSize);
 		
 		status.setSourceFileHandleId(fileHandleId);
-		status.setFileSize(fileSize);
+		status.setSourceFileEtag(sourceEtag);
+		status.setSourceFileSize(fileSize);
 		status.setSourceBucket(sourceBucket);
 		status.setSourceKey(sourceKey);
 		
@@ -639,6 +652,7 @@ public class S3MultipartUploadDAOImplTest {
 		
 		String sourceBucket = "sourceBucket";
 		String sourceKey = null;
+		String sourceEtag = "sourceEtag";
 		long partNumber = 1;
 		String contentType = "plain/text";
 		
@@ -650,7 +664,8 @@ public class S3MultipartUploadDAOImplTest {
 		status.setPartSize(partSize);
 		
 		status.setSourceFileHandleId(fileHandleId);
-		status.setFileSize(fileSize);
+		status.setSourceFileEtag(sourceEtag);
+		status.setSourceFileSize(fileSize);
 		status.setSourceBucket(sourceBucket);
 		status.setSourceKey(sourceKey);
 		
@@ -661,6 +676,42 @@ public class S3MultipartUploadDAOImplTest {
 		
 		assertEquals("Expected the source file bucket key, found none.", errorMessage);
 		
+	}
+	
+	@Test
+	public void testGetObjectEtag() {
+		String etag = "etag";
+		
+		when(mockS3Client.getObjectMetadata(any(), any())).thenReturn(mockObjectMetadata);
+		when(mockObjectMetadata.getETag()).thenReturn(etag);
+		
+		// Call under test
+		String result = dao.getObjectEtag(bucket, key);
+	
+		assertEquals(etag, result);
+		
+		verify(mockS3Client).getObjectMetadata(bucket, key);
+		verify(mockObjectMetadata).getETag();
+		verifyNoMoreInteractions(mockS3Client);
+		verifyNoMoreInteractions(mockObjectMetadata);
+	}
+	
+	@Test
+	public void testGetObjectEtagWithS3Exception() {
+		
+		AmazonS3Exception ex = new AmazonS3Exception("Some error");
+		
+		when(mockS3Client.getObjectMetadata(any(), any())).thenThrow(ex);
+		
+		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			dao.getObjectEtag(bucket, key);
+		});
+	
+		assertEquals(ex.getMessage(), result.getMessage());
+		assertEquals(ex, result.getCause());
+		
+		verify(mockS3Client).getObjectMetadata(bucket, key);
 	}
 
 }
