@@ -172,13 +172,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * </p>
  * <p>
  * Note about the copy integrity: The resulting file handle will have the same content MD5 of the source file handle, but synapse
- * does not try to re-compute or verify this value. Instead, the integrity is performed by the cloud provider (currently only S3)
- * during the copy request for the part (the request sent to the pre-signed URL). When requesting a batch of pre-signed URLs using the 
- * <a
- * href="${POST.file.multipart.uploadId.presigned.url.batch}">POST
- * /file/multipart/{uploadId}/presigned/url/batch</a> service it is possible to specify a list of MD5 checksums for each requested part,
- * the pre-signed URL returned will be signed to include a special header that is checked by the underlying cloud provider. This might be
- * useful when a copy is performed on a file that might change while the copy operation has not completed.
+ * does not try to re-compute or verify this value. Instead, the integrity check is performed by the cloud provider (currently only S3)
+ * during the copy request for the part (the request sent to the pre-signed URL). Each copy pre-signed URL is signed with a special
+ * header that makes sure that the source file didn't change during the copy, if this is the case the PUT request to the pre-signed URL
+ * will fail and a new copy should be re-started.
  * </p>
  * <p>
  * <b>Associating FileHandles with Synapse objects</b>
@@ -224,8 +221,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class UploadController {
 
 	public static final String HEADER_KEY_CONTENT_LENGTH = "content-length";
-
-	static private Log log = LogFactory.getLog(UploadController.class);
 
 	@Autowired
 	ServiceProvider serviceProvider;
