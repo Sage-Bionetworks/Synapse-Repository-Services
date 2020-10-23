@@ -123,13 +123,12 @@ public class MultipartUploadCopyRequestHandler implements MultipartRequestHandle
 	}
 
 	@Override
-	public PresignedUrl getPresignedUrl(CompositeMultipartUploadStatus status, long partNumber, String contentType,
-			String partMD5Hex) {
+	public PresignedUrl getPresignedUrl(CompositeMultipartUploadStatus status, long partNumber, String contentType) {
 		ValidateArgument.required(status, "The upload status");
 		
 		final CloudServiceMultipartUploadDAO cloudDao = cloudServiceDaoProvider.getCloudServiceMultipartUploadDao(status.getUploadType());
 		
-		return cloudDao.createPartUploadCopyPresignedUrl(status, partNumber, contentType, partMD5Hex);
+		return cloudDao.createPartUploadCopyPresignedUrl(status, partNumber, contentType);
 	}
 
 	@Override

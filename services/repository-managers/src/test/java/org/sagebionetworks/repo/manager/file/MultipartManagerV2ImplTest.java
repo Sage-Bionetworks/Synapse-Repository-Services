@@ -386,7 +386,7 @@ public class MultipartManagerV2ImplTest {
 		URL url1 = new URL("http://amazon.comsomeBucket/someKey/1");
 		URL url2 = new URL("http://amazon.comsomeBucket/someKey/1");
 
-		when(mockHandler.getPresignedUrl(any(), anyLong(), any(), any())).thenReturn(new PresignedUrl().withUrl(url1),
+		when(mockHandler.getPresignedUrl(any(), anyLong(), any())).thenReturn(new PresignedUrl().withUrl(url1),
 				new PresignedUrl().withUrl(url2));
 
 		PartPresignedUrl part1 = new PartPresignedUrl();
@@ -415,128 +415,8 @@ public class MultipartManagerV2ImplTest {
 
 		verify(mockMultipartUploadDAO).getUploadStatus(uploadId);
 
-		verify(mockHandler).getPresignedUrl(mockCompositeStatus, 1L, "plain/text", null);
-		verify(mockHandler).getPresignedUrl(mockCompositeStatus, 2L, "plain/text", null);
-	}
-
-	@Test
-	public void testGetBatchPresignedUploadUrlsWithMd5CheckSums() throws MalformedURLException {
-		String uploadId = "upload";
-		int numberOfParts = 2;
-
-		when(mockStatus.getStartedBy()).thenReturn(user.getId().toString());
-		when(mockCompositeStatus.getNumberOfParts()).thenReturn(numberOfParts);
-		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
-		when(mockMultipartUploadDAO.getUploadStatus(any())).thenReturn(mockCompositeStatus);
-
-		doReturn(mockHandler).when(mockHandlerProvider).getHandlerForType(any());
-
-		URL url1 = new URL("http://amazon.comsomeBucket/someKey/1");
-		URL url2 = new URL("http://amazon.comsomeBucket/someKey/1");
-
-		when(mockHandler.getPresignedUrl(any(), anyLong(), any(), any())).thenReturn(new PresignedUrl().withUrl(url1),
-				new PresignedUrl().withUrl(url2));
-
-		PartPresignedUrl part1 = new PartPresignedUrl();
-		part1.setPartNumber(1L);
-		part1.setUploadPresignedUrl(url1.toString());
-
-		PartPresignedUrl part2 = new PartPresignedUrl();
-		part2.setPartNumber(2L);
-		part2.setUploadPresignedUrl(url2.toString());
-
-		List<PartPresignedUrl> expectedUrls = Arrays.asList(part1, part2);
-
-		BatchPresignedUploadUrlResponse expected = new BatchPresignedUploadUrlResponse();
-		expected.setPartPresignedUrls(expectedUrls);
-
-		BatchPresignedUploadUrlRequest request = new BatchPresignedUploadUrlRequest();
-
-		request.setUploadId(uploadId);
-		request.setPartNumbers(Arrays.asList(1L, 2L));
-		request.setPartMD5Hex(Arrays.asList("md51", "md52"));
-		request.setContentType("plain/text");
-
-		// Call under test
-		BatchPresignedUploadUrlResponse result = manager.getBatchPresignedUploadUrls(user, request);
-
-		assertEquals(expected, result);
-
-		verify(mockMultipartUploadDAO).getUploadStatus(uploadId);
-
-		verify(mockHandler).getPresignedUrl(mockCompositeStatus, 1L, "plain/text", "md51");
-		verify(mockHandler).getPresignedUrl(mockCompositeStatus, 2L, "plain/text", "md52");
-	}
-	
-	@Test
-	public void testGetBatchPresignedUploadUrlsWithEmptyMd5CheckSums() throws MalformedURLException {
-		String uploadId = "upload";
-		int numberOfParts = 2;
-
-		when(mockStatus.getStartedBy()).thenReturn(user.getId().toString());
-		when(mockCompositeStatus.getNumberOfParts()).thenReturn(numberOfParts);
-		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
-		when(mockMultipartUploadDAO.getUploadStatus(any())).thenReturn(mockCompositeStatus);
-
-		doReturn(mockHandler).when(mockHandlerProvider).getHandlerForType(any());
-
-		URL url1 = new URL("http://amazon.comsomeBucket/someKey/1");
-		URL url2 = new URL("http://amazon.comsomeBucket/someKey/1");
-
-		when(mockHandler.getPresignedUrl(any(), anyLong(), any(), any())).thenReturn(new PresignedUrl().withUrl(url1),
-				new PresignedUrl().withUrl(url2));
-
-		PartPresignedUrl part1 = new PartPresignedUrl();
-		part1.setPartNumber(1L);
-		part1.setUploadPresignedUrl(url1.toString());
-
-		PartPresignedUrl part2 = new PartPresignedUrl();
-		part2.setPartNumber(2L);
-		part2.setUploadPresignedUrl(url2.toString());
-
-		List<PartPresignedUrl> expectedUrls = Arrays.asList(part1, part2);
-
-		BatchPresignedUploadUrlResponse expected = new BatchPresignedUploadUrlResponse();
-		expected.setPartPresignedUrls(expectedUrls);
-
-		BatchPresignedUploadUrlRequest request = new BatchPresignedUploadUrlRequest();
-
-		request.setUploadId(uploadId);
-		request.setPartNumbers(Arrays.asList(1L, 2L));
-		request.setPartMD5Hex(Collections.emptyList());
-		request.setContentType("plain/text");
-
-		// Call under test
-		BatchPresignedUploadUrlResponse result = manager.getBatchPresignedUploadUrls(user, request);
-
-		assertEquals(expected, result);
-
-		verify(mockMultipartUploadDAO).getUploadStatus(uploadId);
-
-		verify(mockHandler).getPresignedUrl(mockCompositeStatus, 1L, "plain/text", null);
-		verify(mockHandler).getPresignedUrl(mockCompositeStatus, 2L, "plain/text", null);
-	}
-
-	@Test
-	public void testGetBatchPresignedUploadUrlsWithWrongMd5CheckSums() throws MalformedURLException {
-		String uploadId = "upload";
-
-		BatchPresignedUploadUrlRequest request = new BatchPresignedUploadUrlRequest();
-
-		request.setUploadId(uploadId);
-		request.setPartNumbers(Arrays.asList(1L, 2L));
-		request.setPartMD5Hex(Arrays.asList("md51", "md52", "md53"));
-		request.setContentType("plain/text");
-
-		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			manager.getBatchPresignedUploadUrls(user, request);
-		}).getMessage();
-
-		assertEquals("The number of MD5 checksums must match the number of parts.", errorMessage);
-
-		verifyZeroInteractions(mockMultipartUploadDAO);
-		verifyZeroInteractions(mockHandler);
+		verify(mockHandler).getPresignedUrl(mockCompositeStatus, 1L, "plain/text");
+		verify(mockHandler).getPresignedUrl(mockCompositeStatus, 2L, "plain/text");
 	}
 
 	@Test

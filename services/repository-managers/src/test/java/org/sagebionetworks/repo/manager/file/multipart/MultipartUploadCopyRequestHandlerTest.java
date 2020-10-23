@@ -355,7 +355,6 @@ public class MultipartUploadCopyRequestHandlerTest {
 	@Test
 	public void testGetPresignedUrl() throws MalformedURLException {
 		String contentType = "plain/text";
-		String partMD5Hex = "md5";
 		UploadType uploadType = UploadType.S3;
 		Long partNumber = 1L;
 		
@@ -363,15 +362,15 @@ public class MultipartUploadCopyRequestHandlerTest {
 		
 		when(mockStatus.getUploadType()).thenReturn(uploadType);
 		when(mockCloudDaoProvider.getCloudServiceMultipartUploadDao(any())).thenReturn(mockCloudDao);
-		when(mockCloudDao.createPartUploadCopyPresignedUrl(mockStatus, partNumber, contentType, partMD5Hex)).thenReturn(url);
+		when(mockCloudDao.createPartUploadCopyPresignedUrl(mockStatus, partNumber, contentType)).thenReturn(url);
 		
 		// Call under test
-		PresignedUrl result = handler.getPresignedUrl(mockStatus, 1, contentType, partMD5Hex);
+		PresignedUrl result = handler.getPresignedUrl(mockStatus, 1, contentType);
 	
 		assertEquals(url, result);
 		
 		verify(mockCloudDaoProvider).getCloudServiceMultipartUploadDao(uploadType);
-		verify(mockCloudDao).createPartUploadCopyPresignedUrl(mockStatus, partNumber, contentType, partMD5Hex);
+		verify(mockCloudDao).createPartUploadCopyPresignedUrl(mockStatus, partNumber, contentType);
 		
 	}
 	

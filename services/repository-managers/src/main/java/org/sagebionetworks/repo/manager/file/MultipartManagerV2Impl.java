@@ -190,10 +190,6 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		if (request.getPartNumbers().isEmpty()) {
 			throw new IllegalArgumentException("BatchPresignedUploadUrlRequest.partNumbers must contain at least one value");
 		}
-
-		if (request.getPartMD5Hex() != null && !request.getPartMD5Hex().isEmpty()) {
-			ValidateArgument.requirement(request.getPartNumbers().size() == request.getPartMD5Hex().size(), "The number of MD5 checksums must match the number of parts.");
-		}
 		
 		// lookup this upload.
 		CompositeMultipartUploadStatus status = multipartUploadDAO.getUploadStatus(request.getUploadId());
@@ -208,7 +204,6 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		final MultipartRequestHandler<? extends MultipartRequest> handler = handlerProvider.getHandlerForType(status.getRequestType());
 		
 		final List<Long> partNumbers = request.getPartNumbers();
-		final List<String> partMd5List = request.getPartMD5Hex();
 
 		for (int i = 0; i < partNumbers.size(); i++) {
 
@@ -218,13 +213,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 
 			validatePartNumber(partNumber.intValue(), numberOfParts);
 
-			String partMD5Hex = null;
-			
-			if (partMd5List != null && !partMd5List.isEmpty()) {
-				partMD5Hex = partMd5List.get(i);
-			}
-
-			PresignedUrl url = handler.getPresignedUrl(status, partNumber, request.getContentType(), partMD5Hex);
+			PresignedUrl url = handler.getPresignedUrl(status, partNumber, request.getContentType());
 
 			partUrls.add(map(url, partNumber));
 		}

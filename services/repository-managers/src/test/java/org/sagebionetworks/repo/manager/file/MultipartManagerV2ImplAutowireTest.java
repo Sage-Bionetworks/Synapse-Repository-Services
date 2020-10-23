@@ -233,7 +233,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		MultipartUploadStatus status = startUpload();
 		String contentType = null;
 		// step two get pre-signed URLs for the parts
-		PartPresignedUrl preSignedUrl = getPresignedURLForPart(status.getUploadId(), contentType, fileMD5Hex);
+		PartPresignedUrl preSignedUrl = getPresignedURLForPart(status.getUploadId(), contentType);
 		// step three put the part to the URL
 		putStringToURL(preSignedUrl.getUploadPresignedUrl(), fileDataString, preSignedUrl.getSignedHeaders());
 		// step four add the part to the upload
@@ -340,7 +340,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		MultipartUploadStatus status = startUploadCopy(association, destination.getStorageLocationId(), PartUtils.MIN_PART_SIZE_BYTES);
 		
 		// Fetch the part pre-signed url
-		PartPresignedUrl preSignedUrl = getPresignedURLForPart(status.getUploadId(), null, fileMD5Hex);
+		PartPresignedUrl preSignedUrl = getPresignedURLForPart(status.getUploadId(), null);
 		
 		// Make the request to S3
 		String eTag = emptyPUT(preSignedUrl.getUploadPresignedUrl(), preSignedUrl.getSignedHeaders());
@@ -390,29 +390,19 @@ public class MultipartManagerV2ImplAutowireTest {
 	}
 	
 	private PartPresignedUrl getPresignedURLForPart(String uploadId, String contentType){
-		return getPresignedURLForPart(uploadId, contentType, null);
-	}
-	
-	private PartPresignedUrl getPresignedURLForPart(String uploadId, String contentType, String partMd5){
 		List<Long> partNumbers = Arrays.asList(1L);
-		List<String> partsMd5 = null;
-		
-		if (partMd5 != null) {
-			partsMd5 = Arrays.asList(partMd5);
-		}
-		
-		List<PartPresignedUrl> urls = getPresignedUrlForParts(uploadId, contentType, partNumbers, partsMd5);
+				
+		List<PartPresignedUrl> urls = getPresignedUrlForParts(uploadId, contentType, partNumbers);
 		
 		assertEquals(1, urls.size());
 		return urls.get(0);
 	}
 	
-	private List<PartPresignedUrl> getPresignedUrlForParts(String uploadId, String contentType, List<Long> partNumbers, List<String> partMd5) {
+	private List<PartPresignedUrl> getPresignedUrlForParts(String uploadId, String contentType, List<Long> partNumbers) {
 		BatchPresignedUploadUrlRequest batchURLRequest = new BatchPresignedUploadUrlRequest();
 		batchURLRequest.setUploadId(uploadId);
 		batchURLRequest.setContentType(contentType);
 		batchURLRequest.setPartNumbers(partNumbers);
-		batchURLRequest.setPartMD5Hex(partMd5);
 		BatchPresignedUploadUrlResponse bpuur = multipartManagerV2.getBatchPresignedUploadUrls(adminUserInfo, batchURLRequest);
 		return bpuur.getPartPresignedUrls();
 	}
