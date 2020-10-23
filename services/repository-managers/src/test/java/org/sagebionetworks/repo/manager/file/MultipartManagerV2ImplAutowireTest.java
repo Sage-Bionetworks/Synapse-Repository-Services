@@ -23,6 +23,7 @@ import org.junit.Assume;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.StackConfiguration;
@@ -234,6 +235,7 @@ public class MultipartManagerV2ImplAutowireTest {
 	// The following tests can be enabled after we setup a VPC endpoint
 	
 	@Test
+	@Disabled("This test uploads a large file, can be enabled once we have a VPC endpoint")
 	public void testMultipartUploadCopyFromMultipartUploadWithMultipleParts() throws Exception {
 		// A little bit more than one part
 		int charCount = (int) PartUtils.MIN_PART_SIZE_BYTES + 200;
@@ -248,6 +250,7 @@ public class MultipartManagerV2ImplAutowireTest {
 	}
 	
 	@Test
+	@Disabled("This test uploads a large file, can be enabled once we have a VPC endpoint")
 	public void testMultipartUploadCopyFromMultipartUploadWithMultiplePartsSinglePartCopy() throws Exception {
 		// A little bit more than one part
 		int charCount = (int) PartUtils.MIN_PART_SIZE_BYTES + 200;
