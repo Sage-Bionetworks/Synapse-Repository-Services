@@ -53,8 +53,14 @@ public class MultipartUploadCopyRequestHandler implements MultipartRequestHandle
 	@Override
 	public void validateRequest(UserInfo user, MultipartUploadCopyRequest request) {
 		ValidateArgument.required(request, "The request");
-		ValidateArgument.required(request.getSourceFileHandleAssociation(), "MultipartUploadCopyRequest.sourceFileHandleAssociation");
 		ValidateArgument.required(request.getStorageLocationId(), "MultipartUploadCopyRequest.storageLocationId");
+
+		FileHandleAssociation association = request.getSourceFileHandleAssociation();
+		
+		ValidateArgument.required(association, "MultipartUploadCopyRequest.sourceFileHandleAssociation");
+		ValidateArgument.required(association.getFileHandleId(), "MultipartUploadCopyRequest.sourceFileHandleAssociation.fileHandleId");
+		ValidateArgument.required(association.getAssociateObjectId(), "MultipartUploadCopyRequest.sourceFileHandleAssociation.associateObjectId");
+		ValidateArgument.required(association.getAssociateObjectType(), "MultipartUploadCopyRequest.sourceFileHandleAssociation.associateObjectType");
 		
 		if (!StringUtils.isBlank(request.getFileName())) {
 			//validate file name

@@ -144,9 +144,7 @@ public class MultipartUploadCopyRequestHandlerTest {
 	public void testValidateRequestWithNoStorageLocation() {
 		Long storageLocationId = null;
 		
-		when(mockRequest.getSourceFileHandleAssociation()).thenReturn(fileHandleAssociation);
 		when(mockRequest.getStorageLocationId()).thenReturn(storageLocationId);
-
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
@@ -158,8 +156,10 @@ public class MultipartUploadCopyRequestHandlerTest {
 	
 	@Test
 	public void testValidateRequestWithNoFileAssociation() {
+		Long storageLocationId = 456L;
 		fileHandleAssociation = null;
 		
+		when(mockRequest.getStorageLocationId()).thenReturn(storageLocationId);
 		when(mockRequest.getSourceFileHandleAssociation()).thenReturn(fileHandleAssociation);
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
@@ -170,6 +170,53 @@ public class MultipartUploadCopyRequestHandlerTest {
 		assertEquals("MultipartUploadCopyRequest.sourceFileHandleAssociation is required.", errorMessage);
 	}
 	
+	@Test
+	public void testValidateRequestWithNoFileHandleId() {
+		Long storageLocationId = 456L;
+		fileHandleAssociation.setFileHandleId(null);
+		
+		when(mockRequest.getStorageLocationId()).thenReturn(storageLocationId);
+		when(mockRequest.getSourceFileHandleAssociation()).thenReturn(fileHandleAssociation);
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			handler.validateRequest(mockUser, mockRequest);
+		}).getMessage();
+		
+		assertEquals("MultipartUploadCopyRequest.sourceFileHandleAssociation.fileHandleId is required.", errorMessage);
+	}
+	
+	@Test
+	public void testValidateRequestWithNoAssociateObjectId() {
+		Long storageLocationId = 456L;
+		fileHandleAssociation.setAssociateObjectId(null);
+		
+		when(mockRequest.getStorageLocationId()).thenReturn(storageLocationId);
+		when(mockRequest.getSourceFileHandleAssociation()).thenReturn(fileHandleAssociation);
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			handler.validateRequest(mockUser, mockRequest);
+		}).getMessage();
+		
+		assertEquals("MultipartUploadCopyRequest.sourceFileHandleAssociation.associateObjectId is required.", errorMessage);
+	}
+	
+	@Test
+	public void testValidateRequestWithNoAssociateObjectType() {
+		Long storageLocationId = 456L;
+		fileHandleAssociation.setAssociateObjectType(null);
+		
+		when(mockRequest.getStorageLocationId()).thenReturn(storageLocationId);
+		when(mockRequest.getSourceFileHandleAssociation()).thenReturn(fileHandleAssociation);
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			handler.validateRequest(mockUser, mockRequest);
+		}).getMessage();
+		
+		assertEquals("MultipartUploadCopyRequest.sourceFileHandleAssociation.associateObjectType is required.", errorMessage);
+	}
 	
 	@Test
 	public void testInitiateRequest() {
