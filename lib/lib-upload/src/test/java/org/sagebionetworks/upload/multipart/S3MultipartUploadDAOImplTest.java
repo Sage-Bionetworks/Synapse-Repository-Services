@@ -695,23 +695,5 @@ public class S3MultipartUploadDAOImplTest {
 		verifyNoMoreInteractions(mockS3Client);
 		verifyNoMoreInteractions(mockObjectMetadata);
 	}
-	
-	@Test
-	public void testGetObjectEtagWithS3Exception() {
-		
-		AmazonS3Exception ex = new AmazonS3Exception("Some error");
-		
-		when(mockS3Client.getObjectMetadata(any(), any())).thenThrow(ex);
-		
-		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			dao.getObjectEtag(bucket, key);
-		});
-	
-		assertEquals(ex.getMessage(), result.getMessage());
-		assertEquals(ex, result.getCause());
-		
-		verify(mockS3Client).getObjectMetadata(bucket, key);
-	}
 
 }
