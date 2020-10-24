@@ -8,6 +8,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPAR
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_SIZE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_REQUEST_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_REQUEST_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_SOURCE_FILE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_SOURCE_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STARTED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STARTED_ON;
@@ -20,11 +21,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPAR
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MULTIPART_UPLOAD;
 
-import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
@@ -34,8 +32,8 @@ import java.util.Objects;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
@@ -62,6 +60,7 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		new FieldColumn("requestType", COL_MULTIPART_REQUEST_TYPE),
 		new FieldColumn("partSize", COL_MULTIPART_PART_SIZE),
 		new FieldColumn("sourceFileHandleId", COL_MULTIPART_SOURCE_FILE_HANDLE_ID),
+		new FieldColumn("sourceFileEtag", COL_MULTIPART_SOURCE_FILE_ETAG)
 	};
 	
 	private static final TableMapping<DBOMultipartUpload> TABLE_MAPPING = new TableMapping<DBOMultipartUpload>() {
@@ -96,6 +95,7 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 			if (rs.wasNull()) {
 				dbo.setSourceFileHandleId(null);
 			}
+			dbo.setSourceFileEtag(rs.getString(COL_MULTIPART_SOURCE_FILE_ETAG));
 			return dbo;
 		}
 
@@ -120,38 +120,7 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		};
 	};
 	
-	private static final MigratableTableTranslation<DBOMultipartUpload, DBOMultipartUpload> MIGRATION_TRANSLATOR = new MigratableTableTranslation<DBOMultipartUpload, DBOMultipartUpload>() {
-		@Override
-		public DBOMultipartUpload createDatabaseObjectFromBackup(DBOMultipartUpload backup) {
-			if (backup.getRequestType() == null) {
-				String requestJson = new String(backup.getRequestBlob(), StandardCharsets.UTF_8);
-				
-				MultipartUploadRequest request = MultipartRequestUtils.getRequestFromJson(requestJson, MultipartUploadRequest.class);
-				
-				// Makes sure to save the concrete type as well
-				request.setConcreteType(MultipartUploadRequest.class.getName());
-		
-				// Backfill the old data from the request
-				backup.setRequestType(MultiPartRequestType.UPLOAD.name());
-				backup.setPartSize(request.getPartSizeBytes());
-				
-				// Recompute the request body since from now on the request will include the concrete type
-				backup.setRequestBlob(MultipartRequestUtils.createRequestJSON(request).getBytes(StandardCharsets.UTF_8));
-
-				if (backup.getStartedOn().toInstant().isAfter(Instant.now().minus(5, ChronoUnit.DAYS))) {
-					// Recompute the has if the upload was started in the last 5 days, since we have old duplicated request in the database
-					// and recomputing the hash would lead to updates and mistmatches between prod and staging.
-					backup.setRequestHash(MultipartRequestUtils.calculateMD5AsHex(request));
-				}
-			}
-			return backup;
-		}
-
-		@Override
-		public DBOMultipartUpload createBackupFromDatabaseObject(DBOMultipartUpload dbo) {
-			return dbo;
-		}
-	};
+	private static final MigratableTableTranslation<DBOMultipartUpload, DBOMultipartUpload> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<>();
 	
 	private Long id;
 	private String requestHash;
@@ -170,6 +139,7 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 	private String requestType;
 	private Long partSize;
 	private Long sourceFileHandleId;
+	private String sourceFileEtag;
 
 	@Override
 	public TableMapping<DBOMultipartUpload> getTableMapping() {
@@ -332,6 +302,14 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		this.sourceFileHandleId = sourceFileHandleId;
 	}
 	
+	public String getSourceFileEtag() {
+		return sourceFileEtag;
+	}
+	
+	public void setSourceFileEtag(String sourceFileEtag) {
+		this.sourceFileEtag = sourceFileEtag;
+	}
+	
 	public Long getPartSize() {
 		return partSize;
 	}
@@ -345,9 +323,9 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + Arrays.hashCode(requestBlob);
-		result = prime * result
-				+ Objects.hash(bucket, etag, fileHandleId, id, key, numberOfParts, partSize, requestHash, requestType,
-						sourceFileHandleId, startedBy, startedOn, state, updatedOn, uploadToken, uploadType);
+		result = prime * result + Objects.hash(bucket, etag, fileHandleId, id, key, numberOfParts, partSize,
+				requestHash, requestType, sourceFileEtag, sourceFileHandleId, startedBy, startedOn, state, updatedOn,
+				uploadToken, uploadType);
 		return result;
 	}
 
@@ -368,6 +346,7 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 				&& Objects.equals(key, other.key) && Objects.equals(numberOfParts, other.numberOfParts)
 				&& Objects.equals(partSize, other.partSize) && Arrays.equals(requestBlob, other.requestBlob)
 				&& Objects.equals(requestHash, other.requestHash) && Objects.equals(requestType, other.requestType)
+				&& Objects.equals(sourceFileEtag, other.sourceFileEtag)
 				&& Objects.equals(sourceFileHandleId, other.sourceFileHandleId)
 				&& Objects.equals(startedBy, other.startedBy) && Objects.equals(startedOn, other.startedOn)
 				&& Objects.equals(state, other.state) && Objects.equals(updatedOn, other.updatedOn)
@@ -381,7 +360,7 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 				+ ", updatedOn=" + updatedOn + ", fileHandleId=" + fileHandleId + ", state=" + state + ", uploadToken="
 				+ uploadToken + ", bucket=" + bucket + ", key=" + key + ", numberOfParts=" + numberOfParts
 				+ ", uploadType=" + uploadType + ", requestType=" + requestType + ", partSize=" + partSize
-				+ ", sourceFileHandleId=" + sourceFileHandleId + "]";
+				+ ", sourceFileHandleId=" + sourceFileHandleId + ", sourceFileEtag=" + sourceFileEtag + "]";
 	}
 
 }

@@ -717,6 +717,10 @@ public class MigratableTableDAOImplAutowireTest {
 			MigratableDatabaseObject migratableObject = migratableTableDAO.getObjectForType(type);
 			TableMapping tableMapping = migratableObject.getTableMapping();
 			for(FieldColumn field: tableMapping.getFieldColumns()) {
+				// This is not a synapse etag, but the S3 etag
+				if (MigrationType.MULTIPART_UPLOAD.equals(type) && field.getFieldName().equals("sourceFileEtag")) {
+					continue;
+				}
 				if(field.getFieldName().toLowerCase().contains("etag")) {
 					assertTrue(field.isEtag(), "MigrationType: "+type+" has a field containing 'etag' but isEtag() is false");
 				}

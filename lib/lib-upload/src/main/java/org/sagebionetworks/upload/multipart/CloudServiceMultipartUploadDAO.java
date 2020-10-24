@@ -37,10 +37,9 @@ public interface CloudServiceMultipartUploadDAO {
 	 * @param partKey
 	 * @param contentType Optional parameter.  Sets the expected content-type of the request. The content-type is included in
      * the signature.
-     * @param parMD5Hex Optional part MD5 hex
 	 * @return
 	 */
-	PresignedUrl createPartUploadPreSignedUrl(String bucket, String partKey, String contentType, String parMD5Hex);
+	PresignedUrl createPartUploadPreSignedUrl(String bucket, String partKey, String contentType);
 	
 	/**
 	 * Creates a pre-signed URL to copy a part of a multi-part file copy
@@ -48,10 +47,9 @@ public interface CloudServiceMultipartUploadDAO {
 	 * @param upload
 	 * @param partNumber
 	 * @param contentType
-	 * @param parMD5Hex Optional part MD5 hex
 	 * @return
 	 */
-	PresignedUrl createPartUploadCopyPresignedUrl(CompositeMultipartUploadStatus status, long partNumber, String contentType, String parMD5Hex);
+	PresignedUrl createPartUploadCopyPresignedUrl(CompositeMultipartUploadStatus status, long partNumber, String contentType);
 	
 	/**
 	 * Add a part to a multi-part upload. This call may delete the temporary part file, depending on implementation.
@@ -73,5 +71,12 @@ public interface CloudServiceMultipartUploadDAO {
 	 * @return The size of the resulting file.
 	 */
 	long completeMultipartUpload(CompleteMultipartRequest request);
+	
+	/**
+	 * @param bucket
+	 * @param key
+	 * @return The etag assigned to the object in the given bucket and with the given key
+	 */
+	String getObjectEtag(String bucket, String key);
 
 }

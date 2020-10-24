@@ -45,10 +45,9 @@ public interface MultipartRequestHandler<T extends MultipartRequest> {
 	 * @param status The upload status
 	 * @param partNumber The part number
 	 * @param contentType The optional content type
-	 * @param partMD5Hex The optional MD5 checksum
 	 * @return A pre-signed url including all the signed headers
 	 */
-	PresignedUrl getPresignedUrl(CompositeMultipartUploadStatus status, long partNumber, String contentType, String partMD5Hex);
+	PresignedUrl getPresignedUrl(CompositeMultipartUploadStatus status, long partNumber, String contentType);
 	
 	/**
 	 * Invoked after a part was added to the multipart

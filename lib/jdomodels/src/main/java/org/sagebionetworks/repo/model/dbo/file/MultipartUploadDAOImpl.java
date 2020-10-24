@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.file;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_BUCKET;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_SOURCE_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_SOURCE_FILE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_NUMBER_OF_PARTS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_ERROR_DETAILS;
@@ -92,11 +93,11 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 
 	private static final String STATUS_SELECT = "U." + COL_MULTIPART_UPLOAD_ID + ",U." + COL_MULTIPART_STARTED_BY + ",U."
 			+ COL_MULTIPART_STARTED_ON + ",U." + COL_MULTIPART_UPDATED_ON + ",U." + COL_MULTIPART_FILE_HANDLE_ID + ",U."
-			+ COL_MULTIPART_STATE + ",U." + COL_MULTIPART_UPLOAD_TOKEN + ",U." + COL_MULTIPART_UPLOAD_TYPE + ",U."
-			+ COL_MULTIPART_BUCKET + ",U." + COL_MULTIPART_KEY + ",U." + COL_MULTIPART_NUMBER_OF_PARTS + ",U."
-			+ COL_MULTIPART_UPLOAD_ETAG + ",U." + COL_MULTIPART_REQUEST_TYPE + ", " + COL_MULTIPART_PART_SIZE + ",U."
-			+ COL_MULTIPART_SOURCE_FILE_HANDLE_ID + ",F." + COL_FILES_BUCKET_NAME + ",F." + COL_FILES_KEY + ",F."
-			+ COL_FILES_CONTENT_SIZE;
+			+ COL_MULTIPART_SOURCE_FILE_ETAG + ",U." + COL_MULTIPART_STATE + ",U." + COL_MULTIPART_UPLOAD_TOKEN + ",U."
+			+ COL_MULTIPART_UPLOAD_TYPE + ",U." + COL_MULTIPART_BUCKET + ",U." + COL_MULTIPART_KEY + ",U."
+			+ COL_MULTIPART_NUMBER_OF_PARTS + ",U." + COL_MULTIPART_UPLOAD_ETAG + ",U." + COL_MULTIPART_REQUEST_TYPE + ",U."
+			+ COL_MULTIPART_PART_SIZE + ",U." + COL_MULTIPART_SOURCE_FILE_HANDLE_ID + ",F." + COL_FILES_BUCKET_NAME 
+			+ ",F." + COL_FILES_KEY + ",F."+ COL_FILES_CONTENT_SIZE;
 	
 	private static final String LEFT_JOIN_ON_SOURCE_FILE = " U LEFT JOIN " + TABLE_FILES + " F "
 			+ "ON U." + COL_MULTIPART_SOURCE_FILE_HANDLE_ID + " = F." + COL_FILES_ID;
@@ -134,7 +135,8 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 		if (rs.wasNull()) {
 			dto.setSourceFileHandleId(null);
 		} else {
-			dto.setFileSize(rs.getLong(COL_FILES_CONTENT_SIZE));
+			dto.setSourceFileEtag(rs.getString(COL_MULTIPART_SOURCE_FILE_ETAG));
+			dto.setSourceFileSize(rs.getLong(COL_FILES_CONTENT_SIZE));
 			dto.setSourceBucket(rs.getString(COL_FILES_BUCKET_NAME));
 			dto.setSourceKey(rs.getString(COL_FILES_KEY));
 		}
@@ -228,6 +230,10 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 		ValidateArgument.required(createRequest.getKey(), "Key");
 		ValidateArgument.required(createRequest.getNumberOfParts(), "NumberOfParts");
 		ValidateArgument.required(createRequest.getPartSize(), "partSize");
+		
+		if (createRequest.getSourceFileHandleId() != null) {
+			ValidateArgument.required(createRequest.getSourceFileEtag(), "sourceFileEtag");
+		}
 
 		DBOMultipartUpload dbo = new DBOMultipartUpload();
 		
@@ -251,6 +257,7 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 		} else {
 			dbo.setRequestType(MultiPartRequestType.COPY.name());
 			dbo.setSourceFileHandleId(Long.valueOf(createRequest.getSourceFileHandleId()));
+			dbo.setSourceFileEtag(createRequest.getSourceFileEtag());
 		}
 
 		basicDao.createNew(dbo);

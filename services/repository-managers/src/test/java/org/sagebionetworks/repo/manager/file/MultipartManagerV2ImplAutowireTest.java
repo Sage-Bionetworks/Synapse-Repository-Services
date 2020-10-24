@@ -8,19 +8,22 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Assume;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.StackConfiguration;
@@ -31,14 +34,17 @@ import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
 import org.sagebionetworks.repo.model.file.AddPartState;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.MultipartUploadCopyRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadState;
@@ -63,7 +69,6 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.amazonaws.util.BinaryUtils;
 import com.amazonaws.util.Md5Utils;
-import com.amazonaws.util.StringInputStream;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -103,24 +108,26 @@ public class MultipartManagerV2ImplAutowireTest {
 	
 	@Autowired
 	private SynapseS3Client s3Client;
+	
+	@Autowired
+	private SynapseGoogleCloudStorageClient gcClient;
+	
+	@Autowired
+	private StorageLocationDAO storageLocationDao;
 
 	static SimpleHttpClient simpleHttpClient;
 
 	private UserInfo adminUserInfo;
-	private List<String> fileHandlesToDelete;
-
-	MultipartUploadRequest request;
-	String fileDataString;
-	byte[] fileDataBytes;
-	String fileMD5Hex;
 	
-	S3FileHandle sourceFileHandle;
-	FileEntity sourceEntity;
 	StorageLocationSetting destination;
 	S3FileHandle copyFileHandle;
 
 	ExternalGoogleCloudStorageLocationSetting googleCloudStorageLocationSetting;
-
+	
+	List<String> entitiesToDelete;
+	List<CloudProviderFileHandleInterface> fileHandlesToDelete;
+	List<Long> storageLocationsToDelete;
+	
 	@BeforeAll
 	public static void beforeClass() {
 		simpleHttpClient = new SimpleHttpClientImpl();
@@ -128,45 +135,20 @@ public class MultipartManagerV2ImplAutowireTest {
 
 	@BeforeEach
 	public void before() throws Exception {
+		entitiesToDelete = new ArrayList<>();
+		fileHandlesToDelete = new ArrayList<>();
+		storageLocationsToDelete = new ArrayList<>();
+		
 		multipartManagerV2.truncateAll();
 		fileHandleDao.truncateTable();
 		
-		// used to put data to a pre-signed url.
-		fileHandlesToDelete = new LinkedList<>();
-		adminUserInfo = userManager
-				.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER
-						.getPrincipalId());
-
-		fileDataString = "The text of this file";
-		fileDataBytes = fileDataString.getBytes("UTF-8");
-		request = new MultipartUploadRequest();
-		request.setContentType("plain/text");
-		request.setFileName("foo.txt");
-		request.setFileSizeBytes(new Long(fileDataBytes.length));
-		request.setPartSizeBytes(PartUtils.MIN_PART_SIZE_BYTES);
-		request.setStorageLocationId(null);
-		// calculate the MD5
-		byte[] md5 = Md5Utils.computeMD5Hash(fileDataBytes);
-		fileMD5Hex = BinaryUtils.toHex(md5);
-		request.setContentMD5Hex(fileMD5Hex);
-		
-		// Creates a dummy file handle and entity for the copy
-		sourceFileHandle = fileHandleManager.createFileFromByteArray(adminUserInfo.getId().toString(), new Date(), "contents".getBytes(StandardCharsets.UTF_8), "foo.txt",
-				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
-		
-		sourceEntity = new FileEntity();
-		
-		sourceEntity.setDataFileHandleId(sourceFileHandle.getId());
-
-		sourceEntity.setName("testFileEntity");
-		
-		String id = entityManager.createEntity(adminUserInfo, sourceEntity, null);
-		
-		sourceEntity.setId(id);
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
 		destination = new S3StorageLocationSetting();
 		
 		destination = projectSettingsManager.createStorageLocationSetting(adminUserInfo, destination);
+		
+		storageLocationsToDelete.add(destination.getStorageLocationId());
 
 		if (stackConfiguration.getGoogleCloudEnabled()) {
 			// Create the owner.txt on the bucket
@@ -178,197 +160,244 @@ public class MultipartManagerV2ImplAutowireTest {
 			googleCloudStorageLocationSetting.setBaseKey(baseKey);
 			googleCloudStorageLocationSetting.setUploadType(UploadType.GOOGLECLOUDSTORAGE);
 			googleCloudStorageLocationSetting = projectSettingsManager.createStorageLocationSetting(adminUserInfo, googleCloudStorageLocationSetting);
+		
+			storageLocationsToDelete.add(googleCloudStorageLocationSetting.getStorageLocationId());
 		}
 	}
 
 	@AfterEach
 	public void after() {
-		
-		entityManager.deleteEntity(adminUserInfo, sourceEntity.getId());
-		
-		// delete the file from S3.
-		if (sourceFileHandle != null) {
-			s3Client.deleteObject(sourceFileHandle.getBucketName(), sourceFileHandle.getKey());
+
+		for (String entityId : entitiesToDelete) {
+			entityManager.deleteEntity(adminUserInfo, entityId);
 		}
 		
-		if (copyFileHandle != null) {
-			s3Client.deleteObject(copyFileHandle.getBucketName(), copyFileHandle.getKey());
+		for (CloudProviderFileHandleInterface fileHandle : fileHandlesToDelete) {
+			if (fileHandle instanceof S3FileHandle) {
+				s3Client.deleteObject(fileHandle.getBucketName(), fileHandle.getKey());
+			} else if (fileHandle instanceof GoogleCloudFileHandle) {
+				gcClient.deleteObject(fileHandle.getBucketName(), fileHandle.getKey());
+			}	
 		}
 		
 		multipartManagerV2.truncateAll();
 		fileHandleDao.truncateTable();
 		
-		if (stackConfiguration.getGoogleCloudEnabled()) {
-			try {
-				projectSettingsManager.deleteProjectSetting(adminUserInfo, googleCloudStorageLocationSetting.getStorageLocationId().toString());
-			} catch (Exception e) {
-			}
+		for (Long storageLocationId :  storageLocationsToDelete) {
+			storageLocationDao.delete(storageLocationId);
 		}
 	}
 
 	@Test
 	public void testMultipartUpload() throws Exception {
-		// step one start the upload.
-		MultipartUploadStatus status = startUpload();
-		String contentType = null;
-		// step two get pre-signed URLs for the parts
-		PartPresignedUrl preSignedUrl = getPresignedURLForPart(status.getUploadId(), contentType);
-		// step three put the part to the URL
-		putStringToURL(preSignedUrl.getUploadPresignedUrl(), fileDataString, preSignedUrl.getSignedHeaders());
-		// step four add the part to the upload
-		addPart(status.getUploadId(), fileMD5Hex);
-		// Step five complete the upload
-		MultipartUploadStatus finalStatus = completeUpload(status.getUploadId());
-		// validate the results
-		assertNotNull(finalStatus);
-		assertEquals("1", finalStatus.getPartsState());
-		assertEquals(MultipartUploadState.COMPLETED, finalStatus.getState());
-		assertNotNull(finalStatus.getResultFileHandleId());
-		fileHandlesToDelete.add(finalStatus.getResultFileHandleId());
+		doMultipartUpload("foo.txt", "plain/text", "This is the content of the file", null, false);
 	}
-	
+
 	@Test
-	public void testMultipartUploadWithPartMD5() throws Exception {
-		// step one start the upload.
-		MultipartUploadStatus status = startUpload();
-		String contentType = null;
-		// step two get pre-signed URLs for the parts
-		PartPresignedUrl preSignedUrl = getPresignedURLForPart(status.getUploadId(), contentType, fileMD5Hex);
-		// step three put the part to the URL
-		putStringToURL(preSignedUrl.getUploadPresignedUrl(), fileDataString, preSignedUrl.getSignedHeaders());
-		// step four add the part to the upload
-		addPart(status.getUploadId(), fileMD5Hex);
-		// Step five complete the upload
-		MultipartUploadStatus finalStatus = completeUpload(status.getUploadId());
-		// validate the results
-		assertNotNull(finalStatus);
-		assertEquals("1", finalStatus.getPartsState());
-		assertEquals(MultipartUploadState.COMPLETED, finalStatus.getState());
-		assertNotNull(finalStatus.getResultFileHandleId());
-		fileHandlesToDelete.add(finalStatus.getResultFileHandleId());
+	public void testMultipartUploadWithContentType() throws Exception {
+		doMultipartUpload("foo.txt", "plain/text", "This is the content of the file", null, true);
 	}
 
 	@Test
 	public void testMultipartUploadGoogleCloud() throws Exception {
 		Assume.assumeTrue(stackConfiguration.getGoogleCloudEnabled());
-		request.setStorageLocationId(googleCloudStorageLocationSetting.getStorageLocationId());
-		// step one start the upload.
-		MultipartUploadStatus status = startUpload();
-		String contentType = "application/octet-stream";
-		// step two get pre-signed URLs for the parts
-		PartPresignedUrl preSignedUrl = getPresignedURLForPart(status.getUploadId(), contentType);
-		// step three put the part to the URL
-		putStringToURL(preSignedUrl.getUploadPresignedUrl(), fileDataString, preSignedUrl.getSignedHeaders());
-		// step four add the part to the upload
-		addPart(status.getUploadId(), fileMD5Hex);
-		// Step five complete the upload
-		MultipartUploadStatus finalStatus = completeUpload(status.getUploadId());
-		// validate the results
-		assertNotNull(finalStatus);
-		assertEquals("1", finalStatus.getPartsState());
-		assertEquals(MultipartUploadState.COMPLETED, finalStatus.getState());
-		assertNotNull(finalStatus.getResultFileHandleId());
-		fileHandlesToDelete.add(finalStatus.getResultFileHandleId());
-
-	}
-
-	@Test
-	public void testMultipartUploadWithContentType() throws Exception {
-		// step one start the upload.
-		MultipartUploadStatus status = startUpload();
-		String contentType = "application/octet-stream";
-		// step two get pre-signed URLs for the parts
-		PartPresignedUrl preSignedUrl = getPresignedURLForPart(status.getUploadId(), contentType);
-		// step three put the part to the URL
-		putStringToURL(preSignedUrl.getUploadPresignedUrl(), fileDataString, preSignedUrl.getSignedHeaders());
-		// step four add the part to the upload
-		addPart(status.getUploadId(), fileMD5Hex);
-		// Step five complete the upload
-		MultipartUploadStatus finalStatus = completeUpload(status.getUploadId());
-		// validate the results
-		assertNotNull(finalStatus);
-		assertEquals("1", finalStatus.getPartsState());
-		assertEquals(MultipartUploadState.COMPLETED, finalStatus.getState());
-		assertNotNull(finalStatus.getResultFileHandleId());
-		fileHandlesToDelete.add(finalStatus.getResultFileHandleId());
+		
+		doMultipartUpload("foo.txt", "application/octet-stream", "This is the content of the file", googleCloudStorageLocationSetting.getStorageLocationId(), true);
 	}
 	
 	@Test
-	public void testMultipartUploadCopy() throws Exception {
+	public void testMultipartUploadCopyFromAtomicUpload() throws Exception {
+
+		// Creates a dummy file handle and entity for the copy
+		S3FileHandle sourceFile = fileHandleManager.createFileFromByteArray(
+				adminUserInfo.getId().toString(), new Date(), 
+				"contents".getBytes(StandardCharsets.UTF_8), "foo.txt",
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
+		
+		FileEntity sourceEntity = doCreateEntity(sourceFile);
+		
+		doMultipartCopy(sourceEntity, destination);
+	}
+	
+
+	@Test
+	public void testMultipartUploadCopyFromMultipartUpload() throws Exception {
+		// The previous test used a source file that was uploaded using a single S3 upload (no multipart)
+		// We verify that the copy works when the file was uploaded using a mutipart upload
+		
+		S3FileHandle sourceFile = (S3FileHandle) doMultipartUpload("foo.txt", "plain/text", "This is the content of the file", null, false);
+		
+		FileEntity sourceEntity = doCreateEntity(sourceFile);
+		
+		doMultipartCopy(sourceEntity, destination);
+	}
+	
+	// The following tests can be enabled after we setup a VPC endpoint
+	
+	@Test
+	@Disabled("This test uploads a large file, can be enabled once we have a VPC endpoint")
+	public void testMultipartUploadCopyFromMultipartUploadWithMultipleParts() throws Exception {
+		// A little bit more than one part
+		int charCount = (int) PartUtils.MIN_PART_SIZE_BYTES + 200;
+		
+		String bigContent = RandomStringUtils.random(charCount, true, true);
+		
+		S3FileHandle sourceFile = (S3FileHandle) doMultipartUpload("foo.txt", "plain/text", bigContent, null, false);
+		
+		FileEntity sourceEntity = doCreateEntity(sourceFile);
+		
+		doMultipartCopy(sourceEntity, destination);
+	}
+	
+	@Test
+	@Disabled("This test uploads a large file, can be enabled once we have a VPC endpoint")
+	public void testMultipartUploadCopyFromMultipartUploadWithMultiplePartsSinglePartCopy() throws Exception {
+		// A little bit more than one part
+		int charCount = (int) PartUtils.MIN_PART_SIZE_BYTES + 200;
+		
+		String bigContent = RandomStringUtils.random(charCount, true, true);
+		
+		S3FileHandle sourceFile = (S3FileHandle) doMultipartUpload("foo.txt", "plain/text", bigContent, null, false);
+		
+		FileEntity sourceEntity = doCreateEntity(sourceFile);
+		
+		// Uses the max part size to do a one shot copy
+		doMultipartCopy(sourceEntity, destination, PartUtils.MAX_PART_SIZE_BYTES);
+	}
+	
+	private FileEntity doCreateEntity(CloudProviderFileHandleInterface fileHandle) {
+		FileEntity fileEntity = new FileEntity();
+		
+		fileEntity.setDataFileHandleId(fileHandle.getId());
+
+		fileEntity.setName("testFileEntity_" + UUID.randomUUID());
+		
+		String id = entityManager.createEntity(adminUserInfo, fileEntity, null);
+		
+		fileEntity.setId(id);
+		
+		entitiesToDelete.add(id);
+		
+		return fileEntity;
+	}
+	
+	private CloudProviderFileHandleInterface doMultipartUpload(String fileName, String contentType, String contentString, Long storageLocationId, boolean contentTypeForParts) throws Exception {
+		byte[] fileDataBytes = contentString.getBytes(StandardCharsets.UTF_8);
+		String fileMD5Hex = BinaryUtils.toHex(Md5Utils.computeMD5Hash(fileDataBytes));
+		Long partSizeBytes = PartUtils.MIN_PART_SIZE_BYTES;
+		
+		// step one start the upload.
+		MultipartUploadStatus status = startUpload(fileName, contentType, fileMD5Hex, Long.valueOf(fileDataBytes.length), storageLocationId, partSizeBytes);
+		
+		int numberOfParts = status.getPartsState().length();
+		
+		int partStartBytePosition = 0;
+		
+		for (Long partNumber = 1L; partNumber <= numberOfParts; partNumber ++) {
+			
+			String partContentType = contentTypeForParts ? contentType : null;
+			
+			// step two get pre-signed URLs for the parts
+			PartPresignedUrl preSignedUrl = getPresignedUrlForParts(status.getUploadId(), partContentType, Arrays.asList(partNumber)).get(0);
+
+			int partEndBytePosition = (int) Math.min(partStartBytePosition + partSizeBytes, fileDataBytes.length);
+			
+			byte[] partData = Arrays.copyOfRange(fileDataBytes, partStartBytePosition, partEndBytePosition);
+			
+			String partMd5 = BinaryUtils.toHex(Md5Utils.computeMD5Hash(partData));
+			
+			// step three put the part to the URL
+			putPartToURL(preSignedUrl.getUploadPresignedUrl(), partData, preSignedUrl.getSignedHeaders());
+			
+			// step four add the part to the upload
+			addPartToMultipart(status.getUploadId(), partMd5, partNumber);
+			
+			partStartBytePosition += partSizeBytes;
+		}
+		
+		// Step five complete the upload
+		MultipartUploadStatus finalStatus = completeUpload(status.getUploadId());
+		
+		// validate the results
+		assertNotNull(finalStatus);
+		assertEquals(StringUtils.repeat('1', numberOfParts), finalStatus.getPartsState());
+		assertEquals(MultipartUploadState.COMPLETED, finalStatus.getState());
+		assertNotNull(finalStatus.getResultFileHandleId());
+
+		CloudProviderFileHandleInterface fileHandle = (CloudProviderFileHandleInterface) fileHandleDao.get(finalStatus.getResultFileHandleId());
+		
+		fileHandlesToDelete.add(fileHandle);
+
+		return fileHandle;
+	}
+	
+	private CloudProviderFileHandleInterface doMultipartCopy(FileEntity sourceEntity, StorageLocationSetting destination) throws Exception {
+		return doMultipartCopy(sourceEntity, destination, PartUtils.MIN_PART_SIZE_BYTES);
+	}
+	
+	private CloudProviderFileHandleInterface doMultipartCopy(FileEntity sourceEntity, StorageLocationSetting destination, Long partSize) throws Exception {
 		FileHandleAssociation association = new FileHandleAssociation();
 		
 		association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
 		association.setAssociateObjectId(sourceEntity.getId());
-		association.setFileHandleId(sourceFileHandle.getId());
+		association.setFileHandleId(sourceEntity.getDataFileHandleId());
+		
+		CloudProviderFileHandleInterface sourceFileHandle = (CloudProviderFileHandleInterface) fileHandleDao.get(sourceEntity.getDataFileHandleId());
 		
 		// Starts the multipart copy
-		MultipartUploadStatus status = startUploadCopy(association, destination.getStorageLocationId(), PartUtils.MIN_PART_SIZE_BYTES);
+		MultipartUploadStatus status = startUploadCopy(association, destination.getStorageLocationId(), partSize);
 		
-		// Fetch the part pre-signed url
-		PartPresignedUrl preSignedUrl = getPresignedURLForPart(status.getUploadId(), null);
+		int numerOfParts = status.getPartsState().length();
 		
-		// Make the request to S3
-		String eTag = emptyPUT(preSignedUrl.getUploadPresignedUrl(), preSignedUrl.getSignedHeaders());
-		
-		// Add the part
-		addPart(status.getUploadId(), eTag);
+		for (Long partNumber = 1L; partNumber <= numerOfParts; partNumber++) {
+
+			// Fetch the part pre-signed url
+			PartPresignedUrl preSignedUrl = getPresignedUrlForParts(status.getUploadId(), null, Arrays.asList(partNumber)).get(0);
+			
+			// Make the request to S3
+			String eTag = emptyPUT(preSignedUrl.getUploadPresignedUrl(), preSignedUrl.getSignedHeaders());
+			
+			// Confirm the added part
+			addPartToMultipart(status.getUploadId(), eTag, partNumber);
+		}
 		
 		// Complete the copy
 		status = completeUpload(status.getUploadId());
 		
 		assertEquals(MultipartUploadState.COMPLETED, status.getState());
 		
-		copyFileHandle = (S3FileHandle) fileHandleDao.get(status.getResultFileHandleId());
+		CloudProviderFileHandleInterface newFileHandle = (CloudProviderFileHandleInterface) fileHandleDao.get(status.getResultFileHandleId());
 		
-		assertNotEquals(sourceFileHandle.getId(), copyFileHandle.getId());
-		assertEquals(sourceFileHandle.getFileName(), copyFileHandle.getFileName());
-		assertEquals(sourceFileHandle.getContentMd5(), copyFileHandle.getContentMd5());
+		assertNotEquals(sourceFileHandle.getId(), newFileHandle.getId());
+		assertNotEquals(sourceFileHandle.getStorageLocationId(), newFileHandle.getStorageLocationId());
+		assertEquals(destination.getStorageLocationId(), newFileHandle.getStorageLocationId());
+		assertEquals(sourceFileHandle.getFileName(), newFileHandle.getFileName());
+		assertEquals(sourceFileHandle.getContentMd5(), newFileHandle.getContentMd5());
+		assertEquals(sourceFileHandle.getContentSize(), newFileHandle.getContentSize());
+		
+		fileHandlesToDelete.add(newFileHandle);
+		
+		return newFileHandle;
 	}
 	
-	@Test
-	public void testMultipartUploadCopyWithPartMd5Check() throws Exception {
-		FileHandleAssociation association = new FileHandleAssociation();
-		
-		association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
-		association.setAssociateObjectId(sourceEntity.getId());
-		association.setFileHandleId(sourceFileHandle.getId());
-		
-		// Since we transfer in one part, the part MD5 is the whole file MD5
-		String fileMD5Hex = sourceFileHandle.getContentMd5();
-		
-		// Starts the multipart copy
-		MultipartUploadStatus status = startUploadCopy(association, destination.getStorageLocationId(), PartUtils.MIN_PART_SIZE_BYTES);
-		
-		// Fetch the part pre-signed url
-		PartPresignedUrl preSignedUrl = getPresignedURLForPart(status.getUploadId(), null, fileMD5Hex);
-		
-		// Make the request to S3
-		String eTag = emptyPUT(preSignedUrl.getUploadPresignedUrl(), preSignedUrl.getSignedHeaders());
-		
-		// Add the part
-		addPart(status.getUploadId(), eTag);
-		
-		// Complete the copy
-		status = completeUpload(status.getUploadId());
-		
-		assertEquals(MultipartUploadState.COMPLETED, status.getState());
-		
-		copyFileHandle = (S3FileHandle) fileHandleDao.get(status.getResultFileHandleId());
-		
-		assertNotEquals(sourceFileHandle.getId(), copyFileHandle.getId());
-		assertEquals(sourceFileHandle.getFileName(), copyFileHandle.getFileName());
-		assertEquals(sourceFileHandle.getContentMd5(), copyFileHandle.getContentMd5());
-	}
 	
 	/**
 	 * Start the upload.
 	 * @return
 	 */
-	private MultipartUploadStatus startUpload() {
+	private MultipartUploadStatus startUpload(String fileName, String contentType, String contentMd5, Long fileSize, Long storageLocationId, Long partSizeBytes) {
+		MultipartUploadRequest request = new MultipartUploadRequest();
+		
+		request.setContentMD5Hex(contentMd5);
+		request.setContentType(contentType);
+		request.setFileName(fileName);
+		request.setFileSizeBytes(fileSize);
+		request.setPartSizeBytes(partSizeBytes);
+		request.setStorageLocationId(storageLocationId);
+		
 		boolean forceRestart = true;
-		MultipartUploadStatus status = multipartManagerV2
-				.startOrResumeMultipartUpload(adminUserInfo, request,
-						forceRestart);
+		
+		MultipartUploadStatus status = multipartManagerV2.startOrResumeMultipartUpload(adminUserInfo, request, forceRestart);
 		assertNotNull(status);
 		assertNotNull(status.getUploadId());
 		return status;
@@ -389,30 +418,11 @@ public class MultipartManagerV2ImplAutowireTest {
 		return status;
 	}
 	
-	private PartPresignedUrl getPresignedURLForPart(String uploadId, String contentType){
-		return getPresignedURLForPart(uploadId, contentType, null);
-	}
-	
-	private PartPresignedUrl getPresignedURLForPart(String uploadId, String contentType, String partMd5){
-		List<Long> partNumbers = Arrays.asList(1L);
-		List<String> partsMd5 = null;
-		
-		if (partMd5 != null) {
-			partsMd5 = Arrays.asList(partMd5);
-		}
-		
-		List<PartPresignedUrl> urls = getPresignedUrlForParts(uploadId, contentType, partNumbers, partsMd5);
-		
-		assertEquals(1, urls.size());
-		return urls.get(0);
-	}
-	
-	private List<PartPresignedUrl> getPresignedUrlForParts(String uploadId, String contentType, List<Long> partNumbers, List<String> partMd5) {
+	private List<PartPresignedUrl> getPresignedUrlForParts(String uploadId, String contentType, List<Long> partNumbers) {
 		BatchPresignedUploadUrlRequest batchURLRequest = new BatchPresignedUploadUrlRequest();
 		batchURLRequest.setUploadId(uploadId);
 		batchURLRequest.setContentType(contentType);
 		batchURLRequest.setPartNumbers(partNumbers);
-		batchURLRequest.setPartMD5Hex(partMd5);
 		BatchPresignedUploadUrlResponse bpuur = multipartManagerV2.getBatchPresignedUploadUrls(adminUserInfo, batchURLRequest);
 		return bpuur.getPartPresignedUrls();
 	}
@@ -424,12 +434,12 @@ public class MultipartManagerV2ImplAutowireTest {
 	 * @param contentType
 	 * @throws Exception
 	 */
-	private void putStringToURL(String url, String toUpload, Map<String, String> headers) throws Exception{
+	private void putPartToURL(String url, byte[] partData, Map<String, String> headers) throws Exception{
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri(url);
 		request.setHeaders(headers);
-		InputStream toPut = new StringInputStream(toUpload);
-		SimpleHttpResponse response = simpleHttpClient.putToURL(request, toPut, toUpload.getBytes("UTF-8").length);
+		InputStream toPut = new ByteArrayInputStream(partData);
+		SimpleHttpResponse response = simpleHttpClient.putToURL(request, toPut, partData.length);
 		assertEquals(200, response.getStatusCode());
 	}
 	
@@ -451,13 +461,8 @@ public class MultipartManagerV2ImplAutowireTest {
 		throw new IllegalStateException("Could not extract ETag value");
 	}
 	
-	/**
-	 * Add the first part to the upload.
-	 * @param uploadId
-	 */
-	private void addPart(String uploadId, String partMD5Hex){
-		int partNumber = 1;
-		AddPartResponse response = multipartManagerV2.addMultipartPart(adminUserInfo, uploadId, partNumber, partMD5Hex);
+	private void addPartToMultipart(String uploadId, String partMD5Hex, Long partNumber) {
+		AddPartResponse response = multipartManagerV2.addMultipartPart(adminUserInfo, uploadId, partNumber.intValue(), partMD5Hex);
 		assertEquals(null, response.getErrorMessage());
 		assertEquals(AddPartState.ADD_SUCCESS, response.getAddPartState());
 	}

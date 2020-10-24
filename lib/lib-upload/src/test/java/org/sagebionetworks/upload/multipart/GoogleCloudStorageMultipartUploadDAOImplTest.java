@@ -99,7 +99,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 		when(mockStorageClient.createSignedUrl(BUCKET_NAME, KEY_NAME, 15 * 1000 * 60, HttpMethod.PUT)).thenReturn(new URL("http://google.com/"));
 
 		// Call under test
-		assertNotNull(googleMpuDAO.createPartUploadPreSignedUrl(BUCKET_NAME, KEY_NAME, CONTENT_TYPE, null));
+		assertNotNull(googleMpuDAO.createPartUploadPreSignedUrl(BUCKET_NAME, KEY_NAME, CONTENT_TYPE));
 		verify(mockStorageClient).createSignedUrl(BUCKET_NAME, KEY_NAME, 15 * 1000 * 60, HttpMethod.PUT);
 	}
 	
@@ -107,7 +107,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 	public void testCreatePartUploadCopyPresignedUrl() {
 		String errorMessage = assertThrows(UnsupportedOperationException.class, () -> {			
 			// Call under test
-			googleMpuDAO.createPartUploadCopyPresignedUrl(new CompositeMultipartUploadStatus(), 1L, null, null);
+			googleMpuDAO.createPartUploadCopyPresignedUrl(new CompositeMultipartUploadStatus(), 1L, null);
 		}).getMessage();
 		
 		assertEquals("Copying from a Google Cloud Bucket is not supported yet.", errorMessage);
@@ -118,7 +118,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 		when(mockStorageClient.createSignedUrl(BUCKET_NAME, KEY_NAME, 15 * 1000 * 60, HttpMethod.PUT)).thenReturn(new URL("http://google.com/"));
 
 		// Call under test
-		assertNotNull(googleMpuDAO.createPartUploadPreSignedUrl(BUCKET_NAME, KEY_NAME, null, null));
+		assertNotNull(googleMpuDAO.createPartUploadPreSignedUrl(BUCKET_NAME, KEY_NAME, null));
 		verify(mockStorageClient).createSignedUrl(BUCKET_NAME, KEY_NAME, 15 * 1000 * 60, HttpMethod.PUT);
 	}
 
@@ -409,5 +409,16 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 		verify(mockBlobPart).delete();
 		verify(mockBlob, never()).delete();
 		verify(mockBlob).getSize();
+	}
+	
+	@Test
+	public void testGetObjectEtag() {
+		
+		String errorMessage = assertThrows(UnsupportedOperationException.class, () -> {
+			// Call under test
+			googleMpuDAO.getObjectEtag(BUCKET_NAME, KEY_NAME);
+		}).getMessage();
+		
+		assertEquals("Copying from a Google Cloud Bucket is not supported yet.", errorMessage);
 	}
 }

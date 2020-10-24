@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
 import org.sagebionetworks.repo.model.dbo.file.MultipartRequestUtils;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.MultipartUploadCopyRequest;
@@ -52,8 +53,14 @@ public class MultipartUploadCopyRequestHandler implements MultipartRequestHandle
 	@Override
 	public void validateRequest(UserInfo user, MultipartUploadCopyRequest request) {
 		ValidateArgument.required(request, "The request");
-		ValidateArgument.required(request.getSourceFileHandleAssociation(), "MultipartUploadCopyRequest.sourceFileHandleAssociation");
 		ValidateArgument.required(request.getStorageLocationId(), "MultipartUploadCopyRequest.storageLocationId");
+
+		FileHandleAssociation association = request.getSourceFileHandleAssociation();
+		
+		ValidateArgument.required(association, "MultipartUploadCopyRequest.sourceFileHandleAssociation");
+		ValidateArgument.required(association.getFileHandleId(), "MultipartUploadCopyRequest.sourceFileHandleAssociation.fileHandleId");
+		ValidateArgument.required(association.getAssociateObjectId(), "MultipartUploadCopyRequest.sourceFileHandleAssociation.associateObjectId");
+		ValidateArgument.required(association.getAssociateObjectType(), "MultipartUploadCopyRequest.sourceFileHandleAssociation.associateObjectType");
 		
 		if (!StringUtils.isBlank(request.getFileName())) {
 			//validate file name
@@ -100,6 +107,16 @@ public class MultipartUploadCopyRequestHandler implements MultipartRequestHandle
 			throw new IllegalArgumentException("The source file handle is already in the given destination storage location.");
 		}
 		
+		if (!(fileHandle instanceof CloudProviderFileHandleInterface)) {
+			throw new IllegalArgumentException("The source file must be stored in a cloud bucket accessible by Synapse.");
+		}
+		
+		final CloudServiceMultipartUploadDAO cloudDao = cloudServiceDaoProvider.getCloudServiceMultipartUploadDao(uploadType);
+		
+		CloudProviderFileHandleInterface cloudFileHandle = (CloudProviderFileHandleInterface) fileHandle;
+		
+		String sourceFileEtag = cloudDao.getObjectEtag(cloudFileHandle.getBucketName(), cloudFileHandle.getKey());
+		
 		// Sets a file name as it is optional, but we save it in the request (the hash won't contain this)
 		request.setFileName(StringUtils.isBlank(request.getFileName()) ? fileHandle.getFileName() : request.getFileName());
 		
@@ -110,8 +127,6 @@ public class MultipartUploadCopyRequestHandler implements MultipartRequestHandle
 		// create a new key for this file.
 		String key = MultipartUtils.createNewKey(user.getId().toString(), request.getFileName(), storageLocation);
 		
-		final CloudServiceMultipartUploadDAO cloudDao = cloudServiceDaoProvider.getCloudServiceMultipartUploadDao(uploadType);
-		
 		String uploadToken = cloudDao.initiateMultipartUploadCopy(bucket, key, request, fileHandle);
 		
 		int numberParts = PartUtils.calculateNumberOfParts(fileHandle.getContentSize(), request.getPartSizeBytes());
@@ -119,17 +134,16 @@ public class MultipartUploadCopyRequestHandler implements MultipartRequestHandle
 		// Creates the copy request
 		return new CreateMultipartRequest(user.getId(),
 						requestHash, requestJson, uploadToken, uploadType,
-						bucket, key, numberParts, request.getPartSizeBytes(), fileHandle.getId());
+						bucket, key, numberParts, request.getPartSizeBytes(), fileHandle.getId(), sourceFileEtag);
 	}
 
 	@Override
-	public PresignedUrl getPresignedUrl(CompositeMultipartUploadStatus status, long partNumber, String contentType,
-			String partMD5Hex) {
+	public PresignedUrl getPresignedUrl(CompositeMultipartUploadStatus status, long partNumber, String contentType) {
 		ValidateArgument.required(status, "The upload status");
 		
 		final CloudServiceMultipartUploadDAO cloudDao = cloudServiceDaoProvider.getCloudServiceMultipartUploadDao(status.getUploadType());
 		
-		return cloudDao.createPartUploadCopyPresignedUrl(status, partNumber, contentType, partMD5Hex);
+		return cloudDao.createPartUploadCopyPresignedUrl(status, partNumber, contentType);
 	}
 
 	@Override

@@ -47,7 +47,7 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 	}
 
 	@Override
-	public PresignedUrl createPartUploadPreSignedUrl(String bucket, String partKey, String contentType, String partMD5Hex) {		
+	public PresignedUrl createPartUploadPreSignedUrl(String bucket, String partKey, String contentType) {		
 		PresignedUrl presignedUrl = new PresignedUrl();
 		
 		URL url = googleCloudStorageClient.createSignedUrl(bucket, partKey, PRE_SIGNED_URL_EXPIRATION_MS, HttpMethod.PUT);
@@ -58,8 +58,7 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 	}
 	
 	@Override
-	public PresignedUrl createPartUploadCopyPresignedUrl(CompositeMultipartUploadStatus status, long partNumber,
-			String contentType, String partMD5Hex) {
+	public PresignedUrl createPartUploadCopyPresignedUrl(CompositeMultipartUploadStatus status, long partNumber, String contentType) {
 		throw new UnsupportedOperationException(UNSUPPORTED_COPY_MSG);
 	}
 
@@ -145,6 +144,11 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 			blob.delete();
 		}
 		return googleCloudStorageClient.getObject(request.getBucket(), request.getKey()).getSize();
+	}
+	
+	@Override
+	public String getObjectEtag(String bucket, String key) {
+		throw new UnsupportedOperationException(UNSUPPORTED_COPY_MSG);
 	}
 
 }
