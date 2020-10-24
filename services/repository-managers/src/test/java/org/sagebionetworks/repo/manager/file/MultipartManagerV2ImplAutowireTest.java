@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.entity.ContentType;
 import org.junit.Assume;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -190,29 +191,53 @@ public class MultipartManagerV2ImplAutowireTest {
 
 	@Test
 	public void testMultipartUpload() throws Exception {
-		doMultipartUpload("foo.txt", "plain/text", "This is the content of the file", null, false);
+		String fileName = "foo.txt";
+		String contentType = "plain/text";
+		String fileContent = "This is the content of the file";
+		Long storageLocationId = null;
+		boolean useContentTypeForParts = false;
+		
+		doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts);
 	}
 
 	@Test
 	public void testMultipartUploadWithContentType() throws Exception {
-		doMultipartUpload("foo.txt", "plain/text", "This is the content of the file", null, true);
+		String fileName = "foo.txt";
+		String contentType = "plain/text";
+		String fileContent = "This is the content of the file";
+		Long storageLocationId = null;
+		boolean useContentTypeForParts = true;
+		
+		doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts);
 	}
 
 	@Test
 	public void testMultipartUploadGoogleCloud() throws Exception {
 		Assume.assumeTrue(stackConfiguration.getGoogleCloudEnabled());
 		
-		doMultipartUpload("foo.txt", "application/octet-stream", "This is the content of the file", googleCloudStorageLocationSetting.getStorageLocationId(), true);
+		String fileName = "foo.txt";
+		String contentType = "application/octet-stream";
+		String fileContent = "This is the content of the file";
+		Long storageLocationId = googleCloudStorageLocationSetting.getStorageLocationId();
+		boolean useContentTypeForParts = true;
+		
+		doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts);
 	}
 	
 	@Test
 	public void testMultipartUploadCopyFromAtomicUpload() throws Exception {
+		
+		String userId = adminUserInfo.getId().toString();
+		Date modifiedOn = new Date();
+		
+		String fileName = "foo.txt";
+		ContentType contentType = ContentTypeUtil.TEXT_PLAIN_UTF8;
+		byte[] fileContent = "contents".getBytes(StandardCharsets.UTF_8);
+		String contentEncoding = null;
 
 		// Creates a dummy file handle and entity for the copy
-		S3FileHandle sourceFile = fileHandleManager.createFileFromByteArray(
-				adminUserInfo.getId().toString(), new Date(), 
-				"contents".getBytes(StandardCharsets.UTF_8), "foo.txt",
-				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
+		S3FileHandle sourceFile = fileHandleManager.createFileFromByteArray(userId, modifiedOn, 
+				fileContent, fileName, contentType, contentEncoding);
 		
 		FileEntity sourceEntity = doCreateEntity(sourceFile);
 		
@@ -224,8 +249,13 @@ public class MultipartManagerV2ImplAutowireTest {
 	public void testMultipartUploadCopyFromMultipartUpload() throws Exception {
 		// The previous test used a source file that was uploaded using a single S3 upload (no multipart)
 		// We verify that the copy works when the file was uploaded using a mutipart upload
+		String fileName = "foo.txt";
+		String contentType = "plain/text";
+		String fileContent = "This is the content of the file";
+		Long storageLocationId = null;
+		boolean useContentTypeForParts = false;
 		
-		S3FileHandle sourceFile = (S3FileHandle) doMultipartUpload("foo.txt", "plain/text", "This is the content of the file", null, false);
+		S3FileHandle sourceFile = (S3FileHandle) doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts);
 		
 		FileEntity sourceEntity = doCreateEntity(sourceFile);
 		
@@ -237,12 +267,14 @@ public class MultipartManagerV2ImplAutowireTest {
 	@Test
 	@Disabled("This test uploads a large file, can be enabled once we have a VPC endpoint")
 	public void testMultipartUploadCopyFromMultipartUploadWithMultipleParts() throws Exception {
+		String fileName = "foo.txt";
+		String contentType = "plain/text";
 		// A little bit more than one part
-		int charCount = (int) PartUtils.MIN_PART_SIZE_BYTES + 200;
+		String fileContent = RandomStringUtils.random((int) PartUtils.MIN_PART_SIZE_BYTES + 200, true, true);
+		Long storageLocationId = null;
+		boolean useContentTypeForParts = false;
 		
-		String bigContent = RandomStringUtils.random(charCount, true, true);
-		
-		S3FileHandle sourceFile = (S3FileHandle) doMultipartUpload("foo.txt", "plain/text", bigContent, null, false);
+		S3FileHandle sourceFile = (S3FileHandle) doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts);
 		
 		FileEntity sourceEntity = doCreateEntity(sourceFile);
 		
@@ -252,12 +284,14 @@ public class MultipartManagerV2ImplAutowireTest {
 	@Test
 	@Disabled("This test uploads a large file, can be enabled once we have a VPC endpoint")
 	public void testMultipartUploadCopyFromMultipartUploadWithMultiplePartsSinglePartCopy() throws Exception {
+		String fileName = "foo.txt";
+		String contentType = "plain/text";
 		// A little bit more than one part
-		int charCount = (int) PartUtils.MIN_PART_SIZE_BYTES + 200;
+		String fileContent = RandomStringUtils.random((int) PartUtils.MIN_PART_SIZE_BYTES + 200, true, true);
+		Long storageLocationId = null;
+		boolean useContentTypeForParts = false;
 		
-		String bigContent = RandomStringUtils.random(charCount, true, true);
-		
-		S3FileHandle sourceFile = (S3FileHandle) doMultipartUpload("foo.txt", "plain/text", bigContent, null, false);
+		S3FileHandle sourceFile = (S3FileHandle) doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts);
 		
 		FileEntity sourceEntity = doCreateEntity(sourceFile);
 		

@@ -276,12 +276,8 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 
 	@Override
 	public String getObjectEtag(String bucket, String key) {
-		try {
-			ObjectMetadata metaData = s3Client.getObjectMetadata(bucket, key);
-			return metaData.getETag();
-		} catch (AmazonS3Exception e) {
-			throw new IllegalArgumentException(e.getMessage(), e);
-		}
+		ObjectMetadata metaData = s3Client.getObjectMetadata(bucket, key);
+		return metaData.getETag();
 	}
 
 }
