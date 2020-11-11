@@ -34,7 +34,7 @@ public interface DownloadListDAO {
 	void clearDownloadList(Long userId);
 
 	/**
-	 * Get a single page of files from a user's download list that are avaiable for
+	 * Get a single page of files from a user's download list that are available for
 	 * download.
 	 * 
 	 * @param userId
