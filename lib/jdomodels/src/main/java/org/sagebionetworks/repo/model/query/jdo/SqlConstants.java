@@ -677,14 +677,14 @@ public class SqlConstants {
 	public static final String V2_COL_WIKI_OWNERS_ETAG					= "ETAG";
 	public static final String V2_DDL_FILE_WIKI_ONWERS					= "schema/v2-WikiOwners-ddl.sql";
 	
-	// Download list
+	// Download list  - deprecated
 	public static final String TABLE_DOWNLOAD_LIST 				= "DOWNLOAD_LIST";
 	public static final String COL_DOWNLOAD_LIST_PRINCIPAL_ID 	= "PRINCIPAL_ID";
 	public static final String COL_DOWNLOAD_LIST_UPDATED_ON		= "UPDATED_ON";
 	public static final String COL_DOWNLOAD_LIST_ETAG			= "ETAG";
 	public static final String DDL_DOWNLOAD_LIST				= "schema/DownloadList-ddl.sql";
 	
-	// Download list item.
+	// Download list item. - deprecated
 	public static final String TABLE_DOWNLOAD_LIST_ITEM							= "DOWNLOAD_LIST_ITEM";
 	public static final String COL_DOWNLOAD_LIST_ITEM_PRINCIPAL_ID				= "PRINCIPAL_ID";
 	public static final String COL_DOWNLOAD_LIST_ITEM_ASSOCIATED_OBJECT_ID 		= "ASSOCIATED_OBJECT_ID";
@@ -692,7 +692,7 @@ public class SqlConstants {
 	public static final String COL_DOWNLOAD_LIST_ITEM_FILE_HANDLE_ID 			= "FILE_HANDLE_ID";
 	public static final String DDL_DOWNLOAD_LIST_ITEM							= "schema/DownloadListItem-ddl.sql";
 	
-	// Download order
+	// Download order - deprecated
 	public static final String TABLE_DOWNLOAD_ORDER					= "DOWNLOAD_ORDER";
 	public static final String COL_DOWNLOAD_ORDER_ID				= "ORDER_ID";
 	public static final String COL_DOWNLOAD_ORDER_CREATED_BY		= "CREATED_BY";
@@ -702,6 +702,22 @@ public class SqlConstants {
 	public static final String COL_DOWNLOAD_ORDER_TOTAL_NUM_FILES	= "TOTAL_NUM_FILES";
 	public static final String COL_DOWNLOAD_ORDER_FILES_BLOB		= "FILES_BLOB";
 	public static final String DDL_DOWNLOAD_ORDER					= "schema/DownloadOrder-ddl.sql";
+	
+	// Download list
+	public static final String TABLE_DOWNLOAD_LIST_2 				= "DOWNLOAD_LIST_2";
+	public static final String COL_DOWNLOAD_LIST_2_PRINCIPAL_ID 	= "PRINCIPAL_ID";
+	public static final String COL_DOWNLOAD_LIST_2_UPDATED_ON		= "UPDATED_ON";
+	public static final String COL_DOWNLOAD_LIST_2_ETAG				= "ETAG";
+	public static final String DDL_DOWNLOAD_2_LIST					= "schema/DownloadList-2-ddl.sql";
+	
+	// Download list item.
+	public static final String TABLE_DOWNLOAD_LIST_ITEM_2				= "DOWNLOAD_LIST_ITEM_2";
+	public static final String COL_DOWNLOAD_LIST_ITEM_2_PRINCIPAL_ID	= "PRINCIPAL_ID";
+	public static final String COL_DOWNLOAD_LIST_ITEM_2_ENTITY_ID		= "ENTITY_ID";
+	public static final String COL_DOWNLOAD_LIST_ITEM_2_VERION_NUMBER	= "VERSION_NUMER";
+	public static final String COL_DOWNLOAD_LIST_ITEM_2_ADDED_ON		= "ADDED_ON";
+	public static final String DDL_DOWNLOAD_LIST_ITEM_2					= "schema/DownloadListItem-2-ddl.sql";
+	
 	
 	// Data type
 	public static final String TABLE_DATA_TYPE				= "DATA_TYPE";

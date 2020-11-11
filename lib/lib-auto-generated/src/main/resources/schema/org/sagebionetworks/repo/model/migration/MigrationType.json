@@ -360,15 +360,23 @@
 		},
 		{
 			"name": "DOWNLOAD_LIST",
-			"description": "The root object for a user's download list."
+			"description": "deprecated"
 		},
 		{
 			"name": "DOWNLOAD_LIST_ITEM",
-			"description": "The items of a user's download list."
+			"description": "deprecated"
 		},
 		{
 			"name": "DOWNLOAD_ORDER",
-			"description": "Historical record of files download by users."
+			"description": "deprecated"
+		},
+		{
+			"name": "DOWNLOAD_LIST_2",
+			"description": "The root object for a user's download list."
+		},
+		{
+			"name": "DOWNLOAD_LIST_ITEM_2",
+			"description": "The items of a user's download list."
 		},
 		{
 			"name": "DATA_TYPE",

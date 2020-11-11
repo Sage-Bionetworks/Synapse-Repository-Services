@@ -1,0 +1,9 @@
+{
+	"description": "Response to add a single batch of files to a user's download list.",
+	"properties": {
+		"numberOfFilesAdded": {
+			"description": "The number of files that were added.",
+			"type": "integer"
+		}
+	}
+}
