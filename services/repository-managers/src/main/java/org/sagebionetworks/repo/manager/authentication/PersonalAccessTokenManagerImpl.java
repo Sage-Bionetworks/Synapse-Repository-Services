@@ -125,8 +125,12 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 
 		try {
 			record = personalAccessTokenDao.createTokenRecord(record);
-		} catch (DuplicateKeyException e) {
-			throw new IllegalArgumentException(DUPLICATE_TOKEN_NAME_MSG, e);
+		} catch (IllegalArgumentException e) {
+			if (e.getMessage().contains("org.springframework.dao.DuplicateKeyException")) {
+				throw new IllegalArgumentException(DUPLICATE_TOKEN_NAME_MSG, e);
+			} else {
+				throw e;
+			}
 		}
 		AccessTokenGenerationResponse response = new AccessTokenGenerationResponse();
 		response.setToken(oidcTokenHelper.createPersonalAccessToken(oauthEndpoint, record));

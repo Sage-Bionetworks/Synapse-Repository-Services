@@ -43,7 +43,6 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
-import org.springframework.dao.DuplicateKeyException;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
@@ -425,7 +424,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 	@Test // PLFM-6494
 	void testCreateToken_DuplicateKeyException() {
 		when(mockTokenHelper.parseJWT(ACCESS_TOKEN)).thenReturn(accessTokenJwt);
-		when(mockPersonalAccessTokenDao.createTokenRecord(any())).thenThrow(new DuplicateKeyException("msg"));
+		when(mockPersonalAccessTokenDao.createTokenRecord(any())).thenThrow(new IllegalArgumentException("This error contains org.springframework.dao.DuplicateKeyException because there was one"));
 
 		// Method under test
 		assertThrows(
