@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.file.download;
+package org.sagebionetworks.repo.model.dbo.file.download.v2;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_2_ADDED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_2_ENTITY_ID;
@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslat
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
-public class DBODownloadListItem2 implements MigratableDatabaseObject<DBODownloadListItem2, DBODownloadListItem2> {
+public class DBODownloadListItem implements MigratableDatabaseObject<DBODownloadListItem, DBODownloadListItem> {
 
 	private Long principalId;
 	private Long entityId;
@@ -33,11 +33,11 @@ public class DBODownloadListItem2 implements MigratableDatabaseObject<DBODownloa
 			new FieldColumn("versionNumber", COL_DOWNLOAD_LIST_ITEM_2_VERION_NUMBER),
 			new FieldColumn("addedOn", COL_DOWNLOAD_LIST_ITEM_2_ADDED_ON) };
 
-	public static final TableMapping<DBODownloadListItem2> MAPPING = new TableMapping<DBODownloadListItem2>() {
+	public static final TableMapping<DBODownloadListItem> MAPPING = new TableMapping<DBODownloadListItem>() {
 
 		@Override
-		public DBODownloadListItem2 mapRow(ResultSet rs, int rowNum) throws SQLException {
-			DBODownloadListItem2 dbo = new DBODownloadListItem2();
+		public DBODownloadListItem mapRow(ResultSet rs, int rowNum) throws SQLException {
+			DBODownloadListItem dbo = new DBODownloadListItem();
 			dbo.setPrincipalId(rs.getLong(COL_DOWNLOAD_LIST_ITEM_2_PRINCIPAL_ID));
 			dbo.setEntityId(rs.getLong(COL_DOWNLOAD_LIST_ITEM_2_ENTITY_ID));
 			dbo.setVersionNumber(rs.getLong(COL_DOWNLOAD_LIST_ITEM_2_VERION_NUMBER));
@@ -61,13 +61,13 @@ public class DBODownloadListItem2 implements MigratableDatabaseObject<DBODownloa
 		}
 
 		@Override
-		public Class<? extends DBODownloadListItem2> getDBOClass() {
-			return DBODownloadListItem2.class;
+		public Class<? extends DBODownloadListItem> getDBOClass() {
+			return DBODownloadListItem.class;
 		}
 	};
 
 	@Override
-	public TableMapping<DBODownloadListItem2> getTableMapping() {
+	public TableMapping<DBODownloadListItem> getTableMapping() {
 		return MAPPING;
 	}
 
@@ -77,18 +77,18 @@ public class DBODownloadListItem2 implements MigratableDatabaseObject<DBODownloa
 	}
 
 	@Override
-	public MigratableTableTranslation<DBODownloadListItem2, DBODownloadListItem2> getTranslator() {
+	public MigratableTableTranslation<DBODownloadListItem, DBODownloadListItem> getTranslator() {
 		return new BasicMigratableTableTranslation<>();
 	}
 
 	@Override
-	public Class<? extends DBODownloadListItem2> getBackupClass() {
-		return DBODownloadListItem2.class;
+	public Class<? extends DBODownloadListItem> getBackupClass() {
+		return DBODownloadListItem.class;
 	}
 
 	@Override
-	public Class<? extends DBODownloadListItem2> getDatabaseObjectClass() {
-		return DBODownloadListItem2.class;
+	public Class<? extends DBODownloadListItem> getDatabaseObjectClass() {
+		return DBODownloadListItem.class;
 	}
 
 	@Override
@@ -156,10 +156,10 @@ public class DBODownloadListItem2 implements MigratableDatabaseObject<DBODownloa
 		if (this == obj) {
 			return true;
 		}
-		if (!(obj instanceof DBODownloadListItem2)) {
+		if (!(obj instanceof DBODownloadListItem)) {
 			return false;
 		}
-		DBODownloadListItem2 other = (DBODownloadListItem2) obj;
+		DBODownloadListItem other = (DBODownloadListItem) obj;
 		return Objects.equals(addedOn, other.addedOn) && Objects.equals(entityId, other.entityId)
 				&& Objects.equals(principalId, other.principalId) && Objects.equals(versionNumber, other.versionNumber);
 	}

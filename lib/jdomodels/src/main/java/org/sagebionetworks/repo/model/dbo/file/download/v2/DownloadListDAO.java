@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.file.download;
+package org.sagebionetworks.repo.model.dbo.file.download.v2;
 
 import java.util.List;
 
@@ -46,5 +46,10 @@ public interface DownloadListDAO {
 	 */
 	List<DownloadListItem> getFilesAvailableToDownloadFromDownloadList(Long userId, ColumnName sortColumn,
 			SortDirection sortDirection, Long limit, Long offset);
+	
+	/**
+	 * Clear all download data for all users.
+	 */
+	void truncateAllData();
 
 }

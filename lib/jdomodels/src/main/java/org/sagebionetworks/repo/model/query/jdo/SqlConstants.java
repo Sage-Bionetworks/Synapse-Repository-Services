@@ -714,7 +714,7 @@ public class SqlConstants {
 	public static final String TABLE_DOWNLOAD_LIST_ITEM_2				= "DOWNLOAD_LIST_ITEM_2";
 	public static final String COL_DOWNLOAD_LIST_ITEM_2_PRINCIPAL_ID	= "PRINCIPAL_ID";
 	public static final String COL_DOWNLOAD_LIST_ITEM_2_ENTITY_ID		= "ENTITY_ID";
-	public static final String COL_DOWNLOAD_LIST_ITEM_2_VERION_NUMBER	= "VERSION_NUMER";
+	public static final String COL_DOWNLOAD_LIST_ITEM_2_VERION_NUMBER	= "VERSION_NUMBER";
 	public static final String COL_DOWNLOAD_LIST_ITEM_2_ADDED_ON		= "ADDED_ON";
 	public static final String DDL_DOWNLOAD_LIST_ITEM_2					= "schema/DownloadListItem-2-ddl.sql";
 	

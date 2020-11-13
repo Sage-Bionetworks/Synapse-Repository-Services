@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.file.download;
+package org.sagebionetworks.repo.model.dbo.file.download.v2;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_2_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_2_PRINCIPAL_ID;
@@ -8,6 +8,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLO
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Objects;
 
@@ -20,10 +21,10 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 
 import com.google.common.collect.Lists;
 
-public class DBODownloadList2 implements MigratableDatabaseObject<DBODownloadList2, DBODownloadList2> {
+public class DBODownloadList implements MigratableDatabaseObject<DBODownloadList, DBODownloadList> {
 
 	private Long principalId;
-	private Long updatedOn;
+	private Timestamp updatedOn;
 	private String etag;
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
@@ -31,14 +32,14 @@ public class DBODownloadList2 implements MigratableDatabaseObject<DBODownloadLis
 			new FieldColumn("etag", COL_DOWNLOAD_LIST_2_ETAG).withIsEtag(true),
 			new FieldColumn("updatedOn", COL_DOWNLOAD_LIST_2_UPDATED_ON), };
 
-	public static final TableMapping<DBODownloadList2> MAPPING = new TableMapping<DBODownloadList2>() {
+	public static final TableMapping<DBODownloadList> MAPPING = new TableMapping<DBODownloadList>() {
 
 		@Override
-		public DBODownloadList2 mapRow(ResultSet rs, int rowNum) throws SQLException {
-			DBODownloadList2 dbo = new DBODownloadList2();
+		public DBODownloadList mapRow(ResultSet rs, int rowNum) throws SQLException {
+			DBODownloadList dbo = new DBODownloadList();
 			dbo.setEtag(rs.getString(COL_DOWNLOAD_LIST_2_ETAG));
 			dbo.setPrincipalId(rs.getLong(COL_DOWNLOAD_LIST_2_PRINCIPAL_ID));
-			dbo.setUpdatedOn(rs.getLong(COL_DOWNLOAD_LIST_2_UPDATED_ON));
+			dbo.setUpdatedOn(rs.getTimestamp(COL_DOWNLOAD_LIST_2_UPDATED_ON));
 			return dbo;
 		}
 
@@ -58,13 +59,13 @@ public class DBODownloadList2 implements MigratableDatabaseObject<DBODownloadLis
 		}
 
 		@Override
-		public Class<? extends DBODownloadList2> getDBOClass() {
-			return DBODownloadList2.class;
+		public Class<? extends DBODownloadList> getDBOClass() {
+			return DBODownloadList.class;
 		}
 	};
 	
 	@Override
-	public TableMapping<DBODownloadList2> getTableMapping() {
+	public TableMapping<DBODownloadList> getTableMapping() {
 		return MAPPING;
 	}
 
@@ -76,11 +77,11 @@ public class DBODownloadList2 implements MigratableDatabaseObject<DBODownloadLis
 		this.principalId = principalId;
 	}
 
-	public Long getUpdatedOn() {
+	public Timestamp getUpdatedOn() {
 		return updatedOn;
 	}
 
-	public void setUpdatedOn(Long updatedOn) {
+	public void setUpdatedOn(Timestamp updatedOn) {
 		this.updatedOn = updatedOn;
 	}
 
@@ -98,23 +99,23 @@ public class DBODownloadList2 implements MigratableDatabaseObject<DBODownloadLis
 	}
 
 	@Override
-	public MigratableTableTranslation<DBODownloadList2, DBODownloadList2> getTranslator() {
+	public MigratableTableTranslation<DBODownloadList, DBODownloadList> getTranslator() {
 		return new BasicMigratableTableTranslation<>();
 	}
 
 	@Override
-	public Class<? extends DBODownloadList2> getBackupClass() {
-		return DBODownloadList2.class;
+	public Class<? extends DBODownloadList> getBackupClass() {
+		return DBODownloadList.class;
 	}
 
 	@Override
-	public Class<? extends DBODownloadList2> getDatabaseObjectClass() {
-		return DBODownloadList2.class;
+	public Class<? extends DBODownloadList> getDatabaseObjectClass() {
+		return DBODownloadList.class;
 	}
 
 	@Override
 	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
-		return Lists.newArrayList(new DBODownloadListItem2());
+		return Lists.newArrayList(new DBODownloadListItem());
 	}
 
 	@Override
@@ -127,10 +128,10 @@ public class DBODownloadList2 implements MigratableDatabaseObject<DBODownloadLis
 		if (this == obj) {
 			return true;
 		}
-		if (!(obj instanceof DBODownloadList2)) {
+		if (!(obj instanceof DBODownloadList)) {
 			return false;
 		}
-		DBODownloadList2 other = (DBODownloadList2) obj;
+		DBODownloadList other = (DBODownloadList) obj;
 		return Objects.equals(etag, other.etag) && Objects.equals(principalId, other.principalId)
 				&& Objects.equals(updatedOn, other.updatedOn);
 	}
