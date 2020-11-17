@@ -425,7 +425,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 	@Test // PLFM-6494
 	void testCreateToken_DuplicateKeyException() {
 		when(mockTokenHelper.parseJWT(ACCESS_TOKEN)).thenReturn(accessTokenJwt);
-		when(mockPersonalAccessTokenDao.createTokenRecord(any())).thenThrow(new DuplicateKeyException("msg"));
+		when(mockPersonalAccessTokenDao.createTokenRecord(any())).thenThrow(new IllegalArgumentException(new DuplicateKeyException("message")));
 
 		// Method under test
 		assertThrows(
