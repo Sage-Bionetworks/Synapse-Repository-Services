@@ -126,7 +126,7 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 		try {
 			record = personalAccessTokenDao.createTokenRecord(record);
 		} catch (IllegalArgumentException e) {
-			if (e.getMessage().contains("org.springframework.dao.DuplicateKeyException")) {
+			if (e.getCause() instanceof DuplicateKeyException) {
 				throw new IllegalArgumentException(DUPLICATE_TOKEN_NAME_MSG, e);
 			} else {
 				throw e;
