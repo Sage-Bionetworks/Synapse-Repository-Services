@@ -48,6 +48,20 @@ public interface DownloadListDAO {
 			SortDirection sortDirection, Long limit, Long offset);
 	
 	/**
+	 * Get the DBODownloadList for the given user.
+	 * @param userId
+	 * @return
+	 */
+	DBODownloadList getDBODownloadList(Long userId);
+	
+	/**
+	 * 
+	 * @param userId
+	 * @return
+	 */
+	List<DBODownloadListItem> getDBODownloadListItems(Long userId);
+	
+	/**
 	 * Clear all download data for all users.
 	 */
 	void truncateAllData();

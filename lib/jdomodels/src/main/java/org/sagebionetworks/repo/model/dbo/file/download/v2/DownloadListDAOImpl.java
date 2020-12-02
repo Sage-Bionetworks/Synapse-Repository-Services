@@ -26,6 +26,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -36,6 +37,9 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 
+	private static final RowMapper<DBODownloadList> LIST_MAPPER = new DBODownloadList().getTableMapping();
+	private static final RowMapper<DBODownloadListItem> LIST_ITEM_MAPPER = new DBODownloadListItem().getTableMapping();
+
 	@WriteTransaction
 	@Override
 	public long addBatchOfFilesToDownloadList(Long userId, List<IdAndVersion> batchToAdd) {
@@ -45,38 +49,37 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		}
 		createOrUpdateDownloadList(userId);
 		IdAndVersion[] batchArray = batchToAdd.toArray(new IdAndVersion[batchToAdd.size()]);
-		int[] updates = jdbcTemplate
-				.batchUpdate(
-						"INSERT INTO " + TABLE_DOWNLOAD_LIST_ITEM_2 + " (" + COL_DOWNLOAD_LIST_ITEM_2_PRINCIPAL_ID + ","
-								+ COL_DOWNLOAD_LIST_ITEM_2_ENTITY_ID + "," + COL_DOWNLOAD_LIST_ITEM_2_VERION_NUMBER
-								+ "," + COL_DOWNLOAD_LIST_ITEM_2_ADDED_ON + ")  VALUES(?,?,?,NOW())",
-						new BatchPreparedStatementSetter() {
+		int[] updates = jdbcTemplate.batchUpdate(
+				"INSERT IGNORE INTO " + TABLE_DOWNLOAD_LIST_ITEM_2 + " (" + COL_DOWNLOAD_LIST_ITEM_2_PRINCIPAL_ID + ","
+						+ COL_DOWNLOAD_LIST_ITEM_2_ENTITY_ID + "," + COL_DOWNLOAD_LIST_ITEM_2_VERION_NUMBER + ","
+						+ COL_DOWNLOAD_LIST_ITEM_2_ADDED_ON + ")  VALUES(?,?,?,NOW())",
+				new BatchPreparedStatementSetter() {
 
-							@Override
-							public void setValues(PreparedStatement ps, int i) throws SQLException {
-								IdAndVersion idAndVersion = batchArray[i];
+					@Override
+					public void setValues(PreparedStatement ps, int i) throws SQLException {
+						IdAndVersion idAndVersion = batchArray[i];
 
-								if (idAndVersion == null) {
-									throw new IllegalArgumentException("Null file ID passed at index: " + i);
-								}
-								if (idAndVersion.getEntityId() == null) {
-									throw new IllegalArgumentException("Null entityId at index: " + i);
-								}
-								ps.setLong(1, userId);
+						if (idAndVersion == null) {
+							throw new IllegalArgumentException("Null file ID passed at index: " + i);
+						}
+						if (idAndVersion.getEntityId() == null) {
+							throw new IllegalArgumentException("Null entityId at index: " + i);
+						}
+						ps.setLong(1, userId);
 
-								ps.setLong(2, KeyFactory.stringToKey(idAndVersion.getEntityId()));
-								Long versionNumber = NULL_VERSION_NUMBER;
-								if (idAndVersion.getVersionNumber() != null) {
-									versionNumber = idAndVersion.getVersionNumber();
-								}
-								ps.setLong(3, versionNumber);
-							}
+						ps.setLong(2, KeyFactory.stringToKey(idAndVersion.getEntityId()));
+						Long versionNumber = NULL_VERSION_NUMBER;
+						if (idAndVersion.getVersionNumber() != null) {
+							versionNumber = idAndVersion.getVersionNumber();
+						}
+						ps.setLong(3, versionNumber);
+					}
 
-							@Override
-							public int getBatchSize() {
-								return batchArray.length;
-							}
-						});
+					@Override
+					public int getBatchSize() {
+						return batchArray.length;
+					}
+				});
 		return IntStream.of(updates).sum();
 	}
 
@@ -149,6 +152,22 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	public void truncateAllData() {
 		jdbcTemplate.update(
 				"DELETE FROM " + TABLE_DOWNLOAD_LIST_2 + " WHERE " + COL_DOWNLOAD_LIST_ITEM_2_PRINCIPAL_ID + " > -1");
+	}
+
+	@Override
+	public DBODownloadList getDBODownloadList(Long userId) {
+		ValidateArgument.required(userId, "User Id");
+		return jdbcTemplate.queryForObject(
+				"SELECT * FROM " + TABLE_DOWNLOAD_LIST_2 + " WHERE " + COL_DOWNLOAD_LIST_2_PRINCIPAL_ID + " = ?",
+				LIST_MAPPER, userId);
+	}
+
+	@Override
+	public List<DBODownloadListItem> getDBODownloadListItems(Long userId) {
+		ValidateArgument.required(userId, "User Id");
+		return jdbcTemplate.query(
+				"SELECT * FROM " + TABLE_DOWNLOAD_LIST_ITEM_2 + " WHERE " + COL_DOWNLOAD_LIST_2_PRINCIPAL_ID + " = ?",
+				LIST_ITEM_MAPPER, userId);
 	}
 
 }
