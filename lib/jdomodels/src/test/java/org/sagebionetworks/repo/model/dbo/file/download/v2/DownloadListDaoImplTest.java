@@ -89,11 +89,12 @@ public class DownloadListDaoImplTest {
 	@Test
 	public void testAddBatchOfFilesToDownloadListWithNullUserId() {
 		List<IdAndVersion> batch = Lists.newArrayList(idsWithVersions.get(0), idsWithoutVersions.get(0));
-		assertThrows(IllegalArgumentException.class, () -> {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			Long nullUserId = null;
 			// call under test
 			downloadListDao.addBatchOfFilesToDownloadList(nullUserId, batch);
-		});
+		}).getMessage();
+		assertEquals("User Id is required.", message);
 	}
 
 	@Test
@@ -130,7 +131,7 @@ public class DownloadListDaoImplTest {
 		// call under test
 		long addedCount = downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, batch);
 		assertEquals(2, addedCount);
-		validateDBODownloadList(userTwoIdLong, downloadListDao.getDBODownloadList(userTwoIdLong));
+		validateDBODownloadList(userOneIdLong, downloadListDao.getDBODownloadList(userOneIdLong));
 
 		List<DBODownloadListItem> items = downloadListDao.getDBODownloadListItems(userOneIdLong);
 		compareIdAndVersionToListItem(userOneIdLong, batch, items);
@@ -149,18 +150,15 @@ public class DownloadListDaoImplTest {
 		assertNotNull(startingDBOList.getUpdatedOn());
 		// add one item to the batch
 		batch.add(idsWithoutVersions.get(1));
-		Thread.sleep(1000L);
+		// sleep to unsure the updated on changes
+		Thread.sleep(1000);
 		// call under test
 		addedCount = downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, batch);
 		// only one file should be added since the first two in the batch are already on
 		// the list.
 		assertEquals(1, addedCount);
 		DBODownloadList currentDBOList = downloadListDao.getDBODownloadList(userOneIdLong);
-		assertEquals(userOneIdLong, currentDBOList.getPrincipalId());
-		// the etag must change
-		assertNotEquals(startingDBOList.getEtag(), currentDBOList.getEtag());
-		// the updated on must change.
-		assertNotEquals(startingDBOList.getUpdatedOn(), currentDBOList.getUpdatedOn());
+		validateListChanged(startingDBOList, currentDBOList);
 		compareIdAndVersionToListItem(userOneIdLong, batch, downloadListDao.getDBODownloadListItems(userOneIdLong));
 	}
 
@@ -171,7 +169,7 @@ public class DownloadListDaoImplTest {
 		long addedCount = downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, userOneBatch);
 		assertEquals(userOneBatch.size(), addedCount);
 
-		List<IdAndVersion> userTwoBatch = Lists.newArrayList(idsWithVersions.get(0), idsWithoutVersions.get(2));
+		List<IdAndVersion> userTwoBatch = Lists.newArrayList(idsWithVersions.get(0), idsWithoutVersions.get(1));
 		// call under test
 		addedCount = downloadListDao.addBatchOfFilesToDownloadList(userTwoIdLong, userTwoBatch);
 		assertEquals(userOneBatch.size(), addedCount);
@@ -184,6 +182,129 @@ public class DownloadListDaoImplTest {
 		validateDBODownloadList(userTwoIdLong, downloadListDao.getDBODownloadList(userTwoIdLong));
 	}
 
+	@Test
+	public void testRemoveBatchOfFilesFromDownloadListWithNullUser() {
+		List<IdAndVersion> batchToRemove = Lists.newArrayList(idsWithVersions.get(1), idsWithoutVersions.get(0));
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			Long nullUserId = null;
+			// call under test
+			downloadListDao.removeBatchOfFilesFromDownloadList(nullUserId, batchToRemove);
+		}).getMessage();
+		assertEquals("User Id is required.", message);
+	}
+
+	@Test
+	public void testRemoveBatchOfFilesFromDownloadListWithNullBatch() {
+		List<IdAndVersion> batchToRemove = null;
+		// call under test
+		long removeCount = downloadListDao.removeBatchOfFilesFromDownloadList(userOneIdLong, batchToRemove);
+		assertEquals(0L, removeCount);
+	}
+
+	@Test
+	public void testRemoveBatchOfFilesFromDownloadListWithEmptyBatch() {
+		List<IdAndVersion> batchToRemove = Collections.emptyList();
+		// call under test
+		long removeCount = downloadListDao.removeBatchOfFilesFromDownloadList(userOneIdLong, batchToRemove);
+		assertEquals(0L, removeCount);
+	}
+
+	@Test
+	public void testRemoveBatchOfFilesToDownloadListWithNullEntityId() {
+		IdAndVersion id = idsWithVersions.get(0);
+		id.setEntityId(null);
+		List<IdAndVersion> batch = Lists.newArrayList(id);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			downloadListDao.removeBatchOfFilesFromDownloadList(userOneIdLong, batch);
+		}).getMessage();
+		assertEquals("Null entityId at index: 0", message);
+	}
+
+	@Test
+	public void testRemoveBatchOfFilesFromDownloadList() throws InterruptedException {
+		List<IdAndVersion> startBatch = Lists.newArrayList(idsWithVersions.get(1), idsWithoutVersions.get(1),
+				idsWithVersions.get(0), idsWithoutVersions.get(0));
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, startBatch);
+		DBODownloadList listStart = downloadListDao.getDBODownloadList(userOneIdLong);
+		validateDBODownloadList(userOneIdLong, listStart);
+		List<IdAndVersion> batchToRemove = Lists.newArrayList(idsWithVersions.get(1), idsWithoutVersions.get(0));
+		// sleep to unsure the updated on changes
+		Thread.sleep(1000);
+		// call under test
+		long removedCount = downloadListDao.removeBatchOfFilesFromDownloadList(userOneIdLong, batchToRemove);
+		assertEquals(2L, removedCount);
+		// the download list etag must be updated
+		validateListChanged(listStart, downloadListDao.getDBODownloadList(userOneIdLong));
+
+		List<IdAndVersion> expectedIds = Lists.newArrayList(idsWithVersions.get(0), idsWithoutVersions.get(1));
+		compareIdAndVersionToListItem(userOneIdLong, expectedIds,
+				downloadListDao.getDBODownloadListItems(userOneIdLong));
+	}
+
+	@Test
+	public void testRemoveBatchOfFilesToDownloadListWithMultipleUsers() {
+		List<IdAndVersion> userOneBatch = Lists.newArrayList(idsWithVersions.get(0), idsWithoutVersions.get(0));
+		long addedCount = downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, userOneBatch);
+		assertEquals(userOneBatch.size(), addedCount);
+		List<IdAndVersion> userTwoBatch = Lists.newArrayList(idsWithVersions.get(0), idsWithoutVersions.get(1));
+		addedCount = downloadListDao.addBatchOfFilesToDownloadList(userTwoIdLong, userTwoBatch);
+		assertEquals(userOneBatch.size(), addedCount);
+
+		// remove the common element.
+		List<IdAndVersion> batchToRemove = Lists.newArrayList(idsWithVersions.get(0));
+		// call under test
+		long removeCount = downloadListDao.removeBatchOfFilesFromDownloadList(userOneIdLong, batchToRemove);
+		assertEquals(1L, removeCount);
+		List<IdAndVersion> expectedUserOneList = Lists.newArrayList(idsWithoutVersions.get(0));
+		compareIdAndVersionToListItem(userOneIdLong, expectedUserOneList,
+				downloadListDao.getDBODownloadListItems(userOneIdLong));
+		// the second user's list must be unchanged.
+		compareIdAndVersionToListItem(userTwoIdLong, userTwoBatch,
+				downloadListDao.getDBODownloadListItems(userTwoIdLong));
+	}
+
+	@Test
+	public void testClearDownloadList() throws InterruptedException {
+		List<IdAndVersion> startBatch = Lists.newArrayList(idsWithVersions.get(1), idsWithoutVersions.get(1));
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, startBatch);
+		DBODownloadList listStart = downloadListDao.getDBODownloadList(userOneIdLong);
+		// sleep to unsure the updated on changes
+		Thread.sleep(1000);
+		// call under test
+		downloadListDao.clearDownloadList(userOneIdLong);
+		compareIdAndVersionToListItem(userOneIdLong, Collections.emptyList(),
+				downloadListDao.getDBODownloadListItems(userOneIdLong));
+		validateListChanged(listStart, downloadListDao.getDBODownloadList(userOneIdLong));
+	}
+	
+	@Test
+	public void testClearDownloadListWithMultipleUsers() {
+		List<IdAndVersion> userOneBatch = Lists.newArrayList(idsWithVersions.get(0), idsWithoutVersions.get(0));
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, userOneBatch);
+		List<IdAndVersion> userTwoBatch = Lists.newArrayList(idsWithVersions.get(0), idsWithoutVersions.get(1));
+		downloadListDao.addBatchOfFilesToDownloadList(userTwoIdLong, userTwoBatch);
+		
+		// call under test
+		downloadListDao.clearDownloadList(userOneIdLong);
+		compareIdAndVersionToListItem(userOneIdLong, Collections.emptyList(),
+				downloadListDao.getDBODownloadListItems(userOneIdLong));
+		// second user should remain unchanged
+		compareIdAndVersionToListItem(userTwoIdLong, userTwoBatch,
+				downloadListDao.getDBODownloadListItems(userTwoIdLong));
+	}
+	
+	@Test
+	public void testClearDownloadListWithNullUserId() {
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			Long nullUserId = null;
+			// call under test
+			downloadListDao.clearDownloadList(nullUserId);
+		}).getMessage();
+		assertEquals("User Id is required.", message);
+	}
+	
+
 	/**
 	 * Helper to validate a download list.
 	 * 
@@ -195,6 +316,21 @@ public class DownloadListDaoImplTest {
 		assertEquals(principalId, list.getPrincipalId());
 		assertNotNull(list.getEtag());
 		assertNotNull(list.getUpdatedOn());
+	}
+
+	/**
+	 * Helper to validate that the current download list has a new etag and
+	 * updatedOn.
+	 * 
+	 * @param start
+	 * @param current
+	 */
+	public static void validateListChanged(DBODownloadList start, DBODownloadList current) {
+		assertNotNull(start);
+		assertNotNull(current);
+		assertEquals(start.getPrincipalId(), current.getPrincipalId());
+		assertNotEquals(start.getEtag(), current.getEtag());
+		assertNotEquals(start.getUpdatedOn(), current.getUpdatedOn());
 	}
 
 	/**

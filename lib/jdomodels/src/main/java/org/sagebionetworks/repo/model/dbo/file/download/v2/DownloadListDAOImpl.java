@@ -7,7 +7,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_2_ENTITY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_2_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_2_VERION_NUMBER;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_DOWNLOAD_LIST_ITEM_2;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_LIST_2;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_LIST_ITEM_2;
 
@@ -92,36 +91,34 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		}
 		createOrUpdateDownloadList(userId);
 		IdAndVersion[] batchArray = batchToRemove.toArray(new IdAndVersion[batchToRemove.size()]);
-		int[] updates = jdbcTemplate
-				.batchUpdate(
-						"DELETE FROM " + DDL_DOWNLOAD_LIST_ITEM_2 + " WHERE " + COL_DOWNLOAD_LIST_ITEM_2_ENTITY_ID
-								+ " = ? AND " + COL_DOWNLOAD_LIST_ITEM_2_VERION_NUMBER + " = ?",
-						new BatchPreparedStatementSetter() {
+		int[] updates = jdbcTemplate.batchUpdate("DELETE FROM " + TABLE_DOWNLOAD_LIST_ITEM_2 + " WHERE "
+				+ COL_DOWNLOAD_LIST_2_PRINCIPAL_ID + " = ? AND " + COL_DOWNLOAD_LIST_ITEM_2_ENTITY_ID
+				+ " = ? AND " + COL_DOWNLOAD_LIST_ITEM_2_VERION_NUMBER + " = ?", new BatchPreparedStatementSetter() {
 
-							@Override
-							public void setValues(PreparedStatement ps, int i) throws SQLException {
-								IdAndVersion idAndVersion = batchArray[i];
+					@Override
+					public void setValues(PreparedStatement ps, int i) throws SQLException {
+						IdAndVersion idAndVersion = batchArray[i];
 
-								if (idAndVersion == null) {
-									throw new IllegalArgumentException("Null file ID passed at index: " + i);
-								}
-								if (idAndVersion.getEntityId() == null) {
-									throw new IllegalArgumentException("Null entityId at index: " + i);
-								}
+						if (idAndVersion == null) {
+							throw new IllegalArgumentException("Null file ID passed at index: " + i);
+						}
+						if (idAndVersion.getEntityId() == null) {
+							throw new IllegalArgumentException("Null entityId at index: " + i);
+						}
+						ps.setLong(1, userId);
+						ps.setLong(2, KeyFactory.stringToKey(idAndVersion.getEntityId()));
+						Long versionNumber = NULL_VERSION_NUMBER;
+						if (idAndVersion.getVersionNumber() != null) {
+							versionNumber = idAndVersion.getVersionNumber();
+						}
+						ps.setLong(3, versionNumber);
+					}
 
-								ps.setLong(1, KeyFactory.stringToKey(idAndVersion.getEntityId()));
-								Long versionNumber = NULL_VERSION_NUMBER;
-								if (idAndVersion.getVersionNumber() != null) {
-									versionNumber = idAndVersion.getVersionNumber();
-								}
-								ps.setLong(2, versionNumber);
-							}
-
-							@Override
-							public int getBatchSize() {
-								return batchArray.length;
-							}
-						});
+					@Override
+					public int getBatchSize() {
+						return batchArray.length;
+					}
+				});
 		return IntStream.of(updates).sum();
 	}
 
