@@ -262,6 +262,7 @@
 				<!-- Download -->
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadList" />
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadOrder" />
+				<bean class="org.sagebionetworks.repo.model.dbo.file.download.v2.DBODownloadList" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODataType" />
 			
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSectorIdentifier"/>
