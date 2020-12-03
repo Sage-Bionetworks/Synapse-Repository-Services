@@ -1,0 +1,21 @@
+{
+	"description": "Request to get a single page of files from the user's download list for files that are currently available for download.",
+	"properties": {
+		"nextPageToken": {
+			"description": "Forward the resulting nextPageToken from a previous request to get the next page of results",
+			"type": "string"
+		},
+		"sortByColumn": {
+			"description": "Identifies the column to be used to sort the results.",
+			"$ref": "org.sagebionetworks.repo.model.download.ColumnName"
+		},
+		"sortByDirection": {
+			"description": "Identifies the direction of the sort.",
+			"$ref": "org.sagebionetworks.repo.model.download.SortDirection"
+		},
+		"nameContains": {
+			"description": "Optional: Case insensitive part of the name to filter by name.",
+			"type": "string"
+		}
+	}
+}
