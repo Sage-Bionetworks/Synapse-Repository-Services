@@ -831,6 +831,84 @@ public class JsonSchemaManagerImplTest {
 	}
 	
 	@Test
+	public void testCreateJsonSchemaWithDryRun() {
+		when(mockOrganizationDao.getOrganizationByName(any())).thenReturn(organization);
+		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockSchemaDao.createNewSchemaVersion(any())).thenReturn(versionInfo);
+		doReturn(validationSchema).when(managerSpy).getValidationSchema(schema.get$id());
+		doReturn(SchemaIdParser.parseSchemaId(schema.get$id())).when(managerSpy).validateSchema(any());
+		createSchemaRequest.setDryRun(true);
+		// call under test
+		CreateSchemaResponse response = managerSpy.createJsonSchema(user, createSchemaRequest);
+		assertNotNull(response);
+		assertEquals(versionInfo, response.getNewVersionInfo());
+		assertEquals(validationSchema, response.getValidationSchema());
+		verify(mockOrganizationDao).getOrganizationByName(organizationName);
+		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.CREATE);
+		NewSchemaVersionRequest expectedNewSchemaRequest = new NewSchemaVersionRequest()
+				.withOrganizationId(organization.getId()).withSchemaName(schemaName).withCreatedBy(user.getId())
+				.withJsonSchema(schema).withSemanticVersion(semanticVersionString)
+				.withDependencies(new ArrayList<SchemaDependency>());
+		verify(mockSchemaDao).createNewSchemaVersion(expectedNewSchemaRequest);
+		verify(managerSpy).getValidationSchema(schema.get$id());
+		verify(managerSpy).validateSchema(schema);
+		verify(mockSchemaDao).deleteSchemaVersion(versionInfo.getVersionId());
+	}
+	
+	@Test
+	public void testCreateJsonSchemaWithDryRunNull() {
+		when(mockOrganizationDao.getOrganizationByName(any())).thenReturn(organization);
+		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockSchemaDao.createNewSchemaVersion(any())).thenReturn(versionInfo);
+		doReturn(validationSchema).when(managerSpy).getValidationSchema(schema.get$id());
+		doReturn(SchemaIdParser.parseSchemaId(schema.get$id())).when(managerSpy).validateSchema(any());
+		createSchemaRequest.setDryRun(null);
+		// call under test
+		CreateSchemaResponse response = managerSpy.createJsonSchema(user, createSchemaRequest);
+		assertNotNull(response);
+		assertEquals(versionInfo, response.getNewVersionInfo());
+		assertEquals(validationSchema, response.getValidationSchema());
+		verify(mockOrganizationDao).getOrganizationByName(organizationName);
+		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.CREATE);
+		NewSchemaVersionRequest expectedNewSchemaRequest = new NewSchemaVersionRequest()
+				.withOrganizationId(organization.getId()).withSchemaName(schemaName).withCreatedBy(user.getId())
+				.withJsonSchema(schema).withSemanticVersion(semanticVersionString)
+				.withDependencies(new ArrayList<SchemaDependency>());
+		verify(mockSchemaDao).createNewSchemaVersion(expectedNewSchemaRequest);
+		verify(managerSpy).getValidationSchema(schema.get$id());
+		verify(managerSpy).validateSchema(schema);
+		verify(mockSchemaDao, never()).deleteSchemaVersion(any());
+	}
+	
+	@Test
+	public void testCreateJsonSchemaWithDryRunFalse() {
+		when(mockOrganizationDao.getOrganizationByName(any())).thenReturn(organization);
+		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockSchemaDao.createNewSchemaVersion(any())).thenReturn(versionInfo);
+		doReturn(validationSchema).when(managerSpy).getValidationSchema(schema.get$id());
+		doReturn(SchemaIdParser.parseSchemaId(schema.get$id())).when(managerSpy).validateSchema(any());
+		createSchemaRequest.setDryRun(false);
+		// call under test
+		CreateSchemaResponse response = managerSpy.createJsonSchema(user, createSchemaRequest);
+		assertNotNull(response);
+		assertEquals(versionInfo, response.getNewVersionInfo());
+		assertEquals(validationSchema, response.getValidationSchema());
+		verify(mockOrganizationDao).getOrganizationByName(organizationName);
+		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.CREATE);
+		NewSchemaVersionRequest expectedNewSchemaRequest = new NewSchemaVersionRequest()
+				.withOrganizationId(organization.getId()).withSchemaName(schemaName).withCreatedBy(user.getId())
+				.withJsonSchema(schema).withSemanticVersion(semanticVersionString)
+				.withDependencies(new ArrayList<SchemaDependency>());
+		verify(mockSchemaDao).createNewSchemaVersion(expectedNewSchemaRequest);
+		verify(managerSpy).getValidationSchema(schema.get$id());
+		verify(managerSpy).validateSchema(schema);
+		verify(mockSchemaDao, never()).deleteSchemaVersion(any());
+	}
+	
+	@Test
 	public void testValidateSchemaWithNoSubSchema() {
 		// call under test
 		SchemaId id = manager.validateSchema(schema);
