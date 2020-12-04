@@ -230,7 +230,8 @@ public class JsonSchemaWorkerIntegrationTest {
 		assertTrue(validationSchema.getDefinitions().containsKey("my.organization-pets.dog.Dog"));
 		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.Entity-1.0.0"));
 		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.Versionable-1.0.0"));
-		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.VersionableEntity-1.0.0"));
+		assertTrue(validationSchema.getDefinitions()
+				.containsKey("org.sagebionetworks-repo.model.VersionableEntity-1.0.0"));
 		assertTrue(validationSchema.getDefinitions().containsKey("org.sagebionetworks-repo.model.FileEntity-1.0.0"));
 
 		String validCatJsonString = loadStringFromClasspath("pets/ValidCat.json");
@@ -318,12 +319,32 @@ public class JsonSchemaWorkerIntegrationTest {
 			assertEquals(ObjectType.entity, t.getObjectType());
 			assertEquals(resultFolder.getEtag(), t.getObjectEtag());
 		});
-		
-		// Removing the binding from the container should trigger removal of the results for the child.
+
+		// Removing the binding from the container should trigger removal of the results
+		// for the child.
 		entityManager.clearBoundSchema(adminUserInfo, projectId);
-		
+
 		waitForValidationResultsToBeNotFound(adminUserInfo, folderId);
-		
+	}
+
+	@Test
+	public void testCreateWithDryRun() throws Exception {
+		CreateSchemaRequest createRequest = new CreateSchemaRequest();
+		createRequest.setSchema(basicSchema);
+		createRequest.setDryRun(true);
+
+		// First create the schema.
+		asynchronousJobWorkerHelper.assertJobResponse(adminUserInfo, createRequest, (CreateSchemaResponse response) -> {
+			assertNotNull(response);
+			assertNotNull(response.getNewVersionInfo());
+			assertEquals(adminUserInfo.getId().toString(), response.getNewVersionInfo().getCreatedBy());
+			assertEquals(semanticVersion, response.getNewVersionInfo().getSemanticVersion());
+		}, MAX_WAIT_MS);
+
+		// the schema should not exist
+		assertThrows(NotFoundException.class, () -> {
+			jsonSchemaManager.getSchema(basicSchema.get$id());
+		});
 	}
 
 	/**
@@ -350,9 +371,10 @@ public class JsonSchemaWorkerIntegrationTest {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	/**
 	 * Wait for the validation results to be not found.
+	 * 
 	 * @param user
 	 * @param entityId
 	 */

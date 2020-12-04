@@ -2,16 +2,15 @@
 	"description": "Request to get a single page of files from the user's download list for files that are currently available for download.",
 	"properties": {
 		"nextPageToken": {
-			"description": "Forward the resulting nextPageToken from a previous request to get the next page of results",
+			"description": "Forward the resulting nextPageToken from a previous request to get the next page of results. Note: Exclude the token if the previously fetch items where removed from the download list.",
 			"type": "string"
 		},
-		"sortByColumn": {
-			"description": "Identifies the column to be used to sort the results.",
-			"$ref": "org.sagebionetworks.repo.model.download.ColumnName"
-		},
-		"sortByDirection": {
-			"description": "Identifies the direction of the sort.",
-			"$ref": "org.sagebionetworks.repo.model.download.SortDirection"
+		"sort": {
+			"description": "Optional: Defines how the results should be sorted. Up to three fields can be sorted at a time.  The order of this array determines the sort priority.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.download.Sort"
+			}
 		},
 		"nameContains": {
 			"description": "Optional: Case insensitive part of the name to filter by name.",
