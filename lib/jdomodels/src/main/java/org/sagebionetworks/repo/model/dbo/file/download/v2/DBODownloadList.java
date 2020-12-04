@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.file.download.v2;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_2_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_2_PRINCIPAL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_2_UPDATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_DOWNLOAD_2_LIST;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_LIST_2;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_UPDATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_DOWNLOAD_V2_LIST;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_LIST_V2;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -28,29 +28,29 @@ public class DBODownloadList implements MigratableDatabaseObject<DBODownloadList
 	private String etag;
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn("principalId", COL_DOWNLOAD_LIST_2_PRINCIPAL_ID, true).withIsBackupId(true),
-			new FieldColumn("etag", COL_DOWNLOAD_LIST_2_ETAG).withIsEtag(true),
-			new FieldColumn("updatedOn", COL_DOWNLOAD_LIST_2_UPDATED_ON), };
+			new FieldColumn("principalId", COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID, true).withIsBackupId(true),
+			new FieldColumn("etag", COL_DOWNLOAD_LIST_V2_ETAG).withIsEtag(true),
+			new FieldColumn("updatedOn", COL_DOWNLOAD_LIST_V2_UPDATED_ON)};
 
 	public static final TableMapping<DBODownloadList> MAPPING = new TableMapping<DBODownloadList>() {
 
 		@Override
 		public DBODownloadList mapRow(ResultSet rs, int rowNum) throws SQLException {
 			DBODownloadList dbo = new DBODownloadList();
-			dbo.setEtag(rs.getString(COL_DOWNLOAD_LIST_2_ETAG));
-			dbo.setPrincipalId(rs.getLong(COL_DOWNLOAD_LIST_2_PRINCIPAL_ID));
-			dbo.setUpdatedOn(rs.getTimestamp(COL_DOWNLOAD_LIST_2_UPDATED_ON));
+			dbo.setEtag(rs.getString(COL_DOWNLOAD_LIST_V2_ETAG));
+			dbo.setPrincipalId(rs.getLong(COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID));
+			dbo.setUpdatedOn(rs.getTimestamp(COL_DOWNLOAD_LIST_V2_UPDATED_ON));
 			return dbo;
 		}
 
 		@Override
 		public String getTableName() {
-			return TABLE_DOWNLOAD_LIST_2;
+			return TABLE_DOWNLOAD_LIST_V2;
 		}
 
 		@Override
 		public String getDDLFileName() {
-			return DDL_DOWNLOAD_2_LIST;
+			return DDL_DOWNLOAD_V2_LIST;
 		}
 
 		@Override

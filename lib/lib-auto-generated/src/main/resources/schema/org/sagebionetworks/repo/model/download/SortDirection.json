@@ -4,11 +4,11 @@
     "type": "string",
     "enum": [
         {
-            "name": "ascending",
+            "name": "ASC",
             "description": "Low values to high values."
         },
         {
-            "name": "descending",
+            "name": "DESC",
             "description": "High values to low values."
         }
     ]
