@@ -106,7 +106,9 @@ public class ExceptionHandlers {
 		new TestEntry(409,
 				new ExceptionType("org.sagebionetworks.repo.model.ses.QuarantinedEmailException", true)),
 		new TestEntry(403,
-				new ExceptionType("org.sagebionetworks.repo.manager.oauth.OAuthClientNotVerifiedException", true))
+				new ExceptionType("org.sagebionetworks.repo.manager.oauth.OAuthClientNotVerifiedException", true)),
+		new TestEntry(409,
+				new ExceptionType("org.sagebionetworks.repo.web.FileHandleLinkedException", true))
 
 	};
 }

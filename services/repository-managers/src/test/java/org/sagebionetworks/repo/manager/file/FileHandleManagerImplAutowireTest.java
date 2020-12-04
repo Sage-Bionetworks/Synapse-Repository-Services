@@ -62,6 +62,7 @@ import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
+import org.sagebionetworks.repo.web.FileHandleLinkedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.utils.ContentTypeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -566,7 +567,7 @@ public class FileHandleManagerImplAutowireTest {
 		wikiKey.setWikiPageId(wiki.getId());
 		wikisToDelete.add(wikiKey);
 		
-		assertThrows(DataIntegrityViolationException.class, () -> {
+		assertThrows(FileHandleLinkedException.class, () -> {
 			// Call under test, since this is linked to the wiki it should throw
 			fileUploadManager.deleteFileHandle(userInfo, markdownHandle.getId());
 		});

@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.FileHandleLinkedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -130,7 +131,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			basicDao.deleteObjectByPrimaryKey(DBOFileHandle.class, param);
 		}catch (DataIntegrityViolationException e){
 			// This occurs when we try to delete a handle that is in use.
-			throw new DataIntegrityViolationException("Cannot delete a file handle that has been assigned to an owner object. FileHandle id: "+id, e);
+			throw new FileHandleLinkedException("Cannot delete a file handle that has been assigned to an owner object. FileHandle id: "+id, e);
 		}
 	}
 
