@@ -65,6 +65,7 @@ import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.utils.ContentTypeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ContextConfiguration;
 
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
@@ -168,10 +169,7 @@ public class FileHandleManagerImplAutowireTest {
 			byte[] fileBytes = fileContents[i].getBytes();
 			String fileName = "foo-"+i+".txt";
 			String contentType = "text/plain";
-			FileItemStream fis = Mockito.mock(FileItemStream.class);
-			when(fis.getContentType()).thenReturn(contentType);
-			when(fis.getName()).thenReturn(fileName);
-			when(fis.openStream()).thenReturn(new StringInputStream(fileContents[i]));
+			
 			// Set the expected metadata for this file.
 			S3FileHandle metadata = new S3FileHandle();
 			metadata.setContentType(contentType);
@@ -543,6 +541,39 @@ public class FileHandleManagerImplAutowireTest {
 		assertEquals(null, result.getFailureCode());
 		assertEquals(attachmentFileHandle, result.getFileHandle());
 		assertNotNull(result.getPreSignedURL());
+		
+	}
+	
+	// Test for PLFM-6517, when a file handle deletion fail the underlying data should be left intact
+	@Test
+	public void testDeleteFileHandleRestricted() throws Exception {
+		Date now = new Date();
+		
+		S3FileHandle markdownHandle = fileUploadManager.createFileFromByteArray(userInfo
+				.getId().toString(), now, "markdown contents".getBytes(StandardCharsets.UTF_8), "markdown.txt",
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
+		
+		toDelete.add(markdownHandle);
+		
+		// add a wiki to the project
+		V2WikiPage wiki = new V2WikiPage();
+		wiki.setTitle("new wiki");
+		wiki.setMarkdownFileHandleId(markdownHandle.getId());
+		wiki = v2WikiManager.createWikiPage(userInfo, projectId, ObjectType.ENTITY, wiki);
+		WikiPageKey wikiKey = new WikiPageKey();
+		wikiKey.setOwnerObjectId(projectId);
+		wikiKey.setOwnerObjectType(ObjectType.ENTITY);
+		wikiKey.setWikiPageId(wiki.getId());
+		wikisToDelete.add(wikiKey);
+		
+		assertThrows(DataIntegrityViolationException.class, () -> {
+			// Call under test, since this is linked to the wiki it should throw
+			fileUploadManager.deleteFileHandle(userInfo, markdownHandle.getId());
+		});
+		
+		// We verify that we can still access the underlying file handle
+		assertNotNull(fileUploadManager.getRawFileHandle(userInfo, markdownHandle.getId()));
+		assertNotNull(s3Client.getObjectMetadata(markdownHandle.getBucketName(), markdownHandle.getKey()));
 		
 	}
 
