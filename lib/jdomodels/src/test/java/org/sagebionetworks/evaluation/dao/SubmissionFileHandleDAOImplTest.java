@@ -1,18 +1,19 @@
 package org.sagebionetworks.evaluation.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
@@ -28,13 +29,13 @@ import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
+import org.sagebionetworks.repo.web.FileHandleLinkedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class SubmissionFileHandleDAOImplTest {
  
@@ -68,7 +69,7 @@ public class SubmissionFileHandleDAOImplTest {
     private String fileHandleId3;
     private Long versionNumber = 1L;
     
-    @Before
+    @BeforeEach
     public void setUp() throws DatastoreException, InvalidModelException, NotFoundException {
     	userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
     	
@@ -120,7 +121,7 @@ public class SubmissionFileHandleDAOImplTest {
         submissionId2 = submissionDAO.create(submission);
     }
     
-    @After
+    @AfterEach
     public void tearDown() throws DatastoreException {
     	try {
     		submissionFileHandleDAO.delete(submissionId1, fileHandleId1);
@@ -160,7 +161,7 @@ public class SubmissionFileHandleDAOImplTest {
         List<String> ids = submissionFileHandleDAO.getAllBySubmission(submissionId1);
         assertEquals(2, ids.size());
         for (String id : ids) {
-        	assertTrue("Unknown File Handle ID returned", id.equals(fileHandleId1) || id.equals(fileHandleId2));
+        	assertTrue(id.equals(fileHandleId1) || id.equals(fileHandleId2), "Unknown File Handle ID returned");
         }
         
         // delete
@@ -184,15 +185,14 @@ public class SubmissionFileHandleDAOImplTest {
         submissionFileHandleDAO.create(submissionId1, fileHandleId1);
         long count = submissionFileHandleDAO.getCount();
         
-        try {
-	        // delete should fail (due to ON DELETE RESTRICT constraint)
+        assertThrows(FileHandleLinkedException.class, () -> {
+        	// delete should fail (due to ON DELETE RESTRICT constraint)
 	        fileHandleDAO.delete(fileHandleId1);
-        } catch (DataIntegrityViolationException e) {
-        	assertNotNull("File handle should not have been deleted!", fileHandleDAO.get(fileHandleId1));
-        	assertEquals(count, submissionFileHandleDAO.getCount());
-        	return;
-        }
-        fail("FileHandle deletion should not have succeeded!");
+        });
+	        
+    	assertNotNull(fileHandleDAO.get(fileHandleId1), "File handle should not have been deleted!");
+    	assertEquals(count, submissionFileHandleDAO.getCount());
+        	
     }
     
     @Test
