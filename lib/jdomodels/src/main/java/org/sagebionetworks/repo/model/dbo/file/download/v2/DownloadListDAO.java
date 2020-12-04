@@ -3,8 +3,8 @@ package org.sagebionetworks.repo.model.dbo.file.download.v2;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.download.ColumnName;
+import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
-import org.sagebionetworks.repo.model.download.IdAndVersion;
 import org.sagebionetworks.repo.model.download.SortDirection;
 
 public interface DownloadListDAO {
@@ -16,7 +16,7 @@ public interface DownloadListDAO {
 	 * @param batchToAdd The batch of files to add.
 	 * @return The number of files that were actually added.
 	 */
-	long addBatchOfFilesToDownloadList(Long userId, List<IdAndVersion> batchToAdd);
+	long addBatchOfFilesToDownloadList(Long userId, List<DownloadListItem> batchToAdd);
 
 	/**
 	 * 
@@ -24,7 +24,7 @@ public interface DownloadListDAO {
 	 * @param batchToRemove The batch of files to remove.
 	 * @return The number of files that were actually removed.
 	 */
-	long removeBatchOfFilesFromDownloadList(Long userId, List<IdAndVersion> batchToRemove);
+	long removeBatchOfFilesFromDownloadList(Long userId, List<DownloadListItem> batchToRemove);
 
 	/**
 	 * Clear all files from the user's download list.
@@ -44,7 +44,7 @@ public interface DownloadListDAO {
 	 * @param offset
 	 * @return
 	 */
-	List<DownloadListItem> getFilesAvailableToDownloadFromDownloadList(Long userId, ColumnName sortColumn,
+	List<DownloadListItemResult> getFilesAvailableToDownloadFromDownloadList(Long userId, ColumnName sortColumn,
 			SortDirection sortDirection, Long limit, Long offset);
 	
 	/**

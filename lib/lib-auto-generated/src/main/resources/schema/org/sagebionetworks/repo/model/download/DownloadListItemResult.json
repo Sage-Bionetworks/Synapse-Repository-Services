@@ -1,0 +1,13 @@
+{
+	"extends":{
+		"$ref":"org.sagebionetworks.repo.model.download.DownloadListItem"
+	},
+	"description": "The results of a single item on a user's download list.",
+	"properties": {
+		"addedOn": {
+			"description": "The date-time when this file was added to the user's download list.",
+			"type": "string",
+			"format": "date-time"
+		}
+	}
+}

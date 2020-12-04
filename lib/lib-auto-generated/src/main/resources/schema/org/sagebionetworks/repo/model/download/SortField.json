@@ -1,6 +1,6 @@
 {
-    "description": "Enumeration of the columns of a user's download list.",
-    "name": "ColumnName",
+    "description": "Enumeration of the fields of a user's download list that can be used for sorting.",
+    "name": "SortField",
     "type": "string",
     "enum": [
         {
