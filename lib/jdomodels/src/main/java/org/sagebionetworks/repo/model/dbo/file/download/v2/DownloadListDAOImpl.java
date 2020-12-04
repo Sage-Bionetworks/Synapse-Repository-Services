@@ -1,14 +1,14 @@
 package org.sagebionetworks.repo.model.dbo.file.download.v2;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_UPDATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_V2_VERION_NUMBER;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_LIST_V2;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_UPDATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_LIST_ITEM_V2;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_LIST_V2;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -16,10 +16,9 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.stream.IntStream;
 
-import org.sagebionetworks.repo.model.download.ColumnName;
-import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
-import org.sagebionetworks.repo.model.download.SortDirection;
+import org.sagebionetworks.repo.model.download.DownloadListItemResult;
+import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
@@ -142,13 +141,6 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	}
 
 	@Override
-	public List<DownloadListItemResult> getFilesAvailableToDownloadFromDownloadList(Long userId, ColumnName sortColumn,
-			SortDirection sortDirection, Long limit, Long offset) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public void truncateAllData() {
 		jdbcTemplate.update(
 				"DELETE FROM " + TABLE_DOWNLOAD_LIST_V2 + " WHERE " + COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID + " > -1");
@@ -168,6 +160,13 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		return jdbcTemplate.query("SELECT * FROM " + TABLE_DOWNLOAD_LIST_ITEM_V2 + " WHERE "
 				+ COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID + " = ? ORDER BY " + COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID + ", "
 				+ COL_DOWNLOAD_LIST_ITEM_V2_VERION_NUMBER, LIST_ITEM_MAPPER, userId);
+	}
+
+	@Override
+	public List<DownloadListItemResult> getFilesAvailableToDownloadFromDownloadList(Long userId, List<Sort> sort,
+			Long limit, Long offset) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

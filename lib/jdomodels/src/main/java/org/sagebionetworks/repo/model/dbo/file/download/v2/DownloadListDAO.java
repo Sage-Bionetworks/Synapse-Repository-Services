@@ -2,10 +2,9 @@ package org.sagebionetworks.repo.model.dbo.file.download.v2;
 
 import java.util.List;
 
-import org.sagebionetworks.repo.model.download.ColumnName;
-import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
-import org.sagebionetworks.repo.model.download.SortDirection;
+import org.sagebionetworks.repo.model.download.DownloadListItemResult;
+import org.sagebionetworks.repo.model.download.Sort;
 
 public interface DownloadListDAO {
 
@@ -38,29 +37,28 @@ public interface DownloadListDAO {
 	 * download.
 	 * 
 	 * @param userId
-	 * @param sortColumn
-	 * @param sortDirection
+	 * @param sort
 	 * @param limit
 	 * @param offset
 	 * @return
 	 */
-	List<DownloadListItemResult> getFilesAvailableToDownloadFromDownloadList(Long userId, ColumnName sortColumn,
-			SortDirection sortDirection, Long limit, Long offset);
-	
+	List<DownloadListItemResult> getFilesAvailableToDownloadFromDownloadList(Long userId, List<Sort> sort, Long limit, Long offset);
+
 	/**
 	 * Get the DBODownloadList for the given user.
+	 * 
 	 * @param userId
 	 * @return
 	 */
 	DBODownloadList getDBODownloadList(Long userId);
-	
+
 	/**
 	 * 
 	 * @param userId
 	 * @return
 	 */
 	List<DBODownloadListItem> getDBODownloadListItems(Long userId);
-	
+
 	/**
 	 * Clear all download data for all users.
 	 */
