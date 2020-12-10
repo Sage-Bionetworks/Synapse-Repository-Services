@@ -54,4 +54,8 @@ public interface RequestDAO {
 	 * @return
 	 */
 	public RequestInterface get(String id);
+
+	// For testing
+
+	void clear();
 }

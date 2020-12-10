@@ -107,4 +107,10 @@ public class DBORequestDAOImpl implements RequestDAO{
 			throw new NotFoundException();
 		}
 	}
+
+	@Override
+	public void clear() {
+		jdbcTemplate.update("DELETE FROM " + TABLE_DATA_ACCESS_REQUEST);
+	}
+
 }

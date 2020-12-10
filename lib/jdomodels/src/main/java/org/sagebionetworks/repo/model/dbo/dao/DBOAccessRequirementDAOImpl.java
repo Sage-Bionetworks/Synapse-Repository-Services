@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -179,7 +180,13 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	public void delete(String id) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_REQUIREMENT_ID.toLowerCase(), id);
-		basicDao.deleteObjectByPrimaryKey(DBOAccessRequirement.class, param);
+		try {
+			basicDao.deleteObjectByPrimaryKey(DBOAccessRequirement.class, param);
+		} catch (DataIntegrityViolationException e) {
+			throw new IllegalArgumentException("The access requirement with id " + id +
+					" cannot be deleted as it is referenced by another object \n"
+					, e);
+		}
 	}
 
 	@WriteTransaction
