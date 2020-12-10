@@ -333,11 +333,12 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	public void testDeleteAccessRequirement() throws Exception {
 		ar = newEntityAccessRequirement(entityId);
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
-		accessRequirementManager.deleteAccessRequirement(adminUserInfo, ar.getId().toString());
-		String expectedMessage = "AccessRequirement ID: " + ar.getId().toString();
+		String accessRequirementId = String.valueOf(ar.getId());
+		// Call under test
+		accessRequirementManager.deleteAccessRequirement(adminUserInfo, accessRequirementId);
+		String expectedMessage = "AccessRequirement ID: " + accessRequirementId;
 		NotFoundException exception = assertThrows(NotFoundException.class, () -> {
-			// Call under test
-			accessRequirementManager.getAccessRequirement(ar.getId().toString());
+			accessRequirementManager.getAccessRequirement(accessRequirementId);
 		});
 		assertEquals(expectedMessage, exception.getMessage());
 	}

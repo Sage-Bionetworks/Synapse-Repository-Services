@@ -436,13 +436,15 @@ public class DBOAccessRequirementDAOImplTest {
 	public void testDeleteAccessRequirement() {
 		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
+		String accessRequirementId = String.valueOf(accessRequirement.getId());
+		String expectedMessage = "AccessRequirement ID: " + accessRequirementId;
 		// Call under test
-		accessRequirementDAO.delete(accessRequirement.getId().toString());
-		Exception exception = assertThrows(Exception.class, () -> {
-			accessRequirementDAO.get(accessRequirement.getId().toString());
+		accessRequirementDAO.delete(accessRequirementId);
+		NotFoundException exception = assertThrows(NotFoundException.class, () -> {
+			accessRequirementDAO.get(accessRequirementId);
 		});
+		assertEquals(expectedMessage, exception.getMessage());
 	}
-
 
 	@Test
 	public void testDeleteAccessRequirementForeignKeyRestraint() throws Exception {
