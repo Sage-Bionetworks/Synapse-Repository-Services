@@ -447,7 +447,7 @@ public class DBOAccessRequirementDAOImplTest {
 	}
 
 	@Test
-	public void testDeleteAccessRequirementForeignKeyRestraint() throws Exception {
+	public void testDeleteAccessRequirementForeignKeyConstraint() throws Exception {
 		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
 		String accessRequirementId = String.valueOf(accessRequirement.getId());
