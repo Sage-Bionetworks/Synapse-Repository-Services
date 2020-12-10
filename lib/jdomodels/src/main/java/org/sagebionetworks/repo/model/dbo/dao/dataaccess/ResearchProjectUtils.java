@@ -18,7 +18,10 @@ public class ResearchProjectUtils {
 		dbo.setEtag(dto.getEtag());
 		dbo.setProjectLead(dto.getProjectLead());
 		dbo.setInstitution(dto.getInstitution());
-		dbo.setIdu(dto.getIntendedDataUseStatement().getBytes(UTF8));
+		
+		if (dto.getIntendedDataUseStatement() != null) {
+			dbo.setIdu(dto.getIntendedDataUseStatement().getBytes(UTF8));
+		}
 	}
 
 	public static void copyDboToDto(DBOResearchProject dbo, ResearchProject dto) {
@@ -31,6 +34,9 @@ public class ResearchProjectUtils {
 		dto.setEtag(dbo.getEtag());
 		dto.setProjectLead(dbo.getProjectLead());
 		dto.setInstitution(dbo.getInstitution());
-		dto.setIntendedDataUseStatement(new String(dbo.getIdu(), UTF8));
+		
+		if (dbo.getIdu() != null) {
+			dto.setIntendedDataUseStatement(new String(dbo.getIdu(), UTF8));
+		}
 	}
 }

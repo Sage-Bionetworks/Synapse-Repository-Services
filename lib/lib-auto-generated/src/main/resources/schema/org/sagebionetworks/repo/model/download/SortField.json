@@ -1,0 +1,35 @@
+{
+    "description": "Enumeration of the fields of a user's download list that can be used for sorting.",
+    "name": "SortField",
+    "type": "string",
+    "enum": [
+        {
+            "name": "fileName",
+            "description": "The name of the file entity."
+        },
+        {
+            "name": "projectName",
+            "description": "The name of the file's project."
+        },
+        {
+            "name": "synId",
+            "description": "The synId of the file"
+        },
+        {
+            "name": "addedOn",
+            "description": "The date-time that the file was added to the user's download list"
+        },
+        {
+            "name": "createdBy",
+            "description": "The ID of the user that created the file."
+        },
+        {
+            "name": "createdOn",
+            "description": "The date-time when the file was created."
+        },
+        {
+            "name": "fileSize",
+            "description": "The size of the file."
+        }
+    ]
+}

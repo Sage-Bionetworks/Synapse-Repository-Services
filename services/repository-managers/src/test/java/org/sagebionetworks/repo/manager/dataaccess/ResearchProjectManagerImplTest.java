@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
@@ -9,11 +10,13 @@ import static org.mockito.Mockito.when;
 
 import java.util.Date;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
@@ -23,8 +26,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.test.util.ReflectionTestUtils;
 
+@ExtendWith(MockitoExtension.class)
 public class ResearchProjectManagerImplTest {
 
 	@Mock
@@ -35,8 +38,9 @@ public class ResearchProjectManagerImplTest {
 	private UserInfo mockUser;
 	@Mock
 	private ManagedACTAccessRequirement mockAccessRequirement;
-
+	@InjectMocks
 	private ResearchProjectManagerImpl manager;
+	
 	private String accessRequirementId;
 	private String userId;
 	private String researchProjectId;
@@ -48,13 +52,8 @@ public class ResearchProjectManagerImplTest {
 	private String institution;
 	private String idu;
 
-	@Before
+	@BeforeEach
 	public void before() {
-		MockitoAnnotations.initMocks(this);
-		manager = new ResearchProjectManagerImpl();
-		ReflectionTestUtils.setField(manager, "accessRequirementDao", mockAccessRequirementDao);
-		ReflectionTestUtils.setField(manager, "researchProjectDao", mockResearchProjectDao);
-
 		userId = "1";
 		accessRequirementId = "2";
 		researchProjectId = "3";
@@ -65,14 +64,6 @@ public class ResearchProjectManagerImplTest {
 		institution = "institution";
 		idu = "intendedDataUseStatement";
 		researchProject = createNewResearchProject();
-
-		when(mockUser.getId()).thenReturn(1L);
-		when(mockResearchProjectDao.create(any(ResearchProject.class))).thenReturn(researchProject);
-		when(mockResearchProjectDao.getUserOwnResearchProject(accessRequirementId, userId)).thenReturn(researchProject);
-		when(mockResearchProjectDao.get(researchProjectId)).thenReturn(researchProject);
-		when(mockResearchProjectDao.getForUpdate(researchProjectId)).thenReturn(researchProject);
-		when(mockResearchProjectDao.update(any(ResearchProject.class))).thenReturn(researchProject);
-		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
 	}
 
 	private ResearchProject createNewResearchProject() {
@@ -90,74 +81,173 @@ public class ResearchProjectManagerImplTest {
 		return dto;
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateWithNullUserInfo() {
-		manager.create(null, createNewResearchProject());
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.create(null, createNewResearchProject());
+		});
+		
+		assertEquals("The user is required.", ex.getMessage());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateWithNullResearchProject() {
-		manager.create(mockUser, null);
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.create(mockUser, null);
+		});
+		
+		assertEquals("The research project is required.", ex.getMessage());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateWithNullAccessRequirementId() {
 		ResearchProject toCreate = createNewResearchProject();
 		toCreate.setAccessRequirementId(null);
-		manager.create(mockUser, toCreate);
+
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.create(mockUser, toCreate);
+		});
+		
+		assertEquals("The accessRequirementId is required.", ex.getMessage());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateWithNullProjectLead() {
+		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
+		
 		ResearchProject toCreate = createNewResearchProject();
 		toCreate.setProjectLead(null);
-		manager.create(mockUser, toCreate);
+
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.create(mockUser, toCreate);
+		});
+		
+		assertEquals("The projectLead must contains more than 0 characters.", ex.getMessage());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateWithNullInstitution() {
+		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
+		
 		ResearchProject toCreate = createNewResearchProject();
 		toCreate.setInstitution(null);
-		manager.create(mockUser, toCreate);
+
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.create(mockUser, toCreate);
+		});
+		
+		assertEquals("The insitution must contains more than 0 characters.", ex.getMessage());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
-	public void testCreateWithNullIDU() {
+	@Test
+	public void testCreateWithNullIDUWhenRequired() {
+		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getIsIDURequired()).thenReturn(true);
+		
 		ResearchProject toCreate = createNewResearchProject();
 		toCreate.setIntendedDataUseStatement(null);
+
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.create(mockUser, toCreate);
+		});
+
+		assertEquals("The intended data use statement must contains more than 0 characters.", ex.getMessage());
+	}
+	
+	@Test
+	public void testCreateWithNullIDUWhenOptional() {
+		when(mockUser.getId()).thenReturn(Long.valueOf(userId));
+		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
+		
+		// The AR defines the IDU as optional
+		when(mockAccessRequirement.getIsIDURequired()).thenReturn(false);
+		when(mockResearchProjectDao.create(any())).thenReturn(researchProject);
+		
+		ResearchProject toCreate = createNewResearchProject();
+		
+		// It should now be possible to have a nullable IDU
+		toCreate.setIntendedDataUseStatement(null);
+		
+		// Call under test
 		manager.create(mockUser, toCreate);
+		
+		verify(mockResearchProjectDao).create(toCreate);
+
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateWithEmptyProjectLead() {
+		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
 		ResearchProject toCreate = createNewResearchProject();
 		toCreate.setProjectLead("");
-		manager.create(mockUser, toCreate);
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.create(mockUser, toCreate);
+		});
+
+		assertEquals("The projectLead must contains more than 0 characters.", ex.getMessage());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateWithEmptyInstitution() {
+		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
+		
 		ResearchProject toCreate = createNewResearchProject();
 		toCreate.setInstitution("");
-		manager.create(mockUser, toCreate);
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.create(mockUser, toCreate);
+		});
+
+		assertEquals("The insitution must contains more than 0 characters.", ex.getMessage());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
-	public void testCreateWithEmptyIDU() {
+	@Test
+	public void testCreateWithEmptyIDUWhenRequired() {
+		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getIsIDURequired()).thenReturn(true);
+		
 		ResearchProject toCreate = createNewResearchProject();
 		toCreate.setIntendedDataUseStatement("");
-		manager.create(mockUser, toCreate);
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.create(mockUser, toCreate);
+		});
+
+		assertEquals("The intended data use statement must contains more than 0 characters.", ex.getMessage());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateWithNotACTAccessRequirementId() {
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new TermsOfUseAccessRequirement());
-		manager.create(null, createNewResearchProject());
+
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.create(mockUser, createNewResearchProject());
+		});
+
+		assertEquals("A research project can only be associated with an ManagedACTAccessRequirement.", ex.getMessage());
+
 	}
 
 	@Test
 	public void testCreate() {
+		when(mockUser.getId()).thenReturn(Long.valueOf(userId));
+		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
+		when(mockResearchProjectDao.create(any())).thenReturn(researchProject);
+		
+		// Call under test
 		assertEquals(researchProject, manager.create(mockUser, createNewResearchProject()));
+		
 		ArgumentCaptor<ResearchProject> captor = ArgumentCaptor.forClass(ResearchProject.class);
 		verify(mockResearchProjectDao).create(captor.capture());
 		ResearchProject toCreate = captor.getValue();
@@ -172,6 +262,8 @@ public class ResearchProjectManagerImplTest {
 	@Test
 	public void testPrepareUpdateFields() {
 		String modifiedBy = "111";
+		
+		// Call under test
 		ResearchProject prepared = manager.prepareUpdateFields(researchProject, modifiedBy);
 		assertEquals(modifiedBy, prepared.getModifiedBy());
 	}
@@ -179,25 +271,39 @@ public class ResearchProjectManagerImplTest {
 	@Test
 	public void testPrepareCreationFields() {
 		String createdBy = "222";
+		
+		// Call under test
 		ResearchProject prepared = manager.prepareCreationFields(researchProject, createdBy);
 		assertEquals(createdBy, prepared.getModifiedBy());
 		assertEquals(createdBy, prepared.getCreatedBy());
 		assertEquals(researchProjectId, prepared.getId());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetWithNullUserInfo() {
-		manager.getUserOwnResearchProjectForUpdate(null, accessRequirementId);
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.getUserOwnResearchProjectForUpdate(null, accessRequirementId);
+		});
+
+		assertEquals("The user is required.", ex.getMessage());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetWithNullAccessRequirementId() {
-		manager.getUserOwnResearchProjectForUpdate(mockUser, null);
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.getUserOwnResearchProjectForUpdate(mockUser, null);
+		});
+
+		assertEquals("The accessRequirementId is required.", ex.getMessage());
 	}
 
 	@Test
 	public void testGetNotFound() {
 		when(mockResearchProjectDao.getUserOwnResearchProject(anyString(), anyString())).thenThrow(new NotFoundException());
+		
+		// Call under test
 		ResearchProject rp = manager.getUserOwnResearchProjectForUpdate(mockUser, accessRequirementId);
 		assertNotNull(rp);
 		assertEquals(accessRequirementId, rp.getAccessRequirementId());
@@ -205,94 +311,206 @@ public class ResearchProjectManagerImplTest {
 
 	@Test
 	public void testGet() {
+		when(mockUser.getId()).thenReturn(Long.valueOf(userId));
+		when(mockResearchProjectDao.getUserOwnResearchProject(accessRequirementId, userId)).thenReturn(researchProject);
+		
+		// Call under test
 		assertEquals(researchProject, manager.getUserOwnResearchProjectForUpdate(mockUser, accessRequirementId));
 		verify(mockResearchProjectDao).getUserOwnResearchProject(accessRequirementId, userId);
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testUpdateWithNullUserInfo() {
-		manager.update(null, createNewResearchProject());
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.update(null, createNewResearchProject());
+		});
+
+		assertEquals("The user is required.", ex.getMessage());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testUpdatWeithNullResearchProject() {
-		manager.update(mockUser, null);
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.update(mockUser, null);
+		});
+
+		assertEquals("The research project is required.", ex.getMessage());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testUpdateWithNullAccessRequirementId() {
 		ResearchProject toUpdate = createNewResearchProject();
 		toUpdate.setAccessRequirementId(null);
-		manager.update(mockUser, toUpdate);
+
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.update(mockUser, toUpdate);
+		});
+
+		assertEquals("The accessRequirementId is required.", ex.getMessage());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testUpdateWithNullProjectLead() {
+		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
+		
 		ResearchProject toUpdate = createNewResearchProject();
 		toUpdate.setProjectLead(null);
-		manager.update(mockUser, toUpdate);
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.update(mockUser, toUpdate);
+		});
+
+		assertEquals("The projectLead must contains more than 0 characters.", ex.getMessage());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testUpdateWithNullInstitution() {
+		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
 		ResearchProject toUpdate = createNewResearchProject();
 		toUpdate.setInstitution(null);
-		manager.update(mockUser, toUpdate);
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.update(mockUser, toUpdate);
+		});
+
+		assertEquals("The insitution must contains more than 0 characters.", ex.getMessage());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
-	public void testUpdateWithNullIDU() {
+	@Test
+	public void testUpdateWithNullIDUWhenRequired() {
+		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getIsIDURequired()).thenReturn(true);
+		
 		ResearchProject toUpdate = createNewResearchProject();
 		toUpdate.setIntendedDataUseStatement(null);
-		manager.update(mockUser, toUpdate);
-	}
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.update(mockUser, toUpdate);
+		});
 
-	@Test (expected = NotFoundException.class)
-	public void testUpdateNotFound() {
+		assertEquals("The intended data use statement must contains more than 0 characters.", ex.getMessage());
+	}
+	
+	@Test
+	public void testUpdateWithNullIDUWhenOptional() {
+		when(mockUser.getId()).thenReturn(Long.valueOf(userId));
+		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getIsIDURequired()).thenReturn(false);
+		when(mockResearchProjectDao.getForUpdate(anyString())).thenReturn(researchProject);
+		
 		ResearchProject toUpdate = createNewResearchProject();
-		when(mockResearchProjectDao.getForUpdate(anyString())).thenThrow(new NotFoundException());
+		toUpdate.setIntendedDataUseStatement(null);
+
+		// Call under test
 		manager.update(mockUser, toUpdate);
+		
+		verify(mockResearchProjectDao).update(toUpdate);
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
+	public void testUpdateNotFound() {
+		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
+		when(mockResearchProjectDao.getForUpdate(anyString())).thenThrow(new NotFoundException());
+
+		ResearchProject toUpdate = createNewResearchProject();
+		NotFoundException ex = assertThrows(NotFoundException.class, () -> {			
+			// Call under test
+			manager.update(mockUser, toUpdate);
+		});
+
+		assertEquals("The resource you are attempting to access cannot be found", ex.getMessage());
+	}
+
+	@Test
 	public void testUpdateCreatedBy() {
+		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
+		when(mockResearchProjectDao.getForUpdate(researchProjectId)).thenReturn(researchProject);
+		
 		ResearchProject toUpdate = createNewResearchProject();
 		toUpdate.setCreatedBy("333");
-		manager.update(mockUser, toUpdate);
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.update(mockUser, toUpdate);
+		});
+
+		assertEquals("accessRequirementId, createdOn and createdBy fields cannot be edited.", ex.getMessage());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testUpdateCreatedOn() {
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockResearchProjectDao.getForUpdate(researchProjectId)).thenReturn(researchProject);
+		
 		ResearchProject toUpdate = createNewResearchProject();
 		toUpdate.setCreatedOn(new Date(0L));
-		manager.update(mockUser, toUpdate);
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.update(mockUser, toUpdate);
+		});
+
+		assertEquals("accessRequirementId, createdOn and createdBy fields cannot be edited.", ex.getMessage());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testUpdateAccessRequirementId() {
+		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
+		when(mockResearchProjectDao.getForUpdate(researchProjectId)).thenReturn(researchProject);
+		
 		ResearchProject toUpdate = createNewResearchProject();
 		toUpdate.setAccessRequirementId("444");
-		manager.update(mockUser, toUpdate);
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.update(mockUser, toUpdate);
+		});
+
+		assertEquals("accessRequirementId, createdOn and createdBy fields cannot be edited.", ex.getMessage());
 	}
 
-	@Test (expected = ConflictingUpdateException.class)
+	@Test
 	public void testUpdateWithOutdatedEtag() {
+		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
+		when(mockResearchProjectDao.getForUpdate(researchProjectId)).thenReturn(researchProject);
+		
 		ResearchProject toUpdate = createNewResearchProject();
 		toUpdate.setEtag("oldEtag");
-		manager.update(mockUser, toUpdate);
+		ConflictingUpdateException ex = assertThrows(ConflictingUpdateException.class, () -> {			
+			// Call under test
+			manager.update(mockUser, toUpdate);
+		});
+
+		assertEquals("The resource you are attempting to edit has changed since you last fetched the object", ex.getMessage());
 	}
 
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testUpdateUnauthorized() {
-		ResearchProject toUpdate = createNewResearchProject();
 		when(mockUser.getId()).thenReturn(555L);
-		manager.update(mockUser, toUpdate);
+		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
+		when(mockResearchProjectDao.getForUpdate(researchProjectId)).thenReturn(researchProject);
+				
+		ResearchProject toUpdate = createNewResearchProject();
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class, () -> {			
+			// Call under test
+			manager.update(mockUser, toUpdate);
+		});
+
+		assertEquals("Only the owner can perform this action.", ex.getMessage());
 	}
 
 	@Test
 	public void testUpdate() {
+		when(mockUser.getId()).thenReturn(Long.valueOf(userId));
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockResearchProjectDao.getForUpdate(anyString())).thenReturn(researchProject);
+		when(mockResearchProjectDao.update(any())).thenReturn(researchProject);
+		
 		ResearchProject toUpdate = createNewResearchProject();
 		toUpdate.setIntendedDataUseStatement("new intendedDataUseStatement");
+		
+		// Call under test
 		assertEquals(researchProject, manager.update(mockUser, toUpdate));
 		ArgumentCaptor<ResearchProject> captor = ArgumentCaptor.forClass(ResearchProject.class);
 		verify(mockResearchProjectDao).update(captor.capture());
@@ -305,15 +523,27 @@ public class ResearchProjectManagerImplTest {
 		assertEquals("new intendedDataUseStatement", updated.getIntendedDataUseStatement());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateOrUpdateWithNullResearchProject() {
-		manager.createOrUpdate(mockUser, null);
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.createOrUpdate(mockUser, null);
+		});
+
+		assertEquals("The research project is required.", ex.getMessage());
 	}
 
 	@Test
 	public void testCreateOrUpdateWithNullId() {
+		when(mockUser.getId()).thenReturn(Long.valueOf(userId));
+		when(mockResearchProjectDao.create(any(ResearchProject.class))).thenReturn(researchProject);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		
 		researchProject.setId(null);
+		
+		// Call under test
 		assertEquals(researchProject, manager.createOrUpdate(mockUser, researchProject));
+		
 		ArgumentCaptor<ResearchProject> captor = ArgumentCaptor.forClass(ResearchProject.class);
 		verify(mockResearchProjectDao).create(captor.capture());
 		ResearchProject toCreate = captor.getValue();
@@ -326,8 +556,15 @@ public class ResearchProjectManagerImplTest {
 
 	@Test
 	public void testCreateOrUpdateWithId() {
+		when(mockUser.getId()).thenReturn(Long.valueOf(userId));
+		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
+		when(mockResearchProjectDao.getForUpdate(anyString())).thenReturn(researchProject);
+		when(mockResearchProjectDao.update(any())).thenReturn(researchProject);
+		
 		ResearchProject toUpdate = createNewResearchProject();
 		toUpdate.setIntendedDataUseStatement("new intendedDataUseStatement");
+		
+		// Call under test
 		assertEquals(researchProject, manager.createOrUpdate(mockUser, toUpdate));
 		ArgumentCaptor<ResearchProject> captor = ArgumentCaptor.forClass(ResearchProject.class);
 		verify(mockResearchProjectDao).update(captor.capture());
@@ -339,4 +576,5 @@ public class ResearchProjectManagerImplTest {
 		assertEquals(institution, updated.getInstitution());
 		assertEquals("new intendedDataUseStatement", updated.getIntendedDataUseStatement());
 	}
+	
 }

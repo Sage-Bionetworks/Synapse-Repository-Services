@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslat
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
+@Deprecated
 public class DBODownloadListItem implements MigratableDatabaseObject<DBODownloadListItem, DBODownloadListItem> {
 
 	private Long principalId;

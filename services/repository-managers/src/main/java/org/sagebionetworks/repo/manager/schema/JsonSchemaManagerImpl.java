@@ -216,6 +216,11 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		CreateSchemaResponse response = new CreateSchemaResponse();
 		response.setNewVersionInfo(info);
 		response.setValidationSchema(validationSchema);
+		
+		// If this is a dry run, then we do not keep the resulting schema.
+		if(Boolean.TRUE.equals(request.getDryRun())) {
+			jsonSchemaDao.deleteSchemaVersion(info.getVersionId());
+		}
 		return response;
 	}
 	

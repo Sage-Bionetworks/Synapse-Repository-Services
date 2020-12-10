@@ -7,6 +7,7 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.web.FileHandleLinkedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.common.collect.Multimap;
@@ -65,6 +66,7 @@ public interface FileHandleDao {
 	/**
 	 * Delete the file metadata.
 	 * @param id
+	 * @throws FileHandleLinkedException If the file handle is still linked to some object through a FK that restricts its deletion
 	 */
 	public void delete(String id);
 	

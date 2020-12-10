@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -42,6 +43,7 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
+import org.springframework.dao.DuplicateKeyException;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
@@ -418,5 +420,17 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		assertThrows(UnauthorizedException. class, () -> personalAccessTokenManager.revokeToken(userInfo, TOKEN_ID));
 
 		verify(mockPersonalAccessTokenDao, never()).deleteToken(TOKEN_ID);
+	}
+
+	@Test // PLFM-6494
+	void testCreateToken_DuplicateKeyException() {
+		when(mockTokenHelper.parseJWT(ACCESS_TOKEN)).thenReturn(accessTokenJwt);
+		when(mockPersonalAccessTokenDao.createTokenRecord(any())).thenThrow(new IllegalArgumentException(new DuplicateKeyException("message")));
+
+		// Method under test
+		assertThrows(
+				IllegalArgumentException.class,
+				() -> personalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT),
+				PersonalAccessTokenManagerImpl.DUPLICATE_TOKEN_NAME_MSG);
 	}
 }
