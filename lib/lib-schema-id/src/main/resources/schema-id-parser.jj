@@ -5,13 +5,19 @@ STATIC = false;
 PARSER_BEGIN(SchemaIdParser)
 package org.sagebionetworks.schema.parser;
 import java.io.StringReader;
-import java.util.LinkedList;
-import java.util.List;
 
-import org.sagebionetworks.schema.*;
-import org.sagebionetworks.schema.id.*;
-import org.sagebionetworks.schema.element.*;
-import org.sagebionetworks.schema.semantic.version.*;
+import org.sagebionetworks.schema.id.DotSeparatedAlphaNumeric;
+import org.sagebionetworks.schema.id.OrganizationName;
+import org.sagebionetworks.schema.id.SchemaId;
+import org.sagebionetworks.schema.id.SchemaName;
+import org.sagebionetworks.schema.semantic.version.AlphanumericIdentifier;
+import org.sagebionetworks.schema.semantic.version.Build;
+import org.sagebionetworks.schema.semantic.version.BuildIdentifier;
+import org.sagebionetworks.schema.semantic.version.NumericIdentifier;
+import org.sagebionetworks.schema.semantic.version.Prerelease;
+import org.sagebionetworks.schema.semantic.version.PrereleaseIdentifier;
+import org.sagebionetworks.schema.semantic.version.SemanticVersion;
+import org.sagebionetworks.schema.semantic.version.VersionCore;
 
 public class SchemaIdParser {
 
@@ -30,11 +36,30 @@ public class SchemaIdParser {
 		if(id == null) {
 			throw new IllegalArgumentException("$id cannot be null");
 		}
-		SchemaIdParser parser = new SchemaIdParser(id);
+		SchemaIdParser parser = new SchemaIdParser(extractRelative$id(id));
 		try {
 			return parser.schemaId();
 		} catch (ParseException e) {
 			throw new IllegalArgumentException("Invalid '$id' : '" + id + "'\n" + e.getMessage(), e);
+		}
+	}
+	
+		/**
+	 * If the passed $id is absolute then it will be converted to relative.
+	 * If the passed $id is already relative then it will be returned unmodified.
+	 * 
+	 * @param id
+	 * @return
+	 */
+	public static String extractRelative$id(String id) {
+		if(id == null) {
+			return null;
+		}
+		int lastSlashIndex = id.lastIndexOf("/");
+		if(lastSlashIndex > 0) {
+			return id.substring(lastSlashIndex+1);
+		}else {
+			return id;
 		}
 	}
 	

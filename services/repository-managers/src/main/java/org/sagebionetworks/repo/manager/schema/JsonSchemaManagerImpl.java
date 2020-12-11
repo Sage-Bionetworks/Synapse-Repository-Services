@@ -64,6 +64,8 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 
 	public static final int MAX_ORGANZIATION_NAME_CHARS = 250;
 	public static final int MIN_ORGANZIATION_NAME_CHARS = 6;
+	
+	public static final String ABSOLUTE_$ID_TEMPALTE = "https://repo-prod.prod.sagebase.org/repo/v1/schema/type/registered/%s";
 
 	@Autowired
 	private OrganizationDao organizationDao;
@@ -427,9 +429,10 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		if (visitedStack.contains($id)) {
 			throw new IllegalArgumentException("Schema $id: '" + $id + "' has a circular dependency");
 		}
+		boolean isTopLevel = visitedStack.isEmpty();
 		visitedStack.push($id);
 		// get the base schema
-		JsonSchema baseSchema = getSchema($id);
+		JsonSchema baseSchema = getSchema($id, isTopLevel);
 		if (baseSchema.getDefinitions() == null) {
 			baseSchema.setDefinitions(new LinkedHashMap<String, JsonSchema>());
 		}
@@ -469,7 +472,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	 * @return
 	 */
 	@Override
-	public JsonSchema getSchema(String $id) {
+	public JsonSchema getSchema(String $id, boolean isTopLevel) {
 		ValidateArgument.required($id, "id");
 		String versionId = getSchemaVersionId($id);
 		JsonSchema result = jsonSchemaDao.getSchema(versionId);
@@ -479,6 +482,10 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		 * version.
 		 */
 		result.set$id($id);
+		if(isTopLevel) {
+			// the absolute $id is needed for the top level. See: PLFM-6515
+			result.set$id(String.format(ABSOLUTE_$ID_TEMPALTE, $id));
+		}
 		return result;
 	}
 

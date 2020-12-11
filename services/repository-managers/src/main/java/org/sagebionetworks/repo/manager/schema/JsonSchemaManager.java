@@ -76,13 +76,11 @@ public interface JsonSchemaManager {
 
 	/**
 	 * Get the JSON schema for a given $id
-	 * 
-	 * @param organizationName
-	 * @param schemaName
-	 * @param semanticVersion
+	 * @param $id
+	 * @param isTopLevel
 	 * @return
 	 */
-	JsonSchema getSchema(String $id);
+	JsonSchema getSchema(String $id, boolean isTopLevel);
 
 	void truncateAll();
 

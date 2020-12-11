@@ -113,6 +113,8 @@ public class JsonSchemaManagerImplTest {
 
 	Organization organization;
 	JsonSchemaVersionInfo versionInfo;
+	
+	boolean isTopLevel;
 
 	ListOrganizationsRequest listOrganizationsRequest;
 	ListJsonSchemaInfoRequest listJsonSchemaInfoRequest;
@@ -199,7 +201,7 @@ public class JsonSchemaManagerImplTest {
 		jsonSchemaObjectBinding.setObjectId(objectId);
 		jsonSchemaObjectBinding.setObjectType(objectType);
 		jsonSchemaObjectBinding.setJsonSchemaVersionInfo(versionInfo);
-
+		isTopLevel = false;
 	}
 
 	@Test
@@ -1045,7 +1047,7 @@ public class JsonSchemaManagerImplTest {
 		when(mockSchemaDao.getSchema(any())).thenReturn(schema);
 		String $id = organizationName + "-" + schemaName + "-" + semanticVersionString;
 		// call under test
-		JsonSchema result = manager.getSchema($id);
+		JsonSchema result = manager.getSchema($id, isTopLevel);
 		assertEquals(schema, result);
 		assertEquals($id, result.get$id());
 		verify(mockSchemaDao).getVersionId(organizationName, schemaName, semanticVersionString);
@@ -1068,7 +1070,7 @@ public class JsonSchemaManagerImplTest {
 		when(mockSchemaDao.getSchema(any())).thenReturn(schema);
 		String $id = organizationName + "-" + schemaName;
 		// call under test
-		JsonSchema result = manager.getSchema($id);
+		JsonSchema result = manager.getSchema($id, isTopLevel);
 		assertEquals(schema, result);
 		assertEquals($id, result.get$id());
 		verify(mockSchemaDao, never()).getVersionId(any(), any(), any());
@@ -1080,10 +1082,35 @@ public class JsonSchemaManagerImplTest {
 	public void testGetSchemaNull$id() {
 		String $id = null;
 		assertThrows(IllegalArgumentException.class, () -> {
-			manager.getSchema($id);
+			manager.getSchema($id, isTopLevel);
 		});
 	}
+	
+	@Test
+	public void testGetSchemaWithIsTopLevelFalse() {
+		isTopLevel = false;
+		when(mockSchemaDao.getLatestVersionId(any(), any())).thenReturn(versionId);
+		when(mockSchemaDao.getSchema(any())).thenReturn(schema);
+		String $id = organizationName + "-" + schemaName;
+		// call under test
+		JsonSchema result = manager.getSchema($id, isTopLevel);
+		assertEquals(schema, result);
+		assertEquals($id, result.get$id());
+	}
 
+	@Test
+	public void testGetSchemaWithIsTopLevelTrue() {
+		isTopLevel = true;
+		when(mockSchemaDao.getLatestVersionId(any(), any())).thenReturn(versionId);
+		when(mockSchemaDao.getSchema(any())).thenReturn(schema);
+		String $id = organizationName + "-" + schemaName;
+		// call under test
+		JsonSchema result = manager.getSchema($id, isTopLevel);
+		assertEquals(schema, result);
+		// should be the absolute $id
+		assertEquals("https://repo-prod.prod.sagebase.org/repo/v1/schema/type/registered/a.z2.b.com-path.SomeSchema.json", result.get$id());
+	}
+	
 	@Test
 	public void testDeleteSchemaByIdWithoutVersion() {
 		when(mockSchemaDao.getVersionLatestInfo(any(), any())).thenReturn(versionInfo);
@@ -1334,9 +1361,9 @@ public class JsonSchemaManagerImplTest {
 		JsonSchema three = createSchema("three");
 		three.setItems(refToTwo);
 
-		Mockito.doReturn(cloneSchema(one)).when(managerSpy).getSchema(one.get$id());
-		Mockito.doReturn(cloneSchema(two)).when(managerSpy).getSchema(two.get$id());
-		Mockito.doReturn(cloneSchema(three)).when(managerSpy).getSchema(three.get$id());
+		Mockito.doReturn(cloneSchema(one)).when(managerSpy).getSchema(one.get$id(), false);
+		Mockito.doReturn(cloneSchema(two)).when(managerSpy).getSchema(two.get$id(), false);
+		Mockito.doReturn(cloneSchema(three)).when(managerSpy).getSchema(three.get$id(), true);
 
 		// call under test
 		JsonSchema validationSchema = managerSpy.getValidationSchema(three.get$id());
@@ -1367,9 +1394,9 @@ public class JsonSchemaManagerImplTest {
 		assertNotNull(fooBar);
 		assertEquals(Type.string, fooBar.getType());
 
-		verify(managerSpy).getSchema(one.get$id());
-		verify(managerSpy).getSchema(two.get$id());
-		verify(managerSpy).getSchema(three.get$id());
+		verify(managerSpy).getSchema(one.get$id(), false);
+		verify(managerSpy).getSchema(two.get$id(), false);
+		verify(managerSpy).getSchema(three.get$id(), true);
 	}
 
 	@Test
@@ -1381,8 +1408,8 @@ public class JsonSchemaManagerImplTest {
 		JsonSchema two = createSchema("two");
 		two.setItems(refToOne);
 
-		Mockito.doReturn(cloneSchema(one)).when(managerSpy).getSchema(one.get$id());
-		Mockito.doReturn(cloneSchema(two)).when(managerSpy).getSchema(two.get$id());
+		Mockito.doReturn(cloneSchema(one)).when(managerSpy).getSchema(one.get$id(), false);
+		Mockito.doReturn(cloneSchema(two)).when(managerSpy).getSchema(two.get$id(), true);
 
 		// call under test
 		JsonSchema validationSchema = managerSpy.getValidationSchema(two.get$id());
@@ -1399,8 +1426,8 @@ public class JsonSchemaManagerImplTest {
 		assertEquals(one.getDescription(), oneFromDefinitions.getDescription());
 		assertNull(oneFromDefinitions.getDefinitions());
 
-		verify(managerSpy).getSchema(one.get$id());
-		verify(managerSpy).getSchema(two.get$id());
+		verify(managerSpy).getSchema(one.get$id(), false);
+		verify(managerSpy).getSchema(two.get$id(), true);
 	}
 
 	@Test
@@ -1420,9 +1447,9 @@ public class JsonSchemaManagerImplTest {
 		three.setProperties(new LinkedHashMap<String, JsonSchema>());
 		three.getProperties().put("threeRefToTwo", refToTwo);
 
-		Mockito.doReturn(cloneSchema(one)).when(managerSpy).getSchema(one.get$id());
-		Mockito.doReturn(cloneSchema(two)).when(managerSpy).getSchema(two.get$id());
-		Mockito.doReturn(cloneSchema(three)).when(managerSpy).getSchema(three.get$id());
+		Mockito.doReturn(cloneSchema(one)).when(managerSpy).getSchema(one.get$id(), false);
+		Mockito.doReturn(cloneSchema(two)).when(managerSpy).getSchema(two.get$id(), false);
+		Mockito.doReturn(cloneSchema(three)).when(managerSpy).getSchema(three.get$id(), true);
 
 		// call under test
 		JsonSchema validationSchema = managerSpy.getValidationSchema(three.get$id());
@@ -1459,9 +1486,9 @@ public class JsonSchemaManagerImplTest {
 		// one refs to three creates a cycle
 		one.setItems(refToThree);
 
-		Mockito.doReturn(cloneSchema(one)).when(managerSpy).getSchema(one.get$id());
-		Mockito.doReturn(cloneSchema(two)).when(managerSpy).getSchema(two.get$id());
-		Mockito.doReturn(cloneSchema(three)).when(managerSpy).getSchema(three.get$id());
+		Mockito.doReturn(cloneSchema(one)).when(managerSpy).getSchema(one.get$id(), false);
+		Mockito.doReturn(cloneSchema(two)).when(managerSpy).getSchema(two.get$id(), false);
+		Mockito.doReturn(cloneSchema(three)).when(managerSpy).getSchema(three.get$id(), true);
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
@@ -1476,7 +1503,7 @@ public class JsonSchemaManagerImplTest {
 		JsonSchema one = createSchema("one");
 		one.setDescription("about one");
 
-		Mockito.doReturn(cloneSchema(one)).when(managerSpy).getSchema(one.get$id());
+		Mockito.doReturn(cloneSchema(one)).when(managerSpy).getSchema(one.get$id(), true);
 
 		// call under test
 		JsonSchema validationSchema = managerSpy.getValidationSchema(one.get$id());
@@ -1484,7 +1511,7 @@ public class JsonSchemaManagerImplTest {
 		assertNull(validationSchema.getDefinitions());
 		assertEquals("one", validationSchema.get$id());
 
-		verify(managerSpy).getSchema(one.get$id());
+		verify(managerSpy).getSchema(one.get$id(), true);
 	}
 
 	@Test
