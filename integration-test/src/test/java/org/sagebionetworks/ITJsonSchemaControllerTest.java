@@ -214,6 +214,7 @@ public class ITJsonSchemaControllerTest {
 		String semanticVersion = null;
 		// call under test
 		JsonSchema fetched = synapse.getJsonSchema(organizationName, schemaName, semanticVersion);
+		schema.set$id("https://repo-prod.prod.sagebase.org/repo/v1/schema/type/registered/"+schema.get$id());
 		assertEquals(schema, fetched);
 		// call under test
 		synapse.deleteSchema(organizationName, schemaName);
@@ -241,8 +242,8 @@ public class ITJsonSchemaControllerTest {
 		AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.GetValidationSchema, getRequest,
 				(GetValidationSchemaResponse response) -> {
 					assertNotNull(response);
+					schema.set$id("https://repo-prod.prod.sagebase.org/repo/v1/schema/type/registered/"+schema.get$id());
 					assertEquals(schema, response.getValidationSchema());
-
 				}, MAX_WAIT_MS).getResponse();
 
 		// call under test
@@ -317,6 +318,7 @@ public class ITJsonSchemaControllerTest {
 
 		// call under test
 		JsonSchema fetched = synapse.getJsonSchema(organizationName, schemaName, semanticVersion);
+		schema.set$id("https://repo-prod.prod.sagebase.org/repo/v1/schema/type/registered/"+schema.get$id());
 		assertEquals(schema, fetched);
 		// call under test
 		synapse.deleteSchema(organizationName, schemaName);
@@ -337,7 +339,7 @@ public class ITJsonSchemaControllerTest {
 		waitForSchemaCreate(request, (response) -> {
 			assertNotNull(response);
 		});
-
+		schema.set$id("https://repo-prod.prod.sagebase.org/repo/v1/schema/type/registered/"+schema.get$id());
 		JsonSchema fetched = synapse.getJsonSchema(organizationName, schemaName, semanticVersion);
 		assertEquals(schema, fetched);
 		// call under test
