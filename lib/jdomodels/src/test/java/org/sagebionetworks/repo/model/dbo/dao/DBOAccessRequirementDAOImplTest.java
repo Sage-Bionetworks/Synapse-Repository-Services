@@ -437,7 +437,7 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
 		String accessRequirementId = String.valueOf(accessRequirement.getId());
-		String expectedMessage = "This AccessRequirement ID: "+ accessRequirementId + " cannot be found.";
+		String expectedMessage = "An access requirement with id "+ accessRequirementId + " cannot be found.";
 		// Call under test
 		accessRequirementDAO.delete(accessRequirementId);
 		NotFoundException exception = assertThrows(NotFoundException.class, () -> {

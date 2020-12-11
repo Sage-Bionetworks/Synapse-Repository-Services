@@ -241,7 +241,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		ids.add(Long.parseLong(id));
 		List<AccessRequirement> results = getAccessRequirements(ids);
 		if(results.isEmpty()){
-			throw new NotFoundException("This AccessRequirement ID: "+id + " cannot be found.");
+			throw new NotFoundException("An access requirement with id "+ id + " cannot be found.");
 		}
 		return results.get(0);
 	}
