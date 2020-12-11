@@ -184,7 +184,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			basicDao.deleteObjectByPrimaryKey(DBOAccessRequirement.class, param);
 		} catch (DataIntegrityViolationException e) {
 			throw new IllegalArgumentException("The access requirement with id " + id +
-					" cannot be deleted as it is referenced by another object "
+					" cannot be deleted as it is referenced by another object."
 					, e);
 		}
 	}
