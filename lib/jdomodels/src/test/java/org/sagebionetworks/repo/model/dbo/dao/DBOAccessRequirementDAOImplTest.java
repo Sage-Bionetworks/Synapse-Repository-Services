@@ -437,7 +437,7 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
 		String accessRequirementId = String.valueOf(accessRequirement.getId());
-		String expectedMessage = "AccessRequirement ID: " + accessRequirementId;
+		String expectedMessage = "This AccessRequirement ID: "+ accessRequirementId + " cannot be found.";
 		// Call under test
 		accessRequirementDAO.delete(accessRequirementId);
 		NotFoundException exception = assertThrows(NotFoundException.class, () -> {
@@ -459,7 +459,7 @@ public class DBOAccessRequirementDAOImplTest {
 		dto.setResearchProjectId(researchProject.getId());
 		dto = requestDao.create(dto);
 		String expectedMessage = "The access requirement with id " + accessRequirementId +
-				" cannot be deleted as it is referenced by another object \n";
+				" cannot be deleted as it is referenced by another object.";
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			accessRequirementDAO.delete(accessRequirementId);

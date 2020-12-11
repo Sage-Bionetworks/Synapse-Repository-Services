@@ -336,7 +336,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		String accessRequirementId = String.valueOf(ar.getId());
 		// Call under test
 		accessRequirementManager.deleteAccessRequirement(adminUserInfo, accessRequirementId);
-		String expectedMessage = "AccessRequirement ID: " + accessRequirementId;
+		String expectedMessage = "This AccessRequirement ID: "+ accessRequirementId + " cannot be found.";
 		NotFoundException exception = assertThrows(NotFoundException.class, () -> {
 			accessRequirementManager.getAccessRequirement(accessRequirementId);
 		});

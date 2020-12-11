@@ -184,7 +184,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			basicDao.deleteObjectByPrimaryKey(DBOAccessRequirement.class, param);
 		} catch (DataIntegrityViolationException e) {
 			throw new IllegalArgumentException("The access requirement with id " + id +
-					" cannot be deleted as it is referenced by another object \n"
+					" cannot be deleted as it is referenced by another object "
 					, e);
 		}
 	}
@@ -241,7 +241,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		ids.add(Long.parseLong(id));
 		List<AccessRequirement> results = getAccessRequirements(ids);
 		if(results.isEmpty()){
-			throw new NotFoundException("AccessRequirement ID: "+id);
+			throw new NotFoundException("This AccessRequirement ID: "+id + " cannot be found.");
 		}
 		return results.get(0);
 	}
