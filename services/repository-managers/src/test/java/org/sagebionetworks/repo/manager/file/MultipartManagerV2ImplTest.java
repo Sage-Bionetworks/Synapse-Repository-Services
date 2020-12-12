@@ -168,7 +168,7 @@ public class MultipartManagerV2ImplTest {
 
 		boolean forceRestart = false;
 
-		String errorMessage = assertThrows(UnsupportedOperationException.class, () -> {
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			manager.startOrResumeMultipartOperation(user, request, forceRestart);
 		}).getMessage();
@@ -369,6 +369,40 @@ public class MultipartManagerV2ImplTest {
 		}).getMessage();
 
 		assertEquals("Anonymous cannot upload files.", errorMessage);
+	}
+	
+	// Test for PLFM-6533, if a cloud provider does not support the copy an UnsupportedOperationException needs to be translated to a 400
+	@Test
+	public void testStartOrResumeMultipartRequestWithUnsupportedOperationException() {
+		Long partSize = PartUtils.MIN_PART_SIZE_BYTES;
+		String requestHash = MultipartRequestUtils.calculateMD5AsHex(mockRequest);
+		
+		boolean forceRestart = false;
+
+		when(mockRequest.getPartSizeBytes()).thenReturn(partSize);
+		doNothing().when(mockHandler).validateRequest(any(), any());
+
+		// Mimic a new upload
+		when(mockMultipartUploadDAO.getUploadStatus(any(), any())).thenReturn(null);
+		when(mockProjectSettingsManager.getStorageLocationSetting(any())).thenReturn(mockStorageSettings);
+		
+		UnsupportedOperationException cause = new UnsupportedOperationException("Unsupported");
+		
+		doThrow(cause).when(mockHandler).initiateRequest(any(), any(), any(), any());
+				
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.startOrResumeMultipartRequest(mockHandler, user, mockRequest,forceRestart);
+		});
+
+		assertEquals(cause.getMessage(), ex.getMessage());
+		assertEquals(cause, ex.getCause());
+
+		verify(mockHandler).validateRequest(user, mockRequest);
+		verify(mockMultipartUploadDAO, never()).deleteUploadStatus(anyLong(), any());
+		verify(mockMultipartUploadDAO).getUploadStatus(user.getId(), requestHash);
+		verify(mockHandler).initiateRequest(user, mockRequest, requestHash, mockStorageSettings);
+		verify(mockMultipartUploadDAO, never()).createUploadStatus(mockCreateMultipartRequest);
 	}
 
 	@Test

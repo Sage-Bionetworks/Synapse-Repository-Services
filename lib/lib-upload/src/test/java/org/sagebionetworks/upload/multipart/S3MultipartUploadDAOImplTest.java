@@ -363,7 +363,7 @@ public class S3MultipartUploadDAOImplTest {
 		MultipartUploadCopyRequest request = new MultipartUploadCopyRequest();
 		request.setFileName("targetFileName");
 		
-		String errorMessage = assertThrows(UnsupportedOperationException.class, () -> {			
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
 			dao.initiateMultipartUploadCopy(bucket, key, request, sourceFile);
 		}).getMessage();
