@@ -6,10 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.when;
 
 import java.io.InputStream;
-import java.util.Collections;
-import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.apache.commons.io.IOUtils;
@@ -21,7 +20,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
-import org.sagebionetworks.AsynchronousJobWorkerHelperImpl.AsyncJobResponse;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
@@ -30,13 +28,10 @@ import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.manager.schema.SynapseSchemaBootstrap;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessNotification;
-import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationType;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
-import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
@@ -44,7 +39,6 @@ import org.sagebionetworks.repo.model.schema.GetValidationSchemaRequest;
 import org.sagebionetworks.repo.model.schema.GetValidationSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
-import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.ObjectType;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
@@ -58,10 +52,6 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-
-import junit.framework.AssertionFailedError;
-
-import static org.mockito.Mockito.when;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -280,6 +270,8 @@ public class JsonSchemaWorkerIntegrationTest {
 				(GetValidationSchemaResponse response) -> {
 					assertNotNull(response);
 					assertNotNull(response.getValidationSchema());
+					// the absolute $id should be returned: PLFM-6515
+					basicSchema.set$id(JsonSchemaManager.createAbsolute$id("my.org.net-some.schema-1.1.1"));
 					assertEquals(basicSchema, response.getValidationSchema());
 				}, MAX_WAIT_MS);
 	}
@@ -314,7 +306,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		waitForValidationResults(adminUserInfo, folderId, (ValidationResults t) -> {
 			assertNotNull(t);
 			assertTrue(t.getIsValid());
-			assertEquals(schema$id, t.getSchema$id());
+			assertEquals(JsonSchemaManager.createAbsolute$id(schema$id), t.getSchema$id());
 			assertEquals(resultFolder.getId(), t.getObjectId());
 			assertEquals(ObjectType.entity, t.getObjectType());
 			assertEquals(resultFolder.getEtag(), t.getObjectEtag());
@@ -343,7 +335,7 @@ public class JsonSchemaWorkerIntegrationTest {
 
 		// the schema should not exist
 		assertThrows(NotFoundException.class, () -> {
-			jsonSchemaManager.getSchema(basicSchema.get$id());
+			jsonSchemaManager.getSchema(basicSchema.get$id(), true);
 		});
 	}
 

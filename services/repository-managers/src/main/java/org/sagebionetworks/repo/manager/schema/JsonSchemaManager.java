@@ -25,6 +25,17 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
  */
 public interface JsonSchemaManager {
 	
+	public static final String ABSOLUTE_$ID_TEMPALTE = "https://repo-prod.prod.sagebase.org/repo/v1/schema/type/registered/%s";
+	
+	/**
+	 * Create the full absolute $id from the relative $id
+	 * @param $id
+	 * @return
+	 */
+	public static String createAbsolute$id(String relative$id) {
+		return String.format(ABSOLUTE_$ID_TEMPALTE, relative$id);
+	}
+	
 	/**
 	 * Create a new Organization from the given request
 	 * @param user
@@ -76,13 +87,11 @@ public interface JsonSchemaManager {
 
 	/**
 	 * Get the JSON schema for a given $id
-	 * 
-	 * @param organizationName
-	 * @param schemaName
-	 * @param semanticVersion
+	 * @param $id
+	 * @param isTopLevel
 	 * @return
 	 */
-	JsonSchema getSchema(String $id);
+	JsonSchema getSchema(String $id, boolean isTopLevel);
 
 	void truncateAll();
 
