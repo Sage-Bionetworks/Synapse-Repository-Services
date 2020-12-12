@@ -20,6 +20,7 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -214,7 +215,7 @@ public class ITJsonSchemaControllerTest {
 		String semanticVersion = null;
 		// call under test
 		JsonSchema fetched = synapse.getJsonSchema(organizationName, schemaName, semanticVersion);
-		schema.set$id("https://repo-prod.prod.sagebase.org/repo/v1/schema/type/registered/"+schema.get$id());
+		schema.set$id(JsonSchemaManager.createAbsolute$id(schema.get$id()));
 		assertEquals(schema, fetched);
 		// call under test
 		synapse.deleteSchema(organizationName, schemaName);
@@ -242,7 +243,7 @@ public class ITJsonSchemaControllerTest {
 		AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.GetValidationSchema, getRequest,
 				(GetValidationSchemaResponse response) -> {
 					assertNotNull(response);
-					schema.set$id("https://repo-prod.prod.sagebase.org/repo/v1/schema/type/registered/"+schema.get$id());
+					schema.set$id(JsonSchemaManager.createAbsolute$id(schema.get$id()));
 					assertEquals(schema, response.getValidationSchema());
 				}, MAX_WAIT_MS).getResponse();
 
@@ -318,7 +319,7 @@ public class ITJsonSchemaControllerTest {
 
 		// call under test
 		JsonSchema fetched = synapse.getJsonSchema(organizationName, schemaName, semanticVersion);
-		schema.set$id("https://repo-prod.prod.sagebase.org/repo/v1/schema/type/registered/"+schema.get$id());
+		schema.set$id(JsonSchemaManager.createAbsolute$id(schema.get$id()));
 		assertEquals(schema, fetched);
 		// call under test
 		synapse.deleteSchema(organizationName, schemaName);
@@ -339,7 +340,7 @@ public class ITJsonSchemaControllerTest {
 		waitForSchemaCreate(request, (response) -> {
 			assertNotNull(response);
 		});
-		schema.set$id("https://repo-prod.prod.sagebase.org/repo/v1/schema/type/registered/"+schema.get$id());
+		schema.set$id(JsonSchemaManager.createAbsolute$id(schema.get$id()));
 		JsonSchema fetched = synapse.getJsonSchema(organizationName, schemaName, semanticVersion);
 		assertEquals(schema, fetched);
 		// call under test

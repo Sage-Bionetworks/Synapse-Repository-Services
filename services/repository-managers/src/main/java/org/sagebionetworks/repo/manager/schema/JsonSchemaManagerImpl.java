@@ -65,7 +65,6 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	public static final int MAX_ORGANZIATION_NAME_CHARS = 250;
 	public static final int MIN_ORGANZIATION_NAME_CHARS = 6;
 	
-	public static final String ABSOLUTE_$ID_TEMPALTE = "https://repo-prod.prod.sagebase.org/repo/v1/schema/type/registered/%s";
 
 	@Autowired
 	private OrganizationDao organizationDao;
@@ -484,7 +483,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		result.set$id($id);
 		if(isTopLevel) {
 			// the absolute $id is needed for the top level. See: PLFM-6515
-			result.set$id(String.format(ABSOLUTE_$ID_TEMPALTE, $id));
+			result.set$id(JsonSchemaManager.createAbsolute$id($id));
 		}
 		return result;
 	}

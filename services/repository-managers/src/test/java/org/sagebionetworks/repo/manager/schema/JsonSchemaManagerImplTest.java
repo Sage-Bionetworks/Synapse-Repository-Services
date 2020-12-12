@@ -1108,7 +1108,7 @@ public class JsonSchemaManagerImplTest {
 		JsonSchema result = manager.getSchema($id, isTopLevel);
 		assertEquals(schema, result);
 		// should be the absolute $id
-		assertEquals("https://repo-prod.prod.sagebase.org/repo/v1/schema/type/registered/a.z2.b.com-path.SomeSchema.json", result.get$id());
+		assertEquals(JsonSchemaManager.createAbsolute$id("a.z2.b.com-path.SomeSchema.json"), result.get$id());
 	}
 	
 	@Test

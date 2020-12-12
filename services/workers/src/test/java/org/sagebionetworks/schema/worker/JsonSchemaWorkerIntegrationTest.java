@@ -271,7 +271,7 @@ public class JsonSchemaWorkerIntegrationTest {
 					assertNotNull(response);
 					assertNotNull(response.getValidationSchema());
 					// the absolute $id should be returned: PLFM-6515
-					basicSchema.set$id("https://repo-prod.prod.sagebase.org/repo/v1/schema/type/registered/my.org.net-some.schema-1.1.1");
+					basicSchema.set$id(JsonSchemaManager.createAbsolute$id("my.org.net-some.schema-1.1.1"));
 					assertEquals(basicSchema, response.getValidationSchema());
 				}, MAX_WAIT_MS);
 	}
@@ -306,7 +306,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		waitForValidationResults(adminUserInfo, folderId, (ValidationResults t) -> {
 			assertNotNull(t);
 			assertTrue(t.getIsValid());
-			assertEquals("https://repo-prod.prod.sagebase.org/repo/v1/schema/type/registered/"+schema$id, t.getSchema$id());
+			assertEquals(JsonSchemaManager.createAbsolute$id(schema$id), t.getSchema$id());
 			assertEquals(resultFolder.getId(), t.getObjectId());
 			assertEquals(ObjectType.entity, t.getObjectType());
 			assertEquals(resultFolder.getEtag(), t.getObjectEtag());
