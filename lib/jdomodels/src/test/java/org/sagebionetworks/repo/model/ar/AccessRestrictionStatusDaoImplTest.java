@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.model.ar;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.Date;
@@ -55,6 +57,8 @@ public class AccessRestrictionStatusDaoImplTest {
 	Node project;
 	Node folder;
 	Node file;
+	Node folderTwo;
+	Node fileTwo;
 
 	@BeforeEach
 	public void before() throws Exception {
@@ -82,35 +86,67 @@ public class AccessRestrictionStatusDaoImplTest {
 		accessApprovalDAO.clear();
 		accessRequirementDAO.clear();
 	}
-	
+
 	@Test
-	public void testGetEntityStatusWithHierarchy() {
+	public void testGeEntityStatusWithNoRequirements() {
 		setupNodeHierarchy(userTwoId);
-		Node folderTwo = createNewNode("folderTwo", userTwoId, project.getId(), EntityType.folder);
-		Node fileTwo = createNewNode("fileTwo", userTwoId, folderTwo.getId(), EntityType.file);
-		
-		TermsOfUseAccessRequirement projectToU = createNewTermsOfUse(userTwoId, project.getId(), RestrictableObjectType.ENTITY);
-		TermsOfUseAccessRequirement folderToU = createNewTermsOfUse(userTwoId, folder.getId(), RestrictableObjectType.ENTITY);
-		TermsOfUseAccessRequirement fileToU = createNewTermsOfUse(userTwoId, file.getId(), RestrictableObjectType.ENTITY);
-		TermsOfUseAccessRequirement folderTwoToU = createNewTermsOfUse(userTwoId, folderTwo.getId(), RestrictableObjectType.ENTITY);
-		TermsOfUseAccessRequirement fileTwoToU = createNewTermsOfUse(userTwoId, fileTwo.getId(), RestrictableObjectType.ENTITY);
-		
+		List<Long> subjectIds = KeyFactory.stringToKey(Arrays.asList(file.getId(), fileTwo.getId()));
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao
-				.getEntityStatus(KeyFactory.stringToKey(Arrays.asList(file.getId(), fileTwo.getId())), userTwoId);
-		assertNotNull(results);
-		assertEquals(2, results.size());
+		List<SubjectStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userTwoId);
+		validateBasicSubjectStatus(subjectIds, results, userTwoId);
+		SubjectStatus result = results.get(0);
+		assertFalse(result.hasUnmet());
+		assertNotNull(result.getAccessRestrictions());
+		assertTrue(result.getAccessRestrictions().isEmpty());
+
+		result = results.get(1);
+		assertFalse(result.hasUnmet());
+		assertNotNull(result.getAccessRestrictions());
+		assertTrue(result.getAccessRestrictions().isEmpty());
 	}
 
 	@Test
-	public void testGetEntityStatusWithRestrictionOnFileUserCreated() {
+	public void testGeEntityStatusWithUnmetRestriction() {
 		setupNodeHierarchy(userTwoId);
-		TermsOfUseAccessRequirement tou = createNewTermsOfUse(userTwoId, folder.getId(), RestrictableObjectType.ENTITY);
+		TermsOfUseAccessRequirement projectToU = createNewTermsOfUse(userTwoId, project.getId(),
+				RestrictableObjectType.ENTITY);
+		List<Long> subjectIds = KeyFactory.stringToKey(Arrays.asList(file.getId(), fileTwo.getId()));
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao
-				.getEntityStatus(Arrays.asList(KeyFactory.stringToKey(folder.getId())), userTwoId);
+		List<SubjectStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userOneId);
+		validateBasicSubjectStatus(subjectIds, results, userOneId);
+		
+		List<UsersRequirementStatus> expected = Arrays
+				.asList(new UsersRequirementStatus().withRequirementId(projectToU.getId())
+						.withRequirementType(projectToU.getConcreteType()).withIsUnmet(true));
+		
+		SubjectStatus result = results.get(0);
+		assertTrue(result.hasUnmet());
+		assertEquals(expected, result.getAccessRestrictions());
+		
+		result = results.get(1);
+		assertTrue(result.hasUnmet());
+		assertEquals(expected, result.getAccessRestrictions());
+	}
+
+	/**
+	 * Basic validation of the SubjectStatus results against the input subject ids.
+	 * 
+	 * @param subjectIds
+	 * @param results
+	 * @param userId
+	 */
+	void validateBasicSubjectStatus(List<Long> subjectIds, List<SubjectStatus> results, Long userId) {
+		assertNotNull(subjectIds);
 		assertNotNull(results);
-		assertEquals(1, results.size());
+		assertEquals(subjectIds.size(), results.size());
+		for (int i = 0; i < subjectIds.size(); i++) {
+			Long subjectId = subjectIds.get(i);
+			assertNotNull(subjectId);
+			SubjectStatus status = results.get(i);
+			assertNotNull(status);
+			assertEquals(subjectId, status.getSubjectId());
+			assertEquals(userId, status.getUserId());
+		}
 	}
 
 	/**
@@ -122,6 +158,8 @@ public class AccessRestrictionStatusDaoImplTest {
 		project = createNewNode("aProject", userId, null, EntityType.project);
 		folder = createNewNode("aFolder", userId, project.getId(), EntityType.folder);
 		file = createNewNode("aFile", userId, folder.getId(), EntityType.file);
+		folderTwo = createNewNode("folderTwo", userTwoId, project.getId(), EntityType.folder);
+		fileTwo = createNewNode("fileTwo", userTwoId, folderTwo.getId(), EntityType.file);
 	}
 
 	/**
