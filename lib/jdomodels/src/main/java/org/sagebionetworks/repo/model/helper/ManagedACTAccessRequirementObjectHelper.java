@@ -7,39 +7,49 @@ import java.util.function.Consumer;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 
 @Service
-public class TermsOfUseAccessRequirementObjectHelper implements DoaObjectHelper<TermsOfUseAccessRequirement> {
+public class ManagedACTAccessRequirementObjectHelper implements DoaObjectHelper<ManagedACTAccessRequirement> {
 	
 	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;
 
 	@Override
-	public TermsOfUseAccessRequirement create(Consumer<TermsOfUseAccessRequirement> consumer) {
-		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
-		ar.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
-		ar.setCreatedOn(new Date());
-		ar.setModifiedBy(null);
-		ar.setModifiedOn(new Date());
-		ar.setEtag(UUID.randomUUID().toString());
+	public ManagedACTAccessRequirement create(Consumer<ManagedACTAccessRequirement> consumer) {
+		ManagedACTAccessRequirement ar = new ManagedACTAccessRequirement();
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
+		ar.setAreOtherAttachmentsRequired(true);
+		ar.setCreatedOn(new Date());
+		ar.setDescription("Something or another");
+		ar.setDucTemplateFileHandleId("123");
+		ar.setEtag(UUID.randomUUID().toString());
+		ar.setExpirationPeriod(0L);
+		ar.setIsCertifiedUserRequired(true);
+		ar.setIsDUCRequired(true);
+		ar.setIsIDUPublic(false);
+		ar.setIsIDURequired(true);
+		ar.setIsIRBApprovalRequired(true);
+		ar.setModifiedOn(new Date());
 		ar.setVersionNumber(1L);
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(null);
 		rod.setType(RestrictableObjectType.ENTITY);
 		ar.setSubjectIds(Arrays.asList(rod));
-		ar.setTermsOfUse("Do you agree?");
-		// allow the caller to override
+
+		// allow the caller a chance to override.
 		consumer.accept(ar);
+		
 		if(ar.getModifiedBy() == null) {
 			ar.setModifiedBy(ar.getCreatedBy());
 		}
+		
 		return accessRequirementDAO.create(ar);
 	}
 

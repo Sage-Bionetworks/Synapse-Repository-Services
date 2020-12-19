@@ -29,5 +29,5 @@ public interface AccessRestrictionStatusDao {
 	 * Same as: {@link #getSubjectStatus(List, RestrictableObjectType, Long)()}
 	 * where the type is not an 'ENTITY'
 	 */
-	public List<SubjectStatus> getNonEntityStatus(List<Long> subjectIds, Long userId);
+	public List<SubjectStatus> getNonEntityStatus(List<Long> subjectIds, RestrictableObjectType subjectType, Long userId);
 }
