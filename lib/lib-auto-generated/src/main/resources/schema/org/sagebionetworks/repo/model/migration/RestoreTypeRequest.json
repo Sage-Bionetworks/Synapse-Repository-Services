@@ -25,7 +25,7 @@
 			"type": "integer"
 		},
 		"maximumRowId": {
-			"description": "The maximum row ID (exclusive) for the rows contained in this backup.  All rows between the min and max will be deleted before restoring the rows in this request.",
+			"description": "The maximum row ID (inclusive) for the rows contained in this backup.  All rows between the min and max will be deleted before restoring the rows in this request.",
 			"type": "integer"
 		}
 	}
