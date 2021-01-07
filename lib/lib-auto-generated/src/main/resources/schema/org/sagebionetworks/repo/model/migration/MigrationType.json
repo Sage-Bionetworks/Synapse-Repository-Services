@@ -291,10 +291,6 @@
 			"description": "Table of metadata about view snapshots."
 		},
 		{
-			"name": "AUTHENTICATION_RECEIPT",
-			"description": "TODO: Auto-generated description"
-		},
-		{
 			"name": "THROTTLE_RULE",
 			"description": "TODO: Auto-generated description"
 		},
