@@ -116,7 +116,6 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.table.DBOViewScope" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.table.DBOViewSnapshot" />
 
-				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationReceipt" />
 				<bean class="org.sagebionetworks.repo.model.dbo.throttle.DBOThrottleRule" />
 				<bean class="org.sagebionetworks.repo.model.dbo.loginlockout.DBOUnsuccessfulLoginLockout"/>
 
@@ -241,7 +240,6 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.table.DBOViewType" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.table.DBOViewSnapshot" />
 				
-				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationReceipt" />
 				<bean class="org.sagebionetworks.repo.model.dbo.throttle.DBOThrottleRule" />
 
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOResearchProject" />

@@ -5,7 +5,6 @@ import java.util.Optional;
 import org.sagebionetworks.repo.model.UnsuccessfulLoginLockoutDAO;
 import org.sagebionetworks.repo.model.UnsuccessfulLoginLockoutDTO;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
-import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class ExponentialBackoffLoginLockoutStatusImpl implements LoginLockoutStatus {
@@ -13,7 +12,7 @@ public class ExponentialBackoffLoginLockoutStatusImpl implements LoginLockoutSta
 	UnsuccessfulLoginLockoutDAO unsuccessfulLoginLockoutDAO;
 
 	//Caller of this should be using a NEW, SEPARATE transaction from their business logic code
-	@NewWriteTransaction
+	@MandatoryWriteTransaction
 	@Override
 	public LoginAttemptResultReporter checkIsLockedOut(long userId) {
 		// Use database's unix timestamp for expiration check
