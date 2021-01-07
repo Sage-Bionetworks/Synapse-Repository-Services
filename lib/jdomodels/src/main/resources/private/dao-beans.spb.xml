@@ -321,10 +321,6 @@
 	<bean id="viewScopeDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDaoImpl" />
 
-	<!--  DAO for Authentication Receipt -->
-	<bean id="authReceiptDao"
-		class="org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationReceiptDAOImpl" />
-
 	<!-- Misc beans -->
 	
 	<!-- A singleton counting semaphore with all method synchronized to serialize lock acquisition on each machine -->
