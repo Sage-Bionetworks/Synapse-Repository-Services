@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.authentication;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Date;
 
@@ -12,7 +13,6 @@ import org.sagebionetworks.util.Clock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.google.api.client.util.Charsets;
 
 @Service
 public class AuthenticationReceiptTokenGeneratorImpl implements AuthenticationReceiptTokenGenerator {
@@ -31,8 +31,8 @@ public class AuthenticationReceiptTokenGeneratorImpl implements AuthenticationRe
 			return false;
 		}
 		try {
-			String decodedToken = new String(Base64.getDecoder().decode(authenticationReceipt.getBytes(Charsets.UTF_8)),
-					Charsets.UTF_8);
+			String decodedToken = new String(Base64.getDecoder().decode(authenticationReceipt.getBytes(StandardCharsets.UTF_8)),
+					StandardCharsets.UTF_8);
 			AuthenticationReceiptToken token = EntityFactory.createEntityFromJSONString(decodedToken,
 					AuthenticationReceiptToken.class);
 			if(token.getUserId() == null) {
@@ -60,7 +60,7 @@ public class AuthenticationReceiptTokenGeneratorImpl implements AuthenticationRe
 		tokenGenerator.signToken(token);
 		try {
 			String tokenJson = EntityFactory.createJSONStringForEntity(token);
-			return new String(Base64.getEncoder().encode(tokenJson.getBytes(Charsets.UTF_8)), Charsets.UTF_8);
+			return new String(Base64.getEncoder().encode(tokenJson.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
 		} catch (JSONObjectAdapterException e) {
 			throw new IllegalStateException(e);
 		}

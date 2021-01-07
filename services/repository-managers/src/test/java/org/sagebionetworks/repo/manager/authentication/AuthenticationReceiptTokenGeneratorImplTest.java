@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.*;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Date;
 
@@ -26,7 +27,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.Clock;
 
-import com.google.api.client.util.Charsets;
 
 @ExtendWith(MockitoExtension.class)
 public class AuthenticationReceiptTokenGeneratorImplTest {
@@ -130,7 +130,7 @@ public class AuthenticationReceiptTokenGeneratorImplTest {
 	
 	@Test
 	public void testIsReceiptValidWithNotEncodedJSON() {
-		String encodedToken = new String(Base64.getEncoder().encode("not JSON".getBytes(Charsets.UTF_8)), Charsets.UTF_8);;
+		String encodedToken = new String(Base64.getEncoder().encode("not JSON".getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);;
 		// call under test
 		boolean isValid = authenticationReceiptTokenGenerator.isReceiptValid(principalId, encodedToken);
 		assertFalse(isValid);
@@ -155,8 +155,8 @@ public class AuthenticationReceiptTokenGeneratorImplTest {
 	 */
 	AuthenticationReceiptToken decodeToken(String token) {
 		try {
-			String decodedToken = new String(Base64.getDecoder().decode(token.getBytes(Charsets.UTF_8)),
-					Charsets.UTF_8);
+			String decodedToken = new String(Base64.getDecoder().decode(token.getBytes(StandardCharsets.UTF_8)),
+					StandardCharsets.UTF_8);
 			return EntityFactory.createEntityFromJSONString(decodedToken, AuthenticationReceiptToken.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new IllegalStateException(e);
@@ -172,7 +172,7 @@ public class AuthenticationReceiptTokenGeneratorImplTest {
 	String encodeToken(AuthenticationReceiptToken token) {
 		try {
 			String tokenJson = EntityFactory.createJSONStringForEntity(token);
-			return new String(Base64.getEncoder().encode(tokenJson.getBytes(Charsets.UTF_8)), Charsets.UTF_8);
+			return new String(Base64.getEncoder().encode(tokenJson.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
 		} catch (JSONObjectAdapterException e) {
 			throw new IllegalStateException(e);
 		}

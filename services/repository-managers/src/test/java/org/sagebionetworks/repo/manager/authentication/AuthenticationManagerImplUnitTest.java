@@ -1,8 +1,9 @@
 package org.sagebionetworks.repo.manager.authentication;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -135,30 +136,26 @@ public class AuthenticationManagerImplUnitTest {
 
 		// Token matches, but terms haven't been signed
 		when(mockAuthDAO.hasUserAcceptedToU(eq(userId))).thenReturn(false);
-		try {
-			authManager.checkSessionToken(synapseSessionToken, true).toString();
-			fail();
-		} catch (TermsOfUseException e) {
-		}
+		assertThrows(TermsOfUseException.class, ()->{
+			authManager.checkSessionToken(synapseSessionToken, true);
+		});
 
 		// Nothing matches the token
 		when(mockAuthDAO.getPrincipalIfValid(eq(synapseSessionToken))).thenReturn(null);
 		when(mockAuthDAO.getPrincipal(eq(synapseSessionToken))).thenReturn(null);
-		try {
-			authManager.checkSessionToken(synapseSessionToken, true).toString();
-			fail();
-		} catch (UnauthenticatedException e) {
-			assertTrue(e.getMessage().contains("invalid"));
-		}
+		
+		String message = assertThrows(UnauthenticatedException.class, ()->{
+			authManager.checkSessionToken(synapseSessionToken, true);
+		}).getMessage();
+		assertEquals("The session token (synapsesessiontoken) is invalid", message);
 
 		// Token matches, but has expired
 		when(mockAuthDAO.getPrincipal(eq(synapseSessionToken))).thenReturn(userId);
-		try {
-			authManager.checkSessionToken(synapseSessionToken, true).toString();
-			fail();
-		} catch (UnauthenticatedException e) {
-			assertTrue(e.getMessage().contains("expired"));
-		}
+		
+		message = assertThrows(UnauthenticatedException.class, ()->{
+			authManager.checkSessionToken(synapseSessionToken, true);
+		}).getMessage();
+		assertEquals("The session token (synapsesessiontoken) has expired", message);
 	}
 
 	@Test
@@ -173,13 +170,11 @@ public class AuthenticationManagerImplUnitTest {
 	public void testSetPasswordWithInvalidPassword() {
 		String bannedPassword = "password123";
 		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(bannedPassword);
-		try {
+		
+		assertThrows(InvalidPasswordException.class, ()->{
 			authManager.setPassword(userId, bannedPassword);
-			fail();
-		} catch (InvalidPasswordException e) {
-			//expected
-		}
-
+		}).getMessage();
+		
 		verify(mockPassswordValidator).validatePassword(bannedPassword);
 		verify(mockAuthDAO, never()).changePassword(anyLong(), anyString());
 	}
@@ -203,10 +198,18 @@ public class AuthenticationManagerImplUnitTest {
 		setupMockUserGroupDAO();
 		when(mockAuthDAO.changeSessionToken(eq(userId), eq((String) null))).thenReturn(synapseSessionToken);
 		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(true);
+		String newReceipt = "newReceipt";
+		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
 
 		// call under test
-		authManager.login(loginRequest);
+		LoginResponse response = authManager.login(loginRequest);
+		assertNotNull(response);
+		assertEquals(newReceipt, response.getAuthenticationReceipt());
+		assertEquals(synapseSessionToken, response.getSessionToken());
 
+
+		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
+		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
 		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
 	}
@@ -226,6 +229,7 @@ public class AuthenticationManagerImplUnitTest {
 
 		assertEquals(newReceipt, loginResponse.getAuthenticationReceipt());
 		assertEquals(synapseSessionToken, loginResponse.getSessionToken());
+		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
 	}
 
 	///////////////////////////////////////////
@@ -252,6 +256,7 @@ public class AuthenticationManagerImplUnitTest {
 
 		verify(mockUserCredentialValidator, never()).checkPassword(userId, password);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
+		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
 	}
 
 	@Test
@@ -260,16 +265,14 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(false);
 
 
-		try {
+		assertThrows(UnauthenticatedException.class, ()->{
 			//method under test
 			authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt);
-			fail("expected exception to be thrown");
-		} catch (UnauthenticatedException e) {
-			//expected the exception to be thrown
-		}
+		});
 
 		verify(mockUserCredentialValidator, never()).checkPassword(userId, password);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
+		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
 	}
 
 	@Test
@@ -281,6 +284,7 @@ public class AuthenticationManagerImplUnitTest {
 
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
 		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
+		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
 	}
 
 	@Test
@@ -288,16 +292,14 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(true);
 		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(false);
 
-		try {
+		assertThrows(UnauthenticatedException.class, ()->{
 			//method under test
 			authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt);
-			fail("expected exception to be thrown");
-		} catch (UnauthenticatedException e) {
-			//expected the exception to be thrown
-		}
+		});
 
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
 		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
+		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
 	}
 
 	@Test
@@ -306,12 +308,10 @@ public class AuthenticationManagerImplUnitTest {
 
 		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(false);
 
-		try {
+		assertThrows(UnauthenticatedException.class, ()->{
+			//method under test
 			authManager.validateAuthReceiptAndCheckPassword(userId, password, null);
-			fail("expected exception to be thrown");
-		} catch (UnauthenticatedException e){
-			//expected
-		}
+		});
 
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockPassswordValidator, never()).validatePassword(password);
@@ -324,13 +324,11 @@ public class AuthenticationManagerImplUnitTest {
 
 		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(password);
 
-		try {
+		String message = assertThrows(PasswordResetViaEmailRequiredException.class, ()->{
+			//method under test
 			authManager.validateAuthReceiptAndCheckPassword(userId, password, null);
-			fail("expected exception to be thrown");
-		} catch (PasswordResetViaEmailRequiredException e){
-			//expected
-			assertEquals("You must change your password via email reset.", e.getMessage());
-		}
+		}).getMessage();
+		assertEquals("You must change your password via email reset.", message);
 
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockPassswordValidator).validatePassword(password);
@@ -356,14 +354,11 @@ public class AuthenticationManagerImplUnitTest {
 	@Test
 	public void testFindUserForAuthentication_userNotFound(){
 		when(mockPrincipalAliasDAO.findPrincipalWithAlias(anyString(), ArgumentMatchers.<AliasType>any())).thenReturn(null);
-
-		try{
+		
+		String message = assertThrows(UnauthenticatedException.class, ()->{
 			authManager.findUserIdForAuthentication(username);
-			fail("Expected UnauthenticatedException to be thrown");
-		} catch (UnauthenticatedException e){
-			//expected
-			assertEquals(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT, e.getMessage());
-		}
+		}).getMessage();
+		assertEquals(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT, message);
 	}
 
 
@@ -536,13 +531,9 @@ public class AuthenticationManagerImplUnitTest {
 		doNothing().when(mockPassswordValidator).validatePassword(password);
 		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(newChangedPassword);
 
-		try {
-			//method under test
-			Long changedPasswordUserId = authManager.changePassword(changePasswordWithCurrentPassword);
-			fail();
-		} catch (InvalidPasswordException e){
-			//expected
-		}
+		assertThrows(InvalidPasswordException.class,()->{
+			authManager.changePassword(changePasswordWithCurrentPassword);
+		});
 
 		verify(mockPassswordValidator).validatePassword(newChangedPassword);
 		verifyZeroInteractions(mockPasswordResetTokenGenerator);
