@@ -2,39 +2,30 @@ package org.sagebionetworks.repo.web;
 
 import static org.sagebionetworks.downloadtools.FileUtils.DEFAULT_FILE_CHARSET;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.Date;
-import java.util.UUID;
 
 import org.apache.http.entity.ContentType;
-import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.file.ChunkedFileToken;
-import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.utils.ContentTypeUtil;
-import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.util.BinaryUtils;
 
 /**
  * Utility for converting between the WikiPage and V2WikiPage models.
@@ -88,46 +79,20 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		// The upload file will hold the newly created markdown file.
 		String markdown = from.getMarkdown();
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		
         if(markdown != null) {
         	FileUtils.writeString(markdown, DEFAULT_FILE_CHARSET, /*gzip*/true, out);
         } else {
         	FileUtils.writeString("", DEFAULT_FILE_CHARSET, /*gzip*/true, out);
         }
-        byte[] compressedBytest = out.toByteArray();
-		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
-		ContentType contentType = ContentType.create(DEFAULT_WIKI_MIME_TYPE, DEFAULT_FILE_CHARSET);
-		ccftr.setContentType(contentType.toString());
-		ccftr.setFileName("markdown.txt.gz");
-		// Calculate the MD5
-		String md5 = MD5ChecksumHelper.getMD5Checksum(compressedBytest);
-		// Amazon wants the md5 as a base 64 hex string.
-		String hexMD5 = BinaryUtils.toBase64(BinaryUtils.fromHex(md5));
-		ccftr.setContentMD5(md5);
-		// Start the upload
-		ChunkedFileToken token = fileHandleManager.createChunkedFileUploadToken(userInfo, ccftr);
-
-		S3FileHandle handle = new S3FileHandle();
-		handle.setContentType(token.getContentType());
-		handle.setContentMd5(token.getContentMD5());
-		handle.setContentSize(new Long(compressedBytest.length));
-		handle.setFileName(wiki.getId() + "_markdown.txt");
-		// Creator of the wiki page may not have been set to the user yet
-		// so do not use wiki's createdBy
-		handle.setCreatedBy(userInfo.getId().toString());
-		long currentTime = System.currentTimeMillis();
-		handle.setCreatedOn(new Date(currentTime));
-		handle.setKey(token.getKey());
-		handle.setBucketName(StackConfigurationSingleton.singleton().getS3Bucket());
-		// Upload this to S3
-		ByteArrayInputStream in = new ByteArrayInputStream(compressedBytest);
-		ObjectMetadata metadata = new ObjectMetadata();
-		metadata.setContentLength(handle.getContentSize());
-		metadata.setContentMD5(hexMD5);
-		s3Client.putObject(StackConfigurationSingleton.singleton().getS3Bucket(), token.getKey(), in, metadata);
-		handle.setEtag(UUID.randomUUID().toString());
-		handle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		// Save the metadata
-		handle = (S3FileHandle) fileMetadataDao.createFile(handle);
+        
+        byte[] compressedMarkdown = out.toByteArray();
+		
+        ContentType contentType = ContentType.create(DEFAULT_WIKI_MIME_TYPE, DEFAULT_FILE_CHARSET);
+		
+		String fileName = wiki.getId() + "_markdown.txt.gz";
+		
+		S3FileHandle handle = fileHandleManager.createFileFromByteArray(String.valueOf(userInfo.getId()), new Date(), compressedMarkdown, fileName, contentType, null);
 		
 		// Set the file handle id
 		wiki.setMarkdownFileHandleId(handle.getId());

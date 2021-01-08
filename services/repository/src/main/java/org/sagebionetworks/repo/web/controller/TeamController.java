@@ -3,17 +3,6 @@
  */
 package org.sagebionetworks.repo.web.controller;
 
-import static org.sagebionetworks.repo.model.oauth.OAuthScope.authorize;
-import static org.sagebionetworks.repo.model.oauth.OAuthScope.download;
-import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
-import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
-import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
-
-import java.io.IOException;
-import java.util.Collections;
-
-import javax.servlet.http.HttpServletResponse;
-
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -45,6 +34,15 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Collections;
+
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.download;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
 
 /**
  * Teams are groups of users.  Teams can be granted access permissions to projects, 
@@ -273,6 +271,27 @@ public class TeamController {
 			HttpServletResponse response
 			) throws NotFoundException, IOException  {
 		String redirectUrl = serviceProvider.getTeamService().getIconURL(userId, id);
+		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
+	}
+
+	/**
+	 * Retrieve the download URL for the Team icon preview, or receive a redirect response to said URL.
+	 * @param id the ID of the Team
+	 * @param redirect if true or omitted, then redirect to the URL.  If false then simply return the URL.
+	 * @param response
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequiredScope({download})
+	@RequestMapping(value = UrlHelpers.TEAM_ID_ICON_PREVIEW, method = RequestMethod.GET)
+	public
+	void filePreviewRedirectURLForTeamIcon(
+			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(required = false) Boolean redirect,
+			HttpServletResponse response
+	) throws NotFoundException, IOException  {
+		String redirectUrl = serviceProvider.getTeamService().getIconPreviewURL(userId, id);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 	

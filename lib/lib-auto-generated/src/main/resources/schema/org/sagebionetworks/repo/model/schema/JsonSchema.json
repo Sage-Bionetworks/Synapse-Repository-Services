@@ -89,6 +89,37 @@
 		"source": {
 			"type": "string",
 			"description": "Used to indicate that this schema is derived from another object/schema.  The value should be a URL reference to the original work.  The 'source' is solely descriptive and should have no impact on validation."
+		},
+		"required": {
+			"type": "array",
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-validation.html#rfc.section.6.5.3\">required</a>",
+			"items": {
+				"type": "string"
+			}
+		},
+		"maxLength": {
+			"type": "integer",
+			"description": "See: <a href=\"https://tools.ietf.org/html/draft-handrews-json-schema-validation-02#section-6.3.1\">maxLength</a>"
+		},
+		"minLength": {
+			"type": "integer",
+			"description": "See: <a href=\"https://tools.ietf.org/html/draft-handrews-json-schema-validation-02#section-6.3.2\">minLength</a>"
+		},
+		"pattern": {
+			"type": "string",
+			"description": "See: <a href=\"https://tools.ietf.org/html/draft-handrews-json-schema-validation-02#section-6.3.3\">pattern</a>"
+		},
+		"if": {
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.2.2.1\">if\"</a>",
+			"$recursiveRef": "#"
+		},
+		"then": {
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.2.2.2\">then\"</a>",
+			"$recursiveRef": "#"
+		},
+		"else": {
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.2.2.3\">else\"</a>",
+			"$recursiveRef": "#"
 		}
 	}
 }

@@ -13,6 +13,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
@@ -428,6 +429,58 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.get(validResults.getId())).thenReturn(validResults);
 		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getId(), validResults.getCreatedBy())).thenReturn(AuthorizationStatus.authorized());
 		manager.deleteFileHandle(mockUser, validResults.getId());
+	}
+	
+	@Test
+	public void testDeleteFileHandleWithFailedDeleteOnS3() throws Exception {
+		String fileHandleId = "123";
+		
+		when(mockFileHandleDao.get(fileHandleId)).thenReturn(validResults);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getId(), validResults.getCreatedBy())).thenReturn(AuthorizationStatus.authorized());
+		
+		RuntimeException deleteException = new RuntimeException("Something went wrong");
+		
+		doThrow(deleteException).when(mockFileHandleDao).delete(any());
+		
+		RuntimeException ex = assertThrows(RuntimeException.class, () -> {
+			// Call under test
+			manager.deleteFileHandle(mockUser, fileHandleId);			
+		});
+		
+		assertEquals(deleteException, ex);
+		
+		verify(mockFileHandleDao).get(fileHandleId);
+		verify(mockAuthorizationManager).canAccessRawFileHandleByCreator(mockUser, fileHandleId, validResults.getCreatedBy());
+		verify(mockFileHandleDao).delete(fileHandleId);
+		
+		verifyZeroInteractions(mockS3Client);
+		
+	}
+	
+	@Test
+	public void testDeleteFileHandleWithFailedDeleteOnGC() throws Exception {
+		String fileHandleId = "123";
+		
+		when(mockFileHandleDao.get(fileHandleId)).thenReturn(googleCloudFileHandle);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, fileHandleId, googleCloudFileHandle.getCreatedBy())).thenReturn(AuthorizationStatus.authorized());
+		
+		RuntimeException deleteException = new RuntimeException("Something went wrong");
+		
+		doThrow(deleteException).when(mockFileHandleDao).delete(any());
+		
+		RuntimeException ex = assertThrows(RuntimeException.class, () -> {
+			// Call under test
+			manager.deleteFileHandle(mockUser, fileHandleId);			
+		});
+		
+		assertEquals(deleteException, ex);
+		
+		verify(mockFileHandleDao).get(fileHandleId);
+		verify(mockAuthorizationManager).canAccessRawFileHandleByCreator(mockUser, fileHandleId, googleCloudFileHandle.getCreatedBy());
+		verify(mockFileHandleDao).delete(fileHandleId);
+		
+		verifyZeroInteractions(mockGoogleCloudStorageClient);
+		
 	}
 	
 	@Test
@@ -2311,5 +2364,67 @@ public class FileHandleManagerImplTest {
 				PARENT_ENTITY_ID, proxyStorageLocationId));
 		assertEquals("Cannot handle upload destination location setting of type: org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings",
 				ex.getMessage());
+	}
+	
+	@Test
+	public void testIsMatchingMD5() {
+		String sourceId = "123";
+		String targetId = "456";
+		
+		boolean expected = true;
+		
+		when(mockFileHandleDao.isMatchingMD5(any(), any())).thenReturn(expected);
+		
+		// Call under test
+		boolean result = manager.isMatchingMD5(sourceId, targetId);
+		
+		assertEquals(expected, result);
+
+		verify(mockFileHandleDao).isMatchingMD5(sourceId, targetId);
+	}
+	
+	@Test
+	public void testIsMatchingMD5AndNotMatching() {
+		String sourceId = "123";
+		String targetId = "456";
+		
+		boolean expected = false;
+		
+		when(mockFileHandleDao.isMatchingMD5(any(), any())).thenReturn(expected);
+		
+		// Call under test
+		boolean result = manager.isMatchingMD5(sourceId, targetId);
+		
+		assertEquals(expected, result);
+
+		verify(mockFileHandleDao).isMatchingMD5(sourceId, targetId);
+	}
+	
+	@Test
+	public void testIsMatchingMD5WithNullSource() {
+		String sourceId = null;
+		String targetId = "456";
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.isMatchingMD5(sourceId, targetId);
+		});
+		
+		assertEquals("The sourceFileHandleId is required.", ex.getMessage());
+		
+	}
+	
+	@Test
+	public void testIsMatchingMD5WithNullTarget() {
+		String sourceId = "123";
+		String targetId = null;
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.isMatchingMD5(sourceId, targetId);
+		});
+		
+		assertEquals("The targetFileHandleId is required.", ex.getMessage());
+		
 	}
 }

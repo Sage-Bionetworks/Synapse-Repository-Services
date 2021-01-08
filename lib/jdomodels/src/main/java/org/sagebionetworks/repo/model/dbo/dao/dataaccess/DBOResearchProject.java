@@ -18,6 +18,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
@@ -40,6 +41,54 @@ public class DBOResearchProject implements MigratableDatabaseObject<DBOResearchP
 			new FieldColumn("institution", COL_RESEARCH_PROJECT_INSTITUTION),
 			new FieldColumn("idu", COL_RESEARCH_PROJECT_IDU)
 		};
+
+	private static final TableMapping<DBOResearchProject> TABLE_MAPPER = new TableMapping<DBOResearchProject>() {
+
+			@Override
+			public DBOResearchProject mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DBOResearchProject dbo = new DBOResearchProject();
+				dbo.setId(rs.getLong(COL_RESEARCH_PROJECT_ID));
+				dbo.setAccessRequirementId(rs.getLong(COL_RESEARCH_PROJECT_ACCESS_REQUIREMENT_ID));
+				dbo.setCreatedBy(rs.getLong(COL_RESEARCH_PROJECT_CREATED_BY));
+				dbo.setCreatedOn(rs.getLong(COL_RESEARCH_PROJECT_CREATED_ON));
+				dbo.setModifiedBy(rs.getLong(COL_RESEARCH_PROJECT_MODIFIED_BY));
+				dbo.setModifiedOn(rs.getLong(COL_RESEARCH_PROJECT_MODIFIED_ON));
+				dbo.setEtag(rs.getString(COL_RESEARCH_PROJECT_ETAG));
+				dbo.setProjectLead(rs.getString(COL_RESEARCH_PROJECT_PROJECT_LEAD));
+				dbo.setInstitution(rs.getString(COL_RESEARCH_PROJECT_INSTITUTION));
+				
+				Blob blob = rs.getBlob(COL_RESEARCH_PROJECT_IDU);
+				
+				if (blob != null) {
+					dbo.setIdu(blob.getBytes(1, (int) blob.length()));
+				}
+
+				return dbo;
+			}
+
+			@Override
+			public String getTableName() {
+				return TABLE_RESEARCH_PROJECT;
+			}
+
+			@Override
+			public String getDDLFileName() {
+				return DDL_RESEARCH_PROJECT;
+			}
+
+			@Override
+			public FieldColumn[] getFieldColumns() {
+				return FIELDS;
+			}
+
+			@Override
+			public Class<? extends DBOResearchProject> getDBOClass() {
+				return DBOResearchProject.class;
+			}
+
+		};
+
+	private static final MigratableTableTranslation<DBOResearchProject, DBOResearchProject> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<DBOResearchProject>();
 
 	private Long id;
 	private Long accessRequirementId;
@@ -133,131 +182,8 @@ public class DBOResearchProject implements MigratableDatabaseObject<DBOResearchP
 	}
 
 	@Override
-	public String toString() {
-		return "DBOResearchProject [id=" + id + ", accessRequirementId=" + accessRequirementId + ", createdBy="
-				+ createdBy + ", createdOn=" + createdOn + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn
-				+ ", etag=" + etag + ", projectLead=" + projectLead + ", institution=" + institution + ", idu="
-				+ Arrays.toString(idu) + "]";
-	}
-
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((accessRequirementId == null) ? 0 : accessRequirementId.hashCode());
-		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
-		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
-		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + Arrays.hashCode(idu);
-		result = prime * result + ((institution == null) ? 0 : institution.hashCode());
-		result = prime * result + ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
-		result = prime * result + ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
-		result = prime * result + ((projectLead == null) ? 0 : projectLead.hashCode());
-		return result;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		DBOResearchProject other = (DBOResearchProject) obj;
-		if (accessRequirementId == null) {
-			if (other.accessRequirementId != null)
-				return false;
-		} else if (!accessRequirementId.equals(other.accessRequirementId))
-			return false;
-		if (createdBy == null) {
-			if (other.createdBy != null)
-				return false;
-		} else if (!createdBy.equals(other.createdBy))
-			return false;
-		if (createdOn == null) {
-			if (other.createdOn != null)
-				return false;
-		} else if (!createdOn.equals(other.createdOn))
-			return false;
-		if (etag == null) {
-			if (other.etag != null)
-				return false;
-		} else if (!etag.equals(other.etag))
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (!Arrays.equals(idu, other.idu))
-			return false;
-		if (institution == null) {
-			if (other.institution != null)
-				return false;
-		} else if (!institution.equals(other.institution))
-			return false;
-		if (modifiedBy == null) {
-			if (other.modifiedBy != null)
-				return false;
-		} else if (!modifiedBy.equals(other.modifiedBy))
-			return false;
-		if (modifiedOn == null) {
-			if (other.modifiedOn != null)
-				return false;
-		} else if (!modifiedOn.equals(other.modifiedOn))
-			return false;
-		if (projectLead == null) {
-			if (other.projectLead != null)
-				return false;
-		} else if (!projectLead.equals(other.projectLead))
-			return false;
-		return true;
-	}
-
-	@Override
 	public TableMapping<DBOResearchProject> getTableMapping() {
-		return new TableMapping<DBOResearchProject>(){
-
-			@Override
-			public DBOResearchProject mapRow(ResultSet rs, int rowNum) throws SQLException {
-				DBOResearchProject dbo = new DBOResearchProject();
-				dbo.setId(rs.getLong(COL_RESEARCH_PROJECT_ID));
-				dbo.setAccessRequirementId(rs.getLong(COL_RESEARCH_PROJECT_ACCESS_REQUIREMENT_ID));
-				dbo.setCreatedBy(rs.getLong(COL_RESEARCH_PROJECT_CREATED_BY));
-				dbo.setCreatedOn(rs.getLong(COL_RESEARCH_PROJECT_CREATED_ON));
-				dbo.setModifiedBy(rs.getLong(COL_RESEARCH_PROJECT_MODIFIED_BY));
-				dbo.setModifiedOn(rs.getLong(COL_RESEARCH_PROJECT_MODIFIED_ON));
-				dbo.setEtag(rs.getString(COL_RESEARCH_PROJECT_ETAG));
-				dbo.setProjectLead(rs.getString(COL_RESEARCH_PROJECT_PROJECT_LEAD));
-				dbo.setInstitution(rs.getString(COL_RESEARCH_PROJECT_INSTITUTION));
-				Blob blob = rs.getBlob(COL_RESEARCH_PROJECT_IDU);
-				dbo.setIdu(blob.getBytes(1, (int) blob.length()));
-				return dbo;
-			}
-
-			@Override
-			public String getTableName() {
-				return TABLE_RESEARCH_PROJECT;
-			}
-
-			@Override
-			public String getDDLFileName() {
-				return DDL_RESEARCH_PROJECT;
-			}
-
-			@Override
-			public FieldColumn[] getFieldColumns() {
-				return FIELDS;
-			}
-
-			@Override
-			public Class<? extends DBOResearchProject> getDBOClass() {
-				return DBOResearchProject.class;
-			}
-			
-		};
+		return TABLE_MAPPER;
 	}
 
 	@Override
@@ -267,7 +193,7 @@ public class DBOResearchProject implements MigratableDatabaseObject<DBOResearchP
 
 	@Override
 	public MigratableTableTranslation<DBOResearchProject, DBOResearchProject> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOResearchProject>();
+		return MIGRATION_TRANSLATOR;
 	}
 
 	@Override
@@ -284,4 +210,41 @@ public class DBOResearchProject implements MigratableDatabaseObject<DBOResearchP
 	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
 		return null;
 	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + Arrays.hashCode(idu);
+		result = prime * result
+				+ Objects.hash(accessRequirementId, createdBy, createdOn, etag, id, institution, modifiedBy, modifiedOn, projectLead);
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		DBOResearchProject other = (DBOResearchProject) obj;
+		return Objects.equals(accessRequirementId, other.accessRequirementId) && Objects.equals(createdBy, other.createdBy)
+				&& Objects.equals(createdOn, other.createdOn) && Objects.equals(etag, other.etag) && Objects.equals(id, other.id)
+				&& Arrays.equals(idu, other.idu) && Objects.equals(institution, other.institution)
+				&& Objects.equals(modifiedBy, other.modifiedBy) && Objects.equals(modifiedOn, other.modifiedOn)
+				&& Objects.equals(projectLead, other.projectLead);
+	}
+
+	@Override
+	public String toString() {
+		return "DBOResearchProject [id=" + id + ", accessRequirementId=" + accessRequirementId + ", createdBy=" + createdBy + ", createdOn="
+				+ createdOn + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + ", etag=" + etag + ", projectLead="
+				+ projectLead + ", institution=" + institution + ", idu=" + Arrays.toString(idu) + "]";
+	}
+	
 }

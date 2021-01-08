@@ -21,7 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.IllegalTransactionStateException;
-import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @ExtendWith(SpringExtension.class)
@@ -60,7 +59,7 @@ class MultipartUploadComposerDAOImplTest {
 		String key = "someKey";
 		int numberOfParts = 11;
 		String requestJSON = EntityFactory.createJSONStringForEntity(request);
-		CreateMultipartRequest createRequest = new CreateMultipartRequest(userId, hash, requestJSON, uploadToken, uploadType, bucket, key, numberOfParts);
+		CreateMultipartRequest createRequest = new CreateMultipartRequest(userId, hash, requestJSON, uploadToken, uploadType, bucket, key, numberOfParts, request.getPartSizeBytes());
 
 		uploadId =  multipartUploadDAO.createUploadStatus(createRequest).getMultipartUploadStatus().getUploadId();
 	}

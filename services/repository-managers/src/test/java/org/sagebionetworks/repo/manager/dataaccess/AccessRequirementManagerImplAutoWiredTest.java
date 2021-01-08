@@ -1,4 +1,5 @@
 package org.sagebionetworks.repo.manager.dataaccess;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -35,6 +36,7 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -326,4 +328,19 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		List<AccessRequirement> ars = accessRequirementManager.getAccessRequirementsForSubject(adminUserInfo, rod, 10L, 0L);
 		assertEquals(1, ars.size());
 	}
+
+	@Test
+	public void testDeleteAccessRequirement() throws Exception {
+		ar = newEntityAccessRequirement(entityId);
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		String accessRequirementId = String.valueOf(ar.getId());
+		// Call under test
+		accessRequirementManager.deleteAccessRequirement(adminUserInfo, accessRequirementId);
+		String expectedMessage = "An access requirement with id "+ accessRequirementId + " cannot be found.";
+		NotFoundException exception = assertThrows(NotFoundException.class, () -> {
+			accessRequirementManager.getAccessRequirement(accessRequirementId);
+		});
+		assertEquals(expectedMessage, exception.getMessage());
+	}
+
 }

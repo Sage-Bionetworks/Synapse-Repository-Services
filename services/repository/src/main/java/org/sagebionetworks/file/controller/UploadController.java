@@ -45,7 +45,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationList;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
-import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
+import org.sagebionetworks.repo.model.file.MultipartRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -73,7 +73,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * <p>
- * FileHandle is an abstraction for a reference to a file in Synapse.  For details on the various types see: <a
+ * A FileHandle is an abstraction for a reference to a file in Synapse.  For details on the various types see: <a
  * href="${org.sagebionetworks.repo.model.file.FileHandle}">FileHandle</a>.
  * </p>
  * <p>
@@ -91,9 +91,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * </p>
  * <p>
  * The first task in multi-part upload is choosing a part size. The minimum part
- * size is 5 MB (1024*1024*5). Therefore, any file with a size less than or
- * equal to 5 MB will have a single part and a partSize=5242880. The maximum
- * number of parts for a single file 10,000 parts. The following should be used
+ * size is 5 MB (1024*1024*5) and the maximum part size is 5 GB (1024*1024*1024*5). 
+ * Therefore, any file with a size less than or equal to 5 MB will have a single part and a partSize=5242880. 
+ * The maximum number of parts for a single file 10,000 parts. The following should be used
  * to choose a part size:
  * </p>
  * <p>
@@ -104,7 +104,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * following: <a href="${POST.file.multipart}">POST /file/multipart</a> which
  * will return an <a
  * href="${org.sagebionetworks.repo.model.file.MultipartUploadStatus}"
- * >MultipartUploadStatus</a>. The client is expected the use
+ * >MultipartUploadStatus</a>. The client is expected to use
  * MultipartUploadStatus to drive the upload. The client will need to upload
  * each missing part (parts with '0' in the partsState) as follows:
  * </p>
@@ -128,6 +128,54 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * the upload fails for any reason, the client should start over ( <a
  * href="${POST.file.multipart}">POST /file/multipart</a>) and continue by
  * uploading any parts that are reported as missing.
+ * </p>
+ * <p>
+ * <b>Multi-part File Copy API</b>
+ * </p>
+ * <p>
+ * The multipart API supports a robust copy of existing files to other locations (e.g. in case of a data migration)
+ * without the need to download and re-upload the file. This is currently supported only from and to S3 storage locations that reside in the same region.
+ * In order to initiate a multipart copy, a <a href="${POST.file.multipart}">POST /file/multipart</a> request can be sent
+ * using as the body of the request a <a href="${org.sagebionetworks.repo.model.file.MultipartUploadCopyRequest}">MultipartUploadCopyRequest</a>.
+ * </p>
+ * <p>
+ * The part size allows to parallelize the copy in multiple sub-parts, the same limits of the upload applies to the copy (e.g. it is possible to copy 
+ * a file in a single part up to 5 GB).
+ * </p>
+ * <p>
+ * Once the multipart copy is initiated the process is the same as the multipart upload:
+ * </p>
+ * <p>
+ * <ol>
+ * <li>
+ * Get the part copy pre-signed URLs using: <a
+ * href="${POST.file.multipart.uploadId.presigned.url.batch}">POST
+ * /file/multipart/{uploadId}/presigned/url/batch</a>
+ * </li>
+ * <li>
+ * For each pre-signed URL perform an HTTP PUT request with no body, the response of the previous endpoint contains a map of headers that are 
+ * signed with the URL, all of the headers MUST be included in the PUT request.
+ * </li>
+ * <li>Once the copy request is performed, add the part to the multi-part copy using: <a
+ * href="${PUT.file.multipart.uploadId.add.partNumber}">PUT
+ * /file/multipart/{uploadId}/add/{partNumber}</a>. 
+ * The value of the partMD5Hex parameter will be MD5 checksum returned in the response of the request sent to the pre-signed URL.
+ * </li>
+ * <li>
+ * Once all parts have been successfully added to the multi-part copy, the
+ * copy can be completed using: <a
+ * href="${PUT.file.multipart.uploadId.complete}">PUT
+ * /file/multipart/{uploadId}/complete</a> to produce a new <a
+ * href="${org.sagebionetworks.repo.model.file.FileHandle}">FileHandle</a>
+ * </li>
+ * </ol>
+ * </p>
+ * <p>
+ * Note about the copy integrity: The resulting file handle will have the same content MD5 of the source file handle, but synapse
+ * does not try to re-compute or verify this value. Instead, the integrity check is performed by the cloud provider (currently only S3)
+ * during the copy request for the part (the request sent to the pre-signed URL). Each copy pre-signed URL is signed with a special
+ * header that makes sure that the source file didn't change during the copy, if this is the case the PUT request to the pre-signed URL
+ * will fail and a new copy should be re-started.
  * </p>
  * <p>
  * <b>Associating FileHandles with Synapse objects</b>
@@ -173,8 +221,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class UploadController {
 
 	public static final String HEADER_KEY_CONTENT_LENGTH = "content-length";
-
-	static private Log log = LogFactory.getLog(UploadController.class);
 
 	@Autowired
 	ServiceProvider serviceProvider;
@@ -795,9 +841,17 @@ public class UploadController {
 	}
 
 	/**
-	 * Start or resume a multi-part upload of a file. By default this method is
+	 * Start or resume a multi-part upload or copy of a file. By default this method is
 	 * idempotent, so subsequent calls will simply return the current status of
-	 * the file upload.
+	 * the file upload/copy.
+	 * 
+	 * <p>
+	 * The body of the request will determine if an upload or a copy is performed: 
+	 * Using a <a href="${org.sagebionetworks.repo.model.file.MultipartUploadRequest}">MultipartUploadRequest</a> will start
+	 * a normal multipart upload, while posting a 
+	 * <a href="${org.sagebionetworks.repo.model.file.MultipartUploadCopyRequest}">MultipartUploadCopyRequest</a> will start
+	 * a multipart copy.
+	 * </p>
 	 * 
 	 * @param userId
 	 * @param request
@@ -811,20 +865,26 @@ public class UploadController {
 	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.FILE_MULTIPART, method = RequestMethod.POST)
-	public @ResponseBody MultipartUploadStatus startMultipartUpload(
+	public @ResponseBody MultipartUploadStatus startMultipartOperation(
 			@RequestParam(required = true, value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody(required = true) MultipartUploadRequest request,
+			@RequestBody(required = true) MultipartRequest request,
 			@RequestParam(required = false, defaultValue = "false") boolean forceRestart) {
-		return fileService.startMultipartUpload(userId, request, forceRestart);
+		return fileService.startMultipart(userId, request, forceRestart);
 	}
 
 	/**
-	 * Get a batch of pre-signed URLS that should be used to upload file parts.
-	 * Each part will require a unique pre-signed URL. The client is expected to
-	 * PUT the contents of each part to the corresponding pre-signed URL. Each
-	 * per-signed URL will expire 15 minute after issued. If a URL has expired,
-	 * the client will need to request a new URL for that part.
-	 * 
+	 * <p>
+	 * Get a batch of pre-signed URLS that should be used to upload or copy file parts.
+	 * Each part will require a unique pre-signed URL. For an upload the client is expected to
+	 * PUT the contents of each part to the corresponding pre-signed URL, while for a copy the request body should be empty. 
+	 * </p>
+	 * <p>
+	 * The response will include for each part a pre-signed URL together with a map of signed headers. All the signed headers
+	 * will need to be sent along with the PUT request.
+	 * </p>
+	 * <p>
+	 * Each pre-signed URL will expire 15 minute after issued. If a URL has expired, the client will need to request a new URL for that part.
+	 * </p>
 	 * @param userId
 	 * @param uploadId
 	 *            The unique identifier of the file upload.
@@ -843,10 +903,13 @@ public class UploadController {
 	}
 
 	/**
-	 * After the contents of part have been upload (PUT to a pre-signed URL)
-	 * this method is used to added the part to the multipart upload. If the
-	 * upload part can be found, and the provided MD5 matches the MD5 of the
-	 * part, the part will be accepted and added to the multipart upload.
+	 * After the contents of part have been uploaded or copied with the PUT to the part pre-signed URL
+	 * this service is used to confirm the addition of the part to the multipart upload or copy. 
+	 * When uploading a file if the upload part can be found, and the provided MD5 matches the MD5 of the part, 
+	 * the part will be accepted and added to the multipart upload. 
+	 * For a copy this is used only to keep track of the MD5 of each part which is returned as part of 
+	 * the response of the pre-signed URL request and needed to complete the multipart copy.
+	 * 
 	 * <p>
 	 * If add part fails for any reason, the client must re-upload the part and
 	 * then re-attempt to add the part to the upload.
@@ -876,7 +939,7 @@ public class UploadController {
 
 	/**
 	 * After all of the parts have been upload and added successfully, this
-	 * method is called to complete the upload resulting in the creation of a
+	 * service is called to complete the upload resulting in the creation of a
 	 * new file handle.
 	 * 
 	 * @param userId

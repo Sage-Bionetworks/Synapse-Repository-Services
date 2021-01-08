@@ -5,7 +5,11 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPAR
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_NUMBER_OF_PARTS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_SIZE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_REQUEST_HASH;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_REQUEST_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_SOURCE_FILE_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_SOURCE_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STARTED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STARTED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STATE;
@@ -23,12 +27,13 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
@@ -37,7 +42,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  */
 public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipartUpload, DBOMultipartUpload>{
 
-	private static FieldColumn[] FIELDS = new FieldColumn[] {
+	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_MULTIPART_UPLOAD_ID, true).withIsBackupId(true),
 		new FieldColumn("requestHash", COL_MULTIPART_REQUEST_HASH),
 		new FieldColumn("etag", COL_MULTIPART_UPLOAD_ETAG).withIsEtag(true),
@@ -51,71 +56,94 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		new FieldColumn("uploadType", COL_MULTIPART_UPLOAD_TYPE),
 		new FieldColumn("bucket", COL_MULTIPART_BUCKET),
 		new FieldColumn("key", COL_MULTIPART_KEY),
-		new FieldColumn("numberOfParts", COL_MULTIPART_NUMBER_OF_PARTS)
+		new FieldColumn("numberOfParts", COL_MULTIPART_NUMBER_OF_PARTS),
+		new FieldColumn("requestType", COL_MULTIPART_REQUEST_TYPE),
+		new FieldColumn("partSize", COL_MULTIPART_PART_SIZE),
+		new FieldColumn("sourceFileHandleId", COL_MULTIPART_SOURCE_FILE_HANDLE_ID),
+		new FieldColumn("sourceFileEtag", COL_MULTIPART_SOURCE_FILE_ETAG)
 	};
 	
-	Long id;
-	String requestHash;
-	String etag;
-	byte[] requestBlob;
-	Long startedBy;
-	Date startedOn;
-	Date updatedOn;
-	Long fileHandleId;
-	String state;
-	String uploadToken;
-	String bucket;
-	String key;
-	Integer numberOfParts;
-	String uploadType;
+	private static final TableMapping<DBOMultipartUpload> TABLE_MAPPING = new TableMapping<DBOMultipartUpload>() {
+
+		@Override
+		public DBOMultipartUpload mapRow(ResultSet rs, int rowNum)
+				throws SQLException {
+			DBOMultipartUpload dbo = new DBOMultipartUpload();
+			dbo.setId(rs.getLong(COL_MULTIPART_UPLOAD_ID));
+			dbo.setRequestHash(rs.getString(COL_MULTIPART_REQUEST_HASH));
+			dbo.setEtag(rs.getString(COL_MULTIPART_UPLOAD_ETAG));
+			dbo.setStartedBy(rs.getLong(COL_MULTIPART_STARTED_BY));
+			dbo.setStartedOn(new Date(rs.getTimestamp(COL_MULTIPART_STARTED_ON).getTime()));
+			dbo.setUpdatedOn(new Date(rs.getTimestamp(COL_MULTIPART_UPDATED_ON).getTime()));
+			dbo.setFileHandleId(rs.getLong(COL_MULTIPART_FILE_HANDLE_ID));
+			if(rs.wasNull()){
+				dbo.setFileHandleId(null);
+			}
+			dbo.setState(rs.getString(COL_MULTIPART_STATE));
+			dbo.setRequestBlob(rs.getBytes(COL_MULTIPART_UPLOAD_REQUEST));
+			dbo.setUploadToken(rs.getString(COL_MULTIPART_UPLOAD_TOKEN));
+			dbo.setUploadType(rs.getString(COL_MULTIPART_UPLOAD_TYPE));
+			dbo.setBucket(rs.getString(COL_MULTIPART_BUCKET));
+			dbo.setKey(rs.getString(COL_MULTIPART_KEY));
+			dbo.setNumberOfParts(rs.getInt(COL_MULTIPART_NUMBER_OF_PARTS));
+			dbo.setRequestType(rs.getString(COL_MULTIPART_REQUEST_TYPE));
+			dbo.setPartSize(rs.getLong(COL_MULTIPART_PART_SIZE));
+			if (rs.wasNull()) {
+				dbo.setPartSize(null);
+			}
+			dbo.setSourceFileHandleId(rs.getLong(COL_MULTIPART_SOURCE_FILE_HANDLE_ID));
+			if (rs.wasNull()) {
+				dbo.setSourceFileHandleId(null);
+			}
+			dbo.setSourceFileEtag(rs.getString(COL_MULTIPART_SOURCE_FILE_ETAG));
+			return dbo;
+		}
+
+		@Override
+		public String getTableName() {
+			return TABLE_MULTIPART_UPLOAD;
+		}
+
+		@Override
+		public String getDDLFileName() {
+			return COL_MULTIPART_DDL;
+		}
+
+		@Override
+		public FieldColumn[] getFieldColumns() {
+			return FIELDS;
+		}
+
+		@Override
+		public Class<? extends DBOMultipartUpload> getDBOClass() {
+			return DBOMultipartUpload.class;
+		};
+	};
+	
+	private static final MigratableTableTranslation<DBOMultipartUpload, DBOMultipartUpload> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<>();
+	
+	private Long id;
+	private String requestHash;
+	private String etag;
+	private byte[] requestBlob;
+	private Long startedBy;
+	private Date startedOn;
+	private Date updatedOn;
+	private Long fileHandleId;
+	private String state;
+	private String uploadToken;
+	private String bucket;
+	private String key;
+	private Integer numberOfParts;
+	private String uploadType;
+	private String requestType;
+	private Long partSize;
+	private Long sourceFileHandleId;
+	private String sourceFileEtag;
 
 	@Override
 	public TableMapping<DBOMultipartUpload> getTableMapping() {
-		return new TableMapping<DBOMultipartUpload>(){
-
-			@Override
-			public DBOMultipartUpload mapRow(ResultSet rs, int rowNum)
-					throws SQLException {
-				DBOMultipartUpload dbo = new DBOMultipartUpload();
-				dbo.setId(rs.getLong(COL_MULTIPART_UPLOAD_ID));
-				dbo.setRequestHash(rs.getString(COL_MULTIPART_REQUEST_HASH));
-				dbo.setEtag(rs.getString(COL_MULTIPART_UPLOAD_ETAG));
-				dbo.setStartedBy(rs.getLong(COL_MULTIPART_STARTED_BY));
-				dbo.setStartedOn(new Date(rs.getTimestamp(COL_MULTIPART_STARTED_ON).getTime()));
-				dbo.setUpdatedOn(new Date(rs.getTimestamp(COL_MULTIPART_UPDATED_ON).getTime()));
-				dbo.setFileHandleId(rs.getLong(COL_MULTIPART_FILE_HANDLE_ID));
-				if(rs.wasNull()){
-					dbo.setFileHandleId(null);
-				}
-				dbo.setState(rs.getString(COL_MULTIPART_STATE));
-				dbo.setRequestBlob(rs.getBytes(COL_MULTIPART_UPLOAD_REQUEST));
-				dbo.setUploadToken(rs.getString(COL_MULTIPART_UPLOAD_TOKEN));
-				dbo.setUploadType(rs.getString(COL_MULTIPART_UPLOAD_TYPE));
-				dbo.setBucket(rs.getString(COL_MULTIPART_BUCKET));
-				dbo.setKey(rs.getString(COL_MULTIPART_KEY));
-				dbo.setNumberOfParts(rs.getInt(COL_MULTIPART_NUMBER_OF_PARTS));
-				return dbo;
-			}
-
-			@Override
-			public String getTableName() {
-				return TABLE_MULTIPART_UPLOAD;
-			}
-
-			@Override
-			public String getDDLFileName() {
-				return COL_MULTIPART_DDL;
-			}
-
-			@Override
-			public FieldColumn[] getFieldColumns() {
-				return FIELDS;
-			}
-
-			@Override
-			public Class<? extends DBOMultipartUpload> getDBOClass() {
-				return DBOMultipartUpload.class;
-			}};
+		return TABLE_MAPPING;
 	}
 
 	@Override
@@ -125,21 +153,7 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 
 	@Override
 	public MigratableTableTranslation<DBOMultipartUpload, DBOMultipartUpload> getTranslator() {
-		return new MigratableTableTranslation<DBOMultipartUpload, DBOMultipartUpload>() {
-			@Override
-			public DBOMultipartUpload createDatabaseObjectFromBackup(DBOMultipartUpload backup) {
-				if (backup.getUploadType() == null) {
-					backup.setUploadType(UploadType.S3.toString());
-				}
-				return backup;
-			}
-
-			@Override
-			public DBOMultipartUpload createBackupFromDatabaseObject(DBOMultipartUpload dbo) {
-
-				return dbo;
-			}
-		};
+		return MIGRATION_TRANSLATOR;
 	}
 
 	@Override
@@ -271,133 +285,82 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 	public void setNumberOfParts(Integer numberOfParts) {
 		this.numberOfParts = numberOfParts;
 	}
+	
+	public String getRequestType() {
+		return requestType;
+	}
+	
+	public void setRequestType(String requestType) {
+		this.requestType = requestType;
+	}
+
+	public Long getSourceFileHandleId() {
+		return sourceFileHandleId;
+	}
+	
+	public void setSourceFileHandleId(Long sourceFileHandleId) {
+		this.sourceFileHandleId = sourceFileHandleId;
+	}
+	
+	public String getSourceFileEtag() {
+		return sourceFileEtag;
+	}
+	
+	public void setSourceFileEtag(String sourceFileEtag) {
+		this.sourceFileEtag = sourceFileEtag;
+	}
+	
+	public Long getPartSize() {
+		return partSize;
+	}
+	
+	public void setPartSize(Long partSize) {
+		this.partSize = partSize;
+	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((uploadType == null) ? 0 : uploadType.hashCode());
-		result = prime * result + ((bucket == null) ? 0 : bucket.hashCode());
-		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
-		result = prime * result
-				+ ((fileHandleId == null) ? 0 : fileHandleId.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((key == null) ? 0 : key.hashCode());
-		result = prime * result
-				+ ((numberOfParts == null) ? 0 : numberOfParts.hashCode());
 		result = prime * result + Arrays.hashCode(requestBlob);
-		result = prime * result
-				+ ((requestHash == null) ? 0 : requestHash.hashCode());
-		result = prime * result
-				+ ((startedBy == null) ? 0 : startedBy.hashCode());
-		result = prime * result
-				+ ((startedOn == null) ? 0 : startedOn.hashCode());
-		result = prime * result + ((state == null) ? 0 : state.hashCode());
-		result = prime * result
-				+ ((updatedOn == null) ? 0 : updatedOn.hashCode());
-		result = prime * result
-				+ ((uploadToken == null) ? 0 : uploadToken.hashCode());
+		result = prime * result + Objects.hash(bucket, etag, fileHandleId, id, key, numberOfParts, partSize,
+				requestHash, requestType, sourceFileEtag, sourceFileHandleId, startedBy, startedOn, state, updatedOn,
+				uploadToken, uploadType);
 		return result;
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (obj == null) {
 			return false;
-		if (getClass() != obj.getClass())
+		}
+		if (getClass() != obj.getClass()) {
 			return false;
+		}
 		DBOMultipartUpload other = (DBOMultipartUpload) obj;
-		if (uploadType == null) {
-			if (other.uploadType != null)
-				return false;
-		} else if (!uploadType.equals(other.uploadType))
-			return false;
-		if (bucket == null) {
-			if (other.bucket != null)
-				return false;
-		} else if (!bucket.equals(other.bucket))
-			return false;
-		if (etag == null) {
-			if (other.etag != null)
-				return false;
-		} else if (!etag.equals(other.etag))
-			return false;
-		if (fileHandleId == null) {
-			if (other.fileHandleId != null)
-				return false;
-		} else if (!fileHandleId.equals(other.fileHandleId))
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (key == null) {
-			if (other.key != null)
-				return false;
-		} else if (!key.equals(other.key))
-			return false;
-		if (numberOfParts == null) {
-			if (other.numberOfParts != null)
-				return false;
-		} else if (!numberOfParts.equals(other.numberOfParts))
-			return false;
-		if (!Arrays.equals(requestBlob, other.requestBlob))
-			return false;
-		if (requestHash == null) {
-			if (other.requestHash != null)
-				return false;
-		} else if (!requestHash.equals(other.requestHash))
-			return false;
-		if (startedBy == null) {
-			if (other.startedBy != null)
-				return false;
-		} else if (!startedBy.equals(other.startedBy))
-			return false;
-		if (startedOn == null) {
-			if (other.startedOn != null)
-				return false;
-		} else if (!startedOn.equals(other.startedOn))
-			return false;
-		if (state == null) {
-			if (other.state != null)
-				return false;
-		} else if (!state.equals(other.state))
-			return false;
-		if (updatedOn == null) {
-			if (other.updatedOn != null)
-				return false;
-		} else if (!updatedOn.equals(other.updatedOn))
-			return false;
-		if (uploadToken == null) {
-			if (other.uploadToken != null)
-				return false;
-		} else if (!uploadToken.equals(other.uploadToken))
-			return false;
-		return true;
+		return Objects.equals(bucket, other.bucket) && Objects.equals(etag, other.etag)
+				&& Objects.equals(fileHandleId, other.fileHandleId) && Objects.equals(id, other.id)
+				&& Objects.equals(key, other.key) && Objects.equals(numberOfParts, other.numberOfParts)
+				&& Objects.equals(partSize, other.partSize) && Arrays.equals(requestBlob, other.requestBlob)
+				&& Objects.equals(requestHash, other.requestHash) && Objects.equals(requestType, other.requestType)
+				&& Objects.equals(sourceFileEtag, other.sourceFileEtag)
+				&& Objects.equals(sourceFileHandleId, other.sourceFileHandleId)
+				&& Objects.equals(startedBy, other.startedBy) && Objects.equals(startedOn, other.startedOn)
+				&& Objects.equals(state, other.state) && Objects.equals(updatedOn, other.updatedOn)
+				&& Objects.equals(uploadToken, other.uploadToken) && Objects.equals(uploadType, other.uploadType);
 	}
 
 	@Override
 	public String toString() {
-		return "DBOMultipartUpload ["
-				+ "id=" + id
-				+ ", requestHash=" + requestHash
-				+ ", etag=" + etag
-				+ ", requestBlob="  + Arrays.toString(requestBlob)
-				+ ", startedBy=" + startedBy
-				+ ", startedOn=" + startedOn
-				+ ", updatedOn=" + updatedOn
-				+ ", fileHandleId=" + fileHandleId
-				+ ", state=" + state
-				+ ", uploadToken=" + uploadToken
-				+ ", uploadType=" + uploadType
-				+ ", bucket=" + bucket
-				+ ", key=" + key
-				+ ", numberOfParts="
-				+ numberOfParts + "]";
+		return "DBOMultipartUpload [id=" + id + ", requestHash=" + requestHash + ", etag=" + etag + ", requestBlob="
+				+ Arrays.toString(requestBlob) + ", startedBy=" + startedBy + ", startedOn=" + startedOn
+				+ ", updatedOn=" + updatedOn + ", fileHandleId=" + fileHandleId + ", state=" + state + ", uploadToken="
+				+ uploadToken + ", bucket=" + bucket + ", key=" + key + ", numberOfParts=" + numberOfParts
+				+ ", uploadType=" + uploadType + ", requestType=" + requestType + ", partSize=" + partSize
+				+ ", sourceFileHandleId=" + sourceFileHandleId + ", sourceFileEtag=" + sourceFileEtag + "]";
 	}
-
 
 }

@@ -1,9 +1,9 @@
 {
-    "description": "Response from adding a part to multi-part upload.",
+    "description": "Response from adding a part to multi-part upload or copy.",
     "properties": {
         "uploadId": {
             "type": "string",
-            "description": "The unique identifier of a multi-part file upload."
+            "description": "The unique identifier of a multi-part request."
         },
         "partNumber": {
             "type": "integer",

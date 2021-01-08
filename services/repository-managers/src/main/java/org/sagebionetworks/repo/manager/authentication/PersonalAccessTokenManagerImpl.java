@@ -28,6 +28,7 @@ import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.EnumKeyedJsonMapUtil;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import io.jsonwebtoken.Claims;
@@ -36,6 +37,8 @@ import io.jsonwebtoken.Jwt;
 
 @Service
 public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManager {
+
+	static final String DUPLICATE_TOKEN_NAME_MSG = "You cannot have two tokens with the same name. You must delete the existing token to create a new one with this name.";
 
 	// The maximum time, in days, that a token remains active if unused.
 	private static final long MAX_TOKEN_LEASE_LENGTH_DAYS = 180L;
@@ -120,7 +123,15 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 		record.setCreatedOn(now);
 		record.setLastUsed(now);
 
-		record = personalAccessTokenDao.createTokenRecord(record);
+		try {
+			record = personalAccessTokenDao.createTokenRecord(record);
+		} catch (IllegalArgumentException e) {
+			if (e.getCause() instanceof DuplicateKeyException) {
+				throw new IllegalArgumentException(DUPLICATE_TOKEN_NAME_MSG, e);
+			} else {
+				throw e;
+			}
+		}
 		AccessTokenGenerationResponse response = new AccessTokenGenerationResponse();
 		response.setToken(oidcTokenHelper.createPersonalAccessToken(oauthEndpoint, record));
 

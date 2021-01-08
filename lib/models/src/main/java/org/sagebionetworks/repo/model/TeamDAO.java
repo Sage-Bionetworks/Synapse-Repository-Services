@@ -1,11 +1,11 @@
 package org.sagebionetworks.repo.model;
 
+import org.sagebionetworks.repo.web.NotFoundException;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface TeamDAO {
 	/**
@@ -25,7 +25,17 @@ public interface TeamDAO {
 	 * @throws NotFoundException
 	 */
 	public Team get(String id) throws DatastoreException, NotFoundException;
-	
+
+
+	/**
+	 * Validates that team exists, if the team does not exist, throws a NotFoundException
+	 *
+	 * @param teamId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	void validateTeamExists(String teamId) throws NotFoundException;
+
 	/**
 	 * 
 	 * @param ids

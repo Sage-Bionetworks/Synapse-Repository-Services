@@ -1,9 +1,9 @@
 {
-	"description": "Request a batch of multi-part upload pre-signed URLs.",
+	"description": "Request a batch of multi-part upload or copy pre-signed URLs.",
 	"properties": {
 		"uploadId": {
 			"type": "string",
-			"description": "The unique identifier of a multi-part file upload."
+			"description": "The unique identifier of a multi-part request."
 		},
 		"partNumbers": {
 			"type": "array",

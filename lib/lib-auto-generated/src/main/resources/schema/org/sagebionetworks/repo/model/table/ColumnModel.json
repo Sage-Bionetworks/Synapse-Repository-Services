@@ -16,7 +16,7 @@
         },
         "columnType": {
             "type": "string",
-            "description": "The column type determines the type of data that can be stored in a column.",
+            "description": "The column type determines the type of data that can be stored in a column. Switching between types is generally allowed except for switching to \"_LIST\" suffixed types. In such cases, a new column must be created and data must be copied over manually",
             "name": "ColumnType",
             "id": "org.sagebionetworks.repo.model.table.ColumnType",
             "enum": [
@@ -96,7 +96,7 @@
         },
         "maximumSize": {
             "type": "integer",
-            "description": "A parameter for columnTypes with a maximum size.  For example, ColumnType.STRINGs have a default maximum size of 50 characters, but can be set to a maximumSize of 1 to 1000 characters."
+            "description": "A parameter for columnTypes with a maximum size.  For example, ColumnType.STRINGs have a default maximum size of 50 characters, but can be set to a maximumSize of 1 to 1000 characters. For columnType of STRING_LIST, this limits the size of individual string elements in the list"
         },
         "maximumListLength": {
             "type": "integer",

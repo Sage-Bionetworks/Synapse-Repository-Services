@@ -15,8 +15,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -32,6 +32,12 @@ import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.dataaccess.Request;
+import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestTestUtils;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectTestUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -52,6 +58,12 @@ public class DBOAccessRequirementDAOImplTest {
 
 	@Autowired
 	NodeDAO nodeDao;
+
+	@Autowired
+	private RequestDAO requestDao;
+
+	@Autowired
+	private ResearchProjectDAO researchProjectDao;
 	
 	private UserGroup individualGroup = null;
 	private Node node = null;
@@ -63,6 +75,8 @@ public class DBOAccessRequirementDAOImplTest {
 	
 	@BeforeEach
 	public void setUp() throws Exception {
+		requestDao.clear();
+		researchProjectDao.clear();
 		accessRequirementDAO.clear();
 		ars = new ArrayList<>();
 		individualGroup = new UserGroup();
@@ -82,6 +96,8 @@ public class DBOAccessRequirementDAOImplTest {
 	
 	@AfterEach
 	public void tearDown() throws Exception{
+		requestDao.clear();
+		researchProjectDao.clear();
 		accessRequirementDAO.clear();
 		if (node!=null && nodeDao!=null) {
 			nodeDao.delete(node.getId());
@@ -415,4 +431,40 @@ public class DBOAccessRequirementDAOImplTest {
 		assertEquals(Arrays.asList(accessRequirement.getId().toString()),
 				accessRequirementDAO.getAccessRequirementDiff(sourceSubjects, destSubjects , RestrictableObjectType.ENTITY));
 	}
+
+	@Test
+	public void testDeleteAccessRequirement() {
+		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
+		accessRequirement = accessRequirementDAO.create(accessRequirement);
+		String accessRequirementId = String.valueOf(accessRequirement.getId());
+		String expectedMessage = "An access requirement with id "+ accessRequirementId + " cannot be found.";
+		// Call under test
+		accessRequirementDAO.delete(accessRequirementId);
+		NotFoundException exception = assertThrows(NotFoundException.class, () -> {
+			accessRequirementDAO.get(accessRequirementId);
+		});
+		assertEquals(expectedMessage, exception.getMessage());
+	}
+
+	@Test
+	public void testDeleteAccessRequirementForeignKeyConstraint() throws Exception {
+		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
+		accessRequirement = accessRequirementDAO.create(accessRequirement);
+		String accessRequirementId = String.valueOf(accessRequirement.getId());
+		ResearchProject researchProject = ResearchProjectTestUtils.createNewDto();
+		researchProject.setAccessRequirementId(accessRequirementId);
+		researchProject = researchProjectDao.create(researchProject);
+		Request dto = RequestTestUtils.createNewRequest();
+		dto.setAccessRequirementId(accessRequirementId);
+		dto.setResearchProjectId(researchProject.getId());
+		dto = requestDao.create(dto);
+		String expectedMessage = "The access requirement with id " + accessRequirementId +
+				" cannot be deleted as it is referenced by another object.";
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			accessRequirementDAO.delete(accessRequirementId);
+		});
+		assertEquals(expectedMessage, exception.getMessage());
+	}
+
 }

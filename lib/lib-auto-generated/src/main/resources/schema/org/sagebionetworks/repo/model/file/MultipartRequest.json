@@ -1,0 +1,27 @@
+{
+	"type": "interface",
+	"defaultConcreteType": "org.sagebionetworks.repo.model.file.MultipartUploadRequest",
+	"description": "Interface to describe a multi-part request. If the concrete type is not supplied will default to a <a href=\"${org.sagebionetworks.repo.model.file.MultipartUploadRequest}\">MultipartUploadRequest</a>",
+	"properties": {
+		"concreteType": {
+			"type":"string",
+            "description":"Indicates which type of multi-part request to initiate. Currently supports <a href=\"${org.sagebionetworks.repo.model.file.MultipartUploadRequest}\">MultipartUploadRequest</a> and <a href=\"${org.sagebionetworks.repo.model.file.MultipartUploadCopyRequest}\">MultipartUploadCopyRequest</a>"
+		},
+		"partSizeBytes": {
+			"type": "integer",
+			"description": "In order to upload or copy a file, the client must split the process into 'parts' and upload or copy each part separately. This indicates the clients intended part size in bytes. Part size must be at least 5,242,880 bytes (5MB) with a max of 5,368,709,120 bytes (5GB). Also the maximum number of parts for a single file is 10K. The recommended part size for a single file upload should be: MAX( 5242880, (fileSizeBytes/10000))."
+		},
+		"fileName": {
+			"type": "string",
+			"description": "The name of the file to be uploaded."
+		},
+		"storageLocationId": {
+			"type": "integer",
+			"description": "The identifier of the storage location where this file should be stored."
+		},
+		"generatePreview": {
+			"type": "boolean",
+			"description": "Optional parameter.  When set to 'false' a preview will not be generated for the resulting file."
+		}
+	}
+}

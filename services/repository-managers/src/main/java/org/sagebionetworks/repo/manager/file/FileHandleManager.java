@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
+import org.sagebionetworks.repo.web.FileHandleLinkedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
@@ -91,8 +92,9 @@ public interface FileHandleManager {
 	 * @param userInfo
 	 * @param handleId
 	 * @throws DatastoreException
+	 * @throws FileHandleLinkedException If the file handle is still linked to some object through a FK that restricts its deletion
 	 */
-	void deleteFileHandle(UserInfo userInfo, String handleId) throws DatastoreException;
+	void deleteFileHandle(UserInfo userInfo, String handleId) throws DatastoreException, FileHandleLinkedException;
 	
 	/**
 	 * Get the redirect URL for the file handle provided in the given request. If no associate object is provided in the request
@@ -390,4 +392,13 @@ public interface FileHandleManager {
 	 * @return
 	 */
 	BatchFileHandleCopyResult copyFileHandles(UserInfo userInfo, BatchFileHandleCopyRequest request);
+	
+	/**
+	 * Checks if the MD5 of the two file handles matches
+	 * 
+	 * @param sourceFileHandleId The id of the source file handle
+	 * @param targetFileHandleId The id of the target file handle
+	 * @return True if the MD5 of the source and target file handle matches, false otherwise
+	 */
+	boolean isMatchingMD5(String sourceFileHandleId, String targetFileHandleId);
 }

@@ -18,28 +18,28 @@ public interface MultipartUploadDAO {
 	 * @param hash
 	 * @return
 	 */
-	public CompositeMultipartUploadStatus getUploadStatus(Long userId, String hash);
+	CompositeMultipartUploadStatus getUploadStatus(Long userId, String hash);
 	
 	/**
 	 * Get the upload status for a file given an upload id.
 	 * @param id
 	 * @return
 	 */
-	public CompositeMultipartUploadStatus getUploadStatus(String id);
+	CompositeMultipartUploadStatus getUploadStatus(String id);
 	
 	/**
 	 * Get the JSON string for the original request of a multi-part upload.
 	 * @param id
 	 * @return
 	 */
-	public String getUploadRequest(String id);
+	String getUploadRequest(String id);
 	
 	/**
 	 * Delete all data for a file upload given a userId and upload hash.
 	 * @param userId
 	 * @param hash
 	 */
-	public void deleteUploadStatus(long userId, String hash);
+	void deleteUploadStatus(long userId, String hash);
 	
 	/**
 	 * Create a new upload status from a request.
@@ -48,12 +48,12 @@ public interface MultipartUploadDAO {
 	 * @param request
 	 * @return
 	 */
-	public CompositeMultipartUploadStatus createUploadStatus(CreateMultipartRequest createRequest);
+	CompositeMultipartUploadStatus createUploadStatus(CreateMultipartRequest createRequest);
 	
 	/**
 	 * Remove all data for all users.
 	 */
-	public void truncateAll();
+	void truncateAll();
 	
 	/**
 	 * Add a part to a multipart upload.
@@ -62,7 +62,7 @@ public interface MultipartUploadDAO {
 	 * @param partNumber
 	 * @param partMD5Hex
 	 */
-	public void addPartToUpload(String uploadId, int partNumber, String partMD5Hex);
+	void addPartToUpload(String uploadId, int partNumber, String partMD5Hex);
 	
 	/**
 	 * Set the state of a part to failed.
@@ -71,7 +71,7 @@ public interface MultipartUploadDAO {
 	 * @param partNumber
 	 * @param errorDetails
 	 */
-	public void setPartToFailed(String uploadId, int partNumber, String errorDetails);
+	void setPartToFailed(String uploadId, int partNumber, String errorDetails);
 
 	/**
 	 * Lookup the parts string from the database.
@@ -79,21 +79,21 @@ public interface MultipartUploadDAO {
 	 * @param uploadId
 	 * @return
 	 */
-	public String getPartsState(String uploadId, int numberOfParts);
+	String getPartsState(String uploadId, int numberOfParts);
 	
 	/**
 	 * For each part added to an upload get the part MD5Hex
 	 * @param uploadId
 	 * @return
 	 */
-	public List<PartMD5> getAddedPartMD5s(String uploadId);
+	List<PartMD5> getAddedPartMD5s(String uploadId);
 	
 	/**
 	 * For each part with an error get the errors.
 	 * @param uploadId
 	 * @return
 	 */
-	public List<PartErrors> getPartErrors(String uploadId);
+	List<PartErrors> getPartErrors(String uploadId);
 
 	/**
 	 * Set the given file upload to be complete.
@@ -101,6 +101,6 @@ public interface MultipartUploadDAO {
 	 * @param fileHandleId
 	 * @return The final status of the file.
 	 */
-	public CompositeMultipartUploadStatus setUploadComplete(String uploadId, String fileHandleId);
+	CompositeMultipartUploadStatus setUploadComplete(String uploadId, String fileHandleId);
 
 }

@@ -307,18 +307,20 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		try {
 			FileHandle handle = fileHandleDao.get(handleId);
 			// Is the user authorized?
-			authorizationManager.canAccessRawFileHandleByCreator(userInfo, handleId, handle.getCreatedBy())
-					.checkAuthorizationOrElseThrow();
-			// If this file has a preview then we want to delete the preview as
-			// well.
+			authorizationManager.canAccessRawFileHandleByCreator(userInfo, handleId, handle.getCreatedBy()).checkAuthorizationOrElseThrow();
+			
+			// If this file has a preview then we want to delete the preview as well.
 			if (handle instanceof CloudProviderFileHandleInterface) {
 				CloudProviderFileHandleInterface hasPreview = (CloudProviderFileHandleInterface) handle;
-				if (hasPreview.getPreviewId() != null
-						&& !handle.getId().equals(hasPreview.getPreviewId())) {
+				if (hasPreview.getPreviewId() != null && !handle.getId().equals(hasPreview.getPreviewId())) {
 					// Delete the preview.
 					deleteFileHandle(userInfo, hasPreview.getPreviewId());
 				}
 			}
+			
+			// Delete the file handle before deleting the actual data since if this fail with a file handle pointing to non-existing data (See PLFM-6517)
+			fileHandleDao.delete(handleId);
+			
 			// Is this an S3 file?
 			if (handle instanceof S3FileHandle) {
 				S3FileHandle s3Handle = (S3FileHandle) handle;
@@ -337,8 +339,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 					googleCloudStorageClient.deleteObject(googleCloudFileHandle.getBucketName(), googleCloudFileHandle.getKey());
 				}
 			}
-			// Delete the handle from the DB
-			fileHandleDao.delete(handleId);
 		} catch (NotFoundException e) {
 			// there is nothing to do if the handle does not exist.
 			return;
@@ -1470,5 +1470,13 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		}
 
 		return result;
+	}
+	
+	@Override
+	public boolean isMatchingMD5(String sourceFileHandleId, String targetFileHandleId) {
+		ValidateArgument.required(sourceFileHandleId, "The sourceFileHandleId");
+		ValidateArgument.required(targetFileHandleId, "The targetFileHandleId");
+		
+		return fileHandleDao.isMatchingMD5(sourceFileHandleId, targetFileHandleId);
 	}
 }

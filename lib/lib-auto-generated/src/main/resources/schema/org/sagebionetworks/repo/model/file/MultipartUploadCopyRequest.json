@@ -1,0 +1,18 @@
+{
+	"description": "A multi-part upload that performs a copy of an existing file handle without data transfer from the client. Currently supports only copy from and to S3 buckets that live in the same region.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.file.MultipartRequest"
+		}
+	],
+	"properties": {
+		"sourceFileHandleAssociation": {
+			"$ref": "org.sagebionetworks.repo.model.file.FileHandleAssociation",
+			"description": "The description of the source file handle association to copy from. The user initiating the copy must have read and download access to the provided association."
+		},
+		"storageLocationId": {
+			"type": "integer",
+			"description": "The identifier of the storage location where this file should be copied to. The user must be the owner of the storage location."
+		}
+	}
+}

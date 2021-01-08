@@ -40,7 +40,7 @@ public class ProdDetectorImpl implements ProdDetector {
 	private final LoggerProvider logProvider;
 	
 	private SimpleHttpRequest versionInfoRequest;
-	private String currentStackVersion;
+	private String currentStackInstance;
 	private Logger log;
 
 	@Autowired
@@ -53,13 +53,13 @@ public class ProdDetectorImpl implements ProdDetector {
 	@PostConstruct
 	protected void init() {
 		this.log = logProvider.getLogger(ProdDetectorImpl.class.getName());
-		this.currentStackVersion = stackConfiguration.getStackInstance();
+		this.currentStackInstance = stackConfiguration.getStackInstance();
 		
 		this.versionInfoRequest = new SimpleHttpRequest();
 		this.versionInfoRequest.setUri(stackConfiguration.getRepositoryServiceProdEndpoint() + VERSION_INFO_ENDPOINT);
 
 		Map<String, String> headers = ImmutableMap.of(
-				HttpHeaders.USER_AGENT, String.format(USER_AGENT_TEMPLATE, currentStackVersion),
+				HttpHeaders.USER_AGENT, String.format(USER_AGENT_TEMPLATE, currentStackInstance),
 				HttpHeaders.ACCEPT, ContentType.APPLICATION_JSON.getMimeType(),
 				// Force revalidation along the way to avoid caching issues
 				HttpHeaders.CACHE_CONTROL, CacheControl.noCache().getHeaderValue()
@@ -74,7 +74,7 @@ public class ProdDetectorImpl implements ProdDetector {
 				.flatMap(this::parseVersionResponse);
 
 		return response.flatMap(versionInfo -> 
-			Optional.of(currentStackVersion.equals(versionInfo.getVersion()))
+			Optional.of(currentStackInstance.equals(versionInfo.getStackInstance()))
 		);
 
 	}

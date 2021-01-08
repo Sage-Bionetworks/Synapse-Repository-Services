@@ -126,7 +126,7 @@ public class SchemaUtilsTest {
 		assertNotNull(field);
 		assertEquals(name, field.getName());
 		assertEquals(description, field.getDescription());
-		assertEquals(new TypeReference(false, false, false, new String[] { TYPE.STRING.name() }, new String[] { null }), field.getType());
+		assertEquals(new TypeReference(null, false, false, false, new String[] { TYPE.STRING.name() }, new String[] { null }), field.getType());
 	}
 	
 	@Test
@@ -356,9 +356,9 @@ public class SchemaUtilsTest {
 		assertEquals(effective, model.getEffectiveSchema());
 		assertNotNull(model.getFields());
 		assertEquals(2, model.getFields().size());
-		assertEquals(new SchemaFields(new TypeReference(false, false, false, new String[] { TYPE.STRING.name() }, new String[] { null }),
+		assertEquals(new SchemaFields(new TypeReference(null, false, false, false, new String[] { TYPE.STRING.name() }, new String[] { null }),
 				"someString", null), model.getFields().get(0));
-		assertEquals(new SchemaFields(new TypeReference(false, false, false, new String[] { TYPE.BOOLEAN.name() }, new String[] { null }),
+		assertEquals(new SchemaFields(new TypeReference(null, false, false, false, new String[] { TYPE.BOOLEAN.name() }, new String[] { null }),
 				"someBoolean", null), model.getFields().get(1));
 	}
 
@@ -413,6 +413,31 @@ public class SchemaUtilsTest {
 		assertEquals("root", childField.type.getDisplay()[0]);
 		assertEquals(1, childField.type.getHref().length);
 		assertEquals("${path.root}", childField.type.getHref()[0]);
+	}
+	
+	@Test
+	public void testTranslateToModelWithDefaultImplementation() {
+		ObjectSchema defaultImplementation = new ObjectSchemaImpl();
+		
+		defaultImplementation.setType(TYPE.OBJECT);
+		defaultImplementation.setName("Impl");
+		defaultImplementation.setId("path.to.Impl");
+		
+		ObjectSchema superInterface = new ObjectSchemaImpl();
+		
+		superInterface.setType(TYPE.INTERFACE);
+		superInterface.setName("Interface");
+		superInterface.setId("path.to.Interface");
+		superInterface.setDefaultConcreteType(defaultImplementation.getId());
+		
+		TypeReference expectedReference = SchemaUtils.typeToLinkString(defaultImplementation, null);
+		
+		List<TypeReference> knownImplementaions = Arrays.asList(expectedReference);
+		
+		// call under test
+		ObjectSchemaModel model = SchemaUtils.translateToModel(superInterface, knownImplementaions);
+
+		assertEquals(expectedReference, model.getDefaultImplementation());
 	}
 	
 	@Test

@@ -3,11 +3,11 @@
 	"properties": {
 		"minimumId": {
 			"type": "integer",
-			"description": "The first ID in the range of IDs (inclusive)"
+			"description": "The first ID in the range."
 		},
 		"maximumId": {
 			"type": "integer",
-			"description": "The last ID in the range of IDs (exclusive)"
+			"description": "The last ID in the range plus one."
 		}
 	}
 }

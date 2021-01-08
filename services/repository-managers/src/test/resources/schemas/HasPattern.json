@@ -1,0 +1,11 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "hasPattern",
+	"description": "test pattern",
+	"properties": {
+		"somePattern": {
+			"type": "string",
+			"pattern": "^(\\([0-9]{3}\\))?[0-9]{3}-[0-9]{4}$"
+		}
+	}
+}

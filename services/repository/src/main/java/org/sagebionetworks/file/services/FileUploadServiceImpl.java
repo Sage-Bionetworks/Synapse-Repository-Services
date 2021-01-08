@@ -33,7 +33,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationList;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
-import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
+import org.sagebionetworks.repo.model.file.MultipartRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
@@ -209,10 +209,9 @@ public class FileUploadServiceImpl implements FileUploadService {
 	}
 
 	@Override
-	public MultipartUploadStatus startMultipartUpload(Long userId,
-			MultipartUploadRequest request, boolean forceRestart) {
+	public MultipartUploadStatus startMultipart(Long userId, MultipartRequest request, boolean forceRestart) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return multipartManagerV2.startOrResumeMultipartUpload(userInfo, request, forceRestart);
+		return multipartManagerV2.startOrResumeMultipartOperation(userInfo, request, forceRestart);
 	}
 
 	@Override

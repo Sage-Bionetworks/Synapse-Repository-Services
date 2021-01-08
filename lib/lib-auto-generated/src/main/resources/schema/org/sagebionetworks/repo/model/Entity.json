@@ -4,7 +4,7 @@
 	"properties": {
 		"name": {
 			"type": "string",
-			"description": "The name of this entity.  Must be 256 characters or less.",
+			"description": "The name of this entity.  Must be 256 characters or less. Names may only contain: letters, numbers, spaces, underscores, hyphens, periods, plus signs, apostrophes, and parentheses",
 			"title": "Name"
 		},
 		"description": {
