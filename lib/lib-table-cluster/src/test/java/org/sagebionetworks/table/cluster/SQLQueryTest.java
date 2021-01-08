@@ -101,8 +101,8 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQueryBuilder("select foo from syn123", tableSchema, userId).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
-		List<ColumnModel> expectedSelect = Arrays.asList(columnNameToModelMap.get("foo"));
-		assertEquals(TableModelUtils.getSelectColumns(expectedSelect), translator.getSelectColumns());
+		List<SelectColumn> expectedSelect = Arrays.asList(TableModelUtils.createSelectColumn("foo", "foo", ColumnType.STRING, "111"));
+		assertEquals(expectedSelect, translator.getSelectColumns());
 	}
 	
 	@Test
