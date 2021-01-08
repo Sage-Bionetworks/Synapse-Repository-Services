@@ -2,7 +2,11 @@ package org.sagebionetworks.repo.model.dbo;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.StringJoiner;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.dbo.migration.ChecksumTableResult;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -155,6 +159,15 @@ public class DMLUtils {
 		String primaryFieldName = getPrimaryFieldColumnName(mapping);
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT MIN(`" + backupFieldName + "`), MAX(`" + backupFieldName + "`), COUNT(`" + primaryFieldName + "`) FROM ");
+		builder.append(mapping.getTableName());
+		return builder.toString();
+	}
+	
+	public static String createGetMinMaxByBackupKeyStatement(TableMapping mapping) {
+		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
+		String backupFieldName = getBackupFieldColumnName(mapping);
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT MIN(`" + backupFieldName + "`), MAX(`" + backupFieldName + "`) FROM ");
 		builder.append(mapping.getTableName());
 		return builder.toString();
 	}
@@ -521,6 +534,8 @@ public class DMLUtils {
 		FieldColumn backupId = getBackupIdColumnName(mapping);
 		if(backupId == null) throw new IllegalArgumentException("One column must be marked as the backupIdColumn");
 	}
+	
+	
 	
 	public static String createChecksumTableStatement(TableMapping mapping) {
 		validateMigratableTableMapping(mapping);

@@ -21,7 +21,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.file.FileHandleAssociationProvider;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;

@@ -1,9 +1,10 @@
-package org.sagebionetworks.repo.model.file;
+package org.sagebionetworks.repo.manager.file;
 
 import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 
 /**
  * Abstraction for all of the different type of FileHandleAssociationsProviders.

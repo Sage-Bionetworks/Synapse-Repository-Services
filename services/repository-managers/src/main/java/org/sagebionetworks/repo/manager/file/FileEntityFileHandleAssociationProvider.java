@@ -5,7 +5,6 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.file.FileHandleAssociationProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class FileEntityFileHandleAssociationProvider implements FileHandleAssociationProvider {

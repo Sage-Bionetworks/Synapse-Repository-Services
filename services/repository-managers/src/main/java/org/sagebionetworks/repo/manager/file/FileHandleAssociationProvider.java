@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.file;
+package org.sagebionetworks.repo.manager.file;
 
 import java.util.List;
 import java.util.Set;
