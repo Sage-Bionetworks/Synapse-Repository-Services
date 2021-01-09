@@ -4,9 +4,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.manager.file.FileHandleAssociationProvider;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.form.FormDao;
-import org.sagebionetworks.repo.model.file.FileHandleAssociationProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 

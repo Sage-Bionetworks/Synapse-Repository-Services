@@ -44,7 +44,6 @@ public class QueryStreamIterable<T> implements Iterable<T>, Iterator<T> {
 		StringBuilder sqlBuilder = new StringBuilder(sql);
 		sqlBuilder.append(PAGINATION);
 		this.sql = sqlBuilder.toString();
-		this.parameters = parameters;
 		this.limit = limit;
 		this.offset = 0L;
 		this.currentPage = null;

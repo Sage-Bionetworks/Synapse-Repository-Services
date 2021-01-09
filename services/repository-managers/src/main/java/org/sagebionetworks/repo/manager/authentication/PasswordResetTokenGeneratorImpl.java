@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.authentication;
 
+import java.util.Base64;
 import java.util.Date;
 
 import org.apache.commons.codec.digest.DigestUtils;
