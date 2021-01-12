@@ -171,7 +171,7 @@ public class PersonalAccessTokenManagerAutowiredTest {
 		personalAccessTokenManager.updateLastUsedTime(tokenId1);
 
 		AccessTokenRecord postUpdate = personalAccessTokenManager.getTokenRecord(userInfo, tokenId1);
-		// we update no more than  once per minute
+		// we update no more than once per minute
 		assertTrue(postUpdate.getLastUsed().equals(preUpdate.getLastUsed()));
 	}
 
