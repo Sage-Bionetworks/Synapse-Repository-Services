@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockoutException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
-import org.sagebionetworks.repo.model.UnsuccessfulLoginLockoutDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.NewUser;
