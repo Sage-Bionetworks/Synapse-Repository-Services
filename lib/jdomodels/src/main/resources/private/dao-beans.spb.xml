@@ -357,7 +357,4 @@
 	<bean id="dataTypeDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DataTypeDaoImpl"/>
 
-	<!-- DAO for blocking repeated unsuccessful attempts -->
-	<bean id="unsuccessfulAtteptLockoutDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.UnsuccessfulLoginLockoutDAOImpl"/>
 </beans>

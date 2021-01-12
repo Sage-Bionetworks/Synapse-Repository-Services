@@ -1,151 +1,195 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.UserCredentialValidatorImpl.LOGIN_FAIL_ATTEMPT_METRIC_DEFAULT_VALUE;
 import static org.sagebionetworks.repo.manager.UserCredentialValidatorImpl.LOGIN_FAIL_ATTEMPT_METRIC_NAME;
 import static org.sagebionetworks.repo.manager.UserCredentialValidatorImpl.LOGIN_FAIL_ATTEMPT_METRIC_UNIT;
-import static org.sagebionetworks.repo.manager.UserCredentialValidatorImpl.REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
-import org.sagebionetworks.repo.manager.loginlockout.LoginAttemptResultReporter;
-import org.sagebionetworks.repo.manager.loginlockout.LoginLockoutStatus;
 import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockoutException;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
+import org.sagebionetworks.repo.model.auth.LockoutInfo;
+import org.sagebionetworks.repo.model.auth.LoginLockoutStatusDao;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class UserCredentialValidatorImplTest {
 
 	@Mock
-	private LoginAttemptResultReporter mockLoginAttemptResultReporter;
-	@Mock
-	private LoginLockoutStatus mockLoginLockoutStatus;
+	private LoginLockoutStatusDao mockLoginLockoutStatusDao;
 	@Mock
 	private AuthenticationDAO mockAuthDAO;
 	@Mock
 	private Consumer mockConsumer;
-
 	@Mock
 	private UnsuccessfulLoginLockoutException mockUnsuccessfulLoginLockoutException;
 
 	@InjectMocks
-	private UserCredentialValidatorImpl authenticationManagerUtil;
+	private UserCredentialValidatorImpl validator;
 
 	final Long userId = 12345L;
-	final byte[] salt = new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	final byte[] salt = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	final String password = "gro.tset@reganaMhtuA";
 
 
-	@Before
-	public void setUp() throws Exception {
-		when(mockAuthDAO.getPasswordSalt(eq(userId))).thenReturn(salt);
-
-
-		when(mockAuthDAO.checkUserCredentials(anyLong(), anyString())).thenReturn(true);
-		when(mockLoginLockoutStatus.checkIsLockedOut(userId)).thenReturn(mockLoginAttemptResultReporter);
-	}
-
 	@Test
-	public void testCheckPassword_RightPassword(){
-		when(mockAuthDAO.checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt))).thenReturn(true);
+	public void testCheckPassword_RightPassword() {
+		when(mockAuthDAO.getPasswordSalt(anyLong())).thenReturn(salt);
+		when(mockAuthDAO.checkUserCredentials(anyLong(), any())).thenReturn(true);
 
-		//method under test
-		assertTrue(authenticationManagerUtil.checkPassword(userId, password));
+		// method under test
+		assertTrue(validator.checkPassword(userId, password));
 
+		verify(mockAuthDAO).getPasswordSalt(userId);
 		verify(mockAuthDAO).checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt));
 
 	}
 
 	@Test
-	public void testCheckPassword_WrongPassword(){
-		when(mockAuthDAO.checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt))).thenReturn(false);
-		//method under test
-		assertFalse(authenticationManagerUtil.checkPassword(userId, password));
+	public void testCheckPassword_WrongPassword() {
+		when(mockAuthDAO.getPasswordSalt(anyLong())).thenReturn(salt);
+		when(mockAuthDAO.checkUserCredentials(anyLong(), any())).thenReturn(false);
+		// method under test
+		assertFalse(validator.checkPassword(userId, password));
 
+		verify(mockAuthDAO).getPasswordSalt(userId);
 		verify(mockAuthDAO).checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt));
 	}
 
 	@Test
-	public void testCheckPasswordWithThrottling_IsLockedOut_lessThanLogThreshold(){
-		when(mockLoginLockoutStatus.checkIsLockedOut(userId)).thenThrow(mockUnsuccessfulLoginLockoutException);
-		when(mockUnsuccessfulLoginLockoutException.getNumFailedAttempts()).thenReturn(REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD - 1);
+	public void testCheckPasswordWithThrottlingWithNoLock() {
+		when(mockLoginLockoutStatusDao.getLockoutInfo(any())).thenReturn(
+				new LockoutInfo().withNumberOfFailedLoginAttempts(0L).withRemainingMillisecondsToNextLoginAttempt(0L));
+		when(mockAuthDAO.getPasswordSalt(anyLong())).thenReturn(salt);
+		when(mockAuthDAO.checkUserCredentials(anyLong(), any())).thenReturn(true);
 
-		try{
-			//method under test
-			authenticationManagerUtil.checkPasswordWithThrottling(userId, password);
-			fail("expected exception to be thrown");
-		} catch (UnsuccessfulLoginLockoutException e) {
-			//expected
-		}
+		// call under test
+		boolean result = validator.checkPasswordWithThrottling(userId, password);
+		assertTrue(result);
 
-		verify(mockLoginLockoutStatus).checkIsLockedOut(userId);
-		verifyZeroInteractions(mockLoginAttemptResultReporter);
+		verify(mockLoginLockoutStatusDao).getLockoutInfo(userId);
+		verify(mockLoginLockoutStatusDao, never()).incrementLockoutInfoWithNewTransaction(any());
+		verify(mockLoginLockoutStatusDao, never()).resetLockoutInfoWithNewTransaction(any());
+		verify(mockAuthDAO).checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt));
 		verifyZeroInteractions(mockConsumer);
 	}
 
 	@Test
-	public void testCheckPasswordWithThrottling_IsLockedOut_GreaterThanEqualLogThreshold(){
-		when(mockLoginLockoutStatus.checkIsLockedOut(userId)).thenThrow(mockUnsuccessfulLoginLockoutException);
-		when(mockUnsuccessfulLoginLockoutException.getNumFailedAttempts()).thenReturn(REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD);
+	public void testCheckPasswordWithThrottlingWithLockedNotExpired() {
+		when(mockLoginLockoutStatusDao.getLockoutInfo(any())).thenReturn(
+				new LockoutInfo().withNumberOfFailedLoginAttempts(1L).withRemainingMillisecondsToNextLoginAttempt(1L));
 
-		try{
-			//method under test
-			authenticationManagerUtil.checkPasswordWithThrottling(userId, password);
-			fail("expected exception to be thrown");
-		} catch (UnsuccessfulLoginLockoutException e) {
-			//expected
-		}
+		String message = assertThrows(UnsuccessfulLoginLockoutException.class, () -> {
+			// call under test
+			validator.checkPasswordWithThrottling(userId, password);
+		}).getMessage();
+		assertEquals("You are locked out from making any additional login attempts for 1 milliseconds", message);
 
-		verify(mockLoginLockoutStatus).checkIsLockedOut(userId);
-		verifyZeroInteractions(mockLoginAttemptResultReporter);
+		verify(mockLoginLockoutStatusDao).getLockoutInfo(userId);
+		verify(mockLoginLockoutStatusDao, never()).incrementLockoutInfoWithNewTransaction(any());
+		verify(mockLoginLockoutStatusDao, never()).resetLockoutInfoWithNewTransaction(any());
+		verify(mockAuthDAO, never()).checkUserCredentials(anyLong(), any());
+		verifyZeroInteractions(mockConsumer);
+	}
+
+	@Test
+	public void testCheckPasswordWithThrottlingWithLockedNotExpiredOverReportCount() {
+		when(mockLoginLockoutStatusDao.getLockoutInfo(any())).thenReturn(new LockoutInfo()
+				.withNumberOfFailedLoginAttempts(
+						UserCredentialValidatorImpl.REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD + 1L)
+				.withRemainingMillisecondsToNextLoginAttempt(1L));
+
+		String message = assertThrows(UnsuccessfulLoginLockoutException.class, () -> {
+			// call under test
+			validator.checkPasswordWithThrottling(userId, password);
+		}).getMessage();
+		assertEquals("You are locked out from making any additional login attempts for 1 milliseconds", message);
+
+		verify(mockLoginLockoutStatusDao).getLockoutInfo(userId);
+		verify(mockLoginLockoutStatusDao, never()).incrementLockoutInfoWithNewTransaction(any());
+		verify(mockLoginLockoutStatusDao, never()).resetLockoutInfoWithNewTransaction(any());
+		verify(mockAuthDAO, never()).checkUserCredentials(anyLong(), any());
+		// this event should get logged.
 		ArgumentCaptor<ProfileData> captor = ArgumentCaptor.forClass(ProfileData.class);
 		verify(mockConsumer).addProfileData(captor.capture());
 		validateLoginFailAttemptMetricData(captor, userId);
 	}
 
 	@Test
-	public void checkPasswordWithThrottling_RightPassword(){
-		when(mockAuthDAO.checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt))).thenReturn(true);
+	public void testCheckPasswordWithThrottlingWithLockedExpiredAndValidCredentials() {
+		// negative remaining time indicates an expired lock
+		when(mockLoginLockoutStatusDao.getLockoutInfo(any())).thenReturn(
+				new LockoutInfo().withNumberOfFailedLoginAttempts(1L).withRemainingMillisecondsToNextLoginAttempt(-1L));
+		when(mockAuthDAO.getPasswordSalt(anyLong())).thenReturn(salt);
+		when(mockAuthDAO.checkUserCredentials(anyLong(), any())).thenReturn(true);
 
-		//method under test
-		assertTrue(authenticationManagerUtil.checkPasswordWithThrottling(userId, password));
+		// call under test
+		boolean result = validator.checkPasswordWithThrottling(userId, password);
+		assertTrue(result);
 
+		verify(mockLoginLockoutStatusDao).getLockoutInfo(userId);
+		verify(mockLoginLockoutStatusDao, never()).incrementLockoutInfoWithNewTransaction(any());
+		// the lock should get reset.
+		verify(mockLoginLockoutStatusDao).resetLockoutInfoWithNewTransaction(userId);
 		verify(mockAuthDAO).checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt));
-		verify(mockLoginAttemptResultReporter).reportSuccess();
-		verify(mockLoginLockoutStatus).checkIsLockedOut(userId);
 		verifyZeroInteractions(mockConsumer);
 	}
 
 	@Test
-	public void checkPasswordWithThrottling_WrongPassword(){
-		when(mockAuthDAO.checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt))).thenReturn(false);
+	public void testCheckPasswordWithThrottlingWithNoLocksValidCredentials() {
+		// negative remaining time indicates an expired lock
+		when(mockLoginLockoutStatusDao.getLockoutInfo(any())).thenReturn(
+				new LockoutInfo().withNumberOfFailedLoginAttempts(0L).withRemainingMillisecondsToNextLoginAttempt(0L));
+		when(mockAuthDAO.getPasswordSalt(anyLong())).thenReturn(salt);
+		when(mockAuthDAO.checkUserCredentials(anyLong(), any())).thenReturn(true);
 
-		//method under test
-		assertFalse(authenticationManagerUtil.checkPasswordWithThrottling(userId, password));
+		// call under test
+		boolean result = validator.checkPasswordWithThrottling(userId, password);
+		assertTrue(result);
 
+		verify(mockLoginLockoutStatusDao).getLockoutInfo(userId);
+		verify(mockLoginLockoutStatusDao, never()).incrementLockoutInfoWithNewTransaction(any());
+		// there was no lock so there should be no reset.
+		verify(mockLoginLockoutStatusDao, never()).resetLockoutInfoWithNewTransaction(any());
 		verify(mockAuthDAO).checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt));
-		verify(mockLoginAttemptResultReporter).reportFailure();
-		verify(mockLoginLockoutStatus).checkIsLockedOut(userId);
 		verifyZeroInteractions(mockConsumer);
 	}
 
+	@Test
+	public void testCheckPasswordWithThrottlingWithLockedExpiredAndInvalidCredentials() {
+		// negative remaining time indicates an expired lock
+		when(mockLoginLockoutStatusDao.getLockoutInfo(any())).thenReturn(
+				new LockoutInfo().withNumberOfFailedLoginAttempts(1L).withRemainingMillisecondsToNextLoginAttempt(-1L));
+		when(mockAuthDAO.getPasswordSalt(anyLong())).thenReturn(salt);
+		when(mockAuthDAO.checkUserCredentials(anyLong(), any())).thenReturn(false);
+
+		// call under test
+		boolean result = validator.checkPasswordWithThrottling(userId, password);
+		assertFalse(result);
+
+		verify(mockLoginLockoutStatusDao).getLockoutInfo(userId);
+		// should extend the lock
+		verify(mockLoginLockoutStatusDao).incrementLockoutInfoWithNewTransaction(userId);
+		verify(mockLoginLockoutStatusDao, never()).resetLockoutInfoWithNewTransaction(any());
+		verify(mockAuthDAO).checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt));
+		verifyZeroInteractions(mockConsumer);
+	}
 
 	private void validateLoginFailAttemptMetricData(ArgumentCaptor<ProfileData> captor, Long userId) {
 		ProfileData arg = captor.getValue();
@@ -154,5 +198,12 @@ public class UserCredentialValidatorImplTest {
 		assertEquals((Double) LOGIN_FAIL_ATTEMPT_METRIC_DEFAULT_VALUE, arg.getValue());
 		assertEquals(LOGIN_FAIL_ATTEMPT_METRIC_NAME, arg.getName());
 		assertEquals(userId.toString(), arg.getDimension().get("UserId"));
+	}
+	
+	@Test
+	public void testForceResetLoginThrottle() {
+		// call under test
+		validator.forceResetLoginThrottle(userId);
+		verify(mockLoginLockoutStatusDao).resetLockoutInfoWithNewTransaction(userId);
 	}
 }
