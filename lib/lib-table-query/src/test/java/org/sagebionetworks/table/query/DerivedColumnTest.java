@@ -39,6 +39,12 @@ public class DerivedColumnTest {
 	}
 
 	@Test
+	public void testGetDisplayNameWithAggregateAndAs() throws ParseException{
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("count(bar) as foo");
+		assertEquals("foo", element.getDisplayName());
+	}
+
+	@Test
 	public void testGetDisplayNameWithAsQuotes() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("'bar' as \"foo\"");
 		assertEquals("foo", element.getDisplayName());
