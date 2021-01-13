@@ -217,6 +217,18 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <td>Maximum number of versions for a single Entity</td>
  * <td>15,000</td>
  * </tr>
+ * <tr>
+ * <td>Maximum number of keys in Annotations</td>
+ * <td>100</td>
+ * </tr>
+ * <tr>
+ * <td>Maximum number of values associated with a single key in Annotations</td>
+ * <td>100</td>
+ * </tr>
+ * <tr>
+ * <td>Maximum total character count for all values associated with a single key in Annotations when the AnnotationValueType is STRING</td>
+ * <td>500</td>
+ * </tr>
  * </table>
  */
 @ControllerInfo(displayName = "Entity Services", path = "repo/v1")
