@@ -129,7 +129,7 @@ public class LoginLockoutStatusDaoImplTest {
 		LockoutInfo info = loginLockoutStatusDao.getLockoutInfo(userOneId);
 		assertNotNull(info);
 		assertEquals(0L, info.getNumberOfFailedLoginAttempts());
-		assertTrue(info.getRemainingMillisecondsToNextLoginAttempt() < 0L);
+		assertTrue(info.getRemainingMillisecondsToNextLoginAttempt() <= 0L);
 	}
 
 	@Test
@@ -143,7 +143,7 @@ public class LoginLockoutStatusDaoImplTest {
 		info = loginLockoutStatusDao.getLockoutInfo(userOneId);
 		assertNotNull(info);
 		assertEquals(0L, info.getNumberOfFailedLoginAttempts());
-		assertTrue(info.getRemainingMillisecondsToNextLoginAttempt() < 0L);
+		assertTrue(info.getRemainingMillisecondsToNextLoginAttempt() <= 0L);
 	}
 
 	@Test
