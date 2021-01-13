@@ -171,4 +171,10 @@ public class ValueExpressionTest {
 		ValueExpression element = SqlElementUntils.createValueExpression("\"\"");
 		assertEquals("", element.getDisplayName());
 	}
+
+	@Test
+	public void testGetDisplayNameEmptySingleValue() throws ParseException {
+		ValueExpression element = SqlElementUntils.createValueExpression("\'\'");
+		assertEquals("", element.getDisplayName());
+	}
 }
