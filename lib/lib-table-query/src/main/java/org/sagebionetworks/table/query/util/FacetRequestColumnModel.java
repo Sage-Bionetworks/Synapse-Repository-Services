@@ -116,9 +116,7 @@ public class FacetRequestColumnModel {
 		StringBuilder builder = new StringBuilder("(");
 		
 		//at this point we know at least one value is not null and is not empty string
-		builder.append("\"");
-		builder.append(facetRange.getColumnName());
-		builder.append("\"");
+		builder.append(SqlElementUntils.wrapInDoubleQuotes(facetRange.getColumnName()));
 		if (NULL_VALUE_KEYWORD.equals(min) || NULL_VALUE_KEYWORD.equals(max)){
 			builder.append(" IS NULL");
 		} else if(min == null){ //only max exists
@@ -149,9 +147,7 @@ public class FacetRequestColumnModel {
 			if(builder.length() > initialSize){
 				builder.append(" OR ");
 			}
-			builder.append("\"");
-			builder.append(facetValues.getColumnName());
-			builder.append("\"");
+			builder.append(SqlElementUntils.wrapInDoubleQuotes(facetValues.getColumnName()));
 			if(value.equals(NULL_VALUE_KEYWORD)){
 				builder.append(" IS NULL");
 			}else{
@@ -168,8 +164,9 @@ public class FacetRequestColumnModel {
 			return null;
 		}
 
+		String quotedColumnName = SqlElementUntils.wrapInDoubleQuotes(facetValues.getColumnName());
 
-		StringJoiner hasClauseJoiner = new StringJoiner(",", "\"" + facetValues.getColumnName() + "\" HAS (", ")");
+		StringJoiner hasClauseJoiner = new StringJoiner(",", quotedColumnName + " HAS (", ")");
 		//initial size will be non-zero because we gave the constructor a prefix and suffix
 		int joinerInitialSize = hasClauseJoiner.length();
 
@@ -187,7 +184,7 @@ public class FacetRequestColumnModel {
 		String searchCondition;
 		if(includeColumnIsNullCondition){
 			boolean noValuesAddedToJoiner = hasClauseJoiner.length() == joinerInitialSize;
-			String isNullCondition = "\"" + facetValues.getColumnName() + "\" IS NULL";
+			String isNullCondition = quotedColumnName + " IS NULL";
 			if(noValuesAddedToJoiner){
 				searchCondition = isNullCondition ;
 			}else{

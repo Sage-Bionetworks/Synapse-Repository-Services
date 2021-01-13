@@ -750,11 +750,7 @@ public class SqlElementUntils {
 	 * @return
 	 */
 	public static String wrapInDoubleQuotes(String toWrap){
-		StringBuilder builder = new StringBuilder();
-		builder.append("\"");
-		builder.append(toWrap);
-		builder.append("\"");
-		return builder.toString();
+		return "\"" + toWrap.replaceAll("\"", "\"\"") + "\"";
 	}
 
 	/**

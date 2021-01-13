@@ -303,11 +303,31 @@ public class PersonalAccessTokenManagerImplUnitTest {
 	}
 
 	@Test
-	void testUpdateLastUsedTime() {
+	void testUpdateLastUsedTimeHappyCase() {
+		when(mockPersonalAccessTokenDao.getLastUsedDate(TOKEN_ID)).thenReturn(new Date(System.currentTimeMillis()));
+		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis()+70000);
+		// method under test
 		personalAccessTokenManager.updateLastUsedTime(TOKEN_ID);
 		verify(mockPersonalAccessTokenDao).updateLastUsed(TOKEN_ID);
 	}
 
+	@Test
+	void testUpdateLastUsedFirstTime() {
+		when(mockPersonalAccessTokenDao.getLastUsedDate(TOKEN_ID)).thenThrow(new NotFoundException());
+		// method under test
+		personalAccessTokenManager.updateLastUsedTime(TOKEN_ID);
+		verify(mockPersonalAccessTokenDao).updateLastUsed(TOKEN_ID);
+	}
+
+	@Test
+	void testUpdateLastUsedTimeTooFrequentChange() {
+		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
+		when(mockPersonalAccessTokenDao.getLastUsedDate(TOKEN_ID)).thenReturn(new Date(System.currentTimeMillis()));
+		// method under test
+		personalAccessTokenManager.updateLastUsedTime(TOKEN_ID);
+		verify(mockPersonalAccessTokenDao, never()).updateLastUsed(TOKEN_ID);
+	}
+	
 	@Test
 	void testGetTokens() {
 		String nextPageToken = "npt1";

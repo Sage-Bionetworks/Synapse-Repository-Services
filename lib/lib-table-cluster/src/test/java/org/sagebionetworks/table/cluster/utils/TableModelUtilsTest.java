@@ -1932,4 +1932,19 @@ public class TableModelUtilsTest {
 		assertEquals(null, removeTwo.getNewColumnId());
 		assertEquals("2", removeTwo.getOldColumnId());
 	}
+
+	@Test
+	public void testCreateSelectColumn_givenColumnModelWithQuotedName(){
+		ColumnModel cm = new ColumnModel();
+		cm.setName("quoted\"Name\"");
+		cm.setColumnType(ColumnType.DOUBLE);
+		cm.setId("123");
+
+		SelectColumn selectColumn = TableModelUtils.createSelectColumn(cm);
+
+		assertNotNull(selectColumn);
+		assertEquals(cm.getName(), selectColumn.getName());
+		assertEquals(cm.getColumnType(), selectColumn.getColumnType());
+		assertEquals(cm.getId(), selectColumn.getId());
+	}
 }

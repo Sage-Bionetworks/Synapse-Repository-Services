@@ -46,6 +46,9 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 
 	private static final long MAX_NUMBER_OF_TOKENS_PER_USER = 100L;
 
+	// the minimum period in which we update the 'last updated' time stamp for a token
+	private static final Long UPDATE_THRESHOLD_MILLIS = 60*1000L; // one minute
+
 	@Autowired
 	private PersonalAccessTokenDao personalAccessTokenDao;
 
@@ -151,11 +154,19 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 		}
 		return determineActiveState(lastUsedDate).equals(AccessTokenState.ACTIVE);
 	}
-
+	
 	@WriteTransaction
 	@Override
 	public void updateLastUsedTime(String tokenId) {
-		personalAccessTokenDao.updateLastUsed(tokenId);
+		Date lastUsedDate;
+		try {
+			lastUsedDate = personalAccessTokenDao.getLastUsedDate(tokenId);
+		} catch (NotFoundException e) {
+			lastUsedDate = null;
+		}
+		if (lastUsedDate==null || clock.currentTimeMillis()>=lastUsedDate.getTime()+UPDATE_THRESHOLD_MILLIS) {
+			personalAccessTokenDao.updateLastUsed(tokenId);
+		}
 	}
 
 	@Override

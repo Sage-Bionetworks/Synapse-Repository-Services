@@ -47,43 +47,13 @@ public class DerivedColumn extends SQLElement {
 	 * @return
 	 */
 	public String getDisplayName() {
-		String name = null;
 		if(asClause != null){
-			name = asClause.getFirstElementOfType(ActualIdentifier.class).toSql();
-		}else {
-			name = this.toSql();
+			return asClause.getFirstElementOfType(ActualIdentifier.class).toSqlWithoutQuotes();
+		}else{
+			return valueExpression.getDisplayName();
 		}
-		return stripLeadingAndTailingQuotes(name);
 	}
-	
-	/**
-	 * Strip the leading and tailing quotes from the passes string.
-	 * 
-	 * @param input
-	 * @return
-	 */
-	public static String stripLeadingAndTailingQuotes(String input) {
-		if(input == null) {
-			return null;
-		}
-		StringBuilder builder = new StringBuilder();
-		char[] chars = input.toCharArray();
-		for (int i = 0; i < chars.length; i++) {
-			char thisChar = chars[i];
-			if (i == 0 || i == chars.length - 1) {
-				switch (thisChar) {
-				case '"':
-				case '`':
-				case '\'':
-					// skip any leading or tailing quote.
-					continue;
-				}
-			}
-			builder.append(chars[i]);
-		}
-		return builder.toString();
-	}
-	
+
 	/**
 	 * Return the column that might be referenced by this select element.
 	 * For example, 'count(foo)' references the column foo and 'bar as foo'
@@ -95,25 +65,6 @@ public class DerivedColumn extends SQLElement {
 		HasReferencedColumn hasReferencedColumn = valueExpression.getFirstElementOfType(HasReferencedColumn.class);
 		if(hasReferencedColumn != null){
 			return hasReferencedColumn.getReferencedColumn();
-		}
-		return null;
-	}
-	
-	/**
-	 * Return the name of a column that might be referenced by this select
-	 * For example, 'count(foo)' references the column foo and 'bar as foo'
-	 * references bar.
-	 * 
-	 * This returns the name without quotes.
-	 * See:
-	 * {@link #getReferencedColumn()}
-	 * 
-	 * @return
-	 */
-	public String getReferencedColumnName(){
-		ColumnNameReference hasQuotedValue = getReferencedColumn();
-		if(hasQuotedValue != null){
-			return hasQuotedValue.toSqlWithoutQuotes();
 		}
 		return null;
 	}
