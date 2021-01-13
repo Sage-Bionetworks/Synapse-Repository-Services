@@ -13,7 +13,7 @@ public class LockoutInfo {
 	 * The number of failed login attempts for this user since the last successful
 	 * login.
 	 */
-	private Long numberOfFailedLoginAttempts;;
+	private Long numberOfFailedLoginAttempts;
 
 	/**
 	 * The number of milliseconds remaining until the user can attempt another

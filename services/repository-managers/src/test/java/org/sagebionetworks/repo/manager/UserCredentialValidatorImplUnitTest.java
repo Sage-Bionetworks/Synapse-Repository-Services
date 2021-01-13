@@ -29,7 +29,7 @@ import org.sagebionetworks.repo.model.auth.LoginLockoutStatusDao;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 
 @ExtendWith(MockitoExtension.class)
-public class UserCredentialValidatorImplTest {
+public class UserCredentialValidatorImplUnitTest {
 
 	@Mock
 	private LoginLockoutStatusDao mockLoginLockoutStatusDao;
@@ -147,26 +147,6 @@ public class UserCredentialValidatorImplTest {
 		verify(mockLoginLockoutStatusDao, never()).incrementLockoutInfoWithNewTransaction(any());
 		// the lock should get reset.
 		verify(mockLoginLockoutStatusDao).resetLockoutInfoWithNewTransaction(userId);
-		verify(mockAuthDAO).checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt));
-		verifyZeroInteractions(mockConsumer);
-	}
-
-	@Test
-	public void testCheckPasswordWithThrottlingWithNoLocksValidCredentials() {
-		// negative remaining time indicates an expired lock
-		when(mockLoginLockoutStatusDao.getLockoutInfo(any())).thenReturn(
-				new LockoutInfo().withNumberOfFailedLoginAttempts(0L).withRemainingMillisecondsToNextLoginAttempt(0L));
-		when(mockAuthDAO.getPasswordSalt(anyLong())).thenReturn(salt);
-		when(mockAuthDAO.checkUserCredentials(anyLong(), any())).thenReturn(true);
-
-		// call under test
-		boolean result = validator.checkPasswordWithThrottling(userId, password);
-		assertTrue(result);
-
-		verify(mockLoginLockoutStatusDao).getLockoutInfo(userId);
-		verify(mockLoginLockoutStatusDao, never()).incrementLockoutInfoWithNewTransaction(any());
-		// there was no lock so there should be no reset.
-		verify(mockLoginLockoutStatusDao, never()).resetLockoutInfoWithNewTransaction(any());
 		verify(mockAuthDAO).checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt));
 		verifyZeroInteractions(mockConsumer);
 	}

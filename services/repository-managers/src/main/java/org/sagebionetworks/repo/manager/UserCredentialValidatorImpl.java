@@ -80,20 +80,18 @@ public class UserCredentialValidatorImpl implements UserCredentialValidator {
 		boolean credentialsCorrect = checkPassword(userId, password);
 		boolean wasPreviouslyLockedOut = lockoutInfo.getNumberOfFailedLoginAttempts() > 0;
 
-		if (credentialsCorrect && wasPreviouslyLockedOut) {
-			/*
-			 * The user was previously locked out but has now correctly authenticated so a
-			 * one-time reset of the previous lockout information is needed.
-			 */
-			lockoutDao.resetLockoutInfoWithNewTransaction(userId);
-		}
-
 		if (!credentialsCorrect) {
 			/*
 			 * When the wrong credentials are provided the lockout information is
 			 * incremented.
 			 */
 			lockoutDao.incrementLockoutInfoWithNewTransaction(userId);
+		}else if(wasPreviouslyLockedOut) {
+			/*
+			 * The user was previously locked out but has now correctly authenticated so a
+			 * one-time reset of the previous lockout information is needed.
+			 */
+			lockoutDao.resetLockoutInfoWithNewTransaction(userId);
 		}
 		return credentialsCorrect;
 	}

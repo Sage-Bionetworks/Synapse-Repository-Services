@@ -19,7 +19,11 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class LoginLockoutStatusDaoImpl implements LoginLockoutStatusDao {
 
-	public static final String CURRENT_TIME_AS_UNSIGNED = "CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS SIGNED)";
+	/**
+	 * Get the current epoch time in milliseconds (CURRENT_TIMESTAMP(3) returns MS
+	 * precision).
+	 */
+	public static final String CURRENT_EPOCH_TIME_MS = "(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000)";
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -29,7 +33,7 @@ public class LoginLockoutStatusDaoImpl implements LoginLockoutStatusDao {
 		ValidateArgument.required(userId, "userId");
 		try {
 			String sql = "SELECT " + COL_UNSUCCESSFUL_LOGIN_COUNT + ", "
-					+ COL_UNSUCCESSFUL_LOGIN_LOCKOUT_EXPIRATION_TIMESTAMP_MILLIS + " - " + CURRENT_TIME_AS_UNSIGNED
+					+ COL_UNSUCCESSFUL_LOGIN_LOCKOUT_EXPIRATION_TIMESTAMP_MILLIS + " - " + CURRENT_EPOCH_TIME_MS
 					+ " AS REMAINING  FROM " + TABLE_UNSUCCESSFUL_LOGIN_LOCKOUT + " WHERE " + COL_UNSUCCESSFUL_LOGIN_KEY
 					+ " = ?";
 			return jdbcTemplate.queryForObject(sql, (ResultSet rs, int rowNum) -> {
@@ -48,12 +52,17 @@ public class LoginLockoutStatusDaoImpl implements LoginLockoutStatusDao {
 	@Override
 	public void incrementLockoutInfoWithNewTransaction(Long userId) {
 		ValidateArgument.required(userId, "userId");
+		/*
+		 * Note: 1 << LEAST(count, 62) is equivalent to
+		 * Math.pow(2,Math.min(count, 62)).  The LEAST function ensuring we do not generate
+		 * an expiration that overflows the 64 big value.
+		 */
 		String sql = "INSERT INTO " + TABLE_UNSUCCESSFUL_LOGIN_LOCKOUT + "(" + COL_UNSUCCESSFUL_LOGIN_KEY + ","
 				+ COL_UNSUCCESSFUL_LOGIN_COUNT + "," + COL_UNSUCCESSFUL_LOGIN_LOCKOUT_EXPIRATION_TIMESTAMP_MILLIS
-				+ ") VALUES (?, 1, " + CURRENT_TIME_AS_UNSIGNED + "+(1 << 1)) ON DUPLICATE KEY UPDATE "
+				+ ") VALUES (?, 1, " + CURRENT_EPOCH_TIME_MS + "+ 2) ON DUPLICATE KEY UPDATE "
 				+ COL_UNSUCCESSFUL_LOGIN_COUNT + " = " + COL_UNSUCCESSFUL_LOGIN_COUNT + "+1, "
-				+ COL_UNSUCCESSFUL_LOGIN_LOCKOUT_EXPIRATION_TIMESTAMP_MILLIS + " = " + CURRENT_TIME_AS_UNSIGNED
-				+ "+(1 << " + COL_UNSUCCESSFUL_LOGIN_COUNT + ")";
+				+ COL_UNSUCCESSFUL_LOGIN_LOCKOUT_EXPIRATION_TIMESTAMP_MILLIS + " = " + CURRENT_EPOCH_TIME_MS
+				+ "+(1 << LEAST(" + COL_UNSUCCESSFUL_LOGIN_COUNT + ", 62))";
 		jdbcTemplate.update(sql, userId);
 	}
 
@@ -70,7 +79,7 @@ public class LoginLockoutStatusDaoImpl implements LoginLockoutStatusDao {
 
 	@Override
 	public void truncateAll() {
-		jdbcTemplate.batchUpdate("TRUNCATE TABLE "+TABLE_UNSUCCESSFUL_LOGIN_LOCKOUT);
+		jdbcTemplate.batchUpdate("TRUNCATE TABLE " + TABLE_UNSUCCESSFUL_LOGIN_LOCKOUT);
 	}
 
 }
