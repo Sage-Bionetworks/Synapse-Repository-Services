@@ -9,9 +9,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScannerTestUtils.generateMapping;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,7 +32,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 @ExtendWith(MockitoExtension.class)
-public class BasicFileHandleAssociationScannerTest {
+public class BasicFileHandleAssociationScannerUnitTest {
 
 	@Mock
 	private JdbcTemplate mockJdbcTemplate;
@@ -108,7 +107,7 @@ public class BasicFileHandleAssociationScannerTest {
 		IdRange expectedRange = new IdRange(1, 2);
 		
 		when(mockParamaterizedJdbcTemplate.getJdbcTemplate()).thenReturn(mockJdbcTemplate);
-		when(mockJdbcTemplate.queryForObject(anyString(), any(RowMapper.class))).thenReturn(expectedRange);
+		when(mockJdbcTemplate.queryForObject(anyString(), any(), any(RowMapper.class))).thenReturn(expectedRange);
 		
 		FileHandleAssociationScanner scanner = new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping);
 		
@@ -117,7 +116,7 @@ public class BasicFileHandleAssociationScannerTest {
 		
 		assertEquals(expectedRange, result);
 		
-		verify(mockJdbcTemplate).queryForObject(eq("SELECT MIN(`ID`), MAX(`ID`) FROM SOME_TABLE"), any(RowMapper.class));
+		verify(mockJdbcTemplate).queryForObject(eq("SELECT MIN(`ID`), MAX(`ID`) FROM SOME_TABLE"), eq(null), any(RowMapper.class));
 	}
 	
 	@Test
@@ -146,7 +145,7 @@ public class BasicFileHandleAssociationScannerTest {
 		
 		ArgumentCaptor<Map<String, Object>> paramsCaptor = ArgumentCaptor.forClass(Map.class);
 		
-		verify(mockParamaterizedJdbcTemplate).query(eq("SELECT DISTINCT `ID`, `FILE_HANDLE_ID` FROM SOME_TABLE WHERE `ID` BETWEEN :BMINID AND :BMAXID AND FILE_HANDLE_ID IS NOT NULL ORDER BY `ID` LIMIT :KEY_LIMIT OFFSET :KEY_OFFSET"), paramsCaptor.capture(), any(RowMapper.class));
+		verify(mockParamaterizedJdbcTemplate).query(eq("SELECT `ID`, `FILE_HANDLE_ID` FROM SOME_TABLE WHERE `ID` BETWEEN :BMINID AND :BMAXID AND FILE_HANDLE_ID IS NOT NULL ORDER BY `ID` LIMIT :KEY_LIMIT OFFSET :KEY_OFFSET"), paramsCaptor.capture(), any(RowMapper.class));
 		
 		assertEquals(idRange.getMinId(), paramsCaptor.getAllValues().get(0).get(DMLUtils.BIND_MIN_ID));
 		assertEquals(idRange.getMaxId(), paramsCaptor.getAllValues().get(0).get(DMLUtils.BIND_MAX_ID));
@@ -179,7 +178,7 @@ public class BasicFileHandleAssociationScannerTest {
 		
 		ArgumentCaptor<Map<String, Object>> paramsCaptor = ArgumentCaptor.forClass(Map.class);
 		
-		verify(mockParamaterizedJdbcTemplate).query(eq("SELECT DISTINCT `ID`, `FILE_HANDLE_ID` FROM SOME_TABLE WHERE `ID` BETWEEN :BMINID AND :BMAXID AND FILE_HANDLE_ID IS NOT NULL ORDER BY `ID`, `VERSION` LIMIT :KEY_LIMIT OFFSET :KEY_OFFSET"), paramsCaptor.capture(), any(RowMapper.class));
+		verify(mockParamaterizedJdbcTemplate).query(eq("SELECT `ID`, `FILE_HANDLE_ID` FROM SOME_TABLE WHERE `ID` BETWEEN :BMINID AND :BMAXID AND FILE_HANDLE_ID IS NOT NULL ORDER BY `ID`, `VERSION` LIMIT :KEY_LIMIT OFFSET :KEY_OFFSET"), paramsCaptor.capture(), any(RowMapper.class));
 		
 		assertEquals(idRange.getMinId(), paramsCaptor.getAllValues().get(0).get(DMLUtils.BIND_MIN_ID));
 		assertEquals(idRange.getMaxId(), paramsCaptor.getAllValues().get(0).get(DMLUtils.BIND_MAX_ID));
@@ -226,7 +225,7 @@ public class BasicFileHandleAssociationScannerTest {
 		
 		ArgumentCaptor<Map<String, Object>> paramsCaptor = ArgumentCaptor.forClass(Map.class);
 		
-		verify(mockParamaterizedJdbcTemplate, times(3)).query(eq("SELECT DISTINCT `ID`, `FILE_HANDLE_ID` FROM SOME_TABLE WHERE `ID` BETWEEN :BMINID AND :BMAXID AND FILE_HANDLE_ID IS NOT NULL ORDER BY `ID` LIMIT :KEY_LIMIT OFFSET :KEY_OFFSET"), paramsCaptor.capture(), any(RowMapper.class));
+		verify(mockParamaterizedJdbcTemplate, times(3)).query(eq("SELECT `ID`, `FILE_HANDLE_ID` FROM SOME_TABLE WHERE `ID` BETWEEN :BMINID AND :BMAXID AND FILE_HANDLE_ID IS NOT NULL ORDER BY `ID` LIMIT :KEY_LIMIT OFFSET :KEY_OFFSET"), paramsCaptor.capture(), any(RowMapper.class));
 		
 		assertEquals(idRange.getMinId(), paramsCaptor.getAllValues().get(0).get(DMLUtils.BIND_MIN_ID));
 		assertEquals(idRange.getMaxId(), paramsCaptor.getAllValues().get(0).get(DMLUtils.BIND_MAX_ID));
@@ -274,37 +273,5 @@ public class BasicFileHandleAssociationScannerTest {
 		
 	}
 	
-	private static <T> TableMapping<T> generateMapping(String tableName, FieldColumn... fields) {
-		return new TableMapping<T>() {
-
-			@Override
-			public T mapRow(ResultSet rs, int rowNum) throws SQLException {
-				// TODO Auto-generated method stub
-				return null;
-			}
-
-			@Override
-			public String getTableName() {
-				return "SOME_TABLE";
-			}
-
-			@Override
-			public String getDDLFileName() {
-				// TODO Auto-generated method stub
-				return null;
-			}
-
-			@Override
-			public FieldColumn[] getFieldColumns() {
-				return fields;
-			}
-
-			@Override
-			public Class<? extends T> getDBOClass() {
-				// TODO Auto-generated method stub
-				return null;
-			};
-		};
-	}
 
 }

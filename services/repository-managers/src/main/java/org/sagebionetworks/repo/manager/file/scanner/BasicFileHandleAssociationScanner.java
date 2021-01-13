@@ -45,7 +45,22 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 	
 	@Override
 	public IdRange getIdRange() {
-		return namedJdbcTemplate.getJdbcTemplate().queryForObject(sqlMinMaxRangeStm, (rs, i) -> new IdRange(rs.getLong(0), rs.getLong(1)));
+		// Using a null as the mid parameter allows to create a prepared statement
+		return namedJdbcTemplate.getJdbcTemplate().queryForObject(sqlMinMaxRangeStm, null, (rs, i) -> {
+			long minId = rs.getLong(1);
+			
+			if (rs.wasNull()) {
+				minId = -1;
+			}
+			
+			long maxId = rs.getLong(2);
+			
+			if (rs.wasNull()) {
+				maxId = -1;
+			}
+			
+			return new IdRange(minId, maxId);
+		});
 	}
 
 	@Override
@@ -98,7 +113,7 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 	private static String generateSelectBatchStatement(TableMapping<?> mapping, FieldColumn backupIdColumn, FieldColumn fileHandleIDColumn) {
 		DMLUtils.validateMigratableTableMapping(mapping);
 		StringBuilder builder = new StringBuilder();
-		builder.append("SELECT DISTINCT `");
+		builder.append("SELECT `");
 		builder.append(backupIdColumn.getColumnName());
 		builder.append("`, `");
 		builder.append(fileHandleIDColumn.getColumnName());
