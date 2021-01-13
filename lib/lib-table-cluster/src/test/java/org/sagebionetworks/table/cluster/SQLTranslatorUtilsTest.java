@@ -114,7 +114,7 @@ public class SQLTranslatorUtilsTest {
 		columnSpecial = TableModelTestUtils.createColumn(555L, specialChars, ColumnType.DOUBLE);
 		columnDouble = TableModelTestUtils.createColumn(777L, "aDouble", ColumnType.DOUBLE);
 		columnDate = TableModelTestUtils.createColumn(888L, "aDate", ColumnType.DATE);
-		columnQuoted = TableModelTestUtils.createColumn(888L, "colWith\"Quotes\"InIt", ColumnType.STRING);
+		columnQuoted = TableModelTestUtils.createColumn(999L, "colWith\"Quotes\"InIt", ColumnType.STRING);
 
 		schema = Lists.newArrayList(columnFoo, columnHasSpace, columnBar, columnId, columnSpecial, columnDouble, columnDate, columnQuoted);
 		// setup the map
@@ -413,7 +413,7 @@ public class SQLTranslatorUtilsTest {
 		assertNotNull(results);
 		assertEquals("colWith\"Quotes\"InIt", results.getName());
 		assertEquals(ColumnType.STRING, results.getColumnType());
-		assertEquals("888", results.getId());
+		assertEquals("999", results.getId());
 	}
 
 	@Test
