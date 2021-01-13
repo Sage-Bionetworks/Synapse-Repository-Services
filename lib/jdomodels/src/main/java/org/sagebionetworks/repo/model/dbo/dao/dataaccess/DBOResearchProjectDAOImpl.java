@@ -110,4 +110,10 @@ public class DBOResearchProjectDAOImpl implements ResearchProjectDAO{
 			throw new NotFoundException();
 		}
 	}
+
+	@Override
+	public void clear() {
+		jdbcTemplate.update("DELETE FROM " + TABLE_RESEARCH_PROJECT);
+	}
+
 }

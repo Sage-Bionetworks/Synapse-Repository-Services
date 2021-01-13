@@ -56,4 +56,8 @@ public interface ResearchProjectDAO {
 	 */
 	public ResearchProject getForUpdate(String researchProjectId);
 
+	// For testing
+
+	void clear();
+
 }

@@ -1,0 +1,12 @@
+{
+	"description": "Request to add a single batch of files to a user's download list.",
+	"properties": {
+		"batchToAdd": {
+			"description": "The batch of files to add to the user's download list. Note: There is a limit of 1000 files per batch.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.download.DownloadListItem"
+			}
+		}
+	}
+}

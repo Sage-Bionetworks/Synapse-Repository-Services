@@ -14,11 +14,11 @@
 			"type": "string"
 		},
 		"minimumId": {
-			"description": "The ID of the minimum row in this checksum range (inclusive).",
+			"description": "The ID of the minimum row in this checksum range.",
 			"type": "integer"
 		},
 		"maximumId": {
-			"description": "The ID of the maximum row in this checksum range (inclusive).",
+			"description": "The ID of the maximum row in this checksum range.",
 			"type": "integer"
 		}
 	}

@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -24,7 +25,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.Clock;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.auth.AuthenticationReceiptToken;
 import org.sagebionetworks.repo.model.auth.NewUserSignedToken;
+import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
+import org.sagebionetworks.repo.model.principal.EmailValidationSignedToken;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 
 @RunWith(MockitoJUnitRunner.class)
@@ -216,4 +222,43 @@ public class TokenGeneratorImplTest {
 		}
 	}
 	
+	/**
+	 * Should not be able to use valid but token of a different type.
+	 * 
+	 * @throws JSONObjectAdapterException
+	 */
+	@Test
+	public void testValidateTokenWithWongTypeSameData() throws JSONObjectAdapterException {
+		// both PasswordResetSignedToken and EmailValidationSignedToken have userId.
+		PasswordResetSignedToken resetToken = new PasswordResetSignedToken();
+		resetToken.setUserId("54321");
+		
+		generator.signToken(resetToken);
+		
+		String resetTokenString = EntityFactory.createJSONStringForEntity(resetToken);
+		
+		EmailValidationSignedToken receiptToken = EntityFactory.createEntityFromJSONString(resetTokenString, EmailValidationSignedToken.class);
+		
+		assertThrows(UnauthorizedException.class, ()->{
+			generator.validateToken(receiptToken);
+		});
+	}
+	
+	@Test
+	public void testValidateTokenWithNullConcreteType() throws JSONObjectAdapterException {
+		// both PasswordResetSignedToken and EmailValidationSignedToken have userId.
+		PasswordResetSignedToken resetToken = new PasswordResetSignedToken();
+		resetToken.setUserId("54321");
+		
+		generator.signToken(resetToken);
+		
+		String resetTokenString = EntityFactory.createJSONStringForEntity(resetToken);
+		
+		EmailValidationSignedToken receiptToken = EntityFactory.createEntityFromJSONString(resetTokenString, EmailValidationSignedToken.class);
+		receiptToken.setConcreteType(null);
+		
+		assertThrows(UnauthorizedException.class, ()->{
+			generator.validateToken(receiptToken);
+		});
+	}
 }

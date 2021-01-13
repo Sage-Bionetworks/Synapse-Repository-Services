@@ -235,9 +235,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 
 	static AccessRequirement setDefaultValues(AccessRequirement ar) {
 		if (ar instanceof ManagedACTAccessRequirement) {
-			return setDefaultValuesForManagedACTAccessRequirement(ar);
+			return setDefaultValuesForManagedACTAccessRequirement((ManagedACTAccessRequirement) ar);
 		} else if (ar instanceof SelfSignAccessRequirement) {
-			return setDefaultValuesForSelfSignAccessRequirement(ar);
+			return setDefaultValuesForSelfSignAccessRequirement((SelfSignAccessRequirement) ar);
 		}
 		return ar;
 	}
@@ -246,45 +246,46 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	 * @param ar
 	 * @return
 	 */
-	public static AccessRequirement setDefaultValuesForSelfSignAccessRequirement(AccessRequirement ar) {
-		SelfSignAccessRequirement req = (SelfSignAccessRequirement) ar;
-		if (req.getIsCertifiedUserRequired() == null) {
-			req.setIsCertifiedUserRequired(false);
+	public static AccessRequirement setDefaultValuesForSelfSignAccessRequirement(SelfSignAccessRequirement ar) {
+		if (ar.getIsCertifiedUserRequired() == null) {
+			ar.setIsCertifiedUserRequired(false);
 		}
-		if (req.getIsValidatedProfileRequired() == null) {
-			req.setIsValidatedProfileRequired(false);
+		if (ar.getIsValidatedProfileRequired() == null) {
+			ar.setIsValidatedProfileRequired(false);
 		}
-		return req;
+		return ar;
 	}
 
 	/**
 	 * @param ar
 	 * @return
 	 */
-	public static AccessRequirement setDefaultValuesForManagedACTAccessRequirement(AccessRequirement ar) {
-		ManagedACTAccessRequirement actAR = (ManagedACTAccessRequirement) ar;
-		if (actAR.getIsCertifiedUserRequired() == null) {
-			actAR.setIsCertifiedUserRequired(false);
+	public static AccessRequirement setDefaultValuesForManagedACTAccessRequirement(ManagedACTAccessRequirement ar) {
+		if (ar.getIsCertifiedUserRequired() == null) {
+			ar.setIsCertifiedUserRequired(false);
 		}
-		if (actAR.getIsValidatedProfileRequired() == null) {
-			actAR.setIsValidatedProfileRequired(false);
+		if (ar.getIsValidatedProfileRequired() == null) {
+			ar.setIsValidatedProfileRequired(false);
 		}
-		if (actAR.getIsDUCRequired() == null) {
-			actAR.setIsDUCRequired(false);
+		if (ar.getIsDUCRequired() == null) {
+			ar.setIsDUCRequired(false);
 		}
-		if (actAR.getIsIRBApprovalRequired() == null) {
-			actAR.setIsIRBApprovalRequired(false);
+		if (ar.getIsIRBApprovalRequired() == null) {
+			ar.setIsIRBApprovalRequired(false);
 		}
-		if (actAR.getAreOtherAttachmentsRequired() == null) {
-			actAR.setAreOtherAttachmentsRequired(false);
+		if (ar.getAreOtherAttachmentsRequired() == null) {
+			ar.setAreOtherAttachmentsRequired(false);
 		}
-		if (actAR.getIsIDUPublic() == null) {
-			actAR.setIsIDUPublic(false);
+		if (ar.getIsIDUPublic() == null) {
+			ar.setIsIDUPublic(false);
 		}
-		if (actAR.getExpirationPeriod() == null) {
-			actAR.setExpirationPeriod(DEFAULT_EXPIRATION_PERIOD);
+		if (ar.getExpirationPeriod() == null) {
+			ar.setExpirationPeriod(DEFAULT_EXPIRATION_PERIOD);
 		}
-		return actAR;
+		if (ar.getIsIDURequired() == null) {
+			ar.setIsIDURequired(true);
+		}
+		return ar;
 	}
 
 	@WriteTransaction

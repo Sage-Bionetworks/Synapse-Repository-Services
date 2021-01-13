@@ -79,7 +79,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 			return startOrResumeMultipartUploadCopy(user, (MultipartUploadCopyRequest) request, forceRestart);
 		}
 		
-		throw new UnsupportedOperationException("Request type unsupported: " + request.getClass().getSimpleName());
+		throw new IllegalArgumentException("Request type unsupported: " + request.getClass().getSimpleName());
 	}
 
 	@Override
@@ -121,7 +121,14 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 			StorageLocationSetting storageLocation = projectSettingsManager.getStorageLocationSetting(request.getStorageLocationId());
 			
 			// Since the status for this file does not exist, create it.
-			CreateMultipartRequest createRequest = handler.initiateRequest(user, request, requestMD5Hex, storageLocation);
+			CreateMultipartRequest createRequest;
+			
+			try {
+				createRequest = handler.initiateRequest(user, request, requestMD5Hex, storageLocation);
+			} catch (UnsupportedOperationException e) {
+				// Not all the source/targets are supported by the cloud providers. Rather than returning a 500 we turn around and return a 400
+				throw new IllegalArgumentException(e.getMessage(), e);
+			}
 			
 			status = multipartUploadDAO.createUploadStatus(createRequest);
 		}

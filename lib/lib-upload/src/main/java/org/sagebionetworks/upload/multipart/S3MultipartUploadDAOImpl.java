@@ -77,7 +77,7 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 		final String contentType = getContentType(fileHandle.getContentType());
 		
 		if (!(fileHandle instanceof S3FileHandle)) {
-			throw new UnsupportedOperationException("The file handle must point to an S3 location.");
+			throw new IllegalArgumentException("The file handle must point to an S3 location.");
 		}
 
 		validateSameRegionCopy(((S3FileHandle) fileHandle).getBucketName(), bucket);

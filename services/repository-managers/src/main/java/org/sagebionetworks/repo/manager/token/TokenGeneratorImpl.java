@@ -67,6 +67,10 @@ public class TokenGeneratorImpl implements TokenGenerator {
 	public void validateToken(SignedTokenInterface token) throws UnauthorizedException {
 		String hmac = token.getHmac();
 		token.setHmac(null);
+		// There is something wrong if the concreteType of the passed object does not match its class.
+		if(!token.getClass().getName().equals(token.getConcreteType())) {
+			throw new UnauthorizedException(TOKEN_SIGNATURE_IS_INVALID);
+		}
 		// is the token expired?
 		if(isExpired(token)) {
 			throw new UnauthorizedException(TOKEN_HAS_EXPIRED);

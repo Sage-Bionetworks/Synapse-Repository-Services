@@ -15,7 +15,7 @@
 		},
 		"maximumId": {
 			"type": "integer",
-			"description": "The last ID in the range of IDs (exclusive)"
+			"description": "The last ID in the range of IDs (inclusive)"
 		},
 		"optimalRowsPerRange": {
 			"description": "The optimal number of rows per range.",
