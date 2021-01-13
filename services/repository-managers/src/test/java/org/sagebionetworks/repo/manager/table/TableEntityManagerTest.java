@@ -1591,7 +1591,6 @@ public class TableEntityManagerTest {
 		long endMemory = getMemoryUsed();
 		int calcuatedSize = TableModelUtils.calculateActualRowSize(rows.get(0));
 		long sizePerRow = (endMemory - startMemory)/numberRows;
-		System.out.println("Measured size: "+sizePerRow+" bytes, calculated size: "+calcuatedSize+" bytes");
 		assertTrue(calcuatedSize > sizePerRow, "Calculated memory: "+calcuatedSize+" bytes actual memory: "+sizePerRow+" bytes");
 	}
 	
@@ -1625,7 +1624,6 @@ public class TableEntityManagerTest {
 		long endMemory = getMemoryUsed();
 		int calcuatedSize = TableModelUtils.calculateActualRowSize(rows.get(0));
 		long sizePerRow = (endMemory - startMemory)/numberRows;
-		System.out.println("Measured size: "+sizePerRow+" bytes, calculated size: "+calcuatedSize+" bytes");
 		assertTrue(calcuatedSize > sizePerRow, "Calculated memory: "+calcuatedSize+" bytes actual memory: "+sizePerRow+" bytes");
 	}
 	
