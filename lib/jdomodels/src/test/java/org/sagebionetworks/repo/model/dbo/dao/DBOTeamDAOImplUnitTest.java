@@ -63,7 +63,7 @@ public class DBOTeamDAOImplUnitTest {
 
 	@Test
 	public void testCreateSendMessage(){
-		when(mockBasicDao.createNew(any())).thenReturn(teamDbo);
+		when(mockBasicDao.createNew(any(DBOTeam.class))).thenReturn(teamDbo);
 		
 		// Call under test
 		teamDao.create(team);
