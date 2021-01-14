@@ -388,7 +388,8 @@ public class ExampleController {
 	}
 
 	/**
-	 * This is just a stubed url because ColumnModel has a reference to a
+	 * This is just a stubed url because ColumnModel has a reference to a function
+	 * in TableController
 	 * Ideally, this controller would be dependent on a separate
 	 * set of auto-generated POJOs, independent from the POJOs we use for production code.
 	 * @param userInfo
