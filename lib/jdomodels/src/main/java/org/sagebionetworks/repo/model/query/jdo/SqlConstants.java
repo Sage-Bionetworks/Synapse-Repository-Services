@@ -805,6 +805,7 @@ public class SqlConstants {
 	public static final String TABLE_TEAM				= "TEAM";
 	public static final String COL_TEAM_ID				= "ID";
 	public static final String COL_TEAM_ETAG			= "ETAG";
+	public static final String COL_TEAM_ICON			= "ICON";
 	public static final String COL_TEAM_PROPERTIES		= "PROPERTIES";
 	public static final String DDL_FILE_TEAM = "schema/Team-ddl.sql";
 	

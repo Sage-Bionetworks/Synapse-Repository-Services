@@ -1,22 +1,19 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Date;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -27,82 +24,71 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.springframework.test.util.ReflectionTestUtils;
 
 /**
  * 
  * @author John
  *
  */
+@ExtendWith(MockitoExtension.class)
 public class DBOTeamDAOImplUnitTest {
 	
-	DBOTeamDAOImpl teamDao;
 	@Mock
-	TransactionalMessenger mockTransactionalMessenger;
+	private TransactionalMessenger mockTransactionalMessenger;
 	@Mock
-	NamedParameterJdbcTemplate mockNamedJdbcTemplate;
+	private NamedParameterJdbcTemplate mockNamedJdbcTemplate;
 	@Mock
-	DBOBasicDao mockBasicDao;
-	Team team;
+	private DBOBasicDao mockBasicDao;
 	
-	@Before
+	@InjectMocks
+	private DBOTeamDAOImpl teamDao;
+	
+	private Team team;
+	private DBOTeam teamDbo;
+	
+	@BeforeEach
 	public void before(){
-		MockitoAnnotations.initMocks(this);
-		teamDao = new DBOTeamDAOImpl();
-		ReflectionTestUtils.setField(teamDao, "basicDao", mockBasicDao);
-		ReflectionTestUtils.setField(teamDao, "transactionalMessenger", mockTransactionalMessenger);
-		ReflectionTestUtils.setField(teamDao, "namedJdbcTemplate", mockNamedJdbcTemplate);
+		
 		team = new Team();
 		team.setId("345");
 		team.setEtag("etag");
 		team.setCreatedBy("678");
 		team.setCreatedOn(new Date());
 		
-		doAnswer(new Answer<DBOTeam>(){
-			@Override
-			public DBOTeam answer(InvocationOnMock invocation) throws Throwable {
-				return (DBOTeam) invocation.getArguments()[0];
-			}}).when(mockBasicDao).createNew(any(DBOTeam.class));
-		DBOTeam dbo = new DBOTeam();
-		dbo.setId(Long.parseLong(team.getId()));
-		dbo.setEtag(team.getEtag());
-		TeamUtils.copyDtoToDbo(team, dbo);
-		when(mockNamedJdbcTemplate.queryForObject(anyString(), any(SqlParameterSource.class), any(RowMapper.class))).thenReturn(dbo);
-		when(mockBasicDao.update(any(DatabaseObject.class))).thenReturn(true);
+		teamDbo = new DBOTeam();
+		teamDbo.setId(Long.parseLong(team.getId()));
+		teamDbo.setEtag(team.getEtag());
+		TeamUtils.copyDtoToDbo(team, teamDbo);
 	}
 
 	@Test
 	public void testCreateSendMessage(){
+		when(mockBasicDao.createNew(any())).thenReturn(teamDbo);
+		
+		// Call under test
 		teamDao.create(team);
-		ArgumentCaptor<String> idCapture = ArgumentCaptor.forClass(String.class);
-		ArgumentCaptor<ObjectType> objectTypeCapture = ArgumentCaptor.forClass(ObjectType.class);
-		ArgumentCaptor<ChangeType> typeCapture = ArgumentCaptor.forClass(ChangeType.class);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(idCapture.capture(), objectTypeCapture.capture(), typeCapture.capture());
-		assertEquals(team.getId(), idCapture.getValue());
-		assertEquals(ObjectType.PRINCIPAL, objectTypeCapture.getValue());
-		assertEquals(ChangeType.CREATE, typeCapture.getValue());
+		
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(team.getId(), ObjectType.PRINCIPAL, ChangeType.CREATE);
 	}
 	
 	@Test
-	public void testUpdateSendMessage() throws Exception{
+	public void testUpdateSendMessage() throws Exception {
+		when(mockNamedJdbcTemplate.queryForObject(anyString(), any(SqlParameterSource.class), any(RowMapper.class))).thenReturn(teamDbo);
+		when(mockBasicDao.update(any(DatabaseObject.class))).thenReturn(true);
+		
+		// Call under test
 		teamDao.update(team);
-		ArgumentCaptor<String> idCapture = ArgumentCaptor.forClass(String.class);
-		ArgumentCaptor<ObjectType> objectTypeCapture = ArgumentCaptor.forClass(ObjectType.class);
-		ArgumentCaptor<ChangeType> typeCapture = ArgumentCaptor.forClass(ChangeType.class);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(idCapture.capture(), objectTypeCapture.capture(), typeCapture.capture());
-		assertEquals(team.getId(), idCapture.getValue());
-		assertEquals(ObjectType.PRINCIPAL, objectTypeCapture.getValue());
-		assertEquals(ChangeType.UPDATE, typeCapture.getValue());
+		
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(team.getId(), ObjectType.PRINCIPAL, ChangeType.UPDATE);
 	}
 	
 	@Test
 	public void testDeleteSendMessage() throws Exception{
+		when(mockBasicDao.deleteObjectByPrimaryKey(any(), any())).thenReturn(true);
+		
+		// Call under test
 		teamDao.delete(team.getId());
-		ArgumentCaptor<String> idCapture = ArgumentCaptor.forClass(String.class);
-		ArgumentCaptor<ObjectType> objectTypeCapture = ArgumentCaptor.forClass(ObjectType.class);
-		ArgumentCaptor<ChangeType> typeCapture = ArgumentCaptor.forClass(ChangeType.class);
-		verify(mockTransactionalMessenger).sendDeleteMessageAfterCommit(idCapture.capture(), objectTypeCapture.capture());
-		assertEquals(team.getId(), idCapture.getValue());
-		assertEquals(ObjectType.PRINCIPAL, objectTypeCapture.getValue());
+		
+		verify(mockTransactionalMessenger).sendDeleteMessageAfterCommit(team.getId(), ObjectType.PRINCIPAL);
 	}
 }
