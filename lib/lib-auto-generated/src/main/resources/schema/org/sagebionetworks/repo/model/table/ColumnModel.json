@@ -16,7 +16,7 @@
         },
         "columnType": {
             "type": "string",
-            "description": "The column type determines the type of data that can be stored in a column. Switching between types (using <a href=\"https://rest-docs.synapse.org/rest/POST/entity/id/table/transaction/async/start.html\">a transaction</a> with <a href=\"${org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest}\">TableUpdateTransactionRequest</a> in the \"changes\" list) is generally allowed except for switching to \"_LIST\" suffixed types. In such cases, a new column must be created and data must be copied over manually",
+            "description": "The column type determines the type of data that can be stored in a column. Switching between types (using <a href=\"${POST.entity.id.table.transaction.async.start}\">a transaction</a> with <a href=\"${org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest}\">TableUpdateTransactionRequest</a> in the \"changes\" list) is generally allowed except for switching to \"_LIST\" suffixed types. In such cases, a new column must be created and data must be copied over manually",
             "name": "ColumnType",
             "id": "org.sagebionetworks.repo.model.table.ColumnType",
             "enum": [
