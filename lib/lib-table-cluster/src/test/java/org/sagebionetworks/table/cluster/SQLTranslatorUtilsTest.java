@@ -92,6 +92,7 @@ public class SQLTranslatorUtilsTest {
 	ColumnModel columnSpecial;
 	ColumnModel columnDouble;
 	ColumnModel columnDate;
+	ColumnModel columnQuoted;
 	
 	List<ColumnModel> schema;
 	
@@ -113,8 +114,9 @@ public class SQLTranslatorUtilsTest {
 		columnSpecial = TableModelTestUtils.createColumn(555L, specialChars, ColumnType.DOUBLE);
 		columnDouble = TableModelTestUtils.createColumn(777L, "aDouble", ColumnType.DOUBLE);
 		columnDate = TableModelTestUtils.createColumn(888L, "aDate", ColumnType.DATE);
-		
-		schema = Lists.newArrayList(columnFoo, columnHasSpace, columnBar, columnId, columnSpecial, columnDouble, columnDate);
+		columnQuoted = TableModelTestUtils.createColumn(999L, "colWith\"Quotes\"InIt", ColumnType.STRING);
+
+		schema = Lists.newArrayList(columnFoo, columnHasSpace, columnBar, columnId, columnSpecial, columnDouble, columnDate, columnQuoted);
 		// setup the map
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 		
@@ -399,6 +401,28 @@ public class SQLTranslatorUtilsTest {
 		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
 		assertEquals("FROM_UNIXTIME(foo)", results.getName());
+		assertEquals(ColumnType.STRING, results.getColumnType());
+		assertEquals(null, results.getId());
+	}
+
+	@Test
+	public void testGetSelectColumnsColumnNameWithQuotes() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("\"colWith\"\"Quotes\"\"InIt\"").derivedColumn();
+		// call under test
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertEquals("colWith\"Quotes\"InIt", results.getName());
+		assertEquals(ColumnType.STRING, results.getColumnType());
+		assertEquals("999", results.getId());
+	}
+
+	@Test
+	public void testGetSelectColumnsAliasNameWithQuotes() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("foo as \"aliasWith\"\"Quotes\"\"InIt\"").derivedColumn();
+		// call under test
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertEquals("aliasWith\"Quotes\"InIt", results.getName());
 		assertEquals(ColumnType.STRING, results.getColumnType());
 		assertEquals(null, results.getId());
 	}

@@ -36,7 +36,7 @@ public class SQLQueryTest {
 	
 	private static final String DOUBLE_COLUMN = "CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END";
 	private static final String STAR_COLUMNS = "_C111_, _C222_, _C333_, _C444_, _C555_, _C666_, " + DOUBLE_COLUMN
-			+ ", _C888_, _C999_";
+			+ ", _C888_, _C999_, _C4242_";
 	
 	ColumnModel cm;
 	List<ColumnModel> schema;
@@ -55,6 +55,7 @@ public class SQLQueryTest {
 		columnNameToModelMap.put("doubletype", TableModelTestUtils.createColumn(777L, "doubletype", ColumnType.DOUBLE));
 		columnNameToModelMap.put("inttype", TableModelTestUtils.createColumn(888L, "inttype", ColumnType.INTEGER));
 		columnNameToModelMap.put("has-hyphen", TableModelTestUtils.createColumn(999L, "has-hyphen", ColumnType.STRING));
+		columnNameToModelMap.put("has\"quote", TableModelTestUtils.createColumn(4242L, "has\"quote", ColumnType.STRING));
 		tableSchema = new ArrayList<ColumnModel>(columnNameToModelMap.values());
 		
 		cm = new ColumnModel();
@@ -81,7 +82,7 @@ public class SQLQueryTest {
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
 		assertNotNull(translator.getSelectColumns());
-		assertEquals(translator.getSelectColumns().size(), 9);
+		assertEquals(translator.getSelectColumns().size(), 10);
 		assertEquals(TableModelUtils.getSelectColumns(this.tableSchema), translator.getSelectColumns());
 	}
 
@@ -90,7 +91,7 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQueryBuilder("select * from syn123", tableSchema, userId).build();
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		String sql = translator.getModel().toString();
-		assertEquals("SELECT \"foo\", \"has space\", \"bar\", \"foo_bar\", \"Foo\", \"datetype\", \"doubletype\", \"inttype\", \"has-hyphen\" FROM syn123", sql);
+		assertEquals("SELECT \"foo\", \"has space\", \"bar\", \"foo_bar\", \"Foo\", \"datetype\", \"doubletype\", \"inttype\", \"has-hyphen\", \"has\"\"quote\" FROM syn123", sql);
 		translator = new SqlQueryBuilder(sql, tableSchema, userId).build();
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 	}
@@ -101,6 +102,15 @@ public class SQLQueryTest {
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
 		List<ColumnModel> expectedSelect = Arrays.asList(columnNameToModelMap.get("foo"));
+		assertEquals(TableModelUtils.getSelectColumns(expectedSelect), translator.getSelectColumns());
+	}
+
+	@Test
+	public void testSelectDoubleQuotedColumn() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select \"has\"\"quote\" from syn123", tableSchema, userId).build();
+		assertEquals("SELECT _C4242_, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
+		assertFalse(translator.isAggregatedResult());
+		List<ColumnModel> expectedSelect = Arrays.asList(columnNameToModelMap.get("has\"quote"));
 		assertEquals(TableModelUtils.getSelectColumns(expectedSelect), translator.getSelectColumns());
 	}
 	

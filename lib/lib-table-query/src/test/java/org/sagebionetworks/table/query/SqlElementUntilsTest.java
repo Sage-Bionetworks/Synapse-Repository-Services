@@ -105,6 +105,19 @@ public class SqlElementUntilsTest {
 		assertNotNull(converted);
 		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY \"bar\" DESC, \"foo\" ASC LIMIT 1", converted.toString());
 	}
+
+
+	@Test
+	public void testConvertToSortedQuerySortWithDoubleQuote() throws ParseException {
+		QuerySpecification model = TableQueryParser
+				.parserQuery("select * from syn123");
+		SortItem sort1 = new SortItem();
+		sort1.setColumn("has\"Quote");
+		QuerySpecification converted = SqlElementUntils.convertToSortedQuery(model, Lists.newArrayList(sort1));
+		assertNotNull(converted);
+		assertEquals("SELECT * FROM syn123 ORDER BY \"has\"\"Quote\" ASC",
+				converted.toString());
+	}
 	
 	@Test
 	public void testOverridePaginationQueryWithoutPagingOverridesNull() throws ParseException{
@@ -370,7 +383,14 @@ public class SqlElementUntilsTest {
 		String result = SqlElementUntils.wrapInDoubleQuotes(toWrap);
 		assertEquals("\"foo\"", result);
 	}
-	
+
+	@Test
+	public void testWrapInDoubleQuotes_StringContainsDoubleQuotes(){
+		String toBeWrapped = "\"Don't trust everything you read on the internet\" - Abraham Lincoln";
+		String expectedResult = "\"\"\"Don't trust everything you read on the internet\"\" - Abraham Lincoln\"";
+		assertEquals(expectedResult, SqlElementUntils.wrapInDoubleQuotes(toBeWrapped));
+	}
+
 	@Test
 	public void testCreateSortKeyWithKeywordInName() throws ParseException{
 		SortKey sortKey = SqlElementUntils.createSortKey("Date Approved/Rejected");
@@ -392,11 +412,26 @@ public class SqlElementUntilsTest {
 		assertNotNull(sortKey);
 		assertEquals("MAX(foo)", sortKey.toSql());
 	}
-	
-	@Test
-	public void testCreateDoubleQuotedDerivedColumn(){
+
+	///////////////////////////////////////////////
+	// createDoubleQuotedDerivedColumn() tests
+	///////////////////////////////////////////////
+
+	public void testCreateDoubleQuotedDerivedColumn_nameIsSingleWord() throws ParseException {
 		DerivedColumn dr = SqlElementUntils.createDoubleQuotedDerivedColumn("foo");
 		assertEquals("\"foo\"", dr.toSql());
+	}
+
+	@Test
+	public void testCreateDoubleQuotedDerivedColumn_nameIncludesSpaces() throws ParseException {
+		DerivedColumn dr = SqlElementUntils.createDoubleQuotedDerivedColumn("foo bar");
+		assertEquals("\"foo bar\"", dr.toSql());
+	}
+
+	@Test
+	public void testCreateDoubleQuotedDerivedColumn_nameIncludesDoubleQuotes() throws ParseException {
+		DerivedColumn dr = SqlElementUntils.createDoubleQuotedDerivedColumn("foo\"bar\"");
+		assertEquals("\"foo\"\"bar\"\"\"", dr.toSql());
 	}
 	
 	@Test
