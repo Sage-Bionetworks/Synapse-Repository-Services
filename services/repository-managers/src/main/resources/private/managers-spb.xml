@@ -278,8 +278,6 @@
 
 	<bean id="authManager" class="org.sagebionetworks.repo.manager.authentication.AuthenticationManagerImpl" />
 
-	<bean id="unsuccessfulLoginLockout" class="org.sagebionetworks.repo.manager.loginlockout.ExponentialBackoffLoginLockoutStatusImpl"/>
-
 	<bean id="passwordValidator" class="org.sagebionetworks.repo.manager.password.PasswordValidatorImpl"/>
 
 	<bean id="passwordResetTokenGenerator" class="org.sagebionetworks.repo.manager.authentication.PasswordResetTokenGeneratorImpl"/>

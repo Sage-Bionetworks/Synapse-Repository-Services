@@ -1,5 +1,25 @@
 package org.sagebionetworks.repo.manager.team;
 
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_ID;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_WEB_LINK;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_USER_ID;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.manager.util.Validate;
@@ -60,26 +80,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_ID;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_WEB_LINK;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_USER_ID;
 
 
 /**
@@ -253,9 +253,11 @@ public class TeamManagerImpl implements TeamManager {
 	@WriteTransaction
 	public Team create(UserInfo userInfo, Team team) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException {
-		if (AuthorizationUtils.isUserAnonymous(userInfo))
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
 				throw new UnauthorizedException("Anonymous user cannot create Team.");
+		}
 		validateForCreate(team);
+		
 		// create UserGroup (fail if UG with the given name already exists)
 		UserGroup ug = new UserGroup();
 		ug.setIsIndividual(false);
@@ -263,6 +265,8 @@ public class TeamManagerImpl implements TeamManager {
 		Long id = userGroupDAO.create(ug);
 		// bind the team name to this principal
 		bindTeamName(team.getName(), id);
+		
+		validateTeamIcon(userInfo, null, team.getIcon());
 		
 		team.setId(id.toString());
 		Date now = new Date();
@@ -273,6 +277,31 @@ public class TeamManagerImpl implements TeamManager {
 		AccessControlList acl = createInitialAcl(userInfo, id.toString(), now);
 		aclDAO.create(acl, ObjectType.TEAM);
 		return created;
+	}
+	
+	/**
+	 * 
+	 * @param userInfo
+	 * @param currentFileHandle
+	 * @param newFileHandle
+	 */
+	private void validateTeamIcon(UserInfo userInfo, String currentFileHandle, String newFileHandle) {
+		// Nothing to check if the user removes a file handle
+		if (newFileHandle == null) {
+			return;
+		}
+		
+		// The file handle didn't change
+		if (newFileHandle.equals(currentFileHandle)) {
+			return;
+		}
+		
+		AuthorizationStatus status = authorizationManager.canAccessRawFileHandleById(userInfo, newFileHandle);
+	
+		if (!status.isAuthorized()) {
+			throw new UnauthorizedException("Only the user that uploaded the file can set it as the team icon.");
+		}
+		
 	}
 	
 	/**
@@ -453,8 +482,10 @@ public class TeamManagerImpl implements TeamManager {
 		authorizationManager.canAccess(userInfo, team.getId(), ObjectType.TEAM, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
 		validateForUpdate(team);
 		populateUpdateFields(userInfo, team, new Date());
+		Team existingTeam = teamDAO.get(team.getId());
 		// bind the team name to this principal
 		bindTeamName(team.getName(), Long.parseLong(team.getId()));
+		validateTeamIcon(userInfo, existingTeam.getIcon(), team.getIcon());
 		return teamDAO.update(team);
 	}
 

@@ -1,7 +1,31 @@
 package org.sagebionetworks.repo.manager.team;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,6 +46,7 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.manager.principal.PrincipalManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Count;
@@ -62,33 +87,9 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.sagebionetworks.repo.model.AccessControlList;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 @ExtendWith(MockitoExtension.class)
 public class TeamManagerImplTest {
@@ -296,9 +297,12 @@ public class TeamManagerImplTest {
 	@Test
 	public void testCreate() {
 		Team team = createTeam(null, "name", "description", null, "101", null, null, null, null);
-		when(mockTeamDAO.create(team)).thenReturn(team);
-		// mock userGroupDAO
+
+		when(mockAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockUserGroupDAO.create(any(UserGroup.class))).thenReturn(Long.parseLong(TEAM_ID));
+		when(mockTeamDAO.create(team)).thenReturn(team);
+		
+		// Call under test
 		Team created = teamManagerImpl.create(userInfo,team);
 		assertEquals(team, created);
 		/*
@@ -312,6 +316,7 @@ public class TeamManagerImplTest {
 
 		// verify that group, acl were created
 		assertEquals(TEAM_ID, created.getId());
+		verify(mockAuthorizationManager).canAccessRawFileHandleById(userInfo, "101");
 		verify(mockTeamDAO).create(team);
 		verify(mockAclDAO).create((AccessControlList)any(), eq(ObjectType.TEAM));
 		verify(mockGroupMembersDAO).addMembers(TEAM_ID, Arrays.asList(new String[]{MEMBER_PRINCIPAL_ID}));
@@ -320,6 +325,37 @@ public class TeamManagerImplTest {
 		assertNotNull(created.getModifiedOn());
 		assertEquals(MEMBER_PRINCIPAL_ID, created.getCreatedBy());
 		assertEquals(MEMBER_PRINCIPAL_ID, created.getModifiedBy());
+	}
+	
+	@Test
+	public void testCreateWithNotAllowedIcon() {
+		Team team = createTeam(null, "name", "description", null, "101", null, null, null, null);
+
+		when(mockAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.accessDenied("Denied"));
+		
+		String errorMessage = assertThrows(UnauthorizedException.class, () -> {	
+			// Call under test
+			teamManagerImpl.create(userInfo,team);
+		}).getMessage();
+		
+		assertEquals("Only the user that uploaded the file can set it as the team icon.", errorMessage);
+		
+		// No check on the file handle since it's not supplied
+		verify(mockAuthorizationManager).canAccessRawFileHandleById(userInfo, "101");
+	}
+	
+	@Test
+	public void testCreateWithNoIcon() {
+		Team team = createTeam(null, "name", "description", null, null, null, null, null, null);
+
+		when(mockUserGroupDAO.create(any(UserGroup.class))).thenReturn(Long.parseLong(TEAM_ID));
+		when(mockTeamDAO.create(team)).thenReturn(team);
+		
+		// Call under test
+		teamManagerImpl.create(userInfo,team);
+		
+		// No check on the file handle since it's not supplied
+		verify(mockAuthorizationManager, never()).canAccessRawFileHandleById(any(), any());
 	}
 	
 	private BootstrapTeam createBootstrapTeam(String id, String name) {
@@ -404,6 +440,7 @@ public class TeamManagerImplTest {
 		// not allowed to specify ID of team being created
 		Team team = createTeam(null, "name", "description", null, "101", null, null, null, null);
 		when(mockPrincipalAliasDAO.bindAliasToPrincipal(any(PrincipalAlias.class))).thenThrow(new NameConflictException());
+		
 		Assertions.assertThrows(NameConflictException.class, ()-> {
 			teamManagerImpl.create(userInfo,team);
 		});
@@ -468,11 +505,75 @@ public class TeamManagerImplTest {
 	public void testPut() {
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
 		Team team = createTeam(TEAM_ID, "name", "description", "etag", "101", null, null, null, null);
+		when(mockTeamDAO.get(any())).thenReturn(team);
 		when(mockTeamDAO.update(team)).thenReturn(team);
+		
+		// Call under test
 		Team updated = teamManagerImpl.put(userInfo, team);
+		
 		assertEquals(updated, team);
 		assertNotNull(updated.getModifiedBy());
 		assertNotNull(updated.getModifiedOn());
+		
+		verify(mockTeamDAO).get(TEAM_ID);
+		verify(mockTeamDAO).update(team);
+	}
+	
+	@Test
+	public void testPutWithNoIcon() {
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
+		Team existingTeam = createTeam(TEAM_ID, "name", "description", "etag", "101", null, null, null, null);
+		Team team = createTeam(TEAM_ID, "name", "description", "etag", null, null, null, null, null);
+		
+		when(mockTeamDAO.get(any())).thenReturn(existingTeam);
+		when(mockTeamDAO.update(team)).thenReturn(team);
+		
+		// Call under test
+		Team updated = teamManagerImpl.put(userInfo, team);
+		
+		assertEquals(updated, team);
+		
+		verify(mockTeamDAO).get(TEAM_ID);
+		verify(mockAuthorizationManager, never()).canAccessRawFileHandleById(any(), any());
+	}
+	
+	@Test
+	public void testPutWithNewIcon() {
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
+		Team existingTeam = createTeam(TEAM_ID, "name", "description", "etag", "101", null, null, null, null);
+		Team team = createTeam(TEAM_ID, "name", "description", "etag", "102", null, null, null, null);
+		
+		when(mockTeamDAO.get(any())).thenReturn(existingTeam);
+		when(mockAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockTeamDAO.update(team)).thenReturn(team);
+		
+		// Call under test
+		Team updated = teamManagerImpl.put(userInfo, team);
+		
+		assertEquals(updated, team);
+		
+		verify(mockTeamDAO).get(TEAM_ID);
+		verify(mockAuthorizationManager).canAccessRawFileHandleById(userInfo, "102");
+	}
+	
+	@Test
+	public void testPutWithNotAllowedIcon() {
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
+		Team existingTeam = createTeam(TEAM_ID, "name", "description", "etag", "101", null, null, null, null);
+		Team team = createTeam(TEAM_ID, "name", "description", "etag", "102", null, null, null, null);
+		
+		when(mockTeamDAO.get(any())).thenReturn(existingTeam);
+		when(mockAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.accessDenied("Denied"));
+		
+		String errorMessage = assertThrows(UnauthorizedException.class, () -> {			
+			// Call under test
+			teamManagerImpl.put(userInfo, team);
+		}).getMessage();
+
+		assertEquals("Only the user that uploaded the file can set it as the team icon.", errorMessage);
+		verify(mockTeamDAO).get(TEAM_ID);
+		verify(mockAuthorizationManager).canAccessRawFileHandleById(userInfo, "102");
+
 	}
 	
 	@Test
