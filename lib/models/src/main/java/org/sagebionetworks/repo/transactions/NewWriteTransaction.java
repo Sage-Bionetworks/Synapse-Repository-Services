@@ -9,10 +9,13 @@ import java.lang.annotation.Target;
 
 /**
  * When used on a method, a new transaction will be started to for the method.
- * If there is an existing transaction on the same thread, the existing transaction will be 
- * 'paused' while the new transaction executes.
+ * If there is an existing transaction on the same thread, the existing
+ * transaction will be 'paused' while the new transaction executes.
  * </p>
- * Transaction-isolation-level = READ_COMMITED.
+ * Transaction-isolation-level = READ_COMMITED. Warning: When
+ * NewWriteTransaction is used from within an existing transaction, any attempt
+ * to update rows locked by the previous transaction will deadlock the new
+ * transaction.
  */
 @Target({ ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)
