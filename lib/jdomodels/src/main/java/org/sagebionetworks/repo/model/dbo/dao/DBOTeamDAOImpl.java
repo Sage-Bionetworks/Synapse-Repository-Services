@@ -295,9 +295,10 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	 */
 	@WriteTransaction
 	@Override
-	public Team create(Team dto) throws DatastoreException,
-	InvalidModelException {
-		if (dto.getId()==null) throw new InvalidModelException("ID is required");
+	public Team create(Team dto) throws DatastoreException, InvalidModelException {
+		if (dto.getId() == null) {
+			throw new InvalidModelException("ID is required");
+		}
 		DBOTeam dbo = new DBOTeam();
 		TeamUtils.copyDtoToDbo(dto, dbo);
 		dbo.setEtag(UUID.randomUUID().toString());
@@ -335,7 +336,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	@Override
 	public ListWrapper<Team> list(List<Long> ids) throws DatastoreException, NotFoundException {
 		if (ids==null || ids.size()<1) {
-			return ListWrapper.wrap(Collections.EMPTY_LIST, Team.class);
+			return ListWrapper.wrap(Collections.emptyList(), Team.class);
 		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_TEAM_ID, ids);
@@ -581,7 +582,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	@Override
 	public ListWrapper<TeamMember> listMembers(List<Long> teamIds, List<Long> principalIds) throws NotFoundException, DatastoreException {
 		if (teamIds==null || teamIds.size()<1 || principalIds==null || principalIds.size()<1) {
-			return ListWrapper.wrap(Collections.EMPTY_LIST, TeamMember.class);
+			return ListWrapper.wrap(Collections.emptyList(), TeamMember.class);
 		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamIds);
