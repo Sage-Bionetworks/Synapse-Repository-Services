@@ -103,7 +103,7 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 				approved = true;
 			}
 			SubjectStatus status = statusMap.get(entityId);
-			if (!approved) {
+			if (approved != null && !approved) {
 				status.setHasUnmet(true);
 			}
 			if (requirementId != null) {

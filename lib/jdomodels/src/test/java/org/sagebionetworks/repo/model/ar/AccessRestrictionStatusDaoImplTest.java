@@ -165,12 +165,31 @@ public class AccessRestrictionStatusDaoImplTest {
 	}
 
 	@Test
-	public void testGeEntityStatusWithNoRequirements() {
+	public void testGeEntityStatusWithNoRequirementsAsCreator() {
 		setupNodeHierarchy(userTwoId);
 		List<Long> subjectIds = KeyFactory.stringToKey(Arrays.asList(file.getId(), fileTwo.getId()));
 		// call under test
 		List<SubjectStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userTwoId);
 		validateBasicSubjectStatus(subjectIds, results, userTwoId);
+		SubjectStatus result = results.get(0);
+		assertFalse(result.hasUnmet());
+		assertNotNull(result.getAccessRestrictions());
+		assertTrue(result.getAccessRestrictions().isEmpty());
+
+		result = results.get(1);
+		assertFalse(result.hasUnmet());
+		assertNotNull(result.getAccessRestrictions());
+		assertTrue(result.getAccessRestrictions().isEmpty());
+		assertEquals(RestrictionLevel.OPEN, result.getMostRestrictiveLevel());
+	}
+	
+	@Test
+	public void testGeEntityStatusWithNoRequirementsNotCreator() {
+		setupNodeHierarchy(userTwoId);
+		List<Long> subjectIds = KeyFactory.stringToKey(Arrays.asList(file.getId(), fileTwo.getId()));
+		// call under test
+		List<SubjectStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userOneId);
+		validateBasicSubjectStatus(subjectIds, results, userOneId);
 		SubjectStatus result = results.get(0);
 		assertFalse(result.hasUnmet());
 		assertNotNull(result.getAccessRestrictions());
