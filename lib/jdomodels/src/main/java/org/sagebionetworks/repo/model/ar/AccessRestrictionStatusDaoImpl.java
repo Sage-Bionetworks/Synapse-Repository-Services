@@ -93,7 +93,11 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 			if (rs.wasNull()) {
 				approved = null;
 			}
-			String requirementType = rs.getString(REQUIREMENT_TYPE);
+			String requirementTypeString = rs.getString(REQUIREMENT_TYPE);
+			AccessRequirementType requirementType = null;
+			if(requirementTypeString != null) {
+				requirementType = AccessRequirementType.lookupClassName(requirementTypeString);
+			}
 			// The user is automatically approved for any requirement on files they create.
 			if (EntityType.file.equals(entityType) && userId.equals(createdBy)) {
 				approved = true;
@@ -150,7 +154,11 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 			if (rs.wasNull()) {
 				approved = null;
 			}
-			String requirementType = rs.getString(REQUIREMENT_TYPE);
+			String requirementTypeString = rs.getString(REQUIREMENT_TYPE);
+			AccessRequirementType requirementType = null;
+			if(requirementTypeString != null) {
+				requirementType = AccessRequirementType.lookupClassName(requirementTypeString);
+			}
 			SubjectStatus status = statusMap.get(subjectId);
 			if (!approved) {
 				status.setHasUnmet(true);

@@ -9,7 +9,7 @@ import java.util.Objects;
 public class UsersRequirementStatus {
 
 	private Long requirementId;
-	private String requirementType;
+	private AccessRequirementType requirementType;
 	private boolean isUnmet;	
 
 	/**
@@ -28,7 +28,7 @@ public class UsersRequirementStatus {
 	 * @param requirementType
 	 * @return
 	 */
-	public UsersRequirementStatus withRequirementType(String requirementType) {
+	public UsersRequirementStatus withRequirementType(AccessRequirementType requirementType) {
 		this.requirementType = requirementType;
 		return this;
 	}
@@ -53,7 +53,7 @@ public class UsersRequirementStatus {
 	/**
 	 * @return the requirementType
 	 */
-	public String getRequirementType() {
+	public AccessRequirementType getRequirementType() {
 		return requirementType;
 	}
 

@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import org.sagebionetworks.repo.model.RestrictionLevel;
+
 public class SubjectStatus {
 
 	private Long subjectId;
@@ -57,6 +59,25 @@ public class SubjectStatus {
 	public List<UsersRequirementStatus> getAccessRestrictions() {
 		return accessRestrictions;
 	}
+	
+	/**
+	 * Get the most restrictive level of all of the requirements on this object.
+	 * @return
+	 */
+	public RestrictionLevel getMostRestrictiveLevel() {
+		RestrictionLevel level = RestrictionLevel.OPEN;
+		if(accessRestrictions != null) {
+			RestrictionLevelComparator comparator = new RestrictionLevelComparator();
+			for(UsersRequirementStatus status: accessRestrictions) {
+				RestrictionLevel localLevel = status.getRequirementType().getRestrictionLevel();
+				if(comparator.compare(localLevel, level)> 0) {
+					level = localLevel;
+				}
+			}
+		}
+		return level;
+	}
+	
 
 	@Override
 	public int hashCode() {
