@@ -19,9 +19,8 @@ public class RestrictionLevelComparatorTest {
 	public void testCompareAsRank() {
 		List<RestrictionLevel> list = Lists.newArrayList(OPEN, RESTRICTED_BY_TERMS_OF_USE, CONTROLLED_BY_ACT, OPEN,
 				RESTRICTED_BY_TERMS_OF_USE, CONTROLLED_BY_ACT);
-		RestrictionLevelComparator comparator = new RestrictionLevelComparator();
 		// call under test
-		Collections.sort(list, comparator);
+		Collections.sort(list, RestrictionLevelComparator.SINGLETON);
 		List<RestrictionLevel> expected = Lists.newArrayList(OPEN, OPEN, RESTRICTED_BY_TERMS_OF_USE,
 				RESTRICTED_BY_TERMS_OF_USE, CONTROLLED_BY_ACT, CONTROLLED_BY_ACT);
 		assertEquals(expected, list);
@@ -42,23 +41,34 @@ public class RestrictionLevelComparatorTest {
 		assertEquals(-1, comparator.compare(OPEN, RESTRICTED_BY_TERMS_OF_USE));
 		assertEquals(0, comparator.compare(OPEN, OPEN));
 	}
-	
+
 	@Test
 	public void testCompareWithNullLeft() {
 		RestrictionLevelComparator comparator = new RestrictionLevelComparator();
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			comparator.compare(null, OPEN);
 		}).getMessage();
 		assertEquals("left is required.", message);
 	}
-	
+
 	@Test
 	public void testCompareWithNullRight() {
 		RestrictionLevelComparator comparator = new RestrictionLevelComparator();
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			comparator.compare(OPEN, null);
 		}).getMessage();
 		assertEquals("right is required.", message);
+	}
+
+	/**
+	 * This test should fail if a new type is added and the comparator is not
+	 * extended.
+	 */
+	@Test
+	public void testCompairEachType() {
+		for (RestrictionLevel level : RestrictionLevel.values()) {
+			assertEquals(0, RestrictionLevelComparator.SINGLETON.compare(level, level));
+		}
 	}
 
 }

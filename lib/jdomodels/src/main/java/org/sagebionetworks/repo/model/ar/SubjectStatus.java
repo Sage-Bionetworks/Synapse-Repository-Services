@@ -67,10 +67,9 @@ public class SubjectStatus {
 	public RestrictionLevel getMostRestrictiveLevel() {
 		RestrictionLevel level = RestrictionLevel.OPEN;
 		if(accessRestrictions != null) {
-			RestrictionLevelComparator comparator = new RestrictionLevelComparator();
 			for(UsersRequirementStatus status: accessRestrictions) {
 				RestrictionLevel localLevel = status.getRequirementType().getRestrictionLevel();
-				if(comparator.compare(localLevel, level)> 0) {
+				if(RestrictionLevelComparator.SINGLETON.compare(localLevel, level)> 0) {
 					level = localLevel;
 				}
 			}

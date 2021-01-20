@@ -32,22 +32,25 @@ public class RestrictionInformationManagerImpl implements RestrictionInformation
 				"RestrictionInformationRequest.restrictableObjectType");
 		if (RestrictableObjectType.ENTITY != request.getRestrictableObjectType()
 				&& RestrictableObjectType.TEAM != request.getRestrictableObjectType()) {
-			throw new IllegalArgumentException("Unsupported type: "+request.getRestrictableObjectType());
+			throw new IllegalArgumentException("Unsupported type: " + request.getRestrictableObjectType());
 		}
 
 		List<SubjectStatus> statusList = accessRestrictionStatusDao.getSubjectStatus(
 				Arrays.asList(KeyFactory.stringToKey(request.getObjectId())), request.getRestrictableObjectType(),
 				userInfo.getId());
 
-		RestrictionInformationResponse info = new RestrictionInformationResponse();
-		info.setHasUnmetAccessRequirement(false);
-		info.setRestrictionLevel(RestrictionLevel.OPEN);
-		Optional<SubjectStatus> firstOptional = statusList.stream().findFirst();
-		if (firstOptional.isPresent()) {
-			info.setHasUnmetAccessRequirement(firstOptional.get().hasUnmet());
-			info.setRestrictionLevel(firstOptional.get().getMostRestrictiveLevel());
-		}
-		return info;
+		return statusList.stream().findFirst().map((s) -> {
+			RestrictionInformationResponse info = new RestrictionInformationResponse();
+			info.setHasUnmetAccessRequirement(s.hasUnmet());
+			info.setRestrictionLevel(s.getMostRestrictiveLevel());
+			return info;
+		}).orElseGet(() -> {
+			// If there are no restrictions then the data is open and met.
+			RestrictionInformationResponse info = new RestrictionInformationResponse();
+			info.setHasUnmetAccessRequirement(false);
+			info.setRestrictionLevel(RestrictionLevel.OPEN);
+			return info;
+		});
 	}
 
 }
