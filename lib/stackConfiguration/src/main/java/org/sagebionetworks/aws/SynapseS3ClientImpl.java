@@ -12,6 +12,7 @@ import org.apache.commons.collections4.map.PassiveExpiringMap;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
@@ -189,6 +190,11 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 	public CompleteMultipartUploadResult completeMultipartUpload(CompleteMultipartUploadRequest request)
 			throws SdkClientException, AmazonServiceException {
 		return getS3ClientForBucket(request.getBucketName()).completeMultipartUpload(request);
+	}
+	
+	@Override
+	public void abortMultipartUpload(AbortMultipartUploadRequest request) throws SdkClientException, AmazonServiceException {
+		getS3ClientForBucket(request.getBucketName()).abortMultipartUpload(request);
 	}
 
 	@Override

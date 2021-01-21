@@ -309,20 +309,6 @@ public class MultipartUploadDAOImplTest {
 		String partsState = multipartUplaodDAO.getPartsState(uploadId, numberOfParts);
 		assertEquals("10000000100", partsState);
 	}
-
-	@Test
-	public void testDeleteUploadStatus() {
-		CompositeMultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
-		assertNotNull(status);
-		assertNotNull(status.getEtag());
-		String uploadId = status.getMultipartUploadStatus().getUploadId();
-		// call under test.
-		multipartUplaodDAO.deleteUploadStatus(userId, createRequest.getHash());
-
-		assertThrows(NotFoundException.class, () -> {
-			multipartUplaodDAO.getUploadRequest(uploadId);
-		});
-	}
 	
 	@Test
 	public void updateUploadStatusHash() throws InterruptedException {
@@ -507,6 +493,20 @@ public class MultipartUploadDAOImplTest {
 		
 		assertEquals(expected, result);
 		
+	}
+	
+	@Test
+	public void testDeleteUploadStatus() {
+		CompositeMultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
+		
+		String uploadId = status.getMultipartUploadStatus().getUploadId();
+		
+		// Call under test
+		multipartUplaodDAO.deleteUploadStatus(uploadId);
+		
+		assertThrows(NotFoundException.class, () -> {
+			multipartUplaodDAO.getUploadStatus(uploadId);
+		});
 	}
 
 }

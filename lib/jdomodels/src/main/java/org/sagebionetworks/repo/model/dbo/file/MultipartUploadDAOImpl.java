@@ -59,8 +59,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 
-	private static final String SQL_DELETE_UPLOAD_BY_USER_ID_AND_HASH = "DELETE FROM " + TABLE_MULTIPART_UPLOAD
-			+ " WHERE " + COL_MULTIPART_STARTED_BY + " = ? AND " + COL_MULTIPART_REQUEST_HASH + " = ?";
+	private static final String SQL_DELETE_BY_ID = "DELETE FROM " + TABLE_MULTIPART_UPLOAD
+			+ " WHERE " + COL_MULTIPART_UPLOAD_ID + " = ?";
 
 	private static final String SQL_DELETE_ALL_PARTS = "DELETE FROM " + TABLE_MULTIPART_UPLOAD_PART_STATE + " WHERE "
 			+ COL_MULTIPART_PART_UPLOAD_ID + " = ?";
@@ -209,17 +209,11 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO#deleteUploadStatus (long, java.lang.String)
-	 */
-	@WriteTransaction
 	@Override
-	public void deleteUploadStatus(long userId, String hash) {
-		ValidateArgument.required(userId, "UserId");
-		ValidateArgument.required(hash, "RequestHash");
-		this.jdbcTemplate.update(SQL_DELETE_UPLOAD_BY_USER_ID_AND_HASH, userId, hash);
+	@WriteTransaction
+	public void deleteUploadStatus(String uploadId) {
+		ValidateArgument.required(uploadId, "The uploadId");
+		jdbcTemplate.update(SQL_DELETE_BY_ID, uploadId);
 	}
 	
 	@Override

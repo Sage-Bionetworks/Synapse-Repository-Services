@@ -7,6 +7,7 @@ import java.net.URL;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
 import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.BucketWebsiteConfiguration;
@@ -84,6 +85,8 @@ public interface SynapseS3Client {
 
 	public CompleteMultipartUploadResult completeMultipartUpload(CompleteMultipartUploadRequest request)
 			throws SdkClientException, AmazonServiceException;
+	
+	void abortMultipartUpload(AbortMultipartUploadRequest request) throws SdkClientException, AmazonServiceException;
 
 	public void setBucketWebsiteConfiguration(String bucketName, BucketWebsiteConfiguration configuration)
 			throws SdkClientException, AmazonServiceException;
@@ -104,5 +107,6 @@ public interface SynapseS3Client {
 	 * @throws CannotDetermineBucketLocationException if the bucket doesn't grant 's3:GetBucketLocation' permission
 	 */
 	public Region getRegionForBucket(String bucketName) throws CannotDetermineBucketLocationException;
+
 
 }

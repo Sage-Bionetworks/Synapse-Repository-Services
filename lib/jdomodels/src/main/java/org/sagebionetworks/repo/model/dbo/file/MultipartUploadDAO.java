@@ -36,11 +36,11 @@ public interface MultipartUploadDAO {
 	String getUploadRequest(String id);
 	
 	/**
-	 * Delete all data for a file upload given a userId and upload hash.
-	 * @param userId
-	 * @param hash
+	 * Deletes the records for the given upload id
+	 * 
+	 * @param uploadId The upload id
 	 */
-	void deleteUploadStatus(long userId, String hash);
+	void deleteUploadStatus(String uploadId);
 	
 	/**
 	 * Updates the hash of the file upload request for the given user and hash.

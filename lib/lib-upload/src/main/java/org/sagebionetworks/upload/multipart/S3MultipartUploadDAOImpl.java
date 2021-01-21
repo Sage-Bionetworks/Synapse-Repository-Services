@@ -18,9 +18,11 @@ import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.PartUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.util.ContentDispositionUtils;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.HttpMethod;
+import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
@@ -273,7 +275,22 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 		
 		return resultFileMetadata.getContentLength();
 	}
-
+	
+	@Override
+	public void abortMultipartRequest(AbortMultipartRequest request) {
+		
+		if (request.getPartKeys() != null) {
+			// Makes sure to cleanup the temporary uploaded parts
+			for (String partKey : request.getPartKeys()) {
+				s3Client.deleteObject(request.getBucket(), partKey);
+			}
+		}
+		
+		AbortMultipartUploadRequest awsRequest = new AbortMultipartUploadRequest(request.getBucket(), request.getKey(), request.getUploadToken());
+		
+		s3Client.abortMultipartUpload(awsRequest);
+	}
+	
 	@Override
 	public String getObjectEtag(String bucket, String key) {
 		ObjectMetadata metaData = s3Client.getObjectMetadata(bucket, key);

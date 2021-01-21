@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.file;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -40,6 +41,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAO;
 import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAOProvider;
 import org.sagebionetworks.upload.multipart.PresignedUrl;
@@ -69,7 +71,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	
 	@Autowired
 	private MultipartRequestHandlerProvider handlerProvider;
-
+	
 	@Override
 	@WriteTransaction
 	public MultipartUploadStatus startOrResumeMultipartOperation(UserInfo user, MultipartRequest request, boolean forceRestart) {
@@ -377,6 +379,39 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		composite = multipartUploadDAO.setUploadComplete(uploadId, resultFileHandleId);
 		
 		return prepareCompleteStatus(composite);
+	}
+	
+	@Override
+	public List<String> getUploads(Instant modifiedBefore, long batchSize) {
+		return multipartUploadDAO.getUploads(modifiedBefore, batchSize);
+	}
+	
+	@Override
+	@WriteTransaction
+	public void clearMultipartUpload(UserInfo user, String uploadId) {
+		ValidateArgument.required(user, "The user");
+		ValidateArgument.required(uploadId, "The upload id");
+
+		if (!user.isAdmin()) {
+			throw new UnauthorizedException("Only an administrator can perform this operation.");
+		}
+		
+		final CompositeMultipartUploadStatus status;
+		
+		try {
+			status = multipartUploadDAO.getUploadStatus(uploadId);
+		} catch (NotFoundException e) {
+			// Nothing to do
+			return;
+		}
+		
+		if (!MultipartUploadState.COMPLETED.equals(status.getMultipartUploadStatus().getState())) {
+			final MultipartRequestHandler<? extends MultipartRequest> handler = handlerProvider.getHandlerForType(status.getRequestType());
+			
+			handler.abortMultipartRequest(status);
+		}
+		
+		multipartUploadDAO.deleteUploadStatus(uploadId);
 	}
 	
 	/**

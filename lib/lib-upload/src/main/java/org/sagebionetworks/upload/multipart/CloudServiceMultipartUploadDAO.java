@@ -73,6 +73,13 @@ public interface CloudServiceMultipartUploadDAO {
 	long completeMultipartUpload(CompleteMultipartRequest request);
 	
 	/**
+	 * Aborts the multipart request
+	 * 
+	 * @param request
+	 */
+	void abortMultipartRequest(AbortMultipartRequest request);
+	
+	/**
 	 * @param bucket
 	 * @param key
 	 * @return The etag assigned to the object in the given bucket and with the given key

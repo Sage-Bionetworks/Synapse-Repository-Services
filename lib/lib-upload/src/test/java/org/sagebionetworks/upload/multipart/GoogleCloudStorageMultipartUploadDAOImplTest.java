@@ -412,6 +412,23 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 	}
 	
 	@Test
+	public void testAbortMultipartRequest() {
+		when(mockStorageClient.getObjects(any(), any())).thenReturn(Arrays.asList(mockBlobPart));
+		doNothing().when(mockStorageClient).deleteObject(any(), any());
+		
+		AbortMultipartRequest request = new AbortMultipartRequest(UPLOAD_ID, null, BUCKET_NAME, KEY_NAME);
+		
+		// Call under test
+		googleMpuDAO.abortMultipartRequest(request);
+		
+		verify(mockMultipartUploadComposerDAO).deleteAllParts(request.getUploadId());
+		verify(mockStorageClient).getObjects(request.getBucket(), request.getKey() + "/");
+		verify(mockBlobPart).delete();
+		verify(mockStorageClient).deleteObject(request.getBucket(), request.getKey());
+		
+	}
+	
+	@Test
 	public void testGetObjectEtag() {
 		
 		String errorMessage = assertThrows(UnsupportedOperationException.class, () -> {

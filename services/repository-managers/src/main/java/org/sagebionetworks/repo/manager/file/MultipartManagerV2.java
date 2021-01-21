@@ -1,5 +1,9 @@
 package org.sagebionetworks.repo.manager.file;
 
+import java.time.Instant;
+import java.time.Period;
+import java.util.List;
+
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
@@ -14,6 +18,9 @@ import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
  *
  */
 public interface MultipartManagerV2 {
+	
+	// 30 days before the multi part uploads are garbage collected
+	Period EXPIRE_PERIOD = Period.ofDays(30);
 	
 	/**
 	 * Starts one of the supported ({@link MultipartUploadRequest} or {@link MultipartUploadCopyRequest}) multipart operations.
@@ -68,6 +75,23 @@ public interface MultipartManagerV2 {
 	 * @return
 	 */
 	MultipartUploadStatus completeMultipartUpload(UserInfo user, String uploadId);
+	
+	/**
+	 * Fetch all the multipart uploads that were modified before the given instant
+	 * 
+	 * @param modifiedBefore The instant to fetch to (exclusive)
+	 * @param batchSize The max number of upload ids to fetch
+	 * @return A batch upload ids that were modified before the given instant
+	 */
+	List<String> getUploads(Instant modifiedBefore, long batchSize);
+	
+	/**
+	 * Clear the temporary data for the given multipart upload and remove its records. Completed multipart uploads will retain the uploaded data and the respective file handle.
+	 * 
+	 * @param user The user performing the operation, only administrators can perform this operation
+	 * @param uploadId The id of the upload to clear
+	 */
+	void clearMultipartUpload(UserInfo user, String uploadId);
 	
 	/**
 	 * Truncate all data

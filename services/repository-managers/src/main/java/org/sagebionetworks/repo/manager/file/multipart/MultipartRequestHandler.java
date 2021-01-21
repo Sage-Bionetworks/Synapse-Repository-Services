@@ -67,4 +67,11 @@ public interface MultipartRequestHandler<T extends MultipartRequest> {
 	 */
 	FileHandleCreateRequest getFileHandleCreateRequest(CompositeMultipartUploadStatus status, String originalRequest);
 	
+	/**
+	 * Aborts the multi part request clearing any temporary data that was stored during the upload
+	 * 
+	 * @param status The multipart status
+	 */
+	void abortMultipartRequest(CompositeMultipartUploadStatus status);
+	
 }
