@@ -2,10 +2,10 @@ package org.sagebionetworks.repo.model.dbo.file;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.List;
 
@@ -316,12 +316,38 @@ public class MultipartUploadDAOImplTest {
 		// call under test.
 		multipartUplaodDAO.deleteUploadStatus(userId, createRequest.getHash());
 
-		try {
+		assertThrows(NotFoundException.class, () -> {
 			multipartUplaodDAO.getUploadRequest(uploadId);
-			fail("Should no longer exist");
-		} catch (NotFoundException e) {
-			// expected
-		}
+		});
+	}
+	
+	@Test
+	public void updateUploadStatusHash() throws InterruptedException {
+		multipartUplaodDAO.createUploadStatus(createRequest);
+		
+		CompositeMultipartUploadStatus status = multipartUplaodDAO.getUploadStatus(userId, hash);
+		
+		String newHash = "Updated_" + hash;
+		
+		// Sleep for a second to allow the updated on to change 
+		Thread.sleep(1000);
+		
+		// Call under test
+		multipartUplaodDAO.setUploadStatusHash(userId, hash, newHash);
+				
+		assertNull(multipartUplaodDAO.getUploadStatus(userId, hash));
+		
+		CompositeMultipartUploadStatus newStatus = multipartUplaodDAO.getUploadStatus(userId, newHash);
+		
+		assertNotEquals(status.getEtag(), newStatus.getEtag());
+		assertNotEquals(status.getMultipartUploadStatus().getUpdatedOn(), newStatus.getMultipartUploadStatus().getUpdatedOn());
+		
+		// Sync the updated data
+		status.setEtag(newStatus.getEtag());
+		status.getMultipartUploadStatus().setUpdatedOn(newStatus.getMultipartUploadStatus().getUpdatedOn());
+		
+		assertEquals(status, newStatus);
+		
 	}
 
 	@Test

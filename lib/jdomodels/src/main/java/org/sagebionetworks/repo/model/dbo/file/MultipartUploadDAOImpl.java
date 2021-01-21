@@ -109,6 +109,10 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 	private static final String SELECT_BY_USER_AND_HASH = "SELECT " + STATUS_SELECT 
 			+ " FROM " + TABLE_MULTIPART_UPLOAD + LEFT_JOIN_ON_SOURCE_FILE
 			+ " WHERE U." + COL_MULTIPART_STARTED_BY + " = ? AND U." + COL_MULTIPART_REQUEST_HASH + " = ?";
+	
+	private static final String SQL_UPDATE_UPLOAD_HASH_BY_USER_ID_AND_HASH = "UPDATE " + TABLE_MULTIPART_UPLOAD + " SET "
+			+ COL_MULTIPART_REQUEST_HASH + " = ? , " + COL_MULTIPART_UPLOAD_ETAG + " = ?, " + COL_MULTIPART_UPDATED_ON + " = NOW()" 
+			+ " WHERE " + COL_MULTIPART_STARTED_BY + " = ? AND " + COL_MULTIPART_REQUEST_HASH + " = ?";
 
 	private static final RowMapper<CompositeMultipartUploadStatus> STATUS_MAPPER = (rs, rowNum) -> {
 		CompositeMultipartUploadStatus dto = new CompositeMultipartUploadStatus();
@@ -211,6 +215,16 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 		ValidateArgument.required(userId, "UserId");
 		ValidateArgument.required(hash, "RequestHash");
 		this.jdbcTemplate.update(SQL_DELETE_UPLOAD_BY_USER_ID_AND_HASH, userId, hash);
+	}
+	
+	@Override
+	@WriteTransaction
+	public void setUploadStatusHash(long userId, String oldHash, String newHash) {
+		ValidateArgument.required(userId, "The userId");
+		ValidateArgument.required(oldHash, "The oldHash");
+		ValidateArgument.required(oldHash, "The newHash");
+		String newEtag = UUID.randomUUID().toString();
+		jdbcTemplate.update(SQL_UPDATE_UPLOAD_HASH_BY_USER_ID_AND_HASH, newHash, newEtag, userId, oldHash);
 	}
 
 	/*

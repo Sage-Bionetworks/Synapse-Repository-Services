@@ -42,6 +42,14 @@ public interface MultipartUploadDAO {
 	void deleteUploadStatus(long userId, String hash);
 	
 	/**
+	 * Updates the hash of the file upload request for the given user and hash.
+	 * 
+	 * @param userId
+	 * @param hash
+	 */
+	void setUploadStatusHash(long userId, String oldHash, String newHash);
+	
+	/**
 	 * Create a new upload status from a request.
 	 * @param userId
 	 * @param hash
