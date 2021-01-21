@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -99,6 +100,8 @@ public class AccessApprovalReminderNotificationWorkerIntegrationTest {
 		
 		Instant expiresOn = today.plus(notificationType.getReminderPeriod())
 				.atStartOfDay()
+				// Give some time within the day to avoid passing the processing period
+				.plus(1, ChronoUnit.HOURS)
 				.toInstant(ZoneOffset.UTC);
 		
 		// Creates an approval that expires exactly the reminder period days from today

@@ -386,4 +386,20 @@ public class ExampleController {
 			UserInfo userInfo, @PathVariable(required = true, name = "id") String id) {
 		return null;
 	}
+
+	/**
+	 * This is just a stubed url because ColumnModel has a reference to a function
+	 * in TableController
+	 * Ideally, this controller would be dependent on a separate
+	 * set of auto-generated POJOs, independent from the POJOs we use for production code.
+	 * @param userInfo
+	 * @param id
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = "/entity/{id}/table/transaction/async/start", method = RequestMethod.POST)
+	public @ResponseBody Long stubentityIdAsyncStart(
+			UserInfo userInfo, @PathVariable(required = true, name = "id") String id) {
+		return null;
+	}
 }
