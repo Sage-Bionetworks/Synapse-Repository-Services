@@ -795,6 +795,7 @@ public class SqlConstants {
 	public static final String COL_SESSION_TOKEN_PRINCIPAL_ID  = "PRINCIPAL_ID";
 	public static final String COL_SESSION_TOKEN_VALIDATED_ON  = "VALIDATED_ON";
 	public static final String COL_SESSION_TOKEN_SESSION_TOKEN = "SESSION_TOKEN";
+	public static final String DDL_SESSION_TOKEN               = "schema/SessionToken-ddl.sql";
 
 	// Terms of use agreement
 	public static final String TABLE_TERMS_OF_USE_AGREEMENT             = "TERMS_OF_USE_AGREEMENT";

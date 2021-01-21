@@ -16,14 +16,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfigurationSingleton;
-import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationDAOImpl;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
@@ -59,7 +58,7 @@ public class DBOAuthenticationDAOImplTest {
 	private DBOTermsOfUseAgreement touAgreement;
 	private static String userEtag;
 	
-	private static final Date VALIDATED_ON = new Date();
+	private static final Long VALIDATED_ON = System.currentTimeMillis();
 
 	
 	@Before
@@ -200,23 +199,23 @@ public class DBOAuthenticationDAOImplTest {
 	@Test
 	public void testSessionTokenRevalidation() throws Exception {
 		// Test fast!  Only one second before expiration!
-		Date now = sessionToken.getValidatedOn();
-		sessionToken.setValidatedOn(new Date(now.getTime() - DBOAuthenticationDAOImpl.SESSION_EXPIRATION_TIME + 1000));
+		Long now = sessionToken.getValidatedOn();
+		sessionToken.setValidatedOn(now - DBOAuthenticationDAOImpl.SESSION_EXPIRATION_TIME + 1000);
 		basicDAO.update(sessionToken);
 
 		// Still valid
-		Session session = authDAO.getSessionTokenIfValid(userId, now);
+		Session session = authDAO.getSessionTokenIfValid(userId, new Date(now));
 		assertNotNull(session);
 		assertEquals(sessionToken.getSessionToken(), session.getSessionToken());
 
 		// Right on the dot!  Too bad, that's invalid :P
-		now.setTime(now.getTime() + 1000);
-		session = authDAO.getSessionTokenIfValid(userId, now);
+		now += 1000L;
+		session = authDAO.getSessionTokenIfValid(userId, new Date(now));
 		assertNull(session);
 		
 		// Session should no longer be valid
-		now.setTime(now.getTime() + 1000);
-		session = authDAO.getSessionTokenIfValid(userId, now);
+		now += 1000L;
+		session = authDAO.getSessionTokenIfValid(userId, new Date(now));
 		assertNull(session);
 
 		// Session is valid again
@@ -348,7 +347,7 @@ public class DBOAuthenticationDAOImplTest {
 		
 		// check that 'userId's validation date is as expected
 		Date validatedOn = authDAO.getSessionValidatedOn(userId);
-		assertEquals(VALIDATED_ON, validatedOn);
+		assertEquals(new Date(VALIDATED_ON), validatedOn);
 		
 		
 	}

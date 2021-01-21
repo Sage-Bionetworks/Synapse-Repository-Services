@@ -190,7 +190,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		DBOSessionToken dboSession = new DBOSessionToken();
 		dboSession.setPrincipalId(principalId);
 		dboSession.setSessionToken(sessionToken);
-		dboSession.setValidatedOn(new Date());
+		dboSession.setValidatedOn(System.currentTimeMillis());
 		basicDAO.createOrUpdate(dboSession);
 		return sessionToken;
 	}
