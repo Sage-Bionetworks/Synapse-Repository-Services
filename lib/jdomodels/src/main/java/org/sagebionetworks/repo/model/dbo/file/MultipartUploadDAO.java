@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
+import java.time.Instant;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.file.PartErrors;
@@ -110,5 +111,14 @@ public interface MultipartUploadDAO {
 	 * @return The final status of the file.
 	 */
 	CompositeMultipartUploadStatus setUploadComplete(String uploadId, String fileHandleId);
+	
+	/**
+	 * Fetch a batch of upload ids that were modified before the given instant
+	 * 
+	 * @param modifiedBefore The instant to fetch to (exclusive)
+	 * @param batchSize The max amount of upload ids to fetch
+	 * @return A batch of upload ids that were modified before the given instant, ordered by the modifiedOn ASC 
+	 */
+	List<String> getUploads(Instant modifiedBefore, long batchSize);
 
 }

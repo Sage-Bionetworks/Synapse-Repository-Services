@@ -33,6 +33,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -114,6 +115,9 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 	private static final String SQL_UPDATE_UPLOAD_HASH_BY_USER_ID_AND_HASH = "UPDATE " + TABLE_MULTIPART_UPLOAD + " SET "
 			+ COL_MULTIPART_REQUEST_HASH + " = ? , " + COL_MULTIPART_UPLOAD_ETAG + " = ?, " + COL_MULTIPART_UPDATED_ON + " = ?" 
 			+ " WHERE " + COL_MULTIPART_STARTED_BY + " = ? AND " + COL_MULTIPART_REQUEST_HASH + " = ?";
+	
+	private static final String SQL_SELECT_BATCH = "SELECT " + COL_MULTIPART_UPLOAD_ID + " FROM " + TABLE_MULTIPART_UPLOAD
+			+ " WHERE " + COL_MULTIPART_UPDATED_ON + " < ? ORDER BY " + COL_MULTIPART_STARTED_ON + " LIMIT ?";
 
 	private static final RowMapper<CompositeMultipartUploadStatus> STATUS_MAPPER = (rs, rowNum) -> {
 		CompositeMultipartUploadStatus dto = new CompositeMultipartUploadStatus();
@@ -451,4 +455,12 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 		return getUploadStatus(uploadId);
 	}
 
+	@Override
+	public List<String> getUploads(Instant modifiedBefore, long batchSize) {
+		ValidateArgument.required(modifiedBefore, "The modifiedBefore");
+		ValidateArgument.requirement(batchSize > 0, "The batchSize must be greater than 0");
+		
+		return jdbcTemplate.queryForList(SQL_SELECT_BATCH, String.class, Date.from(modifiedBefore), batchSize);
+	}
+	
 }

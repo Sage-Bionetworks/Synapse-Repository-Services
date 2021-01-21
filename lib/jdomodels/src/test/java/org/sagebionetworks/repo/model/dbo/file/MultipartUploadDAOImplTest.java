@@ -6,6 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
@@ -439,6 +443,70 @@ public class MultipartUploadDAOImplTest {
 		partMD5s = multipartUplaodDAO.getAddedPartMD5s(uploadId);
 		assertNotNull(partMD5s);
 		assertEquals(0, partMD5s.size(), "Setting an upload complete should clear all part state.");
+	}
+	
+	@Test
+	public void testGetUploads() throws InterruptedException {
+		CompositeMultipartUploadStatus status1 = multipartUplaodDAO.createUploadStatus(createRequest);
+		
+		Thread.sleep(1000);
+		
+		createRequest.setHash("Another_ " + createRequest.getHash());
+		
+		CompositeMultipartUploadStatus status2 = multipartUplaodDAO.createUploadStatus(createRequest);
+		
+		List<String> expected = Arrays.asList(status1.getMultipartUploadStatus().getUploadId(), status2.getMultipartUploadStatus().getUploadId());
+		
+		Instant modifiedBefore = Instant.now().plus(1, ChronoUnit.SECONDS);
+		long batchSize = 10;
+		
+		// Call under test
+		List<String> result = multipartUplaodDAO.getUploads(modifiedBefore, batchSize);
+		
+		assertEquals(expected, result);
+		
+	}
+	
+	@Test
+	public void testGetUploadsBatchSize() throws InterruptedException {
+		CompositeMultipartUploadStatus status1 = multipartUplaodDAO.createUploadStatus(createRequest);
+		
+		Thread.sleep(1000);
+		
+		createRequest.setHash("Another_ " + createRequest.getHash());
+		
+		multipartUplaodDAO.createUploadStatus(createRequest);
+		
+		List<String> expected = Arrays.asList(status1.getMultipartUploadStatus().getUploadId());
+		
+		Instant modifiedBefore = Instant.now().plus(1, ChronoUnit.SECONDS);
+		long batchSize = 1;
+		
+		// Call under test
+		List<String> result = multipartUplaodDAO.getUploads(modifiedBefore, batchSize);
+		
+		assertEquals(expected, result);
+		
+	}
+	
+	@Test
+	public void testGetUploadsModifedBefore() throws InterruptedException {
+		multipartUplaodDAO.createUploadStatus(createRequest);
+		
+		createRequest.setHash("Another_ " + createRequest.getHash());
+		
+		multipartUplaodDAO.createUploadStatus(createRequest);
+		
+		List<String> expected = Collections.emptyList();
+		
+		Instant modifiedBefore = Instant.now().minus(1, ChronoUnit.DAYS);
+		long batchSize = 10;
+		
+		// Call under test
+		List<String> result = multipartUplaodDAO.getUploads(modifiedBefore, batchSize);
+		
+		assertEquals(expected, result);
+		
 	}
 
 }
