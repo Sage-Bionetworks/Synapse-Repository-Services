@@ -65,14 +65,15 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 			+ COL_MULTIPART_PART_UPLOAD_ID + " = ?";
 
 	private static final String SQL_SET_COMPLETE = "UPDATE " + TABLE_MULTIPART_UPLOAD + " SET "
-			+ COL_MULTIPART_FILE_HANDLE_ID + " = ? , " + COL_MULTIPART_UPLOAD_ETAG + " = ? , " + COL_MULTIPART_STATE
-			+ " = ? WHERE " + COL_MULTIPART_UPLOAD_ID + " = ?";
+			+ COL_MULTIPART_FILE_HANDLE_ID + " = ? , " + COL_MULTIPART_UPLOAD_ETAG + " = ? , " + COL_MULTIPART_STATE + " = ?, " + COL_MULTIPART_UPDATED_ON + " = ?" 
+			+ " WHERE " + COL_MULTIPART_UPLOAD_ID + " = ?";
 
 	private static final String SQL_SELECT_BLOB = "SELECT " + COL_MULTIPART_UPLOAD_REQUEST + " FROM "
 			+ TABLE_MULTIPART_UPLOAD + " WHERE " + COL_MULTIPART_UPLOAD_ID + " = ?";
 
 	private static final String SQL_UPDATE_ETAG = "UPDATE " + TABLE_MULTIPART_UPLOAD + " SET "
-			+ COL_MULTIPART_UPLOAD_ETAG + " = ? WHERE " + COL_MULTIPART_UPLOAD_ID + " = ?";
+			+ COL_MULTIPART_UPLOAD_ETAG + " = ?, " + COL_MULTIPART_UPDATED_ON + " = ?"
+			+ " WHERE " + COL_MULTIPART_UPLOAD_ID + " = ?";
 
 	private static final String SQL_SELECT_ADDED_PART_NUMBERS = "SELECT " + COL_MULTIPART_PART_NUMBER + " FROM "
 			+ TABLE_MULTIPART_UPLOAD_PART_STATE + " WHERE " + COL_MULTIPART_PART_UPLOAD_ID + " = ? AND "
@@ -111,7 +112,7 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 			+ " WHERE U." + COL_MULTIPART_STARTED_BY + " = ? AND U." + COL_MULTIPART_REQUEST_HASH + " = ?";
 	
 	private static final String SQL_UPDATE_UPLOAD_HASH_BY_USER_ID_AND_HASH = "UPDATE " + TABLE_MULTIPART_UPLOAD + " SET "
-			+ COL_MULTIPART_REQUEST_HASH + " = ? , " + COL_MULTIPART_UPLOAD_ETAG + " = ?, " + COL_MULTIPART_UPDATED_ON + " = NOW()" 
+			+ COL_MULTIPART_REQUEST_HASH + " = ? , " + COL_MULTIPART_UPLOAD_ETAG + " = ?, " + COL_MULTIPART_UPDATED_ON + " = ?" 
 			+ " WHERE " + COL_MULTIPART_STARTED_BY + " = ? AND " + COL_MULTIPART_REQUEST_HASH + " = ?";
 
 	private static final RowMapper<CompositeMultipartUploadStatus> STATUS_MAPPER = (rs, rowNum) -> {
@@ -224,7 +225,7 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 		ValidateArgument.required(oldHash, "The oldHash");
 		ValidateArgument.required(oldHash, "The newHash");
 		String newEtag = UUID.randomUUID().toString();
-		jdbcTemplate.update(SQL_UPDATE_UPLOAD_HASH_BY_USER_ID_AND_HASH, newHash, newEtag, userId, oldHash);
+		jdbcTemplate.update(SQL_UPDATE_UPLOAD_HASH_BY_USER_ID_AND_HASH, newHash, newEtag, new Date(), userId, oldHash);
 	}
 
 	/*
@@ -417,7 +418,7 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 	private void updateEtag(String uploadId) {
 		ValidateArgument.required(uploadId, "UploadId");
 		String newEtag = UUID.randomUUID().toString();
-		jdbcTemplate.update(SQL_UPDATE_ETAG, newEtag, uploadId);
+		jdbcTemplate.update(SQL_UPDATE_ETAG, newEtag, new Date(), uploadId);
 	}
 
 	@Override
@@ -444,7 +445,7 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 		ValidateArgument.required(fileHandleId, "FileHandleId");
 		String newEtag = UUID.randomUUID().toString();
 		MultipartUploadState state = MultipartUploadState.COMPLETED;
-		jdbcTemplate.update(SQL_SET_COMPLETE, fileHandleId, newEtag, state.name(), uploadId);
+		jdbcTemplate.update(SQL_SET_COMPLETE, fileHandleId, newEtag, state.name(), new Date(), uploadId);
 		// delete all of the parts for this file
 		jdbcTemplate.update(SQL_DELETE_ALL_PARTS, uploadId);
 		return getUploadStatus(uploadId);

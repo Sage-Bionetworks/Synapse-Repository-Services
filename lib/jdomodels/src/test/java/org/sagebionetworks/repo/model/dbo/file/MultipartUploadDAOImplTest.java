@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -351,36 +350,41 @@ public class MultipartUploadDAOImplTest {
 	}
 
 	@Test
-	public void testAddPartUpdateEtag() {
+	public void testAddPartUpdateEtag() throws InterruptedException {
 		CompositeMultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
 		String uploadId = status.getMultipartUploadStatus().getUploadId();
+		
+		// Sleep for a second to allow the update of the updated on
+		Thread.sleep(1000);
+		
 		// Call under test
 		multipartUplaodDAO.addPartToUpload(uploadId, 1, "partOneMD5Hex");
 
 		CompositeMultipartUploadStatus updated = multipartUplaodDAO.getUploadStatus(uploadId);
-		assertNotNull(updated);
-		assertNotNull(updated.getEtag());
-		assertFalse(status.getEtag().equals(updated.getEtag()),
-				"Adding a part must update the etag of the master row.");
+		
+		assertNotEquals(status.getEtag(), updated.getEtag(), "Adding a part must update the etag of the master row.");
+		assertNotEquals(status.getMultipartUploadStatus().getUpdatedOn(), updated.getMultipartUploadStatus().getUpdatedOn());
 	}
 
 	@Test
-	public void testSetPartFailedUpdateEtag() {
+	public void testSetPartFailedUpdateEtag() throws InterruptedException {
 		CompositeMultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
 		String uploadId = status.getMultipartUploadStatus().getUploadId();
+		
+		// Sleep for a second to allow the update of the updated on
+		Thread.sleep(1000);
+		
 		// Call under test
-		// also call under test
 		multipartUplaodDAO.setPartToFailed(uploadId, 10, "some kind of error");
 
 		CompositeMultipartUploadStatus updated = multipartUplaodDAO.getUploadStatus(uploadId);
-		assertNotNull(updated);
-		assertNotNull(updated.getEtag());
-		assertFalse(status.getEtag().equals(updated.getEtag()),
-				"setting part to failed must update the etag of the master row.");
+
+		assertNotEquals(status.getEtag(), updated.getEtag(), "Adding a part must update the etag of the master row.");
+		assertNotEquals(status.getMultipartUploadStatus().getUpdatedOn(), updated.getMultipartUploadStatus().getUpdatedOn());
 	}
 
 	@Test
@@ -402,7 +406,7 @@ public class MultipartUploadDAOImplTest {
 	}
 
 	@Test
-	public void testSetUploadComplete() {
+	public void testSetUploadComplete() throws InterruptedException {
 		// setup a file.
 		S3FileHandle file = TestUtils.createS3FileHandle(userId.toString(),
 				idGenerator.generateNewId(IdType.FILE_IDS).toString());
@@ -419,14 +423,18 @@ public class MultipartUploadDAOImplTest {
 		List<PartMD5> partMD5s = multipartUplaodDAO.getAddedPartMD5s(uploadId);
 		assertNotNull(partMD5s);
 		assertEquals(1, partMD5s.size());
+		
+		// Sleep for a second to allow the update of the updated on
+		Thread.sleep(1000);
+		
 		// call under test
 		CompositeMultipartUploadStatus result = multipartUplaodDAO.setUploadComplete(uploadId, file.getId());
 		assertNotNull(result);
 		assertEquals(MultipartUploadState.COMPLETED, result.getMultipartUploadStatus().getState());
 		assertEquals(file.getId(), result.getMultipartUploadStatus().getResultFileHandleId());
 		// the etag must change
-		assertFalse(status.getEtag().equals(result.getEtag()),
-				"Completing an upload must update the etag of the master row.");
+		assertNotEquals(status.getEtag(), result.getEtag(), "Adding a part must update the etag of the master row.");
+		assertNotEquals(status.getMultipartUploadStatus().getUpdatedOn(), result.getMultipartUploadStatus().getUpdatedOn());
 		// the part state should be cleared
 		partMD5s = multipartUplaodDAO.getAddedPartMD5s(uploadId);
 		assertNotNull(partMD5s);
