@@ -226,7 +226,7 @@ public class MultipartManagerV2ImplTest {
 
 		when(mockRequest.getPartSizeBytes()).thenReturn(partSize);
 		doNothing().when(mockHandler).validateRequest(any(), any());
-		doNothing().when(mockMultipartUploadDAO).deleteUploadStatus(anyLong(), any());
+		doNothing().when(mockMultipartUploadDAO).setUploadStatusHash(anyLong(), any(), any());
 
 		// Mimic a new upload
 		when(mockMultipartUploadDAO.getUploadStatus(any(), any())).thenReturn(null);
@@ -245,7 +245,7 @@ public class MultipartManagerV2ImplTest {
 		assertEquals(mockStatus, result);
 
 		verify(mockHandler).validateRequest(user, mockRequest);
-		verify(mockMultipartUploadDAO).deleteUploadStatus(user.getId(), requestHash);
+		verify(mockMultipartUploadDAO).setUploadStatusHash(user.getId(), requestHash, "RESTARTED_" + requestHash);
 		verify(mockMultipartUploadDAO).getUploadStatus(user.getId(), requestHash);
 		verify(mockHandler).initiateRequest(user, mockRequest, requestHash, mockStorageSettings);
 		verify(mockMultipartUploadDAO).createUploadStatus(mockCreateMultipartRequest);

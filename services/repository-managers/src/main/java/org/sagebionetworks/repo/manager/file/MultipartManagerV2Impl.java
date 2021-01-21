@@ -49,6 +49,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class MultipartManagerV2Impl implements MultipartManagerV2 {
+	
+	private static final String RESTARTED_HASH_PREFIX = "RESTARTED_";
 
 	@Autowired
 	private MultipartUploadDAO multipartUploadDAO;
@@ -108,9 +110,9 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		// The MD5 is used to identify if this upload request already exists for this user.
 		String requestMD5Hex = MultipartRequestUtils.calculateMD5AsHex(request);
 		
-		// Clear all data if this is a forced restart
+		// When forcing a restart we clear the old hash effectively chaning the cache key, the multipart upload will be garbage collected by a worker
 		if (forceRestart) {
-			multipartUploadDAO.deleteUploadStatus(user.getId(), requestMD5Hex);
+			multipartUploadDAO.setUploadStatusHash(user.getId(), requestMD5Hex, RESTARTED_HASH_PREFIX + requestMD5Hex);
 		}
 
 		// Has an upload already been started for this user and request
