@@ -280,7 +280,7 @@ public class MultipartManagerV2ImplTest {
 		assertEquals(mockStatus, result);
 
 		verify(mockHandler).validateRequest(user, mockRequest);
-		verify(mockMultipartUploadDAO, never()).deleteUploadStatus(anyLong(), any());
+		verify(mockMultipartUploadDAO, never()).setUploadStatusHash(anyLong(), any(), any());
 		verify(mockMultipartUploadDAO).getUploadStatus(user.getId(), requestHash);
 		verify(mockHandler).initiateRequest(user, mockRequest, requestHash, mockStorageSettings);
 		verify(mockMultipartUploadDAO).createUploadStatus(mockCreateMultipartRequest);
@@ -313,7 +313,7 @@ public class MultipartManagerV2ImplTest {
 		assertEquals(mockStatus, result);
 
 		verify(mockHandler).validateRequest(user, mockRequest);
-		verify(mockMultipartUploadDAO, never()).deleteUploadStatus(anyLong(), any());
+		verify(mockMultipartUploadDAO, never()).setUploadStatusHash(anyLong(), any(), any());
 		verify(mockMultipartUploadDAO).getUploadStatus(user.getId(), requestHash);
 		verify(mockStatus).setPartsState("0000");
 		verify(mockHandler, never()).initiateRequest(any(), any(), any(), any());
@@ -344,7 +344,7 @@ public class MultipartManagerV2ImplTest {
 		assertEquals(mockStatus, result);
 
 		verify(mockHandler).validateRequest(user, mockRequest);
-		verify(mockMultipartUploadDAO, never()).deleteUploadStatus(anyLong(), any());
+		verify(mockMultipartUploadDAO, never()).setUploadStatusHash(anyLong(), any(), any());
 		verify(mockMultipartUploadDAO).getUploadStatus(user.getId(), requestHash);
 		verify(mockStatus).setPartsState("1111");
 		verify(mockHandler, never()).initiateRequest(any(), any(), any(), any());
@@ -399,7 +399,7 @@ public class MultipartManagerV2ImplTest {
 		assertEquals(cause, ex.getCause());
 
 		verify(mockHandler).validateRequest(user, mockRequest);
-		verify(mockMultipartUploadDAO, never()).deleteUploadStatus(anyLong(), any());
+		verify(mockMultipartUploadDAO, never()).setUploadStatusHash(anyLong(), any(), any());
 		verify(mockMultipartUploadDAO).getUploadStatus(user.getId(), requestHash);
 		verify(mockHandler).initiateRequest(user, mockRequest, requestHash, mockStorageSettings);
 		verify(mockMultipartUploadDAO, never()).createUploadStatus(mockCreateMultipartRequest);
