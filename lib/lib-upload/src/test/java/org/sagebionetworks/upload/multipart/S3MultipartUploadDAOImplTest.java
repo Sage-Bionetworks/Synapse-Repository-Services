@@ -33,6 +33,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.aws.CannotDetermineBucketLocationException;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.AbortMultipartRequest;
@@ -854,6 +855,37 @@ public class S3MultipartUploadDAOImplTest {
 		// Call under test
 		dao.abortMultipartRequest(request);
 		
+		verify(mockS3Client).abortMultipartUpload(any());
+	}
+	
+	@Test
+	public void testAbortMultipartRequestWithCannotDetermineBucketLocationException() {
+		CannotDetermineBucketLocationException ex = new CannotDetermineBucketLocationException("Something went wrong");
+		
+		doThrow(ex).when(mockS3Client).abortMultipartUpload(any());
+		
+		AbortMultipartRequest request = new AbortMultipartRequest(uploadId, "token", bucket, key);
+		
+		// Call under test
+		dao.abortMultipartRequest(request);
+		
+		verify(mockS3Client).abortMultipartUpload(any());
+	}
+	
+	@Test
+	public void testAbortMultipartRequestWithPartCannotDetermineBucketLocationException() {
+		CannotDetermineBucketLocationException ex = new CannotDetermineBucketLocationException("Something went wrong");
+				
+		doThrow(ex).when(mockS3Client).deleteObjects(any());
+		
+		List<String> partKeys = Arrays.asList("part1", "part2");
+		
+		AbortMultipartRequest request = new AbortMultipartRequest(uploadId, "token", bucket, key).withPartKeys(partKeys);
+							
+		// Call under test
+		dao.abortMultipartRequest(request);
+		
+		verify(mockS3Client).deleteObjects(any());
 		verify(mockS3Client).abortMultipartUpload(any());
 	}
 	

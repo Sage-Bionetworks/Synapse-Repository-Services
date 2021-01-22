@@ -11,6 +11,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.aws.CannotDetermineBucketLocationException;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.AbortMultipartRequest;
@@ -307,6 +308,9 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 					}
 					// Nothing to do as either we do not have access or some other client problem
 					LOG.warn(e.getMessage(), e);
+				} catch (CannotDetermineBucketLocationException e) {
+					// This is thrown when we do not have access to the bucket anymore or it does not exist
+					LOG.warn(e.getMessage(), e);
 				}
 			}
 		}
@@ -321,6 +325,9 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 				throw e;
 			}
 			// Nothing to do as either we do not have access or some other client problem
+			LOG.warn(e.getMessage(), e);
+		} catch (CannotDetermineBucketLocationException e) {
+			// This is thrown when we do not have access to the bucket anymore or it does not exist
 			LOG.warn(e.getMessage(), e);
 		}
 	}
