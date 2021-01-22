@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
+import org.sagebionetworks.repo.model.dbo.file.MultiPartRequestType;
 import org.sagebionetworks.repo.model.dbo.file.MultipartRequestUtils;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
@@ -1231,5 +1232,51 @@ public class MultipartManagerV2ImplTest {
 		verifyZeroInteractions(mockIdGenerator);
 		verifyZeroInteractions(mockFileHandleDao);
 
+	}
+	
+	@Test
+	public void testClearMultipartUploadWithCompleted() {
+		String uploadId = "uploadId";
+		user = new UserInfo(true);
+		
+		MultipartUploadState state  = MultipartUploadState.COMPLETED;
+		
+		when(mockStatus.getState()).thenReturn(state);
+		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
+		when(mockMultipartUploadDAO.getUploadStatus(any())).thenReturn(mockCompositeStatus);
+		doNothing().when(mockMultipartUploadDAO).deleteUploadStatus(any());
+		
+		// Call under test
+		manager.clearMultipartUpload(user, uploadId);
+		
+		verify(mockMultipartUploadDAO).getUploadStatus(uploadId);
+		verify(mockHandlerProvider, never()).getHandlerForType(any());
+		verifyZeroInteractions(mockHandler);
+		verify(mockMultipartUploadDAO).deleteUploadStatus(uploadId);
+	}
+	
+	@Test
+	public void testClearMultipartUploadWithUploading() {
+		String uploadId = "uploadId";
+		user = new UserInfo(true);
+		
+		MultiPartRequestType reqType = MultiPartRequestType.UPLOAD;
+		MultipartUploadState state  = MultipartUploadState.UPLOADING;
+		
+		when(mockStatus.getState()).thenReturn(state);
+		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
+		when(mockCompositeStatus.getRequestType()).thenReturn(reqType);
+		when(mockMultipartUploadDAO.getUploadStatus(any())).thenReturn(mockCompositeStatus);
+		doReturn(mockHandler).when(mockHandlerProvider).getHandlerForType(any());
+		doNothing().when(mockHandler).abortMultipartRequest(any());
+		doNothing().when(mockMultipartUploadDAO).deleteUploadStatus(any());
+		
+		// Call under test
+		manager.clearMultipartUpload(user, uploadId);
+		
+		verify(mockMultipartUploadDAO).getUploadStatus(uploadId);
+		verify(mockHandlerProvider).getHandlerForType(reqType);
+		verify(mockHandler).abortMultipartRequest(mockCompositeStatus);
+		verify(mockMultipartUploadDAO).deleteUploadStatus(uploadId);
 	}
 }

@@ -8,8 +8,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -225,6 +228,67 @@ public class MultipartManagerV2ImplAutowireTest {
 	}
 	
 	@Test
+	public void testGCMultipartUploadCompletedClear() throws Exception {
+		Assume.assumeTrue(stackConfiguration.getGoogleCloudEnabled());
+		
+		String fileName = "foo.txt";
+		String contentType = "application/octet-stream";
+		String fileContent = "This is the content of the file";
+		Long storageLocationId = googleCloudStorageLocationSetting.getStorageLocationId();
+		boolean useContentTypeForParts = false;
+		
+		GoogleCloudFileHandle sourceFile = (GoogleCloudFileHandle) doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts);
+	
+		Instant modifiedBefore = Instant.now().plus(1, ChronoUnit.DAYS);
+		
+		List<String> ids = multipartManagerV2.getUploads(modifiedBefore, 10);
+		
+		assertEquals(1, ids.size());
+		
+		String uploadId = ids.iterator().next();
+		
+		// Call under test
+		multipartManagerV2.clearMultipartUpload(adminUserInfo, uploadId);
+		
+		// There shouldn't be any other now
+		assertEquals(Collections.emptyList(), multipartManagerV2.getUploads(modifiedBefore, 10));
+
+		// The file should still exist in GC
+		googleCloudStorageClient.getObject(sourceFile.getBucketName(), sourceFile.getKey());
+	}
+	
+	@Test
+	public void testGCMultipartUploadUploadingClear() throws Exception {
+		Assume.assumeTrue(stackConfiguration.getGoogleCloudEnabled());
+		
+		String fileName = "foo.txt";
+		String contentType = "application/octet-stream";
+		String fileContent = "This is the content of the file";
+		Long storageLocationId = googleCloudStorageLocationSetting.getStorageLocationId();
+		
+		byte[] fileDataBytes = fileContent.getBytes(StandardCharsets.UTF_8);
+		String fileMD5Hex = BinaryUtils.toHex(Md5Utils.computeMD5Hash(fileDataBytes));
+		Long partSizeBytes = PartUtils.MIN_PART_SIZE_BYTES;
+		
+		// step one start the upload.
+		MultipartUploadStatus status = startUpload(fileName, contentType, fileMD5Hex, Long.valueOf(fileDataBytes.length), storageLocationId, partSizeBytes);
+	
+		Instant modifiedBefore = Instant.now().plus(1, ChronoUnit.DAYS);
+		
+		List<String> ids = multipartManagerV2.getUploads(modifiedBefore, 10);
+		
+		assertEquals(Arrays.asList(status.getUploadId()), ids);
+		
+		String uploadId = ids.iterator().next();
+		
+		// Call under test
+		multipartManagerV2.clearMultipartUpload(adminUserInfo, uploadId);
+		
+		// There shouldn't be any other now
+		assertEquals(Collections.emptyList(), multipartManagerV2.getUploads(modifiedBefore, 10));
+	}
+	
+	@Test
 	public void testMultipartUploadCopyFromAtomicUpload() throws Exception {
 		
 		String userId = adminUserInfo.getId().toString();
@@ -260,6 +324,143 @@ public class MultipartManagerV2ImplAutowireTest {
 		FileEntity sourceEntity = doCreateEntity(sourceFile);
 		
 		doMultipartCopy(sourceEntity, destination);
+	}
+	
+	@Test
+	public void testS3MultipartUploadCompletedClear() throws Exception {
+		String fileName = "foo.txt";
+		String contentType = "plain/text";
+		String fileContent = "This is the content of the file";
+		Long storageLocationId = null;
+		boolean useContentTypeForParts = false;
+		
+		S3FileHandle sourceFile = (S3FileHandle) doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts);
+	
+		Instant modifiedBefore = Instant.now().plus(1, ChronoUnit.DAYS);
+		
+		List<String> ids = multipartManagerV2.getUploads(modifiedBefore, 10);
+		
+		assertEquals(1, ids.size());
+		
+		String uploadId = ids.iterator().next();
+		
+		// Call under test
+		multipartManagerV2.clearMultipartUpload(adminUserInfo, uploadId);
+		
+		// There shouldn't be any other now
+		assertEquals(Collections.emptyList(), multipartManagerV2.getUploads(modifiedBefore, 10));
+		
+		// The file should still exist in S3
+		s3Client.getObjectMetadata(sourceFile.getBucketName(), sourceFile.getKey());
+		
+	}
+	
+	@Test
+	public void testS3MultipartUploadUploadingClear() throws Exception {
+		String fileName = "foo.txt";
+		String contentType = "plain/text";
+		String fileContent = "This is the content of the file";
+		Long storageLocationId = null;
+		
+		byte[] fileDataBytes = fileContent.getBytes(StandardCharsets.UTF_8);
+		String fileMD5Hex = BinaryUtils.toHex(Md5Utils.computeMD5Hash(fileDataBytes));
+		Long partSizeBytes = PartUtils.MIN_PART_SIZE_BYTES;
+		
+		// step one start the upload.
+		MultipartUploadStatus status = startUpload(fileName, contentType, fileMD5Hex, Long.valueOf(fileDataBytes.length), storageLocationId, partSizeBytes);
+	
+		Instant modifiedBefore = Instant.now().plus(1, ChronoUnit.DAYS);
+		
+		List<String> ids = multipartManagerV2.getUploads(modifiedBefore, 10);
+		
+		assertEquals(Arrays.asList(status.getUploadId()), ids);
+		
+		String uploadId = ids.iterator().next();
+		
+		// Call under test
+		multipartManagerV2.clearMultipartUpload(adminUserInfo, uploadId);
+		
+		// There shouldn't be any other now
+		assertEquals(Collections.emptyList(), multipartManagerV2.getUploads(modifiedBefore, 10));
+		
+	}
+	
+	@Test
+	public void testS3MultipartCopyCompleteClear() throws Exception {
+		String fileName = "foo.txt";
+		String contentType = "plain/text";
+		String fileContent = "This is the content of the file";
+		Long storageLocationId = null;
+		boolean useContentTypeForParts = false;
+		
+		S3FileHandle sourceFile = (S3FileHandle) doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts);
+		
+		FileEntity sourceEntity = doCreateEntity(sourceFile);
+		
+		S3FileHandle targetFile = (S3FileHandle) doMultipartCopy(sourceEntity, destination);
+	
+		Instant modifiedBefore = Instant.now().plus(1, ChronoUnit.DAYS);
+		
+		List<String> ids = multipartManagerV2.getUploads(modifiedBefore, 10);
+		
+		// There are two multipart uploads now
+		assertEquals(2, ids.size());
+		
+		// The last one is the copy
+		String uploadId = ids.get(1);
+		
+		// Call under test
+		multipartManagerV2.clearMultipartUpload(adminUserInfo, uploadId);
+		
+		// There should only be the original upload now
+		assertEquals(Arrays.asList(ids.get(0)), multipartManagerV2.getUploads(modifiedBefore, 10));
+		
+		// The source and target files should still exist in S3
+		s3Client.getObjectMetadata(sourceFile.getBucketName(), sourceFile.getKey());
+		s3Client.getObjectMetadata(targetFile.getBucketName(), targetFile.getKey());
+	}
+	
+	@Test
+	public void testS3MultipartCopyUploadingClear() throws Exception {
+		String fileName = "foo.txt";
+		String contentType = "plain/text";
+		String fileContent = "This is the content of the file";
+		Long storageLocationId = null;
+		boolean useContentTypeForParts = false;
+		
+		S3FileHandle sourceFile = (S3FileHandle) doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts);
+		
+		FileEntity sourceEntity = doCreateEntity(sourceFile);
+		
+		FileHandleAssociation association = new FileHandleAssociation();
+		
+		association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+		association.setAssociateObjectId(sourceEntity.getId());
+		association.setFileHandleId(sourceEntity.getDataFileHandleId());
+		
+		// Starts the multipart copy
+		MultipartUploadStatus status = startUploadCopy(association, destination.getStorageLocationId(), PartUtils.MIN_PART_SIZE_BYTES);
+	
+		Instant modifiedBefore = Instant.now().plus(1, ChronoUnit.DAYS);
+		
+		List<String> ids = multipartManagerV2.getUploads(modifiedBefore, 10);
+		
+		// There are two multipart uploads now
+		assertEquals(2, ids.size());
+		assertEquals(status.getUploadId(), ids.get(1));
+		
+		// The last one is the copy
+		String uploadId = ids.get(1);
+		
+		// Call under test
+		multipartManagerV2.clearMultipartUpload(adminUserInfo, uploadId);
+		
+		// There should only be the original upload now
+		assertEquals(Arrays.asList(ids.get(0)), multipartManagerV2.getUploads(modifiedBefore, 10));
+		
+		// The source file should still exist in S3
+		s3Client.getObjectMetadata(sourceFile.getBucketName(), sourceFile.getKey());
+		
 	}
 	
 	// The following tests can be enabled after we setup a VPC endpoint

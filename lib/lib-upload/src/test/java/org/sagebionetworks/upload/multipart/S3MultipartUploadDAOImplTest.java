@@ -21,7 +21,10 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+import org.apache.commons.collections4.ListUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,6 +34,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
+import org.sagebionetworks.repo.model.file.AbortMultipartRequest;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
@@ -48,6 +52,7 @@ import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.CopyPartRequest;
 import com.amazonaws.services.s3.model.CopyPartResult;
+import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
@@ -709,23 +714,68 @@ public class S3MultipartUploadDAOImplTest {
 		
 		doNothing().when(mockS3Client).abortMultipartUpload(any());
 		
-		AbortMultipartRequest request = new AbortMultipartRequest(uploadId, "token", bucket, key).withPartKeys(Arrays.asList("part1", "part2"));
+		List<String> partKeys = Arrays.asList("part1", "part2");
+		
+		AbortMultipartRequest request = new AbortMultipartRequest(uploadId, "token", bucket, key).withPartKeys(partKeys);
 		
 		// Call under test
 		dao.abortMultipartRequest(request);
 		
-		verify(mockS3Client).deleteObject(bucket, "part1");
-		verify(mockS3Client).deleteObject(bucket, "part2");
+		ArgumentCaptor<DeleteObjectsRequest> deleteRequestCaptor = ArgumentCaptor.forClass(DeleteObjectsRequest.class);
 		
-		ArgumentCaptor<AbortMultipartUploadRequest> requestCaptor = ArgumentCaptor.forClass(AbortMultipartUploadRequest.class);
+		verify(mockS3Client).deleteObjects(deleteRequestCaptor.capture());
 		
-		verify(mockS3Client).abortMultipartUpload(requestCaptor.capture());
+		DeleteObjectsRequest capturedDeleteRequest = deleteRequestCaptor.getValue();
 		
-		AbortMultipartUploadRequest captured = requestCaptor.getValue();
+		assertEquals(request.getBucket(), capturedDeleteRequest.getBucketName());
+		assertEquals(partKeys, capturedDeleteRequest.getKeys().stream().map(k->k.getKey()).collect(Collectors.toList()));
 		
-		assertEquals(request.getBucket(), captured.getBucketName());
-		assertEquals(request.getKey(), captured.getKey());
-		assertEquals(request.getUploadToken(), captured.getUploadId());
+		ArgumentCaptor<AbortMultipartUploadRequest> abortRequestCaptor = ArgumentCaptor.forClass(AbortMultipartUploadRequest.class);
+		
+		verify(mockS3Client).abortMultipartUpload(abortRequestCaptor.capture());
+		
+		AbortMultipartUploadRequest capturedAbortRequest = abortRequestCaptor.getValue();
+		
+		assertEquals(request.getBucket(), capturedAbortRequest.getBucketName());
+		assertEquals(request.getKey(), capturedAbortRequest.getKey());
+		assertEquals(request.getUploadToken(), capturedAbortRequest.getUploadId());
+	}
+	
+	@Test
+	public void testAbortMultipartRequestWithLotsOfKeys() {
+		
+		doNothing().when(mockS3Client).abortMultipartUpload(any());
+		
+		List<String> partKeys = IntStream.range(1, S3MultipartUploadDAOImpl.S3_BATCH_DELETE_SIZE * 2).boxed().map(n -> String.valueOf(n)).collect(Collectors.toList());
+		
+		AbortMultipartRequest request = new AbortMultipartRequest(uploadId, "token", bucket, key).withPartKeys(partKeys);
+		
+		// Call under test
+		dao.abortMultipartRequest(request);
+		
+		ArgumentCaptor<DeleteObjectsRequest> deleteRequestCaptor = ArgumentCaptor.forClass(DeleteObjectsRequest.class);
+		
+		List<List<String>> partitions = ListUtils.partition(partKeys, S3MultipartUploadDAOImpl.S3_BATCH_DELETE_SIZE);
+		
+		verify(mockS3Client, times(partitions.size())).deleteObjects(deleteRequestCaptor.capture());
+				
+		List<DeleteObjectsRequest> capturedDeleteRequest = deleteRequestCaptor.getAllValues();
+		
+		for (int i=0; i< capturedDeleteRequest.size(); i++) {
+			assertEquals(request.getBucket(), capturedDeleteRequest.get(i).getBucketName());
+			assertEquals(partitions.get(i), capturedDeleteRequest.get(i).getKeys().stream().map(k -> k.getKey()).collect(Collectors.toList()));		
+		}
+		
+		
+		ArgumentCaptor<AbortMultipartUploadRequest> abortRequestCaptor = ArgumentCaptor.forClass(AbortMultipartUploadRequest.class);
+		
+		verify(mockS3Client).abortMultipartUpload(abortRequestCaptor.capture());
+		
+		AbortMultipartUploadRequest capturedAbortRequest = abortRequestCaptor.getValue();
+		
+		assertEquals(request.getBucket(), capturedAbortRequest.getBucketName());
+		assertEquals(request.getKey(), capturedAbortRequest.getKey());
+		assertEquals(request.getUploadToken(), capturedAbortRequest.getUploadId());
 	}
 	
 	@Test

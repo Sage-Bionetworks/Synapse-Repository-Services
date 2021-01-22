@@ -38,6 +38,7 @@ import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.DBOMultipartUploadComposerPartState;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadComposerDAO;
+import org.sagebionetworks.repo.model.file.AbortMultipartRequest;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadCopyRequest;

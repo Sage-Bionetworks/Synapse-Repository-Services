@@ -1,6 +1,7 @@
 package org.sagebionetworks.upload.multipart;
 
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
+import org.sagebionetworks.repo.model.file.AbortMultipartRequest;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -73,7 +74,7 @@ public interface CloudServiceMultipartUploadDAO {
 	long completeMultipartUpload(CompleteMultipartRequest request);
 	
 	/**
-	 * Aborts the multipart request
+	 * Aborts the multipart request, if the multipart upload does not exist of if we do not have access anymore does nothing
 	 * 
 	 * @param request
 	 */

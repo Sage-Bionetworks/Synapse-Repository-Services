@@ -6,10 +6,13 @@ import java.util.List;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.DBOMultipartUploadComposerPartState;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadComposerDAO;
+import org.sagebionetworks.repo.model.file.AbortMultipartRequest;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -21,8 +24,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.HttpMethod;
+import com.google.cloud.storage.StorageException;
 
 public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO {
+	
+	private static final Logger LOG = LogManager.getLogger(GoogleCloudStorageMultipartUploadDAOImpl.class);
 
 	private static final String UNSUPPORTED_COPY_MSG = "Copying from a Google Cloud Bucket is not supported yet.";
 
@@ -153,8 +159,12 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 		
 		deleteTemporaryParts(request.getBucket(), request.getKey());
 
-		// If not found will not throw
-		googleCloudStorageClient.deleteObject(request.getBucket(), request.getKey());
+		try {
+			googleCloudStorageClient.deleteObject(request.getBucket(), request.getKey());
+		} catch (StorageException e) {
+			 // If not found throws a StorageException, nothing else to do
+			LOG.warn(e.getMessage(), e);
+		}
 	}
 	
 	private void deleteTemporaryParts(String bucket, String key) {

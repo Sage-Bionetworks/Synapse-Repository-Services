@@ -1,4 +1,4 @@
-package org.sagebionetworks.upload.multipart;
+package org.sagebionetworks.repo.model.file;
 
 import java.util.List;
 import java.util.Objects;
