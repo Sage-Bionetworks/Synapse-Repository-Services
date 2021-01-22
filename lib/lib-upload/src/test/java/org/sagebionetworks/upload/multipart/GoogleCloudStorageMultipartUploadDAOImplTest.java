@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -47,6 +48,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.HttpMethod;
+import com.google.cloud.storage.StorageException;
 
 @ExtendWith(MockitoExtension.class)
 public class GoogleCloudStorageMultipartUploadDAOImplTest {
@@ -416,6 +418,27 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 	public void testAbortMultipartRequest() {
 		when(mockStorageClient.getObjects(any(), any())).thenReturn(Arrays.asList(mockBlobPart));
 		doNothing().when(mockStorageClient).deleteObject(any(), any());
+		
+		AbortMultipartRequest request = new AbortMultipartRequest(UPLOAD_ID, null, BUCKET_NAME, KEY_NAME);
+		
+		// Call under test
+		googleMpuDAO.abortMultipartRequest(request);
+		
+		verify(mockMultipartUploadComposerDAO).deleteAllParts(request.getUploadId());
+		verify(mockStorageClient).getObjects(request.getBucket(), request.getKey() + "/");
+		verify(mockBlobPart).delete();
+		verify(mockStorageClient).deleteObject(request.getBucket(), request.getKey());
+		
+	}
+	
+	@Test
+	public void testAbortMultipartRequestWithStorageException() {
+		
+		StorageException ex = new StorageException(1, "Something went wrong");
+		
+		doThrow(ex).when(mockStorageClient).deleteObject(any(), any());
+		
+		when(mockStorageClient.getObjects(any(), any())).thenReturn(Arrays.asList(mockBlobPart));
 		
 		AbortMultipartRequest request = new AbortMultipartRequest(UPLOAD_ID, null, BUCKET_NAME, KEY_NAME);
 		

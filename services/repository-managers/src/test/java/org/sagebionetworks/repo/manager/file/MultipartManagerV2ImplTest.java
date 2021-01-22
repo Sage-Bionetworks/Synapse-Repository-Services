@@ -20,6 +20,7 @@ import static org.mockito.Mockito.when;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -1237,7 +1238,6 @@ public class MultipartManagerV2ImplTest {
 	@Test
 	public void testClearMultipartUploadWithCompleted() {
 		String uploadId = "uploadId";
-		user = new UserInfo(true);
 		
 		MultipartUploadState state  = MultipartUploadState.COMPLETED;
 		
@@ -1247,7 +1247,7 @@ public class MultipartManagerV2ImplTest {
 		doNothing().when(mockMultipartUploadDAO).deleteUploadStatus(any());
 		
 		// Call under test
-		manager.clearMultipartUpload(user, uploadId);
+		manager.clearMultipartUpload(uploadId);
 		
 		verify(mockMultipartUploadDAO).getUploadStatus(uploadId);
 		verify(mockHandlerProvider, never()).getHandlerForType(any());
@@ -1258,7 +1258,6 @@ public class MultipartManagerV2ImplTest {
 	@Test
 	public void testClearMultipartUploadWithUploading() {
 		String uploadId = "uploadId";
-		user = new UserInfo(true);
 		
 		MultiPartRequestType reqType = MultiPartRequestType.UPLOAD;
 		MultipartUploadState state  = MultipartUploadState.UPLOADING;
@@ -1272,11 +1271,83 @@ public class MultipartManagerV2ImplTest {
 		doNothing().when(mockMultipartUploadDAO).deleteUploadStatus(any());
 		
 		// Call under test
-		manager.clearMultipartUpload(user, uploadId);
+		manager.clearMultipartUpload(uploadId);
 		
 		verify(mockMultipartUploadDAO).getUploadStatus(uploadId);
 		verify(mockHandlerProvider).getHandlerForType(reqType);
 		verify(mockHandler).abortMultipartRequest(mockCompositeStatus);
 		verify(mockMultipartUploadDAO).deleteUploadStatus(uploadId);
+	}
+	
+	@Test
+	public void testClearMultipartUploadWithNullUploadId() {
+		String uploadId = null;
+		
+		String errorMesssage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.clearMultipartUpload(uploadId);
+		}).getMessage();
+
+		assertEquals("The upload id is required.", errorMesssage);
+
+	}
+	
+	@Test
+	public void testGetUploadsModifedBefore() {
+		Instant modifiedBefore = Instant.now();
+		long batchSize = 10;
+		
+		List<String> expected = Arrays.asList("upload1", "upload2");
+		
+		when(mockMultipartUploadDAO.getUploads(any(), anyLong())).thenReturn(expected);
+		
+		// Call under test
+		List<String> result = manager.getUploadsModifiedBefore(modifiedBefore, batchSize);
+		
+		assertEquals(expected, result);
+		
+		verify(mockMultipartUploadDAO).getUploads(modifiedBefore, batchSize);
+	}
+	
+	@Test
+	public void testGetUploadsModifedBeforeWithNullInstant() {
+		Instant modifiedBefore = null;
+		long batchSize = 10;
+				
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.getUploadsModifiedBefore(modifiedBefore, batchSize);
+		}).getMessage();
+		
+		assertEquals("The modifiedBefore is required.", errorMessage);
+		
+	}
+	
+	@Test
+	public void testGetUploadsModifedBeforeWithNegativeBatchSize() {
+		Instant modifiedBefore = Instant.now();
+		long batchSize = -1;
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.getUploadsModifiedBefore(modifiedBefore, batchSize);
+		}).getMessage();
+		
+		assertEquals("The batch size must be greater than zero.", errorMessage);
+		
+	}
+	
+	@Test
+	public void testGetUploadsModifedBeforeWithZeroBatchSize() {
+		Instant modifiedBefore = Instant.now();
+		long batchSize = 0;
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.getUploadsModifiedBefore(modifiedBefore, batchSize);
+		}).getMessage();
+		
+		assertEquals("The batch size must be greater than zero.", errorMessage);
+		
 	}
 }

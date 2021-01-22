@@ -83,16 +83,17 @@ public interface MultipartManagerV2 {
 	 * @param batchSize The max number of upload ids to fetch
 	 * @return A batch upload ids that were modified before the given instant
 	 */
-	List<String> getUploads(Instant modifiedBefore, long batchSize);
+	List<String> getUploadsModifiedBefore(Instant modifiedBefore, long batchSize);
 	
 	/**
-	 * Clear the temporary data for the given multipart upload and remove its records. Completed multipart uploads will retain the uploaded data and the respective file handle.
+	 * Clear the temporary data for the given multipart upload and remove its records. Completed
+	 * multipart uploads will retain the uploaded data and the respective file handle, uploads that in
+	 * progress will be abported if possible.
 	 * 
-	 * @param user The user performing the operation, only administrators can perform this operation
 	 * @param uploadId The id of the upload to clear
 	 */
-	void clearMultipartUpload(UserInfo user, String uploadId);
-	
+	void clearMultipartUpload(String uploadId);
+
 	/**
 	 * Truncate all data
 	 */

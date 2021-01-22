@@ -382,19 +382,17 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	}
 	
 	@Override
-	public List<String> getUploads(Instant modifiedBefore, long batchSize) {
+	public List<String> getUploadsModifiedBefore(Instant modifiedBefore, long batchSize) {
+		ValidateArgument.required(modifiedBefore, "The modifiedBefore");
+		ValidateArgument.requirement(batchSize > 0, "The batch size must be greater than zero.");
+		
 		return multipartUploadDAO.getUploads(modifiedBefore, batchSize);
 	}
 	
 	@Override
 	@WriteTransaction
-	public void clearMultipartUpload(UserInfo user, String uploadId) {
-		ValidateArgument.required(user, "The user");
+	public void clearMultipartUpload(String uploadId) {
 		ValidateArgument.required(uploadId, "The upload id");
-
-		if (!user.isAdmin()) {
-			throw new UnauthorizedException("Only an administrator can perform this operation.");
-		}
 		
 		final CompositeMultipartUploadStatus status;
 		
