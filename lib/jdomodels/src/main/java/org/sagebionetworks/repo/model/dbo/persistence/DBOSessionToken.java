@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslat
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
-@Table(name = TABLE_SESSION_TOKEN)
+@Table(name = TABLE_SESSION_TOKEN, constraints = "UNIQUE KEY `UNIQUE_SESSION_TOKEN` (`"+COL_SESSION_TOKEN_SESSION_TOKEN+"`)")
 public class DBOSessionToken implements MigratableDatabaseObject<DBOSessionToken, DBOSessionToken> {
 	
 	private static TableMapping<DBOSessionToken> tableMapping = AutoTableMapping.create(DBOSessionToken.class);
