@@ -213,6 +213,26 @@ public class MultipartManagerV2ImplAutowireTest {
 		
 		doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts);
 	}
+	
+	@Test
+	public void testMultipartUploadWithMultipleRestarts() throws Exception {
+		String fileName = "foo.txt";
+		String contentType = "plain/text";
+		String fileContent = "This is the content of the file";
+		Long storageLocationId = null;
+		boolean useContentTypeForParts = true;
+		
+		// First upload
+		doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts);
+		// Second upload, it's forced restarted (same request, this should change the hash of the previous upload)
+		doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts);
+		// Third upload, it's forced restarted again (same request, this should change the hash again of the previous upload)
+		doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts);
+		
+		List<String> uploads = multipartManagerV2.getUploadsModifiedBefore(Instant.now().plus(1, ChronoUnit.SECONDS), 10);
+		
+		assertEquals(3, uploads.size());
+	}
 
 	@Test
 	public void testMultipartUploadGoogleCloud() throws Exception {

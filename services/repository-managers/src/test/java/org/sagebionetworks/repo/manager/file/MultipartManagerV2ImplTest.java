@@ -9,6 +9,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -247,7 +249,7 @@ public class MultipartManagerV2ImplTest {
 		assertEquals(mockStatus, result);
 
 		verify(mockHandler).validateRequest(user, mockRequest);
-		verify(mockMultipartUploadDAO).setUploadStatusHash(user.getId(), requestHash, "RESTARTED_" + requestHash);
+		verify(mockMultipartUploadDAO).setUploadStatusHash(eq(user.getId()), eq(requestHash), startsWith("R_" + requestHash + "_"));
 		verify(mockMultipartUploadDAO).getUploadStatus(user.getId(), requestHash);
 		verify(mockHandler).initiateRequest(user, mockRequest, requestHash, mockStorageSettings);
 		verify(mockMultipartUploadDAO).createUploadStatus(mockCreateMultipartRequest);
