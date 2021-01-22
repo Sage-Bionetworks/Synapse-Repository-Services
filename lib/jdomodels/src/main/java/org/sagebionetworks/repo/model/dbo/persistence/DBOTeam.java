@@ -78,19 +78,7 @@ public class DBOTeam implements MigratableDatabaseObject<DBOTeam, DBOTeam> {
 
 	};
 	
-	private static final MigratableTableTranslation<DBOTeam, DBOTeam> MIGRATION_MAPPER = new BasicMigratableTableTranslation<DBOTeam>() {
-		@Override
-		@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "Can be removed after stack 341 migration")
-		public DBOTeam createDatabaseObjectFromBackup(DBOTeam backup) {
-			if (backup.getIcon() == null && backup.getProperties() != null) {
-				Team deserialized = TeamUtils.deserialize(backup.getProperties());
-				if (deserialized.getIcon() != null) { 
-					backup.setIcon(Long.valueOf(deserialized.getIcon()));
-				}
-			}
-			return backup;
-		}
-	};
+	private static final MigratableTableTranslation<DBOTeam, DBOTeam> MIGRATION_MAPPER = new BasicMigratableTableTranslation<>();
 
 	private Long id;
 	private String etag;
