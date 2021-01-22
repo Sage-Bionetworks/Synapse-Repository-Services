@@ -1194,8 +1194,7 @@ public class EvaluationController {
 		serviceProvider.getEvaluationService().processCancelSubmissionRequest(userId, subId);
 	}
 
-	//TODO:Not deprecated, using flag to hide from documentation until ready
-	@Deprecated
+
 	/**
 	 * Creates a new EvaluationRound to associate with a Evaluation.
 	 * You must have UPDATE permissions for the associated Evaluation in order to create an EvaluationRound.
@@ -1230,8 +1229,7 @@ public class EvaluationController {
 		}
 		return serviceProvider.getEvaluationService().createEvaluationRound(userId, evaluationRound);
 	}
-	//TODO:Not deprecated, using flag to hide from documentation until ready
-	@Deprecated
+
 	/**
 	 * Retrieve an existing EvaluationRound associated with a Evaluation.
 	 * You must have READ permissions for the associated Evaluation in order to retrieve an EvaluationRound.
@@ -1260,8 +1258,7 @@ public class EvaluationController {
 	{
 		return serviceProvider.getEvaluationService().getEvaluationRound(userId, evalId, roundId);
 	}
-	//TODO:Not deprecated, using flag to hide from documentation until ready
-	@Deprecated
+
 	/**
 	 * Retrieve all EvaluationRounds associated with a Evaluation.
 	 * You must have READ permissions for the associated Evaluation in order to retrieve all EvaluationRounds.
@@ -1290,8 +1287,7 @@ public class EvaluationController {
 	{
 		return serviceProvider.getEvaluationService().getAllEvaluationRounds(userId, evalId, request);
 	}
-	//TODO:Not deprecated, using flag to hide from documentation until ready
-	@Deprecated
+
 	/**
 	 * Update an existing EvaluationRound to associate with a Evaluation.
 	 * You must have UPDATE permissions for the associated Evaluation in order to update an EvaluationRound.
@@ -1327,8 +1323,7 @@ public class EvaluationController {
 		}
 		return serviceProvider.getEvaluationService().updateEvaluationRound(userId, evaluationRound);
 	}
-	//TODO:Not deprecated, using flag to hide from documentation until ready
-	@Deprecated
+
 	/**
 	 * Delete an existing EvaluationRound to associate with a Evaluation.
 	 * You must have UPDATE permissions for the associated Evaluation in order to delete an EvaluationRound.
