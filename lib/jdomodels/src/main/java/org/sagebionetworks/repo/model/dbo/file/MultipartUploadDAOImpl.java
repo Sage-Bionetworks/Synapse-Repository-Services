@@ -117,7 +117,7 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 			+ " WHERE " + COL_MULTIPART_STARTED_BY + " = ? AND " + COL_MULTIPART_REQUEST_HASH + " = ?";
 	
 	private static final String SQL_SELECT_BATCH = "SELECT " + COL_MULTIPART_UPLOAD_ID + " FROM " + TABLE_MULTIPART_UPLOAD
-			+ " WHERE " + COL_MULTIPART_UPDATED_ON + " < ? ORDER BY " + COL_MULTIPART_STARTED_ON + " LIMIT ?";
+			+ " WHERE " + COL_MULTIPART_UPDATED_ON + " < ? ORDER BY " + COL_MULTIPART_UPDATED_ON + " LIMIT ?";
 
 	private static final RowMapper<CompositeMultipartUploadStatus> STATUS_MAPPER = (rs, rowNum) -> {
 		CompositeMultipartUploadStatus dto = new CompositeMultipartUploadStatus();
