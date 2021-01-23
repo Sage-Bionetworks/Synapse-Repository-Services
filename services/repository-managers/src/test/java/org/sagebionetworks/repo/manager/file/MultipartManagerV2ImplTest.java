@@ -22,7 +22,6 @@ import static org.mockito.Mockito.when;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -1296,43 +1295,43 @@ public class MultipartManagerV2ImplTest {
 	
 	@Test
 	public void testGetUploadsModifedBefore() {
-		Instant modifiedBefore = Instant.now();
+		int numberOfDays = 1;
 		long batchSize = 10;
 		
 		List<String> expected = Arrays.asList("upload1", "upload2");
 		
-		when(mockMultipartUploadDAO.getUploads(any(), anyLong())).thenReturn(expected);
+		when(mockMultipartUploadDAO.getUploadsModifiedBefore(anyInt(), anyLong())).thenReturn(expected);
 		
 		// Call under test
-		List<String> result = manager.getUploadsModifiedBefore(modifiedBefore, batchSize);
+		List<String> result = manager.getUploadsModifiedBefore(numberOfDays, batchSize);
 		
 		assertEquals(expected, result);
 		
-		verify(mockMultipartUploadDAO).getUploads(modifiedBefore, batchSize);
+		verify(mockMultipartUploadDAO).getUploadsModifiedBefore(numberOfDays, batchSize);
 	}
 	
 	@Test
-	public void testGetUploadsModifedBeforeWithNullInstant() {
-		Instant modifiedBefore = null;
+	public void testGetUploadsModifedBeforeWithNegativeNumberOfDays() {
+		int numberOfDays = -1;
 		long batchSize = 10;
 				
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			manager.getUploadsModifiedBefore(modifiedBefore, batchSize);
+			manager.getUploadsModifiedBefore(numberOfDays, batchSize);
 		}).getMessage();
 		
-		assertEquals("The modifiedBefore is required.", errorMessage);
+		assertEquals("The number of days must be equal or greater than zero.", errorMessage);
 		
 	}
 	
 	@Test
 	public void testGetUploadsModifedBeforeWithNegativeBatchSize() {
-		Instant modifiedBefore = Instant.now();
+		int numberOfDays = 1;
 		long batchSize = -1;
 		
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			manager.getUploadsModifiedBefore(modifiedBefore, batchSize);
+			manager.getUploadsModifiedBefore(numberOfDays, batchSize);
 		}).getMessage();
 		
 		assertEquals("The batch size must be greater than zero.", errorMessage);
@@ -1341,12 +1340,12 @@ public class MultipartManagerV2ImplTest {
 	
 	@Test
 	public void testGetUploadsModifedBeforeWithZeroBatchSize() {
-		Instant modifiedBefore = Instant.now();
+		int numberOfDays = 1;
 		long batchSize = 0;
 		
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			manager.getUploadsModifiedBefore(modifiedBefore, batchSize);
+			manager.getUploadsModifiedBefore(numberOfDays, batchSize);
 		}).getMessage();
 		
 		assertEquals("The batch size must be greater than zero.", errorMessage);

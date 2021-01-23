@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_BUCKET;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_FILE_HANDLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_SOURCE_FILE_HANDLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_SOURCE_FILE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_NUMBER_OF_PARTS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_ERROR_DETAILS;
@@ -13,6 +15,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPAR
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_UPLOAD_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_REQUEST_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_REQUEST_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_SOURCE_FILE_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_SOURCE_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STARTED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STARTED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STATE;
@@ -22,18 +26,13 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPAR
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_REQUEST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MULTIPART_UPLOAD;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MULTIPART_UPLOAD_PART_STATE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -116,8 +115,11 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 			+ COL_MULTIPART_REQUEST_HASH + " = ? , " + COL_MULTIPART_UPLOAD_ETAG + " = ?, " + COL_MULTIPART_UPDATED_ON + " = ?" 
 			+ " WHERE " + COL_MULTIPART_STARTED_BY + " = ? AND " + COL_MULTIPART_REQUEST_HASH + " = ?";
 	
+	private static final String SQL_SELECT_BATCH_OLDER_THAN = "SELECT " + COL_MULTIPART_UPLOAD_ID + " FROM " + TABLE_MULTIPART_UPLOAD
+			+ " WHERE " + COL_MULTIPART_UPDATED_ON + " < (NOW() - INTERVAL ? DAY) ORDER BY " + COL_MULTIPART_UPDATED_ON + " LIMIT ?";
+	
 	private static final String SQL_SELECT_BATCH = "SELECT " + COL_MULTIPART_UPLOAD_ID + " FROM " + TABLE_MULTIPART_UPLOAD
-			+ " WHERE " + COL_MULTIPART_UPDATED_ON + " < ? ORDER BY " + COL_MULTIPART_UPDATED_ON + " LIMIT ?";
+			+ " ORDER BY " + COL_MULTIPART_UPDATED_ON + " LIMIT ?";
 
 	private static final RowMapper<CompositeMultipartUploadStatus> STATUS_MAPPER = (rs, rowNum) -> {
 		CompositeMultipartUploadStatus dto = new CompositeMultipartUploadStatus();
@@ -450,11 +452,18 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 	}
 
 	@Override
-	public List<String> getUploads(Instant modifiedBefore, long batchSize) {
-		ValidateArgument.required(modifiedBefore, "The modifiedBefore");
-		ValidateArgument.requirement(batchSize > 0, "The batchSize must be greater than 0");
+	public List<String> getUploadsModifiedBefore(int numberOfDays, long batchSize) {
+		ValidateArgument.requirement(numberOfDays >= 0, "The number of days must be equal or greater than zero.");
+		ValidateArgument.requirement(batchSize > 0, "The batchSize must be greater than zero.");
 		
-		return jdbcTemplate.queryForList(SQL_SELECT_BATCH, String.class, Date.from(modifiedBefore), batchSize);
+		return jdbcTemplate.queryForList(SQL_SELECT_BATCH_OLDER_THAN, String.class, numberOfDays, batchSize);
+	}
+	
+	@Override
+	public List<String> getUploadsOrderByUpdatedOn(long batchSize) {
+		ValidateArgument.requirement(batchSize > 0, "The batchSize must be greater than zero.");
+		
+		return jdbcTemplate.queryForList(SQL_SELECT_BATCH, String.class, batchSize);
 	}
 	
 }

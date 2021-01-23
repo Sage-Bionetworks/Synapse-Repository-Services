@@ -8,8 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -229,7 +227,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		// Third upload, it's forced restarted again (same request, this should change the hash again of the previous upload)
 		doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts);
 		
-		List<String> uploads = multipartManagerV2.getUploadsModifiedBefore(Instant.now().plus(1, ChronoUnit.SECONDS), 10);
+		List<String> uploads = multipartManagerV2.getUploadsOrderByUpdatedOn(10);
 		
 		assertEquals(3, uploads.size());
 	}
@@ -258,10 +256,8 @@ public class MultipartManagerV2ImplAutowireTest {
 		boolean useContentTypeForParts = false;
 		
 		GoogleCloudFileHandle sourceFile = (GoogleCloudFileHandle) doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts);
-	
-		Instant modifiedBefore = Instant.now().plus(1, ChronoUnit.DAYS);
 		
-		List<String> ids = multipartManagerV2.getUploadsModifiedBefore(modifiedBefore, 10);
+		List<String> ids = multipartManagerV2.getUploadsOrderByUpdatedOn(10);
 		
 		assertEquals(1, ids.size());
 		
@@ -271,7 +267,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		multipartManagerV2.clearMultipartUpload(uploadId);
 		
 		// There shouldn't be any other now
-		assertEquals(Collections.emptyList(), multipartManagerV2.getUploadsModifiedBefore(modifiedBefore, 10));
+		assertEquals(Collections.emptyList(), multipartManagerV2.getUploadsModifiedBefore(0, 10));
 
 		// The file should still exist in GC
 		googleCloudStorageClient.getObject(sourceFile.getBucketName(), sourceFile.getKey());
@@ -293,9 +289,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		// step one start the upload.
 		MultipartUploadStatus status = startUpload(fileName, contentType, fileMD5Hex, Long.valueOf(fileDataBytes.length), storageLocationId, partSizeBytes);
 	
-		Instant modifiedBefore = Instant.now().plus(1, ChronoUnit.DAYS);
-		
-		List<String> ids = multipartManagerV2.getUploadsModifiedBefore(modifiedBefore, 10);
+		List<String> ids = multipartManagerV2.getUploadsOrderByUpdatedOn(10);
 		
 		assertEquals(Arrays.asList(status.getUploadId()), ids);
 		
@@ -305,7 +299,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		multipartManagerV2.clearMultipartUpload(uploadId);
 		
 		// There shouldn't be any other now
-		assertEquals(Collections.emptyList(), multipartManagerV2.getUploadsModifiedBefore(modifiedBefore, 10));
+		assertEquals(Collections.emptyList(), multipartManagerV2.getUploadsModifiedBefore(0, 10));
 	}
 	
 	@Test
@@ -356,9 +350,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		
 		S3FileHandle sourceFile = (S3FileHandle) doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts);
 	
-		Instant modifiedBefore = Instant.now().plus(1, ChronoUnit.DAYS);
-		
-		List<String> ids = multipartManagerV2.getUploadsModifiedBefore(modifiedBefore, 10);
+		List<String> ids = multipartManagerV2.getUploadsOrderByUpdatedOn(10);
 		
 		assertEquals(1, ids.size());
 		
@@ -368,7 +360,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		multipartManagerV2.clearMultipartUpload(uploadId);
 		
 		// There shouldn't be any other now
-		assertEquals(Collections.emptyList(), multipartManagerV2.getUploadsModifiedBefore(modifiedBefore, 10));
+		assertEquals(Collections.emptyList(), multipartManagerV2.getUploadsOrderByUpdatedOn(10));
 		
 		// The file should still exist in S3
 		s3Client.getObjectMetadata(sourceFile.getBucketName(), sourceFile.getKey());
@@ -389,9 +381,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		// step one start the upload.
 		MultipartUploadStatus status = startUpload(fileName, contentType, fileMD5Hex, Long.valueOf(fileDataBytes.length), storageLocationId, partSizeBytes);
 	
-		Instant modifiedBefore = Instant.now().plus(1, ChronoUnit.DAYS);
-		
-		List<String> ids = multipartManagerV2.getUploadsModifiedBefore(modifiedBefore, 10);
+		List<String> ids = multipartManagerV2.getUploadsOrderByUpdatedOn(10);
 		
 		assertEquals(Arrays.asList(status.getUploadId()), ids);
 		
@@ -401,7 +391,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		multipartManagerV2.clearMultipartUpload(uploadId);
 		
 		// There shouldn't be any other now
-		assertEquals(Collections.emptyList(), multipartManagerV2.getUploadsModifiedBefore(modifiedBefore, 10));
+		assertEquals(Collections.emptyList(), multipartManagerV2.getUploadsOrderByUpdatedOn(10));
 		
 	}
 	
@@ -419,9 +409,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		
 		S3FileHandle targetFile = (S3FileHandle) doMultipartCopy(sourceEntity, destination);
 	
-		Instant modifiedBefore = Instant.now().plus(1, ChronoUnit.DAYS);
-		
-		List<String> ids = multipartManagerV2.getUploadsModifiedBefore(modifiedBefore, 10);
+		List<String> ids = multipartManagerV2.getUploadsOrderByUpdatedOn(10);
 		
 		// There are two multipart uploads now
 		assertEquals(2, ids.size());
@@ -433,7 +421,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		multipartManagerV2.clearMultipartUpload(uploadId);
 		
 		// There should only be the original upload now
-		assertEquals(Arrays.asList(ids.get(0)), multipartManagerV2.getUploadsModifiedBefore(modifiedBefore, 10));
+		assertEquals(Arrays.asList(ids.get(0)), multipartManagerV2.getUploadsOrderByUpdatedOn(10));
 		
 		// The source and target files should still exist in S3
 		s3Client.getObjectMetadata(sourceFile.getBucketName(), sourceFile.getKey());
@@ -461,9 +449,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		// Starts the multipart copy
 		MultipartUploadStatus status = startUploadCopy(association, destination.getStorageLocationId(), PartUtils.MIN_PART_SIZE_BYTES);
 	
-		Instant modifiedBefore = Instant.now().plus(1, ChronoUnit.DAYS);
-		
-		List<String> ids = multipartManagerV2.getUploadsModifiedBefore(modifiedBefore, 10);
+		List<String> ids = multipartManagerV2.getUploadsOrderByUpdatedOn(10);
 		
 		// There are two multipart uploads now
 		assertEquals(2, ids.size());
@@ -476,7 +462,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		multipartManagerV2.clearMultipartUpload(uploadId);
 		
 		// There should only be the original upload now
-		assertEquals(Arrays.asList(ids.get(0)), multipartManagerV2.getUploadsModifiedBefore(modifiedBefore, 10));
+		assertEquals(Arrays.asList(ids.get(0)), multipartManagerV2.getUploadsOrderByUpdatedOn(10));
 		
 		// The source file should still exist in S3
 		s3Client.getObjectMetadata(sourceFile.getBucketName(), sourceFile.getKey());

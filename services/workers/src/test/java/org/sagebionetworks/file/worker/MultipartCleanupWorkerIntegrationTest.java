@@ -67,7 +67,7 @@ public class MultipartCleanupWorkerIntegrationTest {
 		
 		String requestBody = MultipartRequestUtils.createRequestJSON(request);
 		
-		Date created = Date.from(Instant.now().minus(MultipartManagerV2.EXPIRE_PERIOD).minus(1, ChronoUnit.HOURS));
+		Date created = Date.from(Instant.now().minus(MultipartManagerV2.EXPIRE_PERIOD_DAYS, ChronoUnit.DAYS).minus(1, ChronoUnit.HOURS));
 		
 		Long uploadId = helper.create(dbo -> {
 			dbo.setStartedOn(created);

@@ -1,8 +1,8 @@
 package org.sagebionetworks.file.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -11,8 +11,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 
@@ -61,10 +59,7 @@ public class MultipartCleanupWorkerUnitTest {
 	
 	@Mock
 	private StackStatus mockStackStatus;
-	
-	@Captor
-	private ArgumentCaptor<Instant> instantCaptor;
-	
+		
 	@Captor
 	private ArgumentCaptor<String> uploadsCaptor;
 	
@@ -88,21 +83,16 @@ public class MultipartCleanupWorkerUnitTest {
 		when(mockStackStatus.getStatus()).thenReturn(StatusEnum.READ_WRITE);
 		when(mockFeatureManager.isFeatureEnabled(any())).thenReturn(featureEnabled);
 		when(mockStackStatusManager.getCurrentStatus()).thenReturn(mockStackStatus);
-		when(mockManager.getUploadsModifiedBefore(any(), anyLong())).thenReturn(uploads);
+		when(mockManager.getUploadsModifiedBefore(anyInt(), anyLong())).thenReturn(uploads);
 		
 		// Call under test
 		worker.run(mockCallback);
 		
 		verify(mockFeatureManager).isFeatureEnabled(Feature.MULTIPART_AUTO_CLEANUP);
 		
-		verify(mockManager).getUploadsModifiedBefore(instantCaptor.capture(), eq(MultipartCleanupWorker.BATCH_SIZE));
-		
-		Instant expectedInstantBefore = Instant.now().minus(MultipartManagerV2.EXPIRE_PERIOD).plus(1, ChronoUnit.SECONDS);
-		Instant modifiedBefore = instantCaptor.getValue();
-		
-		assertTrue(modifiedBefore.isBefore(expectedInstantBefore));
-		
+		verify(mockManager).getUploadsModifiedBefore(MultipartManagerV2.EXPIRE_PERIOD_DAYS, MultipartCleanupWorker.BATCH_SIZE);
 		verify(mockManager, times(uploads.size())).clearMultipartUpload(uploadsCaptor.capture());
+		
 		assertEquals(uploads, uploadsCaptor.getAllValues());
 		
 		verify(mockLogger).info(eq("Processed {} multipart uploads (Errored: {}, Time: {} ms)."), eq(uploads.size()), eq(0), anyLong());
@@ -135,19 +125,14 @@ public class MultipartCleanupWorkerUnitTest {
 		
 		when(mockFeatureManager.isFeatureEnabled(any())).thenReturn(featureEnabled);
 		when(mockStackStatusManager.getCurrentStatus()).thenReturn(mockStackStatus);
-		when(mockManager.getUploadsModifiedBefore(any(), anyLong())).thenReturn(uploads);
+		when(mockManager.getUploadsModifiedBefore(anyInt(), anyLong())).thenReturn(uploads);
 		
 		// Call under test
 		worker.run(mockCallback);
 		
 		verify(mockFeatureManager).isFeatureEnabled(Feature.MULTIPART_AUTO_CLEANUP);
 		
-		verify(mockManager).getUploadsModifiedBefore(instantCaptor.capture(), eq(MultipartCleanupWorker.BATCH_SIZE));
-		
-		Instant expectedInstantBefore = Instant.now().minus(MultipartManagerV2.EXPIRE_PERIOD).plus(1, ChronoUnit.SECONDS);
-		Instant modifiedBefore = instantCaptor.getValue();
-		
-		assertTrue(modifiedBefore.isBefore(expectedInstantBefore));
+		verify(mockManager).getUploadsModifiedBefore(MultipartManagerV2.EXPIRE_PERIOD_DAYS, MultipartCleanupWorker.BATCH_SIZE);
 		
 		// Only the first was cleared as the stack went into read only mode
 		verify(mockManager, times(1)).clearMultipartUpload(uploadsCaptor.capture());
@@ -167,7 +152,7 @@ public class MultipartCleanupWorkerUnitTest {
 		when(mockStackStatus.getStatus()).thenReturn(StatusEnum.READ_WRITE);
 		when(mockFeatureManager.isFeatureEnabled(any())).thenReturn(featureEnabled);
 		when(mockStackStatusManager.getCurrentStatus()).thenReturn(mockStackStatus);
-		when(mockManager.getUploadsModifiedBefore(any(), anyLong())).thenReturn(uploads);
+		when(mockManager.getUploadsModifiedBefore(anyInt(), anyLong())).thenReturn(uploads);
 		
 		// Throws on the first
 		doThrow(ex).when(mockManager).clearMultipartUpload("up1");
@@ -177,12 +162,7 @@ public class MultipartCleanupWorkerUnitTest {
 		
 		verify(mockFeatureManager).isFeatureEnabled(Feature.MULTIPART_AUTO_CLEANUP);
 		
-		verify(mockManager).getUploadsModifiedBefore(instantCaptor.capture(), eq(MultipartCleanupWorker.BATCH_SIZE));
-		
-		Instant expectedInstantBefore = Instant.now().minus(MultipartManagerV2.EXPIRE_PERIOD).plus(1, ChronoUnit.SECONDS);
-		Instant modifiedBefore = instantCaptor.getValue();
-		
-		assertTrue(modifiedBefore.isBefore(expectedInstantBefore));
+		verify(mockManager).getUploadsModifiedBefore(MultipartManagerV2.EXPIRE_PERIOD_DAYS, MultipartCleanupWorker.BATCH_SIZE);
 		
 		// All of the uploads are processed
 		verify(mockManager, times(uploads.size())).clearMultipartUpload(uploadsCaptor.capture());

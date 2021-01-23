@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.file;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -382,11 +381,11 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	}
 	
 	@Override
-	public List<String> getUploadsModifiedBefore(Instant modifiedBefore, long batchSize) {
-		ValidateArgument.required(modifiedBefore, "The modifiedBefore");
+	public List<String> getUploadsModifiedBefore(int numberOfDays, long batchSize) {
+		ValidateArgument.requirement(numberOfDays >= 0, "The number of days must be equal or greater than zero.");
 		ValidateArgument.requirement(batchSize > 0, "The batch size must be greater than zero.");
 		
-		return multipartUploadDAO.getUploads(modifiedBefore, batchSize);
+		return multipartUploadDAO.getUploadsModifiedBefore(numberOfDays, batchSize);
 	}
 	
 	@Override
@@ -489,6 +488,11 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	@Override
 	public void truncateAll() {
 		this.multipartUploadDAO.truncateAll();
+	}
+	
+	@Override
+	public List<String> getUploadsOrderByUpdatedOn(long batchSize) {
+		return this.multipartUploadDAO.getUploadsOrderByUpdatedOn(batchSize);
 	}
 
 }

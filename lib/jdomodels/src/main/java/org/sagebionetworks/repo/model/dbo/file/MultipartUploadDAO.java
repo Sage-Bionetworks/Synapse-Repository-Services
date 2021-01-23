@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
-import java.time.Instant;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.file.PartErrors;
@@ -60,11 +59,6 @@ public interface MultipartUploadDAO {
 	CompositeMultipartUploadStatus createUploadStatus(CreateMultipartRequest createRequest);
 	
 	/**
-	 * Remove all data for all users.
-	 */
-	void truncateAll();
-	
-	/**
 	 * Add a part to a multipart upload.
 	 * 
 	 * @param uploadId
@@ -113,12 +107,26 @@ public interface MultipartUploadDAO {
 	CompositeMultipartUploadStatus setUploadComplete(String uploadId, String fileHandleId);
 	
 	/**
-	 * Fetch a batch of upload ids that were modified before the given instant
+	 * Fetch a batch of upload ids that were last modified before the given number of days
 	 * 
-	 * @param modifiedBefore The instant to fetch to (exclusive)
+	 * @param numberOfDays The number of days
 	 * @param batchSize The max amount of upload ids to fetch
 	 * @return A batch of upload ids that were modified before the given instant, ordered by the modifiedOn ASC 
 	 */
-	List<String> getUploads(Instant modifiedBefore, long batchSize);
+	List<String> getUploadsModifiedBefore(int numberOfDays, long batchSize);
+	
+	// For testing
+	
+	/**
+	 * @param batchSize
+	 * @return A batch of upload ids ordered by updated on
+	 */
+	List<String> getUploadsOrderByUpdatedOn(long batchSize);
+	
+
+	/**
+	 * Remove all data for all users.
+	 */
+	void truncateAll();
 
 }

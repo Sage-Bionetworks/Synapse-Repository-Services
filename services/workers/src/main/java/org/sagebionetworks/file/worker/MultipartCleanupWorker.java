@@ -1,6 +1,5 @@
 package org.sagebionetworks.file.worker;
 
-import java.time.Instant;
 import java.util.List;
 
 import org.apache.logging.log4j.Logger;
@@ -44,10 +43,8 @@ public class MultipartCleanupWorker implements ProgressingRunner {
 		if (!featureManager.isFeatureEnabled(Feature.MULTIPART_AUTO_CLEANUP)) {
 			return;
 		}
-		
-		Instant modifiedBefore = Instant.now().minus(MultipartManagerV2.EXPIRE_PERIOD);
-		
-		List<String> expiredUploads = multipartManager.getUploadsModifiedBefore(modifiedBefore, BATCH_SIZE);
+				
+		List<String> expiredUploads = multipartManager.getUploadsModifiedBefore(MultipartManagerV2.EXPIRE_PERIOD_DAYS, BATCH_SIZE);
 		
 		long startTime = System.currentTimeMillis();
 		int processedCount = 0;

@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.file.PartErrors;
 import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.helper.MultipartUploadDBOHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -49,6 +50,8 @@ public class MultipartUploadDAOImplTest {
 	private DBOBasicDao basicDao;
 	@Autowired
 	private IdGenerator idGenerator;
+	@Autowired
+	private MultipartUploadDBOHelper helper;
 
 	Long userId;
 	String hash;
@@ -432,64 +435,113 @@ public class MultipartUploadDAOImplTest {
 	}
 	
 	@Test
-	public void testGetUploads() throws InterruptedException {
-		CompositeMultipartUploadStatus status1 = multipartUplaodDAO.createUploadStatus(createRequest);
+	public void testGetUploadsModifedBefore() throws InterruptedException {
 		
-		Thread.sleep(1000);
+		Instant created = Instant.now().minus(10, ChronoUnit.DAYS);
 		
-		createRequest.setHash("Another_ " + createRequest.getHash());
+		String upload1 = helper.create( dbo -> {
+			dbo.setRequestHash("someHash");
+			dbo.setStartedOn(Date.from(created));
+			dbo.setUpdatedOn(Date.from(created));
+		}).getId().toString();
 		
-		CompositeMultipartUploadStatus status2 = multipartUplaodDAO.createUploadStatus(createRequest);
+		String upload2 = helper.create( dbo -> {
+			dbo.setRequestHash("anotherHash");
+			dbo.setStartedOn(Date.from(created));
+			dbo.setUpdatedOn(Date.from(created.plus(1, ChronoUnit.DAYS)));
+		}).getId().toString();
 		
-		List<String> expected = Arrays.asList(status1.getMultipartUploadStatus().getUploadId(), status2.getMultipartUploadStatus().getUploadId());
+		List<String> expected = Arrays.asList(upload1, upload2);
 		
-		Instant modifiedBefore = Instant.now().plus(1, ChronoUnit.SECONDS);
+		int numberOfdays = 1;
 		long batchSize = 10;
 		
 		// Call under test
-		List<String> result = multipartUplaodDAO.getUploads(modifiedBefore, batchSize);
+		List<String> result = multipartUplaodDAO.getUploadsModifiedBefore(numberOfdays, batchSize);
 		
 		assertEquals(expected, result);
 		
 	}
 	
 	@Test
-	public void testGetUploadsBatchSize() throws InterruptedException {
-		CompositeMultipartUploadStatus status1 = multipartUplaodDAO.createUploadStatus(createRequest);
+	public void testGetUploadsModifedBeforeBatchSize() throws InterruptedException {
+		Instant created = Instant.now().minus(10, ChronoUnit.DAYS);
 		
-		Thread.sleep(1000);
+		String upload1 = helper.create( dbo -> {
+			dbo.setRequestHash("someHash");
+			dbo.setStartedOn(Date.from(created));
+			dbo.setUpdatedOn(Date.from(created));
+		}).getId().toString();
 		
-		createRequest.setHash("Another_ " + createRequest.getHash());
+		helper.create( dbo -> {
+			dbo.setRequestHash("anotherHash");
+			dbo.setStartedOn(Date.from(created));
+			dbo.setUpdatedOn(Date.from(created.plus(1, ChronoUnit.DAYS)));
+		});
 		
-		multipartUplaodDAO.createUploadStatus(createRequest);
+		List<String> expected = Arrays.asList(upload1);
 		
-		List<String> expected = Arrays.asList(status1.getMultipartUploadStatus().getUploadId());
-		
-		Instant modifiedBefore = Instant.now().plus(1, ChronoUnit.SECONDS);
+		int numberOfdays = 1;
 		long batchSize = 1;
 		
 		// Call under test
-		List<String> result = multipartUplaodDAO.getUploads(modifiedBefore, batchSize);
+		List<String> result = multipartUplaodDAO.getUploadsModifiedBefore(numberOfdays, batchSize);
 		
 		assertEquals(expected, result);
 		
 	}
 	
 	@Test
-	public void testGetUploadsModifedBefore() throws InterruptedException {
-		multipartUplaodDAO.createUploadStatus(createRequest);
+	public void testGetUploadsModifedBeforeDays() throws InterruptedException {
+		Instant created = Instant.now().minus(10, ChronoUnit.DAYS);
 		
-		createRequest.setHash("Another_ " + createRequest.getHash());
+		String upload1 = helper.create( dbo -> {
+			dbo.setRequestHash("someHash");
+			dbo.setStartedOn(Date.from(created));
+			dbo.setUpdatedOn(Date.from(created));
+		}).getId().toString();
 		
-		multipartUplaodDAO.createUploadStatus(createRequest);
+		helper.create( dbo -> {
+			dbo.setRequestHash("anotherHash");
+			dbo.setStartedOn(Date.from(created));
+			dbo.setUpdatedOn(Date.from(Instant.now().minus(1, ChronoUnit.DAYS)));
+		});
 		
-		List<String> expected = Collections.emptyList();
+		List<String> expected = Arrays.asList(upload1);
 		
-		Instant modifiedBefore = Instant.now().minus(1, ChronoUnit.DAYS);
+		int numberOfdays = 2;
 		long batchSize = 10;
 		
 		// Call under test
-		List<String> result = multipartUplaodDAO.getUploads(modifiedBefore, batchSize);
+		List<String> result = multipartUplaodDAO.getUploadsModifiedBefore(numberOfdays, batchSize);
+		
+		assertEquals(expected, result);
+		
+	}
+	
+	@Test
+	public void testGetUploadsModifedBeforeZeroDays() throws InterruptedException {
+		Instant created = Instant.now().minus(10, ChronoUnit.DAYS);
+		
+		String upload1 = helper.create( dbo -> {
+			dbo.setRequestHash("someHash");
+			dbo.setStartedOn(Date.from(created));
+			dbo.setUpdatedOn(Date.from(created));
+		}).getId().toString();
+		
+		String upload2 = helper.create( dbo -> {
+			dbo.setRequestHash("anotherHash");
+			dbo.setStartedOn(Date.from(created));
+			dbo.setUpdatedOn(Date.from(Instant.now().minus(1, ChronoUnit.HOURS)));
+		}).getId().toString();
+		
+		List<String> expected = Arrays.asList(upload1, upload2);
+		
+		int numberOfdays = 0;
+		long batchSize = 10;
+		
+		// Call under test
+		List<String> result = multipartUplaodDAO.getUploadsModifiedBefore(numberOfdays, batchSize);
 		
 		assertEquals(expected, result);
 		
