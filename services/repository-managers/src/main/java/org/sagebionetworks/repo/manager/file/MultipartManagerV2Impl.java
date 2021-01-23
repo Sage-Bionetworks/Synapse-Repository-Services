@@ -405,7 +405,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		if (!MultipartUploadState.COMPLETED.equals(status.getMultipartUploadStatus().getState())) {
 			final MultipartRequestHandler<? extends MultipartRequest> handler = handlerProvider.getHandlerForType(status.getRequestType());
 			
-			handler.abortMultipartRequest(status);
+			handler.tryAbortMultipartRequest(status);
 		}
 		
 		multipartUploadDAO.deleteUploadStatus(uploadId);

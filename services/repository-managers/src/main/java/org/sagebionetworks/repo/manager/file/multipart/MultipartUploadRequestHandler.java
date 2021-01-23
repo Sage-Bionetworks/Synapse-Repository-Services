@@ -118,7 +118,7 @@ public class MultipartUploadRequestHandler implements MultipartRequestHandler<Mu
 	}
 	
 	@Override
-	public void abortMultipartRequest(CompositeMultipartUploadStatus status) {
+	public void tryAbortMultipartRequest(CompositeMultipartUploadStatus status) {
 		ValidateArgument.required(status, "The upload status");
 		
 		List<String> partKeys = new ArrayList<>(status.getNumberOfParts());
@@ -136,7 +136,7 @@ public class MultipartUploadRequestHandler implements MultipartRequestHandler<Mu
 		
 		final AbortMultipartRequest request = new AbortMultipartRequest(uploadId, uploadToken, bucket, key).withPartKeys(partKeys);
 		
-		cloudDao.abortMultipartRequest(request);
+		cloudDao.tryAbortMultipartRequest(request);
 
 	}
 }

@@ -72,6 +72,6 @@ public interface MultipartRequestHandler<T extends MultipartRequest> {
 	 * 
 	 * @param status The multipart status
 	 */
-	void abortMultipartRequest(CompositeMultipartUploadStatus status);
+	void tryAbortMultipartRequest(CompositeMultipartUploadStatus status);
 	
 }

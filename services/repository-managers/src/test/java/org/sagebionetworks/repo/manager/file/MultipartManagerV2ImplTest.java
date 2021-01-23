@@ -68,6 +68,7 @@ import org.sagebionetworks.repo.model.file.PartUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAO;
 import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAOProvider;
 import org.sagebionetworks.upload.multipart.PresignedUrl;
@@ -1268,7 +1269,7 @@ public class MultipartManagerV2ImplTest {
 		when(mockCompositeStatus.getRequestType()).thenReturn(reqType);
 		when(mockMultipartUploadDAO.getUploadStatus(any())).thenReturn(mockCompositeStatus);
 		doReturn(mockHandler).when(mockHandlerProvider).getHandlerForType(any());
-		doNothing().when(mockHandler).abortMultipartRequest(any());
+		doNothing().when(mockHandler).tryAbortMultipartRequest(any());
 		doNothing().when(mockMultipartUploadDAO).deleteUploadStatus(any());
 		
 		// Call under test
@@ -1276,7 +1277,7 @@ public class MultipartManagerV2ImplTest {
 		
 		verify(mockMultipartUploadDAO).getUploadStatus(uploadId);
 		verify(mockHandlerProvider).getHandlerForType(reqType);
-		verify(mockHandler).abortMultipartRequest(mockCompositeStatus);
+		verify(mockHandler).tryAbortMultipartRequest(mockCompositeStatus);
 		verify(mockMultipartUploadDAO).deleteUploadStatus(uploadId);
 	}
 	
@@ -1291,6 +1292,20 @@ public class MultipartManagerV2ImplTest {
 
 		assertEquals("The upload id is required.", errorMesssage);
 
+	}
+	
+	@Test
+	public void testClearMultipartUploadWithNonExisting() {
+		String uploadId = "uploadId";
+		
+		when(mockMultipartUploadDAO.getUploadStatus(any())).thenThrow(NotFoundException.class);
+		
+		// Call under test
+		manager.clearMultipartUpload(uploadId);
+		
+		verify(mockMultipartUploadDAO).getUploadStatus(uploadId);
+		verifyZeroInteractions(mockHandlerProvider);
+		verifyNoMoreInteractions(mockMultipartUploadDAO);
 	}
 	
 	@Test

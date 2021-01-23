@@ -9,9 +9,8 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.aws.CannotDetermineBucketLocationException;
+import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.AbortMultipartRequest;
@@ -26,8 +25,6 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.util.ContentDispositionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.AmazonServiceException.ErrorType;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
@@ -50,8 +47,6 @@ import com.amazonaws.util.BinaryUtils;
  */
 public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO {
 	
-	private static final Logger LOG = LogManager.getLogger(S3MultipartUploadDAOImpl.class);
-
 	private static final String S3_HEADER_COPY_RANGE_VALUE_TEMPLATE = "bytes=%d-%d";
 
 	private static final String S3_HEADER_COPY_RANGE = "x-amz-copy-source-range";
@@ -71,6 +66,13 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 
 	@Autowired
 	private SynapseS3Client s3Client;
+	
+	private Logger logger;
+	
+	@Autowired
+	public void configureLogger(LoggerProvider loggerProvider) {
+		logger = loggerProvider.getLogger(S3MultipartUploadDAOImpl.class.getName());
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -290,7 +292,7 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 	}
 	
 	@Override
-	public void abortMultipartRequest(AbortMultipartRequest request) {	
+	public void tryAbortMultipartRequest(AbortMultipartRequest request) {
 		if (request.getPartKeys() != null) {		
 			// Makes sure to cleanup the temporary uploaded parts
 			for (List<String> batch : ListUtils.partition(request.getPartKeys(), S3_BATCH_DELETE_SIZE)) {
@@ -301,16 +303,9 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 				
 				try {
 					s3Client.deleteObjects(batchDeleteRequest);
-				} catch (AmazonServiceException e) {
-					// A service exception can be retried
-					if (ErrorType.Service.equals(e.getErrorType())) {
-						throw e;
-					}
-					// Nothing to do as either we do not have access or some other client problem
-					LOG.warn(e.getMessage(), e);
-				} catch (CannotDetermineBucketLocationException e) {
-					// This is thrown when we do not have access to the bucket anymore or it does not exist
-					LOG.warn(e.getMessage(), e);
+				} catch (Throwable e) {
+					// Either we do not have access anymore or some other issue, we do not try to be perfect here
+					logger.warn(e.getMessage(), e);
 				}
 			}
 		}
@@ -319,16 +314,9 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 		
 		try {
 			s3Client.abortMultipartUpload(awsRequest);
-		} catch (AmazonServiceException e) {
-			// A service exception can be retried
-			if (ErrorType.Service.equals(e.getErrorType())) {
-				throw e;
-			}
-			// Nothing to do as either we do not have access or some other client problem
-			LOG.warn(e.getMessage(), e);
-		} catch (CannotDetermineBucketLocationException e) {
-			// This is thrown when we do not have access to the bucket anymore or it does not exist
-			LOG.warn(e.getMessage(), e);
+		} catch (Throwable e) {
+			// Either we do not have access anymore or some other issue, we do not try to be perfect here
+			logger.warn(e.getMessage(), e);
 		}
 	}
 	

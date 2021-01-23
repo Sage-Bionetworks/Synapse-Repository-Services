@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -332,7 +333,7 @@ public class MultipartUploadDAOImplTest {
 		CompositeMultipartUploadStatus newStatus = multipartUplaodDAO.getUploadStatus(userId, newHash);
 		
 		assertNotEquals(status.getEtag(), newStatus.getEtag());
-		assertNotEquals(status.getMultipartUploadStatus().getUpdatedOn(), newStatus.getMultipartUploadStatus().getUpdatedOn());
+		assertTrue(newStatus.getMultipartUploadStatus().getUpdatedOn().after(status.getMultipartUploadStatus().getUpdatedOn()));
 		
 		// Sync the updated data
 		status.setEtag(newStatus.getEtag());
@@ -358,7 +359,7 @@ public class MultipartUploadDAOImplTest {
 		CompositeMultipartUploadStatus updated = multipartUplaodDAO.getUploadStatus(uploadId);
 		
 		assertNotEquals(status.getEtag(), updated.getEtag(), "Adding a part must update the etag of the master row.");
-		assertNotEquals(status.getMultipartUploadStatus().getUpdatedOn(), updated.getMultipartUploadStatus().getUpdatedOn());
+		assertTrue(updated.getMultipartUploadStatus().getUpdatedOn().after(status.getMultipartUploadStatus().getUpdatedOn()));
 	}
 
 	@Test
@@ -377,7 +378,7 @@ public class MultipartUploadDAOImplTest {
 		CompositeMultipartUploadStatus updated = multipartUplaodDAO.getUploadStatus(uploadId);
 
 		assertNotEquals(status.getEtag(), updated.getEtag(), "Adding a part must update the etag of the master row.");
-		assertNotEquals(status.getMultipartUploadStatus().getUpdatedOn(), updated.getMultipartUploadStatus().getUpdatedOn());
+		assertTrue(updated.getMultipartUploadStatus().getUpdatedOn().after(status.getMultipartUploadStatus().getUpdatedOn()));
 	}
 
 	@Test
@@ -427,7 +428,7 @@ public class MultipartUploadDAOImplTest {
 		assertEquals(file.getId(), result.getMultipartUploadStatus().getResultFileHandleId());
 		// the etag must change
 		assertNotEquals(status.getEtag(), result.getEtag(), "Adding a part must update the etag of the master row.");
-		assertNotEquals(status.getMultipartUploadStatus().getUpdatedOn(), result.getMultipartUploadStatus().getUpdatedOn());
+		assertTrue(result.getMultipartUploadStatus().getUpdatedOn().after(status.getMultipartUploadStatus().getUpdatedOn()));
 		// the part state should be cleared
 		partMD5s = multipartUplaodDAO.getAddedPartMD5s(uploadId);
 		assertNotNull(partMD5s);

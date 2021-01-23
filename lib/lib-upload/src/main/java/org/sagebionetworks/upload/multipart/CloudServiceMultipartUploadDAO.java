@@ -74,11 +74,11 @@ public interface CloudServiceMultipartUploadDAO {
 	long completeMultipartUpload(CompleteMultipartRequest request);
 	
 	/**
-	 * Aborts the multipart request, if the multipart upload does not exist of if we do not have access anymore does nothing
+	 * Tries to abort a multipart request, deleting any temporary key. If something goes wrong (e.g. no access, does not exists etc) does not throw.
 	 * 
 	 * @param request
 	 */
-	void abortMultipartRequest(AbortMultipartRequest request);
+	void tryAbortMultipartRequest(AbortMultipartRequest request);
 	
 	/**
 	 * @param bucket

@@ -296,9 +296,9 @@ public class MultipartUploadRequestHandlerTest {
 		AbortMultipartRequest expectedRequest = new AbortMultipartRequest(uploadId, uploadToken, bucket, key).withPartKeys(expectedPartKeys);
 		
 		// Call under test
-		handler.abortMultipartRequest(mockStatus);
+		handler.tryAbortMultipartRequest(mockStatus);
 		
-		verify(mockCloudDao).abortMultipartRequest(expectedRequest);
+		verify(mockCloudDao).tryAbortMultipartRequest(expectedRequest);
 	}
 	
 }

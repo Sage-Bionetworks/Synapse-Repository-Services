@@ -99,6 +99,10 @@ public interface MultipartManagerV2 {
 	 */
 	void truncateAll();
 	
+	/**
+	 * @param batchSize
+	 * @return A batch of upload ids ordered by updated on
+	 */
 	List<String> getUploadsOrderByUpdatedOn(long batchSize);
 
 }

@@ -6,8 +6,8 @@ import java.util.List;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.DBOMultipartUploadComposerPartState;
@@ -24,12 +24,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.HttpMethod;
-import com.google.cloud.storage.StorageException;
 
 public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO {
 	
-	private static final Logger LOG = LogManager.getLogger(GoogleCloudStorageMultipartUploadDAOImpl.class);
-
 	private static final String UNSUPPORTED_COPY_MSG = "Copying from a Google Cloud Bucket is not supported yet.";
 
 	// 15 minutes
@@ -40,6 +37,13 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 
 	@Autowired
 	private MultipartUploadComposerDAO multipartUploadComposerDAO;
+	
+	private Logger logger;
+	
+	@Autowired
+	public void configureLogger(LoggerProvider loggerProvider) {
+		logger = loggerProvider.getLogger(GoogleCloudStorageMultipartUploadDAOImpl.class.getName());
+	}
 
 	@Override
 	public String initiateMultipartUpload(String bucket, String key, MultipartUploadRequest request) {
@@ -154,16 +158,16 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 	
 	@Override
 	@WriteTransaction
-	public void abortMultipartRequest(AbortMultipartRequest request) {
+	public void tryAbortMultipartRequest(AbortMultipartRequest request) {
 		multipartUploadComposerDAO.deleteAllParts(request.getUploadId());
 		
 		deleteTemporaryParts(request.getBucket(), request.getKey());
 
 		try {
 			googleCloudStorageClient.deleteObject(request.getBucket(), request.getKey());
-		} catch (StorageException e) {
-			 // If not found throws a StorageException, nothing else to do
-			LOG.warn(e.getMessage(), e);
+		} catch (Throwable e) {
+			// Either we do not have access anymore or some other issue, we do not try to be perfect here
+			logger.warn(e.getMessage(), e);
 		}
 	}
 	
