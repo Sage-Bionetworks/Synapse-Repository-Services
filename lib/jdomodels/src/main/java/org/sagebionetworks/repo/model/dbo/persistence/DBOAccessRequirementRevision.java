@@ -14,16 +14,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.util.TemporaryCode;
 
 public class DBOAccessRequirementRevision implements MigratableDatabaseObject<DBOAccessRequirementRevision, DBOAccessRequirementRevision> {
 
@@ -78,26 +74,8 @@ public class DBOAccessRequirementRevision implements MigratableDatabaseObject<DB
 		}
 	};
 	
-	private static final MigratableTableTranslation<DBOAccessRequirementRevision, DBOAccessRequirementRevision> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<DBOAccessRequirementRevision>() {
-		
-		@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "One time migration for defaulting the value of the isIDURequired field to true.")
-		public DBOAccessRequirementRevision createDatabaseObjectFromBackup(DBOAccessRequirementRevision backup) {
-			AccessRequirement ar = AccessRequirementUtils.copyFromSerializedField(backup);
-			
-			if (ar instanceof ManagedACTAccessRequirement) {
-				ManagedACTAccessRequirement managedAR = (ManagedACTAccessRequirement) ar;
-				
-				if (managedAR.getIsIDURequired() == null) {
-					// By default we require the IDU
-					managedAR.setIsIDURequired(true);
-					AccessRequirementUtils.copyToSerializedField(managedAR, backup);
-				}
-			}
-			
-			return backup;
-		};
-	};
-
+	private static final MigratableTableTranslation<DBOAccessRequirementRevision, DBOAccessRequirementRevision> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<>();
+	
 	public Long getOwnerId() {
 		return ownerId;
 	}
