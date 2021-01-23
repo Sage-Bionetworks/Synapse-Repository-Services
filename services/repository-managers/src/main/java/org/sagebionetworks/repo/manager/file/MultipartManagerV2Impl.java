@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAO;
 import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAOProvider;
 import org.sagebionetworks.upload.multipart.PresignedUrl;
@@ -49,6 +50,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class MultipartManagerV2Impl implements MultipartManagerV2 {
+	
+	private static final String RESTARTED_HASH_PREFIX = "R_";
 
 	@Autowired
 	private MultipartUploadDAO multipartUploadDAO;
@@ -67,7 +70,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	
 	@Autowired
 	private MultipartRequestHandlerProvider handlerProvider;
-
+	
 	@Override
 	@WriteTransaction
 	public MultipartUploadStatus startOrResumeMultipartOperation(UserInfo user, MultipartRequest request, boolean forceRestart) {
@@ -108,9 +111,9 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		// The MD5 is used to identify if this upload request already exists for this user.
 		String requestMD5Hex = MultipartRequestUtils.calculateMD5AsHex(request);
 		
-		// Clear all data if this is a forced restart
+		// When forcing a restart we clear the old hash changing the cache key, the previous multipart upload will be garbage collected by a worker
 		if (forceRestart) {
-			multipartUploadDAO.deleteUploadStatus(user.getId(), requestMD5Hex);
+			multipartUploadDAO.setUploadStatusHash(user.getId(), requestMD5Hex, RESTARTED_HASH_PREFIX + requestMD5Hex + "_" + UUID.randomUUID().toString());
 		}
 
 		// Has an upload already been started for this user and request
@@ -377,6 +380,37 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		return prepareCompleteStatus(composite);
 	}
 	
+	@Override
+	public List<String> getUploadsModifiedBefore(int numberOfDays, long batchSize) {
+		ValidateArgument.requirement(numberOfDays >= 0, "The number of days must be equal or greater than zero.");
+		ValidateArgument.requirement(batchSize > 0, "The batch size must be greater than zero.");
+		
+		return multipartUploadDAO.getUploadsModifiedBefore(numberOfDays, batchSize);
+	}
+	
+	@Override
+	@WriteTransaction
+	public void clearMultipartUpload(String uploadId) {
+		ValidateArgument.required(uploadId, "The upload id");
+		
+		final CompositeMultipartUploadStatus status;
+		
+		try {
+			status = multipartUploadDAO.getUploadStatus(uploadId);
+		} catch (NotFoundException e) {
+			// Nothing to do
+			return;
+		}
+		
+		if (!MultipartUploadState.COMPLETED.equals(status.getMultipartUploadStatus().getState())) {
+			final MultipartRequestHandler<? extends MultipartRequest> handler = handlerProvider.getHandlerForType(status.getRequestType());
+			
+			handler.tryAbortMultipartRequest(status);
+		}
+		
+		multipartUploadDAO.deleteUploadStatus(uploadId);
+	}
+	
 	/**
 	 * Validate there is one part for the expected number of parts.
 	 * 
@@ -454,6 +488,11 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	@Override
 	public void truncateAll() {
 		this.multipartUploadDAO.truncateAll();
+	}
+	
+	@Override
+	public List<String> getUploadsOrderByUpdatedOn(long batchSize) {
+		return this.multipartUploadDAO.getUploadsOrderByUpdatedOn(batchSize);
 	}
 
 }

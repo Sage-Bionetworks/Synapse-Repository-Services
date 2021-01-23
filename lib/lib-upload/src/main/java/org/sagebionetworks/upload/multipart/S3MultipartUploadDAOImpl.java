@@ -4,11 +4,16 @@ import java.net.URL;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
+import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
+import org.sagebionetworks.repo.model.file.AbortMultipartRequest;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -21,11 +26,14 @@ import org.sagebionetworks.util.ContentDispositionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.HttpMethod;
+import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.CopyPartRequest;
 import com.amazonaws.services.s3.model.CopyPartResult;
+import com.amazonaws.services.s3.model.DeleteObjectsRequest;
+import com.amazonaws.services.s3.model.DeleteObjectsRequest.KeyVersion;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
@@ -38,7 +46,7 @@ import com.amazonaws.util.BinaryUtils;
  * This class handles the interaction with S3 during the steps of a multi-part upload
  */
 public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO {
-
+	
 	private static final String S3_HEADER_COPY_RANGE_VALUE_TEMPLATE = "bytes=%d-%d";
 
 	private static final String S3_HEADER_COPY_RANGE = "x-amz-copy-source-range";
@@ -53,9 +61,18 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 
 	// 15 minute.
 	private static final int PRE_SIGNED_URL_EXPIRATION_MS = 1000 * 60 * 15;
+	
+	static final int S3_BATCH_DELETE_SIZE = 1000;
 
 	@Autowired
 	private SynapseS3Client s3Client;
+	
+	private Logger logger;
+	
+	@Autowired
+	public void configureLogger(LoggerProvider loggerProvider) {
+		logger = loggerProvider.getLogger(S3MultipartUploadDAOImpl.class.getName());
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -273,7 +290,36 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 		
 		return resultFileMetadata.getContentLength();
 	}
-
+	
+	@Override
+	public void tryAbortMultipartRequest(AbortMultipartRequest request) {
+		if (request.getPartKeys() != null) {		
+			// Makes sure to cleanup the temporary uploaded parts
+			for (List<String> batch : ListUtils.partition(request.getPartKeys(), S3_BATCH_DELETE_SIZE)) {
+				List<KeyVersion> partKeys = batch.stream().map(key -> new KeyVersion(key)).collect(Collectors.toList());
+				
+				DeleteObjectsRequest batchDeleteRequest = new DeleteObjectsRequest(request.getBucket())
+						.withKeys(partKeys);
+				
+				try {
+					s3Client.deleteObjects(batchDeleteRequest);
+				} catch (Throwable e) {
+					// Either we do not have access anymore or some other issue, we do not try to be perfect here
+					logger.warn(e.getMessage(), e);
+				}
+			}
+		}
+		
+		AbortMultipartUploadRequest awsRequest = new AbortMultipartUploadRequest(request.getBucket(), request.getKey(), request.getUploadToken());
+		
+		try {
+			s3Client.abortMultipartUpload(awsRequest);
+		} catch (Throwable e) {
+			// Either we do not have access anymore or some other issue, we do not try to be perfect here
+			logger.warn(e.getMessage(), e);
+		}
+	}
+	
 	@Override
 	public String getObjectEtag(String bucket, String key) {
 		ObjectMetadata metaData = s3Client.getObjectMetadata(bucket, key);

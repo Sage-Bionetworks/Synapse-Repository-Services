@@ -35,11 +35,19 @@ public interface MultipartUploadDAO {
 	String getUploadRequest(String id);
 	
 	/**
-	 * Delete all data for a file upload given a userId and upload hash.
+	 * Deletes the records for the given upload id
+	 * 
+	 * @param uploadId The upload id
+	 */
+	void deleteUploadStatus(String uploadId);
+	
+	/**
+	 * Updates the hash of the file upload request for the given user and hash.
+	 * 
 	 * @param userId
 	 * @param hash
 	 */
-	void deleteUploadStatus(long userId, String hash);
+	void setUploadStatusHash(long userId, String oldHash, String newHash);
 	
 	/**
 	 * Create a new upload status from a request.
@@ -49,11 +57,6 @@ public interface MultipartUploadDAO {
 	 * @return
 	 */
 	CompositeMultipartUploadStatus createUploadStatus(CreateMultipartRequest createRequest);
-	
-	/**
-	 * Remove all data for all users.
-	 */
-	void truncateAll();
 	
 	/**
 	 * Add a part to a multipart upload.
@@ -102,5 +105,28 @@ public interface MultipartUploadDAO {
 	 * @return The final status of the file.
 	 */
 	CompositeMultipartUploadStatus setUploadComplete(String uploadId, String fileHandleId);
+	
+	/**
+	 * Fetch a batch of upload ids that were last modified before the given number of days
+	 * 
+	 * @param numberOfDays The number of days
+	 * @param batchSize The max amount of upload ids to fetch
+	 * @return A batch of upload ids that were modified before the given instant, ordered by the modifiedOn ASC 
+	 */
+	List<String> getUploadsModifiedBefore(int numberOfDays, long batchSize);
+	
+	// For testing
+	
+	/**
+	 * @param batchSize
+	 * @return A batch of upload ids ordered by updated on
+	 */
+	List<String> getUploadsOrderByUpdatedOn(long batchSize);
+	
+
+	/**
+	 * Remove all data for all users.
+	 */
+	void truncateAll();
 
 }

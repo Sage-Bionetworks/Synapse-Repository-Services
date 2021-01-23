@@ -1,12 +1,16 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
@@ -26,6 +30,7 @@ import org.sagebionetworks.repo.model.file.PartErrors;
 import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.helper.MultipartUploadDBOHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -46,6 +51,8 @@ public class MultipartUploadDAOImplTest {
 	private DBOBasicDao basicDao;
 	@Autowired
 	private IdGenerator idGenerator;
+	@Autowired
+	private MultipartUploadDBOHelper helper;
 
 	Long userId;
 	String hash;
@@ -306,55 +313,72 @@ public class MultipartUploadDAOImplTest {
 		String partsState = multipartUplaodDAO.getPartsState(uploadId, numberOfParts);
 		assertEquals("10000000100", partsState);
 	}
-
+	
 	@Test
-	public void testDeleteUploadStatus() {
-		CompositeMultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
-		assertNotNull(status);
-		assertNotNull(status.getEtag());
-		String uploadId = status.getMultipartUploadStatus().getUploadId();
-		// call under test.
-		multipartUplaodDAO.deleteUploadStatus(userId, createRequest.getHash());
-
-		try {
-			multipartUplaodDAO.getUploadRequest(uploadId);
-			fail("Should no longer exist");
-		} catch (NotFoundException e) {
-			// expected
-		}
+	public void updateUploadStatusHash() throws InterruptedException {
+		multipartUplaodDAO.createUploadStatus(createRequest);
+		
+		CompositeMultipartUploadStatus status = multipartUplaodDAO.getUploadStatus(userId, hash);
+		
+		String newHash = "Updated_" + hash;
+		
+		// Sleep for a second to allow the updated on to change 
+		Thread.sleep(1000);
+		
+		// Call under test
+		multipartUplaodDAO.setUploadStatusHash(userId, hash, newHash);
+				
+		assertNull(multipartUplaodDAO.getUploadStatus(userId, hash));
+		
+		CompositeMultipartUploadStatus newStatus = multipartUplaodDAO.getUploadStatus(userId, newHash);
+		
+		assertNotEquals(status.getEtag(), newStatus.getEtag());
+		assertTrue(newStatus.getMultipartUploadStatus().getUpdatedOn().after(status.getMultipartUploadStatus().getUpdatedOn()));
+		
+		// Sync the updated data
+		status.setEtag(newStatus.getEtag());
+		status.getMultipartUploadStatus().setUpdatedOn(newStatus.getMultipartUploadStatus().getUpdatedOn());
+		
+		assertEquals(status, newStatus);
+		
 	}
 
 	@Test
-	public void testAddPartUpdateEtag() {
+	public void testAddPartUpdateEtag() throws InterruptedException {
 		CompositeMultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
 		String uploadId = status.getMultipartUploadStatus().getUploadId();
+		
+		// Sleep for a second to allow the update of the updated on
+		Thread.sleep(1000);
+		
 		// Call under test
 		multipartUplaodDAO.addPartToUpload(uploadId, 1, "partOneMD5Hex");
 
 		CompositeMultipartUploadStatus updated = multipartUplaodDAO.getUploadStatus(uploadId);
-		assertNotNull(updated);
-		assertNotNull(updated.getEtag());
-		assertFalse(status.getEtag().equals(updated.getEtag()),
-				"Adding a part must update the etag of the master row.");
+		
+		assertNotEquals(status.getEtag(), updated.getEtag(), "Adding a part must update the etag of the master row.");
+		assertTrue(updated.getMultipartUploadStatus().getUpdatedOn().after(status.getMultipartUploadStatus().getUpdatedOn()));
 	}
 
 	@Test
-	public void testSetPartFailedUpdateEtag() {
+	public void testSetPartFailedUpdateEtag() throws InterruptedException {
 		CompositeMultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
 		String uploadId = status.getMultipartUploadStatus().getUploadId();
+		
+		// Sleep for a second to allow the update of the updated on
+		Thread.sleep(1000);
+		
 		// Call under test
-		// also call under test
 		multipartUplaodDAO.setPartToFailed(uploadId, 10, "some kind of error");
 
 		CompositeMultipartUploadStatus updated = multipartUplaodDAO.getUploadStatus(uploadId);
-		assertNotNull(updated);
-		assertNotNull(updated.getEtag());
-		assertFalse(status.getEtag().equals(updated.getEtag()),
-				"setting part to failed must update the etag of the master row.");
+
+		assertNotEquals(status.getEtag(), updated.getEtag(), "Adding a part must update the etag of the master row.");
+		assertTrue(updated.getMultipartUploadStatus().getUpdatedOn().after(status.getMultipartUploadStatus().getUpdatedOn()));
 	}
 
 	@Test
@@ -376,7 +400,7 @@ public class MultipartUploadDAOImplTest {
 	}
 
 	@Test
-	public void testSetUploadComplete() {
+	public void testSetUploadComplete() throws InterruptedException {
 		// setup a file.
 		S3FileHandle file = TestUtils.createS3FileHandle(userId.toString(),
 				idGenerator.generateNewId(IdType.FILE_IDS).toString());
@@ -393,18 +417,149 @@ public class MultipartUploadDAOImplTest {
 		List<PartMD5> partMD5s = multipartUplaodDAO.getAddedPartMD5s(uploadId);
 		assertNotNull(partMD5s);
 		assertEquals(1, partMD5s.size());
+		
+		// Sleep for a second to allow the update of the updated on
+		Thread.sleep(1000);
+		
 		// call under test
 		CompositeMultipartUploadStatus result = multipartUplaodDAO.setUploadComplete(uploadId, file.getId());
 		assertNotNull(result);
 		assertEquals(MultipartUploadState.COMPLETED, result.getMultipartUploadStatus().getState());
 		assertEquals(file.getId(), result.getMultipartUploadStatus().getResultFileHandleId());
 		// the etag must change
-		assertFalse(status.getEtag().equals(result.getEtag()),
-				"Completing an upload must update the etag of the master row.");
+		assertNotEquals(status.getEtag(), result.getEtag(), "Adding a part must update the etag of the master row.");
+		assertTrue(result.getMultipartUploadStatus().getUpdatedOn().after(status.getMultipartUploadStatus().getUpdatedOn()));
 		// the part state should be cleared
 		partMD5s = multipartUplaodDAO.getAddedPartMD5s(uploadId);
 		assertNotNull(partMD5s);
 		assertEquals(0, partMD5s.size(), "Setting an upload complete should clear all part state.");
+	}
+	
+	@Test
+	public void testGetUploadsModifedBefore() throws InterruptedException {
+		
+		Instant created = Instant.now().minus(10, ChronoUnit.DAYS);
+		
+		String upload1 = helper.create( dbo -> {
+			dbo.setRequestHash("someHash");
+			dbo.setStartedOn(Date.from(created));
+			dbo.setUpdatedOn(Date.from(created));
+		}).getId().toString();
+		
+		String upload2 = helper.create( dbo -> {
+			dbo.setRequestHash("anotherHash");
+			dbo.setStartedOn(Date.from(created));
+			dbo.setUpdatedOn(Date.from(created.plus(1, ChronoUnit.DAYS)));
+		}).getId().toString();
+		
+		List<String> expected = Arrays.asList(upload1, upload2);
+		
+		int numberOfdays = 1;
+		long batchSize = 10;
+		
+		// Call under test
+		List<String> result = multipartUplaodDAO.getUploadsModifiedBefore(numberOfdays, batchSize);
+		
+		assertEquals(expected, result);
+		
+	}
+	
+	@Test
+	public void testGetUploadsModifedBeforeBatchSize() throws InterruptedException {
+		Instant created = Instant.now().minus(10, ChronoUnit.DAYS);
+		
+		String upload1 = helper.create( dbo -> {
+			dbo.setRequestHash("someHash");
+			dbo.setStartedOn(Date.from(created));
+			dbo.setUpdatedOn(Date.from(created));
+		}).getId().toString();
+		
+		helper.create( dbo -> {
+			dbo.setRequestHash("anotherHash");
+			dbo.setStartedOn(Date.from(created));
+			dbo.setUpdatedOn(Date.from(created.plus(1, ChronoUnit.DAYS)));
+		});
+		
+		List<String> expected = Arrays.asList(upload1);
+		
+		int numberOfdays = 1;
+		long batchSize = 1;
+		
+		// Call under test
+		List<String> result = multipartUplaodDAO.getUploadsModifiedBefore(numberOfdays, batchSize);
+		
+		assertEquals(expected, result);
+		
+	}
+	
+	@Test
+	public void testGetUploadsModifedBeforeDays() throws InterruptedException {
+		Instant created = Instant.now().minus(10, ChronoUnit.DAYS);
+		
+		String upload1 = helper.create( dbo -> {
+			dbo.setRequestHash("someHash");
+			dbo.setStartedOn(Date.from(created));
+			dbo.setUpdatedOn(Date.from(created));
+		}).getId().toString();
+		
+		helper.create( dbo -> {
+			dbo.setRequestHash("anotherHash");
+			dbo.setStartedOn(Date.from(created));
+			dbo.setUpdatedOn(Date.from(Instant.now().minus(1, ChronoUnit.DAYS)));
+		});
+		
+		List<String> expected = Arrays.asList(upload1);
+		
+		int numberOfdays = 2;
+		long batchSize = 10;
+		
+		// Call under test
+		List<String> result = multipartUplaodDAO.getUploadsModifiedBefore(numberOfdays, batchSize);
+		
+		assertEquals(expected, result);
+		
+	}
+	
+	@Test
+	public void testGetUploadsModifedBeforeZeroDays() throws InterruptedException {
+		Instant created = Instant.now().minus(10, ChronoUnit.DAYS);
+		
+		String upload1 = helper.create( dbo -> {
+			dbo.setRequestHash("someHash");
+			dbo.setStartedOn(Date.from(created));
+			dbo.setUpdatedOn(Date.from(created));
+		}).getId().toString();
+		
+		String upload2 = helper.create( dbo -> {
+			dbo.setRequestHash("anotherHash");
+			dbo.setStartedOn(Date.from(created));
+			dbo.setUpdatedOn(Date.from(Instant.now().minus(1, ChronoUnit.HOURS)));
+		}).getId().toString();
+		
+		List<String> expected = Arrays.asList(upload1, upload2);
+		
+		int numberOfdays = 0;
+		long batchSize = 10;
+		
+		// Call under test
+		List<String> result = multipartUplaodDAO.getUploadsModifiedBefore(numberOfdays, batchSize);
+		
+		assertEquals(expected, result);
+		
+	}
+	
+	@Test
+	public void testDeleteUploadStatus() {
+		CompositeMultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
+		
+		String uploadId = status.getMultipartUploadStatus().getUploadId();
+		
+		// Call under test
+		multipartUplaodDAO.deleteUploadStatus(uploadId);
+		
+		assertThrows(NotFoundException.class, () -> {
+			multipartUplaodDAO.getUploadStatus(uploadId);
+		});
 	}
 
 }

@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.file;
 
+import java.util.List;
+
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
@@ -14,6 +16,9 @@ import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
  *
  */
 public interface MultipartManagerV2 {
+	
+	// 30 days before the multi part uploads are garbage collected
+	int EXPIRE_PERIOD_DAYS = 30;
 	
 	/**
 	 * Starts one of the supported ({@link MultipartUploadRequest} or {@link MultipartUploadCopyRequest}) multipart operations.
@@ -70,8 +75,34 @@ public interface MultipartManagerV2 {
 	MultipartUploadStatus completeMultipartUpload(UserInfo user, String uploadId);
 	
 	/**
+	 * Fetch all the multipart uploads ids that were modified before the given number of days
+	 * 
+	 * @param numberOfDays The number of days
+	 * @param batchSize The max number of upload ids to fetch
+	 * @return A batch upload ids that were modified before the given instant
+	 */
+	List<String> getUploadsModifiedBefore(int numberOfDays, long batchSize);
+	
+	/**
+	 * Clear the temporary data for the given multipart upload and remove its records. Completed
+	 * multipart uploads will retain the uploaded data and the respective file handle, uploads that in
+	 * progress will be abported if possible.
+	 * 
+	 * @param uploadId The id of the upload to clear
+	 */
+	void clearMultipartUpload(String uploadId);
+	
+	// For testing
+
+	/**
 	 * Truncate all data
 	 */
 	void truncateAll();
+	
+	/**
+	 * @param batchSize
+	 * @return A batch of upload ids ordered by updated on
+	 */
+	List<String> getUploadsOrderByUpdatedOn(long batchSize);
 
 }

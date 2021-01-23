@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -29,15 +30,20 @@ import java.util.Map;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.http.HttpHeaders;
+import org.apache.logging.log4j.Logger;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.DBOMultipartUploadComposerPartState;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadComposerDAO;
+import org.sagebionetworks.repo.model.file.AbortMultipartRequest;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadCopyRequest;
@@ -46,6 +52,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.HttpMethod;
+import com.google.cloud.storage.StorageException;
 
 @ExtendWith(MockitoExtension.class)
 public class GoogleCloudStorageMultipartUploadDAOImplTest {
@@ -65,6 +72,12 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 
 	@Mock
 	private Blob mockBlobPart;
+	
+	@Mock
+	private LoggerProvider mockLoggerProvider;
+	
+	@Mock
+	private Logger mockLogger;
 
 	private static final String UPLOAD_ID = "233";
 	private static final String KEY_NAME = "testKeyName";
@@ -73,6 +86,17 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 	private static final String BUCKET_NAME = "test-bucket-name";
 	private static final String PART_MD5 = "abcdef0123456789abcdef0123456789";
 	private static final String CONTENT_TYPE = "application/json";
+	
+	@BeforeEach
+	public void before() {
+		when(mockLoggerProvider.getLogger(any())).thenReturn(mockLogger);
+		googleMpuDAO.configureLogger(mockLoggerProvider);
+	}
+	
+	@AfterEach
+	public void after() {
+		verify(mockLoggerProvider).getLogger(GoogleCloudStorageMultipartUploadDAOImpl.class.getName());
+	}
 
 	@Test
 	public void testInitiateMultipartUpload() {
@@ -409,6 +433,44 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 		verify(mockBlobPart).delete();
 		verify(mockBlob, never()).delete();
 		verify(mockBlob).getSize();
+	}
+	
+	@Test
+	public void testAbortMultipartRequest() {
+		when(mockStorageClient.getObjects(any(), any())).thenReturn(Arrays.asList(mockBlobPart));
+		doNothing().when(mockStorageClient).deleteObject(any(), any());
+		
+		AbortMultipartRequest request = new AbortMultipartRequest(UPLOAD_ID, null, BUCKET_NAME, KEY_NAME);
+		
+		// Call under test
+		googleMpuDAO.tryAbortMultipartRequest(request);
+		
+		verify(mockMultipartUploadComposerDAO).deleteAllParts(request.getUploadId());
+		verify(mockStorageClient).getObjects(request.getBucket(), request.getKey() + "/");
+		verify(mockBlobPart).delete();
+		verify(mockStorageClient).deleteObject(request.getBucket(), request.getKey());
+		
+	}
+	
+	@Test
+	public void testAbortMultipartRequestWithException() {
+		
+		StorageException ex = new StorageException(1, "Something went wrong");
+		
+		doThrow(ex).when(mockStorageClient).deleteObject(any(), any());
+		
+		when(mockStorageClient.getObjects(any(), any())).thenReturn(Arrays.asList(mockBlobPart));
+		
+		AbortMultipartRequest request = new AbortMultipartRequest(UPLOAD_ID, null, BUCKET_NAME, KEY_NAME);
+		
+		// Call under test
+		googleMpuDAO.tryAbortMultipartRequest(request);
+		
+		verify(mockMultipartUploadComposerDAO).deleteAllParts(request.getUploadId());
+		verify(mockStorageClient).getObjects(request.getBucket(), request.getKey() + "/");
+		verify(mockBlobPart).delete();
+		verify(mockStorageClient).deleteObject(request.getBucket(), request.getKey());
+		verify(mockLogger).warn(ex.getMessage(), ex);
 	}
 	
 	@Test

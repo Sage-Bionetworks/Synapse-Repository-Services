@@ -1,6 +1,7 @@
 package org.sagebionetworks.upload.multipart;
 
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
+import org.sagebionetworks.repo.model.file.AbortMultipartRequest;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -71,6 +72,13 @@ public interface CloudServiceMultipartUploadDAO {
 	 * @return The size of the resulting file.
 	 */
 	long completeMultipartUpload(CompleteMultipartRequest request);
+	
+	/**
+	 * Tries to abort a multipart request, deleting any temporary key. If something goes wrong (e.g. no access, does not exists etc) does not throw.
+	 * 
+	 * @param request
+	 */
+	void tryAbortMultipartRequest(AbortMultipartRequest request);
 	
 	/**
 	 * @param bucket

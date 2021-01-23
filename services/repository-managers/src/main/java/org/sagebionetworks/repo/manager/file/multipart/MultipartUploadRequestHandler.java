@@ -1,10 +1,14 @@
 package org.sagebionetworks.repo.manager.file.multipart;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.sagebionetworks.repo.manager.file.MultipartUtils;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
 import org.sagebionetworks.repo.model.dbo.file.MultipartRequestUtils;
+import org.sagebionetworks.repo.model.file.AbortMultipartRequest;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.PartUtils;
@@ -111,5 +115,28 @@ public class MultipartUploadRequestHandler implements MultipartRequestHandler<Mu
 		
 		return new FileHandleCreateRequest(request.getFileName(), request.getContentType(), request.getContentMD5Hex(), request.getStorageLocationId(), request.getGeneratePreview());
 		
+	}
+	
+	@Override
+	public void tryAbortMultipartRequest(CompositeMultipartUploadStatus status) {
+		ValidateArgument.required(status, "The upload status");
+		
+		List<String> partKeys = new ArrayList<>(status.getNumberOfParts());
+		
+		for (long partNumber = 1; partNumber <= status.getNumberOfParts(); partNumber++) {
+			partKeys.add(MultipartUploadUtils.createPartKey(status.getKey(), partNumber));
+		}
+		
+		final CloudServiceMultipartUploadDAO cloudDao = cloudServiceDaoProvider.getCloudServiceMultipartUploadDao(status.getUploadType());
+		
+		final String uploadId = status.getMultipartUploadStatus().getUploadId();
+		final String uploadToken = status.getUploadToken();
+		final String bucket = status.getBucket();
+		final String key = status.getKey();
+		
+		final AbortMultipartRequest request = new AbortMultipartRequest(uploadId, uploadToken, bucket, key).withPartKeys(partKeys);
+		
+		cloudDao.tryAbortMultipartRequest(request);
+
 	}
 }

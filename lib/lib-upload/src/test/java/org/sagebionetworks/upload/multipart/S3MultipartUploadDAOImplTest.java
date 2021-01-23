@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -15,11 +17,17 @@ import static org.mockito.Mockito.when;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+import org.apache.commons.collections4.ListUtils;
+import org.apache.logging.log4j.Logger;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,8 +35,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
+import org.sagebionetworks.repo.model.file.AbortMultipartRequest;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
@@ -39,12 +49,16 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.util.ContentDispositionUtils;
 
 import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.AmazonServiceException.ErrorType;
 import com.amazonaws.HttpMethod;
+import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.CopyPartRequest;
 import com.amazonaws.services.s3.model.CopyPartResult;
+import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
@@ -63,6 +77,10 @@ public class S3MultipartUploadDAOImplTest {
 	private InitiateMultipartUploadResult mockResult;
 	@InjectMocks
 	private S3MultipartUploadDAOImpl dao;
+	@Mock
+	private LoggerProvider mockLoggerProvider;
+	@Mock
+	private Logger mockLogger;
 	
 	private String bucket;
 	private String key;
@@ -85,6 +103,14 @@ public class S3MultipartUploadDAOImplTest {
 		request.setFileName(filename);
 		request.setContentType("text/plain");
 		uploadId = "someUploadId";
+		
+		when(mockLoggerProvider.getLogger(any())).thenReturn(mockLogger);
+		dao.configureLogger(mockLoggerProvider);
+	}
+	
+	@AfterEach
+	public void after() {
+		verify(mockLoggerProvider).getLogger(S3MultipartUploadDAOImpl.class.getName());
 	}
 	
 	@Test
@@ -677,6 +703,138 @@ public class S3MultipartUploadDAOImplTest {
 		assertEquals("Expected the source file bucket key, found none.", errorMessage);
 		
 	}
+	
+	@Test
+	public void testAbortMultipartRequestWithNoKeys() {
+		
+		doNothing().when(mockS3Client).abortMultipartUpload(any());
+		
+		AbortMultipartRequest request = new AbortMultipartRequest(uploadId, "token", bucket, key);
+		
+		// Call under test
+		dao.tryAbortMultipartRequest(request);
+		
+		verify(mockS3Client, never()).deleteObjects(any());
+		
+		ArgumentCaptor<AbortMultipartUploadRequest> requestCaptor = ArgumentCaptor.forClass(AbortMultipartUploadRequest.class);
+		
+		verify(mockS3Client).abortMultipartUpload(requestCaptor.capture());
+		
+		AbortMultipartUploadRequest captured = requestCaptor.getValue();
+		
+		assertEquals(request.getBucket(), captured.getBucketName());
+		assertEquals(request.getKey(), captured.getKey());
+		assertEquals(request.getUploadToken(), captured.getUploadId());
+	}
+	
+	@Test
+	public void testAbortMultipartRequestWithKeys() {
+		
+		doNothing().when(mockS3Client).abortMultipartUpload(any());
+		
+		List<String> partKeys = Arrays.asList("part1", "part2");
+		
+		AbortMultipartRequest request = new AbortMultipartRequest(uploadId, "token", bucket, key).withPartKeys(partKeys);
+		
+		// Call under test
+		dao.tryAbortMultipartRequest(request);
+		
+		ArgumentCaptor<DeleteObjectsRequest> deleteRequestCaptor = ArgumentCaptor.forClass(DeleteObjectsRequest.class);
+		
+		verify(mockS3Client).deleteObjects(deleteRequestCaptor.capture());
+		
+		DeleteObjectsRequest capturedDeleteRequest = deleteRequestCaptor.getValue();
+		
+		assertEquals(request.getBucket(), capturedDeleteRequest.getBucketName());
+		assertEquals(partKeys, capturedDeleteRequest.getKeys().stream().map(k->k.getKey()).collect(Collectors.toList()));
+		
+		ArgumentCaptor<AbortMultipartUploadRequest> abortRequestCaptor = ArgumentCaptor.forClass(AbortMultipartUploadRequest.class);
+		
+		verify(mockS3Client).abortMultipartUpload(abortRequestCaptor.capture());
+		
+		AbortMultipartUploadRequest capturedAbortRequest = abortRequestCaptor.getValue();
+		
+		assertEquals(request.getBucket(), capturedAbortRequest.getBucketName());
+		assertEquals(request.getKey(), capturedAbortRequest.getKey());
+		assertEquals(request.getUploadToken(), capturedAbortRequest.getUploadId());
+	}
+	
+	@Test
+	public void testAbortMultipartRequestWithLotsOfKeys() {
+		
+		doNothing().when(mockS3Client).abortMultipartUpload(any());
+		
+		List<String> partKeys = IntStream.range(1, S3MultipartUploadDAOImpl.S3_BATCH_DELETE_SIZE * 2).boxed().map(n -> String.valueOf(n)).collect(Collectors.toList());
+		
+		AbortMultipartRequest request = new AbortMultipartRequest(uploadId, "token", bucket, key).withPartKeys(partKeys);
+		
+		// Call under test
+		dao.tryAbortMultipartRequest(request);
+		
+		ArgumentCaptor<DeleteObjectsRequest> deleteRequestCaptor = ArgumentCaptor.forClass(DeleteObjectsRequest.class);
+		
+		List<List<String>> partitions = ListUtils.partition(partKeys, S3MultipartUploadDAOImpl.S3_BATCH_DELETE_SIZE);
+		
+		verify(mockS3Client, times(partitions.size())).deleteObjects(deleteRequestCaptor.capture());
+				
+		List<DeleteObjectsRequest> capturedDeleteRequest = deleteRequestCaptor.getAllValues();
+		
+		for (int i=0; i< capturedDeleteRequest.size(); i++) {
+			assertEquals(request.getBucket(), capturedDeleteRequest.get(i).getBucketName());
+			assertEquals(partitions.get(i), capturedDeleteRequest.get(i).getKeys().stream().map(k -> k.getKey()).collect(Collectors.toList()));		
+		}
+		
+		
+		ArgumentCaptor<AbortMultipartUploadRequest> abortRequestCaptor = ArgumentCaptor.forClass(AbortMultipartUploadRequest.class);
+		
+		verify(mockS3Client).abortMultipartUpload(abortRequestCaptor.capture());
+		
+		AbortMultipartUploadRequest capturedAbortRequest = abortRequestCaptor.getValue();
+		
+		assertEquals(request.getBucket(), capturedAbortRequest.getBucketName());
+		assertEquals(request.getKey(), capturedAbortRequest.getKey());
+		assertEquals(request.getUploadToken(), capturedAbortRequest.getUploadId());
+	}
+	
+	@Test
+	public void testAbortMultipartRequestWithPartException() {
+		AmazonServiceException ex = new AmazonServiceException("Something went wrong");
+		
+		ex.setErrorType(ErrorType.Service);
+		
+		doThrow(ex).when(mockS3Client).deleteObjects(any());
+		
+		List<String> partKeys = Arrays.asList("part1", "part2");
+		
+		AbortMultipartRequest request = new AbortMultipartRequest(uploadId, "token", bucket, key).withPartKeys(partKeys);
+				
+		// Call under test
+		dao.tryAbortMultipartRequest(request);
+		
+		verify(mockS3Client).deleteObjects(any());
+		verify(mockS3Client).abortMultipartUpload(any());
+		verify(mockLogger).warn(ex.getMessage(), ex);
+		
+	}
+	
+	@Test
+	public void testAbortMultipartRequestWithAbportException() {
+		AmazonServiceException ex = new AmazonServiceException("Something went wrong");
+				
+		doThrow(ex).when(mockS3Client).abortMultipartUpload(any());
+		
+		List<String> partKeys = Arrays.asList("part1", "part2");
+		
+		AbortMultipartRequest request = new AbortMultipartRequest(uploadId, "token", bucket, key).withPartKeys(partKeys);
+							
+		// Call under test
+		dao.tryAbortMultipartRequest(request);
+		
+		verify(mockS3Client).deleteObjects(any());
+		verify(mockS3Client).abortMultipartUpload(any());
+		verify(mockLogger).warn(ex.getMessage(), ex);
+	}
+	
 	
 	@Test
 	public void testGetObjectEtag() {

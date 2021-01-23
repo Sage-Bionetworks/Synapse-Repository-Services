@@ -8,6 +8,9 @@ import static org.mockito.Mockito.when;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,6 +21,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
 import org.sagebionetworks.repo.model.dbo.file.MultipartRequestUtils;
+import org.sagebionetworks.repo.model.file.AbortMultipartRequest;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
@@ -261,6 +265,40 @@ public class MultipartUploadRequestHandlerTest {
 		FileHandleCreateRequest result = handler.getFileHandleCreateRequest(mockStatus, originalRequest);
 		
 		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testAbortMultipartRequest() {
+		
+		UploadType uploadType = UploadType.S3;
+		String uploadId = "id";
+		String uploadToken = "token";
+		String bucket = "bucket";
+		String key = "key";
+		int numberOfParts = 10;
+		
+		MultipartUploadStatus uploadStatus = new MultipartUploadStatus();
+		uploadStatus.setUploadId(uploadId);
+		
+		when(mockStatus.getMultipartUploadStatus()).thenReturn(uploadStatus);
+		when(mockStatus.getUploadToken()).thenReturn(uploadToken);
+		when(mockStatus.getBucket()).thenReturn(bucket);
+		when(mockStatus.getKey()).thenReturn(key);
+		when(mockStatus.getUploadType()).thenReturn(uploadType);
+		when(mockStatus.getNumberOfParts()).thenReturn(numberOfParts);
+		when(mockCloudDaoProvider.getCloudServiceMultipartUploadDao(any())).thenReturn(mockCloudDao);
+		
+		List<String> expectedPartKeys = IntStream.range(1, numberOfParts + 1)
+				.boxed()
+				.map( p -> MultipartUploadUtils.createPartKey(key, p))
+				.collect(Collectors.toList());
+		
+		AbortMultipartRequest expectedRequest = new AbortMultipartRequest(uploadId, uploadToken, bucket, key).withPartKeys(expectedPartKeys);
+		
+		// Call under test
+		handler.tryAbortMultipartRequest(mockStatus);
+		
+		verify(mockCloudDao).tryAbortMultipartRequest(expectedRequest);
 	}
 	
 }

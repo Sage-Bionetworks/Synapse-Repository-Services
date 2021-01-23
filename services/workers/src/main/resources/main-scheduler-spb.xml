@@ -68,6 +68,7 @@
     <import resource="classpath:get-validation-schema-worker-spb.xml" />
     <import resource="classpath:dataaccess-worker-spb.xml" />
     <import resource="classpath:schema-validation-worker-spb.xml" />
+    <import resource="classpath:multipart-cleanup-spb.xml" />
 
 	<util:list id="workerTriggersList">
 		<!-- workers -->
@@ -121,6 +122,7 @@
 		<ref bean="accessApprovalRevokedNotificationTrigger" />
 		<ref bean="accessApprovalReminderNotificationWorkerTrigger" />
 		<ref bean="schemaValidationTrigger" />
+		<ref bean="multipartCleanupWorkerTrigger" />
 	</util:list>
 
 	<bean id="mainScheduler"

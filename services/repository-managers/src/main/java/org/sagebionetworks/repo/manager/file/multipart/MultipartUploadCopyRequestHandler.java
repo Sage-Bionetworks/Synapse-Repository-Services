@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
 import org.sagebionetworks.repo.model.dbo.file.MultipartRequestUtils;
+import org.sagebionetworks.repo.model.file.AbortMultipartRequest;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -168,6 +169,22 @@ public class MultipartUploadCopyRequestHandler implements MultipartRequestHandle
 		// Note that the filename in the request is optional, but we do save the file handle name in the request if not supplied
 		return new FileHandleCreateRequest(request.getFileName(), fileHandle.getContentType(), fileHandle.getContentMd5(), request.getStorageLocationId(), request.getGeneratePreview());
 	
+	}
+
+	@Override
+	public void tryAbortMultipartRequest(CompositeMultipartUploadStatus status) {
+		ValidateArgument.required(status, "The upload status");
+		
+		final CloudServiceMultipartUploadDAO cloudDao = cloudServiceDaoProvider.getCloudServiceMultipartUploadDao(status.getUploadType());
+		
+		final String uploadId = status.getMultipartUploadStatus().getUploadId();
+		final String uploadToken = status.getUploadToken();
+		final String bucket = status.getBucket();
+		final String key = status.getKey();
+		
+		final AbortMultipartRequest request = new AbortMultipartRequest(uploadId, uploadToken, bucket, key);
+		
+		cloudDao.tryAbortMultipartRequest(request);
 	}
 
 }

@@ -9,6 +9,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -45,6 +47,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
+import org.sagebionetworks.repo.model.dbo.file.MultiPartRequestType;
 import org.sagebionetworks.repo.model.dbo.file.MultipartRequestUtils;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
@@ -65,6 +68,7 @@ import org.sagebionetworks.repo.model.file.PartUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAO;
 import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAOProvider;
 import org.sagebionetworks.upload.multipart.PresignedUrl;
@@ -226,7 +230,7 @@ public class MultipartManagerV2ImplTest {
 
 		when(mockRequest.getPartSizeBytes()).thenReturn(partSize);
 		doNothing().when(mockHandler).validateRequest(any(), any());
-		doNothing().when(mockMultipartUploadDAO).deleteUploadStatus(anyLong(), any());
+		doNothing().when(mockMultipartUploadDAO).setUploadStatusHash(anyLong(), any(), any());
 
 		// Mimic a new upload
 		when(mockMultipartUploadDAO.getUploadStatus(any(), any())).thenReturn(null);
@@ -245,7 +249,7 @@ public class MultipartManagerV2ImplTest {
 		assertEquals(mockStatus, result);
 
 		verify(mockHandler).validateRequest(user, mockRequest);
-		verify(mockMultipartUploadDAO).deleteUploadStatus(user.getId(), requestHash);
+		verify(mockMultipartUploadDAO).setUploadStatusHash(eq(user.getId()), eq(requestHash), startsWith("R_" + requestHash + "_"));
 		verify(mockMultipartUploadDAO).getUploadStatus(user.getId(), requestHash);
 		verify(mockHandler).initiateRequest(user, mockRequest, requestHash, mockStorageSettings);
 		verify(mockMultipartUploadDAO).createUploadStatus(mockCreateMultipartRequest);
@@ -280,7 +284,7 @@ public class MultipartManagerV2ImplTest {
 		assertEquals(mockStatus, result);
 
 		verify(mockHandler).validateRequest(user, mockRequest);
-		verify(mockMultipartUploadDAO, never()).deleteUploadStatus(anyLong(), any());
+		verify(mockMultipartUploadDAO, never()).setUploadStatusHash(anyLong(), any(), any());
 		verify(mockMultipartUploadDAO).getUploadStatus(user.getId(), requestHash);
 		verify(mockHandler).initiateRequest(user, mockRequest, requestHash, mockStorageSettings);
 		verify(mockMultipartUploadDAO).createUploadStatus(mockCreateMultipartRequest);
@@ -313,7 +317,7 @@ public class MultipartManagerV2ImplTest {
 		assertEquals(mockStatus, result);
 
 		verify(mockHandler).validateRequest(user, mockRequest);
-		verify(mockMultipartUploadDAO, never()).deleteUploadStatus(anyLong(), any());
+		verify(mockMultipartUploadDAO, never()).setUploadStatusHash(anyLong(), any(), any());
 		verify(mockMultipartUploadDAO).getUploadStatus(user.getId(), requestHash);
 		verify(mockStatus).setPartsState("0000");
 		verify(mockHandler, never()).initiateRequest(any(), any(), any(), any());
@@ -344,7 +348,7 @@ public class MultipartManagerV2ImplTest {
 		assertEquals(mockStatus, result);
 
 		verify(mockHandler).validateRequest(user, mockRequest);
-		verify(mockMultipartUploadDAO, never()).deleteUploadStatus(anyLong(), any());
+		verify(mockMultipartUploadDAO, never()).setUploadStatusHash(anyLong(), any(), any());
 		verify(mockMultipartUploadDAO).getUploadStatus(user.getId(), requestHash);
 		verify(mockStatus).setPartsState("1111");
 		verify(mockHandler, never()).initiateRequest(any(), any(), any(), any());
@@ -399,7 +403,7 @@ public class MultipartManagerV2ImplTest {
 		assertEquals(cause, ex.getCause());
 
 		verify(mockHandler).validateRequest(user, mockRequest);
-		verify(mockMultipartUploadDAO, never()).deleteUploadStatus(anyLong(), any());
+		verify(mockMultipartUploadDAO, never()).setUploadStatusHash(anyLong(), any(), any());
 		verify(mockMultipartUploadDAO).getUploadStatus(user.getId(), requestHash);
 		verify(mockHandler).initiateRequest(user, mockRequest, requestHash, mockStorageSettings);
 		verify(mockMultipartUploadDAO, never()).createUploadStatus(mockCreateMultipartRequest);
@@ -1231,5 +1235,135 @@ public class MultipartManagerV2ImplTest {
 		verifyZeroInteractions(mockIdGenerator);
 		verifyZeroInteractions(mockFileHandleDao);
 
+	}
+	
+	@Test
+	public void testClearMultipartUploadWithCompleted() {
+		String uploadId = "uploadId";
+		
+		MultipartUploadState state  = MultipartUploadState.COMPLETED;
+		
+		when(mockStatus.getState()).thenReturn(state);
+		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
+		when(mockMultipartUploadDAO.getUploadStatus(any())).thenReturn(mockCompositeStatus);
+		doNothing().when(mockMultipartUploadDAO).deleteUploadStatus(any());
+		
+		// Call under test
+		manager.clearMultipartUpload(uploadId);
+		
+		verify(mockMultipartUploadDAO).getUploadStatus(uploadId);
+		verify(mockHandlerProvider, never()).getHandlerForType(any());
+		verifyZeroInteractions(mockHandler);
+		verify(mockMultipartUploadDAO).deleteUploadStatus(uploadId);
+	}
+	
+	@Test
+	public void testClearMultipartUploadWithUploading() {
+		String uploadId = "uploadId";
+		
+		MultiPartRequestType reqType = MultiPartRequestType.UPLOAD;
+		MultipartUploadState state  = MultipartUploadState.UPLOADING;
+		
+		when(mockStatus.getState()).thenReturn(state);
+		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
+		when(mockCompositeStatus.getRequestType()).thenReturn(reqType);
+		when(mockMultipartUploadDAO.getUploadStatus(any())).thenReturn(mockCompositeStatus);
+		doReturn(mockHandler).when(mockHandlerProvider).getHandlerForType(any());
+		doNothing().when(mockHandler).tryAbortMultipartRequest(any());
+		doNothing().when(mockMultipartUploadDAO).deleteUploadStatus(any());
+		
+		// Call under test
+		manager.clearMultipartUpload(uploadId);
+		
+		verify(mockMultipartUploadDAO).getUploadStatus(uploadId);
+		verify(mockHandlerProvider).getHandlerForType(reqType);
+		verify(mockHandler).tryAbortMultipartRequest(mockCompositeStatus);
+		verify(mockMultipartUploadDAO).deleteUploadStatus(uploadId);
+	}
+	
+	@Test
+	public void testClearMultipartUploadWithNullUploadId() {
+		String uploadId = null;
+		
+		String errorMesssage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.clearMultipartUpload(uploadId);
+		}).getMessage();
+
+		assertEquals("The upload id is required.", errorMesssage);
+
+	}
+	
+	@Test
+	public void testClearMultipartUploadWithNonExisting() {
+		String uploadId = "uploadId";
+		
+		when(mockMultipartUploadDAO.getUploadStatus(any())).thenThrow(NotFoundException.class);
+		
+		// Call under test
+		manager.clearMultipartUpload(uploadId);
+		
+		verify(mockMultipartUploadDAO).getUploadStatus(uploadId);
+		verifyZeroInteractions(mockHandlerProvider);
+		verifyNoMoreInteractions(mockMultipartUploadDAO);
+	}
+	
+	@Test
+	public void testGetUploadsModifedBefore() {
+		int numberOfDays = 1;
+		long batchSize = 10;
+		
+		List<String> expected = Arrays.asList("upload1", "upload2");
+		
+		when(mockMultipartUploadDAO.getUploadsModifiedBefore(anyInt(), anyLong())).thenReturn(expected);
+		
+		// Call under test
+		List<String> result = manager.getUploadsModifiedBefore(numberOfDays, batchSize);
+		
+		assertEquals(expected, result);
+		
+		verify(mockMultipartUploadDAO).getUploadsModifiedBefore(numberOfDays, batchSize);
+	}
+	
+	@Test
+	public void testGetUploadsModifedBeforeWithNegativeNumberOfDays() {
+		int numberOfDays = -1;
+		long batchSize = 10;
+				
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.getUploadsModifiedBefore(numberOfDays, batchSize);
+		}).getMessage();
+		
+		assertEquals("The number of days must be equal or greater than zero.", errorMessage);
+		
+	}
+	
+	@Test
+	public void testGetUploadsModifedBeforeWithNegativeBatchSize() {
+		int numberOfDays = 1;
+		long batchSize = -1;
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.getUploadsModifiedBefore(numberOfDays, batchSize);
+		}).getMessage();
+		
+		assertEquals("The batch size must be greater than zero.", errorMessage);
+		
+	}
+	
+	@Test
+	public void testGetUploadsModifedBeforeWithZeroBatchSize() {
+		int numberOfDays = 1;
+		long batchSize = 0;
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.getUploadsModifiedBefore(numberOfDays, batchSize);
+		}).getMessage();
+		
+		assertEquals("The batch size must be greater than zero.", errorMessage);
+		
 	}
 }
