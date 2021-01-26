@@ -1,6 +1,5 @@
 package org.sagebionetworks.file.services;
 
-import java.net.URL;
 import java.util.List;
 
 import org.sagebionetworks.repo.manager.UserManager;
@@ -18,12 +17,6 @@ import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
-import org.sagebionetworks.repo.model.file.ChunkRequest;
-import org.sagebionetworks.repo.model.file.ChunkResult;
-import org.sagebionetworks.repo.model.file.ChunkedFileToken;
-import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
-import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
-import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.DownloadList;
 import org.sagebionetworks.repo.model.file.DownloadOrder;
 import org.sagebionetworks.repo.model.file.DownloadOrderSummaryRequest;
@@ -36,7 +29,6 @@ import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.MultipartRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -98,51 +90,6 @@ public class FileUploadServiceImpl implements FileUploadService {
 		// resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return fileHandleManager.createExternalFileHandle(userInfo, fileHandle);
-	}
-
-	@Override
-	public ChunkedFileToken createChunkedFileUploadToken(Long userId,	CreateChunkedFileTokenRequest ccftr) throws DatastoreException, NotFoundException {
-		if(userId == null) throw new UnauthorizedException("The user must be authenticated");
-		if(ccftr == null) throw new IllegalArgumentException("CreateChunkedFileTokenRequest cannot be null");
-		// resolve the user
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileHandleManager.createChunkedFileUploadToken(userInfo, ccftr);
-	}
-
-	@Override
-	public URL createChunkedFileUploadPartURL(Long userId, ChunkRequest cpr) throws DatastoreException, NotFoundException {
-		// resolve the user
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileHandleManager.createChunkedFileUploadPartURL(userInfo, cpr);
-	}
-
-	@Override
-	public ChunkResult addChunkToFile(Long userId, ChunkRequest cpr) throws DatastoreException, NotFoundException {
-		// resolve the user
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileHandleManager.addChunkToFile(userInfo, cpr);
-	}
-
-	@Override
-	public S3FileHandle completeChunkFileUpload(Long userId, CompleteChunkedFileRequest ccfr) throws DatastoreException, NotFoundException {
-		// resolve the user
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileHandleManager.completeChunkFileUpload(userInfo, ccfr);
-	}
-
-	@Override
-	public UploadDaemonStatus startUploadDeamon(Long userId, CompleteAllChunksRequest cacf) throws DatastoreException,
-			NotFoundException {
-		// resolve the user
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileHandleManager.startUploadDeamon(userInfo, cacf);
-	}
-
-	@Override
-	public UploadDaemonStatus getUploadDaemonStatus(Long userId, String daemonId) throws DatastoreException, NotFoundException {
-		// resolve the user
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileHandleManager.getUploadDaemonStatus(userInfo, daemonId);
 	}
 
 	@Override

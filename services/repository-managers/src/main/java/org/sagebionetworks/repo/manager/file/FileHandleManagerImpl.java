@@ -5,9 +5,7 @@ import static org.sagebionetworks.downloadtools.FileUtils.DEFAULT_FILE_CHARSET;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -21,7 +19,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -42,7 +39,6 @@ import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
 import org.sagebionetworks.repo.manager.events.EventsCollector;
-import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
 import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -56,20 +52,13 @@ import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
-import org.sagebionetworks.repo.model.dao.UploadDaemonStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
 import org.sagebionetworks.repo.model.file.BaseKeyUploadDestination;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.BatchFileResult;
-import org.sagebionetworks.repo.model.file.ChunkRequest;
-import org.sagebionetworks.repo.model.file.ChunkResult;
-import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
-import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
-import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
-import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalFileHandleInterface;
 import org.sagebionetworks.repo.model.file.ExternalGoogleCloudUploadDestination;
@@ -91,9 +80,7 @@ import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3UploadDestination;
-import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.StsUploadDestination;
-import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
@@ -109,7 +96,6 @@ import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StsStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
-import org.sagebionetworks.repo.model.util.ContentTypeUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ContentDispositionUtils;
@@ -156,8 +142,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	static private Log log = LogFactory.getLog(FileHandleManagerImpl.class);
 
-	private static String FILE_TOKEN_TEMPLATE = "%1$s/%2$s/%3$s"; // userid/UUID/filename
-
 	public static final String NOT_SET = "NOT_SET";
 	
 	private static final String DEFAULT_COMPRESSED_FILE_NAME = "compressed.txt.gz";
@@ -175,15 +159,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Autowired
 	SynapseGoogleCloudStorageClient googleCloudStorageClient;
-
-	@Autowired
-	UploadDaemonStatusDao uploadDaemonStatusDao;
-
-	@Autowired
-	ExecutorService uploadFileDaemonThreadPoolPrimary;
-
-	@Autowired
-	ExecutorService uploadFileDaemonThreadPoolSecondary;
 
 	@Autowired
 	MultipartManager multipartManager;
@@ -210,23 +185,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	private EventsCollector statisticsCollector;
 
 	/**
-	 * This is the maximum amount of time the upload workers are allowed to take
-	 * before timing out.
-	 */
-	long multipartUploadDaemonTimeoutMS;
-
-	/**
-	 * This is the maximum amount of time the upload workers are allowed to take
-	 * before timing out. Injected via Spring
-	 * 
-	 * @param multipartUploadDaemonTimeoutMS
-	 */
-	public void setMultipartUploadDaemonTimeoutMS(
-			long multipartUploadDaemonTimeoutMS) {
-		this.multipartUploadDaemonTimeoutMS = multipartUploadDaemonTimeoutMS;
-	}
-
-	/**
 	 * Used by spring
 	 */
 	public FileHandleManagerImpl() {
@@ -241,40 +199,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 */
 	public String getUserId(UserInfo userInfo) {
 		return userInfo.getId().toString();
-	}
-
-
-	/**
-	 * Build up the S3FileMetadata.
-	 * 
-	 * @param contentType
-	 * @param userId
-	 * @param fileName
-	 * @return
-	 */
-	public static TransferRequest createRequest(String contentType,
-			String userId, String fileName, InputStream inputStream) {
-		// Create a token for this file
-		TransferRequest request = new TransferRequest();
-		request.setContentType(ContentTypeUtils.getContentType(contentType,
-				fileName));
-		request.setS3bucketName(StackConfigurationSingleton.singleton().getS3Bucket());
-		request.setS3key(createNewKey(userId, fileName));
-		request.setFileName(fileName);
-		request.setInputStream(inputStream);
-		return request;
-	}
-
-	/**
-	 * Create a new key
-	 * 
-	 * @param userId
-	 * @param fileName
-	 * @return
-	 */
-	private static String createNewKey(String userId, String fileName) {
-		return String.format(FILE_TOKEN_TEMPLATE, userId, UUID.randomUUID()
-				.toString(), fileName);
 	}
 
 	@Override
@@ -658,154 +582,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	}
 
 	@Override
-	public ChunkedFileToken createChunkedFileUploadToken(UserInfo userInfo, CreateChunkedFileTokenRequest ccftr) throws DatastoreException,
-			NotFoundException {
-		if (userInfo == null)
-			throw new IllegalArgumentException("UserInfo cannot be null");
-		String userId = getUserId(userInfo);
-		return this.multipartManager.createChunkedFileUploadToken(ccftr, ccftr.getStorageLocationId(), userId);
-	}
-
-	@Deprecated
-	@Override
-	public URL createChunkedFileUploadPartURL(UserInfo userInfo, ChunkRequest cpr) throws DatastoreException, NotFoundException {
-		if (cpr == null)
-			throw new IllegalArgumentException(
-					"ChunkedPartRequest cannot be null");
-		if (cpr.getChunkedFileToken() == null)
-			throw new IllegalArgumentException(
-					"ChunkedPartRequest.chunkedFileToken cannot be null");
-		if (cpr.getChunkNumber() == null)
-			throw new IllegalArgumentException(
-					"ChunkedPartRequest.chunkNumber cannot be null");
-		ChunkedFileToken token = cpr.getChunkedFileToken();
-		// first validate the token
-		validateChunkedFileToken(userInfo, token);
-		return multipartManager.createChunkedFileUploadPartURL(cpr, token.getStorageLocationId());
-	}
-
-	@Override
-	public ChunkResult addChunkToFile(UserInfo userInfo, ChunkRequest cpr) throws DatastoreException, NotFoundException {
-		if (cpr == null)
-			throw new IllegalArgumentException(
-					"ChunkedPartRequest cannot be null");
-		if (cpr.getChunkedFileToken() == null)
-			throw new IllegalArgumentException(
-					"ChunkedPartRequest.chunkedFileToken cannot be null");
-		if (cpr.getChunkNumber() == null)
-			throw new IllegalArgumentException(
-					"ChunkedPartRequest.chunkNumber cannot be null");
-		ChunkedFileToken token = cpr.getChunkedFileToken();
-		int partNumber = cpr.getChunkNumber().intValue();
-		// first validate the token
-		validateChunkedFileToken(userInfo, token);
-
-		// The part number cannot be less than one
-		if (partNumber < 1)
-			throw new IllegalArgumentException(
-					"partNumber cannot be less than one");
-		ChunkResult result = this.multipartManager.copyPart(token, partNumber, token.getStorageLocationId());
-		// Now delete the original file since we now have a copy
-		String partkey = this.multipartManager.getChunkPartKey(token, partNumber);
-		StorageLocationSetting storageLocationSettins = projectSettingsManager.getStorageLocationSetting(token.getStorageLocationId());
-		String bucket = MultipartUtils.getBucket(storageLocationSettins);
-		s3Client.deleteObject(bucket, partkey);
-		return result;
-	}
-
-	@WriteTransaction
-	@Override
-	public S3FileHandle completeChunkFileUpload(UserInfo userInfo, CompleteChunkedFileRequest ccfr) throws DatastoreException,
-			NotFoundException {
-		if (ccfr == null)
-			throw new IllegalArgumentException(
-					"CompleteChunkedFileRequest cannot be null");
-		ChunkedFileToken token = ccfr.getChunkedFileToken();
-		// first validate the token
-		validateChunkedFileToken(userInfo, token);
-		String userId = getUserId(userInfo);
-		// Complete the multi-part
-		return this.multipartManager.completeChunkFileUpload(ccfr, token.getStorageLocationId(), userId);
-	}
-
-	/**
-	 * Validate that the user owns the token
-	 */
-	void validateChunkedFileToken(UserInfo userInfo, ChunkedFileToken token) {
-		if (userInfo == null)
-			throw new IllegalArgumentException("UserInfo cannot be null");
-		if (token == null)
-			throw new IllegalArgumentException(
-					"ChunkedFileToken cannot be null");
-		if (token.getKey() == null)
-			throw new IllegalArgumentException(
-					"ChunkedFileToken.key cannot be null");
-		if (token.getUploadId() == null)
-			throw new IllegalArgumentException(
-					"ChunkedFileToken.uploadId cannot be null");
-		if (token.getFileName() == null)
-			throw new IllegalArgumentException(
-					"ChunkedFileToken.getFileName cannot be null");
-		if (token.getContentType() == null)
-			throw new IllegalArgumentException(
-					"ChunkedFileToken.getFileContentType cannot be null");
-		// The token key must start with the User's id (and the baseKey if any)
-		String userId = getUserId(userInfo);
-		if (!token.getKey().startsWith(userId)
-				&& token.getKey().indexOf(
-						MultipartUtils.FILE_TOKEN_TEMPLATE_SEPARATOR + userId + MultipartUtils.FILE_TOKEN_TEMPLATE_SEPARATOR) == -1)
-			throw new UnauthorizedException("The ChunkedFileToken: " + token
-					+ " does not belong to User: " + userId);
-	}
-
-	@Override
-	public UploadDaemonStatus startUploadDeamon(UserInfo userInfo,
-			CompleteAllChunksRequest cacf) throws DatastoreException,
-			NotFoundException {
-		if (cacf == null)
-			throw new IllegalArgumentException(
-					"CompleteAllChunksRequest cannot be null");
-		validateChunkedFileToken(userInfo, cacf.getChunkedFileToken());
-		String userId = getUserId(userInfo);
-		// Start the daemon
-		UploadDaemonStatus status = new UploadDaemonStatus();
-		status.setPercentComplete(0.0);
-		status.setStartedBy(getUserId(userInfo));
-		status.setRunTimeMS(0l);
-		status.setState(State.PROCESSING);
-		status = uploadDaemonStatusDao.create(status);
-		// Create a worker and add it to the pool.
-		CompleteUploadWorker worker = new CompleteUploadWorker(uploadDaemonStatusDao, uploadFileDaemonThreadPoolSecondary, status, cacf,
-				multipartManager, multipartUploadDaemonTimeoutMS, userId);
-		// Get a new copy of the status so we are not returning the same
-		// instance that we passed to the worker.
-		status = uploadDaemonStatusDao.get(status.getDaemonId());
-		// Add this worker the primary pool
-		uploadFileDaemonThreadPoolPrimary.submit(worker);
-		// Return the status to the caller.
-		return status;
-	}
-
-	@Override
 	public S3FileHandle multipartUploadLocalFile(LocalFileUploadRequest request) {
 		return multipartManager.multipartUploadLocalFile(request);
-	}
-
-	@Override
-	public UploadDaemonStatus getUploadDaemonStatus(UserInfo userInfo,
-			String daemonId) throws DatastoreException, NotFoundException {
-		if (userInfo == null)
-			throw new IllegalArgumentException("UserInfo cannot be null");
-		if (daemonId == null)
-			throw new IllegalArgumentException("DaemonID cannot be null");
-		UploadDaemonStatus status = uploadDaemonStatusDao.get(daemonId);
-		// Only the user that started the daemon can see the status
-		if (!authorizationManager.isUserCreatorOrAdmin(userInfo,
-				status.getStartedBy())) {
-			throw new UnauthorizedException(
-					"Only the user that started the daemon may access the daemon status");
-		}
-		return status;
 	}
 
 	@Override

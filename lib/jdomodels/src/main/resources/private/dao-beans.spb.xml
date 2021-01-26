@@ -23,9 +23,6 @@
 	<bean id="transactionalMessenger"
 		class="org.sagebionetworks.repo.model.message.TransactionalMessengerImpl" />
 
-	<bean id="uploadDaemonStatusDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBOUploadDaemonStatusDaoImpl" />
-
 	<bean id="nodeDao" class="org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl"
 		depends-on="idGenerator" />
 		

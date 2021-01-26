@@ -20,9 +20,9 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.javadoc.JavadocMockUtils;
 import org.sagebionetworks.javadoc.testclasses.GenericList;
-import org.sagebionetworks.repo.model.file.ChunkRequest;
-import org.sagebionetworks.repo.model.file.ChunkResult;
-import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.schema.EnumValue;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -79,7 +79,7 @@ public class SchemaUtilsTest {
 	
 	@Test
 	public void testEffectiveSchema(){
-		String fullName = ChunkedFileToken.class.getName();
+		String fullName = Team.class.getName();
 		ObjectSchema schema = SchemaUtils.getSchema(fullName);
 		assertNotNull(schema);
 		assertEquals(schema.getId(), fullName);
@@ -89,9 +89,9 @@ public class SchemaUtilsTest {
 	public void testFindSchemaFiles(){
 		MethodDoc method = JavadocMockUtils.createMockMethodDoc("getSomething");
 		// The return type and one parameter should be JSON entites
-		String returnName = ChunkedFileToken.class.getName();
-		String paramOne = ChunkRequest.class.getName();
-		String paramTwo = ChunkResult.class.getName();
+		String returnName = VersionInfo.class.getName();
+		String paramOne = UserGroup.class.getName();
+		String paramTwo = Team.class.getName();
 		ClassDoc returnClass = JavadocMockUtils.createMockJsonEntity(returnName);
 		Type retunType = JavadocMockUtils.createMockType(returnName, returnClass);
 		

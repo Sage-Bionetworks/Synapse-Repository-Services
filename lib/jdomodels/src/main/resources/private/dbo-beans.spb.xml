@@ -95,8 +95,7 @@
 				<!-- misc -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOProcessedMessage" />
-								
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUploadDaemonStatus" />
+				
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOQuizResponse" />
 				
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmission" />

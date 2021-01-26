@@ -25,8 +25,6 @@ import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.FILE_H
 import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.MAX_REQUESTS_PER_CALL;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.MessageDigest;
@@ -43,7 +41,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,7 +49,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordBatch;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
@@ -62,7 +58,6 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
 import org.sagebionetworks.repo.manager.events.EventsCollector;
-import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -107,14 +102,13 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 import com.amazonaws.AmazonClientException;
-import com.amazonaws.services.s3.internal.Mimetypes;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.util.BinaryUtils;
-import com.amazonaws.util.StringInputStream;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.HttpMethod;
 import com.google.cloud.storage.StorageException;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 /**
@@ -326,20 +320,7 @@ public class FileHandleManagerImplTest {
 		batchRequest.setIncludeFileHandles(true);
 		batchRequest.setIncludePreSignedURLs(true);
 	}
-	
-	@Test
-	public void testCreateMetadata() throws UnsupportedEncodingException{
-		// Create the metadata
-		InputStream stream = new StringInputStream("stream");
-		TransferRequest metadata = FileHandleManagerImpl.createRequest(Mimetypes.MIMETYPE_OCTET_STREAM, "123", "testCreateMetadata", stream);
-		assertNotNull(metadata);
-		assertEquals(StackConfigurationSingleton.singleton().getS3Bucket(), metadata.getS3bucketName());
-		assertEquals(Mimetypes.MIMETYPE_OCTET_STREAM, metadata.getContentType());
-		assertNotNull(metadata.getS3key());
-		assertTrue(metadata.getS3key().startsWith("123/"));
-		assertEquals(stream, metadata.getInputStream());
-	}
-	
+		
 	@Test
 	public void testGetFileHandleUnAuthorized() throws DatastoreException, NotFoundException{
 		// You must be authorized to see a file handle

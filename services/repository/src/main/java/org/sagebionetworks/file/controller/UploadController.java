@@ -5,14 +5,11 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 
 import java.io.IOException;
-import java.net.URL;
 import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.file.services.FileUploadService;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -32,10 +29,6 @@ import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
-import org.sagebionetworks.repo.model.file.ChunkRequest;
-import org.sagebionetworks.repo.model.file.ChunkedFileToken;
-import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
-import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.DownloadList;
 import org.sagebionetworks.repo.model.file.DownloadOrder;
 import org.sagebionetworks.repo.model.file.DownloadOrderSummaryRequest;
@@ -49,7 +42,6 @@ import org.sagebionetworks.repo.model.file.MultipartRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -477,116 +469,6 @@ public class UploadController {
 			NotFoundException {
 		// Pass it along
 		return (ProxyFileHandle) fileService.createExternalFileHandle(userId, fileHandle);
-	}
-
-	/**
-	 * This is the first step in uploading a large file. The resulting <a
-	 * href="${org.sagebionetworks.repo.model.file.ChunkedFileToken}"
-	 * >ChunkedFileToken</a> will be required for all remain chunk file
-	 * requests.
-	 * 
-	 * @param userId
-	 * @param fileName
-	 *            - The short name of the file (ie foo.bar).
-	 * @param contentType
-	 *            - The content type of the file (ie 'text/plain' or
-	 *            'application/json').
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	@RequiredScope({view,modify})
-	@Deprecated
-	// replaced with multi-part upload V2
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = "/createChunkedFileUploadToken", method = RequestMethod.POST)
-	public @ResponseBody ChunkedFileToken createChunkedFileUploadToken(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody CreateChunkedFileTokenRequest ccftr)
-			throws DatastoreException, NotFoundException {
-		return fileService.createChunkedFileUploadToken(userId, ccftr);
-	}
-
-	/**
-	 * Create a pre-signed URL that will be used to upload a single chunk of a
-	 * large file (see: <a href="${POST.createChunkedFileUploadToken}">POST
-	 * /createChunkedFileUploadToken</a>). This method will return the URL in
-	 * the body of the HttpServletResponse with a content type of 'text/plain'.
-	 * 
-	 * @param userId
-	 * @param cpr
-	 *            - Includes the {@link ChunkedFileToken} and the chunk number.
-	 *            The chunk number indicates this chunks position in the larger
-	 *            file. If there are 'n' chunks then the first chunk is '1' and
-	 *            the last chunk is 'n'.
-	 * @param response
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 */
-	@RequiredScope({view,modify})
-	@Deprecated
-	// replaced with multi-part upload V2
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = "/createChunkedFileUploadChunkURL", method = RequestMethod.POST)
-	public void createChunkedPresignedUrl(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody ChunkRequest cpr, HttpServletResponse response)
-			throws DatastoreException, NotFoundException, IOException {
-		URL url = fileService.createChunkedFileUploadPartURL(userId, cpr);
-		// Return the redirect url instead of redirecting.
-		response.setStatus(HttpStatus.CREATED.value());
-		response.setContentType("text/plain");
-		response.getWriter().write(url.toString());
-		response.getWriter().flush();
-	}
-
-	/**
-	 * After all of the chunks are added, start a Daemon that will copy all of
-	 * the parts and complete the request. The daemon status can be monitored by
-	 * calling <a href="${GET.completeUploadDaemonStatus.daemonId}">GET
-	 * /completeUploadDaemonStatus/{daemonId}</a>.
-	 * 
-	 * @param userId
-	 * @param cacf
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	@RequiredScope({view,modify})
-	@Deprecated
-	// replaced with multi-part upload V2
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = "/startCompleteUploadDaemon", method = RequestMethod.POST)
-	public @ResponseBody UploadDaemonStatus startCompleteUploadDaemon(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody CompleteAllChunksRequest cacf)
-			throws DatastoreException, NotFoundException {
-		return fileService.startUploadDeamon(userId, cacf);
-	}
-
-	/**
-	 * Get the status of a daemon started with <a
-	 * href="${POST.startCompleteUploadDaemon}">POST
-	 * /startCompleteUploadDaemon</a>.
-	 * 
-	 * @param userId
-	 * @param daemonId
-	 *            The ID of the daemon (UploadDaemonStatus.id).
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	@RequiredScope({view,modify})
-	@Deprecated
-	// replaced with multi-part upload V2
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/completeUploadDaemonStatus/{daemonId}", method = RequestMethod.GET)
-	public @ResponseBody UploadDaemonStatus completeUploadDaemonStatus(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String daemonId) throws DatastoreException,
-			NotFoundException {
-		return fileService.getUploadDaemonStatus(userId, daemonId);
 	}
 
 	/**
