@@ -6,14 +6,13 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
@@ -178,33 +177,6 @@ public class ExampleController {
 	StorageLocationSetting createStorageLocationSetting(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 														@RequestBody StorageLocationSetting storageLocationSetting) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException, IOException {
-		return null;
-	}
-
-	/**
-	 * Lorem Ipsum is simply dummy text of the printing and typesetting
-	 * industry. Lorem Ipsum has been the industry's standard dummy text ever
-	 * since the 1500s, when an unknown printer took a galley of type and
-	 * scrambled it to make a type specimen book. It has survived not only five
-	 * centuries, but also the leap into electronic typesetting, remaining
-	 * essentially unchanged. It was popularised in the 1960s with the release
-	 * of Letraset sheets containing Lorem Ipsum passages, and more recently
-	 * with desktop publishing software like Aldus PageMaker including versions
-	 * of Lorem Ipsum.
-	 * 
-	 * @param userId
-	 * @param cacf
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = "/startCompleteUploadDaemon", method = RequestMethod.POST)
-	public @ResponseBody
-	UploadDaemonStatus startCompleteUploadDaemon(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
-			@RequestBody CompleteAllChunksRequest cacf)
-			throws DatastoreException, NotFoundException {
 		return null;
 	}
 

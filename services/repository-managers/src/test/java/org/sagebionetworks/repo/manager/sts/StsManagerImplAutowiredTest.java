@@ -1,15 +1,15 @@
 package org.sagebionetworks.repo.manager.sts;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicSessionCredentials;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.google.common.collect.ImmutableList;
-import com.google.common.io.Files;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
@@ -25,7 +25,6 @@ import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
-import org.sagebionetworks.repo.manager.file.MultipartManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
@@ -47,15 +46,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicSessionCredentials;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.google.common.collect.ImmutableList;
+import com.google.common.io.Files;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -72,9 +72,6 @@ public class StsManagerImplAutowiredTest {
 
 	@Autowired
 	private FileHandleManager fileHandleManager;
-
-	@Autowired
-	private MultipartManager multipartManager;
 
 	@Autowired
 	private ProjectSettingsManager projectSettingsManager;
@@ -343,7 +340,7 @@ public class StsManagerImplAutowiredTest {
 		LocalFileUploadRequest uploadRequest = new LocalFileUploadRequest().withContentType("text/plain")
 				.withFileToUpload(file).withStorageLocationId(storageLocationId)
 				.withUserId(userInfo.getId().toString());
-		S3FileHandle fileHandle = multipartManager.multipartUploadLocalFile(uploadRequest);
+		S3FileHandle fileHandle = fileHandleManager.uploadLocalFile(uploadRequest);
 		fileHandlesToDelete.add(fileHandle);
 
 		FileEntity fileEntity = new FileEntity();

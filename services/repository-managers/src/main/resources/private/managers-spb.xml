@@ -110,9 +110,7 @@
 		</property>
 
 	</bean>
-	
-	<bean id="multipartManager" class="org.sagebionetworks.repo.manager.file.MultipartManagerImpl" />
-	
+		
 	<bean name="userThrottleMemoryCountingSemaphore" class="org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphoreImpl" scope="singleton">
 		<constructor-arg index="0">
 		<bean class="org.sagebionetworks.common.util.ClockImpl"/>
@@ -125,34 +123,8 @@
 	
 	<bean id="semaphoreManager" class="org.sagebionetworks.repo.manager.SemaphoreManagerImpl" />
 	
-	<!-- The thread pool used by the asynchronous fileupload primary daemons -->
-	<bean id="uploadFileDaemonThreadPoolPrimary"
-		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-		<property name="targetClass">
-			<value>java.util.concurrent.Executors</value>
-		</property>
-		<property name="targetMethod">
-			<value>newFixedThreadPool</value>
-		</property>
-		<property name="arguments" ref="stackConfiguration.fileMultipartUploadDaemonMainMaxThreads"/>
-	</bean>
-
-	<!-- The thread pool used by the asynchronous fileupload secondary daemons -->
-	<bean id="uploadFileDaemonThreadPoolSecondary"
-		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-		<property name="targetClass">
-			<value>java.util.concurrent.Executors</value>
-		</property>
-		<property name="targetMethod">
-			<value>newFixedThreadPool</value>
-		</property>
-		<property name="arguments" ref="stackConfiguration.fileMultipartUploadDaemonCopyPartMaxThreads"/>
-	</bean>
-	
 	<!-- File Upload manager -->
-	<bean id="fileHandleManager" class="org.sagebionetworks.repo.manager.file.FileHandleManagerImpl" init-method="initialize" >
-	    <property name="multipartUploadDaemonTimeoutMS" ref="stackConfiguration.fileMultipartUploadDaemonTimeoutMS"/>
-	</bean>
+	<bean id="fileHandleManager" class="org.sagebionetworks.repo.manager.file.FileHandleManagerImpl" init-method="initialize" />
 	
 	<!-- The preview manager -->
 	<bean id="previewManager" class="org.sagebionetworks.repo.manager.file.preview.PreviewManagerImpl" init-method="initialize">
