@@ -102,7 +102,7 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			UploadProgressListener uploadListener = new UploadProgressListener(progressCallback, message, startProgress, bytesPerRow, totalProgress, asynchJobStatusManager, status.getJobId());
 			String contentType = CSVUtils.guessContentType(request
 					.getCsvTableDescriptor() == null ? null : request.getCsvTableDescriptor().getSeparator());
-			S3FileHandle fileHandle = fileHandleManager.multipartUploadLocalFile(new LocalFileUploadRequest().withUserId(user.getId().toString()).withFileToUpload(temp).withContentType(contentType).withListener(uploadListener));
+			S3FileHandle fileHandle = fileHandleManager.uploadLocalFile(new LocalFileUploadRequest().withUserId(user.getId().toString()).withFileToUpload(temp).withContentType(contentType).withListener(uploadListener));
 			result.setResultsFileHandleId(fileHandle.getId());
 			// Create the file
 			// Now upload the file as a filehandle

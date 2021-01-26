@@ -110,9 +110,7 @@
 		</property>
 
 	</bean>
-	
-	<bean id="multipartManager" class="org.sagebionetworks.repo.manager.file.MultipartManagerImpl" />
-	
+		
 	<bean name="userThrottleMemoryCountingSemaphore" class="org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphoreImpl" scope="singleton">
 		<constructor-arg index="0">
 		<bean class="org.sagebionetworks.common.util.ClockImpl"/>

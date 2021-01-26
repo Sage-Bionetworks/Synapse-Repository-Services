@@ -1,11 +1,10 @@
 package org.sagebionetworks.repo.manager.file;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -17,18 +16,17 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.commons.fileupload.FileItemStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mockito;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.manager.storagelocation.processors.ProxyStorageLocationProcessor;
 import org.sagebionetworks.repo.manager.wiki.V2WikiManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -66,9 +64,11 @@ import org.sagebionetworks.repo.web.FileHandleLinkedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.utils.ContentTypeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import com.amazonaws.event.ProgressEvent;
+import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
@@ -79,7 +79,6 @@ import com.amazonaws.util.StringInputStream;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -205,6 +204,83 @@ public class FileHandleManagerImplAutowireTest {
 
 		userManager.deletePrincipal(adminUserInfo, Long.parseLong(userInfo.getId().toString()));
 		userManager.deletePrincipal(adminUserInfo, Long.parseLong(userInfo2.getId().toString()));
+	}
+	
+	/**
+	 * Test the upload of a local file.
+	 * @throws IOException 
+	 */
+	@Test
+	public void testMultipartUploadLocalFileNullFileName() throws IOException {
+		File temp = File.createTempFile("testMultipartUploadLocalFile", ".txt");
+		try {
+			String fileBody = "This is the body of the file!!!!!";
+			byte[] fileBodyBytes = fileBody.getBytes("UTF-8");
+			String md5 = TransferUtils.createMD5(fileBodyBytes);
+			org.apache.commons.io.FileUtils.writeStringToFile(temp, fileBody, StandardCharsets.UTF_8);
+			String contentType = "text/plain";
+			// Now upload the file to S3
+			S3FileHandle handle = fileUploadManager.uploadLocalFile(
+					new LocalFileUploadRequest().withFileName(null).withUserId(userInfo.getId().toString())
+							.withFileToUpload(temp).withContentType(contentType).withListener(new ProgressListener() {
+								@Override
+								public void progressChanged(ProgressEvent progressEvent) {
+									System.out.println(
+											"FileUpload bytesTransfered: : " + progressEvent.getBytesTransferred());
+
+								}
+							}));
+			assertNotNull(handle);
+			toDelete.add(handle);
+			assertEquals(md5, handle.getContentMd5());
+			assertEquals(temp.getName(), handle.getFileName());
+			assertEquals(contentType, handle.getContentType());
+			assertEquals(new Long(temp.length()), handle.getContentSize());
+			assertEquals(userInfo.getId().toString(), handle.getCreatedBy());
+			assertNotNull(handle.getBucketName());
+			assertNotNull(handle.getKey());
+			assertTrue(handle.getKey().contains(temp.getName()));
+			assertNotNull(handle.getContentSize());
+		} finally {
+			temp.delete();
+		}
+	}
+	
+	@Test
+	public void testMultipartUploadLocalFileWithName() throws IOException {
+		File temp = File.createTempFile("testMultipartUploadLocalFile", ".txt");
+		try {
+			String fileBody = "This is the body of the file!!!!!";
+			byte[] fileBodyBytes = fileBody.getBytes("UTF-8");
+			String md5 = TransferUtils.createMD5(fileBodyBytes);
+			org.apache.commons.io.FileUtils.writeStringToFile(temp, fileBody, StandardCharsets.UTF_8);
+			String contentType = "text/plain";
+			String fileName = "aRealFileName";
+			// Now upload the file to S3
+			S3FileHandle handle = fileUploadManager.uploadLocalFile(
+					new LocalFileUploadRequest().withFileName(fileName).withUserId(userInfo.getId().toString())
+							.withFileToUpload(temp).withContentType(contentType).withListener(new ProgressListener() {
+								@Override
+								public void progressChanged(ProgressEvent progressEvent) {
+									System.out.println(
+											"FileUpload bytesTransfered: : " + progressEvent.getBytesTransferred());
+
+								}
+							}));
+			assertNotNull(handle);
+			toDelete.add(handle);
+			assertEquals(md5, handle.getContentMd5());
+			assertEquals(fileName, handle.getFileName());
+			assertEquals(contentType, handle.getContentType());
+			assertEquals(new Long(temp.length()), handle.getContentSize());
+			assertEquals(userInfo.getId().toString(), handle.getCreatedBy());
+			assertNotNull(handle.getBucketName());
+			assertNotNull(handle.getKey());
+			assertTrue(handle.getKey().contains(fileName));
+			assertNotNull(handle.getContentSize());
+		} finally {
+			temp.delete();
+		}
 	}
 
 	/**

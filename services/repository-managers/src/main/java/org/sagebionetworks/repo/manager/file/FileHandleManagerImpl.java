@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
 import org.sagebionetworks.repo.manager.events.EventsCollector;
+import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
 import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -108,8 +109,12 @@ import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
+import com.amazonaws.services.s3.transfer.TransferManager;
+import com.amazonaws.services.s3.transfer.Upload;
+import com.amazonaws.services.s3.transfer.model.UploadResult;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.util.BinaryUtils;
@@ -161,9 +166,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	SynapseGoogleCloudStorageClient googleCloudStorageClient;
 
 	@Autowired
-	MultipartManager multipartManager;
-
-	@Autowired
 	ProjectSettingsManager projectSettingsManager;
 	
 	@Autowired
@@ -183,6 +185,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	
 	@Autowired
 	private EventsCollector statisticsCollector;
+
+	@Autowired
+	private TransferManager transferManager;
 
 	/**
 	 * Used by spring
@@ -582,10 +587,59 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	}
 
 	@Override
-	public S3FileHandle multipartUploadLocalFile(LocalFileUploadRequest request) {
-		return multipartManager.multipartUploadLocalFile(request);
-	}
+	public S3FileHandle uploadLocalFile(LocalFileUploadRequest request) {
+		try {
+			
+			StorageLocationSetting storageLocationSetting = null;
+			 
+			if (request.getStorageLocationId() != null) {
+				storageLocationSetting = storageLocationDAO.get(request.getStorageLocationId());
+			}
+			
+			// If the file name is provide then use it.
+			String fileName = request.getFileName();
+			if(fileName == null) {
+				// use the name of th passed file when the name is null.
+				fileName = request.getFileToUpload().getName();
+			}
+			// We let amazon's TransferManager do most of the heavy lifting
+			String key = MultipartUtils.createNewKey(request.getUserId(), fileName, storageLocationSetting);
+			String md5 = MD5ChecksumHelper.getMD5Checksum(request.getFileToUpload());
+			// Start the fileHandle
+			// We can now create a FileHandle for this upload
+			S3FileHandle handle = new S3FileHandle();
+			handle.setBucketName(MultipartUtils.getBucket(storageLocationSetting));
+			handle.setKey(key);
+			handle.setContentMd5(md5);
+			handle.setContentType(request.getContentType());
+			handle.setCreatedBy(request.getUserId());
+			handle.setCreatedOn(new Date(System.currentTimeMillis()));
+			handle.setEtag(UUID.randomUUID().toString());
+			handle.setFileName(fileName);
+			handle.setStorageLocationId(request.getStorageLocationId());
 
+			PutObjectRequest por = new PutObjectRequest(MultipartUtils.getBucket(storageLocationSetting), key, request.getFileToUpload());
+			ObjectMetadata meta = TransferUtils.prepareObjectMetadata(handle);
+			por.setMetadata(meta);
+			Upload upload = transferManager.upload(por);
+			// Make sure the caller can watch the progress.
+			upload.addProgressListener(request.getListener());
+			// This will throw an exception if the upload fails for any reason.
+			UploadResult results = upload.waitForUploadResult();
+			// get the metadata for this file.
+			meta = this.s3Client.getObjectMetadata(results.getBucketName(), results.getKey());
+			handle.setContentSize(meta.getContentLength());
+
+			handle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
+			// Save the file handle
+			handle = (S3FileHandle) fileHandleDao.createFile(handle);
+			// done
+			return handle;
+		} catch (Exception e) {
+			throw new DatastoreException(e);
+		} 
+	}
+	
 	@Override
 	@Deprecated
 	public List<UploadDestination> getUploadDestinations(UserInfo userInfo, String parentId) throws DatastoreException,

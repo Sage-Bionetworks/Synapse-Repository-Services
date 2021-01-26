@@ -67,7 +67,7 @@ public class FileHandleSupportImpl implements FileHandleSupport {
 	 */
 	@Override
 	public S3FileHandle multipartUploadLocalFile(LocalFileUploadRequest request) {
-		return fileHandleManager.multipartUploadLocalFile(request);
+		return fileHandleManager.uploadLocalFile(request);
 	}
 
 	/*

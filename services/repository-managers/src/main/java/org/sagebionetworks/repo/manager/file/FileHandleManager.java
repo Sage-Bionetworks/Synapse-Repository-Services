@@ -165,12 +165,12 @@ public interface FileHandleManager {
 	BucketCrossOriginConfiguration getBucketCrossOriginConfiguration();
 
 	/**
-	 * Multi-part upload a local file to S3.  This is used by workers.
+	 * Upload a local file to the standard Synapse S3 bucket and creates an file handle for the file.  This is used by workers.
 	 * 
 	 * @param request
 	 * @return
 	 */
-	S3FileHandle multipartUploadLocalFile(LocalFileUploadRequest request);
+	S3FileHandle uploadLocalFile(LocalFileUploadRequest request);
 
 	/**
 	 * Get the list of upload destinations for this parent
