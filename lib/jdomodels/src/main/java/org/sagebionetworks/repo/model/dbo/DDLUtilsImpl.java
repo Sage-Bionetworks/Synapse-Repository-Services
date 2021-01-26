@@ -3,9 +3,11 @@ package org.sagebionetworks.repo.model.dbo;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
@@ -85,31 +87,24 @@ public class DDLUtilsImpl implements DDLUtils{
 		if (mapping instanceof AutoTableMapping) {
 			return ((AutoTableMapping) mapping).getDDL();
 		} else {
-			return loadSchemaSql(mapping.getDDLFileName());
+			return loadSQLFromClasspath(mapping.getDDLFileName());
 		}
 	}
 
 	/**
-	 * Load the schema file from the classpath.
+	 * Load a SQL file from the classpath.
 	 * 
 	 * @return
 	 * @throws IOException
 	 */
-	public static String loadSchemaSql(String fileName) throws IOException{
-		InputStream in = DDLUtilsImpl.class.getClassLoader().getResourceAsStream(fileName);
-		if(in == null){
-			throw new RuntimeException("Failed to load the schema file from the classpath: "+fileName);
-		}
-		try{
-			StringWriter writer = new StringWriter();
-			byte[] buffer = new byte[1024];
-			int count = -1;
-			while((count = in.read(buffer, 0, buffer.length)) >0){
-				writer.write(new String(buffer, 0, count, "UTF-8"));
+	public static String loadSQLFromClasspath(String fileName) {
+		try(InputStream in = DDLUtilsImpl.class.getClassLoader().getResourceAsStream(fileName)){
+			if(in == null){
+				throw new RuntimeException("Failed to load the schema file from the classpath: "+fileName);
 			}
-			return writer.toString();
-		}finally{
-			in.close();
+			return IOUtils.toString(in, StandardCharsets.UTF_8.name());
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		}
 	}
 
@@ -132,7 +127,7 @@ public class DDLUtilsImpl implements DDLUtils{
 			log.info(FUNCTION_ALREADY_EXISTS+functionName);
 			return;
 		}
-		String functionDefinition = loadSchemaSql(fileName);
+		String functionDefinition = loadSQLFromClasspath(fileName);
 		try {
 			// create the function from its definition
 			createFunction(functionDefinition);

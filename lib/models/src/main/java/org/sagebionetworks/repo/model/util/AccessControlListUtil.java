@@ -9,6 +9,8 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserInfo;
 
+import com.google.common.collect.Sets;
+
 public class AccessControlListUtil {
 	/**
 	 * Will create an ACL that will grant all permissions to a given user for the given node.
@@ -39,6 +41,19 @@ public class AccessControlListUtil {
 
 	public static AccessControlList createACLToGrantEvaluationAdminAccess(String evaluationId, UserInfo info, Date now) {
 		return createACL(evaluationId, info, ModelConstants.EVALUATION_ADMIN_ACCESS_PERMISSIONS, now);
+	}
+	
+	/**
+	 * Helper to create ResourceAccess granting the provided user with the provided types.
+	 * @param principalId
+	 * @param types
+	 * @return
+	 */
+	public static ResourceAccess createResourceAccess(Long principalId, ACCESS_TYPE...types) {
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(principalId);
+		ra.setAccessType(Sets.newHashSet(types));
+		return ra;
 	}
 
 }
