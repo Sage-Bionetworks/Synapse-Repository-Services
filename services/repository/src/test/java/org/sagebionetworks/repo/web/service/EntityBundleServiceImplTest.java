@@ -60,6 +60,7 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableBundle;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.dataaccess.DataAccessService;
 import org.sagebionetworks.repo.web.service.discussion.DiscussionService;
@@ -91,6 +92,7 @@ public class EntityBundleServiceImplTest {
 	private Folder study;
 	private Folder studyWithId;
 	private FileEntity file;
+	private TableEntity table;
 	private org.sagebionetworks.repo.model.Annotations annos;
 	private Annotations annotationsV2;
 	private AccessControlList acl;
@@ -104,6 +106,8 @@ public class EntityBundleServiceImplTest {
 	private static final String STUDY_ID = "1";
 	private static final String FILE_ID = "syn2";
 	private static final long FILE_VERSION = 3L;
+	private static final String TABLE_ID = "syn3";
+	private static final long TABLE_VERSION = 5L;
 	private static final long BOOTSTRAP_USER_GROUP_ID = 0L;
 	
 	@BeforeEach
@@ -135,6 +139,13 @@ public class EntityBundleServiceImplTest {
 		file.setParentId(studyWithId.getId());
 		file.setVersionNumber(FILE_VERSION);
 		file.setId(FILE_ID);
+
+		table = new TableEntity();
+		table.setName(DUMMY_FILE);
+		table.setParentId(project.getId());
+		table.setVersionNumber(TABLE_VERSION);
+		table.setId(TABLE_ID);
+
 
 		// Annotations
 		annos = new org.sagebionetworks.repo.model.Annotations();
@@ -218,7 +229,7 @@ public class EntityBundleServiceImplTest {
 	}
 
 	@Test
-	public void testDoiAssociationForUnversionedRequestForVersionable() throws Exception {
+	public void testDoiAssociationWithNoVersion() throws Exception {
 		// Must retrieve entity to determine if it is VersionableEntity
 		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeEntity(true);
@@ -238,6 +249,30 @@ public class EntityBundleServiceImplTest {
 		assertNotNull(bundle);
 		assertEquals(doi, bundle.getDoiAssociation());
 	}
+
+	@Test
+	public void testDoiAssociationWithNoVersion_Table() throws Exception {
+		EntityBundleRequest request = new EntityBundleRequest();
+		request.setIncludeEntity(true);
+		request.setIncludeDOIAssociation(true);
+		DoiAssociation doi = new DoiAssociation();
+		doi.setObjectType(ObjectType.ENTITY);
+		doi.setObjectId(TABLE_ID);
+		doi.setObjectVersion(null);
+
+		when(mockEntityService.getEntity(eq(TEST_USER1), eq(TABLE_ID))).thenReturn(table);
+		when(mockDoiServiceV2.getDoiAssociation(TABLE_ID, ObjectType.ENTITY, null)).thenReturn(doi);
+
+		// Call under test. Note the bundle requests 'null' version
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, TABLE_ID, request);
+
+		// For Tables, unlike Files, we should get the DOI without a version:
+		verify(mockDoiServiceV2).getDoiAssociation(TABLE_ID, ObjectType.ENTITY, null);
+		verify(mockDoiServiceV2, never()).getDoiAssociation(TABLE_ID, ObjectType.ENTITY, TABLE_VERSION);
+		assertNotNull(bundle);
+		assertEquals(doi, bundle.getDoiAssociation());
+	}
+
 
 	@Test
 	public void testDoiV2NotFound() throws Exception {
