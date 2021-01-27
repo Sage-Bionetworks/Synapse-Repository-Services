@@ -657,5 +657,10 @@ public interface NodeDAO {
 	 * @return True if the node was updated, false otherwise
 	 */
 	boolean updateRevisionFileHandle(String nodeId, Long versionNumber, String fileHandleId);
+	
+	/**
+	 * Truncate everything expect bootstrap nodes.
+	 */
+	public void truncateAll();
 
 }

@@ -344,7 +344,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 		// Can download
 		if (accessType == DOWNLOAD) {
-			return canDownload(userInfo, entityId, benefactor, entityType);
+			return canDownload(userInfo, entityId, benefactor);
 		}
 		// Can upload
 		if (accessType == UPLOAD) {
@@ -384,7 +384,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		permissions.setCanEdit(hasAccess(entityId, UPDATE, userInfo).isAuthorized());
 		permissions.setCanCertifiedUserEdit(certifiedUserHasAccess(entityId, node.getNodeType(), UPDATE, userInfo).isAuthorized());
 		permissions.setCanView(hasAccess(entityId, READ, userInfo).isAuthorized());
-		permissions.setCanDownload(canDownload(userInfo, entityId, benefactor, node.getNodeType()).isAuthorized());
+		permissions.setCanDownload(canDownload(userInfo, entityId, benefactor).isAuthorized());
 		permissions.setCanUpload(canUpload(userInfo, entityId).isAuthorized());
 		permissions.setCanModerate(hasAccess(entityId, MODERATE, userInfo).isAuthorized());
 		permissions.setIsCertificationRequired(isCertificationRequired(userInfo, entityId));
@@ -417,7 +417,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	}
 
 	// entities have to meet access requirements (ARs)
-	private AuthorizationStatus canDownload(UserInfo userInfo, String entityId, String benefactor, EntityType entityType)
+	private AuthorizationStatus canDownload(UserInfo userInfo, String entityId, String benefactor)
 			throws DatastoreException, NotFoundException {
 		
 		if (userInfo.isAdmin()) {

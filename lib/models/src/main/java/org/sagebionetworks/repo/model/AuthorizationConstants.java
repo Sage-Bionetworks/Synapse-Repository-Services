@@ -1,5 +1,10 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES;
+
 /**
  * @author deflaux
  */
@@ -45,6 +50,18 @@ public class AuthorizationConstants {
 				}
 			}
 			return false;
+		}
+		
+		/**
+		 * Get all of the bootstrap node IDs.
+		 * @return
+		 */
+		public static List<Long> getAllBootstrapIds(){
+			List<Long> ids = new ArrayList<Long>(BOOTSTRAP_PRINCIPAL.values().length);
+			for(BOOTSTRAP_PRINCIPAL p: BOOTSTRAP_PRINCIPAL.values()) {
+				ids.add(p.getPrincipalId());
+			}
+			return ids;
 		}
 	}
 	

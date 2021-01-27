@@ -56,7 +56,7 @@ public class DBOAnnotatedExampleTest {
 	@Test
 	public void ddlTheSame() throws Exception{
 		String annotatedDll = ((AutoTableMapping<DBOAnnotatedExample>)new DBOAnnotatedExample().getTableMapping()).getDDL();
-		String fileDll = DDLUtilsImpl.loadSchemaSql("AnnotatedExample.sql");
+		String fileDll = DDLUtilsImpl.loadSQLFromClasspath("AnnotatedExample.sql");
 		assertEquals(fileDll.trim().replace("\r\n", "\n"), annotatedDll.trim());
 	}
 
