@@ -102,17 +102,9 @@ public class EntityPermissionDaoImplTest {
 
 	@AfterEach
 	public void after() {
-		aclDao.deleteAllofType(ObjectType.ENTITY);
+		aclDao.truncateAll();
 		dataTypeDao.truncateAllData();
-		if (project != null) {
-			nodeDao.delete(project.getId());
-		}
-		if (userOneId != null) {
-			userGroupDAO.delete(userOneId.toString());
-		}
-		if (userTwoId != null) {
-			userGroupDAO.delete(userTwoId.toString());
-		}
+		nodeDao.truncateAll();
 		if (userThreeId != null) {
 			userGroupDAO.delete(userThreeId.toString());
 		}

@@ -402,7 +402,7 @@ public class FormManagerImpl implements FormManager {
 
 	@Override
 	public void truncateAll() {
-		aclDao.deleteAllofType(ObjectType.FORM_GROUP);
+		aclDao.truncateAll();
 		formDao.truncateAll();
 	}
 
