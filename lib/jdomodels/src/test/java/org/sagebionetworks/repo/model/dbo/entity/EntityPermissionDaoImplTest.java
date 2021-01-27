@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -24,6 +25,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.dbo.dao.DataTypeDao;
 import org.sagebionetworks.repo.model.helper.DoaObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +46,9 @@ public class EntityPermissionDaoImplTest {
 
 	@Autowired
 	AccessControlListDAO aclDao;
+
+	@Autowired
+	DataTypeDao dataTypeDao;
 
 	@Autowired
 	private DoaObjectHelper<Node> nodeDaoHelper;
@@ -98,6 +103,7 @@ public class EntityPermissionDaoImplTest {
 	@AfterEach
 	public void after() {
 		aclDao.deleteAllofType(ObjectType.ENTITY);
+		dataTypeDao.truncateAllData();
 		if (project != null) {
 			nodeDao.delete(project.getId());
 		}
@@ -154,6 +160,17 @@ public class EntityPermissionDaoImplTest {
 	}
 
 	@Test
+	public void testGetEntityPermissionsWithNoAcl() {
+		setupNodeHierarchy(userOneId);
+		List<Long> entityIds = Arrays.asList(fileId);
+		// call under test
+		List<EntityPermission> results = entityPermissionDao.getEntityPermissions(userOneGroups, entityIds);
+		List<EntityPermission> expected = Arrays
+				.asList(new EntityPermission(fileId).withBenefactorId(null).withEntityType(null).withtHasRead(false));
+		assertEquals(expected, results);
+	}
+
+	@Test
 	public void testGetEntityPermissionsWithAclOnFile() {
 		setupNodeHierarchy(userOneId);
 		List<Long> entityIds = Arrays.asList(fileId);
@@ -163,8 +180,8 @@ public class EntityPermissionDaoImplTest {
 		});
 		// call under test
 		List<EntityPermission> results = entityPermissionDao.getEntityPermissions(userOneGroups, entityIds);
-		List<EntityPermission> expected = Arrays
-				.asList(new EntityPermission(fileId).withBenefactorId(fileId).withtHasRead(true));
+		List<EntityPermission> expected = Arrays.asList(new EntityPermission(fileId).withBenefactorId(fileId)
+				.withEntityType(EntityType.file).withtHasRead(true));
 		assertEquals(expected, results);
 	}
 
@@ -178,8 +195,8 @@ public class EntityPermissionDaoImplTest {
 		});
 		// call under test
 		List<EntityPermission> results = entityPermissionDao.getEntityPermissions(userOneGroups, entityIds);
-		List<EntityPermission> expected = Arrays
-				.asList(new EntityPermission(fileId).withBenefactorId(folderId).withtHasRead(true));
+		List<EntityPermission> expected = Arrays.asList(new EntityPermission(fileId).withBenefactorId(folderId)
+				.withEntityType(EntityType.file).withtHasRead(true));
 		assertEquals(expected, results);
 	}
 
@@ -193,8 +210,306 @@ public class EntityPermissionDaoImplTest {
 		});
 		// call under test
 		List<EntityPermission> results = entityPermissionDao.getEntityPermissions(userOneGroups, entityIds);
+		List<EntityPermission> expected = Arrays.asList(new EntityPermission(fileId).withBenefactorId(projectId)
+				.withEntityType(EntityType.file).withtHasRead(true));
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testGetEntityPermissionsWithAclOnProjectNoGrantAndAclOnFileWithGrant() {
+		setupNodeHierarchy(userOneId);
+		List<Long> entityIds = Arrays.asList(fileId);
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwoId, ACCESS_TYPE.READ));
+		});
+		aclHelper.create((a) -> {
+			a.setId(file.getId());
+			a.getResourceAccess().add(createResourceAccess(userOneId, ACCESS_TYPE.READ));
+		});
+		// call under test
+		List<EntityPermission> results = entityPermissionDao.getEntityPermissions(userOneGroups, entityIds);
+		List<EntityPermission> expected = Arrays.asList(new EntityPermission(fileId).withBenefactorId(fileId)
+				.withEntityType(EntityType.file).withtHasRead(true));
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testGetEntityPermissionsWithAclOnProjectWithGrantAndAclOnFileWithoutGrant() {
+		setupNodeHierarchy(userOneId);
+		List<Long> entityIds = Arrays.asList(fileId);
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userOneId, ACCESS_TYPE.READ));
+		});
+		aclHelper.create((a) -> {
+			a.setId(file.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwoId, ACCESS_TYPE.READ));
+		});
+		// call under test
+		List<EntityPermission> results = entityPermissionDao.getEntityPermissions(userOneGroups, entityIds);
+		List<EntityPermission> expected = Arrays.asList(new EntityPermission(fileId).withBenefactorId(fileId)
+				.withEntityType(EntityType.file).withtHasRead(false));
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testGetEntityPermissionsWithAclOnProjectWithDuplicateGrantToMultiplePricipals() {
+		setupNodeHierarchy(userOneId);
+		List<Long> entityIds = Arrays.asList(fileId);
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userOneId, ACCESS_TYPE.READ));
+			a.getResourceAccess().add(createResourceAccess(teamOneId, ACCESS_TYPE.READ));
+		});
+		// call under test
+		List<EntityPermission> results = entityPermissionDao.getEntityPermissions(userOneGroups, entityIds);
+		List<EntityPermission> expected = Arrays.asList(new EntityPermission(fileId).withBenefactorId(projectId)
+				.withEntityType(EntityType.file).withtHasRead(true));
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testGetEntityPermissionsWithCanDownload() {
+		setupNodeHierarchy(userOneId);
+		List<Long> entityIds = Arrays.asList(fileId);
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userOneId, ACCESS_TYPE.DOWNLOAD));
+		});
+		// call under test
+		List<EntityPermission> results = entityPermissionDao.getEntityPermissions(userOneGroups, entityIds);
+		List<EntityPermission> expected = Arrays.asList(new EntityPermission(fileId).withBenefactorId(projectId)
+				.withEntityType(EntityType.file).withHasDownload(true).withtHasRead(false));
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testGetEntityPermissionsWithCanDownloadAndCanRead() {
+		setupNodeHierarchy(userOneId);
+		List<Long> entityIds = Arrays.asList(fileId);
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userOneId, ACCESS_TYPE.DOWNLOAD));
+			a.getResourceAccess().add(createResourceAccess(teamOneId, ACCESS_TYPE.READ));
+		});
+		// call under test
+		List<EntityPermission> results = entityPermissionDao.getEntityPermissions(userOneGroups, entityIds);
+		List<EntityPermission> expected = Arrays.asList(new EntityPermission(fileId).withBenefactorId(projectId)
+				.withEntityType(EntityType.file).withHasDownload(true).withtHasRead(true));
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testGetEntityPermissionsWithMultipleFiles() {
+		setupNodeHierarchy(userOneId);
+		List<Long> entityIds = Arrays.asList(fileId, projectId, folderId);
+		aclHelper.create((a) -> {
+			a.setId(file.getId());
+			a.getResourceAccess().add(createResourceAccess(userOneId, ACCESS_TYPE.READ));
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userOneId, ACCESS_TYPE.DOWNLOAD));
+		});
+		// call under test
+		List<EntityPermission> results = entityPermissionDao.getEntityPermissions(userOneGroups, entityIds);
+		List<EntityPermission> expected = Arrays.asList(
+				new EntityPermission(fileId).withBenefactorId(fileId).withEntityType(EntityType.file)
+						.withHasDownload(false).withtHasRead(true),
+				new EntityPermission(projectId).withBenefactorId(projectId).withEntityType(EntityType.project)
+						.withHasDownload(true).withtHasRead(false),
+				new EntityPermission(folderId).withBenefactorId(projectId).withEntityType(EntityType.folder)
+						.withHasDownload(true).withtHasRead(false));
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testGetEntityPermissionsWithOpenData() {
+		setupNodeHierarchy(userOneId);
+		List<Long> entityIds = Arrays.asList(fileId);
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userOneId, ACCESS_TYPE.READ));
+		});
+		dataTypeDao.changeDataType(userOneId, file.getId(), ObjectType.ENTITY, DataType.OPEN_DATA);
+		// call under test
+		List<EntityPermission> results = entityPermissionDao.getEntityPermissions(userOneGroups, entityIds);
 		List<EntityPermission> expected = Arrays
-				.asList(new EntityPermission(fileId).withBenefactorId(projectId).withtHasRead(true));
+				.asList(new EntityPermission(fileId).withBenefactorId(projectId).withEntityType(EntityType.file)
+						.withHasDownload(false).withtHasRead(true).withDataType(DataType.OPEN_DATA));
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testGetEntityPermissionsWithSensitiveData() {
+		setupNodeHierarchy(userOneId);
+		List<Long> entityIds = Arrays.asList(fileId);
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userOneId, ACCESS_TYPE.READ));
+		});
+		dataTypeDao.changeDataType(userOneId, file.getId(), ObjectType.ENTITY, DataType.SENSITIVE_DATA);
+		// call under test
+		List<EntityPermission> results = entityPermissionDao.getEntityPermissions(userOneGroups, entityIds);
+		List<EntityPermission> expected = Arrays
+				.asList(new EntityPermission(fileId).withBenefactorId(projectId).withEntityType(EntityType.file)
+						.withHasDownload(false).withtHasRead(true).withDataType(DataType.SENSITIVE_DATA));
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testGetEntityPermissionsWithNoDataTypeSet() {
+		setupNodeHierarchy(userOneId);
+		List<Long> entityIds = Arrays.asList(fileId);
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userOneId, ACCESS_TYPE.READ));
+		});
+		// call under test
+		List<EntityPermission> results = entityPermissionDao.getEntityPermissions(userOneGroups, entityIds);
+		List<EntityPermission> expected = Arrays
+				.asList(new EntityPermission(fileId).withBenefactorId(projectId).withEntityType(EntityType.file)
+						.withHasDownload(false).withtHasRead(true).withDataType(DataType.SENSITIVE_DATA));
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testGetEntityPermissionsWithChangePermission() {
+		setupNodeHierarchy(userOneId);
+		List<Long> entityIds = Arrays.asList(fileId);
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userOneId, ACCESS_TYPE.CHANGE_PERMISSIONS));
+		});
+		// call under test
+		List<EntityPermission> results = entityPermissionDao.getEntityPermissions(userOneGroups, entityIds);
+		List<EntityPermission> expected = Arrays.asList(new EntityPermission(fileId).withBenefactorId(projectId)
+				.withEntityType(EntityType.file).withHasChangePermissions(true).withHasChangeSettings(false)
+				.withHasCreate(false).withHasDelete(false).withHasDownload(false).withtHasRead(false)
+				.withHasModerate(false).withDataType(DataType.SENSITIVE_DATA));
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testGetEntityPermissionsWithChangeSettings() {
+		setupNodeHierarchy(userOneId);
+		List<Long> entityIds = Arrays.asList(fileId);
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userOneId, ACCESS_TYPE.CHANGE_SETTINGS));
+		});
+		// call under test
+		List<EntityPermission> results = entityPermissionDao.getEntityPermissions(userOneGroups, entityIds);
+		List<EntityPermission> expected = Arrays.asList(new EntityPermission(fileId).withBenefactorId(projectId)
+				.withEntityType(EntityType.file).withHasChangePermissions(false).withHasChangeSettings(true)
+				.withHasCreate(false).withHasDelete(false).withHasDownload(false).withtHasRead(false)
+				.withHasModerate(false).withDataType(DataType.SENSITIVE_DATA));
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testGetEntityPermissionsWithCreate() {
+		setupNodeHierarchy(userOneId);
+		List<Long> entityIds = Arrays.asList(fileId);
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userOneId, ACCESS_TYPE.CREATE));
+		});
+		// call under test
+		List<EntityPermission> results = entityPermissionDao.getEntityPermissions(userOneGroups, entityIds);
+		List<EntityPermission> expected = Arrays.asList(new EntityPermission(fileId).withBenefactorId(projectId)
+				.withEntityType(EntityType.file).withHasChangePermissions(false).withHasChangeSettings(false)
+				.withHasCreate(true).withHasDelete(false).withHasDownload(false).withtHasRead(false)
+				.withHasModerate(false).withDataType(DataType.SENSITIVE_DATA));
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testGetEntityPermissionsWithDelete() {
+		setupNodeHierarchy(userOneId);
+		List<Long> entityIds = Arrays.asList(fileId);
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userOneId, ACCESS_TYPE.DELETE));
+		});
+		// call under test
+		List<EntityPermission> results = entityPermissionDao.getEntityPermissions(userOneGroups, entityIds);
+		List<EntityPermission> expected = Arrays.asList(new EntityPermission(fileId).withBenefactorId(projectId)
+				.withEntityType(EntityType.file).withHasChangePermissions(false).withHasChangeSettings(false)
+				.withHasCreate(false).withHasDelete(true).withHasDownload(false).withtHasRead(false)
+				.withHasModerate(false).withDataType(DataType.SENSITIVE_DATA));
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testGetEntityPermissionsWithDownload() {
+		setupNodeHierarchy(userOneId);
+		List<Long> entityIds = Arrays.asList(fileId);
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userOneId, ACCESS_TYPE.DOWNLOAD));
+		});
+		// call under test
+		List<EntityPermission> results = entityPermissionDao.getEntityPermissions(userOneGroups, entityIds);
+		List<EntityPermission> expected = Arrays.asList(new EntityPermission(fileId).withBenefactorId(projectId)
+				.withEntityType(EntityType.file).withHasChangePermissions(false).withHasChangeSettings(false)
+				.withHasCreate(false).withHasDelete(false).withHasDownload(true).withtHasRead(false)
+				.withHasModerate(false).withDataType(DataType.SENSITIVE_DATA));
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testGetEntityPermissionsWithRead() {
+		setupNodeHierarchy(userOneId);
+		List<Long> entityIds = Arrays.asList(fileId);
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userOneId, ACCESS_TYPE.READ));
+		});
+		// call under test
+		List<EntityPermission> results = entityPermissionDao.getEntityPermissions(userOneGroups, entityIds);
+		List<EntityPermission> expected = Arrays.asList(new EntityPermission(fileId).withBenefactorId(projectId)
+				.withEntityType(EntityType.file).withHasChangePermissions(false).withHasChangeSettings(false)
+				.withHasCreate(false).withHasDelete(false).withHasDownload(false).withtHasRead(true)
+				.withHasModerate(false).withDataType(DataType.SENSITIVE_DATA));
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testGetEntityPermissionsWithModerate() {
+		setupNodeHierarchy(userOneId);
+		List<Long> entityIds = Arrays.asList(fileId);
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userOneId, ACCESS_TYPE.MODERATE));
+		});
+		// call under test
+		List<EntityPermission> results = entityPermissionDao.getEntityPermissions(userOneGroups, entityIds);
+		List<EntityPermission> expected = Arrays.asList(new EntityPermission(fileId).withBenefactorId(projectId)
+				.withEntityType(EntityType.file).withHasChangePermissions(false).withHasChangeSettings(false)
+				.withHasCreate(false).withHasDelete(false).withHasDownload(false).withtHasRead(false)
+				.withHasModerate(true).withDataType(DataType.SENSITIVE_DATA));
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testGetEntityPermissionsWithAllPermissions() {
+		setupNodeHierarchy(userOneId);
+		List<Long> entityIds = Arrays.asList(fileId);
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess()
+					.add(createResourceAccess(userOneId, ACCESS_TYPE.CHANGE_PERMISSIONS, ACCESS_TYPE.CHANGE_SETTINGS,
+							ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE, ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.READ,
+							ACCESS_TYPE.MODERATE));
+		});
+		// call under test
+		List<EntityPermission> results = entityPermissionDao.getEntityPermissions(userOneGroups, entityIds);
+		List<EntityPermission> expected = Arrays.asList(new EntityPermission(fileId).withBenefactorId(projectId)
+				.withEntityType(EntityType.file).withHasChangePermissions(true).withHasChangeSettings(true)
+				.withHasCreate(true).withHasDelete(true).withHasDownload(true).withtHasRead(true).withHasModerate(true)
+				.withDataType(DataType.SENSITIVE_DATA));
 		assertEquals(expected, results);
 	}
 

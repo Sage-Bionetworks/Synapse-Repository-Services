@@ -8,6 +8,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.DataType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,11 +47,21 @@ public class EntityPermissionDaoImpl implements EntityPermissionDao {
 		namedJdbcTemplate.query(GET_ENTITY_PERMISSION_SQL, params, new RowCallbackHandler() {
 
 			@Override
-			public void processRow(ResultSet rs) throws SQLException {				
+			public void processRow(ResultSet rs) throws SQLException {
 				EntityPermission permission = results.get(rs.getLong("ENTITY_ID"));
 				permission.withBenefactorId(rs.getLong("BENEFACTOR_ID"));
-				permission.withtHasRead(rs.getLong("READ_COUNT") > 0);
+				permission.withEntityType(EntityType.valueOf(rs.getString("ENTITY_TYPE")));
+				String dataType = rs.getString("DATA_TYPE");
+				if (dataType != null) {
+					permission.withDataType(DataType.valueOf(dataType));
+				}
+				permission.withHasChangePermissions(rs.getLong("CHANGE_PERMISSIONS_COUNT") > 0);
+				permission.withHasChangeSettings(rs.getLong("CHANGE_SETTINGS_COUNT") > 0);
+				permission.withHasCreate(rs.getLong("CREATE_COUNT") > 0);
+				permission.withHasDelete(rs.getLong("DELETE_COUNT") > 0);
 				permission.withHasDownload(rs.getLong("DOWNLOAD_COUNT") > 0);
+				permission.withtHasRead(rs.getLong("READ_COUNT") > 0);
+				permission.withHasModerate(rs.getLong("MODERATE_COUNT") > 0);
 			}
 		});
 		return new ArrayList<EntityPermission>((results.values()));
