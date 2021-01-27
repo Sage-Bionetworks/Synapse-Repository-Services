@@ -229,7 +229,7 @@ public class EntityBundleServiceImplTest {
 	}
 
 	@Test
-	public void testDoiAssociationWithNoVersion() throws Exception {
+	public void testDoiAssociationForUnversionedRequestForVersionable() throws Exception {
 		// Must retrieve entity to determine if it is VersionableEntity
 		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeEntity(true);
@@ -251,7 +251,7 @@ public class EntityBundleServiceImplTest {
 	}
 
 	@Test
-	public void testDoiAssociationWithNoVersion_Table() throws Exception {
+	public void testDoiAssociationForUnversionedRequestForTable() throws Exception {
 		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeEntity(true);
 		request.setIncludeDOIAssociation(true);
