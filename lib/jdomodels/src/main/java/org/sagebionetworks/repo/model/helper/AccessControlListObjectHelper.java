@@ -17,10 +17,16 @@ public class AccessControlListObjectHelper implements DoaObjectHelper<AccessCont
 	@Autowired
 	AccessControlListDAO aclDao;
 
+	/**
+	 * Default version creates an Entity ACL.
+	 */
 	@Override
 	public AccessControlList create(Consumer<AccessControlList> consumer) {
+		return create(consumer, ObjectType.ENTITY);
+	}
+	
+	public AccessControlList create(Consumer<AccessControlList> consumer, ObjectType ownerType) {
 		AccessControlList acl = new AccessControlList();
-		ObjectType ownerType = ObjectType.ENTITY;
 		acl.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
 		acl.setCreationDate(new Date());
 		acl.setResourceAccess(new HashSet<>());

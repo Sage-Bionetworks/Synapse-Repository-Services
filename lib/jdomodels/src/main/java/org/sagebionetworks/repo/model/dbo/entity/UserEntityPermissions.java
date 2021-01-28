@@ -6,16 +6,16 @@ import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.EntityType;
 
 /**
- * Basic information about an Entity combined with a user's permissions on the
- * entity.
- *
+ * A user's permission on a single entity.
+ * 
  */
-public class EntityPermission {
+public class UserEntityPermissions {
 
 	private Long entityId;
 	private Long benefactorId;
 	private EntityType entityType;
 	private DataType dataType;
+	private boolean doesEntityExist;
 	private boolean hasRead;
 	private boolean hasDownload;
 	private boolean hasCreate;
@@ -24,12 +24,13 @@ public class EntityPermission {
 	private boolean hasChangeSettings;
 	private boolean hasModerate;
 
-	public EntityPermission(Long entityId) {
+	public UserEntityPermissions(Long entityId) {
 		super();
 		this.entityId = entityId;
 		this.benefactorId = null;
 		this.entityType = null;
 		this.dataType = DataType.SENSITIVE_DATA;
+		this.doesEntityExist = false;
 		this.hasRead = false;
 		this.hasDownload = false;
 		this.hasCreate = false;
@@ -51,7 +52,7 @@ public class EntityPermission {
 	/**
 	 * @param entityId the entityId to set
 	 */
-	public EntityPermission withEntityId(Long entityId) {
+	public UserEntityPermissions withEntityId(Long entityId) {
 		this.entityId = entityId;
 		return this;
 	}
@@ -70,7 +71,7 @@ public class EntityPermission {
 	 * 
 	 * @param benefactorId the benefactorId to set
 	 */
-	public EntityPermission withBenefactorId(Long benefactorId) {
+	public UserEntityPermissions withBenefactorId(Long benefactorId) {
 		this.benefactorId = benefactorId;
 		return this;
 	}
@@ -87,7 +88,7 @@ public class EntityPermission {
 	/**
 	 * @param entityType the entityType to set
 	 */
-	public EntityPermission withEntityType(EntityType entityType) {
+	public UserEntityPermissions withEntityType(EntityType entityType) {
 		this.entityType = entityType;
 		return this;
 	}
@@ -102,8 +103,23 @@ public class EntityPermission {
 	/**
 	 * The data type determines if there are additional restrictions on this entity.
 	 */
-	public EntityPermission withDataType(DataType dataType) {
+	public UserEntityPermissions withDataType(DataType dataType) {
 		this.dataType = dataType;
+		return this;
+	}
+
+	/**
+	 * Does this entity exist?
+	 */
+	public boolean doesEntityExist() {
+		return doesEntityExist;
+	}
+
+	/**
+	 * Does this entity exist?
+	 */
+	public UserEntityPermissions withtDoesEntityExist(boolean doesEntityExist) {
+		this.doesEntityExist = doesEntityExist;
 		return this;
 	}
 
@@ -112,7 +128,7 @@ public class EntityPermission {
 	 * 
 	 * @return the hasRead
 	 */
-	public boolean isHasRead() {
+	public boolean hasRead() {
 		return hasRead;
 	}
 
@@ -121,7 +137,7 @@ public class EntityPermission {
 	 * 
 	 * @param hasRead the hasRead to set
 	 */
-	public EntityPermission withtHasRead(boolean hasRead) {
+	public UserEntityPermissions withHasRead(boolean hasRead) {
 		this.hasRead = hasRead;
 		return this;
 	}
@@ -129,14 +145,14 @@ public class EntityPermission {
 	/**
 	 * Does the user have the download permission on this entity?
 	 */
-	public boolean isHasDownload() {
+	public boolean hasDownload() {
 		return hasDownload;
 	}
 
 	/**
 	 * Does the user have the download permission on this entity?
 	 */
-	public EntityPermission withHasDownload(boolean hasDownload) {
+	public UserEntityPermissions withHasDownload(boolean hasDownload) {
 		this.hasDownload = hasDownload;
 		return this;
 	}
@@ -144,14 +160,14 @@ public class EntityPermission {
 	/**
 	 * Does the user have the create permission on this entity?
 	 */
-	public boolean isHasCreate() {
+	public boolean hasCreate() {
 		return hasCreate;
 	}
 
 	/**
 	 * Does the user have the create permission on this entity?
 	 */
-	public EntityPermission withHasCreate(boolean hasCreate) {
+	public UserEntityPermissions withHasCreate(boolean hasCreate) {
 		this.hasCreate = hasCreate;
 		return this;
 	}
@@ -159,14 +175,14 @@ public class EntityPermission {
 	/**
 	 * Does the user have the delete permission on this entity?
 	 */
-	public boolean isHasDelete() {
+	public boolean hasDelete() {
 		return hasDelete;
 	}
 
 	/**
 	 * Does the user have the delete permission on this entity?
 	 */
-	public EntityPermission withHasDelete(boolean hasDelete) {
+	public UserEntityPermissions withHasDelete(boolean hasDelete) {
 		this.hasDelete = hasDelete;
 		return this;
 	}
@@ -174,14 +190,14 @@ public class EntityPermission {
 	/**
 	 * Does the user have the change_permission permission on this entity?
 	 */
-	public boolean isHasChangePermissions() {
+	public boolean hasChangePermissions() {
 		return hasChangePermissions;
 	}
 
 	/**
 	 * Does the user have the change_permission permission on this entity?
 	 */
-	public EntityPermission withHasChangePermissions(boolean hasChangePermissions) {
+	public UserEntityPermissions withHasChangePermissions(boolean hasChangePermissions) {
 		this.hasChangePermissions = hasChangePermissions;
 		return this;
 	}
@@ -189,14 +205,14 @@ public class EntityPermission {
 	/**
 	 * Does the user have the change_settings permission on this entity?
 	 */
-	public boolean isHasChangeSettings() {
+	public boolean hasChangeSettings() {
 		return hasChangeSettings;
 	}
 
 	/**
 	 * Does the user have the change_settings permission on this entity?
 	 */
-	public EntityPermission withHasChangeSettings(boolean hasChangeSettings) {
+	public UserEntityPermissions withHasChangeSettings(boolean hasChangeSettings) {
 		this.hasChangeSettings = hasChangeSettings;
 		return this;
 	}
@@ -204,22 +220,22 @@ public class EntityPermission {
 	/**
 	 * Does the user have the moderate permission on this entity?
 	 */
-	public boolean isHasModerate() {
+	public boolean hasModerate() {
 		return hasModerate;
 	}
 
 	/**
 	 * Does the user have the moderate permission on this entity?
 	 */
-	public EntityPermission withHasModerate(boolean hasModerate) {
+	public UserEntityPermissions withHasModerate(boolean hasModerate) {
 		this.hasModerate = hasModerate;
 		return this;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(benefactorId, dataType, entityId, entityType, hasChangePermissions, hasChangeSettings,
-				hasCreate, hasDelete, hasDownload, hasModerate, hasRead);
+		return Objects.hash(benefactorId, dataType, doesEntityExist, entityId, entityType, hasChangePermissions,
+				hasChangeSettings, hasCreate, hasDelete, hasDownload, hasModerate, hasRead);
 	}
 
 	@Override
@@ -227,24 +243,25 @@ public class EntityPermission {
 		if (this == obj) {
 			return true;
 		}
-		if (!(obj instanceof EntityPermission)) {
+		if (!(obj instanceof UserEntityPermissions)) {
 			return false;
 		}
-		EntityPermission other = (EntityPermission) obj;
+		UserEntityPermissions other = (UserEntityPermissions) obj;
 		return Objects.equals(benefactorId, other.benefactorId) && dataType == other.dataType
-				&& Objects.equals(entityId, other.entityId) && entityType == other.entityType
-				&& hasChangePermissions == other.hasChangePermissions && hasChangeSettings == other.hasChangeSettings
-				&& hasCreate == other.hasCreate && hasDelete == other.hasDelete && hasDownload == other.hasDownload
-				&& hasModerate == other.hasModerate && hasRead == other.hasRead;
+				&& doesEntityExist == other.doesEntityExist && Objects.equals(entityId, other.entityId)
+				&& entityType == other.entityType && hasChangePermissions == other.hasChangePermissions
+				&& hasChangeSettings == other.hasChangeSettings && hasCreate == other.hasCreate
+				&& hasDelete == other.hasDelete && hasDownload == other.hasDownload && hasModerate == other.hasModerate
+				&& hasRead == other.hasRead;
 	}
 
 	@Override
 	public String toString() {
-		return "EntityPermission [entityId=" + entityId + ", benefactorId=" + benefactorId + ", entityType="
-				+ entityType + ", dataType=" + dataType + ", hasRead=" + hasRead + ", hasDownload=" + hasDownload
-				+ ", hasCreate=" + hasCreate + ", hasDelete=" + hasDelete + ", hasChangePermissions="
-				+ hasChangePermissions + ", hasChangeSettings=" + hasChangeSettings + ", hasModerate=" + hasModerate
-				+ "]";
+		return "UserEntityPermissions [entityId=" + entityId + ", benefactorId=" + benefactorId + ", entityType="
+				+ entityType + ", dataType=" + dataType + ", doesEntityExist=" + doesEntityExist + ", hasRead="
+				+ hasRead + ", hasDownload=" + hasDownload + ", hasCreate=" + hasCreate + ", hasDelete=" + hasDelete
+				+ ", hasChangePermissions=" + hasChangePermissions + ", hasChangeSettings=" + hasChangeSettings
+				+ ", hasModerate=" + hasModerate + "]";
 	}
 
 }

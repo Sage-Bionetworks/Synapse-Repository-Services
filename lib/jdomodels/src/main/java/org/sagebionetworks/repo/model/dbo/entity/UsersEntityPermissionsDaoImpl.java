@@ -19,27 +19,27 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class EntityPermissionDaoImpl implements EntityPermissionDao {
+public class UsersEntityPermissionsDaoImpl implements UsersEntityPermissionsDao {
 
 	public static final String GET_ENTITY_PERMISSION_SQL = DDLUtilsImpl
-			.loadSQLFromClasspath("sql/EntityPermissionDao/GetEntityPermissions.sql");
+			.loadSQLFromClasspath("sql/GetEntityPermissions.sql");
 
 	@Autowired
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
 
 	@Override
-	public List<EntityPermission> getEntityPermissions(Set<Long> userGroups, List<Long> entityIds) {
+	public List<UserEntityPermissions> getEntityPermissions(Set<Long> userGroups, List<Long> entityIds) {
 		ValidateArgument.required(userGroups, "userGroups");
 		if (userGroups.isEmpty()) {
 			throw new IllegalArgumentException("User's groups cannot be empty");
 		}
-		ValidateArgument.required(entityIds, "entityIdss");
+		ValidateArgument.required(entityIds, "entityIds");
 		if (entityIds.isEmpty()) {
 			return Collections.emptyList();
 		}
-		LinkedHashMap<Long, EntityPermission> results = new LinkedHashMap<Long, EntityPermission>(entityIds.size());
+		LinkedHashMap<Long, UserEntityPermissions> results = new LinkedHashMap<Long, UserEntityPermissions>(entityIds.size());
 		for (Long entityId : entityIds) {
-			results.put(entityId, new EntityPermission(entityId));
+			results.put(entityId, new UserEntityPermissions(entityId));
 		}
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("usersGroups", userGroups);
@@ -48,7 +48,8 @@ public class EntityPermissionDaoImpl implements EntityPermissionDao {
 
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
-				EntityPermission permission = results.get(rs.getLong("ENTITY_ID"));
+				UserEntityPermissions permission = results.get(rs.getLong("ENTITY_ID"));
+				permission.withtDoesEntityExist(true);
 				permission.withBenefactorId(rs.getLong("BENEFACTOR_ID"));
 				permission.withEntityType(EntityType.valueOf(rs.getString("ENTITY_TYPE")));
 				String dataType = rs.getString("DATA_TYPE");
@@ -60,11 +61,11 @@ public class EntityPermissionDaoImpl implements EntityPermissionDao {
 				permission.withHasCreate(rs.getLong("CREATE_COUNT") > 0);
 				permission.withHasDelete(rs.getLong("DELETE_COUNT") > 0);
 				permission.withHasDownload(rs.getLong("DOWNLOAD_COUNT") > 0);
-				permission.withtHasRead(rs.getLong("READ_COUNT") > 0);
+				permission.withHasRead(rs.getLong("READ_COUNT") > 0);
 				permission.withHasModerate(rs.getLong("MODERATE_COUNT") > 0);
 			}
 		});
-		return new ArrayList<EntityPermission>((results.values()));
+		return new ArrayList<UserEntityPermissions>((results.values()));
 	}
 
 }

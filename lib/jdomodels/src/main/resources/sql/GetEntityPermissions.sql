@@ -1,10 +1,20 @@
+/*
+ * For each entity, the RECURSIVE BEN table will contain one row for the entity plus an additional row for each entity in its
+ * hierarchy until an ACL is found.  Note: Only the last row with an ACL_ID will have a correct benefactorId.  The finally
+ * BEN table will only contain the last valid row for each entity since all rows with null ACL ids are filtered out.
+ * 
+ * The ACC table will contain one row for each distinct permission that the user has been granted to any of their principals
+ * on the ACL identified from the BEN table.
+ * 
+ * The final table pivots each row from the ACC table to a column by grouping on the entity id.
+ */
 WITH
 	BEN AS (
 		WITH RECURSIVE BEN (ENTITY_ID, ENTITY_TYPE, PARENT_ID, BENEFACTOR_ID, ACL_ID, DEPTH) AS
 			(
 				SELECT N.ID, N.NODE_TYPE, N.PARENT_ID, N.ID AS BENEFACTOR_ID, A.ID AS ACL_ID, 1 AS DEPTH
 					FROM JDONODE N LEFT JOIN ACL A ON (N.ID = A.OWNER_ID AND A.OWNER_TYPE = 'ENTITY')
-                    WHERE N.ID IN (:entityIds)
+					WHERE N.ID IN (:entityIds)
 				UNION ALL
 				SELECT BEN.ENTITY_ID, BEN.ENTITY_TYPE, N.PARENT_ID, N.ID AS BENEFACTOR_ID,
 					A.ID AS ACL_ID, BEN.DEPTH + 1 AS DEPTH 
