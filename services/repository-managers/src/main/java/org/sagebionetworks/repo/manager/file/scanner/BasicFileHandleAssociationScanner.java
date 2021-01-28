@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager.file.scanner;
 
+import java.sql.ResultSet;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -17,85 +19,144 @@ import com.google.common.collect.ImmutableMap;
 /**
  * Basic implementation of a file handle association scanner that automatically generates the needed
  * queries off of a {@link TableMapping}. This implementation can be used when the mapping table
- * contains the file handle id as a defined column and a backup id exists on the mapping.
+ * contains the file handle id as a defined column and a backup id exists on the mapping. By default
+ * a simple row mapper is used that considers the selected column a holder to the file handle id.
+ * Additionally providing a custom {@link RowMapper} allows more flexibility in extracting the file
+ * handle ids from the selected file handle column (e.g. if the file handle is stored inside a blob in the column).
  * 
  * @author Marco Marasca
  *
  */
 public class BasicFileHandleAssociationScanner implements FileHandleAssociationScanner {
-	
+
 	private static final String DEFAULT_FILE_ID_COLUMN_NAME = "FILE_HANDLE_ID";
-	
+
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
-	
+	private RowMapper<ScannedFileHandleAssociation> rowMapper;
+
 	private FieldColumn backupIdColumn;
-	private FieldColumn fileHandleIdColumn;
-	
+	private FieldColumn fileHandleColumn;
+
+	// Cached statement for the min max range query
 	private String sqlMinMaxRangeStm;
+	// Cached statement for the batch select query
 	private String sqlSelectBatchStm;
-	
+
+	/**
+	 * Construct a scanner that uses a default FILE_HANDLE_ID column to extract a single file handle id
+	 * from each scanned row
+	 * 
+	 * @param namedJdbcTemplate The jdbc template to use
+	 * @param tableMapping      The table mapping used as reference
+	 */
 	public BasicFileHandleAssociationScanner(NamedParameterJdbcTemplate namedJdbcTemplate, TableMapping<?> tableMapping) {
-		this(namedJdbcTemplate, tableMapping, DEFAULT_FILE_ID_COLUMN_NAME);
+		this(namedJdbcTemplate, tableMapping, DEFAULT_FILE_ID_COLUMN_NAME, null);
 	}
-	
-	public BasicFileHandleAssociationScanner(NamedParameterJdbcTemplate namedJdbcTemplate, TableMapping<?> tableMapping, String fileHandleIdColumn) {
+
+	/**
+	 * Construct a scanner that uses the given file handle column name reference as the holder of
+	 * potential file handles. The name of the column must be defined in the given table mapping. The
+	 * {@link ScannedFileHandleAssociation} is built using the given row mapper. If the row mapper is
+	 * null a default row mapper is built that treats the given file handle column as a single file
+	 * handle id reference.
+	 * 
+	 * 
+	 * @param namedJdbcTemplate The jdbc template to use
+	 * @param tableMapping      The table mapping used as reference
+	 * @param fileHandleColumn  The name of the column holding the file handle id reference
+	 * @param rowMapper         The row mapper used to build a {@link ScannedFileHandleAssociation} from
+	 *                          a row, if null a default row mapper is used that treats the
+	 *                          filehandleColumn as a direct reference to the file handle id
+	 */
+	public BasicFileHandleAssociationScanner(NamedParameterJdbcTemplate namedJdbcTemplate, TableMapping<?> tableMapping,
+			String fileHandleColumn, RowMapper<ScannedFileHandleAssociation> rowMapper) {
 		this.namedJdbcTemplate = namedJdbcTemplate;
-		initTableMapping(tableMapping, fileHandleIdColumn);
+		initScanner(tableMapping, fileHandleColumn, rowMapper);
 	}
-	
+
 	@Override
 	public IdRange getIdRange() {
 		// Using a null as the mid parameter allows to create a prepared statement
 		return namedJdbcTemplate.getJdbcTemplate().queryForObject(sqlMinMaxRangeStm, null, (rs, i) -> {
 			long minId = rs.getLong(1);
-			
+
 			if (rs.wasNull()) {
 				minId = -1;
 			}
-			
+
 			long maxId = rs.getLong(2);
-			
+
 			if (rs.wasNull()) {
 				maxId = -1;
 			}
-			
+
 			return new IdRange(minId, maxId);
 		});
 	}
 
 	@Override
-	public Iterable<ScannedFileHandle> scanRange(IdRange range, long batchSize) {
+	public Iterable<ScannedFileHandleAssociation> scanRange(IdRange range, long batchSize) {
 		ValidateArgument.required(range, "The range");
-		ValidateArgument.requirement(range.getMinId() <= range.getMaxId(), "Invalid range, the minId must be lesser or equal than the maxId");
+		ValidateArgument.requirement(range.getMinId() <= range.getMaxId(),
+				"Invalid range, the minId must be lesser or equal than the maxId");
 		ValidateArgument.requirement(batchSize > 0, "Invalid batchSize, must be greater than 0");
-		
-		final Map<String, Object> params = ImmutableMap.of(
-				DMLUtils.BIND_MIN_ID, range.getMinId(),
-				DMLUtils.BIND_MAX_ID, range.getMaxId()
-		);
 
-		final RowMapper<ScannedFileHandle> rowMapper = (rs, i) -> new ScannedFileHandle(rs.getString(backupIdColumn.getColumnName()), rs.getLong(fileHandleIdColumn.getColumnName()));
-		
+		final Map<String, Object> params = ImmutableMap.of(DMLUtils.BIND_MIN_ID, range.getMinId(), DMLUtils.BIND_MAX_ID, range.getMaxId());
+
 		return new QueryStreamIterable<>(namedJdbcTemplate, rowMapper, sqlSelectBatchStm, params, batchSize);
 	}
-	
-	void initTableMapping(TableMapping<?> tableMapping, String fileHandleIdColumnName) {
+
+	private void initScanner(TableMapping<?> tableMapping, String fileHandleColumnName, RowMapper<ScannedFileHandleAssociation> rowMapper) {
 		// Makes sure the file handle column is present in the mapping
-		fileHandleIdColumn = Arrays.stream(tableMapping.getFieldColumns())
-				.filter(f -> f.getColumnName().equals(fileHandleIdColumnName))
+		this.fileHandleColumn = Arrays.stream(tableMapping.getFieldColumns())
+				.filter(f -> f.getColumnName().equals(fileHandleColumnName))
 				.findFirst()
-				.orElseThrow(() -> new IllegalArgumentException("The column " + fileHandleIdColumnName + " is not defined for mapping " + tableMapping.getClass().getName()));
+				.orElseThrow(() -> new IllegalArgumentException("The column " + fileHandleColumnName + " is not defined for mapping " + tableMapping.getClass().getName()));
 		
 		// Makes sure that the mapping is defined with a backup id
-		backupIdColumn = Arrays.stream(tableMapping.getFieldColumns())
+		this.backupIdColumn = Arrays.stream(tableMapping.getFieldColumns())
 				.filter(FieldColumn::isBackupId)
 				.findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("The mapping " + tableMapping.getClass().getName() + " does not define a backup id column"));
-		
-		sqlMinMaxRangeStm = generateMinMaxStatement(tableMapping);
-		sqlSelectBatchStm = generateSelectBatchStatement(tableMapping, backupIdColumn, fileHandleIdColumn);
+
+		this.sqlMinMaxRangeStm = generateMinMaxStatement(tableMapping);
+		this.sqlSelectBatchStm = generateSelectBatchStatement(tableMapping, backupIdColumn, fileHandleColumn);
+
+		if (rowMapper == null) {
+			this.rowMapper = getDefaultRowMapper(backupIdColumn, fileHandleColumn);
+		} else {
+			this.rowMapper = rowMapper;
+		}
+
 	}
-	
+
+	/**
+	 * Construct a row mapper that extracts a single file handle id from the given column
+	 * 
+	 * @param backupIdColumn   The {@link FieldColumn} holding the backup id
+	 * @param fileHandleColumn The {@link FieldColumn} holding the file handle id
+	 * @return A row mapper that builds a {@link ScannedFileHandleAssociation} with a single file handle
+	 *         extracted from the given fileHandleIdColumn
+	 */
+	private static RowMapper<ScannedFileHandleAssociation> getDefaultRowMapper(FieldColumn backupIdColumn, FieldColumn fileHandleColumn) {
+		return (ResultSet rs, int rowNumber) -> {
+
+			final String objectId = rs.getString(backupIdColumn.getColumnName());
+
+			ScannedFileHandleAssociation scanned = new ScannedFileHandleAssociation(objectId);
+			
+			Long fileHandleId = rs.getLong(fileHandleColumn.getColumnName());
+			
+			if (rs.wasNull()) {
+				scanned.withFileHandleIds(Collections.emptyList());
+			} else {
+				scanned.withFileHandleIds(Collections.singletonList(fileHandleId));
+			}
+
+			return scanned;
+		};
+	}
+
 	/**
 	 * Generates the SQL statement to select the min and max backup id from the given mapping
 	 * </p>
@@ -104,19 +165,20 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 	private static String generateMinMaxStatement(TableMapping<?> mapping) {
 		return DMLUtils.createGetMinMaxByBackupKeyStatement(mapping);
 	}
-	
+
 	/**
-	 * Generates the SQL statement to select the (distinct) backup id and file handle id columns in a range of backup ids using the given mapping
+	 * Generates the SQL statement to select the (distinct) backup id and file handle id columns in a
+	 * range of backup ids using the given mapping
 	 * </p>
 	 * <code>SELECT DISTINCT ID, FILE_HANLDE_ID FROM TABLE WHERE ID BETWEEN :MIN AND :MAX AND FILE_HANDLE_ID IS NOT NULL ORDER BY ID, OTHER_PK_ID</code>
 	 */
-	private static String generateSelectBatchStatement(TableMapping<?> mapping, FieldColumn backupIdColumn, FieldColumn fileHandleIDColumn) {
+	private static String generateSelectBatchStatement(TableMapping<?> mapping, FieldColumn backupIdColumn, FieldColumn fileHandleColumn) {
 		DMLUtils.validateMigratableTableMapping(mapping);
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT `");
 		builder.append(backupIdColumn.getColumnName());
 		builder.append("`, `");
-		builder.append(fileHandleIDColumn.getColumnName());
+		builder.append(fileHandleColumn.getColumnName());
 		builder.append("`");
 		builder.append(" FROM ");
 		builder.append(mapping.getTableName());
@@ -127,15 +189,12 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 		builder.append(" AND :");
 		builder.append(DMLUtils.BIND_MAX_ID);
 		builder.append(" AND ");
-		builder.append(fileHandleIDColumn.getColumnName());
+		builder.append(fileHandleColumn.getColumnName());
 		builder.append(" IS NOT NULL");
 		builder.append(" ORDER BY ");
-		builder.append(Arrays.stream(mapping.getFieldColumns())
-				.filter(c -> c.isPrimaryKey())
-				.map(FieldColumn::getColumnName)
-				.collect(Collectors.joining("`, `", "`", "`"))
-		);
-		
+		builder.append(Arrays.stream(mapping.getFieldColumns()).filter(c -> c.isPrimaryKey()).map(FieldColumn::getColumnName)
+				.collect(Collectors.joining("`, `", "`", "`")));
+
 		return builder.toString();
 	}
 

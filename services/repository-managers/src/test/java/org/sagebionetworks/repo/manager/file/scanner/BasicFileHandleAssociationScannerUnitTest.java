@@ -40,6 +40,9 @@ public class BasicFileHandleAssociationScannerUnitTest {
 	@Mock
 	private NamedParameterJdbcTemplate mockParamaterizedJdbcTemplate;
 	
+	@Mock
+	private RowMapper<ScannedFileHandleAssociation> mockCustomRowMapper;
+	
 	@BeforeEach
 	public void before() {
 		MockitoAnnotations.initMocks(this);
@@ -64,7 +67,7 @@ public class BasicFileHandleAssociationScannerUnitTest {
 		);
 		
 		// Call under test
-		new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping, "FILE_ID");
+		new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping, "FILE_ID", null);
 	}
 	
 	@Test
@@ -136,7 +139,7 @@ public class BasicFileHandleAssociationScannerUnitTest {
 		IdRange idRange = new IdRange(1, 3);
 		long batchSize = 2;
 		
-		List<ScannedFileHandle> result = new ArrayList<>();
+		List<ScannedFileHandleAssociation> result = new ArrayList<>();
 		
 		// Call under test
 		scanner.scanRange(idRange, batchSize).forEach(result::add);
@@ -169,7 +172,7 @@ public class BasicFileHandleAssociationScannerUnitTest {
 		IdRange idRange = new IdRange(1, 3);
 		long batchSize = 2;
 		
-		List<ScannedFileHandle> result = new ArrayList<>();
+		List<ScannedFileHandleAssociation> result = new ArrayList<>();
 		
 		// Call under test
 		scanner.scanRange(idRange, batchSize).forEach(result::add);
@@ -194,12 +197,12 @@ public class BasicFileHandleAssociationScannerUnitTest {
 		when(mockParamaterizedJdbcTemplate.query(anyString(), anyMap(), any(RowMapper.class))).thenReturn(
 				// First batch
 				Arrays.asList(
-					new ScannedFileHandle("1", 1L),
-					new ScannedFileHandle("2", 2L)
+					new ScannedFileHandleAssociation("1", 1L),
+					new ScannedFileHandleAssociation("2", 2L)
 				),
 				// Second batch
 				Arrays.asList(
-					new ScannedFileHandle("3", 3L)
+					new ScannedFileHandleAssociation("3", 3L)
 				),
 				// No more restuls
 				Collections.emptyList()
@@ -210,13 +213,13 @@ public class BasicFileHandleAssociationScannerUnitTest {
 		IdRange idRange = new IdRange(1, 3);
 		long batchSize = 2;
 		
-		List<ScannedFileHandle> expected = Arrays.asList(
-			new ScannedFileHandle("1", 1L),
-			new ScannedFileHandle("2", 2L),
-			new ScannedFileHandle("3", 3L)
+		List<ScannedFileHandleAssociation> expected = Arrays.asList(
+			new ScannedFileHandleAssociation("1", 1L),
+			new ScannedFileHandleAssociation("2", 2L),
+			new ScannedFileHandleAssociation("3", 3L)
 		);
 		
-		List<ScannedFileHandle> result = new ArrayList<>();
+		List<ScannedFileHandleAssociation> result = new ArrayList<>();
 		
 		// Call under test
 		scanner.scanRange(idRange, batchSize).forEach(result::add);
@@ -229,6 +232,35 @@ public class BasicFileHandleAssociationScannerUnitTest {
 		
 		assertEquals(idRange.getMinId(), paramsCaptor.getAllValues().get(0).get(DMLUtils.BIND_MIN_ID));
 		assertEquals(idRange.getMaxId(), paramsCaptor.getAllValues().get(0).get(DMLUtils.BIND_MAX_ID));
+	}
+	
+	@Test
+	public void testScaneRangeWithCustomRowMapper() {
+		TableMapping<Object> mapping = generateMapping("SOME_TABLE", 
+				new FieldColumn("id", "ID", true).withIsBackupId(true),
+				new FieldColumn("id", "VERSION", true),
+				new FieldColumn("fileHandleId", "FILE_HANDLE_ID")
+		);
+		
+		when(mockParamaterizedJdbcTemplate.query(anyString(), anyMap(), any(RowMapper.class))).thenReturn(
+				// No more restuls
+				Collections.emptyList()
+		);
+		
+		FileHandleAssociationScanner scanner = new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping, "FILE_HANDLE_ID", mockCustomRowMapper);
+		
+		IdRange idRange = new IdRange(1, 3);
+		long batchSize = 2;
+		
+		List<ScannedFileHandleAssociation> result = new ArrayList<>();
+		
+		// Call under test
+		scanner.scanRange(idRange, batchSize).forEach(result::add);
+		
+		assertEquals(Collections.emptyList(), result);
+
+		verify(mockParamaterizedJdbcTemplate).query(eq("SELECT `ID`, `FILE_HANDLE_ID` FROM SOME_TABLE WHERE `ID` BETWEEN :BMINID AND :BMAXID AND FILE_HANDLE_ID IS NOT NULL ORDER BY `ID`, `VERSION` LIMIT :KEY_LIMIT OFFSET :KEY_OFFSET"), anyMap(), eq(mockCustomRowMapper));
+		
 	}
 	
 	@Test
