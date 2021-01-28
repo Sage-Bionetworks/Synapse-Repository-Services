@@ -246,6 +246,44 @@ public class BasicFileHandleAssociationScannerAutowireTest {
 	}
 	
 	@Test
+	public void testScanRangeWithIdAndFileHandleIdWithMultipleBatchesAndSkipPages() throws IOException {
+		TableMapping<?> tableMapping = generateMapping(TABLE_NAME, DDL_ID_AND_FILE_HANDLE_ID, new FieldColumn[] {
+				new FieldColumn("id", "ID", true).withIsBackupId(true),
+				new FieldColumn("fileHandleId", DEFAULT_FILE_ID_COLUMN_NAME)
+		});
+		
+		// Uses the default
+		String fileHandleIdColumn = null;
+		long batchSize = 2;
+		
+		List<ScannedFileHandleAssociation> expected = Arrays.asList(
+				new ScannedFileHandleAssociation("1", 1L),
+				new ScannedFileHandleAssociation("2", 2L),
+				new ScannedFileHandleAssociation("6", 5L),
+				new ScannedFileHandleAssociation("10", 1L),
+				new ScannedFileHandleAssociation("11", 6L)
+		);
+		
+		testScanRange(tableMapping, fileHandleIdColumn, new IdRange(1, 11), batchSize,
+			ImmutableList.of(
+				// ID, FILE_HANDLE_ID
+				// First batch
+				new Object[] { 1, 1 },
+				new Object[] { 2, 2 },
+				// The whole page should be skipped as they are all null
+				new Object[] { 3, null },
+				new Object[] { 4, null },
+				// Second batch, should still be visited
+				new Object[] { 6, 5 },
+				new Object[] { 10, 1 },
+				// Third half empty batch
+				new Object[] { 11, 6 }
+			)
+		, expected);
+		
+	}
+	
+	@Test
 	public void testScanRangeWithIdAndCompositeId() throws IOException {
 		TableMapping<?> tableMapping = generateMapping(TABLE_NAME, DDL_COMPOSITE_ID_AND_FILE_HANDLE_ID, new FieldColumn[] {
 				new FieldColumn("id", "ID", true).withIsBackupId(true),
