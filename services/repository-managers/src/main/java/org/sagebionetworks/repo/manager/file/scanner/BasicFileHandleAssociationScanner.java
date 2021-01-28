@@ -29,9 +29,11 @@ import com.google.common.collect.ImmutableMap;
  */
 public class BasicFileHandleAssociationScanner implements FileHandleAssociationScanner {
 
-	private static final String DEFAULT_FILE_ID_COLUMN_NAME = "FILE_HANDLE_ID";
+	public static final String DEFAULT_FILE_ID_COLUMN_NAME = "FILE_HANDLE_ID";
+	public static final long DEFAULT_BATCH_SIZE = 10000;
 
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
+	private long batchSize;
 	private RowMapper<ScannedFileHandleAssociation> rowMapper;
 
 	private FieldColumn backupIdColumn;
@@ -50,7 +52,7 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 	 * @param tableMapping      The table mapping used as reference
 	 */
 	public BasicFileHandleAssociationScanner(NamedParameterJdbcTemplate namedJdbcTemplate, TableMapping<?> tableMapping) {
-		this(namedJdbcTemplate, tableMapping, DEFAULT_FILE_ID_COLUMN_NAME, null);
+		this(namedJdbcTemplate, tableMapping, DEFAULT_FILE_ID_COLUMN_NAME, DEFAULT_BATCH_SIZE, null);
 	}
 
 	/**
@@ -61,17 +63,44 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 	 * handle id reference.
 	 * 
 	 * 
-	 * @param namedJdbcTemplate The jdbc template to use
-	 * @param tableMapping      The table mapping used as reference
-	 * @param fileHandleColumn  The name of the column holding the file handle id reference
-	 * @param rowMapper         The row mapper used to build a {@link ScannedFileHandleAssociation} from
-	 *                          a row, if null a default row mapper is used that treats the
-	 *                          filehandleColumn as a direct reference to the file handle id
+	 * @param namedJdbcTemplate    The jdbc template to use
+	 * @param tableMapping         The table mapping used as reference
+	 * @param fileHandleColumnName The name of the column holding the file handle id reference
+	 * @param rowMapper            The row mapper used to build a {@link ScannedFileHandleAssociation}
+	 *                             from a row, if null a default row mapper is used that treats the
+	 *                             filehandleColumn as a direct reference to the file handle id
+	 * @param batchSize            The max batch size of records to fetch in memory
 	 */
 	public BasicFileHandleAssociationScanner(NamedParameterJdbcTemplate namedJdbcTemplate, TableMapping<?> tableMapping,
-			String fileHandleColumn, RowMapper<ScannedFileHandleAssociation> rowMapper) {
+			String fileHandleColumnName, long batchSize, RowMapper<ScannedFileHandleAssociation> rowMapper) {
+		ValidateArgument.required(namedJdbcTemplate, "The namedJdbcTemplate");
+		ValidateArgument.requirement(batchSize > 0, "The batchSize must be greater than zero.");
+		ValidateArgument.required(tableMapping, "The tableMapping");
+		ValidateArgument.required(fileHandleColumnName, "The fileHandleColumnName");
+		
 		this.namedJdbcTemplate = namedJdbcTemplate;
-		initScanner(tableMapping, fileHandleColumn, rowMapper);
+		this.batchSize = batchSize;
+		
+		// Makes sure the file handle column is present in the mapping
+		this.fileHandleColumn = Arrays.stream(tableMapping.getFieldColumns())
+				.filter(f -> f.getColumnName().equals(fileHandleColumnName))
+				.findFirst()
+				.orElseThrow(() -> new IllegalArgumentException("The column " + fileHandleColumnName + " is not defined for mapping " + tableMapping.getClass().getName()));
+		
+		// Makes sure that the mapping is defined with a backup id
+		this.backupIdColumn = Arrays.stream(tableMapping.getFieldColumns())
+				.filter(FieldColumn::isBackupId)
+				.findFirst()
+				.orElseThrow(() -> new IllegalArgumentException("The mapping " + tableMapping.getClass().getName() + " does not define a backup id column"));
+
+		this.sqlMinMaxRangeStm = generateMinMaxStatement(tableMapping);
+		this.sqlSelectBatchStm = generateSelectBatchStatement(tableMapping, backupIdColumn, fileHandleColumn);
+
+		if (rowMapper == null) {
+			this.rowMapper = getDefaultRowMapper(backupIdColumn, fileHandleColumn);
+		} else {
+			this.rowMapper = rowMapper;
+		}
 	}
 
 	@Override
@@ -95,39 +124,14 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 	}
 
 	@Override
-	public Iterable<ScannedFileHandleAssociation> scanRange(IdRange range, long batchSize) {
+	public Iterable<ScannedFileHandleAssociation> scanRange(IdRange range) {
 		ValidateArgument.required(range, "The range");
 		ValidateArgument.requirement(range.getMinId() <= range.getMaxId(),
 				"Invalid range, the minId must be lesser or equal than the maxId");
-		ValidateArgument.requirement(batchSize > 0, "Invalid batchSize, must be greater than 0");
 
 		final Map<String, Object> params = ImmutableMap.of(DMLUtils.BIND_MIN_ID, range.getMinId(), DMLUtils.BIND_MAX_ID, range.getMaxId());
 
 		return new QueryStreamIterable<>(namedJdbcTemplate, rowMapper, sqlSelectBatchStm, params, batchSize);
-	}
-
-	private void initScanner(TableMapping<?> tableMapping, String fileHandleColumnName, RowMapper<ScannedFileHandleAssociation> rowMapper) {
-		// Makes sure the file handle column is present in the mapping
-		this.fileHandleColumn = Arrays.stream(tableMapping.getFieldColumns())
-				.filter(f -> f.getColumnName().equals(fileHandleColumnName))
-				.findFirst()
-				.orElseThrow(() -> new IllegalArgumentException("The column " + fileHandleColumnName + " is not defined for mapping " + tableMapping.getClass().getName()));
-		
-		// Makes sure that the mapping is defined with a backup id
-		this.backupIdColumn = Arrays.stream(tableMapping.getFieldColumns())
-				.filter(FieldColumn::isBackupId)
-				.findFirst()
-				.orElseThrow(() -> new IllegalArgumentException("The mapping " + tableMapping.getClass().getName() + " does not define a backup id column"));
-
-		this.sqlMinMaxRangeStm = generateMinMaxStatement(tableMapping);
-		this.sqlSelectBatchStm = generateSelectBatchStatement(tableMapping, backupIdColumn, fileHandleColumn);
-
-		if (rowMapper == null) {
-			this.rowMapper = getDefaultRowMapper(backupIdColumn, fileHandleColumn);
-		} else {
-			this.rowMapper = rowMapper;
-		}
-
 	}
 
 	/**
