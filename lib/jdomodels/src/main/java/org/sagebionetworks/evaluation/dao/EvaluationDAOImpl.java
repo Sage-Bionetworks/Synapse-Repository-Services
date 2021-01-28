@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.dbo.EvaluationDBO;
@@ -240,6 +241,8 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		});
 	}
 
+	//todo: backup all evaluation submissionquotas or prevent modification of quotas?
+
 	@Override
 	@WriteTransaction
 	public void update(Evaluation dto)
@@ -421,5 +424,16 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 					return EvaluationRoundDBOUtil.toDTO(EVALUATION_ROUND_ROW_MAPPER.mapRow(resultSet, rowNumber));
 				}
 		);
+	}
+
+	// TEMPORARY ADMIN CALL TO MIGRATE AL USAGES OF SubmissionQuotas INTO EvaluationRounds
+	@Override
+	public List<Evaluation> getAllEvaluations(){
+		List<EvaluationDBO> allDbos = namedJdbcTemplate.query("SELECT * FROM " + TABLE_EVALUATION_ROUND, new EvaluationDBO().getTableMapping());
+		return allDbos.stream().map((dbo) ->{
+			Evaluation dto = new Evaluation();
+			EvaluationDBOUtil.copyDboToDto(dbo, dto);
+			return dto;
+		}).collect(Collectors.toList());
 	}
 }

@@ -91,4 +91,6 @@ public interface EvaluationManager {
 	EvaluationRound getEvaluationRound(UserInfo userInfo, String evaluationId, String evaluationRoundId);
 
 	EvaluationRoundListResponse getAllEvaluationRounds(UserInfo userInfo, String evaluationId, EvaluationRoundListRequest request);
+
+	void adminMigrateSubmissionQuota(UserInfo userInfo);
 }

@@ -1,19 +1,22 @@
 {
 	"name":"SubmissionQuota",
-	"description":"Maximum submissions per team/participant per submission round.  If round information is omitted, then this indicates the overall submission limit per team/participant.",
+	"description":"DEPRECATED: use EvaluationRound APIs instead. No SubmissionQuota will be returned with the Evaluation. Any SubmissionQuotas submitted will be instead be converted into similar EvaluationRounds.",
 	"properties":{
 		"firstRoundStart": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The date/time at which the first round begins."
+			"description": "The date/time at which the first round begins.",
+			"required": true
 		},
 		"roundDurationMillis":{
 			"type": "integer",
-			"description":"The duration of each round."
+			"description":"The duration of each round.",
+			"required": true
 		},
 		"numberOfRounds":{
 			"type": "integer",
-			"description":"The number of rounds, or null if there is no end."
+			"description":"The number of rounds.",
+			"required": true
 		},
 		"submissionLimit": {
 			"type": "integer",
