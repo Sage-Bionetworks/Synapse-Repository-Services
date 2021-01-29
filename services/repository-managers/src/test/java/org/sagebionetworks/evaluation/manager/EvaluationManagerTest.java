@@ -330,13 +330,17 @@ public class EvaluationManagerTest {
 		//an evaluation round was defined
 		when(mockEvaluationDAO.hasEvaluationRounds(EVALUATION_ID)).thenReturn(true);
 		//quota set
-		evalWithId.setQuota(new SubmissionQuota());
+		SubmissionQuota quota = new SubmissionQuota();
+		quota.setNumberOfRounds(123L);
+		quota.setFirstRoundStart(new Date());
+		quota.setRoundDurationMillis(64209L);
+		evalWithId.setQuota(quota);
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			evaluationManager.updateEvaluation(ownerInfo, evalWithId);
 		}).getMessage();
 
-		assertEquals("Can not automatically convert SubmissionQuota into EvaluationRound because you already have EvaluationRounds defined.", message);
+		assertEquals("DEPRECATED! SubmissionQuota is a DEPRECATED feature and can not co-exist with EvaluationRounds. You must first delete your Evaluation's EvaluationRounds in order to use SubmissionQuota.", message);
 		verify(mockEvaluationDAO, never()).update(any());
 		verify(mockEvaluationDAO).hasEvaluationRounds(EVALUATION_ID);
 	}
@@ -432,7 +436,7 @@ public class EvaluationManagerTest {
 		quota.setNumberOfRounds(1L);
 		quota.setRoundDurationMillis(123123L);
 
-		helperTestCreateEvaluation_submissionQuotaValidation(quota, "firstRoundStart must be defined");
+		helperTestCreateEvaluation_submissionQuotaValidation(quota, "firstRoundStart is required.");
 
 	}
 
@@ -462,60 +466,12 @@ public class EvaluationManagerTest {
 		SubmissionQuota quota = new SubmissionQuota();
 		quota.setNumberOfRounds(1L);
 		quota.setFirstRoundStart(Date.from(Instant.now().plus(1, ChronoUnit.DAYS)));
-		quota.setRoundDurationMillis(-123123L);
+		quota.setRoundDurationMillis(123123L);
 		quota.setSubmissionLimit(-123L);
 
 		helperTestCreateEvaluation_submissionQuotaValidation(quota, "submissionLimit must be non-negative");
 	}
 
-
-	@Test
-	public void testCreateEvaluation_submissionQuotaConversion(){
-		when(mockIdGenerator.generateNewId(IdType.EVALUATION_ID)).thenReturn(Long.parseLong(EVALUATION_ID));
-		when(mockIdGenerator.generateNewId(IdType.EVALUATION_ROUND_ID)).thenReturn(0L,1L);
-
-		when(mockEvaluationDAO.create(any(Evaluation.class), eq(OWNER_ID))).thenReturn(EVALUATION_ID);
-		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
-
-		when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVALUATION_CONTENT_SOURCE), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(AuthorizationStatus.authorized());
-		when(mockNodeDAO.getNodeTypeById(EVALUATION_CONTENT_SOURCE)).thenReturn(EntityType.project);
-
-		Instant startTime = Instant.now().plus(1, ChronoUnit.DAYS);
-		SubmissionQuota quota = new SubmissionQuota();
-		quota.setNumberOfRounds(2L);
-		quota.setFirstRoundStart(Date.from(startTime));
-		//2 days in milliseconds
-		quota.setRoundDurationMillis(172800000L);
-		quota.setSubmissionLimit(123L);
-		eval.setQuota(quota);
-
-		//method under test
-		evaluationManager.createEvaluation(ownerInfo, eval);
-
-
-		EvaluationRoundLimit expectedLimit = new EvaluationRoundLimit();
-		expectedLimit.setLimitType(EvaluationRoundLimitType.TOTAL);
-		expectedLimit.setMaximumSubmissions(123L);
-
-		EvaluationRound expectedRound1 = new EvaluationRound();
-		expectedRound1.setId("0");
-		expectedRound1.setRoundStart(Date.from(startTime));
-		expectedRound1.setRoundEnd(Date.from(startTime.plus(2, ChronoUnit.DAYS)));
-		expectedRound1.setEvaluationId(EVALUATION_ID);
-		expectedRound1.setLimits(Collections.singletonList(expectedLimit));
-
-		EvaluationRound expectedRound2 = new EvaluationRound();
-		expectedRound2.setRoundStart(Date.from(startTime.plus(2, ChronoUnit.DAYS)));
-		expectedRound2.setRoundEnd(Date.from(startTime.plus(4, ChronoUnit.DAYS)));
-		expectedRound2.setId("1");
-		expectedRound2.setEvaluationId(EVALUATION_ID);
-		expectedRound2.setLimits(Collections.singletonList(expectedLimit));
-
-		//converted into 2 rounds and created both
-		verify(mockEvaluationDAO).createEvaluationRound(expectedRound1);
-		verify(mockEvaluationDAO).createEvaluationRound(expectedRound2);
-		verify(mockEvaluationDAO).create(eval, OWNER_ID);
-	}
 
 
 	/**
@@ -523,10 +479,6 @@ public class EvaluationManagerTest {
 	 * @param expectedErrorMessage
 	 */
 	private void helperTestUpdateEvaluation_submissionQuotaValidation(SubmissionQuota quota, String expectedErrorMessage){
-		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
-		when(mockPermissionsManager.hasAccess(eq(ownerInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.authorized());
-
-
 		evalWithId.setQuota(quota);
 
 		String errorMsg = assertThrows(IllegalArgumentException.class, () ->{
@@ -536,10 +488,7 @@ public class EvaluationManagerTest {
 
 		assertEquals(expectedErrorMessage, errorMsg);
 
-		verify(mockEvaluationDAO).hasEvaluationRounds(EVALUATION_ID);
-
-		verify(mockEvaluationDAO, never()).createEvaluationRound(any());
-		verify(mockEvaluationDAO, never()).update(any());
+		verifyZeroInteractions(mockEvaluationDAO);
 	}
 
 	@Test
@@ -568,7 +517,7 @@ public class EvaluationManagerTest {
 		quota.setNumberOfRounds(1L);
 		quota.setRoundDurationMillis(123123L);
 
-		helperTestUpdateEvaluation_submissionQuotaValidation(quota, "firstRoundStart must be defined");
+		helperTestUpdateEvaluation_submissionQuotaValidation(quota, "firstRoundStart is required.");
 
 	}
 
@@ -604,49 +553,6 @@ public class EvaluationManagerTest {
 		helperTestUpdateEvaluation_submissionQuotaValidation(quota, "submissionLimit must be non-negative");
 	}
 
-	@Test
-	public void testUpdateEvaluation_submissionQuotaConversion(){
-		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
-		when(mockPermissionsManager.hasAccess(eq(ownerInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.authorized());
-		when(mockIdGenerator.generateNewId(IdType.EVALUATION_ROUND_ID)).thenReturn(0L,1L);
-
-		Instant startTime = Instant.now().plus(1, ChronoUnit.DAYS);
-		SubmissionQuota quota = new SubmissionQuota();
-		quota.setNumberOfRounds(2L);
-		quota.setFirstRoundStart(Date.from(startTime));
-		//2 days in milliseconds
-		quota.setRoundDurationMillis(172800000L);
-		quota.setSubmissionLimit(123L);
-		evalWithId.setQuota(quota);
-
-		//method under test
-		evaluationManager.updateEvaluation(ownerInfo, evalWithId);
-
-
-		EvaluationRoundLimit expectedLimit = new EvaluationRoundLimit();
-		expectedLimit.setLimitType(EvaluationRoundLimitType.TOTAL);
-		expectedLimit.setMaximumSubmissions(123L);
-
-		EvaluationRound expectedRound1 = new EvaluationRound();
-		expectedRound1.setId("0");
-		expectedRound1.setRoundStart(Date.from(startTime));
-		expectedRound1.setRoundEnd(Date.from(startTime.plus(2, ChronoUnit.DAYS)));
-		expectedRound1.setEvaluationId(EVALUATION_ID);
-		expectedRound1.setLimits(Collections.singletonList(expectedLimit));
-
-		EvaluationRound expectedRound2 = new EvaluationRound();
-		expectedRound2.setRoundStart(Date.from(startTime.plus(2, ChronoUnit.DAYS)));
-		expectedRound2.setRoundEnd(Date.from(startTime.plus(4, ChronoUnit.DAYS)));
-		expectedRound2.setId("1");
-		expectedRound2.setEvaluationId(EVALUATION_ID);
-		expectedRound2.setLimits(Collections.singletonList(expectedLimit));
-
-		verify(mockEvaluationDAO).hasEvaluationRounds(EVALUATION_ID);
-		//converted into 2 rounds and created both
-		verify(mockEvaluationDAO).createEvaluationRound(expectedRound1);
-		verify(mockEvaluationDAO).createEvaluationRound(expectedRound2);
-		verify(mockEvaluationDAO).update(evalWithId);
-	}
 
 	@Test
 	public void testUpdateEvaluationAsUser() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException {
@@ -905,7 +811,9 @@ public class EvaluationManagerTest {
 		).getMessage();
 
 		assertEquals("A SubmissionQuota must not be defined for an Evaluation." +
-				" You must first remove your Evaluation's SubmisisonQuota in order to use EvaluationRounds", message);
+				" You must first remove your Evaluation's SubmissionQuota or" +
+				" convert it into EvaluationRounds automatically to via the EvaluationRound migration service",
+				message);
 	}
 
 	@Test
@@ -1219,7 +1127,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void testAdminMigrateSubmissionQuota_UnauthorizedUser(){
+	public void testMigrateSubmissionQuota_UnauthorizedUser(){
 		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
 		when(mockPermissionsManager.hasAccess(eq(userInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.accessDenied(""));
 
@@ -1229,13 +1137,48 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void testAdminMigrateSubmissionQuota_authorizedUser(){
-		when(mockPermissionsManager.hasAccess(eq(userInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.accessDenied(""));
+	public void testMigrateSubmissionQuota_authorizedUser() throws JSONObjectAdapterException {
+		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
+		when(mockPermissionsManager.hasAccess(eq(ownerInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.authorized());
+		when(mockIdGenerator.generateNewId(IdType.EVALUATION_ROUND_ID)).thenReturn(0L,1L);
 
-		assertThrows(UnauthorizedException.class,() ->
-				evaluationManager.migrateSubmissionQuota(userInfo, EVALUATION_ID)
-		);
-		//TODO: more tests
+		SubmissionQuota quota = new SubmissionQuota();
+		quota.setNumberOfRounds(2L);
+		quota.setFirstRoundStart(Date.from(evaluationRoundStart));
+		//2 days in milliseconds
+		quota.setRoundDurationMillis(172800000L);
+		quota.setSubmissionLimit(123L);
+		evalWithId.setQuota(quota);
+
+		//create a copy of the Evaluation before it is modified by the tested function
+		Evaluation expectedChangedEval = EntityFactory.createEntityFromJSONString(EntityFactory.createJSONStringForEntity(evalWithId), Evaluation.class);
+		expectedChangedEval.setQuota(null);
+
+		//method under test
+		evaluationManager.migrateSubmissionQuota(ownerInfo, EVALUATION_ID);
+
+		EvaluationRoundLimit expectedLimit = new EvaluationRoundLimit();
+		expectedLimit.setLimitType(EvaluationRoundLimitType.TOTAL);
+		expectedLimit.setMaximumSubmissions(123L);
+
+		EvaluationRound expectedRound1 = new EvaluationRound();
+		expectedRound1.setId("0");
+		expectedRound1.setRoundStart(Date.from(evaluationRoundStart));
+		expectedRound1.setRoundEnd(Date.from(evaluationRoundStart.plus(2, ChronoUnit.DAYS)));
+		expectedRound1.setEvaluationId(EVALUATION_ID);
+		expectedRound1.setLimits(Collections.singletonList(expectedLimit));
+
+		EvaluationRound expectedRound2 = new EvaluationRound();
+		expectedRound2.setRoundStart(Date.from(evaluationRoundStart.plus(2, ChronoUnit.DAYS)));
+		expectedRound2.setRoundEnd(Date.from(evaluationRoundStart.plus(4, ChronoUnit.DAYS)));
+		expectedRound2.setId("1");
+		expectedRound2.setEvaluationId(EVALUATION_ID);
+		expectedRound2.setLimits(Collections.singletonList(expectedLimit));
+
+		//converted into 2 rounds and created both
+		verify(mockEvaluationDAO).createEvaluationRound(expectedRound1);
+		verify(mockEvaluationDAO).createEvaluationRound(expectedRound2);
+		verify(mockEvaluationDAO).update(expectedChangedEval);
 	}
 
 	private EvaluationRoundLimit newLimit(EvaluationRoundLimitType type, long maxSubmission){

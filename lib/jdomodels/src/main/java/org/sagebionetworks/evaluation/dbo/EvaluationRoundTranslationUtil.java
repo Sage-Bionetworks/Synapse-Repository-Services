@@ -16,8 +16,6 @@ import org.sagebionetworks.ids.IdType;
 
 public class EvaluationRoundTranslationUtil {
 
-	//////////////////////////////////TEMPORARY MIGRATION CODE////////////////////////////////////////////////////
-
 	public static final Date FAR_FUTURE_DATE = new Date(2121, Calendar.JANUARY,1);
 	private static final long DAY_IN_MILLIS = 86400000L;
 	private static final long WEEK_IN_MILLIS = 604800000L;
@@ -110,6 +108,4 @@ public class EvaluationRoundTranslationUtil {
 		// case where submissionLimit is null is handled by the called function
 		return roundWithLimits(evaluation.getId(),roundStart ,FAR_FUTURE_DATE, EvaluationRoundLimitType.TOTAL, quota.getSubmissionLimit(), idGenerator);
 	}
-
-	//////////////////////////////////TEMPORARY MIGRATION CODE////////////////////////////////////////////////////
 }

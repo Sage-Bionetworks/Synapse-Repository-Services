@@ -186,8 +186,8 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		validateEvaluation(old, eval);
 
 		ValidateArgument.requirement(eval.getQuota() == null || !evaluationDAO.hasEvaluationRounds(evalId),
-				"A EvaluationRound must not be defined for an Evaluation." +
-					" You must first delete your Evaluation's EvaluationRounds in order to use SubmissionQuota");
+				"DEPRECATED! SubmissionQuota is a DEPRECATED feature and can not co-exist with EvaluationRounds." +
+					" You must first delete your Evaluation's EvaluationRounds in order to use SubmissionQuota.");
 
 		// perform the update
 		evaluationDAO.update(eval);
@@ -397,9 +397,10 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	 * @return
 	 */
 	void validateNoExistingQuotaDefined(Evaluation evaluation){
-		ValidateArgument.requirement(evaluation.getQuota() == null,"A SubmissionQuota must not be defined for an Evaluation." +
-					" You must first remove your Evaluation's SubmissionQuota or " +
-					" convert it into EvaluationRounds automatically to via the EvaluationRound migration service");
+		ValidateArgument.requirement(evaluation.getQuota() == null,"A SubmissionQuota, which is deprecated," +
+				" must not be defined for an Evaluation." +
+					" You must first remove your Evaluation's SubmissionQuota or" +
+					" convert the SubmissionQuota into EvaluationRounds automatically to via the EvaluationRound migration service");
 
 	}
 
@@ -430,10 +431,8 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	@Override
 	@WriteTransaction
 	public void migrateSubmissionQuota(UserInfo userInfo, String evaluationId){
-		//TODO: test permissions are checked
 		Evaluation evaluation = validateEvaluationAccess(userInfo, evaluationId,ACCESS_TYPE.UPDATE);
 
-		//TODO: make this idempotenet instead of error?
 		ValidateArgument.requirement(evaluation.getQuota() != null, "The evaluation does not have an SubmissionQuota to convert");
 
 		List<EvaluationRound> rounds = EvaluationRoundTranslationUtil.fromSubmissionQuota(evaluation, idGenerator);

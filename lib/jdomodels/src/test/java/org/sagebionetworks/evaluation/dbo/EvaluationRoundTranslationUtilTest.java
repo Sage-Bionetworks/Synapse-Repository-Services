@@ -9,9 +9,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.List;
-import java.util.TimeZone;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -213,93 +211,55 @@ class EvaluationRoundTranslationUtilTest {
 
 	@Test
 	public void testFromSubmissionQuota_roundDurationIsOneDay(){
-		mockIdGeneratorReturn();
-
 		quota.setRoundDurationMillis(1 * 24 * 60 * 60 * 1000L);
-
-		List<EvaluationRound> result = EvaluationRoundTranslationUtil.fromSubmissionQuota(evaluation, mockIdGenerator);
-
 		//setup has 4 rounds and the round duration is now a single day => 4 days
 		Date expectedEndDate = new Date(2019, Calendar.JUNE, 13);
 
-		EvaluationRound expected = new EvaluationRound();
-		expected.setId("0");
-		expected.setEvaluationId(evaluationId);
-		expected.setRoundStart(firstRoundStart);
-		expected.setRoundEnd(expectedEndDate);
-		EvaluationRoundLimit limit = new EvaluationRoundLimit();
-		//limit should be DAILY instead of TOTAL
-		limit.setLimitType(EvaluationRoundLimitType.DAILY);
-		limit.setMaximumSubmissions(submissionLimit);
-		expected.setLimits(Collections.singletonList(limit));
+		testHelper_fromSubmissionQuota_multipleRoundsConvertedToSingleRound(expectedEndDate, EvaluationRoundLimitType.DAILY);
 
-		//We shouldn't create multiple evaluations
-		assertEquals(Collections.singletonList(expected), result);
-		verify(mockIdGenerator).generateNewId(IdType.EVALUATION_ROUND_ID);
 	}
 
 	@Test
 	public void testFromSubmissionQuota_roundDurationIsOneWeek(){
-		mockIdGeneratorReturn();
 		quota.setRoundDurationMillis(7 * 24 * 60 * 60 * 1000L);
-
-		List<EvaluationRound> result = EvaluationRoundTranslationUtil.fromSubmissionQuota(evaluation, mockIdGenerator);
 
 		//setup has 4 rounds and the round duration is now a week => 4 weeks
 		Date expectedEndDate = new Date(2019, Calendar.JULY, 7);
 
-		EvaluationRound expected = new EvaluationRound();
-		expected.setId("0");
-		expected.setEvaluationId(evaluationId);
-		expected.setRoundStart(firstRoundStart);
-		expected.setRoundEnd(expectedEndDate);
-		EvaluationRoundLimit limit = new EvaluationRoundLimit();
-		//limit should be WEEKLY instead of TOTAL
-		limit.setLimitType(EvaluationRoundLimitType.WEEKLY);
-		limit.setMaximumSubmissions(submissionLimit);
-		expected.setLimits(Collections.singletonList(limit));
-
-		//We shouldn't create multiple evaluations
-		assertEquals(Collections.singletonList(expected), result);
-		verify(mockIdGenerator).generateNewId(IdType.EVALUATION_ROUND_ID);
-
+		testHelper_fromSubmissionQuota_multipleRoundsConvertedToSingleRound(expectedEndDate, EvaluationRoundLimitType.WEEKLY);
 	}
 
 	@Test
-	public void testFromSubmissionQuota_roundDurationIsMonth_28Days(){
-		mockIdGeneratorReturn();
+	public void testFromSubmissionQuota_roundDurationIsMonth28Days(){
 		quota.setRoundDurationMillis(28 * 24 * 60 * 60 * 1000L);
-
-		List<EvaluationRound> result = EvaluationRoundTranslationUtil.fromSubmissionQuota(evaluation, mockIdGenerator);
-
 		//setup has 4 rounds and the round duration is now 28 days => 112 days
 		Date expectedEndDate = new Date(2019, Calendar.SEPTEMBER, 29);
 
-		EvaluationRound expected = new EvaluationRound();
-		expected.setId("0");
-		expected.setEvaluationId(evaluationId);
-		expected.setRoundStart(firstRoundStart);
-		expected.setRoundEnd(expectedEndDate);
-		EvaluationRoundLimit limit = new EvaluationRoundLimit();
-		//limit should be MONTHLY instead of TOTAL
-		limit.setLimitType(EvaluationRoundLimitType.MONTHLY);
-		limit.setMaximumSubmissions(submissionLimit);
-		expected.setLimits(Collections.singletonList(limit));
-
-		//We shouldn't create multiple evaluations
-		assertEquals(Collections.singletonList(expected), result);
-		verify(mockIdGenerator).generateNewId(IdType.EVALUATION_ROUND_ID);
+		testHelper_fromSubmissionQuota_multipleRoundsConvertedToSingleRound(expectedEndDate, EvaluationRoundLimitType.MONTHLY);
 	}
 
 	@Test
-	public void testFromSubmissionQuota_roundDurationIsMonth_31Days(){
-		mockIdGeneratorReturn();
+	public void testFromSubmissionQuota_roundDurationIsMonth30Days(){
+		quota.setRoundDurationMillis(30 * 24 * 60 * 60 * 1000L);
+		//setup has 4 rounds and the round duration is now 28 days => 120 days
+		Date expectedEndDate = new Date(2019, Calendar.OCTOBER, 7);
+
+		testHelper_fromSubmissionQuota_multipleRoundsConvertedToSingleRound(expectedEndDate, EvaluationRoundLimitType.MONTHLY);
+	}
+
+	@Test
+	public void testFromSubmissionQuota_roundDurationIsMonth31Days(){
 		quota.setRoundDurationMillis(31 * 24 * 60 * 60 * 1000L);
-
-		List<EvaluationRound> result = EvaluationRoundTranslationUtil.fromSubmissionQuota(evaluation, mockIdGenerator);
-
 		//setup has 4 rounds and the round duration is now 28 days => 124 days
 		Date expectedEndDate = new Date(2019, Calendar.OCTOBER, 11);
+
+		testHelper_fromSubmissionQuota_multipleRoundsConvertedToSingleRound(expectedEndDate, EvaluationRoundLimitType.MONTHLY);
+	}
+
+	private void testHelper_fromSubmissionQuota_multipleRoundsConvertedToSingleRound(Date expectedEndDate, EvaluationRoundLimitType expectedType){
+		mockIdGeneratorReturn();
+
+		List<EvaluationRound> result = EvaluationRoundTranslationUtil.fromSubmissionQuota(evaluation, mockIdGenerator);
 
 		EvaluationRound expected = new EvaluationRound();
 		expected.setId("0");
@@ -307,8 +267,7 @@ class EvaluationRoundTranslationUtilTest {
 		expected.setRoundStart(firstRoundStart);
 		expected.setRoundEnd(expectedEndDate);
 		EvaluationRoundLimit limit = new EvaluationRoundLimit();
-		//limit should be MONTHLY instead of TOTAL
-		limit.setLimitType(EvaluationRoundLimitType.MONTHLY);
+		limit.setLimitType(expectedType);
 		limit.setMaximumSubmissions(submissionLimit);
 		expected.setLimits(Collections.singletonList(limit));
 

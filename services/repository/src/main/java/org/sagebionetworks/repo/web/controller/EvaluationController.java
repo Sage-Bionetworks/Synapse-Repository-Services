@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.sagebionetworks.repo.model.oauth.OAuthScope.authorize;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.download;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
@@ -38,7 +37,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.DeprecatedServiceException;
@@ -1354,44 +1352,27 @@ public class EvaluationController {
 	}
 
 	/**
-	 * Updates an Evaluation.
-	 *
-	 * <p>
-	 * Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle
-	 * concurrent updates. Each time an Evaluation is updated a new etag will be
-	 * issued to the Evaluation. When an update is requested, Synapse will compare the
-	 * etag of the passed Evaluation with the current etag of the Evaluation. If the
-	 * etags do not match, then the update will be rejected with a
-	 * PRECONDITION_FAILED (412) response. When this occurs, the caller should
-	 * fetch the latest copy of the Evaluation and re-apply any changes, then re-attempt
-	 * the Evaluation update.
-	 * </p>
+	 * Migrates the DEPRECATED <a href="${org.sagebionetworks.evaluation.model.SubmissionQuota}">SubmissionQuota</a>
+	 * in the "quota" field of an <a href="${org.sagebionetworks.evaluation.model.Evaluation}">Evaluation</a>
+	 * into one or many <a href="${org.sagebionetworks.evaluation.model.EvaluationRound}">EvaluationRound</a>
+	 * (depending on the "numberOfRounds" defined in the
+	 * <a href="${org.sagebionetworks.evaluation.model.SubmissionQuota}">SubmissionQuota</a>)
 	 *
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
 	 * >ACCESS_TYPE.UPDATE</a> on the specified Evaluation.
 	 * </p>
-	 *
-	 * @param evalId - the ID of the Evaluation being updated
-	 * @param userId
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws InvalidModelException
-	 * @throws ConflictingUpdateException
-	 * @throws NotFoundException
-	 * @throws JSONObjectAdapterException
 	 */
 	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.EVALUATION_WITH_ID, method = RequestMethod.PUT)
+	@RequestMapping(value = UrlHelpers.EVALUATION_SUBMISSIONQUOTA_MIGRATION, method = RequestMethod.POST)
 	public @ResponseBody
-	void convertEvaluationSubmission(
+	void migrateEvaluationSubmission(
 			@PathVariable String evalId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
 	{
-		serviceProvider.getEvaluationService().convertEvaluationSubmissionQuota(userId, evalId);
+		serviceProvider.getEvaluationService().migrateEvaluationSubmissionQuota(userId, evalId);
 	}
 
 	// For some unknown reason binding a List<Long> with a @RequestParam is not working with our setup 

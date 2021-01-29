@@ -23,8 +23,10 @@ import org.sagebionetworks.evaluation.dao.SubmissionDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListResponse;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
@@ -234,6 +236,27 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 			entityServletHelper.getEvaluation(testUserId, eval1.getId());
 		});
 		assertEquals(initialCount, entityServletHelper.getAvailableEvaluations(adminUserId).getTotalNumberOfResults());
+	}
+
+	@Test
+	public void testMigrateSubmissionQuota() throws Exception {
+		SubmissionQuota quota = new SubmissionQuota();
+		quota.setFirstRoundStart(new Date());
+		quota.setRoundDurationMillis(100L);
+		quota.setNumberOfRounds(2L);
+
+		eval1.setQuota(quota);
+
+		eval1 = entityServletHelper.createEvaluation(eval1, adminUserId);
+
+		EvaluationRoundListResponse roundListResponse = entityServletHelper.getAllEvaluationRounds(eval1.getId(), adminUserId);
+		assertEquals(0, roundListResponse.getPage().size());
+
+		entityServletHelper.migrateSubmissionQuota(eval1.getId(), adminUserId);
+
+		roundListResponse = entityServletHelper.getAllEvaluationRounds(eval1.getId(), adminUserId);
+		assertEquals(2, roundListResponse.getPage().size());
+
 	}
 	
 	@Test

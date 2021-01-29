@@ -406,5 +406,5 @@ public interface EvaluationService {
 
 	void deleteEvaluationRound(Long userId, String evaluationId, String evaluationRoundId);
 
-	void convertEvaluationSubmissionQuota(Long userId, String evaluationId);
+	void migrateEvaluationSubmissionQuota(Long userId, String evaluationId);
 }

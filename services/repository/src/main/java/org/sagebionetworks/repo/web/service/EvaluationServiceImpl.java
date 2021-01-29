@@ -375,7 +375,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	public void convertEvaluationSubmissionQuota(Long userId, String evaluationId){
+	public void migrateEvaluationSubmissionQuota(Long userId, String evaluationId){
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		evaluationManager.migrateSubmissionQuota(userInfo, evaluationId);
 	}
