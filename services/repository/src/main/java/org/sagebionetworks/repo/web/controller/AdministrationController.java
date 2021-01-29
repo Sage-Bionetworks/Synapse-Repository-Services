@@ -361,14 +361,4 @@ public class AdministrationController {
 		return serviceProvider.getAdministrationService().setFeatureStatus(userId, feature, status);
 	}
 
-	/**
-	 * Temporary Migration code
-	 */
-	@RequiredScope({view, modify})
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ADMIN_FEATURE + "/evaluationmigration", method = RequestMethod.POST)
-	public @ResponseBody void TEMPORARYEvaluationMigration(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) {
-		serviceProvider.getAdministrationService().TEMPORARYEvaluationMigration(userId);
-	}
 }

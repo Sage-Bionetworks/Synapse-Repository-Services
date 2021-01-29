@@ -1352,7 +1352,48 @@ public class EvaluationController {
 	{
 		serviceProvider.getEvaluationService().deleteEvaluationRound(userId, evalId, roundId);
 	}
-	
+
+	/**
+	 * Updates an Evaluation.
+	 *
+	 * <p>
+	 * Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle
+	 * concurrent updates. Each time an Evaluation is updated a new etag will be
+	 * issued to the Evaluation. When an update is requested, Synapse will compare the
+	 * etag of the passed Evaluation with the current etag of the Evaluation. If the
+	 * etags do not match, then the update will be rejected with a
+	 * PRECONDITION_FAILED (412) response. When this occurs, the caller should
+	 * fetch the latest copy of the Evaluation and re-apply any changes, then re-attempt
+	 * the Evaluation update.
+	 * </p>
+	 *
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.UPDATE</a> on the specified Evaluation.
+	 * </p>
+	 *
+	 * @param evalId - the ID of the Evaluation being updated
+	 * @param userId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws InvalidModelException
+	 * @throws ConflictingUpdateException
+	 * @throws NotFoundException
+	 * @throws JSONObjectAdapterException
+	 */
+	@RequiredScope({view,modify})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.EVALUATION_WITH_ID, method = RequestMethod.PUT)
+	public @ResponseBody
+	void convertEvaluationSubmission(
+			@PathVariable String evalId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
+	{
+		serviceProvider.getEvaluationService().convertEvaluationSubmissionQuota(userId, evalId);
+	}
+
 	// For some unknown reason binding a List<Long> with a @RequestParam is not working with our setup 
 	// (Leaving this static method here as this is a feature present since spring 3, more investigation is needed)
 	private static List<Long> stringToEvaluationIds(String value) {
@@ -1372,4 +1413,5 @@ public class EvaluationController {
 		}
 		return evalIds;
 	}
+
 }

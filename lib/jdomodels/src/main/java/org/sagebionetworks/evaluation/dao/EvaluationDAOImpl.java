@@ -425,15 +425,4 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 				}
 		);
 	}
-
-	// TEMPORARY ADMIN CALL TO MIGRATE AL USAGES OF SubmissionQuotas INTO EvaluationRounds
-	@Override
-	public List<Evaluation> getAllEvaluations(){
-		List<EvaluationDBO> allDbos = namedJdbcTemplate.query("SELECT * FROM " + TABLE_EVALUATION_ROUND, new EvaluationDBO().getTableMapping());
-		return allDbos.stream().map((dbo) ->{
-			Evaluation dto = new Evaluation();
-			EvaluationDBOUtil.copyDboToDto(dbo, dto);
-			return dto;
-		}).collect(Collectors.toList());
-	}
 }

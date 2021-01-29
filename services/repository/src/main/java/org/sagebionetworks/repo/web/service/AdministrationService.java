@@ -157,5 +157,4 @@ public interface AdministrationService {
 	 */
 	FeatureStatus setFeatureStatus(Long userId, Feature feature, FeatureStatus status);
 
-	void TEMPORARYEvaluationMigration(Long userId);
 }

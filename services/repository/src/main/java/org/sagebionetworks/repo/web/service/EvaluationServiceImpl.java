@@ -374,4 +374,9 @@ public class EvaluationServiceImpl implements EvaluationService {
 		evaluationManager.deleteEvaluationRound(userInfo, evaluationId, evaluationRoundId);
 	}
 
+	@Override
+	public void convertEvaluationSubmissionQuota(Long userId, String evaluationId){
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		evaluationManager.migrateSubmissionQuota(userInfo, evaluationId);
+	}
 }

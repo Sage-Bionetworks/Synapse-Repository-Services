@@ -1219,12 +1219,23 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void testAdminMigrateSubmissionQuota_NonAdminUser(){
-		UserInfo nonAdmin = new UserInfo(false, 123L);
+	public void testAdminMigrateSubmissionQuota_UnauthorizedUser(){
+		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
+		when(mockPermissionsManager.hasAccess(eq(userInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.accessDenied(""));
 
 		assertThrows(UnauthorizedException.class,() ->
-			evaluationManager.adminMigrateSubmissionQuota(nonAdmin)
+			evaluationManager.migrateSubmissionQuota(userInfo, EVALUATION_ID)
 		);
+	}
+
+	@Test
+	public void testAdminMigrateSubmissionQuota_authorizedUser(){
+		when(mockPermissionsManager.hasAccess(eq(userInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.accessDenied(""));
+
+		assertThrows(UnauthorizedException.class,() ->
+				evaluationManager.migrateSubmissionQuota(userInfo, EVALUATION_ID)
+		);
+		//TODO: more tests
 	}
 
 	private EvaluationRoundLimit newLimit(EvaluationRoundLimitType type, long maxSubmission){

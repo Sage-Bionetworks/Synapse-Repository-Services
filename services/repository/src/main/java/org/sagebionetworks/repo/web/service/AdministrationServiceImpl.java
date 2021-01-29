@@ -7,7 +7,6 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -88,9 +87,6 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	
 	@Autowired
 	FeatureManager featureManager;
-
-	@Autowired
-	EvaluationManager evaluationManager;
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getStackStatus(java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
@@ -241,11 +237,5 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		return featureManager.setFeatureStatus(user, feature, status);
 	};
 
-
-	@Override
-	public void TEMPORARYEvaluationMigration(Long userId){
-		UserInfo user = userManager.getUserInfo(userId);
-		evaluationManager.adminMigrateSubmissionQuota(user);
-	}
 
 }

@@ -103,9 +103,6 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		String principalId = userInfo.getId().toString();
 		String id = evaluationDAO.create(eval, Long.parseLong(principalId));
 
-		List<EvaluationRound> evaluationRounds = convertSubmissionQuotaToEvaluationRound(eval);
-		evaluationRounds.forEach(evaluationDAO::createEvaluationRound);
-
 		// Create the default ACL
 		AccessControlList acl =  AccessControlListUtil.
 				createACLToGrantEvaluationAdminAccess(eval.getId(), userInfo, new Date());
@@ -182,31 +179,19 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		// validate arguments
 		EvaluationUtils.ensureNotNull(eval, "Evaluation");
 		final String evalId = eval.getId();
+		validateQuota(eval.getQuota());
 
 		// fetch the existing Evaluation and validate changes		
 		Evaluation old = validateEvaluationAccess(userInfo, evalId,ACCESS_TYPE.UPDATE);
 		validateEvaluation(old, eval);
 
-		if(eval.getQuota() != null && evaluationDAO.hasEvaluationRounds(evalId)){
-			throw new IllegalArgumentException("Can not automatically convert SubmissionQuota into EvaluationRound because you already have EvaluationRounds defined.");
-		}
-
-		List<EvaluationRound> evaluationRounds = convertSubmissionQuotaToEvaluationRound(eval);
-		evaluationRounds.forEach(evaluationDAO::createEvaluationRound);
+		ValidateArgument.requirement(eval.getQuota() == null || !evaluationDAO.hasEvaluationRounds(evalId),
+				"A EvaluationRound must not be defined for an Evaluation." +
+					" You must first delete your Evaluation's EvaluationRounds in order to use SubmissionQuota");
 
 		// perform the update
 		evaluationDAO.update(eval);
 		return evaluationDAO.get(evalId);
-	}
-
-	/**
-	 * @param eval Evaluation that may or may not hold a submissionQuota
-	 * @return converted EvaluationRound from an submissionQuota. empty list if submissionQuota does not exist or is not convertible
-	 */
-	private List<EvaluationRound> convertSubmissionQuotaToEvaluationRound(Evaluation eval){
-		validateQuota(eval.getQuota());
-		List<EvaluationRound> evaluationRounds = EvaluationRoundTranslationUtil.fromSubmissionQuota(eval, idGenerator);
-		return evaluationRounds;
 	}
 	
 	@Override
@@ -231,19 +216,19 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		if (quota == null){
 			return;
 		}
-		if(quota.getSubmissionLimit() != null && quota.getSubmissionLimit() < 0){
-			throw new IllegalArgumentException("submissionLimit must be non-negative");
-		}
-		if(quota.getNumberOfRounds() == null || quota.getNumberOfRounds() < 0){
-			throw new IllegalArgumentException("numberOfRounds must be defined and be non-negative");
-		}
 
-		if(quota.getRoundDurationMillis() == null || quota.getRoundDurationMillis() < 0){
-			throw new IllegalArgumentException("roundDurationMillis must be defined and non-negative");
-		}
-		if(quota.getFirstRoundStart() == null){
-			throw new IllegalArgumentException("firstRoundStart must be defined");
-		}
+		//Submission limit is not a required field
+		ValidateArgument.requirement(quota.getSubmissionLimit() == null || quota.getSubmissionLimit() >= 0,
+				"submissionLimit must be non-negative");
+
+		//numberOfRounds, roundDurationMillis, and firstRoundStart are all required
+		ValidateArgument.requirement(quota.getNumberOfRounds() != null && quota.getNumberOfRounds() >= 0,
+				"numberOfRounds must be defined and be non-negative");
+
+		ValidateArgument.requirement(quota.getRoundDurationMillis() != null && quota.getRoundDurationMillis() >= 0,
+				"roundDurationMillis must be defined and non-negative");
+
+		ValidateArgument.required(quota.getFirstRoundStart() , "firstRoundStart");
 	}
 
 	private static void validateEvaluation(Evaluation oldEval, Evaluation newEval) {
@@ -268,7 +253,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	public EvaluationRound createEvaluationRound(UserInfo userInfo, EvaluationRound evaluationRound){
 		// Creating evaluation rounds are seen as updates to the Evaluation itself
 		Evaluation evaluation = validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.UPDATE);
-//		validateNoExistingQuotaDefined(evaluation);
+		validateNoExistingQuotaDefined(evaluation);
 
 		Instant now = Instant.now();
 		// verify start of round
@@ -295,7 +280,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	public EvaluationRound updateEvaluationRound(UserInfo userInfo, EvaluationRound evaluationRound){
 
 		Evaluation evaluation = validateEvaluationAccess(userInfo, evaluationRound.getEvaluationId(), ACCESS_TYPE.UPDATE);
-//		validateNoExistingQuotaDefined(evaluation);
+		validateNoExistingQuotaDefined(evaluation);
 
 		Instant now = Instant.now();
 		EvaluationRound storedRound = evaluationDAO.getEvaluationRound(evaluationRound.getEvaluationId(), evaluationRound.getId());
@@ -412,10 +397,10 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	 * @return
 	 */
 	void validateNoExistingQuotaDefined(Evaluation evaluation){
-		if(evaluation.getQuota() != null){
-			throw new IllegalArgumentException("A SubmissionQuota must not be defined for an Evaluation." +
-					" You must first remove your Evaluation's SubmisisonQuota in order to use EvaluationRounds");
-		}
+		ValidateArgument.requirement(evaluation.getQuota() == null,"A SubmissionQuota must not be defined for an Evaluation." +
+					" You must first remove your Evaluation's SubmissionQuota or " +
+					" convert it into EvaluationRounds automatically to via the EvaluationRound migration service");
+
 	}
 
 	void validateEvaluationRoundLimits(List<EvaluationRoundLimit> evaluationRoundLimits){
@@ -442,22 +427,24 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		}
 	}
 
-	// TEMPORARY ADMIN CALL TO MIGRATE AL USAGES OF SubmissionQuotas INTO EvaluationRounds
 	@Override
-	public void adminMigrateSubmissionQuota(UserInfo userInfo){
-		if (!userInfo.isAdmin()){
-			throw new UnauthorizedException();
+	@WriteTransaction
+	public void migrateSubmissionQuota(UserInfo userInfo, String evaluationId){
+		//TODO: test permissions are checked
+		Evaluation evaluation = validateEvaluationAccess(userInfo, evaluationId,ACCESS_TYPE.UPDATE);
+
+		//TODO: make this idempotenet instead of error?
+		ValidateArgument.requirement(evaluation.getQuota() != null, "The evaluation does not have an SubmissionQuota to convert");
+
+		List<EvaluationRound> rounds = EvaluationRoundTranslationUtil.fromSubmissionQuota(evaluation, idGenerator);
+
+		for(EvaluationRound round : rounds) {
+			evaluationDAO.createEvaluationRound(round);
 		}
 
-		List<Evaluation> evaluations = evaluationDAO.getAllEvaluations();
-		for(Evaluation evaluation: evaluations){
-			List<EvaluationRound> rounds = EvaluationRoundTranslationUtil.fromSubmissionQuota(evaluation, idGenerator);
-
-			// form an analysis of existing submissionQuotas, generally, only a few rounds should end up being created
-			for(EvaluationRound round : rounds) {
-				evaluationDAO.createEvaluationRound(round);
-			}
-		};
+		//once rounds are created, set the evaluationQuota to null
+		evaluation.setQuota(null);
+		evaluationDAO.update( evaluation);
 	}
 
 }

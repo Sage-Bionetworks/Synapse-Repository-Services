@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface EvaluationManager {
@@ -92,5 +93,6 @@ public interface EvaluationManager {
 
 	EvaluationRoundListResponse getAllEvaluationRounds(UserInfo userInfo, String evaluationId, EvaluationRoundListRequest request);
 
-	void adminMigrateSubmissionQuota(UserInfo userInfo);
+	@WriteTransaction
+	void migrateSubmissionQuota(UserInfo userInfo, String evaluationId);
 }
