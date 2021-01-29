@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.dbo.EvaluationDBO;
@@ -240,8 +239,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 			return dto;
 		});
 	}
-
-	//todo: backup all evaluation submissionquotas or prevent modification of quotas?
 
 	@Override
 	@WriteTransaction

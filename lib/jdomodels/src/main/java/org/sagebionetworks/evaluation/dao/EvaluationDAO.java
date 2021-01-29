@@ -137,5 +137,4 @@ public interface EvaluationDAO {
 	 * @return existing EvaluationRounds for which provided start-end timestamp range overlap
 	 */
 	List<EvaluationRound> overlappingEvaluationRounds(String evaluationId, String currentRoundId, Instant startTimestamp, Instant endTimestamp);
-
 }
