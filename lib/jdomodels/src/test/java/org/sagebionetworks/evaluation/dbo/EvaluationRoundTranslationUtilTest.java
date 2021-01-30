@@ -72,7 +72,7 @@ class EvaluationRoundTranslationUtilTest {
 	}
 
 	@Test
-	public void testFromSubmissionQuota_NullQuota(){
+	public void testFromSubmissionQuotaNullQuota(){
 		evaluation.setQuota(null);
 
 		List<EvaluationRound> result = EvaluationRoundTranslationUtil.fromSubmissionQuota(evaluation, mockIdGenerator);
@@ -81,7 +81,7 @@ class EvaluationRoundTranslationUtilTest {
 	}
 
 	@Test
-	public void testFromSubmissionQuota_AllQuotaFieldsNull(){
+	public void testFromSubmissionQuotaAllQuotaFieldsNull(){
 		quota.setFirstRoundStart(null);
 		quota.setNumberOfRounds(null);
 		quota.setSubmissionLimit(null);
@@ -93,7 +93,7 @@ class EvaluationRoundTranslationUtilTest {
 	}
 
 	@Test
-	public void testFromSubmissionQuota_FirstRoundStartNull_SubmissionLimitNonNull(){
+	public void testFromSubmissionQuotaFirstRoundStartNullSubmissionLimitNonNull(){
 		mockIdGeneratorReturn();
 		quota.setFirstRoundStart(null);
 
@@ -115,7 +115,7 @@ class EvaluationRoundTranslationUtilTest {
 	}
 
 	@Test
-	public void testFromSubmissionQuota_FirstRoundStartNull_SubmissionLimitNull(){
+	public void testFromSubmissionQuotaFirstRoundStartNullSubmissionLimitNull(){
 		quota.setFirstRoundStart(null);
 		quota.setSubmissionLimit(null);
 
@@ -125,7 +125,7 @@ class EvaluationRoundTranslationUtilTest {
 	}
 
 	@Test
-	public void testFromSubmissionQuota_NumberOfRoundsNull_SubmissionLimitNonNull(){
+	public void testFromSubmissionQuotaNumberOfRoundsNullSubmissionLimitNonNull(){
 		mockIdGeneratorReturn();
 		quota.setNumberOfRounds(null);
 
@@ -147,7 +147,7 @@ class EvaluationRoundTranslationUtilTest {
 	}
 
 	@Test
-	public void testFromSubmissionQuota_NumberOfRoundsNull_SubmissionLimitNull(){
+	public void testFromSubmissionQuotaNumberOfRoundsNullSubmissionLimitNull(){
 		mockIdGeneratorReturn();
 		quota.setNumberOfRounds(null);
 		quota.setSubmissionLimit(null);
@@ -167,7 +167,7 @@ class EvaluationRoundTranslationUtilTest {
 
 
 	@Test
-	public void testFromSubmissionQuota_roundDurationMillisNull_SubmissionLimitNonNull(){
+	public void testFromSubmissionQuotaRoundDurationMillisNullSubmissionLimitNonNull(){
 		mockIdGeneratorReturn();
 		quota.setRoundDurationMillis(null);
 
@@ -189,7 +189,7 @@ class EvaluationRoundTranslationUtilTest {
 	}
 
 	@Test
-	public void testFromSubmissionQuota_roundDurationMillisNull_SubmissionLimitNull(){
+	public void testFromSubmissionQuotaRoundDurationMillisNullSubmissionLimitNull(){
 		mockIdGeneratorReturn();
 
 		quota.setRoundDurationMillis(null);
@@ -210,53 +210,53 @@ class EvaluationRoundTranslationUtilTest {
 
 
 	@Test
-	public void testFromSubmissionQuota_roundDurationIsOneDay(){
+	public void testFromSubmissionQuotaRoundDurationIsOneDay(){
 		quota.setRoundDurationMillis(1 * 24 * 60 * 60 * 1000L);
 		//setup has 4 rounds and the round duration is now a single day => 4 days
 		Date expectedEndDate = new Date(2019, Calendar.JUNE, 13);
 
-		testHelper_fromSubmissionQuota_multipleRoundsConvertedToSingleRound(expectedEndDate, EvaluationRoundLimitType.DAILY);
+		testHelperFromSubmissionQuotaMultipleRoundsConvertedToSingleRound(expectedEndDate, EvaluationRoundLimitType.DAILY);
 
 	}
 
 	@Test
-	public void testFromSubmissionQuota_roundDurationIsOneWeek(){
+	public void testFromSubmissionQuotaRoundDurationIsOneWeek(){
 		quota.setRoundDurationMillis(7 * 24 * 60 * 60 * 1000L);
 
 		//setup has 4 rounds and the round duration is now a week => 4 weeks
 		Date expectedEndDate = new Date(2019, Calendar.JULY, 7);
 
-		testHelper_fromSubmissionQuota_multipleRoundsConvertedToSingleRound(expectedEndDate, EvaluationRoundLimitType.WEEKLY);
+		testHelperFromSubmissionQuotaMultipleRoundsConvertedToSingleRound(expectedEndDate, EvaluationRoundLimitType.WEEKLY);
 	}
 
 	@Test
-	public void testFromSubmissionQuota_roundDurationIsMonth28Days(){
+	public void testFromSubmissionQuotaRoundDurationIsMonth28Days(){
 		quota.setRoundDurationMillis(28 * 24 * 60 * 60 * 1000L);
 		//setup has 4 rounds and the round duration is now 28 days => 112 days
 		Date expectedEndDate = new Date(2019, Calendar.SEPTEMBER, 29);
 
-		testHelper_fromSubmissionQuota_multipleRoundsConvertedToSingleRound(expectedEndDate, EvaluationRoundLimitType.MONTHLY);
+		testHelperFromSubmissionQuotaMultipleRoundsConvertedToSingleRound(expectedEndDate, EvaluationRoundLimitType.MONTHLY);
 	}
 
 	@Test
-	public void testFromSubmissionQuota_roundDurationIsMonth30Days(){
+	public void testFromSubmissionQuotaRoundDurationIsMonth30Days(){
 		quota.setRoundDurationMillis(30 * 24 * 60 * 60 * 1000L);
 		//setup has 4 rounds and the round duration is now 28 days => 120 days
 		Date expectedEndDate = new Date(2019, Calendar.OCTOBER, 7);
 
-		testHelper_fromSubmissionQuota_multipleRoundsConvertedToSingleRound(expectedEndDate, EvaluationRoundLimitType.MONTHLY);
+		testHelperFromSubmissionQuotaMultipleRoundsConvertedToSingleRound(expectedEndDate, EvaluationRoundLimitType.MONTHLY);
 	}
 
 	@Test
-	public void testFromSubmissionQuota_roundDurationIsMonth31Days(){
+	public void testFromSubmissionQuotaRoundDurationIsMonth31Days(){
 		quota.setRoundDurationMillis(31 * 24 * 60 * 60 * 1000L);
 		//setup has 4 rounds and the round duration is now 28 days => 124 days
 		Date expectedEndDate = new Date(2019, Calendar.OCTOBER, 11);
 
-		testHelper_fromSubmissionQuota_multipleRoundsConvertedToSingleRound(expectedEndDate, EvaluationRoundLimitType.MONTHLY);
+		testHelperFromSubmissionQuotaMultipleRoundsConvertedToSingleRound(expectedEndDate, EvaluationRoundLimitType.MONTHLY);
 	}
 
-	private void testHelper_fromSubmissionQuota_multipleRoundsConvertedToSingleRound(Date expectedEndDate, EvaluationRoundLimitType expectedType){
+	private void testHelperFromSubmissionQuotaMultipleRoundsConvertedToSingleRound(Date expectedEndDate, EvaluationRoundLimitType expectedType){
 		mockIdGeneratorReturn();
 
 		List<EvaluationRound> result = EvaluationRoundTranslationUtil.fromSubmissionQuota(evaluation, mockIdGenerator);
@@ -278,7 +278,7 @@ class EvaluationRoundTranslationUtilTest {
 
 
 	@Test
-	public void testFromSubmissionQuota_roundDuration_regular_case(){
+	public void testFromSubmissionQuotaRoundDurationRegularCase(){
 		mockIdGeneratorReturn();
 		List<EvaluationRound> result = EvaluationRoundTranslationUtil.fromSubmissionQuota(evaluation, mockIdGenerator);
 

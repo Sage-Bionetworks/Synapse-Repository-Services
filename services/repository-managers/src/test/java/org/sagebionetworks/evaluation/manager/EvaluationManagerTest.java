@@ -319,7 +319,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void testUpdateEvaluationAsOwner_QuotaDefined_hasEvaluationRounds() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
+	public void testUpdateEvaluationAsOwnerQuotaDefinedHasEvaluationRounds() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
 		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
 
 		evaluations= Collections.singletonList(evalWithId);
@@ -347,7 +347,7 @@ public class EvaluationManagerTest {
 
 
 	@Test
-	public void testUpdateEvaluationAsOwner_QuotaDefined_notHasEvaluationRounds() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
+	public void testUpdateEvaluationAsOwnerQuotaDefinedNotHasEvaluationRounds() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
 		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
 
 		evaluations= Collections.singletonList(evalWithId);
@@ -373,7 +373,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void testUpdateEvaluationAsOwner_QuotaNull_hasEvaluationRounds() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
+	public void testUpdateEvaluationAsOwnerQuotaNullHasEvaluationRounds() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
 		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
 
 		evaluations= Collections.singletonList(evalWithId);
@@ -397,7 +397,7 @@ public class EvaluationManagerTest {
 	 * Helper for driving other tests that validate evaluation's submissionquota
 	 * @param expectedErrorMessage
 	 */
-	private void helperTestCreateEvaluation_submissionQuotaValidation(SubmissionQuota quota, String expectedErrorMessage){
+	private void helperTestCreateEvaluationSubmissionQuotaValidation(SubmissionQuota quota, String expectedErrorMessage){
 		evalWithId.setQuota(quota);
 
 		String errorMsg = assertThrows(IllegalArgumentException.class, () ->{
@@ -411,65 +411,65 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void testCreateEvaluation_submissionQuota_NumberOfRoundsNull() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
+	public void testCreateEvaluationSubmissionQuotaNumberOfRoundsNull() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
 		SubmissionQuota quota = new SubmissionQuota();
 		quota.setFirstRoundStart(Date.from(Instant.now().plus(1, ChronoUnit.DAYS)));
 		quota.setRoundDurationMillis(123123L);
 
-		helperTestCreateEvaluation_submissionQuotaValidation(quota, "numberOfRounds must be defined and be non-negative");
+		helperTestCreateEvaluationSubmissionQuotaValidation(quota, "numberOfRounds must be defined and be non-negative");
 	}
 
 	@Test
-	public void testCreateEvaluation_submissionQuota_NumberOfRoundsNegative() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
+	public void testCreateEvaluationSubmissionQuotaNumberOfRoundsNegative() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
 		SubmissionQuota quota = new SubmissionQuota();
 		quota.setNumberOfRounds(-1L);
 		quota.setFirstRoundStart(Date.from(Instant.now().plus(1, ChronoUnit.DAYS)));
 		quota.setRoundDurationMillis(123123L);
 
-		helperTestCreateEvaluation_submissionQuotaValidation(quota, "numberOfRounds must be defined and be non-negative");
+		helperTestCreateEvaluationSubmissionQuotaValidation(quota, "numberOfRounds must be defined and be non-negative");
 
 	}
 
 	@Test
-	public void testCreateEvaluation_submissionQuota_FirstRoundStartNull() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
+	public void testCreateEvaluationSubmissionQuotaFirstRoundStartNull() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
 		SubmissionQuota quota = new SubmissionQuota();
 		quota.setNumberOfRounds(1L);
 		quota.setRoundDurationMillis(123123L);
 
-		helperTestCreateEvaluation_submissionQuotaValidation(quota, "firstRoundStart is required.");
+		helperTestCreateEvaluationSubmissionQuotaValidation(quota, "firstRoundStart is required.");
 
 	}
 
 	@Test
-	public void testCreateEvaluation_submissionQuota_RoundDurationMillisNull() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
+	public void testCreateEvaluationSubmissionQuotaRoundDurationMillisNull() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
 		SubmissionQuota quota = new SubmissionQuota();
 		quota.setNumberOfRounds(1L);
 		quota.setFirstRoundStart(Date.from(Instant.now().plus(1, ChronoUnit.DAYS)));
 
-		helperTestCreateEvaluation_submissionQuotaValidation(quota, "roundDurationMillis must be defined and non-negative");
+		helperTestCreateEvaluationSubmissionQuotaValidation(quota, "roundDurationMillis must be defined and non-negative");
 
 	}
 
 	@Test
-	public void testCreateEvaluation_submissionQuota_RoundDurationMillisNegative() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
+	public void testCreateEvaluationSubmissionQuotaRoundDurationMillisNegative() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
 		SubmissionQuota quota = new SubmissionQuota();
 		quota.setNumberOfRounds(1L);
 		quota.setFirstRoundStart(Date.from(Instant.now().plus(1, ChronoUnit.DAYS)));
 		quota.setRoundDurationMillis(-123123L);
 
-		helperTestCreateEvaluation_submissionQuotaValidation(quota, "roundDurationMillis must be defined and non-negative");
+		helperTestCreateEvaluationSubmissionQuotaValidation(quota, "roundDurationMillis must be defined and non-negative");
 	}
 
 
 	@Test
-	public void testCreateEvaluation_submissionQuota_SubmissionLimitNegative() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
+	public void testCreateEvaluationSubmissionQuotaSubmissionLimitNegative() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
 		SubmissionQuota quota = new SubmissionQuota();
 		quota.setNumberOfRounds(1L);
 		quota.setFirstRoundStart(Date.from(Instant.now().plus(1, ChronoUnit.DAYS)));
 		quota.setRoundDurationMillis(123123L);
 		quota.setSubmissionLimit(-123L);
 
-		helperTestCreateEvaluation_submissionQuotaValidation(quota, "submissionLimit must be non-negative");
+		helperTestCreateEvaluationSubmissionQuotaValidation(quota, "submissionLimit must be non-negative");
 	}
 
 
@@ -478,7 +478,7 @@ public class EvaluationManagerTest {
 	 * Helper for driving other tests that validate evaluation's submissionquota
 	 * @param expectedErrorMessage
 	 */
-	private void helperTestUpdateEvaluation_submissionQuotaValidation(SubmissionQuota quota, String expectedErrorMessage){
+	private void helperTestUpdateEvaluationSubmissionQuotaValidation(SubmissionQuota quota, String expectedErrorMessage){
 		evalWithId.setQuota(quota);
 
 		String errorMsg = assertThrows(IllegalArgumentException.class, () ->{
@@ -492,65 +492,65 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void testUpdateEvaluationAsOwner_submissionQuota_NumberOfRoundsNull() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
+	public void testUpdateEvaluationAsOwnerSubmissionQuotaNumberOfRoundsNull() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
 		SubmissionQuota quota = new SubmissionQuota();
 		quota.setFirstRoundStart(Date.from(Instant.now().plus(1, ChronoUnit.DAYS)));
 		quota.setRoundDurationMillis(123123L);
 
-		helperTestUpdateEvaluation_submissionQuotaValidation(quota, "numberOfRounds must be defined and be non-negative");
+		helperTestUpdateEvaluationSubmissionQuotaValidation(quota, "numberOfRounds must be defined and be non-negative");
 	}
 
 	@Test
-	public void testUpdateEvaluationAsOwner_submissionQuota_NumberOfRoundsNegative() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
+	public void testUpdateEvaluationAsOwnerSubmissionQuotaNumberOfRoundsNegative() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
 		SubmissionQuota quota = new SubmissionQuota();
 		quota.setNumberOfRounds(-1L);
 		quota.setFirstRoundStart(Date.from(Instant.now().plus(1, ChronoUnit.DAYS)));
 		quota.setRoundDurationMillis(123123L);
 
-		helperTestUpdateEvaluation_submissionQuotaValidation(quota, "numberOfRounds must be defined and be non-negative");
+		helperTestUpdateEvaluationSubmissionQuotaValidation(quota, "numberOfRounds must be defined and be non-negative");
 
 	}
 
 	@Test
-	public void testUpdateEvaluationAsOwner_submissionQuota_FirstRoundStartNull() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
+	public void testUpdateEvaluationAsOwnerSubmissionQuotaFirstRoundStartNull() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
 		SubmissionQuota quota = new SubmissionQuota();
 		quota.setNumberOfRounds(1L);
 		quota.setRoundDurationMillis(123123L);
 
-		helperTestUpdateEvaluation_submissionQuotaValidation(quota, "firstRoundStart is required.");
+		helperTestUpdateEvaluationSubmissionQuotaValidation(quota, "firstRoundStart is required.");
 
 	}
 
 	@Test
-	public void testUpdateEvaluationAsOwner_submissionQuota_RoundDurationMillisNull() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
+	public void testUpdateEvaluationAsOwnerSubmissionQuotaRoundDurationMillisNull() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
 		SubmissionQuota quota = new SubmissionQuota();
 		quota.setNumberOfRounds(1L);
 		quota.setFirstRoundStart(Date.from(Instant.now().plus(1, ChronoUnit.DAYS)));
 
-		helperTestUpdateEvaluation_submissionQuotaValidation(quota, "roundDurationMillis must be defined and non-negative");
+		helperTestUpdateEvaluationSubmissionQuotaValidation(quota, "roundDurationMillis must be defined and non-negative");
 
 	}
 
 	@Test
-	public void testUpdateEvaluationAsOwner_submissionQuota_RoundDurationMillisNegative() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
+	public void testUpdateEvaluationAsOwnerSubmissionQuotaRoundDurationMillisNegative() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
 		SubmissionQuota quota = new SubmissionQuota();
 		quota.setNumberOfRounds(1L);
 		quota.setFirstRoundStart(Date.from(Instant.now().plus(1, ChronoUnit.DAYS)));
 		quota.setRoundDurationMillis(-123123L);
 
-		helperTestUpdateEvaluation_submissionQuotaValidation(quota, "roundDurationMillis must be defined and non-negative");
+		helperTestUpdateEvaluationSubmissionQuotaValidation(quota, "roundDurationMillis must be defined and non-negative");
 	}
 
 
 	@Test
-	public void testUpdateEvaluationAsOwner_submissionQuota_SubmissionLimitNegative() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
+	public void testUpdateEvaluationAsOwnerSubmissionQuotaSubmissionLimitNegative() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
 		SubmissionQuota quota = new SubmissionQuota();
 		quota.setNumberOfRounds(1L);
 		quota.setFirstRoundStart(Date.from(Instant.now().plus(1, ChronoUnit.DAYS)));
 		quota.setRoundDurationMillis(123123L);
 		quota.setSubmissionLimit(-123L);
 
-		helperTestUpdateEvaluation_submissionQuotaValidation(quota, "submissionLimit must be non-negative");
+		helperTestUpdateEvaluationSubmissionQuotaValidation(quota, "submissionLimit must be non-negative");
 	}
 
 
@@ -721,7 +721,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void validateEvaluationAccess_nullUserInfo (){
+	public void validateEvaluationAccessNullUserInfo (){
 		UserInfo nullInfo = null;
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			((EvaluationManagerImpl) evaluationManager).validateEvaluationAccess(nullInfo, EVALUATION_ID, ACCESS_TYPE.READ);
@@ -733,7 +733,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void validateEvaluationAccess_noPermissionToAcccess (){
+	public void validateEvaluationAccessNoPermissionToAcccess (){
 		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
 		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.accessDenied("nope"));
@@ -748,7 +748,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void validateEvaluationAccess_hasPermission (){
+	public void validateEvaluationAccessHasPermission (){
 		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
@@ -762,7 +762,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void validateNoDateRangeOverlap_hasOverlappingRounds(){
+	public void validateNoDateRangeOverlapHasOverlappingRounds(){
 		String overlappingId = "890890";
 		EvaluationRound overlappingRound = new EvaluationRound();
 		overlappingRound.setId(overlappingId);
@@ -778,7 +778,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void validateNoDateRangeOverlap_roundEndEarlierThanRoundStart(){
+	public void validateNoDateRangeOverlapRoundEndEarlierThanRoundStart(){
 		//swap start and end
 		evaluationRound.setRoundStart(Date.from(evaluationRoundEnd));
 		evaluationRound.setRoundEnd(Date.from(evaluationRoundStart));
@@ -792,7 +792,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void validateNoDateRangeOverlap_noOverlappingRounds(){
+	public void validateNoDateRangeOverlapNoOverlappingRounds(){
 		when(mockEvaluationDAO.overlappingEvaluationRounds(EVALUATION_ID, evaluationRoundId, evaluationRoundStart, evaluationRoundEnd))
 				.thenReturn(Collections.emptyList());
 		assertDoesNotThrow(() ->
@@ -803,7 +803,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void validateNoExistingQuotaDefined_hasQuota(){
+	public void validateNoExistingQuotaDefinedHasQuota(){
 		evalWithId.setQuota(new SubmissionQuota());
 
 		String message = assertThrows(IllegalArgumentException.class, () ->
@@ -817,7 +817,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void validateNoExistingQuotaDefined_noQuota(){
+	public void validateNoExistingQuotaDefinedNoQuota(){
 		evalWithId.setQuota(null);
 		assertDoesNotThrow(() ->
 				((EvaluationManagerImpl) evaluationManager).validateNoExistingQuotaDefined(evalWithId)
@@ -851,7 +851,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void createEvaluationRound_startDateInPast(){
+	public void createEvaluationRoundStartDateInPast(){
 		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.UPDATE))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
@@ -865,7 +865,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void createEvaluationRound_endDateInPast(){
+	public void createEvaluationRoundEndDateInPast(){
 		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.UPDATE))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
@@ -902,7 +902,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void updateEvaluationRound_StartDateChangedToBeforeCurrentTime() throws JSONObjectAdapterException {
+	public void updateEvaluationRoundStartDateChangedToBeforeCurrentTime() throws JSONObjectAdapterException {
 		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.UPDATE))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
@@ -921,7 +921,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void updateEvaluationRound_EndDateChangedToBeforeCurrentTime() throws JSONObjectAdapterException {
+	public void updateEvaluationRoundEndDateChangedToBeforeCurrentTime() throws JSONObjectAdapterException {
 		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.UPDATE))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
@@ -940,7 +940,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void deleteEvaluationRound_afterRoundStarted_hasSubmissionRounds(){
+	public void deleteEvaluationRoundAfterRoundStartedHasSubmissionRounds(){
 		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.UPDATE))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
@@ -957,7 +957,7 @@ public class EvaluationManagerTest {
 		assertEquals("Can not delete an EvaluationRound after it has already started and Submissions have been made", message);
 	}
 	@Test
-	public void deleteEvaluationRound_afterRoundStarted_NoSubmissionRounds(){
+	public void deleteEvaluationRoundAfterRoundStartedNoSubmissionRounds(){
 		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.UPDATE))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
@@ -1015,7 +1015,7 @@ public class EvaluationManagerTest {
 
 
 	@Test
-	public void testGetAllEvaluationRounds_nullEmptyEvaluationId(){
+	public void testGetAllEvaluationRoundsNullEmptyEvaluationId(){
 		EvaluationRoundListRequest request = new EvaluationRoundListRequest();
 		String message = assertThrows(IllegalArgumentException.class, () ->
 				evaluationManager.getAllEvaluationRounds(userInfo, null, request)
@@ -1037,7 +1037,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void testGetAllEvaluationRounds_nullRequest(){
+	public void testGetAllEvaluationRoundsNullRequest(){
 
 		EvaluationRoundListRequest nullRequest = null;
 		String message = assertThrows(IllegalArgumentException.class, () ->
@@ -1078,7 +1078,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void testValidateEvaluationRoundLimits_nullOrEmpty(){
+	public void testValidateEvaluationRoundLimitsNullOrEmpty(){
 		assertDoesNotThrow(()->
 			((EvaluationManagerImpl) evaluationManager).validateEvaluationRoundLimits(null)
 		);
@@ -1088,7 +1088,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void testValidateEvaluationRoundLimits_duplicateLimitType(){
+	public void testValidateEvaluationRoundLimitsDuplicateLimitType(){
 		List<EvaluationRoundLimit> duplicateTypeLimits = Arrays.asList(
 				newLimit(EvaluationRoundLimitType.DAILY, 123),
 				newLimit(EvaluationRoundLimitType.DAILY, 456)
@@ -1101,7 +1101,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void testValidateEvaluationRoundLimits_negativeMaxSubmissions(){
+	public void testValidateEvaluationRoundLimitsNegativeMaxSubmissions(){
 		List<EvaluationRoundLimit> negativeMaxSubmission = Arrays.asList(
 				newLimit(EvaluationRoundLimitType.DAILY, 123),
 				newLimit(EvaluationRoundLimitType.WEEKLY, -456),
@@ -1115,7 +1115,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void testValidateEvaluationRoundLimits_happy(){
+	public void testValidateEvaluationRoundLimitsHappy(){
 		List<EvaluationRoundLimit> negativeMaxSubmission = Arrays.asList(
 				newLimit(EvaluationRoundLimitType.DAILY, 123),
 				newLimit(EvaluationRoundLimitType.WEEKLY, 456),
@@ -1127,7 +1127,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void testMigrateSubmissionQuota_UnauthorizedUser(){
+	public void testMigrateSubmissionQuotaUnauthorizedUser(){
 		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
 		when(mockPermissionsManager.hasAccess(eq(userInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.accessDenied(""));
 
@@ -1137,7 +1137,7 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
-	public void testMigrateSubmissionQuota_authorizedUser() throws JSONObjectAdapterException {
+	public void testMigrateSubmissionQuotaAuthorizedUser() throws JSONObjectAdapterException {
 		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
 		when(mockPermissionsManager.hasAccess(eq(ownerInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.authorized());
 		when(mockIdGenerator.generateNewId(IdType.EVALUATION_ROUND_ID)).thenReturn(0L,1L);
