@@ -810,9 +810,9 @@ public class EvaluationManagerTest {
 				((EvaluationManagerImpl) evaluationManager).validateNoExistingQuotaDefined(evalWithId)
 		).getMessage();
 
-		assertEquals("A SubmissionQuota must not be defined for an Evaluation." +
-				" You must first remove your Evaluation's SubmissionQuota or" +
-				" convert it into EvaluationRounds automatically to via the EvaluationRound migration service",
+		assertEquals("A SubmissionQuota, which is deprecated, must not be defined for an Evaluation." +
+						" You must first remove your Evaluation's SubmissionQuota or convert the SubmissionQuota" +
+						" into EvaluationRounds automatically to via the EvaluationRound migration service",
 				message);
 	}
 
