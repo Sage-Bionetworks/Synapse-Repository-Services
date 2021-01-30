@@ -360,4 +360,5 @@ public class AdministrationController {
 			@RequestBody FeatureStatus status) {
 		return serviceProvider.getAdministrationService().setFeatureStatus(userId, feature, status);
 	}
+
 }

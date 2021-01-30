@@ -156,4 +156,5 @@ public interface AdministrationService {
 	 * @return
 	 */
 	FeatureStatus setFeatureStatus(Long userId, Feature feature, FeatureStatus status);
+
 }

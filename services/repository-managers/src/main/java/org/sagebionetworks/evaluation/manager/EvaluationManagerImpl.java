@@ -1,6 +1,5 @@
 package org.sagebionetworks.evaluation.manager;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
@@ -14,17 +13,18 @@ import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.dao.EvaluationFilter;
 import org.sagebionetworks.evaluation.dao.EvaluationSubmissionsDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionDAO;
+import org.sagebionetworks.evaluation.dbo.EvaluationRoundTranslationUtil;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationRound;
 import org.sagebionetworks.evaluation.model.EvaluationRoundLimit;
 import org.sagebionetworks.evaluation.model.EvaluationRoundLimitType;
 import org.sagebionetworks.evaluation.model.EvaluationRoundListRequest;
 import org.sagebionetworks.evaluation.model.EvaluationRoundListResponse;
+import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -78,6 +78,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 			throws DatastoreException, InvalidModelException, NotFoundException {
 
 		UserInfo.validateUserInfo(userInfo);
+		validateQuota(eval.getQuota());
 
 		final String nodeId = eval.getContentSource();
 		if (nodeId == null || nodeId.isEmpty()) {
@@ -178,15 +179,16 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		// validate arguments
 		EvaluationUtils.ensureNotNull(eval, "Evaluation");
 		final String evalId = eval.getId();
+		validateQuota(eval.getQuota());
 
 		// fetch the existing Evaluation and validate changes		
 		Evaluation old = validateEvaluationAccess(userInfo, evalId,ACCESS_TYPE.UPDATE);
 		validateEvaluation(old, eval);
-		if(eval.getQuota() != null && evaluationDAO.hasEvaluationRounds(evalId)){
-			throw new IllegalArgumentException("A EvaluationRound must not be defined for an Evaluation." +
-					" You must first delete your Evaluation's EvaluationRounds in order to use SubmissionQuota");
-		}
-		
+
+		ValidateArgument.requirement(eval.getQuota() == null || !evaluationDAO.hasEvaluationRounds(evalId),
+				"DEPRECATED! SubmissionQuota is a DEPRECATED feature and can not co-exist with EvaluationRounds." +
+					" You must first delete your Evaluation's EvaluationRounds in order to use SubmissionQuota.");
+
 		// perform the update
 		evaluationDAO.update(eval);
 		return evaluationDAO.get(evalId);
@@ -208,6 +210,25 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		// lock out multi-submission access (e.g. batch updates)
 		evaluationSubmissionsDAO.deleteForEvaluation(Long.parseLong(id));
 		evaluationDAO.delete(id);
+	}
+
+	private static void validateQuota(SubmissionQuota quota){
+		if (quota == null){
+			return;
+		}
+
+		//Submission limit is not a required field
+		ValidateArgument.requirement(quota.getSubmissionLimit() == null || quota.getSubmissionLimit() >= 0,
+				"submissionLimit must be non-negative");
+
+		//numberOfRounds, roundDurationMillis, and firstRoundStart are all required
+		ValidateArgument.requirement(quota.getNumberOfRounds() != null && quota.getNumberOfRounds() >= 0,
+				"numberOfRounds must be defined and be non-negative");
+
+		ValidateArgument.requirement(quota.getRoundDurationMillis() != null && quota.getRoundDurationMillis() >= 0,
+				"roundDurationMillis must be defined and non-negative");
+
+		ValidateArgument.required(quota.getFirstRoundStart() , "firstRoundStart");
 	}
 
 	private static void validateEvaluation(Evaluation oldEval, Evaluation newEval) {
@@ -376,10 +397,11 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	 * @return
 	 */
 	void validateNoExistingQuotaDefined(Evaluation evaluation){
-		if(evaluation.getQuota() != null){
-			throw new IllegalArgumentException("A SubmissionQuota must not be defined for an Evaluation." +
-					" You must first remove your Evaluation's SubmisisonQuota in order to use EvaluationRounds");
-		}
+		ValidateArgument.requirement(evaluation.getQuota() == null,"A SubmissionQuota, which is deprecated," +
+				" must not be defined for an Evaluation." +
+					" You must first remove your Evaluation's SubmissionQuota or" +
+					" convert the SubmissionQuota into EvaluationRounds automatically to via the EvaluationRound migration service");
+
 	}
 
 	void validateEvaluationRoundLimits(List<EvaluationRoundLimit> evaluationRoundLimits){
@@ -404,6 +426,24 @@ public class EvaluationManagerImpl implements EvaluationManager {
 				throw new IllegalArgumentException("maxSubmissions must be a positive integer");
 			}
 		}
+	}
+
+	@Override
+	@WriteTransaction
+	public void migrateSubmissionQuota(UserInfo userInfo, String evaluationId){
+		Evaluation evaluation = validateEvaluationAccess(userInfo, evaluationId,ACCESS_TYPE.UPDATE);
+
+		ValidateArgument.requirement(evaluation.getQuota() != null, "The evaluation does not have a SubmissionQuota to convert");
+
+		List<EvaluationRound> rounds = EvaluationRoundTranslationUtil.fromSubmissionQuota(evaluation, idGenerator);
+
+		for(EvaluationRound round : rounds) {
+			evaluationDAO.createEvaluationRound(round);
+		}
+
+		//once rounds are created, set the evaluationQuota to null
+		evaluation.setQuota(null);
+		evaluationDAO.update( evaluation);
 	}
 
 }

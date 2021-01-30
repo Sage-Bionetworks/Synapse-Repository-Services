@@ -742,6 +742,8 @@ public class UrlHelpers {
 	public static final String EVALUATION_ROUND = EVALUATION_WITH_ID + "/round";
 	public static final String EVALUATION_ROUND_ID_PATH_VAR = "{roundId}";
 	public static final String EVALUATION_ROUND_WITH_ROUND_ID = EVALUATION_ROUND + "/" + EVALUATION_ROUND_ID_PATH_VAR;
+	public static final String EVALUATION_SUBMISSIONQUOTA_MIGRATION = EVALUATION_WITH_ID + "/migratequota";
+
 
 	public static final String PARTICIPANT = EVALUATION_WITH_ID + "/participant";
 	public static final String PARTICIPANT_WITH_ID = PARTICIPANT + "/{partId}";

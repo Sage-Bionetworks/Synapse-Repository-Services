@@ -8,6 +8,8 @@ import javax.servlet.http.HttpServlet;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListRequest;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListResponse;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
@@ -414,6 +416,26 @@ public class EntityServletTestHelper {
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
 		return new Evaluation(ServletTestHelperUtils.readResponseJSON(response));
+	}
+
+	public void migrateSubmissionQuota(String evalId, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, "/evaluation/"+evalId+"/migratequota", userId, token(userId), null);
+
+		ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+	}
+
+	public EvaluationRoundListResponse getAllEvaluationRounds(String evalId, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, "/evaluation/" + evalId + "/round/list", userId, token(userId),
+				new EvaluationRoundListRequest());
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return new EvaluationRoundListResponse(ServletTestHelperUtils.readResponseJSON(response));
 	}
 
 	/**

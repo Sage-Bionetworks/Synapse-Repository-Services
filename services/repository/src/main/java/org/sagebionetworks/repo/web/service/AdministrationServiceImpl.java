@@ -87,7 +87,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	
 	@Autowired
 	FeatureManager featureManager;
-	
+
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getStackStatus(java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
 	 */
@@ -236,6 +236,6 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		UserInfo user = userManager.getUserInfo(userId);
 		return featureManager.setFeatureStatus(user, feature, status);
 	};
-	
+
 
 }
