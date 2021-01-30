@@ -248,6 +248,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		eval1.setQuota(quota);
 
 		eval1 = entityServletHelper.createEvaluation(eval1, adminUserId);
+		assertEquals(quota, eval1.getQuota());
 
 		EvaluationRoundListResponse roundListResponse = entityServletHelper.getAllEvaluationRounds(eval1.getId(), adminUserId);
 		assertEquals(0, roundListResponse.getPage().size());
@@ -257,6 +258,8 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		roundListResponse = entityServletHelper.getAllEvaluationRounds(eval1.getId(), adminUserId);
 		assertEquals(2, roundListResponse.getPage().size());
 
+		eval1 = entityServletHelper.getEvaluation(adminUserId, eval1.getId());
+		assertNull(eval1.getQuota());
 	}
 	
 	@Test
