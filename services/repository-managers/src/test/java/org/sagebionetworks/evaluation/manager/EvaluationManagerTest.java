@@ -1181,6 +1181,22 @@ public class EvaluationManagerTest {
 		verify(mockEvaluationDAO).update(expectedChangedEval);
 	}
 
+
+	@Test
+	public void testMigrateSubmissionQuotaAuthorizedUserNoQuota() throws JSONObjectAdapterException {
+		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
+		when(mockPermissionsManager.hasAccess(eq(ownerInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.authorized());
+
+		evalWithId.setQuota(null);
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			//method under test
+			evaluationManager.migrateSubmissionQuota(ownerInfo, EVALUATION_ID);
+		});
+
+		verifyZeroInteractions(mockEvaluationDAO);
+	}
+
 	private EvaluationRoundLimit newLimit(EvaluationRoundLimitType type, long maxSubmission){
 		EvaluationRoundLimit evaluationRoundLimit = new EvaluationRoundLimit();
 		evaluationRoundLimit.setLimitType(type);

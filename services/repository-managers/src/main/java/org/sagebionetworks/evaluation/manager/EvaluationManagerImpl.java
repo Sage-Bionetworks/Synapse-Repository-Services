@@ -433,7 +433,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	public void migrateSubmissionQuota(UserInfo userInfo, String evaluationId){
 		Evaluation evaluation = validateEvaluationAccess(userInfo, evaluationId,ACCESS_TYPE.UPDATE);
 
-		ValidateArgument.requirement(evaluation.getQuota() != null, "The evaluation does not have an SubmissionQuota to convert");
+		ValidateArgument.requirement(evaluation.getQuota() != null, "The evaluation does not have a SubmissionQuota to convert");
 
 		List<EvaluationRound> rounds = EvaluationRoundTranslationUtil.fromSubmissionQuota(evaluation, idGenerator);
 

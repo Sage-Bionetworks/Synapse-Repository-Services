@@ -93,6 +93,11 @@ public interface EvaluationManager {
 
 	EvaluationRoundListResponse getAllEvaluationRounds(UserInfo userInfo, String evaluationId, EvaluationRoundListRequest request);
 
-	@WriteTransaction
+	/**
+	 * Converts a SubmissionQuota inside an Evaluation to a set of EvaluationRounds, stores them in the database,
+	 * and removes the SubmissionQuota.
+	 * @param userInfo
+	 * @param evaluationId
+	 */
 	void migrateSubmissionQuota(UserInfo userInfo, String evaluationId);
 }
