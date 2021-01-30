@@ -20,6 +20,6 @@ public interface FileHandleAssociationScanner {
 	 * @param batchSize The maximum number of elements to inspect in a single query
 	 * @return An iterable over all the file handles found in the given range
 	 */
-	Iterable<ScannedFileHandle> scanRange(IdRange range, long batchSize);
+	Iterable<ScannedFileHandleAssociation> scanRange(IdRange range);
 
 }

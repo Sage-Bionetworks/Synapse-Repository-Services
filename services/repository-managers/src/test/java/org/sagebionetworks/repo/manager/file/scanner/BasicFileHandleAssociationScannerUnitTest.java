@@ -10,6 +10,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScannerTestUtils.generateMapping;
+import static org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner.DEFAULT_BATCH_SIZE;
+import static org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner.DEFAULT_FILE_ID_COLUMN_NAME;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,6 +42,9 @@ public class BasicFileHandleAssociationScannerUnitTest {
 	@Mock
 	private NamedParameterJdbcTemplate mockParamaterizedJdbcTemplate;
 	
+	@Mock
+	private RowMapper<ScannedFileHandleAssociation> mockCustomRowMapper;
+	
 	@BeforeEach
 	public void before() {
 		MockitoAnnotations.initMocks(this);
@@ -49,7 +54,7 @@ public class BasicFileHandleAssociationScannerUnitTest {
 	public void testInitScannerWithValidMapping() {
 		TableMapping<Object> mapping = generateMapping("SOME_TABLE", 
 				new FieldColumn("id", "ID", true).withIsBackupId(true),
-				new FieldColumn("fileHandleId", "FILE_HANDLE_ID")
+				new FieldColumn("fileHandleId", DEFAULT_FILE_ID_COLUMN_NAME)
 		);
 		
 		// Call under test
@@ -64,14 +69,90 @@ public class BasicFileHandleAssociationScannerUnitTest {
 		);
 		
 		// Call under test
-		new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping, "FILE_ID");
+		new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping, "FILE_ID", DEFAULT_BATCH_SIZE, null);
+	}
+	
+	@Test
+	public void testInitScannerWithValidMappingAndCustomRowMapper() {
+		TableMapping<Object> mapping = generateMapping("SOME_TABLE", 
+				new FieldColumn("id", "ID", true).withIsBackupId(true),
+				new FieldColumn("fileHandleId", DEFAULT_FILE_ID_COLUMN_NAME)
+		);
+		
+		// Call under test
+		new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping, DEFAULT_FILE_ID_COLUMN_NAME, DEFAULT_BATCH_SIZE, mockCustomRowMapper);
+	}
+	
+	@Test
+	public void testInitScannerWithInvalidBatchSize() {
+		TableMapping<Object> mapping = generateMapping("SOME_TABLE", 
+				new FieldColumn("id", "ID", true).withIsBackupId(true),
+				new FieldColumn("fileHandleId", DEFAULT_FILE_ID_COLUMN_NAME)
+		);
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping, DEFAULT_FILE_ID_COLUMN_NAME, /* batchSize */ 0, null);
+		}).getMessage();
+		
+		assertEquals("The batchSize must be greater than zero.", errorMessage);
+		
+		errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping, DEFAULT_FILE_ID_COLUMN_NAME, /* batchSize */ -1, null);
+		}).getMessage();
+		
+		assertEquals("The batchSize must be greater than zero.", errorMessage);
+	}
+	
+	@Test
+	public void testInitScannerWithNoTemplate() {
+		TableMapping<Object> mapping = generateMapping("SOME_TABLE", 
+				new FieldColumn("id", "ID", true).withIsBackupId(true),
+				new FieldColumn("fileHandleId", DEFAULT_FILE_ID_COLUMN_NAME)
+		);
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			new BasicFileHandleAssociationScanner(/* namedJdbcTemplate */ null, mapping, DEFAULT_FILE_ID_COLUMN_NAME, DEFAULT_BATCH_SIZE, null);
+		}).getMessage();
+		
+		assertEquals("The namedJdbcTemplate is required.", errorMessage);
+	}
+	
+	@Test
+	public void testInitScannerWithNoMapping() {
+		TableMapping<Object> mapping = null;
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping, DEFAULT_FILE_ID_COLUMN_NAME, DEFAULT_BATCH_SIZE, null);
+		}).getMessage();
+		
+		assertEquals("The tableMapping is required.", errorMessage);
+	}
+	
+	@Test
+	public void testInitScannerWithNoFileHandleColumn() {
+		
+		TableMapping<Object> mapping = generateMapping("SOME_TABLE", 
+				new FieldColumn("id", "ID", true).withIsBackupId(true),
+				new FieldColumn("fileHandleId", DEFAULT_FILE_ID_COLUMN_NAME)
+		);
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping, /* fileHandleColumnName */ null, DEFAULT_BATCH_SIZE, null);
+		}).getMessage();
+		
+		assertEquals("The fileHandleColumnName is required.", errorMessage);
 	}
 	
 	@Test
 	public void testInitScannerWithNoBackupId() {
 		TableMapping<Object> mapping = generateMapping("SOME_TABLE", 
 				new FieldColumn("id", "ID", true),
-				new FieldColumn("fileHandleId", "FILE_HANDLE_ID")
+				new FieldColumn("fileHandleId", DEFAULT_FILE_ID_COLUMN_NAME)
 		);
 		
 		// Call under test
@@ -101,7 +182,7 @@ public class BasicFileHandleAssociationScannerUnitTest {
 	public void testGetIdRange() {
 		TableMapping<Object> mapping = generateMapping("SOME_TABLE", 
 				new FieldColumn("id", "ID", true).withIsBackupId(true),
-				new FieldColumn("fileHandleId", "FILE_HANDLE_ID")
+				new FieldColumn("fileHandleId", DEFAULT_FILE_ID_COLUMN_NAME)
 		);
 		
 		IdRange expectedRange = new IdRange(1, 2);
@@ -123,7 +204,7 @@ public class BasicFileHandleAssociationScannerUnitTest {
 	public void testScanRangeEmptyResult() {
 		TableMapping<Object> mapping = generateMapping("SOME_TABLE", 
 				new FieldColumn("id", "ID", true).withIsBackupId(true),
-				new FieldColumn("fileHandleId", "FILE_HANDLE_ID")
+				new FieldColumn("fileHandleId", DEFAULT_FILE_ID_COLUMN_NAME)
 		);
 		
 		when(mockParamaterizedJdbcTemplate.query(anyString(), anyMap(), any(RowMapper.class))).thenReturn(
@@ -134,12 +215,11 @@ public class BasicFileHandleAssociationScannerUnitTest {
 		FileHandleAssociationScanner scanner = new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping);
 		
 		IdRange idRange = new IdRange(1, 3);
-		long batchSize = 2;
 		
-		List<ScannedFileHandle> result = new ArrayList<>();
+		List<ScannedFileHandleAssociation> result = new ArrayList<>();
 		
 		// Call under test
-		scanner.scanRange(idRange, batchSize).forEach(result::add);
+		scanner.scanRange(idRange).forEach(result::add);
 		
 		assertEquals(Collections.emptyList(), result);
 		
@@ -156,23 +236,22 @@ public class BasicFileHandleAssociationScannerUnitTest {
 		TableMapping<Object> mapping = generateMapping("SOME_TABLE", 
 				new FieldColumn("id", "ID", true).withIsBackupId(true),
 				new FieldColumn("id", "VERSION", true),
-				new FieldColumn("fileHandleId", "FILE_HANDLE_ID")
+				new FieldColumn("fileHandleId", DEFAULT_FILE_ID_COLUMN_NAME)
 		);
 		
 		when(mockParamaterizedJdbcTemplate.query(anyString(), anyMap(), any(RowMapper.class))).thenReturn(
 				// No more restuls
 				Collections.emptyList()
 		);
-		
+				
 		FileHandleAssociationScanner scanner = new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping);
 		
 		IdRange idRange = new IdRange(1, 3);
-		long batchSize = 2;
 		
-		List<ScannedFileHandle> result = new ArrayList<>();
+		List<ScannedFileHandleAssociation> result = new ArrayList<>();
 		
 		// Call under test
-		scanner.scanRange(idRange, batchSize).forEach(result::add);
+		scanner.scanRange(idRange).forEach(result::add);
 		
 		assertEquals(Collections.emptyList(), result);
 		
@@ -188,38 +267,39 @@ public class BasicFileHandleAssociationScannerUnitTest {
 	public void testScanRangeWithMultiPage() {
 		TableMapping<Object> mapping = generateMapping("SOME_TABLE", 
 				new FieldColumn("id", "ID", true).withIsBackupId(true),
-				new FieldColumn("fileHandleId", "FILE_HANDLE_ID")
+				new FieldColumn("fileHandleId", DEFAULT_FILE_ID_COLUMN_NAME)
 		);
 		
 		when(mockParamaterizedJdbcTemplate.query(anyString(), anyMap(), any(RowMapper.class))).thenReturn(
 				// First batch
 				Arrays.asList(
-					new ScannedFileHandle("1", 1L),
-					new ScannedFileHandle("2", 2L)
+					new ScannedFileHandleAssociation("1", 1L),
+					new ScannedFileHandleAssociation("2", 2L)
 				),
 				// Second batch
 				Arrays.asList(
-					new ScannedFileHandle("3", 3L)
+					new ScannedFileHandleAssociation("3", 3L)
 				),
 				// No more restuls
 				Collections.emptyList()
 		);
 		
-		FileHandleAssociationScanner scanner = new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping);
-		
-		IdRange idRange = new IdRange(1, 3);
 		long batchSize = 2;
 		
-		List<ScannedFileHandle> expected = Arrays.asList(
-			new ScannedFileHandle("1", 1L),
-			new ScannedFileHandle("2", 2L),
-			new ScannedFileHandle("3", 3L)
+		FileHandleAssociationScanner scanner = new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping, DEFAULT_FILE_ID_COLUMN_NAME, batchSize, null);
+		
+		IdRange idRange = new IdRange(1, 3);
+		
+		List<ScannedFileHandleAssociation> expected = Arrays.asList(
+			new ScannedFileHandleAssociation("1", 1L),
+			new ScannedFileHandleAssociation("2", 2L),
+			new ScannedFileHandleAssociation("3", 3L)
 		);
 		
-		List<ScannedFileHandle> result = new ArrayList<>();
+		List<ScannedFileHandleAssociation> result = new ArrayList<>();
 		
 		// Call under test
-		scanner.scanRange(idRange, batchSize).forEach(result::add);
+		scanner.scanRange(idRange).forEach(result::add);
 		
 		assertEquals(expected, result);
 		
@@ -232,46 +312,51 @@ public class BasicFileHandleAssociationScannerUnitTest {
 	}
 	
 	@Test
+	public void testScaneRangeWithCustomRowMapper() {
+		TableMapping<Object> mapping = generateMapping("SOME_TABLE", 
+				new FieldColumn("id", "ID", true).withIsBackupId(true),
+				new FieldColumn("id", "VERSION", true),
+				new FieldColumn("fileHandleId", DEFAULT_FILE_ID_COLUMN_NAME)
+		);
+		
+		when(mockParamaterizedJdbcTemplate.query(anyString(), anyMap(), any(RowMapper.class))).thenReturn(
+				// No more restuls
+				Collections.emptyList()
+		);
+		
+		FileHandleAssociationScanner scanner = new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping, DEFAULT_FILE_ID_COLUMN_NAME, DEFAULT_BATCH_SIZE, mockCustomRowMapper);
+		
+		IdRange idRange = new IdRange(1, 3);
+		
+		List<ScannedFileHandleAssociation> result = new ArrayList<>();
+		
+		// Call under test
+		scanner.scanRange(idRange).forEach(result::add);
+		
+		assertEquals(Collections.emptyList(), result);
+
+		verify(mockParamaterizedJdbcTemplate).query(eq("SELECT `ID`, `FILE_HANDLE_ID` FROM SOME_TABLE WHERE `ID` BETWEEN :BMINID AND :BMAXID AND FILE_HANDLE_ID IS NOT NULL ORDER BY `ID`, `VERSION` LIMIT :KEY_LIMIT OFFSET :KEY_OFFSET"), anyMap(), eq(mockCustomRowMapper));
+		
+	}
+	
+	@Test
 	public void testScanRangeWithInvalidRange() {
 		TableMapping<Object> mapping = generateMapping("SOME_TABLE", 
 				new FieldColumn("id", "ID", true).withIsBackupId(true),
-				new FieldColumn("fileHandleId", "FILE_HANDLE_ID")
+				new FieldColumn("fileHandleId", DEFAULT_FILE_ID_COLUMN_NAME)
 		);
 		
 		FileHandleAssociationScanner scanner = new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping);
 		
 		IdRange idRange = new IdRange(3, 1);
-		long batchSize = 2;
 		
 		// Call under test
 		String message = assertThrows(IllegalArgumentException.class, () -> {			
-			scanner.scanRange(idRange, batchSize);
+			scanner.scanRange(idRange);
 		}).getMessage();
 		
 		assertEquals("Invalid range, the minId must be lesser or equal than the maxId", message);
 		
 	}
-	
-	@Test
-	public void testScanRangeWithInvalidBatchSize() {
-		TableMapping<Object> mapping = generateMapping("SOME_TABLE", 
-				new FieldColumn("id", "ID", true).withIsBackupId(true),
-				new FieldColumn("fileHandleId", "FILE_HANDLE_ID")
-		);
-		
-		FileHandleAssociationScanner scanner = new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping);
-		
-		IdRange idRange = new IdRange(1, 3);
-		long batchSize = -1;
-		
-		// Call under test
-		String message = assertThrows(IllegalArgumentException.class, () -> {			
-			scanner.scanRange(idRange, batchSize);
-		}).getMessage();
-		
-		assertEquals("Invalid batchSize, must be greater than 0", message);
-		
-	}
-	
 
 }
