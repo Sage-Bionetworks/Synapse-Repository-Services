@@ -229,15 +229,15 @@ public class EntityBundleServiceImplTest {
 	}
 
 	@Test
-	public void testDoiAssociationForUnversionedRequestForVersionable() throws Exception {
-		// Must retrieve entity to determine if it is VersionableEntity
+	public void testDoiAssociationForUnversionedRequestForFileEntity() throws Exception {
+		// Must retrieve entity to determine if it is a FileEntity
 		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeEntity(true);
 		request.setIncludeDOIAssociation(true);
 		DoiAssociation doi = new DoiAssociation();
 		doi.setObjectType(ObjectType.ENTITY);
 		doi.setObjectId(FILE_ID);
-		doi.setObjectVersion(FILE_VERSION);
+		doi.setObjectVersion(FILE_VERSION); // The DOI should be tied to a version even though the bundle request has no version!
 
 		when(mockEntityService.getEntity(eq(TEST_USER1), eq(FILE_ID))).thenReturn(file);
 		when(mockDoiServiceV2.getDoiAssociation(FILE_ID, ObjectType.ENTITY, FILE_VERSION)).thenReturn(doi);
@@ -250,7 +250,7 @@ public class EntityBundleServiceImplTest {
 		assertEquals(doi, bundle.getDoiAssociation());
 	}
 
-	@Test
+	@Test // PLFM-6582
 	public void testDoiAssociationForUnversionedRequestForTable() throws Exception {
 		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeEntity(true);
