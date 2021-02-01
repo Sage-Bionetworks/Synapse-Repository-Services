@@ -158,12 +158,13 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		}
 		if(isTrue(request.getIncludeDOIAssociation()) ){
 			try {
-				if (versionNumber == null && (entity instanceof VersionableEntity) && !(entity instanceof Table)) {
-					// For versionable entities (except tables), we assume that the user wants the DOI of the current version, if it exists.
-					// We exclude tables and views because the 'current version' is mutable. In this case, we get the versionless DOI.
+				if (versionNumber == null && (entity instanceof FileEntity)) {
+					// For File Entities, we assume that the user wants the DOI of the most recent version, if it exists.
 					Long currentVersionNumber = ((VersionableEntity) entity).getVersionNumber();
 					eb.setDoiAssociation(serviceProvider.getDoiServiceV2().getDoiAssociation(entityId, ObjectType.ENTITY, currentVersionNumber));
-				} else {
+				} else { // Handle non-versionable entities and other types of versionable entities
+					// For other versionable entity types (e.g. tables), the 'current version' is mutable.
+					// In this case, we get the DOI of the specified version, which may be null.
 					eb.setDoiAssociation(serviceProvider.getDoiServiceV2().getDoiAssociation(entityId, ObjectType.ENTITY, versionNumber));
 				}
 			} catch (NotFoundException e) {
