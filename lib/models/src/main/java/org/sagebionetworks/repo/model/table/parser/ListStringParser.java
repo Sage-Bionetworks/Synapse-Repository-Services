@@ -39,6 +39,9 @@ public class ListStringParser extends AbstractValueParser{
 	String applyFunctionOnParsedJsonElements(String value, Function<String,Object> parserFunction){
 		try {
 			JSONArray parsed = new JSONArray(value);
+			if(parsed.length() == 0){
+				return null;
+			}
 			if(parsed.length() > ColumnConstants.MAX_ALLOWED_LIST_LENGTH){
 				throw new IllegalArgumentException("value can not exceed " + ColumnConstants.MAX_ALLOWED_LIST_LENGTH + " elements in list: " + value);
 			}

@@ -39,6 +39,15 @@ class ListStringParserTest {
 	}
 
 	@Test
+	public void testApplyFunctionOnParsedJsonElements_EmptyJSONArrayList(){
+		String result = listStringParser.applyFunctionOnParsedJsonElements("[]", this::testFunction);
+		assertNull( result);
+
+		result = listStringParser.applyFunctionOnParsedJsonElements("[        ]", this::testFunction);
+		assertNull( result);
+	}
+
+	@Test
 	public void testApplyFunctionOnParsedJsonElements_containsNullValues(){
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->{
 			listStringParser.applyFunctionOnParsedJsonElements("[\"str\", null, \"str2\"]", this::testFunction);

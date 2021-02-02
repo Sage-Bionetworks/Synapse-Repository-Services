@@ -534,6 +534,16 @@ public class TableModelUtilsTest {
 	}
 
 	@Test
+	public void testValidateValue_StringList_EmptyJSONList(){
+		ColumnModel cm = TableModelTestUtils.createColumn(123L, "myCol", ColumnType.STRING_LIST);
+		cm.setMaximumSize(54L);
+		cm.setMaximumListLength(2L);
+
+		//method under test
+		assertNull(TableModelUtils.validateValue("[]", cm));
+	}
+
+	@Test
 	public void testValidateValue_IntList_valueListLengthExceeded(){
 		ColumnModel cm = TableModelTestUtils.createColumn(123L, "myCol", ColumnType.STRING_LIST);
 		cm.setMaximumListLength(2L);

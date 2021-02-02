@@ -173,4 +173,15 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		expected.add(three);
 		assertEquals(expected, pcm.getResults());
 	}
+
+	@Test
+	public void testListColumnModelsTEMP() throws ServletException, Exception{
+		ColumnModel one = new ColumnModel();
+		String prefix = UUID.randomUUID().toString();
+		one.setName(prefix+"a");
+		one.setColumnType(ColumnType.STRING_LIST);
+		one.setDefaultValue("[]");
+		one = servletTestHelper.createColumnModel(dispatchServlet, one, adminUserId);
+		System.out.println(one);
+	}
 }
