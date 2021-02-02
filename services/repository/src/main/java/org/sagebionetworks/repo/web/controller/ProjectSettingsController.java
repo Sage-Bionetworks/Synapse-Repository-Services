@@ -37,8 +37,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * 
  * <ul>
  * <li><a href="${org.sagebionetworks.repo.model.project.UploadDestinationListSetting}">UploadDestinationListSetting</a>: Used to customize the storage location for files in a project</li>
- * <li><a href="${org.sagebionetworks.repo.model.project.ProjectCertificationSetting}">ProjectCertificationSetting</a>: Used to customize the certification requirement for a project</li>
- * 
  * </ul>
  *
  * </p>
@@ -91,8 +89,6 @@ public class ProjectSettingsController {
 	 * Currently supported types:
 	 * <ul>
 	 * <li><a href="${org.sagebionetworks.repo.model.project.ProjectSettingsType}">upload</a>: Used to retrieve the <a href="${org.sagebionetworks.repo.model.project.UploadDestinationListSetting}">UploadDestinationListSetting</a></li>
-	 * <li><a href="${org.sagebionetworks.repo.model.project.ProjectSettingsType}">certification</a>: Used to retrieve the <a href="${org.sagebionetworks.repo.model.project.ProjectCertificationSetting}">ProjectCertificationSetting</a></li>
-	 * 
 	 * </ul>
 	 * <p>
 	 * Only users with READ access on a project can retrieve its <a href="${org.sagebionetworks.repo.model.project.ProjectSetting}">ProjectSetting</a>.
@@ -125,7 +121,6 @@ public class ProjectSettingsController {
 	 * <ul>
 	 * <li><a href="${org.sagebionetworks.repo.model.project.UploadDestinationListSetting}">UploadDestinationListSetting</a>: Used to customize the storage location for files in a project or folder.
 	 *  The id within the <b>locations</b> property must reference existing <a href="${org.sagebionetworks.repo.model.project.StorageLocationSetting}">StorageLocationSetting</a> that the user created.</li>
-	 * <li><a href="${org.sagebionetworks.repo.model.project.ProjectCertificationSetting}">ProjectCertificationSetting</a>: Used to customize the certification requirement on a project. Only an ACT member can create this setting.</li>
 	 * </ul>
 	 * <p>
 	 * <b>Service Limits</b>
@@ -173,8 +168,6 @@ public class ProjectSettingsController {
 	 * that the user created. To create <a href="${org.sagebionetworks.repo.model.project.StorageLocationSetting}">StorageLocationSetting</a> 
 	 * refer to the <a href="${POST.storageLocation}">POST /storageLocation</a> service
 	 * </li>
-	 * <li>
-	 * <a href="${org.sagebionetworks.repo.model.project.ProjectCertificationSetting}">ProjectCertificationSetting</a>: Used to customize the certification requirement on a project. Only an ACT member can update this setting.</li>
 	 * </ul>
 	 * <p>
 	 * <b>Service Limits</b>
@@ -210,8 +203,6 @@ public class ProjectSettingsController {
 	 * Deletes a <a href="${org.sagebionetworks.repo.model.project.ProjectSetting}">ProjectSetting</a>.
 	 * <p>
 	 * Only the users with DELETE access to the project can delete a project setting. 
-	 * 
-	 * Additionally only an ACT member can delete a <a href="${org.sagebionetworks.repo.model.project.ProjectCertificationSetting}">ProjectCertificationSetting</a>.
 	 * 
 	 * @param id The ID of the <a href="${org.sagebionetworks.repo.model.project.ProjectSetting}">ProjectSetting</a>. This is not the ID of the project.
 	 * @throws DatastoreException
