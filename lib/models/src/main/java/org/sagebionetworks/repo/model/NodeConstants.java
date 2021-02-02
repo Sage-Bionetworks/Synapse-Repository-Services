@@ -95,4 +95,9 @@ public class NodeConstants {
 			return ids;
 		}
 	}
+	
+	/**
+	 * Max path depth for a node hierarchy.
+	 */
+	public static final int MAX_PATH_DEPTH = 50;
 }

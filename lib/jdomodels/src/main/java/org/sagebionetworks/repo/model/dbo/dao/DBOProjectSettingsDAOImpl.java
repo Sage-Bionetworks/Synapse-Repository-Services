@@ -18,6 +18,7 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -66,7 +67,7 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 			"    JOIN PATH ON (N." + COL_NODE_ID + " = PATH." + COL_NODE_PARENT_ID + ")" +
 			"    LEFT OUTER JOIN " + TABLE_PROJECT_SETTING + " AS PS ON " + 
 			"       (N." + COL_NODE_ID + " = PS." + COL_PROJECT_SETTING_PROJECT_ID + " AND " + COL_PROJECT_SETTING_TYPE + " = ?)" +
-			"    WHERE N." + COL_NODE_ID +" IS NOT NULL AND DISTANCE < 100" +
+			"    WHERE N." + COL_NODE_ID +" IS NOT NULL AND DISTANCE < " +NodeConstants.MAX_PATH_DEPTH+
 			")" +
 			"SELECT PROJECT_SETTING_ID FROM PATH" +
 			"  WHERE PROJECT_SETTING_ID IS NOT NULL ORDER BY DISTANCE ASC" +

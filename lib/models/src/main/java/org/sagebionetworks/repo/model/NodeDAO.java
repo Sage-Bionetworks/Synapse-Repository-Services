@@ -663,4 +663,14 @@ public interface NodeDAO {
 	 */
 	public void truncateAll();
 
+	/**
+	 * For the given entity get the number of entities in the entity's hierarchy.
+	 * 
+	 * @param entityId
+	 * @param maxDepth The maximum depth do search. The results will not exceed this
+	 *                 max even if the hierarchy is deeper.
+	 * @return
+	 */
+	Integer getEntityPathDepth(String entityId, int maxDepth);
+
 }

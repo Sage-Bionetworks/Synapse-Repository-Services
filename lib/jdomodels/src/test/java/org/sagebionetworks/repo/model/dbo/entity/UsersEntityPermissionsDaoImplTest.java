@@ -15,10 +15,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -46,10 +45,10 @@ public class UsersEntityPermissionsDaoImplTest {
 	private NodeDAO nodeDao;
 
 	@Autowired
-	AccessControlListDAO aclDao;
+	private AccessControlListDAO aclDao;
 
 	@Autowired
-	DataTypeDao dataTypeDao;
+	private DataTypeDao dataTypeDao;
 
 	@Autowired
 	private DoaObjectHelper<Node> nodeDaoHelper;

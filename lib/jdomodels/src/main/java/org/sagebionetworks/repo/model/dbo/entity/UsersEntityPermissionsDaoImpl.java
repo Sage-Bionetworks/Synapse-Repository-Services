@@ -10,6 +10,7 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +45,7 @@ public class UsersEntityPermissionsDaoImpl implements UsersEntityPermissionsDao 
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("usersGroups", userGroups);
 		params.addValue("entityIds", entityIds);
+		params.addValue("depth", NodeConstants.MAX_PATH_DEPTH);
 		namedJdbcTemplate.query(GET_ENTITY_PERMISSION_SQL, params, new RowCallbackHandler() {
 
 			@Override
