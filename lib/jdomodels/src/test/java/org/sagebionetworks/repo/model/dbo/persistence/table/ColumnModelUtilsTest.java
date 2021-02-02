@@ -212,26 +212,6 @@ public class ColumnModelUtilsTest {
 	}
 
 	@Test
-	public void testNormalizedStringIdListColumn_DefaultValueIsNotJSON(){
-
-		JSONArray parsed = new JSONArray((String) null);
-		assert(parsed.length() == 0);
-
-
-		//input
-		original.setName("name");
-		original.setEnumValues(null);
-		original.setDefaultValue("[]");
-		original.setMaximumListLength(32L);
-		original.setColumnType(ColumnType.STRING_LIST);
-		// Setting this to null should result in the default size.
-		original.setMaximumSize(50L);
-
-		ColumnModel normalized = ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
-		assertNull(normalized.getDefaultValue());
-	}
-
-	@Test
 	public void testNormalizedStringListColumnNullSize(){
 		ColumnModel expected = new ColumnModel();
 		expected.setId(null);
