@@ -89,6 +89,7 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.dbo.persistence.NodeMapper;
@@ -142,16 +143,9 @@ import com.google.common.collect.Sets;
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
-	/**
-	 * MySQL have a default limit on the maximum recursion calls that can be made on a recursive CTE
-	 */
-	private static final int MAX_PATH_RECURSION = 1000;
+	public static final String ENTITY_DEPTH_SQL = DDLUtilsImpl
+			.loadSQLFromClasspath("sql/EntityDepth.sql");
 	
-	/**
-	 * Max path depth for a node hierarchy.
-	 */
-	private static final int MAX_PATH_DEPTH = 100;
-
 	private static final String SQL_CREATE_SNAPSHOT_VERSION = "UPDATE " + TABLE_REVISION + " SET "
 			+ COL_REVISION_COMMENT + " = ?, " + COL_REVISION_LABEL + " = ?, " + COL_REVISION_ACTIVITY_ID + " = ?, "
 			+ COL_REVISION_MODIFIED_BY + " = ?, " + COL_REVISION_MODIFIED_ON + " = ? WHERE " + COL_REVISION_OWNER_NODE
@@ -421,7 +415,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ " AS N WHERE " + COL_NODE_ID + " = ?" + " UNION ALL" + " SELECT N." + COL_NODE_ID + ", N."
 			+ COL_NODE_NAME + ", N." + COL_NODE_TYPE + ", N." + COL_NODE_PARENT_ID + ", PATH.DISTANCE+ 1 FROM "
 			+ TABLE_NODE + " AS N JOIN PATH ON (N." + COL_NODE_ID + " = PATH." + COL_NODE_PARENT_ID + ")" + " WHERE N."
-			+ COL_NODE_ID + " IS NOT NULL AND DISTANCE < "+MAX_PATH_DEPTH+" )" + " SELECT %1s FROM PATH ORDER BY DISTANCE DESC";
+			+ COL_NODE_ID + " IS NOT NULL AND DISTANCE < "+NodeConstants.MAX_PATH_DEPTH+" )" + " SELECT %1s FROM PATH ORDER BY DISTANCE DESC";
 	
 	private static final String SQL_STRING_CONTAINERS_TYPES = String.join(",", "'" + EntityType.project.name() + "'", "'" + EntityType.folder.name() + "'");
 
@@ -699,7 +693,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 						+ " UNION" 
 						+ " SELECT N." + COL_NODE_ID + ", C.DISTANCE + 1" 
 						+ " FROM NODES AS C JOIN " + TABLE_NODE + " AS N ON C." + COL_NODE_ID + " = N." + COL_NODE_PARENT_ID
-						+ " AND C.DISTANCE < " + MAX_PATH_RECURSION
+						+ " AND C.DISTANCE < " + NodeConstants.MAX_PATH_DEPTH
 				+ ")"
 				+ " SELECT ID FROM NODES ORDER BY DISTANCE DESC LIMIT ?", Long.class, parentId, limit);
 	}
@@ -1260,8 +1254,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if(path.isEmpty()) {
 			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+nodeId);
 		}
-		if(path.size() >= MAX_PATH_DEPTH) {
-			throw new IllegalStateException("Path depth limit of: "+MAX_PATH_DEPTH+" exceeded for: "+nodeId);
+		if(path.size() >= NodeConstants.MAX_PATH_DEPTH) {
+			throw new IllegalStateException("Path depth limit of: "+NodeConstants.MAX_PATH_DEPTH+" exceeded for: "+nodeId);
 		}
 	}
 	
@@ -2078,10 +2072,22 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			throw new NotFoundException("No JSON schema found for 'syn"+nodeId+"'");
 		}
 	}
+	
+	@Override
+	public Integer getEntityPathDepth(String entityId, int maxDepth) {
+		ValidateArgument.required(entityId, "entityId");
+		return jdbcTemplate.queryForObject(ENTITY_DEPTH_SQL, (ResultSet rs, int rowNum) -> {
+			int max = rs.getInt("MAX_DEPTH");
+			if (rs.wasNull()) {
+				throw new NotFoundException("Not found entityId: '" + entityId+"'");
+			}
+			return max;
+		}, KeyFactory.stringToKey(entityId), maxDepth);
+	}
 
 	@Override
 	public Long getEntityIdOfFirstBoundSchema(Long nodeId) {
-		return getEntityIdOfFirstBoundSchema(nodeId, MAX_PATH_DEPTH);
+		return getEntityIdOfFirstBoundSchema(nodeId, NodeConstants.MAX_PATH_DEPTH );
 	}
 
 	@Override

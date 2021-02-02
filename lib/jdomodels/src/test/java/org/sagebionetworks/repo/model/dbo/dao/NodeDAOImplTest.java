@@ -60,6 +60,7 @@ import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.helper.DoaObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -156,6 +157,9 @@ public class NodeDAOImplTest {
 	
 	@Autowired
 	private JsonSchemaTestHelper jsonSchemaTestHelper;
+	
+	@Autowired
+	private DoaObjectHelper<Node> nodeDaoHelper;
 
 	// the datasets that must be deleted at the end of each test.
 	List<String> toDelete = new ArrayList<String>();
@@ -1697,7 +1701,7 @@ public class NodeDAOImplTest {
 			// call under test
 			nodeDao.getEntityPathIds(grandChildId);
 		}).getMessage();
-		assertEquals("Path depth limit of: 100 exceeded for: "+grandChildId, message);
+		assertEquals("Path depth limit of: "+NodeConstants.MAX_PATH_DEPTH+" exceeded for: "+grandChildId, message);
 	}
 	
 	@Test
@@ -1833,7 +1837,7 @@ public class NodeDAOImplTest {
 			// call under test
 			nodeDao.getEntityPath(grandChildId);
 		}).getMessage();
-		assertEquals("Path depth limit of: 100 exceeded for: "+grandChildId, message);
+		assertEquals("Path depth limit of: "+NodeConstants.MAX_PATH_DEPTH+" exceeded for: "+grandChildId, message);
 	}
 	
 	
@@ -4460,5 +4464,55 @@ public class NodeDAOImplTest {
 		boolean result = nodeDao.updateRevisionFileHandle(nodeId, versionNumber, newFileHandleId);
 		
 		assertFalse(result);
+	}
+	
+	@Test
+	public void testGetEntityPathDepthWithNullId() {
+		String entityId = null;
+		int maxDepth = 10;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			nodeDao.getEntityPathDepth(entityId, maxDepth);
+		}).getMessage();
+		assertEquals("entityId is required.", message);
+	}
+	
+	@Test
+	public void testGetEntityPathDepthWithDoesNotExist() {
+		String entityId = "syn111";
+		int maxDepth = 10;
+		String message = assertThrows(NotFoundException.class, ()->{
+			// call under test
+			nodeDao.getEntityPathDepth(entityId, maxDepth);
+		}).getMessage();
+		assertEquals("Not found entityId: 'syn111'", message);
+	}
+	
+	@Test
+	public void testGetEntityPathDepth() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		toDelete.add(project.getId());
+		Node folder = nodeDaoHelper.create(n -> {
+			n.setName("aFolder");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.folder);
+		});
+		Node file = nodeDaoHelper.create(n -> {
+			n.setName("aFile");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(folder.getId());
+			n.setNodeType(EntityType.file);
+		});
+		int maxDepth = 10;
+		// call under test
+		assertEquals(1, nodeDao.getEntityPathDepth(project.getId(), maxDepth));
+		assertEquals(2, nodeDao.getEntityPathDepth(folder.getId(), maxDepth));
+		assertEquals(3, nodeDao.getEntityPathDepth(file.getId(), maxDepth));
+		maxDepth = 1;
+		assertEquals(1, nodeDao.getEntityPathDepth(file.getId(), maxDepth));
 	}
 }

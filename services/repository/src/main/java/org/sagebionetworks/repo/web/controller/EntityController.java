@@ -229,6 +229,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <td>Maximum total character count for all values associated with a single key in Annotations when the AnnotationValueType is STRING</td>
  * <td>500</td>
  * </tr>
+ * <tr>
+ * <td>Maximum hierarchical depth of an Entity</td>
+ * <td>50</td>
+ * </tr>
  * </table>
  */
 @ControllerInfo(displayName = "Entity Services", path = "repo/v1")

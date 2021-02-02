@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
@@ -143,6 +144,7 @@ public class NodeManagerImpl implements NodeManager {
 		
 		// can this entity be added to the parent?
 		validateChildCount(newNode.getParentId(), newNode.getNodeType());
+		validatePathDepth(newNode.getParentId());
 
 		// Handle permission around file handles.
 		if(newNode.getFileHandleId() != null){
@@ -173,6 +175,21 @@ public class NodeManagerImpl implements NodeManager {
 			log.debug("username: "+userInfo.getId().toString()+" created node: "+id);
 		}
 		return newNode;
+	}
+	
+	/**
+	 * Validate that adding an Entity to the following container will not exceed the
+	 * maximum hierarchical depth.
+	 * 
+	 * @param parentId
+	 */
+	public void validatePathDepth(String parentId) {
+		ValidateArgument.required(parentId, "parentId");
+		int depth = nodeDao.getEntityPathDepth(parentId, NodeConstants.MAX_PATH_DEPTH + 1);
+		if (depth >= NodeConstants.MAX_PATH_DEPTH) {
+			throw new IllegalArgumentException("Exceeded the maximum hierarchical depth of: "
+					+ NodeConstants.MAX_PATH_DEPTH + " for parent: " + parentId);
+		}
 	}
 	
 	/**
@@ -399,6 +416,7 @@ public class NodeManagerImpl implements NodeManager {
 			}
 			// Validate the limits of the new parent
 			validateChildCount(parentInUpdate, updatedNode.getNodeType());
+			validatePathDepth(parentInUpdate);
 			
 			if(NodeUtils.isProjectOrFolder(updatedNode.getNodeType())){
 				// Notify listeners of the hierarchy change to this container.

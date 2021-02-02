@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -44,6 +45,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
@@ -247,6 +249,7 @@ public class NodeManagerImplUnitTest {
 		assertNotNull(processedNode.getModifiedByPrincipalId());
 		// a child count check should occur
 		verify(mockNodeDao).getChildCount(parentId);
+		verify(mockNodeDao).getEntityPathDepth(parentId, NodeConstants.MAX_PATH_DEPTH+1);
 	}
 	
 	@Test
@@ -699,6 +702,7 @@ public class NodeManagerImplUnitTest {
 		nodeManager.update(mockUserInfo, mockNode, null, false);
 		// count check should occur
 		verify(mockNodeDao).getChildCount(newParentId);
+		verify(mockNodeDao).getEntityPathDepth(newParentId, NodeConstants.MAX_PATH_DEPTH+1);
 	}
 	
 	@Test
@@ -1150,6 +1154,49 @@ public class NodeManagerImplUnitTest {
 		nodeManager.validateChildCount(parentId, type);
 		// no check should occur for a create in root
 		verify(mockNodeDao, never()).getChildCount(anyString());
+	}
+	
+	@Test
+	public void testValidatePathDepthWithNullParentId() {
+		String parentId = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			nodeManager.validatePathDepth(parentId);
+		}).getMessage();
+		assertEquals("parentId is required.", message);
+		verifyNoMoreInteractions(mockNodeDao);
+	}
+	
+	@Test
+	public void testValidatePathDepthWithUnderLimit() {
+		String parentId = "syn123";
+		when(mockNodeDao.getEntityPathDepth(any(), anyInt())).thenReturn(1);
+		// call under test
+		nodeManager.validatePathDepth(parentId);
+		verify(mockNodeDao).getEntityPathDepth(parentId, NodeConstants.MAX_PATH_DEPTH+1);
+	}
+	
+	@Test
+	public void testValidatePathDepthWithAtLimit() {
+		String parentId = "syn123";
+		when(mockNodeDao.getEntityPathDepth(any(), anyInt())).thenReturn(NodeConstants.MAX_PATH_DEPTH-1);
+		// call under test
+		nodeManager.validatePathDepth(parentId);
+		verify(mockNodeDao).getEntityPathDepth(parentId, NodeConstants.MAX_PATH_DEPTH+1);
+	}
+	
+	@Test
+	public void testValidatePathDepthWithOverLimit() {
+		String parentId = "syn123";
+		when(mockNodeDao.getEntityPathDepth(any(), anyInt())).thenReturn(NodeConstants.MAX_PATH_DEPTH);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			nodeManager.validatePathDepth(parentId);
+		}).getMessage();
+		assertEquals(
+				"Exceeded the maximum hierarchical depth of: " + NodeConstants.MAX_PATH_DEPTH + " for parent: syn123",
+				message);
+		verify(mockNodeDao).getEntityPathDepth(parentId, NodeConstants.MAX_PATH_DEPTH + 1);
 	}
 
 
