@@ -21,11 +21,9 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
-import org.sagebionetworks.schema.adapter.org.json.JSONArrayAdapterImpl;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 
 import com.google.common.collect.Lists;
-import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 
 /**
  * Utilities for working with ColumModel objects and DBOColumnModel objects.
