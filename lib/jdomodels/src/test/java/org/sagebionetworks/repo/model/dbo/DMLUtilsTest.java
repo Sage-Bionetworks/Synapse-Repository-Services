@@ -361,7 +361,7 @@ public class DMLUtilsTest {
 				+ " WHERE P0.ID >= :BMINID AND P0.ID <= :BMAXID"
 				+ " ORDER BY P0.ID ASC";
 		TableMapping<?> primaryMapping = mapping;
-		List<TableMapping> secondaryMappings = Lists.newArrayList(secondaryOne, secondaryTwo);
+		List<TableMapping<?>> secondaryMappings = Lists.newArrayList(secondaryOne, secondaryTwo);
 		String sql = DMLUtils.createPrimaryCardinalitySql(primaryMapping, secondaryMappings);
 		assertEquals(expectedSql, sql);
 	}
@@ -374,7 +374,7 @@ public class DMLUtilsTest {
 				+ " WHERE P0.ID >= :BMINID AND P0.ID <= :BMAXID"
 				+ " ORDER BY P0.ID ASC";
 		TableMapping<?> primaryMapping = mapping;
-		List<TableMapping> secondaryMappings = new LinkedList<>();
+		List<TableMapping<?>> secondaryMappings = new LinkedList<>();
 		String sql = DMLUtils.createPrimaryCardinalitySql(primaryMapping, secondaryMappings);
 		assertEquals(expectedSql, sql);
 	}
