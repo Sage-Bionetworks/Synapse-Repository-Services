@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.mysql.cj.xdevapi.Column;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -97,6 +98,8 @@ import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -134,6 +137,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -2277,6 +2281,75 @@ public class TableWorkerIntegrationTest {
 
 	}
 
+
+	@Test
+	public void testFacet_ListColumnEmptyJSONStringEmptyArrayValues() throws Exception{
+		ColumnModel defaultEmptyList = new ColumnModel();
+		defaultEmptyList.setName("defaultEmptyList");
+		defaultEmptyList.setDefaultValue("[]");
+		defaultEmptyList.setFacetType(FacetType.enumeration);
+		defaultEmptyList.setColumnType(ColumnType.STRING_LIST);
+		defaultEmptyList = columnManager.createColumnModel(adminUserInfo, defaultEmptyList);
+
+		schema = Collections.singletonList(defaultEmptyList);
+		createTableWithSchema();
+
+
+		RowSet rowSet = new RowSet();
+		Row row = new Row();
+		row.setValues(Collections.singletonList("[]"));
+		Row row2 = new Row();
+		row2.setValues(Collections.singletonList("[\"actually has value\"]"));
+		Row row3 = new Row();
+		row3.setValues(Collections.singletonList(null));
+		Row row4 = new Row();
+		row4.setValues(Collections.singletonList(""));
+
+		rowSet.setRows(Arrays.asList(row, row2, row3, row4));
+
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = appendRows(adminUserInfo, tableId,
+				rowSet, mockProgressCallback);
+		simpleSql = "select * from " + tableId;
+
+		query.setSql(simpleSql);
+
+
+		//verify facets
+		waitForConsistentQueryBundle(adminUserInfo, query, queryOptions, (queryResultBundle) -> {
+			List<FacetColumnResult> facets = queryResultBundle.getFacets();
+			assertNotNull(facets);
+			assertEquals(1, facets.size());
+			//first facet should be string
+			FacetColumnResult strFacet = facets.get(0);
+			assertEquals(FacetType.enumeration, strFacet.getFacetType());
+			assertTrue(strFacet instanceof FacetColumnResultValues);
+			List<FacetColumnResultValueCount> enumValues = ((FacetColumnResultValues)strFacet).getFacetValues();
+
+			assertEquals(2, enumValues.size());
+
+			assertEquals(NULL_VALUE_KEYWORD, enumValues.get(0).getValue());
+			assertEquals( 3L, enumValues.get(0).getCount());
+
+			assertEquals("actually has value", enumValues.get(1).getValue());
+			assertEquals( 1L, enumValues.get(1).getCount());
+		});
+
+		FacetColumnValuesRequest facetSelection = new FacetColumnValuesRequest();
+		facetSelection.setColumnName(defaultEmptyList.getName());
+		facetSelection.setFacetValues(Collections.singleton(NULL_VALUE_KEYWORD));
+
+		List<FacetColumnRequest> selectedFacets = Collections.singletonList(facetSelection);
+		query.setSql(simpleSql);
+		query.setSelectedFacets(selectedFacets);
+		queryOptions.withReturnFacets(true);
+		waitForConsistentQueryBundle(adminUserInfo, query, queryOptions, (queryResultBundle) -> {
+			//3 rows should be null
+			assertEquals(3, queryResultBundle.getQueryResult().getQueryResults().getRows().size());
+		});
+
+	}
 
 	@Test
 	public void testRenameListColumn() throws Exception{
