@@ -496,10 +496,6 @@ public class BasicFileHandleAssociationScannerAutowireTest {
 			return fileHandleIds;
 		}
 		
-		public void setFileHandleIds(List<Long> fileHandleIds) {
-			this.fileHandleIds = fileHandleIds;
-		}
-		
 		public static FileHandleHolder deserialize(byte[] bytes) {
 			try {
 				return (FileHandleHolder) JDOSecondaryPropertyUtils.decompressObject(X_STREAM, bytes);

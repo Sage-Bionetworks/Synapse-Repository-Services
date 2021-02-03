@@ -30,7 +30,24 @@ import com.google.common.collect.ImmutableMap;
 public class BasicFileHandleAssociationScanner implements FileHandleAssociationScanner {
 
 	public static final String DEFAULT_FILE_ID_COLUMN_NAME = "FILE_HANDLE_ID";
+	
 	public static final long DEFAULT_BATCH_SIZE = 10000;
+	
+	public static final RowMapper<IdRange> ID_RANGE_MAPPER = (ResultSet rs, int rowNumber) -> {
+		long minId = rs.getLong(1);
+
+		if (rs.wasNull()) {
+			minId = -1;
+		}
+
+		long maxId = rs.getLong(2);
+
+		if (rs.wasNull()) {
+			maxId = -1;
+		}
+
+		return new IdRange(minId, maxId);
+	};
 
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	private long batchSize;
@@ -106,28 +123,13 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 	@Override
 	public IdRange getIdRange() {
 		// Using a null as the mid parameter allows to create a prepared statement
-		return namedJdbcTemplate.getJdbcTemplate().queryForObject(sqlMinMaxRangeStm, null, (rs, i) -> {
-			long minId = rs.getLong(1);
-
-			if (rs.wasNull()) {
-				minId = -1;
-			}
-
-			long maxId = rs.getLong(2);
-
-			if (rs.wasNull()) {
-				maxId = -1;
-			}
-
-			return new IdRange(minId, maxId);
-		});
+		return namedJdbcTemplate.getJdbcTemplate().queryForObject(sqlMinMaxRangeStm, null, ID_RANGE_MAPPER);
 	}
 
 	@Override
 	public Iterable<ScannedFileHandleAssociation> scanRange(IdRange range) {
 		ValidateArgument.required(range, "The range");
-		ValidateArgument.requirement(range.getMinId() <= range.getMaxId(),
-				"Invalid range, the minId must be lesser or equal than the maxId");
+		ValidateArgument.requirement(range.getMinId() <= range.getMaxId(), "Invalid range, the minId must be lesser or equal than the maxId");
 
 		final Map<String, Object> params = ImmutableMap.of(DMLUtils.BIND_MIN_ID, range.getMinId(), DMLUtils.BIND_MAX_ID, range.getMaxId());
 
