@@ -45,7 +45,6 @@ import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
-import org.sagebionetworks.repo.model.project.ProjectCertificationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -232,21 +231,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return true;
 		}
 		
-		return !isCertificationRequired(userInfo, entityId);
-	}
-	
-	boolean isCertificationRequired(UserInfo userInfo, String entityId) {
-		// by default the certification is required, checks if the project is configured to disable the certification requirement
-		
-		Optional<ProjectCertificationSetting> certificationSetting = projectSettingsManager.getProjectSettingForNode(userInfo, entityId, ProjectSettingsType.certification, ProjectCertificationSetting.class);
-		
-		// By default the certification is required on any project
-		boolean isCertificationRequired = true;
-		
-		return certificationSetting
-				.map(ProjectCertificationSetting::getCertificationRequired)
-				.orElse(isCertificationRequired);
-		
+		return false;
 	}
 	
 	@Override
@@ -387,7 +372,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		permissions.setCanDownload(canDownload(userInfo, entityId, benefactor).isAuthorized());
 		permissions.setCanUpload(canUpload(userInfo, entityId).isAuthorized());
 		permissions.setCanModerate(hasAccess(entityId, MODERATE, userInfo).isAuthorized());
-		permissions.setIsCertificationRequired(isCertificationRequired(userInfo, entityId));
+		permissions.setIsCertificationRequired(true);
 
 		permissions.setOwnerPrincipalId(node.getCreatedByPrincipalId());
 		

@@ -16,7 +16,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +40,6 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
-import org.sagebionetworks.repo.model.project.ProjectCertificationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -420,82 +418,7 @@ public class EntityPermissionsManagerImplTest {
 			nodeManager.createNode(folder, userInfo);
 		});
 		
-		assertEquals("Only certified users may create or update content in Synapse.", ex.getMessage());
-		
-		// Disable certification for the project
-		ProjectCertificationSetting projectSetting = new ProjectCertificationSetting();
-		projectSetting.setProjectId(project.getId());
-		projectSetting.setCertificationRequired(false);
-		
-		projectSettingManager.createProjectSetting(adminUserInfo, projectSetting);
-		
-		// Method under test, the user can now create the folder without certification
-		Node newFolder = nodeManager.createNode(folder, userInfo);
-		
-		nodeList.add(newFolder);
-		
-		acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
-		
-		// Removes access to the user
-		Set<ResourceAccess> ra = acl.getResourceAccess().stream().filter( a -> 
-			!a.getPrincipalId().equals(userInfo.getId())
-		).collect(Collectors.toSet());
-
-		acl.setResourceAccess(ra);
-		
-		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
-		
-		Node anotherFolder = createDTO("Another Test folder", userInfo.getId(), userInfo.getId(), project.getId());
-		anotherFolder.setNodeType(EntityType.folder);
-		
-		// Even though certification is not required, the user does not have access
-		assertThrows(UnauthorizedException.class, () -> {
-			nodeManager.createNode(anotherFolder, userInfo);
-		});
-		
-	}
-	
-	@Test
-	public void testMoveNodeWithNonCertifiedUser() throws Exception {
-		// Add permissions to create in the project for the (uncertified) user
-		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
-		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.CREATE);
-		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.UPDATE);
-		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
-		
-		// Disable certification for the project
-		ProjectCertificationSetting projectSetting = new ProjectCertificationSetting();
-		projectSetting.setProjectId(project.getId());
-		projectSetting.setCertificationRequired(false);
-		
-		projectSettingManager.createProjectSetting(adminUserInfo, projectSetting);
-		
-		// Creates a folder in the project
-		Node folder = createDTO("Test Folder ", userInfo.getId(), userInfo.getId(), project.getId());
-		folder.setNodeType(EntityType.folder);
-		
-		Node newFolder = nodeManager.createNode(folder, userInfo);
-		nodeList.add(newFolder);
-		
-		// Creates another project
-		Node newProject = createNode("Another Project", adminUserInfo.getId(), adminUserInfo.getId(), null);
-		nodeList.add(newProject);
-		
-		// Add permissions to create in the new project for any user
-		acl = entityPermissionsManager.getACL(newProject.getId(), adminUserInfo);
-		acl = AuthorizationTestHelper.addToACL(acl, BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId(), ACCESS_TYPE.CREATE);
-		acl = AuthorizationTestHelper.addToACL(acl, BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId(), ACCESS_TYPE.UPDATE);
-		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
-		
-		// Updates the parent of the folder to the new project
-		newFolder.setParentId(newProject.getId());
-		
-		UnauthorizedException ex = assertThrows(UnauthorizedException.class, () -> {			
-			// Method under test
-			nodeManager.update(userInfo, newFolder, null, false);
-		});
-		
-		assertEquals("You cannot move content into the new location, "+newProject.getId()+". Only certified users may create or update content in Synapse.", ex.getMessage());
+		assertEquals("Only certified users may create or update content in Synapse.", ex.getMessage());	
 	}
 	
 }
