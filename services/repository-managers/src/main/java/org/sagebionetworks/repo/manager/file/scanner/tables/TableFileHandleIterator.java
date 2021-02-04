@@ -30,6 +30,8 @@ public class TableFileHandleIterator implements Iterator<ScannedFileHandleAssoci
 	
 	public TableFileHandleIterator(TableEntityManager tableManager, Long tableId) {
 		this.tableId = tableId;
+		// TODO: This iterator fetches all the changes, but we actually need only ROW changes that contain file handle ids. 
+		// We could filter by changeType in the iterator? Could we store if the change has file handles in it?
 		this.tableChangeIterator = tableManager.newTableChangeIterator(tableId.toString());
 	}
 
