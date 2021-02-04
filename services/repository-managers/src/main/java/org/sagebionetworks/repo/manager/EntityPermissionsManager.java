@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.manager.entity.UsersEntityAccessInfo;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -143,4 +145,14 @@ public interface EntityPermissionsManager {
 	 * @return
 	 */
 	public Set<Long> getNonvisibleChildren(UserInfo user, String parentId);
+	
+	/**
+	 * Get a batch of access information for a given user and a batch of entity ids.
+	 * 
+	 * @param userInfo   The user that will access the entities.
+	 * @param entityIds  The entity IDs to check.
+	 * @param accessType The type of access on each entity.
+	 * @return
+	 */
+	public List<UsersEntityAccessInfo> hasAccess(UserInfo userInfo, List<Long> entityIds, ACCESS_TYPE accessType);
 }

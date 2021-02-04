@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.dataaccess;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
@@ -51,6 +50,11 @@ public class RestrictionInformationManagerImpl implements RestrictionInformation
 			info.setRestrictionLevel(RestrictionLevel.OPEN);
 			return info;
 		});
+	}
+	
+	@Override
+	public List<SubjectStatus> getEntityRestrictionInformation(UserInfo userInfo, List<Long> entityIds){
+		return accessRestrictionStatusDao.getEntityStatus(entityIds, userInfo.getId());
 	}
 
 }
