@@ -12,6 +12,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
 
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -493,6 +494,9 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	public List<UsersEntityAccessInfo> determineAccess(UserInfo userInfo,
 			List<UserEntityPermissionsState> permissionState, ACCESS_TYPE accessType) {
 		switch (accessType) {
+		case CREATE:
+			EntityType newEntityType = null;
+			return permissionState.stream().map(t -> determineCreateAccess(userInfo, t, newEntityType)).collect(Collectors.toList());
 		case READ:
 			return permissionState.stream().map(t -> determineReadAccess(userInfo, t)).collect(Collectors.toList());
 		case UPDATE:
@@ -569,25 +573,32 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	
 	List<UsersEntityAccessInfo> determineDownloadAccess(UserInfo userInfo,
 			List<UserEntityPermissionsState> permissionState) {
-		List<Long> entityIds = permissionState.stream().map(t-> t.getEntityId()).collect(Collectors.toList());
-		List<SubjectStatus> restrictionStatus = restrictionInformationManager.getEntityRestrictionInformation(userInfo, entityIds);
-		return null;
+		List<Long> entityIds = permissionState.stream().map(t -> t.getEntityId()).collect(Collectors.toList());
+		List<SubjectStatus> restrictionStatus = restrictionInformationManager.getEntityRestrictionInformation(userInfo,
+				entityIds);
+		LinkedHashMap<Long, SubjectStatus> statusMap = new LinkedHashMap<Long, SubjectStatus>(restrictionStatus.size());
+		for (SubjectStatus status : restrictionStatus) {
+			statusMap.put(status.getSubjectId(), status);
+		}
+		return permissionState.stream().map(t -> determineDownloadAccess(userInfo, t, statusMap.get(t.getEntityId())))
+				.collect(Collectors.toList());
 	}
 	
-	UsersEntityAccessInfo determineDownloadAccess(UserInfo userInfo,
-			UserEntityPermissionsState permissionState, SubjectStatus restrictionStatus) {
+	UsersEntityAccessInfo determineDownloadAccess(UserInfo userInfo, UserEntityPermissionsState permissionState,
+			SubjectStatus restrictionStatus) {
 		validateNotInTrash(permissionState);
 		AuthorizationStatus authroizationStatus = null;
 		if (userInfo.isAdmin()) {
 			authroizationStatus = AuthorizationStatus.authorized();
-		}else if(restrictionStatus.hasUnmet()) {
+		} else if (restrictionStatus.hasUnmet()) {
 			authroizationStatus = createUnmetAccessRestrictionDenied();
-		}else if(DataType.OPEN_DATA.equals(permissionState.getDataType()) && permissionState.hasRead()) {
+		} else if (DataType.OPEN_DATA.equals(permissionState.getDataType()) && permissionState.hasRead()) {
 			authroizationStatus = AuthorizationStatus.authorized();
-		}else if( permissionState.hasDownload()) {
+		} else if (permissionState.hasDownload()) {
 			authroizationStatus = AuthorizationStatus.authorized();
 		}
-		return null;
+		return new UsersEntityAccessInfo(permissionState.getEntityId(), authroizationStatus)
+				.withAccessRestrictions(restrictionStatus);
 	}
 
 
@@ -634,7 +645,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			authroizationStatus = AuthorizationStatus.authorized();
 		} else if (AuthorizationUtils.isUserAnonymous(userInfo)) {
 			authroizationStatus = createAnonymousDenied();
-		} else if (!EntityType.project.equals(newEntityType) && !AuthorizationUtils.isCertifiedUser(userInfo)) {
+		} else if (newEntityType != null && !EntityType.project.equals(newEntityType)
+				&& !AuthorizationUtils.isCertifiedUser(userInfo)) {
 			authroizationStatus = createNotCertifiedUserDenied();
 			wouldHaveAccesIfCertified = permissionState.hasCreate();
 		} else if (permissionState.hasCreate()) {
