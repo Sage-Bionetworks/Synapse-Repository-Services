@@ -15,6 +15,9 @@ public class UserInfo {
 	private Set<Long> groups;
 	
 	private final boolean isAdmin;
+	private Long id;
+	private Date creationDate;
+	private boolean acceptsTermsOfUse;
 
 	public UserInfo(boolean isAdmin) {
 		this.isAdmin = isAdmin;
@@ -40,9 +43,6 @@ public class UserInfo {
 	public Set<Long> getGroups() {
 		return groups;
 	}
-	
-	private Long id;
-	private Date creationDate;
 
 	public void setGroups(Set<Long> groups) {
 		this.groups = groups;
@@ -74,6 +74,20 @@ public class UserInfo {
 
 	public boolean isAdmin() {
 		return isAdmin;
+	}
+
+	/**
+	 * @return the acceptsTermsOfUse
+	 */
+	public boolean acceptsTermsOfUse() {
+		return acceptsTermsOfUse;
+	}
+
+	/**
+	 * @param acceptsTermsOfUse the acceptsTermsOfUse to set
+	 */
+	public void setAcceptsTermsOfUse(boolean acceptsTermsOfUse) {
+		this.acceptsTermsOfUse = acceptsTermsOfUse;
 	}
 
 	@Override

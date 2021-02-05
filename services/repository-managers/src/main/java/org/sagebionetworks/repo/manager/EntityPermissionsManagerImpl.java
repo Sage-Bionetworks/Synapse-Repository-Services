@@ -72,11 +72,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Autowired
 	private AccessControlListDAO aclDAO;
 	@Autowired
-	private AuthenticationManager authenticationManager;
-	@Autowired
 	private ProjectSettingsManager projectSettingsManager;
-	@Autowired
-	private StackConfiguration configuration;
 	@Autowired
 	private ProjectStatsManager projectStatsManager;
 	@Autowired
@@ -228,20 +224,6 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		return aclDAO.get(benefactor, ObjectType.ENTITY);
 	}
 	
-	boolean isCertifiedUserOrFeatureDisabled(UserInfo userInfo) {
-		Boolean featureIsDisabled = configuration.getDisableCertifiedUser();
-		
-		if (featureIsDisabled == null || featureIsDisabled) {
-			return true;
-		}
-		
-		if (AuthorizationUtils.isCertifiedUser(userInfo)) {
-			return true;
-		}
-		
-		return false;
-	}
-	
 	@Override
 	public AuthorizationStatus canCreate(String parentId, EntityType nodeType, UserInfo userInfo) 
 			throws DatastoreException, NotFoundException {
@@ -252,7 +234,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return AuthorizationStatus.accessDenied("Cannot create a entity having no parent.");
 		}
 
-		if (!EntityType.project.equals(nodeType) && !isCertifiedUserOrFeatureDisabled(userInfo)) {
+		if (!EntityType.project.equals(nodeType) && !AuthorizationUtils.isCertifiedUser(userInfo)) {
 			return AuthorizationStatus.accessDenied(new UserCertificationRequiredException(ERR_MESSAGE_CERTIFIED_USER_CONTENT));
 		}
 		
@@ -265,7 +247,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return AuthorizationStatus.authorized();
 		}
 
-		if (!isCertifiedUserOrFeatureDisabled(userInfo)) {
+		if (!AuthorizationUtils.isCertifiedUser(userInfo)) {
 			return AuthorizationStatus.accessDenied("Only certified users may change node settings.");
 		}
 
@@ -292,7 +274,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		
 		if (!userInfo.isAdmin() && 
 			(accessType==CREATE || (accessType==UPDATE && entityType!=EntityType.project)) &&
-			!isCertifiedUserOrFeatureDisabled(userInfo)) {
+			!AuthorizationUtils.isCertifiedUser(userInfo)) {
 			return AuthorizationStatus.accessDenied(ERR_MESSAGE_CERTIFIED_USER_CONTENT);
 		}
 		
@@ -418,7 +400,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 		
 		// We check on the terms of use agreement if the user is not anonymous
-		if (!AuthorizationUtils.isUserAnonymous(userInfo) && !agreesToTermsOfUse(userInfo)) {
+		if (!AuthorizationUtils.isUserAnonymous(userInfo) && userInfo.acceptsTermsOfUse()) {
 			return AuthorizationStatus.accessDenied("You have not yet agreed to the Synapse Terms of Use.");
 		}
 		
@@ -465,22 +447,19 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (userInfo.isAdmin()) {
 			return AuthorizationStatus.authorized();
 		}
-		if (!agreesToTermsOfUse(userInfo)) {
+		if (!userInfo.acceptsTermsOfUse()) {
 			return AuthorizationStatus.accessDenied("You have not yet agreed to the Synapse Terms of Use.");
 		}
 		return AuthorizationStatus.authorized();
 	}
 
-	private boolean agreesToTermsOfUse(UserInfo userInfo) throws NotFoundException {
-		return authenticationManager.hasUserAcceptedTermsOfUse(userInfo.getId());
-	}
 	
 	@Override
 	public AuthorizationStatus canCreateWiki(String entityId, UserInfo userInfo) throws DatastoreException, NotFoundException {
 		EntityType entityType = nodeDao.getNodeTypeById(entityId);
 		if (!userInfo.isAdmin() && 
 			EntityType.project != entityType &&
-			!isCertifiedUserOrFeatureDisabled(userInfo)) {
+			!AuthorizationUtils.isCertifiedUser(userInfo)) {
 			return AuthorizationStatus.accessDenied("Only certified users may create non-project wikis in Synapse.");
 		}
 		
@@ -499,7 +478,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 
 
 	@Override
-	public List<UsersEntityAccessInfo> hasAccess(UserInfo userInfo, List<Long> entityIds, ACCESS_TYPE accessType) {
+	public List<UsersEntityAccessInfo> batchHasAccess(UserInfo userInfo, List<Long> entityIds, ACCESS_TYPE accessType) {
 		List<UserEntityPermissionsState> permissionState = usersEntityPermissionsDao.getEntityPermissions(userInfo.getGroups(), entityIds);
 		return determineAccess(userInfo, permissionState, accessType);
 	}
@@ -621,7 +600,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		} else if (AuthorizationUtils.isUserAnonymous(userInfo)) {
 			authroizationStatus = createAnonymousDenied();
 		} else if (!EntityType.project.equals(permissionState.getEntityType())
-				&& !isCertifiedUserOrFeatureDisabled(userInfo)) {
+				&& !AuthorizationUtils.isCertifiedUser(userInfo)) {
 			authroizationStatus = createNotCertifiedUserDenied();
 			wouldHaveAccesIfCertified = permissionState.hasUpdate();
 		} else if (permissionState.hasUpdate()) {
@@ -655,7 +634,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			authroizationStatus = AuthorizationStatus.authorized();
 		} else if (AuthorizationUtils.isUserAnonymous(userInfo)) {
 			authroizationStatus = createAnonymousDenied();
-		} else if (!EntityType.project.equals(newEntityType) && !isCertifiedUserOrFeatureDisabled(userInfo)) {
+		} else if (!EntityType.project.equals(newEntityType) && !AuthorizationUtils.isCertifiedUser(userInfo)) {
 			authroizationStatus = createNotCertifiedUserDenied();
 			wouldHaveAccesIfCertified = permissionState.hasCreate();
 		} else if (permissionState.hasCreate()) {

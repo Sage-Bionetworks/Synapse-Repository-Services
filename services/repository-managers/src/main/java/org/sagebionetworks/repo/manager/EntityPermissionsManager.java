@@ -154,5 +154,5 @@ public interface EntityPermissionsManager {
 	 * @param accessType The type of access on each entity.
 	 * @return
 	 */
-	public List<UsersEntityAccessInfo> hasAccess(UserInfo userInfo, List<Long> entityIds, ACCESS_TYPE accessType);
+	public List<UsersEntityAccessInfo> batchHasAccess(UserInfo userInfo, List<Long> entityIds, ACCESS_TYPE accessType);
 }
