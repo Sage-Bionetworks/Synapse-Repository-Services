@@ -654,7 +654,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	public String getPrimaryCardinalitySql(MigrationType primaryType) {
 		MigratableDatabaseObject primaryObject = getMigratableObject(primaryType);
 		TableMapping primaryMapping = primaryObject.getTableMapping();
-		List<TableMapping> secondaryMapping = new LinkedList<>();
+		List<TableMapping<?>> secondaryMapping = new LinkedList<>();
 		List<MigratableDatabaseObject> secondaryTypes = primaryObject.getSecondaryTypes();
 		if(secondaryTypes != null) {
 			for(MigratableDatabaseObject secondary: secondaryTypes) {
