@@ -10,19 +10,16 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
 
+import static org.sagebionetworks.repo.model.AuthorizationConstants.*;
+
 import java.util.Date;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.repo.manager.dataaccess.RestrictionInformationManager;
-import org.sagebionetworks.repo.manager.entity.UsersEntityAccessInfo;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -43,12 +40,9 @@ import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.ar.SubjectStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
-import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
-import org.sagebionetworks.repo.model.dbo.entity.UsersEntityPermissionsDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -65,8 +59,7 @@ import com.google.common.collect.Sets.SetView;
 
 public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 
-	private static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
-	private static final String ERR_MESSAGE_CERTIFIED_USER_CONTENT = "Only certified users may create or update content in Synapse.";
+	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
 
 	@Autowired
 	private NodeDAO nodeDao;
@@ -82,8 +75,6 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	private ObjectTypeManager objectTypeManager;
 	@Autowired
 	private RestrictionInformationManager restrictionInformationManager;
-	@Autowired
-	private UsersEntityPermissionsDao usersEntityPermissionsDao;
 
 	@Override
 	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, ACLInheritanceException {
@@ -249,7 +240,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 
 		if (!AuthorizationUtils.isCertifiedUser(userInfo)) {
-			return AuthorizationStatus.accessDenied("Only certified users may change node settings.");
+			return AuthorizationStatus.accessDenied(ONLY_CERTIFIED_USERS_MAY_CHANGE_NODE_SETTINGS);
 		}
 
 		// the creator always has change settings permissions
@@ -311,7 +302,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// Anonymous can at most READ (or DOWNLOAD when the entity is marked with OPEN_ACCESS)
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
 			if (accessType != ACCESS_TYPE.READ && accessType != ACCESS_TYPE.DOWNLOAD) {
-				return AuthorizationStatus.accessDenied("Anonymous users have only READ access permission.");
+				return AuthorizationStatus.accessDenied(ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION);
 			}
 		}
 		// Admin
@@ -330,7 +321,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, accessType)) {
 			return AuthorizationStatus.authorized();
 		} else {
-			return AuthorizationStatus.accessDenied("You do not have "+accessType+" permission for the requested entity, "+entityId+".");
+			return AuthorizationStatus.accessDenied(String.format(YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE, accessType.name(), entityId));
 		}
 	}
 
@@ -402,7 +393,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		
 		// We check on the terms of use agreement if the user is not anonymous
 		if (!AuthorizationUtils.isUserAnonymous(userInfo) && userInfo.acceptsTermsOfUse()) {
-			return AuthorizationStatus.accessDenied("You have not yet agreed to the Synapse Terms of Use.");
+			return AuthorizationStatus.accessDenied(YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE);
 		}
 		
 		ACCESS_TYPE accessTypeCheck = DOWNLOAD;
@@ -418,7 +409,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		boolean aclAllowsDownload = aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, accessTypeCheck);
 		
 		if (!aclAllowsDownload) {
-			return AuthorizationStatus.accessDenied("You lack " + accessTypeCheck.name() + " access to the requested entity.");	
+			return AuthorizationStatus.accessDenied(String.format(YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, accessTypeCheck.name()));	
 		}
 		
 		// if the ACL and access requirements permit DOWNLOAD (or READ for OPEN_DATA), then its permitted,
@@ -437,7 +428,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		
 		if (response.getHasUnmetAccessRequirement()) {	
 			return AuthorizationStatus
-					.accessDenied("There are unmet access requirements that must be met to read content in the requested container.");
+					.accessDenied(THERE_ARE_UNMET_ACCESS_REQUIREMENTS);
 		}
 		
 		return AuthorizationStatus.authorized();
@@ -449,7 +440,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return AuthorizationStatus.authorized();
 		}
 		if (!userInfo.acceptsTermsOfUse()) {
-			return AuthorizationStatus.accessDenied("You have not yet agreed to the Synapse Terms of Use.");
+			return AuthorizationStatus.accessDenied(YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE);
 		}
 		return AuthorizationStatus.authorized();
 	}
@@ -475,220 +466,6 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return new HashSet<Long>(0);
 		}
 		return aclDAO.getNonVisibleChilrenOfEntity(user.getGroups(), parentId);
-	}
-
-
-	@Override
-	public List<UsersEntityAccessInfo> batchHasAccess(UserInfo userInfo, List<Long> entityIds, ACCESS_TYPE accessType) {
-		List<UserEntityPermissionsState> permissionState = usersEntityPermissionsDao.getEntityPermissions(userInfo.getGroups(), entityIds);
-		return determineAccess(userInfo, permissionState, accessType);
-	}
-	
-	/**
-	 * Determine the access information for a batch of entities for a given user.
-	 * @param userInfo
-	 * @param permissionState
-	 * @param accessType
-	 * @return
-	 */
-	public List<UsersEntityAccessInfo> determineAccess(UserInfo userInfo,
-			List<UserEntityPermissionsState> permissionState, ACCESS_TYPE accessType) {
-		switch (accessType) {
-		case CREATE:
-			EntityType newEntityType = null;
-			return permissionState.stream().map(t -> determineCreateAccess(userInfo, t, newEntityType)).collect(Collectors.toList());
-		case READ:
-			return permissionState.stream().map(t -> determineReadAccess(userInfo, t)).collect(Collectors.toList());
-		case UPDATE:
-			return permissionState.stream().map(t -> determineUpdateAccess(userInfo, t)).collect(Collectors.toList());
-		case DELETE:
-			return permissionState.stream().map(t -> determineDeleteAccess(userInfo, t)).collect(Collectors.toList());
-		case CHANGE_PERMISSIONS:
-			return permissionState.stream().map(t -> determineChangePermissionAccess(userInfo, t))
-					.collect(Collectors.toList());
-		case DOWNLOAD:
-			return determineDownloadAccess(userInfo, permissionState);
-		case UPLOAD:
-			return permissionState.stream().map(t -> determineUpdateAccess(userInfo, t)).collect(Collectors.toList());
-		case CHANGE_SETTINGS:
-			return permissionState.stream().map(t -> determineChangeSettingsAccess(userInfo, t))
-					.collect(Collectors.toList());
-		case MODERATE:
-			return permissionState.stream().map(t -> determineModerateAccess(userInfo, t))
-					.collect(Collectors.toList());
-		default:
-			throw new IllegalArgumentException("Unknown access type: " + accessType);
-
-		}
-	}
-
-	
-	UsersEntityAccessInfo determineModerateAccess(UserInfo userInfo, UserEntityPermissionsState permissionState) {
-		validateNotInTrash(permissionState);
-		AuthorizationStatus authroizationStatus = null;
-		if (userInfo.isAdmin()) {
-			authroizationStatus = AuthorizationStatus.authorized();
-		} else if (AuthorizationUtils.isUserAnonymous(userInfo)) {
-			authroizationStatus = createAnonymousDenied();
-		}
-		return null;
-	}
-
-
-	UsersEntityAccessInfo determineChangeSettingsAccess(UserInfo userInfo,
-			UserEntityPermissionsState permissionState) {
-		validateNotInTrash(permissionState);
-		AuthorizationStatus authroizationStatus = null;
-		if (userInfo.isAdmin()) {
-			authroizationStatus = AuthorizationStatus.authorized();
-		} else if (AuthorizationUtils.isUserAnonymous(userInfo)) {
-			authroizationStatus = createAnonymousDenied();
-		}
-		return null;
-	}
-
-	UsersEntityAccessInfo determineChangePermissionAccess(UserInfo userInfo,
-			UserEntityPermissionsState permissionState) {
-		validateNotInTrash(permissionState);
-		AuthorizationStatus authroizationStatus = null;
-		if (userInfo.isAdmin()) {
-			authroizationStatus = AuthorizationStatus.authorized();
-		} else if (AuthorizationUtils.isUserAnonymous(userInfo)) {
-			authroizationStatus = createAnonymousDenied();
-		}
-		return null;
-	}
-
-
-	UsersEntityAccessInfo determineDeleteAccess(UserInfo userInfo,
-			UserEntityPermissionsState permissionState) {
-		AuthorizationStatus authroizationStatus = null;
-		if (userInfo.isAdmin()) {
-			authroizationStatus = AuthorizationStatus.authorized();
-		} else if (AuthorizationUtils.isUserAnonymous(userInfo)) {
-			authroizationStatus = createAnonymousDenied();
-		}
-		return null;
-	}
-	
-	List<UsersEntityAccessInfo> determineDownloadAccess(UserInfo userInfo,
-			List<UserEntityPermissionsState> permissionState) {
-		List<Long> entityIds = permissionState.stream().map(t -> t.getEntityId()).collect(Collectors.toList());
-		List<SubjectStatus> restrictionStatus = restrictionInformationManager.getEntityRestrictionInformation(userInfo,
-				entityIds);
-		LinkedHashMap<Long, SubjectStatus> statusMap = new LinkedHashMap<Long, SubjectStatus>(restrictionStatus.size());
-		for (SubjectStatus status : restrictionStatus) {
-			statusMap.put(status.getSubjectId(), status);
-		}
-		return permissionState.stream().map(t -> determineDownloadAccess(userInfo, t, statusMap.get(t.getEntityId())))
-				.collect(Collectors.toList());
-	}
-	
-	UsersEntityAccessInfo determineDownloadAccess(UserInfo userInfo, UserEntityPermissionsState permissionState,
-			SubjectStatus restrictionStatus) {
-		validateNotInTrash(permissionState);
-		AuthorizationStatus authroizationStatus = null;
-		if (userInfo.isAdmin()) {
-			authroizationStatus = AuthorizationStatus.authorized();
-		} else if (restrictionStatus.hasUnmet()) {
-			authroizationStatus = createUnmetAccessRestrictionDenied();
-		} else if (DataType.OPEN_DATA.equals(permissionState.getDataType()) && permissionState.hasRead()) {
-			authroizationStatus = AuthorizationStatus.authorized();
-		} else if (permissionState.hasDownload()) {
-			authroizationStatus = AuthorizationStatus.authorized();
-		}
-		return new UsersEntityAccessInfo(permissionState.getEntityId(), authroizationStatus)
-				.withAccessRestrictions(restrictionStatus);
-	}
-
-
-	UsersEntityAccessInfo determineUpdateAccess(UserInfo userInfo, UserEntityPermissionsState permissionState) {
-		validateNotInTrash(permissionState);
-		AuthorizationStatus authroizationStatus = null;
-		Boolean wouldHaveAccesIfCertified = null;
-		if (userInfo.isAdmin()) {
-			authroizationStatus = AuthorizationStatus.authorized();
-		} else if (AuthorizationUtils.isUserAnonymous(userInfo)) {
-			authroizationStatus = createAnonymousDenied();
-		} else if (!EntityType.project.equals(permissionState.getEntityType())
-				&& !AuthorizationUtils.isCertifiedUser(userInfo)) {
-			authroizationStatus = createNotCertifiedUserDenied();
-			wouldHaveAccesIfCertified = permissionState.hasUpdate();
-		} else if (permissionState.hasUpdate()) {
-			authroizationStatus = AuthorizationStatus.authorized();
-		} else {
-			authroizationStatus = createDenied(ACCESS_TYPE.UPDATE, permissionState.getEntityId());
-			wouldHaveAccesIfCertified = false;
-		}
-		return new UsersEntityAccessInfo(permissionState.getEntityId(), authroizationStatus)
-				.withWouldHaveAccesIfCertified(wouldHaveAccesIfCertified);
-	}
-
-	UsersEntityAccessInfo determineReadAccess(UserInfo userInfo, UserEntityPermissionsState permissionState) {
-		validateNotInTrash(permissionState);
-		AuthorizationStatus authroizationStatus = null;
-		if (userInfo.isAdmin()) {
-			authroizationStatus = AuthorizationStatus.authorized();
-		} else if (permissionState.hasRead()) {
-			authroizationStatus = AuthorizationStatus.authorized();
-		} else {
-			authroizationStatus = createDenied(ACCESS_TYPE.READ, permissionState.getEntityId());
-		}
-		return new UsersEntityAccessInfo(permissionState.getEntityId(), authroizationStatus);
-	}
-
-	UsersEntityAccessInfo determineCreateAccess(UserInfo userInfo, UserEntityPermissionsState permissionState,
-			EntityType newEntityType) {
-		AuthorizationStatus authroizationStatus = null;
-		Boolean wouldHaveAccesIfCertified = null;
-		if (userInfo.isAdmin()) {
-			authroizationStatus = AuthorizationStatus.authorized();
-		} else if (AuthorizationUtils.isUserAnonymous(userInfo)) {
-			authroizationStatus = createAnonymousDenied();
-		} else if (newEntityType != null && !EntityType.project.equals(newEntityType)
-				&& !AuthorizationUtils.isCertifiedUser(userInfo)) {
-			authroizationStatus = createNotCertifiedUserDenied();
-			wouldHaveAccesIfCertified = permissionState.hasCreate();
-		} else if (permissionState.hasCreate()) {
-			authroizationStatus = AuthorizationStatus.authorized();
-		} else {
-			authroizationStatus = createDenied(ACCESS_TYPE.CREATE, permissionState.getEntityId());
-			wouldHaveAccesIfCertified = false;
-		}
-		return new UsersEntityAccessInfo(permissionState.getEntityId(), authroizationStatus)
-				.withWouldHaveAccesIfCertified(wouldHaveAccesIfCertified);
-	}
-	
-	public static void validateNotInTrash(UserEntityPermissionsState permissionState) {
-		if (TRASH_FOLDER_ID.equals(permissionState.getBenefactorId())) {
-			throw new EntityInTrashCanException(
-					"Entity " + KeyFactory.keyToString(permissionState.getEntityId()) + " is in trash can.");
-		}
-	}
-	
-	/**
-	 * Create a genetic denied status.
-	 * 
-	 * @param accessType
-	 * @param entityId
-	 * @return
-	 */
-	public static AuthorizationStatus createDenied(ACCESS_TYPE accessType, Long entityId) {
-		return AuthorizationStatus.accessDenied("You do not have " + accessType
-				+ " permission for the requested entity, " + KeyFactory.keyToString(entityId) + ".");
-	}
-	
-	public static AuthorizationStatus createAnonymousDenied() {
-		return AuthorizationStatus.accessDenied("Anonymous users have only READ access permission."); 
-	}
-	
-	public static AuthorizationStatus createNotCertifiedUserDenied() {
-		return AuthorizationStatus.accessDenied(ERR_MESSAGE_CERTIFIED_USER_CONTENT);
-	}
-	
-	public static AuthorizationStatus createUnmetAccessRestrictionDenied() {
-		return AuthorizationStatus
-				.accessDenied("There are unmet access requirements that must be met to read content in the requested container.");
 	}
 
 }

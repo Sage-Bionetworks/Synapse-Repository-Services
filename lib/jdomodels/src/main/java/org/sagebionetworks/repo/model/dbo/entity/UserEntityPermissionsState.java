@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 /**
  * Represents the user's entity permissions state from the database.
@@ -49,6 +50,10 @@ public class UserEntityPermissionsState {
 	 */
 	public Long getEntityId() {
 		return entityId;
+	}
+	
+	public String getEntityIdAsString() {
+		return KeyFactory.keyToString(entityId);
 	}
 
 	/**
