@@ -636,7 +636,7 @@ public class MessageManagerImplUnitTest {
 		adminUserInfo.setGroups(Collections.singleton(CREATOR_ID));
 		when(userManager.getUserInfo(CREATOR_ID)).thenReturn(adminUserInfo);
 		
-		when(authorizationManager.canAccess(creatorUserInfo, authUsersId.toString(),
+		when(authorizationManager.canAccess(adminUserInfo, authUsersId.toString(),
 				ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)).thenReturn(AuthorizationStatus.authorized());
 		
 		errors = messageManager.processMessage(MESSAGE_ID, null);
