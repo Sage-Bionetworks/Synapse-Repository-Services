@@ -9,15 +9,19 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.MODERATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
-
-import static org.sagebionetworks.repo.model.AuthorizationConstants.*;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MESSAGE_CERTIFIED_USER_CONTENT;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ONLY_CERTIFIED_USERS_MAY_CHANGE_NODE_SETTINGS;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
 
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
-import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.repo.manager.dataaccess.RestrictionInformationManager;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
@@ -32,6 +36,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -58,8 +63,6 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 
 public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
-
-	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
 
 	@Autowired
 	private NodeDAO nodeDao;
@@ -293,7 +296,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// The only operations allowed over the trash can is CREATE (i.e. moving
 		// items into the trash can) and DELETE (i.e. purging the trash).
 		final String benefactor = nodeDao.getBenefactor(entityId);
-		if (TRASH_FOLDER_ID.equals(KeyFactory.stringToKey(benefactor))
+		if (NodeConstants.BOOTSTRAP_NODES.TRASH.getId().equals(KeyFactory.stringToKey(benefactor))
 				&& !CREATE.equals(accessType)
 				&& !DELETE.equals(accessType)) {
 			throw new EntityInTrashCanException("Entity " + entityId + " is in trash can.");
@@ -392,7 +395,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 		
 		// We check on the terms of use agreement if the user is not anonymous
-		if (!AuthorizationUtils.isUserAnonymous(userInfo) && userInfo.acceptsTermsOfUse()) {
+		if (!AuthorizationUtils.isUserAnonymous(userInfo) && !userInfo.acceptsTermsOfUse()) {
 			return AuthorizationStatus.accessDenied(YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE);
 		}
 		

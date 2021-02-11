@@ -158,7 +158,7 @@ public class AccessRestrictionStatusDaoImplTest {
 	public void testGetEntityStatusWithNoEmptySubjects() {
 		List<Long> subjectIds = Collections.emptyList();
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userTwoId);
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userTwoId);
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
 		
@@ -169,9 +169,9 @@ public class AccessRestrictionStatusDaoImplTest {
 		setupNodeHierarchy(userTwoId);
 		List<Long> subjectIds = KeyFactory.stringToKey(Arrays.asList(file.getId(), fileTwo.getId()));
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userTwoId);
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userTwoId);
 		validateBasicSubjectStatus(subjectIds, results, userTwoId);
-		SubjectStatus result = results.get(0);
+		UsersRestrictionStatus result = results.get(0);
 		assertFalse(result.hasUnmet());
 		assertNotNull(result.getAccessRestrictions());
 		assertTrue(result.getAccessRestrictions().isEmpty());
@@ -188,9 +188,9 @@ public class AccessRestrictionStatusDaoImplTest {
 		setupNodeHierarchy(userTwoId);
 		List<Long> subjectIds = KeyFactory.stringToKey(Arrays.asList(file.getId(), fileTwo.getId()));
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userOneId);
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userOneId);
 		validateBasicSubjectStatus(subjectIds, results, userOneId);
-		SubjectStatus result = results.get(0);
+		UsersRestrictionStatus result = results.get(0);
 		assertFalse(result.hasUnmet());
 		assertNotNull(result.getAccessRestrictions());
 		assertTrue(result.getAccessRestrictions().isEmpty());
@@ -212,14 +212,14 @@ public class AccessRestrictionStatusDaoImplTest {
 		});
 		List<Long> subjectIds = KeyFactory.stringToKey(Arrays.asList(file.getId(), fileTwo.getId()));
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userOneId);
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userOneId);
 		validateBasicSubjectStatus(subjectIds, results, userOneId);
 
 		List<UsersRequirementStatus> expected = Arrays
 				.asList(new UsersRequirementStatus().withRequirementId(projectToU.getId())
 						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(true));
 
-		SubjectStatus result = results.get(0);
+		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
 		assertEquals(expected, result.getAccessRestrictions());
 
@@ -248,7 +248,7 @@ public class AccessRestrictionStatusDaoImplTest {
 
 		List<Long> subjectIds = KeyFactory.stringToKey(Arrays.asList(file.getId(), fileTwo.getId()));
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userOneId);
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userOneId);
 		validateBasicSubjectStatus(subjectIds, results, userOneId);
 
 		List<UsersRequirementStatus> expectedOne = Arrays.asList(
@@ -257,7 +257,7 @@ public class AccessRestrictionStatusDaoImplTest {
 				new UsersRequirementStatus().withRequirementId(lockFolderOne.getId())
 						.withRequirementType(AccessRequirementType.LOCK).withIsUnmet(true));
 
-		SubjectStatus result = results.get(0);
+		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
 		assertEquals(expectedOne, result.getAccessRestrictions());
 
@@ -289,13 +289,13 @@ public class AccessRestrictionStatusDaoImplTest {
 		});
 		List<Long> subjectIds = KeyFactory.stringToKey(Arrays.asList(file.getId(), fileTwo.getId()));
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userOneId);
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userOneId);
 		validateBasicSubjectStatus(subjectIds, results, userOneId);
 
 		List<UsersRequirementStatus> expected = Arrays.asList(new UsersRequirementStatus()
 				.withRequirementId(tou.getId()).withRequirementType(AccessRequirementType.TOU).withIsUnmet(true));
 
-		SubjectStatus result = results.get(0);
+		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
 		assertEquals(expected, result.getAccessRestrictions());
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, result.getMostRestrictiveLevel());
@@ -325,7 +325,7 @@ public class AccessRestrictionStatusDaoImplTest {
 
 		List<Long> subjectIds = KeyFactory.stringToKey(Arrays.asList(file.getId()));
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userOneId);
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userOneId);
 		validateBasicSubjectStatus(subjectIds, results, userOneId);
 
 		List<UsersRequirementStatus> expected = Arrays.asList(
@@ -336,7 +336,7 @@ public class AccessRestrictionStatusDaoImplTest {
 				new UsersRequirementStatus().withRequirementId(managed.getId())
 						.withRequirementType(AccessRequirementType.MANAGED_ATC).withIsUnmet(true));
 
-		SubjectStatus result = results.get(0);
+		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
 		assertEquals(expected, result.getAccessRestrictions());
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, result.getMostRestrictiveLevel());
@@ -351,14 +351,14 @@ public class AccessRestrictionStatusDaoImplTest {
 		});
 		List<Long> subjectIds = KeyFactory.stringToKey(Arrays.asList(file.getId(), fileTwo.getId()));
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userTwoId);
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userTwoId);
 		validateBasicSubjectStatus(subjectIds, results, userTwoId);
 
 		List<UsersRequirementStatus> expected = Arrays
 				.asList(new UsersRequirementStatus().withRequirementId(projectToU.getId())
 						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(false));
 
-		SubjectStatus result = results.get(0);
+		UsersRestrictionStatus result = results.get(0);
 		assertFalse(result.hasUnmet());
 		assertEquals(expected, result.getAccessRestrictions());
 
@@ -386,14 +386,14 @@ public class AccessRestrictionStatusDaoImplTest {
 
 		List<Long> subjectIds = KeyFactory.stringToKey(Arrays.asList(file.getId()));
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userOneId);
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userOneId);
 		validateBasicSubjectStatus(subjectIds, results, userOneId);
 
 		List<UsersRequirementStatus> expected = Arrays
 				.asList(new UsersRequirementStatus().withRequirementId(projectToU.getId())
 						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(false));
 
-		SubjectStatus result = results.get(0);
+		UsersRestrictionStatus result = results.get(0);
 		assertFalse(result.hasUnmet());
 		assertEquals(expected, result.getAccessRestrictions());
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, result.getMostRestrictiveLevel());
@@ -417,14 +417,14 @@ public class AccessRestrictionStatusDaoImplTest {
 
 		List<Long> subjectIds = KeyFactory.stringToKey(Arrays.asList(file.getId()));
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userOneId);
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userOneId);
 		validateBasicSubjectStatus(subjectIds, results, userOneId);
 
 		List<UsersRequirementStatus> expected = Arrays
 				.asList(new UsersRequirementStatus().withRequirementId(projectToU.getId())
 						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(true));
 
-		SubjectStatus result = results.get(0);
+		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
 		assertEquals(expected, result.getAccessRestrictions());
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, result.getMostRestrictiveLevel());
@@ -466,14 +466,14 @@ public class AccessRestrictionStatusDaoImplTest {
 		});
 
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userOneId);
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userOneId);
 		validateBasicSubjectStatus(subjectIds, results, userOneId);
 
 		List<UsersRequirementStatus> expected = Arrays
 				.asList(new UsersRequirementStatus().withRequirementId(projectToUV2.getId())
 						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(false));
 
-		SubjectStatus result = results.get(0);
+		UsersRestrictionStatus result = results.get(0);
 		assertFalse(result.hasUnmet());
 		assertEquals(expected, result.getAccessRestrictions());
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, result.getMostRestrictiveLevel());
@@ -515,14 +515,14 @@ public class AccessRestrictionStatusDaoImplTest {
 		});
 
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userOneId);
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userOneId);
 		validateBasicSubjectStatus(subjectIds, results, userOneId);
 
 		List<UsersRequirementStatus> expected = Arrays
 				.asList(new UsersRequirementStatus().withRequirementId(projectToUV2.getId())
 						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(true));
 
-		SubjectStatus result = results.get(0);
+		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
 		assertEquals(expected, result.getAccessRestrictions());
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, result.getMostRestrictiveLevel());
@@ -559,14 +559,14 @@ public class AccessRestrictionStatusDaoImplTest {
 		List<Long> subjectIds = KeyFactory.stringToKey(Arrays.asList(file.getId()));
 
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userOneId);
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(subjectIds, userOneId);
 		validateBasicSubjectStatus(subjectIds, results, userOneId);
 
 		List<UsersRequirementStatus> expected = Arrays
 				.asList(new UsersRequirementStatus().withRequirementId(projectToUV2.getId())
 						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(false));
 
-		SubjectStatus result = results.get(0);
+		UsersRestrictionStatus result = results.get(0);
 		assertFalse(result.hasUnmet());
 		assertEquals(expected, result.getAccessRestrictions());
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, result.getMostRestrictiveLevel());
@@ -622,7 +622,7 @@ public class AccessRestrictionStatusDaoImplTest {
 		List<Long> subjectIds = Collections.emptyList();
 		RestrictableObjectType subjectType = RestrictableObjectType.TEAM;
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getNonEntityStatus(subjectIds, subjectType, userTwoId);
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getNonEntityStatus(subjectIds, subjectType, userTwoId);
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
 	}
@@ -632,9 +632,9 @@ public class AccessRestrictionStatusDaoImplTest {
 		List<Long> subjectIds = Arrays.asList(teamOneId, teamTwoId);
 		RestrictableObjectType subjectType = RestrictableObjectType.TEAM;
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getNonEntityStatus(subjectIds, subjectType, userTwoId);
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getNonEntityStatus(subjectIds, subjectType, userTwoId);
 		validateBasicSubjectStatus(subjectIds, results, userTwoId);
-		SubjectStatus result = results.get(0);
+		UsersRestrictionStatus result = results.get(0);
 		assertFalse(result.hasUnmet());
 		assertNotNull(result.getAccessRestrictions());
 		assertTrue(result.getAccessRestrictions().isEmpty());
@@ -659,13 +659,13 @@ public class AccessRestrictionStatusDaoImplTest {
 		List<Long> subjectIds = Arrays.asList(teamOneId, teamTwoId);
 		RestrictableObjectType subjectType = RestrictableObjectType.TEAM;
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getNonEntityStatus(subjectIds, subjectType, userTwoId);
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getNonEntityStatus(subjectIds, subjectType, userTwoId);
 		validateBasicSubjectStatus(subjectIds, results, userTwoId);
 
 		List<UsersRequirementStatus> expected = Arrays.asList(new UsersRequirementStatus()
 				.withRequirementId(tou.getId()).withRequirementType(AccessRequirementType.TOU).withIsUnmet(true));
 
-		SubjectStatus result = results.get(0);
+		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
 		assertEquals(expected, result.getAccessRestrictions());
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, result.getMostRestrictiveLevel());
@@ -697,13 +697,13 @@ public class AccessRestrictionStatusDaoImplTest {
 		List<Long> subjectIds = Arrays.asList(teamOneId);
 		RestrictableObjectType subjectType = RestrictableObjectType.TEAM;
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getNonEntityStatus(subjectIds, subjectType, userOneId);
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getNonEntityStatus(subjectIds, subjectType, userOneId);
 		validateBasicSubjectStatus(subjectIds, results, userOneId);
 
 		List<UsersRequirementStatus> expected = Arrays.asList(new UsersRequirementStatus()
 				.withRequirementId(tou.getId()).withRequirementType(AccessRequirementType.TOU).withIsUnmet(false));
 
-		SubjectStatus result = results.get(0);
+		UsersRestrictionStatus result = results.get(0);
 		assertFalse(result.hasUnmet());
 		assertEquals(expected, result.getAccessRestrictions());
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, result.getMostRestrictiveLevel());
@@ -729,13 +729,13 @@ public class AccessRestrictionStatusDaoImplTest {
 		List<Long> subjectIds = Arrays.asList(teamOneId);
 		RestrictableObjectType subjectType = RestrictableObjectType.TEAM;
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getNonEntityStatus(subjectIds, subjectType, userOneId);
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getNonEntityStatus(subjectIds, subjectType, userOneId);
 		validateBasicSubjectStatus(subjectIds, results, userOneId);
 
 		List<UsersRequirementStatus> expected = Arrays.asList(new UsersRequirementStatus()
 				.withRequirementId(tou.getId()).withRequirementType(AccessRequirementType.TOU).withIsUnmet(true));
 
-		SubjectStatus result = results.get(0);
+		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
 		assertEquals(expected, result.getAccessRestrictions());
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, result.getMostRestrictiveLevel());
@@ -762,7 +762,7 @@ public class AccessRestrictionStatusDaoImplTest {
 		List<Long> subjectIds = Arrays.asList(teamOneId);
 		RestrictableObjectType subjectType = RestrictableObjectType.TEAM;
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getNonEntityStatus(subjectIds, subjectType, userOneId);
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getNonEntityStatus(subjectIds, subjectType, userOneId);
 		validateBasicSubjectStatus(subjectIds, results, userOneId);
 
 		List<UsersRequirementStatus> expected = Arrays.asList(
@@ -771,7 +771,7 @@ public class AccessRestrictionStatusDaoImplTest {
 				new UsersRequirementStatus().withRequirementId(lock.getId()).withRequirementType(AccessRequirementType.LOCK)
 						.withIsUnmet(true));
 
-		SubjectStatus result = results.get(0);
+		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
 		assertEquals(expected, result.getAccessRestrictions());
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, result.getMostRestrictiveLevel());
@@ -807,7 +807,7 @@ public class AccessRestrictionStatusDaoImplTest {
 		List<Long> subjectIds = Arrays.asList(teamOneId);
 		RestrictableObjectType subjectType = RestrictableObjectType.TEAM;
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getNonEntityStatus(subjectIds, subjectType, userOneId);
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getNonEntityStatus(subjectIds, subjectType, userOneId);
 		validateBasicSubjectStatus(subjectIds, results, userOneId);
 
 		List<UsersRequirementStatus> expected = Arrays.asList(
@@ -816,7 +816,7 @@ public class AccessRestrictionStatusDaoImplTest {
 				new UsersRequirementStatus().withRequirementId(lock.getId()).withRequirementType(AccessRequirementType.LOCK)
 						.withIsUnmet(false));
 
-		SubjectStatus result = results.get(0);
+		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
 		assertEquals(expected, result.getAccessRestrictions());
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, result.getMostRestrictiveLevel());
@@ -861,7 +861,7 @@ public class AccessRestrictionStatusDaoImplTest {
 		List<Long> subjectIds = Arrays.asList(teamOneId);
 		RestrictableObjectType subjectType = RestrictableObjectType.TEAM;
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getNonEntityStatus(subjectIds, subjectType, userOneId);
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getNonEntityStatus(subjectIds, subjectType, userOneId);
 		validateBasicSubjectStatus(subjectIds, results, userOneId);
 
 		List<UsersRequirementStatus> expected = Arrays.asList(
@@ -870,7 +870,7 @@ public class AccessRestrictionStatusDaoImplTest {
 				new UsersRequirementStatus().withRequirementId(lock.getId()).withRequirementType(AccessRequirementType.LOCK)
 						.withIsUnmet(false));
 
-		SubjectStatus result = results.get(0);
+		UsersRestrictionStatus result = results.get(0);
 		assertFalse(result.hasUnmet());
 		assertEquals(expected, result.getAccessRestrictions());
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, result.getMostRestrictiveLevel());
@@ -892,13 +892,13 @@ public class AccessRestrictionStatusDaoImplTest {
 		List<Long> subjectIds = Arrays.asList(teamOneId, teamTwoId);
 		RestrictableObjectType subjectType = RestrictableObjectType.TEAM;
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getNonEntityStatus(subjectIds, subjectType, userTwoId);
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getNonEntityStatus(subjectIds, subjectType, userTwoId);
 		validateBasicSubjectStatus(subjectIds, results, userTwoId);
 
 		List<UsersRequirementStatus> expected = Arrays.asList(new UsersRequirementStatus()
 				.withRequirementId(tou.getId()).withRequirementType(AccessRequirementType.TOU).withIsUnmet(true));
 
-		SubjectStatus result = results.get(0);
+		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
 		assertEquals(expected, result.getAccessRestrictions());
 
@@ -946,14 +946,14 @@ public class AccessRestrictionStatusDaoImplTest {
 
 		List<Long> subjectIds = Arrays.asList(teamOneId);
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getNonEntityStatus(subjectIds,
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getNonEntityStatus(subjectIds,
 				RestrictableObjectType.TEAM, userOneId);
 		validateBasicSubjectStatus(subjectIds, results, userOneId);
 
 		List<UsersRequirementStatus> expected = Arrays.asList(new UsersRequirementStatus()
 				.withRequirementId(touV2.getId()).withRequirementType(AccessRequirementType.TOU).withIsUnmet(false));
 
-		SubjectStatus result = results.get(0);
+		UsersRestrictionStatus result = results.get(0);
 		assertFalse(result.hasUnmet());
 		assertEquals(expected, result.getAccessRestrictions());
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, result.getMostRestrictiveLevel());
@@ -1005,7 +1005,7 @@ public class AccessRestrictionStatusDaoImplTest {
 		});
 		List<Long> subjectIds = KeyFactory.stringToKey(Arrays.asList(file.getId(), fileTwo.getId()));
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getSubjectStatus(subjectIds,
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getSubjectStatus(subjectIds,
 				RestrictableObjectType.ENTITY, userOneId);
 		validateBasicSubjectStatus(subjectIds, results, userOneId);
 
@@ -1013,7 +1013,7 @@ public class AccessRestrictionStatusDaoImplTest {
 				.asList(new UsersRequirementStatus().withRequirementId(projectToU.getId())
 						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(true));
 
-		SubjectStatus result = results.get(0);
+		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
 		assertEquals(expected, result.getAccessRestrictions());
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, result.getMostRestrictiveLevel());
@@ -1046,13 +1046,13 @@ public class AccessRestrictionStatusDaoImplTest {
 		List<Long> subjectIds = Arrays.asList(teamOneId);
 		RestrictableObjectType subjectType = RestrictableObjectType.TEAM;
 		// call under test
-		List<SubjectStatus> results = accessRestrictionStatusDao.getSubjectStatus(subjectIds, subjectType, userOneId);
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getSubjectStatus(subjectIds, subjectType, userOneId);
 		validateBasicSubjectStatus(subjectIds, results, userOneId);
 
 		List<UsersRequirementStatus> expected = Arrays.asList(new UsersRequirementStatus()
 				.withRequirementId(tou.getId()).withRequirementType(AccessRequirementType.TOU).withIsUnmet(false));
 
-		SubjectStatus result = results.get(0);
+		UsersRestrictionStatus result = results.get(0);
 		assertFalse(result.hasUnmet());
 		assertEquals(expected, result.getAccessRestrictions());
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, result.getMostRestrictiveLevel());
@@ -1065,14 +1065,14 @@ public class AccessRestrictionStatusDaoImplTest {
 	 * @param results
 	 * @param userId
 	 */
-	void validateBasicSubjectStatus(List<Long> subjectIds, List<SubjectStatus> results, Long userId) {
+	void validateBasicSubjectStatus(List<Long> subjectIds, List<UsersRestrictionStatus> results, Long userId) {
 		assertNotNull(subjectIds);
 		assertNotNull(results);
 		assertEquals(subjectIds.size(), results.size());
 		for (int i = 0; i < subjectIds.size(); i++) {
 			Long subjectId = subjectIds.get(i);
 			assertNotNull(subjectId);
-			SubjectStatus status = results.get(i);
+			UsersRestrictionStatus status = results.get(i);
 			assertNotNull(status);
 			assertEquals(subjectId, status.getSubjectId());
 			assertEquals(userId, status.getUserId());

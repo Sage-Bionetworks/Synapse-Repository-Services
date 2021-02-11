@@ -17,17 +17,17 @@ public interface AccessRestrictionStatusDao {
 	 * @return The user's status for each subject in the same order as the provided
 	 *         subjects.
 	 */
-	public List<SubjectStatus> getSubjectStatus(List<Long> subjectIds, RestrictableObjectType subjectType, Long userId);
+	public List<UsersRestrictionStatus> getSubjectStatus(List<Long> subjectIds, RestrictableObjectType subjectType, Long userId);
 
 	/**
 	 * Same as: {@link #getSubjectStatus(List, RestrictableObjectType, Long)()}
 	 * where the type is 'ENTITY'
 	 */
-	public List<SubjectStatus> getEntityStatus(List<Long> entityIds, Long userId);
+	public List<UsersRestrictionStatus> getEntityStatus(List<Long> entityIds, Long userId);
 
 	/**
 	 * Same as: {@link #getSubjectStatus(List, RestrictableObjectType, Long)()}
 	 * where the type is not an 'ENTITY'
 	 */
-	public List<SubjectStatus> getNonEntityStatus(List<Long> subjectIds, RestrictableObjectType subjectType, Long userId);
+	public List<UsersRestrictionStatus> getNonEntityStatus(List<Long> subjectIds, RestrictableObjectType subjectType, Long userId);
 }

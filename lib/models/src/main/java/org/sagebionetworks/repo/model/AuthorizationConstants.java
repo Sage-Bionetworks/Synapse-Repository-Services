@@ -245,7 +245,7 @@ public class AuthorizationConstants {
 	public static final String ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION = "Anonymous users have only READ access permission.";
 	public static final String ERR_MESSAGE_CERTIFIED_USER_CONTENT = "Only certified users may create or update content in Synapse.";
 	public static final String THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND = "The resource you are attempting to access cannot be found";
-	public static final String ENTITY_S_IS_IN_TRASH_CAN_TEMPLATE = "Entity %s is in trash can.";
+	public static final String ENTITY_IN_TRASH_TEMPLATE = "Entity %s is in trash can.";
 
 	
 }

@@ -1,9 +1,8 @@
-package org.sagebionetworks.repo.manager.entity;
+package org.sagebionetworks.repo.manager.entity.decider;
 
 import java.util.Objects;
-import java.util.Optional;
 
-import org.sagebionetworks.repo.model.ar.SubjectStatus;
+import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -17,15 +16,18 @@ public class UsersEntityAccessInfo {
 
 	Long entityId;
 	AuthorizationStatus authroizationStatus;
-	SubjectStatus accessRestrictions;
-	Optional<Boolean> wouldHaveAccesIfCertified;
+	UsersRestrictionStatus accessRestrictions;
+	boolean wouldHaveAccesIfCertified;
 
-	public UsersEntityAccessInfo(Long entityId, AuthorizationStatus status) {
-		ValidateArgument.required(entityId, "entityId");
+	public UsersEntityAccessInfo(AccessContext context, AuthorizationStatus status) {
+		ValidateArgument.required(context, "context");
+		ValidateArgument.required(context.getPermissionState(),"context.getPermissionState");
+		ValidateArgument.required(context.getPermissionState().getEntityId(),"context.getPermissionState.entityId");
 		ValidateArgument.required(status, "AuthorizationStatus");
-		this.entityId = entityId;
+		this.entityId = context.getPermissionState().getEntityId();
+		this.accessRestrictions = context.getRestrictionStatus();
 		this.authroizationStatus = status;
-		this.wouldHaveAccesIfCertified = Optional.empty();
+		this.wouldHaveAccesIfCertified = false;
 	}
 
 	/**
@@ -61,14 +63,14 @@ public class UsersEntityAccessInfo {
 	/**
 	 * @return the accessRestrictions
 	 */
-	public SubjectStatus getAccessRestrictions() {
+	public UsersRestrictionStatus getAccessRestrictions() {
 		return accessRestrictions;
 	}
 
 	/**
 	 * @param accessRestrictions the accessRestrictions to set
 	 */
-	public UsersEntityAccessInfo withAccessRestrictions(SubjectStatus accessRestrictions) {
+	public UsersEntityAccessInfo withAccessRestrictions(UsersRestrictionStatus accessRestrictions) {
 		this.accessRestrictions = accessRestrictions;
 		return this;
 	}
@@ -77,18 +79,18 @@ public class UsersEntityAccessInfo {
 	 * @return the wouldHaveAccesIfCertified
 	 */
 	public boolean getWouldHaveAccesIfCertified() {
-		if(authroizationStatus.isAuthorized()) {
+		if (authroizationStatus.isAuthorized()) {
 			return true;
-		}else {
-			return wouldHaveAccesIfCertified.orElse(false);
+		} else {
+			return wouldHaveAccesIfCertified;
 		}
 	}
 
 	/**
 	 * @param wouldHaveAccesIfCertified the wouldHaveAccesIfCertified to set
 	 */
-	public UsersEntityAccessInfo withWouldHaveAccesIfCertified(Boolean wouldHaveAccesIfCertified) {
-		this.wouldHaveAccesIfCertified = Optional.ofNullable(wouldHaveAccesIfCertified);
+	public UsersEntityAccessInfo withWouldHaveAccesIfCertified(boolean wouldHaveAccesIfCertified) {
+		this.wouldHaveAccesIfCertified = wouldHaveAccesIfCertified;
 		return this;
 	}
 

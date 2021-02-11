@@ -32,7 +32,7 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
 
 	@Override
-	public List<SubjectStatus> getSubjectStatus(List<Long> subjectIds, RestrictableObjectType subjectType,
+	public List<UsersRestrictionStatus> getSubjectStatus(List<Long> subjectIds, RestrictableObjectType subjectType,
 			Long userId) {
 		ValidateArgument.required(subjectIds, "subjectIds");
 		ValidateArgument.required(subjectType, "subjectType");
@@ -45,15 +45,15 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 	}
 
 	@Override
-	public List<SubjectStatus> getEntityStatus(List<Long> entityIds, Long userId) {
+	public List<UsersRestrictionStatus> getEntityStatus(List<Long> entityIds, Long userId) {
 		ValidateArgument.required(entityIds, "entityIds");
 		ValidateArgument.required(userId, "userId");
 		if (entityIds.isEmpty()) {
 			return Collections.emptyList();
 		}
-		final Map<Long, SubjectStatus> statusMap = new LinkedHashMap<Long, SubjectStatus>(entityIds.size());
+		final Map<Long, UsersRestrictionStatus> statusMap = new LinkedHashMap<Long, UsersRestrictionStatus>(entityIds.size());
 		for (Long entityId : entityIds) {
-			SubjectStatus status = new SubjectStatus(entityId, userId);
+			UsersRestrictionStatus status = new UsersRestrictionStatus(entityId, userId);
 			statusMap.put(entityId, status);
 		}
 		String sql = "WITH EI AS (SELECT N." + COL_NODE_ID + " AS ENTITY_ID, N." + COL_NODE_PARENT_ID + ", N."
@@ -102,7 +102,7 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 			if (EntityType.file.equals(entityType) && userId.equals(createdBy)) {
 				approved = true;
 			}
-			SubjectStatus status = statusMap.get(entityId);
+			UsersRestrictionStatus status = statusMap.get(entityId);
 			if (approved != null && !approved) {
 				status.setHasUnmet(true);
 			}
@@ -111,11 +111,11 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 						.withRequirementType(requirementType).withIsUnmet(!approved));
 			}
 		});
-		return new ArrayList<SubjectStatus>(statusMap.values());
+		return new ArrayList<UsersRestrictionStatus>(statusMap.values());
 	}
 
 	@Override
-	public List<SubjectStatus> getNonEntityStatus(List<Long> subjectIds, RestrictableObjectType subjectType,
+	public List<UsersRestrictionStatus> getNonEntityStatus(List<Long> subjectIds, RestrictableObjectType subjectType,
 			Long userId) {
 		ValidateArgument.required(subjectIds, "subjectIds");
 		ValidateArgument.required(subjectType, "subjectType");
@@ -126,9 +126,9 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 		if (subjectIds.isEmpty()) {
 			return Collections.emptyList();
 		}
-		final Map<Long, SubjectStatus> statusMap = new LinkedHashMap<Long, SubjectStatus>(subjectIds.size());
+		final Map<Long, UsersRestrictionStatus> statusMap = new LinkedHashMap<Long, UsersRestrictionStatus>(subjectIds.size());
 		for (Long subjectId : subjectIds) {
-			SubjectStatus status = new SubjectStatus(subjectId, userId);
+			UsersRestrictionStatus status = new UsersRestrictionStatus(subjectId, userId);
 			statusMap.put(subjectId, status);
 		}
 		String sql = "SELECT NAR.*, if(AA." + COL_ACCESS_APPROVAL_STATE + " = 'APPROVED', TRUE, FALSE) AS APPROVED,"
@@ -159,7 +159,7 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 			if(requirementTypeString != null) {
 				requirementType = AccessRequirementType.lookupClassName(requirementTypeString);
 			}
-			SubjectStatus status = statusMap.get(subjectId);
+			UsersRestrictionStatus status = statusMap.get(subjectId);
 			if (!approved) {
 				status.setHasUnmet(true);
 			}
@@ -168,7 +168,7 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 						.withRequirementType(requirementType).withIsUnmet(!approved));
 			}
 		});
-		return new ArrayList<SubjectStatus>(statusMap.values());
+		return new ArrayList<UsersRestrictionStatus>(statusMap.values());
 	}
 
 }

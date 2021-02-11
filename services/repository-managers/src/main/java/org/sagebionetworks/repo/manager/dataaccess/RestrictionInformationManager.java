@@ -5,7 +5,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.ar.SubjectStatus;
+import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 
 public interface RestrictionInformationManager {
 	
@@ -24,6 +24,6 @@ public interface RestrictionInformationManager {
 	 * @param entityIds
 	 * @return
 	 */
-	List<SubjectStatus> getEntityRestrictionInformation(UserInfo userInfo, List<Long> entityIds);
+	List<UsersRestrictionStatus> getEntityRestrictionInformation(UserInfo userInfo, List<Long> entityIds);
 
 }

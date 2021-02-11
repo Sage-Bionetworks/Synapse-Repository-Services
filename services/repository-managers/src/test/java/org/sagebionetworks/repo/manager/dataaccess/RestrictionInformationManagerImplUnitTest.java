@@ -28,7 +28,7 @@ import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.AccessRequirementType;
 import org.sagebionetworks.repo.model.ar.AccessRestrictionStatusDao;
-import org.sagebionetworks.repo.model.ar.SubjectStatus;
+import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
@@ -124,7 +124,7 @@ public class RestrictionInformationManagerImplUnitTest {
 
 	@Test
 	public void testGetRestrictionInformationWithToU() {
-		SubjectStatus touStatus = new SubjectStatus(entityIdAsLong, userInfo.getId());
+		UsersRestrictionStatus touStatus = new UsersRestrictionStatus(entityIdAsLong, userInfo.getId());
 		touStatus.setHasUnmet(true);
 		touStatus.addRestrictionStatus(
 				new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.SELF_SIGNED));
@@ -142,7 +142,7 @@ public class RestrictionInformationManagerImplUnitTest {
 	
 	@Test
 	public void testGetRestrictionInformationWithToUMet() {
-		SubjectStatus touStatus = new SubjectStatus(entityIdAsLong, userInfo.getId());
+		UsersRestrictionStatus touStatus = new UsersRestrictionStatus(entityIdAsLong, userInfo.getId());
 		touStatus.setHasUnmet(false);
 		touStatus.addRestrictionStatus(
 				new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.SELF_SIGNED));
@@ -160,7 +160,7 @@ public class RestrictionInformationManagerImplUnitTest {
 
 	@Test
 	public void testGetRestrictionInformationWithLock() {
-		SubjectStatus touStatus = new SubjectStatus(entityIdAsLong, userInfo.getId());
+		UsersRestrictionStatus touStatus = new UsersRestrictionStatus(entityIdAsLong, userInfo.getId());
 		touStatus.setHasUnmet(true);
 		touStatus.addRestrictionStatus(
 				new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.LOCK));
@@ -178,7 +178,7 @@ public class RestrictionInformationManagerImplUnitTest {
 
 	@Test
 	public void testGetRestrictionInformationWithACT() {
-		SubjectStatus touStatus = new SubjectStatus(entityIdAsLong, userInfo.getId());
+		UsersRestrictionStatus touStatus = new UsersRestrictionStatus(entityIdAsLong, userInfo.getId());
 		touStatus.setHasUnmet(true);
 		touStatus.addRestrictionStatus(
 				new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.MANAGED_ATC));
@@ -196,7 +196,7 @@ public class RestrictionInformationManagerImplUnitTest {
 
 	@Test
 	public void testGetRestrictionInformationWithBoth() {
-		SubjectStatus touStatus = new SubjectStatus(entityIdAsLong, userInfo.getId());
+		UsersRestrictionStatus touStatus = new UsersRestrictionStatus(entityIdAsLong, userInfo.getId());
 		touStatus.setHasUnmet(true);
 		touStatus.addRestrictionStatus(
 				new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.MANAGED_ATC));
@@ -217,7 +217,7 @@ public class RestrictionInformationManagerImplUnitTest {
 
 	@Test
 	public void testGetRestrictionInformationForTeam() {
-		SubjectStatus touStatus = new SubjectStatus(entityIdAsLong, userInfo.getId());
+		UsersRestrictionStatus touStatus = new UsersRestrictionStatus(entityIdAsLong, userInfo.getId());
 		touStatus.setHasUnmet(true);
 		touStatus.addRestrictionStatus(
 				new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.TOU));
