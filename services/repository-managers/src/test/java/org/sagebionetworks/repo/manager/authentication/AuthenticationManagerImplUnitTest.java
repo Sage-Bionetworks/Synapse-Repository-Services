@@ -465,8 +465,8 @@ public class AuthenticationManagerImplUnitTest {
 				}
 
 				@Override
-				public void setNewPassword(String newPassword) {
-
+				public ChangePasswordInterface setNewPassword(String newPassword) {
+					return this;
 				}
 
 				@Override
@@ -475,8 +475,8 @@ public class AuthenticationManagerImplUnitTest {
 				}
 
 				@Override
-				public void setConcreteType(String concreteType) {
-
+				public ChangePasswordInterface setConcreteType(String concreteType) {
+					return this;
 				}
 
 				@Override
