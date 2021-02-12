@@ -185,8 +185,8 @@ public class NodeManagerImpl implements NodeManager {
 	 */
 	public void validatePathDepth(String parentId) {
 		ValidateArgument.required(parentId, "parentId");
-		int depth = nodeDao.getEntityPathDepth(parentId, NodeConstants.MAX_PATH_DEPTH + 1);
-		if (depth >= NodeConstants.MAX_PATH_DEPTH) {
+		int depth = nodeDao.getEntityPathDepth(parentId, NodeConstants.MAX_PATH_DEPTH_PLUS_ONE);
+		if (depth > NodeConstants.MAX_PATH_DEPTH) {
 			throw new IllegalArgumentException("Exceeded the maximum hierarchical depth of: "
 					+ NodeConstants.MAX_PATH_DEPTH + " for parent: " + parentId);
 		}

@@ -96,7 +96,9 @@ public class NodeConstants {
 	}
 	
 	/**
-	 * Max path depth for a node hierarchy.
+	 * Max path depth for a node hierarchy. Note: The root node counts as one.
 	 */
 	public static final int MAX_PATH_DEPTH = 50;
+	public static final int MAX_PATH_DEPTH_PLUS_ONE = MAX_PATH_DEPTH+1;
+	
 }

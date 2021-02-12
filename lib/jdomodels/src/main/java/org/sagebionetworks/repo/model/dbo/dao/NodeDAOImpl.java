@@ -415,7 +415,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ " AS N WHERE " + COL_NODE_ID + " = ?" + " UNION ALL" + " SELECT N." + COL_NODE_ID + ", N."
 			+ COL_NODE_NAME + ", N." + COL_NODE_TYPE + ", N." + COL_NODE_PARENT_ID + ", PATH.DISTANCE+ 1 FROM "
 			+ TABLE_NODE + " AS N JOIN PATH ON (N." + COL_NODE_ID + " = PATH." + COL_NODE_PARENT_ID + ")" + " WHERE N."
-			+ COL_NODE_ID + " IS NOT NULL AND DISTANCE < "+NodeConstants.MAX_PATH_DEPTH+" )" + " SELECT %1s FROM PATH ORDER BY DISTANCE DESC";
+			+ COL_NODE_ID + " IS NOT NULL AND DISTANCE < "+NodeConstants.MAX_PATH_DEPTH_PLUS_ONE+" )" + " SELECT %1s FROM PATH ORDER BY DISTANCE DESC";
 	
 	private static final String SQL_STRING_CONTAINERS_TYPES = String.join(",", "'" + EntityType.project.name() + "'", "'" + EntityType.folder.name() + "'");
 
@@ -693,7 +693,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 						+ " UNION" 
 						+ " SELECT N." + COL_NODE_ID + ", C.DISTANCE + 1" 
 						+ " FROM NODES AS C JOIN " + TABLE_NODE + " AS N ON C." + COL_NODE_ID + " = N." + COL_NODE_PARENT_ID
-						+ " AND C.DISTANCE < " + NodeConstants.MAX_PATH_DEPTH
+						+ " AND C.DISTANCE < " + NodeConstants.MAX_PATH_DEPTH_PLUS_ONE
 				+ ")"
 				+ " SELECT ID FROM NODES ORDER BY DISTANCE DESC LIMIT ?", Long.class, parentId, limit);
 	}
@@ -1254,7 +1254,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if(path.isEmpty()) {
 			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+nodeId);
 		}
-		if(path.size() >= NodeConstants.MAX_PATH_DEPTH) {
+		if(path.size() > NodeConstants.MAX_PATH_DEPTH) {
 			throw new IllegalStateException("Path depth limit of: "+NodeConstants.MAX_PATH_DEPTH+" exceeded for: "+nodeId);
 		}
 	}
@@ -2087,15 +2087,30 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Override
 	public Long getEntityIdOfFirstBoundSchema(Long nodeId) {
-		return getEntityIdOfFirstBoundSchema(nodeId, NodeConstants.MAX_PATH_DEPTH );
+		return getEntityIdOfFirstBoundSchema(nodeId, NodeConstants.MAX_PATH_DEPTH_PLUS_ONE );
 	}
 
 	@Override
 	public void truncateAll() {
-		SqlParameterSource params = new MapSqlParameterSource("bootstrapIds",
+		/*
+		 * This is a workaround for the MySQL cascade delete limit on hierarchies deeper
+		 * than 15. We find and delete the last 10 nodes based on node IDs (excluding
+		 * bootstrap node), in a loop until no more nodes are found.
+		 */
+		SqlParameterSource listParams = new MapSqlParameterSource("bootstrapIds",
 				NodeConstants.BOOTSTRAP_NODES.getAllBootstrapIds());
-		namedParameterJdbcTemplate
-				.update("DELETE FROM " + TABLE_NODE + " WHERE " + COL_NODE_ID + " NOT IN(:bootstrapIds)", params);
+		while (true) {
+			List<Long> idsToDelete = namedParameterJdbcTemplate.queryForList(
+					"SELECT " + COL_NODE_ID + " FROM " + TABLE_NODE + " WHERE " + COL_NODE_ID
+							+ " NOT IN(:bootstrapIds) ORDER BY " + COL_NODE_ID + " DESC LIMIT 10",
+					listParams, Long.class);
+			if (idsToDelete.isEmpty()) {
+				break;
+			}
+			SqlParameterSource deleteParams = new MapSqlParameterSource("toDelete", idsToDelete);
+			namedParameterJdbcTemplate.update("DELETE FROM " + TABLE_NODE + " WHERE " + COL_NODE_ID + " IN(:toDelete)",
+					deleteParams);
+		}
 	}
 
 }
