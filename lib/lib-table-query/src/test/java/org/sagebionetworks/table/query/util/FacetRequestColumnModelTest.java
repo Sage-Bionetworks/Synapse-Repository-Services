@@ -158,9 +158,9 @@ public class FacetRequestColumnModelTest {
 			public JSONObjectAdapter writeToJSONObject(JSONObjectAdapter writeTo) throws JSONObjectAdapterException {return null;}
 			public String getJSONSchema() {return null;}
 			public String getConcreteType() {return null;}
-			public void setConcreteType(String concreteType) {}
+			public FacetColumnRequest setConcreteType(String concreteType) { return this;}
 			public String getColumnName() {return null;}
-			public void setColumnName(String columnName) {}
+			public FacetColumnRequest setColumnName(String columnName) {return this;}
 		}, false);
 	}
 
