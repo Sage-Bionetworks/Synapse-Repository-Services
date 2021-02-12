@@ -29,7 +29,7 @@ public class UsersEntityPermissionsDaoImpl implements UsersEntityPermissionsDao 
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
 
 	@Override
-	public List<UserEntityPermissions> getEntityPermissions(Set<Long> userGroups, List<Long> entityIds) {
+	public List<UserEntityPermissionsState> getEntityPermissions(Set<Long> userGroups, List<Long> entityIds) {
 		ValidateArgument.required(userGroups, "userGroups");
 		if (userGroups.isEmpty()) {
 			throw new IllegalArgumentException("User's groups cannot be empty");
@@ -38,9 +38,9 @@ public class UsersEntityPermissionsDaoImpl implements UsersEntityPermissionsDao 
 		if (entityIds.isEmpty()) {
 			return Collections.emptyList();
 		}
-		LinkedHashMap<Long, UserEntityPermissions> results = new LinkedHashMap<Long, UserEntityPermissions>(entityIds.size());
+		LinkedHashMap<Long, UserEntityPermissionsState> results = new LinkedHashMap<Long, UserEntityPermissionsState>(entityIds.size());
 		for (Long entityId : entityIds) {
-			results.put(entityId, new UserEntityPermissions(entityId));
+			results.put(entityId, new UserEntityPermissionsState(entityId));
 		}
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("usersGroups", userGroups);
@@ -50,7 +50,7 @@ public class UsersEntityPermissionsDaoImpl implements UsersEntityPermissionsDao 
 
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
-				UserEntityPermissions permission = results.get(rs.getLong("ENTITY_ID"));
+				UserEntityPermissionsState permission = results.get(rs.getLong("ENTITY_ID"));
 				permission.withtDoesEntityExist(true);
 				permission.withBenefactorId(rs.getLong("BENEFACTOR_ID"));
 				permission.withEntityType(EntityType.valueOf(rs.getString("ENTITY_TYPE")));
@@ -61,13 +61,14 @@ public class UsersEntityPermissionsDaoImpl implements UsersEntityPermissionsDao 
 				permission.withHasChangePermissions(rs.getLong("CHANGE_PERMISSIONS_COUNT") > 0);
 				permission.withHasChangeSettings(rs.getLong("CHANGE_SETTINGS_COUNT") > 0);
 				permission.withHasCreate(rs.getLong("CREATE_COUNT") > 0);
+				permission.withHasUpdate(rs.getLong("UPDATE_COUNT") > 0);
 				permission.withHasDelete(rs.getLong("DELETE_COUNT") > 0);
 				permission.withHasDownload(rs.getLong("DOWNLOAD_COUNT") > 0);
 				permission.withHasRead(rs.getLong("READ_COUNT") > 0);
 				permission.withHasModerate(rs.getLong("MODERATE_COUNT") > 0);
 			}
 		});
-		return new ArrayList<UserEntityPermissions>((results.values()));
+		return new ArrayList<UserEntityPermissionsState>((results.values()));
 	}
 
 }

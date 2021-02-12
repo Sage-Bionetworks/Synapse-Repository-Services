@@ -216,6 +216,7 @@ public class UserManagerImpl implements UserManager {
 		ui.setCreationDate(principal.getCreationDate());
 		// Put all the pieces together
 		ui.setGroups(groups);
+		ui.setAcceptsTermsOfUse(authDAO.hasUserAcceptedToU(principalId));
 		return ui;
 	}
 

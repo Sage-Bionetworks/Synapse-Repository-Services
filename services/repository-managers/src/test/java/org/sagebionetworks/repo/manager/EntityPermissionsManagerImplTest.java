@@ -62,9 +62,6 @@ public class EntityPermissionsManagerImplTest {
 	private AccessRequirementManager accessRequirementManager;
 	
 	@Autowired
-	private ProjectSettingsManager projectSettingManager;
-	
-	@Autowired
 	private DBOBasicDao basicDao;
 
 	private Collection<Node> nodeList = new ArrayList<Node>();

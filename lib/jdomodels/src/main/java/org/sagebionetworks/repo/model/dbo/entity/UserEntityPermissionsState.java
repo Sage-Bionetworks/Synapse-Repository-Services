@@ -4,12 +4,13 @@ import java.util.Objects;
 
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 /**
- * A user's permission on a single entity.
+ * Represents the user's entity permissions state from the database.
  * 
  */
-public class UserEntityPermissions {
+public class UserEntityPermissionsState {
 
 	private Long entityId;
 	private Long benefactorId;
@@ -19,12 +20,13 @@ public class UserEntityPermissions {
 	private boolean hasRead;
 	private boolean hasDownload;
 	private boolean hasCreate;
+	private boolean hasUpdate;
 	private boolean hasDelete;
 	private boolean hasChangePermissions;
 	private boolean hasChangeSettings;
 	private boolean hasModerate;
 
-	public UserEntityPermissions(Long entityId) {
+	public UserEntityPermissionsState(Long entityId) {
 		super();
 		this.entityId = entityId;
 		this.benefactorId = null;
@@ -34,6 +36,7 @@ public class UserEntityPermissions {
 		this.hasRead = false;
 		this.hasDownload = false;
 		this.hasCreate = false;
+		this.hasUpdate = false;
 		this.hasDelete = false;
 		this.hasChangePermissions = false;
 		this.hasChangeSettings = false;
@@ -48,11 +51,15 @@ public class UserEntityPermissions {
 	public Long getEntityId() {
 		return entityId;
 	}
+	
+	public String getEntityIdAsString() {
+		return KeyFactory.keyToString(entityId);
+	}
 
 	/**
 	 * @param entityId the entityId to set
 	 */
-	public UserEntityPermissions withEntityId(Long entityId) {
+	public UserEntityPermissionsState withEntityId(Long entityId) {
 		this.entityId = entityId;
 		return this;
 	}
@@ -71,7 +78,7 @@ public class UserEntityPermissions {
 	 * 
 	 * @param benefactorId the benefactorId to set
 	 */
-	public UserEntityPermissions withBenefactorId(Long benefactorId) {
+	public UserEntityPermissionsState withBenefactorId(Long benefactorId) {
 		this.benefactorId = benefactorId;
 		return this;
 	}
@@ -88,7 +95,7 @@ public class UserEntityPermissions {
 	/**
 	 * @param entityType the entityType to set
 	 */
-	public UserEntityPermissions withEntityType(EntityType entityType) {
+	public UserEntityPermissionsState withEntityType(EntityType entityType) {
 		this.entityType = entityType;
 		return this;
 	}
@@ -103,7 +110,7 @@ public class UserEntityPermissions {
 	/**
 	 * The data type determines if there are additional restrictions on this entity.
 	 */
-	public UserEntityPermissions withDataType(DataType dataType) {
+	public UserEntityPermissionsState withDataType(DataType dataType) {
 		this.dataType = dataType;
 		return this;
 	}
@@ -118,7 +125,7 @@ public class UserEntityPermissions {
 	/**
 	 * Does this entity exist?
 	 */
-	public UserEntityPermissions withtDoesEntityExist(boolean doesEntityExist) {
+	public UserEntityPermissionsState withtDoesEntityExist(boolean doesEntityExist) {
 		this.doesEntityExist = doesEntityExist;
 		return this;
 	}
@@ -133,11 +140,26 @@ public class UserEntityPermissions {
 	}
 
 	/**
+	 * Does the user have the update permission on this entity?
+	 */
+	public boolean hasUpdate() {
+		return hasUpdate;
+	}
+
+	/**
+	 * Does the user have the update permission on this entity?
+	 */
+	public UserEntityPermissionsState withHasUpdate(boolean hasUpdate) {
+		this.hasUpdate = hasUpdate;
+		return this;
+	}
+
+	/**
 	 * Does the user have the read permission on this entity?
 	 * 
 	 * @param hasRead the hasRead to set
 	 */
-	public UserEntityPermissions withHasRead(boolean hasRead) {
+	public UserEntityPermissionsState withHasRead(boolean hasRead) {
 		this.hasRead = hasRead;
 		return this;
 	}
@@ -152,7 +174,7 @@ public class UserEntityPermissions {
 	/**
 	 * Does the user have the download permission on this entity?
 	 */
-	public UserEntityPermissions withHasDownload(boolean hasDownload) {
+	public UserEntityPermissionsState withHasDownload(boolean hasDownload) {
 		this.hasDownload = hasDownload;
 		return this;
 	}
@@ -167,7 +189,7 @@ public class UserEntityPermissions {
 	/**
 	 * Does the user have the create permission on this entity?
 	 */
-	public UserEntityPermissions withHasCreate(boolean hasCreate) {
+	public UserEntityPermissionsState withHasCreate(boolean hasCreate) {
 		this.hasCreate = hasCreate;
 		return this;
 	}
@@ -182,7 +204,7 @@ public class UserEntityPermissions {
 	/**
 	 * Does the user have the delete permission on this entity?
 	 */
-	public UserEntityPermissions withHasDelete(boolean hasDelete) {
+	public UserEntityPermissionsState withHasDelete(boolean hasDelete) {
 		this.hasDelete = hasDelete;
 		return this;
 	}
@@ -197,7 +219,7 @@ public class UserEntityPermissions {
 	/**
 	 * Does the user have the change_permission permission on this entity?
 	 */
-	public UserEntityPermissions withHasChangePermissions(boolean hasChangePermissions) {
+	public UserEntityPermissionsState withHasChangePermissions(boolean hasChangePermissions) {
 		this.hasChangePermissions = hasChangePermissions;
 		return this;
 	}
@@ -212,7 +234,7 @@ public class UserEntityPermissions {
 	/**
 	 * Does the user have the change_settings permission on this entity?
 	 */
-	public UserEntityPermissions withHasChangeSettings(boolean hasChangeSettings) {
+	public UserEntityPermissionsState withHasChangeSettings(boolean hasChangeSettings) {
 		this.hasChangeSettings = hasChangeSettings;
 		return this;
 	}
@@ -227,7 +249,7 @@ public class UserEntityPermissions {
 	/**
 	 * Does the user have the moderate permission on this entity?
 	 */
-	public UserEntityPermissions withHasModerate(boolean hasModerate) {
+	public UserEntityPermissionsState withHasModerate(boolean hasModerate) {
 		this.hasModerate = hasModerate;
 		return this;
 	}
@@ -235,7 +257,7 @@ public class UserEntityPermissions {
 	@Override
 	public int hashCode() {
 		return Objects.hash(benefactorId, dataType, doesEntityExist, entityId, entityType, hasChangePermissions,
-				hasChangeSettings, hasCreate, hasDelete, hasDownload, hasModerate, hasRead);
+				hasChangeSettings, hasCreate, hasDelete, hasDownload, hasModerate, hasRead, hasUpdate);
 	}
 
 	@Override
@@ -243,25 +265,25 @@ public class UserEntityPermissions {
 		if (this == obj) {
 			return true;
 		}
-		if (!(obj instanceof UserEntityPermissions)) {
+		if (!(obj instanceof UserEntityPermissionsState)) {
 			return false;
 		}
-		UserEntityPermissions other = (UserEntityPermissions) obj;
+		UserEntityPermissionsState other = (UserEntityPermissionsState) obj;
 		return Objects.equals(benefactorId, other.benefactorId) && dataType == other.dataType
 				&& doesEntityExist == other.doesEntityExist && Objects.equals(entityId, other.entityId)
 				&& entityType == other.entityType && hasChangePermissions == other.hasChangePermissions
 				&& hasChangeSettings == other.hasChangeSettings && hasCreate == other.hasCreate
 				&& hasDelete == other.hasDelete && hasDownload == other.hasDownload && hasModerate == other.hasModerate
-				&& hasRead == other.hasRead;
+				&& hasRead == other.hasRead && hasUpdate == other.hasUpdate;
 	}
 
 	@Override
 	public String toString() {
-		return "UserEntityPermissions [entityId=" + entityId + ", benefactorId=" + benefactorId + ", entityType="
+		return "UserEntityPermissionsState [entityId=" + entityId + ", benefactorId=" + benefactorId + ", entityType="
 				+ entityType + ", dataType=" + dataType + ", doesEntityExist=" + doesEntityExist + ", hasRead="
-				+ hasRead + ", hasDownload=" + hasDownload + ", hasCreate=" + hasCreate + ", hasDelete=" + hasDelete
-				+ ", hasChangePermissions=" + hasChangePermissions + ", hasChangeSettings=" + hasChangeSettings
-				+ ", hasModerate=" + hasModerate + "]";
+				+ hasRead + ", hasDownload=" + hasDownload + ", hasCreate=" + hasCreate + ", hasUpdate=" + hasUpdate
+				+ ", hasDelete=" + hasDelete + ", hasChangePermissions=" + hasChangePermissions + ", hasChangeSettings="
+				+ hasChangeSettings + ", hasModerate=" + hasModerate + "]";
 	}
 
 }

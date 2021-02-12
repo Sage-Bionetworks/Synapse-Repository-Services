@@ -19,13 +19,13 @@ public class SubjectStatusTest {
 
 	@Test
 	public void testGetMostRestrictiveLevelWithNoRestrictions() {
-		SubjectStatus status = new SubjectStatus(subjectId, userId);
+		UsersRestrictionStatus status = new UsersRestrictionStatus(subjectId, userId);
 		assertEquals(RestrictionLevel.OPEN, status.getMostRestrictiveLevel());
 	}
 
 	@Test
 	public void testGetMostRestrictiveLevelWithEachType() {
-		SubjectStatus status = new SubjectStatus(subjectId, userId);
+		UsersRestrictionStatus status = new UsersRestrictionStatus(subjectId, userId);
 		status.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(1L)
 				.withRequirementType(AccessRequirementType.ATC));
 		status.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(2L)
@@ -40,7 +40,7 @@ public class SubjectStatusTest {
 	
 	@Test
 	public void testGetMostRestrictiveLevelWithMultipleToU() {
-		SubjectStatus status = new SubjectStatus(subjectId, userId);
+		UsersRestrictionStatus status = new UsersRestrictionStatus(subjectId, userId);
 		status.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(1L)
 				.withRequirementType(AccessRequirementType.TOU));
 		status.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(2L)
@@ -51,7 +51,7 @@ public class SubjectStatusTest {
 	
 	@Test
 	public void testGetMostRestrictiveLevelWithToUThenATC() {
-		SubjectStatus status = new SubjectStatus(subjectId, userId);
+		UsersRestrictionStatus status = new UsersRestrictionStatus(subjectId, userId);
 		status.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(1L)
 				.withRequirementType(AccessRequirementType.TOU));
 		status.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(2L)
@@ -62,7 +62,7 @@ public class SubjectStatusTest {
 	
 	@Test
 	public void testGetMostRestrictiveLevelWithATCThenToU() {
-		SubjectStatus status = new SubjectStatus(subjectId, userId);
+		UsersRestrictionStatus status = new UsersRestrictionStatus(subjectId, userId);
 		status.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(1L)
 				.withRequirementType(AccessRequirementType.ATC));
 		status.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(2L)

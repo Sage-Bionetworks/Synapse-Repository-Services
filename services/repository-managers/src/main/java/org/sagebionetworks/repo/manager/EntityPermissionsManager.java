@@ -143,4 +143,5 @@ public interface EntityPermissionsManager {
 	 * @return
 	 */
 	public Set<Long> getNonvisibleChildren(UserInfo user, String parentId);
+	
 }

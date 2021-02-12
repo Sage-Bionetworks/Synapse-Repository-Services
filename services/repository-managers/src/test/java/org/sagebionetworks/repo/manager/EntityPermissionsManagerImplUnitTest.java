@@ -81,8 +81,6 @@ public class EntityPermissionsManagerImplUnitTest {
 	@Mock
 	private RestrictionInformationManager  mockRestrictionInformationManager;
 	@Mock
-	private AuthenticationManager mockAuthenticationManager;
-	@Mock
 	private StackConfiguration mockStackConfiguration;
 	@Mock
 	private ProjectSettingsManager mockProjectSettingsManager;
@@ -117,10 +115,12 @@ public class EntityPermissionsManagerImplUnitTest {
 		nonCertifiedUserInfo = new UserInfo(false);
 		nonCertifiedUserInfo.setId(765432L);
 		nonCertifiedUserInfo.setGroups(Collections.singleton(9999L));
+		nonCertifiedUserInfo.setAcceptsTermsOfUse(true);
 
 		certifiedUserInfo = new UserInfo(false);
 		certifiedUserInfo.setId(1234567L);
 		certifiedUserInfo.setGroups(Collections.singleton(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
+		certifiedUserInfo.setAcceptsTermsOfUse(true);
 		
 		ReflectionStaticTestUtils.mockAutowire(this, entityPermissionsManager);
 
@@ -178,7 +178,6 @@ public class EntityPermissionsManagerImplUnitTest {
 
 		when(mockAclDAO.canAccess(eq(certifiedUserInfo.getGroups()), eq(benefactorId), eq(ObjectType.ENTITY),
 				any(ACCESS_TYPE.class))).thenReturn(true);
-		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(certifiedUserInfo.getId())).thenReturn(true);
 
 		restrictionInfoRqst.setObjectId(projectId);
 		when(mockRestrictionInformationManager.
@@ -220,7 +219,6 @@ public class EntityPermissionsManagerImplUnitTest {
 
 		when(mockAclDAO.canAccess(eq(nonCertifiedUserInfo.getGroups()), eq(benefactorId), eq(ObjectType.ENTITY),
 				any(ACCESS_TYPE.class))).thenReturn(true);
-		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(nonCertifiedUserInfo.getId())).thenReturn(true);
 
 		restrictionInfoRqst.setObjectId(projectId);
 		when(mockRestrictionInformationManager.
@@ -261,7 +259,6 @@ public class EntityPermissionsManagerImplUnitTest {
 
 		when(mockAclDAO.canAccess(eq(certifiedUserInfo.getGroups()), eq(benefactorId), eq(ObjectType.ENTITY),
 				any(ACCESS_TYPE.class))).thenReturn(true);
-		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(certifiedUserInfo.getId())).thenReturn(true);
 
 		restrictionInfoRqst.setObjectId(projectId);
 		when(mockRestrictionInformationManager.
@@ -287,7 +284,6 @@ public class EntityPermissionsManagerImplUnitTest {
 
 		when(mockAclDAO.canAccess(eq(certifiedUserInfo.getGroups()), eq(benefactorId), eq(ObjectType.ENTITY),
 				any(ACCESS_TYPE.class))).thenReturn(true);
-		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(certifiedUserInfo.getId())).thenReturn(true);
 		
 		restrictionInfoRqst.setObjectId(folderId);
 		when(mockRestrictionInformationManager.
@@ -329,7 +325,6 @@ public class EntityPermissionsManagerImplUnitTest {
 
 		when(mockAclDAO.canAccess(eq(certifiedUserInfo.getGroups()), eq(benefactorId), eq(ObjectType.ENTITY),
 				any(ACCESS_TYPE.class))).thenReturn(true);
-		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(certifiedUserInfo.getId())).thenReturn(true);
 
 		// if READ is in the ACL but DOWNLOAD is not in the ACL, then I can't download
 		when(mockAclDAO.canAccess(eq(certifiedUserInfo.getGroups()), eq(benefactorId), 
@@ -374,7 +369,6 @@ public class EntityPermissionsManagerImplUnitTest {
 
 		when(mockAclDAO.canAccess(eq(nonCertifiedUserInfo.getGroups()), eq(benefactorId), eq(ObjectType.ENTITY),
 				any(ACCESS_TYPE.class))).thenReturn(true);
-		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(nonCertifiedUserInfo.getId())).thenReturn(true);
 
 		restrictionInfoRqst.setObjectId(folderId);
 		when(mockRestrictionInformationManager.
@@ -428,7 +422,6 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockNodeDao.getNodeTypeById(dockerRepoId)).thenReturn(EntityType.dockerrepo);
 		when(mockAclDAO.canAccess(eq(certifiedUserInfo.getGroups()), eq(benefactorId), eq(ObjectType.ENTITY),
 				any(ACCESS_TYPE.class))).thenReturn(true);
-		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(certifiedUserInfo.getId())).thenReturn(true);
 		restrictionInfoRqst.setObjectId(dockerRepoId);
 		when(mockRestrictionInformationManager.
 				getRestrictionInformation(certifiedUserInfo, restrictionInfoRqst)).
@@ -725,7 +718,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		
 		when(mockNodeDao.getNodeTypeById(nodeId)).thenReturn(EntityType.file);
 		when(mockNodeDao.getBenefactor(nodeId)).thenReturn(benefactorId);
-		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(userInfo.getId())).thenReturn(acceptedTermsOfUse);
+		userInfo.setAcceptsTermsOfUse(acceptedTermsOfUse);
 		
 		// Call under test
 		AuthorizationStatus status = entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
@@ -735,7 +728,6 @@ public class EntityPermissionsManagerImplUnitTest {
 		
 		verify(mockNodeDao).getNodeTypeById(nodeId);
 		verify(mockNodeDao).getBenefactor(nodeId);
-		verify(mockAuthenticationManager).hasUserAcceptedTermsOfUse(userInfo.getId());
 	}
 	
 	@Test
@@ -803,10 +795,10 @@ public class EntityPermissionsManagerImplUnitTest {
 		String benefactorId = nodeId;
 		UserInfo userInfo = certifiedUserInfo;
 		boolean acceptedTermsOfUse = true;
+		userInfo.setAcceptsTermsOfUse(acceptedTermsOfUse);
 		
 		when(mockNodeDao.getNodeTypeById(nodeId)).thenReturn(EntityType.file);
 		when(mockNodeDao.getBenefactor(nodeId)).thenReturn(benefactorId);
-		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(userInfo.getId())).thenReturn(acceptedTermsOfUse);
 		when(mockObjectTypeManager.getObjectsDataType(nodeId, ObjectType.ENTITY)).thenReturn(dataType);
 		when(mockAclDAO.canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
 		restrictionInfoRqst.setObjectId(nodeId);

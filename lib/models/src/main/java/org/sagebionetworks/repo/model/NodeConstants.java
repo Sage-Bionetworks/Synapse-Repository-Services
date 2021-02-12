@@ -6,7 +6,6 @@ import java.util.UUID;
 
 /**
  * Constants for nodes.
- * @author jmhill
  *
  */
 public class NodeConstants {
@@ -77,9 +76,9 @@ public class NodeConstants {
 		BOOTSTRAP_NODES(long id) {
 			this.id = id;
 		}
-		private long id;
+		private Long id;
 		
-		public long getId() {
+		public Long getId() {
 			return id;
 		}
 		

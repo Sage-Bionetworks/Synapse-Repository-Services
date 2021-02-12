@@ -9,14 +9,19 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.MODERATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MESSAGE_CERTIFIED_USER_CONTENT;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ONLY_CERTIFIED_USERS_MAY_CHANGE_NODE_SETTINGS;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
 
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
-import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.repo.manager.dataaccess.RestrictionInformationManager;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
@@ -31,6 +36,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -58,19 +64,12 @@ import com.google.common.collect.Sets.SetView;
 
 public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 
-	private static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
-	private static final String ERR_MESSAGE_CERTIFIED_USER_CONTENT = "Only certified users may create or update content in Synapse.";
-
 	@Autowired
 	private NodeDAO nodeDao;
 	@Autowired
 	private AccessControlListDAO aclDAO;
 	@Autowired
-	private AuthenticationManager authenticationManager;
-	@Autowired
 	private ProjectSettingsManager projectSettingsManager;
-	@Autowired
-	private StackConfiguration configuration;
 	@Autowired
 	private ProjectStatsManager projectStatsManager;
 	@Autowired
@@ -220,20 +219,6 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		return aclDAO.get(benefactor, ObjectType.ENTITY);
 	}
 	
-	boolean isCertifiedUserOrFeatureDisabled(UserInfo userInfo, String entityId) {
-		Boolean featureIsDisabled = configuration.getDisableCertifiedUser();
-		
-		if (featureIsDisabled == null || featureIsDisabled) {
-			return true;
-		}
-		
-		if (AuthorizationUtils.isCertifiedUser(userInfo)) {
-			return true;
-		}
-		
-		return false;
-	}
-	
 	@Override
 	public AuthorizationStatus canCreate(String parentId, EntityType nodeType, UserInfo userInfo) 
 			throws DatastoreException, NotFoundException {
@@ -244,11 +229,11 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return AuthorizationStatus.accessDenied("Cannot create a entity having no parent.");
 		}
 
-		if (!EntityType.project.equals(nodeType) && !isCertifiedUserOrFeatureDisabled(userInfo, parentId)) {
+		if (!EntityType.project.equals(nodeType) && !AuthorizationUtils.isCertifiedUser(userInfo)) {
 			return AuthorizationStatus.accessDenied(new UserCertificationRequiredException(ERR_MESSAGE_CERTIFIED_USER_CONTENT));
 		}
 		
-		return certifiedUserHasAccess(parentId, null, CREATE, userInfo);
+		return certifiedUserHasAccess(parentId, CREATE, userInfo);
 	}
 
 	@Override
@@ -257,8 +242,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return AuthorizationStatus.authorized();
 		}
 
-		if (!isCertifiedUserOrFeatureDisabled(userInfo, node.getId())) {
-			return AuthorizationStatus.accessDenied("Only certified users may change node settings.");
+		if (!AuthorizationUtils.isCertifiedUser(userInfo)) {
+			return AuthorizationStatus.accessDenied(ONLY_CERTIFIED_USERS_MAY_CHANGE_NODE_SETTINGS);
 		}
 
 		// the creator always has change settings permissions
@@ -266,7 +251,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return AuthorizationStatus.authorized();
 		}
 
-		return certifiedUserHasAccess(node.getId(), node.getNodeType(), ACCESS_TYPE.CHANGE_SETTINGS, userInfo);
+		return certifiedUserHasAccess(node.getId(), ACCESS_TYPE.CHANGE_SETTINGS, userInfo);
 	}
 	
 	/**
@@ -284,11 +269,11 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		
 		if (!userInfo.isAdmin() && 
 			(accessType==CREATE || (accessType==UPDATE && entityType!=EntityType.project)) &&
-			!isCertifiedUserOrFeatureDisabled(userInfo, entityId)) {
+			!AuthorizationUtils.isCertifiedUser(userInfo)) {
 			return AuthorizationStatus.accessDenied(ERR_MESSAGE_CERTIFIED_USER_CONTENT);
 		}
 		
-		return certifiedUserHasAccess(entityId, entityType, accessType, userInfo);
+		return certifiedUserHasAccess(entityId, accessType, userInfo);
 	}
 		
 	/**
@@ -305,13 +290,13 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	private AuthorizationStatus certifiedUserHasAccess(String entityId, EntityType entityType, ACCESS_TYPE accessType, UserInfo userInfo)
+	private AuthorizationStatus certifiedUserHasAccess(String entityId, ACCESS_TYPE accessType, UserInfo userInfo)
 				throws NotFoundException, DatastoreException  {
 		// In the case of the trash can, throw the EntityInTrashCanException
 		// The only operations allowed over the trash can is CREATE (i.e. moving
 		// items into the trash can) and DELETE (i.e. purging the trash).
 		final String benefactor = nodeDao.getBenefactor(entityId);
-		if (TRASH_FOLDER_ID.equals(KeyFactory.stringToKey(benefactor))
+		if (NodeConstants.BOOTSTRAP_NODES.TRASH.getId().equals(KeyFactory.stringToKey(benefactor))
 				&& !CREATE.equals(accessType)
 				&& !DELETE.equals(accessType)) {
 			throw new EntityInTrashCanException("Entity " + entityId + " is in trash can.");
@@ -320,7 +305,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// Anonymous can at most READ (or DOWNLOAD when the entity is marked with OPEN_ACCESS)
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
 			if (accessType != ACCESS_TYPE.READ && accessType != ACCESS_TYPE.DOWNLOAD) {
-				return AuthorizationStatus.accessDenied("Anonymous users have only READ access permission.");
+				return AuthorizationStatus.accessDenied(ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION);
 			}
 		}
 		// Admin
@@ -339,7 +324,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, accessType)) {
 			return AuthorizationStatus.authorized();
 		} else {
-			return AuthorizationStatus.accessDenied("You do not have "+accessType+" permission for the requested entity, "+entityId+".");
+			return AuthorizationStatus.accessDenied(String.format(YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE, accessType.name(), entityId));
 		}
 	}
 
@@ -362,12 +347,12 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 
 		UserEntityPermissions permissions = new UserEntityPermissions();
 		permissions.setCanAddChild(hasAccess(entityId, CREATE, userInfo).isAuthorized());
-		permissions.setCanCertifiedUserAddChild(certifiedUserHasAccess(entityId, node.getNodeType(), CREATE, userInfo).isAuthorized());
+		permissions.setCanCertifiedUserAddChild(certifiedUserHasAccess(entityId, CREATE, userInfo).isAuthorized());
 		permissions.setCanChangePermissions(hasAccess(entityId, CHANGE_PERMISSIONS, userInfo).isAuthorized());
 		permissions.setCanChangeSettings(hasAccess(entityId, CHANGE_SETTINGS, userInfo).isAuthorized());
 		permissions.setCanDelete(hasAccess(entityId, DELETE, userInfo).isAuthorized());
 		permissions.setCanEdit(hasAccess(entityId, UPDATE, userInfo).isAuthorized());
-		permissions.setCanCertifiedUserEdit(certifiedUserHasAccess(entityId, node.getNodeType(), UPDATE, userInfo).isAuthorized());
+		permissions.setCanCertifiedUserEdit(certifiedUserHasAccess(entityId, UPDATE, userInfo).isAuthorized());
 		permissions.setCanView(hasAccess(entityId, READ, userInfo).isAuthorized());
 		permissions.setCanDownload(canDownload(userInfo, entityId, benefactor).isAuthorized());
 		permissions.setCanUpload(canUpload(userInfo, entityId).isAuthorized());
@@ -410,8 +395,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 		
 		// We check on the terms of use agreement if the user is not anonymous
-		if (!AuthorizationUtils.isUserAnonymous(userInfo) && !agreesToTermsOfUse(userInfo)) {
-			return AuthorizationStatus.accessDenied("You have not yet agreed to the Synapse Terms of Use.");
+		if (!AuthorizationUtils.isUserAnonymous(userInfo) && !userInfo.acceptsTermsOfUse()) {
+			return AuthorizationStatus.accessDenied(YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE);
 		}
 		
 		ACCESS_TYPE accessTypeCheck = DOWNLOAD;
@@ -427,7 +412,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		boolean aclAllowsDownload = aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, accessTypeCheck);
 		
 		if (!aclAllowsDownload) {
-			return AuthorizationStatus.accessDenied("You lack " + accessTypeCheck.name() + " access to the requested entity.");	
+			return AuthorizationStatus.accessDenied(String.format(YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, accessTypeCheck.name()));	
 		}
 		
 		// if the ACL and access requirements permit DOWNLOAD (or READ for OPEN_DATA), then its permitted,
@@ -446,7 +431,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		
 		if (response.getHasUnmetAccessRequirement()) {	
 			return AuthorizationStatus
-					.accessDenied("There are unmet access requirements that must be met to read content in the requested container.");
+					.accessDenied(THERE_ARE_UNMET_ACCESS_REQUIREMENTS);
 		}
 		
 		return AuthorizationStatus.authorized();
@@ -457,26 +442,23 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (userInfo.isAdmin()) {
 			return AuthorizationStatus.authorized();
 		}
-		if (!agreesToTermsOfUse(userInfo)) {
-			return AuthorizationStatus.accessDenied("You have not yet agreed to the Synapse Terms of Use.");
+		if (!userInfo.acceptsTermsOfUse()) {
+			return AuthorizationStatus.accessDenied(YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE);
 		}
 		return AuthorizationStatus.authorized();
 	}
 
-	private boolean agreesToTermsOfUse(UserInfo userInfo) throws NotFoundException {
-		return authenticationManager.hasUserAcceptedTermsOfUse(userInfo.getId());
-	}
 	
 	@Override
 	public AuthorizationStatus canCreateWiki(String entityId, UserInfo userInfo) throws DatastoreException, NotFoundException {
 		EntityType entityType = nodeDao.getNodeTypeById(entityId);
 		if (!userInfo.isAdmin() && 
 			EntityType.project != entityType &&
-			!isCertifiedUserOrFeatureDisabled(userInfo, entityId)) {
+			!AuthorizationUtils.isCertifiedUser(userInfo)) {
 			return AuthorizationStatus.accessDenied("Only certified users may create non-project wikis in Synapse.");
 		}
 		
-		return certifiedUserHasAccess(entityId, entityType, ACCESS_TYPE.CREATE, userInfo);
+		return certifiedUserHasAccess(entityId, ACCESS_TYPE.CREATE, userInfo);
 	}
 
 	@Override
@@ -488,4 +470,5 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 		return aclDAO.getNonVisibleChilrenOfEntity(user.getGroups(), parentId);
 	}
+
 }

@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.dataaccess;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
@@ -10,7 +9,7 @@ import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.AccessRestrictionStatusDao;
-import org.sagebionetworks.repo.model.ar.SubjectStatus;
+import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +34,7 @@ public class RestrictionInformationManagerImpl implements RestrictionInformation
 			throw new IllegalArgumentException("Unsupported type: " + request.getRestrictableObjectType());
 		}
 
-		List<SubjectStatus> statusList = accessRestrictionStatusDao.getSubjectStatus(
+		List<UsersRestrictionStatus> statusList = accessRestrictionStatusDao.getSubjectStatus(
 				Arrays.asList(KeyFactory.stringToKey(request.getObjectId())), request.getRestrictableObjectType(),
 				userInfo.getId());
 
@@ -51,6 +50,11 @@ public class RestrictionInformationManagerImpl implements RestrictionInformation
 			info.setRestrictionLevel(RestrictionLevel.OPEN);
 			return info;
 		});
+	}
+	
+	@Override
+	public List<UsersRestrictionStatus> getEntityRestrictionInformation(UserInfo userInfo, List<Long> entityIds){
+		return accessRestrictionStatusDao.getEntityStatus(entityIds, userInfo.getId());
 	}
 
 }

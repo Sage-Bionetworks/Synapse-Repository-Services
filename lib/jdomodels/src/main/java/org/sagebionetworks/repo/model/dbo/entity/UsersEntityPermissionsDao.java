@@ -14,6 +14,6 @@ public interface UsersEntityPermissionsDao {
 	 * @return The order of the results will match the order of the provided
 	 *         entityIDs.
 	 */
-	List<UserEntityPermissions> getEntityPermissions(Set<Long> usersPrincipalIds, List<Long> entityIds);
+	List<UserEntityPermissionsState> getEntityPermissions(Set<Long> usersPrincipalIds, List<Long> entityIds);
 
 }

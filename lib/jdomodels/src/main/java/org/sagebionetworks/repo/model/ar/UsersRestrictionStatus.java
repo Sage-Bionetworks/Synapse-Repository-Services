@@ -6,14 +6,20 @@ import java.util.Objects;
 
 import org.sagebionetworks.repo.model.RestrictionLevel;
 
-public class SubjectStatus {
+/**
+ * The user's access restriction status for a single subject. This object
+ * includes information on all access restrictions on a subject and the user's
+ * status for each restriction.
+ *
+ */
+public class UsersRestrictionStatus {
 
 	private Long subjectId;
 	private Long userId;
 	private List<UsersRequirementStatus> accessRestrictions;
 	private boolean hasUnmet;
 
-	public SubjectStatus(Long subjectId, Long userId) {
+	public UsersRestrictionStatus(Long subjectId, Long userId) {
 		this.subjectId = subjectId;
 		this.userId = userId;
 		this.accessRestrictions = new ArrayList<UsersRequirementStatus>();
@@ -59,24 +65,24 @@ public class SubjectStatus {
 	public List<UsersRequirementStatus> getAccessRestrictions() {
 		return accessRestrictions;
 	}
-	
+
 	/**
 	 * Get the most restrictive level of all of the requirements on this object.
+	 * 
 	 * @return
 	 */
 	public RestrictionLevel getMostRestrictiveLevel() {
 		RestrictionLevel level = RestrictionLevel.OPEN;
-		if(accessRestrictions != null) {
-			for(UsersRequirementStatus status: accessRestrictions) {
+		if (accessRestrictions != null) {
+			for (UsersRequirementStatus status : accessRestrictions) {
 				RestrictionLevel localLevel = status.getRequirementType().getRestrictionLevel();
-				if(RestrictionLevelComparator.SINGLETON.compare(localLevel, level)> 0) {
+				if (RestrictionLevelComparator.SINGLETON.compare(localLevel, level) > 0) {
 					level = localLevel;
 				}
 			}
 		}
 		return level;
 	}
-	
 
 	@Override
 	public int hashCode() {
@@ -88,10 +94,10 @@ public class SubjectStatus {
 		if (this == obj) {
 			return true;
 		}
-		if (!(obj instanceof SubjectStatus)) {
+		if (!(obj instanceof UsersRestrictionStatus)) {
 			return false;
 		}
-		SubjectStatus other = (SubjectStatus) obj;
+		UsersRestrictionStatus other = (UsersRestrictionStatus) obj;
 		return Objects.equals(accessRestrictions, other.accessRestrictions) && hasUnmet == other.hasUnmet
 				&& Objects.equals(subjectId, other.subjectId) && Objects.equals(userId, other.userId);
 	}
