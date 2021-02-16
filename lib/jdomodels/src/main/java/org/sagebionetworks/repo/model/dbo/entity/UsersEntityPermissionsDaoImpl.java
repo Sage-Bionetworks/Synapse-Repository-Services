@@ -45,7 +45,7 @@ public class UsersEntityPermissionsDaoImpl implements UsersEntityPermissionsDao 
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("usersGroups", userGroups);
 		params.addValue("entityIds", entityIds);
-		params.addValue("depth", NodeConstants.MAX_PATH_DEPTH);
+		params.addValue("depth", NodeConstants.MAX_PATH_DEPTH_PLUS_ONE);
 		namedJdbcTemplate.query(GET_ENTITY_PERMISSION_SQL, params, new RowCallbackHandler() {
 
 			@Override

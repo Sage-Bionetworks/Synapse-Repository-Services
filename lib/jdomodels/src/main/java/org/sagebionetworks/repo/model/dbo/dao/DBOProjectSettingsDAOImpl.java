@@ -67,7 +67,7 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 			"    JOIN PATH ON (N." + COL_NODE_ID + " = PATH." + COL_NODE_PARENT_ID + ")" +
 			"    LEFT OUTER JOIN " + TABLE_PROJECT_SETTING + " AS PS ON " + 
 			"       (N." + COL_NODE_ID + " = PS." + COL_PROJECT_SETTING_PROJECT_ID + " AND " + COL_PROJECT_SETTING_TYPE + " = ?)" +
-			"    WHERE N." + COL_NODE_ID +" IS NOT NULL AND DISTANCE < " +NodeConstants.MAX_PATH_DEPTH+
+			"    WHERE N." + COL_NODE_ID +" IS NOT NULL AND DISTANCE < " +NodeConstants.MAX_PATH_DEPTH_PLUS_ONE+
 			")" +
 			"SELECT PROJECT_SETTING_ID FROM PATH" +
 			"  WHERE PROJECT_SETTING_ID IS NOT NULL ORDER BY DISTANCE ASC" +

@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -83,15 +84,11 @@ public class NodeManagerImplAutoWiredTest {
 	private ActivityManager activityManager;
 	
 	@Autowired
-	private ProjectSettingsManager projectSettingsManager;
-	
-	@Autowired
 	private IdGenerator idGenerator;
 	
 	@Autowired
 	private FileHandleDao fileHandleDao;
 
-	private List<String> nodesToDelete;
 	private List<String> activitiesToDelete;
 	
 	private UserInfo adminUserInfo;
@@ -100,7 +97,6 @@ public class NodeManagerImplAutoWiredTest {
 	@BeforeEach
 	public void before() throws Exception {
 		assertNotNull(nodeManager);
-		nodesToDelete = new ArrayList<String>();
 		activitiesToDelete = new ArrayList<String>();
 		fileHandleDao.truncateTable();
 		
@@ -122,15 +118,8 @@ public class NodeManagerImplAutoWiredTest {
 	
 	@AfterEach
 	public void after() throws Exception {
-		if(nodeManager != null && nodesToDelete != null){
-			for(String id: nodesToDelete){
-				try {
-					nodeManager.delete(adminUserInfo, id);
-				} catch (Exception e) {
-					e.printStackTrace();
-				} 				
-			}
-		}
+		aclDAO.truncateAll();
+		nodeDAO.truncateAll();
 		if(activityManager != null && activitiesToDelete != null){
 			for(String id: activitiesToDelete){
 				try {
@@ -140,9 +129,8 @@ public class NodeManagerImplAutoWiredTest {
 				} 				
 			}
 		}
-		
-		userManager.deletePrincipal(adminUserInfo, userInfo.getId());
 		fileHandleDao.truncateTable();
+		userManager.deletePrincipal(adminUserInfo, userInfo.getId());
 	}
 	
 	@Test
@@ -157,7 +145,6 @@ public class NodeManagerImplAutoWiredTest {
 			newNode.setNodeType(type);
 			String id = nodeManager.createNewNode(newNode, userInfo);
 			assertNotNull(id);
-			nodesToDelete.add(id);
 			newNode = nodeManager.getNode(userInfo, id);
 			// A parent node should have been assigned to this node.
 			assertNotNull(newNode.getParentId());
@@ -203,7 +190,6 @@ public class NodeManagerImplAutoWiredTest {
 		newNode = nodeManager.createNewNode(newNode, annos, userInfo);
 		String id = newNode.getId();
 		assertNotNull(id);
-		nodesToDelete.add(id);
 		// Validate the node's annotations
 		annos = nodeManager.getEntityPropertyAnnotations(userInfo, id);
 		assertNotNull(annos);
@@ -225,7 +211,6 @@ public class NodeManagerImplAutoWiredTest {
 		start.setNodeType(EntityType.project);
 		start = nodeManager.createNode(start, userInfo);
 		assertNotNull(start);
-		nodesToDelete.add(start.getId());
 		//Make sure we can get the node
 		Node fetched = nodeManager.getNode(adminUserInfo, start.getId());
 		assertNotNull(fetched);
@@ -265,7 +250,6 @@ public class NodeManagerImplAutoWiredTest {
 		newNode.setNodeType(EntityType.project);
 		String id = nodeManager.createNewNode(newNode, adminUserInfo);
 		assertNotNull(id);
-		nodesToDelete.add(id);
 		Node node = nodeManager.getNode(adminUserInfo, id);
 		// Now update
 		node.setName("newName");
@@ -289,7 +273,6 @@ public class NodeManagerImplAutoWiredTest {
 		String id = nodeManager.createNewNode(startNode, userInfo);
 		startNode = nodeManager.getNode(userInfo, id);
 		assertNotNull(id);
-		nodesToDelete.add(id);
 		// First get the annotations for this node
 		Annotations annos = nodeManager.getUserAnnotations(userInfo, id);
 		assertNotNull(annos);
@@ -329,7 +312,6 @@ public class NodeManagerImplAutoWiredTest {
 		UserInfo userInfo = adminUserInfo;
 		String id = nodeManager.createNewNode(newNode, userInfo);
 		assertNotNull(id);
-		nodesToDelete.add(id);
 		// First get the annotations for this node
 		Annotations annos = nodeManager.getUserAnnotations(userInfo, id);
 		AnnotationsV2TestUtils.putAnnotations(annos, "stringKey", "should take", AnnotationsValueType.STRING);
@@ -358,7 +340,6 @@ public class NodeManagerImplAutoWiredTest {
 		newNode = nodeManager.createNode(newNode, userInfo);
 		String id = newNode.getId();
 		assertNotNull(id);
-		nodesToDelete.add(id);
 
 		// Add some annotations to this version
 		org.sagebionetworks.repo.model.Annotations annos = nodeManager.getEntityPropertyAnnotations(userInfo, id);
@@ -442,7 +423,6 @@ public class NodeManagerImplAutoWiredTest {
 		// call under test
 		node = nodeManager.createNode(node, userInfo);
 		assertNotNull(node);
-		nodesToDelete.add(node.getId());
 		assertNotNull(node.getETag());
 		assertEquals(userInfo.getId(), node.getCreatedByPrincipalId());
 		assertEquals(userInfo.getId(), node.getModifiedByPrincipalId());
@@ -483,7 +463,6 @@ public class NodeManagerImplAutoWiredTest {
 		UserInfo userInfo = adminUserInfo;
 		String id = nodeManager.createNewNode(newNode, userInfo);
 		assertNotNull(id);
-		nodesToDelete.add(id);
 		// Now create a few versions
 		int numberVersions = 3;
 		for(int i=0; i<numberVersions; i++){
@@ -519,7 +498,6 @@ public class NodeManagerImplAutoWiredTest {
 		node.setNodeType(EntityType.project);
 		String rootId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(rootId);
-		nodesToDelete.add(rootId);
 		
 		//make a child node
 		node = new Node();
@@ -528,7 +506,6 @@ public class NodeManagerImplAutoWiredTest {
 		node.setParentId(rootId);
 		String childId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(childId);
-		nodesToDelete.add(childId);
 		
 		//make a newProject node
 		node = new Node();
@@ -536,7 +513,6 @@ public class NodeManagerImplAutoWiredTest {
 		node.setNodeType(EntityType.project);
 		String newProjectId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(newProjectId);
-		nodesToDelete.add(newProjectId);
 		
 		//get the child node and verify the state of it's parentId
 		Node fetchedChild = nodeManager.getNode(adminUserInfo, childId);
@@ -568,7 +544,6 @@ public class NodeManagerImplAutoWiredTest {
 		node.setNodeType(EntityType.project);
 		String rootId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(rootId);
-		nodesToDelete.add(rootId);
 		
 		//make a folder
 		node = new Node();
@@ -577,7 +552,6 @@ public class NodeManagerImplAutoWiredTest {
 		node.setParentId(rootId);
 		String folderId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(folderId);
-		nodesToDelete.add(folderId);
 		
 		//make a child node
 		node = new Node();
@@ -586,7 +560,6 @@ public class NodeManagerImplAutoWiredTest {
 		node.setParentId(folderId);
 		String childId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(childId);
-		nodesToDelete.add(childId);
 		
 		// Get the folder
 		Node folder = nodeManager.getNode(adminUserInfo, folderId);
@@ -628,7 +601,6 @@ public class NodeManagerImplAutoWiredTest {
 		newNode = nodeManager.createNode(newNode, adminUserInfo);
 		String nodeId = newNode.getId();
 		assertNotNull(nodeId);
-		nodesToDelete.add(nodeId);
 		Node createdNode = nodeManager.getNode(adminUserInfo, nodeId);
 		assertEquals(actId, createdNode.getActivityId());
 
@@ -655,8 +627,6 @@ public class NodeManagerImplAutoWiredTest {
 		node.setFileHandleId(oldFileHandle.getId());
 		
 		node = nodeManager.createNode(node, userInfo);
-		
-		nodesToDelete.add(node.getId());
 		
 		String currentEtag = node.getETag();
 		
@@ -690,8 +660,6 @@ public class NodeManagerImplAutoWiredTest {
 		
 		Long firstVersionNumber = node.getVersionNumber();
 		
-		nodesToDelete.add(node.getId());
-		
 		node.setVersionComment("New version comment");
 		node.setVersionLabel("New version label");
 		// Creates a new version
@@ -721,6 +689,40 @@ public class NodeManagerImplAutoWiredTest {
 		assertEquals(newFileHandle.getId(), node.getFileHandleId());
 		
 		
+	}
+	
+	/**
+	 * Test for PLFM-6589 to ensure going over the limit blocks.
+	 */
+	@Test
+	public void testCreateOverDepthLimit() {
+		Node project = new Node();
+		project.setName("theproject");
+		project.setNodeType(EntityType.project);
+		project = nodeManager.createNode(project, userInfo);
+		String perviousParent = project.getId();
+		for(int i=2; i<NodeConstants.MAX_PATH_DEPTH; i++) {
+			Node folder = new Node();
+			folder.setName("folder"+i);
+			folder.setParentId(perviousParent);
+			folder.setNodeType(EntityType.folder);
+			folder = nodeManager.createNode(folder, userInfo);
+			perviousParent = folder.getId();
+		}
+		Node folder = new Node();
+		folder.setName("OverLimit");
+		folder.setParentId(perviousParent);
+		folder.setNodeType(EntityType.folder);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			nodeManager.createNode(folder, userInfo);
+		}).getMessage();
+		assertEquals("Exceeded the maximum hierarchical depth of: 50 for parent: "+perviousParent, message);
+		Node lastParent = nodeManager.getNode(perviousParent);
+		assertNotNull(lastParent);
+		assertEquals("folder49", lastParent.getName());
+		List<Long> lastPath = nodeDAO.getEntityPathIds(lastParent.getId());
+		assertNotNull(lastPath);
+		assertEquals(50, lastPath.size());
 	}
 	
 	private S3FileHandle createTestFileHandle(String fileName, String createdById){
