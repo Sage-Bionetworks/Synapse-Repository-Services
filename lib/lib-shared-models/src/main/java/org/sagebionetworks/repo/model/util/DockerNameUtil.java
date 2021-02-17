@@ -15,7 +15,7 @@ public class DockerNameUtil {
 	// domain name label can contain dash but must start and end with alpha numeric.
 	public static final String label = caseInsensitiveAlphaNumeric+"(-"+caseInsensitiveAlphaNumeric+")*+";
 	// a domain name must be at least two labels separated by a dot.
-	public static final String domainName = "("+label+"(\\."+label+")*+)++(:[0-9]+)?+";
+	public static final String domainName = "("+label+"(\\."+label+")*+)++(:[0-9]++)?+";
 	
 	// we keep the Regexp name from Docker.  It could more accurately be called 'lowerCaseAlpha...'
 	public static final String lowerCaseAlphaNumeric = "[a-z0-9]++";
@@ -32,11 +32,13 @@ public class DockerNameUtil {
 	// This is consistent with the use of repo paths in Dockerhub (where the first field is a user or
 	// organzation name, with no separator characters) and Synapse (where the first field is a Synapse ID).
 	public static final String PathRegexp = lowerCaseAlphaNumeric+"("+REPO_NAME_PATH_SEP+nameComponentRegexp+")*+";
+	public static final Pattern PathRegexPattern = Pattern.compile("^"+PathRegexp+"$");
 	
 	public static final String NameRegexp = "("+domainName+REPO_NAME_PATH_SEP+")?"+PathRegexp;
+	public static final Pattern NameRegexPattern = Pattern.compile("^"+NameRegexp+"$");
 	
 	public static void validateName(String name) {
-		if(!Pattern.matches("^"+NameRegexp+"$", name)) {
+		if(!NameRegexPattern.matcher(name).matches()) {
 			throw new IllegalArgumentException("Invalid repository name: "+name);
 		}
 	}
@@ -47,7 +49,7 @@ public class DockerNameUtil {
 	 */
 	public static String getRegistryHost(String name) {
 		// is the whole name just a path?
-		Matcher pathMatcher = Pattern.compile("^"+PathRegexp+"$").matcher(name);
+		Matcher pathMatcher = PathRegexPattern.matcher(name);
 		if (pathMatcher.find()) {
 			return null;
 		} else {

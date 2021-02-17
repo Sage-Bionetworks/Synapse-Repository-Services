@@ -43,6 +43,7 @@ public class DockerNameUtilTest {
 		assertIsHostName("syn.apse");
 		assertIsNOTHostName("syn-");
 		assertIsNOTHostName("https://www.dockerhub.com");
+		assertIsNOTHostName("docker.syn-apse.org:500000000000000000000000000000000f");
 	}
 
 	@Test
@@ -67,6 +68,7 @@ public class DockerNameUtilTest {
 		assertIsNOTRepoName("docker.synapse.org/syn8119917/preprocess-reducedata-keras/");
 		// another catastrophic backtracking case.
 		assertIsNOTRepoName("docker.synapse.org/syn8119917/abcdefghijklmnopqurstuvwxyz1234-");
+		assertIsNOTRepoName("abcdefghijklmnopqurstuvwxyz1234_");
 	}
 
 	@Test
@@ -124,6 +126,8 @@ public class DockerNameUtilTest {
 		Pattern pattern = Pattern.compile(DockerNameUtil.nameComponentRegexp);
 		assertTrue(pattern.matcher("a").matches());
 		assertTrue(pattern.matcher("a.b").matches());
+		assertTrue(pattern.matcher("aaa.bbb.ccc").matches());
+		assertTrue(pattern.matcher("a-a.b-b.c-c").matches());
 		assertTrue(pattern.matcher("a-b").matches());
 		// one underscore is allowed
 		assertTrue(pattern.matcher("a_b").matches());
@@ -142,6 +146,7 @@ public class DockerNameUtilTest {
 		assertFalse(pattern.matcher("abcdefghijklmnopqurstuvwxyz1234-").matches());
 		assertFalse(pattern.matcher("abcdefghijklmnopqurstuvwxyz1234.").matches());
 		assertFalse(pattern.matcher("abcdefghijklmnopqurstuvwxyz1234_").matches());
+		assertFalse(pattern.matcher("----------------------------------a").matches());
 	}
 
 }
