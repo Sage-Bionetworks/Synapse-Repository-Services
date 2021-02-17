@@ -1,19 +1,17 @@
 package org.sagebionetworks.repo.manager.entity.decider;
 
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ENTITY_IN_TRASH_TEMPLATE;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MESSAGE_CERTIFIED_USER_CONTENT;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CERTIFIED_USER_CONTENT;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTITY_IN_TRASH_TEMPLATE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
 
-import java.util.Arrays;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
@@ -42,7 +40,7 @@ public enum EntityDeciderFunctions implements AccessDecider {
 		if (BOOTSTRAP_NODES.TRASH.getId().equals(c.getPermissionState().getBenefactorId())) {
 			return Optional
 					.of(new UsersEntityAccessInfo(c, AuthorizationStatus.accessDenied(new EntityInTrashCanException(
-							String.format(ENTITY_IN_TRASH_TEMPLATE, c.getPermissionState().getEntityIdAsString())))));
+							String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, c.getPermissionState().getEntityIdAsString())))));
 		} else {
 			return Optional.empty();
 		}
@@ -53,7 +51,7 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	DENY_IF_DOES_NOT_EXIST((c) -> {
 		if (!c.getPermissionState().doesEntityExist()) {
 			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus
-					.accessDenied(new NotFoundException(THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND))));
+					.accessDenied(new NotFoundException(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND))));
 		} else {
 			return Optional.empty();
 		}
@@ -64,7 +62,7 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	DENY_IF_HAS_UNMET_ACCESS_RESTRICTIONS((c) -> {
 		if (c.getRestrictionStatus().hasUnmet()) {
 			return Optional.of(new UsersEntityAccessInfo(c,
-					AuthorizationStatus.accessDenied(THERE_ARE_UNMET_ACCESS_REQUIREMENTS)));
+					AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS)));
 		} else {
 			return Optional.empty();
 		}
@@ -89,7 +87,7 @@ public enum EntityDeciderFunctions implements AccessDecider {
 			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.authorized()));
 		} else {
 			return Optional.of(new UsersEntityAccessInfo(c,
-					AuthorizationStatus.accessDenied(String.format(YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE,
+					AuthorizationStatus.accessDenied(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE,
 							ACCESS_TYPE.DOWNLOAD.name(), c.getPermissionState().getEntityIdAsString()))));
 		}
 	}),
@@ -102,7 +100,7 @@ public enum EntityDeciderFunctions implements AccessDecider {
 			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.authorized()));
 		} else {
 			return Optional.of(new UsersEntityAccessInfo(c,
-					AuthorizationStatus.accessDenied(String.format(YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE,
+					AuthorizationStatus.accessDenied(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE,
 							ACCESS_TYPE.MODERATE.name(), c.getPermissionState().getEntityIdAsString()))));
 		}
 	}),
@@ -116,7 +114,7 @@ public enum EntityDeciderFunctions implements AccessDecider {
 			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.authorized()));
 		} else {
 			return Optional.of(new UsersEntityAccessInfo(c,
-					AuthorizationStatus.accessDenied(String.format(YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE,
+					AuthorizationStatus.accessDenied(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE,
 							ACCESS_TYPE.CHANGE_SETTINGS.name(), c.getPermissionState().getEntityIdAsString()))));
 		}
 	}),
@@ -129,7 +127,7 @@ public enum EntityDeciderFunctions implements AccessDecider {
 			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.authorized()));
 		} else {
 			return Optional.of(new UsersEntityAccessInfo(c,
-					AuthorizationStatus.accessDenied(String.format(YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE,
+					AuthorizationStatus.accessDenied(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE,
 							ACCESS_TYPE.CHANGE_PERMISSIONS.name(), c.getPermissionState().getEntityIdAsString()))));
 		}
 	}),
@@ -142,7 +140,7 @@ public enum EntityDeciderFunctions implements AccessDecider {
 			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.authorized()));
 		} else {
 			return Optional.of(new UsersEntityAccessInfo(c,
-					AuthorizationStatus.accessDenied(String.format(YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE,
+					AuthorizationStatus.accessDenied(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE,
 							ACCESS_TYPE.DELETE.name(), c.getPermissionState().getEntityIdAsString()))));
 		}
 	}),
@@ -151,9 +149,9 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	 * Deny if the user is anonymous.
 	 */
 	DENY_IF_ANONYMOUS((c) -> {
-		if (AuthorizationUtils.isUserAnonymous(c.getUser())) {
+		if (c.getUser().isUserAnonymous()) {
 			return Optional.of(new UsersEntityAccessInfo(c,
-					AuthorizationStatus.accessDenied(ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION)));
+					AuthorizationStatus.accessDenied(ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION)));
 		} else {
 			return Optional.empty();
 		}
@@ -162,9 +160,9 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	 * Deny if the user is not certified.
 	 */
 	DENY_IF_NOT_CERTIFIED((c) -> {
-		if (!AuthorizationUtils.isCertifiedUser(c.getUser())) {
+		if (!c.getUser().isUserAnonymous()) {
 			return Optional.of(
-					new UsersEntityAccessInfo(c, AuthorizationStatus.accessDenied(ERR_MESSAGE_CERTIFIED_USER_CONTENT)));
+					new UsersEntityAccessInfo(c, AuthorizationStatus.accessDenied(ERR_MSG_CERTIFIED_USER_CONTENT)));
 		} else {
 			return Optional.empty();
 		}
@@ -175,7 +173,7 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	DENY_IF_HAS_NOT_ACCEPTED_TERMS_OF_USE((c) -> {
 		if (!c.getUser().acceptsTermsOfUse()) {
 			return Optional.of(new UsersEntityAccessInfo(c,
-					AuthorizationStatus.accessDenied(YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE)));
+					AuthorizationStatus.accessDenied(ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE)));
 		} else {
 			return Optional.empty();
 		}
@@ -188,23 +186,8 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	}
 
 	@Override
-	public Optional<UsersEntityAccessInfo> deteremineAccess(AccessContext c) {
-		return decider.deteremineAccess(c);
-	}
-
-	/**
-	 * Make an access decision for the given context using the provided deciders. A
-	 * decision is made by asking each decider, in order, to attempt to make a
-	 * decision. The first non-empty decision that is found will be returned.
-	 * 
-	 * @param c        The context provides all of the information about the
-	 *                 decision to be made.
-	 * @param deciders The ordered AccessDeciders to ask.
-	 * @return
-	 */
-	public static UsersEntityAccessInfo makeAccessDecission(AccessContext c, AccessDecider... deciders) {
-		return Arrays.stream(deciders).map(d -> d.deteremineAccess(c)).filter(r -> r.isPresent()).map(r -> r.get())
-				.findFirst().orElseThrow(() -> new IllegalStateException("Server Error: No Decision made"));
+	public Optional<UsersEntityAccessInfo> determineAccess(AccessContext c) {
+		return decider.determineAccess(c);
 	}
 
 }

@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ENTITY_IN_TRASH_TEMPLATE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTITY_IN_TRASH_TEMPLATE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.*;
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
 
@@ -133,7 +133,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
 		assertEquals(oldMessage, newMessage);
-		assertEquals(THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
+		assertEquals(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
 	}
 	
 	@Test
@@ -180,7 +180,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
 		assertEquals(oldMessage, newMessage);
-		assertEquals(String.format(ENTITY_IN_TRASH_TEMPLATE, project.getId()), newMessage);
+		assertEquals(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, project.getId()), newMessage);
 	}
 	
 	@Test
@@ -235,7 +235,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION, newMessage);
+		assertEquals(ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION, newMessage);
 	}
 	
 	@Test
@@ -291,7 +291,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
 		assertEquals(oldMessage, newMessage);
-		assertEquals(YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE, newMessage);
+		assertEquals(ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE, newMessage);
 	}
 	
 	@Test
@@ -359,7 +359,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
 		assertEquals(oldMessage, newMessage);
-		assertEquals(THERE_ARE_UNMET_ACCESS_REQUIREMENTS, newMessage);
+		assertEquals(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS, newMessage);
 	}
 
 }
