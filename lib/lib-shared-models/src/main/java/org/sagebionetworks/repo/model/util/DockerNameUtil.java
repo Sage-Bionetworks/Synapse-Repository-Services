@@ -5,22 +5,25 @@ import java.util.regex.Pattern;
 
 
 public class DockerNameUtil {
+	
 	// the regexps in this file are adapted from
 	// https://github.com/docker/distribution/blob/master/reference/regexp.go
 	// (Note: The cited source is controlled by this license: https://github.com/docker/distribution/blob/master/LICENSE)
-
-	// one alpha numeric or several alphanumerics with hyphens internally
-	public static final String hostnameComponentRegexp = "([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])";
-	public static final String hostnameRegexp = hostnameComponentRegexp+
-									"(\\.|"+hostnameComponentRegexp+")*"+"(:[0-9]+)?";
+	
+	// Possessive quantifiers case insensitive alpha numeric
+	public static final String caseInsensitiveAlphaNumeric = "[a-zA-Z0-9]++";
+	// domain name label can contain dash but must start and end with alpha numeric.
+	public static final String label = caseInsensitiveAlphaNumeric+"(-"+caseInsensitiveAlphaNumeric+")*+";
+	// a domain name must be at least two labels separated by a dot.
+	public static final String domainName = "("+label+"(\\."+label+")*+)++(:[0-9]++)?+";
 	
 	// we keep the Regexp name from Docker.  It could more accurately be called 'lowerCaseAlpha...'
-	public static final String alphaNumericRegexp = "[a-z0-9]+";
+	public static final String lowerCaseAlphaNumeric = "[a-z0-9]++";
 	
-	public static final String separatorRegexp = "[._]|__|[-]*";
+	public static final String separatorRegexp = "(_{2}|[._]|[-]*)?+";
 
-	public static final String nameComponentRegexp = alphaNumericRegexp +
-			"("+separatorRegexp+alphaNumericRegexp+")*";
+	public static final String nameComponentRegexp = lowerCaseAlphaNumeric +
+			"("+separatorRegexp+lowerCaseAlphaNumeric+")*+";
 
 	public static final String REPO_NAME_PATH_SEP = "/";
 	
@@ -28,13 +31,16 @@ public class DockerNameUtil {
 	// separator characters we can differentiate between a host name (like 'quay.io') and a repo name.
 	// This is consistent with the use of repo paths in Dockerhub (where the first field is a user or
 	// organzation name, with no separator characters) and Synapse (where the first field is a Synapse ID).
-	public static final String PathRegexp = alphaNumericRegexp+"("+REPO_NAME_PATH_SEP+nameComponentRegexp+")*";
+	public static final String PathRegexp = lowerCaseAlphaNumeric+"("+REPO_NAME_PATH_SEP+nameComponentRegexp+")*+";
+	public static final Pattern PathRegexPattern = Pattern.compile("^"+PathRegexp+"$");
 	
-	public static final String NameRegexp = "("+hostnameRegexp+REPO_NAME_PATH_SEP+")?"+PathRegexp;
+	public static final String NameRegexp = "("+domainName+REPO_NAME_PATH_SEP+")?"+PathRegexp;
+	public static final Pattern NameRegexPattern = Pattern.compile("^"+NameRegexp+"$");
 	
 	public static void validateName(String name) {
-		if(name.endsWith("/") || !Pattern.matches("^"+NameRegexp+"$", name))
-			throw new IllegalArgumentException("Invalid repository name: "+name);		
+		if(!NameRegexPattern.matcher(name).matches()) {
+			throw new IllegalArgumentException("Invalid repository name: "+name);
+		}
 	}
 	
 	/*
@@ -43,12 +49,12 @@ public class DockerNameUtil {
 	 */
 	public static String getRegistryHost(String name) {
 		// is the whole name just a path?
-		Matcher pathMatcher = Pattern.compile("^"+PathRegexp+"$").matcher(name);
+		Matcher pathMatcher = PathRegexPattern.matcher(name);
 		if (pathMatcher.find()) {
 			return null;
 		} else {
 			// the path must come after the registry host
-			Matcher hostAsPrefixMatcher = Pattern.compile("^"+hostnameRegexp+REPO_NAME_PATH_SEP).matcher(name);
+			Matcher hostAsPrefixMatcher = Pattern.compile("^"+domainName+REPO_NAME_PATH_SEP).matcher(name);
 			if (hostAsPrefixMatcher.find()) {
 				String hostWithSlash = hostAsPrefixMatcher.group();
 				return hostWithSlash.substring(0, hostWithSlash.length()-1);
