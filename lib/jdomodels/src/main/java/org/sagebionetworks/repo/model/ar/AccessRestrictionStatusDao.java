@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.ar;
 
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 
@@ -24,6 +25,13 @@ public interface AccessRestrictionStatusDao {
 	 * where the type is 'ENTITY'
 	 */
 	public List<UsersRestrictionStatus> getEntityStatus(List<Long> entityIds, Long userId);
+	
+	/**
+	 * Same as: {@link #getSubjectStatus(List, RestrictableObjectType, Long)()}
+	 * where the type is 'ENTITY'
+	 * @return Returns the results as a map of EntityID to UsersRestrictionStatus.
+	 */
+	public Map<Long, UsersRestrictionStatus> getEntityStatusAsMap(List<Long> entityIds, Long userId);
 
 	/**
 	 * Same as: {@link #getSubjectStatus(List, RestrictableObjectType, Long)()}

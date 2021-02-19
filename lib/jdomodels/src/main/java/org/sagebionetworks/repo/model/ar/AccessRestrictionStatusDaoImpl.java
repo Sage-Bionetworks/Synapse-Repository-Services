@@ -1,17 +1,16 @@
 package org.sagebionetworks.repo.model.ar;
 
 import java.sql.ResultSet;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
-
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -20,6 +19,11 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDao {
+	
+	public static final String GET_ENTITY_ACCESS_RESTRICTIONS_SQL = DDLUtilsImpl
+			.loadSQLFromClasspath("sql/GetEntityAccessRestrictions.sql");
+	public static final String GET_NON_ENTITY_ACCESS_RESTRICTIONS_SQL = DDLUtilsImpl
+			.loadSQLFromClasspath("sql/GetNonEntityAccessRestrictions.sql");
 
 	private static final String CREATED_BY = "CREATED_BY";
 	private static final String NODE_TYPE = "NODE_TYPE";
@@ -43,45 +47,24 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 			return getNonEntityStatus(subjectIds, subjectType, userId);
 		}
 	}
-
+	
 	@Override
-	public List<UsersRestrictionStatus> getEntityStatus(List<Long> entityIds, Long userId) {
+	public Map<Long, UsersRestrictionStatus> getEntityStatusAsMap(List<Long> entityIds, Long userId) {
 		ValidateArgument.required(entityIds, "entityIds");
 		ValidateArgument.required(userId, "userId");
 		if (entityIds.isEmpty()) {
-			return Collections.emptyList();
+			return Collections.emptyMap();
 		}
 		final Map<Long, UsersRestrictionStatus> statusMap = new LinkedHashMap<Long, UsersRestrictionStatus>(entityIds.size());
 		for (Long entityId : entityIds) {
 			UsersRestrictionStatus status = new UsersRestrictionStatus(entityId, userId);
 			statusMap.put(entityId, status);
 		}
-		String sql = "WITH EI AS (SELECT N." + COL_NODE_ID + " AS ENTITY_ID, N." + COL_NODE_PARENT_ID + ", N."
-				+ COL_NODE_TYPE + ", N." + COL_NODE_CREATED_BY + " FROM " + TABLE_NODE + " N WHERE N." + COL_NODE_ID
-				+ " IN(:entityIds)), EAR AS (WITH RECURSIVE EAR (ENTITY_ID, PARENT_ID, REQUIREMENT_ID, DISTANCE) AS ("
-				+ " SELECT EI.ENTITY_ID, EI.PARENT_ID, NAR." + COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID
-				+ ", 1 FROM EI " + "LEFT JOIN " + TABLE_SUBJECT_ACCESS_REQUIREMENT + " NAR ON " + "(EI.ENTITY_ID = NAR."
-				+ COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID + " AND NAR." + COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE
-				+ " = '" + RestrictableObjectType.ENTITY.name() + "') " + "UNION ALL SELECT EAR.ENTITY_ID, N."
-				+ COL_NODE_PARENT_ID + ", NAR." + COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID + ", EAR.DISTANCE+ 1"
-				+ " FROM " + TABLE_NODE + " AS N JOIN EAR ON (N." + COL_NODE_ID + " = EAR.PARENT_ID)" + " LEFT JOIN "
-				+ TABLE_SUBJECT_ACCESS_REQUIREMENT + " NAR ON (N." + COL_NODE_ID + " = NAR."
-				+ COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID + " AND NAR." + COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE
-				+ " = '" + RestrictableObjectType.ENTITY.name() + "') WHERE N." + COL_NODE_ID
-				+ " IS NOT NULL AND DISTANCE < 100)"
-				+ " SELECT distinct ENTITY_ID, REQUIREMENT_ID FROM EAR WHERE REQUIREMENT_ID"
-				+ " IS NOT NULL), APS AS ( SELECT EAR.*, " + "if(AA."
-				+ COL_ACCESS_APPROVAL_STATE + " = 'APPROVED', TRUE, FALSE) AS APPROVED FROM EAR LEFT JOIN "
-				+ TABLE_ACCESS_APPROVAL + " AA ON (EAR.REQUIREMENT_ID = AA." + COL_ACCESS_APPROVAL_REQUIREMENT_ID
-				+ " AND AA." + COL_ACCESS_APPROVAL_ACCESSOR_ID + "" + " = :userId AND AA." + COL_ACCESS_APPROVAL_STATE
-				+ " = 'APPROVED')) SELECT EI.ENTITY_ID, EI.NODE_TYPE,"
-				+ " EI.CREATED_BY, APS.REQUIREMENT_ID, APS.APPROVED, AR." + COL_ACCESS_REQUIREMENT_CONCRETE_TYPE
-				+ " AS REQUIREMENT_TYPE FROM EI LEFT JOIN APS ON (EI.ENTITY_ID = APS.ENTITY_ID) LEFT JOIN "
-				+ TABLE_ACCESS_REQUIREMENT + " AR ON (APS.REQUIREMENT_ID = AR.ID)";
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("entityIds", entityIds);
 		params.addValue("userId", userId);
-		namedJdbcTemplate.query(sql, params, (ResultSet rs) -> {
+		params.addValue("depth", NodeConstants.MAX_PATH_DEPTH_PLUS_ONE);
+		namedJdbcTemplate.query(GET_ENTITY_ACCESS_RESTRICTIONS_SQL, params, (ResultSet rs) -> {
 			Long entityId = rs.getLong(ENTITY_ID);
 			EntityType entityType = EntityType.valueOf(rs.getString(NODE_TYPE));
 			Long createdBy = rs.getLong(CREATED_BY);
@@ -111,6 +94,12 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 						.withRequirementType(requirementType).withIsUnmet(!approved));
 			}
 		});
+		return statusMap;
+	}
+
+	@Override
+	public List<UsersRestrictionStatus> getEntityStatus(List<Long> entityIds, Long userId) {
+		Map<Long, UsersRestrictionStatus> statusMap = getEntityStatusAsMap(entityIds, userId);
 		return new ArrayList<UsersRestrictionStatus>(statusMap.values());
 	}
 
@@ -131,20 +120,11 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 			UsersRestrictionStatus status = new UsersRestrictionStatus(subjectId, userId);
 			statusMap.put(subjectId, status);
 		}
-		String sql = "SELECT NAR.*, if(AA." + COL_ACCESS_APPROVAL_STATE + " = 'APPROVED', TRUE, FALSE) AS APPROVED,"
-				+ " AR." + COL_ACCESS_REQUIREMENT_CONCRETE_TYPE + " AS REQUIREMENT_TYPE FROM "
-				+ TABLE_SUBJECT_ACCESS_REQUIREMENT + " NAR" + " LEFT JOIN " + TABLE_ACCESS_APPROVAL + " AA"
-				+ " ON (NAR." + COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID + " = AA."
-				+ COL_ACCESS_APPROVAL_REQUIREMENT_ID + " AND AA." + COL_ACCESS_APPROVAL_ACCESSOR_ID
-				+ " = :userId AND AA." + COL_ACCESS_APPROVAL_STATE + " = 'APPROVED')" + " LEFT JOIN "
-				+ TABLE_ACCESS_REQUIREMENT + " AR ON (NAR." + COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID
-				+ " = AR.ID)" + " WHERE NAR." + COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID + " IN (:subjectIds) AND NAR."
-				+ COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE + " = :subjectType;";
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("subjectIds", subjectIds);
 		params.addValue("subjectType", subjectType.name());
 		params.addValue("userId", userId);
-		namedJdbcTemplate.query(sql, params, (ResultSet rs) -> {
+		namedJdbcTemplate.query(GET_NON_ENTITY_ACCESS_RESTRICTIONS_SQL, params, (ResultSet rs) -> {
 			Long subjectId = rs.getLong(SUBJECT_ID);
 			Long requirementId = rs.getLong(REQUIREMENT_ID);
 			if (rs.wasNull()) {

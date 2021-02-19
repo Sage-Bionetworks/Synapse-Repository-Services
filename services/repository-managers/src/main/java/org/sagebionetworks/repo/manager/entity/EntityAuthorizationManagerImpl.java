@@ -10,13 +10,10 @@ import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunct
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_OR_DENY_IF_HAS_DOWNLOAD;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.sagebionetworks.repo.manager.dataaccess.RestrictionInformationManager;
 import org.sagebionetworks.repo.manager.entity.decider.AccessContext;
 import org.sagebionetworks.repo.manager.entity.decider.AccessDecider;
 import org.sagebionetworks.repo.manager.entity.decider.UserInfoState;
@@ -25,6 +22,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.ar.AccessRestrictionStatusDao;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -39,14 +37,14 @@ import org.springframework.stereotype.Service;
 @Service
 public class EntityAuthorizationManagerImpl implements EntityAuthorizationManager {
 
-	private RestrictionInformationManager restrictionInformationManager;
+	private AccessRestrictionStatusDao accessRestrictionStatusDao;
 	private UsersEntityPermissionsDao usersEntityPermissionsDao;
 
 	@Autowired
-	public EntityAuthorizationManagerImpl(RestrictionInformationManager restrictionInformationManager,
+	public EntityAuthorizationManagerImpl(AccessRestrictionStatusDao accessRestrictionStatusDao,
 			UsersEntityPermissionsDao usersEntityPermissionsDao) {
 		super();
-		this.restrictionInformationManager = restrictionInformationManager;
+		this.accessRestrictionStatusDao = accessRestrictionStatusDao;
 		this.usersEntityPermissionsDao = usersEntityPermissionsDao;
 	}
 
@@ -73,9 +71,11 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		ValidateArgument.required(userInfo, "UserInfo");
 		ValidateArgument.required(entityIds, "entityId");
 		ValidateArgument.required(accessType, "accessType");
-		List<UserEntityPermissionsState> permissionState = usersEntityPermissionsDao
-				.getEntityPermissions(userInfo.getGroups(), entityIds);
-		return determineAccess(new UserInfoState(userInfo), permissionState, accessType).collect(Collectors.toList());
+
+		EntityStateProvider stateProvider = new LazyEntityStateProvider(accessRestrictionStatusDao,
+				usersEntityPermissionsDao, userInfo, entityIds);
+
+		return determineAccess(new UserInfoState(userInfo), stateProvider, accessType).collect(Collectors.toList());
 	}
 
 	/**
@@ -86,8 +86,9 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 	 * @param accessType
 	 * @return
 	 */
-	public Stream<UsersEntityAccessInfo> determineAccess(UserInfoState userInfo,
-			List<UserEntityPermissionsState> permissionState, ACCESS_TYPE accessType) {
+	public Stream<UsersEntityAccessInfo> determineAccess(UserInfoState userInfo, EntityStateProvider stateProvider,
+			ACCESS_TYPE accessType) {
+		List<UserEntityPermissionsState> permissionState = stateProvider.getUserEntityPermissionsState();
 		switch (accessType) {
 		case CREATE:
 			EntityType newEntityType = null;
@@ -101,7 +102,8 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		case CHANGE_PERMISSIONS:
 			return permissionState.stream().map(t -> determineChangePermissionAccess(userInfo, t));
 		case DOWNLOAD:
-			return determineDownloadAccess(userInfo, permissionState);
+			return permissionState.stream().map(
+					t -> determineDownloadAccess(userInfo, t, stateProvider.getUserRestrictionStatus(t.getEntityId())));
 		case UPLOAD:
 			return permissionState.stream().map(t -> determineUpdateAccess(userInfo, t));
 		case CHANGE_SETTINGS:
@@ -112,30 +114,6 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 			throw new IllegalArgumentException("Unknown access type: " + accessType);
 
 		}
-	}
-
-
-
-	/**
-	 * For each entity in the list make a can download decision.
-	 * 
-	 * @param userInfo
-	 * @param permissionState
-	 * @return
-	 */
-	Stream<UsersEntityAccessInfo> determineDownloadAccess(UserInfoState userInfo,
-			List<UserEntityPermissionsState> permissionState) {
-		// For each entity we need to fetch access restriction information.
-		List<Long> entityIds = permissionState.stream().map(t -> t.getEntityId()).collect(Collectors.toList());
-		List<UsersRestrictionStatus> restrictionStatus = restrictionInformationManager
-				.getEntityRestrictionInformation(userInfo.getUserInfo(), entityIds);
-		Map<Long, UsersRestrictionStatus> idToSubjectStatus = new HashMap<Long, UsersRestrictionStatus>(
-				restrictionStatus.size());
-		for (UsersRestrictionStatus status : restrictionStatus) {
-			idToSubjectStatus.put(status.getSubjectId(), status);
-		}
-		return permissionState.stream()
-				.map(t -> determineDownloadAccess(userInfo, t, idToSubjectStatus.get(t.getEntityId())));
 	}
 
 	/**
@@ -175,12 +153,13 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 			EntityType newEntityType) {
 		return null;
 	}
-	
+
 	UsersEntityAccessInfo determineModerateAccess(UserInfoState userInfo, UserEntityPermissionsState permissionState) {
 		return null;
 	}
 
-	UsersEntityAccessInfo determineChangeSettingsAccess(UserInfoState userInfo, UserEntityPermissionsState permissionState) {
+	UsersEntityAccessInfo determineChangeSettingsAccess(UserInfoState userInfo,
+			UserEntityPermissionsState permissionState) {
 		return null;
 	}
 
@@ -189,7 +168,8 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		return null;
 	}
 
-	UsersEntityAccessInfo determineDeleteAccess(UserInfoState UserInfoState, UserEntityPermissionsState permissionState) {
+	UsersEntityAccessInfo determineDeleteAccess(UserInfoState UserInfoState,
+			UserEntityPermissionsState permissionState) {
 		return null;
 	}
 
