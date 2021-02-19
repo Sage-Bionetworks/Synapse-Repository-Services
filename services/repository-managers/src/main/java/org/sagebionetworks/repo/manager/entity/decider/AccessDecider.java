@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.manager.entity.decider;
 
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
-
 import java.util.Arrays;
 import java.util.Optional;
+
+import static org.sagebionetworks.repo.model.AuthorizationConstants.*;
 
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 
@@ -37,6 +37,6 @@ public interface AccessDecider {
 	 */
 	public static UsersEntityAccessInfo makeAccessDecision(AccessContext c, AccessDecider... deciders) {
 		return Arrays.stream(deciders).map(d -> d.determineAccess(c)).filter(r -> r.isPresent()).map(r -> r.get())
-				.findFirst().orElse(new UsersEntityAccessInfo(c, AuthorizationStatus.accessDenied("Access denied.")));
+				.findFirst().orElse(new UsersEntityAccessInfo(c, AuthorizationStatus.accessDenied(ERR_MSG_ACCESS_DENIED)));
 	}
 }

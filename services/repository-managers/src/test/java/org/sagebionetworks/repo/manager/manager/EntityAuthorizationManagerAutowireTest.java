@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.manager;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -8,7 +9,8 @@ import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ANON
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTITY_IN_TRASH_TEMPLATE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.*;
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
 
 import java.util.UUID;
@@ -159,6 +161,33 @@ public class EntityAuthorizationManagerAutowireTest {
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
 		assertTrue(newStatus.isAuthorized());
+	}
+	
+	@Test
+	public void testHasAccessDownloadWithoutAccess() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.READ));
+		});
+		
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
+		String message = assertThrows(UnauthorizedException.class, ()->{
+			// old call under test
+			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(String.format(ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, ACCESS_TYPE.DOWNLOAD.name()), message);
+		
+		message = assertThrows(UnauthorizedException.class, ()->{
+			// old call under test
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(ERR_MSG_ACCESS_DENIED, message);
 	}
 	
 	@Test
@@ -363,4 +392,8 @@ public class EntityAuthorizationManagerAutowireTest {
 		assertEquals(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS, newMessage);
 	}
 
+	@Test
+	public void testHasAccessUpload() {
+		
+	}
 }

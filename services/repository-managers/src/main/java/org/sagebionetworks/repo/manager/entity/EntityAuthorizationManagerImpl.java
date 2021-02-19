@@ -1,13 +1,12 @@
 package org.sagebionetworks.repo.manager.entity;
 
-import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_ANONYMOUS;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.*;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_DOES_NOT_EXIST;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_HAS_NOT_ACCEPTED_TERMS_OF_USE;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_HAS_UNMET_ACCESS_RESTRICTIONS;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_IN_TRASH;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_ADMIN;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_OPEN_DATA_WITH_READ;
-import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_OR_DENY_IF_HAS_DOWNLOAD;
 
 import java.util.Arrays;
 import java.util.List;
@@ -136,7 +135,8 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 			GRANT_IF_OPEN_DATA_WITH_READ,
 			DENY_IF_ANONYMOUS,
 			DENY_IF_HAS_NOT_ACCEPTED_TERMS_OF_USE,
-			GRANT_OR_DENY_IF_HAS_DOWNLOAD
+			GRANT_IF_HAS_DOWNLOAD,
+			DENY
 		);
 		// @formatter:on
 	}

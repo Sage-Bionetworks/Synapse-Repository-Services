@@ -3,12 +3,12 @@ package org.sagebionetworks.repo.manager.manager.entity.decider;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ACCESS_DENIED;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTITY_IN_TRASH_TEMPLATE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CERTIFIED_USER_CONTENT;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTITY_IN_TRASH_TEMPLATE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
 
 import java.util.Optional;
@@ -22,7 +22,6 @@ import org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions;
 import org.sagebionetworks.repo.manager.entity.decider.UserInfoState;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.NodeConstants;
@@ -54,8 +53,9 @@ public class EntityDeciderFunctionsTest {
 		anonymousUser = new UserInfoState(new UserInfo(false/* isAdmin */,
 				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId()));
 		notCertifiedUser = new UserInfoState(new UserInfo(false/* isAdmin */, 444L));
+		notCertifiedUser.overrideIsCertified(false);
 		certifiedUser = new UserInfoState(new UserInfo(false/* isAdmin */, 555L));
-		certifiedUser.getUserInfo().getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		certifiedUser.overrideIsCertified(true);
 
 		restrictionStatus = new UsersRestrictionStatus(entityId, nonAdminUser.getUserInfo().getId());
 		context = new AccessContext().withUser(nonAdminUser).withPermissionState(permissionState)
@@ -187,11 +187,11 @@ public class EntityDeciderFunctionsTest {
 	}
 
 	@Test
-	public void testGrantOrDenyIfHasDownloadWithDownloadTrue() {
+	public void testGrantIfHasDownloadWithDownloadTrue() {
 		permissionState.withHasDownload(true);
 
 		// call under test
-		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_OR_DENY_IF_HAS_DOWNLOAD
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_HAS_DOWNLOAD
 				.determineAccess(context);
 		assertTrue(resultOptional.isPresent());
 		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context, AuthorizationStatus.authorized());
@@ -199,25 +199,32 @@ public class EntityDeciderFunctionsTest {
 	}
 
 	@Test
-	public void testGrantOrDenyIfHasDownloadWithDownloadFalse() {
+	public void testGrantIfHasDownloadWithDownloadFalse() {
 		permissionState.withHasDownload(false);
 
 		// call under test
-		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_OR_DENY_IF_HAS_DOWNLOAD
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_HAS_DOWNLOAD
+				.determineAccess(context);
+		assertFalse(resultOptional.isPresent());
+	}
+	
+	@Test
+	public void testDeny() {
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY
 				.determineAccess(context);
 		assertTrue(resultOptional.isPresent());
 		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
-				AuthorizationStatus.accessDenied(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE,
-						ACCESS_TYPE.DOWNLOAD.name(), permissionState.getEntityIdAsString())));
+				AuthorizationStatus.accessDenied(ERR_MSG_ACCESS_DENIED));
 		assertEquals(expected, resultOptional.get());
 	}
 
 	@Test
-	public void testGrantOrDenyIfHasModerateWithModerateTrue() {
+	public void testGrantIfHasModerateWithModerateTrue() {
 		permissionState.withHasModerate(true);
 
 		// call under test
-		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_OR_DENY_IF_HAS_MODERATE
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_HAS_MODERATE
 				.determineAccess(context);
 		assertTrue(resultOptional.isPresent());
 		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context, AuthorizationStatus.authorized());
@@ -225,25 +232,21 @@ public class EntityDeciderFunctionsTest {
 	}
 
 	@Test
-	public void testGrantOrDenyIfHasModerateWithModerateFalse() {
+	public void testGrantIfHasModerateWithModerateFalse() {
 		permissionState.withHasModerate(false);
 
 		// call under test
-		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_OR_DENY_IF_HAS_MODERATE
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_HAS_MODERATE
 				.determineAccess(context);
-		assertTrue(resultOptional.isPresent());
-		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
-				AuthorizationStatus.accessDenied(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE,
-						ACCESS_TYPE.MODERATE.name(), permissionState.getEntityIdAsString())));
-		assertEquals(expected, resultOptional.get());
+		assertFalse(resultOptional.isPresent());
 	}
 
 	@Test
-	public void testGrantOrDenyIfHasChangeSettingsWithTrue() {
+	public void testGrantIfHasChangeSettingsWithTrue() {
 		permissionState.withHasChangeSettings(true);
 
 		// call under test
-		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_OR_DENY_IF_HAS_CHANGE_SETTINGS
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_HAS_CHANGE_SETTINGS
 				.determineAccess(context);
 		assertTrue(resultOptional.isPresent());
 		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context, AuthorizationStatus.authorized());
@@ -251,25 +254,21 @@ public class EntityDeciderFunctionsTest {
 	}
 
 	@Test
-	public void testGrantOrDenyIfHasChangeSettingsWithFalse() {
+	public void testGrantIfHasChangeSettingsWithFalse() {
 		permissionState.withHasChangeSettings(false);
 
 		// call under test
-		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_OR_DENY_IF_HAS_CHANGE_SETTINGS
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_HAS_CHANGE_SETTINGS
 				.determineAccess(context);
-		assertTrue(resultOptional.isPresent());
-		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
-				AuthorizationStatus.accessDenied(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE,
-						ACCESS_TYPE.CHANGE_SETTINGS.name(), permissionState.getEntityIdAsString())));
-		assertEquals(expected, resultOptional.get());
+		assertFalse(resultOptional.isPresent());
 	}
 
 	@Test
-	public void testGrantOrDenyIfHasChangePermissionsWithTrue() {
+	public void testGrantIfHasChangePermissionsWithTrue() {
 		permissionState.withHasChangePermissions(true);
 
 		// call under test
-		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_OR_DENY_IF_HAS_CHANGE_PERMISSION
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_HAS_CHANGE_PERMISSION
 				.determineAccess(context);
 		assertTrue(resultOptional.isPresent());
 		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context, AuthorizationStatus.authorized());
@@ -277,25 +276,21 @@ public class EntityDeciderFunctionsTest {
 	}
 
 	@Test
-	public void testGrantOrDenyIfHasChangePermissionsWithFalse() {
+	public void testGrantIfHasChangePermissionsWithFalse() {
 		permissionState.withHasChangePermissions(false);
 
 		// call under test
-		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_OR_DENY_IF_HAS_CHANGE_PERMISSION
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_HAS_CHANGE_PERMISSION
 				.determineAccess(context);
-		assertTrue(resultOptional.isPresent());
-		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
-				AuthorizationStatus.accessDenied(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE,
-						ACCESS_TYPE.CHANGE_PERMISSIONS.name(), permissionState.getEntityIdAsString())));
-		assertEquals(expected, resultOptional.get());
+		assertFalse(resultOptional.isPresent());
 	}
 
 	@Test
-	public void testGrantOrDenyIfHasDeleteWithTrue() {
+	public void testGrantIfHasDeleteWithTrue() {
 		permissionState.withHasDelete(true);
 
 		// call under test
-		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_OR_DENY_IF_HAS_DELETE
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_HAS_DELETE
 				.determineAccess(context);
 		assertTrue(resultOptional.isPresent());
 		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context, AuthorizationStatus.authorized());
@@ -303,17 +298,13 @@ public class EntityDeciderFunctionsTest {
 	}
 
 	@Test
-	public void testGrantOrDenyIfHasDeleteWithFalse() {
+	public void testGrantIfHasDeleteWithFalse() {
 		permissionState.withHasDelete(false);
 
 		// call under test
-		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_OR_DENY_IF_HAS_DELETE
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_HAS_DELETE
 				.determineAccess(context);
-		assertTrue(resultOptional.isPresent());
-		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
-				AuthorizationStatus.accessDenied(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE,
-						ACCESS_TYPE.DELETE.name(), permissionState.getEntityIdAsString())));
-		assertEquals(expected, resultOptional.get());
+		assertFalse(resultOptional.isPresent());
 	}
 
 	@Test

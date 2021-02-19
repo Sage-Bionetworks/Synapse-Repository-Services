@@ -246,6 +246,7 @@ public class AuthorizationConstants {
 	public static final String ERR_MSG_CERTIFIED_USER_CONTENT = "Only certified users may create or update content in Synapse.";
 	public static final String ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND = "The resource you are attempting to access cannot be found";
 	public static final String ERR_MSG_ENTITY_IN_TRASH_TEMPLATE = "Entity %s is in trash can.";
+	public static final String ERR_MSG_ACCESS_DENIED = "Access denied.";
 
 	
 }
