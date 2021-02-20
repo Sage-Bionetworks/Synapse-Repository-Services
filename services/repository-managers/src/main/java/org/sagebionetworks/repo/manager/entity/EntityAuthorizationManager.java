@@ -13,10 +13,13 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface EntityAuthorizationManager {
 
 	/**
+	 * Determine if the user is authorized access the given entity. This method
+	 * should not throw any exceptions, instead, if there is an error the resulting
+	 * AuthorizationStatus will contain the error message/exception.
 	 * 
 	 * @param userInfo
 	 * @param entityId
-	 * @param accessType
+	 * @param accessType The permission check to be checked against the entity.
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
@@ -25,15 +28,20 @@ public interface EntityAuthorizationManager {
 			throws NotFoundException, DatastoreException;
 
 	/**
+	 * Determine if the user is authorized access the given batch of entityIds. This
+	 * method should not throw any exceptions, instead, if there is an error with
+	 * any individual entity, the results for that entity will include the error.
 	 * 
 	 * @param userInfo
-	 * @param entityIds
-	 * @param accessType
+	 * @param entityIds  The batch of entity IDs.
+	 * @param accessType The permission check to be checked against each entity in
+	 *                   the batch.
 	 * @return
 	 */
 	public List<UsersEntityAccessInfo> batchHasAccess(UserInfo userInfo, List<Long> entityIds, ACCESS_TYPE accessType);
 
 	/**
+	 * Get a bundle of all of the permission that the user has on a single entity.
 	 * 
 	 * @param userInfo
 	 * @param entityId

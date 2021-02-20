@@ -9,13 +9,13 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.MODERATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MESSAGE_CERTIFIED_USER_CONTENT;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ONLY_CERTIFIED_USERS_MAY_CHANGE_NODE_SETTINGS;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CERTIFIED_USER_CONTENT;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ONLY_CERTIFIED_USERS_MAY_CHANGE_NODE_SETTINGS;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
 
 import java.util.Date;
 import java.util.HashSet;
@@ -230,7 +230,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 
 		if (!EntityType.project.equals(nodeType) && !AuthorizationUtils.isCertifiedUser(userInfo)) {
-			return AuthorizationStatus.accessDenied(new UserCertificationRequiredException(ERR_MESSAGE_CERTIFIED_USER_CONTENT));
+			return AuthorizationStatus.accessDenied(new UserCertificationRequiredException(ERR_MSG_CERTIFIED_USER_CONTENT));
 		}
 		
 		return certifiedUserHasAccess(parentId, CREATE, userInfo);
@@ -243,7 +243,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 
 		if (!AuthorizationUtils.isCertifiedUser(userInfo)) {
-			return AuthorizationStatus.accessDenied(ONLY_CERTIFIED_USERS_MAY_CHANGE_NODE_SETTINGS);
+			return AuthorizationStatus.accessDenied(ERR_MSG_ONLY_CERTIFIED_USERS_MAY_CHANGE_NODE_SETTINGS);
 		}
 
 		// the creator always has change settings permissions
@@ -270,7 +270,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (!userInfo.isAdmin() && 
 			(accessType==CREATE || (accessType==UPDATE && entityType!=EntityType.project)) &&
 			!AuthorizationUtils.isCertifiedUser(userInfo)) {
-			return AuthorizationStatus.accessDenied(ERR_MESSAGE_CERTIFIED_USER_CONTENT);
+			return AuthorizationStatus.accessDenied(ERR_MSG_CERTIFIED_USER_CONTENT);
 		}
 		
 		return certifiedUserHasAccess(entityId, accessType, userInfo);
@@ -305,7 +305,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// Anonymous can at most READ (or DOWNLOAD when the entity is marked with OPEN_ACCESS)
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
 			if (accessType != ACCESS_TYPE.READ && accessType != ACCESS_TYPE.DOWNLOAD) {
-				return AuthorizationStatus.accessDenied(ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION);
+				return AuthorizationStatus.accessDenied(ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION);
 			}
 		}
 		// Admin
@@ -324,7 +324,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, accessType)) {
 			return AuthorizationStatus.authorized();
 		} else {
-			return AuthorizationStatus.accessDenied(String.format(YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE, accessType.name(), entityId));
+			return AuthorizationStatus.accessDenied(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE, accessType.name(), entityId));
 		}
 	}
 
@@ -396,7 +396,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		
 		// We check on the terms of use agreement if the user is not anonymous
 		if (!AuthorizationUtils.isUserAnonymous(userInfo) && !userInfo.acceptsTermsOfUse()) {
-			return AuthorizationStatus.accessDenied(YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE);
+			return AuthorizationStatus.accessDenied(ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE);
 		}
 		
 		ACCESS_TYPE accessTypeCheck = DOWNLOAD;
@@ -412,7 +412,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		boolean aclAllowsDownload = aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, accessTypeCheck);
 		
 		if (!aclAllowsDownload) {
-			return AuthorizationStatus.accessDenied(String.format(YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, accessTypeCheck.name()));	
+			return AuthorizationStatus.accessDenied(String.format(ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, accessTypeCheck.name()));	
 		}
 		
 		// if the ACL and access requirements permit DOWNLOAD (or READ for OPEN_DATA), then its permitted,
@@ -431,7 +431,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		
 		if (response.getHasUnmetAccessRequirement()) {	
 			return AuthorizationStatus
-					.accessDenied(THERE_ARE_UNMET_ACCESS_REQUIREMENTS);
+					.accessDenied(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS);
 		}
 		
 		return AuthorizationStatus.authorized();
@@ -443,7 +443,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return AuthorizationStatus.authorized();
 		}
 		if (!userInfo.acceptsTermsOfUse()) {
-			return AuthorizationStatus.accessDenied(YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE);
+			return AuthorizationStatus.accessDenied(ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE);
 		}
 		return AuthorizationStatus.authorized();
 	}

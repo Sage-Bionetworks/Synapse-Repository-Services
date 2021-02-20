@@ -1,10 +1,15 @@
 package org.sagebionetworks.repo.manager.manager;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ENTITY_IN_TRASH_TEMPLATE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTITY_IN_TRASH_TEMPLATE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.*;
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
 
@@ -32,7 +37,6 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -41,7 +45,6 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
 import org.sagebionetworks.repo.model.helper.DoaObjectHelper;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -133,7 +136,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
 		assertEquals(oldMessage, newMessage);
-		assertEquals(THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
+		assertEquals(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
 	}
 	
 	@Test
@@ -161,6 +164,33 @@ public class EntityAuthorizationManagerAutowireTest {
 	}
 	
 	@Test
+	public void testHasAccessDownloadWithoutAccess() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.READ));
+		});
+		
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
+		String message = assertThrows(UnauthorizedException.class, ()->{
+			// old call under test
+			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(String.format(ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, ACCESS_TYPE.DOWNLOAD.name()), message);
+		
+		message = assertThrows(UnauthorizedException.class, ()->{
+			// old call under test
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(ERR_MSG_ACCESS_DENIED, message);
+	}
+	
+	@Test
 	public void testHasAccessDownloadWithInTrash() {
 		Node project = nodeDaoHelper.create(n -> {
 			n.setName("aProject");
@@ -180,7 +210,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
 		assertEquals(oldMessage, newMessage);
-		assertEquals(String.format(ENTITY_IN_TRASH_TEMPLATE, project.getId()), newMessage);
+		assertEquals(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, project.getId()), newMessage);
 	}
 	
 	@Test
@@ -235,7 +265,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION, newMessage);
+		assertEquals(ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION, newMessage);
 	}
 	
 	@Test
@@ -291,7 +321,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
 		assertEquals(oldMessage, newMessage);
-		assertEquals(YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE, newMessage);
+		assertEquals(ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE, newMessage);
 	}
 	
 	@Test
@@ -359,7 +389,11 @@ public class EntityAuthorizationManagerAutowireTest {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
 		assertEquals(oldMessage, newMessage);
-		assertEquals(THERE_ARE_UNMET_ACCESS_REQUIREMENTS, newMessage);
+		assertEquals(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS, newMessage);
 	}
 
+	@Test
+	public void testHasAccessUpload() {
+		
+	}
 }
