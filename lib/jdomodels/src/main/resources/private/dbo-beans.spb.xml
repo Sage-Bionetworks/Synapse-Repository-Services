@@ -158,6 +158,8 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.ses.DBOQuarantinedEmail" />
 				<!-- Feature Status -->
 				<bean class="org.sagebionetworks.repo.model.dbo.feature.DBOFeatureStatus" />
+				<!-- Files Scanner Status -->
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.files.DBOFilesScannerStatus" />
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->
@@ -276,6 +278,9 @@
 				
 				<!-- Feature Status -->
 				<bean class="org.sagebionetworks.repo.model.dbo.feature.DBOFeatureStatus" />
+				
+				<!-- Files Scanner Status -->
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.files.DBOFilesScannerStatus" />
 		
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" /> <!-- THIS MUST ALWAYS BE THE LAST BEAN -->
 			</list>

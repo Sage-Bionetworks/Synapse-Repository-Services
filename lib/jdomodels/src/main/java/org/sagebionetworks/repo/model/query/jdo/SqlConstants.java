@@ -334,7 +334,7 @@ public class SqlConstants {
 	public static final String COL_FILES_STORAGE_LOCATION_ID		= "STORAGE_LOCATION_ID";
 	public static final String COL_FILES_ENDPOINT					= "ENDPOINT";
 	public static final String COL_FILES_IS_PREVIEW					= "IS_PREVIEW";
-	public static final String DDL_FILES							= "schema/Files-ddl.sql";
+	public static final String DDL_FILES							= "schema/files/Files-ddl.sql";
 	
 	// multipart upload state
 	public static final String TABLE_MULTIPART_UPLOAD				= "MULTIPART_UPLOAD";
@@ -1157,6 +1157,16 @@ public class SqlConstants {
 	public static final String COL_FEATURE_STATUS_ETAG = 								"ETAG";
 	public static final String COL_FEATURE_STATUS_TYPE = 								"FEATURE_TYPE";
 	public static final String COL_FEATURE_STATUS_ENABLED =								"ENABLED";
+	
+	// The file associations scanner status
+	public static final String DDL_FILES_SCANNER_STATUS = 								"schema/files/FilesScannerStatus-ddl.sql";
+	public static final String TABLE_FILES_SCANNER_STATUS = 							"FILES_SCANNER_STATUS";
+	public static final String COL_FILES_SCANNER_STATUS_ID = 							"ID";
+	public static final String COL_FILES_SCANNER_STATUS_ETAG = 							"ETAG";
+	public static final String COL_FILES_SCANNER_STATUS_STARTED_ON = 					"STARTED_ON";
+	public static final String COL_FILES_SCANNER_STATUS_UPDATED_ON = 					"UPDATED_ON";
+	public static final String COL_FILES_SCANNER_STATUS_STATE = 					    "STATE";
+	public static final String COL_FILES_SCANNER_STATUS_JOBS_COUNT = 					"JOBS_COUNT";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
