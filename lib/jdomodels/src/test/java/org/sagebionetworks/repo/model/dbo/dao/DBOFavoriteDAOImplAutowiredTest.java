@@ -283,12 +283,12 @@ public class DBOFavoriteDAOImplAutowiredTest {
 		int offset = 0;
 		favs = favoriteDao.getFavoritesEntityHeader(creatorUserGroupId.toString(), limit, offset);
 		assertEquals(1, favs.getResults().size());
-		assertEquals(node1Id, favs.getResults().get(0));
+		assertEquals(node1Id, favs.getResults().get(0).getId());
 
 		offset = 1;
 		favs = favoriteDao.getFavoritesEntityHeader(creatorUserGroupId.toString(), limit, offset);
 		assertEquals(1, favs.getResults().size());
-		assertEquals(node2Id, favs.getResults().get(0));
+		assertEquals(node2Id, favs.getResults().get(0).getId());
 	}
 
 	@Test
