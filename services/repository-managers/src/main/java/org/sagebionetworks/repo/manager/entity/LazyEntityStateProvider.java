@@ -21,7 +21,7 @@ public class LazyEntityStateProvider implements EntityStateProvider {
 	private UsersEntityPermissionsDao usersEntityPermissionsDao;
 	private List<Long> entityIds;
 	private UserInfo userInfo;
-	private List<UserEntityPermissionsState> userEntityPermissionsState;
+	private Map<Long, UserEntityPermissionsState> userEntityPermissionsState;
 	private Map<Long, UsersRestrictionStatus> usersRestrictionStatus;
 
 	public LazyEntityStateProvider(AccessRestrictionStatusDao accessRestrictionStatusDao,
@@ -34,20 +34,25 @@ public class LazyEntityStateProvider implements EntityStateProvider {
 	}
 
 	@Override
-	public List<UserEntityPermissionsState> getUserEntityPermissionsState() {
+	public UserEntityPermissionsState getPermissionsState(Long entityId) {
 		if (userEntityPermissionsState == null) {
-			userEntityPermissionsState = usersEntityPermissionsDao.getEntityPermissions(this.userInfo.getGroups(),
+			userEntityPermissionsState = usersEntityPermissionsDao.getEntityPermissionsAsMap(this.userInfo.getGroups(),
 					entityIds);
 		}
-		return userEntityPermissionsState;
+		return userEntityPermissionsState.get(entityId);
 	}
 
 	@Override
-	public UsersRestrictionStatus getUserRestrictionStatus(Long entityId) {
+	public UsersRestrictionStatus getRestrictionStatus(Long entityId) {
 		if (usersRestrictionStatus == null) {
 			usersRestrictionStatus = accessRestrictionStatusDao.getEntityStatusAsMap(entityIds, userInfo.getId());
 		}
 		return usersRestrictionStatus.get(entityId);
+	}
+
+	@Override
+	public List<Long> getEntityIds() {
+		return entityIds;
 	}
 
 }

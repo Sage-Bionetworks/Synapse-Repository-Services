@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.DataType;
@@ -29,14 +30,14 @@ public class UsersEntityPermissionsDaoImpl implements UsersEntityPermissionsDao 
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
 
 	@Override
-	public List<UserEntityPermissionsState> getEntityPermissions(Set<Long> userGroups, List<Long> entityIds) {
+	public Map<Long, UserEntityPermissionsState> getEntityPermissionsAsMap(Set<Long> userGroups, List<Long> entityIds) {
 		ValidateArgument.required(userGroups, "userGroups");
 		if (userGroups.isEmpty()) {
 			throw new IllegalArgumentException("User's groups cannot be empty");
 		}
 		ValidateArgument.required(entityIds, "entityIds");
 		if (entityIds.isEmpty()) {
-			return Collections.emptyList();
+			return Collections.emptyMap();
 		}
 		LinkedHashMap<Long, UserEntityPermissionsState> results = new LinkedHashMap<Long, UserEntityPermissionsState>(entityIds.size());
 		for (Long entityId : entityIds) {
@@ -68,7 +69,12 @@ public class UsersEntityPermissionsDaoImpl implements UsersEntityPermissionsDao 
 				permission.withHasModerate(rs.getLong("MODERATE_COUNT") > 0);
 			}
 		});
-		return new ArrayList<UserEntityPermissionsState>((results.values()));
+		return results;
+	}
+
+	@Override
+	public List<UserEntityPermissionsState> getEntityPermissions(Set<Long> usersPrincipalIds, List<Long> entityIds) {
+		return new ArrayList<UserEntityPermissionsState>(getEntityPermissionsAsMap(usersPrincipalIds, entityIds).values());
 	}
 
 }

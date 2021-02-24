@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.entity;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public interface UsersEntityPermissionsDao {
@@ -15,5 +16,13 @@ public interface UsersEntityPermissionsDao {
 	 *         entityIDs.
 	 */
 	List<UserEntityPermissionsState> getEntityPermissions(Set<Long> usersPrincipalIds, List<Long> entityIds);
+	
+	/**
+	 * See: {link{@link #getEntityPermissions(Set, List)}
+	 * @param usersPrincipalIds
+	 * @param entityIds
+	 * @return Map of entity ID to UserEntityPermissionsState
+	 */
+	Map<Long, UserEntityPermissionsState> getEntityPermissionsAsMap(Set<Long> usersPrincipalIds, List<Long> entityIds);
 
 }

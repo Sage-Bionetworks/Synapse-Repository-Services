@@ -13,12 +13,18 @@ import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 public interface EntityStateProvider {
 
 	/**
-	 * Get a UserEntityPermissionsState for each entityId. The order of the
-	 * resulting list will match the order of the provided entity Ids.
+	 * The full list of entity IDs that this provider can provide.
 	 * 
 	 * @return
 	 */
-	List<UserEntityPermissionsState> getUserEntityPermissionsState();
+	List<Long> getEntityIds();
+
+	/**
+	 * Get a UserEntityPermissionsState for the given entity Id.
+	 * 
+	 * @return
+	 */
+	UserEntityPermissionsState getPermissionsState(Long entityId);
 
 	/**
 	 * For a given entityID load all of the access restrictions on the entity
@@ -27,5 +33,5 @@ public interface EntityStateProvider {
 	 * @param entityId
 	 * @return
 	 */
-	UsersRestrictionStatus getUserRestrictionStatus(Long entityId);
+	UsersRestrictionStatus getRestrictionStatus(Long entityId);
 }

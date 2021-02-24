@@ -81,53 +81,69 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 	 * Determine the access information for a batch of entities for a given user.
 	 * 
 	 * @param userInfo
-	 * @param permissionState
+	 * @param permissionsState
 	 * @param accessType
 	 * @return
 	 */
-	public Stream<UsersEntityAccessInfo> determineAccess(UserInfoState userInfo, EntityStateProvider stateProvider,
+	public Stream<UsersEntityAccessInfo> determineAccess(UserInfoState userInfo, EntityStateProvider provider,
 			ACCESS_TYPE accessType) {
-		List<UserEntityPermissionsState> permissionState = stateProvider.getUserEntityPermissionsState();
+		List<Long> ids = provider.getEntityIds();
 		switch (accessType) {
 		case CREATE:
 			EntityType newEntityType = null;
-			return permissionState.stream().map(t -> determineCreateAccess(userInfo, t, newEntityType));
+			return ids.stream()
+					.map(t -> determineCreateAccess(userInfo, provider.getPermissionsState(t), newEntityType));
 		case READ:
-			return permissionState.stream().map(t -> determineReadAccess(userInfo, t));
+			return ids.stream().map(t -> determineReadAccess(userInfo, provider.getPermissionsState(t)));
 		case UPDATE:
-			return permissionState.stream().map(t -> determineUpdateAccess(userInfo, t));
+			return ids.stream().map(t -> determineUpdateAccess(userInfo, provider.getPermissionsState(t)));
 		case DELETE:
-			return permissionState.stream().map(t -> determineDeleteAccess(userInfo, t));
+			return ids.stream().map(t -> determineDeleteAccess(userInfo, provider.getPermissionsState(t)));
 		case CHANGE_PERMISSIONS:
-			return permissionState.stream().map(t -> determineChangePermissionAccess(userInfo, t));
+			return ids.stream().map(t -> determineChangePermissionAccess(userInfo, provider.getPermissionsState(t)));
 		case DOWNLOAD:
-			return permissionState.stream().map(
-					t -> determineDownloadAccess(userInfo, t, stateProvider.getUserRestrictionStatus(t.getEntityId())));
+			return ids.stream().map(t -> determineDownloadAccess(userInfo, provider.getPermissionsState(t),
+					provider.getRestrictionStatus(t)));
 		case UPLOAD:
-			return permissionState.stream().map(t -> determineUpdateAccess(userInfo, t));
+			return ids.stream().map(t -> determineUploadAccess(userInfo, provider.getPermissionsState(t)));
 		case CHANGE_SETTINGS:
-			return permissionState.stream().map(t -> determineChangeSettingsAccess(userInfo, t));
+			return ids.stream().map(t -> determineChangeSettingsAccess(userInfo, provider.getPermissionsState(t)));
 		case MODERATE:
-			return permissionState.stream().map(t -> determineModerateAccess(userInfo, t));
+			return ids.stream().map(t -> determineModerateAccess(userInfo, provider.getPermissionsState(t)));
 		default:
 			throw new IllegalArgumentException("Unknown access type: " + accessType);
 
 		}
 	}
 
+	UsersEntityAccessInfo determineUploadAccess(UserInfoState userInfo, UserEntityPermissionsState permissionsState) {
+		// @formatter:off
+		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
+				.withAccessType(ACCESS_TYPE.UPLOAD),
+			DENY_IF_DOES_NOT_EXIST,
+			GRANT_IF_ADMIN,
+			DENY_IF_IN_TRASH,
+			DENY_IF_ANONYMOUS,
+			DENY_IF_HAS_NOT_ACCEPTED_TERMS_OF_USE,
+			GRANT_IF_HAS_DOWNLOAD,
+			DENY
+		);
+		// @formatter:on
+	}
+
 	/**
 	 * Determine if the user can download a single entity.
 	 * 
 	 * @param userState
-	 * @param permissionState
+	 * @param permissionsState
 	 * @param restrictionStatus
 	 * @return
 	 */
-	UsersEntityAccessInfo determineDownloadAccess(UserInfoState userState, UserEntityPermissionsState permissionState,
+	UsersEntityAccessInfo determineDownloadAccess(UserInfoState userState, UserEntityPermissionsState permissionsState,
 			UsersRestrictionStatus restrictionStatus) {
 		// @formatter:off
-		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userState).withPermissionState(permissionState)
-				.withRestrictionStatus(restrictionStatus),
+		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userState).withPermissionsState(permissionsState)
+				.withRestrictionStatus(restrictionStatus).withAccessType(ACCESS_TYPE.DOWNLOAD),
 			DENY_IF_DOES_NOT_EXIST,
 			GRANT_IF_ADMIN,
 			DENY_IF_IN_TRASH,
@@ -141,35 +157,46 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		// @formatter:on
 	}
 
-	UsersEntityAccessInfo determineUpdateAccess(UserInfoState userInfo, UserEntityPermissionsState permissionState) {
+	UsersEntityAccessInfo determineUpdateAccess(UserInfoState userInfo, UserEntityPermissionsState permissionsState) {
+		// @formatter:off
+		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
+				.withAccessType(ACCESS_TYPE.UPDATE),
+			DENY_IF_DOES_NOT_EXIST,
+			GRANT_IF_ADMIN,
+			DENY_IF_IN_TRASH,
+			DENY_IF_ANONYMOUS,
+			DENY_IF_NOT_PROJECT_AND_NOT_CERTIFIED,
+			GRANT_IF_HAS_UPDATE,
+			DENY
+		);
+		// @formatter:on
+	}
+
+	UsersEntityAccessInfo determineReadAccess(UserInfoState userInfo, UserEntityPermissionsState permissionsState) {
 		return null;
 	}
 
-	UsersEntityAccessInfo determineReadAccess(UserInfoState userInfo, UserEntityPermissionsState permissionState) {
-		return null;
-	}
-
-	UsersEntityAccessInfo determineCreateAccess(UserInfoState userInfo, UserEntityPermissionsState permissionState,
+	UsersEntityAccessInfo determineCreateAccess(UserInfoState userInfo, UserEntityPermissionsState permissionsState,
 			EntityType newEntityType) {
 		return null;
 	}
 
-	UsersEntityAccessInfo determineModerateAccess(UserInfoState userInfo, UserEntityPermissionsState permissionState) {
+	UsersEntityAccessInfo determineModerateAccess(UserInfoState userInfo, UserEntityPermissionsState permissionsState) {
 		return null;
 	}
 
 	UsersEntityAccessInfo determineChangeSettingsAccess(UserInfoState userInfo,
-			UserEntityPermissionsState permissionState) {
+			UserEntityPermissionsState permissionsState) {
 		return null;
 	}
 
 	UsersEntityAccessInfo determineChangePermissionAccess(UserInfoState userInfo,
-			UserEntityPermissionsState permissionState) {
+			UserEntityPermissionsState permissionsState) {
 		return null;
 	}
 
 	UsersEntityAccessInfo determineDeleteAccess(UserInfoState UserInfoState,
-			UserEntityPermissionsState permissionState) {
+			UserEntityPermissionsState permissionsState) {
 		return null;
 	}
 

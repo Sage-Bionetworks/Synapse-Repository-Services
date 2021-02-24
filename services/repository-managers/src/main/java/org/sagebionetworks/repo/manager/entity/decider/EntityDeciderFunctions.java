@@ -1,12 +1,7 @@
 package org.sagebionetworks.repo.manager.entity.decider;
 
 import static org.sagebionetworks.repo.model.AuthorizationConstants.*;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CERTIFIED_USER_CONTENT;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTITY_IN_TRASH_TEMPLATE;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
+import org.sagebionetworks.repo.model.EntityType;
 
 import java.util.Optional;
 
@@ -37,10 +32,11 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	 * Denies access if the the entity is in the trash.
 	 */
 	DENY_IF_IN_TRASH((c) -> {
-		if (BOOTSTRAP_NODES.TRASH.getId().equals(c.getPermissionState().getBenefactorId())) {
-			return Optional.of(
-					new UsersEntityAccessInfo(c, AuthorizationStatus.accessDenied(new EntityInTrashCanException(String
-							.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, c.getPermissionState().getEntityIdAsString())))));
+		if (BOOTSTRAP_NODES.TRASH.getId().equals(c.getPermissionsState().getBenefactorId())) {
+			return Optional.of(new UsersEntityAccessInfo(c,
+					AuthorizationStatus
+							.accessDenied(new EntityInTrashCanException(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE,
+									c.getPermissionsState().getEntityIdAsString())))));
 		} else {
 			return Optional.empty();
 		}
@@ -49,7 +45,7 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	 * Denies access if the entity does not exist.
 	 */
 	DENY_IF_DOES_NOT_EXIST((c) -> {
-		if (!c.getPermissionState().doesEntityExist()) {
+		if (!c.getPermissionsState().doesEntityExist()) {
 			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.accessDenied(
 					new NotFoundException(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND))));
 		} else {
@@ -72,29 +68,27 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	 * the entity.
 	 */
 	GRANT_IF_OPEN_DATA_WITH_READ((c) -> {
-		if (DataType.OPEN_DATA.equals(c.getPermissionState().getDataType()) && c.getPermissionState().hasRead()) {
+		if (DataType.OPEN_DATA.equals(c.getPermissionsState().getDataType()) && c.getPermissionsState().hasRead()) {
 			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.authorized()));
 		} else {
 			return Optional.empty();
 		}
 	}),
 	/**
-	 * Grants if the user has the DOWNLOAD permission on
-	 * the entity.
+	 * Grants if the user has the DOWNLOAD permission on the entity.
 	 */
 	GRANT_IF_HAS_DOWNLOAD((c) -> {
-		if (c.getPermissionState().hasDownload()) {
+		if (c.getPermissionsState().hasDownload()) {
 			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.authorized()));
 		} else {
 			return Optional.empty();
 		}
 	}),
 	/**
-	 * Grants if the user has the MODERATE permission on
-	 * the entity.
+	 * Grants if the user has the MODERATE permission on the entity.
 	 */
 	GRANT_IF_HAS_MODERATE((c) -> {
-		if (c.getPermissionState().hasModerate()) {
+		if (c.getPermissionsState().hasModerate()) {
 			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.authorized()));
 		} else {
 			return Optional.empty();
@@ -102,33 +96,40 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	}),
 
 	/**
-	 * Grants if the user has the CHANGE_SETTINGS
-	 * permission on the entity.
+	 * Grants if the user has the CHANGE_SETTINGS permission on the entity.
 	 */
 	GRANT_IF_HAS_CHANGE_SETTINGS((c) -> {
-		if (c.getPermissionState().hasChangeSettings()) {
+		if (c.getPermissionsState().hasChangeSettings()) {
 			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.authorized()));
 		} else {
 			return Optional.empty();
 		}
 	}),
 	/**
-	 * Grants if the user has the CHANGE_SETTINGS
-	 * permission on the entity.
+	 * Grants if the user has the CHANGE_SETTINGS permission on the entity.
 	 */
 	GRANT_IF_HAS_CHANGE_PERMISSION((c) -> {
-		if (c.getPermissionState().hasChangePermissions()) {
+		if (c.getPermissionsState().hasChangePermissions()) {
 			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.authorized()));
 		} else {
 			return Optional.empty();
 		}
 	}),
 	/**
-	 * Grants if the user has the DELETE permission on the
-	 * entity.
+	 * Grants if the user has the DELETE permission on the entity.
 	 */
 	GRANT_IF_HAS_DELETE((c) -> {
-		if (c.getPermissionState().hasDelete()) {
+		if (c.getPermissionsState().hasDelete()) {
+			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.authorized()));
+		} else {
+			return Optional.empty();
+		}
+	}),
+	/**
+	 * Grants if the user has the UPDATE permission on the entity.
+	 */
+	GRANT_IF_HAS_UPDATE((c) -> {
+		if (c.getPermissionsState().hasUpdate()) {
 			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.authorized()));
 		} else {
 			return Optional.empty();
@@ -168,10 +169,26 @@ public enum EntityDeciderFunctions implements AccessDecider {
 		}
 	}),
 	/**
+	 * Deny if the EntityType is not a project and the user is not certified.
+	 */
+	DENY_IF_NOT_PROJECT_AND_NOT_CERTIFIED((c) -> {
+		if (!EntityType.project.equals(c.getPermissionsState().getEntityType()) && !c.getUser().isCertifiedUser()) {
+			return Optional
+					.of(new UsersEntityAccessInfo(c, AuthorizationStatus.accessDenied(ERR_MSG_CERTIFIED_USER_CONTENT)));
+		} else {
+			return Optional.empty();
+		}
+	}),
+	/**
 	 * Unconditional deny.
 	 */
 	DENY((c) -> {
-		return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.accessDenied(ERR_MSG_ACCESS_DENIED)));
+		if (c.getAccessType() != null) {
+			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.accessDenied(
+					String.format(ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, c.getAccessType().name()))));
+		} else {
+			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.accessDenied(ERR_MSG_ACCESS_DENIED)));
+		}
 	});
 
 	private AccessDecider decider;
