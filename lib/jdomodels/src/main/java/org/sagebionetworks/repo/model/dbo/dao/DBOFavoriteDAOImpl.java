@@ -82,9 +82,13 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 																"AND f."+ COL_FAVORITE_NODE_ID +" = n."+ COL_NODE_ID +" " +
 																"AND n."+ COL_NODE_ID +" = r."+ COL_REVISION_OWNER_NODE +" " +
 																"AND n."+ COL_NODE_CURRENT_REV +" = r."+ COL_REVISION_NUMBER +" " +
-																"AND n."+ COL_NODE_PARENT_ID +" <> " + TRASH_FOLDER_ID;
+																"AND n."+ COL_NODE_PARENT_ID +" <> " + TRASH_FOLDER_ID +" " +
+																"ORDER BY " + COL_FAVORITE_NODE_ID +" " +
+																"LIMIT :" + LIMIT_PARAM_NAME +" " +
+																"OFFSET :" + OFFSET_PARAM_NAME;
 
-	
+
+
 	private static final RowMapper<Favorite> favoriteRowMapper = new RowMapper<Favorite>() {
 		@Override
 		public Favorite mapRow(ResultSet rs, int rowNum) throws SQLException {
