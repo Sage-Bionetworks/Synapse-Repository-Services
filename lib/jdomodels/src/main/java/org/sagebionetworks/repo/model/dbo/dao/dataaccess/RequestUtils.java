@@ -39,16 +39,24 @@ public class RequestUtils {
 	}
 
 	public static void copyToSerializedField(RequestInterface dto, DBORequest dbo) throws DatastoreException {
+		dbo.setRequestSerialized(writeSerializedField(dto));
+	}
+	
+	public static byte[] writeSerializedField(RequestInterface dto) {
 		try {
-			dbo.setRequestSerialized(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
+			return JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
 	}
-
+	
 	public static RequestInterface copyFromSerializedField(DBORequest dbo) throws DatastoreException {
+		return readSerializedField(dbo.getRequestSerialized());
+	}
+
+	public static RequestInterface readSerializedField(byte[] serializedField) {
 		try {
-			return (RequestInterface)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getRequestSerialized());
+			return (RequestInterface)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, serializedField);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

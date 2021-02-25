@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
@@ -65,6 +66,13 @@ public class FileHandleAssociationManagerImpl implements FileHandleAssociationMa
 		ValidateArgument.required(associateType, "associateType");
 		FileHandleAssociationProvider provider = getProvider(associateType);
 		return provider.getAuthorizationObjectTypeForAssociatedObjectType();
+	}
+	
+	@Override
+	public FileHandleAssociationScanner getFileHandleAssociationScanner(FileHandleAssociateType associateType) {
+		ValidateArgument.required(associateType, "associateType");
+		FileHandleAssociationProvider provider = getProvider(associateType);
+		return provider.getAssociationScanner();
 	}
 
 	/**

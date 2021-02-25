@@ -1,22 +1,27 @@
 package org.sagebionetworks.repo.manager.file;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
+import org.sagebionetworks.repo.manager.file.scanner.IdRange;
+import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -28,9 +33,10 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class FileHandleAssociationManagerImplAutowireTest {
 	
@@ -58,7 +64,7 @@ public class FileHandleAssociationManagerImplAutowireTest {
 	private String fileHandleId;
 	private String fileHandlePreviewId;
 	
-	@Before
+	@BeforeEach
 	public void before(){
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
@@ -100,7 +106,7 @@ public class FileHandleAssociationManagerImplAutowireTest {
 		
 	}
 	
-	@After
+	@AfterEach
 	public void after(){
 		if (entitiesToDelete != null) {
 			for (String id : entitiesToDelete) {
@@ -208,5 +214,32 @@ public class FileHandleAssociationManagerImplAutowireTest {
 		
 		assertEquals(new HashSet<>(allFileHandleIds), result);
 		
+	}
+	
+	@Test
+	public void testGetFileHandleAssociationScanner() {
+		for (FileHandleAssociateType type : FileHandleAssociateType.values()) {
+			System.out.println("Type " + type.name());
+			FileHandleAssociationScanner scanner = fileHandleAssociationManager.getFileHandleAssociationScanner(type);
+			
+			assertNotNull(scanner);
+			
+			// Try to run a query on each scanner
+			
+			IdRange idRange = scanner.getIdRange();
+			
+			assertNotNull(idRange);
+			
+			System.out.println(idRange);
+			
+			Iterator<ScannedFileHandleAssociation> it = scanner.scanRange(idRange).iterator();
+
+			if (it.hasNext()) {
+				ScannedFileHandleAssociation association = it.next();
+				assertNotNull(association);
+				System.out.println(association);
+			}
+			
+		}
 	}
 }

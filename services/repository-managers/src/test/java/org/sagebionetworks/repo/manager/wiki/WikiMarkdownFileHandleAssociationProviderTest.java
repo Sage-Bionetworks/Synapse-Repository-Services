@@ -1,4 +1,4 @@
-package org.sagebionetworks.evaluation.manager;
+package org.sagebionetworks.repo.manager.wiki;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -22,22 +22,24 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAO;
 import org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner;
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
 import org.sagebionetworks.repo.manager.file.scanner.IdRange;
 import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-@ExtendWith(MockitoExtension.class)
-public class SubmissionFileHandleAssociationProviderTest {
+import com.google.common.collect.ImmutableSet;
 
-	@Mock
-	private SubmissionFileHandleDAO mockSubmissionFileHandleDAO;
+@ExtendWith(MockitoExtension.class)
+public class WikiMarkdownFileHandleAssociationProviderTest {
 	
+	@Mock
+	private V2WikiPageDao mockDao;
+
 	@Mock
 	private JdbcTemplate mockJdbcTemplate;
 	
@@ -45,24 +47,32 @@ public class SubmissionFileHandleAssociationProviderTest {
 	private NamedParameterJdbcTemplate mockNamedJdbcTemplate;
 	
 	@InjectMocks
-	private SubmissionFileHandleAssociationProvider provider;
+	private WikiAttachmentFileHandleAssociationProvider provider;
 	
-
 	@Test
 	public void testGetFileHandleIdsAssociatedWithObject() {
-		String submissionId = "1";
-		List<String> associatedIds = Arrays.asList("2", "3");
-		when(mockSubmissionFileHandleDAO.getAllBySubmission(submissionId)).thenReturn(associatedIds);
-		Set<String> result = provider.getFileHandleIdsDirectlyAssociatedWithObject(
-				Arrays.asList("2", "4"), submissionId);
-		assertEquals(Collections.singleton("2"), result);
+		String wikiId = "syn1233";
+		
+		List<String> fileHandleIds = Arrays.asList("1", "2", "3");
+		Set<String> expected = ImmutableSet.of("1", "2");
+		
+		when(mockDao.getFileHandleIdsAssociatedWithWikiAttachments(any(), any())).thenReturn(expected);
+		
+		// Call under test
+		Set<String> associated = provider.getFileHandleIdsDirectlyAssociatedWithObject(fileHandleIds, wikiId);
+		
+		assertEquals(expected, associated);
+		
+		verify(mockDao).getFileHandleIdsAssociatedWithWikiAttachments(fileHandleIds, wikiId);
+		
 	}
 
 	@Test
 	public void testGetObjectTypeForAssociatedType() {
-		assertEquals(ObjectType.EVALUATION_SUBMISSIONS, provider.getAuthorizationObjectTypeForAssociatedObjectType());
+		assertEquals(ObjectType.WIKI, provider.getAuthorizationObjectTypeForAssociatedObjectType());
 	}
 	
+
 	@Test
 	public void testScannerIdRange() {
 		
@@ -80,7 +90,7 @@ public class SubmissionFileHandleAssociationProviderTest {
 		
 		assertEquals(expected, range);
 		
-		verify(mockJdbcTemplate).queryForObject("SELECT MIN(`SUBMISSION_ID`), MAX(`SUBMISSION_ID`) FROM JDOSUBMISSION_FILE", null, BasicFileHandleAssociationScanner.ID_RANGE_MAPPER);
+		verify(mockJdbcTemplate).queryForObject("SELECT MIN(`WIKI_ID`), MAX(`WIKI_ID`) FROM V2_WIKI_ATTACHMENT_RESERVATION", null, BasicFileHandleAssociationScanner.ID_RANGE_MAPPER);
 		
 	}
 	
@@ -102,6 +112,6 @@ public class SubmissionFileHandleAssociationProviderTest {
 		
 		assertEquals(expected, result);
 		
-		verify(mockNamedJdbcTemplate, times(2)).query(eq("SELECT `SUBMISSION_ID`, `FILE_HANDLE_ID` FROM JDOSUBMISSION_FILE WHERE `SUBMISSION_ID` BETWEEN :BMINID AND :BMAXID AND FILE_HANDLE_ID IS NOT NULL ORDER BY `SUBMISSION_ID`, `FILE_HANDLE_ID` LIMIT :KEY_LIMIT OFFSET :KEY_OFFSET"), anyMap(), any(RowMapper.class));
+		verify(mockNamedJdbcTemplate, times(2)).query(eq("SELECT `WIKI_ID`, `FILE_HANDLE_ID` FROM V2_WIKI_ATTACHMENT_RESERVATION WHERE `WIKI_ID` BETWEEN :BMINID AND :BMAXID AND FILE_HANDLE_ID IS NOT NULL ORDER BY `WIKI_ID`, `FILE_HANDLE_ID` LIMIT :KEY_LIMIT OFFSET :KEY_OFFSET"), anyMap(), any(RowMapper.class));
 	}
 }

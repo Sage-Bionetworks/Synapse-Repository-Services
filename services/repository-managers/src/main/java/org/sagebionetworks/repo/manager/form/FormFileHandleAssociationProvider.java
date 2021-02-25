@@ -5,17 +5,27 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationProvider;
+import org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner;
+import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dbo.form.DBOFormData;
 import org.sagebionetworks.repo.model.dbo.form.FormDao;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import com.google.common.collect.Sets;
 
 public class FormFileHandleAssociationProvider implements FileHandleAssociationProvider {
 
+	private FormDao formDao;
+	private FileHandleAssociationScanner scanner;
+	
 	@Autowired
-	FormDao formDao;
+	public FormFileHandleAssociationProvider(FormDao formDao, NamedParameterJdbcTemplate jdbcTemplate) {
+		this.formDao = formDao;
+		this.scanner = new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOFormData().getTableMapping());
+	}
 
 	@Override
 	public Set<String> getFileHandleIdsDirectlyAssociatedWithObject(List<String> fileHandleIds, String formDataId) {
@@ -32,6 +42,11 @@ public class FormFileHandleAssociationProvider implements FileHandleAssociationP
 	@Override
 	public ObjectType getAuthorizationObjectTypeForAssociatedObjectType() {
 		return ObjectType.FORM_DATA;
+	}
+
+	@Override
+	public FileHandleAssociationScanner getAssociationScanner() {
+		return scanner;
 	}
 
 }

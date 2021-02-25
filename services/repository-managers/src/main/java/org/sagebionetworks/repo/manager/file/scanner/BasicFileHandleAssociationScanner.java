@@ -71,6 +71,18 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 	public BasicFileHandleAssociationScanner(NamedParameterJdbcTemplate namedJdbcTemplate, TableMapping<?> tableMapping) {
 		this(namedJdbcTemplate, tableMapping, DEFAULT_FILE_ID_COLUMN_NAME, DEFAULT_BATCH_SIZE, null);
 	}
+	
+	/**
+	 * Construct a scanner that uses the given fileHandleColumnName to extract a single file handle id from each
+	 * scanned row
+	 * 
+	 * @param namedJdbcTemplate The jdbc template to use
+	 * @param tableMapping The table mapping used as reference
+	 * @param fileHandleColumnName The name of the column holding the file handle id reference
+	 */
+	public BasicFileHandleAssociationScanner(NamedParameterJdbcTemplate namedJdbcTemplate, TableMapping<?> tableMapping, String fileHandleColumnName) {
+		this(namedJdbcTemplate, tableMapping, fileHandleColumnName, DEFAULT_BATCH_SIZE, null);
+	}
 
 	/**
 	 * Construct a scanner that uses the given file handle column name reference as the holder of
