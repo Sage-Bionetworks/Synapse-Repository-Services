@@ -1162,11 +1162,10 @@ public class SqlConstants {
 	public static final String DDL_FILES_SCANNER_STATUS = 								"schema/files/FilesScannerStatus-ddl.sql";
 	public static final String TABLE_FILES_SCANNER_STATUS = 							"FILES_SCANNER_STATUS";
 	public static final String COL_FILES_SCANNER_STATUS_ID = 							"ID";
-	public static final String COL_FILES_SCANNER_STATUS_ETAG = 							"ETAG";
 	public static final String COL_FILES_SCANNER_STATUS_STARTED_ON = 					"STARTED_ON";
 	public static final String COL_FILES_SCANNER_STATUS_UPDATED_ON = 					"UPDATED_ON";
-	public static final String COL_FILES_SCANNER_STATUS_STATE = 					    "STATE";
-	public static final String COL_FILES_SCANNER_STATUS_JOBS_COUNT = 					"JOBS_COUNT";
+	public static final String COL_FILES_SCANNER_STATUS_JOBS_STARTED_COUNT = 			"JOBS_STARTED_COUNT";
+	public static final String COL_FILES_SCANNER_STATUS_JOBS_COMPLETED_COUNT = 			"JOBS_COMPLETED_COUNT";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

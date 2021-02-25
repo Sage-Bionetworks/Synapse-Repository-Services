@@ -278,10 +278,7 @@
 				
 				<!-- Feature Status -->
 				<bean class="org.sagebionetworks.repo.model.dbo.feature.DBOFeatureStatus" />
-				
-				<!-- Files Scanner Status -->
-				<bean class="org.sagebionetworks.repo.model.dbo.dao.files.DBOFilesScannerStatus" />
-		
+						
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" /> <!-- THIS MUST ALWAYS BE THE LAST BEAN -->
 			</list>
 		</property>

@@ -2,9 +2,6 @@ package org.sagebionetworks.repo.model.dbo.dao.files;
 
 import java.util.Optional;
 
-import org.sagebionetworks.repo.model.files.FilesScannerState;
-import org.sagebionetworks.repo.model.files.FilesScannerStatus;
-
 /**
  * Data access layer for handle the file handle association scanner status
  *
@@ -17,27 +14,28 @@ public interface FilesScannerStatusDao {
 	 * @param jobsCount
 	 * @return The newly created status for the job
 	 */
-	FilesScannerStatus create(long jobsCount);
+	DBOFilesScannerStatus create(long jobsCount);
 	
 	/**
 	 * 
 	 * @param id
 	 * @return The status with the given id
 	 */
-	FilesScannerStatus get(long id);
+	DBOFilesScannerStatus get(long id);
+	
+	/**
+	 * Increases the number of completed (sub) jobs and updates the status with the given id
+	 * 
+	 * @param id
+	 * @return The updated status
+	 */
+	DBOFilesScannerStatus increaseJobCompletedCount(long id);
 		
 	/**
 	 * @return Return the status of the latest job if any
 	 */
-	Optional<FilesScannerStatus> getLatest();
+	Optional<DBOFilesScannerStatus> getLatest();
 	
-	/**
-	 * Updates the state of the job with the given id
-	 * 
-	 * @param state The new state
-	 * @return The updates status
-	 */
-	FilesScannerStatus setState(long id, FilesScannerState state);
 	
 	// For testing
 	void truncateAll();

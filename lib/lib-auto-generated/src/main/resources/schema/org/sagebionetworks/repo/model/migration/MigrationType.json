@@ -411,10 +411,6 @@
 			"description": "List of features that can be enabled/disabled"
 		},
 		{
-			"name": "FILES_SCANNER_STATUS",
-			"description": "Status for the file handle association scanner job"
-		},
-		{
 			"name": "CHANGE",
 			"description": "TODO: Auto-generated description"
 		}

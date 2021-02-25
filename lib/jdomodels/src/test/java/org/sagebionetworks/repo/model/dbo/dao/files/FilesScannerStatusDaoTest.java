@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao.files;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Optional;
 
@@ -10,8 +11,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.repo.model.files.FilesScannerState;
-import org.sagebionetworks.repo.model.files.FilesScannerStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -39,17 +38,17 @@ public class FilesScannerStatusDaoTest {
 		
 		long jobsCount = 50000;
 		
-		FilesScannerStatus expected = new FilesScannerStatus();
+		DBOFilesScannerStatus expected = new DBOFilesScannerStatus();
 		
-		expected.setJobsCount(jobsCount);
-		expected.setState(FilesScannerState.PROCESSING);
+		expected.setJobsStartedCount(jobsCount);
+		expected.setJobsCompletedCount(0L);
 		
 		// Call under test
-		FilesScannerStatus result = dao.create(jobsCount);
+		DBOFilesScannerStatus result = dao.create(jobsCount);
 		
+		expected.setId(result.getId());
 		expected.setStartedOn(result.getStartedOn());
 		expected.setUpdatedOn(result.getUpdatedOn());
-		expected.setId(result.getId());
 		
 		assertEquals(expected, result);
 		
@@ -60,7 +59,7 @@ public class FilesScannerStatusDaoTest {
 		
 		long jobsCount = 50000;
 		
-		FilesScannerStatus expected = dao.create(jobsCount);
+		DBOFilesScannerStatus expected = dao.create(jobsCount);
 		
 		// Call under test
 		assertEquals(expected, dao.get(expected.getId()));
@@ -82,56 +81,15 @@ public class FilesScannerStatusDaoTest {
 	}
 	
 	@Test
-	public void testSetState() {
-		
-		long jobsCount = 50000;
-		
-		FilesScannerStatus newJob = dao.create(jobsCount);
-		
-		FilesScannerState state = FilesScannerState.COMPLETED;
-		
-		FilesScannerStatus expected = new FilesScannerStatus();
-		
-		expected.setId(newJob.getId());
-		expected.setJobsCount(jobsCount);
-		expected.setState(state);
-		expected.setStartedOn(newJob.getStartedOn());
-		
-			// Call under test
-		FilesScannerStatus result = dao.setState(newJob.getId(), state);
-		
-		expected.setUpdatedOn(result.getUpdatedOn());
-		
-		assertEquals(expected, result);
-	}
-	
-	@Test
-	public void testSetStateWithNonExisting() {
-		
-		long id = 123L;
-		FilesScannerState state = FilesScannerState.COMPLETED;
-		
-		String errorMessage = assertThrows(NotFoundException.class, () -> {		
-			// Call under test
-			dao.setState(id, state);
-		}).getMessage();
-		
-		assertEquals("Could not find a job with id 123", errorMessage);
-	}
-	
-	@Test
 	public void testGetLatest() throws InterruptedException {
 		long jobsCount = 50000;
 		
 		dao.create(jobsCount);
 		
-		// Sleep as we have a unique constraint on the started on
-		Thread.sleep(1000);		
-		
-		FilesScannerStatus expected = dao.create(jobsCount);
+		DBOFilesScannerStatus expected = dao.create(jobsCount);
 		
 		// Call under test
-		FilesScannerStatus result = dao.getLatest().orElseThrow(IllegalStateException::new);
+		DBOFilesScannerStatus result = dao.getLatest().orElseThrow(IllegalStateException::new);
 		
 		assertEquals(expected, result);
 		
@@ -141,9 +99,41 @@ public class FilesScannerStatusDaoTest {
 	public void testGetLatestWithEmpty() {
 		
 		// Call under test
-		Optional<FilesScannerStatus> result = dao.getLatest();
+		Optional<DBOFilesScannerStatus> result = dao.getLatest();
 		
 		assertFalse(result.isPresent());
+		
+	}
+	
+	@Test
+	public void testIncreateCompletedJobsCount() throws InterruptedException {
+		long jobsCount = 50000;
+		
+		DBOFilesScannerStatus expected = dao.create(jobsCount);
+		
+		// The update resolution is 1 second
+		Thread.sleep(1000);
+		
+		// Call under test
+		DBOFilesScannerStatus result = dao.increaseJobCompletedCount(expected.getId());
+		
+		assertTrue(result.getUpdatedOn().isAfter(expected.getUpdatedOn()));
+		
+		expected.setJobsCompletedCount(expected.getJobsCompletedCount() + 1);
+		expected.setUpdatedOn(result.getUpdatedOn());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testIncreateCompletedJobsCountWithNonExistingJob() throws InterruptedException {
+		
+		String errorMessage = assertThrows(NotFoundException.class, () -> {
+			// Call under test
+			dao.increaseJobCompletedCount(123L);			
+		}).getMessage();
+		
+		assertEquals("Could not find a job with id 123", errorMessage);
 		
 	}
 
