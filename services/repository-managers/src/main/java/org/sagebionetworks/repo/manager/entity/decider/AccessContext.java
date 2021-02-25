@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.entity.decider;
 import java.util.Objects;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 
@@ -16,6 +17,7 @@ public class AccessContext {
 	private UserEntityPermissionsState permissionsState;
 	private UsersRestrictionStatus restrictionStatus;
 	private ACCESS_TYPE accessType;
+	private EntityType entityCreateType;
 
 	/**
 	 * @return the user
@@ -61,7 +63,6 @@ public class AccessContext {
 		this.restrictionStatus = restrictionStatus;
 		return this;
 	}
-
 	
 	/**
 	 * @return the accessType
@@ -75,6 +76,21 @@ public class AccessContext {
 	 */
 	public AccessContext withAccessType(ACCESS_TYPE accessType) {
 		this.accessType = accessType;
+		return this;
+	}
+
+	/**
+	 * @return the entityCreateType
+	 */
+	public EntityType getEntityCreateType() {
+		return entityCreateType;
+	}
+
+	/**
+	 * @param entityCreateType the entityCreateType to set
+	 */
+	public AccessContext withEntityCreateType(EntityType entityCreateType) {
+		this.entityCreateType = entityCreateType;
 		return this;
 	}
 

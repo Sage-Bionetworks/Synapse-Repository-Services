@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.jdo;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -74,6 +75,16 @@ public class KeyFactory {
 			resutls.add(stringToKey(key));
 		}
 		return resutls;
+	}
+	
+	/**
+	 * Given a single string return singleton long list.
+	 * @param id
+	 * @return
+	 * @throws DatastoreException
+	 */
+	public static List<Long> stringToKeyList(String id) throws DatastoreException {
+		return Collections.singletonList(stringToKey(id));
 	}
 
 	/**

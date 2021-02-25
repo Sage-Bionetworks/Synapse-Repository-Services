@@ -53,9 +53,20 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		ValidateArgument.required(userInfo, "UserInfo");
 		ValidateArgument.required(entityId, "entityId");
 		ValidateArgument.required(accessType, "accessType");
-		long enityIdLong = KeyFactory.stringToKey(entityId);
-		return batchHasAccess(userInfo, Arrays.asList(enityIdLong), accessType).stream().findFirst()
+		return batchHasAccess(userInfo, KeyFactory.stringToKeyList(entityId), accessType).stream().findFirst()
 				.orElseThrow(() -> new IllegalStateException("Unexpected empty results")).getAuthroizationStatus();
+	}
+	
+	@Override
+	public AuthorizationStatus canCreate(String parentId, EntityType entityCreateType, UserInfo userInfo)
+			throws DatastoreException, NotFoundException {
+		ValidateArgument.required(userInfo, "UserInfo");
+		ValidateArgument.required(parentId, "parentId");
+		ValidateArgument.required(entityCreateType, "entityCreateType");
+		UserEntityPermissionsState state = usersEntityPermissionsDao
+				.getEntityPermissions(userInfo.getGroups(), KeyFactory.stringToKeyList(parentId)).stream()
+				.findFirst().get();
+		return determineCreateAccess(new UserInfoState(userInfo), state, entityCreateType).getAuthroizationStatus();
 	}
 
 	@Override
@@ -117,18 +128,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 	}
 
 	UsersEntityAccessInfo determineUploadAccess(UserInfoState userInfo, UserEntityPermissionsState permissionsState) {
-		// @formatter:off
-		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
-				.withAccessType(ACCESS_TYPE.UPLOAD),
-			DENY_IF_DOES_NOT_EXIST,
-			GRANT_IF_ADMIN,
-			DENY_IF_IN_TRASH,
-			DENY_IF_ANONYMOUS,
-			DENY_IF_HAS_NOT_ACCEPTED_TERMS_OF_USE,
-			GRANT_IF_HAS_DOWNLOAD,
-			DENY
-		);
-		// @formatter:on
+		return null;
 	}
 
 	/**
@@ -171,13 +171,24 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		);
 		// @formatter:on
 	}
-
-	UsersEntityAccessInfo determineReadAccess(UserInfoState userInfo, UserEntityPermissionsState permissionsState) {
-		return null;
+	
+	UsersEntityAccessInfo determineCreateAccess(UserInfoState userInfo, UserEntityPermissionsState permissionsState,
+			EntityType entityCreateType) {
+		// @formatter:off
+		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
+				.withAccessType(ACCESS_TYPE.CREATE).withEntityCreateType(entityCreateType),
+			DENY_IF_DOES_NOT_EXIST,
+			GRANT_IF_ADMIN,
+			DENY_IF_IN_TRASH,
+			DENY_IF_ANONYMOUS,
+			DENY_IF_CREATE_TYPE_IS_NOT_PROJECT_AND_NOT_CERTIFIED,
+			GRANT_IF_HAS_CREATE,
+			DENY
+		);
+		// @formatter:on
 	}
 
-	UsersEntityAccessInfo determineCreateAccess(UserInfoState userInfo, UserEntityPermissionsState permissionsState,
-			EntityType newEntityType) {
+	UsersEntityAccessInfo determineReadAccess(UserInfoState userInfo, UserEntityPermissionsState permissionsState) {
 		return null;
 	}
 

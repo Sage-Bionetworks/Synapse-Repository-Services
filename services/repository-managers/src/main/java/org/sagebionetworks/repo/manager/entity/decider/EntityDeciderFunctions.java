@@ -1,13 +1,20 @@
 package org.sagebionetworks.repo.manager.entity.decider;
 
-import static org.sagebionetworks.repo.model.AuthorizationConstants.*;
-import org.sagebionetworks.repo.model.EntityType;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ACCESS_DENIED;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CERTIFIED_USER_CONTENT;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTITY_IN_TRASH_TEMPLATE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
 
 import java.util.Optional;
 
+import org.sagebionetworks.repo.manager.UserCertificationRequiredException;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DataType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -136,6 +143,16 @@ public enum EntityDeciderFunctions implements AccessDecider {
 		}
 	}),
 	/**
+	 * Grants if the user has the CREATE permission on the entity.
+	 */
+	GRANT_IF_HAS_CREATE((c) -> {
+		if (c.getPermissionsState().hasCreate()) {
+			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.authorized()));
+		} else {
+			return Optional.empty();
+		}
+	}),
+	/**
 	 * Deny if the user is anonymous.
 	 */
 	DENY_IF_ANONYMOUS((c) -> {
@@ -164,6 +181,17 @@ public enum EntityDeciderFunctions implements AccessDecider {
 		if (!c.getUser().acceptsTermsOfUse()) {
 			return Optional.of(new UsersEntityAccessInfo(c,
 					AuthorizationStatus.accessDenied(ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE)));
+		} else {
+			return Optional.empty();
+		}
+	}),
+	/**
+	 * Deny if the entity to create type is not a project and the user is not certified.
+	 */
+	DENY_IF_CREATE_TYPE_IS_NOT_PROJECT_AND_NOT_CERTIFIED((c) -> {
+		if (!EntityType.project.equals(c.getEntityCreateType()) && !c.getUser().isCertifiedUser()) {
+			return Optional
+					.of(new UsersEntityAccessInfo(c, AuthorizationStatus.accessDenied(ERR_MSG_CERTIFIED_USER_CONTENT)));
 		} else {
 			return Optional.empty();
 		}
