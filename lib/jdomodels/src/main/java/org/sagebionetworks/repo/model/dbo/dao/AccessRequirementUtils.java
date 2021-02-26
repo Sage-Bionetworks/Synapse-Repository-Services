@@ -81,16 +81,24 @@ public class AccessRequirementUtils {
 	
 
 	public static AccessRequirement copyFromSerializedField(DBOAccessRequirementRevision dbo) throws DatastoreException {
+		return readSerializedField(dbo.getSerializedEntity());
+	}
+	
+	public static AccessRequirement readSerializedField(byte[] serializedField) {
 		try {
-			return (AccessRequirement)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getSerializedEntity());
+			return (AccessRequirement)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, serializedField);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
 	}
 
 	public static void copyToSerializedField(AccessRequirement dto, DBOAccessRequirementRevision dbo) {
+		dbo.setSerializedEntity(writeSerializedField(dto));
+	}
+	
+	public static byte[] writeSerializedField(AccessRequirement dto) {
 		try {
-			dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
+			return JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

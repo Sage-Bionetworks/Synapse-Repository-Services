@@ -4,14 +4,22 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationProvider;
+import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
+import org.sagebionetworks.repo.manager.file.scanner.tables.TableFileHandleScanner;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.springframework.beans.factory.annotation.Autowired;
 
 
 public class TableFileHandleAssociationProvider implements FileHandleAssociationProvider {
 	
-	@Autowired
 	private TableEntityManager tableEntityManager;
+	private FileHandleAssociationScanner scanner;
+	
+	@Autowired
+	public TableFileHandleAssociationProvider(TableEntityManager tableEntityManager, TableFileHandleScanner scanner) {
+		this.tableEntityManager = tableEntityManager;
+		this.scanner = scanner;
+	}	
 	
 	/*
 	 * (non-Javadoc)
@@ -30,6 +38,11 @@ public class TableFileHandleAssociationProvider implements FileHandleAssociation
 	@Override
 	public ObjectType getAuthorizationObjectTypeForAssociatedObjectType() {
 		return ObjectType.ENTITY;
+	}
+	
+	@Override
+	public FileHandleAssociationScanner getAssociationScanner() {
+		return scanner;
 	}
 
 }

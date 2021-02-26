@@ -5,16 +5,24 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationProvider;
+import org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner;
+import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmissionFile;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-public class VerificationFileHandleAssociationProvider implements
-		FileHandleAssociationProvider {
+public class VerificationFileHandleAssociationProvider implements FileHandleAssociationProvider {
+	
+	private VerificationDAO verificationDao;
+	private FileHandleAssociationScanner scanner;
 	
 	@Autowired
-	private VerificationDAO verificationDao;
-
+	public VerificationFileHandleAssociationProvider(VerificationDAO verificationDao, NamedParameterJdbcTemplate jdbcTemplate) {
+		this.verificationDao = verificationDao;
+		this.scanner = new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOVerificationSubmissionFile().getTableMapping());
+	}
 
 	@Override
 	public Set<String> getFileHandleIdsDirectlyAssociatedWithObject(
@@ -30,6 +38,11 @@ public class VerificationFileHandleAssociationProvider implements
 	@Override
 	public ObjectType getAuthorizationObjectTypeForAssociatedObjectType() {
 		return ObjectType.VERIFICATION_SUBMISSION;
+	}
+
+	@Override
+	public FileHandleAssociationScanner getAssociationScanner() {
+		return scanner;
 	}
 
 }

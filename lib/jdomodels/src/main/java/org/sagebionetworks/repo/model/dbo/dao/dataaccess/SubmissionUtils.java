@@ -29,8 +29,12 @@ public class SubmissionUtils {
 	}
 
 	private static void copyToSerializedField(Submission dto, DBOSubmission dbo) {
+		dbo.setSubmissionSerialized(writeSerializedField(dto));
+	}
+	
+	public static byte[] writeSerializedField(Submission dto) {
 		try {
-			dbo.setSubmissionSerialized(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
+			return JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
@@ -83,8 +87,12 @@ public class SubmissionUtils {
 	}
 
 	private static Submission copyFromSerializedField(DBOSubmission dbo) {
+		return readSerializedField(dbo.getSubmissionSerialized());
+	}
+	
+	public static Submission readSerializedField(byte[] serializedField) {
 		try {
-			return (Submission)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getSubmissionSerialized());
+			return (Submission)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, serializedField);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

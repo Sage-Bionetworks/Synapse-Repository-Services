@@ -1,22 +1,37 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PICTURE_ID;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationProvider;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner;
+import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 public class UserProfileFileHandleAssociationProvider implements FileHandleAssociationProvider{
 
-	@Autowired
 	private UserProfileDAO userProfileDAO;
-	@Autowired
+	
 	private FileHandleManager fileHandleManager;
+	
+	private FileHandleAssociationScanner scanner;
+	
+	@Autowired
+	public UserProfileFileHandleAssociationProvider(UserProfileDAO userProfileDAO, FileHandleManager fileHandleManager,
+			NamedParameterJdbcTemplate jdbcTemplate) {
+		this.userProfileDAO = userProfileDAO;
+		this.fileHandleManager = fileHandleManager;
+		this.scanner = new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOUserProfile().getTableMapping(), COL_USER_PROFILE_PICTURE_ID);
+	}
 
 	@Override
 	public Set<String> getFileHandleIdsDirectlyAssociatedWithObject(List<String> fileHandleIds, String objectId) {
@@ -40,6 +55,11 @@ public class UserProfileFileHandleAssociationProvider implements FileHandleAssoc
 	@Override
 	public ObjectType getAuthorizationObjectTypeForAssociatedObjectType() {
 		return ObjectType.USER_PROFILE;
+	}
+
+	@Override
+	public FileHandleAssociationScanner getAssociationScanner() {
+		return scanner;
 	}
 
 }

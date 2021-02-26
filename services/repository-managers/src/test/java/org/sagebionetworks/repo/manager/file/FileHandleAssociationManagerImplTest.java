@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
@@ -31,6 +32,9 @@ public class FileHandleAssociationManagerImplTest {
 
 	@Mock
 	FileHandleAssociationProvider mockProvider;
+	
+	@Mock
+	FileHandleAssociationScanner mockScanner;
 
 	@Mock
 	FileHandleDao mockFileHandleDao;
@@ -126,6 +130,18 @@ public class FileHandleAssociationManagerImplTest {
 		verify(mockProvider, times(1)).getFileHandleIdsDirectlyAssociatedWithObject(anyList(), anyString());
 		
 		assertEquals(ImmutableSet.copyOf(fileHandleIds), result);
+	}
+	
+	@Test
+	public void testGetFileHandleAssociationScanner() {
+		
+		when(mockProvider.getAssociationScanner()).thenReturn(mockScanner);
+		
+	    FileHandleAssociationScanner scanner = fileHandleAssociationManager.getFileHandleAssociationScanner(FileHandleAssociateType.TableEntity);
+	    
+	    assertEquals(mockScanner, scanner);
+	    
+	    verify(mockProvider).getAssociationScanner();
 	}
 
 }
