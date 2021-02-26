@@ -1,14 +1,19 @@
 package org.sagebionetworks.repo.manager.entity;
 
-import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.*;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_ANONYMOUS;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_CREATE_TYPE_IS_NOT_PROJECT_AND_NOT_CERTIFIED;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_DOES_NOT_EXIST;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_HAS_NOT_ACCEPTED_TERMS_OF_USE;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_HAS_UNMET_ACCESS_RESTRICTIONS;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_IN_TRASH;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_NOT_PROJECT_AND_NOT_CERTIFIED;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_ADMIN;
-import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_OPEN_DATA_WITH_READ;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_HAS_CREATE;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_HAS_DOWNLOAD;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_HAS_UPDATE;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.*;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -53,9 +58,20 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		ValidateArgument.required(userInfo, "UserInfo");
 		ValidateArgument.required(entityId, "entityId");
 		ValidateArgument.required(accessType, "accessType");
-		long enityIdLong = KeyFactory.stringToKey(entityId);
-		return batchHasAccess(userInfo, Arrays.asList(enityIdLong), accessType).stream().findFirst()
+		return batchHasAccess(userInfo, KeyFactory.stringToKeyList(entityId), accessType).stream().findFirst()
 				.orElseThrow(() -> new IllegalStateException("Unexpected empty results")).getAuthroizationStatus();
+	}
+	
+	@Override
+	public AuthorizationStatus canCreate(String parentId, EntityType entityCreateType, UserInfo userInfo)
+			throws DatastoreException, NotFoundException {
+		ValidateArgument.required(userInfo, "UserInfo");
+		ValidateArgument.required(parentId, "parentId");
+		ValidateArgument.required(entityCreateType, "entityCreateType");
+		UserEntityPermissionsState state = usersEntityPermissionsDao
+				.getEntityPermissions(userInfo.getGroups(), KeyFactory.stringToKeyList(parentId)).stream()
+				.findFirst().get();
+		return determineCreateAccess(new UserInfoState(userInfo), state, entityCreateType).getAuthroizationStatus();
 	}
 
 	@Override
@@ -81,37 +97,35 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 	 * Determine the access information for a batch of entities for a given user.
 	 * 
 	 * @param userInfo
-	 * @param permissionState
+	 * @param permissionsState
 	 * @param accessType
 	 * @return
 	 */
-	public Stream<UsersEntityAccessInfo> determineAccess(UserInfoState userInfo, EntityStateProvider stateProvider,
+	public Stream<UsersEntityAccessInfo> determineAccess(UserInfoState userInfo, EntityStateProvider provider,
 			ACCESS_TYPE accessType) {
-		List<UserEntityPermissionsState> permissionState = stateProvider.getUserEntityPermissionsState();
+		List<Long> ids = provider.getEntityIds();
 		switch (accessType) {
 		case CREATE:
 			EntityType newEntityType = null;
-			return permissionState.stream().map(t -> determineCreateAccess(userInfo, t, newEntityType));
+			return ids.stream()
+					.map(t -> determineCreateAccess(userInfo, provider.getPermissionsState(t), newEntityType));
 		case READ:
-			return permissionState.stream().map(t -> determineReadAccess(userInfo, t));
+			return ids.stream().map(t -> determineReadAccess(userInfo, provider.getPermissionsState(t)));
 		case UPDATE:
-			return permissionState.stream().map(t -> determineUpdateAccess(userInfo, t));
+			return ids.stream().map(t -> determineUpdateAccess(userInfo, provider.getPermissionsState(t)));
 		case DELETE:
-			return permissionState.stream().map(t -> determineDeleteAccess(userInfo, t));
+			return ids.stream().map(t -> determineDeleteAccess(userInfo, provider.getPermissionsState(t)));
 		case CHANGE_PERMISSIONS:
-			return permissionState.stream().map(t -> determineChangePermissionAccess(userInfo, t));
+			return ids.stream().map(t -> determineChangePermissionAccess(userInfo, provider.getPermissionsState(t)));
 		case DOWNLOAD:
-			return permissionState.stream().map(
-					t -> determineDownloadAccess(userInfo, t, stateProvider.getUserRestrictionStatus(t.getEntityId())));
-		case UPLOAD:
-			return permissionState.stream().map(t -> determineUpdateAccess(userInfo, t));
+			return ids.stream().map(t -> determineDownloadAccess(userInfo, provider.getPermissionsState(t),
+					provider.getRestrictionStatus(t)));
 		case CHANGE_SETTINGS:
-			return permissionState.stream().map(t -> determineChangeSettingsAccess(userInfo, t));
+			return ids.stream().map(t -> determineChangeSettingsAccess(userInfo, provider.getPermissionsState(t)));
 		case MODERATE:
-			return permissionState.stream().map(t -> determineModerateAccess(userInfo, t));
+			return ids.stream().map(t -> determineModerateAccess(userInfo, provider.getPermissionsState(t)));
 		default:
 			throw new IllegalArgumentException("Unknown access type: " + accessType);
-
 		}
 	}
 
@@ -119,15 +133,15 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 	 * Determine if the user can download a single entity.
 	 * 
 	 * @param userState
-	 * @param permissionState
+	 * @param permissionsState
 	 * @param restrictionStatus
 	 * @return
 	 */
-	UsersEntityAccessInfo determineDownloadAccess(UserInfoState userState, UserEntityPermissionsState permissionState,
+	UsersEntityAccessInfo determineDownloadAccess(UserInfoState userState, UserEntityPermissionsState permissionsState,
 			UsersRestrictionStatus restrictionStatus) {
 		// @formatter:off
-		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userState).withPermissionState(permissionState)
-				.withRestrictionStatus(restrictionStatus),
+		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userState).withPermissionsState(permissionsState)
+				.withRestrictionStatus(restrictionStatus).withAccessType(ACCESS_TYPE.DOWNLOAD),
 			DENY_IF_DOES_NOT_EXIST,
 			GRANT_IF_ADMIN,
 			DENY_IF_IN_TRASH,
@@ -141,35 +155,77 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		// @formatter:on
 	}
 
-	UsersEntityAccessInfo determineUpdateAccess(UserInfoState userInfo, UserEntityPermissionsState permissionState) {
-		return null;
+	UsersEntityAccessInfo determineUpdateAccess(UserInfoState userInfo, UserEntityPermissionsState permissionsState) {
+		// @formatter:off
+		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
+				.withAccessType(ACCESS_TYPE.UPDATE),
+			DENY_IF_DOES_NOT_EXIST,
+			GRANT_IF_ADMIN,
+			DENY_IF_IN_TRASH,
+			DENY_IF_ANONYMOUS,
+			DENY_IF_NOT_PROJECT_AND_NOT_CERTIFIED,
+			DENY_IF_HAS_NOT_ACCEPTED_TERMS_OF_USE,
+			GRANT_IF_HAS_UPDATE,
+			DENY
+		);
+		// @formatter:on
+	}
+	
+	UsersEntityAccessInfo determineCreateAccess(UserInfoState userInfo, UserEntityPermissionsState permissionsState,
+			EntityType entityCreateType) {
+		// @formatter:off
+		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
+				.withAccessType(ACCESS_TYPE.CREATE).withEntityCreateType(entityCreateType),
+			DENY_IF_DOES_NOT_EXIST,
+			GRANT_IF_ADMIN,
+			DENY_IF_IN_TRASH,
+			DENY_IF_ANONYMOUS,
+			DENY_IF_CREATE_TYPE_IS_NOT_PROJECT_AND_NOT_CERTIFIED,
+			DENY_IF_HAS_NOT_ACCEPTED_TERMS_OF_USE,
+			GRANT_IF_HAS_CREATE,
+			DENY
+		);
+		// @formatter:on
 	}
 
-	UsersEntityAccessInfo determineReadAccess(UserInfoState userInfo, UserEntityPermissionsState permissionState) {
-		return null;
+	UsersEntityAccessInfo determineReadAccess(UserInfoState userInfo, UserEntityPermissionsState permissionsState) {
+		// @formatter:off
+		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
+				.withAccessType(ACCESS_TYPE.READ),
+			DENY_IF_DOES_NOT_EXIST,
+			GRANT_IF_ADMIN,
+			DENY_IF_IN_TRASH,
+			GRANT_IF_HAS_READ,
+			DENY
+		);
+		// @formatter:on
+	}
+	
+	UsersEntityAccessInfo determineDeleteAccess(UserInfoState userInfo,
+			UserEntityPermissionsState permissionsState) {
+		// @formatter:off
+		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
+				.withAccessType(ACCESS_TYPE.DELETE),
+			DENY_IF_DOES_NOT_EXIST,
+			GRANT_IF_ADMIN,
+			DENY_IF_ANONYMOUS,
+			GRANT_IF_HAS_DELETE,
+			DENY
+		);
+		// @formatter:on
 	}
 
-	UsersEntityAccessInfo determineCreateAccess(UserInfoState userInfo, UserEntityPermissionsState permissionState,
-			EntityType newEntityType) {
-		return null;
-	}
-
-	UsersEntityAccessInfo determineModerateAccess(UserInfoState userInfo, UserEntityPermissionsState permissionState) {
+	UsersEntityAccessInfo determineModerateAccess(UserInfoState userInfo, UserEntityPermissionsState permissionsState) {
 		return null;
 	}
 
 	UsersEntityAccessInfo determineChangeSettingsAccess(UserInfoState userInfo,
-			UserEntityPermissionsState permissionState) {
+			UserEntityPermissionsState permissionsState) {
 		return null;
 	}
 
 	UsersEntityAccessInfo determineChangePermissionAccess(UserInfoState userInfo,
-			UserEntityPermissionsState permissionState) {
-		return null;
-	}
-
-	UsersEntityAccessInfo determineDeleteAccess(UserInfoState UserInfoState,
-			UserEntityPermissionsState permissionState) {
+			UserEntityPermissionsState permissionsState) {
 		return null;
 	}
 

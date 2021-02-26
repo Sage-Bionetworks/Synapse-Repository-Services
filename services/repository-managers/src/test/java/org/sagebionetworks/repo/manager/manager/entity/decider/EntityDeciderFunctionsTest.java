@@ -10,6 +10,7 @@ import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTI
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
 
 import java.util.Optional;
 
@@ -22,8 +23,10 @@ import org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions;
 import org.sagebionetworks.repo.manager.entity.decider.UserInfoState;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DataType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
@@ -58,16 +61,15 @@ public class EntityDeciderFunctionsTest {
 		certifiedUser.overrideIsCertified(true);
 
 		restrictionStatus = new UsersRestrictionStatus(entityId, nonAdminUser.getUserInfo().getId());
-		context = new AccessContext().withUser(nonAdminUser).withPermissionState(permissionState)
+		context = new AccessContext().withUser(nonAdminUser).withPermissionsState(permissionState)
 				.withRestrictionStatus(restrictionStatus);
 	}
 
 	@Test
 	public void testGrantIfAdminWithAdmin() {
-		context = new AccessContext().withUser(adminUser).withPermissionState(permissionState);
+		context = new AccessContext().withUser(adminUser).withPermissionsState(permissionState);
 		// call under test
-		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_ADMIN
-				.determineAccess(context);
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_ADMIN.determineAccess(context);
 		assertTrue(resultOptional.isPresent());
 		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context, AuthorizationStatus.authorized());
 		assertEquals(expected, resultOptional.get());
@@ -75,10 +77,9 @@ public class EntityDeciderFunctionsTest {
 
 	@Test
 	public void testGrantIfAdminWithNonAdmin() {
-		context = new AccessContext().withUser(nonAdminUser).withPermissionState(permissionState);
+		context = new AccessContext().withUser(nonAdminUser).withPermissionsState(permissionState);
 		// call under test
-		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_ADMIN
-				.determineAccess(context);
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_ADMIN.determineAccess(context);
 		assertFalse(resultOptional.isPresent());
 	}
 
@@ -113,8 +114,8 @@ public class EntityDeciderFunctionsTest {
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_DOES_NOT_EXIST
 				.determineAccess(context);
 		assertTrue(resultOptional.isPresent());
-		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context, AuthorizationStatus
-				.accessDenied(new NotFoundException(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND)));
+		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context, AuthorizationStatus.accessDenied(
+				new NotFoundException(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND)));
 		assertEquals(expected, resultOptional.get());
 	}
 
@@ -207,15 +208,26 @@ public class EntityDeciderFunctionsTest {
 				.determineAccess(context);
 		assertFalse(resultOptional.isPresent());
 	}
-	
+
 	@Test
-	public void testDeny() {
+	public void testDenyWithNullAccessType() {
+		context.withAccessType(null);
 		// call under test
-		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY
-				.determineAccess(context);
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY.determineAccess(context);
 		assertTrue(resultOptional.isPresent());
 		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
 				AuthorizationStatus.accessDenied(ERR_MSG_ACCESS_DENIED));
+		assertEquals(expected, resultOptional.get());
+	}
+
+	@Test
+	public void testDenyWithAccessType() {
+		context.withAccessType(ACCESS_TYPE.DOWNLOAD);
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY.determineAccess(context);
+		assertTrue(resultOptional.isPresent());
+		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context, AuthorizationStatus.accessDenied(
+				String.format(ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, ACCESS_TYPE.DOWNLOAD.name())));
 		assertEquals(expected, resultOptional.get());
 	}
 
@@ -284,13 +296,67 @@ public class EntityDeciderFunctionsTest {
 				.determineAccess(context);
 		assertFalse(resultOptional.isPresent());
 	}
-
+	
 	@Test
-	public void testGrantIfHasDeleteWithTrue() {
-		permissionState.withHasDelete(true);
+	public void testGrantIfHasUpdateWithFalse() {
+		permissionState.withHasUpdate(false);
 
 		// call under test
-		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_HAS_DELETE
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_HAS_UPDATE
+				.determineAccess(context);
+		assertFalse(resultOptional.isPresent());
+	}
+	
+	@Test
+	public void testGrantIfHasUpdateWithTrue() {
+		permissionState.withHasUpdate(true);
+
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_HAS_UPDATE
+				.determineAccess(context);
+		assertTrue(resultOptional.isPresent());
+		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context, AuthorizationStatus.authorized());
+		assertEquals(expected, resultOptional.get());
+	}
+
+	@Test
+	public void testGrantIfHasCreateWithFalse() {
+		permissionState.withHasCreate(false);
+
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_HAS_CREATE
+				.determineAccess(context);
+		assertFalse(resultOptional.isPresent());
+	}
+	
+	@Test
+	public void testGrantIfHasCreateWithTrue() {
+		permissionState.withHasCreate(true);
+
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_HAS_CREATE
+				.determineAccess(context);
+		assertTrue(resultOptional.isPresent());
+		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context, AuthorizationStatus.authorized());
+		assertEquals(expected, resultOptional.get());
+	}
+
+	@Test
+	public void testGrantIfHasReadWithFalse() {
+		permissionState.withHasRead(false);
+
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_HAS_READ
+				.determineAccess(context);
+		assertFalse(resultOptional.isPresent());
+	}
+	
+	@Test
+	public void testGrantIfHasReadWithTrue() {
+		permissionState.withHasRead(true);
+
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_HAS_READ
 				.determineAccess(context);
 		assertTrue(resultOptional.isPresent());
 		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context, AuthorizationStatus.authorized());
@@ -306,10 +372,23 @@ public class EntityDeciderFunctionsTest {
 				.determineAccess(context);
 		assertFalse(resultOptional.isPresent());
 	}
+	
+	@Test
+	public void testGrantIfHasDeleteWithTrue() {
+		permissionState.withHasDelete(true);
+
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_HAS_DELETE
+				.determineAccess(context);
+		assertTrue(resultOptional.isPresent());
+		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context, AuthorizationStatus.authorized());
+		assertEquals(expected, resultOptional.get());
+	}
+	
 
 	@Test
 	public void testDenyIfAnonymousWithTrue() {
-		context = new AccessContext().withUser(anonymousUser).withPermissionState(permissionState);
+		context = new AccessContext().withUser(anonymousUser).withPermissionsState(permissionState);
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_ANONYMOUS
 				.determineAccess(context);
@@ -321,7 +400,7 @@ public class EntityDeciderFunctionsTest {
 
 	@Test
 	public void testDenyIfAnonymousWithFalse() {
-		context = new AccessContext().withUser(nonAdminUser).withPermissionState(permissionState);
+		context = new AccessContext().withUser(nonAdminUser).withPermissionsState(permissionState);
 
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_ANONYMOUS
@@ -331,7 +410,7 @@ public class EntityDeciderFunctionsTest {
 
 	@Test
 	public void testDenyIfNotCertifiedWithNoCertification() {
-		context = new AccessContext().withUser(notCertifiedUser).withPermissionState(permissionState);
+		context = new AccessContext().withUser(notCertifiedUser).withPermissionsState(permissionState);
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_CERTIFIED
 				.determineAccess(context);
@@ -343,7 +422,7 @@ public class EntityDeciderFunctionsTest {
 
 	@Test
 	public void testDenyIfNotCertifiedWithCertification() {
-		context = new AccessContext().withUser(certifiedUser).withPermissionState(permissionState);
+		context = new AccessContext().withUser(certifiedUser).withPermissionsState(permissionState);
 
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_CERTIFIED
@@ -354,7 +433,7 @@ public class EntityDeciderFunctionsTest {
 	@Test
 	public void testDenyIfHasNotAcceptedTermsOfUseWithNoAccept() {
 		nonAdminUser.overrideAcceptsTermsOfUse(false);
-		context = new AccessContext().withUser(nonAdminUser).withPermissionState(permissionState);
+		context = new AccessContext().withUser(nonAdminUser).withPermissionsState(permissionState);
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_HAS_NOT_ACCEPTED_TERMS_OF_USE
 				.determineAccess(context);
@@ -367,10 +446,119 @@ public class EntityDeciderFunctionsTest {
 	@Test
 	public void testDenyIfHasNotAcceptedTermsOfUseWithAccept() {
 		nonAdminUser.overrideAcceptsTermsOfUse(true);
-		context = new AccessContext().withUser(nonAdminUser).withPermissionState(permissionState);
+		context = new AccessContext().withUser(nonAdminUser).withPermissionsState(permissionState);
 
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_HAS_NOT_ACCEPTED_TERMS_OF_USE
+				.determineAccess(context);
+		assertFalse(resultOptional.isPresent());
+	}
+
+	@Test
+	public void testDenyIfCreateTypeIsNotProjectAndNotCertifiedWithNullCreateTypeCertifiedFalse() {
+		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(false)).withPermissionsState(permissionState)
+				.withEntityCreateType(null);
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_CREATE_TYPE_IS_NOT_PROJECT_AND_NOT_CERTIFIED
+				.determineAccess(context);
+		assertTrue(resultOptional.isPresent());
+		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
+				AuthorizationStatus.accessDenied(ERR_MSG_CERTIFIED_USER_CONTENT));
+		assertEquals(expected, resultOptional.get());
+	}
+	
+	@Test
+	public void testDenyIfCreateTypeIsNotProjectAndNotCertifiedWithNullCertifiedTrue() {
+		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(true)).withPermissionsState(permissionState)
+				.withEntityCreateType(null);
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_CREATE_TYPE_IS_NOT_PROJECT_AND_NOT_CERTIFIED
+				.determineAccess(context);
+		assertFalse(resultOptional.isPresent());
+	}
+
+	@Test
+	public void testDenyIfCreateTypeIsNotProjectAndNotCertifiedWithProjectAndCertifiedTrue() {
+		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(true)).withPermissionsState(permissionState)
+				.withEntityCreateType(EntityType.project);
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_CREATE_TYPE_IS_NOT_PROJECT_AND_NOT_CERTIFIED
+				.determineAccess(context);
+		assertFalse(resultOptional.isPresent());
+	}
+	
+	@Test
+	public void testDenyIfCreateTypeIsNotProjectAndNotCertifiedWithProjectAndCertifiedFalse() {
+		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(false)).withPermissionsState(permissionState)
+				.withEntityCreateType(EntityType.project);
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_CREATE_TYPE_IS_NOT_PROJECT_AND_NOT_CERTIFIED
+				.determineAccess(context);
+		assertFalse(resultOptional.isPresent());
+	}
+	
+	@Test
+	public void testDenyIfCreateTypeIsNotProjectAndNotCertifiedWithFileAndCertifiedTrue() {
+		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(true)).withPermissionsState(permissionState)
+				.withEntityCreateType(EntityType.file);
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_CREATE_TYPE_IS_NOT_PROJECT_AND_NOT_CERTIFIED
+				.determineAccess(context);
+		assertFalse(resultOptional.isPresent());
+	}
+	
+	@Test
+	public void testDenyIfCreateTypeIsNotProjectAndNotCertifiedWithFileAndCertifiedFalse() {
+		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(false)).withPermissionsState(permissionState)
+				.withEntityCreateType(EntityType.file);
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_CREATE_TYPE_IS_NOT_PROJECT_AND_NOT_CERTIFIED
+				.determineAccess(context);
+		assertTrue(resultOptional.isPresent());
+		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
+				AuthorizationStatus.accessDenied(ERR_MSG_CERTIFIED_USER_CONTENT));
+		assertEquals(expected, resultOptional.get());
+	}
+	
+	@Test
+	public void testDenyIfNotProjectAndNotCertifiedWithProjectCertifiedFalse() {
+		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(false))
+				.withPermissionsState(permissionState.withEntityType(EntityType.project));
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_PROJECT_AND_NOT_CERTIFIED
+				.determineAccess(context);
+		assertFalse(resultOptional.isPresent());
+	}
+	
+	@Test
+	public void testDenyIfNotProjectAndNotCertifiedWithFileCertifiedFalse() {
+		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(false))
+				.withPermissionsState(permissionState.withEntityType(EntityType.file));
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_PROJECT_AND_NOT_CERTIFIED
+				.determineAccess(context);
+		assertTrue(resultOptional.isPresent());
+		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
+				AuthorizationStatus.accessDenied(ERR_MSG_CERTIFIED_USER_CONTENT));
+		assertEquals(expected, resultOptional.get());
+	}
+	
+	@Test
+	public void testDenyIfNotProjectAndNotCertifiedWithProjectCertifiedTrue() {
+		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(true))
+				.withPermissionsState(permissionState.withEntityType(EntityType.project));
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_PROJECT_AND_NOT_CERTIFIED
+				.determineAccess(context);
+		assertFalse(resultOptional.isPresent());
+	}
+	
+	@Test
+	public void testDenyIfNotProjectAndNotCertifiedWithFileCertifiedTrue() {
+		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(true))
+				.withPermissionsState(permissionState.withEntityType(EntityType.file));
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_PROJECT_AND_NOT_CERTIFIED
 				.determineAccess(context);
 		assertFalse(resultOptional.isPresent());
 	}

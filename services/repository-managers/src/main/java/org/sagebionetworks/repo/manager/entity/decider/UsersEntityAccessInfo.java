@@ -21,10 +21,10 @@ public class UsersEntityAccessInfo {
 
 	public UsersEntityAccessInfo(AccessContext context, AuthorizationStatus status) {
 		ValidateArgument.required(context, "context");
-		ValidateArgument.required(context.getPermissionState(),"context.getPermissionState");
-		ValidateArgument.required(context.getPermissionState().getEntityId(),"context.getPermissionState.entityId");
+		ValidateArgument.required(context.getPermissionsState(),"context.getPermissionState");
+		ValidateArgument.required(context.getPermissionsState().getEntityId(),"context.getPermissionState.entityId");
 		ValidateArgument.required(status, "AuthorizationStatus");
-		this.entityId = context.getPermissionState().getEntityId();
+		this.entityId = context.getPermissionsState().getEntityId();
 		this.accessRestrictions = context.getRestrictionStatus();
 		this.authroizationStatus = status;
 		this.wouldHaveAccesIfCertified = false;

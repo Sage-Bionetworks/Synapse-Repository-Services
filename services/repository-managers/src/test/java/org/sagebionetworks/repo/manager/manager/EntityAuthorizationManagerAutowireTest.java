@@ -1,16 +1,17 @@
 package org.sagebionetworks.repo.manager.manager;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CERTIFIED_USER_CONTENT;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTITY_IN_TRASH_TEMPLATE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.*;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
 
 import java.util.UUID;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
+import org.sagebionetworks.repo.manager.UserCertificationRequiredException;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
@@ -29,8 +31,10 @@ import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DataType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
@@ -50,13 +54,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+/**
+ * This was implemented as an integration test so we could ensure both the old
+ * and new code had the same behavior for all cases.
+ *
+ */
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class EntityAuthorizationManagerAutowireTest {
 
 	@Autowired
 	private UserManager userManager;
-	
+
 	@Autowired
 	private NodeDAO nodeDao;
 	@Autowired
@@ -100,13 +109,13 @@ public class EntityAuthorizationManagerAutowireTest {
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
 		userOne = userManager.createOrGetTestUser(adminUserInfo, nu, cred, tou);
-		
+
 		nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
 		userTwo = userManager.createOrGetTestUser(adminUserInfo, nu, cred, tou);
 	}
-	
+
 	@AfterEach
 	public void after() {
 		accessApprovalDAO.clear();
@@ -114,10 +123,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		aclDao.truncateAll();
 		dataTypeDao.truncateAllData();
 		nodeDao.truncateAll();
-		if(userOne != null) {
+		if (userOne != null) {
 			userManager.deletePrincipal(adminUserInfo, userOne.getId());
 		}
-		if(userTwo != null) {
+		if (userTwo != null) {
 			userManager.deletePrincipal(adminUserInfo, userTwo.getId());
 		}
 	}
@@ -138,7 +147,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		assertEquals(oldMessage, newMessage);
 		assertEquals(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
 	}
-	
+
 	@Test
 	public void testHasAccessDownloadWithAccess() {
 		Node project = nodeDaoHelper.create(n -> {
@@ -149,7 +158,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(project.getId());
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.DOWNLOAD));
 		});
-		
+
 		String entityId = project.getId();
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
@@ -162,7 +171,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		assertNotNull(newStatus);
 		assertTrue(newStatus.isAuthorized());
 	}
-	
+
 	@Test
 	public void testHasAccessDownloadWithoutAccess() {
 		Node project = nodeDaoHelper.create(n -> {
@@ -173,31 +182,33 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(project.getId());
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.READ));
 		});
-		
+
 		String entityId = project.getId();
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
-		String message = assertThrows(UnauthorizedException.class, ()->{
+		String message = assertThrows(UnauthorizedException.class, () -> {
 			// old call under test
 			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(String.format(ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, ACCESS_TYPE.DOWNLOAD.name()), message);
-		
-		message = assertThrows(UnauthorizedException.class, ()->{
-			// old call under test
+		assertEquals(String.format(ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, ACCESS_TYPE.DOWNLOAD.name()),
+				message);
+
+		message = assertThrows(UnauthorizedException.class, () -> {
+			// new call under test
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(ERR_MSG_ACCESS_DENIED, message);
+		assertEquals(String.format(ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, ACCESS_TYPE.DOWNLOAD.name()),
+				message);
 	}
-	
+
 	@Test
 	public void testHasAccessDownloadWithInTrash() {
 		Node project = nodeDaoHelper.create(n -> {
 			n.setName("aProject");
 			n.setCreatedByPrincipalId(userOne.getId());
-			n.setParentId(""+NodeConstants.BOOTSTRAP_NODES.TRASH.getId());
+			n.setParentId("" + NodeConstants.BOOTSTRAP_NODES.TRASH.getId());
 		});
-		
+
 		String entityId = project.getId();
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
@@ -212,7 +223,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		assertEquals(oldMessage, newMessage);
 		assertEquals(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, project.getId()), newMessage);
 	}
-	
+
 	@Test
 	public void testHasAccessDownloadWithAccessAsAdmin() {
 		Node project = nodeDaoHelper.create(n -> {
@@ -223,7 +234,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(project.getId());
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.DOWNLOAD));
 		});
-		
+
 		String entityId = project.getId();
 		UserInfo user = adminUserInfo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
@@ -236,7 +247,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		assertNotNull(newStatus);
 		assertTrue(newStatus.isAuthorized());
 	}
-	
+
 	@Test
 	public void testHasAccessWithDownloadAsAnonymous() {
 		Node project = nodeDaoHelper.create(n -> {
@@ -245,17 +256,17 @@ public class EntityAuthorizationManagerAutowireTest {
 		});
 		aclHelper.create((a) -> {
 			a.setId(project.getId());
-			a.getResourceAccess().add(createResourceAccess(
-					BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(), ACCESS_TYPE.DOWNLOAD));
+			a.getResourceAccess()
+					.add(createResourceAccess(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(), ACCESS_TYPE.DOWNLOAD));
 		});
-		
+
 		String entityId = project.getId();
 		UserInfo user = anonymousUser;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
-		
+
 		/*
-		 * Note: The old call assumes that granting download to public is blocked at the ACL level,
-		 * and incorrectly allows download to anonymous.
+		 * Note: The old call assumes that granting download to public is blocked at the
+		 * ACL level, and incorrectly allows download to anonymous.
 		 */
 		// old call under test
 		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
@@ -267,7 +278,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		}).getMessage();
 		assertEquals(ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION, newMessage);
 	}
-	
+
 	@Test
 	public void testHasAccessWithDownloadAsAnonymousOpenData() {
 		Node project = nodeDaoHelper.create(n -> {
@@ -276,15 +287,15 @@ public class EntityAuthorizationManagerAutowireTest {
 		});
 		aclHelper.create((a) -> {
 			a.setId(project.getId());
-			a.getResourceAccess().add(createResourceAccess(
-					BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(), ACCESS_TYPE.READ));
+			a.getResourceAccess()
+					.add(createResourceAccess(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(), ACCESS_TYPE.READ));
 		});
 		dataTypeDao.changeDataType(adminUserInfo.getId(), project.getId(), ObjectType.ENTITY, DataType.OPEN_DATA);
-		
+
 		String entityId = project.getId();
 		UserInfo user = anonymousUser;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
-		
+
 		// old call under test
 		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
 		assertNotNull(oldStatus);
@@ -294,7 +305,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		assertNotNull(newStatus);
 		assertTrue(newStatus.isAuthorized());
 	}
-	
+
 	@Test
 	public void testHasAccessDownloadWithHasNotAcceptedTermsOfUse() {
 		Node project = nodeDaoHelper.create(n -> {
@@ -305,16 +316,16 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(project.getId());
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.DOWNLOAD));
 		});
-		
+
 		String entityId = project.getId();
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
 		// change the user to not accept.
 		userTwo.setAcceptsTermsOfUse(false);
-		
+
 		// old call under test
 		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();;
+			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
 		}).getMessage();
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
@@ -323,7 +334,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		assertEquals(oldMessage, newMessage);
 		assertEquals(ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE, newMessage);
 	}
-	
+
 	@Test
 	public void testHasAccessDownloadWithMetAccessRestrictions() {
 		Node project = nodeDaoHelper.create(n -> {
@@ -346,11 +357,11 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setState(ApprovalState.APPROVED);
 			a.setAccessorId(userTwo.getId().toString());
 		});
-		
+
 		String entityId = project.getId();
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
-		
+
 		// old call under test
 		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
 		assertNotNull(oldStatus);
@@ -360,7 +371,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		assertNotNull(newStatus);
 		assertTrue(newStatus.isAuthorized());
 	}
-	
+
 	@Test
 	public void testHasAccessDownloadWithUnmetAccessRestrictions() {
 		Node project = nodeDaoHelper.create(n -> {
@@ -375,14 +386,14 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setCreatedBy(userOne.getId().toString());
 			a.getSubjectIds().get(0).setId(project.getId());
 		});
-		
+
 		String entityId = project.getId();
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
-		
+
 		// old call under test
 		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();;
+			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
 		}).getMessage();
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
@@ -393,7 +404,961 @@ public class EntityAuthorizationManagerAutowireTest {
 	}
 
 	@Test
-	public void testHasAccessUpload() {
+	public void testHasAccessUpdate() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.UPDATE));
+		});
+		// enuser userTwo is certified
+		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
+
+		// old call under test
+		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
+		assertNotNull(oldStatus);
+		assertTrue(oldStatus.isAuthorized());
+		// new call under test
+		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
+	}
+	
+	@Test
+	public void testHasAccessWithUpdateDoesNotExist() {
+		String entityId = "syn123";
+		UserInfo user = userOne;
+		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
+		// old call under test
+		String oldMessage = assertThrows(NotFoundException.class, () -> {
+			entityPermissionManager.hasAccess(entityId, accessType, user);
+		}).getMessage();
+		// new call under test
+		String newMessage = assertThrows(NotFoundException.class, () -> {
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(oldMessage, newMessage);
+		assertEquals(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
+	}
+	
+	@Test
+	public void testHasAccessWithUpdateWihtoutPermission() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.READ));
+		});
+
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
+
+		// old call under test
+		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		// Note: The old message is not consistent with other calls
+		assertEquals(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE, accessType.name(), entityId), oldMessage);
+		// new call under test
+		String newMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(String.format(ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, ACCESS_TYPE.UPDATE.name()),
+				newMessage);
+	}
+	
+	@Test
+	public void testHasAccessWithUpdateAdminWithoutPermission() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.READ));
+		});
+
+		String entityId = project.getId();
+		UserInfo user = adminUserInfo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
+
+		// old call under test
+		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
+		assertNotNull(oldStatus);
+		assertTrue(oldStatus.isAuthorized());
+		// new call under test
+		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
+	}
+	
+	@Test
+	public void testHasAccessWithUpdateInTrash() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+			n.setParentId("" + NodeConstants.BOOTSTRAP_NODES.TRASH.getId());
+		});
+
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
+		// old call under test
+		String oldMessage = assertThrows(EntityInTrashCanException.class, () -> {
+			entityPermissionManager.hasAccess(entityId, accessType, user);
+		}).getMessage();
+		// new call under test
+		String newMessage = assertThrows(EntityInTrashCanException.class, () -> {
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(oldMessage, newMessage);
+		assertEquals(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, project.getId()), newMessage);
+	}
+	
+	@Test
+	public void testHasAccessWithUpdateProjectWithCertifiedFalse() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.UPDATE));
+		});
+		userTwo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
+
+		// old call under test
+		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
+		assertNotNull(oldStatus);
+		assertTrue(oldStatus.isAuthorized());
+		// new call under test
+		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
+	}
+	
+	@Test
+	public void testHasAccessWithUpdateProjectWithCertifiedTrue() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.UPDATE));
+		});
+		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
+
+		// old call under test
+		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
+		assertNotNull(oldStatus);
+		assertTrue(oldStatus.isAuthorized());
+		// new call under test
+		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
+	}
+	
+	@Test
+	public void testHasAccessWithUpdateFolderWithCertifiedFalse() {
+		Node folder = nodeDaoHelper.create(n -> {
+			n.setName("afolder");
+			n.setCreatedByPrincipalId(userOne.getId());
+			n.setNodeType(EntityType.folder);
+		});
+		aclHelper.create((a) -> {
+			a.setId(folder.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.UPDATE));
+		});
+		userTwo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+
+		String entityId = folder.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
+
+		// old call under test
+		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		// new call under test
+		String newMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(oldMessage, newMessage);
+		assertEquals(ERR_MSG_CERTIFIED_USER_CONTENT, newMessage);
+	}
+	
+	@Test
+	public void testHasAccessWithUpdateFolderWithCertifiedTrue() {
+		Node folder = nodeDaoHelper.create(n -> {
+			n.setName("afolder");
+			n.setCreatedByPrincipalId(userOne.getId());
+			n.setNodeType(EntityType.folder);
+		});
+		aclHelper.create((a) -> {
+			a.setId(folder.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.UPDATE));
+		});
+		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+
+		String entityId = folder.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
+
+		// old call under test
+		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
+		assertNotNull(oldStatus);
+		assertTrue(oldStatus.isAuthorized());
+		// new call under test
+		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
+	}
+	
+	@Test
+	public void testHasAccessWithUpdateAsAnonymous() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess()
+					.add(createResourceAccess(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(), ACCESS_TYPE.UPDATE));
+		});
+
+		String entityId = project.getId();
+		UserInfo user = anonymousUser;
+		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
+
+		// old call under test
+		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		// new call under test
+		String newMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(oldMessage, newMessage);
+		assertEquals(ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION, newMessage);
+	}
+	
+	@Test
+	public void testHasAccessWithUpdateWithoutTermsOfUse() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess()
+					.add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.UPDATE));
+		});
+		userTwo.setAcceptsTermsOfUse(false);
+		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
+
+		// old call under test
+		// The old code works but should not
+		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
+		assertNotNull(oldStatus);
+		assertTrue(oldStatus.isAuthorized());
+		// new call under test
+		String newMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE, newMessage);
+	}
+	
+	@Test
+	public void testCanCreate() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
+		});
+		String parentId = project.getId();
+		EntityType createType = EntityType.project;
+		UserInfo user = userTwo;
+		
+		// old call under test
+		AuthorizationStatus oldStatus = entityPermissionManager.canCreate(parentId, createType, user);
+		assertNotNull(oldStatus);
+		assertTrue(oldStatus.isAuthorized());
+		// new call under test
+		AuthorizationStatus newStatus = entityAuthManager.canCreate(parentId, createType, user);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
+	}
+	
+	@Test
+	public void testCanCreateWithProjectCertifiedFalse() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
+		});
+		
+		userTwo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		
+		String parentId = project.getId();
+		EntityType createType = EntityType.project;
+		UserInfo user = userTwo;
+		
+		// old call under test
+		AuthorizationStatus oldStatus = entityPermissionManager.canCreate(parentId, createType, user);
+		assertNotNull(oldStatus);
+		assertTrue(oldStatus.isAuthorized());
+		// new call under test
+		AuthorizationStatus newStatus = entityAuthManager.canCreate(parentId, createType, user);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
+	}
+	
+	@Test
+	public void testCanCreateWithFileCertifiedFalse() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
+		});
+		
+		userTwo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		
+		String parentId = project.getId();
+		EntityType createType = EntityType.file;
+		UserInfo user = userTwo;
+				
+		// old call under test
+		// This is another cases where the old code was not consistent with the exception type.
+		String oldMessage = assertThrows(UserCertificationRequiredException.class, () -> {
+			entityPermissionManager.canCreate(parentId, createType, user).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		// new call under test
+		String newMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.canCreate(parentId, createType, user).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(oldMessage, newMessage);
+		assertEquals(ERR_MSG_CERTIFIED_USER_CONTENT, newMessage);
+	}
+	
+	@Test
+	public void testCanCreateWithFileCertifiedTrue() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
+		});
+		
+		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		
+		String parentId = project.getId();
+		EntityType createType = EntityType.file;
+		UserInfo user = userTwo;
+		
+		// old call under test
+		AuthorizationStatus oldStatus = entityPermissionManager.canCreate(parentId, createType, user);
+		assertNotNull(oldStatus);
+		assertTrue(oldStatus.isAuthorized());
+		// new call under test
+		AuthorizationStatus newStatus = entityAuthManager.canCreate(parentId, createType, user);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
+	}
+	
+	@Test
+	public void testHasAccessCreate() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
+		});
+		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
+
+		// old call under test
+		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
+		assertNotNull(oldStatus);
+		assertTrue(oldStatus.isAuthorized());
+		// new call under test
+		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
+	}
+	
+	@Test
+	public void testHasAccessWithCreateDoesNotExist() {
+		String entityId = "syn123";
+		UserInfo user = userOne;
+		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
+		// old call under test
+		String oldMessage = assertThrows(NotFoundException.class, () -> {
+			entityPermissionManager.hasAccess(entityId, accessType, user);
+		}).getMessage();
+		// new call under test
+		String newMessage = assertThrows(NotFoundException.class, () -> {
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(oldMessage, newMessage);
+		assertEquals(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
+	}
+	
+	@Test
+	public void testHasAccessWithCreateoWihtoutPermission() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.READ));
+		});
+		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
+
+		// old call under test
+		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		// Note: The old message is not consistent with other calls
+		assertEquals(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE, accessType.name(), entityId),
+				oldMessage);
+		// new call under test
+		String newMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(String.format(ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, accessType.name()),
+				newMessage);
+	}
+	
+	@Test
+	public void testHasAccessWithCreateAdminWithoutPermission() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.READ));
+		});
+		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		String entityId = project.getId();
+		UserInfo user = adminUserInfo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
+
+		// old call under test
+		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
+		assertNotNull(oldStatus);
+		assertTrue(oldStatus.isAuthorized());
+		// new call under test
+		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
+	}
+	
+	@Test
+	public void testHasAccessWithCreateInTrash() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+			n.setParentId("" + NodeConstants.BOOTSTRAP_NODES.TRASH.getId());
+		});
+		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
+		// old call under test
+		// The old code erroneously allows users to create entities in the trash.
+		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
+		assertNotNull(oldStatus);
+		assertTrue(oldStatus.isAuthorized());
+		// new call under test
+		String newMessage = assertThrows(EntityInTrashCanException.class, () -> {
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, project.getId()), newMessage);
+	}
+	
+	/**
+	 * Note: For hasAccess() the creatEntityType is always null so a user must
+	 * always be certified for a create called through this path.
+	 */
+	@Test
+	public void testHasAccessWithCreateProjectWithCertifiedFalse() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
+		});
+		userTwo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
+
+		// old call under test
+		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		// new call under test
+		String newMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(oldMessage, newMessage);
+		assertEquals(ERR_MSG_CERTIFIED_USER_CONTENT, newMessage);
+	}
+	
+	@Test
+	public void testHasAccessWithCreateProjectWithCertifiedTrue() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
+		});
+		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
+
+		// old call under test
+		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
+		assertNotNull(oldStatus);
+		assertTrue(oldStatus.isAuthorized());
+		// new call under test
+		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
+	}
+	
+	@Test
+	public void testHasAccessWithCreateFolderWithCertifiedFalse() {
+		Node folder = nodeDaoHelper.create(n -> {
+			n.setName("afolder");
+			n.setCreatedByPrincipalId(userOne.getId());
+			n.setNodeType(EntityType.folder);
+		});
+		aclHelper.create((a) -> {
+			a.setId(folder.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
+		});
+		userTwo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+
+		String entityId = folder.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
+
+		// old call under test
+		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		// new call under test
+		String newMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(oldMessage, newMessage);
+		assertEquals(ERR_MSG_CERTIFIED_USER_CONTENT, newMessage);
+	}
+	
+	@Test
+	public void testHasAccessWithCreateFolderWithCertifiedTrue() {
+		Node folder = nodeDaoHelper.create(n -> {
+			n.setName("afolder");
+			n.setCreatedByPrincipalId(userOne.getId());
+			n.setNodeType(EntityType.folder);
+		});
+		aclHelper.create((a) -> {
+			a.setId(folder.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
+		});
+		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+
+		String entityId = folder.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
+
+		// old call under test
+		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
+		assertNotNull(oldStatus);
+		assertTrue(oldStatus.isAuthorized());
+		// new call under test
+		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
+	}
+	
+	@Test
+	public void testHasAccessWithCreateAsAnonymous() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess()
+					.add(createResourceAccess(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(), ACCESS_TYPE.CREATE));
+		});
+
+		String entityId = project.getId();
+		UserInfo user = anonymousUser;
+		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
+
+		// old call under test
+		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		// Old code failed for the wrong reason...
+		assertEquals(ERR_MSG_CERTIFIED_USER_CONTENT, oldMessage);
+		// new call under test
+		String newMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION, newMessage);
+	}
+	
+	@Test
+	public void testHasAccessWithCreateWithoutTermsOfUse() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess()
+					.add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
+		});
+		userTwo.setAcceptsTermsOfUse(false);
+		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
+
+		// old call under test
+		// The old code works but should not
+		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
+		assertNotNull(oldStatus);
+		assertTrue(oldStatus.isAuthorized());
+		// new call under test
+		String newMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE, newMessage);
+	}
+	
+	@Test
+	public void testHasAccessRead() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.READ));
+		});
+
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
+
+		// old call under test
+		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
+		assertNotNull(oldStatus);
+		assertTrue(oldStatus.isAuthorized());
+		// new call under test
+		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
+	}
+	
+	@Test
+	public void testHasAccessWithReadDoesNotExist() {
+		String entityId = "syn123";
+		UserInfo user = userOne;
+		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
+		// old call under test
+		String oldMessage = assertThrows(NotFoundException.class, () -> {
+			entityPermissionManager.hasAccess(entityId, accessType, user);
+		}).getMessage();
+		// new call under test
+		String newMessage = assertThrows(NotFoundException.class, () -> {
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(oldMessage, newMessage);
+		assertEquals(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
+	}
+	
+	@Test
+	public void testHasAccessWithReadWihtoutPermission() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
+		});
+
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
+
+		// old call under test
+		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		// Note: The old message is not consistent with other calls
+		assertEquals(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE, accessType.name(), entityId), oldMessage);
+		// new call under test
+		String newMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(String.format(ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, accessType.name()),
+				newMessage);
+	}
+	
+	@Test
+	public void testHasAccessWithReadAdminWithoutPermission() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
+		});
+
+		String entityId = project.getId();
+		UserInfo user = adminUserInfo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
+
+		// old call under test
+		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
+		assertNotNull(oldStatus);
+		assertTrue(oldStatus.isAuthorized());
+		// new call under test
+		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
+	}
+	
+	@Test
+	public void testHasAccessWithReadInTrash() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+			n.setParentId("" + NodeConstants.BOOTSTRAP_NODES.TRASH.getId());
+		});
+
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
+		// old call under test
+		String oldMessage = assertThrows(EntityInTrashCanException.class, () -> {
+			entityPermissionManager.hasAccess(entityId, accessType, user);
+		}).getMessage();
+		// new call under test
+		String newMessage = assertThrows(EntityInTrashCanException.class, () -> {
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(oldMessage, newMessage);
+		assertEquals(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, project.getId()), newMessage);
+	}
+	
+	@Test
+	public void testHasAccessDelete() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.DELETE));
+		});
+
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.DELETE;
+
+		// old call under test
+		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
+		assertNotNull(oldStatus);
+		assertTrue(oldStatus.isAuthorized());
+		// new call under test
+		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
+	}
+	
+	@Test
+	public void testHasAccessWithDeleteDoesNotExist() {
+		String entityId = "syn123";
+		UserInfo user = userOne;
+		ACCESS_TYPE accessType = ACCESS_TYPE.DELETE;
+		// old call under test
+		String oldMessage = assertThrows(NotFoundException.class, () -> {
+			entityPermissionManager.hasAccess(entityId, accessType, user);
+		}).getMessage();
+		// new call under test
+		String newMessage = assertThrows(NotFoundException.class, () -> {
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(oldMessage, newMessage);
+		assertEquals(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
+	}
+	
+	@Test
+	public void testHasAccessWithDeleteWihtoutPermission() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
+		});
+
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.DELETE;
+
+		// old call under test
+		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		// Note: The old message is not consistent with other calls
+		assertEquals(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE, accessType.name(), entityId), oldMessage);
+		// new call under test
+		String newMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(String.format(ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, accessType.name()),
+				newMessage);
+	}
+	
+	@Test
+	public void testHasAccessWithDeleteReadAdminWithoutPermission() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
+		});
+
+		String entityId = project.getId();
+		UserInfo user = adminUserInfo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.DELETE;
+
+		// old call under test
+		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
+		assertNotNull(oldStatus);
+		assertTrue(oldStatus.isAuthorized());
+		// new call under test
+		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
+	}
+	
+	@Test
+	public void testHasAccessWithDeletedInTrash() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+			n.setParentId("" + NodeConstants.BOOTSTRAP_NODES.TRASH.getId());
+		});
+		
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.DELETE;
+
+		// old call under test
+		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		// Note: The old message is not consistent with other calls
+		assertEquals(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE, accessType.name(), entityId), oldMessage);
+		// new call under test
+		String newMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(String.format(ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, accessType.name()),
+				newMessage);
+	}
+	
+	@Test
+	public void testHasAccessWithDeleteAsAnonymous() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess()
+					.add(createResourceAccess(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(), ACCESS_TYPE.UPDATE));
+		});
+
+		String entityId = project.getId();
+		UserInfo user = anonymousUser;
+		ACCESS_TYPE accessType = ACCESS_TYPE.DELETE;
+
+		// old call under test
+		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		// new call under test
+		String newMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(oldMessage, newMessage);
+		assertEquals(ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION, newMessage);
 	}
 }

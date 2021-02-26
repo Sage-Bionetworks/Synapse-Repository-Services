@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.manager.entity.decider;
 
 import java.util.Objects;
 
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 
@@ -12,8 +14,10 @@ import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 public class AccessContext {
 
 	private UserInfoState user;
-	private UserEntityPermissionsState permissionState;
+	private UserEntityPermissionsState permissionsState;
 	private UsersRestrictionStatus restrictionStatus;
+	private ACCESS_TYPE accessType;
+	private EntityType entityCreateType;
 
 	/**
 	 * @return the user
@@ -25,8 +29,8 @@ public class AccessContext {
 	/**
 	 * @return the permissionState
 	 */
-	public UserEntityPermissionsState getPermissionState() {
-		return permissionState;
+	public UserEntityPermissionsState getPermissionsState() {
+		return permissionsState;
 	}
 
 	/**
@@ -45,10 +49,10 @@ public class AccessContext {
 	}
 
 	/**
-	 * @param permissionState the permissionState to set
+	 * @param permissionsState the permissionState to set
 	 */
-	public AccessContext withPermissionState(UserEntityPermissionsState permissionState) {
-		this.permissionState = permissionState;
+	public AccessContext withPermissionsState(UserEntityPermissionsState permissionsState) {
+		this.permissionsState = permissionsState;
 		return this;
 	}
 
@@ -59,10 +63,40 @@ public class AccessContext {
 		this.restrictionStatus = restrictionStatus;
 		return this;
 	}
+	
+	/**
+	 * @return the accessType
+	 */
+	public ACCESS_TYPE getAccessType() {
+		return accessType;
+	}
+
+	/**
+	 * @param accessType the accessType to set
+	 */
+	public AccessContext withAccessType(ACCESS_TYPE accessType) {
+		this.accessType = accessType;
+		return this;
+	}
+
+	/**
+	 * @return the entityCreateType
+	 */
+	public EntityType getEntityCreateType() {
+		return entityCreateType;
+	}
+
+	/**
+	 * @param entityCreateType the entityCreateType to set
+	 */
+	public AccessContext withEntityCreateType(EntityType entityCreateType) {
+		this.entityCreateType = entityCreateType;
+		return this;
+	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(permissionState, restrictionStatus, user);
+		return Objects.hash(permissionsState, restrictionStatus, user);
 	}
 
 	@Override
@@ -74,13 +108,13 @@ public class AccessContext {
 			return false;
 		}
 		AccessContext other = (AccessContext) obj;
-		return Objects.equals(permissionState, other.permissionState)
+		return Objects.equals(permissionsState, other.permissionsState)
 				&& Objects.equals(restrictionStatus, other.restrictionStatus) && Objects.equals(user, other.user);
 	}
 
 	@Override
 	public String toString() {
-		return "AccessContext [user=" + user + ", permissionState=" + permissionState + ", restrictionStatus="
+		return "AccessContext [user=" + user + ", permissionState=" + permissionsState + ", restrictionStatus="
 				+ restrictionStatus + "]";
 	}
 	

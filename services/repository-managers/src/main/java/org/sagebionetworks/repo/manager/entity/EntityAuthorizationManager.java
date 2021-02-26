@@ -5,6 +5,7 @@ import java.util.List;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -51,5 +52,18 @@ public interface EntityAuthorizationManager {
 	 */
 	public UserEntityPermissions getUserPermissionsForEntity(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException;
+	
+
+	/**
+	 * Can the user create an entity within the given parent and of the given entity type?
+	 * @param parentId
+	 * @param entityCreateType
+	 * @param userInfo
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public AuthorizationStatus canCreate(String parentId, EntityType entityCreateType, UserInfo userInfo) throws DatastoreException, NotFoundException;
+
 
 }
