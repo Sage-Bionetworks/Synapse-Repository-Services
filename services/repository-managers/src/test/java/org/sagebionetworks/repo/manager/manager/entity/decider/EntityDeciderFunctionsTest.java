@@ -296,18 +296,6 @@ public class EntityDeciderFunctionsTest {
 				.determineAccess(context);
 		assertFalse(resultOptional.isPresent());
 	}
-
-	@Test
-	public void testGrantIfHasDeleteWithTrue() {
-		permissionState.withHasDelete(true);
-
-		// call under test
-		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_HAS_DELETE
-				.determineAccess(context);
-		assertTrue(resultOptional.isPresent());
-		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context, AuthorizationStatus.authorized());
-		assertEquals(expected, resultOptional.get());
-	}
 	
 	@Test
 	public void testGrantIfHasUpdateWithFalse() {
@@ -354,6 +342,28 @@ public class EntityDeciderFunctionsTest {
 	}
 
 	@Test
+	public void testGrantIfHasReadWithFalse() {
+		permissionState.withHasRead(false);
+
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_HAS_READ
+				.determineAccess(context);
+		assertFalse(resultOptional.isPresent());
+	}
+	
+	@Test
+	public void testGrantIfHasReadWithTrue() {
+		permissionState.withHasRead(true);
+
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_HAS_READ
+				.determineAccess(context);
+		assertTrue(resultOptional.isPresent());
+		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context, AuthorizationStatus.authorized());
+		assertEquals(expected, resultOptional.get());
+	}
+
+	@Test
 	public void testGrantIfHasDeleteWithFalse() {
 		permissionState.withHasDelete(false);
 
@@ -362,6 +372,19 @@ public class EntityDeciderFunctionsTest {
 				.determineAccess(context);
 		assertFalse(resultOptional.isPresent());
 	}
+	
+	@Test
+	public void testGrantIfHasDeleteWithTrue() {
+		permissionState.withHasDelete(true);
+
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_HAS_DELETE
+				.determineAccess(context);
+		assertTrue(resultOptional.isPresent());
+		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context, AuthorizationStatus.authorized());
+		assertEquals(expected, resultOptional.get());
+	}
+	
 
 	@Test
 	public void testDenyIfAnonymousWithTrue() {

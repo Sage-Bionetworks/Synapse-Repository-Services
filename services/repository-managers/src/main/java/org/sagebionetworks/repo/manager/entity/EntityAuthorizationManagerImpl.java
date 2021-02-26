@@ -1,14 +1,19 @@
 package org.sagebionetworks.repo.manager.entity;
 
-import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.*;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_ANONYMOUS;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_CREATE_TYPE_IS_NOT_PROJECT_AND_NOT_CERTIFIED;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_DOES_NOT_EXIST;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_HAS_NOT_ACCEPTED_TERMS_OF_USE;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_HAS_UNMET_ACCESS_RESTRICTIONS;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_IN_TRASH;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_NOT_PROJECT_AND_NOT_CERTIFIED;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_ADMIN;
-import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_OPEN_DATA_WITH_READ;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_HAS_CREATE;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_HAS_DOWNLOAD;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_HAS_UPDATE;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.*;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -115,20 +120,13 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		case DOWNLOAD:
 			return ids.stream().map(t -> determineDownloadAccess(userInfo, provider.getPermissionsState(t),
 					provider.getRestrictionStatus(t)));
-		case UPLOAD:
-			return ids.stream().map(t -> determineUploadAccess(userInfo, provider.getPermissionsState(t)));
 		case CHANGE_SETTINGS:
 			return ids.stream().map(t -> determineChangeSettingsAccess(userInfo, provider.getPermissionsState(t)));
 		case MODERATE:
 			return ids.stream().map(t -> determineModerateAccess(userInfo, provider.getPermissionsState(t)));
 		default:
 			throw new IllegalArgumentException("Unknown access type: " + accessType);
-
 		}
-	}
-
-	UsersEntityAccessInfo determineUploadAccess(UserInfoState userInfo, UserEntityPermissionsState permissionsState) {
-		return null;
 	}
 
 	/**
@@ -166,6 +164,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 			DENY_IF_IN_TRASH,
 			DENY_IF_ANONYMOUS,
 			DENY_IF_NOT_PROJECT_AND_NOT_CERTIFIED,
+			DENY_IF_HAS_NOT_ACCEPTED_TERMS_OF_USE,
 			GRANT_IF_HAS_UPDATE,
 			DENY
 		);
@@ -182,6 +181,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 			DENY_IF_IN_TRASH,
 			DENY_IF_ANONYMOUS,
 			DENY_IF_CREATE_TYPE_IS_NOT_PROJECT_AND_NOT_CERTIFIED,
+			DENY_IF_HAS_NOT_ACCEPTED_TERMS_OF_USE,
 			GRANT_IF_HAS_CREATE,
 			DENY
 		);
@@ -189,7 +189,30 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 	}
 
 	UsersEntityAccessInfo determineReadAccess(UserInfoState userInfo, UserEntityPermissionsState permissionsState) {
-		return null;
+		// @formatter:off
+		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
+				.withAccessType(ACCESS_TYPE.READ),
+			DENY_IF_DOES_NOT_EXIST,
+			GRANT_IF_ADMIN,
+			DENY_IF_IN_TRASH,
+			GRANT_IF_HAS_READ,
+			DENY
+		);
+		// @formatter:on
+	}
+	
+	UsersEntityAccessInfo determineDeleteAccess(UserInfoState userInfo,
+			UserEntityPermissionsState permissionsState) {
+		// @formatter:off
+		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
+				.withAccessType(ACCESS_TYPE.DELETE),
+			DENY_IF_DOES_NOT_EXIST,
+			GRANT_IF_ADMIN,
+			DENY_IF_ANONYMOUS,
+			GRANT_IF_HAS_DELETE,
+			DENY
+		);
+		// @formatter:on
 	}
 
 	UsersEntityAccessInfo determineModerateAccess(UserInfoState userInfo, UserEntityPermissionsState permissionsState) {
@@ -202,11 +225,6 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 	}
 
 	UsersEntityAccessInfo determineChangePermissionAccess(UserInfoState userInfo,
-			UserEntityPermissionsState permissionsState) {
-		return null;
-	}
-
-	UsersEntityAccessInfo determineDeleteAccess(UserInfoState UserInfoState,
 			UserEntityPermissionsState permissionsState) {
 		return null;
 	}

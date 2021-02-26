@@ -11,7 +11,6 @@ import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_
 
 import java.util.Optional;
 
-import org.sagebionetworks.repo.manager.UserCertificationRequiredException;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.EntityType;
@@ -147,6 +146,16 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	 */
 	GRANT_IF_HAS_CREATE((c) -> {
 		if (c.getPermissionsState().hasCreate()) {
+			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.authorized()));
+		} else {
+			return Optional.empty();
+		}
+	}),
+	/**
+	 * Grants if the user has the READ permission on the entity.
+	 */
+	GRANT_IF_HAS_READ((c) -> {
+		if (c.getPermissionsState().hasRead()) {
 			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.authorized()));
 		} else {
 			return Optional.empty();
