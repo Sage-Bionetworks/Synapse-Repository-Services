@@ -1,4 +1,4 @@
-package org.sagebionetworks.evaluation.manager;
+package org.sagebionetworks.repo.manager.evaluation;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -18,6 +18,7 @@ import org.sagebionetworks.evaluation.model.EvaluationRound;
 import org.sagebionetworks.evaluation.model.EvaluationRoundLimit;
 import org.sagebionetworks.evaluation.model.EvaluationRoundLimitType;
 import org.sagebionetworks.evaluation.model.SubmissionQuota;
+import org.sagebionetworks.repo.manager.evaluation.SubmissionQuotaUtil;
 import org.sagebionetworks.util.Pair;
 
 public class SubmissionQuotaUtilTest {

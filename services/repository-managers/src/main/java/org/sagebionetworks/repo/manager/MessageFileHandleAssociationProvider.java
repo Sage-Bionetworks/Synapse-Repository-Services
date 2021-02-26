@@ -10,10 +10,13 @@ import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanne
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Service;
 
+@Service
 public class MessageFileHandleAssociationProvider implements FileHandleAssociationProvider {
 
 	private MessageDAO messageDAO;
@@ -23,6 +26,11 @@ public class MessageFileHandleAssociationProvider implements FileHandleAssociati
 	public MessageFileHandleAssociationProvider(MessageDAO messageDao, NamedParameterJdbcTemplate jdbcTemplate) {
 		this.messageDAO = messageDao;
 		this.scanner = new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOMessageContent().getTableMapping());
+	}
+	
+	@Override
+	public FileHandleAssociateType getAssociateType() {
+		return FileHandleAssociateType.MessageAttachment;
 	}
 
 	@Override

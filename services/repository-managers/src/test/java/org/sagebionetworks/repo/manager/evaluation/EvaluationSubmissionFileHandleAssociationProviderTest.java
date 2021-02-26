@@ -1,4 +1,4 @@
-package org.sagebionetworks.evaluation.manager;
+package org.sagebionetworks.repo.manager.evaluation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -23,6 +23,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAO;
+import org.sagebionetworks.repo.manager.evaluation.EvaluationSubmissionFileHandleAssociationProvider;
 import org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner;
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
 import org.sagebionetworks.repo.manager.file.scanner.IdRange;
@@ -33,7 +34,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 @ExtendWith(MockitoExtension.class)
-public class SubmissionFileHandleAssociationProviderTest {
+public class EvaluationSubmissionFileHandleAssociationProviderTest {
 
 	@Mock
 	private SubmissionFileHandleDAO mockSubmissionFileHandleDAO;
@@ -45,7 +46,7 @@ public class SubmissionFileHandleAssociationProviderTest {
 	private NamedParameterJdbcTemplate mockNamedJdbcTemplate;
 	
 	@InjectMocks
-	private SubmissionFileHandleAssociationProvider provider;
+	private EvaluationSubmissionFileHandleAssociationProvider provider;
 	
 
 	@Test

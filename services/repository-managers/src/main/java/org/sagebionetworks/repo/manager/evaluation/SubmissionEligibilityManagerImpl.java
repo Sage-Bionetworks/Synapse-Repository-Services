@@ -1,4 +1,4 @@
-package org.sagebionetworks.evaluation.manager;
+package org.sagebionetworks.repo.manager.evaluation;
 
 import static java.time.temporal.TemporalAdjusters.firstDayOfMonth;
 import static java.time.temporal.TemporalAdjusters.previousOrSame;
@@ -11,10 +11,7 @@ import static org.sagebionetworks.evaluation.model.SubmissionStatusEnum.SCORED;
 import static org.sagebionetworks.evaluation.model.SubmissionStatusEnum.VALIDATED;
 
 import java.time.DayOfWeek;
-import java.time.Instant;
-import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -44,11 +41,11 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-public class SubmissionEligibilityManagerImpl implements
-		SubmissionEligibilityManager {
+@Service
+public class SubmissionEligibilityManagerImpl implements SubmissionEligibilityManager {
 
 	@Autowired
 	SubmissionDAO submissionDAO;

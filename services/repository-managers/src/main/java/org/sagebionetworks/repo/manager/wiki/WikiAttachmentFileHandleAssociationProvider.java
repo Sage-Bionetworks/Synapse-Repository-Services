@@ -8,9 +8,12 @@ import org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationS
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.wikiV2.V2DBOWikiAttachmentReservation;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Service;
 
+@Service
 public class WikiAttachmentFileHandleAssociationProvider implements FileHandleAssociationProvider {
 
 	private V2WikiPageDao wikiPageDaoV2;
@@ -20,7 +23,11 @@ public class WikiAttachmentFileHandleAssociationProvider implements FileHandleAs
 		this.wikiPageDaoV2 = wikiPageDaoV2;
 		// Note: This table contains all the attachments of a wiki plus the wiki id itself
 		this.scanner = new BasicFileHandleAssociationScanner(jdbcTemplate, new V2DBOWikiAttachmentReservation().getTableMapping());
-		
+	}
+	
+	@Override
+	public FileHandleAssociateType getAssociateType() {
+		return FileHandleAssociateType.WikiAttachment;
 	}
 
 	@Override

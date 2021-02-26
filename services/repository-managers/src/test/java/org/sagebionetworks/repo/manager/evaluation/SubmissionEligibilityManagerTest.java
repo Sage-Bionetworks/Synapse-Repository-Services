@@ -1,4 +1,4 @@
-package org.sagebionetworks.evaluation.manager;
+package org.sagebionetworks.repo.manager.evaluation;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -16,7 +16,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.evaluation.manager.SubmissionEligibilityManagerImpl.STATUSES_COUNTED_TOWARD_QUOTA;
+import static org.sagebionetworks.repo.manager.evaluation.SubmissionEligibilityManagerImpl.STATUSES_COUNTED_TOWARD_QUOTA;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -52,6 +52,8 @@ import org.sagebionetworks.evaluation.model.MemberSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.SubmissionEligibility;
 import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
+import org.sagebionetworks.repo.manager.evaluation.SubmissionEligibilityManagerImpl;
+import org.sagebionetworks.repo.manager.evaluation.SubmissionQuotaUtil;
 import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengeDAO;
 import org.sagebionetworks.repo.model.ChallengeTeamDAO;

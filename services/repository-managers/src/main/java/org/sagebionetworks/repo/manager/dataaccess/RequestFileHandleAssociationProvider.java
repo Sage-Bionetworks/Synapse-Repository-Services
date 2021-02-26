@@ -23,11 +23,14 @@ import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBORequest;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestUtils;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Service;
 
+@Service
 public class RequestFileHandleAssociationProvider implements FileHandleAssociationProvider {
 	
 	private static Logger LOG = LogManager.getLogger(RequestFileHandleAssociationProvider.class);
@@ -83,6 +86,11 @@ public class RequestFileHandleAssociationProvider implements FileHandleAssociati
 	public RequestFileHandleAssociationProvider(RequestDAO requestDao, NamedParameterJdbcTemplate jdbcTemplate) {
 		this.requestDao = requestDao;
 		this.scanner = new BasicFileHandleAssociationScanner(jdbcTemplate, new DBORequest().getTableMapping(), COL_DATA_ACCESS_REQUEST_REQUEST_SERIALIZED, DEFAULT_BATCH_SIZE, SCANNED_MAPPER);
+	}
+	
+	@Override
+	public FileHandleAssociateType getAssociateType() {
+		return FileHandleAssociateType.DataAccessRequestAttachment;
 	}
 
 	@Override

@@ -6,7 +6,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import javax.annotation.PostConstruct;
 
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -14,10 +17,12 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class FileHandleAssociationManagerImpl implements FileHandleAssociationManager {
 
-	Map<FileHandleAssociateType, FileHandleAssociationProvider> providerMap;
+	private Map<FileHandleAssociateType, FileHandleAssociationProvider> providerMap;
 
 	private FileHandleDao fileHandleDao;
 
@@ -26,6 +31,11 @@ public class FileHandleAssociationManagerImpl implements FileHandleAssociationMa
 		this.fileHandleDao = fileHandleDao;
 	}
 
+	@Autowired
+	public void configure(List<FileHandleAssociationProvider> providers) {
+		this.providerMap = providers.stream().collect(Collectors.toMap(p -> p.getAssociateType(), Function.identity()));
+	}
+	
 	@Override
 	public Set<String> getFileHandleIdsAssociatedWithObject(List<String> fileHandleIds, String objectId,
 			FileHandleAssociateType associateType) {
@@ -91,15 +101,6 @@ public class FileHandleAssociationManagerImpl implements FileHandleAssociationMa
 					"Currently do not support this operation for FileHandleAssociationType = " + type);
 		}
 		return provider;
-	}
-
-	/**
-	 * Injected.
-	 * 
-	 * @param providerMap
-	 */
-	public void setProviderMap(Map<FileHandleAssociateType, FileHandleAssociationProvider> providerMap) {
-		this.providerMap = providerMap;
 	}
 
 }

@@ -9,13 +9,13 @@ import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
@@ -39,16 +39,13 @@ public class FileHandleAssociationManagerImplTest {
 	@Mock
 	FileHandleDao mockFileHandleDao;
 
+	@InjectMocks
 	FileHandleAssociationManagerImpl fileHandleAssociationManager;
 
 	@BeforeEach
 	public void before() {
-
-		HashMap<FileHandleAssociateType, FileHandleAssociationProvider> mockMap = new HashMap<FileHandleAssociateType, FileHandleAssociationProvider>();
-		mockMap.put(FileHandleAssociateType.TableEntity, mockProvider);
-
-		fileHandleAssociationManager = new FileHandleAssociationManagerImpl(mockFileHandleDao);
-		fileHandleAssociationManager.setProviderMap(mockMap);
+		when(mockProvider.getAssociateType()).thenReturn(FileHandleAssociateType.TableEntity);
+		fileHandleAssociationManager.configure(Collections.singletonList(mockProvider));
 	}
 
 	@Test

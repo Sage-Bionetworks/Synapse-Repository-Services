@@ -23,11 +23,14 @@ import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmission;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionUtils;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Service;
 
+@Service
 public class SubmissionFileHandleAssociationProvider implements FileHandleAssociationProvider {
 	
 	private static Logger LOG = LogManager.getLogger(SubmissionFileHandleAssociationProvider.class);
@@ -82,6 +85,11 @@ public class SubmissionFileHandleAssociationProvider implements FileHandleAssoci
 	public SubmissionFileHandleAssociationProvider(SubmissionDAO submissionDao, NamedParameterJdbcTemplate jdbcTemplate) {
 		this.submissionDao = submissionDao;
 		this.scanner = new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOSubmission().getTableMapping(), COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED, DEFAULT_BATCH_SIZE, SCANNED_MAPPER);
+	}
+	
+	@Override
+	public FileHandleAssociateType getAssociateType() {
+		return FileHandleAssociateType.DataAccessSubmissionAttachment;
 	}
 
 	@Override

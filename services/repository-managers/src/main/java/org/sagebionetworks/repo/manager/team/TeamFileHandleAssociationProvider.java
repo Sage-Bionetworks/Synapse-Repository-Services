@@ -13,10 +13,13 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Service;
 
+@Service
 public class TeamFileHandleAssociationProvider implements FileHandleAssociationProvider{
 
 	private TeamDAO teamDao;
@@ -26,7 +29,11 @@ public class TeamFileHandleAssociationProvider implements FileHandleAssociationP
 	public TeamFileHandleAssociationProvider(TeamDAO teamDao, NamedParameterJdbcTemplate jdbcTemplate) {
 		this.teamDao = teamDao;
 		this.scanner = new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOTeam().getTableMapping(), COL_TEAM_ICON);
-		
+	}
+	
+	@Override
+	public FileHandleAssociateType getAssociateType() {
+		return FileHandleAssociateType.TeamAttachment;
 	}
 
 	@Override

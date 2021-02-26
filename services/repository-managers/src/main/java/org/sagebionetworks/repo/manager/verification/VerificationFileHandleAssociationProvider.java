@@ -10,9 +10,12 @@ import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanne
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmissionFile;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Service;
 
+@Service
 public class VerificationFileHandleAssociationProvider implements FileHandleAssociationProvider {
 	
 	private VerificationDAO verificationDao;
@@ -22,6 +25,11 @@ public class VerificationFileHandleAssociationProvider implements FileHandleAsso
 	public VerificationFileHandleAssociationProvider(VerificationDAO verificationDao, NamedParameterJdbcTemplate jdbcTemplate) {
 		this.verificationDao = verificationDao;
 		this.scanner = new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOVerificationSubmissionFile().getTableMapping());
+	}
+	
+	@Override
+	public FileHandleAssociateType getAssociateType() {
+		return FileHandleAssociateType.VerificationSubmission;
 	}
 
 	@Override

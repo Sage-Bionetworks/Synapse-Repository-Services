@@ -24,11 +24,14 @@ import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Service;
 
+@Service
 public class AccessRequirementFileHandleAssociationProvider implements FileHandleAssociationProvider {
 	
 	private static Logger LOG = LogManager.getLogger(AccessRequirementFileHandleAssociationProvider.class);
@@ -85,6 +88,11 @@ public class AccessRequirementFileHandleAssociationProvider implements FileHandl
 	public AccessRequirementFileHandleAssociationProvider(AccessRequirementDAO accessRequirementDao, NamedParameterJdbcTemplate jdbcTemplate) {
 		this.accessRequirementDao = accessRequirementDao;
 		this.scanner = new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOAccessRequirementRevision().getTableMapping(), COL_ACCESS_REQUIREMENT_REVISION_SERIALIZED_ENTITY, DEFAULT_BATCH_SIZE, SCANNED_MAPPER);
+	}
+	
+	@Override
+	public FileHandleAssociateType getAssociateType() {
+		return FileHandleAssociateType.AccessRequirementAttachment;
 	}
 
 	@Override

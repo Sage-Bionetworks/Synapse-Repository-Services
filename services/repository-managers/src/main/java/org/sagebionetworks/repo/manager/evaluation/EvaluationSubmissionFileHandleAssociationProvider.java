@@ -1,4 +1,4 @@
-package org.sagebionetworks.evaluation.manager;
+package org.sagebionetworks.repo.manager.evaluation;
 
 import java.util.HashSet;
 import java.util.List;
@@ -10,18 +10,26 @@ import org.sagebionetworks.repo.manager.file.FileHandleAssociationProvider;
 import org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner;
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Service;
 
-public class SubmissionFileHandleAssociationProvider implements FileHandleAssociationProvider{
+@Service
+public class EvaluationSubmissionFileHandleAssociationProvider implements FileHandleAssociationProvider{
 
 	private SubmissionFileHandleDAO submissionFileHandleDao;
 	private FileHandleAssociationScanner scanner;
 	
 	@Autowired
-	public SubmissionFileHandleAssociationProvider(SubmissionFileHandleDAO submissionFileHandleDao, NamedParameterJdbcTemplate jdbcTemplate) {
+	public EvaluationSubmissionFileHandleAssociationProvider(SubmissionFileHandleDAO submissionFileHandleDao, NamedParameterJdbcTemplate jdbcTemplate) {
 		this.submissionFileHandleDao = submissionFileHandleDao;
 		this.scanner = new BasicFileHandleAssociationScanner(jdbcTemplate, new SubmissionFileHandleDBO().getTableMapping());
+	}
+
+	@Override
+	public FileHandleAssociateType getAssociateType() {
+		return FileHandleAssociateType.SubmissionAttachment;
 	}
 
 	@Override

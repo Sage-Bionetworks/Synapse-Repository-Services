@@ -8,9 +8,12 @@ import org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationS
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Service;
 
+@Service
 public class FileEntityFileHandleAssociationProvider implements FileHandleAssociationProvider {
 
 	private NodeManager nodeManager;
@@ -21,6 +24,11 @@ public class FileEntityFileHandleAssociationProvider implements FileHandleAssoci
 	public FileEntityFileHandleAssociationProvider(NodeManager nodeManager, NamedParameterJdbcTemplate jdbcTemplate) {
 		this.nodeManager = nodeManager;
 		this.scanner = new BasicFileHandleAssociationScanner(jdbcTemplate, new DBORevision().getTableMapping());
+	}
+	
+	@Override
+	public FileHandleAssociateType getAssociateType() {
+		return FileHandleAssociateType.FileEntity;
 	}
 	
 	@Override
