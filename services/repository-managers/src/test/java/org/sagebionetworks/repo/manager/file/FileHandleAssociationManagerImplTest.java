@@ -1,12 +1,14 @@
 package org.sagebionetworks.repo.manager.file;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -19,6 +21,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
+import org.sagebionetworks.repo.manager.file.scanner.IdRange;
+import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
@@ -31,21 +35,23 @@ import com.google.common.collect.Sets;
 public class FileHandleAssociationManagerImplTest {
 
 	@Mock
-	FileHandleAssociationProvider mockProvider;
+	private FileHandleAssociationProvider mockProvider;
 	
 	@Mock
-	FileHandleAssociationScanner mockScanner;
+	private FileHandleAssociationScanner mockScanner;
 
 	@Mock
-	FileHandleDao mockFileHandleDao;
+	private FileHandleDao mockFileHandleDao;
 
 	@InjectMocks
-	FileHandleAssociationManagerImpl fileHandleAssociationManager;
+	private FileHandleAssociationManagerImpl fileHandleAssociationManager;
 
 	@BeforeEach
 	public void before() {
 		when(mockProvider.getAssociateType()).thenReturn(FileHandleAssociateType.TableEntity);
-		fileHandleAssociationManager.configure(Collections.singletonList(mockProvider));
+		
+		fileHandleAssociationManager.configureProviderMap(Collections.singletonList(mockProvider));
+		fileHandleAssociationManager.configureScannerMap(Collections.singletonMap(FileHandleAssociateType.TableEntity, mockScanner));
 	}
 
 	@Test
@@ -130,15 +136,36 @@ public class FileHandleAssociationManagerImplTest {
 	}
 	
 	@Test
-	public void testGetFileHandleAssociationScanner() {
+	public void testGetIdRange() {
+
+		IdRange expected = new IdRange(1, 10);
 		
-		when(mockProvider.getAssociationScanner()).thenReturn(mockScanner);
+		when(mockScanner.getIdRange()).thenReturn(expected);
 		
-	    FileHandleAssociationScanner scanner = fileHandleAssociationManager.getFileHandleAssociationScanner(FileHandleAssociateType.TableEntity);
-	    
-	    assertEquals(mockScanner, scanner);
-	    
-	    verify(mockProvider).getAssociationScanner();
+		// Call under test
+		IdRange result = fileHandleAssociationManager.getIdRange(FileHandleAssociateType.TableEntity);
+		
+		assertEquals(expected, result);
+		
+		verify(mockScanner).getIdRange();
+		
+	}
+	
+	public void testScanRange() {
+		
+		Iterable<ScannedFileHandleAssociation> expected = new ArrayList<>();
+		
+		when(mockScanner.scanRange(any())).thenReturn(expected);
+		
+		IdRange range = new IdRange(1, 10);
+		
+		// Call under test
+		Iterable<ScannedFileHandleAssociation> result = fileHandleAssociationManager.scanRange(FileHandleAssociateType.TableEntity, range);
+		
+		assertEquals(expected, result);
+		
+		verify(mockScanner).scanRange(range);
+		
 	}
 
 }

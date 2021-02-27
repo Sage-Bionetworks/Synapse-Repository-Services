@@ -1,34 +1,26 @@
 package org.sagebionetworks.repo.manager.team;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ICON;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationProvider;
-import org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner;
-import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
 public class TeamFileHandleAssociationProvider implements FileHandleAssociationProvider{
 
 	private TeamDAO teamDao;
-	private FileHandleAssociationScanner scanner;
 	
 	@Autowired
-	public TeamFileHandleAssociationProvider(TeamDAO teamDao, NamedParameterJdbcTemplate jdbcTemplate) {
+	public TeamFileHandleAssociationProvider(TeamDAO teamDao) {
 		this.teamDao = teamDao;
-		this.scanner = new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOTeam().getTableMapping(), COL_TEAM_ICON);
 	}
 	
 	@Override
@@ -53,11 +45,6 @@ public class TeamFileHandleAssociationProvider implements FileHandleAssociationP
 	@Override
 	public ObjectType getAuthorizationObjectTypeForAssociatedObjectType() {
 		return ObjectType.TEAM;
-	}
-
-	@Override
-	public FileHandleAssociationScanner getAssociationScanner() {
-		return scanner;
 	}
 
 }

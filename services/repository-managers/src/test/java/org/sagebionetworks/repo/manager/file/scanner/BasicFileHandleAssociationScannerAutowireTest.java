@@ -1,13 +1,11 @@
 package org.sagebionetworks.repo.manager.file.scanner;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScannerTestUtils.generateMapping;
 import static org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner.DEFAULT_BATCH_SIZE;
 import static org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner.DEFAULT_FILE_ID_COLUMN_NAME;
+import static org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScannerTestUtils.generateMapping;
 
 import java.io.IOException;
-import java.sql.Blob;
-import java.sql.ResultSet;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,7 +25,6 @@ import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;

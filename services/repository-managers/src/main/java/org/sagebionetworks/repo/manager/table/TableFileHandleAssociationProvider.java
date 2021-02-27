@@ -4,8 +4,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationProvider;
-import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
-import org.sagebionetworks.repo.manager.file.scanner.tables.TableFileHandleScanner;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,12 +13,10 @@ import org.springframework.stereotype.Service;
 public class TableFileHandleAssociationProvider implements FileHandleAssociationProvider {
 	
 	private TableEntityManager tableEntityManager;
-	private FileHandleAssociationScanner scanner;
 	
 	@Autowired
-	public TableFileHandleAssociationProvider(TableEntityManager tableEntityManager, TableFileHandleScanner scanner) {
+	public TableFileHandleAssociationProvider(TableEntityManager tableEntityManager) {
 		this.tableEntityManager = tableEntityManager;
-		this.scanner = scanner;
 	}	
 	
 	@Override
@@ -47,9 +43,4 @@ public class TableFileHandleAssociationProvider implements FileHandleAssociation
 		return ObjectType.ENTITY;
 	}
 	
-	@Override
-	public FileHandleAssociationScanner getAssociationScanner() {
-		return scanner;
-	}
-
 }

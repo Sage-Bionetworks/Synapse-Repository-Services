@@ -17,14 +17,11 @@ import org.sagebionetworks.repo.model.dbo.DMLUtils;
 import org.sagebionetworks.repo.model.dbo.migration.QueryStreamIterable;
 import org.sagebionetworks.util.NestedMappingIterator;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.stereotype.Service;
 
 import com.google.common.collect.ImmutableMap;
 
-@Service
 public class TableFileHandleScanner implements FileHandleAssociationScanner {
 
 	private static final long MAX_TABLES_LIMIT = 10000;
@@ -41,7 +38,6 @@ public class TableFileHandleScanner implements FileHandleAssociationScanner {
 	
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	
-	@Autowired
 	public TableFileHandleScanner(TableEntityManager tableManager, NamedParameterJdbcTemplate namedJdbcTemplate) {
 		this.tableManager = tableManager;
 		this.namedJdbcTemplate = namedJdbcTemplate;
