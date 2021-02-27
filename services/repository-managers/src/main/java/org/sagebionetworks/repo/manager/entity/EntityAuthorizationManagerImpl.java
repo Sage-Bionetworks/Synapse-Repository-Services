@@ -217,17 +217,47 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 	}
 
 	UsersEntityAccessInfo determineModerateAccess(UserInfoState userInfo, UserEntityPermissionsState permissionsState) {
-		return null;
+		// @formatter:off
+		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
+				.withAccessType(ACCESS_TYPE.MODERATE),
+			DENY_IF_DOES_NOT_EXIST,
+			DENY_IF_IN_TRASH,
+			GRANT_IF_ADMIN,
+			DENY_IF_ANONYMOUS,
+			GRANT_IF_HAS_MODERATE,
+			DENY
+		);
+		// @formatter:on
 	}
 
 	UsersEntityAccessInfo determineChangeSettingsAccess(UserInfoState userInfo,
 			UserEntityPermissionsState permissionsState) {
-		return null;
+		// @formatter:off
+		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
+				.withAccessType(ACCESS_TYPE.CHANGE_SETTINGS),
+			DENY_IF_DOES_NOT_EXIST,
+			DENY_IF_IN_TRASH,
+			GRANT_IF_ADMIN,
+			DENY_IF_ANONYMOUS,
+			GRANT_IF_HAS_CHANGE_SETTINGS,
+			DENY
+		);
+		// @formatter:on
 	}
 
 	UsersEntityAccessInfo determineChangePermissionAccess(UserInfoState userInfo,
 			UserEntityPermissionsState permissionsState) {
-		return null;
+		// @formatter:off
+		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
+				.withAccessType(ACCESS_TYPE.CHANGE_PERMISSIONS),
+			DENY_IF_DOES_NOT_EXIST,
+			DENY_IF_IN_TRASH,
+			GRANT_IF_ADMIN,
+			DENY_IF_ANONYMOUS,
+			GRANT_IF_HAS_CHANGE_PERMISSION,
+			DENY
+		);
+		// @formatter:on
 	}
 
 }
