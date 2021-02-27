@@ -58,7 +58,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		ValidateArgument.required(userInfo, "UserInfo");
 		ValidateArgument.required(entityId, "entityId");
 		ValidateArgument.required(accessType, "accessType");
-		return batchHasAccess(userInfo, KeyFactory.stringToKeyList(entityId), accessType).stream().findFirst()
+		return batchHasAccess(userInfo, KeyFactory.stringToKeySingletonList(entityId), accessType).stream().findFirst()
 				.orElseThrow(() -> new IllegalStateException("Unexpected empty results")).getAuthroizationStatus();
 	}
 	
@@ -69,7 +69,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		ValidateArgument.required(parentId, "parentId");
 		ValidateArgument.required(entityCreateType, "entityCreateType");
 		UserEntityPermissionsState state = usersEntityPermissionsDao
-				.getEntityPermissions(userInfo.getGroups(), KeyFactory.stringToKeyList(parentId)).stream()
+				.getEntityPermissions(userInfo.getGroups(), KeyFactory.stringToKeySingletonList(parentId)).stream()
 				.findFirst().get();
 		return determineCreateAccess(new UserInfoState(userInfo), state, entityCreateType).getAuthroizationStatus();
 	}
@@ -108,22 +108,22 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		case CREATE:
 			EntityType newEntityType = null;
 			return ids.stream()
-					.map(t -> determineCreateAccess(userInfo, provider.getPermissionsState(t), newEntityType));
+					.map(id -> determineCreateAccess(userInfo, provider.getPermissionsState(id), newEntityType));
 		case READ:
-			return ids.stream().map(t -> determineReadAccess(userInfo, provider.getPermissionsState(t)));
+			return ids.stream().map(id -> determineReadAccess(userInfo, provider.getPermissionsState(id)));
 		case UPDATE:
-			return ids.stream().map(t -> determineUpdateAccess(userInfo, provider.getPermissionsState(t)));
+			return ids.stream().map(id -> determineUpdateAccess(userInfo, provider.getPermissionsState(id)));
 		case DELETE:
-			return ids.stream().map(t -> determineDeleteAccess(userInfo, provider.getPermissionsState(t)));
+			return ids.stream().map(id -> determineDeleteAccess(userInfo, provider.getPermissionsState(id)));
 		case CHANGE_PERMISSIONS:
-			return ids.stream().map(t -> determineChangePermissionAccess(userInfo, provider.getPermissionsState(t)));
+			return ids.stream().map(id -> determineChangePermissionAccess(userInfo, provider.getPermissionsState(id)));
 		case DOWNLOAD:
-			return ids.stream().map(t -> determineDownloadAccess(userInfo, provider.getPermissionsState(t),
-					provider.getRestrictionStatus(t)));
+			return ids.stream().map(id -> determineDownloadAccess(userInfo, provider.getPermissionsState(id),
+					provider.getRestrictionStatus(id)));
 		case CHANGE_SETTINGS:
-			return ids.stream().map(t -> determineChangeSettingsAccess(userInfo, provider.getPermissionsState(t)));
+			return ids.stream().map(id -> determineChangeSettingsAccess(userInfo, provider.getPermissionsState(id)));
 		case MODERATE:
-			return ids.stream().map(t -> determineModerateAccess(userInfo, provider.getPermissionsState(t)));
+			return ids.stream().map(id -> determineModerateAccess(userInfo, provider.getPermissionsState(id)));
 		default:
 			throw new IllegalArgumentException("Unknown access type: " + accessType);
 		}
@@ -143,8 +143,8 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userState).withPermissionsState(permissionsState)
 				.withRestrictionStatus(restrictionStatus).withAccessType(ACCESS_TYPE.DOWNLOAD),
 			DENY_IF_DOES_NOT_EXIST,
-			GRANT_IF_ADMIN,
 			DENY_IF_IN_TRASH,
+			GRANT_IF_ADMIN,
 			DENY_IF_HAS_UNMET_ACCESS_RESTRICTIONS,
 			GRANT_IF_OPEN_DATA_WITH_READ,
 			DENY_IF_ANONYMOUS,
@@ -160,8 +160,8 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
 				.withAccessType(ACCESS_TYPE.UPDATE),
 			DENY_IF_DOES_NOT_EXIST,
-			GRANT_IF_ADMIN,
 			DENY_IF_IN_TRASH,
+			GRANT_IF_ADMIN,
 			DENY_IF_ANONYMOUS,
 			DENY_IF_NOT_PROJECT_AND_NOT_CERTIFIED,
 			DENY_IF_HAS_NOT_ACCEPTED_TERMS_OF_USE,
@@ -171,14 +171,14 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		// @formatter:on
 	}
 	
-	UsersEntityAccessInfo determineCreateAccess(UserInfoState userInfo, UserEntityPermissionsState permissionsState,
+	UsersEntityAccessInfo determineCreateAccess(UserInfoState userInfo, UserEntityPermissionsState parentPermissionsState,
 			EntityType entityCreateType) {
 		// @formatter:off
-		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
+		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userInfo).withPermissionsState(parentPermissionsState)
 				.withAccessType(ACCESS_TYPE.CREATE).withEntityCreateType(entityCreateType),
 			DENY_IF_DOES_NOT_EXIST,
-			GRANT_IF_ADMIN,
 			DENY_IF_IN_TRASH,
+			GRANT_IF_ADMIN,
 			DENY_IF_ANONYMOUS,
 			DENY_IF_CREATE_TYPE_IS_NOT_PROJECT_AND_NOT_CERTIFIED,
 			DENY_IF_HAS_NOT_ACCEPTED_TERMS_OF_USE,
@@ -193,8 +193,8 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
 				.withAccessType(ACCESS_TYPE.READ),
 			DENY_IF_DOES_NOT_EXIST,
-			GRANT_IF_ADMIN,
 			DENY_IF_IN_TRASH,
+			GRANT_IF_ADMIN,
 			GRANT_IF_HAS_READ,
 			DENY
 		);
@@ -207,6 +207,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
 				.withAccessType(ACCESS_TYPE.DELETE),
 			DENY_IF_DOES_NOT_EXIST,
+			DENY_IF_IN_TRASH,
 			GRANT_IF_ADMIN,
 			DENY_IF_ANONYMOUS,
 			GRANT_IF_HAS_DELETE,

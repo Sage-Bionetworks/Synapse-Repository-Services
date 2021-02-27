@@ -83,7 +83,7 @@ public class KeyFactory {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public static List<Long> stringToKeyList(String id) throws DatastoreException {
+	public static List<Long> stringToKeySingletonList(String id) throws DatastoreException {
 		return Collections.singletonList(stringToKey(id));
 	}
 
