@@ -9,9 +9,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScannerTestUtils.generateMapping;
 import static org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner.DEFAULT_BATCH_SIZE;
 import static org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner.DEFAULT_FILE_ID_COLUMN_NAME;
+import static org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScannerTestUtils.generateMapping;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,7 +43,10 @@ public class BasicFileHandleAssociationScannerUnitTest {
 	private NamedParameterJdbcTemplate mockParamaterizedJdbcTemplate;
 	
 	@Mock
-	private RowMapper<ScannedFileHandleAssociation> mockCustomRowMapper;
+	private RowMapper<ScannedFileHandleAssociation> mockRowMapper;
+	
+	@Mock
+	private RowMapperSupplier mockCustomRowMapperSupplier;
 	
 	@BeforeEach
 	public void before() {
@@ -80,7 +83,7 @@ public class BasicFileHandleAssociationScannerUnitTest {
 		);
 		
 		// Call under test
-		new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping, DEFAULT_FILE_ID_COLUMN_NAME, DEFAULT_BATCH_SIZE, mockCustomRowMapper);
+		new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping, DEFAULT_FILE_ID_COLUMN_NAME, DEFAULT_BATCH_SIZE, mockCustomRowMapperSupplier);
 	}
 	
 	@Test
@@ -312,7 +315,7 @@ public class BasicFileHandleAssociationScannerUnitTest {
 	}
 	
 	@Test
-	public void testScaneRangeWithCustomRowMapper() {
+	public void testScanRangeWithCustomRowMapper() {
 		TableMapping<Object> mapping = generateMapping("SOME_TABLE", 
 				new FieldColumn("id", "ID", true).withIsBackupId(true),
 				new FieldColumn("id", "VERSION", true),
@@ -324,7 +327,9 @@ public class BasicFileHandleAssociationScannerUnitTest {
 				Collections.emptyList()
 		);
 		
-		FileHandleAssociationScanner scanner = new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping, DEFAULT_FILE_ID_COLUMN_NAME, DEFAULT_BATCH_SIZE, mockCustomRowMapper);
+		when(mockCustomRowMapperSupplier.getRowMapper(any(), any())).thenReturn(mockRowMapper);
+
+		FileHandleAssociationScanner scanner = new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping, DEFAULT_FILE_ID_COLUMN_NAME, DEFAULT_BATCH_SIZE, mockCustomRowMapperSupplier);
 		
 		IdRange idRange = new IdRange(1, 3);
 		
@@ -335,8 +340,8 @@ public class BasicFileHandleAssociationScannerUnitTest {
 		
 		assertEquals(Collections.emptyList(), result);
 
-		verify(mockParamaterizedJdbcTemplate).query(eq("SELECT `ID`, `FILE_HANDLE_ID` FROM SOME_TABLE WHERE `ID` BETWEEN :BMINID AND :BMAXID AND FILE_HANDLE_ID IS NOT NULL ORDER BY `ID`, `VERSION` LIMIT :KEY_LIMIT OFFSET :KEY_OFFSET"), anyMap(), eq(mockCustomRowMapper));
-		
+		verify(mockParamaterizedJdbcTemplate).query(eq("SELECT `ID`, `FILE_HANDLE_ID` FROM SOME_TABLE WHERE `ID` BETWEEN :BMINID AND :BMAXID AND FILE_HANDLE_ID IS NOT NULL ORDER BY `ID`, `VERSION` LIMIT :KEY_LIMIT OFFSET :KEY_OFFSET"), anyMap(), eq(mockRowMapper));
+		verify(mockCustomRowMapperSupplier).getRowMapper("ID", DEFAULT_FILE_ID_COLUMN_NAME);		
 	}
 	
 	@Test

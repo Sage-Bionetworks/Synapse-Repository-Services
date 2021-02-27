@@ -21,7 +21,7 @@ import com.google.common.collect.ImmutableMap;
  * queries off of a {@link TableMapping}. This implementation can be used when the mapping table
  * contains the file handle id as a defined column and a backup id exists on the mapping. By default
  * a simple row mapper is used that considers the selected column a holder to the file handle id.
- * Additionally providing a custom {@link RowMapper} allows more flexibility in extracting the file
+ * Additionally providing a custom {@link RowMapperSupplier} allows more flexibility in extracting the file
  * handle ids from the selected file handle column (e.g. if the file handle is stored inside a blob in the column).
  * 
  * @author Marco Marasca
@@ -95,13 +95,12 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 	 * @param namedJdbcTemplate    The jdbc template to use
 	 * @param tableMapping         The table mapping used as reference
 	 * @param fileHandleColumnName The name of the column holding the file handle id reference
-	 * @param rowMapper            The row mapper used to build a {@link ScannedFileHandleAssociation}
+	 * @param batchSize            The max batch size of records to fetch in memory
+	 * @param rowMapperSupplier    A supplier for a row mapper used to build a {@link ScannedFileHandleAssociation}
 	 *                             from a row, if null a default row mapper is used that treats the
 	 *                             filehandleColumn as a direct reference to the file handle id
-	 * @param batchSize            The max batch size of records to fetch in memory
 	 */
-	public BasicFileHandleAssociationScanner(NamedParameterJdbcTemplate namedJdbcTemplate, TableMapping<?> tableMapping,
-			String fileHandleColumnName, long batchSize, RowMapper<ScannedFileHandleAssociation> rowMapper) {
+	public BasicFileHandleAssociationScanner(NamedParameterJdbcTemplate namedJdbcTemplate, TableMapping<?> tableMapping, String fileHandleColumnName, long batchSize, RowMapperSupplier rowMapperSupplier) {
 		ValidateArgument.required(namedJdbcTemplate, "The namedJdbcTemplate");
 		ValidateArgument.requirement(batchSize > 0, "The batchSize must be greater than zero.");
 		ValidateArgument.required(tableMapping, "The tableMapping");
@@ -125,10 +124,10 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 		this.sqlMinMaxRangeStm = generateMinMaxStatement(tableMapping);
 		this.sqlSelectBatchStm = generateSelectBatchStatement(tableMapping, backupIdColumn, fileHandleColumn);
 
-		if (rowMapper == null) {
+		if (rowMapperSupplier == null) {
 			this.rowMapper = getDefaultRowMapper(backupIdColumn, fileHandleColumn);
 		} else {
-			this.rowMapper = rowMapper;
+			this.rowMapper = rowMapperSupplier.getRowMapper(backupIdColumn.getColumnName(), fileHandleColumn.getColumnName());
 		}
 	}
 
