@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanne
 import org.sagebionetworks.repo.manager.file.scanner.IdRange;
 import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -47,7 +48,7 @@ public class WikiMarkdownFileHandleAssociationProviderTest {
 	private NamedParameterJdbcTemplate mockNamedJdbcTemplate;
 	
 	@InjectMocks
-	private WikiAttachmentFileHandleAssociationProvider provider;
+	private WikiMarkdownFileHandleAssociationProvider provider;
 	
 	@Test
 	public void testGetFileHandleIdsAssociatedWithObject() {
@@ -56,14 +57,14 @@ public class WikiMarkdownFileHandleAssociationProviderTest {
 		List<String> fileHandleIds = Arrays.asList("1", "2", "3");
 		Set<String> expected = ImmutableSet.of("1", "2");
 		
-		when(mockDao.getFileHandleIdsAssociatedWithWikiAttachments(any(), any())).thenReturn(expected);
+		when(mockDao.getFileHandleIdsAssociatedWithWikiMarkdown(any(), any())).thenReturn(expected);
 		
 		// Call under test
 		Set<String> associated = provider.getFileHandleIdsDirectlyAssociatedWithObject(fileHandleIds, wikiId);
 		
 		assertEquals(expected, associated);
 		
-		verify(mockDao).getFileHandleIdsAssociatedWithWikiAttachments(fileHandleIds, wikiId);
+		verify(mockDao).getFileHandleIdsAssociatedWithWikiMarkdown(fileHandleIds, wikiId);
 		
 	}
 
@@ -72,7 +73,11 @@ public class WikiMarkdownFileHandleAssociationProviderTest {
 		assertEquals(ObjectType.WIKI, provider.getAuthorizationObjectTypeForAssociatedObjectType());
 	}
 	
-
+	@Test
+	public void testGetAssociateType() {
+		assertEquals(FileHandleAssociateType.WikiMarkdown, provider.getAssociateType());
+	}
+	
 	@Test
 	public void testScannerIdRange() {
 		
@@ -90,7 +95,7 @@ public class WikiMarkdownFileHandleAssociationProviderTest {
 		
 		assertEquals(expected, range);
 		
-		verify(mockJdbcTemplate).queryForObject("SELECT MIN(`WIKI_ID`), MAX(`WIKI_ID`) FROM V2_WIKI_ATTACHMENT_RESERVATION", null, BasicFileHandleAssociationScanner.ID_RANGE_MAPPER);
+		verify(mockJdbcTemplate).queryForObject("SELECT MIN(`WIKI_ID`), MAX(`WIKI_ID`) FROM V2_WIKI_MARKDOWN", null, BasicFileHandleAssociationScanner.ID_RANGE_MAPPER);
 		
 	}
 	
@@ -112,6 +117,6 @@ public class WikiMarkdownFileHandleAssociationProviderTest {
 		
 		assertEquals(expected, result);
 		
-		verify(mockNamedJdbcTemplate, times(2)).query(eq("SELECT `WIKI_ID`, `FILE_HANDLE_ID` FROM V2_WIKI_ATTACHMENT_RESERVATION WHERE `WIKI_ID` BETWEEN :BMINID AND :BMAXID AND FILE_HANDLE_ID IS NOT NULL ORDER BY `WIKI_ID`, `FILE_HANDLE_ID` LIMIT :KEY_LIMIT OFFSET :KEY_OFFSET"), anyMap(), any(RowMapper.class));
+		verify(mockNamedJdbcTemplate, times(2)).query(eq("SELECT `WIKI_ID`, `FILE_HANDLE_ID` FROM V2_WIKI_MARKDOWN WHERE `WIKI_ID` BETWEEN :BMINID AND :BMAXID AND FILE_HANDLE_ID IS NOT NULL ORDER BY `WIKI_ID`, `MARKDOWN_VERSION` LIMIT :KEY_LIMIT OFFSET :KEY_OFFSET"), anyMap(), any(RowMapper.class));
 	}
 }

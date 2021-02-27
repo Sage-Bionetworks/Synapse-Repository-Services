@@ -47,8 +47,6 @@ public class SubmissionFileHandleAssociationProvider implements FileHandleAssoci
 		associatedIds.retainAll(fileHandleIds);
 		return associatedIds;
 	}
-	
-	
 
 	@Override
 	public ObjectType getAuthorizationObjectTypeForAssociatedObjectType() {

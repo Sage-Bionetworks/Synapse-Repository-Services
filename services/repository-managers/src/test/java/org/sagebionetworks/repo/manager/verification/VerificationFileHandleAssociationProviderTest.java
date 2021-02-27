@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.manager.file.scanner.IdRange;
 import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -61,6 +62,11 @@ public class VerificationFileHandleAssociationProviderTest {
 	@Test
 	public void testGetObjectTypeForAssociatedType() {
 		assertEquals(ObjectType.VERIFICATION_SUBMISSION, provider.getAuthorizationObjectTypeForAssociatedObjectType());
+	}
+	
+	@Test
+	public void testGetAssociateType() {
+		assertEquals(FileHandleAssociateType.VerificationSubmission, provider.getAssociateType());
 	}
 	
 	@Test

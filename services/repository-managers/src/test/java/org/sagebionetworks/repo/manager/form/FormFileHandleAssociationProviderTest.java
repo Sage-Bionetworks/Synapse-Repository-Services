@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.manager.file.scanner.IdRange;
 import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.form.FormDao;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -57,6 +58,11 @@ public class FormFileHandleAssociationProviderTest {
 	public void testgetAuthorizationObjectTypeForAssociatedObjectType() {
 		// call under test
 		assertEquals(ObjectType.FORM_DATA,  provider.getAuthorizationObjectTypeForAssociatedObjectType());
+	}
+	
+	@Test
+	public void testGetAssociateType() {
+		assertEquals(FileHandleAssociateType.FormData, provider.getAssociateType());
 	}
 	
 	@Test
