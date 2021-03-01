@@ -230,7 +230,7 @@ public class DBOFavoriteDAOImplAutowiredTest {
 
 		// make two nodes & two favorites
 		EntityType node1Type = EntityType.project;
-		EntityType node2Type = EntityType.project;
+		EntityType node2Type = EntityType.file;
 		String node1Name = "node1";
 		String node2Name = "node2";
 		
@@ -277,6 +277,8 @@ public class DBOFavoriteDAOImplAutowiredTest {
 		assertEquals(Project.class.getName(), eh1.getType());
 		assertEquals(new Long(1), eh1.getVersionNumber());
 		assertEquals("1", eh1.getVersionLabel());
+		assertTrue(eh1.getIsLatestVersion());
+		assertTrue(eh2.getIsLatestVersion());
 
 		// Test limit and offset (PLFM-6616)
 		int limit = 1;

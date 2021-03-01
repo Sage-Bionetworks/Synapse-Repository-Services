@@ -21,6 +21,10 @@
 			"type": "string",
 			"description": "The user defined version label of the entity"
 		},
+		"isLatestVersion": {
+			"type": "boolean",
+			"description": "If this version is the latest version of the entity"
+		},
 		"benefactorId": {
 			"type": "integer",
 			"description": "The ID of the entity that this Entity's ACL is inherited from."

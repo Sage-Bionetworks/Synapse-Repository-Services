@@ -76,7 +76,8 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 														+ " WHERE " + COL_FAVORITE_PRINCIPAL_ID +"= :"+ COL_FAVORITE_PRINCIPAL_ID
 														+ " AND " + COL_FAVORITE_NODE_ID + "= :" + COL_FAVORITE_NODE_ID;
 	private static final String SELECT_FAVORITES_HEADERS_SQL = "SELECT n."+ COL_NODE_ID +", n."+ COL_NODE_NAME 
-																+", n."+ COL_NODE_TYPE +", r."+ COL_REVISION_NUMBER +", r."+ COL_REVISION_LABEL +" " +
+																+", n."+ COL_NODE_TYPE +", r."+ COL_REVISION_NUMBER
+																+", r."+ COL_REVISION_LABEL + ", n." + COL_NODE_CURRENT_REV + " "+
 																"FROM "+ TABLE_FAVORITE +" f, "+ TABLE_NODE +" n, "+ TABLE_REVISION +" r " +
 																"WHERE f."+ COL_FAVORITE_PRINCIPAL_ID +" = :"+ COL_FAVORITE_PRINCIPAL_ID +" " +
 																"AND f."+ COL_FAVORITE_NODE_ID +" = n."+ COL_NODE_ID +" " +
@@ -197,6 +198,7 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 				header.setType(EntityTypeUtils.getEntityTypeClassName(EntityType.valueOf(rs.getString(COL_NODE_TYPE))));
 				header.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
 				header.setVersionLabel(rs.getString(COL_REVISION_LABEL));
+				header.setIsLatestVersion(rs.getLong(COL_REVISION_NUMBER) == rs.getLong(COL_NODE_CURRENT_REV)); // this will always be true, we don't retrieve/store versions in favorites
 				return header;
 			}
 		});

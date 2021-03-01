@@ -1570,7 +1570,8 @@ public class NodeDAOImplTest {
 		r.setTargetId(child.getId());
 		r.setTargetVersionNumber(1L);
 		request.add(r);
-		
+
+		// Call under test
 		List<EntityHeader> results = nodeDao.getEntityHeader(request);
 		assertNotNull(results);
 		assertEquals(4, results.size());
@@ -1584,18 +1585,21 @@ public class NodeDAOImplTest {
 		assertEquals(parent.getCreatedOn(), header.getCreatedOn());
 		assertEquals(parent.getModifiedByPrincipalId().toString(), header.getModifiedBy());
 		assertEquals(parent.getModifiedOn(), header.getModifiedOn());
+		assertTrue(header.getIsLatestVersion());
 		
 		header = results.get(2);
 		assertEquals(childId, header.getId());
 		assertEquals("2", header.getVersionLabel());
 		assertEquals(new Long(2), header.getVersionNumber());
 		assertEquals(parentBenefactor, header.getBenefactorId());
-		
+		assertTrue(header.getIsLatestVersion());
+
 		header = results.get(3);
 		assertEquals(childId, header.getId());
 		assertEquals("1", header.getVersionLabel());
 		assertEquals(new Long(1), header.getVersionNumber());
 		assertEquals(parentBenefactor, header.getBenefactorId());
+		assertFalse(header.getIsLatestVersion());
 	}
 	
 	/*
