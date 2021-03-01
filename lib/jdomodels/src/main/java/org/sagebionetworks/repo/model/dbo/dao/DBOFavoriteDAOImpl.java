@@ -198,7 +198,7 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 				header.setType(EntityTypeUtils.getEntityTypeClassName(EntityType.valueOf(rs.getString(COL_NODE_TYPE))));
 				header.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
 				header.setVersionLabel(rs.getString(COL_REVISION_LABEL));
-				header.setIsLatestVersion(rs.getString(COL_REVISION_NUMBER) == rs.getString(COL_NODE_CURRENT_REV)); // this will always be true, we don't retrieve/store versions in favorites
+				header.setIsLatestVersion(rs.getLong(COL_REVISION_NUMBER) == rs.getLong(COL_NODE_CURRENT_REV)); // this will always be true, we don't retrieve/store versions in favorites
 				return header;
 			}
 		});
