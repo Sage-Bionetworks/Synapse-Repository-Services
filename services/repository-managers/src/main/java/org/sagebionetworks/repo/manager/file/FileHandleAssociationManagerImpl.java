@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
@@ -33,8 +32,8 @@ public class FileHandleAssociationManagerImpl implements FileHandleAssociationMa
 	}
 
 	@Autowired
-	public void configureProviderMap(List<FileHandleAssociationProvider> providers) {
-		this.providerMap = providers.stream().collect(Collectors.toMap(p -> p.getAssociateType(), Function.identity()));
+	public void configureProviderMap(Map<FileHandleAssociateType, FileHandleAssociationProvider> providersMap) {
+		this.providerMap = providersMap;
 	}
 	
 	@Autowired

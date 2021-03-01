@@ -8,13 +8,17 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ICO
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PICTURE_ID;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.runtime.RuntimeConstants;
 import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 import org.apache.velocity.runtime.resource.loader.FileResourceLoader;
 import org.sagebionetworks.evaluation.dbo.SubmissionFileHandleDBO;
+import org.sagebionetworks.repo.manager.file.FileHandleAssociationProvider;
 import org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner;
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
 import org.sagebionetworks.repo.manager.file.scanner.RowMapperSupplier;
@@ -59,6 +63,11 @@ public class RepositoryConfiguration {
 		engine.setProperty(VELOCITY_PARAM_FILE_LOADER_CLASS, FileResourceLoader.class.getName());
 		engine.setProperty(VELOCITY_PARAM_RUNTIME_REFERENCES_STRICT, true);
 		return engine;
+	}
+	
+	@Bean
+	public Map<FileHandleAssociateType, FileHandleAssociationProvider> fileHandleAssociationProviderMap(List<FileHandleAssociationProvider> providers) {
+		 return providers.stream().collect(Collectors.toMap(p -> p.getAssociateType(), Function.identity()));
 	}
 	
 	@Bean

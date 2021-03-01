@@ -48,9 +48,7 @@ public class FileHandleAssociationManagerImplTest {
 
 	@BeforeEach
 	public void before() {
-		when(mockProvider.getAssociateType()).thenReturn(FileHandleAssociateType.TableEntity);
-		
-		fileHandleAssociationManager.configureProviderMap(Collections.singletonList(mockProvider));
+		fileHandleAssociationManager.configureProviderMap(Collections.singletonMap(FileHandleAssociateType.TableEntity, mockProvider));
 		fileHandleAssociationManager.configureScannerMap(Collections.singletonMap(FileHandleAssociateType.TableEntity, mockScanner));
 	}
 
