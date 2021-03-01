@@ -42,6 +42,9 @@
         "versionLabel":{
             "type":"string"
         },
+        "isLatestVersion":{
+            "type":"boolean"
+        },
         "activityId":{
             "type":"string"
         },

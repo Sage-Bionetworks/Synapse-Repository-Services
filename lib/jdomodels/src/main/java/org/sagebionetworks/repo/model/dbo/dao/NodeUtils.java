@@ -241,6 +241,7 @@ public class NodeUtils {
 		dto.setVersionLabel(rev.getLabel());
 		if(rev.getRevisionNumber() != null){
 			dto.setVersionNumber(rev.getRevisionNumber());
+			dto.setIsLatestVersion(rev.getRevisionNumber().equals(jdo.getCurrentRevNumber()));
 		}
 		if(rev.getFileHandleId() != null){
 			dto.setFileHandleId(rev.getFileHandleId().toString());

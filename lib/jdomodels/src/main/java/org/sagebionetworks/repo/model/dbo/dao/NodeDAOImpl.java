@@ -270,7 +270,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String ENTITY_HEADER_SELECT = "SELECT N." + COL_NODE_ID + ", R." + COL_REVISION_LABEL + ", N."
 			+ COL_NODE_NAME + ", N." + COL_NODE_TYPE + ", " + SQL_SELECT_BENEFACTOR_N + ", R." + COL_REVISION_NUMBER
 			+ ", N." + COL_NODE_CREATED_BY + ", N." + COL_NODE_CREATED_ON + ", R." + COL_REVISION_MODIFIED_BY + ", R."
-			+ COL_REVISION_MODIFIED_ON;
+			+ COL_REVISION_MODIFIED_ON + ", N." + COL_NODE_CURRENT_REV;
 	
 	private static final String JOIN_NODE_REVISION = TABLE_NODE+" N"+
 			" JOIN "+TABLE_REVISION+" R"+
@@ -384,11 +384,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String SQL_GET_ALL_VERSION_INFO_PAGINATED = "SELECT rr."
 			+ COL_REVISION_NUMBER + ", rr." + COL_REVISION_LABEL + ", rr."
 			+ COL_REVISION_COMMENT + ", rr." + COL_REVISION_MODIFIED_BY + ", rr."
-			+ COL_REVISION_MODIFIED_ON 
-			+ ", ff." + COL_FILES_CONTENT_MD5 + ", ff." + COL_FILES_CONTENT_SIZE + " FROM " + TABLE_REVISION + " rr left outer join "
+			+ COL_REVISION_MODIFIED_ON + ", n." + COL_NODE_CURRENT_REV
+			+ ", ff." + COL_FILES_CONTENT_MD5 + ", ff." + COL_FILES_CONTENT_SIZE + " FROM " + TABLE_NODE + " n, "
+			+ TABLE_REVISION + " rr left outer join "
 			+ TABLE_FILES+" ff on (rr."+COL_REVISION_FILE_HANDLE_ID+" = ff."+COL_FILES_ID+") WHERE rr."
-			+ COL_REVISION_OWNER_NODE + " = :"+OWNER_ID_PARAM_NAME+" ORDER BY rr." + COL_REVISION_NUMBER
-			+ " DESC LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+			+ COL_REVISION_OWNER_NODE + " = :"+OWNER_ID_PARAM_NAME +
+			" AND rr." + COL_REVISION_OWNER_NODE + " = n." + COL_NODE_ID +
+			" ORDER BY rr." + COL_REVISION_NUMBER + " DESC LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 
 	/**
 	 * A sql query returning results for entity headers with a specific MD5 value
@@ -436,6 +438,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			header.setName(rs.getString(COL_NODE_NAME));
 			header.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
 			header.setVersionLabel(rs.getString(COL_REVISION_LABEL));
+			header.setIsLatestVersion(rs.getLong(COL_REVISION_NUMBER) == rs.getLong(COL_NODE_CURRENT_REV));
 			header.setBenefactorId(rs.getLong(BENEFACTOR_ALIAS));
 			header.setCreatedBy(rs.getString(COL_NODE_CREATED_BY));
 			header.setCreatedOn(new Date(rs.getLong(COL_NODE_CREATED_ON)));
@@ -549,14 +552,14 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		
 		// Make sure to set the corret revision number
 		dto.setVersionNumber(revisionNumber);
-		
+
 		DBORevision dboRevision = NodeUtils.transalteNodeToDBORevision(dto);
 		
 		DBONode dboNode = NodeUtils.translateNodeToDBONode(dto);
 		
 		// Set the initial max revision the same as the current revision number
 		dboNode.setMaxRevNumber(revisionNumber);
-		
+
 		// Start it with a new e-tag
 		dboNode.seteTag(UUID.randomUUID().toString());
 		transactionalMessenger.sendMessageAfterCommit(new MessageToSend().withObservableEntity(dboNode).withChangeType(ChangeType.CREATE).withUserId(dboNode.getCreatedBy()));
@@ -1061,6 +1064,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				info.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
 				info.setVersionLabel(rs.getString(COL_REVISION_LABEL));
 				info.setVersionComment(rs.getString(COL_REVISION_COMMENT));
+				info.setIsLatestVersion(rs.getLong(COL_REVISION_NUMBER) == rs.getLong(COL_NODE_CURRENT_REV));
 				info.setContentMd5(rs.getString(COL_FILES_CONTENT_MD5));
 				info.setContentSize(rs.getString(COL_FILES_CONTENT_SIZE));
 				return info;
@@ -1178,6 +1182,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				if(ref.getTargetVersionNumber() != null){
 					clone.setVersionLabel(ref.getTargetVersionNumber().toString());
 					clone.setVersionNumber(ref.getTargetVersionNumber());
+					clone.setIsLatestVersion(original.getVersionNumber().equals(ref.getTargetVersionNumber()));
 				}
 				finalResults.add(clone);
 			}
