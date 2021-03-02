@@ -37,7 +37,7 @@
 		},
 		"status": {
 			"type": "object",
-			"description": "The current status of this Evaluation.",
+			"description": "DEPRECATED with no replacement! No longer used in Synapse.",
 			"$ref": "org.sagebionetworks.evaluation.model.EvaluationStatus"
 		},
 		"submissionInstructionsMessage": {

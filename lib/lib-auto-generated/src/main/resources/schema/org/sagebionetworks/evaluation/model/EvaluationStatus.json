@@ -1,5 +1,5 @@
 {
-    "description": "The possible states of a Synapse Evaluation.",
+    "description": "DEPRECATED with no replacement! No longer used in Synapse.",
     "name": "EvaluationStatus",
     "type": "string",
     "enum": [
