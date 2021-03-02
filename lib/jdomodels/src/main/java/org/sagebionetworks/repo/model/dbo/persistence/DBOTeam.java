@@ -31,7 +31,7 @@ public class DBOTeam implements MigratableDatabaseObject<DBOTeam, DBOTeam> {
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_TEAM_ID, true).withIsBackupId(true),
 			new FieldColumn("etag", COL_TEAM_ETAG).withIsEtag(true),
-			new FieldColumn("icon", COL_TEAM_ICON),
+			new FieldColumn("icon", COL_TEAM_ICON).withHasFileHandleRef(true),
 			new FieldColumn("properties", COL_TEAM_PROPERTIES) };
 
 	private static final TableMapping<DBOTeam> TABLE_MAPPING = new TableMapping<DBOTeam>() {

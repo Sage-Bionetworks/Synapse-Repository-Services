@@ -34,7 +34,7 @@ public class DBOAccessRequirementRevision implements MigratableDatabaseObject<DB
 		new FieldColumn("number", COL_ACCESS_REQUIREMENT_REVISION_NUMBER, true),
 		new FieldColumn("modifiedBy", COL_ACCESS_REQUIREMENT_REVISION_MODIFIED_BY),
 		new FieldColumn("modifiedOn", COL_ACCESS_REQUIREMENT_REVISION_MODIFIED_ON),
-		new FieldColumn("serializedEntity", COL_ACCESS_REQUIREMENT_REVISION_SERIALIZED_ENTITY)
+		new FieldColumn("serializedEntity", COL_ACCESS_REQUIREMENT_REVISION_SERIALIZED_ENTITY).withHasFileHandleRef(true)
 		};
 	
 	private static final TableMapping<DBOAccessRequirementRevision> TABLE_MAPPER = new TableMapping<DBOAccessRequirementRevision>() {
