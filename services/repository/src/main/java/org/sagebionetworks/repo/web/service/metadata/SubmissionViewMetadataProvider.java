@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.web.service.metadata;
 
 import java.util.List;
 
-import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
+import org.sagebionetworks.repo.manager.evaluation.EvaluationPermissionsManager;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;

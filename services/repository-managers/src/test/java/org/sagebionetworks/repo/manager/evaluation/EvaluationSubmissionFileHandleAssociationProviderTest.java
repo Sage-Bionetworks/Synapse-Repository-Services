@@ -1,9 +1,11 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.manager.evaluation;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
@@ -11,21 +13,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.model.MessageDAO;
+import org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 @ExtendWith(MockitoExtension.class)
-public class MessageFileHandleAssociationProviderTest {
+public class EvaluationSubmissionFileHandleAssociationProviderTest {
 
 	@Mock
-	private MessageDAO mockMessageDAO;
-	
-	@Mock
-	private MessageToUser mockMessage;
+	private SubmissionFileHandleDAO mockSubmissionFileHandleDAO;
 	
 	@Mock
 	private JdbcTemplate mockJdbcTemplate;
@@ -34,28 +32,26 @@ public class MessageFileHandleAssociationProviderTest {
 	private NamedParameterJdbcTemplate mockNamedJdbcTemplate;
 	
 	@InjectMocks
-	private MessageFileHandleAssociationProvider provider;
+	private EvaluationSubmissionFileHandleAssociationProvider provider;
 	
 
 	@Test
 	public void testGetFileHandleIdsAssociatedWithObject() {
-		String messageId = "1";
-		String fileHandleId = "2";
-		when(mockMessageDAO.getMessage(messageId)).thenReturn(mockMessage);
-		when(mockMessage.getFileHandleId()).thenReturn(fileHandleId);
-		Set<String> associated = provider.getFileHandleIdsDirectlyAssociatedWithObject(
-				Arrays.asList(fileHandleId, "4"), messageId);
-		assertEquals(Collections.singleton(fileHandleId), associated);
+		String submissionId = "1";
+		List<String> associatedIds = Arrays.asList("2", "3");
+		when(mockSubmissionFileHandleDAO.getAllBySubmission(submissionId)).thenReturn(associatedIds);
+		Set<String> result = provider.getFileHandleIdsDirectlyAssociatedWithObject(
+				Arrays.asList("2", "4"), submissionId);
+		assertEquals(Collections.singleton("2"), result);
 	}
 
 	@Test
 	public void testGetObjectTypeForAssociatedType() {
-		assertEquals(ObjectType.MESSAGE, provider.getAuthorizationObjectTypeForAssociatedObjectType());
+		assertEquals(ObjectType.EVALUATION_SUBMISSIONS, provider.getAuthorizationObjectTypeForAssociatedObjectType());
 	}
 	
 	@Test
 	public void testGetAssociateType() {
-		assertEquals(FileHandleAssociateType.MessageAttachment, provider.getAssociateType());
+		assertEquals(FileHandleAssociateType.SubmissionAttachment, provider.getAssociateType());
 	}
-	
 }

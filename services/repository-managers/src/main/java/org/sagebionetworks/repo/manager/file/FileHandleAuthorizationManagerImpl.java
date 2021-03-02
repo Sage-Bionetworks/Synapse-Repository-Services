@@ -7,15 +7,22 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+@Service
 public class FileHandleAuthorizationManagerImpl implements FileHandleAuthorizationManager {
 	
-	@Autowired
-	AuthorizationManager authorizationManager;
+	
+	private AuthorizationManager authorizationManager;
 
+	@Autowired
+	public FileHandleAuthorizationManagerImpl(AuthorizationManager authorizationManager) {
+		this.authorizationManager = authorizationManager;
+	}
+	
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.AuthorizationManager#canDownLoadFile(org.sagebionetworks.repo.model.UserInfo, java.util.List)

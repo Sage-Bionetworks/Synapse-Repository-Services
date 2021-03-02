@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.file;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -11,33 +12,35 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
-import org.springframework.test.util.ReflectionTestUtils;
 
+@ExtendWith(MockitoExtension.class)
 public class FileHandleAuthorizationManagerImplTest {
 
-	AuthorizationManager mockAuthManager;
-	FileHandleAuthorizationManager manager;
-	UserInfo user;
+	@Mock
+	private AuthorizationManager mockAuthManager;
+	
+	@InjectMocks
+	private FileHandleAuthorizationManagerImpl manager;
+	
+	private UserInfo user;
 
-	FileHandleAssociation fha1;
-	FileHandleAssociation fha2;
-	FileHandleAssociation fha3;
+	private FileHandleAssociation fha1;
+	private FileHandleAssociation fha2;
+	private FileHandleAssociation fha3;
 
-	@Before
+	@BeforeEach
 	public void before() {
-		mockAuthManager = Mockito.mock(AuthorizationManager.class);
-		manager = new FileHandleAuthorizationManagerImpl();
-		ReflectionTestUtils.setField(manager, "authorizationManager",
-				mockAuthManager);
-
 		user = new UserInfo(false);
 		user.setId(7L);
 
@@ -116,31 +119,49 @@ public class FileHandleAuthorizationManagerImplTest {
 				anyList(), anyString(), any(FileHandleAssociateType.class));
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testValidateNullList(){
-		manager.canDownLoadFile(user, null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.canDownLoadFile(user, null);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testValidateNulItem(){
-		manager.canDownLoadFile(user, Arrays.asList(fha2, null));
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.canDownLoadFile(user, Arrays.asList(fha2, null));
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testValidateObjectIdNull(){
 		fha1.setAssociateObjectId(null);
-		manager.canDownLoadFile(user, Arrays.asList(fha1));
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.canDownLoadFile(user, Arrays.asList(fha1));
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testValidateObjectTypeNull(){
 		fha1.setAssociateObjectType(null);
-		manager.canDownLoadFile(user, Arrays.asList(fha1));
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.canDownLoadFile(user, Arrays.asList(fha1));
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testValidateFileHandleIdNull(){
 		fha1.setFileHandleId(null);
-		manager.canDownLoadFile(user, Arrays.asList(fha1));
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.canDownLoadFile(user, Arrays.asList(fha1));
+		});
 	}
 }

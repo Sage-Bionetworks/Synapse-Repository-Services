@@ -1,17 +1,21 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
@@ -65,14 +69,20 @@ public class AccessRequirementUtilsTest {
 		assertEquals(1, dto.getSubjectIds().size());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateBatchDBOSubjectAccessRequirementWithNullAccessRequirementId() {
-		AccessRequirementUtils.createBatchDBOSubjectAccessRequirement(null, new LinkedList<RestrictableObjectDescriptor>());
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			AccessRequirementUtils.createBatchDBOSubjectAccessRequirement(null, new LinkedList<RestrictableObjectDescriptor>());
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateBatchDBOSubjectAccessRequirementWithNullRodList() {
-		AccessRequirementUtils.createBatchDBOSubjectAccessRequirement(0L, null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			AccessRequirementUtils.createBatchDBOSubjectAccessRequirement(0L, null);
+		});
 	}
 
 	@Test
@@ -80,9 +90,12 @@ public class AccessRequirementUtilsTest {
 		assertTrue(AccessRequirementUtils.createBatchDBOSubjectAccessRequirement(0L, new LinkedList<RestrictableObjectDescriptor>()).isEmpty());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCopyDBOSubjectsToDTOSubjectsWithNullList() {
-		AccessRequirementUtils.copyDBOSubjectsToDTOSubjects(null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			AccessRequirementUtils.copyDBOSubjectsToDTOSubjects(null);
+		});
 	}
 
 	@Test
@@ -113,79 +126,122 @@ public class AccessRequirementUtilsTest {
 		AccessRequirementUtils.validateFields(dto);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testValidateFieldsNull(){
-		AccessRequirementUtils.validateFields(null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			AccessRequirementUtils.validateFields(null);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testValidateFieldsNullAccessType(){
 		AccessRequirement dto = createDTO();
 		dto.setAccessType(null);
-		AccessRequirementUtils.validateFields(dto);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			AccessRequirementUtils.validateFields(dto);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testValidateFieldsNullConcreteType(){
 		AccessRequirement dto = createDTO();
 		dto.setConcreteType(null);
-		AccessRequirementUtils.validateFields(dto);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			AccessRequirementUtils.validateFields(dto);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testValidateFieldsWrongConcreteType(){
 		AccessRequirement dto = createDTO();
 		dto.setConcreteType("not.correct");
-		AccessRequirementUtils.validateFields(dto);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			AccessRequirementUtils.validateFields(dto);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testValidateFieldsNullCreatedBy(){
 		AccessRequirement dto = createDTO();
 		dto.setCreatedBy(null);
-		AccessRequirementUtils.validateFields(dto);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			AccessRequirementUtils.validateFields(dto);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testValidateFieldsNullCreatedOn(){
 		AccessRequirement dto = createDTO();
 		dto.setCreatedOn(null);
-		AccessRequirementUtils.validateFields(dto);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			AccessRequirementUtils.validateFields(dto);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testValidateFieldsNullEtag(){
 		AccessRequirement dto = createDTO();
 		dto.setEtag(null);
-		AccessRequirementUtils.validateFields(dto);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			AccessRequirementUtils.validateFields(dto);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testValidateFieldsNullId(){
 		AccessRequirement dto = createDTO();
 		dto.setId(null);
-		AccessRequirementUtils.validateFields(dto);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			AccessRequirementUtils.validateFields(dto);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testValidateFieldsNullModifiedBy(){
 		AccessRequirement dto = createDTO();
 		dto.setModifiedBy(null);
-		AccessRequirementUtils.validateFields(dto);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			AccessRequirementUtils.validateFields(dto);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testValidateFieldsNullModifiedOn(){
 		AccessRequirement dto = createDTO();
 		dto.setModifiedOn(null);
-		AccessRequirementUtils.validateFields(dto);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			AccessRequirementUtils.validateFields(dto);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testValidateFieldsNullVersionNumber(){
 		AccessRequirement dto = createDTO();
 		dto.setVersionNumber(null);
-		AccessRequirementUtils.validateFields(dto);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			AccessRequirementUtils.validateFields(dto);
+		});
 	}
 	
 	@Test
@@ -208,5 +264,41 @@ public class AccessRequirementUtilsTest {
 		List<RestrictableObjectDescriptor> start = null;
 		List<RestrictableObjectDescriptor> result = AccessRequirementUtils.getUniqueRestrictableObjectDescriptor(start);
 		assertEquals(null, result);
+	}
+	
+	@Test
+	public void testExtractAllFileHandleIdsWithNoFileHandle() {
+		AccessRequirement dto = new ManagedACTAccessRequirement();
+		
+		Set<String> expected = Collections.emptySet();
+		
+		// Call under test
+		Set<String> result = AccessRequirementUtils.extractAllFileHandleIds(dto);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testExtractAllFileHandleIdsWithFileHandle() {
+		AccessRequirement dto = new ManagedACTAccessRequirement().setDucTemplateFileHandleId("123");
+		
+		Set<String> expected = Collections.singleton("123");
+		
+		// Call under test
+		Set<String> result = AccessRequirementUtils.extractAllFileHandleIds(dto);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testExtractAllFileHandleIdsWithNotManaged() {
+		AccessRequirement dto = createDTO();
+		
+		Set<String> expected = Collections.emptySet();
+		
+		// Call under test
+		Set<String> result = AccessRequirementUtils.extractAllFileHandleIds(dto);
+		
+		assertEquals(expected, result);
 	}
 }

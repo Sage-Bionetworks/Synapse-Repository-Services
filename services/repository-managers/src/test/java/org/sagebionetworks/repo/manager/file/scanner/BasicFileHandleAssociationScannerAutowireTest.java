@@ -1,18 +1,17 @@
 package org.sagebionetworks.repo.manager.file.scanner;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScannerTestUtils.generateMapping;
 import static org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner.DEFAULT_BATCH_SIZE;
 import static org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner.DEFAULT_FILE_ID_COLUMN_NAME;
+import static org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScannerTestUtils.generateMapping;
 
 import java.io.IOException;
-import java.sql.Blob;
-import java.sql.ResultSet;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -26,7 +25,6 @@ import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -374,20 +372,9 @@ public class BasicFileHandleAssociationScannerAutowireTest {
 		String fileHandleIdColumn = "SERIALIZED_ENTITY";
 		long batchSize = 2;
 		
-		// Emulate a compressed serialized entity that contains the file hanlde references
-		RowMapper<ScannedFileHandleAssociation> rowMapper = (ResultSet rs, int rowNumber) -> {
-			String objectId = rs.getString("ID");
+		// Emulate a compressed serialized entity that contains the file handle references
 
-			List<Long> fileHandleIds = null;
-			
-			Blob blob = rs.getBlob("SERIALIZED_ENTITY");
-			
-			if (!rs.wasNull()) {
-				fileHandleIds = FileHandleHolder.deserialize(blob.getBytes(1, (int) blob.length())).getFileHandleIds();
-			}
-			
-			return new ScannedFileHandleAssociation(objectId).withFileHandleIds(fileHandleIds);
-		};
+		RowMapperSupplier rowMapperSupplier = new SerializedFieldRowMapperSupplier<>(FileHandleHolder::deserialize, FileHandleHolder::getFileHandleIds);
 		
 		List<ScannedFileHandleAssociation> expected = Arrays.asList(
 				new ScannedFileHandleAssociation("1", 1L),
@@ -395,7 +382,7 @@ public class BasicFileHandleAssociationScannerAutowireTest {
 				new ScannedFileHandleAssociation("3").withFileHandleIds(Arrays.asList(1L, 2L))
 		);
 		
-		testScanRange(tableMapping, fileHandleIdColumn, rowMapper, new IdRange(1, 10), batchSize,
+		testScanRange(tableMapping, fileHandleIdColumn, rowMapperSupplier, new IdRange(1, 10), batchSize,
 			ImmutableList.of(
 				// ID, SERIALIZED_ENTITY
 				
@@ -435,10 +422,10 @@ public class BasicFileHandleAssociationScannerAutowireTest {
 		testScanRange(tableMapping, fileHandleIdColumn, null, range, batchSize, data, expected);
 	}
 	
-	private void testScanRange(TableMapping<?> tableMapping, String fileHandleIdColumn, RowMapper<ScannedFileHandleAssociation> rowMapper, IdRange range, long batchSize, List<Object[]> data, List<ScannedFileHandleAssociation> expected) throws IOException {
+	private void testScanRange(TableMapping<?> tableMapping, String fileHandleIdColumn, RowMapperSupplier rowMapperSupplier, IdRange range, long batchSize, List<Object[]> data, List<ScannedFileHandleAssociation> expected) throws IOException {
 		ddlUtils.validateTableExists(tableMapping);
 		
-		FileHandleAssociationScanner scanner = getScannerInstance(tableMapping, fileHandleIdColumn, batchSize, rowMapper);
+		FileHandleAssociationScanner scanner = getScannerInstance(tableMapping, fileHandleIdColumn, batchSize, rowMapperSupplier);
 		
 		// Call under test
 		List<ScannedFileHandleAssociation> result = StreamSupport.stream(scanner.scanRange(range).spliterator(), false).collect(Collectors.toList());
@@ -472,8 +459,8 @@ public class BasicFileHandleAssociationScannerAutowireTest {
 		jdbcTemplate.update(sqlInsert, params);
 	}	
 	
-	private FileHandleAssociationScanner getScannerInstance(TableMapping<?> tableMapping, String fileHandleIdColumn, long batchSize, RowMapper<ScannedFileHandleAssociation> rowMapper) {
-		return new BasicFileHandleAssociationScanner(jdbcTemplate, tableMapping, fileHandleIdColumn == null ? DEFAULT_FILE_ID_COLUMN_NAME : fileHandleIdColumn, batchSize, rowMapper);
+	private FileHandleAssociationScanner getScannerInstance(TableMapping<?> tableMapping, String fileHandleIdColumn, long batchSize, RowMapperSupplier rowMapperSupplier) {
+		return new BasicFileHandleAssociationScanner(jdbcTemplate, tableMapping, fileHandleIdColumn == null ? DEFAULT_FILE_ID_COLUMN_NAME : fileHandleIdColumn, batchSize, rowMapperSupplier);
 	}
 
 	private static final class FileHandleHolder {
@@ -492,8 +479,11 @@ public class BasicFileHandleAssociationScannerAutowireTest {
 			}
 		}
 		
-		public List<Long> getFileHandleIds() {
-			return fileHandleIds;
+		public Set<String> getFileHandleIds() {
+			if (fileHandleIds == null || fileHandleIds.isEmpty()) {
+				return Collections.emptySet();
+			}
+			return fileHandleIds.stream().map(String::valueOf).collect(Collectors.toSet());
 		}
 		
 		public static FileHandleHolder deserialize(byte[] bytes) {

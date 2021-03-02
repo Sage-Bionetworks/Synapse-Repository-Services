@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -96,5 +98,19 @@ public class SubmissionUtils {
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
+	}
+	
+	public static Set<String> extractAllFileHandleIds(Submission submission) {
+		Set<String> associatedIds = new HashSet<String>();
+		if (submission.getAttachments()!= null && !submission.getAttachments().isEmpty()) {
+			associatedIds.addAll(submission.getAttachments());
+		}
+		if (submission.getDucFileHandleId() != null) {
+			associatedIds.add(submission.getDucFileHandleId());
+		}
+		if (submission.getIrbFileHandleId() != null) {
+			associatedIds.add(submission.getIrbFileHandleId());
+		}
+		return associatedIds;
 	}
 }

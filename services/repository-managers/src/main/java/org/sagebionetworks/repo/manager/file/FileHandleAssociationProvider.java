@@ -3,8 +3,8 @@ package org.sagebionetworks.repo.manager.file;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 /**
  * FileHandles can be associated with many different object types.  Each object type records FileHandles associations differently.
  * This interface  
@@ -13,6 +13,11 @@ import org.sagebionetworks.repo.model.ObjectType;
  *
  */
 public interface FileHandleAssociationProvider {
+	
+	/**
+	 * @return The type of association this provider supports
+	 */
+	FileHandleAssociateType getAssociateType();
 
 	/**
 	 * Given a set of FileHandleIds and an associatedObjectId, get the sub-set of file handle ids that are directly associated with the given object (excluding the previews).
@@ -28,10 +33,5 @@ public interface FileHandleAssociationProvider {
 	 * @return
 	 */
 	ObjectType getAuthorizationObjectTypeForAssociatedObjectType();
-	
-	/**
-	 * @return An instance of a {@link FileHandleAssociationScanner} that allows to iterate over all the file handles associated with this type of object
-	 */
-	FileHandleAssociationScanner getAssociationScanner();
 
 }

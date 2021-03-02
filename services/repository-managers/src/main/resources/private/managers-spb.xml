@@ -10,7 +10,7 @@
        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
 
-	<context:annotation-config/>
+	<context:annotation-config />
     <context:component-scan base-package="org.sagebionetworks.repo.manager" annotation-config="false"/>
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
@@ -172,72 +172,8 @@
 	
 	<bean id="referenceUtil" class="org.sagebionetworks.repo.util.ReferenceUtilImpl" />
 	
-	<bean id="fileHandleAssociationManager"
-		class="org.sagebionetworks.repo.manager.file.FileHandleAssociationManagerImpl">
-		<property name="providerMap">
-			<map>
-				<entry key="TableEntity">
-					<bean
-						class="org.sagebionetworks.repo.manager.table.TableFileHandleAssociationProvider" />
-				</entry>
-				<entry key="VerificationSubmission">
-					<bean
-						class="org.sagebionetworks.repo.manager.verification.VerificationFileHandleAssociationProvider" />
-				</entry>
-				<entry key="FileEntity">
-					<bean
-						class="org.sagebionetworks.repo.manager.file.FileEntityFileHandleAssociationProvider" />
-				</entry>
-				<entry key="WikiAttachment">
-					<bean
-						class="org.sagebionetworks.repo.manager.wiki.WikiAttachmentFileHandleAssociationProvider" />
-				</entry>
-				<entry key="WikiMarkdown">
-					<bean
-						class="org.sagebionetworks.repo.manager.wiki.WikiMarkdownFileHandleAssociationProvider" />
-				</entry>
-				<entry key="UserProfileAttachment">
-					<bean
-						class="org.sagebionetworks.repo.manager.UserProfileFileHandleAssociationProvider" />
-				</entry>
-				<entry key="TeamAttachment">
-					<bean
-						class="org.sagebionetworks.repo.manager.team.TeamFileHandleAssociationProvider" />
-				</entry>
-				<entry key="SubmissionAttachment">
-					<bean
-						class="org.sagebionetworks.evaluation.manager.SubmissionFileHandleAssociationProvider" />
-				</entry>
-				<entry key="MessageAttachment">
-					<bean
-						class="org.sagebionetworks.repo.manager.MessageFileHandleAssociationProvider" />
-				</entry>
-				<entry key="AccessRequirementAttachment">
-					<bean
-						class="org.sagebionetworks.repo.manager.dataaccess.AccessRequirementFileHandleAssociationProvider" />
-				</entry>
-				<entry key="DataAccessRequestAttachment">
-					<bean
-						class="org.sagebionetworks.repo.manager.dataaccess.RequestFileHandleAssociationProvider" />
-				</entry>
-				<entry key="DataAccessSubmissionAttachment">
-					<bean
-						class="org.sagebionetworks.repo.manager.dataaccess.SubmissionFileHandleAssociationProvider" />
-				</entry>
-				<entry key="FormData">
-				<bean
-						class="org.sagebionetworks.repo.manager.form.FormFileHandleAssociationProvider" />
-				</entry>
-			</map>
-		</property>
-	</bean>
-
-	<bean id="authorizationManager"
-		class="org.sagebionetworks.repo.manager.AuthorizationManagerImpl" />
+	<bean id="authorizationManager" class="org.sagebionetworks.repo.manager.AuthorizationManagerImpl" />
 		
-	<bean id="fileHandleAuthorizationManager"
-		class="org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManagerImpl" />	
-
 	<bean id="entityPermissionsManager" class="org.sagebionetworks.repo.manager.EntityPermissionsManagerImpl" />
 
 	<bean id="userProfileManager" class="org.sagebionetworks.repo.manager.UserProfileManagerImpl" />
@@ -291,18 +227,6 @@
 		scope="singleton" />
 
 	<bean id="schemaManager" class="org.sagebionetworks.repo.manager.SchemaManagerImpl"
-		scope="singleton" />
-		
-	<bean id="evaluationManager" class="org.sagebionetworks.evaluation.manager.EvaluationManagerImpl" 
-		scope="singleton" />
-		
-	<bean id="submissionEligibilityManager" class="org.sagebionetworks.evaluation.manager.SubmissionEligibilityManagerImpl" 
-		scope="singleton" />
-		
-	<bean id="submissionManager" class="org.sagebionetworks.evaluation.manager.SubmissionManagerImpl" 
-		scope="singleton" />
-
-	<bean id="evaluationPermissionsManager" class="org.sagebionetworks.evaluation.manager.EvaluationPermissionsManagerImpl"
 		scope="singleton" />
 		
 	<bean id="v2WikiManager" class="org.sagebionetworks.repo.manager.wiki.V2WikiManagerImpl" 

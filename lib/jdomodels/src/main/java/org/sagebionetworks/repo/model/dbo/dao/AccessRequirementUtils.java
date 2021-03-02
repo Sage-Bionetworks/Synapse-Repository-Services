@@ -2,15 +2,18 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
@@ -151,5 +154,20 @@ public class AccessRequirementUtils {
 		ValidateArgument.required(dto.getModifiedBy(), "dto.modifiedBy");
 		ValidateArgument.required(dto.getModifiedOn(), "dto.modifiedOn");
 		ValidateArgument.required(dto.getVersionNumber(), "dto.versionNumber");
+	}
+	
+	/**
+	 * @param accessRequirement
+	 * @return The set of file handle ids assigned to the given access requirement
+	 */
+	public static Set<String> extractAllFileHandleIds(AccessRequirement accessRequirement) {
+		if (accessRequirement instanceof ManagedACTAccessRequirement) {
+			ManagedACTAccessRequirement actAR = (ManagedACTAccessRequirement) accessRequirement;
+			String ducFileHandleId = actAR.getDucTemplateFileHandleId();
+			if (ducFileHandleId != null) {
+				return Collections.singleton(ducFileHandleId);
+			}
+		}		
+		return Collections.emptySet();
 	}
 }

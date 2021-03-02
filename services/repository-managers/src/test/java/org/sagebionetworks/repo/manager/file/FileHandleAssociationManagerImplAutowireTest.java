@@ -14,12 +14,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
 import org.sagebionetworks.repo.manager.file.scanner.IdRange;
 import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -34,7 +32,6 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -53,9 +50,9 @@ public class FileHandleAssociationManagerImplAutowireTest {
 	private IdGenerator idGenerator;
 
 	@Autowired
-	FileHandleAssociationManager fileHandleAssociationManager;
+	private FileHandleAssociationManager fileHandleAssociationManager;
 	
-	UserInfo adminUserInfo;
+	private UserInfo adminUserInfo;
 	private List<String> fileHandlesToDelete;
 	private List<String> entitiesToDelete;
 	
@@ -172,7 +169,7 @@ public class FileHandleAssociationManagerImplAutowireTest {
 	}
 	
 	@Test
-	public void testTypeMappingUserSubmissionAttachment(){
+	public void testTypeMappingEvaluationSubmissionAttachment(){
 		FileHandleAssociateType type = FileHandleAssociateType.SubmissionAttachment;
 		assertEquals(ObjectType.EVALUATION_SUBMISSIONS, fileHandleAssociationManager.getAuthorizationObjectTypeForAssociatedObjectType(type));
 	}
@@ -217,29 +214,31 @@ public class FileHandleAssociationManagerImplAutowireTest {
 	}
 	
 	@Test
-	public void testGetFileHandleAssociationScanner() {
+	public void testGetIdRange() {
 		for (FileHandleAssociateType type : FileHandleAssociateType.values()) {
-			System.out.println("Type " + type.name());
-			FileHandleAssociationScanner scanner = fileHandleAssociationManager.getFileHandleAssociationScanner(type);
 			
-			assertNotNull(scanner);
-			
-			// Try to run a query on each scanner
-			
-			IdRange idRange = scanner.getIdRange();
+			IdRange idRange = fileHandleAssociationManager.getIdRange(type);
 			
 			assertNotNull(idRange);
+		}
+	}
+	
+	@Test
+	public void testScanRange() {
+		
+		for (FileHandleAssociateType type : FileHandleAssociateType.values()) {
+			IdRange idRange = fileHandleAssociationManager.getIdRange(type);
 			
-			System.out.println(idRange);
+			Iterator<ScannedFileHandleAssociation> it = fileHandleAssociationManager.scanRange(associationType, idRange).iterator();
 			
-			Iterator<ScannedFileHandleAssociation> it = scanner.scanRange(idRange).iterator();
-
+			assertNotNull(it);
+			
 			if (it.hasNext()) {
 				ScannedFileHandleAssociation association = it.next();
+				
 				assertNotNull(association);
-				System.out.println(association);
 			}
-			
 		}
 	}
 }
+

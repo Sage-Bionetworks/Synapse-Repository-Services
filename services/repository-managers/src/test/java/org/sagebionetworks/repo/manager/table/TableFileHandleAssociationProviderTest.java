@@ -12,6 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -39,6 +40,11 @@ public class TableFileHandleAssociationProviderTest {
 		//call under test
 		Set<String> out = provider.getFileHandleIdsDirectlyAssociatedWithObject(fileHandleIds, tableId);
 		assertEquals(results, out);
+	}
+	
+	@Test
+	public void testGetAssociateType() {
+		assertEquals(FileHandleAssociateType.TableEntity, provider.getAssociateType());
 	}
 
 }

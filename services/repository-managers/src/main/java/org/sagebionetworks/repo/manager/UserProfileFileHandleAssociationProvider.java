@@ -1,36 +1,34 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PICTURE_ID;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationProvider;
-import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner;
-import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserProfileDAO;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Service;
 
+@Service
 public class UserProfileFileHandleAssociationProvider implements FileHandleAssociationProvider{
 
 	private UserProfileDAO userProfileDAO;
 	
-	private FileHandleManager fileHandleManager;
-	
-	private FileHandleAssociationScanner scanner;
+	private FileHandleDao fileHandleDao;
 	
 	@Autowired
-	public UserProfileFileHandleAssociationProvider(UserProfileDAO userProfileDAO, FileHandleManager fileHandleManager,
-			NamedParameterJdbcTemplate jdbcTemplate) {
+	public UserProfileFileHandleAssociationProvider(UserProfileDAO userProfileDAO, FileHandleDao fileHandleDao) {
 		this.userProfileDAO = userProfileDAO;
-		this.fileHandleManager = fileHandleManager;
-		this.scanner = new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOUserProfile().getTableMapping(), COL_USER_PROFILE_PICTURE_ID);
+		this.fileHandleDao = fileHandleDao;
+	}
+	
+	@Override
+	public FileHandleAssociateType getAssociateType() {
+		return FileHandleAssociateType.UserProfileAttachment;
 	}
 
 	@Override
@@ -38,7 +36,7 @@ public class UserProfileFileHandleAssociationProvider implements FileHandleAssoc
 		Set<String> result = new HashSet<String>();
 		try {
 			String handleId = userProfileDAO.getPictureFileHandleId(objectId);
-			String previewId = fileHandleManager.getPreviewFileHandleId(handleId);
+			String previewId = fileHandleDao.getPreviewFileHandleId(handleId);
 			if (fileHandleIds.contains(handleId)) {
 				result.add(handleId);
 			}
@@ -55,11 +53,6 @@ public class UserProfileFileHandleAssociationProvider implements FileHandleAssoc
 	@Override
 	public ObjectType getAuthorizationObjectTypeForAssociatedObjectType() {
 		return ObjectType.USER_PROFILE;
-	}
-
-	@Override
-	public FileHandleAssociationScanner getAssociationScanner() {
-		return scanner;
 	}
 
 }

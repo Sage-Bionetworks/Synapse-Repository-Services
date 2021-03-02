@@ -9,15 +9,20 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
+import org.sagebionetworks.repo.manager.file.scanner.IdRange;
+import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class FileHandleAssociationManagerImpl implements FileHandleAssociationManager {
 
-	Map<FileHandleAssociateType, FileHandleAssociationProvider> providerMap;
+	private Map<FileHandleAssociateType, FileHandleAssociationProvider> providerMap;
+	private Map<FileHandleAssociateType, FileHandleAssociationScanner> scannerMap;
 
 	private FileHandleDao fileHandleDao;
 
@@ -26,6 +31,16 @@ public class FileHandleAssociationManagerImpl implements FileHandleAssociationMa
 		this.fileHandleDao = fileHandleDao;
 	}
 
+	@Autowired
+	public void configureProviderMap(Map<FileHandleAssociateType, FileHandleAssociationProvider> providersMap) {
+		this.providerMap = providersMap;
+	}
+	
+	@Autowired
+	public void configureScannerMap(Map<FileHandleAssociateType, FileHandleAssociationScanner> scannerMap) {
+		this.scannerMap = scannerMap;
+	}
+	
 	@Override
 	public Set<String> getFileHandleIdsAssociatedWithObject(List<String> fileHandleIds, String objectId,
 			FileHandleAssociateType associateType) {
@@ -67,12 +82,34 @@ public class FileHandleAssociationManagerImpl implements FileHandleAssociationMa
 		FileHandleAssociationProvider provider = getProvider(associateType);
 		return provider.getAuthorizationObjectTypeForAssociatedObjectType();
 	}
+
+	@Override
+	public IdRange getIdRange(FileHandleAssociateType associationType) {
+		ValidateArgument.required(associationType, "associationType");
+		
+		FileHandleAssociationScanner scanner = getScanner(associationType);
+		
+		return scanner.getIdRange();
+	}
 	
 	@Override
-	public FileHandleAssociationScanner getFileHandleAssociationScanner(FileHandleAssociateType associateType) {
-		ValidateArgument.required(associateType, "associateType");
-		FileHandleAssociationProvider provider = getProvider(associateType);
-		return provider.getAssociationScanner();
+	public Iterable<ScannedFileHandleAssociation> scanRange(FileHandleAssociateType associationType, IdRange range) {
+		ValidateArgument.required(associationType, "associationType");
+		
+		FileHandleAssociationScanner scanner = getScanner(associationType);
+		
+		return scanner.scanRange(range);
+	}
+	
+	private FileHandleAssociationScanner getScanner(FileHandleAssociateType type) {
+		if (type == null) {
+			throw new IllegalArgumentException("FileHandleAssociationType cannot be null");
+		}
+		FileHandleAssociationScanner scanner = scannerMap.get(type);
+		if (scanner == null) {
+			throw new UnsupportedOperationException("Currently do not support this operation for FileHandleAssociationType = " + type);
+		}
+		return scanner;
 	}
 
 	/**
@@ -87,19 +124,9 @@ public class FileHandleAssociationManagerImpl implements FileHandleAssociationMa
 		}
 		FileHandleAssociationProvider provider = providerMap.get(type);
 		if (provider == null) {
-			throw new UnsupportedOperationException(
-					"Currently do not support this operation for FileHandleAssociationType = " + type);
+			throw new UnsupportedOperationException("Currently do not support this operation for FileHandleAssociationType = " + type);
 		}
 		return provider;
-	}
-
-	/**
-	 * Injected.
-	 * 
-	 * @param providerMap
-	 */
-	public void setProviderMap(Map<FileHandleAssociateType, FileHandleAssociationProvider> providerMap) {
-		this.providerMap = providerMap;
 	}
 
 }

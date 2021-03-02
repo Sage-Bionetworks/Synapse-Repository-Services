@@ -4,23 +4,24 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner;
-import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Service;
 
+@Service
 public class FileEntityFileHandleAssociationProvider implements FileHandleAssociationProvider {
 
 	private NodeManager nodeManager;
-	
-	private FileHandleAssociationScanner scanner;
-	
+		
 	@Autowired
-	public FileEntityFileHandleAssociationProvider(NodeManager nodeManager, NamedParameterJdbcTemplate jdbcTemplate) {
+	public FileEntityFileHandleAssociationProvider(NodeManager nodeManager) {
 		this.nodeManager = nodeManager;
-		this.scanner = new BasicFileHandleAssociationScanner(jdbcTemplate, new DBORevision().getTableMapping());
+	}
+	
+	@Override
+	public FileHandleAssociateType getAssociateType() {
+		return FileHandleAssociateType.FileEntity;
 	}
 	
 	@Override
@@ -33,8 +34,4 @@ public class FileEntityFileHandleAssociationProvider implements FileHandleAssoci
 		return ObjectType.ENTITY;
 	}
 
-	@Override
-	public FileHandleAssociationScanner getAssociationScanner() {
-		return scanner;
-	}
 }

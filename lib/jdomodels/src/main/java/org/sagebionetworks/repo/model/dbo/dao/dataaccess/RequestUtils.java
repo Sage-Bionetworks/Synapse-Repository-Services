@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
@@ -60,5 +62,19 @@ public class RequestUtils {
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
+	}
+	
+	public static Set<String> extractAllFileHandleIds(RequestInterface request) {
+		Set<String> fileHandleIds = new HashSet<String>();
+		if (request.getAttachments()!= null && !request.getAttachments().isEmpty()) {
+			fileHandleIds.addAll(request.getAttachments());
+		}
+		if (request.getDucFileHandleId() != null) {
+			fileHandleIds.add(request.getDucFileHandleId());
+		}
+		if (request.getIrbFileHandleId() != null) {
+			fileHandleIds.add(request.getIrbFileHandleId());
+		}
+		return fileHandleIds;
 	}
 }

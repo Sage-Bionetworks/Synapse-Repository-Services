@@ -3,7 +3,8 @@ package org.sagebionetworks.repo.manager.file;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
+import org.sagebionetworks.repo.manager.file.scanner.IdRange;
+import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 
@@ -34,11 +35,22 @@ public interface FileHandleAssociationManager {
 	 * @return
 	 */
 	ObjectType getAuthorizationObjectTypeForAssociatedObjectType(FileHandleAssociateType associationType);
+
+	/**
+	 * Get the range of ids for the given association type
+	 * 
+	 * @param associationType The association type
+	 * @return The {@link IdRange} for the table storing the given association type
+	 */
+	IdRange getIdRange(FileHandleAssociateType associationType);
 	
 	/**
-	 * @param associateType The type of association
-	 * @return An instance of a scanner that can be used to iterate over all the file handles associated with the given type
+	 * Return an iterable for all the file handles associatied with the given asociation type
+	 * 
+	 * @param associationType The association type
+	 * @param range The range of ids to scan, inclusive
+	 * @return An iterable over all the file handles found in the given range
 	 */
-	FileHandleAssociationScanner getFileHandleAssociationScanner(FileHandleAssociateType associateType);
+	Iterable<ScannedFileHandleAssociation> scanRange(FileHandleAssociateType associationType, IdRange range);
 
 }
