@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 @Table(name = "ANNOTATED_EXAMPLE_TEST")
 public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnotatedExample> {
@@ -45,6 +46,8 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 	@Field(name = "PARENT_ID", isSelfForeignKey = true)
 	@ForeignKey(name = "PARENT_FK", table = "ANNOTATED_EXAMPLE_TEST", field = "ID", cascadeDelete = true)
 	private Long parentId;
+	@Field(name ="FILE_HANDLE", hasFileHandleRef = true)
+	private Long fileHandleId;
 
 	public Long getId() {
 		return id;
@@ -149,96 +152,51 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 	public void setParentId(Long parentId) {
 		this.parentId = parentId;
 	}
+	
+	public Long getFileHandleId() {
+		return fileHandleId;
+	}
+	
+	public void setFileHandleId(Long fileHandleId) {
+		this.fileHandleId = fileHandleId;
+	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + Arrays.hashCode(blob);
-		result = prime * result + ((comment == null) ? 0 : comment.hashCode());
-		result = prime * result + ((custom == null) ? 0 : custom.hashCode());
-		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
-		result = prime * result + ((exampleEnum == null) ? 0 : exampleEnum.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
-		result = prime * result + ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
-		result = prime * result + ((name == null) ? 0 : name.hashCode());
-		result = prime * result + ((number == null) ? 0 : number.hashCode());
-		result = prime * result + ((numberOrNull == null) ? 0 : numberOrNull.hashCode());
-		result = prime * result + ((serialized == null) ? 0 : serialized.hashCode());
+		result = prime * result + Objects.hash(comment, custom, etag, exampleEnum, fileHandleId, id, modifiedBy, modifiedOn, name, number,
+				numberOrNull, parentId, serialized);
 		return result;
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (obj == null) {
 			return false;
-		if (getClass() != obj.getClass())
+		}
+		if (getClass() != obj.getClass()) {
 			return false;
+		}
 		DBOAnnotatedExample other = (DBOAnnotatedExample) obj;
-		if (!Arrays.equals(blob, other.blob))
-			return false;
-		if (comment == null) {
-			if (other.comment != null)
-				return false;
-		} else if (!comment.equals(other.comment))
-			return false;
-		if (custom == null) {
-			if (other.custom != null)
-				return false;
-		} else if (!custom.equals(other.custom))
-			return false;
-		if (etag == null) {
-			if (other.etag != null)
-				return false;
-		} else if (!etag.equals(other.etag))
-			return false;
-		if (exampleEnum != other.exampleEnum)
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (modifiedBy == null) {
-			if (other.modifiedBy != null)
-				return false;
-		} else if (!modifiedBy.equals(other.modifiedBy))
-			return false;
-		if (modifiedOn == null) {
-			if (other.modifiedOn != null)
-				return false;
-		} else if (!modifiedOn.equals(other.modifiedOn))
-			return false;
-		if (name == null) {
-			if (other.name != null)
-				return false;
-		} else if (!name.equals(other.name))
-			return false;
-		if (number == null) {
-			if (other.number != null)
-				return false;
-		} else if (!number.equals(other.number))
-			return false;
-		if (numberOrNull == null) {
-			if (other.numberOrNull != null)
-				return false;
-		} else if (!numberOrNull.equals(other.numberOrNull))
-			return false;
-		if (serialized == null) {
-			if (other.serialized != null)
-				return false;
-		} else if (!serialized.equals(other.serialized))
-			return false;
-		return true;
+		return Arrays.equals(blob, other.blob) && Objects.equals(comment, other.comment) && Objects.equals(custom, other.custom)
+				&& Objects.equals(etag, other.etag) && exampleEnum == other.exampleEnum && Objects.equals(fileHandleId, other.fileHandleId)
+				&& Objects.equals(id, other.id) && Objects.equals(modifiedBy, other.modifiedBy)
+				&& Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(name, other.name) && Objects.equals(number, other.number)
+				&& Objects.equals(numberOrNull, other.numberOrNull) && Objects.equals(parentId, other.parentId)
+				&& Objects.equals(serialized, other.serialized);
 	}
 
 	@Override
 	public String toString() {
 		return "DBOAnnotatedExample [id=" + id + ", number=" + number + ", numberOrNull=" + numberOrNull + ", blob=" + Arrays.toString(blob)
 				+ ", custom=" + custom + ", serialized=" + serialized + ", comment=" + comment + ", exampleEnum=" + exampleEnum + ", name="
-				+ name + ", etag=" + etag + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + "]";
+				+ name + ", etag=" + etag + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + ", parentId=" + parentId
+				+ ", fileHandleId=" + fileHandleId + "]";
 	}
+
 }
