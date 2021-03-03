@@ -95,6 +95,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		EntityStateProvider stateProvider = new LazyEntityStateProvider(accessRestrictionStatusDao,
 				usersEntityPermissionsDao, userInfo, KeyFactory.stringToKeySingletonList(entityId));
 		Long entityIdLong = KeyFactory.stringToKey(entityId);
+		UserEntityPermissionsState permissionsState = stateProvider.getPermissionsState(entityIdLong);
 		UserEntityPermissions permissions = new UserEntityPermissions();
 		permissions.setCanAddChild(determineAccess(stateProvider, CREATE, userInfo).isAuthorized());
 		permissions.setCanCertifiedUserAddChild(determineAccessAsCertified(stateProvider, CREATE, userInfo).isAuthorized());
@@ -109,12 +110,10 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		permissions.setCanModerate(determineAccess(stateProvider, MODERATE, userInfo).isAuthorized());
 		permissions.setIsCertificationRequired(true);
 
-		permissions.setOwnerPrincipalId(stateProvider.getPermissionsState(entityIdLong).getEntityCreatedBy());
+		permissions.setOwnerPrincipalId(permissionsState.getEntityCreatedBy());
 		
 		permissions.setIsCertifiedUser(AuthorizationUtils.isCertifiedUser(userInfo));
-
-		UserInfo anonymousUser = UserInfoHelper.createAnonymousUserInfo();
-		permissions.setCanPublicRead(determineAccess(stateProvider, READ, anonymousUser).isAuthorized());
+		permissions.setCanPublicRead(permissionsState.hasPublicRead());
 
 		permissions.setCanEnableInheritance(
 				determineCanDeleteACL(new UserInfoState(userInfo), stateProvider.getPermissionsState(entityIdLong))

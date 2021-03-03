@@ -27,6 +27,7 @@ public class UserEntityPermissionsState {
 	private boolean hasChangePermissions;
 	private boolean hasChangeSettings;
 	private boolean hasModerate;
+	private boolean hasPublicRead;
 
 	public UserEntityPermissionsState(Long entityId) {
 		super();
@@ -43,6 +44,7 @@ public class UserEntityPermissionsState {
 		this.hasChangePermissions = false;
 		this.hasChangeSettings = false;
 		this.hasModerate = false;
+		this.hasPublicRead = false;
 	}
 
 	/**
@@ -255,6 +257,22 @@ public class UserEntityPermissionsState {
 		this.hasModerate = hasModerate;
 		return this;
 	}
+	
+	/**
+	 * Has the READ permission been granted to PUBLIC for this entity?
+	 * @return the hasPublicRead
+	 */
+	public boolean hasPublicRead() {
+		return hasPublicRead;
+	}
+
+	/**
+	 * Has the READ permission been granted to PUBLIC for this entity?
+	 */
+	public UserEntityPermissionsState withHasPublicRead(boolean hasPublicRead) {
+		this.hasPublicRead = hasPublicRead;
+		return this;
+	}
 
 	/**
 	 * @return the entityCreatedBy
@@ -290,7 +308,7 @@ public class UserEntityPermissionsState {
 	public int hashCode() {
 		return Objects.hash(benefactorId, dataType, doesEntityExist, entityCreatedBy, entityId, entityParentId,
 				entityType, hasChangePermissions, hasChangeSettings, hasCreate, hasDelete, hasDownload, hasModerate,
-				hasRead, hasUpdate);
+				hasPublicRead, hasRead, hasUpdate);
 	}
 
 	@Override
@@ -308,7 +326,7 @@ public class UserEntityPermissionsState {
 				&& entityType == other.entityType && hasChangePermissions == other.hasChangePermissions
 				&& hasChangeSettings == other.hasChangeSettings && hasCreate == other.hasCreate
 				&& hasDelete == other.hasDelete && hasDownload == other.hasDownload && hasModerate == other.hasModerate
-				&& hasRead == other.hasRead && hasUpdate == other.hasUpdate;
+				&& hasPublicRead == other.hasPublicRead && hasRead == other.hasRead && hasUpdate == other.hasUpdate;
 	}
 
 	@Override
@@ -318,7 +336,7 @@ public class UserEntityPermissionsState {
 				+ entityParentId + ", doesEntityExist=" + doesEntityExist + ", hasRead=" + hasRead + ", hasDownload="
 				+ hasDownload + ", hasCreate=" + hasCreate + ", hasUpdate=" + hasUpdate + ", hasDelete=" + hasDelete
 				+ ", hasChangePermissions=" + hasChangePermissions + ", hasChangeSettings=" + hasChangeSettings
-				+ ", hasModerate=" + hasModerate + "]";
+				+ ", hasModerate=" + hasModerate + ", hasPublicRead=" + hasPublicRead + "]";
 	}
 
 }

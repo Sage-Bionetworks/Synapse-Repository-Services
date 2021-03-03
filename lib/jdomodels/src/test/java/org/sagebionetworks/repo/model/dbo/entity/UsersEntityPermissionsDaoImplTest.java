@@ -384,6 +384,48 @@ public class UsersEntityPermissionsDaoImplTest {
 						.withHasDownload(true).withHasRead(false).withtDoesEntityExist(true));
 		assertEquals(expected, results);
 	}
+	
+	@Test
+	public void testGetEntityPermissionsWithPublicRead() {
+		setupNodeHierarchy(userOneId);
+		List<Long> entityIds = Arrays.asList(fileId);
+		aclHelper.create((a) -> {
+			a.setId(file.getId());
+			a.getResourceAccess().add(createResourceAccess(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(), ACCESS_TYPE.READ));
+		});
+		// call under test
+		List<UserEntityPermissionsState> results = entityPermissionDao.getEntityPermissions(userOneGroups, entityIds);
+		List<UserEntityPermissionsState> expected = Arrays.asList(
+				createExpectedState(file).withBenefactorId(fileId).withEntityType(EntityType.file)
+						.withHasRead(true).withHasPublicRead(true));
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testGetEntityPermissionsWithMultipleFilesWithPublicRead() {
+		setupNodeHierarchy(userOneId);
+		List<Long> entityIds = Arrays.asList(fileId, projectId, folderId);
+		aclHelper.create((a) -> {
+			a.setId(file.getId());
+			a.getResourceAccess().add(createResourceAccess(userOneId, ACCESS_TYPE.READ));
+			a.getResourceAccess().add(createResourceAccess(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(), ACCESS_TYPE.READ));
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userOneId, ACCESS_TYPE.DOWNLOAD));
+		});
+		// call under test
+		List<UserEntityPermissionsState> results = entityPermissionDao.getEntityPermissions(userOneGroups, entityIds);
+		List<UserEntityPermissionsState> expected = Arrays.asList(
+				createExpectedState(file).withBenefactorId(fileId).withEntityType(EntityType.file)
+						.withHasRead(true).withHasPublicRead(true),
+				createExpectedState(project).withBenefactorId(projectId).withEntityType(EntityType.project)
+						.withHasDownload(true).withHasRead(false).withHasPublicRead(false),
+				createExpectedState(folder).withBenefactorId(projectId).withEntityType(EntityType.folder)
+						.withHasDownload(true).withHasRead(false).withHasPublicRead(false));
+		assertEquals(expected, results);
+	}
+
 
 	@Test
 	public void testGetEntityPermissionsWithOpenData() {
@@ -655,8 +697,8 @@ public class UsersEntityPermissionsDaoImplTest {
 	UserEntityPermissionsState createExpectedState(Node node) {
 		return new UserEntityPermissionsState(KeyFactory.stringToKey(node.getId())).withEntityType(node.getNodeType())
 				.withEntityCreatedBy(node.getCreatedByPrincipalId())
-				.withEntityParentId(node.getParentId() == null? null: KeyFactory.stringToKey(node.getParentId()));
+				.withEntityParentId(node.getParentId() == null ? null : KeyFactory.stringToKey(node.getParentId()))
+				.withtDoesEntityExist(true);
 	}
-
 
 }
