@@ -55,6 +55,11 @@ public class UsersEntityPermissionsDaoImpl implements UsersEntityPermissionsDao 
 				permission.withtDoesEntityExist(true);
 				permission.withBenefactorId(rs.getLong("BENEFACTOR_ID"));
 				permission.withEntityType(EntityType.valueOf(rs.getString("ENTITY_TYPE")));
+				permission.withEntityParentId(rs.getLong("ENTITY_PARENT_ID"));
+				if(rs.wasNull()) {
+					permission.withEntityParentId(null);
+				}
+				permission.withEntityCreatedBy(rs.getLong("ENTITY_CREATED_BY"));
 				String dataType = rs.getString("DATA_TYPE");
 				if (dataType != null) {
 					permission.withDataType(DataType.valueOf(dataType));

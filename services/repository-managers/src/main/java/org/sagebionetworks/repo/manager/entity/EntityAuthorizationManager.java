@@ -65,5 +65,16 @@ public interface EntityAuthorizationManager {
 	 */
 	public AuthorizationStatus canCreate(String parentId, EntityType entityCreateType, UserInfo userInfo) throws DatastoreException, NotFoundException;
 
+	/**
+	 * Can the user delete the ACL on the given entity?
+	 * @param userInfo
+	 * @param entityId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public AuthorizationStatus canDeleteACL(UserInfo userInfo, String entityId);
+
+
 
 }

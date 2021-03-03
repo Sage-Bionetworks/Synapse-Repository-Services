@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ACCESS_DENIED;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CANNOT_REMOVE_ACL_OF_PROJECT;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CERTIFIED_USER_CONTENT;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTITY_IN_TRASH_TEMPLATE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
@@ -559,6 +560,40 @@ public class EntityDeciderFunctionsTest {
 				.withPermissionsState(permissionState.withEntityType(EntityType.file));
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_PROJECT_AND_NOT_CERTIFIED
+				.determineAccess(context);
+		assertFalse(resultOptional.isPresent());
+	}
+	
+	@Test
+	public void testDenyIfParentIsRootOrNullWithParentRoot() {
+		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(true))
+				.withPermissionsState(permissionState.withEntityParentId(NodeConstants.BOOTSTRAP_NODES.ROOT.getId()));
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_PARENT_IS_ROOT_OR_NULL
+				.determineAccess(context);
+		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
+				AuthorizationStatus.accessDenied(ERR_MSG_CANNOT_REMOVE_ACL_OF_PROJECT));
+		assertEquals(expected, resultOptional.get());
+	}
+	
+	@Test
+	public void testDenyIfParentIsRootOrNullWithNullParent() {
+		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(true))
+				.withPermissionsState(permissionState.withEntityParentId(null));
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_PARENT_IS_ROOT_OR_NULL
+				.determineAccess(context);
+		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
+				AuthorizationStatus.accessDenied(ERR_MSG_CANNOT_REMOVE_ACL_OF_PROJECT));
+		assertEquals(expected, resultOptional.get());
+	}
+	
+	@Test
+	public void testDenyIfParentIsRootOrNullWithParentNotRoot() {
+		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(true))
+				.withPermissionsState(permissionState.withEntityParentId(123L));
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_PARENT_IS_ROOT_OR_NULL
 				.determineAccess(context);
 		assertFalse(resultOptional.isPresent());
 	}

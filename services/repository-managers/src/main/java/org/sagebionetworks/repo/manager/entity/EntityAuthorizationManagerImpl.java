@@ -8,21 +8,36 @@ import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunct
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_HAS_UNMET_ACCESS_RESTRICTIONS;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_IN_TRASH;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_NOT_PROJECT_AND_NOT_CERTIFIED;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_PARENT_IS_ROOT_OR_NULL;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_ADMIN;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_HAS_CHANGE_PERMISSION;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_HAS_CHANGE_SETTINGS;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_HAS_CREATE;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_HAS_DELETE;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_HAS_DOWNLOAD;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_HAS_MODERATE;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_HAS_READ;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_HAS_UPDATE;
-import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.*;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_OPEN_DATA_WITH_READ;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.CHANGE_PERMISSIONS;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.CHANGE_SETTINGS;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.CREATE;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.DELETE;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.MODERATE;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.sagebionetworks.repo.manager.UserInfoHelper;
 import org.sagebionetworks.repo.manager.entity.decider.AccessContext;
 import org.sagebionetworks.repo.manager.entity.decider.AccessDecider;
 import org.sagebionetworks.repo.manager.entity.decider.UserInfoState;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -77,8 +92,63 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 	@Override
 	public UserEntityPermissions getUserPermissionsForEntity(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
+		EntityStateProvider stateProvider = new LazyEntityStateProvider(accessRestrictionStatusDao,
+				usersEntityPermissionsDao, userInfo, KeyFactory.stringToKeySingletonList(entityId));
+		Long entityIdLong = KeyFactory.stringToKey(entityId);
+		UserEntityPermissions permissions = new UserEntityPermissions();
+		permissions.setCanAddChild(determineAccess(stateProvider, CREATE, userInfo).isAuthorized());
+		permissions.setCanCertifiedUserAddChild(determineAccessAsCertified(stateProvider, CREATE, userInfo).isAuthorized());
+		permissions.setCanChangePermissions(determineAccess(stateProvider, CHANGE_PERMISSIONS, userInfo).isAuthorized());
+		permissions.setCanChangeSettings(determineAccess(stateProvider, CHANGE_SETTINGS, userInfo).isAuthorized());
+		permissions.setCanDelete(determineAccess(stateProvider, DELETE, userInfo).isAuthorized());
+		permissions.setCanEdit(determineAccess(stateProvider, UPDATE, userInfo).isAuthorized());
+		permissions.setCanCertifiedUserEdit(determineAccessAsCertified(stateProvider, UPDATE, userInfo).isAuthorized());
+		permissions.setCanView(determineAccess(stateProvider, READ, userInfo).isAuthorized());
+		permissions.setCanDownload(determineAccess(stateProvider, ACCESS_TYPE.DOWNLOAD, userInfo).isAuthorized());
+		permissions.setCanUpload(userInfo.acceptsTermsOfUse());
+		permissions.setCanModerate(determineAccess(stateProvider, MODERATE, userInfo).isAuthorized());
+		permissions.setIsCertificationRequired(true);
+
+		permissions.setOwnerPrincipalId(stateProvider.getPermissionsState(entityIdLong).getEntityCreatedBy());
+		
+		permissions.setIsCertifiedUser(AuthorizationUtils.isCertifiedUser(userInfo));
+
+		UserInfo anonymousUser = UserInfoHelper.createAnonymousUserInfo();
+		permissions.setCanPublicRead(determineAccess(stateProvider, READ, anonymousUser).isAuthorized());
+
+		permissions.setCanEnableInheritance(
+				determineCanDeleteACL(new UserInfoState(userInfo), stateProvider.getPermissionsState(entityIdLong))
+						.getAuthroizationStatus().isAuthorized());
+		return permissions;
+		
+	}
+	
+	/**
+	 * Determine if the user has the given access to the given entity.
+	 * @param provider
+	 * @param accessType
+	 * @param user
+	 * @return
+	 */
+	private AuthorizationStatus determineAccess(EntityStateProvider provider, ACCESS_TYPE accessType, UserInfo user) {
+		return determineAccess(new UserInfoState(user), provider, accessType).findFirst().get()
+				.getAuthroizationStatus();
+	}
+
+	/**
+	 * Answers the same question as
+	 * {@link #determineAccess(EntityStateProvider, ACCESS_TYPE, UserInfo)} but
+	 * assuming that the user is certified. This allows the UI to answer the
+	 * question: would the user be able to perform this action is they were to become certified?
+	 * 
+	 * @param provider
+	 * @param accessType
+	 * @param user
+	 * @return
+	 */
+	private AuthorizationStatus determineAccessAsCertified(EntityStateProvider provider, ACCESS_TYPE accessType, UserInfo user) {
+		return determineAccess(new UserInfoState(user).overrideIsCertified(true), provider, accessType).findFirst()
+				.get().getAuthroizationStatus();
 	}
 
 	@Override
@@ -252,6 +322,30 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 				.withAccessType(ACCESS_TYPE.CHANGE_PERMISSIONS),
 			DENY_IF_DOES_NOT_EXIST,
 			DENY_IF_IN_TRASH,
+			GRANT_IF_ADMIN,
+			DENY_IF_ANONYMOUS,
+			GRANT_IF_HAS_CHANGE_PERMISSION,
+			DENY
+		);
+		// @formatter:on
+	}
+	
+	@Override
+	public AuthorizationStatus canDeleteACL(UserInfo userInfo, String entityId) {
+		EntityStateProvider stateProvider = new LazyEntityStateProvider(accessRestrictionStatusDao,
+				usersEntityPermissionsDao, userInfo, KeyFactory.stringToKeySingletonList(entityId));
+		return determineCanDeleteACL(new UserInfoState(userInfo),
+				stateProvider.getPermissionsState(KeyFactory.stringToKey(entityId))).getAuthroizationStatus();
+	}
+	
+	UsersEntityAccessInfo determineCanDeleteACL(UserInfoState userInfo,
+			UserEntityPermissionsState permissionsState) {
+		// @formatter:off
+		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
+				.withAccessType(ACCESS_TYPE.CHANGE_PERMISSIONS),
+			DENY_IF_DOES_NOT_EXIST,
+			DENY_IF_IN_TRASH,
+			DENY_IF_PARENT_IS_ROOT_OR_NULL,
 			GRANT_IF_ADMIN,
 			DENY_IF_ANONYMOUS,
 			GRANT_IF_HAS_CHANGE_PERMISSION,

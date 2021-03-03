@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CANNOT_REMOVE_ACL_OF_PROJECT;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CERTIFIED_USER_CONTENT;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTITY_IN_TRASH_TEMPLATE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
@@ -1922,7 +1923,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		Node project = nodeDaoHelper.create(n -> {
 			n.setName("aProject");
 			n.setCreatedByPrincipalId(userOne.getId());
-			n.setParentId("" + NodeConstants.BOOTSTRAP_NODES.TRASH.getId());
+			n.setParentId(NodeConstants.BOOTSTRAP_NODES.TRASH.getId().toString());
 		});
 		String entityId = project.getId();
 		UserInfo user = adminUserInfo;
@@ -1990,5 +1991,118 @@ public class EntityAuthorizationManagerAutowireTest {
 		}).getMessage();
 		assertEquals(oldMessage, newMessage);
 		assertEquals(ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION, newMessage);
+	}
+	
+	@Test
+	public void testDetermineCanDeleteACL() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		Node folder = nodeDaoHelper.create(n -> {
+			n.setName("aFolder");
+			n.setCreatedByPrincipalId(userOne.getId());
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.folder);
+		});
+		aclHelper.create((a) -> {
+			a.setId(folder.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CHANGE_PERMISSIONS));
+		});
+		String entityId = folder.getId();
+		UserInfo user = userTwo;
+		// call under test
+		AuthorizationStatus status = entityAuthManager.canDeleteACL(user, entityId);
+		AuthorizationStatus expected = AuthorizationStatus.authorized();
+		assertEquals(expected, status);
+	}
+	
+	@Test
+	public void testDetermineCanDeleteACLWithRootParent() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+			n.setParentId(NodeConstants.BOOTSTRAP_NODES.ROOT.getId().toString());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CHANGE_PERMISSIONS));
+		});
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		// call under test
+		AuthorizationStatus status = entityAuthManager.canDeleteACL(user, entityId);
+		AuthorizationStatus expected = AuthorizationStatus.accessDenied(ERR_MSG_CANNOT_REMOVE_ACL_OF_PROJECT);
+		assertEquals(expected, status);
+	}
+	
+	@Test
+	public void testDetermineCanDeleteACLWithAdmin() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		Node folder = nodeDaoHelper.create(n -> {
+			n.setName("aFolder");
+			n.setCreatedByPrincipalId(userOne.getId());
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.folder);
+		});
+		aclHelper.create((a) -> {
+			a.setId(folder.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CHANGE_PERMISSIONS));
+		});
+		String entityId = folder.getId();
+		UserInfo user = adminUserInfo;
+		// call under test
+		AuthorizationStatus status = entityAuthManager.canDeleteACL(user, entityId);
+		AuthorizationStatus expected = AuthorizationStatus.authorized();
+		assertEquals(expected, status);
+	}
+	
+	@Test
+	public void testDetermineCanDeleteACLWithInTrash() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+			n.setParentId(NodeConstants.BOOTSTRAP_NODES.TRASH.getId().toString());
+		});
+		
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		
+		String message = assertThrows(EntityInTrashCanException.class, () -> {
+			// call under test
+			entityAuthManager.canDeleteACL(user, entityId).checkAuthorizationOrElseThrow();;
+		}).getMessage();
+		assertEquals(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, project.getId()), message);
+	}
+	
+	@Test
+	public void testDetermineCanDeleteACLWithAnonymous() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		Node folder = nodeDaoHelper.create(n -> {
+			n.setName("aFolder");
+			n.setCreatedByPrincipalId(userOne.getId());
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.folder);
+		});
+		aclHelper.create((a) -> {
+			a.setId(folder.getId());
+			a.getResourceAccess()
+			.add(createResourceAccess(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(), ACCESS_TYPE.CHANGE_PERMISSIONS));
+		});
+		
+		String entityId = folder.getId();
+		UserInfo user = anonymousUser;
+		
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			entityAuthManager.canDeleteACL(user, entityId).checkAuthorizationOrElseThrow();;
+		}).getMessage();
+		assertEquals(ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION, message);
 	}
 }

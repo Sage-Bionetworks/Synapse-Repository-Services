@@ -247,6 +247,7 @@ public class AuthorizationConstants {
 	public static final String ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND = "The resource you are attempting to access cannot be found";
 	public static final String ERR_MSG_ENTITY_IN_TRASH_TEMPLATE = "Entity %s is in trash can.";
 	public static final String ERR_MSG_ACCESS_DENIED = "Access denied.";
+	public static final String ERR_MSG_CANNOT_REMOVE_ACL_OF_PROJECT = "Cannot remove the ACL of a project";
 
 	
 }
