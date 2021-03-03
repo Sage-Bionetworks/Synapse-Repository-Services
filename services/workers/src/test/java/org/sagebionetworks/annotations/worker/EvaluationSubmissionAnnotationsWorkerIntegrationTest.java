@@ -18,7 +18,6 @@ import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.dao.EvaluationSubmissionsDAO;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
@@ -120,7 +119,6 @@ public class EvaluationSubmissionAnnotationsWorkerIntegrationTest {
         evaluation.setOwnerId(userId.toString());
         evaluation.setCreatedOn(new Date());
         evaluation.setContentSource(nodeId);
-        evaluation.setStatus(EvaluationStatus.PLANNED);
         evalId = evaluationDAO.create(evaluation, userId);
         
         EvaluationSubmissions evalSubs = evaluationSubmissionsDAO.createForEvaluation(Long.parseLong(evaluation.getId()));

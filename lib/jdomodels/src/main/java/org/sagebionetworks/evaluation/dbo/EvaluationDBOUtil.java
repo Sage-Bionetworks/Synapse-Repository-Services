@@ -39,7 +39,6 @@ public class EvaluationDBOUtil {
 		}
 		dbo.setCreatedOn(dto.getCreatedOn() == null ? null : dto.getCreatedOn().getTime());
 		dbo.setContentSource(KeyFactory.stringToKey(dto.getContentSource()));
-		dbo.setStatusEnum(dto.getStatus());
 		if (dto.getSubmissionInstructionsMessage() != null) {
 			dbo.setSubmissionInstructionsMessage(dto.getSubmissionInstructionsMessage().getBytes());
 		}
@@ -73,7 +72,6 @@ public class EvaluationDBOUtil {
 		EvaluationUtils.ensureNotNull(dbo.getOwnerId(), "ownerID");
 		EvaluationUtils.ensureNotNull(dbo.getCreatedOn(), "creation date");
 		EvaluationUtils.ensureNotNull(dbo.getContentSource(), "content source");
-		EvaluationUtils.ensureNotNull(dbo.getStatusEnum(), "status");
 	}
 	
 	public static Long getEndTimeOrNull(Long startTime, Long roundDurationMillis, Long numberOfRounds) {
@@ -104,7 +102,6 @@ public class EvaluationDBOUtil {
 		dto.setOwnerId(dbo.getOwnerId().toString());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		dto.setContentSource(KeyFactory.keyToString(dbo.getContentSource()));
-		dto.setStatus(dbo.getStatusEnum());
 		if (dbo.getSubmissionInstructionsMessage() != null) {
 			try {
 				dto.setSubmissionInstructionsMessage(new String(dbo.getSubmissionInstructionsMessage(), "UTF-8"));

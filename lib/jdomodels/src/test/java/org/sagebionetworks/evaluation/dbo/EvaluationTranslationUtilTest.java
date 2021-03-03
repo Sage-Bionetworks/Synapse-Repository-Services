@@ -6,7 +6,6 @@ import static org.junit.Assert.assertNotNull;
 import java.io.UnsupportedEncodingException;
 
 import org.junit.Test;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 public class EvaluationTranslationUtilTest {
@@ -58,7 +57,6 @@ public class EvaluationTranslationUtilTest {
 		backup.setId(456l);
 		backup.setName("name");
 		backup.setOwnerId(999l);
-		backup.setStatus(EvaluationStatus.COMPLETED.ordinal());
 		backup.setSubmissionInstructions("foo".getBytes("UTF-8"));
 		backup.setSubmissionReceiptMessage("bar".getBytes("UTF-8"));
 		backup.setQuota((new String("evaluation quota info goes here")).getBytes());
