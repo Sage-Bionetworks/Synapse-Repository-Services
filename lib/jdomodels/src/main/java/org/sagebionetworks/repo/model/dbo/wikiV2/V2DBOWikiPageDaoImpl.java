@@ -900,4 +900,9 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		return results;
 	}
 	
+	@Override
+	public void truncateAll() {
+		namedTemplate.getJdbcTemplate().update("DELETE FROM " + V2_TABLE_WIKI_PAGE);
+	}
+	
 }

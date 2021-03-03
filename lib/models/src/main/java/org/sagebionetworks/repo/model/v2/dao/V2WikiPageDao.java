@@ -253,4 +253,7 @@ public interface V2WikiPageDao {
 	 */
 	public Set<String> getFileHandleIdsAssociatedWithWikiMarkdown(
 			List<String> fileHandleIds, String wikiId);
+	
+	// For testing
+	void truncateAll();
 }

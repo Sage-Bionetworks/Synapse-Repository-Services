@@ -123,4 +123,7 @@ public interface SubmissionDAO {
 	 * @return
 	 */
 	public List<OpenSubmission> getOpenSubmissions(long limit, long offset);
+	
+	// For testing
+	void clear();
 }
