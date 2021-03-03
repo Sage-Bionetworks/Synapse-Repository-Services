@@ -17,7 +17,6 @@ import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -92,7 +91,6 @@ public class EvaluationSubmissionFileScannerIntegrationTest {
 		
 		Evaluation evaluation = new Evaluation();
 		
-		evaluation.setStatus(EvaluationStatus.OPEN);
 		evaluation.setId(idGenerator.generateNewId(IdType.EVALUATION_ID).toString());
 		evaluation.setContentSource(projectId);
 		evaluation.setName("TestEvaluation");
