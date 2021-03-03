@@ -21,7 +21,7 @@ public class DBOMessageContent implements MigratableDatabaseObject<DBOMessageCon
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("messageId", SqlConstants.COL_MESSAGE_CONTENT_ID, true).withIsBackupId(true),
 		new FieldColumn("createdBy", SqlConstants.COL_MESSAGE_CONTENT_CREATED_BY),
-		new FieldColumn("fileHandleId", SqlConstants.COL_MESSAGE_CONTENT_FILE_HANDLE_ID),
+		new FieldColumn("fileHandleId", SqlConstants.COL_MESSAGE_CONTENT_FILE_HANDLE_ID).withHasFileHandleRef(true),
 		new FieldColumn("createdOn", SqlConstants.COL_MESSAGE_CONTENT_CREATED_ON),
 		new FieldColumn("etag", SqlConstants.COL_MESSAGE_CONTENT_ETAG).withIsEtag(true)
 	};

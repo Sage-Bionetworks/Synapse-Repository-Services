@@ -60,7 +60,7 @@ import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.helper.DoaObjectHelper;
+import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -159,7 +159,7 @@ public class NodeDAOImplTest {
 	private JsonSchemaTestHelper jsonSchemaTestHelper;
 	
 	@Autowired
-	private DoaObjectHelper<Node> nodeDaoHelper;
+	private DaoObjectHelper<Node> nodeDaoHelper;
 
 	// the datasets that must be deleted at the end of each test.
 	List<String> toDelete = new ArrayList<String>();

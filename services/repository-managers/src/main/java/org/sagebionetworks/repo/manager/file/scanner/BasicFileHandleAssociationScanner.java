@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.file.scanner;
 import java.sql.ResultSet;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -28,8 +29,6 @@ import com.google.common.collect.ImmutableMap;
  *
  */
 public class BasicFileHandleAssociationScanner implements FileHandleAssociationScanner {
-
-	public static final String DEFAULT_FILE_ID_COLUMN_NAME = "FILE_HANDLE_ID";
 	
 	public static final long DEFAULT_BATCH_SIZE = 10000;
 	
@@ -48,7 +47,7 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 
 		return new IdRange(minId, maxId);
 	};
-
+	
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	private long batchSize;
 	private RowMapper<ScannedFileHandleAssociation> rowMapper;
@@ -62,73 +61,54 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 	private String sqlSelectBatchStm;
 
 	/**
-	 * Construct a scanner that uses a default FILE_HANDLE_ID column to extract a single file handle id
-	 * from each scanned row
+	 * Construct a scanner using the given {@link TableMapping} as reference. A {@link FieldColumn} with {@link FieldColumn#hasFileHandleRef()} must exist in the mapping and will be used
+	 * to extract a single file handle id from each scanned row
 	 * 
 	 * @param namedJdbcTemplate The jdbc template to use
-	 * @param tableMapping      The table mapping used as reference
+	 * @param tableMapping      The table mapping used as reference, must contain a {@link FieldColumn} with {@link FieldColumn#hasFileHandleRef()} true
 	 */
 	public BasicFileHandleAssociationScanner(NamedParameterJdbcTemplate namedJdbcTemplate, TableMapping<?> tableMapping) {
-		this(namedJdbcTemplate, tableMapping, DEFAULT_FILE_ID_COLUMN_NAME, DEFAULT_BATCH_SIZE, null);
-	}
-	
-	/**
-	 * Construct a scanner that uses the given fileHandleColumnName to extract a single file handle id from each
-	 * scanned row
-	 * 
-	 * @param namedJdbcTemplate The jdbc template to use
-	 * @param tableMapping The table mapping used as reference
-	 * @param fileHandleColumnName The name of the column holding the file handle id reference
-	 */
-	public BasicFileHandleAssociationScanner(NamedParameterJdbcTemplate namedJdbcTemplate, TableMapping<?> tableMapping, String fileHandleColumnName) {
-		this(namedJdbcTemplate, tableMapping, fileHandleColumnName, DEFAULT_BATCH_SIZE, null);
+		this(namedJdbcTemplate, tableMapping, DEFAULT_BATCH_SIZE, BasicFileHandleAssociationScanner::getDefaultRowMapper);
 	}
 
 	/**
-	 * Construct a scanner that uses the given file handle column name reference as the holder of
-	 * potential file handles. The name of the column must be defined in the given table mapping. The
-	 * {@link ScannedFileHandleAssociation} is built using the given row mapper. If the row mapper is
-	 * null a default row mapper is built that treats the given file handle column as a single file
-	 * handle id reference.
-	 * 
+	 * Construct a scanner that uses the given {@link TableMapping} as reference and will use the {@link FieldColumn#isBackupId()} column together with the {@link FieldColumn#hasFileHandleRef()} column
+	 * to process each row with the given {@link RowMapperSupplier}.
 	 * 
 	 * @param namedJdbcTemplate    The jdbc template to use
-	 * @param tableMapping         The table mapping used as reference
-	 * @param fileHandleColumnName The name of the column holding the file handle id reference
+	 * @param tableMapping         The table mapping used as reference, must contain two {@link FieldColumn} with {@link FieldColumn#isBackupId()} and {@link FieldColumn#hasFileHandleRef()} set to true  
 	 * @param batchSize            The max batch size of records to fetch in memory
-	 * @param rowMapperSupplier    A supplier for a row mapper used to build a {@link ScannedFileHandleAssociation}
-	 *                             from a row, if null a default row mapper is used that treats the
-	 *                             filehandleColumn as a direct reference to the file handle id
+	 * @param rowMapperSupplier    A supplier for a row mapper used to build a {@link ScannedFileHandleAssociation} from a row
 	 */
-	public BasicFileHandleAssociationScanner(NamedParameterJdbcTemplate namedJdbcTemplate, TableMapping<?> tableMapping, String fileHandleColumnName, long batchSize, RowMapperSupplier rowMapperSupplier) {
+	public BasicFileHandleAssociationScanner(NamedParameterJdbcTemplate namedJdbcTemplate, TableMapping<?> tableMapping, long batchSize, RowMapperSupplier rowMapperSupplier) {
 		ValidateArgument.required(namedJdbcTemplate, "The namedJdbcTemplate");
 		ValidateArgument.requirement(batchSize > 0, "The batchSize must be greater than zero.");
 		ValidateArgument.required(tableMapping, "The tableMapping");
-		ValidateArgument.required(fileHandleColumnName, "The fileHandleColumnName");
+		ValidateArgument.required(rowMapperSupplier, "The rowMapperSupplier");
 		
 		this.namedJdbcTemplate = namedJdbcTemplate;
 		this.batchSize = batchSize;
 		
 		// Makes sure the file handle column is present in the mapping
-		this.fileHandleColumn = Arrays.stream(tableMapping.getFieldColumns())
-				.filter(f -> f.getColumnName().equals(fileHandleColumnName))
-				.findFirst()
-				.orElseThrow(() -> new IllegalArgumentException("The column " + fileHandleColumnName + " is not defined for mapping " + tableMapping.getClass().getName()));
+		List<FieldColumn> candidates = Arrays.stream(tableMapping.getFieldColumns())
+				.filter(f -> f.hasFileHandleRef()).collect(Collectors.toList());
 		
+		if (candidates.isEmpty()) {
+			throw new IllegalArgumentException("No column found that is a fileHandleRef for mapping " + tableMapping.getClass().getName());
+		}
+		
+		if (candidates.size() > 1) {
+			throw new IllegalArgumentException("Only one fileHandleRef is currentlty supported, found " + candidates.size() + " for mapping " + tableMapping.getClass().getName());
+		}
 		// Makes sure that the mapping is defined with a backup id
 		this.backupIdColumn = Arrays.stream(tableMapping.getFieldColumns())
 				.filter(FieldColumn::isBackupId)
 				.findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("The mapping " + tableMapping.getClass().getName() + " does not define a backup id column"));
-
+		this.fileHandleColumn = candidates.iterator().next();
 		this.sqlMinMaxRangeStm = generateMinMaxStatement(tableMapping);
 		this.sqlSelectBatchStm = generateSelectBatchStatement(tableMapping, backupIdColumn, fileHandleColumn);
-
-		if (rowMapperSupplier == null) {
-			this.rowMapper = getDefaultRowMapper(backupIdColumn, fileHandleColumn);
-		} else {
-			this.rowMapper = rowMapperSupplier.getRowMapper(backupIdColumn.getColumnName(), fileHandleColumn.getColumnName());
-		}
+		this.rowMapper = rowMapperSupplier.getRowMapper(backupIdColumn.getColumnName(), fileHandleColumn.getColumnName());
 	}
 
 	@Override
@@ -150,19 +130,19 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 	/**
 	 * Construct a row mapper that extracts a single file handle id from the given column
 	 * 
-	 * @param backupIdColumn   The {@link FieldColumn} holding the backup id
-	 * @param fileHandleColumn The {@link FieldColumn} holding the file handle id
+	 * @param backupIdColumnName   The {@link FieldColumn} holding the backup id
+	 * @param fileHandleColumnName The {@link FieldColumn} holding the file handle id
 	 * @return A row mapper that builds a {@link ScannedFileHandleAssociation} with a single file handle
 	 *         extracted from the given fileHandleIdColumn
 	 */
-	private static RowMapper<ScannedFileHandleAssociation> getDefaultRowMapper(FieldColumn backupIdColumn, FieldColumn fileHandleColumn) {
+	public static RowMapper<ScannedFileHandleAssociation> getDefaultRowMapper(String backupIdColumnName, String fileHandleColumnName) {
 		return (ResultSet rs, int rowNumber) -> {
 
-			final String objectId = rs.getString(backupIdColumn.getColumnName());
+			final String objectId = rs.getString(backupIdColumnName);
 
 			ScannedFileHandleAssociation scanned = new ScannedFileHandleAssociation(objectId);
 			
-			Long fileHandleId = rs.getLong(fileHandleColumn.getColumnName());
+			Long fileHandleId = rs.getLong(fileHandleColumnName);
 			
 			if (rs.wasNull()) {
 				scanned.withFileHandleIds(Collections.emptyList());

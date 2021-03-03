@@ -15,7 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class LockAccessRequirementObjectHelper implements DoaObjectHelper<LockAccessRequirement> {
+public class LockAccessRequirementObjectHelper implements DaoObjectHelper<LockAccessRequirement> {
 	
 	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;

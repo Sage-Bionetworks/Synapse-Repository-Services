@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class AccessControlListObjectHelper implements DoaObjectHelper<AccessControlList> {
+public class AccessControlListObjectHelper implements DaoObjectHelper<AccessControlList> {
 
 	@Autowired
 	AccessControlListDAO aclDao;

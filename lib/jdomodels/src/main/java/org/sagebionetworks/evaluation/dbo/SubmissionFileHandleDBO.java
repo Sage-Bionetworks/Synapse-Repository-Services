@@ -27,35 +27,37 @@ public class SubmissionFileHandleDBO implements MigratableDatabaseObject<Submiss
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn(PARAM_SUBFILE_SUBMISSION_ID, COL_SUBFILE_SUBMISSION_ID, true).withIsBackupId(true),
-			new FieldColumn(PARAM_SUBFILE_FILE_HANDLE_ID, COL_SUBFILE_FILE_HANDLE_ID, true)
-			};
+			new FieldColumn(PARAM_SUBFILE_FILE_HANDLE_ID, COL_SUBFILE_FILE_HANDLE_ID, true).withHasFileHandleRef(true)
+	};
+	
+	private static final TableMapping<SubmissionFileHandleDBO> TABLE_MAPPING = new TableMapping<SubmissionFileHandleDBO>() {
+		// Map a result set to this object
+		public SubmissionFileHandleDBO mapRow(ResultSet rs, int rowNum)	throws SQLException {
+			SubmissionFileHandleDBO subFile = new SubmissionFileHandleDBO();
+			subFile.setSubmissionId(rs.getLong(COL_SUBFILE_SUBMISSION_ID));
+			subFile.setFileHandleId(rs.getLong(COL_SUBFILE_FILE_HANDLE_ID));
+			return subFile;
+		}
+
+		public String getTableName() {
+			return TABLE_SUBFILE;
+		}
+
+		public String getDDLFileName() {
+			return DDL_FILE_SUBFILE;
+		}
+
+		public FieldColumn[] getFieldColumns() {
+			return FIELDS;
+		}
+
+		public Class<? extends SubmissionFileHandleDBO> getDBOClass() {
+			return SubmissionFileHandleDBO.class;
+		}
+	};
 
 	public TableMapping<SubmissionFileHandleDBO> getTableMapping() {
-		return new TableMapping<SubmissionFileHandleDBO>() {
-			// Map a result set to this object
-			public SubmissionFileHandleDBO mapRow(ResultSet rs, int rowNum)	throws SQLException {
-				SubmissionFileHandleDBO subFile = new SubmissionFileHandleDBO();
-				subFile.setSubmissionId(rs.getLong(COL_SUBFILE_SUBMISSION_ID));
-				subFile.setFileHandleId(rs.getLong(COL_SUBFILE_FILE_HANDLE_ID));
-				return subFile;
-			}
-
-			public String getTableName() {
-				return TABLE_SUBFILE;
-			}
-
-			public String getDDLFileName() {
-				return DDL_FILE_SUBFILE;
-			}
-
-			public FieldColumn[] getFieldColumns() {
-				return FIELDS;
-			}
-
-			public Class<? extends SubmissionFileHandleDBO> getDBOClass() {
-				return SubmissionFileHandleDBO.class;
-			}
-		};
+		return TABLE_MAPPING;
 	}
 	
 	private Long submissionId;

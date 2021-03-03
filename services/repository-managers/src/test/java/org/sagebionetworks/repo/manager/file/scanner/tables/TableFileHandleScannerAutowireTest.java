@@ -19,6 +19,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScannerTestUtils;
 import org.sagebionetworks.repo.manager.file.scanner.IdRange;
 import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
@@ -61,9 +62,6 @@ public class TableFileHandleScannerAutowireTest {
 	private UserManager userManager;
 	
 	@Autowired
-	private IdGenerator idGenerator;
-	
-	@Autowired
 	private FileHandleDao fileHandleDao;
 	
 	@Autowired
@@ -71,6 +69,9 @@ public class TableFileHandleScannerAutowireTest {
 	
 	@Autowired
 	private TableRowTruthDAO tableTruthDao;
+	
+	@Autowired
+	private FileHandleAssociationScannerTestUtils utils;
 	
 	@Autowired
 	private TableFileHandleScanner scanner;
@@ -94,9 +95,9 @@ public class TableFileHandleScannerAutowireTest {
 		
 		user = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
-		fileHandlesIds.add(generateFileHandle());
-		fileHandlesIds.add(generateFileHandle());
-		fileHandlesIds.add(generateFileHandle());
+		fileHandlesIds.add(utils.generateFileHandle(user));
+		fileHandlesIds.add(utils.generateFileHandle(user));
+		fileHandlesIds.add(utils.generateFileHandle(user));
 		
 		tableWithNoSchema = generateTable(null);
 		tableWithNoFiles = generateTable(generateSchema(ColumnType.STRING, ColumnType.STRING));
@@ -210,9 +211,6 @@ public class TableFileHandleScannerAutowireTest {
 		return KeyFactory.stringToKey(tableId).toString();
 	}
 
-	private String generateFileHandle() {
-		FileHandle handle = TestUtils.createS3FileHandle(user.getId().toString(), idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		return fileHandleDao.createFile(handle).getId();
-	}
+	
 	
 }

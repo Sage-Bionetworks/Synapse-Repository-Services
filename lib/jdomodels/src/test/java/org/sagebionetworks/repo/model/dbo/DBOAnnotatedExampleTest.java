@@ -241,4 +241,22 @@ public class DBOAnnotatedExampleTest {
 		}
 	}
 
+	@Test
+	public void testHasFileHandleRef() throws Exception {
+		// First create the object.
+		DBOAnnotatedExample example = new DBOAnnotatedExample();
+		
+		TableMapping<DBOAnnotatedExample> tm = example.getTableMapping();
+		FieldColumn[] columns = tm.getFieldColumns();
+
+		for (FieldColumn column : columns) {
+			if (column.getColumnName().equals("FILE_HANDLE")) {
+				assertTrue(column.hasFileHandleRef());
+			} else {
+				assertFalse(column.hasFileHandleRef());
+			}
+		}
+	}
+
+	
 }

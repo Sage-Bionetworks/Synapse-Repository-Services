@@ -48,7 +48,7 @@ import org.sagebionetworks.repo.model.dbo.dao.DataTypeDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
-import org.sagebionetworks.repo.model.helper.DoaObjectHelper;
+import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -77,13 +77,13 @@ public class EntityAuthorizationManagerAutowireTest {
 	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;
 	@Autowired
-	private DoaObjectHelper<Node> nodeDaoHelper;
+	private DaoObjectHelper<Node> nodeDaoHelper;
 	@Autowired
 	private AccessControlListObjectHelper aclHelper;
 	@Autowired
-	private DoaObjectHelper<ManagedACTAccessRequirement> managedHelper;
+	private DaoObjectHelper<ManagedACTAccessRequirement> managedHelper;
 	@Autowired
-	private DoaObjectHelper<AccessApproval> accessApprovalHelper;
+	private DaoObjectHelper<AccessApproval> accessApprovalHelper;
 	@Autowired
 	private EntityAuthorizationManager entityAuthManager;
 	@Autowired

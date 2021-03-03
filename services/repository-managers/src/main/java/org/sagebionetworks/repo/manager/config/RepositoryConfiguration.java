@@ -1,11 +1,6 @@
 package org.sagebionetworks.repo.manager.config;
 
 import static org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner.DEFAULT_BATCH_SIZE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_REVISION_SERIALIZED_ENTITY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_REQUEST_SERIALIZED;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ICON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PICTURE_ID;
 
 import java.util.HashMap;
 import java.util.List;
@@ -117,12 +112,12 @@ public class RepositoryConfiguration {
 	
 	@Bean
 	public FileHandleAssociationScanner teamFileScanner(NamedParameterJdbcTemplate jdbcTemplate) {
-		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOTeam().getTableMapping(), COL_TEAM_ICON);
+		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOTeam().getTableMapping());
 	}
 	
 	@Bean
 	public FileHandleAssociationScanner userProfileFileScanner(NamedParameterJdbcTemplate jdbcTemplate) {
-		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOUserProfile().getTableMapping(), COL_USER_PROFILE_PICTURE_ID);
+		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOUserProfile().getTableMapping());
 	}
 	
 	@Bean
@@ -152,21 +147,21 @@ public class RepositoryConfiguration {
 	public FileHandleAssociationScanner accessRequirementFileScanner(NamedParameterJdbcTemplate jdbcTemplate) {
 		RowMapperSupplier rowMapperSupplier = new SerializedFieldRowMapperSupplier<>(AccessRequirementUtils::readSerializedField, AccessRequirementUtils::extractAllFileHandleIds);
 		
-		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOAccessRequirementRevision().getTableMapping(), COL_ACCESS_REQUIREMENT_REVISION_SERIALIZED_ENTITY, DEFAULT_BATCH_SIZE, rowMapperSupplier);
+		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOAccessRequirementRevision().getTableMapping(), DEFAULT_BATCH_SIZE, rowMapperSupplier);
 	}
 	
 	@Bean
 	public FileHandleAssociationScanner accessRequestFileScanner(NamedParameterJdbcTemplate jdbcTemplate) {
 		RowMapperSupplier rowMapperSupplier = new SerializedFieldRowMapperSupplier<>(RequestUtils::readSerializedField, RequestUtils::extractAllFileHandleIds);
 		
-		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBORequest().getTableMapping(), COL_DATA_ACCESS_REQUEST_REQUEST_SERIALIZED, DEFAULT_BATCH_SIZE, rowMapperSupplier);
+		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBORequest().getTableMapping(), DEFAULT_BATCH_SIZE, rowMapperSupplier);
 	}
 	
 	@Bean
 	public FileHandleAssociationScanner accessSubmissionFileScanner(NamedParameterJdbcTemplate jdbcTemplate) {
 		RowMapperSupplier rowMapperSupplier = new SerializedFieldRowMapperSupplier<>(SubmissionUtils::readSerializedField, SubmissionUtils::extractAllFileHandleIds);
 		
-		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOSubmission().getTableMapping(), COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED, DEFAULT_BATCH_SIZE, rowMapperSupplier);
+		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOSubmission().getTableMapping(), DEFAULT_BATCH_SIZE, rowMapperSupplier);
 	}
 	
 }

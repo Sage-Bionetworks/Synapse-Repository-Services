@@ -467,5 +467,9 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		}
 	}
 
-
+	@Override
+	public void truncateAll() {
+		namedJdbcTemplate.getJdbcTemplate().update("DELETE FROM " + SqlConstants.TABLE_MESSAGE_CONTENT);
+	}
+	
 }
