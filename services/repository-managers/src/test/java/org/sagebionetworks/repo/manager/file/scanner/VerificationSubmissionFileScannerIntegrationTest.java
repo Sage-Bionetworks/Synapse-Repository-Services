@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.helper.DoaObjectHelper;
+import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.verification.AttachmentMetadata;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,7 +38,7 @@ public class VerificationSubmissionFileScannerIntegrationTest {
 	private UserGroupDAO userGroupDao;
 	
 	@Autowired
-	private DoaObjectHelper<UserGroup> userGroupHelper;
+	private DaoObjectHelper<UserGroup> userGroupHelper;
 	
 	@Autowired
 	private VerificationDAO verificationDao;

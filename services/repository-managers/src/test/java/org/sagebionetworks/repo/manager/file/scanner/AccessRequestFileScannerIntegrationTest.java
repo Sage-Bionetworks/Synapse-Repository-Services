@@ -31,7 +31,7 @@ import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.helper.DoaObjectHelper;
+import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -47,16 +47,16 @@ public class AccessRequestFileScannerIntegrationTest {
 	private UserManager userManager;
 
 	@Autowired
-	private DoaObjectHelper<ManagedACTAccessRequirement> managedHelper;
+	private DaoObjectHelper<ManagedACTAccessRequirement> managedHelper;
 	
 	@Autowired
-	private DoaObjectHelper<ResearchProject> researchHelper;
+	private DaoObjectHelper<ResearchProject> researchHelper;
 	
 	@Autowired
-	private DoaObjectHelper<UserGroup> userGroupHelper;
+	private DaoObjectHelper<UserGroup> userGroupHelper;
 
 	@Autowired
-	private DoaObjectHelper<Request> requestHelper;
+	private DaoObjectHelper<Request> requestHelper;
 		
 	@Autowired
 	private ResearchProjectDAO researchProjectDao;

@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.model.helper;
 
 import java.util.function.Consumer;
 
-public interface DoaObjectHelper<T> {
+public interface DaoObjectHelper<T> {
 
 	/**
 	 * Abstraction for a helper to create a new Dao object in the database using default values, but

@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class DataAccessSubmissionObjectHelper implements DoaObjectHelper<Submission> {
+public class DataAccessSubmissionObjectHelper implements DaoObjectHelper<Submission> {
 	
 	@Autowired
 	private SubmissionDAO submissionDao;

@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class UserGroupDoaObjectHelper implements DoaObjectHelper<UserGroup>{
+public class UserGroupDoaObjectHelper implements DaoObjectHelper<UserGroup>{
 	
 	@Autowired
 	private UserGroupDAO userGroupDao;

@@ -30,7 +30,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.helper.DoaObjectHelper;
+import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -49,7 +49,7 @@ public class EvaluationSubmissionFileScannerIntegrationTest {
 	private UserManager userManager;
 	
 	@Autowired
-	private DoaObjectHelper<Node> nodeDaoHelper;
+	private DaoObjectHelper<Node> nodeDaoHelper;
 	
 	@Autowired
 	private IdGenerator idGenerator;

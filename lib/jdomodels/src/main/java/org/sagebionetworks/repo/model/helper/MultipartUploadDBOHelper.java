@@ -18,7 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class MultipartUploadDBOHelper implements DoaObjectHelper<DBOMultipartUpload> {
+public class MultipartUploadDBOHelper implements DaoObjectHelper<DBOMultipartUpload> {
 	
 	@Autowired
 	private IdGenerator idGenerator;

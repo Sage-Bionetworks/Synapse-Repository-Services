@@ -30,7 +30,7 @@ import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.helper.DoaObjectHelper;
+import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -56,22 +56,22 @@ public class AccessRestrictionStatusDaoImplTest {
 	private NodeDAO nodeDao;
 
 	@Autowired
-	private DoaObjectHelper<Node> nodeDaoHelper;
+	private DaoObjectHelper<Node> nodeDaoHelper;
 
 	@Autowired
-	private DoaObjectHelper<UserGroup> userGroupHelpler;
+	private DaoObjectHelper<UserGroup> userGroupHelpler;
 
 	@Autowired
-	private DoaObjectHelper<TermsOfUseAccessRequirement> termsOfUseHelper;
+	private DaoObjectHelper<TermsOfUseAccessRequirement> termsOfUseHelper;
 
 	@Autowired
-	private DoaObjectHelper<LockAccessRequirement> lockHelper;
+	private DaoObjectHelper<LockAccessRequirement> lockHelper;
 
 	@Autowired
-	private DoaObjectHelper<ManagedACTAccessRequirement> managedHelper;
+	private DaoObjectHelper<ManagedACTAccessRequirement> managedHelper;
 
 	@Autowired
-	private DoaObjectHelper<AccessApproval> accessApprovalHelper;
+	private DaoObjectHelper<AccessApproval> accessApprovalHelper;
 
 	Long userOneId;
 	Long userTwoId;

@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class ResearchProjectObjectHelper implements DoaObjectHelper<ResearchProject>{
+public class ResearchProjectObjectHelper implements DaoObjectHelper<ResearchProject>{
 	
 	@Autowired
 	private ResearchProjectDAO researchProjectDao;

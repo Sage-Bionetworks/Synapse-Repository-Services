@@ -23,7 +23,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.helper.DoaObjectHelper;
+import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -45,7 +45,7 @@ public class UserProfileFileScannerIntegrationTest {
 	private UserProfileDAO userProfileDao;
 	
 	@Autowired
-	private DoaObjectHelper<UserGroup> userGroupHelper;
+	private DaoObjectHelper<UserGroup> userGroupHelper;
 		
 	@Autowired
 	private FileHandleAssociationScannerTestUtils utils;

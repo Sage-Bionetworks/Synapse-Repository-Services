@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 
 @Service
-public class TermsOfUseAccessRequirementObjectHelper implements DoaObjectHelper<TermsOfUseAccessRequirement> {
+public class TermsOfUseAccessRequirementObjectHelper implements DaoObjectHelper<TermsOfUseAccessRequirement> {
 	
 	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;

@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class AccessApprovalObjectHelper implements DoaObjectHelper<AccessApproval> {
+public class AccessApprovalObjectHelper implements DaoObjectHelper<AccessApproval> {
 	
 	@Autowired
 	private AccessApprovalDAO approvalDao;

@@ -26,7 +26,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DataTypeDao;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
-import org.sagebionetworks.repo.model.helper.DoaObjectHelper;
+import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -51,10 +51,10 @@ public class UsersEntityPermissionsDaoImplTest {
 	private DataTypeDao dataTypeDao;
 
 	@Autowired
-	private DoaObjectHelper<Node> nodeDaoHelper;
+	private DaoObjectHelper<Node> nodeDaoHelper;
 
 	@Autowired
-	private DoaObjectHelper<UserGroup> userGroupHelpler;
+	private DaoObjectHelper<UserGroup> userGroupHelpler;
 
 	@Autowired
 	private AccessControlListObjectHelper aclHelper;
