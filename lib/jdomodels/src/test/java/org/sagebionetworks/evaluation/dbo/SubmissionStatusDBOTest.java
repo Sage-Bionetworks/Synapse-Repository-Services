@@ -9,7 +9,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -62,7 +61,6 @@ public class SubmissionStatusDBOTest {
         evaluation.setOwnerId(userId);
         evaluation.setContentSource(KeyFactory.ROOT_ID);
         evaluation.setCreatedOn(System.currentTimeMillis());
-        evaluation.setStatusEnum(EvaluationStatus.PLANNED);
         evalId = dboBasicDao.createNew(evaluation).getId();
         
         // Initialize a new Submission

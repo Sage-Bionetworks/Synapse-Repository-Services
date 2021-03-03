@@ -35,11 +35,6 @@
 			"description": "The Synapse ID of the Entity to which this Evaluation belongs, e.g. a reference to a Synapse project.",
 			"transient": true
 		},
-		"status": {
-			"type": "object",
-			"description": "DEPRECATED with no replacement! No longer used in Synapse.",
-			"$ref": "org.sagebionetworks.evaluation.model.EvaluationStatus"
-		},
 		"submissionInstructionsMessage": {
 			"type": "string",
 			"description": "Message to display to users detailing acceptable formatting for Submissions to this Evaluation."

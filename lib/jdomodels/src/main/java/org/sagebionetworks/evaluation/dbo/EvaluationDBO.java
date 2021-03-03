@@ -10,7 +10,6 @@ import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_N
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_OWNER_ID;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_QUOTA;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_START_TIMESTAMP;
-import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_STATUS;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_SUB_INSTRUCT_MSG;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_SUB_RECEIPT_MSG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_CONTENT_SOURCE;
@@ -23,7 +22,6 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_N
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_QUOTA;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_START_TIMESTAMP;
-import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_STATUS;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_SUB_INSTRUCT_MSG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_SUB_RECEIPT_MSG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.DDL_FILE_EVALUATION;
@@ -36,7 +34,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -60,7 +57,6 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 			new FieldColumn(PARAM_EVALUATION_OWNER_ID, COL_EVALUATION_OWNER_ID),
 			new FieldColumn(PARAM_EVALUATION_CREATED_ON, COL_EVALUATION_CREATED_ON),
 			new FieldColumn(PARAM_EVALUATION_CONTENT_SOURCE, COL_EVALUATION_CONTENT_SOURCE),
-			new FieldColumn(PARAM_EVALUATION_STATUS, COL_EVALUATION_STATUS),
 			new FieldColumn(PARAM_EVALUATION_SUB_INSTRUCT_MSG, COL_EVALUATION_SUB_INSTRUCT_MSG),
 			new FieldColumn(PARAM_EVALUATION_SUB_RECEIPT_MSG, COL_EVALUATION_SUB_RECEIPT_MSG),
 			new FieldColumn(PARAM_EVALUATION_QUOTA, COL_EVALUATION_QUOTA),
@@ -83,7 +79,6 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 				eval.setOwnerId(rs.getLong(COL_EVALUATION_OWNER_ID));
 				eval.setCreatedOn(rs.getLong(COL_EVALUATION_CREATED_ON));
 				eval.setContentSource(rs.getLong(COL_EVALUATION_CONTENT_SOURCE));
-				eval.setStatus(rs.getInt(COL_EVALUATION_STATUS));
 				blob = rs.getBlob(COL_EVALUATION_SUB_INSTRUCT_MSG);
 				if (blob != null) {
 					eval.setSubmissionInstructionsMessage(blob.getBytes(1, (int) blob.length()));
@@ -132,7 +127,6 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	private Long ownerId;
 	private Long createdOn;
 	private Long contentSource;
-	private int status;
 	private byte[] submissionInstructionsMessage;
 	private byte[] submissionReceiptMessage;
 	private byte[] quota;
@@ -179,21 +173,6 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	}
 	public void setContentSource(Long contentSource) {
 		this.contentSource = contentSource;
-	}
-
-	public int getStatus() {
-		return status;
-	}
-	private void setStatus(int status) {
-		this.status = status;
-	}
-	
-	public EvaluationStatus getStatusEnum() {
-		return EvaluationStatus.values()[status];
-	}
-	public void setStatusEnum(EvaluationStatus es) {
-		if (es == null)	throw new IllegalArgumentException("Evaluation status cannot be null");
-		setStatus(es.ordinal());
 	}
 
 	public String geteTag() {
@@ -269,7 +248,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	public String toString() {
 		return "EvaluationDBO [id=" + id + ", eTag=" + eTag + ", name=" + name + ", description="
 				+ Arrays.toString(description) + ", ownerId=" + ownerId + ", createdOn=" + createdOn
-				+ ", contentSource=" + contentSource + ", status=" + status + ", submissionInstructionsMessage="
+				+ ", contentSource=" + contentSource + ", submissionInstructionsMessage="
 				+ Arrays.toString(submissionInstructionsMessage) + ", submissionReceiptMessage="
 				+ Arrays.toString(submissionReceiptMessage) + ", quota=" + Arrays.toString(quota) + ", startTimestamp="
 				+ startTimestamp + ", endTimestamp=" + endTimestamp + "]";
@@ -288,7 +267,6 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 		result = prime * result + ((ownerId == null) ? 0 : ownerId.hashCode());
 		result = prime * result + Arrays.hashCode(quota);
 		result = prime * result + ((startTimestamp == null) ? 0 : startTimestamp.hashCode());
-		result = prime * result + status;
 		result = prime * result + Arrays.hashCode(submissionInstructionsMessage);
 		result = prime * result + Arrays.hashCode(submissionReceiptMessage);
 		return result;
@@ -345,8 +323,6 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 			if (other.startTimestamp != null)
 				return false;
 		} else if (!startTimestamp.equals(other.startTimestamp))
-			return false;
-		if (status != other.status)
 			return false;
 		if (!Arrays.equals(submissionInstructionsMessage, other.submissionInstructionsMessage))
 			return false;

@@ -14,7 +14,6 @@ public class DBOConstants {
 	public static final String PARAM_EVALUATION_OWNER_ID 			= "ownerId";
 	public static final String PARAM_EVALUATION_CREATED_ON 			= "createdOn";
 	public static final String PARAM_EVALUATION_CONTENT_SOURCE 		= "contentSource";
-	public static final String PARAM_EVALUATION_STATUS				= "status";
 	public static final String PARAM_EVALUATION_SUB_INSTRUCT_MSG 	= "submissionInstructionsMessage";
 	public static final String PARAM_EVALUATION_SUB_RECEIPT_MSG		= "submissionReceiptMessage";
 	public static final String PARAM_EVALUATION_SUBMISSIONS_ETAG 	= "submissionsEtag";

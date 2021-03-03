@@ -118,8 +118,6 @@ public class EvaluationController {
 	 * <ul>
 	 * <li>name - Give your new Evaluation a name.</li>
 	 * <li>contentSource - The ID of the parent Entity, such as a Folder or Project.</li>
-	 * <li>status - The initial state of the Evaluation, an 
-	 * <a href="${org.sagebionetworks.evaluation.model.EvaluationStatus}">EvaluationStatus</a></li>
 	 * </ul>
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
