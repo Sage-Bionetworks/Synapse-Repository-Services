@@ -20,7 +20,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationRound;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -117,7 +116,6 @@ public class SubmissionManagerAutowiredTest {
 		Evaluation evaluation = new Evaluation();
 		evaluation.setContentSource(project.getId());
 		evaluation.setName("evaluation");
-		evaluation.setStatus(EvaluationStatus.OPEN);
 		evaluation = evaluationManager.createEvaluation(adminUserInfo, evaluation);
 		assertNotNull(evaluation.getId());
 		evalsToDelete.add(evaluation.getId());

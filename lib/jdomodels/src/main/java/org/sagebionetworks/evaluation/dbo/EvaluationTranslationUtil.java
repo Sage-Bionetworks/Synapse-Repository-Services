@@ -3,7 +3,6 @@ package org.sagebionetworks.evaluation.dbo;
 import static org.sagebionetworks.repo.model.jdo.KeyFactory.ROOT_ID;
 import static org.sagebionetworks.repo.model.jdo.KeyFactory.SYNAPSE_ID_PREFIX;
 
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 /**
@@ -23,7 +22,6 @@ public class EvaluationTranslationUtil {
 		dbo.setId(backup.getId());
 		dbo.setName(backup.getName());
 		dbo.setOwnerId(backup.getOwnerId());
-		dbo.setStatusEnum(EvaluationStatus.values()[backup.getStatus()]);
 		dbo.setSubmissionInstructionsMessage(backup.getSubmissionInstructions());
 		dbo.setSubmissionReceiptMessage(backup.getSubmissionReceiptMessage());
 		dbo.setQuota(backup.getQuota());
@@ -41,7 +39,6 @@ public class EvaluationTranslationUtil {
 		backup.setId(dbo.getId());
 		backup.setName(dbo.getName());
 		backup.setOwnerId(dbo.getOwnerId());
-		backup.setStatus(dbo.getStatus());
 		backup.setSubmissionInstructions(dbo.getSubmissionInstructionsMessage());
 		backup.setSubmissionReceiptMessage(dbo.getSubmissionReceiptMessage());
 		backup.setQuota(dbo.getQuota());

@@ -42,7 +42,6 @@ import org.sagebionetworks.evaluation.model.EvaluationRoundLimit;
 import org.sagebionetworks.evaluation.model.EvaluationRoundLimitType;
 import org.sagebionetworks.evaluation.model.EvaluationRoundListRequest;
 import org.sagebionetworks.evaluation.model.EvaluationRoundListResponse;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.ids.IdGenerator;
@@ -134,7 +133,6 @@ public class EvaluationManagerTest {
 		eval.setName(EVALUATION_NAME);
 		eval.setOwnerId(ownerInfo.getId().toString());
 		eval.setContentSource(EVALUATION_CONTENT_SOURCE);
-		eval.setStatus(EvaluationStatus.PLANNED);
 		eval.setEtag(EVALUATION_ETAG);
 
 		evalWithId = new Evaluation();
@@ -143,7 +141,6 @@ public class EvaluationManagerTest {
 		evalWithId.setName(EVALUATION_NAME);
 		evalWithId.setOwnerId(ownerInfo.getId().toString());
 		evalWithId.setContentSource(EVALUATION_CONTENT_SOURCE);
-		evalWithId.setStatus(EvaluationStatus.PLANNED);
 		evalWithId.setEtag(EVALUATION_ETAG);
 
 		evaluationRoundStart = now.toInstant().plus(1, ChronoUnit.DAYS);

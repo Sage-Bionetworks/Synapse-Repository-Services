@@ -10,7 +10,6 @@ import java.util.UUID;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationRound;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
@@ -190,7 +189,6 @@ public class TestHelper {
 		evaluation.setName(UUID.randomUUID().toString());
 		evaluation.setOwnerId(user.getId().toString());
 		evaluation.setContentSource(project.getId());
-		evaluation.setStatus(EvaluationStatus.OPEN);
 		evaluation.setEtag(UUID.randomUUID().toString());
 
 		evaluation = evaluationManager.createEvaluation(user, evaluation);

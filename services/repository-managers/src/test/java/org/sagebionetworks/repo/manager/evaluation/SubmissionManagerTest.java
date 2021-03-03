@@ -39,7 +39,6 @@ import org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
@@ -220,7 +219,6 @@ public class SubmissionManagerTest {
 		eval.setId(EVAL_ID);
 		eval.setOwnerId(OWNER_ID);
         eval.setContentSource(PROJECT_ID);
-        eval.setStatus(EvaluationStatus.CLOSED); // deprecated, setting doesn't matter
         eval.setCreatedOn(new Date());
         eval.setEtag("compEtag");
         

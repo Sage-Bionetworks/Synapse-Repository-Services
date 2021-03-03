@@ -19,7 +19,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -685,7 +684,6 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		eval.setName(name);
 		eval.setOwnerId(userInfo.getId().toString());
         eval.setContentSource(contentSource);
-        eval.setStatus(EvaluationStatus.PLANNED);
         eval.setEtag(UUID.randomUUID().toString());
         eval = evaluationManager.createEvaluation(userInfo, eval);
 		evalsToDelete.add(eval.getId());
