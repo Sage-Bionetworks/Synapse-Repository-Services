@@ -192,7 +192,7 @@ public class EvaluationManagerTest {
 			evaluationManager.getEvaluation(ownerInfo, evaluationId);
 		}).getMessage();
 
-		assertEquals("Evaluation ID cannot be null", errorMessage);
+		assertEquals("Evaluation ID is required.", errorMessage);
 		verifyZeroInteractions(mockEvaluationDAO);
 		verifyZeroInteractions(mockPermissionsManager);
 	}
