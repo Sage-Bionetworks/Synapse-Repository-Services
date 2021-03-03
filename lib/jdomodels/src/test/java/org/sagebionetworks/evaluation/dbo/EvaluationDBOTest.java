@@ -10,7 +10,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -60,7 +59,6 @@ public class EvaluationDBOTest {
         eval.setOwnerId(ownerId);
         eval.setCreatedOn(System.currentTimeMillis());
         eval.setContentSource(contentSource);
-        eval.setStatusEnum(EvaluationStatus.PLANNED);
         eval.setDescription("my description".getBytes());
         eval.setSubmissionInstructionsMessage("foo".getBytes());
         eval.setSubmissionReceiptMessage("bar".getBytes());
@@ -105,8 +103,7 @@ public class EvaluationDBOTest {
         competition.setOwnerId(ownerId);
         competition.setCreatedOn(System.currentTimeMillis());
         competition.setContentSource(contentSource);
-        competition.setStatusEnum(EvaluationStatus.PLANNED);
- 
+
         // Create it
         EvaluationDBO clone = dboBasicDao.createNew(competition);
         clone.setId(id + 1);
@@ -127,7 +124,6 @@ public class EvaluationDBOTest {
         eval.setOwnerId(ownerId);
         eval.setCreatedOn(System.currentTimeMillis());
         eval.setContentSource(contentSource);
-        eval.setStatusEnum(EvaluationStatus.OPEN);
         eval.setDescription("my description".getBytes());
         eval.setSubmissionInstructionsMessage("foo".getBytes());
         eval.setSubmissionReceiptMessage("bar".getBytes());

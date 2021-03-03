@@ -11,7 +11,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -40,7 +39,6 @@ class EvaluationRoundDBOTest {
 		eval.setName("ffffffffffffffffffffff");
 		eval.setOwnerId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		eval.setCreatedOn(System.currentTimeMillis());
-		eval.setStatusEnum(EvaluationStatus.PLANNED);
 		eval.setDescription("my description".getBytes());
 		eval.setContentSource(KeyFactory.ROOT_ID);
 

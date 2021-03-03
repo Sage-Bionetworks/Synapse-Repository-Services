@@ -16,7 +16,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -153,7 +152,6 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		evaluation.setName("testCompetitionWikiCRUD");
 		evaluation.setContentSource(entity.getId());
 		evaluation.setDescription("a test descrption");
-		evaluation.setStatus(EvaluationStatus.OPEN);
 		evaluation = entityServletHelper.createEvaluation(evaluation, adminUserId);
 		// Test all wiki CRUD for an entity
 		doWikiCRUDForOwnerObject(evaluation.getId(), ObjectType.EVALUATION);

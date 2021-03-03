@@ -27,7 +27,6 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationRound;
 import org.sagebionetworks.evaluation.model.EvaluationRoundLimit;
 import org.sagebionetworks.evaluation.model.EvaluationRoundLimitType;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -75,13 +74,12 @@ public class EvaluationDAOImplTest {
     private static final Long EVALUATION_OWNER_ID = 1L;
     private static final String EVALUATION_CONTENT_SOURCE = KeyFactory.keyToString(KeyFactory.ROOT_ID);
 
-    private static Evaluation newEvaluation(String id, String name, String contentSource, EvaluationStatus status) {
+    private static Evaluation newEvaluation(String id, String name, String contentSource) {
     	Evaluation evaluation = new Evaluation();
     	evaluation.setCreatedOn(new Date());
     	evaluation.setId(id);
     	evaluation.setName(name);
         evaluation.setContentSource(contentSource);
-    	evaluation.setStatus(status);
     	SubmissionQuota quota = new SubmissionQuota();
     	quota.setFirstRoundStart(new Date(System.currentTimeMillis()-10L)); // started slightly in the past
     	quota.setNumberOfRounds(10L);
@@ -96,7 +94,7 @@ public class EvaluationDAOImplTest {
 		toDelete = new ArrayList<String>();
 		// Initialize Evaluation
 		evaluationId = "123";
-		eval = newEvaluation(evaluationId, EVALUATION_NAME, EVALUATION_CONTENT_SOURCE, EvaluationStatus.PLANNED);
+		eval = newEvaluation(evaluationId, EVALUATION_NAME, EVALUATION_CONTENT_SOURCE);
 		aclToDelete = null;
 		futureTime = System.currentTimeMillis()+60000L*1000L; // 1000 minutes in the future
 
@@ -148,7 +146,6 @@ public class EvaluationDAOImplTest {
 		assertEquals(EVALUATION_NAME, created.getName());
 		assertEquals(EVALUATION_OWNER_ID.toString(), created.getOwnerId());
 		assertEquals(EVALUATION_CONTENT_SOURCE, created.getContentSource());
-		assertEquals(EvaluationStatus.PLANNED, created.getStatus());
 		assertNotNull(created.getEtag());
 		String originalEtag = created.getEtag();
 
@@ -217,7 +214,6 @@ public class EvaluationDAOImplTest {
 		assertEquals(EVALUATION_NAME, created.getName());
 		assertEquals(EVALUATION_OWNER_ID.toString(), created.getOwnerId());
 		assertEquals(EVALUATION_CONTENT_SOURCE, created.getContentSource());
-		assertEquals(EvaluationStatus.PLANNED, created.getStatus());
 		assertNotNull(created.getEtag());
 
 		// test with timestamp param
@@ -260,7 +256,6 @@ public class EvaluationDAOImplTest {
 		assertEquals(EVALUATION_NAME, clone.getName());
 		assertEquals(EVALUATION_OWNER_ID.toString(), clone.getOwnerId());
 		assertEquals(EVALUATION_CONTENT_SOURCE, clone.getContentSource());
-		assertEquals(EvaluationStatus.PLANNED, clone.getStatus());
 
 		// Create clone with same name
 		clone.setId(evalId + 1);
@@ -283,7 +278,7 @@ public class EvaluationDAOImplTest {
 		eval = evaluationDAO.get(evalId);
 
 		// create another evaluation.  Make sure it doesn't appear in query results
-		Evaluation e2 = newEvaluation("456", "rogue", EVALUATION_CONTENT_SOURCE, EvaluationStatus.PLANNED);
+		Evaluation e2 = newEvaluation("456", "rogue", EVALUATION_CONTENT_SOURCE);
 		String evalId2 = evaluationDAO.create(e2, 1L);
 		assertNotNull(evalId2);
 		toDelete.add(evalId2);
