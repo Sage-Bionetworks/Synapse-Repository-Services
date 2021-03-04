@@ -6,7 +6,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.Date;
 
 import org.junit.Before;
 import org.junit.Test;
