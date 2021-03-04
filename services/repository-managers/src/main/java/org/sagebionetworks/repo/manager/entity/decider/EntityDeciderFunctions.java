@@ -2,12 +2,14 @@ package org.sagebionetworks.repo.manager.entity.decider;
 
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ACCESS_DENIED;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CANNOT_REMOVE_ACL_OF_PROJECT;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CERTIFIED_USER_CONTENT;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTITY_IN_TRASH_TEMPLATE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
+import static org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES.ROOT;
 
 import java.util.Optional;
 
@@ -16,7 +18,7 @@ import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
-import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.NotFoundException;;
 
 /**
  * The set of functions that can be used in making entity access decisions.
@@ -195,7 +197,8 @@ public enum EntityDeciderFunctions implements AccessDecider {
 		}
 	}),
 	/**
-	 * Deny if the entity to create type is not a project and the user is not certified.
+	 * Deny if the entity to create type is not a project and the user is not
+	 * certified.
 	 */
 	DENY_IF_CREATE_TYPE_IS_NOT_PROJECT_AND_NOT_CERTIFIED((c) -> {
 		if (!EntityType.project.equals(c.getEntityCreateType()) && !c.getUser().isCertifiedUser()) {
@@ -212,6 +215,17 @@ public enum EntityDeciderFunctions implements AccessDecider {
 		if (!EntityType.project.equals(c.getPermissionsState().getEntityType()) && !c.getUser().isCertifiedUser()) {
 			return Optional
 					.of(new UsersEntityAccessInfo(c, AuthorizationStatus.accessDenied(ERR_MSG_CERTIFIED_USER_CONTENT)));
+		} else {
+			return Optional.empty();
+		}
+	}),
+	/**
+	 * Deny if parent is ROOT or null
+	 */
+	DENY_IF_PARENT_IS_ROOT_OR_NULL((c) -> {
+		if (ROOT.getId().equals(c.getPermissionsState().getEntityParentId()) || c.getPermissionsState().getEntityParentId() == null) {
+			return Optional.of(new UsersEntityAccessInfo(c,
+					AuthorizationStatus.accessDenied(ERR_MSG_CANNOT_REMOVE_ACL_OF_PROJECT)));
 		} else {
 			return Optional.empty();
 		}

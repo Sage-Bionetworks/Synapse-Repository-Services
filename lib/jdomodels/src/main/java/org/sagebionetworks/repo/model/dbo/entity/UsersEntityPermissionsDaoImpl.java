@@ -12,6 +12,7 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +48,7 @@ public class UsersEntityPermissionsDaoImpl implements UsersEntityPermissionsDao 
 		params.addValue("usersGroups", userGroups);
 		params.addValue("entityIds", entityIds);
 		params.addValue("depth", NodeConstants.MAX_PATH_DEPTH_PLUS_ONE);
+		params.addValue("publicId", BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
 		namedJdbcTemplate.query(GET_ENTITY_PERMISSION_SQL, params, new RowCallbackHandler() {
 
 			@Override
@@ -55,6 +57,11 @@ public class UsersEntityPermissionsDaoImpl implements UsersEntityPermissionsDao 
 				permission.withtDoesEntityExist(true);
 				permission.withBenefactorId(rs.getLong("BENEFACTOR_ID"));
 				permission.withEntityType(EntityType.valueOf(rs.getString("ENTITY_TYPE")));
+				permission.withEntityParentId(rs.getLong("ENTITY_PARENT_ID"));
+				if(rs.wasNull()) {
+					permission.withEntityParentId(null);
+				}
+				permission.withEntityCreatedBy(rs.getLong("ENTITY_CREATED_BY"));
 				String dataType = rs.getString("DATA_TYPE");
 				if (dataType != null) {
 					permission.withDataType(DataType.valueOf(dataType));
@@ -67,6 +74,7 @@ public class UsersEntityPermissionsDaoImpl implements UsersEntityPermissionsDao 
 				permission.withHasDownload(rs.getLong("DOWNLOAD_COUNT") > 0);
 				permission.withHasRead(rs.getLong("READ_COUNT") > 0);
 				permission.withHasModerate(rs.getLong("MODERATE_COUNT") > 0);
+				permission.withHasPublicRead(rs.getLong("PUBLIC_READ_COUNT") > 0);
 			}
 		});
 		return results;

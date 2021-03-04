@@ -16,6 +16,8 @@ public class UserEntityPermissionsState {
 	private Long benefactorId;
 	private EntityType entityType;
 	private DataType dataType;
+	private Long entityCreatedBy;
+	private Long entityParentId;
 	private boolean doesEntityExist;
 	private boolean hasRead;
 	private boolean hasDownload;
@@ -25,6 +27,7 @@ public class UserEntityPermissionsState {
 	private boolean hasChangePermissions;
 	private boolean hasChangeSettings;
 	private boolean hasModerate;
+	private boolean hasPublicRead;
 
 	public UserEntityPermissionsState(Long entityId) {
 		super();
@@ -41,6 +44,7 @@ public class UserEntityPermissionsState {
 		this.hasChangePermissions = false;
 		this.hasChangeSettings = false;
 		this.hasModerate = false;
+		this.hasPublicRead = false;
 	}
 
 	/**
@@ -253,11 +257,58 @@ public class UserEntityPermissionsState {
 		this.hasModerate = hasModerate;
 		return this;
 	}
+	
+	/**
+	 * Has the READ permission been granted to PUBLIC for this entity?
+	 * @return the hasPublicRead
+	 */
+	public boolean hasPublicRead() {
+		return hasPublicRead;
+	}
+
+	/**
+	 * Has the READ permission been granted to PUBLIC for this entity?
+	 */
+	public UserEntityPermissionsState withHasPublicRead(boolean hasPublicRead) {
+		this.hasPublicRead = hasPublicRead;
+		return this;
+	}
+
+	/**
+	 * @return the entityCreatedBy
+	 */
+	public Long getEntityCreatedBy() {
+		return entityCreatedBy;
+	}
+
+	/**
+	 * @param entityCreatedBy the entityCreatedBy to set
+	 */
+	public UserEntityPermissionsState withEntityCreatedBy(Long entityCreatedBy) {
+		this.entityCreatedBy = entityCreatedBy;
+		return this;
+	}
+
+	/**
+	 * @return the entityParentId
+	 */
+	public Long getEntityParentId() {
+		return entityParentId;
+	}
+
+	/**
+	 * @param entityParentId the entityParentId to set
+	 */
+	public UserEntityPermissionsState withEntityParentId(Long entityParentId) {
+		this.entityParentId = entityParentId;
+		return this;
+	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(benefactorId, dataType, doesEntityExist, entityId, entityType, hasChangePermissions,
-				hasChangeSettings, hasCreate, hasDelete, hasDownload, hasModerate, hasRead, hasUpdate);
+		return Objects.hash(benefactorId, dataType, doesEntityExist, entityCreatedBy, entityId, entityParentId,
+				entityType, hasChangePermissions, hasChangeSettings, hasCreate, hasDelete, hasDownload, hasModerate,
+				hasPublicRead, hasRead, hasUpdate);
 	}
 
 	@Override
@@ -270,20 +321,22 @@ public class UserEntityPermissionsState {
 		}
 		UserEntityPermissionsState other = (UserEntityPermissionsState) obj;
 		return Objects.equals(benefactorId, other.benefactorId) && dataType == other.dataType
-				&& doesEntityExist == other.doesEntityExist && Objects.equals(entityId, other.entityId)
+				&& doesEntityExist == other.doesEntityExist && Objects.equals(entityCreatedBy, other.entityCreatedBy)
+				&& Objects.equals(entityId, other.entityId) && Objects.equals(entityParentId, other.entityParentId)
 				&& entityType == other.entityType && hasChangePermissions == other.hasChangePermissions
 				&& hasChangeSettings == other.hasChangeSettings && hasCreate == other.hasCreate
 				&& hasDelete == other.hasDelete && hasDownload == other.hasDownload && hasModerate == other.hasModerate
-				&& hasRead == other.hasRead && hasUpdate == other.hasUpdate;
+				&& hasPublicRead == other.hasPublicRead && hasRead == other.hasRead && hasUpdate == other.hasUpdate;
 	}
 
 	@Override
 	public String toString() {
 		return "UserEntityPermissionsState [entityId=" + entityId + ", benefactorId=" + benefactorId + ", entityType="
-				+ entityType + ", dataType=" + dataType + ", doesEntityExist=" + doesEntityExist + ", hasRead="
-				+ hasRead + ", hasDownload=" + hasDownload + ", hasCreate=" + hasCreate + ", hasUpdate=" + hasUpdate
-				+ ", hasDelete=" + hasDelete + ", hasChangePermissions=" + hasChangePermissions + ", hasChangeSettings="
-				+ hasChangeSettings + ", hasModerate=" + hasModerate + "]";
+				+ entityType + ", dataType=" + dataType + ", entityCreatedBy=" + entityCreatedBy + ", entityParentId="
+				+ entityParentId + ", doesEntityExist=" + doesEntityExist + ", hasRead=" + hasRead + ", hasDownload="
+				+ hasDownload + ", hasCreate=" + hasCreate + ", hasUpdate=" + hasUpdate + ", hasDelete=" + hasDelete
+				+ ", hasChangePermissions=" + hasChangePermissions + ", hasChangeSettings=" + hasChangeSettings
+				+ ", hasModerate=" + hasModerate + ", hasPublicRead=" + hasPublicRead + "]";
 	}
 
 }
