@@ -35,7 +35,6 @@ import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
-import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.EmailUtils;
@@ -129,7 +128,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 
 	@Override
 	public Submission getSubmission(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
-		EvaluationUtils.ensureNotNull(submissionId, "Submission ID");
+		ValidateArgument.required(submissionId, "Submission ID");
 		Submission sub = submissionDAO.get(submissionId);
 		validateEvaluationAccess(userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		return sub;
@@ -137,7 +136,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 
 	@Override
 	public SubmissionStatus getSubmissionStatus(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
-		EvaluationUtils.ensureNotNull(submissionId, "Submission ID");
+		ValidateArgument.required(submissionId, "Submission ID");
 		SubmissionBundle bundle = submissionDAO.getBundle(submissionId, false);
 		String evaluationId = bundle.getSubmission().getEvaluationId();
 		validateEvaluationAccess(userInfo, evaluationId, ACCESS_TYPE.READ);
@@ -180,8 +179,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	@WriteTransaction
 	public Submission createSubmission(UserInfo userInfo, Submission submission, String entityEtag, String submissionEligibilityHash, EntityBundle bundle)
 			throws NotFoundException, DatastoreException, JSONObjectAdapterException {
-		EvaluationUtils.ensureNotNull(submission, "Submission");
-		EvaluationUtils.ensureNotNull(bundle, "EntityBundle");
+		ValidateArgument.required(submission, "Submission");
+		ValidateArgument.required(bundle, "EntityBundle");
 		String evalId = submission.getEvaluationId();
 		UserInfo.validateUserInfo(userInfo);
 		String principalId = userInfo.getId().toString();
@@ -213,9 +212,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		
 		if (node.getNodeType()==EntityType.dockerrepo) {
 			String dockerRepositoryName = ((DockerRepository)bundle.getEntity()).getRepositoryName();
-			EvaluationUtils.ensureNotNull(dockerRepositoryName, "Docker Repository Name");
+			ValidateArgument.required(dockerRepositoryName, "Docker Repository Name");
 			submission.setDockerRepositoryName(dockerRepositoryName);
-			EvaluationUtils.ensureNotNull(submission.getDockerDigest(), "Docker Digest");
+			ValidateArgument.required(submission.getDockerDigest(), "Docker Digest");
 			List<DockerCommit> commits = dockerCommitDao.
 					listCommitsByOwnerAndDigest(entityId, submission.getDockerDigest());
 			if (commits.isEmpty()) throw new IllegalArgumentException("The given Docker Repository, "+
@@ -385,7 +384,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	@Override
 	@WriteTransaction
 	public SubmissionStatus updateSubmissionStatus(UserInfo userInfo, SubmissionStatus submissionStatus) throws NotFoundException {
-		EvaluationUtils.ensureNotNull(submissionStatus, "SubmissionStatus");
+		ValidateArgument.required(submissionStatus, "SubmissionStatus");
 		UserInfo.validateUserInfo(userInfo);
 		
 		// ensure Submission exists and validate access rights
@@ -439,14 +438,14 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		UserInfo.validateUserInfo(userInfo);
 		
 		// validate content of batch
-		EvaluationUtils.ensureNotNull(batch.getIsFirstBatch(), "isFirstBatch");
-		EvaluationUtils.ensureNotNull(batch.getIsLastBatch(), "isLastBatch");
-		EvaluationUtils.ensureNotNull(batch.getStatuses(), "statuses");
-		EvaluationUtils.ensureNotEmpty(batch.getStatuses(), "statuses");
+		ValidateArgument.required(batch.getIsFirstBatch(), "isFirstBatch");
+		ValidateArgument.required(batch.getIsLastBatch(), "isLastBatch");
+		ValidateArgument.required(batch.getStatuses(), "statuses");
+		ValidateArgument.requiredNotEmpty(batch.getStatuses(), "statuses");
 		if (batch.getStatuses().size()>MAX_BATCH_SIZE) 
 			throw new IllegalArgumentException("Batch size cannot exceed "+MAX_BATCH_SIZE);
 		for (SubmissionStatus submissionStatus : batch.getStatuses()) {
-			EvaluationUtils.ensureNotNull(submissionStatus, "SubmissionStatus");
+			ValidateArgument.required(submissionStatus, "SubmissionStatus");
 			validateContent(submissionStatus, evalId);
 		}
 		
@@ -462,7 +461,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		// if not first batch, check batch etag
 		if (!batch.getIsFirstBatch()) {
 			String batchToken = batch.getBatchToken();
-			EvaluationUtils.ensureNotNull(batchToken, "batchToken");
+			ValidateArgument.required(batchToken, "batchToken");
 			if (!batchToken.equals(evalSubs.getEtag()))
 				throw new ConflictingUpdateException("Your batch token is out of date.  You must restart upload from first batch.");
 		}
@@ -525,7 +524,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	@Override
 	public List<Submission> getAllSubmissions(UserInfo userInfo, String evalId, SubmissionStatusEnum status, long limit, long offset) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
-		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
+		ValidateArgument.required(evalId, "Evaluation ID");
 		UserInfo.validateUserInfo(userInfo);
 		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
 		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
@@ -566,7 +565,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	public List<SubmissionStatus> getAllSubmissionStatuses(UserInfo userInfo, String evalId, 
 			SubmissionStatusEnum status, long limit, long offset) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
-		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
+		ValidateArgument.required(evalId, "Evaluation ID");
 		UserInfo.validateUserInfo(userInfo);
 		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
 		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
@@ -588,7 +587,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	public List<SubmissionBundle> getAllSubmissionBundles(UserInfo userInfo, String evalId, 
 			SubmissionStatusEnum status, long limit, long offset) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
-		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
+		ValidateArgument.required(evalId, "Evaluation ID");
 		UserInfo.validateUserInfo(userInfo);
 		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
 		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
@@ -613,7 +612,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	public List<SubmissionBundle> getMyOwnSubmissionBundlesByEvaluation(
 			UserInfo userInfo, String evalId, long limit, long offset)
 					throws DatastoreException, NotFoundException {
-		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
+		ValidateArgument.required(evalId, "Evaluation ID");
 		UserInfo.validateUserInfo(userInfo);
 		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
 		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
@@ -633,8 +632,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	@Override
 	public long getSubmissionCount(UserInfo userInfo, String evalId) 
 			throws DatastoreException, NotFoundException {
-		EvaluationUtils.ensureNotNull(userInfo, "UserInfo");
-		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
+		ValidateArgument.required(userInfo, "UserInfo");
+		ValidateArgument.required(evalId, "Evaluation ID");
 		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		return submissionDAO.getCountByEvaluation(evalId);
 	}
@@ -693,7 +692,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	 * @return
 	 */
 	static Annotations removePrivateAnnotations(Annotations annos) {
-		EvaluationUtils.ensureNotNull(annos, "Annotations");
+		ValidateArgument.required(annos, "Annotations");
 
 		List<StringAnnotation> oldStringAnnos = annos.getStringAnnos();
 		if (oldStringAnnos!=null) {

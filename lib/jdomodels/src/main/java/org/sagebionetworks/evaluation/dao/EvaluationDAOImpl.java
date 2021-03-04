@@ -43,7 +43,6 @@ import org.sagebionetworks.evaluation.dbo.EvaluationRoundDBO;
 import org.sagebionetworks.evaluation.dbo.EvaluationRoundDBOUtil;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationRound;
-import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -140,9 +139,9 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	@Override
 	@WriteTransaction
 	public String create(Evaluation dto, Long ownerId) throws DatastoreException {
-		EvaluationUtils.ensureNotNull(dto, "Evaluation object");
-		EvaluationUtils.ensureNotNull(ownerId, "Owner ID");
-		EvaluationUtils.ensureNotNull(dto.getId(), "Evaluation ID");
+		ValidateArgument.required(dto, "Evaluation object");
+		ValidateArgument.required(ownerId, "Owner ID");
+		ValidateArgument.required(dto.getId(), "Evaluation ID");
 		
 		// convert to DBO
 		EvaluationDBO dbo = new EvaluationDBO();		

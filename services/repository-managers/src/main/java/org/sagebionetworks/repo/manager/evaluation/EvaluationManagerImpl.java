@@ -22,7 +22,6 @@ import org.sagebionetworks.evaluation.model.EvaluationRoundListRequest;
 import org.sagebionetworks.evaluation.model.EvaluationRoundListResponse;
 import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
-import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -119,7 +118,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	@Override
 	public Evaluation getEvaluation(UserInfo userInfo, String id)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
-		EvaluationUtils.ensureNotNull(id, "Evaluation ID");
+		ValidateArgument.required(id, "Evaluation ID");
 
 		return validateEvaluationAccess(userInfo, id, ACCESS_TYPE.READ);
 	}
@@ -127,7 +126,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	@Override
 	public List<Evaluation> getEvaluationsByContentSource(UserInfo userInfo, String id, ACCESS_TYPE accessType, boolean activeOnly, List<Long> evaluationIds, long limit, long offset)
 			throws DatastoreException, NotFoundException {
-		EvaluationUtils.ensureNotNull(id, "Entity ID");
+		ValidateArgument.required(id, "Entity ID");
 		ValidateArgument.required(userInfo, "User info");
 		ValidateArgument.required(accessType, "The access type");
 		
@@ -165,7 +164,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	@Override
 	public Evaluation findEvaluation(UserInfo userInfo, String name)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
-		EvaluationUtils.ensureNotNull(name, "Name");
+		ValidateArgument.required(name, "Name");
 		String evalId = evaluationDAO.lookupByName(name);
 
 		try {
@@ -180,7 +179,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	public Evaluation updateEvaluation(UserInfo userInfo, Evaluation eval)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		// validate arguments
-		EvaluationUtils.ensureNotNull(eval, "Evaluation");
+		ValidateArgument.required(eval, "Evaluation");
 		final String evalId = eval.getId();
 		validateQuota(eval.getQuota());
 
@@ -207,7 +206,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	@Override
 	@WriteTransaction
 	public void deleteEvaluation(UserInfo userInfo, String id) throws DatastoreException, NotFoundException, UnauthorizedException {
-		EvaluationUtils.ensureNotNull(id, "Evaluation ID");
+		ValidateArgument.required(id, "Evaluation ID");
 		validateEvaluationAccess(userInfo, id, ACCESS_TYPE.DELETE);
 		evaluationPermissionsManager.deleteAcl(userInfo, id);
 		// lock out multi-submission access (e.g. batch updates)
