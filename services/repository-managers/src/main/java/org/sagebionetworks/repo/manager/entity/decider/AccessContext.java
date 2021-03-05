@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 
@@ -13,7 +14,7 @@ import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
  */
 public class AccessContext {
 
-	private UserInfoState user;
+	private UserInfo user;
 	private UserEntityPermissionsState permissionsState;
 	private UsersRestrictionStatus restrictionStatus;
 	private ACCESS_TYPE accessType;
@@ -22,7 +23,7 @@ public class AccessContext {
 	/**
 	 * @return the user
 	 */
-	public UserInfoState getUser() {
+	public UserInfo getUser() {
 		return user;
 	}
 
@@ -43,7 +44,7 @@ public class AccessContext {
 	/**
 	 * @param user the user to set
 	 */
-	public AccessContext withUser(UserInfoState user) {
+	public AccessContext withUser(UserInfo user) {
 		this.user = user;
 		return this;
 	}
