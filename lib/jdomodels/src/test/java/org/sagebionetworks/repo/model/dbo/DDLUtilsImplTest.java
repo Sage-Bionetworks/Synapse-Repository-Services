@@ -65,30 +65,4 @@ public class DDLUtilsImplTest {
 		assertEquals(expected, result);
 	}
 	
-	@Test
-	public void testRemoveCommentsAndMinimizeStringWithWhiteSpace() {
-		String input = "a\nb\tc\rd";
-		String expected = "a b c d";
-		// call under test
-		String result = DDLUtilsImpl.removeSqlCommentsAndLineBreaksAndExtraSpace(input);
-		assertEquals(expected, result);
-	}
-	
-	@Test
-	public void testRemoveCommentsAndMinimizeStringWithExtraSpace() {
-		String input = "a    b\t\t\tc \t\n  d";
-		String expected = "a b c d";
-		// call under test
-		String result = DDLUtilsImpl.removeSqlCommentsAndLineBreaksAndExtraSpace(input);
-		assertEquals(expected, result);
-	}
-	
-	@Test
-	public void testRemoveCommentsAndMinimizeStringWithExtraSpaceAndComments() {
-		String input = "a    b\t\t\tc \t\n/* a comment*/  d";
-		String expected = "a b c d";
-		// call under test
-		String result = DDLUtilsImpl.removeSqlCommentsAndLineBreaksAndExtraSpace(input);
-		assertEquals(expected, result);
-	}
 }

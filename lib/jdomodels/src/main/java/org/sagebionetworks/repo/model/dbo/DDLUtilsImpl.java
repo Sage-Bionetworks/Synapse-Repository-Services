@@ -106,24 +106,10 @@ public class DDLUtilsImpl implements DDLUtils{
 				throw new RuntimeException("Failed to load the schema file from the classpath: "+fileName);
 			}
 			String sql =  IOUtils.toString(in, StandardCharsets.UTF_8.name());
-			return removeSqlCommentsAndLineBreaksAndExtraSpace(sql);
+			return removeSQLComments(sql);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-	}
-	
-	/**
-	 * A helper to remove all SQL comments, line breaks and extra spaces.
-	 * @param sql
-	 * @return
-	 */
-	public static String removeSqlCommentsAndLineBreaksAndExtraSpace(String sql) {
-		/*
-		 * First remove all SQL comments.
-		 * Then replace all whitespace characters with a single space.
-		 * Then replace all replace consecutive spaces with single spaces.
-		 */
-		return removeSQLComments(sql).replaceAll("\\s", " ").replaceAll("[ ]++", " ");
 	}
 	
 	/**
