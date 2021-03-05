@@ -1,5 +1,8 @@
 package org.sagebionetworks.file.worker;
 
+import java.util.Collections;
+import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
@@ -15,6 +18,11 @@ import com.amazonaws.services.sqs.model.Message;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class FileHandleAssociationScanRangeWorker implements MessageDrivenRunner {
+	
+	private static final String METRIC_PARSE_MESSAGE_ERROR_COUNT = "ParseMessageErrorCount";
+	private static final String METRIC_JOB_FAILED_COUNT = "JobFailedCount";
+	private static final String METRIC_JOB_RETRY_COUNT = "JobRetryCount";
+	private static final String DIMENSION_ASSOCIATION_TYPE = "AssociationType";
 	
 	private static final Logger LOG = LogManager.getLogger(FileHandleAssociationScanRangeWorker.class);
 	
@@ -32,40 +40,50 @@ public class FileHandleAssociationScanRangeWorker implements MessageDrivenRunner
 	@Override
 	public void run(ProgressCallback progressCallback, Message message) throws RecoverableMessageException, Exception {
 		
-		FileHandleAssociationScanRangeRequest request;
+		final FileHandleAssociationScanRangeRequest request;
 		
 		try {
 			request = objectMapper.readValue(message.getBody(), FileHandleAssociationScanRangeRequest.class);
 		} catch (Throwable e) {
 			LOG.error("Could not process SQS message \n" + message.getBody() + "\n" + e.getMessage(), e);
-			boolean willRetry = false;
-			workerLogger.logWorkerFailure(FileHandleAssociationScanRangeWorker.class.getName(), e, willRetry);
-			return;
+			logWorkerCountMetric(METRIC_PARSE_MESSAGE_ERROR_COUNT);
+			throw e;
 		}
+
+		long start = System.currentTimeMillis();
 		
 		try {
 			LOG.info(requestToString(request) + " STARTING");
-			
-			long start = System.currentTimeMillis();
 			
 			int count = manager.processScanRangeRequest(request);
 			
 			LOG.info(requestToString(request) + " COMPLETED: " + count + " associations (Spent " + (System.currentTimeMillis() - start) + " ms)");
 		} catch (RecoverableException e) {
 			LOG.warn(requestToString(request) + " RETRING: " + e.getMessage(), e);
-			boolean willRetry = true;
-			workerLogger.logWorkerFailure(FileHandleAssociationScanRangeWorker.class.getName(), e, willRetry);
+			logWorkerCountMetric(METRIC_JOB_RETRY_COUNT);
 			throw new RecoverableMessageException(e.getMessage(), e);
 		} catch (Throwable e) {
 			LOG.error(requestToString(request) + " FAILED: " + e.getMessage(), e);
-			boolean willRetry = false;
-			workerLogger.logWorkerFailure(FileHandleAssociationScanRangeWorker.class.getName(), e, willRetry);
+			logWorkerCountMetric(METRIC_JOB_FAILED_COUNT);
+			throw e;
+		} finally {
+			logWorkerTimeMetric(request, System.currentTimeMillis() - start);
 		}
 		
 	}
 	
 	private String requestToString(FileHandleAssociationScanRangeRequest request) {
 		return "FileHandleAssociationScanRangeRequest [jobId: " + request.getJobId() + ", associationType: " + request.getAssociationType() + ", range: " + request.getIdRange().getMinId() + "-" + request.getIdRange().getMaxId() + "]";
+	}
+	
+	private void logWorkerCountMetric(String metricName) {
+		workerLogger.logWorkerCountMetric(FileHandleAssociationScanRangeWorker.class, metricName);
+	}
+	
+	private void logWorkerTimeMetric(FileHandleAssociationScanRangeRequest request, long timeMillis) {
+		Map<String, String> dimensions = Collections.singletonMap(DIMENSION_ASSOCIATION_TYPE, request.getAssociationType().name());
+		
+		workerLogger.logWorkerTimeMetric(FileHandleAssociationScanRangeWorker.class, timeMillis, dimensions);
 	}
 
 }
