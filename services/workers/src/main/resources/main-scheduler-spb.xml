@@ -69,6 +69,7 @@
     <import resource="classpath:dataaccess-worker-spb.xml" />
     <import resource="classpath:schema-validation-worker-spb.xml" />
     <import resource="classpath:multipart-cleanup-spb.xml" />
+    <import resource="classpath:file-scanner-spb.xml" />
 
 	<util:list id="workerTriggersList">
 		<!-- workers -->
@@ -123,6 +124,7 @@
 		<ref bean="accessApprovalReminderNotificationWorkerTrigger" />
 		<ref bean="schemaValidationTrigger" />
 		<ref bean="multipartCleanupWorkerTrigger" />
+		<ref bean="fileHandleAssociationScanRangeWorkerTrigger" />
 	</util:list>
 
 	<bean id="mainScheduler"
