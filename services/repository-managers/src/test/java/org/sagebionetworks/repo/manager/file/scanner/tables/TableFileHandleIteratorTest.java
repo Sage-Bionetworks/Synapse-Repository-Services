@@ -211,19 +211,23 @@ public class TableFileHandleIteratorTest {
 		
 		doThrow(ex).when(mockTableChange).loadChangeData(any());
 		
+		Long changeNumber = 123L;
+		
 		when(mockTableChange.getChangeType()).thenReturn(TableChangeType.ROW);
+		when(mockTableChange.getChangeNumber()).thenReturn(changeNumber);
 		when(mockTableChangeIterator.next()).thenReturn(mockTableChange);
 		
-		UnrecoverableException result = assertThrows(UnrecoverableException.class, () -> {			
-			// Call under test
-			iterator.next();
-		});
+		ScannedFileHandleAssociation expected = new ScannedFileHandleAssociation(tableId.toString());
 		
-		assertEquals(ex, result.getCause());
+		// Call under test
+		ScannedFileHandleAssociation result = iterator.next();
+		
+		assertEquals(expected, result);
 		
 		verify(mockTableChangeIterator).next();
 		verify(mockTableChange).getChangeType();
 		verify(mockTableChange).loadChangeData(SparseChangeSet.class);
+		verify(mockTableChange).getChangeNumber();
 		
 	}
 	
