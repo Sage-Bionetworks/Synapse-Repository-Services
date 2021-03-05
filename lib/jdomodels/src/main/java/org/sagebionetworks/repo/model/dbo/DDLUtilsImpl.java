@@ -6,6 +6,9 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.function.IntConsumer;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
@@ -102,10 +105,53 @@ public class DDLUtilsImpl implements DDLUtils{
 			if(in == null){
 				throw new RuntimeException("Failed to load the schema file from the classpath: "+fileName);
 			}
-			return IOUtils.toString(in, StandardCharsets.UTF_8.name());
+			String sql =  IOUtils.toString(in, StandardCharsets.UTF_8.name());
+			return removeSqlCommentsAndLineBreaksAndExtraSpace(sql);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	/**
+	 * A helper to remove all SQL comments, line breaks and extra spaces.
+	 * @param sql
+	 * @return
+	 */
+	public static String removeSqlCommentsAndLineBreaksAndExtraSpace(String sql) {
+		/*
+		 * First replace all whitespace characters with a single space.
+		 * Then replace all replace consecutive spaces with single spaces.
+		 * Then remove all SQL comments.
+		 */
+		return removeSQLComments(sql.replaceAll("\\s", " ").replaceAll("[ ]++", " "));
+	}
+	
+	/**
+	 * Helper to remove multi-line SQL comments from the given SQL string.
+	 * @param sql
+	 * @return
+	 */
+	public static String removeSQLComments(String sql) {
+		// simple state machine to ignore comments
+		StringBuilder builder = new StringBuilder();
+		boolean withinMultiLineComment = false;
+		for (int i=0; i < sql.length(); i++) {
+			char c = sql.charAt(i);
+			if(c == '/' && sql.charAt(i+1) == '*') {
+				withinMultiLineComment = true;
+				i++;
+				continue;
+			}
+			if(c == '*' && sql.charAt(i+1) == '/') {
+				withinMultiLineComment = false;
+				i++;
+				continue;
+			}
+			if(!withinMultiLineComment) {
+				builder.append(c);
+			}
+		}
+		return builder.toString();
 	}
 
 	@Override
