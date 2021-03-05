@@ -9,11 +9,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
-import org.sagebionetworks.repo.manager.file.scanner.IdRange;
 import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.IdRange;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

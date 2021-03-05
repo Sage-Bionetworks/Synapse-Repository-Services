@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.file.scanner;
+package org.sagebionetworks.repo.model.file;
 
 import java.util.Objects;
 

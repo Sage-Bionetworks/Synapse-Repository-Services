@@ -3,10 +3,10 @@ package org.sagebionetworks.repo.manager.file;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.repo.manager.file.scanner.IdRange;
 import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.IdRange;
 
 /**
  * Abstraction for all of the different type of FileHandleAssociationsProviders.
