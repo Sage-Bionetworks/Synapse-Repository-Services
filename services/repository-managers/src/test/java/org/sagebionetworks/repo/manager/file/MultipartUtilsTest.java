@@ -1,26 +1,32 @@
 package org.sagebionetworks.repo.manager.file;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 
+@ExtendWith(MockitoExtension.class)
 public class MultipartUtilsTest {
 	
 	String userId;
 	String fileName;
 	StorageLocationSetting location;
 	
-	@Before
+	@BeforeEach
 	public void before(){
 		userId = "123";
 		fileName = "foo.txt";
@@ -52,11 +58,14 @@ public class MultipartUtilsTest {
 		assertEquals(location.getBucket(), bucket);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetBucketStorageLocationWrongType(){
 		StorageLocationSetting location = Mockito.mock(StorageLocationSetting.class);
-		//call under test
-		MultipartUtils.getBucket(location);
+		assertThrows(IllegalArgumentException.class, ()->{
+			//call under test
+			MultipartUtils.getBucket(location);
+		});
+
 	}
 	
 	@Test
@@ -78,6 +87,20 @@ public class MultipartUtilsTest {
 		assertNotNull(key);
 		assertTrue(key.startsWith("keyBase/"+userId));
 		assertTrue(key.endsWith(fileName));
+	}
+	
+	/**
+	 * Added as part of PLFM-6626.
+	 */
+	@Test
+	public void testCreateNewKeyWithInvalidName(){
+		fileName = "ContainsNonÃs¢II.zip";
+		//call under test
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			//call under test
+			MultipartUtils.createNewKey(userId, fileName, location);
+		}).getMessage();
+		assertEquals(NameValidation.createInvalidMessage(fileName), message);
 	}
 	
 	@Test
@@ -135,4 +158,5 @@ public class MultipartUtilsTest {
 		assertTrue(key.startsWith(userId));
 		assertTrue(key.endsWith(fileName));
 	}
+
 }
