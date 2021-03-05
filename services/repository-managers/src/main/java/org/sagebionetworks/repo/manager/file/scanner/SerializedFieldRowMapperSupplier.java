@@ -66,7 +66,7 @@ public class SerializedFieldRowMapperSupplier<T> implements RowMapperSupplier {
 			try {
 				return Long.valueOf(idString);
 			} catch (NumberFormatException e) {
-				LOG.warn("Malformed file handle id: " + idString + ")", e);
+				LOG.warn("Malformed file handle id: " + idString, e);
 			}
 			return null;
 		})
