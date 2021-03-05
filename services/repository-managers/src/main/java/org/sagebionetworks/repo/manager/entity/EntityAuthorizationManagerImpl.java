@@ -97,12 +97,12 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		UserEntityPermissionsState permissionsState = stateProvider.getPermissionsState(entityIdLong);
 		UserEntityPermissions permissions = new UserEntityPermissions();
 		permissions.setCanAddChild(determineAccess(stateProvider, CREATE, userInfo).isAuthorized());
-		permissions.setCanCertifiedUserAddChild(determineAccessAsCertified(stateProvider, CREATE, userInfo).isAuthorized());
+		permissions.setCanCertifiedUserAddChild(permissionsState.hasCreate());
 		permissions.setCanChangePermissions(determineAccess(stateProvider, CHANGE_PERMISSIONS, userInfo).isAuthorized());
 		permissions.setCanChangeSettings(determineAccess(stateProvider, CHANGE_SETTINGS, userInfo).isAuthorized());
 		permissions.setCanDelete(determineAccess(stateProvider, DELETE, userInfo).isAuthorized());
 		permissions.setCanEdit(determineAccess(stateProvider, UPDATE, userInfo).isAuthorized());
-		permissions.setCanCertifiedUserEdit(determineAccessAsCertified(stateProvider, UPDATE, userInfo).isAuthorized());
+		permissions.setCanCertifiedUserEdit(permissionsState.hasUpdate());
 		permissions.setCanView(determineAccess(stateProvider, READ, userInfo).isAuthorized());
 		permissions.setCanDownload(determineAccess(stateProvider, ACCESS_TYPE.DOWNLOAD, userInfo).isAuthorized());
 		permissions.setCanUpload(userInfo.acceptsTermsOfUse());
@@ -131,22 +131,6 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 	private AuthorizationStatus determineAccess(EntityStateProvider provider, ACCESS_TYPE accessType, UserInfo user) {
 		return determineAccess(new UserInfoState(user), provider, accessType).findFirst().get()
 				.getAuthroizationStatus();
-	}
-
-	/**
-	 * Answers the same question as
-	 * {@link #determineAccess(EntityStateProvider, ACCESS_TYPE, UserInfo)} but
-	 * assuming that the user is certified. This allows the UI to answer the
-	 * question: would the user be able to perform this action is they were to become certified?
-	 * 
-	 * @param provider
-	 * @param accessType
-	 * @param user
-	 * @return
-	 */
-	private AuthorizationStatus determineAccessAsCertified(EntityStateProvider provider, ACCESS_TYPE accessType, UserInfo user) {
-		return determineAccess(new UserInfoState(user).overrideIsCertified(true), provider, accessType).findFirst()
-				.get().getAuthroizationStatus();
 	}
 
 	@Override
