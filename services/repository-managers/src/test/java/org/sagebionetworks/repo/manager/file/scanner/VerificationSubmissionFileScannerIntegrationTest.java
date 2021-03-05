@@ -95,7 +95,7 @@ public class VerificationSubmissionFileScannerIntegrationTest {
 				
 		for (VerificationSubmission s : submissions) {
 			for (AttachmentMetadata f : s.getAttachments()) {
-				expected.add(new ScannedFileHandleAssociation(s.getId(), Long.valueOf(f.getId())));
+				expected.add(new ScannedFileHandleAssociation(Long.valueOf(s.getId()), Long.valueOf(f.getId())));
 			}
 		}
 		

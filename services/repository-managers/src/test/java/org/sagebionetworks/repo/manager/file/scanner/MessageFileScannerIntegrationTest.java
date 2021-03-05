@@ -69,9 +69,9 @@ public class MessageFileScannerIntegrationTest {
 		MessageToUser m3 = createMessage();
 		
 		List<ScannedFileHandleAssociation> expected = Arrays.asList(
-			new ScannedFileHandleAssociation(m1.getId(), Long.valueOf(m1.getFileHandleId())),
-			new ScannedFileHandleAssociation(m2.getId(), Long.valueOf(m2.getFileHandleId())),
-			new ScannedFileHandleAssociation(m3.getId(), Long.valueOf(m3.getFileHandleId()))
+			new ScannedFileHandleAssociation(Long.valueOf(m1.getId()), Long.valueOf(m1.getFileHandleId())),
+			new ScannedFileHandleAssociation(Long.valueOf(m2.getId()), Long.valueOf(m2.getFileHandleId())),
+			new ScannedFileHandleAssociation(Long.valueOf(m3.getId()), Long.valueOf(m3.getFileHandleId()))
 		);
 		
 		IdRange range = manager.getIdRange(associationType);

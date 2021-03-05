@@ -135,7 +135,7 @@ public class AccessSubmissionFileScannerIntegrationTest {
 			request.add(createSubmission(2));
 			
 			List<ScannedFileHandleAssociation> expected = request.stream().map(r -> {
-				ScannedFileHandleAssociation association = new ScannedFileHandleAssociation(r.getId());
+				ScannedFileHandleAssociation association = new ScannedFileHandleAssociation(Long.valueOf(r.getId()));
 				
 				Set<String> fileHandles = new HashSet<>();
 				

@@ -139,7 +139,7 @@ public class EvaluationSubmissionFileScannerIntegrationTest {
 		});
 	}
 	
-	private String createSubmission(Node node) {
+	private Long createSubmission(Node node) {
 		Submission submission = new Submission();
 		
 		submission.setId(idGenerator.generateNewId(IdType.EVALUATION_SUBMISSION_ID).toString());
@@ -155,7 +155,7 @@ public class EvaluationSubmissionFileScannerIntegrationTest {
 			submissionFileDao.create(submissionId, node.getFileHandleId());
 		}
 		
-		return submissionId;
+		return Long.valueOf(submissionId);
 		
 	}
 }

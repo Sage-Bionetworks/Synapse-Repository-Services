@@ -78,7 +78,7 @@ public class AccessRequirementFileScannerIntegrationTest {
 		List<ScannedFileHandleAssociation> expected = new ArrayList<>();
 		
 		for (ManagedACTAccessRequirement ar : ars) {
-			ScannedFileHandleAssociation association = new ScannedFileHandleAssociation(ar.getId().toString());
+			ScannedFileHandleAssociation association = new ScannedFileHandleAssociation(ar.getId());
 			
 			if (ar.getDucTemplateFileHandleId() != null) {
 				association.withFileHandleIds(Collections.singletonList(Long.valueOf(ar.getDucTemplateFileHandleId())));

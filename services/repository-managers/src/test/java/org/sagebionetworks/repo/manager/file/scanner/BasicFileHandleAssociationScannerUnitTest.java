@@ -285,12 +285,12 @@ public class BasicFileHandleAssociationScannerUnitTest {
 		when(mockParamaterizedJdbcTemplate.query(anyString(), anyMap(), any(RowMapper.class))).thenReturn(
 				// First batch
 				Arrays.asList(
-					new ScannedFileHandleAssociation("1", 1L),
-					new ScannedFileHandleAssociation("2", 2L)
+					new ScannedFileHandleAssociation(1L, 1L),
+					new ScannedFileHandleAssociation(2L, 2L)
 				),
 				// Second batch
 				Arrays.asList(
-					new ScannedFileHandleAssociation("3", 3L)
+					new ScannedFileHandleAssociation(3L, 3L)
 				),
 				// No more restuls
 				Collections.emptyList()
@@ -303,9 +303,9 @@ public class BasicFileHandleAssociationScannerUnitTest {
 		IdRange idRange = new IdRange(1, 3);
 		
 		List<ScannedFileHandleAssociation> expected = Arrays.asList(
-			new ScannedFileHandleAssociation("1", 1L),
-			new ScannedFileHandleAssociation("2", 2L),
-			new ScannedFileHandleAssociation("3", 3L)
+			new ScannedFileHandleAssociation(1L, 1L),
+			new ScannedFileHandleAssociation(2L, 2L),
+			new ScannedFileHandleAssociation(3L, 3L)
 		);
 		
 		List<ScannedFileHandleAssociation> result = new ArrayList<>();

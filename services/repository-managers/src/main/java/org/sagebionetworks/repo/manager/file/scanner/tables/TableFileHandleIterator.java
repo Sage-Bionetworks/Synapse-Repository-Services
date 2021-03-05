@@ -45,7 +45,7 @@ public class TableFileHandleIterator implements Iterator<ScannedFileHandleAssoci
 
 	@Override
 	public ScannedFileHandleAssociation next() {
-		ScannedFileHandleAssociation association = new ScannedFileHandleAssociation(tableId.toString());
+		ScannedFileHandleAssociation association = new ScannedFileHandleAssociation(tableId);
 		
 		TableChangeMetaData changeMetadata = tableChangeIterator.next();
 		

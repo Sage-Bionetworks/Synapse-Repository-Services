@@ -86,8 +86,8 @@ public class TeamFileScannerIntegrationTest {
 		assertEquals(range.getMaxId(), Long.valueOf(t3.getId()));
 		
 		List<ScannedFileHandleAssociation> expected = Arrays.asList(
-			new ScannedFileHandleAssociation(t1.getId(), Long.valueOf(t1.getIcon())),
-			new ScannedFileHandleAssociation(t3.getId(), Long.valueOf(t3.getIcon()))
+			new ScannedFileHandleAssociation(Long.valueOf(t1.getId()), Long.valueOf(t1.getIcon())),
+			new ScannedFileHandleAssociation(Long.valueOf(t3.getId()), Long.valueOf(t3.getIcon()))
 		);
 				
 		

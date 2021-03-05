@@ -86,7 +86,7 @@ public class TableFileHandleIteratorTest {
 		when(mockTableChange.getChangeType()).thenReturn(TableChangeType.COLUMN);
 		when(mockTableChangeIterator.next()).thenReturn(mockTableChange);
 		
-		ScannedFileHandleAssociation expected = new ScannedFileHandleAssociation(tableId.toString());
+		ScannedFileHandleAssociation expected = new ScannedFileHandleAssociation(tableId);
 		
 		// Call under test
 		ScannedFileHandleAssociation result = iterator.next();
@@ -107,7 +107,7 @@ public class TableFileHandleIteratorTest {
 		when(mockTableChange.getChangeType()).thenReturn(TableChangeType.ROW);
 		when(mockTableChangeIterator.next()).thenReturn(mockTableChange);
 		
-		ScannedFileHandleAssociation expected = new ScannedFileHandleAssociation(tableId.toString());
+		ScannedFileHandleAssociation expected = new ScannedFileHandleAssociation(tableId);
 		
 		// Call under test
 		ScannedFileHandleAssociation result = iterator.next();
@@ -131,7 +131,7 @@ public class TableFileHandleIteratorTest {
 		when(mockTableChange.getChangeType()).thenReturn(TableChangeType.ROW);
 		when(mockTableChangeIterator.next()).thenReturn(mockTableChange);
 		
-		ScannedFileHandleAssociation expected = new ScannedFileHandleAssociation(tableId.toString());
+		ScannedFileHandleAssociation expected = new ScannedFileHandleAssociation(tableId);
 		
 		// Call under test
 		ScannedFileHandleAssociation result = iterator.next();
@@ -155,7 +155,7 @@ public class TableFileHandleIteratorTest {
 		when(mockTableChange.getChangeType()).thenReturn(TableChangeType.ROW);
 		when(mockTableChangeIterator.next()).thenReturn(mockTableChange);
 		
-		ScannedFileHandleAssociation expected = new ScannedFileHandleAssociation(tableId.toString()).withFileHandleIds(Collections.emptyList());
+		ScannedFileHandleAssociation expected = new ScannedFileHandleAssociation(tableId).withFileHandleIds(Collections.emptyList());
 		
 		// Call under test
 		ScannedFileHandleAssociation result = iterator.next();
@@ -191,7 +191,7 @@ public class TableFileHandleIteratorTest {
 		when(mockTableChange.getChangeType()).thenReturn(TableChangeType.ROW);
 		when(mockTableChangeIterator.next()).thenReturn(mockTableChange);
 		
-		ScannedFileHandleAssociation expected = new ScannedFileHandleAssociation(tableId.toString()).withFileHandleIds(Arrays.asList(456L));
+		ScannedFileHandleAssociation expected = new ScannedFileHandleAssociation(tableId).withFileHandleIds(Arrays.asList(456L));
 		
 		// Call under test
 		ScannedFileHandleAssociation result = iterator.next();
@@ -217,7 +217,7 @@ public class TableFileHandleIteratorTest {
 		when(mockTableChange.getChangeNumber()).thenReturn(changeNumber);
 		when(mockTableChangeIterator.next()).thenReturn(mockTableChange);
 		
-		ScannedFileHandleAssociation expected = new ScannedFileHandleAssociation(tableId.toString());
+		ScannedFileHandleAssociation expected = new ScannedFileHandleAssociation(tableId);
 		
 		// Call under test
 		ScannedFileHandleAssociation result = iterator.next();

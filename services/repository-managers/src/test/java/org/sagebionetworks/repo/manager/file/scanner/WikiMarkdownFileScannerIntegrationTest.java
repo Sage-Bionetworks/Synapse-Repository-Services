@@ -72,9 +72,9 @@ public class WikiMarkdownFileScannerIntegrationTest {
 		V2WikiPage w3 = createWikiMarkdown("789");
 		
 		List<ScannedFileHandleAssociation> expected = Arrays.asList(
-				new ScannedFileHandleAssociation(w1.getId(), Long.valueOf(w1.getMarkdownFileHandleId())),
-				new ScannedFileHandleAssociation(w2.getId(), Long.valueOf(w2.getMarkdownFileHandleId())),
-				new ScannedFileHandleAssociation(w3.getId(), Long.valueOf(w3.getMarkdownFileHandleId()))
+				new ScannedFileHandleAssociation(Long.valueOf(w1.getId()), Long.valueOf(w1.getMarkdownFileHandleId())),
+				new ScannedFileHandleAssociation(Long.valueOf(w2.getId()), Long.valueOf(w2.getMarkdownFileHandleId())),
+				new ScannedFileHandleAssociation(Long.valueOf(w3.getId()), Long.valueOf(w3.getMarkdownFileHandleId()))
 		);
 		
 		IdRange range = manager.getIdRange(associationType);

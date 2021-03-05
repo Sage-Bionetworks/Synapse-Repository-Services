@@ -90,9 +90,9 @@ public class UserProfileFileScannerIntegrationTest {
 		assertNotNull(range);
 		
 		List<ScannedFileHandleAssociation> expected = Arrays.asList(
-			new ScannedFileHandleAssociation(u1.getOwnerId(), Long.valueOf(u1.getProfilePicureFileHandleId())),
-			new ScannedFileHandleAssociation(u2.getOwnerId(), Long.valueOf(u2.getProfilePicureFileHandleId())),
-			new ScannedFileHandleAssociation(u4.getOwnerId(), Long.valueOf(u4.getProfilePicureFileHandleId()))
+			new ScannedFileHandleAssociation(Long.valueOf(u1.getOwnerId()), Long.valueOf(u1.getProfilePicureFileHandleId())),
+			new ScannedFileHandleAssociation(Long.valueOf(u2.getOwnerId()), Long.valueOf(u2.getProfilePicureFileHandleId())),
+			new ScannedFileHandleAssociation(Long.valueOf(u4.getOwnerId()), Long.valueOf(u4.getProfilePicureFileHandleId()))
 		);
 				
 		

@@ -79,7 +79,7 @@ public class WikiAttachmentFileScannerIntegrationTest {
 
 		for (V2WikiPage wiki : wikiPages) {
 			for (String fileHandleId : wiki.getAttachmentFileHandleIds()) {
-				expected.add(new ScannedFileHandleAssociation(wiki.getId(), Long.valueOf(fileHandleId)));
+				expected.add(new ScannedFileHandleAssociation(Long.valueOf(wiki.getId()), Long.valueOf(fileHandleId)));
 			}
 		}
 		

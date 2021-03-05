@@ -139,7 +139,7 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 	public static RowMapper<ScannedFileHandleAssociation> getDefaultRowMapper(String backupIdColumnName, String fileHandleColumnName) {
 		return (ResultSet rs, int rowNumber) -> {
 
-			final String objectId = rs.getString(backupIdColumnName);
+			final Long objectId = rs.getLong(backupIdColumnName);
 
 			ScannedFileHandleAssociation scanned = new ScannedFileHandleAssociation(objectId);
 			
