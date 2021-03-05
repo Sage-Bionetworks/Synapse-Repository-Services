@@ -21,7 +21,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.entity.decider.AccessContext;
 import org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions;
-import org.sagebionetworks.repo.manager.entity.decider.UserInfoState;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -38,11 +37,11 @@ import org.sagebionetworks.repo.web.NotFoundException;
 @ExtendWith(MockitoExtension.class)
 public class EntityDeciderFunctionsTest {
 
-	UserInfoState adminUser;
-	UserInfoState nonAdminUser;
-	UserInfoState anonymousUser;
-	UserInfoState notCertifiedUser;
-	UserInfoState certifiedUser;
+	UserInfo adminUser;
+	UserInfo nonAdminUser;
+	UserInfo anonymousUser;
+	UserInfo notCertifiedUser;
+	UserInfo certifiedUser;
 
 	UsersRestrictionStatus restrictionStatus;
 	UserEntityPermissionsState permissionState;
@@ -52,16 +51,15 @@ public class EntityDeciderFunctionsTest {
 	public void before() {
 		Long entityId = 111L;
 		permissionState = new UserEntityPermissionsState(entityId);
-		adminUser = new UserInfoState(new UserInfo(true/* isAdmin */, 222L));
-		nonAdminUser = new UserInfoState(new UserInfo(false/* isAdmin */, 333L));
-		anonymousUser = new UserInfoState(new UserInfo(false/* isAdmin */,
-				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId()));
-		notCertifiedUser = new UserInfoState(new UserInfo(false/* isAdmin */, 444L));
-		notCertifiedUser.overrideIsCertified(false);
-		certifiedUser = new UserInfoState(new UserInfo(false/* isAdmin */, 555L));
-		certifiedUser.overrideIsCertified(true);
+		adminUser = new UserInfo(true/* isAdmin */, 222L);
+		nonAdminUser = new UserInfo(false/* isAdmin */, 333L);
+		anonymousUser = new UserInfo(false/* isAdmin */,
+				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		notCertifiedUser = new UserInfo(false/* isAdmin */, 444L);
+		certifiedUser = new UserInfo(false/* isAdmin */, 555L);
+		certifiedUser.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 
-		restrictionStatus = new UsersRestrictionStatus(entityId, nonAdminUser.getUserInfo().getId());
+		restrictionStatus = new UsersRestrictionStatus(entityId, nonAdminUser.getId());
 		context = new AccessContext().withUser(nonAdminUser).withPermissionsState(permissionState)
 				.withRestrictionStatus(restrictionStatus);
 	}
@@ -433,7 +431,7 @@ public class EntityDeciderFunctionsTest {
 
 	@Test
 	public void testDenyIfHasNotAcceptedTermsOfUseWithNoAccept() {
-		nonAdminUser.overrideAcceptsTermsOfUse(false);
+		nonAdminUser.setAcceptsTermsOfUse(false);
 		context = new AccessContext().withUser(nonAdminUser).withPermissionsState(permissionState);
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_HAS_NOT_ACCEPTED_TERMS_OF_USE
@@ -446,7 +444,7 @@ public class EntityDeciderFunctionsTest {
 
 	@Test
 	public void testDenyIfHasNotAcceptedTermsOfUseWithAccept() {
-		nonAdminUser.overrideAcceptsTermsOfUse(true);
+		nonAdminUser.setAcceptsTermsOfUse(true);
 		context = new AccessContext().withUser(nonAdminUser).withPermissionsState(permissionState);
 
 		// call under test
@@ -457,7 +455,7 @@ public class EntityDeciderFunctionsTest {
 
 	@Test
 	public void testDenyIfCreateTypeIsNotProjectAndNotCertifiedWithNullCreateTypeCertifiedFalse() {
-		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(false)).withPermissionsState(permissionState)
+		context = new AccessContext().withUser(notCertifiedUser).withPermissionsState(permissionState)
 				.withEntityCreateType(null);
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_CREATE_TYPE_IS_NOT_PROJECT_AND_NOT_CERTIFIED
@@ -470,7 +468,7 @@ public class EntityDeciderFunctionsTest {
 	
 	@Test
 	public void testDenyIfCreateTypeIsNotProjectAndNotCertifiedWithNullCertifiedTrue() {
-		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(true)).withPermissionsState(permissionState)
+		context = new AccessContext().withUser(certifiedUser).withPermissionsState(permissionState)
 				.withEntityCreateType(null);
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_CREATE_TYPE_IS_NOT_PROJECT_AND_NOT_CERTIFIED
@@ -480,7 +478,7 @@ public class EntityDeciderFunctionsTest {
 
 	@Test
 	public void testDenyIfCreateTypeIsNotProjectAndNotCertifiedWithProjectAndCertifiedTrue() {
-		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(true)).withPermissionsState(permissionState)
+		context = new AccessContext().withUser(certifiedUser).withPermissionsState(permissionState)
 				.withEntityCreateType(EntityType.project);
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_CREATE_TYPE_IS_NOT_PROJECT_AND_NOT_CERTIFIED
@@ -490,7 +488,7 @@ public class EntityDeciderFunctionsTest {
 	
 	@Test
 	public void testDenyIfCreateTypeIsNotProjectAndNotCertifiedWithProjectAndCertifiedFalse() {
-		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(false)).withPermissionsState(permissionState)
+		context = new AccessContext().withUser(notCertifiedUser).withPermissionsState(permissionState)
 				.withEntityCreateType(EntityType.project);
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_CREATE_TYPE_IS_NOT_PROJECT_AND_NOT_CERTIFIED
@@ -500,7 +498,7 @@ public class EntityDeciderFunctionsTest {
 	
 	@Test
 	public void testDenyIfCreateTypeIsNotProjectAndNotCertifiedWithFileAndCertifiedTrue() {
-		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(true)).withPermissionsState(permissionState)
+		context = new AccessContext().withUser(certifiedUser).withPermissionsState(permissionState)
 				.withEntityCreateType(EntityType.file);
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_CREATE_TYPE_IS_NOT_PROJECT_AND_NOT_CERTIFIED
@@ -510,7 +508,7 @@ public class EntityDeciderFunctionsTest {
 	
 	@Test
 	public void testDenyIfCreateTypeIsNotProjectAndNotCertifiedWithFileAndCertifiedFalse() {
-		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(false)).withPermissionsState(permissionState)
+		context = new AccessContext().withUser(notCertifiedUser).withPermissionsState(permissionState)
 				.withEntityCreateType(EntityType.file);
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_CREATE_TYPE_IS_NOT_PROJECT_AND_NOT_CERTIFIED
@@ -523,7 +521,7 @@ public class EntityDeciderFunctionsTest {
 	
 	@Test
 	public void testDenyIfNotProjectAndNotCertifiedWithProjectCertifiedFalse() {
-		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(false))
+		context = new AccessContext().withUser(notCertifiedUser)
 				.withPermissionsState(permissionState.withEntityType(EntityType.project));
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_PROJECT_AND_NOT_CERTIFIED
@@ -533,7 +531,7 @@ public class EntityDeciderFunctionsTest {
 	
 	@Test
 	public void testDenyIfNotProjectAndNotCertifiedWithFileCertifiedFalse() {
-		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(false))
+		context = new AccessContext().withUser(notCertifiedUser)
 				.withPermissionsState(permissionState.withEntityType(EntityType.file));
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_PROJECT_AND_NOT_CERTIFIED
@@ -546,7 +544,7 @@ public class EntityDeciderFunctionsTest {
 	
 	@Test
 	public void testDenyIfNotProjectAndNotCertifiedWithProjectCertifiedTrue() {
-		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(true))
+		context = new AccessContext().withUser(certifiedUser)
 				.withPermissionsState(permissionState.withEntityType(EntityType.project));
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_PROJECT_AND_NOT_CERTIFIED
@@ -556,7 +554,7 @@ public class EntityDeciderFunctionsTest {
 	
 	@Test
 	public void testDenyIfNotProjectAndNotCertifiedWithFileCertifiedTrue() {
-		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(true))
+		context = new AccessContext().withUser(certifiedUser)
 				.withPermissionsState(permissionState.withEntityType(EntityType.file));
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_PROJECT_AND_NOT_CERTIFIED
@@ -566,7 +564,7 @@ public class EntityDeciderFunctionsTest {
 	
 	@Test
 	public void testDenyIfParentIsRootOrNullWithParentRoot() {
-		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(true))
+		context = new AccessContext().withUser(certifiedUser)
 				.withPermissionsState(permissionState.withEntityParentId(NodeConstants.BOOTSTRAP_NODES.ROOT.getId()));
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_PARENT_IS_ROOT_OR_NULL
@@ -578,7 +576,7 @@ public class EntityDeciderFunctionsTest {
 	
 	@Test
 	public void testDenyIfParentIsRootOrNullWithNullParent() {
-		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(true))
+		context = new AccessContext().withUser(certifiedUser)
 				.withPermissionsState(permissionState.withEntityParentId(null));
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_PARENT_IS_ROOT_OR_NULL
@@ -590,7 +588,7 @@ public class EntityDeciderFunctionsTest {
 	
 	@Test
 	public void testDenyIfParentIsRootOrNullWithParentNotRoot() {
-		context = new AccessContext().withUser(nonAdminUser.overrideIsCertified(true))
+		context = new AccessContext().withUser(certifiedUser)
 				.withPermissionsState(permissionState.withEntityParentId(123L));
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_PARENT_IS_ROOT_OR_NULL

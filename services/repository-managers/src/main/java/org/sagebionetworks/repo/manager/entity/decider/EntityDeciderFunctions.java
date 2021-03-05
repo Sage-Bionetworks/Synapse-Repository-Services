@@ -14,6 +14,7 @@ import static org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES.ROOT;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES;
@@ -167,7 +168,7 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	 * Deny if the user is anonymous.
 	 */
 	DENY_IF_ANONYMOUS((c) -> {
-		if (c.getUser().isUserAnonymous()) {
+		if (AuthorizationUtils.isUserAnonymous(c.getUser())) {
 			return Optional.of(new UsersEntityAccessInfo(c,
 					AuthorizationStatus.accessDenied(ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION)));
 		} else {
@@ -178,7 +179,7 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	 * Deny if the user is not certified.
 	 */
 	DENY_IF_NOT_CERTIFIED((c) -> {
-		if (!c.getUser().isCertifiedUser()) {
+		if (!AuthorizationUtils.isCertifiedUser(c.getUser())) {
 			return Optional
 					.of(new UsersEntityAccessInfo(c, AuthorizationStatus.accessDenied(ERR_MSG_CERTIFIED_USER_CONTENT)));
 		} else {
@@ -201,7 +202,7 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	 * certified.
 	 */
 	DENY_IF_CREATE_TYPE_IS_NOT_PROJECT_AND_NOT_CERTIFIED((c) -> {
-		if (!EntityType.project.equals(c.getEntityCreateType()) && !c.getUser().isCertifiedUser()) {
+		if (!EntityType.project.equals(c.getEntityCreateType()) && !AuthorizationUtils.isCertifiedUser(c.getUser())) {
 			return Optional
 					.of(new UsersEntityAccessInfo(c, AuthorizationStatus.accessDenied(ERR_MSG_CERTIFIED_USER_CONTENT)));
 		} else {
@@ -212,7 +213,7 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	 * Deny if the EntityType is not a project and the user is not certified.
 	 */
 	DENY_IF_NOT_PROJECT_AND_NOT_CERTIFIED((c) -> {
-		if (!EntityType.project.equals(c.getPermissionsState().getEntityType()) && !c.getUser().isCertifiedUser()) {
+		if (!EntityType.project.equals(c.getPermissionsState().getEntityType()) && !AuthorizationUtils.isCertifiedUser(c.getUser())) {
 			return Optional
 					.of(new UsersEntityAccessInfo(c, AuthorizationStatus.accessDenied(ERR_MSG_CERTIFIED_USER_CONTENT)));
 		} else {
