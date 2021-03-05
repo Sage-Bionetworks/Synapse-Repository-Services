@@ -58,7 +58,7 @@ public class DDLUtilsImplTest {
 	
 	@Test
 	public void testRemoveSQLCommentsWithMultipleComments() {
-		String input = "/* first comment */a/*secondcomment*/b";
+		String input = "/* first comment */a/*second*comment*/b";
 		String expected = "ab";
 		// call under test
 		String result = DDLUtilsImpl.removeSQLComments(input);
@@ -77,6 +77,15 @@ public class DDLUtilsImplTest {
 	@Test
 	public void testRemoveCommentsAndMinimizeStringWithExtraSpace() {
 		String input = "a    b\t\t\tc \t\n  d";
+		String expected = "a b c d";
+		// call under test
+		String result = DDLUtilsImpl.removeSqlCommentsAndLineBreaksAndExtraSpace(input);
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testRemoveCommentsAndMinimizeStringWithExtraSpaceAndComments() {
+		String input = "a    b\t\t\tc \t\n/* a comment*/  d";
 		String expected = "a b c d";
 		// call under test
 		String result = DDLUtilsImpl.removeSqlCommentsAndLineBreaksAndExtraSpace(input);

@@ -119,11 +119,11 @@ public class DDLUtilsImpl implements DDLUtils{
 	 */
 	public static String removeSqlCommentsAndLineBreaksAndExtraSpace(String sql) {
 		/*
-		 * First replace all whitespace characters with a single space.
+		 * First remove all SQL comments.
+		 * Then replace all whitespace characters with a single space.
 		 * Then replace all replace consecutive spaces with single spaces.
-		 * Then remove all SQL comments.
 		 */
-		return removeSQLComments(sql.replaceAll("\\s", " ").replaceAll("[ ]++", " "));
+		return removeSQLComments(sql).replaceAll("\\s", " ").replaceAll("[ ]++", " ");
 	}
 	
 	/**
