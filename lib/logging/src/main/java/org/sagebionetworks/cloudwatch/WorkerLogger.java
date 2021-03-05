@@ -1,5 +1,7 @@
 package org.sagebionetworks.cloudwatch;
 
+import java.util.Map;
+
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 
 /**
@@ -16,6 +18,7 @@ public interface WorkerLogger {
 	String DIMENSION_OBJECT_TYPE = "objectType";
 	String DIMENSION_STACK_TRACE = "stackTrace";
 	String DIMENSION_WORKER_CLASS = "workerClass";
+	String METRIC_NAME_WORKER_TIME = "workerTime";
 
 	/**
 	 * Log a change message driven worker event. The given class name (Class.getName) will be used as
@@ -43,13 +46,27 @@ public interface WorkerLogger {
 	/**
 	 * Sends a cloudwatch count metric (with a value of 1) for a worker defined by the given class. The
 	 * namespace follows the pattern <{@link #WORKER_NAMESPACE} - stackInstance>, the worker (simple)
-	 * class name is used as the workerClass dimension. The willRetry is used as dimension.
+	 * class name is used as the {@link #DIMENSION_WORKER_CLASS} dimension.
 	 * 
-	 * @param workerClass The class whose {@link Class#getSimpleName()} will be used as the workerClass dimension
+	 * @param workerClass The class whose {@link Class#getSimpleName()} will be used as the workerClass
+	 *                    dimension
 	 * @param metricName  The name of the metric
-	 * @param willRetry The value for specifying if the worker will retry, a dimension willRetry will be added to the metric
 	 */
-	void logWorkerMetric(Class<?> workerClass, String metricName, boolean willRetry);
+	void logWorkerCountMetric(Class<?> workerClass, String metricName);
+
+	/**
+	 * Sends a cloudwatch metric to keep track of the time spent working. The namespace follows the
+	 * pattern <{@link #WORKER_NAMESPACE} - stackInstance>, the worker (simple) class name is used as
+	 * the {@link #DIMENSION_WORKER_CLASS} dimension and the {@link #METRIC_NAME_WORKER_TIME} is used as
+	 * the metric name.
+	 * 
+	 * The map of dimensions is added to the metric if not null and not empty, note that the
+	 * {@link #DIMENSION_WORKER_CLASS} will override any of the dimensions in the map with the same key.
+	 * 
+	 * @param workerClass
+	 * @param dimensions
+	 */
+	void logWorkerTimeMetric(Class<?> workerClass, long timeMillis, Map<String, String> dimensions);
 
 	/**
 	 * Log a custom metric

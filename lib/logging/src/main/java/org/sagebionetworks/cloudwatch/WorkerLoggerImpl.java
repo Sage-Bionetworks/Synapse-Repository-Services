@@ -1,5 +1,6 @@
 package org.sagebionetworks.cloudwatch;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -10,36 +11,18 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
-import com.google.common.collect.ImmutableMap;
 
 public class WorkerLoggerImpl implements WorkerLogger {
 
 	private Consumer consumer;
 	private String workersNamespace;
+	private boolean shouldProfile;
 
 	@Autowired
 	public WorkerLoggerImpl(Consumer consumer, StackConfiguration config) {
 		this.consumer = consumer;
 		this.workersNamespace = WORKER_NAMESPACE + " - " + config.getStackInstance();
 		this.shouldProfile = config.getCloudWatchOnOff();
-
-	}
-
-	private boolean shouldProfile;
-
-	/**
-	 * Spring will inject this value.
-	 * 
-	 * @param shouldProfile
-	 */
-	public void setShouldProfile(boolean shouldProfile) {
-		this.shouldProfile = shouldProfile;
-	}
-
-	/**
-	 * Default no parameter ControllerProfiler constructor.
-	 */
-	public WorkerLoggerImpl() {
 	}
 
 	/**
@@ -54,7 +37,7 @@ public class WorkerLoggerImpl implements WorkerLogger {
 		if (!shouldProfile) {
 			return;
 		}
-		ProfileData profileData = buildProfileData(workerClass, changeMessage, cause, willRetry, new Date());
+		ProfileData profileData = buildCountProfileData(workerClass, changeMessage, cause, willRetry, new Date());
 		consumer.addProfileData(profileData);
 	}
 
@@ -63,27 +46,38 @@ public class WorkerLoggerImpl implements WorkerLogger {
 		if (!shouldProfile) {
 			return;
 		}
-		ProfileData profileData = buildProfileData(metricName, null, cause, willRetry, new Date());
+		ProfileData profileData = buildCountProfileData(metricName, null, cause, willRetry, new Date());
 		consumer.addProfileData(profileData);
 	}
 
 	@Override
-	public void logWorkerMetric(Class<?> workerClass, String metricName, boolean willRetry) {
-		if (!shouldProfile) {
-			return;
-		}
-
+	public void logWorkerCountMetric(Class<?> workerClass, String metricName) {
 		ValidateArgument.required(workerClass, "The workerClass");
 		ValidateArgument.required(metricName, "The metricName");
 		
-		Map<String, String> dimensions = ImmutableMap.of(
-				DIMENSION_WORKER_CLASS, workerClass.getSimpleName(),
-				DIMENSION_WILL_RETRY, String.valueOf(willRetry)
-		);
+		Map<String, String> dimensions = Collections.singletonMap(DIMENSION_WORKER_CLASS, workerClass.getSimpleName());
 
-		ProfileData profileData = buildProfileData(new Date(), metricName, dimensions);
+		ProfileData profileData = buildCountProfileData(new Date(), metricName, dimensions);
+		
 		consumer.addProfileData(profileData);
-
+	}
+	
+	@Override
+	public void logWorkerTimeMetric(Class<?> workerClass, long timeMillis, Map<String, String> customDimensions) {
+		ValidateArgument.required(workerClass, "The workerClass");
+		
+		Map<String, String> dimensions = new HashMap<>();
+		
+		if (customDimensions != null && !customDimensions.isEmpty()) {
+			dimensions.putAll(customDimensions);
+		}
+		
+		dimensions.put(DIMENSION_WORKER_CLASS, workerClass.getSimpleName());
+		
+		ProfileData profileData = buildProfileData(new Date(), METRIC_NAME_WORKER_TIME, StandardUnit.Milliseconds, Double.valueOf(timeMillis), dimensions);
+		
+		consumer.addProfileData(profileData);
+		
 	}
 
 	@Override
@@ -103,8 +97,8 @@ public class WorkerLoggerImpl implements WorkerLogger {
 	 * @param willRetry
 	 * @return
 	 */
-	private ProfileData buildProfileData(Class<?> workerClass, ChangeMessage changeMessage, Throwable cause, boolean willRetry, Date timestamp) {
-		return buildProfileData(workerClass.getName(), changeMessage, cause, willRetry, timestamp);
+	private ProfileData buildCountProfileData(Class<?> workerClass, ChangeMessage changeMessage, Throwable cause, boolean willRetry, Date timestamp) {
+		return buildCountProfileData(workerClass.getName(), changeMessage, cause, willRetry, timestamp);
 	}
 
 	/**
@@ -117,7 +111,7 @@ public class WorkerLoggerImpl implements WorkerLogger {
 	 * @param timestamp     The time the error occurred.
 	 * @return
 	 */
-	private ProfileData buildProfileData(String name, ChangeMessage changeMessage, Throwable cause, boolean willRetry, Date timestamp) {
+	private ProfileData buildCountProfileData(String name, ChangeMessage changeMessage, Throwable cause, boolean willRetry, Date timestamp) {
 		Map<String, String> dimension = new HashMap<String, String>();
 		
 		dimension.put(DIMENSION_WILL_RETRY, String.valueOf(willRetry));
@@ -131,16 +125,20 @@ public class WorkerLoggerImpl implements WorkerLogger {
 
 		dimension.put(DIMENSION_STACK_TRACE, stackTraceAsString);
 
-		return buildProfileData(timestamp, name, dimension);
+		return buildCountProfileData(timestamp, name, dimension);
 	}
 
-	private ProfileData buildProfileData(Date timestamp, String metricName, Map<String, String> dimensions) {
+	private ProfileData buildCountProfileData(Date timestamp, String metricName, Map<String, String> dimensions) {
+		return buildProfileData(timestamp, metricName, StandardUnit.Count, 1D, dimensions);
+	}
+	
+	private ProfileData buildProfileData(Date timestamp, String metricName, StandardUnit unit, Double value, Map<String, String> dimensions) {
 		ProfileData data = new ProfileData();
 
 		data.setNamespace(workersNamespace);
 		data.setName(metricName);
-		data.setUnit(StandardUnit.Count.name());
-		data.setValue(1D);
+		data.setUnit(unit.name());
+		data.setValue(value);
 		data.setTimestamp(timestamp);
 
 		if (dimensions != null && !dimensions.isEmpty()) {
