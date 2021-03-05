@@ -20,7 +20,6 @@ import java.util.UUID;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
-import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -28,6 +27,7 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -131,11 +131,11 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	 * @param dbo
 	 */
 	private void verifySubmissionStatusDBO(SubmissionStatusDBO dbo) {
-		EvaluationUtils.ensureNotNull(dbo.getId(), "Submission ID");
-		EvaluationUtils.ensureNotNull(dbo.geteTag(), "eTag");
-		EvaluationUtils.ensureNotNull(dbo.getModifiedOn(), "Modified date");
-		EvaluationUtils.ensureNotNull(dbo.getStatusEnum(), "Submission status");
-		EvaluationUtils.ensureNotNull(dbo.getVersion(), "Status version");
+		ValidateArgument.required(dbo.getId(), "Submission ID");
+		ValidateArgument.required(dbo.geteTag(), "eTag");
+		ValidateArgument.required(dbo.getModifiedOn(), "Modified date");
+		ValidateArgument.required(dbo.getStatusEnum(), "Submission status");
+		ValidateArgument.required(dbo.getVersion(), "Status version");
 	}
 	
 	// returns a map whose key is submission Id and whose value is new Etag and new version

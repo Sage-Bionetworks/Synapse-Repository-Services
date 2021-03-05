@@ -24,7 +24,6 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ST
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_VERSION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION;
-import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION_ROUND;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBMISSION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBMISSION_CONTRIBUTOR;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS;
@@ -55,7 +54,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
@@ -67,7 +65,6 @@ import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
-import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -353,7 +350,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	@Override
 	@WriteTransaction
 	public String create(Submission dto) {
-		EvaluationUtils.ensureNotNull(dto, "Submission");
+		ValidateArgument.required(dto, "Submission");
 
 		// Convert to DBO
 		SubmissionDBO dbo = new SubmissionDBO();
@@ -641,12 +638,12 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	 * @param dbo
 	 */
 	private void verifySubmissionDBO(SubmissionDBO dbo) {
-		EvaluationUtils.ensureNotNull(dbo.getEvalId(), "Evaluation ID");
-		EvaluationUtils.ensureNotNull(dbo.getUserId(), "User ID");
-		EvaluationUtils.ensureNotNull(dbo.getEntityId(), "Entity ID");
-		EvaluationUtils.ensureNotNull(dbo.getVersionNumber(), "Entity Version");
-		EvaluationUtils.ensureNotNull(dbo.getId(), "Submission ID");
-		EvaluationUtils.ensureNotNull(dbo.getCreatedOn(), "Creation date");
+		ValidateArgument.required(dbo.getEvalId(), "Evaluation ID");
+		ValidateArgument.required(dbo.getUserId(), "User ID");
+		ValidateArgument.required(dbo.getEntityId(), "Entity ID");
+		ValidateArgument.required(dbo.getVersionNumber(), "Entity Version");
+		ValidateArgument.required(dbo.getId(), "Submission ID");
+		ValidateArgument.required(dbo.getCreatedOn(), "Creation date");
 	}	
 
 	/*

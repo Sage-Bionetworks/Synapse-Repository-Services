@@ -4,6 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -27,6 +30,14 @@ public class DateToLongParserTest {
 	public void testParseValueForDatabaseWriteLong(){
 		Long expected = new Long(123);
 		Object objectValue = parser.parseValueForDatabaseWrite("123");
+		assertEquals(expected, objectValue);
+	}
+
+	@Test
+	public void testParseValueForDatabaseWriteISO8601(){
+		long expected = LocalDateTime.of(2018,9,25,14,37,27)
+				.toInstant(ZoneOffset.UTC).toEpochMilli();
+		Object objectValue = parser.parseValueForDatabaseWrite("2018-09-25T14:37:27Z");
 		assertEquals(expected, objectValue);
 	}
 	
