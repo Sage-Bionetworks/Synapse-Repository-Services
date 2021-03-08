@@ -199,7 +199,7 @@ public class StsManagerImplTest {
 
 		// Verify auth.
 		verify(mockAuthManager).canAccess(USER_INFO, PARENT_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
-		verify(mockAuthManager).canAccess(USER_INFO, PARENT_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
+		verify(mockAuthManager).canAccess(USER_INFO, PARENT_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
 		verifyNoMoreInteractions(mockAuthManager);
 		verify(mockAuthStatus, times(2)).checkAuthorizationOrElseThrow();
 	}

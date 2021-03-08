@@ -656,7 +656,7 @@ public class FileHandleManagerImplAutowireTest {
 
 	private void addAcl(String projectId, Long principalId) throws Exception {
 		AccessControlList acl = accessControlListDAO.get(projectId, ObjectType.ENTITY);
-		Set<ACCESS_TYPE> accessTypes = Sets.newHashSet(ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE, ACCESS_TYPE.UPLOAD);
+		Set<ACCESS_TYPE> accessTypes = Sets.newHashSet(ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(principalId);
 		ra.setAccessType(accessTypes);

@@ -268,81 +268,6 @@ public class NodeManagerImplUnitTest {
 		
 		assertTrue(ex.getMessage().contains(parenId+" does not exist"));
 	}
-	
-	@Test
-	public void testCreateNodeNoUpload() throws Exception {
-		// Test creating a new node with nothing but the name and type set
-		Node newNode = new Node();
-		newNode.setName("testCreateNode");
-		newNode.setNodeType(EntityType.folder);  // in reality it would be a 'FileEntity'
-		String fileHandleId = "123";
-		newNode.setFileHandleId(fileHandleId);
-		String parentId = "202";
-		newNode.setParentId(parentId);
-		when(mockAuthManager.canCreate(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
-		when(mockNodeDao.isNodeAvailable(parentId)).thenReturn(true);
-		
-		// make sure the mock is ready
-		ArgumentCaptor<Node> argument = ArgumentCaptor.forClass(Node.class);
-		newNode.setId("101");
-		when(mockNodeDao.createNewNode(argument.capture())).thenReturn(newNode);
-		UserInfo userInfo = anonUserInfo;
-		// OK to upload to parentId
-		nodeManager.createNewNode(newNode, userInfo);
-		when(mockAuthManager.canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(AuthorizationStatus.accessDenied(""));
-		
-		UnauthorizedException ex = Assertions.assertThrows(UnauthorizedException.class, () -> {
-			// Call under test
-			// NOT OK to upload
-			nodeManager.createNewNode(newNode, userInfo);
-		});
-		
-		assertEquals("102 is not allowed to upload a file into the chosen folder.", ex.getMessage());
-	}
-
-	@Test
-	public void testUpdateNoUpload() throws Exception {
-		String nodeId = "101";
-		String parentId = "202";
-		String fileHandleId = "123";
-		// Test creating a new node with nothing but the name and type set
-		Node newNode = new Node();
-		newNode.setName("testCreateNode");
-		newNode.setNodeType(EntityType.folder);  // in reality it would be a 'FileEntity'
-		newNode.setFileHandleId(fileHandleId);
-		newNode.setParentId(parentId);
-		newNode.setETag(startEtag);
-		when(mockAuthManager.canCreate(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthManager.canUserMoveRestrictedEntity(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
-		when(mockNodeDao.isNodeAvailable(parentId)).thenReturn(true);
-		
-		// make sure the mock is ready
-		ArgumentCaptor<Node> argument = ArgumentCaptor.forClass(Node.class);
-		newNode.setId(nodeId);
-		when(mockNodeDao.createNewNode(argument.capture())).thenReturn(newNode);
-		UserInfo userInfo = anonUserInfo;
-		// Make the actual call
-		assertEquals(nodeId, nodeManager.createNewNode(newNode, userInfo));
-		newNode.setId(nodeId);
-
-		Node oldNode = mock(Node.class);
-		when(oldNode.getParentId()).thenReturn(parentId);
-		when(mockNodeDao.getNode(nodeId)).thenReturn(oldNode);
-		when(mockNodeDao.lockNode(nodeId)).thenReturn(startEtag);
-		
-		nodeManager.update(userInfo, newNode, null, false);
-
-		when(mockAuthManager.canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(AuthorizationStatus.accessDenied(""));
-
-		Assertions.assertThrows(UnauthorizedException.class, () -> {
-			// Call under test
-			nodeManager.update(userInfo, newNode, null, false);
-		});
-	}
 
 	@Test
 	public void testCreateNodeActivity404() throws Exception {
@@ -1466,7 +1391,6 @@ public class NodeManagerImplUnitTest {
 		
 		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
-		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
 		verify(mockAuthManager).canAccessRawFileHandleById(mockUserInfo, newFileHandleId);
 		
 		verify(mockNodeDao).getNodeTypeById(nodeId);
@@ -1551,43 +1475,6 @@ public class NodeManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testUpdateNodeFileHandleWithNoUploadAccess() {
-		String nodeId = this.nodeId;
-		Long versionNumber = 1L;
-		String oldFileHandleId = "123";
-		String newFileHandleId = "456";
-		
-		FileHandleUpdateRequest updateRequest = new FileHandleUpdateRequest();
-		
-		updateRequest.setOldFileHandleId(oldFileHandleId);
-		updateRequest.setNewFileHandleId(newFileHandleId);
-		
-		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthManager.canAccess(any(), any(), any(), eq(ACCESS_TYPE.UPLOAD))).thenReturn(AuthorizationStatus.accessDenied("Denied"));
-		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.file);
-		when(mockNodeDao.getFileHandleIdForVersion(any(), any())).thenReturn(oldFileHandleId);
-		
-		String errorMessage = assertThrows(UnauthorizedException.class, () -> {			
-			// Call under test
-			nodeManager.updateNodeFileHandle(mockUserInfo, nodeId, versionNumber, updateRequest);
-		}).getMessage();
-		
-		assertEquals("Denied", errorMessage);
-		
-		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
-		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
-		verify(mockNodeDao).getNodeTypeById(nodeId);
-		verify(mockNodeDao).lockNode(nodeId);
-		verify(mockNodeDao).getFileHandleIdForVersion(nodeId, versionNumber);
-		
-		verifyNoMoreInteractions(mockAuthManager);
-		verifyNoMoreInteractions(mockNodeDao);
-		verifyNoMoreInteractions(mockFileHandleDao);
-		verifyNoMoreInteractions(mockStsManager);
-	}
-	
-	@Test
 	public void testUpdateNodeFileHandleWithNoRawFileHandleAccess() {
 		String nodeId = this.nodeId;
 		Long versionNumber = 1L;
@@ -1614,7 +1501,6 @@ public class NodeManagerImplUnitTest {
 		
 		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
-		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
 		verify(mockAuthManager).canAccessRawFileHandleById(mockUserInfo, newFileHandleId);
 		
 		verify(mockNodeDao).getNodeTypeById(nodeId);
@@ -1725,7 +1611,6 @@ public class NodeManagerImplUnitTest {
 		
 		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
-		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
 		verify(mockAuthManager).canAccessRawFileHandleById(mockUserInfo, newFileHandleId);
 		
 		verify(mockNodeDao).getNodeTypeById(nodeId);
@@ -1761,7 +1646,6 @@ public class NodeManagerImplUnitTest {
 		
 		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
-		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
 		verify(mockAuthManager).canAccessRawFileHandleById(mockUserInfo, newFileHandleId);
 		
 		verify(mockNodeDao).getNodeTypeById(nodeId);
@@ -1802,7 +1686,6 @@ public class NodeManagerImplUnitTest {
 		
 		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
-		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
 		verify(mockAuthManager).canAccessRawFileHandleById(mockUserInfo, newFileHandleId);
 		
 		verify(mockNodeDao).getNodeTypeById(nodeId);
@@ -1847,7 +1730,6 @@ public class NodeManagerImplUnitTest {
 		
 		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
-		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
 		verify(mockAuthManager).canAccessRawFileHandleById(mockUserInfo, newFileHandleId);
 		
 		verify(mockNodeDao).getNodeTypeById(nodeId);
@@ -1899,7 +1781,6 @@ public class NodeManagerImplUnitTest {
 		
 		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
-		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
 		verify(mockAuthManager).canAccessRawFileHandleById(mockUserInfo, newFileHandleId);
 		
 		verify(mockNodeDao).getNodeTypeById(nodeId);

@@ -784,7 +784,7 @@ public class AccessRequirementManagerImplUnitTest {
 		assertEquals(RestrictableObjectType.ENTITY, AccessRequirementManagerImpl.determineObjectType(ACCESS_TYPE.DOWNLOAD));
 		assertEquals(RestrictableObjectType.TEAM, AccessRequirementManagerImpl.determineObjectType(ACCESS_TYPE.PARTICIPATE));
 		try {
-			AccessRequirementManagerImpl.determineObjectType(ACCESS_TYPE.UPLOAD);
+			AccessRequirementManagerImpl.determineObjectType(ACCESS_TYPE.READ);
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}
