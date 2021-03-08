@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.IdRange;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -88,16 +89,16 @@ public class FileEntityFileScannerIntegrationTest {
 		
 		List<ScannedFileHandleAssociation> expected = Arrays.asList(
 			// First node has 3 revisions
-			new ScannedFileHandleAssociation(KeyFactory.stringToKey(node1.getId()).toString(), Long.valueOf(node1.getFileHandleId())),
-			new ScannedFileHandleAssociation(KeyFactory.stringToKey(node1.getId()).toString(), Long.valueOf(addRevision(node1).getFileHandleId())),
-			new ScannedFileHandleAssociation(KeyFactory.stringToKey(node1.getId()).toString(), Long.valueOf(addRevision(node1).getFileHandleId())),
+			new ScannedFileHandleAssociation(KeyFactory.stringToKey(node1.getId()), Long.valueOf(node1.getFileHandleId())),
+			new ScannedFileHandleAssociation(KeyFactory.stringToKey(node1.getId()), Long.valueOf(addRevision(node1).getFileHandleId())),
+			new ScannedFileHandleAssociation(KeyFactory.stringToKey(node1.getId()), Long.valueOf(addRevision(node1).getFileHandleId())),
 			
 			// Second node has only 1 revisions
-			new ScannedFileHandleAssociation(KeyFactory.stringToKey(node2.getId()).toString(), Long.valueOf(node2.getFileHandleId())),
+			new ScannedFileHandleAssociation(KeyFactory.stringToKey(node2.getId()), Long.valueOf(node2.getFileHandleId())),
 			
 			// Third node has 2 revisions
-			new ScannedFileHandleAssociation(KeyFactory.stringToKey(node3.getId()).toString(), Long.valueOf(node3.getFileHandleId())),
-			new ScannedFileHandleAssociation(KeyFactory.stringToKey(node3.getId()).toString(), Long.valueOf(addRevision(node3).getFileHandleId()))
+			new ScannedFileHandleAssociation(KeyFactory.stringToKey(node3.getId()), Long.valueOf(node3.getFileHandleId())),
+			new ScannedFileHandleAssociation(KeyFactory.stringToKey(node3.getId()), Long.valueOf(addRevision(node3).getFileHandleId()))
 		);
 		
 		IdRange range = manager.getIdRange(associationType);

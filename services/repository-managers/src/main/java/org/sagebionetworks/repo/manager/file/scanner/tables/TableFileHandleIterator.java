@@ -5,6 +5,8 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
@@ -25,6 +27,7 @@ import com.amazonaws.AmazonServiceException.ErrorType;
  */
 public class TableFileHandleIterator implements Iterator<ScannedFileHandleAssociation> {
 	
+	private static final Logger LOG = LogManager.getLogger(TableFileHandleIterator.class);
 	private Long tableId;
 	private Iterator<TableChangeMetaData> tableChangeIterator;
 	
@@ -42,7 +45,7 @@ public class TableFileHandleIterator implements Iterator<ScannedFileHandleAssoci
 
 	@Override
 	public ScannedFileHandleAssociation next() {
-		ScannedFileHandleAssociation association = new ScannedFileHandleAssociation(tableId.toString());
+		ScannedFileHandleAssociation association = new ScannedFileHandleAssociation(tableId);
 		
 		TableChangeMetaData changeMetadata = tableChangeIterator.next();
 		
@@ -51,8 +54,11 @@ public class TableFileHandleIterator implements Iterator<ScannedFileHandleAssoci
 			
 			try {
 				 changeData = changeMetadata.loadChangeData(SparseChangeSet.class);
-			} catch (NotFoundException | IOException e) {
+			} catch (IOException e) {
 				throw new UnrecoverableException(e);
+			} catch (NotFoundException e) {
+				LOG.warn("Could not load change data for table " + tableId + " (Change Number: " + changeMetadata.getChangeNumber() + "): " + e.getMessage(), e);
+				return association;
 			} catch (AmazonServiceException e) {
 				// According to the docs the service type error are for requests received by AWS that cannot be fulfilled at the moment
 				// The caller can try iterating again from scratch

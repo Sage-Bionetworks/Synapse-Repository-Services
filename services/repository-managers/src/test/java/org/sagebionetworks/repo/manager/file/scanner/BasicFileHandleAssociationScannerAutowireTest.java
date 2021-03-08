@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.dbo.DDLUtils;
 import org.sagebionetworks.repo.model.dbo.DMLUtils;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.file.IdRange;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -96,10 +97,10 @@ public class BasicFileHandleAssociationScannerAutowireTest {
 		long batchSize = 10;
 		
 		List<ScannedFileHandleAssociation> expected = Arrays.asList(
-				new ScannedFileHandleAssociation("1", 1L),
-				new ScannedFileHandleAssociation("2", 2L),
-				new ScannedFileHandleAssociation("5", 1L),
-				new ScannedFileHandleAssociation("10", 1L)
+				new ScannedFileHandleAssociation(1L, 1L),
+				new ScannedFileHandleAssociation(2L, 2L),
+				new ScannedFileHandleAssociation(5L, 1L),
+				new ScannedFileHandleAssociation(10L, 1L)
 		);
 		
 		testScanRange(tableMapping, new IdRange(1, 10), batchSize,
@@ -124,9 +125,9 @@ public class BasicFileHandleAssociationScannerAutowireTest {
 		long batchSize = 10;
 		
 		List<ScannedFileHandleAssociation> expected = Arrays.asList(
-				new ScannedFileHandleAssociation("1", 1L),
-				new ScannedFileHandleAssociation("2", 2L),
-				new ScannedFileHandleAssociation("10", 1L)
+				new ScannedFileHandleAssociation(1L, 1L),
+				new ScannedFileHandleAssociation(2L, 2L),
+				new ScannedFileHandleAssociation(10L, 1L)
 		);
 		
 		testScanRange(tableMapping, new IdRange(1, 10), batchSize,
@@ -151,9 +152,9 @@ public class BasicFileHandleAssociationScannerAutowireTest {
 		long batchSize = 10;
 		
 		List<ScannedFileHandleAssociation> expected = Arrays.asList(
-				new ScannedFileHandleAssociation("1", 1L),
-				new ScannedFileHandleAssociation("2", 2L),
-				new ScannedFileHandleAssociation("5", 1L)
+				new ScannedFileHandleAssociation(1L, 1L),
+				new ScannedFileHandleAssociation(2L, 2L),
+				new ScannedFileHandleAssociation(5L, 1L)
 		);
 		
 		testScanRange(tableMapping, new IdRange(1, 5), batchSize,
@@ -178,13 +179,13 @@ public class BasicFileHandleAssociationScannerAutowireTest {
 		long batchSize = 5;
 		
 		List<ScannedFileHandleAssociation> expected = Arrays.asList(
-				new ScannedFileHandleAssociation("1", 1L),
-				new ScannedFileHandleAssociation("2", 2L),
-				new ScannedFileHandleAssociation("3", 2L),
-				new ScannedFileHandleAssociation("4", 3L),
-				new ScannedFileHandleAssociation("5", 1L),
-				new ScannedFileHandleAssociation("6", 5L),
-				new ScannedFileHandleAssociation("10", 1L)
+				new ScannedFileHandleAssociation(1L, 1L),
+				new ScannedFileHandleAssociation(2L, 2L),
+				new ScannedFileHandleAssociation(3L, 2L),
+				new ScannedFileHandleAssociation(4L, 3L),
+				new ScannedFileHandleAssociation(5L, 1L),
+				new ScannedFileHandleAssociation(6L, 5L),
+				new ScannedFileHandleAssociation(10L, 1L)
 		);
 		
 		testScanRange(tableMapping, new IdRange(1, 10), batchSize,
@@ -214,11 +215,11 @@ public class BasicFileHandleAssociationScannerAutowireTest {
 		long batchSize = 2;
 		
 		List<ScannedFileHandleAssociation> expected = Arrays.asList(
-				new ScannedFileHandleAssociation("1", 1L),
-				new ScannedFileHandleAssociation("2", 2L),
-				new ScannedFileHandleAssociation("6", 5L),
-				new ScannedFileHandleAssociation("10", 1L),
-				new ScannedFileHandleAssociation("11", 6L)
+				new ScannedFileHandleAssociation(1L, 1L),
+				new ScannedFileHandleAssociation(2L, 2L),
+				new ScannedFileHandleAssociation(6L, 5L),
+				new ScannedFileHandleAssociation(10L, 1L),
+				new ScannedFileHandleAssociation(11L, 6L)
 		);
 		
 		testScanRange(tableMapping, new IdRange(1, 11), batchSize,
@@ -251,13 +252,13 @@ public class BasicFileHandleAssociationScannerAutowireTest {
 		long batchSize = 5;
 		
 		List<ScannedFileHandleAssociation> expected = Arrays.asList(
-				new ScannedFileHandleAssociation("1", 1L),
-				new ScannedFileHandleAssociation("1", 1L),
-				new ScannedFileHandleAssociation("1", 2L),
-				new ScannedFileHandleAssociation("4", 3L),
-				new ScannedFileHandleAssociation("5", 1L),
-				new ScannedFileHandleAssociation("5", 5L),
-				new ScannedFileHandleAssociation("10", 1L)
+				new ScannedFileHandleAssociation(1L, 1L),
+				new ScannedFileHandleAssociation(1L, 1L),
+				new ScannedFileHandleAssociation(1L, 2L),
+				new ScannedFileHandleAssociation(4L, 3L),
+				new ScannedFileHandleAssociation(5L, 1L),
+				new ScannedFileHandleAssociation(5L, 5L),
+				new ScannedFileHandleAssociation(10L, 1L)
 		);
 		
 		testScanRange(tableMapping, new IdRange(1, 10), batchSize,
@@ -288,13 +289,13 @@ public class BasicFileHandleAssociationScannerAutowireTest {
 		long batchSize = 5;
 		
 		List<ScannedFileHandleAssociation> expected = Arrays.asList(
-				new ScannedFileHandleAssociation("1", 1L),
-				new ScannedFileHandleAssociation("1", 1L),
-				new ScannedFileHandleAssociation("1", 2L),
-				new ScannedFileHandleAssociation("5", 5L),
-				new ScannedFileHandleAssociation("6", 6L),
-				new ScannedFileHandleAssociation("7", 1L),
-				new ScannedFileHandleAssociation("7", 7L)
+				new ScannedFileHandleAssociation(1L, 1L),
+				new ScannedFileHandleAssociation(1L, 1L),
+				new ScannedFileHandleAssociation(1L, 2L),
+				new ScannedFileHandleAssociation(5L, 5L),
+				new ScannedFileHandleAssociation(6L, 6L),
+				new ScannedFileHandleAssociation(7L, 1L),
+				new ScannedFileHandleAssociation(7L, 7L)
 		);
 		
 		testScanRange(tableMapping, new IdRange(1, 10), batchSize,
@@ -334,9 +335,9 @@ public class BasicFileHandleAssociationScannerAutowireTest {
 		RowMapperSupplier rowMapperSupplier = new SerializedFieldRowMapperSupplier<>(FileHandleHolder::deserialize, FileHandleHolder::getFileHandleIds);
 		
 		List<ScannedFileHandleAssociation> expected = Arrays.asList(
-				new ScannedFileHandleAssociation("1", 1L),
-				new ScannedFileHandleAssociation("2"),
-				new ScannedFileHandleAssociation("3").withFileHandleIds(Arrays.asList(1L, 2L))
+				new ScannedFileHandleAssociation(1L, 1L),
+				new ScannedFileHandleAssociation(2L),
+				new ScannedFileHandleAssociation(3L).withFileHandleIds(Arrays.asList(1L, 2L))
 		);
 		
 		testScanRange(tableMapping, rowMapperSupplier, new IdRange(1, 10), batchSize,

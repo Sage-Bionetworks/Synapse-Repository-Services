@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.file.scanner;
 
+import org.sagebionetworks.repo.model.file.IdRange;
+
 /**
  * Abstraction for scanning the file handles associated with objects
  * 

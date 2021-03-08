@@ -59,12 +59,12 @@ public class SerializedFieldRowMapperSupplierTest {
 	
 	@Test
 	public void testRowMapper() throws SQLException {
-		String objectId = "123";
+		Long objectId = 123L;
 		TestClass deserialized = new TestClass();
 		Set<String> fileHandleIds = ImmutableSet.of("1", "2", "3");
 		byte[] serialized = new byte[] {1, 2, 3};
 		
-		when(mockResultSet.getString(anyString())).thenReturn(objectId);
+		when(mockResultSet.getLong(anyString())).thenReturn(objectId);
 		when(mockResultSet.getBlob(anyString())).thenReturn(mockBlob);
 		when(mockBlob.length()).thenReturn(Long.valueOf(serialized.length));
 		when(mockBlob.getBytes(anyLong(), anyInt())).thenReturn(serialized);
@@ -78,7 +78,7 @@ public class SerializedFieldRowMapperSupplierTest {
 		
 		assertEquals(expected, result);
 		
-		verify(mockResultSet).getString(idColumnName);
+		verify(mockResultSet).getLong(idColumnName);
 		verify(mockResultSet).getBlob(serializedFieldColumnName);
 		verify(mockBlob).getBytes(1, serialized.length);
 		verify(mockDeserializer).deserialize(serialized);
@@ -88,12 +88,12 @@ public class SerializedFieldRowMapperSupplierTest {
 	
 	@Test
 	public void testRowMapperWithMalformedFileHandle() throws SQLException {
-		String objectId = "123";
+		Long objectId = 123L;
 		TestClass deserialized = new TestClass();
 		Set<String> fileHandleIds = ImmutableSet.of("1", "2", "malformed");
 		byte[] serialized = new byte[] {1, 2, 3};
 		
-		when(mockResultSet.getString(anyString())).thenReturn(objectId);
+		when(mockResultSet.getLong(anyString())).thenReturn(objectId);
 		when(mockResultSet.getBlob(anyString())).thenReturn(mockBlob);
 		when(mockBlob.length()).thenReturn(Long.valueOf(serialized.length));
 		when(mockBlob.getBytes(anyLong(), anyInt())).thenReturn(serialized);
@@ -107,7 +107,7 @@ public class SerializedFieldRowMapperSupplierTest {
 		
 		assertEquals(expected, result);
 		
-		verify(mockResultSet).getString(idColumnName);
+		verify(mockResultSet).getLong(idColumnName);
 		verify(mockResultSet).getBlob(serializedFieldColumnName);
 		verify(mockBlob).getBytes(1, serialized.length);
 		verify(mockDeserializer).deserialize(serialized);
@@ -117,9 +117,9 @@ public class SerializedFieldRowMapperSupplierTest {
 	
 	@Test
 	public void testRowMapperWithEmptyBlob() throws SQLException {
-		String objectId = "123";
+		Long objectId = 123L;
 		
-		when(mockResultSet.getString(anyString())).thenReturn(objectId);
+		when(mockResultSet.getLong(anyString())).thenReturn(objectId);
 		when(mockResultSet.getBlob(anyString())).thenReturn(null);
 		
 		ScannedFileHandleAssociation expected = new ScannedFileHandleAssociation(objectId);
@@ -129,7 +129,7 @@ public class SerializedFieldRowMapperSupplierTest {
 		
 		assertEquals(expected, result);
 		
-		verify(mockResultSet).getString(idColumnName);
+		verify(mockResultSet).getLong(idColumnName);
 		verify(mockResultSet).getBlob(serializedFieldColumnName);
 
 		verifyZeroInteractions(mockBlob, mockDeserializer, mockExtractor);
@@ -138,12 +138,12 @@ public class SerializedFieldRowMapperSupplierTest {
 	
 	@Test
 	public void testRowMapperWithNoFileHandles() throws SQLException {
-		String objectId = "123";
+		Long objectId = 123L;
 		TestClass deserialized = new TestClass();
 		Set<String> fileHandleIds = Collections.emptySet();
 		byte[] serialized = new byte[] {1, 2, 3};
 		
-		when(mockResultSet.getString(anyString())).thenReturn(objectId);
+		when(mockResultSet.getLong(anyString())).thenReturn(objectId);
 		when(mockResultSet.getBlob(anyString())).thenReturn(mockBlob);
 		when(mockBlob.length()).thenReturn(Long.valueOf(serialized.length));
 		when(mockBlob.getBytes(anyLong(), anyInt())).thenReturn(serialized);
@@ -157,7 +157,7 @@ public class SerializedFieldRowMapperSupplierTest {
 		
 		assertEquals(expected, result);
 		
-		verify(mockResultSet).getString(idColumnName);
+		verify(mockResultSet).getLong(idColumnName);
 		verify(mockResultSet).getBlob(serializedFieldColumnName);
 		verify(mockBlob).getBytes(1, serialized.length);
 		verify(mockDeserializer).deserialize(serialized);
@@ -167,12 +167,12 @@ public class SerializedFieldRowMapperSupplierTest {
 	
 	@Test
 	public void testRowMapperWithNullFileHandles() throws SQLException {
-		String objectId = "123";
+		Long objectId = 123L;
 		TestClass deserialized = new TestClass();
 		Set<String> fileHandleIds = null;
 		byte[] serialized = new byte[] {1, 2, 3};
 		
-		when(mockResultSet.getString(anyString())).thenReturn(objectId);
+		when(mockResultSet.getLong(anyString())).thenReturn(objectId);
 		when(mockResultSet.getBlob(anyString())).thenReturn(mockBlob);
 		when(mockBlob.length()).thenReturn(Long.valueOf(serialized.length));
 		when(mockBlob.getBytes(anyLong(), anyInt())).thenReturn(serialized);
@@ -186,7 +186,7 @@ public class SerializedFieldRowMapperSupplierTest {
 		
 		assertEquals(expected, result);
 		
-		verify(mockResultSet).getString(idColumnName);
+		verify(mockResultSet).getLong(idColumnName);
 		verify(mockResultSet).getBlob(serializedFieldColumnName);
 		verify(mockBlob).getBytes(1, serialized.length);
 		verify(mockDeserializer).deserialize(serialized);

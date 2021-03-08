@@ -37,7 +37,7 @@ public class SerializedFieldRowMapperSupplier<T> implements RowMapperSupplier {
 	@Override
 	public RowMapper<ScannedFileHandleAssociation> getRowMapper(String objectIdColumnName, String serializedFieldColumnName) {
 		return (ResultSet rs, int rowNum) -> {
-			final String objectId = rs.getString(objectIdColumnName);
+			final Long objectId = rs.getLong(objectIdColumnName);
 			
 			final ScannedFileHandleAssociation association = new ScannedFileHandleAssociation(objectId);
 			
@@ -66,7 +66,7 @@ public class SerializedFieldRowMapperSupplier<T> implements RowMapperSupplier {
 			try {
 				return Long.valueOf(idString);
 			} catch (NumberFormatException e) {
-				LOG.warn("Malformed file handle id: " + idString + ")", e);
+				LOG.warn("Malformed file handle id: " + idString, e);
 			}
 			return null;
 		})

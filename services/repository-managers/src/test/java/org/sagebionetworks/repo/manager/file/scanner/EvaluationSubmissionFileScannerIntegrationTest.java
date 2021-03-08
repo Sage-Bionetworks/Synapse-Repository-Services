@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.IdRange;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -138,7 +139,7 @@ public class EvaluationSubmissionFileScannerIntegrationTest {
 		});
 	}
 	
-	private String createSubmission(Node node) {
+	private Long createSubmission(Node node) {
 		Submission submission = new Submission();
 		
 		submission.setId(idGenerator.generateNewId(IdType.EVALUATION_SUBMISSION_ID).toString());
@@ -154,7 +155,7 @@ public class EvaluationSubmissionFileScannerIntegrationTest {
 			submissionFileDao.create(submissionId, node.getFileHandleId());
 		}
 		
-		return submissionId;
+		return Long.valueOf(submissionId);
 		
 	}
 }

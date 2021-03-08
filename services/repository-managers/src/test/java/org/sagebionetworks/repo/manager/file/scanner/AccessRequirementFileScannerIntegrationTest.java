@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.IdRange;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -77,7 +78,7 @@ public class AccessRequirementFileScannerIntegrationTest {
 		List<ScannedFileHandleAssociation> expected = new ArrayList<>();
 		
 		for (ManagedACTAccessRequirement ar : ars) {
-			ScannedFileHandleAssociation association = new ScannedFileHandleAssociation(ar.getId().toString());
+			ScannedFileHandleAssociation association = new ScannedFileHandleAssociation(ar.getId());
 			
 			if (ar.getDucTemplateFileHandleId() != null) {
 				association.withFileHandleIds(Collections.singletonList(Long.valueOf(ar.getDucTemplateFileHandleId())));

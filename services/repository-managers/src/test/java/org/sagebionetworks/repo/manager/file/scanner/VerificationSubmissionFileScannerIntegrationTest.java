@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.IdRange;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.verification.AttachmentMetadata;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
@@ -94,7 +95,7 @@ public class VerificationSubmissionFileScannerIntegrationTest {
 				
 		for (VerificationSubmission s : submissions) {
 			for (AttachmentMetadata f : s.getAttachments()) {
-				expected.add(new ScannedFileHandleAssociation(s.getId(), Long.valueOf(f.getId())));
+				expected.add(new ScannedFileHandleAssociation(Long.valueOf(s.getId()), Long.valueOf(f.getId())));
 			}
 		}
 		

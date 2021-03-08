@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.IdRange;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -68,9 +69,9 @@ public class MessageFileScannerIntegrationTest {
 		MessageToUser m3 = createMessage();
 		
 		List<ScannedFileHandleAssociation> expected = Arrays.asList(
-			new ScannedFileHandleAssociation(m1.getId(), Long.valueOf(m1.getFileHandleId())),
-			new ScannedFileHandleAssociation(m2.getId(), Long.valueOf(m2.getFileHandleId())),
-			new ScannedFileHandleAssociation(m3.getId(), Long.valueOf(m3.getFileHandleId()))
+			new ScannedFileHandleAssociation(Long.valueOf(m1.getId()), Long.valueOf(m1.getFileHandleId())),
+			new ScannedFileHandleAssociation(Long.valueOf(m2.getId()), Long.valueOf(m2.getFileHandleId())),
+			new ScannedFileHandleAssociation(Long.valueOf(m3.getId()), Long.valueOf(m3.getFileHandleId()))
 		);
 		
 		IdRange range = manager.getIdRange(associationType);

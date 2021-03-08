@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.form.FormDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.IdRange;
 import org.sagebionetworks.repo.model.form.FormData;
 import org.sagebionetworks.repo.model.form.FormGroup;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,9 +73,9 @@ public class FormFileScannerIntegrationTest {
 		FormData f3 = createForm(group2);
 		
 		List<ScannedFileHandleAssociation> expected = Arrays.asList(
-			new ScannedFileHandleAssociation(f1.getFormDataId(), Long.valueOf(f1.getDataFileHandleId())),
-			new ScannedFileHandleAssociation(f2.getFormDataId(), Long.valueOf(f2.getDataFileHandleId())),
-			new ScannedFileHandleAssociation(f3.getFormDataId(), Long.valueOf(f3.getDataFileHandleId()))
+			new ScannedFileHandleAssociation(Long.valueOf(f1.getFormDataId()), Long.valueOf(f1.getDataFileHandleId())),
+			new ScannedFileHandleAssociation(Long.valueOf(f2.getFormDataId()), Long.valueOf(f2.getDataFileHandleId())),
+			new ScannedFileHandleAssociation(Long.valueOf(f3.getFormDataId()), Long.valueOf(f3.getDataFileHandleId()))
 		);
 	
 		IdRange range = manager.getIdRange(associationType);

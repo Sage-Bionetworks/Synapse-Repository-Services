@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.IdRange;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -125,7 +126,7 @@ public class AccessRequestFileScannerIntegrationTest {
 		request.add(createRequest(2));
 		
 		List<ScannedFileHandleAssociation> expected = request.stream().map(r -> {
-			ScannedFileHandleAssociation association = new ScannedFileHandleAssociation(r.getId());
+			ScannedFileHandleAssociation association = new ScannedFileHandleAssociation(Long.valueOf(r.getId()));
 			
 			Set<String> fileHandles = new HashSet<>();
 			

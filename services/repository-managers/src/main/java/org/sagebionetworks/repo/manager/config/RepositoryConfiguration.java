@@ -39,6 +39,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 @Configuration
 public class RepositoryConfiguration {
 	
@@ -58,6 +62,15 @@ public class RepositoryConfiguration {
 		engine.setProperty(VELOCITY_PARAM_FILE_LOADER_CLASS, FileResourceLoader.class.getName());
 		engine.setProperty(VELOCITY_PARAM_RUNTIME_REFERENCES_STRICT, true);
 		return engine;
+	}
+
+	/**
+	 * 
+	 * @return A general purpose JSON object mapper configured to not fail on unkonwn properties and with the Java time module enabled
+	 */
+	@Bean
+	public ObjectMapper jsonObjectMapper() {
+		return new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).registerModule(new JavaTimeModule());
 	}
 	
 	@Bean

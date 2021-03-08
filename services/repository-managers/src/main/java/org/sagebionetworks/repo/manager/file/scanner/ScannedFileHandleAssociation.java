@@ -14,14 +14,14 @@ import java.util.Objects;
  */
 public class ScannedFileHandleAssociation {
 
-	private String objectId;
+	private Long objectId;
 	private List<Long> fileHandleIds;
 
-	public ScannedFileHandleAssociation(String objectId) {
+	public ScannedFileHandleAssociation(Long objectId) {
 		this.objectId = objectId;
 	}
-	
-	public ScannedFileHandleAssociation(String objectId, Long fileHandleId) {
+
+	public ScannedFileHandleAssociation(Long objectId, Long fileHandleId) {
 		this.objectId = objectId;
 		this.fileHandleIds = Collections.singletonList(fileHandleId);
 	}
@@ -29,7 +29,7 @@ public class ScannedFileHandleAssociation {
 	/**
 	 * @return The id of the object that was scanned
 	 */
-	public String getObjectId() {
+	public Long getObjectId() {
 		return objectId;
 	}
 
@@ -75,7 +75,5 @@ public class ScannedFileHandleAssociation {
 	public String toString() {
 		return "ScannedFileHandleAssociation [objectId=" + objectId + ", fileHandleIds=" + fileHandleIds + "]";
 	}
-	
-	
 
 }

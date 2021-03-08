@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.IdRange;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -89,9 +90,9 @@ public class UserProfileFileScannerIntegrationTest {
 		assertNotNull(range);
 		
 		List<ScannedFileHandleAssociation> expected = Arrays.asList(
-			new ScannedFileHandleAssociation(u1.getOwnerId(), Long.valueOf(u1.getProfilePicureFileHandleId())),
-			new ScannedFileHandleAssociation(u2.getOwnerId(), Long.valueOf(u2.getProfilePicureFileHandleId())),
-			new ScannedFileHandleAssociation(u4.getOwnerId(), Long.valueOf(u4.getProfilePicureFileHandleId()))
+			new ScannedFileHandleAssociation(Long.valueOf(u1.getOwnerId()), Long.valueOf(u1.getProfilePicureFileHandleId())),
+			new ScannedFileHandleAssociation(Long.valueOf(u2.getOwnerId()), Long.valueOf(u2.getProfilePicureFileHandleId())),
+			new ScannedFileHandleAssociation(Long.valueOf(u4.getOwnerId()), Long.valueOf(u4.getProfilePicureFileHandleId()))
 		);
 				
 		

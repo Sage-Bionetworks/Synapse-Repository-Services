@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.dbo.DMLUtils;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.QueryStreamIterable;
+import org.sagebionetworks.repo.model.file.IdRange;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -138,7 +139,7 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 	public static RowMapper<ScannedFileHandleAssociation> getDefaultRowMapper(String backupIdColumnName, String fileHandleColumnName) {
 		return (ResultSet rs, int rowNumber) -> {
 
-			final String objectId = rs.getString(backupIdColumnName);
+			final Long objectId = rs.getLong(backupIdColumnName);
 
 			ScannedFileHandleAssociation scanned = new ScannedFileHandleAssociation(objectId);
 			
