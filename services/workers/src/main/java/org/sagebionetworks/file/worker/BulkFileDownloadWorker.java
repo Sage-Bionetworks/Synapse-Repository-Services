@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.file.FileDownloadStatus;
 import org.sagebionetworks.repo.model.file.FileDownloadSummary;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.ZipFileFormat;
+import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -105,6 +106,10 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 			final ProgressCallback progressCallback,
 			final Message message, AsynchronousJobStatus status,
 			BulkFileDownloadRequest request) throws IOException {
+		// fix for PLFM-6626
+		if(request.getZipFileName() != null) {
+			NameValidation.validateName(request.getZipFileName());
+		}
 		// The generated zip will be written to this temp file.
 		File tempResultFile = fileHandleSupport.createTempFile("Job"
 				+ status.getJobId(), ".zip");

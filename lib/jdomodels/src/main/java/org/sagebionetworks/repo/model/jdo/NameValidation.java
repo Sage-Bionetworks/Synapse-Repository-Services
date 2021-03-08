@@ -8,12 +8,10 @@ import org.sagebionetworks.repo.model.util.ModelConstants;
 /**
  * Validation for entity names.
  * 
- * @author jmhill
- * 
  */
 public class NameValidation {
 
-
+	public static final String INVALID_NAME_TEMPLATE = "Invalid Name: '%s'. Names may only contain: letters, numbers, spaces, underscores, hyphens, periods, plus signs, apostrophes, and parentheses";
 
 	// match one or more whitespace characters
 	private static final Pattern ALLOWABLE_CHARS = Pattern
@@ -38,11 +36,12 @@ public class NameValidation {
 		}
 		Matcher matcher = ALLOWABLE_CHARS.matcher(key);
 		if (!matcher.matches()) {
-			throw new IllegalArgumentException(
-					"Invalid Name: '"
-							+ key
-							+ "'. Names may only contain: letters, numbers, spaces, underscores, hyphens, periods, plus signs, apostrophes, and parentheses");
+			throw new IllegalArgumentException(createInvalidMessage(key));
 		}
 		return key;
+	}
+	
+	public static String createInvalidMessage(String key) {
+		return String.format(INVALID_NAME_TEMPLATE, key);
 	}
 }

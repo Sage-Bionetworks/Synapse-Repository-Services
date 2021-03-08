@@ -3,10 +3,12 @@ package org.sagebionetworks.repo.manager.file;
 import java.util.UUID;
 
 import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.project.BaseKeyStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.BucketOwnerStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.util.StringUtils;
 
 public class MultipartUtils {
@@ -35,6 +37,8 @@ public class MultipartUtils {
 
 	/** Create a new S3 key given a file name and storage location settings. */
 	public static String createNewKey(String userId, String fileName, StorageLocationSetting storageLocationSetting) {
+		// S3 has token signing issues when the key contains non-ascii characters
+		NameValidation.validateName(fileName);
 		String base = "";
 		if (storageLocationSetting instanceof BaseKeyStorageLocationSetting) {
 			BaseKeyStorageLocationSetting baseKeyStorageLocationSetting = (BaseKeyStorageLocationSetting) storageLocationSetting;
