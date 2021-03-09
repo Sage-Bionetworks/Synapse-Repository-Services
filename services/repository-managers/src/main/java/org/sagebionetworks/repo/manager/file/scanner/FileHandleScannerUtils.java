@@ -23,7 +23,7 @@ public class FileHandleScannerUtils {
 					new FileHandleAssociationRecord()
 							.withTimestamp(timestamp)
 							.withAssociateType(associationType)
-							.withAssociateId(Long.valueOf(scanned.getObjectId()))
+							.withAssociateId(scanned.getObjectId())
 							.withFileHandleId(fileHandleId)
 							
 				).collect(Collectors.toSet());
