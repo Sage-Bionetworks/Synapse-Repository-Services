@@ -49,13 +49,15 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 		
 		// Using a set to handle duplicates in the batch
 		Set<FileHandleAssociationRecord> recordsBatch = new HashSet<>(KINESIS_BATCH_SIZE);
+		// We use a common timestamp for the whole batch so that we can de-duplicate
+		long batchTimestamp = clock.currentTimeMillis();
 		
 		Iterable<ScannedFileHandleAssociation> iterable = associationManager.scanRange(request.getAssociationType(), request.getIdRange());
 		
 		int totalRecords = 0;
 		
 		for (ScannedFileHandleAssociation association : iterable) {
-			Set<FileHandleAssociationRecord> associationRecords = FileHandleScannerUtils.mapAssociation(request.getAssociationType(), association, clock.currentTimeMillis());
+			Set<FileHandleAssociationRecord> associationRecords = FileHandleScannerUtils.mapAssociation(request.getAssociationType(), association, batchTimestamp);
 			
 			if (associationRecords.isEmpty()) {
 				continue;
@@ -65,6 +67,7 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 			
 			if (recordsBatch.size() >= KINESIS_BATCH_SIZE) {
 				totalRecords += flushRecordsBatch(recordsBatch);
+				batchTimestamp = clock.currentTimeMillis();
 			}
 		}
 		

@@ -8,6 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -81,15 +82,15 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 				new ScannedFileHandleAssociation(2L, 2L)
 		);
 		
-		long timestamp = System.currentTimeMillis();
+		long batchTimestamp = 123L;
 		
 		when(mockStackStatusDao.isStackReadWrite()).thenReturn(true);
 		when(mockAssociationManager.scanRange(any(), any())).thenReturn(associations);
-		when(mockClock.currentTimeMillis()).thenReturn(timestamp);
+		when(mockClock.currentTimeMillis()).thenReturn(batchTimestamp, 456L);
 		
 		Set<FileHandleAssociationRecord> expectedRecords = 
 			associations.stream().flatMap( a -> {
-				return FileHandleScannerUtils.mapAssociation(associationType, a, timestamp).stream();
+				return FileHandleScannerUtils.mapAssociation(associationType, a, batchTimestamp).stream();
 			}).collect(Collectors.toSet());
 		
 		// Call under test
@@ -100,6 +101,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		verify(mockStackStatusDao, times(2)).isStackReadWrite();
 		verify(mockAssociationManager).scanRange(scanRangeRequest.getAssociationType(), scanRangeRequest.getIdRange());
 		verify(mockKinesisLogger).logBatch(eq(FileHandleAssociationRecord.KINESIS_STREAM_NAME), recordsCaptor.capture());
+		verify(mockClock).currentTimeMillis();
 		verify(mockStatusDao).increaseJobCompletedCount(scanRangeRequest.getJobId());
 		
 		List<FileHandleAssociationRecord> records = recordsCaptor.getValue();
@@ -118,15 +120,15 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 				new ScannedFileHandleAssociation(1L, 1L)
 		);
 		
-		long timestamp = System.currentTimeMillis();
+		long batchTimestamp = 123L;
 		
 		when(mockStackStatusDao.isStackReadWrite()).thenReturn(true);
 		when(mockAssociationManager.scanRange(any(), any())).thenReturn(associations);
-		when(mockClock.currentTimeMillis()).thenReturn(timestamp);
+		when(mockClock.currentTimeMillis()).thenReturn(batchTimestamp, 456L);
 		
 		Set<FileHandleAssociationRecord> expectedRecords = associations
 				.stream()
-				.flatMap( a -> FileHandleScannerUtils.mapAssociation(associationType, a, timestamp).stream())
+				.flatMap( a -> FileHandleScannerUtils.mapAssociation(associationType, a, batchTimestamp).stream())
 				.collect(Collectors.toSet());
 		
 		// Call under test
@@ -137,6 +139,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		verify(mockStackStatusDao, times(2)).isStackReadWrite();
 		verify(mockAssociationManager).scanRange(scanRangeRequest.getAssociationType(), scanRangeRequest.getIdRange());
 		verify(mockKinesisLogger).logBatch(eq(FileHandleAssociationRecord.KINESIS_STREAM_NAME), recordsCaptor.capture());
+		verify(mockClock).currentTimeMillis();
 		
 		List<FileHandleAssociationRecord> records = recordsCaptor.getValue();
 		
@@ -155,16 +158,28 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 			new ScannedFileHandleAssociation(Long.valueOf(i), Long.valueOf(i))
 		).collect(Collectors.toList());
 		
-		long timestamp = System.currentTimeMillis();
-		
 		when(mockStackStatusDao.isStackReadWrite()).thenReturn(true);
 		when(mockAssociationManager.scanRange(any(), any())).thenReturn(associations);
-		when(mockClock.currentTimeMillis()).thenReturn(timestamp);
 		
-		List<Set<FileHandleAssociationRecord>> expectedBatches = ListUtils.partition(associations, FileHandleAssociationScannerJobManagerImpl.KINESIS_BATCH_SIZE).stream().map(partition -> 
-			// Each partition is mapped to a set of records
-			partition.stream().flatMap( a -> FileHandleScannerUtils.mapAssociation(associationType, a, timestamp).stream()).collect(Collectors.toSet())
-		).collect(Collectors.toList());
+		final long initialTimestamp = 1234L;
+		
+		long batchTimestamp = initialTimestamp;
+		
+		// 3 batches, should have 3 different timestamps
+		when(mockClock.currentTimeMillis()).thenReturn(batchTimestamp++, batchTimestamp++, batchTimestamp);
+		
+		List<Set<FileHandleAssociationRecord>> expectedBatches = new ArrayList<>();
+
+		batchTimestamp = initialTimestamp;
+		
+		for (List<ScannedFileHandleAssociation> batch : ListUtils.partition(associations, FileHandleAssociationScannerJobManagerImpl.KINESIS_BATCH_SIZE)) {
+			final long timestamp = batchTimestamp++;
+			expectedBatches.add(
+				batch.stream()
+					.flatMap( a -> FileHandleScannerUtils.mapAssociation(associationType, a, timestamp).stream())
+					.collect(Collectors.toSet())
+			);
+		}
 		
 		// Call under test
 		int result = manager.processScanRangeRequest(scanRangeRequest);
@@ -174,6 +189,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		verify(mockStackStatusDao, times(expectedBatches.size() + 1)).isStackReadWrite();
 		verify(mockAssociationManager).scanRange(scanRangeRequest.getAssociationType(), scanRangeRequest.getIdRange());
 		verify(mockKinesisLogger, times(expectedBatches.size())).logBatch(eq(FileHandleAssociationRecord.KINESIS_STREAM_NAME), recordsCaptor.capture());
+		verify(mockClock, times(expectedBatches.size())).currentTimeMillis();
 		
 		List<List<FileHandleAssociationRecord>> batches = recordsCaptor.getAllValues();
 
