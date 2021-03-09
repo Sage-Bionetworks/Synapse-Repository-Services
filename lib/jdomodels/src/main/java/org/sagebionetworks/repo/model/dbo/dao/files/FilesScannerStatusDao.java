@@ -29,7 +29,7 @@ public interface FilesScannerStatusDao {
 	 * @param id
 	 * @return The updated status
 	 */
-	DBOFilesScannerStatus increaseJobCompletedCount(long id);
+	DBOFilesScannerStatus increaseJobCompletedCount(long id, int scannedAssociations);
 	
 	/**
 	 * Checks if a job exist that has been modified within the last given number of days

@@ -17,6 +17,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.amazonaws.services.sqs.model.Message;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+/**
+ * Worker that handles a range scan request for a given association type, process an SQS message with the details about the range to scan
+ */
 public class FileHandleAssociationScanRangeWorker implements MessageDrivenRunner {
 	
 	private static final String METRIC_PARSE_MESSAGE_ERROR_COUNT = "ParseMessageErrorCount";
@@ -59,7 +62,7 @@ public class FileHandleAssociationScanRangeWorker implements MessageDrivenRunner
 			
 			LOG.info(requestToString(request) + " COMPLETED: " + count + " associations (Spent " + (System.currentTimeMillis() - start) + " ms)");
 		} catch (RecoverableException e) {
-			LOG.warn(requestToString(request) + " RETRING: " + e.getMessage(), e);
+			LOG.warn(requestToString(request) + " RETRYING: " + e.getMessage(), e);
 			logWorkerCountMetric(METRIC_JOB_RETRY_COUNT);
 			throw new RecoverableMessageException(e.getMessage(), e);
 		} catch (Throwable e) {

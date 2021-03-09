@@ -102,7 +102,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		verify(mockAssociationManager).scanRange(scanRangeRequest.getAssociationType(), scanRangeRequest.getIdRange());
 		verify(mockKinesisLogger).logBatch(eq(FileHandleAssociationRecord.KINESIS_STREAM_NAME), recordsCaptor.capture());
 		verify(mockClock).currentTimeMillis();
-		verify(mockStatusDao).increaseJobCompletedCount(scanRangeRequest.getJobId());
+		verify(mockStatusDao).increaseJobCompletedCount(scanRangeRequest.getJobId(), expectedRecords.size());
 		
 		List<FileHandleAssociationRecord> records = recordsCaptor.getValue();
 		
@@ -146,7 +146,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		assertEquals(expectedRecords.size(), records.size());
 		assertEquals(expectedRecords, new HashSet<>(records));
 		
-		verify(mockStatusDao).increaseJobCompletedCount(scanRangeRequest.getJobId());
+		verify(mockStatusDao).increaseJobCompletedCount(scanRangeRequest.getJobId(), expectedRecords.size());
 		
 	}
 	
@@ -202,7 +202,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 			
 		}
 		
-		verify(mockStatusDao).increaseJobCompletedCount(scanRangeRequest.getJobId());
+		verify(mockStatusDao).increaseJobCompletedCount(scanRangeRequest.getJobId(), associations.size());
 		
 	}
 

@@ -40,6 +40,7 @@ public class FilesScannerStatusDaoTest {
 		
 		expected.setJobsStartedCount(jobsCount);
 		expected.setJobsCompletedCount(0L);
+		expected.setScannedAssociationsCount(0L);
 		
 		// Call under test
 		DBOFilesScannerStatus result = dao.create(jobsCount);
@@ -119,8 +120,9 @@ public class FilesScannerStatusDaoTest {
 	}
 	
 	@Test
-	public void testIncreateCompletedJobsCount() throws InterruptedException {
+	public void testIncreaseCompletedJobsCount() throws InterruptedException {
 		long jobsCount = 50000;
+		int scannedAssociationsCount = 1000;
 		
 		DBOFilesScannerStatus expected = dao.create(jobsCount);
 		
@@ -128,22 +130,24 @@ public class FilesScannerStatusDaoTest {
 		Thread.sleep(1000);
 		
 		// Call under test
-		DBOFilesScannerStatus result = dao.increaseJobCompletedCount(expected.getId());
+		DBOFilesScannerStatus result = dao.increaseJobCompletedCount(expected.getId(), scannedAssociationsCount);
+		result = dao.increaseJobCompletedCount(expected.getId(), scannedAssociationsCount);
 		
 		assertTrue(result.getUpdatedOn().isAfter(expected.getUpdatedOn()));
 		
-		expected.setJobsCompletedCount(expected.getJobsCompletedCount() + 1);
+		expected.setJobsCompletedCount(expected.getJobsCompletedCount() + 2);
+		expected.setScannedAssociationsCount(Long.valueOf(scannedAssociationsCount * 2));
 		expected.setUpdatedOn(result.getUpdatedOn());
 		
 		assertEquals(expected, result);
 	}
 	
 	@Test
-	public void testIncreateCompletedJobsCountWithNonExistingJob() throws InterruptedException {
+	public void testIncreaseCompletedJobsCountWithNonExistingJob() throws InterruptedException {
 		
 		String errorMessage = assertThrows(NotFoundException.class, () -> {
 			// Call under test
-			dao.increaseJobCompletedCount(123L);			
+			dao.increaseJobCompletedCount(123L, 1000);			
 		}).getMessage();
 		
 		assertEquals("Could not find a job with id 123", errorMessage);

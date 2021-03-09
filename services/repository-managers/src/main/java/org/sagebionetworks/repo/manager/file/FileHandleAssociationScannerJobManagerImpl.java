@@ -75,7 +75,7 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 			totalRecords += flushRecordsBatch(recordsBatch);
 		}
 		
-		statusDao.increaseJobCompletedCount(request.getJobId());
+		statusDao.increaseJobCompletedCount(request.getJobId(), totalRecords);
 		
 		return totalRecords;
 		

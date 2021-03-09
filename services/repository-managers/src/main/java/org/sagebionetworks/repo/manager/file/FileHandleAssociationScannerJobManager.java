@@ -15,7 +15,6 @@ public interface FileHandleAssociationScannerJobManager {
 	 * @throws RecoverableException If the request failed but can be retried on a later time
 	 * return The total number of scanned records that contained file handles
 	 */
-	int processScanRangeRequest(FileHandleAssociationScanRangeRequest request) throws RecoverableException;
-	
+	int processScanRangeRequest(FileHandleAssociationScanRangeRequest request) throws RecoverableException;	
 
 }
