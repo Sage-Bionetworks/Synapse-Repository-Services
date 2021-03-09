@@ -18,7 +18,6 @@ import org.sagebionetworks.repo.manager.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
@@ -39,7 +38,7 @@ public class TeamFileScannerIntegrationTest {
 	private UserManager userManager;
 	
 	@Autowired
-	private DaoObjectHelper<UserGroup> userGroupHelper;
+	private DaoObjectHelper<Team> teamHelper;
 	
 	@Autowired
 	private TeamDAO teamDao;
@@ -101,22 +100,17 @@ public class TeamFileScannerIntegrationTest {
 	}
 	
 	private Team createTeam(boolean withIcon) {
-		UserGroup ug = userGroupHelper.create((g) -> {
-			g.setIsIndividual(false);
+		Team result = teamHelper.create(team -> {
+			team.setName("TestTeamScanner_" + UUID.randomUUID().toString());
+			team.setCreatedBy(user.getId().toString());
+			
+			if (withIcon) {
+				team.setIcon(utils.generateFileHandle(user));
+			}	
 		});
 		
-		Team team = new Team();
-		team.setId(ug.getId());
-		team.setName("TestTeamScanner_" + UUID.randomUUID().toString());
-		team.setCreatedBy(user.getId().toString());
+		teamToDelete.add(result.getId());
 		
-		if (withIcon) {
-			team.setIcon(utils.generateFileHandle(user));
-		}
-		
-		team = teamDao.create(team);
-		teamToDelete.add(team.getId());
-		
-		return team;
+		return result;
 	}
 }
