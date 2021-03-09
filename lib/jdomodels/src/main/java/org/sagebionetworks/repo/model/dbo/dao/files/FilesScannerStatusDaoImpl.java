@@ -3,13 +3,10 @@ package org.sagebionetworks.repo.model.dbo.dao.files;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_SCANNER_STATUS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_SCANNER_STATUS_JOBS_COMPLETED_COUNT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_SCANNER_STATUS_JOBS_STARTED_COUNT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_SCANNER_STATUS_SCANNED_ASSOCIATIONS_COUNT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_SCANNER_STATUS_STARTED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_SCANNER_STATUS_UPDATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES_SCANNER_STATUS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_SCANNER_STATUS_SCANNED_ASSOCIATIONS_COUNT;
-
-import java.sql.Timestamp;
-import java.time.Instant;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -31,7 +28,7 @@ public class FilesScannerStatusDaoImpl implements FilesScannerStatusDao {
 			+ COL_FILES_SCANNER_STATUS_UPDATED_ON + ", "
 			+ COL_FILES_SCANNER_STATUS_JOBS_STARTED_COUNT + ", "
 			+ COL_FILES_SCANNER_STATUS_JOBS_COMPLETED_COUNT + ", "
-			+ COL_FILES_SCANNER_STATUS_SCANNED_ASSOCIATIONS_COUNT + ") VALUES (?, NOW(), NOW(), ?, 0, 0)";
+			+ COL_FILES_SCANNER_STATUS_SCANNED_ASSOCIATIONS_COUNT + ") VALUES (?, NOW(), NOW(), 0, 0, 0)";
 	
 	private static final String SQL_GET_BY_ID = "SELECT * FROM " + TABLE_FILES_SCANNER_STATUS + " WHERE " + COL_FILES_SCANNER_STATUS_ID + " = ?";
 	
@@ -43,7 +40,11 @@ public class FilesScannerStatusDaoImpl implements FilesScannerStatusDao {
 			+ COL_FILES_SCANNER_STATUS_SCANNED_ASSOCIATIONS_COUNT + " = " + COL_FILES_SCANNER_STATUS_SCANNED_ASSOCIATIONS_COUNT + " + ?,"
 			+ COL_FILES_SCANNER_STATUS_UPDATED_ON + " = NOW() WHERE " + COL_FILES_SCANNER_STATUS_ID + " = ?";
 	
-	private static final String SQL_UPDATE_UPDATED_ON = "UPDATE " + TABLE_FILES_SCANNER_STATUS + " SET "
+	private static final String SQL_SET_JOB_STARTED_COUNT = "UPDATE " + TABLE_FILES_SCANNER_STATUS + " SET "
+			+ COL_FILES_SCANNER_STATUS_JOBS_STARTED_COUNT + " = ?, "
+			+ COL_FILES_SCANNER_STATUS_UPDATED_ON + " = NOW() WHERE " + COL_FILES_SCANNER_STATUS_ID + " = ?";
+	
+	private static final String SQL_SET_UPDATED_ON = "UPDATE " + TABLE_FILES_SCANNER_STATUS + " SET "
 			+ COL_FILES_SCANNER_STATUS_UPDATED_ON + " = (" + COL_FILES_SCANNER_STATUS_UPDATED_ON + " - INTERVAL ? DAY)";
 	
 	private static final String SQL_TRUNCATE = "TRUNCATE " + TABLE_FILES_SCANNER_STATUS;
@@ -62,10 +63,10 @@ public class FilesScannerStatusDaoImpl implements FilesScannerStatusDao {
 
 	@Override
 	@WriteTransaction
-	public DBOFilesScannerStatus create(long jobsCount) {
+	public DBOFilesScannerStatus create() {
 		Long id = idGenerator.generateNewId(IdType.FILES_SCANNER_STATUS_ID);
 		
-		jdbcTemplate.update(SQL_CREATE, id, jobsCount);
+		jdbcTemplate.update(SQL_CREATE, id);
 	
 		return get(id);
 	}
@@ -82,9 +83,21 @@ public class FilesScannerStatusDaoImpl implements FilesScannerStatusDao {
 	@Override
 	@WriteTransaction
 	public DBOFilesScannerStatus increaseJobCompletedCount(long id, int scannedAssociations) {
-		int count = jdbcTemplate.update(SQL_INCREASE_JOB_COMPLETED_COUNT, scannedAssociations, id);
+		int updatedCount = jdbcTemplate.update(SQL_INCREASE_JOB_COMPLETED_COUNT, scannedAssociations, id);
 		
-		if (count < 1) {
+		if (updatedCount < 1) {
+			throw new NotFoundException("Could not find a job with id " + id);
+		}
+		
+		return get(id);
+	}
+	
+	@Override
+	@WriteTransaction
+	public DBOFilesScannerStatus setStartedJobsCount(long id, long jobsCount) {
+		int updatedCount = jdbcTemplate.update(SQL_SET_JOB_STARTED_COUNT, jobsCount, id);
+		
+		if (updatedCount < 1) {
 			throw new NotFoundException("Could not find a job with id " + id);
 		}
 		
@@ -103,7 +116,7 @@ public class FilesScannerStatusDaoImpl implements FilesScannerStatusDao {
 
 	@Override
 	public void setUpdatedOn(long id, int daysInThePast) {
-		jdbcTemplate.update(SQL_UPDATE_UPDATED_ON, daysInThePast);
+		jdbcTemplate.update(SQL_SET_UPDATED_ON, daysInThePast);
 		
 	}
 	

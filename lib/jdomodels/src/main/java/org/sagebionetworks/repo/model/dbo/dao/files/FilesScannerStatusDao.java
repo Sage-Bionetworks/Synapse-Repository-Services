@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.dao.files;
 
-import java.time.Instant;
-
 /**
  * Data access layer for handle the file handle association scanner status
  *
@@ -9,12 +7,11 @@ import java.time.Instant;
 public interface FilesScannerStatusDao {
 
 	/**
-	 * Creates a new job with the given number of jobs count
+	 * Creates a new job with a default count of 0 for started and completed jobs as well as for scanned associations
 	 * 
-	 * @param jobsCount
 	 * @return The newly created status for the job
 	 */
-	DBOFilesScannerStatus create(long jobsCount);
+	DBOFilesScannerStatus create();
 	
 	/**
 	 * 
@@ -30,6 +27,15 @@ public interface FilesScannerStatusDao {
 	 * @return The updated status
 	 */
 	DBOFilesScannerStatus increaseJobCompletedCount(long id, int scannedAssociations);
+	
+	/**
+	 * Sets the number of jobs started for the job with the given id
+	 * 
+	 * @param id The id of the job
+	 * @param jobsCount The jobs count
+	 * @return The updated status
+	 */
+	DBOFilesScannerStatus setStartedJobsCount(long id, long jobsCount);
 	
 	/**
 	 * Checks if a job exist that has been modified within the last given number of days
