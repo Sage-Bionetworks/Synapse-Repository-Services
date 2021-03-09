@@ -5,8 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Optional;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,7 +28,7 @@ public class FilesScannerStatusDaoTest {
 	
 	@AfterEach
 	public void after() {
-		dao.truncateAll();
+		//dao.truncateAll();
 	}
 	
 	@Test
@@ -81,28 +79,43 @@ public class FilesScannerStatusDaoTest {
 	}
 	
 	@Test
-	public void testGetLatest() throws InterruptedException {
+	public void testExistsWithEmpty() {
+		int numberOfDays = 5;
+		
+		// Call under test
+		boolean result = dao.exists(numberOfDays);
+		
+		assertFalse(result);
+	}
+	
+	@Test
+	public void testExistsWithRecent() {
+		int numberOfDays = 5;
+		
 		long jobsCount = 50000;
 		
 		dao.create(jobsCount);
 		
-		DBOFilesScannerStatus expected = dao.create(jobsCount);
-		
 		// Call under test
-		DBOFilesScannerStatus result = dao.getLatest().orElseThrow(IllegalStateException::new);
+		boolean result = dao.exists(numberOfDays);
 		
-		assertEquals(expected, result);
-		
+		assertTrue(result);
 	}
 	
 	@Test
-	public void testGetLatestWithEmpty() {
+	public void testExistsWithOld() {
+		int numberOfDays = 5;
+		
+		long jobsCount = 50000;
+		
+		long jobId = dao.create(jobsCount).getId();
+		
+		dao.setUpdatedOn(jobId, numberOfDays);
 		
 		// Call under test
-		Optional<DBOFilesScannerStatus> result = dao.getLatest();
+		boolean result = dao.exists(numberOfDays);
 		
-		assertFalse(result.isPresent());
-		
+		assertFalse(result);
 	}
 	
 	@Test
