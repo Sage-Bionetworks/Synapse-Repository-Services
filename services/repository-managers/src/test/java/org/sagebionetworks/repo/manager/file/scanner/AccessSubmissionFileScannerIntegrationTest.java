@@ -95,9 +95,9 @@ public class AccessSubmissionFileScannerIntegrationTest {
 		@BeforeEach
 		public void before() {
 			usersToDelete = new ArrayList<>();
-			submissionDao.clear();
-			requestDao.clear();
-			researchProjectDao.clear();
+			submissionDao.truncateAll();
+			requestDao.truncateAll();
+			researchProjectDao.truncateAll();
 			arDao.clear();
 			fileHandleDao.truncateTable();
 			
@@ -117,9 +117,9 @@ public class AccessSubmissionFileScannerIntegrationTest {
 		
 		@AfterEach
 		public void after() {
-			submissionDao.clear();
-			requestDao.clear();
-			researchProjectDao.clear();
+			submissionDao.truncateAll();
+			requestDao.truncateAll();
+			researchProjectDao.truncateAll();
 			arDao.clear();
 			fileHandleDao.truncateTable();
 			

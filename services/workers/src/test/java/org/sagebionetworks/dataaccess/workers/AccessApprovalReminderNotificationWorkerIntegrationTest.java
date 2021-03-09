@@ -65,7 +65,7 @@ public class AccessApprovalReminderNotificationWorkerIntegrationTest {
 	public void before() {
 		messages = new ArrayList<>();
 		
-		notificationDao.clear();
+		notificationDao.truncateAll();
 		testHelper.cleanUp();
 		featureStatusDao.clear();
 		
@@ -83,7 +83,7 @@ public class AccessApprovalReminderNotificationWorkerIntegrationTest {
 	@AfterEach
 	public void after() {
 
-		notificationDao.clear();
+		notificationDao.truncateAll();
 		testHelper.cleanUp();
 		featureStatusDao.clear();
 		messages.forEach(messageDao::deleteMessage);

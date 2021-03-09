@@ -88,8 +88,8 @@ public class AccessRequestFileScannerIntegrationTest {
 	@BeforeEach
 	public void before() {
 		usersToDelete = new ArrayList<>();
-		requestDao.clear();
-		researchProjectDao.clear();
+		requestDao.truncateAll();
+		researchProjectDao.truncateAll();
 		arDao.clear();
 		fileHandleDao.truncateTable();
 		
@@ -109,8 +109,8 @@ public class AccessRequestFileScannerIntegrationTest {
 	
 	@AfterEach
 	public void after() {
-		requestDao.clear();
-		researchProjectDao.clear();
+		requestDao.truncateAll();
+		researchProjectDao.truncateAll();
 		arDao.clear();
 		fileHandleDao.truncateTable();
 		

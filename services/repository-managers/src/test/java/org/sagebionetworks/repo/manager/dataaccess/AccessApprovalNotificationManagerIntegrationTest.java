@@ -80,7 +80,7 @@ public class AccessApprovalNotificationManagerIntegrationTest {
 	@BeforeEach
 	public void before() {
 		users = new ArrayList<>();
-		notificationDao.clear();
+		notificationDao.truncateAll();
 		accessApprovalDao.clear();
 		accessRequirementDao.clear();
 		featureStatusDao.clear();
@@ -96,7 +96,7 @@ public class AccessApprovalNotificationManagerIntegrationTest {
 	
 	@AfterEach
 	public void after() {
-		notificationDao.clear();
+		notificationDao.truncateAll();
 		accessApprovalDao.clear();
 		accessRequirementDao.clear();
 		featureStatusDao.clear();

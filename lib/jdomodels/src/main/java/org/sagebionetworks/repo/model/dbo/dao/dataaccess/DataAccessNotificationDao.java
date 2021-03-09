@@ -69,5 +69,5 @@ public interface DataAccessNotificationDao {
 
 	// For testing
 
-	void clear();
+	void truncateAll();
 }

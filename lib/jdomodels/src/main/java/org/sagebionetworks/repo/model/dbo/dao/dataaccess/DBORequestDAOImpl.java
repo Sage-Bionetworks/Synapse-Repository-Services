@@ -109,7 +109,7 @@ public class DBORequestDAOImpl implements RequestDAO{
 	}
 
 	@Override
-	public void clear() {
+	public void truncateAll() {
 		jdbcTemplate.update("DELETE FROM " + TABLE_DATA_ACCESS_REQUEST);
 	}
 
