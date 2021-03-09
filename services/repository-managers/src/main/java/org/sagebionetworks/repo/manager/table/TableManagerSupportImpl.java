@@ -485,9 +485,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		// They must have update permission to change table content
 		authorizationManager.canAccess(userInfo, idAndVersion.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)
 				.checkAuthorizationOrElseThrow();
-		// And they must have upload permission to change table content.
-		authorizationManager.canAccess(userInfo, idAndVersion.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)
-				.checkAuthorizationOrElseThrow();
 	}
 
 	@Override

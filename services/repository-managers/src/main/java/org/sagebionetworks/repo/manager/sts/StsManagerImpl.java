@@ -103,8 +103,8 @@ public class StsManagerImpl implements StsManager {
 		authManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)
 				.checkAuthorizationOrElseThrow();
 		if (permission == StsPermission.read_write) {
-			// For write permissions, we also need upload access.
-			authManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)
+			// For write permissions, we also need update access.
+			authManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)
 					.checkAuthorizationOrElseThrow();
 		}
 

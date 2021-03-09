@@ -112,7 +112,6 @@ public class NodeManagerAuthorizationTest {
 		when(mockAuthDao.canAccessRawFileHandleById(mockUserInfo, fileHandleId)).thenReturn(AuthorizationStatus.authorized());
 		when(mockNode.getFileHandleId()).thenReturn(fileHandleId);
 		when(mockEntityBootstrapper.getChildAclSchemeForPath(any(String.class))).thenReturn(ACL_SCHEME.INHERIT_FROM_PARENT);
-		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(AuthorizationStatus.authorized());
 		when(mockNodeDao.createNewNode(mockNode)).thenReturn(mockNode);
 		// Should fail
 		nodeManager.createNewNode(mockNode, mockUserInfo);
@@ -210,7 +209,6 @@ public class NodeManagerAuthorizationTest {
 		when(mockNode.getFileHandleId()).thenReturn(fileHandleId);
 		when(mockNode.getParentId()).thenReturn(parentId);
 		when(mockAuthDao.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId))).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthDao.canAccess(mockUserInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(AuthorizationStatus.authorized());
 		Node oldMockNode = mock(Node.class);
 		when(oldMockNode.getParentId()).thenReturn(parentId);
 		when(mockNodeDao.getNode(nodeId)).thenReturn(oldMockNode);
