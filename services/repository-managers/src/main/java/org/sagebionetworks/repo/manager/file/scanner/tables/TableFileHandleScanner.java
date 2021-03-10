@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class TableFileHandleScanner implements FileHandleAssociationScanner {
 
+	private static final long MAX_SCAN_ID_RANGE = 10000;
 	private static final long MAX_TABLES_LIMIT = 10000;
 	
 	private static final String SQL_SELECT_MIN_MAX = "SELECT MIN(" + COL_TABLE_ROW_TABLE_ID + "), MAX(" + COL_TABLE_ROW_TABLE_ID+") FROM " + TABLE_ROW_CHANGE;
@@ -41,6 +42,11 @@ public class TableFileHandleScanner implements FileHandleAssociationScanner {
 	public TableFileHandleScanner(TableEntityManager tableManager, NamedParameterJdbcTemplate namedJdbcTemplate) {
 		this.tableManager = tableManager;
 		this.namedJdbcTemplate = namedJdbcTemplate;
+	}
+	
+	@Override
+	public long getMaxIdRangeSize() {
+		return MAX_SCAN_ID_RANGE;
 	}
 	
 	@Override

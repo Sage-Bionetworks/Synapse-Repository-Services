@@ -85,29 +85,30 @@ public class FileHandleAssociationManagerImpl implements FileHandleAssociationMa
 
 	@Override
 	public IdRange getIdRange(FileHandleAssociateType associationType) {
-		ValidateArgument.required(associationType, "associationType");
-		
 		FileHandleAssociationScanner scanner = getScanner(associationType);
 		
 		return scanner.getIdRange();
 	}
 	
 	@Override
-	public Iterable<ScannedFileHandleAssociation> scanRange(FileHandleAssociateType associationType, IdRange range) {
-		ValidateArgument.required(associationType, "associationType");
+	public long getMaxIdRangeSize(FileHandleAssociateType associationType) {
+		FileHandleAssociationScanner scanner = getScanner(associationType);
 		
+		return scanner.getMaxIdRangeSize();
+	}
+	
+	@Override
+	public Iterable<ScannedFileHandleAssociation> scanRange(FileHandleAssociateType associationType, IdRange range) {
 		FileHandleAssociationScanner scanner = getScanner(associationType);
 		
 		return scanner.scanRange(range);
 	}
 	
-	private FileHandleAssociationScanner getScanner(FileHandleAssociateType type) {
-		if (type == null) {
-			throw new IllegalArgumentException("FileHandleAssociationType cannot be null");
-		}
-		FileHandleAssociationScanner scanner = scannerMap.get(type);
+	private FileHandleAssociationScanner getScanner(FileHandleAssociateType associationType) {
+		ValidateArgument.required(associationType, "associationType");
+		FileHandleAssociationScanner scanner = scannerMap.get(associationType);
 		if (scanner == null) {
-			throw new UnsupportedOperationException("Currently do not support this operation for FileHandleAssociationType = " + type);
+			throw new UnsupportedOperationException("Currently do not support this operation for FileHandleAssociationType = " + associationType);
 		}
 		return scanner;
 	}
