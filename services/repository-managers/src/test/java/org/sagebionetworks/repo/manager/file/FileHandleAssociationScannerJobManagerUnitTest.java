@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -339,7 +340,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		when(mockAssociationManager.getIdRange(FileHandleAssociateType.FileEntity)).thenReturn(idRange);
 		when(mockAssociationManager.getMaxIdRangeSize(FileHandleAssociateType.FileEntity)).thenReturn(maxIdRange);
 		
-		
+		// Call under test
 		manager.startScanJob();
 		
 		verify(mockStatusDao).create();
@@ -355,6 +356,36 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		
 	}
 	
+	@Test
+	public void testStartScanJobWithDispatchingException() {
+		
+		long maxIdRange = 1000;
+		IdRange idRange = new IdRange(2, 10);
+		
+		when(mockStatusDao.create()).thenReturn(mockStatus);
+		when(mockStatus.getId()).thenReturn(jobId);
+		when(mockAssociationManager.getIdRange(any())).thenReturn(new IdRange(-1, -1));
+		when(mockAssociationManager.getIdRange(FileHandleAssociateType.FileEntity)).thenReturn(idRange);
+		when(mockAssociationManager.getMaxIdRangeSize(FileHandleAssociateType.FileEntity)).thenReturn(maxIdRange);
+		
+		RuntimeException ex = new RuntimeException();
+		
+		doThrow(ex).when(mockNotifier).sendScanRequest(any());
+		
+		RuntimeException result = assertThrows(RuntimeException.class, () -> {
+			// Call under test
+			manager.startScanJob();
+		});
+		
+		assertEquals(ex, result);
+		
+		verify(mockStatusDao).create();
+		verify(mockAssociationManager).getIdRange(FileHandleAssociateType.FileEntity);
+		verify(mockAssociationManager).getMaxIdRangeSize(FileHandleAssociateType.FileEntity);
+		verify(mockNotifier).sendScanRequest(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(2, 1001)));
+		verify(mockStatusDao).delete(jobId);
+		
+	}
 
 	@Test
 	public void testStartScanJobWithMultiple() {
@@ -368,7 +399,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		when(mockAssociationManager.getIdRange(FileHandleAssociateType.FileEntity)).thenReturn(idRange);
 		when(mockAssociationManager.getMaxIdRangeSize(FileHandleAssociateType.FileEntity)).thenReturn(maxIdRange);
 		
-		
+		// Call under test
 		manager.startScanJob();
 		
 		verify(mockStatusDao).create();
@@ -397,7 +428,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		when(mockAssociationManager.getIdRange(FileHandleAssociateType.FileEntity)).thenReturn(idRange);
 		when(mockAssociationManager.getMaxIdRangeSize(FileHandleAssociateType.FileEntity)).thenReturn(maxIdRange);
 		
-		
+		// Call under test
 		manager.startScanJob();
 		
 		verify(mockStatusDao).create();

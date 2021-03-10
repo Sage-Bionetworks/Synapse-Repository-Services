@@ -62,6 +62,23 @@ public class FilesScannerStatusDaoTest {
 	}
 	
 	@Test
+	public void testDelete() {
+		
+		DBOFilesScannerStatus toDelete = dao.create();
+		
+		// Call under test
+		dao.delete(toDelete.getId());
+		
+		assertFalse(dao.exist(toDelete.getId()));
+	}
+	
+	@Test
+	public void testDeleteWithNonExisting() {
+		// Call under test
+		dao.delete(123);
+	}
+	
+	@Test
 	public void testGetWithNonExisting() {
 		
 		long id = 123L;

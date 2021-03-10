@@ -23,6 +23,12 @@ public interface FilesScannerStatusDao {
 	DBOFilesScannerStatus get(long id);
 	
 	/**
+	 * Deletes the job status with the given id
+	 * @param id The id of the status
+	 */
+	void delete(long id);
+	
+	/**
 	 * Increases the number of completed (sub) jobs and updates the status with the given id
 	 * 
 	 * @param id

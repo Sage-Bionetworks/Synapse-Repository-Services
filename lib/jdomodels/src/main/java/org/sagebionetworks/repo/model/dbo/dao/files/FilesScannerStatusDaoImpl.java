@@ -34,6 +34,8 @@ public class FilesScannerStatusDaoImpl implements FilesScannerStatusDao {
 	
 	private static final String SQL_GET_BY_ID = "SELECT * FROM " + TABLE_FILES_SCANNER_STATUS + " WHERE " + COL_FILES_SCANNER_STATUS_ID + " = ?";
 	
+	private static final String SQL_DELETE_BY_ID = "DELETE FROM " +TABLE_FILES_SCANNER_STATUS + " WHERE " + COL_FILES_SCANNER_STATUS_ID + " = ?";
+	
 	private static final String SQL_EXISTS = "SELECT EXISTS(SELECT " + COL_FILES_SCANNER_STATUS_ID + " FROM " + TABLE_FILES_SCANNER_STATUS + " WHERE " + COL_FILES_SCANNER_STATUS_ID + " = ?)";
 	
 	private static final String SQL_GET_LATEST = "SELECT * FROM " + TABLE_FILES_SCANNER_STATUS + " ORDER BY " + COL_FILES_SCANNER_STATUS_ID + " DESC LIMIT 1";
@@ -89,6 +91,12 @@ public class FilesScannerStatusDaoImpl implements FilesScannerStatusDao {
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("Could not find a job with id " + id);
 		}
+	}
+	
+	@Override
+	@WriteTransaction
+	public void delete(long id) {
+		jdbcTemplate.update(SQL_DELETE_BY_ID, id);
 	}
 	
 	@Override

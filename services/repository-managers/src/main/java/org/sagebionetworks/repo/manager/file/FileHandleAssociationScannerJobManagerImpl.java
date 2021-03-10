@@ -105,10 +105,19 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 		long totalJobs = 0L;
 		
 		for (FileHandleAssociateType associationType : FileHandleAssociateType.values()) {
-			totalJobs += dispatchScanRequests(status.getId(), associationType);
+			try {
+				totalJobs += dispatchScanRequests(status.getId(), associationType);
+			} catch (Throwable e) {
+				// Note: we cannot wrap the whole method in a transaction since there is a chance that while sending out the SQS notifications
+				// those are picked up by the processing worker before the transaction is committed and therefore the status is not visible.
+				// Instead we simply cleanup on any exception while dispatching so that current ones are interrupted an tried again later 
+				statusDao.delete(status.getId());
+				throw e;
+			}
 		}
 		
 		statusDao.setStartedJobsCount(status.getId(), totalJobs);
+		
 	}
 	
 	private long dispatchScanRequests(long jobId, FileHandleAssociateType associationType) {

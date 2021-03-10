@@ -79,7 +79,7 @@ public class FileHandleScannerWorkerIntegrationTest {
 	public void after() {
 		arDao.clear();
 		fileHandleDao.truncateTable();
-		//dao.truncateAll();
+		dao.truncateAll();
 	}
 	
 	@Test
