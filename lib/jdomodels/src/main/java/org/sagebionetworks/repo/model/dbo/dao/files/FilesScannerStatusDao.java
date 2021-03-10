@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.files;
 
+import java.util.Optional;
+
 /**
  * Data access layer for handle the file handle association scanner status
  *
@@ -38,12 +40,23 @@ public interface FilesScannerStatusDao {
 	DBOFilesScannerStatus setStartedJobsCount(long id, long jobsCount);
 	
 	/**
+	 * @param id The id of the job
+	 * @return True if a job with the given id exists
+	 */
+	boolean exist(long id);
+	
+	/**
 	 * Checks if a job exist that has been modified within the last given number of days
 	 * 
 	 * @param daysNum The number of days
 	 * @return True if a job that was last modified within the last given number of days
 	 */
-	boolean exists(int lastModifiedDaysInterval);
+	boolean existsWithinLast(int lastModifiedDaysInterval);
+	
+	/**
+	* @return Return the status of the latest job if any
+	*/
+	Optional<DBOFilesScannerStatus> getLatest();
 	
 	// For testing
 	void truncateAll();

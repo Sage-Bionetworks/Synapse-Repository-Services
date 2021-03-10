@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.manager.file.FileHandleAssociationScannerJobMana
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationScannerNotifier;
 import org.sagebionetworks.repo.model.exception.RecoverableException;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationScanRangeRequest;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,6 +62,8 @@ public class FileHandleAssociationScanRangeWorker implements MessageDrivenRunner
 			int count = manager.processScanRangeRequest(request);
 			
 			LOG.info(requestToString(request) + " COMPLETED: " + count + " associations (Spent " + (System.currentTimeMillis() - start) + " ms)");
+		} catch (NotFoundException e) {
+			LOG.warn(e.getMessage(), e);
 		} catch (RecoverableException e) {
 			LOG.warn(requestToString(request) + " RETRYING: " + e.getMessage(), e);
 			logWorkerCountMetric(METRIC_JOB_RETRY_COUNT);

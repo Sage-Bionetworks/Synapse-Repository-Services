@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -39,6 +40,7 @@ import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationScanRangeRequest;
 import org.sagebionetworks.repo.model.file.IdRange;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
 
 @ExtendWith(MockitoExtension.class)
@@ -94,6 +96,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		
 		long batchTimestamp = 123L;
 		
+		when(mockStatusDao.exist(anyLong())).thenReturn(true);
 		when(mockStackStatusDao.isStackReadWrite()).thenReturn(true);
 		when(mockAssociationManager.scanRange(any(), any())).thenReturn(associations);
 		when(mockClock.currentTimeMillis()).thenReturn(batchTimestamp, 456L);
@@ -132,6 +135,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		
 		long batchTimestamp = 123L;
 		
+		when(mockStatusDao.exist(anyLong())).thenReturn(true);
 		when(mockStackStatusDao.isStackReadWrite()).thenReturn(true);
 		when(mockAssociationManager.scanRange(any(), any())).thenReturn(associations);
 		when(mockClock.currentTimeMillis()).thenReturn(batchTimestamp, 456L);
@@ -168,6 +172,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 			new ScannedFileHandleAssociation(Long.valueOf(i), Long.valueOf(i))
 		).collect(Collectors.toList());
 		
+		when(mockStatusDao.exist(anyLong())).thenReturn(true);
 		when(mockStackStatusDao.isStackReadWrite()).thenReturn(true);
 		when(mockAssociationManager.scanRange(any(), any())).thenReturn(associations);
 		
@@ -272,6 +277,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 	@Test
 	public void processScanRangeRequestWithReadOnly() {
 
+		when(mockStatusDao.exist(anyLong())).thenReturn(true);
 		when(mockStackStatusDao.isStackReadWrite()).thenReturn(false); 
 		
 		String errorMessage = assertThrows(ReadOnlyException.class, () -> {
@@ -283,16 +289,29 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 	}
 	
 	@Test
+	public void processScanRangeRequestWithNotFound() {
+
+		when(mockStatusDao.exist(anyLong())).thenReturn(false); 
+		
+		String errorMessage = assertThrows(NotFoundException.class, () -> {
+			// Call under test
+			manager.processScanRangeRequest(scanRangeRequest);
+		}).getMessage();
+
+		assertEquals("A job with id " + scanRangeRequest.getJobId() + " does not exist.", errorMessage);
+	}
+	
+	@Test
 	public void testIsScanJobIdle() {
 		int daysNum = 5;
 		boolean exists = true;
 		
-		when(mockStatusDao.exists(anyInt())).thenReturn(exists);
+		when(mockStatusDao.existsWithinLast(anyInt())).thenReturn(exists);
 		
 		// Call under test
 		assertFalse(manager.isScanJobIdle(daysNum));
 		
-		verify(mockStatusDao).exists(daysNum);
+		verify(mockStatusDao).existsWithinLast(daysNum);
 	}
 	
 	@Test
@@ -300,12 +319,12 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		int daysNum = 5;
 		boolean exists = false;
 		
-		when(mockStatusDao.exists(anyInt())).thenReturn(exists);
+		when(mockStatusDao.existsWithinLast(anyInt())).thenReturn(exists);
 		
 		// Call under test
 		assertTrue(manager.isScanJobIdle(daysNum));
 		
-		verify(mockStatusDao).exists(daysNum);
+		verify(mockStatusDao).existsWithinLast(daysNum);
 	}
 	
 	@Test

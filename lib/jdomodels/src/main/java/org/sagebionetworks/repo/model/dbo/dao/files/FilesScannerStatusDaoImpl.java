@@ -8,6 +8,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_SC
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_SCANNER_STATUS_UPDATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES_SCANNER_STATUS;
 
+import java.util.Optional;
+
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -31,6 +33,10 @@ public class FilesScannerStatusDaoImpl implements FilesScannerStatusDao {
 			+ COL_FILES_SCANNER_STATUS_SCANNED_ASSOCIATIONS_COUNT + ") VALUES (?, NOW(), NOW(), 0, 0, 0)";
 	
 	private static final String SQL_GET_BY_ID = "SELECT * FROM " + TABLE_FILES_SCANNER_STATUS + " WHERE " + COL_FILES_SCANNER_STATUS_ID + " = ?";
+	
+	private static final String SQL_EXISTS = "SELECT EXISTS(SELECT " + COL_FILES_SCANNER_STATUS_ID + " FROM " + TABLE_FILES_SCANNER_STATUS + " WHERE " + COL_FILES_SCANNER_STATUS_ID + " = ?)";
+	
+	private static final String SQL_GET_LATEST = "SELECT * FROM " + TABLE_FILES_SCANNER_STATUS + " ORDER BY " + COL_FILES_SCANNER_STATUS_ID + " DESC LIMIT 1";
 	
 	private static final String SQL_EXISTS_BY_LAST_UPDATED_ON = "SELECT EXISTS(SELECT " + COL_FILES_SCANNER_STATUS_ID + " FROM " + TABLE_FILES_SCANNER_STATUS 
 			+ " WHERE " + COL_FILES_SCANNER_STATUS_UPDATED_ON + " > (NOW() - INTERVAL ? DAY))";
@@ -72,6 +78,11 @@ public class FilesScannerStatusDaoImpl implements FilesScannerStatusDao {
 	}
 	
 	@Override
+	public boolean exist(long id) {
+		return jdbcTemplate.queryForObject(SQL_EXISTS, boolean.class, id);
+	}
+	
+	@Override
 	public DBOFilesScannerStatus get(long id) {
 		try {
 			return jdbcTemplate.queryForObject(SQL_GET_BY_ID, ROW_MAPPER, id);
@@ -105,7 +116,16 @@ public class FilesScannerStatusDaoImpl implements FilesScannerStatusDao {
 	}
 	
 	@Override
-	public boolean exists(int lastModifiedDaysInterval) {
+	public Optional<DBOFilesScannerStatus> getLatest() {
+		try {
+			return Optional.of(jdbcTemplate.queryForObject(SQL_GET_LATEST, null, ROW_MAPPER));
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
+	}
+	
+	@Override
+	public boolean existsWithinLast(int lastModifiedDaysInterval) {
 		return jdbcTemplate.queryForObject(SQL_EXISTS_BY_LAST_UPDATED_ON, boolean.class, lastModifiedDaysInterval);
 	}
 

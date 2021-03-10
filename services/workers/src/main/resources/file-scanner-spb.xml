@@ -75,7 +75,7 @@
 		</property>
 		<!-- We stagger the start delay of each trigger to spread out the timing -->
 		<property name="startDelay" value="3465" />
-		<property name="repeatInterval" value="1000" />
+		<property name="repeatInterval" value="200" />
 	</bean>
 
 </beans>

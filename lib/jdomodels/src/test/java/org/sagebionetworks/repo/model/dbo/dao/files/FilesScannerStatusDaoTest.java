@@ -76,29 +76,29 @@ public class FilesScannerStatusDaoTest {
 	}
 	
 	@Test
-	public void testExistsWithEmpty() {
+	public void testExistsWithinLastWithEmpty() {
 		int numberOfDays = 5;
 		
 		// Call under test
-		boolean result = dao.exists(numberOfDays);
+		boolean result = dao.existsWithinLast(numberOfDays);
 		
 		assertFalse(result);
 	}
 	
 	@Test
-	public void testExistsWithRecent() {
+	public void testExistsWithinLastWithRecent() {
 		int numberOfDays = 5;
 		
 		dao.create();
 		
 		// Call under test
-		boolean result = dao.exists(numberOfDays);
+		boolean result = dao.existsWithinLast(numberOfDays);
 		
 		assertTrue(result);
 	}
 	
 	@Test
-	public void testExistsWithOld() {
+	public void testExistsWithinLastWithOld() {
 		int numberOfDays = 5;
 		
 		long jobId = dao.create().getId();
@@ -106,7 +106,7 @@ public class FilesScannerStatusDaoTest {
 		dao.setUpdatedOn(jobId, numberOfDays);
 		
 		// Call under test
-		boolean result = dao.exists(numberOfDays);
+		boolean result = dao.existsWithinLast(numberOfDays);
 		
 		assertFalse(result);
 	}
@@ -168,6 +168,47 @@ public class FilesScannerStatusDaoTest {
 		}).getMessage();
 		
 		assertEquals("Could not find a job with id 123", errorMessage);
+		
+	}
+	
+	@Test
+	public void testGetLatest() {
+		DBOFilesScannerStatus expected = dao.create();
+		
+		// Call under test
+		DBOFilesScannerStatus result = dao.getLatest().orElseThrow(IllegalStateException::new);
+		 		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetLastestWithEmpty() {
+		
+		// Call under test
+		assertFalse(dao.getLatest().isPresent());
+	}
+	
+	@Test
+	public void testExists() {
+		
+		DBOFilesScannerStatus expected = dao.create();
+		
+		assertTrue(dao.exist(expected.getId()));
+		
+	}
+	
+	@Test
+	public void testExistsWithEmpty() {
+		
+		assertFalse(dao.exist(123));
+		
+	}
+	
+	@Test
+	public void testExistsWithOther() {
+		DBOFilesScannerStatus expected = dao.create();
+		
+		assertFalse(dao.exist(expected.getId() + 1));
 		
 	}
 

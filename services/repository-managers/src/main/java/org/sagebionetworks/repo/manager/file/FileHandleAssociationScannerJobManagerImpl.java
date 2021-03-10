@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.model.exception.RecoverableException;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationScanRangeRequest;
 import org.sagebionetworks.repo.model.file.IdRange;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +50,11 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 		ValidateArgument.required(request.getJobId(), "The request.jobId");
 		ValidateArgument.required(request.getAssociationType(), "The request.associationType");
 		ValidateArgument.required(request.getIdRange(), "The request.idRange");
+		
+		// The job does not exist anymore
+		if (!statusDao.exist(request.getJobId())) {
+			throw new NotFoundException("A job with id " + request.getJobId() + " does not exist.");
+		}
 		
 		validateStackReadWrite();
 		
@@ -90,11 +95,10 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 	@Override
 	public boolean isScanJobIdle(int daysNum) {
 		ValidateArgument.requirement(daysNum > 0, "The number of days must be greater than zero.");
-		return !statusDao.exists(daysNum);
+		return !statusDao.existsWithinLast(daysNum);
 	}
 	
 	@Override
-	@WriteTransaction
 	public void startScanJob() {
 		DBOFilesScannerStatus status = statusDao.create();
 		
