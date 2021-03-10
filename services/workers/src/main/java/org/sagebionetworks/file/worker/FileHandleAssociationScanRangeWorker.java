@@ -8,6 +8,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationScannerJobManager;
+import org.sagebionetworks.repo.manager.file.FileHandleAssociationScannerNotifier;
 import org.sagebionetworks.repo.model.exception.RecoverableException;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationScanRangeRequest;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
@@ -15,7 +16,6 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.model.Message;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Worker that handles a range scan request for a given association type, process an SQS message with the details about the range to scan
@@ -30,13 +30,13 @@ public class FileHandleAssociationScanRangeWorker implements MessageDrivenRunner
 	private static final Logger LOG = LogManager.getLogger(FileHandleAssociationScanRangeWorker.class);
 	
 	private FileHandleAssociationScannerJobManager manager;
-	private ObjectMapper objectMapper;
+	private FileHandleAssociationScannerNotifier notifier;
 	private WorkerLogger workerLogger;
 
 	@Autowired
-	public FileHandleAssociationScanRangeWorker(FileHandleAssociationScannerJobManager manager, ObjectMapper objectMapper, WorkerLogger workerLogger) {
+	public FileHandleAssociationScanRangeWorker(FileHandleAssociationScannerJobManager manager, FileHandleAssociationScannerNotifier notifier, WorkerLogger workerLogger) {
 		this.manager = manager;
-		this.objectMapper = objectMapper;
+		this.notifier = notifier;
 		this.workerLogger = workerLogger;
 	}
 
@@ -46,7 +46,7 @@ public class FileHandleAssociationScanRangeWorker implements MessageDrivenRunner
 		final FileHandleAssociationScanRangeRequest request;
 		
 		try {
-			request = objectMapper.readValue(message.getBody(), FileHandleAssociationScanRangeRequest.class);
+			request = notifier.fromSqsMessage(message);
 		} catch (Throwable e) {
 			LOG.error("Could not process SQS message \n" + message.getBody() + "\n" + e.getMessage(), e);
 			logWorkerCountMetric(METRIC_PARSE_MESSAGE_ERROR_COUNT);
