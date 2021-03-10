@@ -4,11 +4,11 @@
     "enum": [
         {
             "name": "read_only",
-            "description": "Get read-only STS credentials."
+            "description": "Get read-only STS credentials.  Requires the DOWNLOAD permission."
         },
         {
             "name": "read_write",
-            "description": "Get read-write STS credentials."
+            "description": "Get read-write STS credentials.  Requires the DOWNLOAD, UPDATE, CREATE, and DELETE permissions."
         }
     ]
 }

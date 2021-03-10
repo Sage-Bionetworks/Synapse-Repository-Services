@@ -29,7 +29,6 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.sagebionetworks.repo.manager.entity.decider.AccessContext;
 import org.sagebionetworks.repo.manager.entity.decider.AccessDecider;
@@ -66,15 +65,27 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 	}
 
 	@Override
-	public AuthorizationStatus hasAccess(UserInfo userInfo, String entityId, ACCESS_TYPE accessType)
+	public AuthorizationStatus hasAccess(UserInfo userInfo, String entityId, ACCESS_TYPE... accessTypes)
 			throws NotFoundException, DatastoreException {
 		ValidateArgument.required(userInfo, "UserInfo");
 		ValidateArgument.required(entityId, "entityId");
-		ValidateArgument.required(accessType, "accessType");
-		return batchHasAccess(userInfo, KeyFactory.stringToKeySingletonList(entityId), accessType).stream().findFirst()
-				.orElseThrow(() -> new IllegalStateException("Unexpected empty results")).getAuthroizationStatus();
+		ValidateArgument.required(accessTypes, "accessTypes");
+		if(accessTypes.length < 1) {
+			throw new IllegalArgumentException("At least one ACCESS_TYPE must be provided");
+		}
+		EntityStateProvider stateProvider = new LazyEntityStateProvider(accessRestrictionStatusDao,
+				usersEntityPermissionsDao, userInfo, KeyFactory.stringToKeySingletonList(entityId));
+		AuthorizationStatus lastResult = null;
+		for (ACCESS_TYPE accessType : accessTypes) {
+			lastResult = determineAccess(userInfo, KeyFactory.stringToKey(entityId), stateProvider, accessType)
+					.getAuthroizationStatus();
+			if (!lastResult.isAuthorized()) {
+				return lastResult;
+			}
+		}
+		return lastResult;
 	}
-	
+
 	@Override
 	public AuthorizationStatus canCreate(String parentId, EntityType entityCreateType, UserInfo userInfo)
 			throws DatastoreException, NotFoundException {
@@ -95,21 +106,24 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		Long entityIdLong = KeyFactory.stringToKey(entityId);
 		UserEntityPermissionsState permissionsState = stateProvider.getPermissionsState(entityIdLong);
 		UserEntityPermissions permissions = new UserEntityPermissions();
-		permissions.setCanAddChild(determineAccess(stateProvider, CREATE, userInfo).isAuthorized());
+		permissions.setCanAddChild(determineAccess(entityIdLong, stateProvider, CREATE, userInfo).isAuthorized());
 		permissions.setCanCertifiedUserAddChild(permissionsState.hasCreate());
-		permissions.setCanChangePermissions(determineAccess(stateProvider, CHANGE_PERMISSIONS, userInfo).isAuthorized());
-		permissions.setCanChangeSettings(determineAccess(stateProvider, CHANGE_SETTINGS, userInfo).isAuthorized());
-		permissions.setCanDelete(determineAccess(stateProvider, DELETE, userInfo).isAuthorized());
-		permissions.setCanEdit(determineAccess(stateProvider, UPDATE, userInfo).isAuthorized());
+		permissions.setCanChangePermissions(
+				determineAccess(entityIdLong, stateProvider, CHANGE_PERMISSIONS, userInfo).isAuthorized());
+		permissions.setCanChangeSettings(
+				determineAccess(entityIdLong, stateProvider, CHANGE_SETTINGS, userInfo).isAuthorized());
+		permissions.setCanDelete(determineAccess(entityIdLong, stateProvider, DELETE, userInfo).isAuthorized());
+		permissions.setCanEdit(determineAccess(entityIdLong, stateProvider, UPDATE, userInfo).isAuthorized());
 		permissions.setCanCertifiedUserEdit(permissionsState.hasUpdate());
-		permissions.setCanView(determineAccess(stateProvider, READ, userInfo).isAuthorized());
-		permissions.setCanDownload(determineAccess(stateProvider, ACCESS_TYPE.DOWNLOAD, userInfo).isAuthorized());
+		permissions.setCanView(determineAccess(entityIdLong, stateProvider, READ, userInfo).isAuthorized());
+		permissions.setCanDownload(
+				determineAccess(entityIdLong, stateProvider, ACCESS_TYPE.DOWNLOAD, userInfo).isAuthorized());
 		permissions.setCanUpload(userInfo.acceptsTermsOfUse());
-		permissions.setCanModerate(determineAccess(stateProvider, MODERATE, userInfo).isAuthorized());
+		permissions.setCanModerate(determineAccess(entityIdLong, stateProvider, MODERATE, userInfo).isAuthorized());
 		permissions.setIsCertificationRequired(true);
 
 		permissions.setOwnerPrincipalId(permissionsState.getEntityCreatedBy());
-		
+
 		permissions.setIsCertifiedUser(AuthorizationUtils.isCertifiedUser(userInfo));
 		permissions.setCanPublicRead(permissionsState.hasPublicRead());
 
@@ -117,19 +131,20 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 				determineCanDeleteACL(userInfo, stateProvider.getPermissionsState(entityIdLong))
 						.getAuthroizationStatus().isAuthorized());
 		return permissions;
-		
+
 	}
-	
+
 	/**
 	 * Determine if the user has the given access to the given entity.
+	 * 
 	 * @param provider
 	 * @param accessType
 	 * @param user
 	 * @return
 	 */
-	private AuthorizationStatus determineAccess(EntityStateProvider provider, ACCESS_TYPE accessType, UserInfo user) {
-		return determineAccess(user, provider, accessType).findFirst().get()
-				.getAuthroizationStatus();
+	private AuthorizationStatus determineAccess(Long entityId, EntityStateProvider provider, ACCESS_TYPE accessType,
+			UserInfo user) {
+		return determineAccess(user, entityId, provider, accessType).getAuthroizationStatus();
 	}
 
 	@Override
@@ -140,41 +155,31 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 
 		EntityStateProvider stateProvider = new LazyEntityStateProvider(accessRestrictionStatusDao,
 				usersEntityPermissionsDao, userInfo, entityIds);
-
-		return determineAccess(userInfo, stateProvider, accessType).collect(Collectors.toList());
+		return entityIds.stream().map(id -> determineAccess(userInfo, id, stateProvider, accessType))
+				.collect(Collectors.toList());
 	}
 
-	/**
-	 * Determine the access information for a batch of entities for a given user.
-	 * 
-	 * @param userInfo
-	 * @param permissionsState
-	 * @param accessType
-	 * @return
-	 */
-	public Stream<UsersEntityAccessInfo> determineAccess(UserInfo userInfo, EntityStateProvider provider,
+	public UsersEntityAccessInfo determineAccess(UserInfo userInfo, Long id, EntityStateProvider provider,
 			ACCESS_TYPE accessType) {
-		List<Long> ids = provider.getEntityIds();
 		switch (accessType) {
 		case CREATE:
 			EntityType newEntityType = null;
-			return ids.stream()
-					.map(id -> determineCreateAccess(userInfo, provider.getPermissionsState(id), newEntityType));
+			return determineCreateAccess(userInfo, provider.getPermissionsState(id), newEntityType);
 		case READ:
-			return ids.stream().map(id -> determineReadAccess(userInfo, provider.getPermissionsState(id)));
+			return determineReadAccess(userInfo, provider.getPermissionsState(id));
 		case UPDATE:
-			return ids.stream().map(id -> determineUpdateAccess(userInfo, provider.getPermissionsState(id)));
+			return determineUpdateAccess(userInfo, provider.getPermissionsState(id));
 		case DELETE:
-			return ids.stream().map(id -> determineDeleteAccess(userInfo, provider.getPermissionsState(id)));
+			return determineDeleteAccess(userInfo, provider.getPermissionsState(id));
 		case CHANGE_PERMISSIONS:
-			return ids.stream().map(id -> determineChangePermissionAccess(userInfo, provider.getPermissionsState(id)));
+			return determineChangePermissionAccess(userInfo, provider.getPermissionsState(id));
 		case DOWNLOAD:
-			return ids.stream().map(id -> determineDownloadAccess(userInfo, provider.getPermissionsState(id),
-					provider.getRestrictionStatus(id)));
+			return determineDownloadAccess(userInfo, provider.getPermissionsState(id),
+					provider.getRestrictionStatus(id));
 		case CHANGE_SETTINGS:
-			return ids.stream().map(id -> determineChangeSettingsAccess(userInfo, provider.getPermissionsState(id)));
+			return determineChangeSettingsAccess(userInfo, provider.getPermissionsState(id));
 		case MODERATE:
-			return ids.stream().map(id -> determineModerateAccess(userInfo, provider.getPermissionsState(id)));
+			return determineModerateAccess(userInfo, provider.getPermissionsState(id));
 		default:
 			throw new IllegalArgumentException("Unknown access type: " + accessType);
 		}
@@ -221,7 +226,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		);
 		// @formatter:on
 	}
-	
+
 	UsersEntityAccessInfo determineCreateAccess(UserInfo userInfo, UserEntityPermissionsState parentPermissionsState,
 			EntityType entityCreateType) {
 		// @formatter:off
@@ -251,9 +256,8 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		);
 		// @formatter:on
 	}
-	
-	UsersEntityAccessInfo determineDeleteAccess(UserInfo userInfo,
-			UserEntityPermissionsState permissionsState) {
+
+	UsersEntityAccessInfo determineDeleteAccess(UserInfo userInfo, UserEntityPermissionsState permissionsState) {
 		// @formatter:off
 		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
 				.withAccessType(ACCESS_TYPE.DELETE),
@@ -310,17 +314,16 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		);
 		// @formatter:on
 	}
-	
+
 	@Override
 	public AuthorizationStatus canDeleteACL(UserInfo userInfo, String entityId) {
 		EntityStateProvider stateProvider = new LazyEntityStateProvider(accessRestrictionStatusDao,
 				usersEntityPermissionsDao, userInfo, KeyFactory.stringToKeySingletonList(entityId));
-		return determineCanDeleteACL(userInfo,
-				stateProvider.getPermissionsState(KeyFactory.stringToKey(entityId))).getAuthroizationStatus();
+		return determineCanDeleteACL(userInfo, stateProvider.getPermissionsState(KeyFactory.stringToKey(entityId)))
+				.getAuthroizationStatus();
 	}
-	
-	UsersEntityAccessInfo determineCanDeleteACL(UserInfo userInfo,
-			UserEntityPermissionsState permissionsState) {
+
+	UsersEntityAccessInfo determineCanDeleteACL(UserInfo userInfo, UserEntityPermissionsState permissionsState) {
 		// @formatter:off
 		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
 				.withAccessType(ACCESS_TYPE.CHANGE_PERMISSIONS),

@@ -17,7 +17,6 @@ public class UsersEntityAccessInfo {
 	Long entityId;
 	AuthorizationStatus authroizationStatus;
 	UsersRestrictionStatus accessRestrictions;
-	boolean wouldHaveAccesIfCertified;
 
 	public UsersEntityAccessInfo(AccessContext context, AuthorizationStatus status) {
 		ValidateArgument.required(context, "context");
@@ -27,7 +26,6 @@ public class UsersEntityAccessInfo {
 		this.entityId = context.getPermissionsState().getEntityId();
 		this.accessRestrictions = context.getRestrictionStatus();
 		this.authroizationStatus = status;
-		this.wouldHaveAccesIfCertified = false;
 	}
 
 	/**
@@ -75,28 +73,10 @@ public class UsersEntityAccessInfo {
 		return this;
 	}
 
-	/**
-	 * @return the wouldHaveAccesIfCertified
-	 */
-	public boolean getWouldHaveAccesIfCertified() {
-		if (authroizationStatus.isAuthorized()) {
-			return true;
-		} else {
-			return wouldHaveAccesIfCertified;
-		}
-	}
-
-	/**
-	 * @param wouldHaveAccesIfCertified the wouldHaveAccesIfCertified to set
-	 */
-	public UsersEntityAccessInfo withWouldHaveAccesIfCertified(boolean wouldHaveAccesIfCertified) {
-		this.wouldHaveAccesIfCertified = wouldHaveAccesIfCertified;
-		return this;
-	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(accessRestrictions, authroizationStatus, entityId, wouldHaveAccesIfCertified);
+		return Objects.hash(accessRestrictions, authroizationStatus, entityId);
 	}
 
 	@Override
@@ -110,15 +90,13 @@ public class UsersEntityAccessInfo {
 		UsersEntityAccessInfo other = (UsersEntityAccessInfo) obj;
 		return Objects.equals(accessRestrictions, other.accessRestrictions)
 				&& Objects.equals(authroizationStatus, other.authroizationStatus)
-				&& Objects.equals(entityId, other.entityId)
-				&& Objects.equals(wouldHaveAccesIfCertified, other.wouldHaveAccesIfCertified);
+				&& Objects.equals(entityId, other.entityId);
 	}
 
 	@Override
 	public String toString() {
 		return "UsersEntityAccessInfo [entityId=" + entityId + ", authroizationStatus=" + authroizationStatus
-				+ ", accessRestrictions=" + accessRestrictions + ", wouldHaveAccesIfCertified="
-				+ wouldHaveAccesIfCertified + "]";
+				+ ", accessRestrictions=" + accessRestrictions + "]";
 	}
 
 }

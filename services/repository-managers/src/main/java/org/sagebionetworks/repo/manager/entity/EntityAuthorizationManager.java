@@ -14,18 +14,22 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface EntityAuthorizationManager {
 
 	/**
-	 * Determine if the user is authorized access the given entity. This method
-	 * should not throw any exceptions, instead, if there is an error the resulting
-	 * AuthorizationStatus will contain the error message/exception.
+	 * Determine if the user is authorized to access the given entity. Each access
+	 * type will be tested in the order provided. The first 'access-denied'
+	 * encountered will be returned. An 'authorized' status will only be returned if
+	 * the user has access to each of the provided types.
+	 * 
+	 * This method should not throw any exceptions, instead, if there is an error
+	 * the resulting AuthorizationStatus will contain the error message/exception.
 	 * 
 	 * @param userInfo
 	 * @param entityId
-	 * @param accessType The permission check to be checked against the entity.
-	 * @return
+	 * @param accessType The permission/permissions check to be checked against the
+	 *                   entity.
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public AuthorizationStatus hasAccess(UserInfo userInfo, String entityId, ACCESS_TYPE accessType)
+	public AuthorizationStatus hasAccess(UserInfo userInfo, String entityId, ACCESS_TYPE...accessType)
 			throws NotFoundException, DatastoreException;
 
 	/**
