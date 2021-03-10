@@ -123,12 +123,12 @@ public class DDLUtilsImpl implements DDLUtils{
 		boolean withinMultiLineComment = false;
 		for (int i=0; i < sql.length(); i++) {
 			char c = sql.charAt(i);
-			if(c == '/' && sql.charAt(i+1) == '*') {
+			if(i+1<sql.length() && c == '/' && sql.charAt(i+1) == '*') {
 				withinMultiLineComment = true;
 				i++;
 				continue;
 			}
-			if(c == '*' && sql.charAt(i+1) == '/') {
+			if(i+1<sql.length() && c == '*' && sql.charAt(i+1) == '/') {
 				withinMultiLineComment = false;
 				i++;
 				continue;

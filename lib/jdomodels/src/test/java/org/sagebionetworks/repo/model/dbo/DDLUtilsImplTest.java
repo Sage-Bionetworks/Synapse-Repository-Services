@@ -65,4 +65,22 @@ public class DDLUtilsImplTest {
 		assertEquals(expected, result);
 	}
 	
+	@Test
+	public void testremoveSQLCommentsWithStartSlash() {
+		String input = "/";
+		String expected = "/";
+		// call under test
+		String result = DDLUtilsImpl.removeSQLComments(input);
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testremoveSQLCommentsWithEndStar() {
+		String input = "/* start but not finish *";
+		String expected = "";
+		// call under test
+		String result = DDLUtilsImpl.removeSQLComments(input);
+		assertEquals(expected, result);
+	}
+	
 }
