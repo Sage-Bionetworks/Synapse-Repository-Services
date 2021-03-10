@@ -11,8 +11,41 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy proxy-target-class="true"/>
 
+	<!-- This worker periodically starts a new scanner job, disptaching scan range requests -->
+	<bean id="fileHandleAssociationScanDispatcherWorker" class="org.sagebionetworks.file.worker.FileHandleAssociationScanDispatcherWorker" scope="singleton" />
+	
 	<!-- This worker process an SQS message to scan a range of file handle associations -->
 	<bean id="fileHandleAssociationScanRangeWorker" class="org.sagebionetworks.file.worker.FileHandleAssociationScanRangeWorker" scope="singleton" />
+	
+	<!-- Trigger for the worker that dispatches association scan range requests -->
+	<bean id="fileHandleAssociationScanDispatcherWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean" scope="singleton">
+		<property name="jobDetail">
+			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject">
+					<bean class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStack">
+						<constructor-arg index="0" ref="countingSemaphore" />
+						<constructor-arg index="1">
+							<bean class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStackConfiguration">
+								<property name="progressingRunner" ref="fileHandleAssociationScanDispatcherWorker"/>
+								<property name="semaphoreLockKey" value="fileHandleAssociationScanDispatcher" />
+								<property name="semaphoreMaxLockCount" value="1" />
+								<property name="semaphoreLockTimeoutSec" value="60" />
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+								</property>
+
+							</bean>
+						</constructor-arg>
+					</bean>
+				</property>
+				<property name="targetMethod" value="run" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<!-- We do not need to check this often, we run this every 5 days -->
+		<property name="startDelay" value="1800000" />
+		<property name="repeatInterval" value="1800000" />
+	</bean>
 	
 	<!-- Trigger for the worker that will consume the messages to process an association range scan -->
 	<bean id="fileHandleAssociationScanRangeWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean" scope="singleton">
