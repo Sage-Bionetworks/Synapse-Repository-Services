@@ -1,8 +1,11 @@
 package org.sagebionetworks.repo.manager.file;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -30,6 +33,7 @@ import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationRecord
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleScannerUtils;
 import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.model.StackStatusDao;
+import org.sagebionetworks.repo.model.dbo.dao.files.DBOFilesScannerStatus;
 import org.sagebionetworks.repo.model.dbo.dao.files.FilesScannerStatusDao;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
@@ -51,6 +55,9 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 
 	@Mock
 	private FilesScannerStatusDao mockStatusDao;
+	
+	@Mock
+	private FileHandleAssociationScannerNotifier mockNotifier;
 
 	@Mock
 	private Clock mockClock;
@@ -60,6 +67,9 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 	
 	@Captor
 	private ArgumentCaptor<List<FileHandleAssociationRecord>> recordsCaptor;
+	
+	@Mock
+	private DBOFilesScannerStatus mockStatus;
 
 	private FileHandleAssociationScanRangeRequest scanRangeRequest;
 	private FileHandleAssociateType associationType = FileHandleAssociateType.FileEntity;
@@ -270,6 +280,121 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		}).getMessage();
 
 		assertEquals("The stack was in read-only mode.", errorMessage);
+	}
+	
+	@Test
+	public void testIsScanJobIdle() {
+		int daysNum = 5;
+		boolean exists = true;
+		
+		when(mockStatusDao.exists(anyInt())).thenReturn(exists);
+		
+		// Call under test
+		assertFalse(manager.isScanJobIdle(daysNum));
+		
+		verify(mockStatusDao).exists(daysNum);
+	}
+	
+	@Test
+	public void testIsScanJobIdleAndNotExists() {
+		int daysNum = 5;
+		boolean exists = false;
+		
+		when(mockStatusDao.exists(anyInt())).thenReturn(exists);
+		
+		// Call under test
+		assertTrue(manager.isScanJobIdle(daysNum));
+		
+		verify(mockStatusDao).exists(daysNum);
+	}
+	
+	@Test
+	public void testStartScanJob() {
+		
+		long maxIdRange = 1000;
+		IdRange idRange = new IdRange(2, 10);
+		
+		when(mockStatusDao.create()).thenReturn(mockStatus);
+		when(mockStatus.getId()).thenReturn(jobId);
+		when(mockAssociationManager.getIdRange(any())).thenReturn(new IdRange(-1, -1));
+		when(mockAssociationManager.getIdRange(FileHandleAssociateType.FileEntity)).thenReturn(idRange);
+		when(mockAssociationManager.getMaxIdRangeSize(FileHandleAssociateType.FileEntity)).thenReturn(maxIdRange);
+		
+		
+		manager.startScanJob();
+		
+		verify(mockStatusDao).create();
+		
+		for (FileHandleAssociateType type : FileHandleAssociateType.values()) {
+			verify(mockAssociationManager).getIdRange(type);
+		}
+		
+		verify(mockAssociationManager).getMaxIdRangeSize(FileHandleAssociateType.FileEntity);
+		
+		verify(mockNotifier).sendScanRequest(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(2, 1001)));
+		verify(mockStatusDao).setStartedJobsCount(jobId, 1);
+		
+	}
+	
+
+	@Test
+	public void testStartScanJobWithMultiple() {
+		
+		long maxIdRange = 5;
+		IdRange idRange = new IdRange(2, 10);
+		
+		when(mockStatusDao.create()).thenReturn(mockStatus);
+		when(mockStatus.getId()).thenReturn(jobId);
+		when(mockAssociationManager.getIdRange(any())).thenReturn(new IdRange(-1, -1));
+		when(mockAssociationManager.getIdRange(FileHandleAssociateType.FileEntity)).thenReturn(idRange);
+		when(mockAssociationManager.getMaxIdRangeSize(FileHandleAssociateType.FileEntity)).thenReturn(maxIdRange);
+		
+		
+		manager.startScanJob();
+		
+		verify(mockStatusDao).create();
+		
+		for (FileHandleAssociateType type : FileHandleAssociateType.values()) {
+			verify(mockAssociationManager).getIdRange(type);
+		}
+		
+		verify(mockAssociationManager).getMaxIdRangeSize(FileHandleAssociateType.FileEntity);
+		
+		verify(mockNotifier).sendScanRequest(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(2, 6)));
+		verify(mockNotifier).sendScanRequest(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(7, 11)));
+		verify(mockStatusDao).setStartedJobsCount(jobId, 2);
+		
+	}
+	
+	@Test
+	public void testStartScanJobWithFitRange() {
+		
+		long maxIdRange = 3;
+		IdRange idRange = new IdRange(1, 9);
+		
+		when(mockStatusDao.create()).thenReturn(mockStatus);
+		when(mockStatus.getId()).thenReturn(jobId);
+		when(mockAssociationManager.getIdRange(any())).thenReturn(new IdRange(-1, -1));
+		when(mockAssociationManager.getIdRange(FileHandleAssociateType.FileEntity)).thenReturn(idRange);
+		when(mockAssociationManager.getMaxIdRangeSize(FileHandleAssociateType.FileEntity)).thenReturn(maxIdRange);
+		
+		
+		manager.startScanJob();
+		
+		verify(mockStatusDao).create();
+		
+		for (FileHandleAssociateType type : FileHandleAssociateType.values()) {
+			verify(mockAssociationManager).getIdRange(type);
+		}
+		
+		verify(mockAssociationManager).getMaxIdRangeSize(FileHandleAssociateType.FileEntity);
+		
+		verify(mockNotifier).sendScanRequest(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(1, 3)));
+		verify(mockNotifier).sendScanRequest(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(4, 6)));
+		verify(mockNotifier).sendScanRequest(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(7, 9)));
+		
+		verify(mockStatusDao).setStartedJobsCount(jobId, 3);
+		
 	}
 
 }

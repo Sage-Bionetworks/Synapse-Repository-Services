@@ -15,6 +15,18 @@ public interface FileHandleAssociationScannerJobManager {
 	 * @throws RecoverableException If the request failed but can be retried on a later time
 	 * return The total number of scanned records that contained file handles
 	 */
-	int processScanRangeRequest(FileHandleAssociationScanRangeRequest request) throws RecoverableException;	
+	int processScanRangeRequest(FileHandleAssociationScanRangeRequest request) throws RecoverableException;
+	
+	/**
+	 * @param idlePeriod The idle period
+	 * @return True if a scan job does not exist or if it hasn't been updated for the given amount of days
+	 */
+	boolean isScanJobIdle(int daysNum);
+	
+	/**
+	 * Start a file handle association scan job and dispatch SQS messages to be processed by the {@link #processScanRangeRequest(FileHandleAssociationScanRangeRequest)}
+	 */
+	void startScanJob();
+	
 
 }

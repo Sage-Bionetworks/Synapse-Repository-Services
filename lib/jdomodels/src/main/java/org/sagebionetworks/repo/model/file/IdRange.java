@@ -2,12 +2,16 @@ package org.sagebionetworks.repo.model.file;
 
 import java.util.Objects;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class IdRange {
 	
 	private long minId;
 	private long maxId;
 	
-	public IdRange(long minId, long maxId) {
+	@JsonCreator
+	public IdRange(@JsonProperty("minId") long minId, @JsonProperty("maxId") long maxId) {
 		this.minId = minId;
 		this.maxId = maxId;
 	}

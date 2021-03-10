@@ -9,10 +9,14 @@ import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationRecord
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleScannerUtils;
 import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.model.StackStatusDao;
+import org.sagebionetworks.repo.model.dbo.dao.files.DBOFilesScannerStatus;
 import org.sagebionetworks.repo.model.dbo.dao.files.FilesScannerStatusDao;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.exception.RecoverableException;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationScanRangeRequest;
+import org.sagebionetworks.repo.model.file.IdRange;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,21 +24,23 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAssociationScannerJobManager {
-	
+		
 	static final int KINESIS_BATCH_SIZE = 5000;
 	
 	private FileHandleAssociationManager associationManager;
 	private AwsKinesisFirehoseLogger kinesisLogger;
 	private StackStatusDao stackStatusDao;
 	private FilesScannerStatusDao statusDao;
+	private FileHandleAssociationScannerNotifier notifier;
 	private Clock clock;
 	
 	@Autowired
-	public FileHandleAssociationScannerJobManagerImpl(FileHandleAssociationManager associationManager, AwsKinesisFirehoseLogger kinesisLogger, StackStatusDao stackStatusDao, FilesScannerStatusDao statusDao, Clock clock) {
+	public FileHandleAssociationScannerJobManagerImpl(FileHandleAssociationManager associationManager, AwsKinesisFirehoseLogger kinesisLogger, StackStatusDao stackStatusDao, FilesScannerStatusDao statusDao, FileHandleAssociationScannerNotifier notifier, Clock clock) {
 		this.associationManager = associationManager;
 		this.kinesisLogger = kinesisLogger;
 		this.stackStatusDao = stackStatusDao;
 		this.statusDao = statusDao;
+		this.notifier = notifier;
 		this.clock = clock;
 	}
 
@@ -79,6 +85,59 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 		
 		return totalRecords;
 		
+	}
+	
+	@Override
+	public boolean isScanJobIdle(int daysNum) {
+		ValidateArgument.requirement(daysNum > 0, "The number of days must be greater than zero.");
+		return !statusDao.exists(daysNum);
+	}
+	
+	@Override
+	@WriteTransaction
+	public void startScanJob() {
+		DBOFilesScannerStatus status = statusDao.create();
+		
+		long totalJobs = 0L;
+		
+		for (FileHandleAssociateType associationType : FileHandleAssociateType.values()) {
+			totalJobs += dispatchScanRequests(status.getId(), associationType);
+		}
+		
+		statusDao.setStartedJobsCount(status.getId(), totalJobs);
+	}
+	
+	private long dispatchScanRequests(long jobId, FileHandleAssociateType associationType) {
+		IdRange range = associationManager.getIdRange(associationType);
+		
+		long requestsCount = 0;
+		
+		if (range.getMinId() < 0 || range.getMaxId() < 0) {
+			return requestsCount;
+		}
+		
+		long scanRangeRequestSize = associationManager.getMaxIdRangeSize(associationType);
+		
+		requestsCount = (range.getMaxId() - range.getMinId()) / scanRangeRequestSize + 1;
+		
+		long requestMinId = range.getMinId();
+		long requestMaxId = requestMinId + scanRangeRequestSize - 1;
+		
+		for (int requestNum = 0; requestNum < requestsCount; requestNum++) {
+			IdRange requestRange = new IdRange(requestMinId, requestMaxId);
+			
+			FileHandleAssociationScanRangeRequest request = new FileHandleAssociationScanRangeRequest()
+					.withAssociationType(associationType)
+					.withJobId(jobId)
+					.withIdRange(requestRange);
+			
+			notifier.sendScanRequest(request);
+			
+			requestMinId += scanRangeRequestSize;
+			requestMaxId += scanRangeRequestSize;
+		}
+		
+		return requestsCount;
 	}
 	
 	private int flushRecordsBatch(Set<FileHandleAssociationRecord> recordsBatch) {
