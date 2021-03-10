@@ -79,6 +79,16 @@ public interface EntityAuthorizationManager {
 	 */
 	public AuthorizationStatus canDeleteACL(UserInfo userInfo, String entityId);
 
+	/**
+	 * Can the user create a wiki for the given entity?  The user must have the CREATE permission
+	 * on the entity.  In addition, the user must be certified to create a wiki on any entity that
+	 * is not a project.
+	 * @param entityId
+	 * @param userInfo
+	 * @return
+	 */
+	public AuthorizationStatus canCreateWiki(String entityId, UserInfo userInfo);
+
 
 
 }

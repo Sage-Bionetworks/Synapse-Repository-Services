@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunct
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_HAS_NOT_ACCEPTED_TERMS_OF_USE;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_HAS_UNMET_ACCESS_RESTRICTIONS;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_IN_TRASH;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_NOT_CERTIFIED;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_NOT_PROJECT_AND_NOT_CERTIFIED;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_PARENT_IS_ROOT_OR_NULL;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_ADMIN;
@@ -19,6 +20,7 @@ import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunct
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_HAS_READ;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_HAS_UPDATE;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_OPEN_DATA_WITH_READ;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_USER_IS_CREATOR;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.CHANGE_PERMISSIONS;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.CHANGE_SETTINGS;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.CREATE;
@@ -70,7 +72,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		ValidateArgument.required(userInfo, "UserInfo");
 		ValidateArgument.required(entityId, "entityId");
 		ValidateArgument.required(accessTypes, "accessTypes");
-		if(accessTypes.length < 1) {
+		if (accessTypes.length < 1) {
 			throw new IllegalArgumentException("At least one ACCESS_TYPE must be provided");
 		}
 		EntityStateProvider stateProvider = new LazyEntityStateProvider(accessRestrictionStatusDao,
@@ -96,6 +98,16 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 				.getEntityPermissions(userInfo.getGroups(), KeyFactory.stringToKeySingletonList(parentId)).stream()
 				.findFirst().get();
 		return determineCreateAccess(userInfo, state, entityCreateType).getAuthroizationStatus();
+	}
+
+	@Override
+	public AuthorizationStatus canCreateWiki(String entityId, UserInfo userInfo) {
+		ValidateArgument.required(userInfo, "UserInfo");
+		ValidateArgument.required(entityId, "entityId");
+		UserEntityPermissionsState state = usersEntityPermissionsDao
+				.getEntityPermissions(userInfo.getGroups(), KeyFactory.stringToKeySingletonList(entityId)).stream()
+				.findFirst().get();
+		return determineCreateAccess(userInfo, state, state.getEntityType()).getAuthroizationStatus();
 	}
 
 	@Override
@@ -294,6 +306,8 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 			DENY_IF_IN_TRASH,
 			GRANT_IF_ADMIN,
 			DENY_IF_ANONYMOUS,
+			DENY_IF_NOT_CERTIFIED,
+			GRANT_IF_USER_IS_CREATOR,
 			GRANT_IF_HAS_CHANGE_SETTINGS,
 			DENY
 		);

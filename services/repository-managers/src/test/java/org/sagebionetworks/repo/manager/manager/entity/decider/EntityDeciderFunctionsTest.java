@@ -595,4 +595,36 @@ public class EntityDeciderFunctionsTest {
 				.determineAccess(context);
 		assertFalse(resultOptional.isPresent());
 	}
+	
+	@Test
+	public void testGrantIfUserIsCreatorWithCreator() {
+		context = new AccessContext().withUser(nonAdminUser)
+				.withPermissionsState(permissionState.withEntityCreatedBy(nonAdminUser.getId()));
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_USER_IS_CREATOR
+				.determineAccess(context);
+		assertTrue(resultOptional.isPresent());
+		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context, AuthorizationStatus.authorized());
+		assertEquals(expected, resultOptional.get());
+	}
+	
+	@Test
+	public void testGrantIfUserIsCreatorWithNotCreator() {
+		context = new AccessContext().withUser(nonAdminUser)
+				.withPermissionsState(permissionState.withEntityCreatedBy(nonAdminUser.getId()+1));
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_USER_IS_CREATOR
+				.determineAccess(context);
+		assertFalse(resultOptional.isPresent());
+	}
+	
+	@Test
+	public void testGrantIfUserIsCreatorWithNullCreator() {
+		context = new AccessContext().withUser(nonAdminUser)
+				.withPermissionsState(permissionState.withEntityCreatedBy(null));
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_USER_IS_CREATOR
+				.determineAccess(context);
+		assertFalse(resultOptional.isPresent());
+	}
 }

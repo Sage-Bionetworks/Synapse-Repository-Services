@@ -1661,13 +1661,65 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(project.getId());
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CHANGE_SETTINGS));
 		});
-
+		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		String entityId = project.getId();
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_SETTINGS;
 
 		// old call under test
 		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
+		assertNotNull(oldStatus);
+		assertTrue(oldStatus.isAuthorized());
+		// new call under test
+		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
+	}
+	
+	@Test
+	public void testHasAccessWithChangeSettingsNotCertified() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CHANGE_SETTINGS));
+		});
+		userTwo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_SETTINGS;
+
+		// old call under test
+		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityPermissionManager.canChangeSettings(project, user).checkAuthorizationOrElseThrow();;
+		}).getMessage();
+		assertEquals("Only certified users may change node settings.", oldMessage);
+		// new call under test
+		String newMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(ERR_MSG_CERTIFIED_USER_CONTENT, newMessage);
+	}
+	
+	@Test
+	public void testHasAccessWithChangeSettingsAsCreatorWithoutPermission() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userOne.getId(), ACCESS_TYPE.READ));
+		});
+		userOne.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		String entityId = project.getId();
+		UserInfo user = userOne;
+		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_SETTINGS;
+
+		// old call under test
+		AuthorizationStatus oldStatus = entityPermissionManager.canChangeSettings(project, user);
 		assertNotNull(oldStatus);
 		assertTrue(oldStatus.isAuthorized());
 		// new call under test
@@ -1703,7 +1755,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(project.getId());
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
 		});
-
+		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		String entityId = project.getId();
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_SETTINGS;
@@ -2104,5 +2156,93 @@ public class EntityAuthorizationManagerAutowireTest {
 			entityAuthManager.canDeleteACL(user, entityId).checkAuthorizationOrElseThrow();;
 		}).getMessage();
 		assertEquals(ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION, message);
+	}
+	
+	@Test
+	public void testCanCreateWiki() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
+		});
+		
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		
+		// old call under test
+		AuthorizationStatus oldStatus = entityPermissionManager.canCreateWiki(entityId, user);
+		assertNotNull(oldStatus);
+		assertTrue(oldStatus.isAuthorized());
+		
+		// new call under test
+		AuthorizationStatus newStatus = entityAuthManager.canCreateWiki(entityId, user);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
+	}
+	
+	@Test
+	public void testCanCreateWikiWithFolderNotCertified() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		Node folder = nodeDaoHelper.create(n -> {
+			n.setName("aFolder");
+			n.setCreatedByPrincipalId(userOne.getId());
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.folder);
+		});
+		aclHelper.create((a) -> {
+			a.setId(folder.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
+		});
+		userTwo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		String entityId = folder.getId();
+		UserInfo user = userTwo;
+		
+		// old call under test
+		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityPermissionManager.canCreateWiki(entityId, user).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals("Only certified users may create non-project wikis in Synapse.", oldMessage);
+		// new call under test
+		String newMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.canCreateWiki(entityId, user).checkAuthorizationOrElseThrow();;
+		}).getMessage();
+		assertEquals(ERR_MSG_CERTIFIED_USER_CONTENT, newMessage);
+	}
+	
+	@Test
+	public void testCanCreateWikiWithFolderCertified() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		Node folder = nodeDaoHelper.create(n -> {
+			n.setName("aFolder");
+			n.setCreatedByPrincipalId(userOne.getId());
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.folder);
+		});
+		aclHelper.create((a) -> {
+			a.setId(folder.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
+		});
+		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		String entityId = folder.getId();
+		UserInfo user = userTwo;
+		
+		// old call under test
+		AuthorizationStatus oldStatus = entityPermissionManager.canCreateWiki(entityId, user);
+		assertNotNull(oldStatus);
+		assertTrue(oldStatus.isAuthorized());
+		
+		// new call under test
+		AuthorizationStatus newStatus = entityAuthManager.canCreateWiki(entityId, user);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
 	}
 }
