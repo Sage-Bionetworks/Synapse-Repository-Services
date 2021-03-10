@@ -1,7 +1,6 @@
 package org.sagebionetworks;
 
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -90,9 +89,6 @@ public class ITStatistics {
 		
 		assertEquals(MONTHS_COUNT, projectFilesStatistics.getFileDownloads().getMonths().size());
 		assertEquals(MONTHS_COUNT, projectFilesStatistics.getFileUploads().getMonths().size()); 
-		
-		assertNull(projectFilesStatistics.getFileDownloads().getLastUpdatedOn());
-		assertNull(projectFilesStatistics.getFileUploads().getLastUpdatedOn());
 		
 	}
 
