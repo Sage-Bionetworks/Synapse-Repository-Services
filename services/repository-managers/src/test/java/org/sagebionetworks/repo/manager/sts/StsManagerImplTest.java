@@ -198,10 +198,9 @@ public class StsManagerImplTest {
 		assertTrue(policy.contains("\"arn:aws:s3:::" + BUCKET + "/*\""));
 
 		// Verify auth.
-		verify(mockAuthManager).hasAccess(USER_INFO, PARENT_ENTITY_ID, ACCESS_TYPE.DOWNLOAD);
-		verify(mockAuthManager).hasAccess(USER_INFO, PARENT_ENTITY_ID, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE);
+		verify(mockAuthManager).hasAccess(USER_INFO, PARENT_ENTITY_ID, ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE);
 		verifyNoMoreInteractions(mockAuthManager);
-		verify(mockAuthStatus, times(2)).checkAuthorizationOrElseThrow();
+		verify(mockAuthStatus, times(1)).checkAuthorizationOrElseThrow();
 	}
 
 	@Test
