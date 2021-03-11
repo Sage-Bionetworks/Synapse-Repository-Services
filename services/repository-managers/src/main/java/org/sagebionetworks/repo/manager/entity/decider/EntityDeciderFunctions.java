@@ -103,12 +103,21 @@ public enum EntityDeciderFunctions implements AccessDecider {
 			return Optional.empty();
 		}
 	}),
-
 	/**
 	 * Grants if the user has the CHANGE_SETTINGS permission on the entity.
 	 */
 	GRANT_IF_HAS_CHANGE_SETTINGS((c) -> {
 		if (c.getPermissionsState().hasChangeSettings()) {
+			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.authorized()));
+		} else {
+			return Optional.empty();
+		}
+	}),
+	/**
+	 * Grants if the user is the creator of the entity.
+	 */
+	GRANT_IF_USER_IS_CREATOR((c) -> {
+		if (c.getUser().getId().equals(c.getPermissionsState().getEntityCreatedBy())) {
 			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.authorized()));
 		} else {
 			return Optional.empty();

@@ -13,6 +13,7 @@ import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.MultipartUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -50,7 +51,7 @@ public class StsManagerImpl implements StsManager {
 					.build();
 
 	@Autowired
-	private AuthorizationManager authManager;
+	private EntityAuthorizationManager authManager;
 
 	@Autowired
 	private FileHandleManager fileHandleManager;
@@ -100,11 +101,11 @@ public class StsManagerImpl implements StsManager {
 		}
 
 		// Check auth. We always need at least download access.
-		authManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)
+		authManager.hasAccess(userInfo, entityId, ACCESS_TYPE.DOWNLOAD)
 				.checkAuthorizationOrElseThrow();
 		if (permission == StsPermission.read_write) {
 			// For write permissions, we also need update access.
-			authManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)
+			authManager.hasAccess(userInfo, entityId, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE)
 					.checkAuthorizationOrElseThrow();
 		}
 

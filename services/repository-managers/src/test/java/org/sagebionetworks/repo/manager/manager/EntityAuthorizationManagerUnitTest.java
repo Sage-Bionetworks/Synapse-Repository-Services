@@ -1,8 +1,10 @@
 package org.sagebionetworks.repo.manager.manager;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -15,10 +17,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManagerImpl;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.AccessRestrictionStatusDao;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 import org.sagebionetworks.repo.model.dbo.entity.UsersEntityPermissionsDao;
@@ -398,6 +402,107 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+	}
+	
+	@Test
+	public void testHasAccessWithNullUser() {
+		userInfo = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			entityAuthManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ);
+		}).getMessage();
+		assertEquals("UserInfo is required.", message);
+	}
+	
+	@Test
+	public void testHasAccessWithNullEntityId() {
+		entityId = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			entityAuthManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ);
+		}).getMessage();
+		assertEquals("entityId is required.", message);
+	}
+	
+	@Test
+	public void testHasAccessWithNullAccessType() {
+		ACCESS_TYPE[] accessType = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			entityAuthManager.hasAccess(userInfo, entityId, accessType);
+		}).getMessage();
+		assertEquals("accessTypes is required.", message);
+	}
+	
+	@Test
+	public void testHasAccessWithEmptyAccessType() {
+		ACCESS_TYPE[] accessType = {};
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			entityAuthManager.hasAccess(userInfo, entityId, accessType);
+		}).getMessage();
+		assertEquals("At least one ACCESS_TYPE must be provided", message);
+	}
+	
+	
+	@Test
+	public void testHasAccessWithSingleType() {
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
+		permissionsState.withtDoesEntityExist(true);
+		permissionsState.withHasRead(true);
+		// call under test
+		AuthorizationStatus status = entityAuthManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ);
+		AuthorizationStatus expected = AuthorizationStatus.authorized();
+		assertEquals(expected, status);
+		
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+	}
+
+	@Test
+	public void testHasAccessWithSingleTypeFalse() {
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
+		permissionsState.withtDoesEntityExist(true);
+		permissionsState.withHasRead(false);
+		// call under test
+		AuthorizationStatus status = entityAuthManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ);
+		AuthorizationStatus expected = AuthorizationStatus
+				.accessDenied(String.format(ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, ACCESS_TYPE.READ));
+		assertEquals(expected, status);
+
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+	}
+	
+	@Test
+	public void testHasAccessWithMultipleTypes() {
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
+		permissionsState.withtDoesEntityExist(true);
+		permissionsState.withHasRead(true);
+		permissionsState.withHasDelete(true);
+		permissionsState.withHasUpdate(true);
+		// call under test
+		AuthorizationStatus status = entityAuthManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ,
+				ACCESS_TYPE.DELETE, ACCESS_TYPE.UPDATE);
+		AuthorizationStatus expected = AuthorizationStatus.authorized();
+		assertEquals(expected, status);
+
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+	}
+	
+	@Test
+	public void testHasAccessWithMultipleTypesOneFalse() {
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
+		permissionsState.withtDoesEntityExist(true);
+		permissionsState.withHasRead(true);
+		permissionsState.withHasDelete(false);
+		permissionsState.withHasUpdate(true);
+		// call under test
+		AuthorizationStatus status = entityAuthManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ,
+				ACCESS_TYPE.DELETE, ACCESS_TYPE.UPDATE);
+		AuthorizationStatus expected = AuthorizationStatus
+				.accessDenied(String.format(ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, ACCESS_TYPE.DELETE));
+		assertEquals(expected, status);
+
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 	}
 	
 	
