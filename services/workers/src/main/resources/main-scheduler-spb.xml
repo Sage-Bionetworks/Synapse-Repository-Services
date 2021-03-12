@@ -124,6 +124,7 @@
 		<ref bean="accessApprovalReminderNotificationWorkerTrigger" />
 		<ref bean="schemaValidationTrigger" />
 		<ref bean="multipartCleanupWorkerTrigger" />
+		<ref bean="fileHandleAssociationScanDispatcherWorkerTrigger" />
 		<ref bean="fileHandleAssociationScanRangeWorkerTrigger" />
 	</util:list>
 

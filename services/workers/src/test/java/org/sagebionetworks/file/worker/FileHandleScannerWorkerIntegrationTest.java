@@ -1,13 +1,18 @@
 package org.sagebionetworks.file.worker;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.Collections;
+import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.Trigger;
+import org.quartz.TriggerKey;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -21,6 +26,8 @@ import org.sagebionetworks.repo.model.dbo.dao.files.DBOFilesScannerStatus;
 import org.sagebionetworks.repo.model.dbo.dao.files.FilesScannerStatusDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
+import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -30,9 +37,6 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 public class FileHandleScannerWorkerIntegrationTest {
 	
 	private static final long TIMEOUT = 3 * 60 * 1000;
-	
-	@Autowired
-	private FileHandleAssociationScanDispatcherWorker worker;
 	
 	@Autowired
 	private FilesScannerStatusDao dao;
@@ -52,10 +56,15 @@ public class FileHandleScannerWorkerIntegrationTest {
 	@Autowired
 	private IdGenerator idGenerator;
 	
+	@Autowired
+	private Scheduler scheduler;
+	
 	private UserInfo user;
 	
+	private Trigger dispatcherTrigger;
+	
 	@BeforeEach
-	public void before() {
+	public void before() throws SchedulerException {
 		user = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
 		arDao.clear();
@@ -73,6 +82,10 @@ public class FileHandleScannerWorkerIntegrationTest {
 			ar.setDucTemplateFileHandleId(handle.getId());
 		});
 		
+		dispatcherTrigger = scheduler.getTrigger(new TriggerKey("fileHandleAssociationScanDispatcherWorkerTrigger"));
+		
+		assertNotNull(dispatcherTrigger);
+		
 	}
 	
 	@AfterEach
@@ -84,27 +97,23 @@ public class FileHandleScannerWorkerIntegrationTest {
 	
 	@Test
 	public void testScanning() throws Exception {
-		// Manually start the job since the start time is very long
-		worker.run(null);
 		
-		DBOFilesScannerStatus status = dao.getLatest().orElseThrow(IllegalStateException::new);
+		// Manually trigger the job since the start time is very long
+		scheduler.triggerJob(dispatcherTrigger.getJobKey(), dispatcherTrigger.getJobDataMap());
 		
-		assertTrue(status.getJobsStartedCount() > 0);
-		
-		long start = System.currentTimeMillis();
-		
-		// Wait until the number of completed jobs is the same or greater than the started jobs 
-		while (status.getJobsCompletedCount() < status.getJobsStartedCount()) {
-			Thread.sleep(1000);
+		// First wait for the dispatcher job to trigger
+		DBOFilesScannerStatus currentJob = TimeUtils.waitFor(TIMEOUT, 1000L, () -> {
+			Optional<DBOFilesScannerStatus> status = dao.getLatest();
 			
-			status = dao.get(status.getId());
+			return new Pair<>(status.isPresent() && status.get().getJobsStartedCount() > 0, status.orElse(null));
+		});
+		
+		// Now wait for all the dispatched requests to finish
+		TimeUtils.waitFor(TIMEOUT, 1000L, () -> {
+			DBOFilesScannerStatus status = dao.get(currentJob.getId());
 			
-			if (System.currentTimeMillis() - start >= TIMEOUT) {
-				throw new IllegalStateException("Timed out while waiting for job");
-			}
-			
-		}
-				
+			return new Pair<>(status.getJobsCompletedCount() >= status.getJobsStartedCount(), null);
+		});
 	}
 
 }
