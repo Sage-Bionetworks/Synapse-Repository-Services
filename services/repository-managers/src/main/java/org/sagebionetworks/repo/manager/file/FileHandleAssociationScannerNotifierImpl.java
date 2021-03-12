@@ -29,6 +29,11 @@ public class FileHandleAssociationScannerNotifierImpl implements FileHandleAssoc
 	public void configureQueue(StackConfiguration config) {
 		this.sqsQueueUrl = sqsClient.getQueueUrl(config.getQueueName(QUEUE_NAME)).getQueueUrl();
 	}
+	
+	@Override
+	public String getQueueUrl() {
+		return sqsQueueUrl;
+	}
 
 	@Override
 	public FileHandleAssociationScanRangeRequest fromSqsMessage(Message message) {

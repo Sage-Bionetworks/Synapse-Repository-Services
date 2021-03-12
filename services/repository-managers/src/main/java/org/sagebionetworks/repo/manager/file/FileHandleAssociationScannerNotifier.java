@@ -5,6 +5,8 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociationScanRangeRequest
 import com.amazonaws.services.sqs.model.Message;
 
 public interface FileHandleAssociationScannerNotifier {
+
+	String getQueueUrl();
 	
 	FileHandleAssociationScanRangeRequest fromSqsMessage(Message message);
 
