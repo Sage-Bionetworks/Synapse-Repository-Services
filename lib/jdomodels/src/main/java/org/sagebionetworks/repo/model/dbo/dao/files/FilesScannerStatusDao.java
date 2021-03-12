@@ -73,6 +73,6 @@ public interface FilesScannerStatusDao {
 	 * @param id
 	 * @param int daysInThePast
 	 */
-	void setUpdatedOn(long id, int daysInThePast);
+	void reduceUpdatedOnOfNumberOfDays(long id, int daysInThePast);
 	
 }

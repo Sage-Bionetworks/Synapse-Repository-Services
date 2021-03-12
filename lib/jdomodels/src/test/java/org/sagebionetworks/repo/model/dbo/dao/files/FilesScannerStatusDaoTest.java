@@ -120,7 +120,7 @@ public class FilesScannerStatusDaoTest {
 		
 		long jobId = dao.create().getId();
 		
-		dao.setUpdatedOn(jobId, numberOfDays);
+		dao.reduceUpdatedOnOfNumberOfDays(jobId, numberOfDays);
 		
 		// Call under test
 		boolean result = dao.existsWithinLast(numberOfDays);

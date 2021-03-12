@@ -143,7 +143,7 @@ public class FilesScannerStatusDaoImpl implements FilesScannerStatusDao {
 	}
 
 	@Override
-	public void setUpdatedOn(long id, int daysInThePast) {
+	public void reduceUpdatedOnOfNumberOfDays(long id, int daysInThePast) {
 		jdbcTemplate.update(SQL_SET_UPDATED_ON, daysInThePast);
 		
 	}
