@@ -51,7 +51,7 @@ public class FileHandleAssociationScanRangeWorker implements MessageDrivenRunner
 		} catch (Throwable e) {
 			LOG.error("Could not process SQS message \n" + message.getBody() + "\n" + e.getMessage(), e);
 			logWorkerCountMetric(METRIC_PARSE_MESSAGE_ERROR_COUNT);
-			throw e;
+			return;
 		}
 
 		long start = System.currentTimeMillis();
@@ -71,7 +71,6 @@ public class FileHandleAssociationScanRangeWorker implements MessageDrivenRunner
 		} catch (Throwable e) {
 			LOG.error(requestToString(request) + " FAILED: " + e.getMessage(), e);
 			logWorkerCountMetric(METRIC_JOB_FAILED_COUNT);
-			throw e;
 		} finally {
 			logWorkerTimeMetric(request, System.currentTimeMillis() - start);
 		}

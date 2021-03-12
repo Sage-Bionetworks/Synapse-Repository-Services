@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -107,13 +108,9 @@ public class FileHandleAssociationScanRangeWorkerTest {
 		
 		doThrow(ex).when(mockManager).processScanRangeRequest(any());
 		
-		RuntimeException result = assertThrows(RuntimeException.class, () -> {			
-			// Call under test
-			worker.run(mockCallback, mockMessage);
-		});
-		
-		assertEquals(ex, result);
-		
+		// Call under test
+		worker.run(mockCallback, mockMessage);
+				
 		verify(mockNotifier).fromSqsMessage(mockMessage);
 		verify(mockManager).processScanRangeRequest(request);
 		verify(mockWorkerLogger).logWorkerCountMetric(FileHandleAssociationScanRangeWorker.class, "JobFailedCount");
@@ -128,15 +125,12 @@ public class FileHandleAssociationScanRangeWorkerTest {
 		
 		doThrow(ex).when(mockNotifier).fromSqsMessage(any());
 		
-		RuntimeException result = assertThrows(RuntimeException.class, () -> {
-			// Call under test
-			worker.run(mockCallback, mockMessage);
-		});
-		
-		assertEquals(ex, result);
+		// Call under test
+		worker.run(mockCallback, mockMessage);
 		
 		verify(mockNotifier).fromSqsMessage(mockMessage);
 		verify(mockWorkerLogger).logWorkerCountMetric(FileHandleAssociationScanRangeWorker.class, "ParseMessageErrorCount");
+		verifyZeroInteractions(mockManager);
 	}
 
 }
