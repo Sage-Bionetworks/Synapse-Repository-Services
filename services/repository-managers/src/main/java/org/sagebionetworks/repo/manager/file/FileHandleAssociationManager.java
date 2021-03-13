@@ -45,6 +45,14 @@ public interface FileHandleAssociationManager {
 	IdRange getIdRange(FileHandleAssociateType associationType);
 	
 	/**
+	 * Returns the max size for scanning a range of ids for the given type
+	 * 
+	 * @param associationType The association type
+	 * @return The max suggested range size for a scan request for the given association type
+	 */
+	long getMaxIdRangeSize(FileHandleAssociateType associationType);
+	
+	/**
 	 * Return an iterable for all the file handles associatied with the given asociation type
 	 * 
 	 * @param associationType The association type

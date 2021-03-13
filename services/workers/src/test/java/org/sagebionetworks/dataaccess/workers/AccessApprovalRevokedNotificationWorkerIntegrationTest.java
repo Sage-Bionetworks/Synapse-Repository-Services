@@ -54,7 +54,7 @@ public class AccessApprovalRevokedNotificationWorkerIntegrationTest {
 	
 	@BeforeEach
 	public void before() {
-		notificationDao.clear();
+		notificationDao.truncateAll();
 		featureStatusDao.clear();
 		testHelper.cleanUp();
 		
@@ -72,7 +72,7 @@ public class AccessApprovalRevokedNotificationWorkerIntegrationTest {
 	
 	@AfterEach
 	public void after() {
-		notificationDao.clear();
+		notificationDao.truncateAll();
 		featureStatusDao.clear();
 		testHelper.cleanUp();
 		userManager.deletePrincipal(adminUser, user.getId());

@@ -57,5 +57,5 @@ public interface RequestDAO {
 
 	// For testing
 
-	void clear();
+	void truncateAll();
 }

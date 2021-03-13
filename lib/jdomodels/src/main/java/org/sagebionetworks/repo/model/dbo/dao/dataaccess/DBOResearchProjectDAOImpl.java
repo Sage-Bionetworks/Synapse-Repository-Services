@@ -112,7 +112,7 @@ public class DBOResearchProjectDAOImpl implements ResearchProjectDAO{
 	}
 
 	@Override
-	public void clear() {
+	public void truncateAll() {
 		jdbcTemplate.update("DELETE FROM " + TABLE_RESEARCH_PROJECT);
 	}
 

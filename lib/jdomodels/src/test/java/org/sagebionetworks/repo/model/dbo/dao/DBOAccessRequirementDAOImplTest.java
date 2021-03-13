@@ -75,8 +75,8 @@ public class DBOAccessRequirementDAOImplTest {
 	
 	@BeforeEach
 	public void setUp() throws Exception {
-		requestDao.clear();
-		researchProjectDao.clear();
+		requestDao.truncateAll();
+		researchProjectDao.truncateAll();
 		accessRequirementDAO.clear();
 		ars = new ArrayList<>();
 		individualGroup = new UserGroup();
@@ -96,8 +96,8 @@ public class DBOAccessRequirementDAOImplTest {
 	
 	@AfterEach
 	public void tearDown() throws Exception{
-		requestDao.clear();
-		researchProjectDao.clear();
+		requestDao.truncateAll();
+		researchProjectDao.truncateAll();
 		accessRequirementDAO.clear();
 		if (node!=null && nodeDao!=null) {
 			nodeDao.delete(node.getId());

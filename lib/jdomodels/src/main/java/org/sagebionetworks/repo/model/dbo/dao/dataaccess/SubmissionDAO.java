@@ -125,5 +125,5 @@ public interface SubmissionDAO {
 	public List<OpenSubmission> getOpenSubmissions(long limit, long offset);
 	
 	// For testing
-	void clear();
+	void truncateAll();
 }

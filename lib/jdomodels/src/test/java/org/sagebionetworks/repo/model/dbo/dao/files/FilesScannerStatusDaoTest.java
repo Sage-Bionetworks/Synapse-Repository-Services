@@ -5,8 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Optional;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,15 +34,14 @@ public class FilesScannerStatusDaoTest {
 	@Test
 	public void testCreate() {
 		
-		long jobsCount = 50000;
-		
 		DBOFilesScannerStatus expected = new DBOFilesScannerStatus();
 		
-		expected.setJobsStartedCount(jobsCount);
+		expected.setJobsStartedCount(0L);
 		expected.setJobsCompletedCount(0L);
+		expected.setScannedAssociationsCount(0L);
 		
 		// Call under test
-		DBOFilesScannerStatus result = dao.create(jobsCount);
+		DBOFilesScannerStatus result = dao.create();
 		
 		expected.setId(result.getId());
 		expected.setStartedOn(result.getStartedOn());
@@ -57,13 +54,28 @@ public class FilesScannerStatusDaoTest {
 	@Test
 	public void testGet() {
 		
-		long jobsCount = 50000;
-		
-		DBOFilesScannerStatus expected = dao.create(jobsCount);
+		DBOFilesScannerStatus expected = dao.create();
 		
 		// Call under test
 		assertEquals(expected, dao.get(expected.getId()));
 		
+	}
+	
+	@Test
+	public void testDelete() {
+		
+		DBOFilesScannerStatus toDelete = dao.create();
+		
+		// Call under test
+		dao.delete(toDelete.getId());
+		
+		assertFalse(dao.exist(toDelete.getId()));
+	}
+	
+	@Test
+	public void testDeleteWithNonExisting() {
+		// Call under test
+		dao.delete(123);
 	}
 	
 	@Test
@@ -81,59 +93,139 @@ public class FilesScannerStatusDaoTest {
 	}
 	
 	@Test
-	public void testGetLatest() throws InterruptedException {
-		long jobsCount = 50000;
-		
-		dao.create(jobsCount);
-		
-		DBOFilesScannerStatus expected = dao.create(jobsCount);
+	public void testExistsWithinLastWithEmpty() {
+		int numberOfDays = 5;
 		
 		// Call under test
-		DBOFilesScannerStatus result = dao.getLatest().orElseThrow(IllegalStateException::new);
+		boolean result = dao.existsWithinLast(numberOfDays);
 		
-		assertEquals(expected, result);
-		
+		assertFalse(result);
 	}
 	
 	@Test
-	public void testGetLatestWithEmpty() {
+	public void testExistsWithinLastWithRecent() {
+		int numberOfDays = 5;
+		
+		dao.create();
 		
 		// Call under test
-		Optional<DBOFilesScannerStatus> result = dao.getLatest();
+		boolean result = dao.existsWithinLast(numberOfDays);
 		
-		assertFalse(result.isPresent());
-		
+		assertTrue(result);
 	}
 	
 	@Test
-	public void testIncreateCompletedJobsCount() throws InterruptedException {
-		long jobsCount = 50000;
+	public void testExistsWithinLastWithOld() {
+		int numberOfDays = 5;
 		
-		DBOFilesScannerStatus expected = dao.create(jobsCount);
+		long jobId = dao.create().getId();
+		
+		dao.reduceUpdatedOnOfNumberOfDays(jobId, numberOfDays);
+		
+		// Call under test
+		boolean result = dao.existsWithinLast(numberOfDays);
+		
+		assertFalse(result);
+	}
+	
+	@Test
+	public void testIncreaseCompletedJobsCount() throws InterruptedException {
+		int scannedAssociationsCount = 1000;
+		
+		DBOFilesScannerStatus expected = dao.create();
 		
 		// The update resolution is 1 second
 		Thread.sleep(1000);
 		
 		// Call under test
-		DBOFilesScannerStatus result = dao.increaseJobCompletedCount(expected.getId());
+		DBOFilesScannerStatus result = dao.increaseJobCompletedCount(expected.getId(), scannedAssociationsCount);
+		result = dao.increaseJobCompletedCount(expected.getId(), scannedAssociationsCount);
 		
 		assertTrue(result.getUpdatedOn().isAfter(expected.getUpdatedOn()));
 		
-		expected.setJobsCompletedCount(expected.getJobsCompletedCount() + 1);
+		expected.setJobsCompletedCount(expected.getJobsCompletedCount() + 2);
+		expected.setScannedAssociationsCount(Long.valueOf(scannedAssociationsCount * 2));
 		expected.setUpdatedOn(result.getUpdatedOn());
 		
 		assertEquals(expected, result);
 	}
 	
 	@Test
-	public void testIncreateCompletedJobsCountWithNonExistingJob() throws InterruptedException {
+	public void testSetStartedJobsCount() {
+		
+		long jobsCount = 50000;
+		DBOFilesScannerStatus expected = dao.create();
+		
+		// Call under test
+		DBOFilesScannerStatus result = dao.setStartedJobsCount(expected.getId(), jobsCount);
+
+		expected.setJobsStartedCount(jobsCount);
+		expected.setUpdatedOn(result.getUpdatedOn());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSetStartedJobsCountWithNonExistingJob() {
 		
 		String errorMessage = assertThrows(NotFoundException.class, () -> {
 			// Call under test
-			dao.increaseJobCompletedCount(123L);			
+			dao.setStartedJobsCount(123L, 1000);			
 		}).getMessage();
 		
 		assertEquals("Could not find a job with id 123", errorMessage);
+	}
+	
+	@Test
+	public void testIncreaseCompletedJobsCountWithNonExistingJob() throws InterruptedException {
+		
+		String errorMessage = assertThrows(NotFoundException.class, () -> {
+			// Call under test
+			dao.increaseJobCompletedCount(123L, 1000);			
+		}).getMessage();
+		
+		assertEquals("Could not find a job with id 123", errorMessage);
+		
+	}
+	
+	@Test
+	public void testGetLatest() {
+		DBOFilesScannerStatus expected = dao.create();
+		
+		// Call under test
+		DBOFilesScannerStatus result = dao.getLatest().orElseThrow(IllegalStateException::new);
+		 		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetLastestWithEmpty() {
+		
+		// Call under test
+		assertFalse(dao.getLatest().isPresent());
+	}
+	
+	@Test
+	public void testExists() {
+		
+		DBOFilesScannerStatus expected = dao.create();
+		
+		assertTrue(dao.exist(expected.getId()));
+		
+	}
+	
+	@Test
+	public void testExistsWithEmpty() {
+		
+		assertFalse(dao.exist(123));
+		
+	}
+	
+	@Test
+	public void testExistsWithOther() {
+		DBOFilesScannerStatus expected = dao.create();
+		
+		assertFalse(dao.exist(expected.getId() + 1));
 		
 	}
 
