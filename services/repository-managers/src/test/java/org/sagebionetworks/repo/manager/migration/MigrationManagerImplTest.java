@@ -11,10 +11,11 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -49,6 +51,7 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
 import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
@@ -58,6 +61,8 @@ import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeResponse;
 import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.RangeChecksum;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
@@ -903,5 +908,114 @@ public class MigrationManagerImplTest {
 			// call under test
 			manager.calculateBatchChecksums(mockUser, request);
 		});
+	}
+	
+	
+	@Test
+	public void testProcessAsyncMigrationTypeCountsRequestWitNullUser() {
+		mockUser = null;
+		AsyncMigrationTypeCountsRequest request = new AsyncMigrationTypeCountsRequest();
+		request.setTypes(Lists.newArrayList(MigrationType.PRINCIPAL,MigrationType.NODE, MigrationType.CHANGE));
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.processAsyncMigrationTypeCountsRequest(mockUser, request);
+		}).getMessage();
+		assertEquals("user is required.",message);
+	}
+	
+	@Test
+	public void testProcessAsyncMigrationTypeCountsRequestWitNullRequest() {
+		AsyncMigrationTypeCountsRequest request = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.processAsyncMigrationTypeCountsRequest(mockUser, request);
+		}).getMessage();
+		assertEquals("request is required.",message);
+	}
+	
+	@Test
+	public void testProcessAsyncMigrationTypeCountsRequestWitNullRequestTypes() {
+		AsyncMigrationTypeCountsRequest request = new AsyncMigrationTypeCountsRequest();
+		request.setTypes(null);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.processAsyncMigrationTypeCountsRequest(mockUser, request);
+		}).getMessage();
+		assertEquals("request.types is required.",message);
+	}
+	
+	@Test
+	public void testProcessAsyncMigrationTypeCountsRequestWithNonAdmin() {
+		when(mockUser.isAdmin()).thenReturn(false);
+		
+		AsyncMigrationTypeCountsRequest request = new AsyncMigrationTypeCountsRequest();
+		request.setTypes(Lists.newArrayList(MigrationType.PRINCIPAL,MigrationType.NODE, MigrationType.CHANGE));
+		
+		assertThrows(UnauthorizedException.class, ()->{
+			// call under test
+			manager.processAsyncMigrationTypeCountsRequest(mockUser, request);
+		});
+		verify(mockDao, times(0)).getMigrationTypeCount(any());
+	}
+	
+	@Test
+	public void testProcessAsyncMigrationTypeCountsRequest() {
+		when(mockUser.isAdmin()).thenReturn(true);
+
+		MigrationTypeCount principalResult = new MigrationTypeCount().setType(MigrationType.PRINCIPAL).setMaxid(1L);
+		MigrationTypeCount nodeResult = new MigrationTypeCount().setType(MigrationType.NODE).setMaxid(2L);
+		MigrationTypeCount changeResult = new MigrationTypeCount().setType(MigrationType.CHANGE).setMaxid(3L);
+
+		when(mockDao.getMigrationTypeCount(MigrationType.PRINCIPAL)).thenReturn(principalResult);
+		when(mockDao.getMigrationTypeCount(MigrationType.NODE)).thenReturn(nodeResult);
+		when(mockDao.getMigrationTypeCount(MigrationType.CHANGE)).thenReturn(changeResult);
+
+		AsyncMigrationTypeCountsRequest request = new AsyncMigrationTypeCountsRequest();
+		request.setTypes(Lists.newArrayList(MigrationType.PRINCIPAL, MigrationType.NODE, MigrationType.CHANGE));
+
+		// The return order should match the request order.
+		MigrationTypeCounts expected = new MigrationTypeCounts()
+				.setList(Lists.newArrayList(principalResult, nodeResult, changeResult));
+	
+		InOrder inOrder = inOrder(mockDao);
+
+		// call under test
+		MigrationTypeCounts results = manager.processAsyncMigrationTypeCountsRequest(mockUser, request);
+		assertEquals(expected, results);
+		verify(mockDao, times(3)).getMigrationTypeCount(any());
+		// changes must go first to ensure no change migrates before its associated data.
+		inOrder.verify(mockDao).getMigrationTypeCount(MigrationType.CHANGE);
+		inOrder.verify(mockDao).getMigrationTypeCount(MigrationType.PRINCIPAL);
+		inOrder.verify(mockDao).getMigrationTypeCount(MigrationType.NODE);
+	}
+	
+	@Test
+	public void testProcessAsyncMigrationTypeCountsRequestWithoutChanges() {
+		when(mockUser.isAdmin()).thenReturn(true);
+
+		MigrationTypeCount principalResult = new MigrationTypeCount().setType(MigrationType.PRINCIPAL).setMaxid(1L);
+		MigrationTypeCount nodeResult = new MigrationTypeCount().setType(MigrationType.NODE).setMaxid(2L);
+		MigrationTypeCount acl = new MigrationTypeCount().setType(MigrationType.ACL).setMaxid(3L);
+
+		when(mockDao.getMigrationTypeCount(MigrationType.PRINCIPAL)).thenReturn(principalResult);
+		when(mockDao.getMigrationTypeCount(MigrationType.NODE)).thenReturn(nodeResult);
+		when(mockDao.getMigrationTypeCount(MigrationType.ACL)).thenReturn(acl);
+
+		AsyncMigrationTypeCountsRequest request = new AsyncMigrationTypeCountsRequest();
+		request.setTypes(Lists.newArrayList(MigrationType.PRINCIPAL, MigrationType.NODE, MigrationType.ACL));
+
+		// The return order should match the request order.
+		MigrationTypeCounts expected = new MigrationTypeCounts()
+				.setList(Lists.newArrayList(principalResult, nodeResult, acl));
+	
+		InOrder inOrder = inOrder(mockDao);
+
+		// call under test
+		MigrationTypeCounts results = manager.processAsyncMigrationTypeCountsRequest(mockUser, request);
+		assertEquals(expected, results);
+		verify(mockDao, times(3)).getMigrationTypeCount(any());
+		inOrder.verify(mockDao).getMigrationTypeCount(MigrationType.PRINCIPAL);
+		inOrder.verify(mockDao).getMigrationTypeCount(MigrationType.NODE);
+		inOrder.verify(mockDao).getMigrationTypeCount(MigrationType.ACL);
 	}
 }
