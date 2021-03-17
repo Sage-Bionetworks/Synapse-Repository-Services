@@ -357,11 +357,11 @@ public class NodeManagerAuthorizationTest {
 		when(oldMockNode.getParentId()).thenReturn(parentId);
 		when(oldMockNode.getAlias()).thenReturn("alias2");
 		when(mockNodeDao.getNode(id)).thenReturn(oldMockNode);
-		when(mockAuthDao.canChangeSettings(mockUserInfo, oldMockNode)).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.CHANGE_SETTINGS)).thenReturn(AuthorizationStatus.authorized());
 		// OK!
 		nodeManager.update(mockUserInfo, mockNode, null, true);
 		// can't change alias due to access restrictions
-		when(mockAuthDao.canChangeSettings(mockUserInfo, oldMockNode)).thenReturn(AuthorizationStatus.accessDenied(""));
+		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.CHANGE_SETTINGS)).thenReturn(AuthorizationStatus.accessDenied(""));
 		try {
 			// Should fail
 			nodeManager.update(mockUserInfo, mockNode, null, true);
@@ -369,7 +369,7 @@ public class NodeManagerAuthorizationTest {
 		} catch (UnauthorizedException e) {
 			// as expected
 		}
-		verify(mockAuthDao, times(2)).canChangeSettings(mockUserInfo, oldMockNode);
+		verify(mockAuthDao, times(2)).canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.CHANGE_SETTINGS);
 	}
 
 	@Test (expected=UnauthorizedException.class)

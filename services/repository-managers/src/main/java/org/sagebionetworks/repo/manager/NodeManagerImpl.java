@@ -357,7 +357,7 @@ public class NodeManagerImpl implements NodeManager {
 		authorizationManager.canUserMoveRestrictedEntity(userInfo, parentInDatabase, parentInUpdate).checkAuthorizationOrElseThrow();
 
 		if (!StringUtils.equals(oldNode.getAlias(), updatedNode.getAlias())) {
-			authorizationManager.canChangeSettings(userInfo, oldNode).checkAuthorizationOrElseThrow();
+			authorizationManager.canAccess(userInfo, updatedNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.CHANGE_SETTINGS).checkAuthorizationOrElseThrow();
 		}
 
 		// Validate that the user can assign the file handle if they have it.
