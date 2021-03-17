@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.IdRange;
+import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -34,6 +35,9 @@ public class MessageFileScannerIntegrationTest {
 			
 	@Autowired
 	private UserManager userManager;
+	
+	@Autowired
+	private DaoObjectHelper<MessageToUser> messageHelper;
 		
 	@Autowired
 	private MessageDAO messageDao;
@@ -85,15 +89,12 @@ public class MessageFileScannerIntegrationTest {
 	
 	
 	private MessageToUser createMessage() {
-		MessageToUser message = new MessageToUser();
-		
-		message.setCreatedBy(user.getId().toString());
-		message.setFileHandleId(utils.generateFileHandle(user));
-		message.setSubject("Subject");
-		message.setRecipients(Collections.singleton(user.getId().toString()));
-		
-		return messageDao.createMessage(message, false);
+		return messageHelper.create(message -> {
+			message.setCreatedBy(user.getId().toString());
+			message.setFileHandleId(utils.generateFileHandle(user));
+			message.setSubject("Subject");
+			message.setRecipients(Collections.singleton(user.getId().toString()));	
+		});
 	}
-	
 	
 }

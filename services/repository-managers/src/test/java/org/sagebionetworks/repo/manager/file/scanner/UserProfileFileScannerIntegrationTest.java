@@ -16,11 +16,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.IdRange;
@@ -43,10 +41,7 @@ public class UserProfileFileScannerIntegrationTest {
 	private UserGroupDAO userGroupDao;
 	
 	@Autowired
-	private UserProfileDAO userProfileDao;
-	
-	@Autowired
-	private DaoObjectHelper<UserGroup> userGroupHelper;
+	private DaoObjectHelper<UserProfile> userProfileHelper;
 		
 	@Autowired
 	private FileHandleAssociationScannerTestUtils utils;
@@ -106,17 +101,11 @@ public class UserProfileFileScannerIntegrationTest {
 	
 	@Test
 	private UserProfile createUserProfile(boolean withProfilePicture) {
-		UserProfile up = new UserProfile();
-		
-		UserGroup ug = userGroupHelper.create((u) -> {});
-		
-		up.setOwnerId(ug.getId());
-		
-		if (withProfilePicture) {
-			up.setProfilePicureFileHandleId(utils.generateFileHandle(user));
-		}
-		
-		return userProfileDao.get(userProfileDao.create(up));
+		return userProfileHelper.create(up -> {
+			if (withProfilePicture) {
+				up.setProfilePicureFileHandleId(utils.generateFileHandle(user));
+			}	
+		});
 	}
 
 }

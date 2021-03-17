@@ -58,6 +58,6 @@ public interface ResearchProjectDAO {
 
 	// For testing
 
-	void clear();
+	void truncateAll();
 
 }

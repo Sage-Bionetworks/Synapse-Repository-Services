@@ -18,8 +18,6 @@ import org.sagebionetworks.evaluation.dao.SubmissionDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Submission;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -50,9 +48,12 @@ public class EvaluationSubmissionFileScannerIntegrationTest {
 	
 	@Autowired
 	private DaoObjectHelper<Node> nodeDaoHelper;
+
+	@Autowired
+	private DaoObjectHelper<Evaluation> evaluationDaoHelper;
 	
 	@Autowired
-	private IdGenerator idGenerator;
+	private DaoObjectHelper<Submission> submissionDaoHelper;
 	
 	@Autowired
 	private EvaluationDAO evaluationDao;
@@ -90,14 +91,12 @@ public class EvaluationSubmissionFileScannerIntegrationTest {
 			n.setCreatedByPrincipalId(user.getId());
 		}).getId();
 		
-		Evaluation evaluation = new Evaluation();
-		
-		evaluation.setId(idGenerator.generateNewId(IdType.EVALUATION_ID).toString());
-		evaluation.setContentSource(projectId);
-		evaluation.setName("TestEvaluation");
-		evaluation.setCreatedOn(new Date());
-		
-		evaluationId = evaluationDao.create(evaluation, user.getId());
+		evaluationId = evaluationDaoHelper.create(evaluation -> {
+			evaluation.setContentSource(projectId);
+			evaluation.setName("TestEvaluation");
+			evaluation.setCreatedOn(new Date());
+			evaluation.setOwnerId(user.getId().toString());
+		}).getId();
 	}
 	
 	@AfterEach
@@ -140,22 +139,19 @@ public class EvaluationSubmissionFileScannerIntegrationTest {
 	}
 	
 	private Long createSubmission(Node node) {
-		Submission submission = new Submission();
 		
-		submission.setId(idGenerator.generateNewId(IdType.EVALUATION_SUBMISSION_ID).toString());
-		submission.setEvaluationId(evaluationId);
-		submission.setUserId(user.getId().toString());
-		submission.setEntityId(node.getId());
-		submission.setVersionNumber(node.getVersionNumber());
-		submission.setCreatedOn(new Date());
-		
-		String submissionId = submissionDao.create(submission);
-		
+		Submission result = submissionDaoHelper.create((submission) -> {
+			submission.setEvaluationId(evaluationId);
+			submission.setUserId(user.getId().toString());
+			submission.setEntityId(node.getId());
+			submission.setVersionNumber(node.getVersionNumber());
+			submission.setCreatedOn(new Date());
+		});
+
 		if (node.getFileHandleId() != null) {
-			submissionFileDao.create(submissionId, node.getFileHandleId());
+			submissionFileDao.create(result.getId(), node.getFileHandleId());
 		}
 		
-		return Long.valueOf(submissionId);
-		
+		return Long.valueOf(result.getId());
 	}
 }

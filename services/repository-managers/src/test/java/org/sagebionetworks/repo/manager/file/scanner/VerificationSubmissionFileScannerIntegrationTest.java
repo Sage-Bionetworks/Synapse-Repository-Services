@@ -40,6 +40,9 @@ public class VerificationSubmissionFileScannerIntegrationTest {
 	
 	@Autowired
 	private DaoObjectHelper<UserGroup> userGroupHelper;
+
+	@Autowired
+	private DaoObjectHelper<VerificationSubmission> submissionHelper;
 	
 	@Autowired
 	private VerificationDAO verificationDao;
@@ -110,24 +113,24 @@ public class VerificationSubmissionFileScannerIntegrationTest {
 		assertEquals(expected, result);
 		
 	}
-	
+
 	private VerificationSubmission createVerificationSubmission(String userId, int fileNum) {
-		VerificationSubmission submission = new VerificationSubmission();
-		submission.setCreatedBy(userId);
-		submission.setCreatedOn(new Date());
-		
-		submission.setAttachments(IntStream.range(0, fileNum).boxed().map(i-> {
-			AttachmentMetadata a = new AttachmentMetadata();
-			a.setFileName("File_" + i);
-			a.setId(utils.generateFileHandle(userId));
-			return a;
-		}).collect(Collectors.toList()));
-		
-		submission = verificationDao.createVerificationSubmission(submission);
-		
-		verificationToDelete.add(Long.valueOf(submission.getId()));
-		
-		return submission;
+
+		VerificationSubmission result = submissionHelper.create(submission -> {
+			submission.setCreatedBy(userId);
+			submission.setCreatedOn(new Date());
+
+			submission.setAttachments(IntStream.range(0, fileNum).boxed().map(i -> {
+				AttachmentMetadata a = new AttachmentMetadata();
+				a.setFileName("File_" + i);
+				a.setId(utils.generateFileHandle(userId));
+				return a;
+			}).collect(Collectors.toList()));
+		});
+
+		verificationToDelete.add(Long.valueOf(result.getId()));
+
+		return result;
 	}
 
 }

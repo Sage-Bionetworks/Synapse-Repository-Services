@@ -149,6 +149,20 @@ public class FileHandleAssociationManagerImplTest {
 		
 	}
 	
+	@Test
+	public void testGetMaxIdRangeSize() {
+		
+		long expectedMaxIdRange = 10;
+		
+		when(mockScanner.getMaxIdRangeSize()).thenReturn(expectedMaxIdRange);
+		
+		// Call under test
+		long result = fileHandleAssociationManager.getMaxIdRangeSize(FileHandleAssociateType.TableEntity);
+		
+		assertEquals(expectedMaxIdRange, result);
+		
+	}
+	
 	public void testScanRange() {
 		
 		Iterable<ScannedFileHandleAssociation> expected = new ArrayList<>();

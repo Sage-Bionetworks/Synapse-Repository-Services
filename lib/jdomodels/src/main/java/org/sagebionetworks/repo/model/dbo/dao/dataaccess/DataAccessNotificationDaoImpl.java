@@ -242,7 +242,7 @@ public class DataAccessNotificationDaoImpl implements DataAccessNotificationDao 
 	}
 
 	@Override
-	public void clear() {
+	public void truncateAll() {
 		jdbcTemplate.update("TRUNCATE TABLE " + TABLE_DATA_ACCESS_NOTIFICATION);
 	}
 }
