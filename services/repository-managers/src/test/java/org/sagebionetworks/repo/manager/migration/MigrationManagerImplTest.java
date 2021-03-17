@@ -1,26 +1,27 @@
 package org.sagebionetworks.repo.manager.migration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -28,13 +29,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InOrder;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.StackStatusDao;
@@ -48,6 +51,7 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
 import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
@@ -57,12 +61,13 @@ import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeResponse;
 import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.RangeChecksum;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.util.FileProvider;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -71,10 +76,9 @@ import com.google.common.collect.Sets;
 
 /**
  * The Unit test for MigrationManagerImpl;
- * @author jmhill
  *
  */
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class MigrationManagerImplTest {
 	
 	@Mock
@@ -103,7 +107,7 @@ public class MigrationManagerImplTest {
 	MigrationTypeListener mockMigrationListener;
 	@Captor
 	ArgumentCaptor<GetObjectRequest> getObjectRequestCaptor;
-	
+	@InjectMocks
 	MigrationManagerImpl manager;
 	
 	DBONode nodeOne;
@@ -111,6 +115,9 @@ public class MigrationManagerImplTest {
 	DBONode nodeTwo;
 	DBORevision revTwo;
 	
+	List<ForeignKeyInfo> nonRestrictedForeignKeys;
+	Map<String, Set<String>> tableNameToPrimaryGroup;
+	RangeChecksum sum;
 	BackupAliasType backupAlias;
 	BackupTypeRangeRequest rangeRequest;
 	Long batchSize;
@@ -123,36 +130,16 @@ public class MigrationManagerImplTest {
 	CalculateOptimalRangeRequest optimalRangeRequest;
 	List<IdRange> ranges;
 	
-	@Before
+	@BeforeEach
 	public void before() throws IOException{
-		manager = new MigrationManagerImpl();
-		ReflectionTestUtils.setField(manager, "backupBatchMax", 50);
-		ReflectionTestUtils.setField(manager, "migratableTableDao", mockDao);
-		ReflectionTestUtils.setField(manager, "stackStatusDao", mockStatusDao);
-		ReflectionTestUtils.setField(manager, "backupFileStream", mockBackupFileStream);
-		ReflectionTestUtils.setField(manager, "s3Client", mockS3Client);
-		ReflectionTestUtils.setField(manager, "fileProvider", mockFileProvider);
-		ReflectionTestUtils.setField(manager, "migrationListeners", Lists.newArrayList(mockMigrationListener));
-		
 		ForeignKeyInfo info = new ForeignKeyInfo();
 		info.setTableName("foo");
 		info.setReferencedTableName("bar");
-		List<ForeignKeyInfo> nonRestrictedForeignKeys = Lists.newArrayList(info);
-		when(mockDao.listNonRestrictedForeignKeys()).thenReturn(nonRestrictedForeignKeys);
-		
-		Map<String, Set<String>> tableNameToPrimaryGroup = new HashMap<>();
+		nonRestrictedForeignKeys = Lists.newArrayList(info);
+
+		tableNameToPrimaryGroup = new HashMap<>();
 		// bar is within foo's primary group.
 		tableNameToPrimaryGroup.put("FOO", Sets.newHashSet("BAR"));
-		when(mockDao.mapSecondaryTablesToPrimaryGroups()).thenReturn(tableNameToPrimaryGroup);
-		
-		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
-		when(mockFileProvider.createFileOutputStream(any(File.class))).thenReturn(mockOutputStream);
-		when(mockFileProvider.createFileInputStream(any(File.class))).thenReturn(mockFileInputStream);
-		// default to admin
-		when(mockUser.isAdmin()).thenReturn(true);
-		
-		when(mockDao.getObjectForType(MigrationType.NODE)).thenReturn(new DBONode());
-		when(mockDao.getObjectForType(MigrationType.PRINCIPAL)).thenReturn(new DBOUserGroup());
 		
 		nodeOne = new DBONode();
 		nodeOne.setId(123L);;
@@ -180,11 +167,6 @@ public class MigrationManagerImplTest {
 		rangeRequest.setMinimumId(nodeOne.getId());
 		rangeRequest.setMaximumId(nodeTwo.getId());
 		
-		when(mockDao.streamDatabaseObjects(MigrationType.NODE, rangeRequest.getMinimumId(), rangeRequest.getMaximumId(),
-				batchSize)).thenReturn(nodeStream);
-		when(mockDao.streamDatabaseObjects(MigrationType.NODE_REVISION, rangeRequest.getMinimumId(),
-				rangeRequest.getMaximumId(), batchSize)).thenReturn(revisionStream);
-		
 		allObjects = new LinkedList<>();
 		allObjects.addAll(nodeStream);
 		allObjects.addAll(revisionStream);
@@ -194,13 +176,7 @@ public class MigrationManagerImplTest {
 			ids.add(bootPrincpal.getPrincipalId());
 		}
 		this.bootstrapPrincipalIds = Collections.unmodifiableList(ids);
-		
-		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE)).thenReturn(true);
-		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(true);
-		
-		// setup read of all objects.
-		when(mockBackupFileStream.readBackupFile(any(InputStream.class), any(BackupAliasType.class))).thenReturn(allObjects);
-		
+				
 		restoreTypeRequest = new RestoreTypeRequest();
 		restoreTypeRequest.setAliasType(backupAlias);
 		restoreTypeRequest.setBackupFileKey("backupFileKey");
@@ -218,20 +194,24 @@ public class MigrationManagerImplTest {
 		range.setMaximumId(100L);
 		ranges = Lists.newArrayList(range);
 		
-		when(mockDao.calculateRangesForType(any(MigrationType.class), anyLong(),  anyLong(),  anyLong())).thenReturn(ranges);
-		
-		RangeChecksum sum = new RangeChecksum();
+		sum = new RangeChecksum();
 		sum.setBinNumber(1L);
-		when(mockDao.calculateBatchChecksums(any(BatchChecksumRequest.class))).thenReturn(Lists.newArrayList(sum));
 		
+		List<MigrationTypeListener> listeners = Lists.newArrayList(mockMigrationListener);
+		manager.setMigrationListeners(listeners);
+		
+		when(mockDao.getObjectForType(MigrationType.PRINCIPAL)).thenReturn(new DBOUserGroup());
 		manager.initialize();
 	}
 	
-	@Test(expected=RuntimeException.class)
+	@Test
 	public void testgetMigrationChecksumForTypeReadWriteMode() throws Exception {
 		when(mockStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
 		UserInfo user = new UserInfo(true, "0");
-		MigrationTypeChecksum c = manager.getChecksumForType(user, MigrationType.FILE_HANDLE);
+		assertThrows(RuntimeException.class, ()->{
+			// call under test
+			manager.getChecksumForType(user, MigrationType.FILE_HANDLE);
+		});
 	}
 
 	@Test
@@ -276,17 +256,14 @@ public class MigrationManagerImplTest {
 		// bar is not in foo's primary group.
 		tableNameToPrimaryGroup.put("FOO", Sets.newHashSet("cats"));
 		when(mockDao.mapSecondaryTablesToPrimaryGroups()).thenReturn(tableNameToPrimaryGroup);
-		try {
+		String message = assertThrows(IllegalStateException.class, ()->{
 			// Call under test
 			manager.validateForeignKeys();
-			fail();
-		} catch (IllegalStateException e) {
-			System.out.println(e.getMessage());
-			// expected
-			assertTrue(e.getMessage().contains(info.getTableName().toUpperCase()));
-			assertTrue(e.getMessage().contains(info.getReferencedTableName().toUpperCase()));
-			assertTrue(e.getMessage().contains(info.getDeleteRule()));
-		}
+		}).getMessage();
+		// expected
+		assertTrue(message.contains(info.getTableName().toUpperCase()));
+		assertTrue(message.contains(info.getReferencedTableName().toUpperCase()));
+		assertTrue(message.contains(info.getDeleteRule()));
 	}
 	
 	/**
@@ -322,6 +299,9 @@ public class MigrationManagerImplTest {
 	
 	@Test
 	public void testBackupStreamToS3() throws IOException {
+		when(mockFileProvider.createTempFile(any(), any())).thenReturn(mockFile);
+		when(mockFileProvider.createFileOutputStream(any())).thenReturn(mockOutputStream);
+		
 		List<MigratableDatabaseObject<?, ?>> stream = new LinkedList<>();
 		MigrationType type = MigrationType.NODE;
 		BackupAliasType aliasType = BackupAliasType.TABLE_NAME;
@@ -341,22 +321,22 @@ public class MigrationManagerImplTest {
 	
 	@Test
 	public void testBackupStreamToS3Exception() throws IOException {
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		when(mockFileProvider.createFileOutputStream(any(File.class))).thenReturn(mockOutputStream);
+		
 		// setup an failure
 		IOException toBeThrown = new IOException("some kind of IO error");
-		doThrow(toBeThrown).when(mockBackupFileStream).writeBackupFile(any(OutputStream.class), any(Iterable.class), any(BackupAliasType.class), anyLong());
+		doThrow(toBeThrown).when(mockBackupFileStream).writeBackupFile(any(), any(), any(), anyLong());
 		// call under test
 		List<MigratableDatabaseObject<?, ?>> stream = new LinkedList<>();
 		MigrationType type = MigrationType.NODE;
 		BackupAliasType aliasType = BackupAliasType.TABLE_NAME;
 		long batchSize = 2;
-		// call under test
-		try {
+		IOException e = assertThrows(IOException.class, ()->{
+			// call under test
 			manager.backupStreamToS3(type, stream, aliasType, batchSize);
-			fail();
-		} catch (Exception e) {
-			// expected
-			assertEquals(toBeThrown.getMessage(), e.getMessage());
-		}
+		});
+		assertEquals(toBeThrown.getMessage(), e.getMessage());
 		// the stream must be closed
 		verify(mockOutputStream).close();
 		// the temp file must be deleted
@@ -365,6 +345,15 @@ public class MigrationManagerImplTest {
 	
 	@Test
 	public void testBackupRangeRequest() throws IOException {
+		when(mockFileProvider.createTempFile(any(), any())).thenReturn(mockFile);
+		when(mockFileProvider.createFileOutputStream(any())).thenReturn(mockOutputStream);
+		when(mockUser.isAdmin()).thenReturn(true);
+		when(mockDao.getObjectForType(any())).thenReturn(new DBONode());
+		when(mockDao.streamDatabaseObjects(MigrationType.NODE, rangeRequest.getMinimumId(), rangeRequest.getMaximumId(),
+				batchSize)).thenReturn(nodeStream);
+		when(mockDao.streamDatabaseObjects(MigrationType.NODE_REVISION, rangeRequest.getMinimumId(),
+				rangeRequest.getMaximumId(), batchSize)).thenReturn(revisionStream);
+		
  		// call under test
 		manager.backupRequest(mockUser, rangeRequest);
 		verify(mockBackupFileStream).writeBackupFile(eq(mockOutputStream), iterableCator.capture(), eq(backupAlias), eq(batchSize));
@@ -375,60 +364,76 @@ public class MigrationManagerImplTest {
 		assertEquals(allObjects,results);
 	}
 	
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testBackupRangeRequestNonAdmin() throws IOException {
 		when(mockUser.isAdmin()).thenReturn(false);
- 		// call under test
-		manager.backupRequest(mockUser, rangeRequest);
+		assertThrows(UnauthorizedException.class, ()->{
+	 		// call under test
+			manager.backupRequest(mockUser, rangeRequest);
+		});
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testBackupRangeRequestNullUser() throws IOException {
 		mockUser = null;
- 		// call under test
-		manager.backupRequest(mockUser, rangeRequest);
+		assertThrows(IllegalArgumentException.class, ()->{
+	 		// call under test
+			manager.backupRequest(mockUser, rangeRequest);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testBackupRageRequestNullRequset() throws IOException {
 		rangeRequest  = null;
- 		// call under test
-		manager.backupRequest(mockUser, rangeRequest);
+		assertThrows(IllegalArgumentException.class, ()->{
+	 		// call under test
+			manager.backupRequest(mockUser, rangeRequest);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testBackupRangetRequestNullAliasType() throws IOException {
 		rangeRequest.setAliasType(null);
- 		// call under test
-		manager.backupRequest(mockUser, rangeRequest);
+		assertThrows(IllegalArgumentException.class, ()->{
+	 		// call under test
+			manager.backupRequest(mockUser, rangeRequest);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testBackupRangeRequestNullMigrationType() throws IOException {
 		rangeRequest.setMigrationType(null);
- 		// call under test
-		manager.backupRequest(mockUser, rangeRequest);
+		assertThrows(IllegalArgumentException.class, ()->{
+	 		// call under test
+			manager.backupRequest(mockUser, rangeRequest);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testBackupRangeRequestNullBatchSize() throws IOException {
 		rangeRequest.setBatchSize(null);
- 		// call under test
-		manager.backupRequest(mockUser, rangeRequest);
+		assertThrows(IllegalArgumentException.class, ()->{
+	 		// call under test
+			manager.backupRequest(mockUser, rangeRequest);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testBackupRangeRequestNullMinId() throws IOException {
 		rangeRequest.setMinimumId(null);
- 		// call under test
-		manager.backupRequest(mockUser, rangeRequest);
+		assertThrows(IllegalArgumentException.class, ()->{
+	 		// call under test
+			manager.backupRequest(mockUser, rangeRequest);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testBackupRangeRequestNullMaxId() throws IOException {
 		rangeRequest.setMaximumId(null);
- 		// call under test
-		manager.backupRequest(mockUser, rangeRequest);
+		assertThrows(IllegalArgumentException.class, ()->{
+	 		// call under test
+			manager.backupRequest(mockUser, rangeRequest);
+		});
 	}
 	
 	@Test
@@ -484,7 +489,7 @@ public class MigrationManagerImplTest {
 	}
 	
 	@Test
-	public void testRestoreBatchSecondary() {
+	public void testRestoreBatchSecondary() throws IOException {
 		// current is a secondary.
 		MigrationType currentType = MigrationType.NODE_REVISION;
 		// node is the primary
@@ -520,6 +525,11 @@ public class MigrationManagerImplTest {
 	 */
 	@Test
 	public void testRestoreStreamBatchByType() {
+		when(mockBackupFileStream.readBackupFile(any(), any())).thenReturn(allObjects);
+		when(mockDao.getObjectForType(MigrationType.NODE)).thenReturn(new DBONode());
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE)).thenReturn(true);
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(true);
+		
 		MigrationType primaryType = MigrationType.NODE;
 		batchSize = 1000L;
 		// call under test
@@ -536,9 +546,15 @@ public class MigrationManagerImplTest {
 	
 	/**
 	 * Batch by size when the batch size is smaller than the type batches.
+	 * @throws IOException 
 	 */
 	@Test
-	public void testRestoreStreamBatchBySize() {
+	public void testRestoreStreamBatchBySize() throws IOException {
+		when(mockBackupFileStream.readBackupFile(any(), any())).thenReturn(allObjects);
+		when(mockDao.getObjectForType(MigrationType.NODE)).thenReturn(new DBONode());
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE)).thenReturn(true);
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(true);
+		
 		MigrationType primaryType = MigrationType.NODE;
 		batchSize = 1L;
 		// call under test
@@ -568,7 +584,12 @@ public class MigrationManagerImplTest {
 	}
 	
 	@Test
-	public void testRestoreStreamSecondaryNotRegistered() {
+	public void testRestoreStreamSecondaryNotRegistered() throws IOException {
+		when(mockBackupFileStream.readBackupFile(any(), any())).thenReturn(allObjects);
+		when(mockDao.getObjectForType(any())).thenReturn(new DBONode());
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE)).thenReturn(true);
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(true);
+		
 		MigrationType primaryType = MigrationType.NODE;
 		// secondary not registered.
 		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(false);
@@ -584,6 +605,14 @@ public class MigrationManagerImplTest {
 	
 	@Test
 	public void testRestoreRequestNoRange() throws IOException {
+		when(mockFileProvider.createTempFile(any(), any())).thenReturn(mockFile);
+		when(mockFileProvider.createFileInputStream(any())).thenReturn(mockFileInputStream);
+		when(mockUser.isAdmin()).thenReturn(true);
+		when(mockBackupFileStream.readBackupFile(any(), any())).thenReturn(allObjects);
+		when(mockDao.getObjectForType(any())).thenReturn(new DBONode());
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE)).thenReturn(true);
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(true);
+		
 		restoreTypeRequest.setMaximumRowId(null);
 		restoreTypeRequest.setMinimumRowId(null);
 		// call under test
@@ -607,6 +636,14 @@ public class MigrationManagerImplTest {
 	
 	@Test
 	public void testRestoreRequestWithRange() throws IOException {
+		when(mockFileProvider.createTempFile(any(), any())).thenReturn(mockFile);
+		when(mockFileProvider.createFileInputStream(any())).thenReturn(mockFileInputStream);
+		when(mockUser.isAdmin()).thenReturn(true);
+		when(mockBackupFileStream.readBackupFile(any(), any())).thenReturn(allObjects);
+		when(mockDao.getObjectForType(any())).thenReturn(new DBONode());
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE)).thenReturn(true);
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(true);
+		
 		long max = 99L;
 		long min = 3L;
 		restoreTypeRequest.setMaximumRowId(max);
@@ -634,17 +671,23 @@ public class MigrationManagerImplTest {
 	
 	@Test
 	public void testRestoreRequestCleanup() throws IOException {
+		when(mockFileProvider.createTempFile(any(), any())).thenReturn(mockFile);
+		when(mockFileProvider.createFileInputStream(any())).thenReturn(mockFileInputStream);
+		when(mockUser.isAdmin()).thenReturn(true);
+		when(mockBackupFileStream.readBackupFile(any(), any())).thenReturn(allObjects);
+		when(mockDao.getObjectForType(any())).thenReturn(new DBOUserGroup());
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE)).thenReturn(true);
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(true);
+
 		// setup failure
 		AmazonServiceException exception = new AmazonServiceException("failed");
 		doThrow(exception).when(mockS3Client).deleteObject(anyString(), anyString());
-		try {
+		String message = assertThrows(AmazonServiceException.class, ()->{
 			// call under test
 			manager.restoreRequest(mockUser, restoreTypeRequest);
-			fail();
-		} catch (Exception e) {
-			// expected
-			assertEquals(exception.getMessage(), e.getMessage());
-		}
+		}).getMessage();
+		// expected
+		assertEquals(message, exception.getMessage());
 		// stream should be closed
 		verify(mockFileInputStream).close();
 		// temp should be deleted.
@@ -652,58 +695,75 @@ public class MigrationManagerImplTest {
 	}
 	
 	
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testRestoreRequestUnauthorized() throws IOException {
 		// must be an admin
 		when(mockUser.isAdmin()).thenReturn(false);
-		// call under test
-		manager.restoreRequest(mockUser, restoreTypeRequest);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testRestoreRequestNullUser() throws IOException {
-		mockUser = null;
-		// call under test
-		manager.restoreRequest(mockUser, restoreTypeRequest);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testRestoreRequestNullRequest() throws IOException {
-		restoreTypeRequest = null;
-		// call under test
-		manager.restoreRequest(mockUser, restoreTypeRequest);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testRestoreRequestNullBackupAlias() throws IOException {
-		restoreTypeRequest.setAliasType(null);
-		// call under test
-		manager.restoreRequest(mockUser, restoreTypeRequest);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testRestoreRequestNullKey() throws IOException {
-		restoreTypeRequest.setBackupFileKey(null);
-		// call under test
-		manager.restoreRequest(mockUser, restoreTypeRequest);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testRestoreRequestNullMigrationType() throws IOException {
-		restoreTypeRequest.setMigrationType(null);
-		// call under test
-		manager.restoreRequest(mockUser, restoreTypeRequest);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testRestoreRequestNullBatchSize() throws IOException {
-		restoreTypeRequest.setBatchSize(null);
-		// call under test
-		manager.restoreRequest(mockUser, restoreTypeRequest);
+		assertThrows(UnauthorizedException.class, ()->{
+			// call under test
+			manager.restoreRequest(mockUser, restoreTypeRequest);
+		});
 	}
 	
 	@Test
-	public void testDeleteByRange() {
+	public void testRestoreRequestNullUser() throws IOException {
+		mockUser = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.restoreRequest(mockUser, restoreTypeRequest);
+		});
+	}
+	
+	@Test
+	public void testRestoreRequestNullRequest() throws IOException {
+		restoreTypeRequest = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.restoreRequest(mockUser, restoreTypeRequest);
+		});
+	}
+	
+	@Test
+	public void testRestoreRequestNullBackupAlias() throws IOException {
+		restoreTypeRequest.setAliasType(null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.restoreRequest(mockUser, restoreTypeRequest);
+		});
+	}
+	
+	@Test
+	public void testRestoreRequestNullKey() throws IOException {
+		restoreTypeRequest.setBackupFileKey(null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.restoreRequest(mockUser, restoreTypeRequest);
+		});
+	}
+	
+	@Test
+	public void testRestoreRequestNullMigrationType() throws IOException {
+		restoreTypeRequest.setMigrationType(null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.restoreRequest(mockUser, restoreTypeRequest);
+		});
+	}
+	
+	@Test
+	public void testRestoreRequestNullBatchSize() throws IOException {
+		restoreTypeRequest.setBatchSize(null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.restoreRequest(mockUser, restoreTypeRequest);
+		});
+	}
+	
+	@Test
+	public void testDeleteByRange() throws IOException {
+		when(mockDao.getObjectForType(any())).thenReturn(new DBONode());
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE)).thenReturn(true);
+		
 		MigrationType type = MigrationType.NODE;
 		long minimumId = 3L;
 		long maximumId = 45L;
@@ -728,7 +788,10 @@ public class MigrationManagerImplTest {
 	}
 	
 	@Test
-	public void testCalculateOptimalRanges() {
+	public void testCalculateOptimalRanges() throws IOException {
+		when(mockUser.isAdmin()).thenReturn(true);
+		when(mockDao.calculateRangesForType(any(), anyLong(),  anyLong(),  anyLong())).thenReturn(ranges);
+		
 		// call under test
 		CalculateOptimalRangeResponse response = manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
 		assertNotNull(response);
@@ -741,50 +804,65 @@ public class MigrationManagerImplTest {
 				optimalRangeRequest.getOptimalRowsPerRange());
 	}
 	
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testCalculateOptimalRangesUnauthorized() {
 		when(mockUser.isAdmin()).thenReturn(false);
-		// call under test
-		manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testCalculateOptimalRangesNullRequest() {
-		optimalRangeRequest = null;
-		// call under test
-		manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testCalculateOptimalRangesNullType() {
-		optimalRangeRequest.setMigrationType(null);
-		// call under test
-		manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testCalculateOptimalRangesNullMin() {
-		optimalRangeRequest.setMinimumId(null);
-		// call under test
-		manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testCalculateOptimalRangesNullMax() {
-		optimalRangeRequest.setMaximumId(null);
-		// call under test
-		manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testCalculateOptimalRangesNullOptimalSize() {
-		optimalRangeRequest.setOptimalRowsPerRange(null);
-		// call under test
-		manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
+		assertThrows(UnauthorizedException.class, ()->{
+			// call under test
+			manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
+		});
 	}
 	
 	@Test
-	public void testCalculateBatchChecksums() {
+	public void testCalculateOptimalRangesNullRequest() {
+		optimalRangeRequest = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
+		});
+	}
+	
+	@Test
+	public void testCalculateOptimalRangesNullType() {
+		optimalRangeRequest.setMigrationType(null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
+		});
+	}
+	
+	@Test
+	public void testCalculateOptimalRangesNullMin() {
+		optimalRangeRequest.setMinimumId(null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
+		});
+	}
+	
+	@Test
+	public void testCalculateOptimalRangesNullMax() {
+		optimalRangeRequest.setMaximumId(null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
+		});
+	}
+	
+	@Test
+	public void testCalculateOptimalRangesNullOptimalSize() {
+		optimalRangeRequest.setOptimalRowsPerRange(null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
+		});
+	}
+	
+	@Test
+	public void testCalculateBatchChecksums() throws IOException {
+		when(mockUser.isAdmin()).thenReturn(true);
+		when(mockDao.calculateBatchChecksums(any())).thenReturn(Lists.newArrayList(sum));
+		
 		BatchChecksumRequest request = new BatchChecksumRequest();
 		request.setBatchSize(3L);
 		request.setMinimumId(0L);
@@ -800,7 +878,7 @@ public class MigrationManagerImplTest {
 		assertEquals(1, response.getCheksums().size());
 	}
 	
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testCalculateBatchChecksumsNonAdmin() {
 		when(mockUser.isAdmin()).thenReturn(false);
 		BatchChecksumRequest request = new BatchChecksumRequest();
@@ -809,11 +887,14 @@ public class MigrationManagerImplTest {
 		request.setMaximumId(0L);
 		request.setSalt("some salt");
 		request.setMigrationType(MigrationType.FILE_HANDLE);
-		// call under test
-		manager.calculateBatchChecksums(mockUser, request);
+
+		assertThrows(UnauthorizedException.class, ()->{
+			// call under test
+			manager.calculateBatchChecksums(mockUser, request);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCalculateBatchChecksumsNullUser() {
 		BatchChecksumRequest request = new BatchChecksumRequest();
 		request.setBatchSize(3L);
@@ -822,7 +903,119 @@ public class MigrationManagerImplTest {
 		request.setSalt("some salt");
 		request.setMigrationType(MigrationType.FILE_HANDLE);
 		mockUser = null;
+
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.calculateBatchChecksums(mockUser, request);
+		});
+	}
+	
+	
+	@Test
+	public void testProcessAsyncMigrationTypeCountsRequestWitNullUser() {
+		mockUser = null;
+		AsyncMigrationTypeCountsRequest request = new AsyncMigrationTypeCountsRequest();
+		request.setTypes(Lists.newArrayList(MigrationType.PRINCIPAL,MigrationType.NODE, MigrationType.CHANGE));
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.processAsyncMigrationTypeCountsRequest(mockUser, request);
+		}).getMessage();
+		assertEquals("user is required.",message);
+	}
+	
+	@Test
+	public void testProcessAsyncMigrationTypeCountsRequestWitNullRequest() {
+		AsyncMigrationTypeCountsRequest request = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.processAsyncMigrationTypeCountsRequest(mockUser, request);
+		}).getMessage();
+		assertEquals("request is required.",message);
+	}
+	
+	@Test
+	public void testProcessAsyncMigrationTypeCountsRequestWitNullRequestTypes() {
+		AsyncMigrationTypeCountsRequest request = new AsyncMigrationTypeCountsRequest();
+		request.setTypes(null);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.processAsyncMigrationTypeCountsRequest(mockUser, request);
+		}).getMessage();
+		assertEquals("request.types is required.",message);
+	}
+	
+	@Test
+	public void testProcessAsyncMigrationTypeCountsRequestWithNonAdmin() {
+		when(mockUser.isAdmin()).thenReturn(false);
+		
+		AsyncMigrationTypeCountsRequest request = new AsyncMigrationTypeCountsRequest();
+		request.setTypes(Lists.newArrayList(MigrationType.PRINCIPAL,MigrationType.NODE, MigrationType.CHANGE));
+		
+		assertThrows(UnauthorizedException.class, ()->{
+			// call under test
+			manager.processAsyncMigrationTypeCountsRequest(mockUser, request);
+		});
+		verify(mockDao, times(0)).getMigrationTypeCount(any());
+	}
+	
+	@Test
+	public void testProcessAsyncMigrationTypeCountsRequest() {
+		when(mockUser.isAdmin()).thenReturn(true);
+
+		MigrationTypeCount principalResult = new MigrationTypeCount().setType(MigrationType.PRINCIPAL).setMaxid(1L);
+		MigrationTypeCount nodeResult = new MigrationTypeCount().setType(MigrationType.NODE).setMaxid(2L);
+		MigrationTypeCount changeResult = new MigrationTypeCount().setType(MigrationType.CHANGE).setMaxid(3L);
+
+		when(mockDao.getMigrationTypeCount(MigrationType.PRINCIPAL)).thenReturn(principalResult);
+		when(mockDao.getMigrationTypeCount(MigrationType.NODE)).thenReturn(nodeResult);
+		when(mockDao.getMigrationTypeCount(MigrationType.CHANGE)).thenReturn(changeResult);
+
+		AsyncMigrationTypeCountsRequest request = new AsyncMigrationTypeCountsRequest();
+		request.setTypes(Lists.newArrayList(MigrationType.PRINCIPAL, MigrationType.NODE, MigrationType.CHANGE));
+
+		// The return order should match the request order.
+		MigrationTypeCounts expected = new MigrationTypeCounts()
+				.setList(Lists.newArrayList(principalResult, nodeResult, changeResult));
+	
+		InOrder inOrder = inOrder(mockDao);
+
 		// call under test
-		manager.calculateBatchChecksums(mockUser, request);
+		MigrationTypeCounts results = manager.processAsyncMigrationTypeCountsRequest(mockUser, request);
+		assertEquals(expected, results);
+		verify(mockDao, times(3)).getMigrationTypeCount(any());
+		// changes must go first to ensure no change migrates before its associated data.
+		inOrder.verify(mockDao).getMigrationTypeCount(MigrationType.CHANGE);
+		inOrder.verify(mockDao).getMigrationTypeCount(MigrationType.PRINCIPAL);
+		inOrder.verify(mockDao).getMigrationTypeCount(MigrationType.NODE);
+	}
+	
+	@Test
+	public void testProcessAsyncMigrationTypeCountsRequestWithoutChanges() {
+		when(mockUser.isAdmin()).thenReturn(true);
+
+		MigrationTypeCount principalResult = new MigrationTypeCount().setType(MigrationType.PRINCIPAL).setMaxid(1L);
+		MigrationTypeCount nodeResult = new MigrationTypeCount().setType(MigrationType.NODE).setMaxid(2L);
+		MigrationTypeCount acl = new MigrationTypeCount().setType(MigrationType.ACL).setMaxid(3L);
+
+		when(mockDao.getMigrationTypeCount(MigrationType.PRINCIPAL)).thenReturn(principalResult);
+		when(mockDao.getMigrationTypeCount(MigrationType.NODE)).thenReturn(nodeResult);
+		when(mockDao.getMigrationTypeCount(MigrationType.ACL)).thenReturn(acl);
+
+		AsyncMigrationTypeCountsRequest request = new AsyncMigrationTypeCountsRequest();
+		request.setTypes(Lists.newArrayList(MigrationType.PRINCIPAL, MigrationType.NODE, MigrationType.ACL));
+
+		// The return order should match the request order.
+		MigrationTypeCounts expected = new MigrationTypeCounts()
+				.setList(Lists.newArrayList(principalResult, nodeResult, acl));
+	
+		InOrder inOrder = inOrder(mockDao);
+
+		// call under test
+		MigrationTypeCounts results = manager.processAsyncMigrationTypeCountsRequest(mockUser, request);
+		assertEquals(expected, results);
+		verify(mockDao, times(3)).getMigrationTypeCount(any());
+		inOrder.verify(mockDao).getMigrationTypeCount(MigrationType.PRINCIPAL);
+		inOrder.verify(mockDao).getMigrationTypeCount(MigrationType.NODE);
+		inOrder.verify(mockDao).getMigrationTypeCount(MigrationType.ACL);
 	}
 }
