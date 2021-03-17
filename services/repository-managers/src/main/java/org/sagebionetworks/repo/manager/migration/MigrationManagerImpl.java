@@ -4,11 +4,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -265,18 +268,70 @@ public class MigrationManagerImpl implements MigrationManager {
 		return mtc;
 	}
 	
+	/**
+	 * <p>
+	 * This method will provide basic statistics about the table associated with
+	 * each of the provided migration types. These statistics include, counts,
+	 * minimum ID, and maximum ID, all of which are used by the migration process.
+	 * <p>
+	 * The changes table captures generic change information about most objects. The
+	 * migration of changes from production to staging drives event notification to
+	 * secondary index building workers such as entity search and user search. If a
+	 * change migrates before the data associated with the change, the workers on
+	 * staging will be notified of the change but all data associated with the
+	 * change will either be missing or stale. This is what caused PLFM-6638.
+	 * <p>
+	 * Our solution to this problem has been to gather a high-water-mark for each
+	 * table at the beginning of the migration process. So all additions/updates
+	 * that occur during the migration process will not be migrated. The returned
+	 * maxid from this method is used as the high-water-mark.
+	 * <p>
+	 * Hoverer, it still takes time to gather the statistics for each table. If we
+	 * do not get the high-water-mark for the changes table first, then a race
+	 * condition is possible. Consider the following events:
+	 * <ol>
+	 * <li>Migration gathers the maxid for PRINCIPAL</li>
+	 * <li>A new users creates an account, thereby adding data to PRINCIPAL</li>
+	 * <li>Migration gathers the maxid for the CHANGES</li>
+	 * </ol>
+	 * This will result in the change event from the new users to migrate, but the
+	 * data associated with the new user will not migrate. As a result, the worker
+	 * on staging encounters a NotFoundExcption when attempting to build index
+	 * information for the new user.
+	 * <p>
+	 * To avoid this last race condition, we gather the statics for the changes
+	 * table before all other tables.
+	 * 
+	 */
 	@Override
-	public MigrationTypeCounts processAsyncMigrationTypeCountsRequest(
-			final UserInfo user, final AsyncMigrationTypeCountsRequest mReq) {
+	public MigrationTypeCounts processAsyncMigrationTypeCountsRequest(final UserInfo user,
+			final AsyncMigrationTypeCountsRequest request) {
+		ValidateArgument.required(user, "user");
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getTypes(), "request.types");
 		validateUser(user);
-		List<MigrationTypeCount> res = new LinkedList<MigrationTypeCount>();
-			for (MigrationType t: mReq.getTypes()) {
-				MigrationTypeCount mtc = migratableTableDao.getMigrationTypeCount(t);
-				res.add(mtc);
+
+		Map<MigrationType, MigrationTypeCount> typeToResultMap = new HashMap<>(request.getTypes().size());
+		// Gather changes first if requested.
+		for (MigrationType type : request.getTypes()) {
+			if (MigrationType.CHANGE.equals(type)) {
+				typeToResultMap.put(MigrationType.CHANGE,
+						migratableTableDao.getMigrationTypeCount(MigrationType.CHANGE));
+				break;
 			}
-			MigrationTypeCounts mtRes = new MigrationTypeCounts();
-			mtRes.setList(res);
-			return mtRes;
+		}
+		// Gather all non-changes
+		for (MigrationType type : request.getTypes()) {
+			if (!MigrationType.CHANGE.equals(type)) {
+				typeToResultMap.put(type, migratableTableDao.getMigrationTypeCount(type));
+			}
+		}
+		// return the results in the requested order
+		List<MigrationTypeCount> results = new ArrayList<>(request.getTypes().size());
+		for (MigrationType type : request.getTypes()) {
+			results.add(typeToResultMap.get(type));
+		}
+		return new MigrationTypeCounts().setList(results);
 	}
 
 	@Override
