@@ -1,21 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.CHANGE_PERMISSIONS;
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.CHANGE_SETTINGS;
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.CREATE;
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.DELETE;
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.DOWNLOAD;
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.MODERATE;
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CERTIFIED_USER_CONTENT;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ONLY_CERTIFIED_USERS_MAY_CHANGE_NODE_SETTINGS;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
 
 import java.util.Date;
 import java.util.HashSet;
@@ -23,31 +8,20 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.collections.Transform;
-import org.sagebionetworks.repo.manager.dataaccess.RestrictionInformationManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
-import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.RestrictionInformationRequest;
-import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
-import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -75,10 +49,6 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	private ProjectStatsManager projectStatsManager;
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
-	@Autowired
-	private ObjectTypeManager objectTypeManager;
-	@Autowired
-	private RestrictionInformationManager restrictionInformationManager;
 	@Autowired
 	private EntityAuthorizationManager entityAuthorizationManager;
 
