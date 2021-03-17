@@ -27,6 +27,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.dataaccess.RestrictionInformationManager;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -92,6 +93,8 @@ public class EntityPermissionsManagerImplUnitTest {
 	private TransactionalMessenger mockTransactionalMessenger;
 	@Mock
 	private ObjectTypeManager mockObjectTypeManager;
+	@Mock
+	private EntityAuthorizationManager entityAuthorizationManager;
 	
 	private UserInfo anonymousUser;
 	
@@ -185,7 +188,7 @@ public class EntityPermissionsManagerImplUnitTest {
 					thenReturn(hasUnmetAccessRqmtResponse);
 
 		// Method under test.
-		UserEntityPermissions uep = entityPermissionsManager.
+		UserEntityPermissions uep = entityAuthorizationManager.
 				getUserPermissionsForEntity(certifiedUserInfo, projectId);
 		
 		assertTrue(uep.getCanAddChild());
@@ -204,9 +207,9 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getCanModerate());
 		assertTrue(uep.getIsCertificationRequired());
 		
-		assertTrue(entityPermissionsManager.canCreate(project.getParentId(), project.getNodeType(), certifiedUserInfo).isAuthorized());
+		assertTrue(entityAuthorizationManager.canCreate(project.getParentId(), project.getNodeType(), certifiedUserInfo).isAuthorized());
 		
-		assertTrue(entityPermissionsManager.canCreateWiki(projectId, certifiedUserInfo).isAuthorized());
+		assertTrue(entityAuthorizationManager.canCreateWiki(projectId, certifiedUserInfo).isAuthorized());
 	}
 	
 	@Test
@@ -226,7 +229,7 @@ public class EntityPermissionsManagerImplUnitTest {
 					thenReturn(hasUnmetAccessRqmtResponse);
 
 		// Method under test.
-		UserEntityPermissions uep = entityPermissionsManager.
+		UserEntityPermissions uep = entityAuthorizationManager.
 				getUserPermissionsForEntity(nonCertifiedUserInfo, projectId);
 		
 		assertFalse(uep.getCanAddChild()); // not certified!
@@ -245,9 +248,9 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getCanModerate());
 		assertTrue(uep.getIsCertificationRequired());
 		
-		assertTrue(entityPermissionsManager.canCreate(project.getParentId(), project.getNodeType(), nonCertifiedUserInfo).isAuthorized());
+		assertTrue(entityAuthorizationManager.canCreate(project.getParentId(), project.getNodeType(), nonCertifiedUserInfo).isAuthorized());
 		
-		assertTrue(entityPermissionsManager.canCreateWiki(projectId, nonCertifiedUserInfo).isAuthorized());
+		assertTrue(entityAuthorizationManager.canCreateWiki(projectId, nonCertifiedUserInfo).isAuthorized());
 	}
 
 	@Test
@@ -268,7 +271,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		// show that user has access
 		
 		// method under test
-		UserEntityPermissions uep = entityPermissionsManager.
+		UserEntityPermissions uep = entityAuthorizationManager.
 				getUserPermissionsForEntity(certifiedUserInfo, projectId);
 		
 		assertTrue(uep.getCanUpload());
@@ -291,7 +294,7 @@ public class EntityPermissionsManagerImplUnitTest {
 					thenReturn(noUnmetAccessRqmtResponse);
 
 		// Method under test.
-		UserEntityPermissions uep = entityPermissionsManager.
+		UserEntityPermissions uep = entityAuthorizationManager.
 				getUserPermissionsForEntity(certifiedUserInfo, folderId);
 		
 		assertTrue(uep.getCanAddChild());
@@ -310,9 +313,9 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getCanModerate());
 		assertTrue(uep.getIsCertificationRequired());
 		
-		assertTrue(entityPermissionsManager.canCreate(folder.getParentId(), folder.getNodeType(), certifiedUserInfo).isAuthorized());
+		assertTrue(entityAuthorizationManager.canCreate(folder.getParentId(), folder.getNodeType(), certifiedUserInfo).isAuthorized());
 		
-		assertTrue(entityPermissionsManager.canCreateWiki(folderId, certifiedUserInfo).isAuthorized());
+		assertTrue(entityAuthorizationManager.canCreateWiki(folderId, certifiedUserInfo).isAuthorized());
 	}
 	
 	@Test
@@ -336,7 +339,7 @@ public class EntityPermissionsManagerImplUnitTest {
 				ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD));
 		
 		// now on to the test:
-		UserEntityPermissions uep = entityPermissionsManager.
+		UserEntityPermissions uep = entityAuthorizationManager.
 				getUserPermissionsForEntity(certifiedUserInfo, folderId);
 		
 		assertTrue(uep.getCanAddChild());
@@ -355,9 +358,9 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getCanModerate());
 		assertTrue(uep.getIsCertificationRequired());
 		
-		assertTrue(entityPermissionsManager.canCreate(folder.getParentId(), folder.getNodeType(), certifiedUserInfo).isAuthorized());
+		assertTrue(entityAuthorizationManager.canCreate(folder.getParentId(), folder.getNodeType(), certifiedUserInfo).isAuthorized());
 		
-		assertTrue(entityPermissionsManager.canCreateWiki(folderId, certifiedUserInfo).isAuthorized());
+		assertTrue(entityAuthorizationManager.canCreateWiki(folderId, certifiedUserInfo).isAuthorized());
 	}
 	
 	@Test
@@ -376,7 +379,7 @@ public class EntityPermissionsManagerImplUnitTest {
 					thenReturn(noUnmetAccessRqmtResponse);
 
 		// Method under test.
-		UserEntityPermissions uep = entityPermissionsManager.
+		UserEntityPermissions uep = entityAuthorizationManager.
 				getUserPermissionsForEntity(nonCertifiedUserInfo, folderId);
 		
 		assertFalse(uep.getCanAddChild()); // not certified!
@@ -395,14 +398,14 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getCanModerate());
 		assertTrue(uep.getIsCertificationRequired());
 		
-		assertFalse(entityPermissionsManager.canCreate(folder.getParentId(), folder.getNodeType(), nonCertifiedUserInfo).isAuthorized());
+		assertFalse(entityAuthorizationManager.canCreate(folder.getParentId(), folder.getNodeType(), nonCertifiedUserInfo).isAuthorized());
 
 		assertThrows(UserCertificationRequiredException.class,
-				() -> entityPermissionsManager.canCreate(folder.getParentId(), folder.getNodeType(), nonCertifiedUserInfo).checkAuthorizationOrElseThrow()
+				() -> entityAuthorizationManager.canCreate(folder.getParentId(), folder.getNodeType(), nonCertifiedUserInfo).checkAuthorizationOrElseThrow()
 		);
 
 
-		assertFalse(entityPermissionsManager.canCreateWiki(folderId, nonCertifiedUserInfo).isAuthorized());
+		assertFalse(entityAuthorizationManager.canCreateWiki(folderId, nonCertifiedUserInfo).isAuthorized());
 	}
 	
 	@Test
@@ -411,7 +414,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockNodeDao.getNodeTypeById(dockerRepoId)).thenReturn(EntityType.dockerrepo);
 		when(mockNodeDao.getBenefactor(dockerRepoId)).thenReturn(benefactorId);
 
-		assertFalse(entityPermissionsManager.hasAccess(dockerRepoId, ACCESS_TYPE.DOWNLOAD, anonymousUser).isAuthorized());
+		assertFalse(entityAuthorizationManager.hasAccess(dockerRepoId, ACCESS_TYPE.DOWNLOAD, anonymousUser).isAuthorized());
 	}
 	
 	@Test
@@ -428,7 +431,7 @@ public class EntityPermissionsManagerImplUnitTest {
 					thenReturn(noUnmetAccessRqmtResponse);
 
 		// Method under test.
-		UserEntityPermissions uep = entityPermissionsManager.
+		UserEntityPermissions uep = entityAuthorizationManager.
 				getUserPermissionsForEntity(certifiedUserInfo, dockerRepoId);
 		
 		assertTrue(uep.getCanAddChild());
@@ -721,7 +724,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		userInfo.setAcceptsTermsOfUse(acceptedTermsOfUse);
 		
 		// Call under test
-		AuthorizationStatus status = entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
+		AuthorizationStatus status = entityAuthorizationManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
 		
 		assertFalse(status.isAuthorized());
 		assertEquals("You have not yet agreed to the Synapse Terms of Use.", status.getMessage());
@@ -747,7 +750,7 @@ public class EntityPermissionsManagerImplUnitTest {
 					thenReturn(noUnmetAccessRqmtResponse);
 		
 		// Call under test
-		AuthorizationStatus status = entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
+		AuthorizationStatus status = entityAuthorizationManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
 		
 		assertTrue(status.isAuthorized());
 		
@@ -775,7 +778,7 @@ public class EntityPermissionsManagerImplUnitTest {
 					thenReturn(hasUnmetAccessRqmtResponse);
 		
 		// Call under test
-		AuthorizationStatus status = entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
+		AuthorizationStatus status = entityAuthorizationManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
 		
 		assertFalse(status.isAuthorized());
 		assertEquals("There are unmet access requirements that must be met to read content in the requested container.", status.getMessage());
@@ -807,7 +810,7 @@ public class EntityPermissionsManagerImplUnitTest {
 					thenReturn(noUnmetAccessRqmtResponse);
 		
 		// Call under test
-		AuthorizationStatus status = entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
+		AuthorizationStatus status = entityAuthorizationManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
 		
 		assertTrue(status.isAuthorized());
 		
@@ -832,7 +835,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockAclDAO.canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(false);
 		
 		// Call under test
-		AuthorizationStatus status = entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
+		AuthorizationStatus status = entityAuthorizationManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
 		
 		assertFalse(status.isAuthorized());
 		assertEquals("You lack DOWNLOAD access to the requested entity.", status.getMessage());

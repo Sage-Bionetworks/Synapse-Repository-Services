@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.manager.UserInfoHelper;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.manager.verification.VerificationHelper;
@@ -67,12 +68,9 @@ public class UserProfileServiceImpl implements UserProfileService {
 	
 	@Autowired
 	private UserManager userManager;
-	
-	@Autowired
-	private TeamManager teamManager;
 
 	@Autowired
-	private EntityPermissionsManager entityPermissionsManager;
+	private EntityAuthorizationManager entityAuthorizationManager;
 	
 	@Autowired
 	private EntityManager entityManager;
@@ -209,7 +207,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	public EntityHeader addFavorite(Long userId, String entityId)
 			throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		if(!entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).isAuthorized())
+		if(!entityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).isAuthorized())
 			throw new UnauthorizedException("READ access denied to id: "+ entityId +". Favorite not added.");
 		Favorite favorite = userProfileManager.addFavorite(userInfo, entityId);
 		return entityManager.getEntityHeader(userInfo, favorite.getEntityId()); // current version

@@ -24,6 +24,7 @@ import java.util.Set;
 
 import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.repo.manager.dataaccess.RestrictionInformationManager;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -78,6 +79,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	private ObjectTypeManager objectTypeManager;
 	@Autowired
 	private RestrictionInformationManager restrictionInformationManager;
+	@Autowired
+	private EntityAuthorizationManager entityAuthorizationManager;
 
 	@Override
 	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, ACLInheritanceException {
@@ -110,7 +113,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		String benefactor = nodeDao.getBenefactor(rId);
 		if (!benefactor.equals(rId)) throw new UnauthorizedException("Cannot update ACL for a resource which inherits its permissions.");
 		// check permissions of user to change permissions for the resource
-		hasAccess(rId, CHANGE_PERMISSIONS, userInfo).checkAuthorizationOrElseThrow();
+		entityAuthorizationManager.hasAccess(rId, CHANGE_PERMISSIONS, userInfo).checkAuthorizationOrElseThrow();
 		// validate content
 		Long ownerId = nodeDao.getCreatedBy(acl.getId());
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
@@ -153,7 +156,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			throw new UnauthorizedException("Resource already has an ACL.");
 		}
 		// check permissions of user to change permissions for the resource
-		hasAccess(benefactorId, CHANGE_PERMISSIONS, userInfo).checkAuthorizationOrElseThrow();
+		entityAuthorizationManager.hasAccess(benefactorId, CHANGE_PERMISSIONS, userInfo).checkAuthorizationOrElseThrow();
 		
 		// validate the Entity owners will still have access.
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, node.getCreatedByPrincipalId());
@@ -189,7 +192,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	public AccessControlList restoreInheritance(String entityId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		String benefactorId = nodeDao.getBenefactor(entityId);
 		// check permissions of user to change permissions for the resource
-		hasAccess(entityId, CHANGE_PERMISSIONS, userInfo).checkAuthorizationOrElseThrow();
+		entityAuthorizationManager.hasAccess(entityId, CHANGE_PERMISSIONS, userInfo).checkAuthorizationOrElseThrow();
 		if(!KeyFactory.equals(entityId, benefactorId)){
 			throw new UnauthorizedException("Resource already inherits its permissions.");	
 		}
@@ -219,115 +222,6 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		return aclDAO.get(benefactor, ObjectType.ENTITY);
 	}
 	
-	@Override
-	public AuthorizationStatus canCreate(String parentId, EntityType nodeType, UserInfo userInfo) 
-			throws DatastoreException, NotFoundException {
-		if (userInfo.isAdmin()) {
-			return AuthorizationStatus.authorized();
-		}
-		if (parentId == null) {
-			return AuthorizationStatus.accessDenied("Cannot create a entity having no parent.");
-		}
-
-		if (!EntityType.project.equals(nodeType) && !AuthorizationUtils.isCertifiedUser(userInfo)) {
-			return AuthorizationStatus.accessDenied(new UserCertificationRequiredException(ERR_MSG_CERTIFIED_USER_CONTENT));
-		}
-		
-		return certifiedUserHasAccess(parentId, CREATE, userInfo);
-	}
-
-	@Override
-	public AuthorizationStatus canChangeSettings(Node node, UserInfo userInfo) throws DatastoreException, NotFoundException {
-		if (userInfo.isAdmin()) {
-			return AuthorizationStatus.authorized();
-		}
-
-		if (!AuthorizationUtils.isCertifiedUser(userInfo)) {
-			return AuthorizationStatus.accessDenied(ERR_MSG_ONLY_CERTIFIED_USERS_MAY_CHANGE_NODE_SETTINGS);
-		}
-
-		// the creator always has change settings permissions
-		if (node.getCreatedByPrincipalId().equals(userInfo.getId())) {
-			return AuthorizationStatus.authorized();
-		}
-
-		return certifiedUserHasAccess(node.getId(), ACCESS_TYPE.CHANGE_SETTINGS, userInfo);
-	}
-	
-	/**
-	 * 
-	 * @param resource the resource of interest
-	 * @param user
-	 * @param accessType
-	 * @return
-	 */
-	@Override
-	public AuthorizationStatus hasAccess(String entityId, ACCESS_TYPE accessType, UserInfo userInfo)
-			throws NotFoundException, DatastoreException  {
-		
-		EntityType entityType = nodeDao.getNodeTypeById(entityId);
-		
-		if (!userInfo.isAdmin() && 
-			(accessType==CREATE || (accessType==UPDATE && entityType!=EntityType.project)) &&
-			!AuthorizationUtils.isCertifiedUser(userInfo)) {
-			return AuthorizationStatus.accessDenied(ERR_MSG_CERTIFIED_USER_CONTENT);
-		}
-		
-		return certifiedUserHasAccess(entityId, accessType, userInfo);
-	}
-		
-	/**
-	 * Answers the authorization check  _without_ checking whether the user is a Certified User.
-	 * In other words, says whether the user _would_ be authorized for the requested access
-	 * if they _were_ a Certified User.  This feature is important to the Web Portal which
-	 * enables certain features, though unauthorized for the user at the moment, redirecting them
-	 * to certification before allowing them through.
-	 * 
-	 * @param entityId
-	 * @param accessType
-	 * @param userInfo
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	private AuthorizationStatus certifiedUserHasAccess(String entityId, ACCESS_TYPE accessType, UserInfo userInfo)
-				throws NotFoundException, DatastoreException  {
-		// In the case of the trash can, throw the EntityInTrashCanException
-		// The only operations allowed over the trash can is CREATE (i.e. moving
-		// items into the trash can) and DELETE (i.e. purging the trash).
-		final String benefactor = nodeDao.getBenefactor(entityId);
-		if (NodeConstants.BOOTSTRAP_NODES.TRASH.getId().equals(KeyFactory.stringToKey(benefactor))
-				&& !CREATE.equals(accessType)
-				&& !DELETE.equals(accessType)) {
-			throw new EntityInTrashCanException("Entity " + entityId + " is in trash can.");
-		}
-		
-		// Anonymous can at most READ (or DOWNLOAD when the entity is marked with OPEN_ACCESS)
-		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
-			if (accessType != ACCESS_TYPE.READ && accessType != ACCESS_TYPE.DOWNLOAD) {
-				return AuthorizationStatus.accessDenied(ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION);
-			}
-		}
-		// Admin
-		if (userInfo.isAdmin()) {
-			return AuthorizationStatus.authorized();
-		}
-		// Can download
-		if (accessType == DOWNLOAD) {
-			return canDownload(userInfo, entityId, benefactor);
-		}
-		// Can upload
-		if (accessType == UPLOAD) {
-			return canUpload(userInfo, entityId);
-		}
-		
-		if (aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, accessType)) {
-			return AuthorizationStatus.authorized();
-		} else {
-			return AuthorizationStatus.accessDenied(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE, accessType.name(), entityId));
-		}
-	}
-
 	/**
 	 * Get the permission benefactor of an entity.
 	 * @throws DatastoreException 
@@ -337,45 +231,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		return nodeDao.getBenefactor(nodeId);
 	}
 
-	@Override
-	public UserEntityPermissions getUserPermissionsForEntity(UserInfo userInfo,	String entityId)
-			throws NotFoundException, DatastoreException {
 
-		Node node = nodeDao.getNode(entityId);
-		
-		String benefactor = nodeDao.getBenefactor(entityId);
-
-		UserEntityPermissions permissions = new UserEntityPermissions();
-		permissions.setCanAddChild(hasAccess(entityId, CREATE, userInfo).isAuthorized());
-		permissions.setCanCertifiedUserAddChild(certifiedUserHasAccess(entityId, CREATE, userInfo).isAuthorized());
-		permissions.setCanChangePermissions(hasAccess(entityId, CHANGE_PERMISSIONS, userInfo).isAuthorized());
-		permissions.setCanChangeSettings(hasAccess(entityId, CHANGE_SETTINGS, userInfo).isAuthorized());
-		permissions.setCanDelete(hasAccess(entityId, DELETE, userInfo).isAuthorized());
-		permissions.setCanEdit(hasAccess(entityId, UPDATE, userInfo).isAuthorized());
-		permissions.setCanCertifiedUserEdit(certifiedUserHasAccess(entityId, UPDATE, userInfo).isAuthorized());
-		permissions.setCanView(hasAccess(entityId, READ, userInfo).isAuthorized());
-		permissions.setCanDownload(canDownload(userInfo, entityId, benefactor).isAuthorized());
-		permissions.setCanUpload(canUpload(userInfo, entityId).isAuthorized());
-		permissions.setCanModerate(hasAccess(entityId, MODERATE, userInfo).isAuthorized());
-		permissions.setIsCertificationRequired(true);
-
-		permissions.setOwnerPrincipalId(node.getCreatedByPrincipalId());
-		
-		permissions.setIsCertifiedUser(AuthorizationUtils.isCertifiedUser(userInfo));
-
-		UserInfo anonymousUser = UserInfoHelper.createAnonymousUserInfo();
-		permissions.setCanPublicRead(hasAccess(entityId, READ, anonymousUser).isAuthorized());
-
-		final boolean parentIsRoot = nodeDao.isNodesParentRoot(entityId);
-		if (userInfo.isAdmin()) {
-			permissions.setCanEnableInheritance(!parentIsRoot);
-		} else if (AuthorizationUtils.isUserAnonymous(userInfo)) {
-			permissions.setCanEnableInheritance(false);
-		} else {
-			permissions.setCanEnableInheritance(!parentIsRoot && permissions.getCanChangePermissions());
-		}
-		return permissions;
-	}
 
 	@Override
 	public boolean hasLocalACL(String resourceId) {
@@ -384,81 +240,6 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		} catch (Exception e) {
 			return false;
 		}
-	}
-
-	// entities have to meet access requirements (ARs)
-	private AuthorizationStatus canDownload(UserInfo userInfo, String entityId, String benefactor)
-			throws DatastoreException, NotFoundException {
-		
-		if (userInfo.isAdmin()) {
-			return AuthorizationStatus.authorized();
-		}
-		
-		// We check on the terms of use agreement if the user is not anonymous
-		if (!AuthorizationUtils.isUserAnonymous(userInfo) && !userInfo.acceptsTermsOfUse()) {
-			return AuthorizationStatus.accessDenied(ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE);
-		}
-		
-		ACCESS_TYPE accessTypeCheck = DOWNLOAD;
-		
-		DataType entityDataType = objectTypeManager.getObjectsDataType(entityId, ObjectType.ENTITY);
-		
-		// If the access type is OPEN_DATA then the user can download as long as it has READ access (See PLFM-6059)
-		// We do not check DOWNLOAD access since historically tables marked as OPEN_DATA were checked on READ access only
-		if (DataType.OPEN_DATA == entityDataType) {
-			accessTypeCheck = READ;
-		}
-		
-		boolean aclAllowsDownload = aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, accessTypeCheck);
-		
-		if (!aclAllowsDownload) {
-			return AuthorizationStatus.accessDenied(String.format(ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, accessTypeCheck.name()));	
-		}
-		
-		// if the ACL and access requirements permit DOWNLOAD (or READ for OPEN_DATA), then its permitted,
-		// and this applies to any type of entity
-		return meetsAccessRequirements(userInfo, entityId);
-		
-	}
-	
-	private AuthorizationStatus meetsAccessRequirements(final UserInfo userInfo, final String nodeId)
-			throws DatastoreException, NotFoundException {
-		
-		RestrictionInformationRequest request = new RestrictionInformationRequest();
-		request.setObjectId(nodeId);
-		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
-		RestrictionInformationResponse response = restrictionInformationManager.getRestrictionInformation(userInfo, request);
-		
-		if (response.getHasUnmetAccessRequirement()) {	
-			return AuthorizationStatus
-					.accessDenied(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS);
-		}
-		
-		return AuthorizationStatus.authorized();
-	}
-	
-	private AuthorizationStatus canUpload(UserInfo userInfo, final String parentOrNodeId)
-			throws DatastoreException, NotFoundException {
-		if (userInfo.isAdmin()) {
-			return AuthorizationStatus.authorized();
-		}
-		if (!userInfo.acceptsTermsOfUse()) {
-			return AuthorizationStatus.accessDenied(ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE);
-		}
-		return AuthorizationStatus.authorized();
-	}
-
-	
-	@Override
-	public AuthorizationStatus canCreateWiki(String entityId, UserInfo userInfo) throws DatastoreException, NotFoundException {
-		EntityType entityType = nodeDao.getNodeTypeById(entityId);
-		if (!userInfo.isAdmin() && 
-			EntityType.project != entityType &&
-			!AuthorizationUtils.isCertifiedUser(userInfo)) {
-			return AuthorizationStatus.accessDenied("Only certified users may create non-project wikis in Synapse.");
-		}
-		
-		return certifiedUserHasAccess(entityId, ACCESS_TYPE.CREATE, userInfo);
 	}
 
 	@Override

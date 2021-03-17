@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManagerImpl;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -57,6 +58,9 @@ public class TrashManagerImplAutowiredTest {
 	
 	@Autowired 
 	private EntityPermissionsManager entityPermissionsManager;
+	
+	@Autowired 
+	private EntityAuthorizationManager entityAuthorizationManager;
 	
 	@Autowired 
 	private TrashCanDao trashCanDao;
@@ -629,7 +633,7 @@ public class TrashManagerImplAutowiredTest {
 		trashManager.moveToTrash(testAdminUserInfo, nodeId, false);
 		
 		Assertions.assertThrows(EntityInTrashCanException.class, () -> {
-			entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, testAdminUserInfo);
+			entityAuthorizationManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, testAdminUserInfo);
 		});
 	}
 	

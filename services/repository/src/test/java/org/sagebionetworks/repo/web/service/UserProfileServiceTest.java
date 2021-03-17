@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -89,7 +90,7 @@ public class UserProfileServiceTest {
 	private UserProfileServiceImpl userProfileService = new UserProfileServiceImpl();
 	
 	@Mock
-	private EntityPermissionsManager mockPermissionsManager;
+	private EntityAuthorizationManager mockEntityAuthorizationManager;
 	@Mock
 	private UserProfileManager mockUserProfileManager;
 	@Mock
@@ -143,7 +144,7 @@ public class UserProfileServiceTest {
 		when(mockUserManager.getUserInfo(OTHER_USER_ID)).thenReturn(otherUserInfo);
 		when(mockPrincipalAliasDAO.listPrincipalAliases(AliasType.TEAM_NAME)).thenReturn(groups);
 
-		ReflectionTestUtils.setField(userProfileService, "entityPermissionsManager", mockPermissionsManager);
+		ReflectionTestUtils.setField(userProfileService, "entityPermissionsManager", mockEntityAuthorizationManager);
 		ReflectionTestUtils.setField(userProfileService, "userProfileManager",mockUserProfileManager);
 		ReflectionTestUtils.setField(userProfileService, "userManager", mockUserManager);
 		ReflectionTestUtils.setField(userProfileService, "entityManager", mockEntityManager);
@@ -189,7 +190,7 @@ public class UserProfileServiceTest {
 	@Test
 	public void testAddFavorite() throws Exception {
 		String entityId = "syn123";
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationStatus.authorized());
+		when(mockEntityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationStatus.authorized());
 		Favorite fav = new Favorite();
 		fav.setEntityId(entityId);
 		fav.setPrincipalId(EXTRA_USER_ID.toString());
@@ -204,7 +205,7 @@ public class UserProfileServiceTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testAddFavoriteUnauthorized() throws Exception {
 		String entityId = "syn123";
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationStatus.accessDenied(""));
+		when(mockEntityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationStatus.accessDenied(""));
 		Favorite fav = new Favorite();
 		fav.setEntityId(entityId);
 		fav.setPrincipalId(EXTRA_USER_ID.toString());
