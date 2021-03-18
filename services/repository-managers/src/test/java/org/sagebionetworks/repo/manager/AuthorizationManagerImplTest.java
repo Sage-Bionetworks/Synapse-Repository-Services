@@ -495,16 +495,6 @@ public class AuthorizationManagerImplTest {
 		// but anonymous cannot
 		assertFalse(authorizationManager.canCreate(anonInfo, node.getId(), EntityType.project).isAuthorized());
 	}
-
-	@Test
-	public void testCreateNoParent() throws Exception {
-
-		// try to create node with no parent.  should fail
-		assertFalse(authorizationManager.canCreate(userInfo, null, EntityType.project).isAuthorized());
-
-		// admin creates a node with no parent.  should work
-		assertTrue(authorizationManager.canCreate(adminUser, null, EntityType.project).isAuthorized());
-	}
 	
 	@Test
 	public void testGetUserPermissionForOpenAccessEntityForAnonymous() throws Exception {

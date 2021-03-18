@@ -279,8 +279,8 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
 				.withAccessType(ACCESS_TYPE.DELETE),
 			DENY_IF_DOES_NOT_EXIST,
-			DENY_IF_IN_TRASH,
 			GRANT_IF_ADMIN,
+			DENY_IF_IN_TRASH,
 			DENY_IF_ANONYMOUS,
 			GRANT_IF_HAS_DELETE,
 			DENY

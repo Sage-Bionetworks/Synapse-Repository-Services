@@ -652,6 +652,43 @@ public class EntityAuthorizationManagerAutowireTest {
 	}
 	
 	@Test
+	public void testCanCreateWithNullUser() {
+		String parentId = "syn123";
+		EntityType createType = EntityType.project;
+		UserInfo user = null;
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			entityAuthManager.canCreate(parentId, createType, user);
+		}).getMessage();
+		assertEquals("UserInfo is required.", message);
+	}
+	
+	@Test
+	public void testCanCreateWithNullType() {
+		String parentId = "syn123";
+		EntityType createType = null;
+		UserInfo user = userTwo;
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			entityAuthManager.canCreate(parentId, createType, user);
+		}).getMessage();
+		assertEquals("entityCreateType is required.", message);
+	}
+	
+	@Test
+	public void testCanCreateWithNullParentId() {
+		String parentId = null;
+		EntityType createType = EntityType.project;
+		UserInfo user = userTwo;
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			entityAuthManager.canCreate(parentId, createType, user);
+		}).getMessage();
+		assertEquals("parentId is required.", message);
+	}
+	
+	
+	@Test
 	public void testCanCreateWithProjectCertifiedFalse() {
 		Node project = nodeDaoHelper.create(n -> {
 			n.setName("aProject");
@@ -1184,11 +1221,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = adminUserInfo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DELETE;
 
-		// new call under test
-		String newMessage = assertThrows(EntityInTrashCanException.class, () -> {
-			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		assertEquals(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, project.getId()), newMessage);
+		// call under test
+		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
 	}
 	
 	@Test

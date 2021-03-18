@@ -90,6 +90,7 @@ public class TrashManagerImplAutowiredTest {
 		user.setUserName(UUID.randomUUID().toString());
 		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
 		testUserInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		testUserInfo.setAcceptsTermsOfUse(true);
 		assertNotNull(testUserInfo);
 		assertFalse(testUserInfo.isAdmin());
 
@@ -633,7 +634,7 @@ public class TrashManagerImplAutowiredTest {
 		trashManager.moveToTrash(testAdminUserInfo, nodeId, false);
 		
 		Assertions.assertThrows(EntityInTrashCanException.class, () -> {
-			entityAuthorizationManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, testAdminUserInfo);
+			entityAuthorizationManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, testAdminUserInfo).checkAuthorizationOrElseThrow();;
 		});
 	}
 	
