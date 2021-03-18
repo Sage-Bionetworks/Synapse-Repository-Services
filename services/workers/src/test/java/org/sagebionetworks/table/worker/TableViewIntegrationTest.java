@@ -345,7 +345,7 @@ public class TableViewIntegrationTest {
 			});
 		});
 		
-		assertEquals("You do not have READ permission for the requested entity, "+KeyFactory.stringToKey(fileViewId)+".", ex.getMessage());
+		assertEquals("You lack READ access to the requested entity.", ex.getMessage());
 
 		// grant the user read access to the view
 		AccessControlList acl = AccessControlListUtil.createACL(fileViewId, userInfo, Sets.newHashSet(ACCESS_TYPE.READ), new Date(System.currentTimeMillis()));

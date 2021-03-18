@@ -18,7 +18,6 @@ import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
@@ -73,7 +72,7 @@ public class NodeObjectRecordWriterTest {
 		ReflectionTestUtils.setField(writer, "nodeDAO", mockNodeDAO);
 		ReflectionTestUtils.setField(writer, "userManager", mockUserManager);
 		ReflectionTestUtils.setField(writer, "accessRequirementDao", mockAccessRequirementDao);
-		ReflectionTestUtils.setField(writer, "entityPermissionManager", mockEntityAuthorizationManager);
+		ReflectionTestUtils.setField(writer, "entityAuthorizationManager", mockEntityAuthorizationManager);
 		ReflectionTestUtils.setField(writer, "objectRecordDAO", mockObjectRecordDao);
 
 		node = new NodeRecord();
