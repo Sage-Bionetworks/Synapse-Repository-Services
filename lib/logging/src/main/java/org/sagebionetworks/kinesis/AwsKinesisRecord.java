@@ -19,7 +19,7 @@ public class AwsKinesisRecord {
 		return record;
 	}
 	
-	public int getSize() {
+	public int size() {
 		return size;
 	}
 

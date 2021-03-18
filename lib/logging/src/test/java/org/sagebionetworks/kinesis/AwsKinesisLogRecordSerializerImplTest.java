@@ -19,14 +19,14 @@ public class AwsKinesisLogRecordSerializerImplTest {
 	private AwsKinesisLogRecordSerializer recordSerializer;
 
 	@Test
-	void testToBytes() {
+	public void testToByteBuffer() {
 		AwsKinesisLogRecordStub logRecord = new AwsKinesisLogRecordStub()
 				.withStack("dev")
 				.withInstance("test")
 				.withSomeOtherProperty(123);
 
 		
-		ByteBuffer byteBuffer = recordSerializer.toBytes(logRecord);
+		ByteBuffer byteBuffer = recordSerializer.toByteBuffer(logRecord);
 		
 		//convert bytes back to JSON string to compare
 		String expectedJSON = "{\"stack\":\"dev\"," +
@@ -36,6 +36,25 @@ public class AwsKinesisLogRecordSerializerImplTest {
 				"\n"; 
 		
 		assertEquals(expectedJSON, new String(byteBuffer.array(), StandardCharsets.UTF_8));
+	}
+	
+	@Test
+	public void testToBytes() {
+		
+		AwsKinesisLogRecordStub logRecord = new AwsKinesisLogRecordStub()
+				.withStack("dev")
+				.withInstance("test")
+				.withSomeOtherProperty(123);
+
+		
+		byte[] bytes = recordSerializer.toBytes(logRecord);
+		
+		//convert bytes back to JSON string to compare
+		String expectedJSON = "{\"stack\":\"dev\"," +
+				"\"instance\":\"test\"," +
+				"\"someOtherProperty\":123}";
+		
+		assertEquals(expectedJSON, new String(bytes, StandardCharsets.UTF_8));
 	}
 
 	private class AwsKinesisLogRecordStub implements AwsKinesisLogRecord {

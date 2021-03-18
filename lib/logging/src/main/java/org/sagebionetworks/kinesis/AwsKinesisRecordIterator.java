@@ -7,18 +7,18 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.amazonaws.services.kinesisfirehose.model.Record;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class AwsKinesisRecordIterator implements Iterator<AwsKinesisRecord> {
 	
-	private ObjectMapper objectMapper;
 	private List<? extends AwsKinesisLogRecord> records;
+	private AwsKinesisLogRecordSerializer recordSerializer;
+	private int recordSizeLimit;
 	private int currentIndex;
 
-	public AwsKinesisRecordIterator(List<? extends AwsKinesisLogRecord> records, ObjectMapper objectMapper) {
-		this.objectMapper = objectMapper;
+	public AwsKinesisRecordIterator(List<? extends AwsKinesisLogRecord> records, AwsKinesisLogRecordSerializer recordSerializer, int recordSizeLimit) {
 		this.records = records;
+		this.recordSerializer = recordSerializer;
+		this.recordSizeLimit = recordSizeLimit;
 		this.currentIndex = 0;
 	}
 
@@ -30,16 +30,14 @@ public class AwsKinesisRecordIterator implements Iterator<AwsKinesisRecord> {
 	@Override
 	public AwsKinesisRecord next() {
 		// Consume all the records up to the size limit
-		AwsKinesisRecordBuilder builder = new AwsKinesisRecordBuilder(objectMapper, new ByteArrayOutputStream());
+		AwsKinesisRecordBuilder builder = new AwsKinesisRecordBuilder(recordSerializer, recordSizeLimit);
 
 		for (; currentIndex < records.size(); currentIndex++) {
 			boolean added = builder.putRecord(records.get(currentIndex));
 			if (currentIndex == 0 && !added) {
-				throw new IllegalStateException("A single record cannot exceed the limit of " + AwsKinesisFirehoseConstants.RECORD_SIZE_LIMIT + " bytes.");
+				throw new IllegalStateException("A single record cannot exceed the limit of " + recordSizeLimit + " bytes.");
 			}
 			if (!added) {
-				// The last record could not be added, will retry in the next batch
-				currentIndex--;
 				break;
 			}
 		}
@@ -53,12 +51,14 @@ public class AwsKinesisRecordIterator implements Iterator<AwsKinesisRecord> {
 	 */
 	private static final class AwsKinesisRecordBuilder {
 		
-		private ObjectMapper objectMapper;
+		private AwsKinesisLogRecordSerializer serializer;
+		private int recordSizeLimit;
 		private ByteArrayOutputStream byteArrayOutputStream;
 
-		public AwsKinesisRecordBuilder(ObjectMapper objectMapper, ByteArrayOutputStream byteArrayOutputStream) {
-			this.objectMapper = objectMapper;
-			this.byteArrayOutputStream = byteArrayOutputStream;
+		public AwsKinesisRecordBuilder(AwsKinesisLogRecordSerializer serializer, int recordSizeLimit) {
+			this.serializer = serializer;
+			this.recordSizeLimit = recordSizeLimit;
+			this.byteArrayOutputStream = new ByteArrayOutputStream();
 		}
 		
 		/**
@@ -68,17 +68,14 @@ public class AwsKinesisRecordIterator implements Iterator<AwsKinesisRecord> {
 		 * @return True if the record was added, false if the kinesis firehose records size limit is exceeded
 		 */
 		public boolean putRecord(AwsKinesisLogRecord record) {
-			
-			byte[] jsonBytes;
-			
-			try {
-				jsonBytes = objectMapper.writeValueAsBytes(record);
-			} catch (JsonProcessingException e) {
-				throw new IllegalStateException("Could not serialize record " + record, e);
+			if (byteArrayOutputStream.size() >= recordSizeLimit) {
+				return false;
 			}
 			
+			byte[] jsonBytes = serializer.toBytes(record);
+			
 			// If we are over the limit don't add the record and return
-			if (byteArrayOutputStream.size() + jsonBytes.length + AwsKinesisFirehoseConstants.NEW_LINE_BYTES.length > AwsKinesisFirehoseConstants.RECORD_SIZE_LIMIT) {
+			if (byteArrayOutputStream.size() + jsonBytes.length + AwsKinesisFirehoseConstants.NEW_LINE_BYTES.length > recordSizeLimit) {
 				return false;
 			}
 

@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 
 public interface AwsKinesisLogRecordSerializer {
 
-	ByteBuffer toBytes(AwsKinesisLogRecord record);
+	ByteBuffer toByteBuffer(AwsKinesisLogRecord record);
 	
+	byte[] toBytes(AwsKinesisLogRecord record);
 }

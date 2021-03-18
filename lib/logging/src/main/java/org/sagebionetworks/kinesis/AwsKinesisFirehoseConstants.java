@@ -18,5 +18,12 @@ public class AwsKinesisFirehoseConstants {
 	// Separator for each json object in a record
 	public static final byte[] NEW_LINE_BYTES = "\n".getBytes(StandardCharsets.UTF_8);
 	
+	public static final int MAX_RETRY_NUMBER = 10;
+	
+	public static final long BASE_RETRY_DELAY = 250;
+
+	public static final long MAX_RETRY_DELAY = 10000;
+	
+	public static final double BACKOFF_FACTOR = 2.0;
 	
 }
