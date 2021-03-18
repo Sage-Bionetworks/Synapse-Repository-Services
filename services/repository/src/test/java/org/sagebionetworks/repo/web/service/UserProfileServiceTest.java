@@ -144,7 +144,7 @@ public class UserProfileServiceTest {
 		when(mockUserManager.getUserInfo(OTHER_USER_ID)).thenReturn(otherUserInfo);
 		when(mockPrincipalAliasDAO.listPrincipalAliases(AliasType.TEAM_NAME)).thenReturn(groups);
 
-		ReflectionTestUtils.setField(userProfileService, "entityPermissionsManager", mockEntityAuthorizationManager);
+		ReflectionTestUtils.setField(userProfileService, "entityAuthorizationManager", mockEntityAuthorizationManager);
 		ReflectionTestUtils.setField(userProfileService, "userProfileManager",mockUserProfileManager);
 		ReflectionTestUtils.setField(userProfileService, "userManager", mockUserManager);
 		ReflectionTestUtils.setField(userProfileService, "entityManager", mockEntityManager);

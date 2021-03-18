@@ -110,7 +110,9 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
-		testUserId = userManager.createUser(user);
+		boolean acceptsTermsOfUse = true;
+		testUserId = userManager.createOrGetTestUser(adminUserInfo, user, acceptsTermsOfUse).getId();
+		
 		 groupMembersDAO.addMembers(
 		BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
 		 Collections.singletonList(testUserId.toString()));
