@@ -2,9 +2,6 @@ package org.sagebionetworks.kinesis;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,8 +43,7 @@ public class AwsKinesisFirehoseLoggerIntegrationTest {
 	
 	@Test
 	public void test() throws Exception {
-		List<TestRecord> logRecords = generateRecords(1000);
-		
+		List<TestRecord> logRecords = TestRecord.generateRecords(1000);
 		
 		// Call under test
 		logger.logBatch(STREAM_NAME, logRecords);
@@ -63,18 +59,6 @@ public class AwsKinesisFirehoseLoggerIntegrationTest {
 			
 			return Pair.create(delivered, null);
 		});
-	}
-	
-	private List<TestRecord> generateRecords(int size) {
-		Long timestamp = System.currentTimeMillis();
-		
-		return IntStream.range(0, size)
-				.boxed()
-				.map( i -> new TestRecord()
-								.withId(Long.valueOf(i))
-								.withTimestamp(timestamp)
-								.withSomeField("Some field " + i)
-				).collect(Collectors.toList());
 	}
 	
 	private void deleteRecords() throws Exception {
@@ -102,87 +86,6 @@ public class AwsKinesisFirehoseLoggerIntegrationTest {
 
 	private String getS3BucketPrefix() {
 		return stackConfig.getStack() + stackConfig.getStackInstance() + STREAM_NAME;
-	}
-	
-	private static class TestRecord implements AwsKinesisLogRecord {
-		
-		private Long id;
-		private Long timestamp;
-		private String someField;
-		private String stack;
-		private String instance;
-
-		public Long getId() {
-			return id;
-		}
-		
-		public TestRecord withId(Long id) {
-			this.id = id;
-			return this;
-		}
-		
-		public Long getTimestamp() {
-			return timestamp;
-		}
-		
-		public TestRecord withTimestamp(Long timestamp) {
-			this.timestamp = timestamp;
-			return this;
-		}
-		
-		public String getSomeField() {
-			return someField;
-		}
-		
-		public TestRecord withSomeField(String someField) {
-			this.someField = someField;
-			return this;
-		}
-		
-		@Override
-		public String getStack() {
-			return stack;
-		}
-
-		@Override
-		public AwsKinesisLogRecord withStack(String stack) {
-			this.stack = stack;
-			return this;
-		}
-
-		@Override
-		public String getInstance() {
-			return instance;
-		}
-
-		@Override
-		public AwsKinesisLogRecord withInstance(String instance) {
-			this.instance = instance;
-			return this;
-		}
-
-		@Override
-		public int hashCode() {
-			return Objects.hash(id, instance, someField, stack, timestamp);
-		}
-
-		@Override
-		public boolean equals(Object obj) {
-			if (this == obj) {
-				return true;
-			}
-			if (obj == null) {
-				return false;
-			}
-			if (getClass() != obj.getClass()) {
-				return false;
-			}
-			TestRecord other = (TestRecord) obj;
-			return Objects.equals(id, other.id) && Objects.equals(instance, other.instance) && Objects.equals(someField, other.someField)
-					&& Objects.equals(stack, other.stack) && Objects.equals(timestamp, other.timestamp);
-		}
-		
-		
 	}
 
 }
