@@ -414,7 +414,7 @@ public class EntityPermissionsManagerImplTest {
 		Node folder = createDTO("Test Folder ", userInfo.getId(), userInfo.getId(), project.getId());
 		folder.setNodeType(EntityType.folder);
 		
-		UserCertificationRequiredException ex = assertThrows(UserCertificationRequiredException.class, () -> {
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class, () -> {
 			// Method under test
 			nodeManager.createNode(folder, userInfo);
 		});
