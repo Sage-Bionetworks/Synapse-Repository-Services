@@ -3,7 +3,6 @@ package org.sagebionetworks.kinesis;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
 
@@ -13,10 +12,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class AwsKinesisRecordIterator implements Iterator<AwsKinesisRecord> {
 	
-	private static final int ONE_KiB = 1024;
-	static final int RECORD_SIZE_LIMIT = ONE_KiB * 1000;
-	private static final byte[] NEW_LINE_BYTES = "\n".getBytes(StandardCharsets.UTF_8);
-
 	private ObjectMapper objectMapper;
 	private List<? extends AwsKinesisLogRecord> records;
 	private int currentIndex;
@@ -40,7 +35,7 @@ public class AwsKinesisRecordIterator implements Iterator<AwsKinesisRecord> {
 		for (; currentIndex < records.size(); currentIndex++) {
 			boolean added = builder.putRecord(records.get(currentIndex));
 			if (currentIndex == 0 && !added) {
-				throw new IllegalStateException("A single record cannot exceed the limit of " + RECORD_SIZE_LIMIT + " bytes.");
+				throw new IllegalStateException("A single record cannot exceed the limit of " + AwsKinesisFirehoseConstants.RECORD_SIZE_LIMIT + " bytes.");
 			}
 			if (!added) {
 				// The last record could not be added, will retry in the next batch
@@ -83,13 +78,13 @@ public class AwsKinesisRecordIterator implements Iterator<AwsKinesisRecord> {
 			}
 			
 			// If we are over the limit don't add the record and return
-			if (byteArrayOutputStream.size() + jsonBytes.length + NEW_LINE_BYTES.length > RECORD_SIZE_LIMIT) {
+			if (byteArrayOutputStream.size() + jsonBytes.length + AwsKinesisFirehoseConstants.NEW_LINE_BYTES.length > AwsKinesisFirehoseConstants.RECORD_SIZE_LIMIT) {
 				return false;
 			}
 
 			try {
 				byteArrayOutputStream.write(jsonBytes);
-				byteArrayOutputStream.write(NEW_LINE_BYTES);
+				byteArrayOutputStream.write(AwsKinesisFirehoseConstants.NEW_LINE_BYTES);
 			} catch (IOException e) {
 				throw new IllegalStateException("Could not serialize record " + record, e);
 			}

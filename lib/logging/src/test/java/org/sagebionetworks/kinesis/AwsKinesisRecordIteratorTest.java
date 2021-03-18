@@ -76,7 +76,7 @@ public class AwsKinesisRecordIteratorTest {
 	@Test
 	public void testIteratorWithLimitExceeded() {
 		
-		TestRecord record = TestRecord.generateRecords(1).get(0).withSomeField(StringUtils.repeat("a", AwsKinesisRecordIterator.RECORD_SIZE_LIMIT));
+		TestRecord record = TestRecord.generateRecords(1).get(0).withSomeField(StringUtils.repeat("a", AwsKinesisFirehoseConstants.RECORD_SIZE_LIMIT));
 		
 		// Call under test
 		AwsKinesisRecordIterator recordIterator = new AwsKinesisRecordIterator(Collections.singletonList(record), OBJECT_MAPPER);

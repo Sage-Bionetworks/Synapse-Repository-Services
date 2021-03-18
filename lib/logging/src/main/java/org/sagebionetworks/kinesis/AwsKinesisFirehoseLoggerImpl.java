@@ -21,27 +21,30 @@ public class AwsKinesisFirehoseLoggerImpl implements AwsKinesisFirehoseLogger {
 
 	private static final Logger LOG = LogManager.getLogger(AwsKinesisFirehoseLoggerImpl.class);
 
-	// Kinesis has a record limit of 500 for each batch
-	private static final int FIREHOSE_MAX_RECORD_LIMIT = 500;
-
 	private AmazonKinesisFirehose kinesisFirehoseClient;
 
 	private AwsKinesisLogRecordSerializer kinesisRecordSerializer;
 
 	private StackConfiguration stackConfiguration;
+	
+	private String stack;
+	
+	private String instance;	
 
 	@Autowired
 	public AwsKinesisFirehoseLoggerImpl(AmazonKinesisFirehose kinesisFirehoseClient, AwsKinesisLogRecordSerializer kinesisRecordSerializer, StackConfiguration stackConfiguration) {
 		this.kinesisFirehoseClient = kinesisFirehoseClient;
 		this.kinesisRecordSerializer = kinesisRecordSerializer;
 		this.stackConfiguration = stackConfiguration;
+		this.stack = stackConfiguration.getStack();
+		this.instance = stackConfiguration.getStackInstance();
 	}
 
 	@Override
 	public void logBatch(String kinesisDataStreamSuffix, List<? extends AwsKinesisLogRecord> logRecordList) {
 
 		List<? extends List<? extends AwsKinesisLogRecord>> partitionedRecords = ListUtils.partition(logRecordList,
-				FIREHOSE_MAX_RECORD_LIMIT);
+				AwsKinesisFirehoseConstants.PUT_BATCH_MAX_RECORD_LIMIT);
 
 		for (List<? extends AwsKinesisLogRecord> batch : partitionedRecords) {
 			PutRecordBatchRequest batchRequest = buildBatchRequest(kinesisDataStreamSuffix, batch);
@@ -68,7 +71,7 @@ public class AwsKinesisFirehoseLoggerImpl implements AwsKinesisFirehoseLogger {
 	}
 
 	private Record updateWithStackInfoAndConvertToRecord(AwsKinesisLogRecord logRecord) {
-		logRecord.withStack(stackConfiguration.getStack()).withInstance(stackConfiguration.getStackInstance());
+		logRecord.withStack(stack).withInstance(instance);
 		return new Record().withData(kinesisRecordSerializer.toBytes(logRecord));
 	}
 
