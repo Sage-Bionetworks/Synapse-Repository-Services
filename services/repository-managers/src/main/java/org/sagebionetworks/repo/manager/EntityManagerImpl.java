@@ -124,7 +124,7 @@ public class EntityManagerImpl implements EntityManager {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(entityId, "entityId");
-		entityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).checkAuthorizationOrElseThrow();
+		entityAuthorizationManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		return getEntity(entityId, entityClass);
 	}
 
@@ -444,13 +444,13 @@ public class EntityManagerImpl implements EntityManager {
 	@Override
 	public void validateReadAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
-		entityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).checkAuthorizationOrElseThrow();
+		entityAuthorizationManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 	}
 
 	@Override
 	public void validateUpdateAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
-		entityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, userInfo).checkAuthorizationOrElseThrow();
+		entityAuthorizationManager.hasAccess(userInfo, entityId, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
 	}
 
 	@Override
@@ -549,12 +549,12 @@ public class EntityManagerImpl implements EntityManager {
 			request.setParentId(ROOT_ID);
 		}
 		if (!NodeUtils.isRootEntityId(request.getParentId())) {
-			if (!entityAuthorizationManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, userInfo).isAuthorized()) {
+			if (!entityAuthorizationManager.hasAccess(userInfo, request.getParentId(), ACCESS_TYPE.READ).isAuthorized()) {
 				throw new UnauthorizedException("Lack of READ permission on the parent entity.");
 			}
 		}
 		String entityId = nodeManager.lookupChild(request.getParentId(), request.getEntityName());
-		if (!entityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).isAuthorized()) {
+		if (!entityAuthorizationManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ).isAuthorized()) {
 			throw new UnauthorizedException("Lack of READ permission on the requested entity.");
 		}
 		EntityId result = new EntityId();
@@ -577,7 +577,7 @@ public class EntityManagerImpl implements EntityManager {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getEntityId(), "request.entityId");
 		ValidateArgument.required(request.getSchema$id(), "request.schema$id");
-		entityAuthorizationManager.hasAccess(request.getEntityId(), ACCESS_TYPE.UPDATE, userInfo)
+		entityAuthorizationManager.hasAccess(userInfo, request.getEntityId(), ACCESS_TYPE.UPDATE)
 				.checkAuthorizationOrElseThrow();
 		JsonSchemaObjectBinding binding = jsonSchemaManager.bindSchemaToObject(userInfo.getId(), request.getSchema$id(),
 				KeyFactory.stringToKey(request.getEntityId()), BoundObjectType.entity);
@@ -589,7 +589,7 @@ public class EntityManagerImpl implements EntityManager {
 	public JsonSchemaObjectBinding getBoundSchema(UserInfo userInfo, String id) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(id, "id");
-		entityAuthorizationManager.hasAccess(id, ACCESS_TYPE.READ, userInfo).checkAuthorizationOrElseThrow();
+		entityAuthorizationManager.hasAccess(userInfo, id, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		return getBoundSchema(id);
 	}
 	
@@ -605,7 +605,7 @@ public class EntityManagerImpl implements EntityManager {
 	public void clearBoundSchema(UserInfo userInfo, String id) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(id, "id");
-		entityAuthorizationManager.hasAccess(id, ACCESS_TYPE.DELETE, userInfo).checkAuthorizationOrElseThrow();
+		entityAuthorizationManager.hasAccess(userInfo, id, ACCESS_TYPE.DELETE).checkAuthorizationOrElseThrow();
 		jsonSchemaManager.clearBoundSchema(KeyFactory.stringToKey(id), BoundObjectType.entity);
 		sendEntityUpdateNotifications(id);
 	}
@@ -624,7 +624,7 @@ public class EntityManagerImpl implements EntityManager {
 	public JSONObject getEntityJson(UserInfo userInfo, String entityId) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(entityId, "entityId");
-		entityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).checkAuthorizationOrElseThrow();
+		entityAuthorizationManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		return getEntityJson(entityId);
 	}
 	
@@ -660,7 +660,7 @@ public class EntityManagerImpl implements EntityManager {
 	public ValidationResults getEntityValidationResults(UserInfo userInfo, String entityId) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(entityId, "entityId");
-		entityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).checkAuthorizationOrElseThrow();
+		entityAuthorizationManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		return entitySchemaValidationResultDao.getValidationResults(entityId);
 	}
 
@@ -697,7 +697,7 @@ public class EntityManagerImpl implements EntityManager {
 	Set<Long> authorizedListChildren(UserInfo userInfo, String containerId){
 		if (!NodeUtils.isRootEntityId((containerId))) {
 			// The caller must have read on the container.
-			entityAuthorizationManager.hasAccess(containerId, ACCESS_TYPE.READ, userInfo)
+			entityAuthorizationManager.hasAccess(userInfo, containerId, ACCESS_TYPE.READ)
 					.checkAuthorizationOrElseThrow();
 		}
 		// Find the children of this entity that the caller cannot see.

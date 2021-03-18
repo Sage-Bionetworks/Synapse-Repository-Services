@@ -340,7 +340,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		requirementIdsToDelete.add(managedActAr.getId().toString());
 		
 		// show that entity can't be downloaded
-		assertFalse(entityAuthorizationManager.hasAccess(nodeAId, ACCESS_TYPE.DOWNLOAD, testUserInfo).isAuthorized());
+		assertFalse(entityAuthorizationManager.hasAccess(testUserInfo, nodeAId, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 
 		// create a research project
 		ResearchProject rp = new ResearchProject();
@@ -378,7 +378,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		submissionManager.updateStatus(adminUserInfo, sscr);
 		
 		// show that entity can be downloaded
-		assertTrue(entityAuthorizationManager.hasAccess(nodeAId, ACCESS_TYPE.DOWNLOAD, testUserInfo).isAuthorized());
+		assertTrue(entityAuthorizationManager.hasAccess(testUserInfo, nodeAId, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 		
 		// revoke access
 		AccessorGroupRevokeRequest agrr = new AccessorGroupRevokeRequest();
@@ -387,7 +387,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		accessApprovalManager.revokeGroup(adminUserInfo, agrr);
 		
 		// show that entity can't be downloaded (before PLFM-6209 this failed)
-		assertFalse(entityAuthorizationManager.hasAccess(nodeAId, ACCESS_TYPE.DOWNLOAD, testUserInfo).isAuthorized());
+		assertFalse(entityAuthorizationManager.hasAccess(testUserInfo, nodeAId, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
 	
 	@Test
@@ -415,13 +415,13 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		aa = createAccessApproval(adminUserInfo, aa);
 		
 		// show that entity can be downloaded
-		assertTrue(entityAuthorizationManager.hasAccess(nodeAId, ACCESS_TYPE.DOWNLOAD, testUserInfo).isAuthorized());
+		assertTrue(entityAuthorizationManager.hasAccess(testUserInfo, nodeAId, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 		
 		// revoke access
 		accessApprovalManager.revokeAccessApprovals(adminUserInfo, actAR.getId().toString(), testUserInfo.getId().toString());
 		
 		// show that entity can't be downloaded (before PLFM-6209 this failed)
-		assertFalse(entityAuthorizationManager.hasAccess(nodeAId, ACCESS_TYPE.DOWNLOAD, testUserInfo).isAuthorized());
+		assertFalse(entityAuthorizationManager.hasAccess(testUserInfo, nodeAId, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
 	
 	@Test

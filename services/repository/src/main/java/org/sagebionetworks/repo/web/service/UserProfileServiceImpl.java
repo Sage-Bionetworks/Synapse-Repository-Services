@@ -207,7 +207,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	public EntityHeader addFavorite(Long userId, String entityId)
 			throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		if(!entityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).isAuthorized())
+		if(!entityAuthorizationManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ).isAuthorized())
 			throw new UnauthorizedException("READ access denied to id: "+ entityId +". Favorite not added.");
 		Favorite favorite = userProfileManager.addFavorite(userInfo, entityId);
 		return entityManager.getEntityHeader(userInfo, favorite.getEntityId()); // current version

@@ -190,7 +190,7 @@ public class UserProfileServiceTest {
 	@Test
 	public void testAddFavorite() throws Exception {
 		String entityId = "syn123";
-		when(mockEntityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationStatus.authorized());
+		when(mockEntityAuthorizationManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
 		Favorite fav = new Favorite();
 		fav.setEntityId(entityId);
 		fav.setPrincipalId(EXTRA_USER_ID.toString());
@@ -205,7 +205,7 @@ public class UserProfileServiceTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testAddFavoriteUnauthorized() throws Exception {
 		String entityId = "syn123";
-		when(mockEntityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationStatus.accessDenied(""));
+		when(mockEntityAuthorizationManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
 		Favorite fav = new Favorite();
 		fav.setEntityId(entityId);
 		fav.setPrincipalId(EXTRA_USER_ID.toString());

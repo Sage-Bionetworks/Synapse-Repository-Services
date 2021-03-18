@@ -121,7 +121,7 @@ public class StsManagerImplTest {
 		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
 				storageLocationSetting);
 
-		when(mockAuthManager.hasAccess(same(USER_INFO), eq(PARENT_ENTITY_ID), any()))
+		when(mockAuthManager.hasAccess(same(USER_INFO), eq(PARENT_ENTITY_ID),any()))
 				.thenReturn(mockAuthStatus);
 
 		mockSts();

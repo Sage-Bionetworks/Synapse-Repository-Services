@@ -83,7 +83,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		String benefactor = nodeDao.getBenefactor(rId);
 		if (!benefactor.equals(rId)) throw new UnauthorizedException("Cannot update ACL for a resource which inherits its permissions.");
 		// check permissions of user to change permissions for the resource
-		entityAuthorizationManager.hasAccess(rId, CHANGE_PERMISSIONS, userInfo).checkAuthorizationOrElseThrow();
+		entityAuthorizationManager.hasAccess(userInfo, rId, CHANGE_PERMISSIONS).checkAuthorizationOrElseThrow();
 		// validate content
 		Long ownerId = nodeDao.getCreatedBy(acl.getId());
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
@@ -126,7 +126,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			throw new UnauthorizedException("Resource already has an ACL.");
 		}
 		// check permissions of user to change permissions for the resource
-		entityAuthorizationManager.hasAccess(benefactorId, CHANGE_PERMISSIONS, userInfo).checkAuthorizationOrElseThrow();
+		entityAuthorizationManager.hasAccess(userInfo, benefactorId, CHANGE_PERMISSIONS).checkAuthorizationOrElseThrow();
 		
 		// validate the Entity owners will still have access.
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, node.getCreatedByPrincipalId());
@@ -162,7 +162,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	public AccessControlList restoreInheritance(String entityId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		String benefactorId = nodeDao.getBenefactor(entityId);
 		// check permissions of user to change permissions for the resource
-		entityAuthorizationManager.hasAccess(entityId, CHANGE_PERMISSIONS, userInfo).checkAuthorizationOrElseThrow();
+		entityAuthorizationManager.hasAccess(userInfo, entityId, CHANGE_PERMISSIONS).checkAuthorizationOrElseThrow();
 		if(!KeyFactory.equals(entityId, benefactorId)){
 			throw new UnauthorizedException("Resource already inherits its permissions.");	
 		}

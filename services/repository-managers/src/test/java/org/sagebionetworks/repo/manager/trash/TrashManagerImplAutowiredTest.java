@@ -634,7 +634,7 @@ public class TrashManagerImplAutowiredTest {
 		trashManager.moveToTrash(testAdminUserInfo, nodeId, false);
 		
 		Assertions.assertThrows(EntityInTrashCanException.class, () -> {
-			entityAuthorizationManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, testAdminUserInfo).checkAuthorizationOrElseThrow();;
+			entityAuthorizationManager.hasAccess(testAdminUserInfo, nodeId, ACCESS_TYPE.DOWNLOAD).checkAuthorizationOrElseThrow();;
 		});
 	}
 	

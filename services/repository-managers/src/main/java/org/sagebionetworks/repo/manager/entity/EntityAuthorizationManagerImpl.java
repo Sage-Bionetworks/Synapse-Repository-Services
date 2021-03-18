@@ -87,11 +87,6 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		}
 		return lastResult;
 	}
-	
-	@Override
-	public AuthorizationStatus hasAccess(String entityId, ACCESS_TYPE accessType, UserInfo userInfo) {
-		return hasAccess(userInfo, entityId, accessType);
-	}
 
 	@Override
 	public AuthorizationStatus canCreate(String parentId, EntityType entityCreateType, UserInfo userInfo)

@@ -493,7 +493,7 @@ public class EntityServiceImpl implements EntityService {
 	public boolean hasAccess(String entityId, Long userId, String accessType)
 		throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return entityAuthorizationMangaer.hasAccess(entityId, ACCESS_TYPE.valueOf(accessType), userInfo).isAuthorized();
+		return entityAuthorizationMangaer.hasAccess(userInfo, entityId, ACCESS_TYPE.valueOf(accessType)).isAuthorized();
 	}
 
 	@Override

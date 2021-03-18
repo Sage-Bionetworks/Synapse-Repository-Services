@@ -215,7 +215,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockUser.isAdmin()).thenReturn(false);
 		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
 		
-		when(mockEntityAuthorizationManager.hasAccess(any(), any(ACCESS_TYPE.class), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 
 		Long addedPrincipalId = 444L;
 		AccessControlList oldAcl = AccessControlListUtil.createACLToGrantEntityAdminAccess(entityId, mockUser, new Date());
@@ -245,7 +245,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockUser.isAdmin()).thenReturn(false);
 		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
 
-		when(mockEntityAuthorizationManager.hasAccess(any(), any(ACCESS_TYPE.class), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(projectId, mockUser, new Date());
 		when(mockAclDAO.get(projectId, ObjectType.ENTITY)).thenReturn(acl);
@@ -266,7 +266,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockUser.isAdmin()).thenReturn(false);
 		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
 
-		when(mockEntityAuthorizationManager.hasAccess(any(), any(ACCESS_TYPE.class), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(folderId, mockUser, new Date());
 		when(mockAclDAO.get(folderId, ObjectType.ENTITY)).thenReturn(acl);
@@ -287,7 +287,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockUser.isAdmin()).thenReturn(false);
 		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
 
-		when(mockEntityAuthorizationManager.hasAccess(any(), any(ACCESS_TYPE.class), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(fileId, mockUser, new Date());
 		when(mockAclDAO.get(fileId, ObjectType.ENTITY)).thenReturn(acl);
 
@@ -307,7 +307,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockUser.isAdmin()).thenReturn(false);
 		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
 
-		when(mockEntityAuthorizationManager.hasAccess(any(), any(ACCESS_TYPE.class), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(fileId, mockUser, new Date());
 
@@ -332,7 +332,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockUser.isAdmin()).thenReturn(false);
 		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
 
-		when(mockEntityAuthorizationManager.hasAccess(any(), any(ACCESS_TYPE.class), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(folderId, mockUser, new Date());
 		when(mockAclDAO.get(folderId, ObjectType.ENTITY)).thenReturn(acl);
 
@@ -359,7 +359,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockUser.isAdmin()).thenReturn(false);
 		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
 
-		when(mockEntityAuthorizationManager.hasAccess(any(), any(ACCESS_TYPE.class), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(fileId, mockUser, new Date());
 		when(mockAclDAO.get(fileId, ObjectType.ENTITY)).thenReturn(acl);
 
@@ -378,7 +378,7 @@ public class EntityPermissionsManagerImplUnitTest {
 	@Test
 	public void testRestoreInheritanceProject(){
 		when(mockNodeDao.getBenefactor(project.getId())).thenReturn(project.getId());
-		when(mockEntityAuthorizationManager.hasAccess(any(), any(ACCESS_TYPE.class), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		when(mockNodeDao.touch(any(Long.class), anyString())).thenReturn(newEtag);
 		when(mockNodeDao.getNodeTypeById(projectId)).thenReturn(EntityType.project);
 		// call under test
@@ -389,7 +389,7 @@ public class EntityPermissionsManagerImplUnitTest {
 	@Test
 	public void testRestoreInheritanceFolder(){
 		when(mockNodeDao.getBenefactor(folder.getId())).thenReturn(folder.getId());
-		when(mockEntityAuthorizationManager.hasAccess(any(), any(ACCESS_TYPE.class), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		when(mockNodeDao.touch(any(Long.class), anyString())).thenReturn(newEtag);
 		when(mockNodeDao.getNodeTypeById(folderId)).thenReturn(EntityType.folder);
 		// call under test
@@ -400,7 +400,7 @@ public class EntityPermissionsManagerImplUnitTest {
 	@Test
 	public void testRestoreInheritanceFile(){
 		when(mockNodeDao.getBenefactor(file.getId())).thenReturn(file.getId());
-		when(mockEntityAuthorizationManager.hasAccess(any(), any(ACCESS_TYPE.class), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		when(mockNodeDao.touch(any(Long.class), anyString())).thenReturn(newEtag);
 		when(mockNodeDao.getNodeTypeById(fileId)).thenReturn(EntityType.file);
 		// call under test

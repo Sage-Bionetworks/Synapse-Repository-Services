@@ -119,7 +119,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			throws DatastoreException, NotFoundException {
 		switch (objectType) {
 			case ENTITY:
-				return entityAuthorizationManager.hasAccess(objectId, accessType, userInfo);
+				return entityAuthorizationManager.hasAccess(userInfo, objectId, accessType);
 			case EVALUATION:
 				return evaluationPermissionsManager.hasAccess(userInfo, objectId, accessType);
 			case ACCESS_REQUIREMENT:

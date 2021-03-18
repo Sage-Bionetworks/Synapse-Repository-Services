@@ -373,7 +373,7 @@ public class EntityPermissionsManagerImplTest {
 		acl.getResourceAccess().add(ra);
 		entityPermissionsManager.updateACL(acl, adminUserInfo);
 		// baseline:  there is no restriction against downloading this entity
-		assertTrue(entityAuthorizationManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).isAuthorized());
+		assertTrue(entityAuthorizationManager.hasAccess(otherUserInfo, childNode.getId(), ACCESS_TYPE.DOWNLOAD).isAuthorized());
 		// now create an access requirement on project and child
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
@@ -386,11 +386,11 @@ public class EntityPermissionsManagerImplTest {
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		arId = ""+ar.getId();
 		// now we can't download
-		assertFalse(entityAuthorizationManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).isAuthorized());
+		assertFalse(entityAuthorizationManager.hasAccess(otherUserInfo, childNode.getId(), ACCESS_TYPE.DOWNLOAD).isAuthorized());
 		accessRequirementManager.deleteAccessRequirement(adminUserInfo, arId);
 		arId=null;
 		// back to the baseline
-		assertTrue(entityAuthorizationManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).isAuthorized());
+		assertTrue(entityAuthorizationManager.hasAccess(otherUserInfo, childNode.getId(), ACCESS_TYPE.DOWNLOAD).isAuthorized());
 		// now add the AR to the child node itself
 		ar.setId(null);
 		ar.setEtag(null);
@@ -400,7 +400,7 @@ public class EntityPermissionsManagerImplTest {
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		arId = ""+ar.getId();
 		// again, we can't download
-		assertFalse(entityAuthorizationManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).isAuthorized());
+		assertFalse(entityAuthorizationManager.hasAccess(otherUserInfo, childNode.getId(), ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
 	
 	@Test
