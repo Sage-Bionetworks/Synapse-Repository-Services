@@ -29,8 +29,7 @@ public interface EntityAuthorizationManager {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public AuthorizationStatus hasAccess(UserInfo userInfo, String entityId, ACCESS_TYPE...accessType)
-			throws NotFoundException, DatastoreException;
+	public AuthorizationStatus hasAccess(UserInfo userInfo, String entityId, ACCESS_TYPE...accessType);
 
 	/**
 	 * Determine if the user is authorized access the given batch of entityIds. This

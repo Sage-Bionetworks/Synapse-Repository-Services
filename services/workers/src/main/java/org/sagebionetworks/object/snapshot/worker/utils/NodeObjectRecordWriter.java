@@ -11,6 +11,7 @@ import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
@@ -39,7 +40,7 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 	@Autowired
 	private AccessRequirementDAO accessRequirementDao;
 	@Autowired
-	private EntityPermissionsManager entityPermissionManager;
+	private EntityAuthorizationManager entityAuthorizationManager;
 	@Autowired
 	private ObjectRecordDAO objectRecordDAO;
 
@@ -57,11 +58,11 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 	private NodeRecord setAccessProperties(NodeRecord record,
 			UserManager userManager,
 			AccessRequirementDAO accessRequirementDao,
-			EntityPermissionsManager entityPermissionManager,
+			EntityAuthorizationManager entityAuthorizationManager,
 			NodeDAO nodeDao) {
 
 		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		UserEntityPermissions permissions = entityPermissionManager.getUserPermissionsForEntity(adminUserInfo, record.getId());
+		UserEntityPermissions permissions = entityAuthorizationManager.getUserPermissionsForEntity(adminUserInfo, record.getId());
 
 		record.setIsPublic(permissions.getCanPublicRead());
 
@@ -111,7 +112,7 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 					String benefactorId = nodeDAO.getBenefactor(message.getObjectId());
 					String projectId = nodeDAO.getProjectId(message.getObjectId());
 					NodeRecord record = buildNodeRecord(node, benefactorId, projectId);
-					record = setAccessProperties(record, userManager, accessRequirementDao, entityPermissionManager, nodeDAO);
+					record = setAccessProperties(record, userManager, accessRequirementDao, entityAuthorizationManager, nodeDAO);
 					ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime());
 					nonDeleteRecords.add(objectRecord);
 				} catch (EntityInTrashCanException e) {

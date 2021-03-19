@@ -42,6 +42,8 @@ public interface UserManager {
 	public UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
 			DBOTermsOfUseAgreement touAgreement) throws NotFoundException;
 	
+	public UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user, boolean acceptsTermsOfUse) throws NotFoundException;
+	
 	/**
 	 * Delete a principal by ID
 	 * 

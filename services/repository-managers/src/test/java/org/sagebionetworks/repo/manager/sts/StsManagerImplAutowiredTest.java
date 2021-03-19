@@ -104,6 +104,7 @@ public class StsManagerImplAutowiredTest {
 		user.setUserName(username);
 		userInfo = userManager.getUserInfo(userManager.createUser(user));
 		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userInfo.setAcceptsTermsOfUse(true);
 
 		// User must agree to terms of use to get download privileges (and hence access the STS API).
 		authManager.setTermsOfUseAcceptance(userInfo.getId(), true);

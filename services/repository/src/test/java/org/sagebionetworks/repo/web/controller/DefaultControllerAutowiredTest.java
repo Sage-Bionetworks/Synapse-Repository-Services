@@ -76,7 +76,8 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
-		otherUserId = userManager.createUser(user);
+		boolean acceptsTermsOfUse = true;
+		otherUserId = userManager.createOrGetTestUser(adminUserInfo, user, acceptsTermsOfUse).getId();
 		otherUserInfo = userManager.getUserInfo(otherUserId);
 	}
 

@@ -138,6 +138,17 @@ public class UserManagerImpl implements UserManager {
 		}
 		return alias;
 	}
+	
+	@WriteTransaction
+	@Override
+	public UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user, boolean acceptsTermsOfUse)
+			throws NotFoundException {
+		DBOCredential credential = null;
+		DBOTermsOfUseAgreement touAgreement = new DBOTermsOfUseAgreement();
+		touAgreement.setAgreesToTermsOfUse(acceptsTermsOfUse);
+		DBOSessionToken token = null;
+		return createOrGetTestUser(adminUserInfo, user, credential, touAgreement, token);
+	}
 
 	@WriteTransaction
 	@Override

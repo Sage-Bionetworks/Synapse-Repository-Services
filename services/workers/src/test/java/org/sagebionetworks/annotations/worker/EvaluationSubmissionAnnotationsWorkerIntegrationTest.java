@@ -22,6 +22,7 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.evaluation.SubmissionManager;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -78,6 +79,9 @@ public class EvaluationSubmissionAnnotationsWorkerIntegrationTest {
 	@Autowired
 	private AccessControlListDAO accessControlListDAO;
 	
+	@Autowired
+	private UserManager userManager;
+	
 	private String nodeId;
     private String submissionId;
     private Long userId;
@@ -89,8 +93,7 @@ public class EvaluationSubmissionAnnotationsWorkerIntegrationTest {
 	@Before
 	public void before() throws Exception {
 		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-	    userInfo = new UserInfo(true);
-	    userInfo.setId(userId);
+		userInfo = userManager.getUserInfo(userId);
 		semphoreManager.releaseAllLocksAsAdmin(userInfo);
 		queueCleaner.purgeQueue(StackConfigurationSingleton.singleton().getQueueName("EVALUATION_SUBMISSION_UPDATE"));
 		

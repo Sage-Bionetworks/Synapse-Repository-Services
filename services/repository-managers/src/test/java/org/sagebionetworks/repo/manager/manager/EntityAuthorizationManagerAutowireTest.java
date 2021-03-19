@@ -137,15 +137,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = "syn123";
 		UserInfo user = userOne;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
-		// old call under test
-		String oldMessage = assertThrows(NotFoundException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user);
-		}).getMessage();
 		// new call under test
 		String newMessage = assertThrows(NotFoundException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
 	}
 
@@ -163,10 +158,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = project.getId();
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -187,14 +178,8 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = project.getId();
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
-		String message = assertThrows(UnauthorizedException.class, () -> {
-			// old call under test
-			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		assertEquals(String.format(ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, ACCESS_TYPE.DOWNLOAD.name()),
-				message);
 
-		message = assertThrows(UnauthorizedException.class, () -> {
+		String message = assertThrows(UnauthorizedException.class, () -> {
 			// new call under test
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
@@ -213,15 +198,11 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = project.getId();
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
-		// old call under test
-		String oldMessage = assertThrows(EntityInTrashCanException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user);
-		}).getMessage();
+
 		// new call under test
 		String newMessage = assertThrows(EntityInTrashCanException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, project.getId()), newMessage);
 	}
 	
@@ -239,15 +220,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = adminUserInfo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
 
-		// old call under test
-		String oldMessage = assertThrows(EntityInTrashCanException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user);
-		}).getMessage();
 		// new call under test
 		String newMessage = assertThrows(EntityInTrashCanException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, project.getId()), newMessage);
 	}
 
@@ -265,10 +241,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = project.getId();
 		UserInfo user = adminUserInfo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -291,14 +263,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = anonymousUser;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
 
-		/*
-		 * Note: The old call assumes that granting download to public is blocked at the
-		 * ACL level, and incorrectly allows download to anonymous.
-		 */
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
@@ -322,11 +286,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = project.getId();
 		UserInfo user = anonymousUser;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
-
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
+		
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -350,15 +310,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		// change the user to not accept.
 		userTwo.setAcceptsTermsOfUse(false);
 
-		// old call under test
-		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
-		}).getMessage();
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE, newMessage);
 	}
 
@@ -388,11 +343,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = project.getId();
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
-
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
+		
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -418,15 +369,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
 
-		// old call under test
-		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
-		}).getMessage();
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS, newMessage);
 	}
 
@@ -447,10 +393,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
 
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -462,15 +404,11 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = "syn123";
 		UserInfo user = userOne;
 		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
-		// old call under test
-		String oldMessage = assertThrows(NotFoundException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user);
-		}).getMessage();
+
 		// new call under test
 		String newMessage = assertThrows(NotFoundException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
 	}
 	
@@ -489,12 +427,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
 
-		// old call under test
-		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		// Note: The old message is not consistent with other calls
-		assertEquals(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE, accessType.name(), entityId), oldMessage);
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
@@ -518,10 +450,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = adminUserInfo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
 
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -539,15 +467,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = project.getId();
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
-		// old call under test
-		String oldMessage = assertThrows(EntityInTrashCanException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user);
-		}).getMessage();
 		// new call under test
 		String newMessage = assertThrows(EntityInTrashCanException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, project.getId()), newMessage);
 	}
 	
@@ -562,15 +485,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = adminUserInfo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
 
-		// old call under test
-		String oldMessage = assertThrows(EntityInTrashCanException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user);
-		}).getMessage();
 		// new call under test
 		String newMessage = assertThrows(EntityInTrashCanException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, project.getId()), newMessage);
 	}
 	
@@ -590,10 +508,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
 
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -616,10 +530,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
 
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -642,16 +552,11 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = folder.getId();
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
-
-		// old call under test
-		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
-		}).getMessage();
+		
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(ERR_MSG_CERTIFIED_USER_CONTENT, newMessage);
 	}
 	
@@ -672,10 +577,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
 
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -698,15 +599,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = anonymousUser;
 		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
 
-		// old call under test
-		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
-		}).getMessage();
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION, newMessage);
 	}
 	
@@ -728,11 +624,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
 
-		// old call under test
-		// The old code works but should not
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
@@ -754,15 +645,48 @@ public class EntityAuthorizationManagerAutowireTest {
 		EntityType createType = EntityType.project;
 		UserInfo user = userTwo;
 		
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.canCreate(parentId, createType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.canCreate(parentId, createType, user);
 		assertNotNull(newStatus);
 		assertTrue(newStatus.isAuthorized());
 	}
+	
+	@Test
+	public void testCanCreateWithNullUser() {
+		String parentId = "syn123";
+		EntityType createType = EntityType.project;
+		UserInfo user = null;
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			entityAuthManager.canCreate(parentId, createType, user);
+		}).getMessage();
+		assertEquals("UserInfo is required.", message);
+	}
+	
+	@Test
+	public void testCanCreateWithNullType() {
+		String parentId = "syn123";
+		EntityType createType = null;
+		UserInfo user = userTwo;
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			entityAuthManager.canCreate(parentId, createType, user);
+		}).getMessage();
+		assertEquals("entityCreateType is required.", message);
+	}
+	
+	@Test
+	public void testCanCreateWithNullParentId() {
+		String parentId = null;
+		EntityType createType = EntityType.project;
+		UserInfo user = userTwo;
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			entityAuthManager.canCreate(parentId, createType, user);
+		}).getMessage();
+		assertEquals("parentId is required.", message);
+	}
+	
 	
 	@Test
 	public void testCanCreateWithProjectCertifiedFalse() {
@@ -781,10 +705,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		EntityType createType = EntityType.project;
 		UserInfo user = userTwo;
 		
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.canCreate(parentId, createType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.canCreate(parentId, createType, user);
 		assertNotNull(newStatus);
@@ -807,17 +727,11 @@ public class EntityAuthorizationManagerAutowireTest {
 		String parentId = project.getId();
 		EntityType createType = EntityType.file;
 		UserInfo user = userTwo;
-				
-		// old call under test
-		// This is another cases where the old code was not consistent with the exception type.
-		String oldMessage = assertThrows(UserCertificationRequiredException.class, () -> {
-			entityPermissionManager.canCreate(parentId, createType, user).checkAuthorizationOrElseThrow();
-		}).getMessage();
+
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.canCreate(parentId, createType, user).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(ERR_MSG_CERTIFIED_USER_CONTENT, newMessage);
 	}
 	
@@ -838,10 +752,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		EntityType createType = EntityType.file;
 		UserInfo user = userTwo;
 		
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.canCreate(parentId, createType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.canCreate(parentId, createType, user);
 		assertNotNull(newStatus);
@@ -864,10 +774,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
 
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -879,15 +785,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = "syn123";
 		UserInfo user = userOne;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
-		// old call under test
-		String oldMessage = assertThrows(NotFoundException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user);
-		}).getMessage();
 		// new call under test
 		String newMessage = assertThrows(NotFoundException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
 	}
 	
@@ -907,13 +808,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
 
-		// old call under test
-		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		// Note: The old message is not consistent with other calls
-		assertEquals(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE, accessType.name(), entityId),
-				oldMessage);
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
@@ -937,10 +831,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = adminUserInfo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
 
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -958,11 +848,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = adminUserInfo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
 
-		// old call under test
-		// The old code erroneously allows admins users to create entities in the trash.
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		String newMessage = assertThrows(EntityInTrashCanException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
@@ -981,11 +866,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = project.getId();
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
-		// old call under test
-		// The old code erroneously allows users to create entities in the trash.
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
+
 		// new call under test
 		String newMessage = assertThrows(EntityInTrashCanException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
@@ -1013,15 +894,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
 
-		// old call under test
-		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
-		}).getMessage();
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(ERR_MSG_CERTIFIED_USER_CONTENT, newMessage);
 	}
 	
@@ -1041,10 +917,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
 
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -1068,15 +940,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
 
-		// old call under test
-		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
-		}).getMessage();
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(ERR_MSG_CERTIFIED_USER_CONTENT, newMessage);
 	}
 	
@@ -1097,10 +964,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
 
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -1123,12 +986,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = anonymousUser;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
 
-		// old call under test
-		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		// Old code failed for the wrong reason...
-		assertEquals(ERR_MSG_CERTIFIED_USER_CONTENT, oldMessage);
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
@@ -1154,11 +1011,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
 
-		// old call under test
-		// The old code works but should not
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
@@ -1181,10 +1033,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
 
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -1196,15 +1044,11 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = "syn123";
 		UserInfo user = userOne;
 		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
-		// old call under test
-		String oldMessage = assertThrows(NotFoundException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user);
-		}).getMessage();
+
 		// new call under test
 		String newMessage = assertThrows(NotFoundException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
 	}
 	
@@ -1223,12 +1067,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
 
-		// old call under test
-		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		// Note: The old message is not consistent with other calls
-		assertEquals(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE, accessType.name(), entityId), oldMessage);
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
@@ -1252,10 +1090,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = adminUserInfo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
 
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -1273,15 +1107,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = adminUserInfo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
 
-		// old call under test
-		String oldMessage = assertThrows(EntityInTrashCanException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user);
-		}).getMessage();
 		// new call under test
 		String newMessage = assertThrows(EntityInTrashCanException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, project.getId()), newMessage);
 	}
 	
@@ -1296,15 +1125,11 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = project.getId();
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
-		// old call under test
-		String oldMessage = assertThrows(EntityInTrashCanException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user);
-		}).getMessage();
+
 		// new call under test
 		String newMessage = assertThrows(EntityInTrashCanException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, project.getId()), newMessage);
 	}
 	
@@ -1323,10 +1148,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DELETE;
 
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -1338,15 +1159,11 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = "syn123";
 		UserInfo user = userOne;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DELETE;
-		// old call under test
-		String oldMessage = assertThrows(NotFoundException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user);
-		}).getMessage();
+
 		// new call under test
 		String newMessage = assertThrows(NotFoundException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
 	}
 	
@@ -1364,13 +1181,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = project.getId();
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DELETE;
-
-		// old call under test
-		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		// Note: The old message is not consistent with other calls
-		assertEquals(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE, accessType.name(), entityId), oldMessage);
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
@@ -1394,10 +1204,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = adminUserInfo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DELETE;
 
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -1415,16 +1221,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = adminUserInfo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DELETE;
 
-		// old call under test
-		// The old method erroneously works.
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
-		// new call under test
-		String newMessage = assertThrows(EntityInTrashCanException.class, () -> {
-			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		assertEquals(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, project.getId()), newMessage);
+		// call under test
+		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
 	}
 	
 	@Test
@@ -1439,12 +1239,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DELETE;
 
-		// old call under test
-		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		// Note: The old message is not consistent with other calls
-		assertEquals(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE, accessType.name(), entityId), oldMessage);
 		// new call under test
 		String newMessage = assertThrows(EntityInTrashCanException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
@@ -1468,15 +1262,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = anonymousUser;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DELETE;
 
-		// old call under test
-		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
-		}).getMessage();
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION, newMessage);
 	}
 	
@@ -1495,10 +1284,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.MODERATE;
 
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -1510,15 +1295,11 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = "syn123";
 		UserInfo user = userOne;
 		ACCESS_TYPE accessType = ACCESS_TYPE.MODERATE;
-		// old call under test
-		String oldMessage = assertThrows(NotFoundException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user);
-		}).getMessage();
+
 		// new call under test
 		String newMessage = assertThrows(NotFoundException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
 	}
 	
@@ -1537,12 +1318,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.MODERATE;
 
-		// old call under test
-		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		// Note: The old message is not consistent with other calls
-		assertEquals(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE, accessType.name(), entityId), oldMessage);
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
@@ -1566,10 +1341,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = adminUserInfo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.MODERATE;
 
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -1587,15 +1358,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = adminUserInfo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.MODERATE;
 
-		// old call under test
-		String oldMessage = assertThrows(EntityInTrashCanException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user);
-		}).getMessage();
 		// new call under test
 		String newMessage = assertThrows(EntityInTrashCanException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, project.getId()), newMessage);
 	}
 	
@@ -1611,15 +1377,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.MODERATE;
 
-		// old call under test
-		String oldMessage = assertThrows(EntityInTrashCanException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user);
-		}).getMessage();
 		// new call under test
 		String newMessage = assertThrows(EntityInTrashCanException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, project.getId()), newMessage);
 	}
 	
@@ -1639,15 +1400,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = anonymousUser;
 		ACCESS_TYPE accessType = ACCESS_TYPE.MODERATE;
 
-		// old call under test
-		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
-		}).getMessage();
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION, newMessage);
 	}
 	
@@ -1666,10 +1422,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_SETTINGS;
 
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -1691,11 +1443,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_SETTINGS;
 
-		// old call under test
-		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionManager.canChangeSettings(project, user).checkAuthorizationOrElseThrow();;
-		}).getMessage();
-		assertEquals("Only certified users may change node settings.", oldMessage);
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
@@ -1718,10 +1465,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userOne;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_SETTINGS;
 
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.canChangeSettings(project, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -1733,15 +1476,11 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = "syn123";
 		UserInfo user = userOne;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_SETTINGS;
-		// old call under test
-		String oldMessage = assertThrows(NotFoundException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user);
-		}).getMessage();
+
 		// new call under test
 		String newMessage = assertThrows(NotFoundException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
 	}
 	
@@ -1760,12 +1499,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_SETTINGS;
 
-		// old call under test
-		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		// Note: The old message is not consistent with other calls
-		assertEquals(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE, accessType.name(), entityId), oldMessage);
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
@@ -1789,10 +1522,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = adminUserInfo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_SETTINGS;
 
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -1810,15 +1539,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = adminUserInfo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_SETTINGS;
 
-		// old call under test
-		String oldMessage = assertThrows(EntityInTrashCanException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user);
-		}).getMessage();
 		// new call under test
 		String newMessage = assertThrows(EntityInTrashCanException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, project.getId()), newMessage);
 	}
 	
@@ -1833,16 +1557,11 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = project.getId();
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_SETTINGS;
-
-		// old call under test
-		String oldMessage = assertThrows(EntityInTrashCanException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user);
-		}).getMessage();
+		
 		// new call under test
 		String newMessage = assertThrows(EntityInTrashCanException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, project.getId()), newMessage);
 	}
 	
@@ -1862,15 +1581,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = anonymousUser;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_SETTINGS;
 
-		// old call under test
-		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
-		}).getMessage();
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION, newMessage);
 	}
 
@@ -1889,10 +1603,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_PERMISSIONS;
 
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -1904,15 +1614,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = "syn123";
 		UserInfo user = userOne;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_PERMISSIONS;
-		// old call under test
-		String oldMessage = assertThrows(NotFoundException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user);
-		}).getMessage();
 		// new call under test
 		String newMessage = assertThrows(NotFoundException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
 	}
 	
@@ -1930,13 +1635,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = project.getId();
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_PERMISSIONS;
-
-		// old call under test
-		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		// Note: The old message is not consistent with other calls
-		assertEquals(String.format(ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE, accessType.name(), entityId), oldMessage);
+		
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
@@ -1959,11 +1658,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = project.getId();
 		UserInfo user = adminUserInfo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_PERMISSIONS;
-
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.hasAccess(entityId, accessType, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
+		
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
@@ -1981,15 +1676,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = adminUserInfo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_PERMISSIONS;
 
-		// old call under test
-		String oldMessage = assertThrows(EntityInTrashCanException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user);
-		}).getMessage();
 		// new call under test
 		String newMessage = assertThrows(EntityInTrashCanException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, project.getId()), newMessage);
 	}
 	
@@ -2005,15 +1695,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_PERMISSIONS;
 
-		// old call under test
-		String oldMessage = assertThrows(EntityInTrashCanException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user);
-		}).getMessage();
 		// new call under test
 		String newMessage = assertThrows(EntityInTrashCanException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, project.getId()), newMessage);
 	}
 	
@@ -2033,15 +1718,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		UserInfo user = anonymousUser;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_PERMISSIONS;
 
-		// old call under test
-		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionManager.hasAccess(entityId, accessType, user).checkAuthorizationOrElseThrow();
-		}).getMessage();
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
-		assertEquals(oldMessage, newMessage);
 		assertEquals(ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION, newMessage);
 	}
 	
@@ -2172,11 +1852,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = project.getId();
 		UserInfo user = userTwo;
 		
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.canCreateWiki(entityId, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
-		
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.canCreateWiki(entityId, user);
 		assertNotNull(newStatus);
@@ -2203,11 +1878,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		String entityId = folder.getId();
 		UserInfo user = userTwo;
 		
-		// old call under test
-		String oldMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionManager.canCreateWiki(entityId, user).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		assertEquals("Only certified users may create non-project wikis in Synapse.", oldMessage);
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
 			entityAuthManager.canCreateWiki(entityId, user).checkAuthorizationOrElseThrow();;
@@ -2234,11 +1904,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		String entityId = folder.getId();
 		UserInfo user = userTwo;
-		
-		// old call under test
-		AuthorizationStatus oldStatus = entityPermissionManager.canCreateWiki(entityId, user);
-		assertNotNull(oldStatus);
-		assertTrue(oldStatus.isAuthorized());
 		
 		// new call under test
 		AuthorizationStatus newStatus = entityAuthManager.canCreateWiki(entityId, user);

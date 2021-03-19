@@ -100,12 +100,13 @@ public class StsManagerImpl implements StsManager {
 			throw new IllegalArgumentException("STS write access is not allowed in Synapse storage");
 		}
 
-		// Check auth. We always need at least download access.
-		authManager.hasAccess(userInfo, entityId, ACCESS_TYPE.DOWNLOAD)
-				.checkAuthorizationOrElseThrow();
 		if (permission == StsPermission.read_write) {
-			// For write permissions, we also need update access.
-			authManager.hasAccess(userInfo, entityId, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE)
+			// For write permissions, we need download, update, create, and delete.
+			authManager.hasAccess(userInfo, entityId, ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE)
+					.checkAuthorizationOrElseThrow();
+		}else {
+			// for read-only access we need download.
+			authManager.hasAccess(userInfo, entityId, ACCESS_TYPE.DOWNLOAD)
 					.checkAuthorizationOrElseThrow();
 		}
 

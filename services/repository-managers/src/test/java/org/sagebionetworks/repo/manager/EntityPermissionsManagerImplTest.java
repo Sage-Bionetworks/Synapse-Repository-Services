@@ -22,6 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManager;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -57,6 +58,9 @@ public class EntityPermissionsManagerImplTest {
 	
 	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
+	
+	@Autowired
+	private EntityAuthorizationManager entityAuthorizationManager;
 	
 	@Autowired
 	private AccessRequirementManager accessRequirementManager;
@@ -369,7 +373,7 @@ public class EntityPermissionsManagerImplTest {
 		acl.getResourceAccess().add(ra);
 		entityPermissionsManager.updateACL(acl, adminUserInfo);
 		// baseline:  there is no restriction against downloading this entity
-		assertTrue(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).isAuthorized());
+		assertTrue(entityAuthorizationManager.hasAccess(otherUserInfo, childNode.getId(), ACCESS_TYPE.DOWNLOAD).isAuthorized());
 		// now create an access requirement on project and child
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
@@ -382,11 +386,11 @@ public class EntityPermissionsManagerImplTest {
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		arId = ""+ar.getId();
 		// now we can't download
-		assertFalse(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).isAuthorized());
+		assertFalse(entityAuthorizationManager.hasAccess(otherUserInfo, childNode.getId(), ACCESS_TYPE.DOWNLOAD).isAuthorized());
 		accessRequirementManager.deleteAccessRequirement(adminUserInfo, arId);
 		arId=null;
 		// back to the baseline
-		assertTrue(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).isAuthorized());
+		assertTrue(entityAuthorizationManager.hasAccess(otherUserInfo, childNode.getId(), ACCESS_TYPE.DOWNLOAD).isAuthorized());
 		// now add the AR to the child node itself
 		ar.setId(null);
 		ar.setEtag(null);
@@ -396,7 +400,7 @@ public class EntityPermissionsManagerImplTest {
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		arId = ""+ar.getId();
 		// again, we can't download
-		assertFalse(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).isAuthorized());
+		assertFalse(entityAuthorizationManager.hasAccess(otherUserInfo, childNode.getId(), ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
 	
 	@Test
@@ -410,7 +414,7 @@ public class EntityPermissionsManagerImplTest {
 		Node folder = createDTO("Test Folder ", userInfo.getId(), userInfo.getId(), project.getId());
 		folder.setNodeType(EntityType.folder);
 		
-		UserCertificationRequiredException ex = assertThrows(UserCertificationRequiredException.class, () -> {
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class, () -> {
 			// Method under test
 			nodeManager.createNode(folder, userInfo);
 		});
