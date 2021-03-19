@@ -25,5 +25,9 @@
 			</list>
 		</property>
 	</bean>
+	
+	<!-- Used only for testing kinesis delivery streams  -->
+	<bean id="amazonAthenaClient" class="org.sagebionetworks.aws.AwsClientFactory"
+		factory-method="createAmazonAthenaClient" scope="singleton" />
 
 </beans>
