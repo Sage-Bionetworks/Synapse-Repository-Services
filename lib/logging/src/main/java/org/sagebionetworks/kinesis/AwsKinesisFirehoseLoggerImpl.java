@@ -114,10 +114,11 @@ public class AwsKinesisFirehoseLoggerImpl implements AwsKinesisFirehoseLogger {
 		
 		long delay = getRetryDelay(retryNumber, maxRetryDelay);
 		
+		if (retryNumber > 0 && LOG.isDebugEnabled()) {
+			LOG.debug("Retrying batch delivery after {} ms (Retry number: {})", delay, retryNumber);
+		};
+		
 		if (delay > 0) {
-			if (LOG.isDebugEnabled()) {
-				LOG.debug("Retrying batch delivery after {} ms (Retry number: {})", delay, retryNumber);
-			}
 			try {
 				Thread.sleep(delay);
 			} catch (InterruptedException e) {
@@ -156,7 +157,8 @@ public class AwsKinesisFirehoseLoggerImpl implements AwsKinesisFirehoseLogger {
 	}
 	
 	// Exponential backoff strategy with equal jitter, reference from AWS recommendation: https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
-	// Also see the reference implementation in the AWS SDK: PredefinedBackoffStrategies
+	// The conclusion is that full jitter is better, but it probably depends on the context. Since we don't have enough data we follow the reference implementation 
+	// used by the AWS SDK: See PredefinedBackoffStrategies
 	private static long getRetryDelay(int retryNumber, long maxRetryDelay) {
 		if (retryNumber == 0) {
 			return 0;
@@ -165,7 +167,8 @@ public class AwsKinesisFirehoseLoggerImpl implements AwsKinesisFirehoseLogger {
 		// Standard back-off strategy used by AWS, min(max_delay, startingDelay * (factor^retryNumber) 
 		long delay = (long) Math.min(maxRetryDelay, AwsKinesisFirehoseConstants.BASE_RETRY_DELAY * Math.pow(AwsKinesisFirehoseConstants.BACKOFF_FACTOR, retryNumber - 1));
 		
-		// Add equal jitter
+		// Add equal jitter, note that the SDK switches between a full jitter and an equal jitter according to the type of exception (e.g. equal for throttling, full for non-throttling).
+		// Here we simply use equal because we expect to not being able to deliver a record mostly because of throttling
 		return  (delay / 2) + ThreadLocalRandom.current().nextLong(delay / 2 + 1);
 		
 	}
