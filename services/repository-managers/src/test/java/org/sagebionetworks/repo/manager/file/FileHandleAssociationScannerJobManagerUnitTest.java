@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -166,7 +167,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 	}
 	
 	@Test
-	public void processScanRangeRequestWithMultipleBatches() {
+	public void processScanRangeRequestWithMultipleBatches() throws InterruptedException {
 		
 		// 3 batches, the last batch is not full
 		List<ScannedFileHandleAssociation> associations = IntStream.range(0, FileHandleAssociationScannerJobManagerImpl.KINESIS_BATCH_SIZE * 3 - 1).boxed().map(i ->
@@ -176,6 +177,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		when(mockStatusDao.exist(anyLong())).thenReturn(true);
 		when(mockStackStatusDao.isStackReadWrite()).thenReturn(true);
 		when(mockAssociationManager.scanRange(any(), any())).thenReturn(associations);
+		doNothing().when(mockClock).sleep(anyLong());
 		
 		final long initialTimestamp = 1234L;
 		
@@ -206,6 +208,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		verify(mockAssociationManager).scanRange(scanRangeRequest.getAssociationType(), scanRangeRequest.getIdRange());
 		verify(mockKinesisLogger, times(expectedBatches.size())).logBatch(eq(FileHandleAssociationRecord.KINESIS_STREAM_NAME), recordsCaptor.capture());
 		verify(mockClock, times(expectedBatches.size())).currentTimeMillis();
+		verify(mockClock, times(expectedBatches.size() - 1)).sleep(FileHandleAssociationScannerJobManagerImpl.FLUSH_DELAY_MS);
 		
 		List<List<FileHandleAssociationRecord>> batches = recordsCaptor.getAllValues();
 

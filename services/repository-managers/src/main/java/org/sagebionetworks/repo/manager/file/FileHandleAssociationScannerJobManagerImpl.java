@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationRecord;
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleScannerUtils;
@@ -24,8 +26,11 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAssociationScannerJobManager {
+	
+	private static final Logger LOG = LogManager.getLogger(FileHandleAssociationScannerJobManagerImpl.class);
 		
-	static final int KINESIS_BATCH_SIZE = 5000;
+	static final long FLUSH_DELAY_MS = 250;
+	static final int KINESIS_BATCH_SIZE = 10000;
 	
 	private FileHandleAssociationManager associationManager;
 	private AwsKinesisFirehoseLogger kinesisLogger;
@@ -79,6 +84,13 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 			if (recordsBatch.size() >= KINESIS_BATCH_SIZE) {
 				totalRecords += flushRecordsBatch(recordsBatch);
 				batchTimestamp = clock.currentTimeMillis();
+
+				// Put a small sleep before continuing with the next batch to avoid saturating kinesis
+				try {
+					clock.sleep(FLUSH_DELAY_MS);
+				} catch (InterruptedException e) {
+					LOG.warn(e.getMessage(), e);
+				}
 			}
 		}
 		
