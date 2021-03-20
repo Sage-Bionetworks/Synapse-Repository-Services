@@ -51,6 +51,14 @@ public interface SubmissionManager {
 	public SubmissionPage listSubmission(UserInfo userInfo, SubmissionPageRequest request);
 
 	/**
+	 * Delete a submission.
+	 * 
+	 * @param userInfo
+	 * @param submissionId
+	 */
+	public void deleteSubmission(UserInfo userInfo, String submissionId);
+
+	/**
 	 * List the submission info for approved submissions.
 	 * 
 	 * @param request
