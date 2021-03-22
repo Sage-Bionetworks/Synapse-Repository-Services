@@ -93,7 +93,7 @@ public class MessageManagerImplUnitTest {
 	@Mock
 	private NodeDAO nodeDAO;
 	@Mock
-	private EntityPermissionsManager entityPermissionsManager;
+	private EntityAclManager entityAclManager;
 	@Mock
 	private SynapseEmailService sesClient;
 	@Mock

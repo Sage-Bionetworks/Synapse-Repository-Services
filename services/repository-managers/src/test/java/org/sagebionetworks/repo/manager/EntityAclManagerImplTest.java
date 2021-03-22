@@ -48,7 +48,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class EntityPermissionsManagerImplTest {
+public class EntityAclManagerImplTest {
 	
 	@Autowired
 	private NodeManager nodeManager;
@@ -57,7 +57,7 @@ public class EntityPermissionsManagerImplTest {
 	private UserManager userManager;
 	
 	@Autowired
-	private EntityPermissionsManager entityPermissionsManager;
+	private EntityAclManager entityAclManager;
 	
 	@Autowired
 	private EntityAuthorizationManager entityAuthorizationManager;
@@ -145,7 +145,7 @@ public class EntityPermissionsManagerImplTest {
 	@Test
 	public void testGetACL() throws Exception {
 		// retrieve parent acl
-		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
+		AccessControlList acl = entityAclManager.getACL(project.getId(), adminUserInfo);
 		assertNotNull(acl);
 		assertEquals(project.getId(), acl.getId());
 		assertEquals(1, acl.getResourceAccess().size());
@@ -155,7 +155,7 @@ public class EntityPermissionsManagerImplTest {
 		
 		// retrieve child acl.  should get parent's
 		ACLInheritanceException e = assertThrows(ACLInheritanceException.class, () -> {			
-			entityPermissionsManager.getACL(childNode.getId(), adminUserInfo);
+			entityAclManager.getACL(childNode.getId(), adminUserInfo);
 		});
 		
 		// The exception should tell us the benefactor
@@ -165,25 +165,25 @@ public class EntityPermissionsManagerImplTest {
 	@Test
 	public void testGetACLNoSYN() throws Exception {
 		// retrieve parent acl
-		AccessControlList acl = entityPermissionsManager.getACL(project.getId().substring("syn".length()), adminUserInfo);
+		AccessControlList acl = entityAclManager.getACL(project.getId().substring("syn".length()), adminUserInfo);
 		assertNotNull(acl);
 	}
 
 	@Test
 	public void testUpdateACL() throws Exception {
-		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
+		AccessControlList acl = entityAclManager.getACL(project.getId(), adminUserInfo);
 		assertEquals(1, acl.getResourceAccess().size());
 		// Check the etag before
 		String etagBefore = acl.getEtag();
 		assertNotNull(etagBefore);
 		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.READ);
-		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
+		acl = entityAclManager.updateACL(acl, adminUserInfo);
 		// The etag should have changed
 		assertNotNull(acl.getEtag());
 		assertFalse(etagBefore.equals(acl.getEtag()));
 		
 		// now get it again and see that the permission is there
-		acl = entityPermissionsManager.getACL(project.getId(), userInfo);
+		acl = entityAclManager.getACL(project.getId(), userInfo);
 		Set<ResourceAccess> ras = acl.getResourceAccess();
 		assertEquals(2, ras.size());
 		Iterator<ResourceAccess> it = ras.iterator();
@@ -202,22 +202,22 @@ public class EntityPermissionsManagerImplTest {
 	
 	@Test
 	public void testConcurrentUpdate() throws Exception {
-		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
+		AccessControlList acl = entityAclManager.getACL(project.getId(), adminUserInfo);
 		assertEquals(1, acl.getResourceAccess().size());
 		// Change the etag so that it does not match the current value
 		acl.setEtag(acl.getEtag()+"1");
 		assertThrows(ConflictingUpdateException.class, () -> {
-			entityPermissionsManager.updateACL(acl, adminUserInfo);
+			entityAclManager.updateACL(acl, adminUserInfo);
 		});
 	}
 
 	@Test
 	// check that you get an exception if...
 	public void testUpdateInvalidACL() throws Exception {
-		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
+		AccessControlList acl = entityAclManager.getACL(project.getId(), adminUserInfo);
 		assertEquals(1, acl.getResourceAccess().size());
 		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.READ);
-		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
+		acl = entityAclManager.updateACL(acl, adminUserInfo);
 		acl.setId(project.getId());
 		// ...group id is null...
 		ResourceAccess ra = new ResourceAccess();
@@ -230,7 +230,7 @@ public class EntityPermissionsManagerImplTest {
 		AccessControlList updateAcl = acl;
 		
 		assertThrows(InvalidModelException.class, () -> {
-			entityPermissionsManager.updateACL(updateAcl, adminUserInfo);
+			entityAclManager.updateACL(updateAcl, adminUserInfo);
 		});
 	}
 
@@ -240,29 +240,29 @@ public class EntityPermissionsManagerImplTest {
 		acl.setId(childNode.getId());
 		String eTagBefore = childNode.getETag();
 		assertNotNull(eTagBefore);
-		AccessControlList results = entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
+		AccessControlList results = entityAclManager.overrideInheritance(acl, adminUserInfo);
 		assertNotNull(results);
 		assertNotNull(results.getEtag());
 		assertFalse(eTagBefore.equals(results.getEtag()), "The Etag should have changed");
 		assertEquals(childNode.getId(), results.getId());
 		childNode = nodeManager.getNode(adminUserInfo, childNode.getId());
 		// call 'getACL':  the ACL should match the requested settings and specify the resource as the owner of the ACL
-		AccessControlList acl2 = entityPermissionsManager.getACL(childNode.getId(), adminUserInfo);
+		AccessControlList acl2 = entityAclManager.getACL(childNode.getId(), adminUserInfo);
 		assertEquals(childNode.getId(), acl2.getId());
 		assertEquals(acl, acl2);
 	}
 
 	@Test
 	public void testOverrideInheritanceEdgeCases() throws Exception {
-		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
+		AccessControlList acl = entityAclManager.getACL(project.getId(), adminUserInfo);
 		// should get exception if object already has an acl
 		assertThrows(UnauthorizedException.class, () -> {			
-			entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
+			entityAclManager.overrideInheritance(acl, adminUserInfo);
 		});
 		
 		// should get exception if you don't have authority to change permissions
 		assertThrows(UnauthorizedException.class, () -> {		
-			entityPermissionsManager.overrideInheritance(acl, userInfo);
+			entityAclManager.overrideInheritance(acl, userInfo);
 		});
 	}
 
@@ -270,21 +270,21 @@ public class EntityPermissionsManagerImplTest {
 	public void testRestoreInheritance() throws Exception {
 		ACLInheritanceException e = assertThrows(ACLInheritanceException.class, () -> {		
 			// This will fail but we can use it to get the benefactor
-			entityPermissionsManager.getACL(childNode.getId(), adminUserInfo);
+			entityAclManager.getACL(childNode.getId(), adminUserInfo);
 		});
 		
 		// Get the parent ACL
-		AccessControlList acl = entityPermissionsManager.getACL(e.getBenefactorId(), adminUserInfo);
+		AccessControlList acl = entityAclManager.getACL(e.getBenefactorId(), adminUserInfo);
 		
 		// Set the ID to the child.
 		acl.setId(childNode.getId());
-		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
-		AccessControlList acl2 = entityPermissionsManager.getACL(childNode.getId(), adminUserInfo);
+		entityAclManager.overrideInheritance(acl, adminUserInfo);
+		AccessControlList acl2 = entityAclManager.getACL(childNode.getId(), adminUserInfo);
 		assertEquals(childNode.getId(), acl2.getId());
 		assertEquals(acl, acl2);
 		String eTagBefore = childNode.getETag();
 		assertNotNull(eTagBefore);
-		AccessControlList results = entityPermissionsManager.restoreInheritance(childNode.getId(), adminUserInfo);
+		AccessControlList results = entityAclManager.restoreInheritance(childNode.getId(), adminUserInfo);
 		assertNotNull(results);
 		assertNotNull(results.getEtag());
 		assertEquals(project.getId(), results.getId());
@@ -292,7 +292,7 @@ public class EntityPermissionsManagerImplTest {
 		assertFalse(eTagBefore.equals(childNode.getETag()), "The etag of the child node should have changed");
 		// call 'getACL' on the resource.  The returned ACL should specify parent as the ACL owner
 		e =	assertThrows(ACLInheritanceException.class, () -> {		
-			entityPermissionsManager.getACL(childNode.getId(), adminUserInfo);
+			entityAclManager.getACL(childNode.getId(), adminUserInfo);
 		});
 		// Get the parent ACL
 		assertEquals(project.getId(), e.getBenefactorId());
@@ -303,21 +303,21 @@ public class EntityPermissionsManagerImplTest {
 	public void testRestoreInheritanceEdgeCases() throws Exception {
 		// should get exception if resource already inherits
 		assertThrows(UnauthorizedException.class, () -> {		
-			entityPermissionsManager.restoreInheritance(childNode.getId(), adminUserInfo);
+			entityAclManager.restoreInheritance(childNode.getId(), adminUserInfo);
 		});
 		
 		ACLInheritanceException e = assertThrows(ACLInheritanceException.class, () -> {	
-			 entityPermissionsManager.getACL(childNode.getId(), adminUserInfo);
+			 entityAclManager.getACL(childNode.getId(), adminUserInfo);
 		});
 		
-		AccessControlList acl = entityPermissionsManager.getACL(e.getBenefactorId(), adminUserInfo);
+		AccessControlList acl = entityAclManager.getACL(e.getBenefactorId(), adminUserInfo);
 
 		acl.setId(childNode.getId());
-		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
+		entityAclManager.overrideInheritance(acl, adminUserInfo);
 		
 		// should get exception if don't have authority to change permissions
 		assertThrows(UnauthorizedException.class, () -> {
-			entityPermissionsManager.restoreInheritance(childNode.getId(), userInfo);
+			entityAclManager.restoreInheritance(childNode.getId(), userInfo);
 		});
 		
 	}
@@ -334,12 +334,12 @@ public class EntityPermissionsManagerImplTest {
 		
 		// grant CRU access to collaborator		
 		Set<ACCESS_TYPE> collaboratorAccess = new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[] { ACCESS_TYPE.CREATE, ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE })); 
-		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
+		AccessControlList acl = entityAclManager.getACL(project.getId(), adminUserInfo);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(collaboratorAccess);
 		ra.setPrincipalId(userInfo.getId());	
 		acl.getResourceAccess().add(ra);
-		entityPermissionsManager.updateACL(acl, adminUserInfo);
+		entityAclManager.updateACL(acl, adminUserInfo);
 		
 		// create folder in project as collaborator
 		Node folder = createDTO("collaborators folder", userInfo.getId(), userInfo.getId(), project.getId());
@@ -350,10 +350,10 @@ public class EntityPermissionsManagerImplTest {
 		AccessControlList folderAcl = new AccessControlList();
 		folderAcl.setId(folder.getId());
 		folderAcl.setResourceAccess(acl.getResourceAccess());		
-		entityPermissionsManager.overrideInheritance(folderAcl, adminUserInfo);
+		entityAclManager.overrideInheritance(folderAcl, adminUserInfo);
 		
 		// get ACL as collaborator and assure proper ACL 
-		AccessControlList retAcl = entityPermissionsManager.getACL(folder.getId(), userInfo);
+		AccessControlList retAcl = entityAclManager.getACL(folder.getId(), userInfo);
 		assertEquals(acl.getResourceAccess().size(), retAcl.getResourceAccess().size());
 		for(ResourceAccess raExpect : acl.getResourceAccess()) {
 			for(ResourceAccess raActual : retAcl.getResourceAccess()) {
@@ -366,12 +366,12 @@ public class EntityPermissionsManagerImplTest {
 	
 	@Test
 	public void testCanDownload() throws Exception {
-		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
+		AccessControlList acl = entityAclManager.getACL(project.getId(), adminUserInfo);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD})));
 		ra.setPrincipalId(otherUserInfo.getId());	
 		acl.getResourceAccess().add(ra);
-		entityPermissionsManager.updateACL(acl, adminUserInfo);
+		entityAclManager.updateACL(acl, adminUserInfo);
 		// baseline:  there is no restriction against downloading this entity
 		assertTrue(entityAuthorizationManager.hasAccess(otherUserInfo, childNode.getId(), ACCESS_TYPE.DOWNLOAD).isAuthorized());
 		// now create an access requirement on project and child
@@ -406,9 +406,9 @@ public class EntityPermissionsManagerImplTest {
 	@Test
 	public void testCreateNodeWithNonCertifiedUser() throws Exception {
 		// Add permissions to create in the project for the (uncertified) user
-		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
+		AccessControlList acl = entityAclManager.getACL(project.getId(), adminUserInfo);
 		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.CREATE);
-		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
+		acl = entityAclManager.updateACL(acl, adminUserInfo);
 		
 		// Tries to create a folder
 		Node folder = createDTO("Test Folder ", userInfo.getId(), userInfo.getId(), project.getId());

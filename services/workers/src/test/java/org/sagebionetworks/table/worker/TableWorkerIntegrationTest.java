@@ -18,7 +18,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.CertifiedUserManager;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.EntityPermissionsManager;
+import org.sagebionetworks.repo.manager.EntityAclManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.dataaccess.AccessApprovalManager;
@@ -170,7 +170,7 @@ public class TableWorkerIntegrationTest {
 	@Autowired
 	AccessApprovalManager accessApprovalManager;
 	@Autowired
-	EntityPermissionsManager entityPermissionsManager;
+	EntityAclManager entityAclManager;
 	@Autowired
 	ConnectionFactory tableConnectionFactory;
 	@Autowired
@@ -1877,15 +1877,15 @@ public class TableWorkerIntegrationTest {
 		});
 
 		// add users to acl
-		AccessControlList acl = entityPermissionsManager.getACL(projectId, adminUserInfo);
+		AccessControlList acl = entityAclManager.getACL(projectId, adminUserInfo);
 		acl.setId(tableId);
-		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
-		acl = entityPermissionsManager.getACL(tableId, adminUserInfo);
+		entityAclManager.overrideInheritance(acl, adminUserInfo);
+		acl = entityAclManager.getACL(tableId, adminUserInfo);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(notOwner.getId());
 		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE));
 		acl.getResourceAccess().add(ra);
-		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
+		acl = entityAclManager.updateACL(acl, adminUserInfo);
 
 		appendRows(notOwner, tableId,
 				createRowSet(headers), mockProgressCallback);
@@ -3124,15 +3124,15 @@ public class TableWorkerIntegrationTest {
 	 * @throws ACLInheritanceException
 	 */
 	void grantReadToPublicOnTable() throws ACLInheritanceException {
-		AccessControlList acl = entityPermissionsManager.getACL(projectId, adminUserInfo);
+		AccessControlList acl = entityAclManager.getACL(projectId, adminUserInfo);
 		acl.setId(tableId);
-		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
-		acl = entityPermissionsManager.getACL(tableId, adminUserInfo);
+		entityAclManager.overrideInheritance(acl, adminUserInfo);
+		acl = entityAclManager.getACL(tableId, adminUserInfo);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
 		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
 		acl.getResourceAccess().add(ra);
-		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
+		acl = entityAclManager.updateACL(acl, adminUserInfo);
 	}
 	
 	/**

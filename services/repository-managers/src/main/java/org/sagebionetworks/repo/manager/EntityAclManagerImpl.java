@@ -37,7 +37,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 
-public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
+public class EntityAclManagerImpl implements EntityAclManager {
 
 	@Autowired
 	private NodeDAO nodeDao;

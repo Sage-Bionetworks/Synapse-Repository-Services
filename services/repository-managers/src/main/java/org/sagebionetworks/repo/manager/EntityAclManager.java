@@ -11,7 +11,12 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-public interface EntityPermissionsManager {
+/**
+ * Abstraction for 
+ * @author John
+ *
+ */
+public interface EntityAclManager {
 	/**
 	 * Invoked for a node which currently inherits its permissions, this
 	 * method overrides inheritance so that the node defines its own

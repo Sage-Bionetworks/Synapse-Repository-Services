@@ -53,7 +53,7 @@ import com.google.common.collect.Sets;
 @ExtendWith(MockitoExtension.class)
 public class EntityPermissionsManagerImplUnitTest {
 	
-	private EntityPermissionsManagerImpl entityPermissionsManager;
+	private EntityAclManagerImpl entityPermissionsManager;
 	private UserInfo nonCertifiedUserInfo;
 	private UserInfo certifiedUserInfo;
 	private static final String projectId = "syn123";
@@ -104,7 +104,7 @@ public class EntityPermissionsManagerImplUnitTest {
 	// here we set up a certified and a non-certified user, a project and a non-project Node
 	@BeforeEach
 	public void setUp() throws Exception {
-		entityPermissionsManager = new EntityPermissionsManagerImpl();
+		entityPermissionsManager = new EntityAclManagerImpl();
 		
 		nonCertifiedUserInfo = new UserInfo(false);
 		nonCertifiedUserInfo.setId(765432L);

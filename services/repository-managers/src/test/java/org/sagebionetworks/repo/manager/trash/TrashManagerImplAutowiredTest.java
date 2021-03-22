@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.repo.manager.EntityPermissionsManager;
+import org.sagebionetworks.repo.manager.EntityAclManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManager;
@@ -57,7 +57,7 @@ public class TrashManagerImplAutowiredTest {
 	private NodeManager nodeManager;
 	
 	@Autowired 
-	private EntityPermissionsManager entityPermissionsManager;
+	private EntityAclManager entityAclManager;
 	
 	@Autowired 
 	private EntityAuthorizationManager entityAuthorizationManager;
@@ -391,7 +391,7 @@ public class TrashManagerImplAutowiredTest {
 
 		// Modify nodeId12 to be its own benefactor
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(nodeId12, testUserInfo, new Date());
-		entityPermissionsManager.overrideInheritance(acl, testUserInfo);
+		entityAclManager.overrideInheritance(acl, testUserInfo);
 		assertEquals(nodeId12, nodeDAO.getBenefactor(nodeId12));
 		assertEquals(nodeId12, nodeDAO.getBenefactor(nodeId22));
 

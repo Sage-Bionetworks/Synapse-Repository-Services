@@ -105,7 +105,7 @@ public class EntityManagerImplUnitTest {
 	@Mock
 	private UserManager mockUserManager;
 	@Mock
-	private EntityPermissionsManager mockEntityAclManager;
+	private EntityAclManager mockEntityAclManager;
 	@Mock
 	private EntityAuthorizationManager mockAuthorizationManger;
 	@Mock

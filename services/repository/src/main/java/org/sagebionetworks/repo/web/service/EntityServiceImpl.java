@@ -6,7 +6,7 @@ import java.util.List;
 import org.json.JSONObject;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.EntityPermissionsManager;
+import org.sagebionetworks.repo.manager.EntityAclManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -84,7 +84,7 @@ public class EntityServiceImpl implements EntityService {
 	@Autowired
 	private EntityManager entityManager;
 	@Autowired
-	private EntityPermissionsManager entityPermissionsManager;
+	private EntityAclManager entityAclManager;
 	@Autowired
 	private EntityAuthorizationManager entityAuthorizationMangaer;
 	@Autowired
@@ -445,7 +445,7 @@ public class EntityServiceImpl implements EntityService {
 			InvalidModelException, UnauthorizedException, NotFoundException, ConflictingUpdateException {
 
 		UserInfo userInfo = userManager.getUserInfo(userId);		
-		AccessControlList acl = entityPermissionsManager.overrideInheritance(newACL, userInfo);
+		AccessControlList acl = entityAclManager.overrideInheritance(newACL, userInfo);
 		return acl;
 	}
 
@@ -454,7 +454,7 @@ public class EntityServiceImpl implements EntityService {
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException {
 		// First try the updated
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		AccessControlList acl = entityPermissionsManager.getACL(entityId, userInfo);
+		AccessControlList acl = entityAclManager.getACL(entityId, userInfo);
 		
 
 		return acl;
@@ -465,14 +465,14 @@ public class EntityServiceImpl implements EntityService {
 	public AccessControlList updateEntityACL(Long userId, AccessControlList updated) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		// Resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return entityPermissionsManager.updateACL(updated, userInfo);
+		return entityAclManager.updateACL(updated, userInfo);
 	}
 
 	@WriteTransaction
 	@Override
 	public AccessControlList createOrUpdateEntityACL(Long userId, AccessControlList acl) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		String entityId = acl.getId();
-		if (entityPermissionsManager.hasLocalACL(entityId)) {
+		if (entityAclManager.hasLocalACL(entityId)) {
 			// Local ACL exists; update it
 			return updateEntityACL(userId, acl);
 		} else {
@@ -486,7 +486,7 @@ public class EntityServiceImpl implements EntityService {
 	public void deleteEntityACL(Long userId, String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		entityPermissionsManager.restoreInheritance(id, userInfo);
+		entityAclManager.restoreInheritance(id, userInfo);
 	}
 
 	@Override
@@ -524,7 +524,7 @@ public class EntityServiceImpl implements EntityService {
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// First get the permissions benefactor
-		String benefactor = entityPermissionsManager.getPermissionBenefactor(entityId, userInfo);
+		String benefactor = entityAclManager.getPermissionBenefactor(entityId, userInfo);
 		return getEntityHeader(userId, benefactor);
 	}
 
