@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
@@ -19,6 +20,7 @@ import org.sagebionetworks.table.model.SparseChangeSet;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.AmazonServiceException.ErrorType;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 
 /**
  * Implementation of an iterator over all the file handles of a single table
@@ -60,6 +62,11 @@ public class TableFileHandleIterator implements Iterator<ScannedFileHandleAssoci
 				LOG.warn("Could not load change data for table " + tableId + " (Change Number: " + changeMetadata.getChangeNumber() + "): " + e.getMessage(), e);
 				return association;
 			} catch (AmazonServiceException e) {
+				// If the key wasn't found for the change data we cannot do anything about it, see PLFM-6651
+				if (e instanceof AmazonS3Exception && e.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
+					LOG.warn("Change data for table " + tableId + " not found (Change Number: " + changeMetadata.getChangeNumber() + "): " + e.getMessage(), e);
+					return association;
+				}
 				// According to the docs the service type error are for requests received by AWS that cannot be fulfilled at the moment
 				// The caller can try iterating again from scratch
 				if (ErrorType.Service.equals(e.getErrorType())) {
