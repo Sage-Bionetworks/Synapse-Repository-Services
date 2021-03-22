@@ -5448,6 +5448,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
+	public void deleteDataAccessSubmission(String submissionId) throws SynapseException {
+		ValidateArgument.required(submissionId, "submissionId");
+		String url = DATA_ACCESS_SUBMISSION+"/"+submissionId;
+		deleteUri(getRepoEndpoint(), url);
+	}
+
+	@Override
 	public org.sagebionetworks.repo.model.dataaccess.Submission updateSubmissionState(String submissionId, SubmissionState newState, String reason)
 			throws SynapseException {
 		ValidateArgument.required(submissionId, "submissionId");

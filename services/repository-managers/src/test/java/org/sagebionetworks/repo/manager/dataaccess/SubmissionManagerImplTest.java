@@ -548,6 +548,28 @@ public class SubmissionManagerImplTest {
 				.thenReturn(mockSubmissionStatus);
 		assertEquals(mockSubmissionStatus, manager.cancel(mockUser, submissionId));
 	}
+	
+	@Test
+	public void testDeleteSumbission() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
+		
+		// method under test
+		manager.deleteSubmission(mockUser, submissionId);
+		
+		verify(mockSubmissionDao).delete((submissionId));
+	}
+
+	@Test
+	public void testDeleteSumbissionUnauthorized() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(false);
+		
+		// method under test
+		assertThrows(UnauthorizedException.class, () -> {
+			manager.deleteSubmission(mockUser, submissionId);
+		});
+		
+		verify(mockSubmissionDao, never()).delete((submissionId));
+	}
 
 	@Test
 	public void testUpdateStatusWithNullUserInfo() {

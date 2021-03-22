@@ -22,7 +22,7 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class DataAccessServiceImpl implements DataAccessService{
+public class DataAccessServiceImpl implements DataAccessService {
 
 	@Autowired
 	private UserManager userManager;
@@ -82,6 +82,14 @@ public class DataAccessServiceImpl implements DataAccessService{
 		UserInfo user = userManager.getUserInfo(userId);
 		return dataAccessSubmissionManager.listSubmission(user, request);
 	}
+	
+	@Override
+	public void deleteSubmission(Long userId, String submissionId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		dataAccessSubmissionManager.deleteSubmission(user, submissionId);
+	}
+
+
 
 	@Override
 	public SubmissionInfoPage listInfoForApprovedSubmissions(SubmissionInfoPageRequest request) {

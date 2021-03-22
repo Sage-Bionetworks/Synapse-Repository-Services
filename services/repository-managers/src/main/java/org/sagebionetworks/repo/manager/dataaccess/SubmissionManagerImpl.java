@@ -330,6 +330,18 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		return pageResult;
 	}
 
+	@WriteTransaction
+	@Override
+	public void deleteSubmission(UserInfo userInfo, String submissionId) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(submissionId, "submissionId");
+
+		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only ACT member can perform this action.");
+		}
+		submissionDao.delete(submissionId);
+	}
+
 	@Override
 	public SubmissionInfoPage listInfoForApprovedSubmissions(SubmissionInfoPageRequest request) {
 		ValidateArgument.required(request, "request");

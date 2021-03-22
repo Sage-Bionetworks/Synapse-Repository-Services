@@ -3219,6 +3219,14 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	org.sagebionetworks.repo.model.dataaccess.SubmissionStatus cancelSubmission(String submissionId) throws SynapseException;
+	
+	/**
+	 * Delete a Data Access Submission.
+	 * 
+	 * @param submissionId
+	 * @throws SynapseException
+	 */
+	void deleteDataAccessSubmission(String submissionId) throws SynapseException;
 
 	/**
 	 * Request to update the state of a submission.

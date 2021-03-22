@@ -219,6 +219,8 @@ public class ITDataAccessTest {
 		assertNotNull(synapseOne.getBatchAccessApprovalInfo(approvalInfoRequest ));
 
 		adminSynapse.revokeGroup(managedAR.getId().toString(), userId);
+		
+		adminSynapse.deleteDataAccessSubmission(status.getSubmissionId());
 	}
 	
 	// This test is used solely to verify the controller integration
