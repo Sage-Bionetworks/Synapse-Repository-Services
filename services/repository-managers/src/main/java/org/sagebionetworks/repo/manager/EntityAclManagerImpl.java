@@ -32,11 +32,13 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 
+@Service
 public class EntityAclManagerImpl implements EntityAclManager {
 
 	@Autowired

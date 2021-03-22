@@ -173,8 +173,6 @@
 	<bean id="referenceUtil" class="org.sagebionetworks.repo.util.ReferenceUtilImpl" />
 	
 	<bean id="authorizationManager" class="org.sagebionetworks.repo.manager.AuthorizationManagerImpl" />
-		
-	<bean id="entityPermissionsManager" class="org.sagebionetworks.repo.manager.EntityPermissionsManagerImpl" />
 
 	<bean id="userProfileManager" class="org.sagebionetworks.repo.manager.UserProfileManagerImpl" />
 
