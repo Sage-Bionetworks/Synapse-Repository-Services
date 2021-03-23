@@ -26,6 +26,8 @@ public class BooleanValueListValidatorTest {
 		valueValidator.validate(key, "false");
 		valueValidator.validate(key, "TRUE");
 		valueValidator.validate(key, "FALSE");
+		valueValidator.validate(key, "True");
+		valueValidator.validate(key, "False");
 	}
 	
 	@Test
@@ -40,6 +42,15 @@ public class BooleanValueListValidatorTest {
 	@Test
 	public void testValidateWithTooLongForBoolean() {
 		String value = "false1";
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			valueValidator.validate(key, value);
+		}).getMessage();
+		assertEquals(AnnotationsV2ValueListValidator.getIllegalValueMessage(key, AnnotationsValueType.BOOLEAN, value), message);
+	}
+	
+	@Test
+	public void testValidateWithNotABoolean() {
+		String value = "one";
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			valueValidator.validate(key, value);
 		}).getMessage();
