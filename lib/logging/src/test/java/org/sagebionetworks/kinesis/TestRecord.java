@@ -1,5 +1,6 @@
 package org.sagebionetworks.kinesis;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -21,7 +22,7 @@ public class TestRecord implements AwsKinesisLogRecord {
 				.map( i -> new TestRecord()
 								.withId(Long.valueOf(i))
 								.withTimestamp(timestamp)
-								.withSomeField("Some field " + i)
+								.withSomeField("Some field \n_" + new String(AwsKinesisFirehoseConstants.NEW_LINE_BYTES, StandardCharsets.UTF_8) + "_" + i)
 				).collect(Collectors.toList());
 	}
 
