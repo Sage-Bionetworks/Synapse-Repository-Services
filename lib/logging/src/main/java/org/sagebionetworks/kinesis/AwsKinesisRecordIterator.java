@@ -8,6 +8,11 @@ import java.util.List;
 
 import com.amazonaws.services.kinesisfirehose.model.Record;
 
+/**
+ * An iterator over {@link AwsKinesisLogRecord} that will produce aggregated {@link AwsKinesisRecord} containing as 
+ * many serialized {@link AwsKinesisLogRecord} as possible till the specified limit. Each serialized {@link AwsKinesisLogRecord}
+ * will be separated by a new line.
+ */
 public class AwsKinesisRecordIterator implements Iterator<AwsKinesisRecord> {
 	
 	private List<? extends AwsKinesisLogRecord> records;
@@ -93,9 +98,12 @@ public class AwsKinesisRecordIterator implements Iterator<AwsKinesisRecord> {
 			if (byteArrayOutputStream.size() == 0) {
 				throw new IllegalStateException("No records were added to the builder.");
 			}
-			ByteBuffer buffer = ByteBuffer.wrap(byteArrayOutputStream.toByteArray());
 			
-			return new AwsKinesisRecord(new Record().withData(buffer), byteArrayOutputStream.size());
+			byte[] data = byteArrayOutputStream.toByteArray();
+			
+			ByteBuffer buffer = ByteBuffer.wrap(data);
+			
+			return new AwsKinesisRecord(new Record().withData(buffer), data.length);
 		}
 
 	}
