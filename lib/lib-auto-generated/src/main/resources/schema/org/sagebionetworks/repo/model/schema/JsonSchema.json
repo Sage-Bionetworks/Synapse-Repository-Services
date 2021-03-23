@@ -120,6 +120,14 @@
 		"else": {
 			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.2.2.3\">else\"</a>",
 			"$recursiveRef": "#"
+		},
+		"maximum": {
+			"type": "integer",
+			"description": "See: <a href=\"https://tools.ietf.org/html/draft-handrews-json-schema-validation-02#section-6.2.2\">maximum</a>"
+		},
+		"minimum": {
+			"type": "integer",
+			"description": "See: <a href=\"https://tools.ietf.org/html/draft-handrews-json-schema-validation-02#section-6.2.4\">minimum</a>"
 		}
 	}
 }
