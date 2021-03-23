@@ -17,6 +17,10 @@
 		{
 			"name": "TIMESTAMP_MS",
 			"description": "Value is a Unix Timestamp in milliseconds"
+		},
+		{
+			"name": "BOOLEAN",
+			"description": "Value is a Boolean"
 		}
 	]
 }

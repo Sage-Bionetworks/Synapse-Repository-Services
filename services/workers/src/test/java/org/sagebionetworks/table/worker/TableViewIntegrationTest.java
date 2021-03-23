@@ -1912,6 +1912,50 @@ public class TableViewIntegrationTest {
 		
 	}
 	
+	@Test
+	public void testTableViewWithBooleanAnnotations() throws Exception{
+		// one
+		String fileId = fileIds.get(0);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, booleanColumn.getName(), "true", AnnotationsValueType.BOOLEAN);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		// two
+		fileId = fileIds.get(1);
+		annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, booleanColumn.getName(), "false", AnnotationsValueType.BOOLEAN);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		// three
+		fileId = fileIds.get(2);
+		annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, booleanColumn.getName(), "True", AnnotationsValueType.BOOLEAN);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+
+		// Create the view
+		defaultColumnIds = Lists.newArrayList(booleanColumn.getId(), etagColumn.getId());
+		createFileView();
+
+		// Query for the values as strings.
+		String sql = "select "+booleanColumn.getName()+", "+etagColumn.getName()+" from "+fileViewId;
+		
+		RowSet rowSet = waitForConsistentQuery(adminUserInfo, sql, (results) -> {
+			List<Row> rows  = extractRows(results);
+			assertEquals(3, rows.size());
+			assertEquals("true", rows.get(0).getValues().get(0));
+			assertEquals("false", rows.get(1).getValues().get(0));
+			assertEquals("true", rows.get(2).getValues().get(0));			
+		}).getQueryResult().getQueryResults();
+
+		// use the results to update the annotations.
+		List<EntityUpdateResult> updates = updateView(rowSet, fileViewId);
+
+		assertEquals(3, updates.size());
+		// all of the update should have succeeded.
+		for(EntityUpdateResult eur: updates){
+			assertEquals(null, eur.getFailureMessage());
+			assertEquals(null, eur.getFailureCode());
+		}
+	}
+	
 	/**
 	 * Broadcast a change message to the view worker.
 	 * 
