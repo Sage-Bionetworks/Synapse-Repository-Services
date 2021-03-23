@@ -6,13 +6,12 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import org.junit.jupiter.api.Test;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 
 import com.google.common.base.Strings;
 
 public class StringValueListValidatorTest {
 
-	StringValueListValidator valueValidator = new StringValueListValidator(AnnotationsValueType.STRING);
+	StringValueListValidator valueValidator = new StringValueListValidator();
 	String key = "myKey";
 
 	@Test
