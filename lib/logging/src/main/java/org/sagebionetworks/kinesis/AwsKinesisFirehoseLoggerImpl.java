@@ -82,7 +82,7 @@ public class AwsKinesisFirehoseLoggerImpl implements AwsKinesisFirehoseLogger {
 		while (recordIterator.hasNext()) {
 			AwsKinesisRecord next = recordIterator.next();
 			
-			if (batchSize + next.size() > AwsKinesisFirehoseConstants.REQUEST_SIZE_LIMIT || batch.size() == AwsKinesisFirehoseConstants.RECORD_SIZE_LIMIT) {
+			if (batchSize + next.size() > AwsKinesisFirehoseConstants.REQUEST_SIZE_LIMIT || batch.size() == AwsKinesisFirehoseConstants.PUT_BATCH_MAX_RECORD_LIMIT) {
 				sendBatchRequest(streamName, batch);
 				batch.clear();
 				batchSize = 0;
