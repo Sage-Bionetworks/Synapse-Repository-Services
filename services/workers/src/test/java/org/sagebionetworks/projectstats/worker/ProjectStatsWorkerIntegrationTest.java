@@ -22,7 +22,7 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.object.snapshot.worker.utils.AclSnapshotUtils;
 import org.sagebionetworks.repo.manager.CertifiedUserManager;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.EntityPermissionsManager;
+import org.sagebionetworks.repo.manager.EntityAclManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
@@ -78,7 +78,7 @@ public class ProjectStatsWorkerIntegrationTest {
 	@Autowired
 	private TeamDAO teamDAO;
 	@Autowired
-	private EntityPermissionsManager entityPermissionManager;
+	private EntityAclManager entityAclManager;
 	@Autowired
 	private CertifiedUserManager certifiedUserManager;
 	@Autowired
@@ -365,11 +365,11 @@ public class ProjectStatsWorkerIntegrationTest {
 	}
 
 	private void addAcl(Long project, Long... usersToAdd) throws Exception {
-		AccessControlList acl = entityPermissionManager.getACL(KeyFactory.keyToString(project), adminUserInfo);
+		AccessControlList acl = entityAclManager.getACL(KeyFactory.keyToString(project), adminUserInfo);
 		Set<ResourceAccess> ras = AclSnapshotUtils.createSetOfResourceAccess(Arrays.asList(usersToAdd), -1);
 		acl.getResourceAccess().addAll(ras);
 
 		// update the ACL
-		entityPermissionManager.updateACL(acl, adminUserInfo);
+		entityAclManager.updateACL(acl, adminUserInfo);
 	}
 }

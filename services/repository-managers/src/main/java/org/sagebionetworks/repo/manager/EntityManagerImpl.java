@@ -74,7 +74,7 @@ public class EntityManagerImpl implements EntityManager {
 	@Autowired
 	private NodeManager nodeManager;
 	@Autowired
-	private EntityPermissionsManager entityAclManager;
+	private EntityAclManager entityAclManager;
 	@Autowired
 	private EntityAuthorizationManager entityAuthorizationManager;
 	@Autowired

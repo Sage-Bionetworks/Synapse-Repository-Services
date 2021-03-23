@@ -15,7 +15,7 @@ import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.EntityPermissionsManager;
+import org.sagebionetworks.repo.manager.EntityAclManager;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Folder;
@@ -47,7 +47,7 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 	@Autowired
 	ConnectionFactory tableConnectionFactory;
 	@Autowired
-	EntityPermissionsManager entityPermissionsManager;
+	EntityAclManager entityAclManager;
 	
 	TableIndexDAO indexDao;
 	@Mock
@@ -107,7 +107,7 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 		indexDao.deleteObjectData(viewObjectType, Lists.newArrayList(KeyFactory.stringToKey(child.getId())));
 		// Add an ACL to the folder to trigger a hierarchy change
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(folder.getId(), adminUser, new Date());
-		entityPermissionsManager.overrideInheritance(acl, adminUser);
+		entityAclManager.overrideInheritance(acl, adminUser);
 		// the update should trigger the replication of the child
 		replicatedChild = waitForEntityDto(child.getId());
 		assertNotNull(replicatedChild);

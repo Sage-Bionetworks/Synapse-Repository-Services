@@ -21,7 +21,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.repo.manager.EntityPermissionsManager;
+import org.sagebionetworks.repo.manager.EntityAclManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
@@ -97,7 +97,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	private AccessApprovalManager accessApprovalManager;
 
 	@Autowired
-	private EntityPermissionsManager entityPermissionsManager;
+	private EntityAclManager entityAclManager;
 	
 	@Autowired
 	private EntityAuthorizationManager entityAuthorizationManager;
@@ -177,13 +177,13 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		requirementIdsToDelete.add(arB.getId().toString());
 
 		// now give 'testUserInfo' READ access to the entity hierarchy
-		AccessControlList acl = entityPermissionsManager.getACL(rootId, adminUserInfo);
+		AccessControlList acl = entityAclManager.getACL(rootId, adminUserInfo);
 		Set<ResourceAccess> ras = acl.getResourceAccess();
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(testUserInfo.getId());
 		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD})));
 		ras.add(ra);
-		entityPermissionsManager.updateACL(acl, adminUserInfo);
+		entityAclManager.updateACL(acl, adminUserInfo);
 	}
 	
 	@AfterEach

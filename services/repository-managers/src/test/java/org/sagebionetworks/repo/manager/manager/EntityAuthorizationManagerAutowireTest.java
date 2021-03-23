@@ -21,7 +21,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.repo.manager.EntityPermissionsManager;
+import org.sagebionetworks.repo.manager.EntityAclManager;
 import org.sagebionetworks.repo.manager.UserCertificationRequiredException;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
@@ -87,8 +87,6 @@ public class EntityAuthorizationManagerAutowireTest {
 	private DaoObjectHelper<AccessApproval> accessApprovalHelper;
 	@Autowired
 	private EntityAuthorizationManager entityAuthManager;
-	@Autowired
-	private EntityPermissionsManager entityPermissionManager;
 
 	private UserInfo adminUserInfo;
 	private UserInfo anonymousUser;

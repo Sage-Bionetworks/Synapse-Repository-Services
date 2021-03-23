@@ -112,7 +112,7 @@ public class MessageManagerImplTest {
 	private NodeManager nodeManager;
 	
 	@Autowired
-	private EntityPermissionsManager entityPermissionsManager;
+	private EntityAclManager entityAclManager;
 	
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -209,7 +209,7 @@ public class MessageManagerImplTest {
 				userGroupDAO, groupMembersDao, userManager,
 				userProfileManager, notificationEmailDao, principalAliasDAO, 
 				authorizationManager, emailService,
-				mockFileHandleManager, nodeDAO, entityPermissionsManager,
+				mockFileHandleManager, nodeDAO, entityAclManager,
 				fileDAO, emailQuarantineDao);
 		
 		aliasesToDelete = new ArrayList<PrincipalAlias>();
@@ -837,14 +837,14 @@ public class MessageManagerImplTest {
 		
 		// Case #2 - Creator can't share
 		// Have the admin give transfer the sharing permission to the other user
-		AccessControlList acl = entityPermissionsManager.getACL(nodeId, adminUserInfo);
+		AccessControlList acl = entityAclManager.getACL(nodeId, adminUserInfo);
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(otherTestUser.getId());
 		ra.setAccessType(new HashSet<ACCESS_TYPE>());
 		ra.getAccessType().add(ACCESS_TYPE.CHANGE_PERMISSIONS);
 		acl.getResourceAccess().add(ra);
-		entityPermissionsManager.updateACL(acl, adminUserInfo);
+		entityAclManager.updateACL(acl, adminUserInfo);
 		
 		// This is in effect sending a message from the other test user to itself
 		userToOther.setRecipients(null);
@@ -861,13 +861,13 @@ public class MessageManagerImplTest {
 		
 		// Case #3 - Creator and other can share
 		// Have the admin give sharing permission back to the creator
-		acl = entityPermissionsManager.getACL(nodeId, adminUserInfo);
+		acl = entityAclManager.getACL(nodeId, adminUserInfo);
 		ra = new ResourceAccess();
 		ra.setPrincipalId(testUser.getId());
 		ra.setAccessType(new HashSet<ACCESS_TYPE>());
 		ra.getAccessType().add(ACCESS_TYPE.CHANGE_PERMISSIONS);
 		acl.getResourceAccess().add(ra);
-		entityPermissionsManager.updateACL(acl, adminUserInfo);
+		entityAclManager.updateACL(acl, adminUserInfo);
 		
 		// This is in effect sending a message from the other test user to the test user
 		userToOther.setRecipients(null);
@@ -883,9 +883,9 @@ public class MessageManagerImplTest {
 		assertEquals(message, inbox.get(0).getMessage());
 		
 		// Case #4 - Nobody can share
-		acl = entityPermissionsManager.getACL(nodeId, adminUserInfo);
+		acl = entityAclManager.getACL(nodeId, adminUserInfo);
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
-		entityPermissionsManager.updateACL(acl, adminUserInfo);
+		entityAclManager.updateACL(acl, adminUserInfo);
 
 		Assertions.assertThrows(UnauthorizedException.class, ()-> {
 			messageManager.createMessageToEntityOwner(otherTestUser, nodeId, userToOther);
