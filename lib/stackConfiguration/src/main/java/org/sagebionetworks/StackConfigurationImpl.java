@@ -1221,4 +1221,12 @@ public class StackConfigurationImpl implements StackConfiguration {
 	public String getRepositoryServiceProdEndpoint() {
 		return configuration.getProperty("org.sagebionetworks.repositoryservice.endpoint.prod");
 	}
+	
+	@Override
+	public Long getKinesisMaxRetryDelay() {
+		if (configuration.hasProperty("org.sagebionetworks.kinesis.maxRetryDelay")) {
+			return Long.parseLong(configuration.getProperty("org.sagebionetworks.kinesis.maxRetryDelay"));
+		}
+		return null;
+	}
 }
