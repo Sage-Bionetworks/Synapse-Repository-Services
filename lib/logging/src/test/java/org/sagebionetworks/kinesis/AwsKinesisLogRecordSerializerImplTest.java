@@ -2,7 +2,6 @@ package org.sagebionetworks.kinesis;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 import org.junit.jupiter.api.Test;
@@ -17,25 +16,24 @@ public class AwsKinesisLogRecordSerializerImplTest {
 	
 	@Autowired
 	private AwsKinesisLogRecordSerializer recordSerializer;
-
+	
 	@Test
-	void testToBytes() {
+	public void testToBytes() {
+		
 		AwsKinesisLogRecordStub logRecord = new AwsKinesisLogRecordStub()
 				.withStack("dev")
 				.withInstance("test")
 				.withSomeOtherProperty(123);
 
 		
-		ByteBuffer byteBuffer = recordSerializer.toBytes(logRecord);
+		byte[] bytes = recordSerializer.toBytes(logRecord);
 		
 		//convert bytes back to JSON string to compare
 		String expectedJSON = "{\"stack\":\"dev\"," +
 				"\"instance\":\"test\"," +
-				"\"someOtherProperty\":123}" +
-				//important that documents are separated by a new line for AWS Athena to process them
-				"\n"; 
+				"\"someOtherProperty\":123}";
 		
-		assertEquals(expectedJSON, new String(byteBuffer.array(), StandardCharsets.UTF_8));
+		assertEquals(expectedJSON, new String(bytes, StandardCharsets.UTF_8));
 	}
 
 	private class AwsKinesisLogRecordStub implements AwsKinesisLogRecord {
