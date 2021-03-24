@@ -116,7 +116,7 @@ public class MessageManagerImpl implements MessageManager {
 	
 	private NodeDAO nodeDAO;
 	
-	private EntityPermissionsManager entityPermissionsManager;
+	private EntityAclManager entityAclManager;
 	
 	private EmailQuarantineDao emailQuarantineDao;
 	
@@ -130,7 +130,7 @@ public class MessageManagerImpl implements MessageManager {
 			AuthorizationManager authorizationManager,
 			SynapseEmailService sesClient,
 			FileHandleManager fileHandleManager, NodeDAO nodeDAO,
-			EntityPermissionsManager entityPermissionsManager,
+			EntityAclManager entityAclManager,
 			FileHandleDao fileHandleDao,
 			EmailQuarantineDao emailQuarantineDao) {
 		this.messageDAO = messageDAO;
@@ -144,7 +144,7 @@ public class MessageManagerImpl implements MessageManager {
 		this.sesClient = sesClient;
 		this.fileHandleManager = fileHandleManager;
 		this.nodeDAO = nodeDAO;
-		this.entityPermissionsManager = entityPermissionsManager;
+		this.entityAclManager = entityAclManager;
 		this.fileHandleDao = fileHandleDao;
 		this.emailQuarantineDao = emailQuarantineDao;
 	}
@@ -264,7 +264,7 @@ public class MessageManagerImpl implements MessageManager {
 		//   (or anyone with CHANGE_PERMISSIONS access)
 		Node entity = nodeDAO.getNode(entityId);
 		String benefactor = nodeDAO.getBenefactor(entityId);		
-		AccessControlList acl = entityPermissionsManager.getACL(benefactor, userInfo);
+		AccessControlList acl = entityAclManager.getACL(benefactor, userInfo);
 		
 		// Find all users with permission to change permissions
 		Set<Long> sharers = new HashSet<Long>();

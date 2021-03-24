@@ -11,7 +11,8 @@ public enum AnnotationType{
 	STRING	(ColumnType.STRING, AnnotationsValueType.STRING),
 	LONG	(ColumnType.INTEGER, AnnotationsValueType.LONG),
 	DOUBLE	(ColumnType.DOUBLE, AnnotationsValueType.DOUBLE),
-	DATE	(ColumnType.DATE, AnnotationsValueType.TIMESTAMP_MS);
+	DATE	(ColumnType.DATE, AnnotationsValueType.TIMESTAMP_MS),
+	BOOLEAN	(ColumnType.BOOLEAN, AnnotationsValueType.BOOLEAN);
 	
 	AnnotationType(ColumnType columnType, AnnotationsValueType annotationsV2ValueType){
 		this.columnType = columnType;

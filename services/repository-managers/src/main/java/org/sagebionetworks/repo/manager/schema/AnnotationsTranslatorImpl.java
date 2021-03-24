@@ -89,12 +89,18 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 * @return
 	 */
 	AnnotationsValue getAnnotationValueFromJsonObject(String key, JSONObject jsonObject) {
+		// @formatter:off
 		return Stream
-				.of(attemptToReadAsJSONArray(key, jsonObject), attemptToReadAsDouble(key, jsonObject),
-						attemptToReadAsTimestamp(key, jsonObject), attemptToReadAsLong(key, jsonObject),
+				.of(
+						attemptToReadAsJSONArray(key, jsonObject),
+						attemptToReadAsDouble(key, jsonObject),
+						attemptToReadAsTimestamp(key, jsonObject),
+						attemptToReadAsLong(key, jsonObject),
+						attemptToReadAsBoolean(key, jsonObject),
 						attemptToReadAsString(key, jsonObject))
 				.filter(Optional::isPresent).findFirst().get().orElseThrow(
 						() -> new IllegalArgumentException("Cannot translate value at '" + key + "' to an Annotation"));
+		// @formatter:on
 	}
 
 	/**
@@ -241,6 +247,26 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 			return Optional.empty();
 		}
 	}
+	
+	/**
+	 * Attempt to read the value for the given key as a boolean. If the value is not a
+	 * boolean an empty optional will be returned.
+	 * 
+	 * @param key
+	 * @param jsonObject
+	 * @return
+	 */
+	Optional<AnnotationsValue> attemptToReadAsBoolean(String key, JSONObject jsonObject) {
+		try {
+			Boolean value = jsonObject.getBoolean(key);
+			AnnotationsValue annValue = new AnnotationsValue();
+			annValue.setType(AnnotationsValueType.BOOLEAN);
+			annValue.setValue(Collections.singletonList(value.toString()));
+			return Optional.of(annValue);
+		} catch (JSONException e) {
+			return Optional.empty();
+		}
+	}
 
 	/**
 	 * Attempt to read the value at the given index as a long. If the value is not a
@@ -352,6 +378,8 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 			return Long.parseLong(value);
 		case TIMESTAMP_MS:
 			return JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, new Date(Long.parseLong(value)));
+		case BOOLEAN:
+			return Boolean.parseBoolean(value);
 		default:
 			throw new IllegalArgumentException("Unknown annotation type: " + type);
 		}

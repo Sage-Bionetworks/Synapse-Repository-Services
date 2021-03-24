@@ -17,7 +17,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.repo.manager.EntityPermissionsManager;
+import org.sagebionetworks.repo.manager.EntityAclManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
@@ -58,7 +58,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	private TeamManager teamManager;
 	
 	@Autowired
-	private EntityPermissionsManager entityPermissionsManager;
+	private EntityAclManager entityAclManager;
 	
 	private UserInfo adminUserInfo;
 	private UserInfo testUserInfo;
@@ -110,7 +110,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		childNode.setParentId(entityId);
 		childId = nodeManager.createNewNode(childNode, adminUserInfo);
 
-		AccessControlList acl = entityPermissionsManager.getACL(rootId, adminUserInfo);
+		AccessControlList acl = entityAclManager.getACL(rootId, adminUserInfo);
 		Set<ResourceAccess> raSet = acl.getResourceAccess();
 		ResourceAccess ra = new ResourceAccess();
 		String testUserId = testUserInfo.getId().toString();
@@ -119,7 +119,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		atSet.add(ACCESS_TYPE.CREATE);
 		ra.setAccessType(atSet);
 		raSet.add(ra);
-		entityPermissionsManager.updateACL(acl, adminUserInfo);
+		entityAclManager.updateACL(acl, adminUserInfo);
 
 		rootProject = new Node();
 		rootProject.setName("root "+System.currentTimeMillis());

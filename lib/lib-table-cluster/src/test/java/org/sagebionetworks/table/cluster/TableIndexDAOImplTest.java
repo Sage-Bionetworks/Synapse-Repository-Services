@@ -2143,8 +2143,8 @@ public class TableIndexDAOImplTest {
 		// three
 		cm = columns.get(2);
 		assertEquals("key10", cm.getName());
-		assertEquals(ColumnType.DOUBLE, cm.getColumnType());
-		assertEquals(null, cm.getMaximumSize());
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals(2, cm.getMaximumSize());
 	}
 	
 	@Test
@@ -2183,8 +2183,8 @@ public class TableIndexDAOImplTest {
 		// two
 		cm = columns.get(1);
 		assertEquals("key10", cm.getName());
-		assertEquals(ColumnType.DOUBLE, cm.getColumnType());
-		assertEquals(null, cm.getMaximumSize());
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals(2, cm.getMaximumSize());
 	}
 	
 	/**
@@ -2468,8 +2468,8 @@ public class TableIndexDAOImplTest {
 		// three
 		cm = columns.get(2);
 		assertEquals("key10", cm.getName());
-		assertEquals(ColumnType.DOUBLE, cm.getColumnType());
-		assertEquals(null, cm.getMaximumSize());
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals(2, cm.getMaximumSize());
 	}
 	
 	@Test

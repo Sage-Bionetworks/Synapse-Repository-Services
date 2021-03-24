@@ -5,11 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.Arrays;
 
 import org.junit.jupiter.api.Test;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 
 public class DoubleValueListValidatorTest {
 
-	DoubleValueListValidator valueValidator = new DoubleValueListValidator(AnnotationsValueType.DOUBLE);
+	DoubleValueListValidator valueValidator = new DoubleValueListValidator();
 	String key = "myKey";
 
 	@Test

@@ -338,6 +338,49 @@ public class JsonSchemaWorkerIntegrationTest {
 			jsonSchemaManager.getSchema(basicSchema.get$id(), true);
 		});
 	}
+	
+	@Test
+	public void testEntitySchemaValidationWithBoolean() throws Exception {
+		bootstrapAndCreateOrganization();
+		String projectId = entityManager.createEntity(adminUserInfo, new Project(), null);
+		Project project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
+
+		// create the schema
+		String fileName = "schema/FolderWithBoolean.json";
+		CreateSchemaResponse createResponse = registerSchemaFromClasspath(fileName);
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+		// bind the schema to the project
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(projectId);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+
+		// add a folder to the project
+		Folder folder = new Folder();
+		folder.setParentId(project.getId());
+		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
+		JSONObject folderJson = entityManager.getEntityJson(folderId);
+		// Add the foo annotation to the folder
+		folderJson.put("hasBoolean", "true");
+		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
+		Folder resultFolder = entityManager.getEntity(adminUserInfo, folderId, Folder.class);
+
+		// wait for the folder to be valid.
+		waitForValidationResults(adminUserInfo, folderId, (ValidationResults t) -> {
+			assertNotNull(t);
+			assertTrue(t.getIsValid());
+			assertEquals(JsonSchemaManager.createAbsolute$id(schema$id), t.getSchema$id());
+			assertEquals(resultFolder.getId(), t.getObjectId());
+			assertEquals(ObjectType.entity, t.getObjectType());
+			assertEquals(resultFolder.getEtag(), t.getObjectEtag());
+		});
+
+		// Removing the binding from the container should trigger removal of the results
+		// for the child.
+		entityManager.clearBoundSchema(adminUserInfo, projectId);
+
+		waitForValidationResultsToBeNotFound(adminUserInfo, folderId);
+	}
 
 	/**
 	 * Wait for the validation results
