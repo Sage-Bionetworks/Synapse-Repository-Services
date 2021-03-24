@@ -599,6 +599,54 @@ public class JsonSchemaValidationManagerImplTest {
 		assertFalse(result.getIsValid());
 		assertEquals("29 is not greater or equal to 30", result.getValidationErrorMessage());
 	}
+	
+	@Test
+	public void testHasNot() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/HasNot.json");
+		assertNotNull(schema.getProperties());
+		assertEquals(2, schema.getProperties().size());
+		
+		// red is primary
+		JsonSubject subject = setupSubject();
+		subject.toJson().put("color", "red");
+		subject.toJson().put("isPrimary", "true");
+
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertTrue(result.getIsValid());
+		
+		// green is primary
+		subject = setupSubject();
+		subject.toJson().put("color", "red");
+		subject.toJson().put("isPrimary", "true");
+
+		// call under test
+		result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertTrue(result.getIsValid());
+		
+		// orange is not primary
+		subject = setupSubject();
+		subject.toJson().put("color", "orange");
+		subject.toJson().put("isPrimary", "true");
+
+		// call under test
+		result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertFalse(result.getIsValid());
+		assertEquals("#: only 1 subschema matches out of 2", result.getValidationErrorMessage());
+		
+		// orange is not primary
+		subject = setupSubject();
+		subject.toJson().put("color", "orange");
+		subject.toJson().put("isPrimary", "false");
+
+		// call under test
+		result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertTrue(result.getIsValid());
+	}
 
 	public JsonSubject setupSubject() {
 		JSONObject jsonObject = new JSONObject();

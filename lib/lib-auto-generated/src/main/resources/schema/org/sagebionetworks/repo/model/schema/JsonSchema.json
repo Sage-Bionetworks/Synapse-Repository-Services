@@ -61,6 +61,10 @@
 				"$recursiveRef": "#"
 			}
 		},
+		"not": {
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.2.1.4\">not</a>",
+			"$recursiveRef": "#"
+		},
 		"format": {
 			"type": "string",
 			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-validation.html#rfc.section.7.3\">Defined Formats</a>"
