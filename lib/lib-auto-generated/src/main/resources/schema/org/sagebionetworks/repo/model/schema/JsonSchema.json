@@ -61,6 +61,10 @@
 				"$recursiveRef": "#"
 			}
 		},
+		"not": {
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.2.1.4\">not</a>",
+			"$recursiveRef": "#"
+		},
 		"format": {
 			"type": "string",
 			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-validation.html#rfc.section.7.3\">Defined Formats</a>"
@@ -120,6 +124,14 @@
 		"else": {
 			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.2.2.3\">else\"</a>",
 			"$recursiveRef": "#"
+		},
+		"maximum": {
+			"type": "integer",
+			"description": "See: <a href=\"https://tools.ietf.org/html/draft-handrews-json-schema-validation-02#section-6.2.2\">maximum</a>"
+		},
+		"minimum": {
+			"type": "integer",
+			"description": "See: <a href=\"https://tools.ietf.org/html/draft-handrews-json-schema-validation-02#section-6.2.4\">minimum</a>"
 		}
 	}
 }
