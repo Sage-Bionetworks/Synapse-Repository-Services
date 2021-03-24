@@ -21,6 +21,7 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
@@ -45,15 +46,15 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
-import org.sagebionetworks.util.ReflectionStaticTestUtils;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
-public class EntityPermissionsManagerImplUnitTest {
+public class EntityAclManagerImplUnitTest {
 	
-	private EntityAclManagerImpl entityPermissionsManager;
+	@InjectMocks
+	private EntityAclManagerImpl entityAclManager;
 	private UserInfo nonCertifiedUserInfo;
 	private UserInfo certifiedUserInfo;
 	private static final String projectId = "syn123";
@@ -104,7 +105,6 @@ public class EntityPermissionsManagerImplUnitTest {
 	// here we set up a certified and a non-certified user, a project and a non-project Node
 	@BeforeEach
 	public void setUp() throws Exception {
-		entityPermissionsManager = new EntityAclManagerImpl();
 		
 		nonCertifiedUserInfo = new UserInfo(false);
 		nonCertifiedUserInfo.setId(765432L);
@@ -115,8 +115,6 @@ public class EntityPermissionsManagerImplUnitTest {
 		certifiedUserInfo.setId(1234567L);
 		certifiedUserInfo.setGroups(Collections.singleton(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
 		certifiedUserInfo.setAcceptsTermsOfUse(true);
-		
-		ReflectionStaticTestUtils.mockAutowire(this, entityPermissionsManager);
 
     	userId = 111L;
     	
@@ -171,7 +169,7 @@ public class EntityPermissionsManagerImplUnitTest {
 
 		String parentId = "syn123";
 		// call under test
-		Set<Long> results = entityPermissionsManager.getNonvisibleChildren(mockUser, parentId);
+		Set<Long> results = entityAclManager.getNonvisibleChildren(mockUser, parentId);
 		verify(mockAclDAO).getNonVisibleChilrenOfEntity(mockUsersGroups, parentId);
 		assertEquals(nonvisibleIds, results);
 	}
@@ -181,7 +179,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockUser.isAdmin()).thenReturn(true);
 		String parentId = "syn123";
 		// call under test
-		Set<Long> results = entityPermissionsManager.getNonvisibleChildren(mockUser, parentId);
+		Set<Long> results = entityAclManager.getNonvisibleChildren(mockUser, parentId);
 		// should not hit the dao.
 		verify(mockAclDAO, never()).getNonVisibleChilrenOfEntity(anySet(), anyString());
 		// empty results.
@@ -194,7 +192,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		mockUser = null;
 		// call under test
 		assertThrows(IllegalArgumentException.class,
-				() -> entityPermissionsManager.getNonvisibleChildren(mockUser, parentId)
+				() -> entityAclManager.getNonvisibleChildren(mockUser, parentId)
 		);
 	}
 	
@@ -202,7 +200,7 @@ public class EntityPermissionsManagerImplUnitTest {
 	public void testGetNonvisibleChildrenNullParentId(){
 		// call under test
 		assertThrows(IllegalArgumentException.class,
-				() -> entityPermissionsManager.getNonvisibleChildren(mockUser, null)
+				() -> entityAclManager.getNonvisibleChildren(mockUser, null)
 		);
 	}
 	
@@ -230,7 +228,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockAclDAO.get(entityId, ObjectType.ENTITY)).thenReturn(oldAcl);
 		
 		// call under test
-		entityPermissionsManager.updateACL(updatedAcl, mockUser);
+		entityAclManager.updateACL(updatedAcl, mockUser);
 		// project stats should be called for all new users
 		verify(mockProjectStatsManager).updateProjectStats(eq(addedPrincipalId), eq(entityId), eq(ObjectType.ENTITY), any(Date.class));
 	}
@@ -252,7 +250,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockNodeDao.touch(userId, projectId)).thenReturn(newEtag);
 
 		// call under test
-		entityPermissionsManager.overrideInheritance(acl, mockUser);
+		entityAclManager.overrideInheritance(acl, mockUser);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(projectId, ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
 	}
 	
@@ -273,7 +271,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockNodeDao.touch(userId, folderId)).thenReturn(newEtag);
 
 		// call under test
-		entityPermissionsManager.overrideInheritance(acl, mockUser);
+		entityAclManager.overrideInheritance(acl, mockUser);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(folderId, ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
 	}
 	
@@ -292,7 +290,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockAclDAO.get(fileId, ObjectType.ENTITY)).thenReturn(acl);
 
 		// call under test
-		entityPermissionsManager.overrideInheritance(acl, mockUser);
+		entityAclManager.overrideInheritance(acl, mockUser);
 		// file should not trigger container message
 		verifyNoMoreInteractions(mockTransactionalMessenger);
 	}
@@ -318,7 +316,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(true);
 
 		// Call under test - throws exception.
-		Exception ex = assertThrows(IllegalArgumentException.class, () -> entityPermissionsManager.overrideInheritance(acl, mockUser));
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> entityAclManager.overrideInheritance(acl, mockUser));
 		assertEquals("Cannot override ACLs in a child of an STS-enabled folder", ex.getMessage());
 	}
 
@@ -344,7 +342,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		// on the same folder as the folder with the project settings.
 
 		// Call under test.
-		AccessControlList result = entityPermissionsManager.overrideInheritance(acl, mockUser);
+		AccessControlList result = entityAclManager.overrideInheritance(acl, mockUser);
 		assertSame(acl, result);
 		verify(mockAclDAO).create(acl, ObjectType.ENTITY);
 	}
@@ -370,7 +368,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(false);
 
 		// Call under test.
-		AccessControlList result = entityPermissionsManager.overrideInheritance(acl, mockUser);
+		AccessControlList result = entityAclManager.overrideInheritance(acl, mockUser);
 		assertSame(acl, result);
 		verify(mockAclDAO).create(acl, ObjectType.ENTITY);
 	}
@@ -382,7 +380,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockNodeDao.touch(any(Long.class), anyString())).thenReturn(newEtag);
 		when(mockNodeDao.getNodeTypeById(projectId)).thenReturn(EntityType.project);
 		// call under test
-		entityPermissionsManager.restoreInheritance(projectId, mockUser);
+		entityAclManager.restoreInheritance(projectId, mockUser);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(projectId, ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
 	}
 	
@@ -393,7 +391,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockNodeDao.touch(any(Long.class), anyString())).thenReturn(newEtag);
 		when(mockNodeDao.getNodeTypeById(folderId)).thenReturn(EntityType.folder);
 		// call under test
-		entityPermissionsManager.restoreInheritance(folderId, mockUser);
+		entityAclManager.restoreInheritance(folderId, mockUser);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(folderId, ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
 	}
 	
@@ -404,7 +402,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockNodeDao.touch(any(Long.class), anyString())).thenReturn(newEtag);
 		when(mockNodeDao.getNodeTypeById(fileId)).thenReturn(EntityType.file);
 		// call under test
-		entityPermissionsManager.restoreInheritance(fileId, mockUser);
+		entityAclManager.restoreInheritance(fileId, mockUser);
 		verifyNoMoreInteractions(mockTransactionalMessenger);
 	}
 	
