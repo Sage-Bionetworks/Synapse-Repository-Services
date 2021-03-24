@@ -616,15 +616,16 @@ public class JsonSchemaValidationManagerImplTest {
 		assertNotNull(result);
 		assertTrue(result.getIsValid());
 		
-		// green is primary
+		// red is primary
 		subject = setupSubject();
 		subject.toJson().put("color", "red");
-		subject.toJson().put("isPrimary", "true");
+		subject.toJson().put("isPrimary", "false");
 
 		// call under test
 		result = manager.validate(schema, subject);
 		assertNotNull(result);
-		assertTrue(result.getIsValid());
+		assertFalse(result.getIsValid());
+		assertEquals("#: only 1 subschema matches out of 2", result.getValidationErrorMessage());
 		
 		// orange is not primary
 		subject = setupSubject();
