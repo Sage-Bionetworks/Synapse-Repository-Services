@@ -118,6 +118,7 @@ public class PreviewManagerImplAutoWireTest {
 		assertNotNull(s3Meta);
 		assertEquals(ImagePreviewGenerator.IMAGE_PNG, s3Meta.getContentType());
 		assertEquals(ContentDispositionUtils.getContentDispositionValue(pfm.getFileName()), s3Meta.getContentDisposition());
+		assertEquals("bucket-owner-full-control", s3Meta.getUserMetadata().get("ACL"));
 	}
 
 	@Test
