@@ -590,11 +590,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public S3FileHandle uploadLocalFile(LocalFileUploadRequest request) {
 		try {
 			
-			StorageLocationSetting storageLocationSetting = null;
-			 
-			if (request.getStorageLocationId() != null) {
-				storageLocationSetting = storageLocationDAO.get(request.getStorageLocationId());
-			}
+			// This will return the default storage location if the input is null
+			StorageLocationSetting storageLocationSetting = storageLocationDAO.get(request.getStorageLocationId());
 			
 			// If the file name is provide then use it.
 			String fileName = request.getFileName();

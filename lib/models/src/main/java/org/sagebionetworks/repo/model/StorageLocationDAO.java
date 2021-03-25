@@ -12,6 +12,13 @@ public interface StorageLocationDAO {
 	
 	public void delete(Long id);
 
+	/**
+	 * 
+	 * @param id
+	 * @return The storage location with the given id. If the id is null will return the default synapse storage location
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
 	public StorageLocationSetting get(Long id) throws DatastoreException, NotFoundException;
 
 	public List<UploadDestinationLocation> getUploadDestinationLocations(List<Long> storageLocationIds) throws DatastoreException, NotFoundException;
