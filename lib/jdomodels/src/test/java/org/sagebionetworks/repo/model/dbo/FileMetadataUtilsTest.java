@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -194,31 +193,6 @@ public class FileMetadataUtilsTest {
 		assertNotNull(clone);
 		assertEquals(dbo, clone);
 	}
-
-	@Test
-	public void testBackupFromPreviewLogic(){
-		FileHandleBackup backup = new FileHandleBackup();
-		backup.setBucketName("bucket");
-		backup.setContentMD5("md5");
-		backup.setContentSize(123L);
-		backup.setContentType("contentType");
-		backup.setCreatedOn(new Timestamp(1L).getTime());
-		backup.setCreatedBy(9999L);
-		backup.setEtag("etag");
-		backup.setId(456L);
-		backup.setKey("key");
-		backup.setMetadataType("PREVIEW");
-		backup.setName("name");
-		backup.setPreviewId(4444L);
-		backup.setIsPreview(null);
-
-		// Clone from the backup
-		DBOFileHandle clone = FileMetadataUtils.createDBOFromBackup(backup);
-		assertNotNull(clone);
-		assertEquals(FileHandleMetadataType.S3, clone.getMetadataTypeEnum());
-		assertTrue(clone.getIsPreview());
-	}
-
 
 	@Test
 	public void testProxyFileHandleRoundTrip(){

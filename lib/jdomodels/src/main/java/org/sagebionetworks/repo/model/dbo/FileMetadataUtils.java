@@ -30,9 +30,8 @@ public class FileMetadataUtils {
 	 * @throws MalformedURLException
 	 */
 	public static DBOFileHandle createDBOFromDTO(FileHandle fileHandle) {
-		if (fileHandle == null)
-			throw new IllegalArgumentException("DTO cannot be null");
-
+		ValidateArgument.required(fileHandle, "The fileHandle");
+		
 		DBOFileHandle dbo = new DBOFileHandle();
 
 		/** Previews can only be set by calling {@link org.sagebionetworks.repo.model.dbo.dao.DBOFileHandleDaoImpl#setPreviewId} */
@@ -292,11 +291,7 @@ public class FileMetadataUtils {
 			out.setKey(in.getKey());
 		}
 		if(in.getMetadataType() != null) {
-			if (in.getMetadataType().equals("PREVIEW")) {
-				out.setMetadataType(FileHandleMetadataType.S3);
-			} else {
-				out.setMetadataType(FileHandleMetadataType.valueOf(in.getMetadataType()));
-			}
+			out.setMetadataType(FileHandleMetadataType.valueOf(in.getMetadataType()));
 		}
 		if(in.getName() != null){
 			out.setName(in.getName());
@@ -312,8 +307,6 @@ public class FileMetadataUtils {
 		}
 		if (in.getIsPreview() != null) {
 			out.setIsPreview(in.getIsPreview());
-		} else if (in.getMetadataType().equals("PREVIEW")) {
-			out.setIsPreview(true);
 		} else {
 			out.setIsPreview(false);
 		}
