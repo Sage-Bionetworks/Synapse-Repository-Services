@@ -17,6 +17,9 @@
 	<!-- This worker process an SQS message to scan a range of file handle associations -->
 	<bean id="fileHandleAssociationScanRangeWorker" class="org.sagebionetworks.file.worker.FileHandleAssociationScanRangeWorker" scope="singleton" />
 	
+	<!-- This worker process the change messages for files and stream the data to S3 -->
+	<bean id="fileHandleStreamWorker" class="org.sagebionetworks.file.worker.FileHandleStreamWorker" scope="singleton" />
+	
 	<!-- Trigger for the worker that dispatches association scan range requests -->
 	<bean id="fileHandleAssociationScanDispatcherWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean" scope="singleton">
 		<property name="jobDetail">
@@ -76,6 +79,41 @@
 		<!-- We stagger the start delay of each trigger to spread out the timing -->
 		<property name="startDelay" value="3465" />
 		<property name="repeatInterval" value="200" />
+	</bean>
+	
+	<bean id="fileHandleStreamWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
+		scope="singleton">
+		<property name="jobDetail">
+			<bean
+				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject">
+					<bean
+						class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStack">
+						<constructor-arg index="0" ref="countingSemaphore" />
+						<constructor-arg index="1" ref="awsSQSClient" />
+						<constructor-arg index="2">
+							<bean
+								class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStackConfig">
+								<property name="runner" ref="fileHandleStreamWorker"/>
+								<property name="semaphoreLockKey" value="fileHandleStreamWorker" />
+								<property name="semaphoreMaxLockCount" value="5" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="120" />
+								<property name="queueName" value="#{stackConfiguration.getQueueName('FILE_HANDLE_STREAM')}"/>
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate"/>
+								</property>
+
+							</bean>
+						</constructor-arg>
+					</bean>
+				</property>
+				<property name="targetMethod" value="run" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<!-- We stager the start delay of each trigger to spread out the timing -->
+		<property name="startDelay" value="257" />
+		<property name="repeatInterval" value="1023" />
 	</bean>
 
 </beans>
