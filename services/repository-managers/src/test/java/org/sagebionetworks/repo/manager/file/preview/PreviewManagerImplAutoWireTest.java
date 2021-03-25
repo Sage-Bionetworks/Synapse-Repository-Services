@@ -131,7 +131,6 @@ public class PreviewManagerImplAutoWireTest {
 		assertTrue(grantee instanceof CanonicalGrantee);
 		CanonicalGrantee canonicalGrantee = (CanonicalGrantee)grantee;
 		assertEquals(s3Client.getAccountOwnerId(pfm.getBucketName()), canonicalGrantee.getIdentifier());
-		System.out.println(canonicalGrantee.getIdentifier());
 		Permission permission = grant.getPermission();
 		assertEquals("FullControl", permission.name());
 	}
