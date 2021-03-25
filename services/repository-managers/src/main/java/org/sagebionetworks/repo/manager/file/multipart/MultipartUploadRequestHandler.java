@@ -57,8 +57,9 @@ public class MultipartUploadRequestHandler implements MultipartRequestHandler<Mu
 	public CreateMultipartRequest initiateRequest(UserInfo user, MultipartUploadRequest request, String requestHash, StorageLocationSetting storageLocation) {
 		ValidateArgument.required(user, "The user");
 		ValidateArgument.required(request, "The request");
+		ValidateArgument.required(storageLocation, "The storage location");
 		
-		UploadType uploadType = storageLocation == null ? UploadType.S3 : storageLocation.getUploadType();
+		UploadType uploadType = storageLocation.getUploadType();
 		
 		// the bucket depends on the upload location used.
 		String bucket = MultipartUtils.getBucket(storageLocation);

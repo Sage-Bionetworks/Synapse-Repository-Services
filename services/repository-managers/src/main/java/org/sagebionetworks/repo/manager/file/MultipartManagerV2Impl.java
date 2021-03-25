@@ -9,11 +9,11 @@ import java.util.UUID;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.file.multipart.FileHandleCreateRequest;
 import org.sagebionetworks.repo.manager.file.multipart.MultipartRequestHandler;
 import org.sagebionetworks.repo.manager.file.multipart.MultipartRequestHandlerProvider;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -60,7 +60,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	private FileHandleDao fileHandleDao;
 
 	@Autowired
-	private ProjectSettingsManager projectSettingsManager;
+	private StorageLocationDAO storageLocationDao;
 
 	@Autowired
 	private IdGenerator idGenerator;
@@ -107,6 +107,11 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		validateMultipartRequest(user, request);
 		
 		handler.validateRequest(user, request);
+		
+		// Makes sure we set a default storage location
+		if (request.getStorageLocationId() == null) {
+			request.setStorageLocationId(StorageLocationDAO.DEFAULT_STORAGE_LOCATION_ID);
+		}
 
 		// The MD5 is used to identify if this upload request already exists for this user.
 		String requestMD5Hex = MultipartRequestUtils.calculateMD5AsHex(request);
@@ -120,8 +125,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		CompositeMultipartUploadStatus status = multipartUploadDAO.getUploadStatus(user.getId(), requestMD5Hex);
 		
 		if (status == null) {
-			// This storage location might be null if the request does not specify an id (the id is required for the copy, while it's not for the upload)
-			StorageLocationSetting storageLocation = projectSettingsManager.getStorageLocationSetting(request.getStorageLocationId());
+			StorageLocationSetting storageLocation = storageLocationDao.get(request.getStorageLocationId());
 			
 			// Since the status for this file does not exist, create it.
 			CreateMultipartRequest createRequest;
