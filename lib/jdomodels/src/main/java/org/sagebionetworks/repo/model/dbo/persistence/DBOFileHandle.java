@@ -21,10 +21,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.Base64;
 import java.util.List;
 
-import org.apache.commons.codec.binary.Hex;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
@@ -35,8 +33,6 @@ import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.util.TemporaryCode;
-import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 /**
  * The DBO object for file metadata.

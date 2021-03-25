@@ -126,6 +126,7 @@
 		<ref bean="multipartCleanupWorkerTrigger" />
 		<ref bean="fileHandleAssociationScanDispatcherWorkerTrigger" />
 		<ref bean="fileHandleAssociationScanRangeWorkerTrigger" />
+		<ref bean="fileHandleStreamWorkerTrigger" />
 	</util:list>
 
 	<bean id="mainScheduler"
