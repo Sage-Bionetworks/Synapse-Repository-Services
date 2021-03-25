@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.manager.file.multipart.FileHandleCreateRequest;
 import org.sagebionetworks.repo.manager.file.multipart.MultipartRequestHandler;
 import org.sagebionetworks.repo.manager.file.multipart.MultipartRequestHandlerProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -83,7 +84,7 @@ public class MultipartManagerV2ImplTest {
 	private FileHandleDao mockFileHandleDao;
 
 	@Mock
-	private ProjectSettingsManager mockProjectSettingsManager;
+	private StorageLocationDAO mockStorageLocationDao;
 
 	@Mock
 	private IdGenerator mockIdGenerator;
@@ -234,7 +235,7 @@ public class MultipartManagerV2ImplTest {
 
 		// Mimic a new upload
 		when(mockMultipartUploadDAO.getUploadStatus(any(), any())).thenReturn(null);
-		when(mockProjectSettingsManager.getStorageLocationSetting(any())).thenReturn(mockStorageSettings);
+		when(mockStorageLocationDao.get(any())).thenReturn(mockStorageSettings);
 		when(mockHandler.initiateRequest(any(), any(), any(), any())).thenReturn(mockCreateMultipartRequest);
 		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
 		when(mockStatus.getState()).thenReturn(MultipartUploadState.UPLOADING);
@@ -269,7 +270,7 @@ public class MultipartManagerV2ImplTest {
 
 		// Mimic a new upload
 		when(mockMultipartUploadDAO.getUploadStatus(any(), any())).thenReturn(null);
-		when(mockProjectSettingsManager.getStorageLocationSetting(any())).thenReturn(mockStorageSettings);
+		when(mockStorageLocationDao.get(any())).thenReturn(mockStorageSettings);
 		when(mockHandler.initiateRequest(any(), any(), any(), any())).thenReturn(mockCreateMultipartRequest);
 		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
 		when(mockStatus.getState()).thenReturn(MultipartUploadState.UPLOADING);
@@ -388,7 +389,7 @@ public class MultipartManagerV2ImplTest {
 
 		// Mimic a new upload
 		when(mockMultipartUploadDAO.getUploadStatus(any(), any())).thenReturn(null);
-		when(mockProjectSettingsManager.getStorageLocationSetting(any())).thenReturn(mockStorageSettings);
+		when(mockStorageLocationDao.get(any())).thenReturn(mockStorageSettings);
 		
 		UnsupportedOperationException cause = new UnsupportedOperationException("Unsupported");
 		

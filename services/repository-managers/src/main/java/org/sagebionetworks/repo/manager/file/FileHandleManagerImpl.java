@@ -590,11 +590,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public S3FileHandle uploadLocalFile(LocalFileUploadRequest request) {
 		try {
 			
-			StorageLocationSetting storageLocationSetting = null;
-			 
-			if (request.getStorageLocationId() != null) {
-				storageLocationSetting = storageLocationDAO.get(request.getStorageLocationId());
-			}
+			// This will return the default storage location if the input is null
+			StorageLocationSetting storageLocationSetting = storageLocationDAO.get(request.getStorageLocationId());
 			
 			// If the file name is provide then use it.
 			String fileName = request.getFileName();
@@ -836,18 +833,26 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		String md5 = MD5ChecksumHelper.getMD5Checksum(fileContents);
 		String hexMd5 = BinaryUtils.toBase64(BinaryUtils.fromHex(md5));
 		// Upload the file to S3
-		if (fileName==null) fileName=DEFAULT_COMPRESSED_FILE_NAME;
+		if (fileName == null) {
+			fileName = DEFAULT_COMPRESSED_FILE_NAME;
+		}
 		ObjectMetadata meta = new ObjectMetadata();
 		meta.setContentType(contentType.toString());
 		meta.setContentMD5(hexMd5);
 		meta.setContentLength(fileContents.length);
 		meta.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(fileName));
-		if (contentEncoding!=null) meta.setContentEncoding(contentEncoding);
-		String key = MultipartUtils.createNewKey(createdBy, fileName, null);
-		String bucket = StackConfigurationSingleton.singleton().getS3Bucket();
+		if (contentEncoding != null) {
+			meta.setContentEncoding(contentEncoding);
+		}
+		StorageLocationSetting storageLocation = storageLocationDAO.get(StorageLocationDAO.DEFAULT_STORAGE_LOCATION_ID);
+		
+		String key = MultipartUtils.createNewKey(createdBy, fileName, storageLocation);
+		String bucket = MultipartUtils.getBucket(storageLocation);
+		
 		s3Client.putObject(bucket, key, in, meta);
 		// Create the file handle
 		S3FileHandle handle = new S3FileHandle();
+		handle.setStorageLocationId(storageLocation.getStorageLocationId());
 		handle.setBucketName(bucket);
 		handle.setKey(key);
 		handle.setContentMd5(md5);

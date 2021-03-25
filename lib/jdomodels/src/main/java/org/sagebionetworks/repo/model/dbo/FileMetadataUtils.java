@@ -5,6 +5,10 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationImpl;
+import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
@@ -15,6 +19,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -23,6 +28,8 @@ import org.sagebionetworks.util.ValidateArgument;
  *
  */
 public class FileMetadataUtils {
+	
+	static final String DEFAULT_S3_BUCKET = StackConfigurationSingleton.singleton().getS3Bucket();
 
 	/**
 	 * Convert abstract DTO to the DBO.
@@ -30,9 +37,8 @@ public class FileMetadataUtils {
 	 * @throws MalformedURLException
 	 */
 	public static DBOFileHandle createDBOFromDTO(FileHandle fileHandle) {
-		if (fileHandle == null)
-			throw new IllegalArgumentException("DTO cannot be null");
-
+		ValidateArgument.required(fileHandle, "The fileHandle");
+		
 		DBOFileHandle dbo = new DBOFileHandle();
 
 		/** Previews can only be set by calling {@link org.sagebionetworks.repo.model.dbo.dao.DBOFileHandleDaoImpl#setPreviewId} */
@@ -292,11 +298,7 @@ public class FileMetadataUtils {
 			out.setKey(in.getKey());
 		}
 		if(in.getMetadataType() != null) {
-			if (in.getMetadataType().equals("PREVIEW")) {
-				out.setMetadataType(FileHandleMetadataType.S3);
-			} else {
-				out.setMetadataType(FileHandleMetadataType.valueOf(in.getMetadataType()));
-			}
+			out.setMetadataType(FileHandleMetadataType.valueOf(in.getMetadataType()));
 		}
 		if(in.getName() != null){
 			out.setName(in.getName());
@@ -306,14 +308,16 @@ public class FileMetadataUtils {
 		}
 		if (in.getStorageLocationId() != null) {
 			out.setStorageLocationId(in.getStorageLocationId());
+		} 
+		// Backfill the default storage location, see PLFM-6637
+		else if (FileHandleMetadataType.S3.equals(out.getMetadataTypeEnum()) && DEFAULT_S3_BUCKET.equals(out.getBucketName())) {
+			out.setStorageLocationId(StorageLocationDAO.DEFAULT_STORAGE_LOCATION_ID);
 		}
 		if (in.getEndpoint() != null) {
 			out.setEndpoint(in.getEndpoint());
 		}
 		if (in.getIsPreview() != null) {
 			out.setIsPreview(in.getIsPreview());
-		} else if (in.getMetadataType().equals("PREVIEW")) {
-			out.setIsPreview(true);
 		} else {
 			out.setIsPreview(false);
 		}

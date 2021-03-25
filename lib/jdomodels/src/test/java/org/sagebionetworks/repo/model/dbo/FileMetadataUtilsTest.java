@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -13,6 +12,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
@@ -196,31 +196,6 @@ public class FileMetadataUtilsTest {
 	}
 
 	@Test
-	public void testBackupFromPreviewLogic(){
-		FileHandleBackup backup = new FileHandleBackup();
-		backup.setBucketName("bucket");
-		backup.setContentMD5("md5");
-		backup.setContentSize(123L);
-		backup.setContentType("contentType");
-		backup.setCreatedOn(new Timestamp(1L).getTime());
-		backup.setCreatedBy(9999L);
-		backup.setEtag("etag");
-		backup.setId(456L);
-		backup.setKey("key");
-		backup.setMetadataType("PREVIEW");
-		backup.setName("name");
-		backup.setPreviewId(4444L);
-		backup.setIsPreview(null);
-
-		// Clone from the backup
-		DBOFileHandle clone = FileMetadataUtils.createDBOFromBackup(backup);
-		assertNotNull(clone);
-		assertEquals(FileHandleMetadataType.S3, clone.getMetadataTypeEnum());
-		assertTrue(clone.getIsPreview());
-	}
-
-
-	@Test
 	public void testProxyFileHandleRoundTrip(){
 		ProxyFileHandle proxy = new ProxyFileHandle();
 		proxy.setFilePath("/foo/bar/cat.txt");
@@ -308,5 +283,62 @@ public class FileMetadataUtilsTest {
 		for (int i = 0; i < list.size(); i++) {
 			assertEquals(list.get(i), FileMetadataUtils.createDTOFromDBO(dbos.get(i)));
 		}
+	}
+	
+	// See PLFM-6637
+	@Test
+	public void testBackfillDefaultStorageLocation() {
+		FileHandleBackup backup = new FileHandleBackup();
+		backup.setMetadataType("S3");
+		backup.setBucketName(FileMetadataUtils.DEFAULT_S3_BUCKET);
+		backup.setStorageLocationId(null);
+
+		DBOFileHandle expected = new DBOFileHandle();
+		expected.setBucketName(FileMetadataUtils.DEFAULT_S3_BUCKET);
+		expected.setMetadataType(FileHandleMetadataType.S3);
+		expected.setStorageLocationId(StorageLocationDAO.DEFAULT_STORAGE_LOCATION_ID);
+		expected.setIsPreview(false);
+		
+		DBOFileHandle result = FileMetadataUtils.createDBOFromBackup(backup);
+		
+		assertEquals(expected, result);
+	}
+	
+	// See PLFM-6637
+	@Test
+	public void testBackfillDefaultStorageLocationWithPresent() {
+		FileHandleBackup backup = new FileHandleBackup();
+		backup.setMetadataType("S3");
+		backup.setBucketName(FileMetadataUtils.DEFAULT_S3_BUCKET);
+		backup.setStorageLocationId(123L);
+
+		DBOFileHandle expected = new DBOFileHandle();
+		expected.setBucketName(FileMetadataUtils.DEFAULT_S3_BUCKET);
+		expected.setMetadataType(FileHandleMetadataType.S3);
+		expected.setStorageLocationId(123L);
+		expected.setIsPreview(false);
+		
+		DBOFileHandle result = FileMetadataUtils.createDBOFromBackup(backup);
+		
+		assertEquals(expected, result);
+	}
+	
+	// See PLFM-6637
+	@Test
+	public void testBackfillDefaultStorageLocationWithNotS3() {
+		FileHandleBackup backup = new FileHandleBackup();
+		backup.setMetadataType("GOOGLE_CLOUD");
+		backup.setBucketName(FileMetadataUtils.DEFAULT_S3_BUCKET);
+		backup.setStorageLocationId(123L);
+
+		DBOFileHandle expected = new DBOFileHandle();
+		expected.setBucketName(FileMetadataUtils.DEFAULT_S3_BUCKET);
+		expected.setMetadataType(FileHandleMetadataType.GOOGLE_CLOUD);
+		expected.setStorageLocationId(123L);
+		expected.setIsPreview(false);
+		
+		DBOFileHandle result = FileMetadataUtils.createDBOFromBackup(backup);
+		
+		assertEquals(expected, result);
 	}
 }

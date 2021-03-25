@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.net.MalformedURLException;
@@ -28,6 +29,7 @@ import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.PartUtils;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.BucketOwnerStorageLocationSetting;
+import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAO;
 import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAOProvider;
 import org.sagebionetworks.upload.multipart.MultipartUploadUtils;
@@ -174,6 +176,23 @@ public class MultipartUploadRequestHandlerTest {
 		
 		verify(mockCloudDaoProvider).getCloudServiceMultipartUploadDao(uploadType);
 		verify(mockCloudDao).initiateMultipartUpload(result.getBucket(), result.getKey(), mockRequest);		
+		
+	}
+	
+	@Test
+	public void testInitiateRequestWithNoStorageLocation() {
+		StorageLocationSetting storageLocation = null;
+		String requestHash = "hash";
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			handler.initiateRequest(mockUser, mockRequest, requestHash, storageLocation);
+		}).getMessage();
+		
+		assertEquals("The storage location is required.", errorMessage);
+		
+		verifyZeroInteractions(mockCloudDaoProvider);
+		verifyZeroInteractions(mockCloudDao);		
 		
 	}
 	

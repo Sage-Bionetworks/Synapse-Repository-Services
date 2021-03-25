@@ -21,10 +21,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.Base64;
 import java.util.List;
 
-import org.apache.commons.codec.binary.Hex;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
@@ -35,8 +33,6 @@ import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.util.TemporaryCode;
-import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 /**
  * The DBO object for file metadata.
@@ -46,7 +42,7 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
  */
 public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, FileHandleBackup>, ObservableEntity {
 
-	private static FieldColumn[] FIELDS = new FieldColumn[] {
+	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_FILES_ID, true).withIsBackupId(true),
 		new FieldColumn("etag", COL_FILES_ETAG).withIsEtag(true),
 		new FieldColumn("previewId", COL_FILES_PREVIEW_ID).withIsSelfForeignKey(true),
@@ -62,6 +58,74 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 		new FieldColumn("storageLocationId", COL_FILES_STORAGE_LOCATION_ID),
 		new FieldColumn("endpoint", COL_FILES_ENDPOINT),
 		new FieldColumn("isPreview", COL_FILES_IS_PREVIEW)
+	};
+	
+	private static final TableMapping<DBOFileHandle> TABLE_MAPPING = new TableMapping<DBOFileHandle>() {
+		
+		@Override
+		public DBOFileHandle mapRow(ResultSet rs, int rowNum) throws SQLException {
+			DBOFileHandle results = new DBOFileHandle();
+			results.setId(rs.getLong(COL_FILES_ID));
+			results.setEtag(rs.getString(COL_FILES_ETAG));
+			// This can be null
+			results.setPreviewId(rs.getLong(COL_FILES_PREVIEW_ID));
+			if(rs.wasNull()){
+				results.setPreviewId(null);
+			}
+			results.setCreatedBy(rs.getLong(COL_FILES_CREATED_BY));
+			results.setCreatedOn(rs.getTimestamp(COL_FILES_CREATED_ON));
+			results.setMetadataType(FileHandleMetadataType.valueOf(rs.getString(COL_FILES_METADATA_TYPE)));
+			results.setContentType(rs.getString(COL_FILES_CONTENT_TYPE));
+			results.setContentSize(rs.getLong(COL_FILES_CONTENT_SIZE));
+			if(rs.wasNull()){
+				results.setContentSize(null);
+			}
+			results.setContentMD5(rs.getString(COL_FILES_CONTENT_MD5));
+			results.setBucketName(rs.getString(COL_FILES_BUCKET_NAME));
+			results.setKey(rs.getString(COL_FILES_KEY));
+			results.setName(rs.getString(COL_FILES_NAME));
+			results.setStorageLocationId(rs.getLong(COL_FILES_STORAGE_LOCATION_ID));
+
+			if (rs.wasNull()) {
+				results.setStorageLocationId(null);
+			}
+			results.setEndpoint(rs.getString(COL_FILES_ENDPOINT));
+			results.setIsPreview(rs.getBoolean(COL_FILES_IS_PREVIEW));
+			return results;
+		}
+		
+		@Override
+		public String getTableName() {
+			return TABLE_FILES;
+		}
+		
+		@Override
+		public FieldColumn[] getFieldColumns() {
+			return FIELDS;
+		}
+		
+		@Override
+		public String getDDLFileName() {
+			return DDL_FILES;
+		}
+		
+		@Override
+		public Class<? extends DBOFileHandle> getDBOClass() {
+			return DBOFileHandle.class;
+		}
+	};
+	
+	private static final MigratableTableTranslation<DBOFileHandle, FileHandleBackup> MIGRATION_TRANSLATOR = new MigratableTableTranslation<DBOFileHandle, FileHandleBackup>() {
+		@Override
+		public DBOFileHandle createDatabaseObjectFromBackup(FileHandleBackup backup) {
+			DBOFileHandle dboFileHandle =  FileMetadataUtils.createDBOFromBackup(backup);
+			return dboFileHandle;
+		}
+		
+		@Override
+		public FileHandleBackup createBackupFromDatabaseObject(DBOFileHandle dbo) {
+			return FileMetadataUtils.createBackupFromDBO(dbo);
+		}
 	};
 
 	private Long id;
@@ -82,60 +146,7 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 
 	@Override
 	public TableMapping<DBOFileHandle> getTableMapping() {
-		return new TableMapping<DBOFileHandle>() {
-			
-			@Override
-			public DBOFileHandle mapRow(ResultSet rs, int rowNum) throws SQLException {
-				DBOFileHandle results = new DBOFileHandle();
-				results.setId(rs.getLong(COL_FILES_ID));
-				results.setEtag(rs.getString(COL_FILES_ETAG));
-				// This can be null
-				results.setPreviewId(rs.getLong(COL_FILES_PREVIEW_ID));
-				if(rs.wasNull()){
-					results.setPreviewId(null);
-				}
-				results.setCreatedBy(rs.getLong(COL_FILES_CREATED_BY));
-				results.setCreatedOn(rs.getTimestamp(COL_FILES_CREATED_ON));
-				results.setMetadataType(FileHandleMetadataType.valueOf(rs.getString(COL_FILES_METADATA_TYPE)));
-				results.setContentType(rs.getString(COL_FILES_CONTENT_TYPE));
-				results.setContentSize(rs.getLong(COL_FILES_CONTENT_SIZE));
-				if(rs.wasNull()){
-					results.setContentSize(null);
-				}
-				results.setContentMD5(rs.getString(COL_FILES_CONTENT_MD5));
-				results.setBucketName(rs.getString(COL_FILES_BUCKET_NAME));
-				results.setKey(rs.getString(COL_FILES_KEY));
-				results.setName(rs.getString(COL_FILES_NAME));
-				results.setStorageLocationId(rs.getLong(COL_FILES_STORAGE_LOCATION_ID));
-
-				if (rs.wasNull()) {
-					results.setStorageLocationId(null);
-				}
-				results.setEndpoint(rs.getString(COL_FILES_ENDPOINT));
-				results.setIsPreview(rs.getBoolean(COL_FILES_IS_PREVIEW));
-				return results;
-			}
-			
-			@Override
-			public String getTableName() {
-				return TABLE_FILES;
-			}
-			
-			@Override
-			public FieldColumn[] getFieldColumns() {
-				return FIELDS;
-			}
-			
-			@Override
-			public String getDDLFileName() {
-				return DDL_FILES;
-			}
-			
-			@Override
-			public Class<? extends DBOFileHandle> getDBOClass() {
-				return DBOFileHandle.class;
-			}
-		};
+		return TABLE_MAPPING;
 	}
 	
 	@Override
@@ -145,18 +156,7 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 
 	@Override
 	public MigratableTableTranslation<DBOFileHandle, FileHandleBackup> getTranslator() {
-		return new MigratableTableTranslation<DBOFileHandle, FileHandleBackup>() {
-			@Override
-			public DBOFileHandle createDatabaseObjectFromBackup(FileHandleBackup backup) {
-				DBOFileHandle dboFileHandle =  FileMetadataUtils.createDBOFromBackup(backup);
-				return dboFileHandle;
-			}
-			
-			@Override
-			public FileHandleBackup createBackupFromDatabaseObject(DBOFileHandle dbo) {
-				return FileMetadataUtils.createBackupFromDBO(dbo);
-			}
-		};
+		return MIGRATION_TRANSLATOR;
 	}
 
 

@@ -57,18 +57,20 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
-import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import org.sagebionetworks.utils.ContentTypeUtil;
+import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.util.BinaryUtils;
 import com.amazonaws.util.Md5Utils;
 
@@ -102,6 +104,9 @@ public class MultipartManagerV2ImplAutowireTest {
 	@Value("${dev-googlecloud-bucket}")
 	private String googleCloudBucket;
 	
+	@Value("${dev-test-s3-bucket}")
+	private String externalS3Bucket;
+	
 	@Autowired
 	private EntityManager entityManager;
 	
@@ -121,7 +126,7 @@ public class MultipartManagerV2ImplAutowireTest {
 
 	private UserInfo adminUserInfo;
 	
-	StorageLocationSetting destination;
+	ExternalS3StorageLocationSetting copyDestination;
 	S3FileHandle copyFileHandle;
 
 	ExternalGoogleCloudStorageLocationSetting googleCloudStorageLocationSetting;
@@ -146,16 +151,32 @@ public class MultipartManagerV2ImplAutowireTest {
 		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
-		destination = new S3StorageLocationSetting();
+		String baseKey = "integration-test/MultipartManagerV2AutowiredTest-" + UUID.randomUUID().toString();
+		String ownerTxtKey =  baseKey + "/owner.txt";
+		byte[] ownerConent = principalAliasDao.getUserName(adminUserInfo.getId()).getBytes(StandardCharsets.UTF_8);
 		
-		destination = projectSettingsManager.createStorageLocationSetting(adminUserInfo, destination);
+		copyDestination = new ExternalS3StorageLocationSetting();
+		copyDestination.setBucket(externalS3Bucket);
+		copyDestination.setBaseKey(baseKey);
+		copyDestination.setUploadType(UploadType.S3);
 		
-		storageLocationsToDelete.add(destination.getStorageLocationId());
+		ObjectMetadata ownerMeta = new ObjectMetadata();
+		
+		String md5 = MD5ChecksumHelper.getMD5Checksum(ownerConent);
+		String hexMd5 = BinaryUtils.toBase64(BinaryUtils.fromHex(md5));
+		ObjectMetadata meta = new ObjectMetadata();
+		meta.setContentMD5(hexMd5);
+		meta.setContentLength(ownerConent.length);
+		
+		s3Client.putObject(externalS3Bucket, ownerTxtKey, new ByteArrayInputStream(ownerConent), ownerMeta);
+		
+		copyDestination = projectSettingsManager.createStorageLocationSetting(adminUserInfo, copyDestination);
+		
+		storageLocationsToDelete.add(copyDestination.getStorageLocationId());
 
 		if (stackConfiguration.getGoogleCloudEnabled()) {
-			// Create the owner.txt on the bucket
-			String baseKey = "integration-test/MultipartManagerV2AutowiredTest-" + UUID.randomUUID().toString();
-			googleCloudStorageClient.putObject(googleCloudBucket, baseKey + "/owner.txt", new ByteArrayInputStream(principalAliasDao.getUserName(adminUserInfo.getId()).getBytes(StandardCharsets.UTF_8)));
+
+			googleCloudStorageClient.putObject(googleCloudBucket, ownerTxtKey, new ByteArrayInputStream(ownerConent));
 
 			googleCloudStorageLocationSetting = new ExternalGoogleCloudStorageLocationSetting();
 			googleCloudStorageLocationSetting.setBucket(googleCloudBucket);
@@ -319,7 +340,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		
 		FileEntity sourceEntity = doCreateEntity(sourceFile);
 		
-		doMultipartCopy(sourceEntity, destination);
+		doMultipartCopy(sourceEntity, copyDestination);
 	}
 	
 
@@ -337,7 +358,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		
 		FileEntity sourceEntity = doCreateEntity(sourceFile);
 		
-		doMultipartCopy(sourceEntity, destination);
+		doMultipartCopy(sourceEntity, copyDestination);
 	}
 	
 	@Test
@@ -407,7 +428,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		
 		FileEntity sourceEntity = doCreateEntity(sourceFile);
 		
-		S3FileHandle targetFile = (S3FileHandle) doMultipartCopy(sourceEntity, destination);
+		S3FileHandle targetFile = (S3FileHandle) doMultipartCopy(sourceEntity, copyDestination);
 	
 		List<String> ids = multipartManagerV2.getUploadsOrderByUpdatedOn(10);
 		
@@ -447,7 +468,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		association.setFileHandleId(sourceEntity.getDataFileHandleId());
 		
 		// Starts the multipart copy
-		MultipartUploadStatus status = startUploadCopy(association, destination.getStorageLocationId(), PartUtils.MIN_PART_SIZE_BYTES);
+		MultipartUploadStatus status = startUploadCopy(association, copyDestination.getStorageLocationId(), PartUtils.MIN_PART_SIZE_BYTES);
 	
 		List<String> ids = multipartManagerV2.getUploadsOrderByUpdatedOn(10);
 		
@@ -485,7 +506,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		
 		FileEntity sourceEntity = doCreateEntity(sourceFile);
 		
-		doMultipartCopy(sourceEntity, destination);
+		doMultipartCopy(sourceEntity, copyDestination);
 	}
 	
 	@Test
@@ -503,7 +524,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		FileEntity sourceEntity = doCreateEntity(sourceFile);
 		
 		// Uses the max part size to do a one shot copy
-		doMultipartCopy(sourceEntity, destination, PartUtils.MAX_PART_SIZE_BYTES);
+		doMultipartCopy(sourceEntity, copyDestination, PartUtils.MAX_PART_SIZE_BYTES);
 	}
 	
 	private FileEntity doCreateEntity(CloudProviderFileHandleInterface fileHandle) {

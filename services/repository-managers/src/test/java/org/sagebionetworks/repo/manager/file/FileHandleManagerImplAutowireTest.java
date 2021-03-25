@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -537,6 +538,7 @@ public class FileHandleManagerImplAutowireTest {
 		S3FileHandle handle = fileUploadManager.createCompressedFileFromString(userId, createdOn, fileContents);
 		assertNotNull(handle);
 		toDelete.add(handle);
+		assertEquals(StorageLocationDAO.DEFAULT_STORAGE_LOCATION_ID, handle.getStorageLocationId());
 		assertEquals(StackConfigurationSingleton.singleton().getS3Bucket(), handle.getBucketName());
 		assertEquals("compressed.txt.gz", handle.getFileName());
 		assertNotNull(handle.getContentMd5());
