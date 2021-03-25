@@ -7,6 +7,8 @@ import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface StorageLocationDAO {
+	
+	Long DEFAULT_STORAGE_LOCATION_ID = 1L;
 
 	public Long create(StorageLocationSetting setting);
 	
