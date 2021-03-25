@@ -12,6 +12,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
@@ -282,5 +283,62 @@ public class FileMetadataUtilsTest {
 		for (int i = 0; i < list.size(); i++) {
 			assertEquals(list.get(i), FileMetadataUtils.createDTOFromDBO(dbos.get(i)));
 		}
+	}
+	
+	// See PLFM-6637
+	@Test
+	public void testBackfillDefaultStorageLocation() {
+		FileHandleBackup backup = new FileHandleBackup();
+		backup.setMetadataType("S3");
+		backup.setBucketName(FileMetadataUtils.DEFAULT_S3_BUCKET);
+		backup.setStorageLocationId(null);
+
+		DBOFileHandle expected = new DBOFileHandle();
+		expected.setBucketName(FileMetadataUtils.DEFAULT_S3_BUCKET);
+		expected.setMetadataType(FileHandleMetadataType.S3);
+		expected.setStorageLocationId(StorageLocationDAO.DEFAULT_STORAGE_LOCATION_ID);
+		expected.setIsPreview(false);
+		
+		DBOFileHandle result = FileMetadataUtils.createDBOFromBackup(backup);
+		
+		assertEquals(expected, result);
+	}
+	
+	// See PLFM-6637
+	@Test
+	public void testBackfillDefaultStorageLocationWithPresent() {
+		FileHandleBackup backup = new FileHandleBackup();
+		backup.setMetadataType("S3");
+		backup.setBucketName(FileMetadataUtils.DEFAULT_S3_BUCKET);
+		backup.setStorageLocationId(123L);
+
+		DBOFileHandle expected = new DBOFileHandle();
+		expected.setBucketName(FileMetadataUtils.DEFAULT_S3_BUCKET);
+		expected.setMetadataType(FileHandleMetadataType.S3);
+		expected.setStorageLocationId(123L);
+		expected.setIsPreview(false);
+		
+		DBOFileHandle result = FileMetadataUtils.createDBOFromBackup(backup);
+		
+		assertEquals(expected, result);
+	}
+	
+	// See PLFM-6637
+	@Test
+	public void testBackfillDefaultStorageLocationWithNotS3() {
+		FileHandleBackup backup = new FileHandleBackup();
+		backup.setMetadataType("GOOGLE_CLOUD");
+		backup.setBucketName(FileMetadataUtils.DEFAULT_S3_BUCKET);
+		backup.setStorageLocationId(123L);
+
+		DBOFileHandle expected = new DBOFileHandle();
+		expected.setBucketName(FileMetadataUtils.DEFAULT_S3_BUCKET);
+		expected.setMetadataType(FileHandleMetadataType.GOOGLE_CLOUD);
+		expected.setStorageLocationId(123L);
+		expected.setIsPreview(false);
+		
+		DBOFileHandle result = FileMetadataUtils.createDBOFromBackup(backup);
+		
+		assertEquals(expected, result);
 	}
 }
