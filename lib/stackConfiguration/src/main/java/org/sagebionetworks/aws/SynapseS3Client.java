@@ -8,6 +8,7 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
+import com.amazonaws.services.s3.model.AccessControlList;
 import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.BucketWebsiteConfiguration;
@@ -93,6 +94,10 @@ public interface SynapseS3Client {
 
 	public void setBucketPolicy(String bucketName, String policyText)
 			throws SdkClientException, AmazonServiceException;
+	
+	public AccessControlList getObjectAcl(String bucketName, String objectName);
+	
+	public String getAccountOwnerId(String bucketName);
 
 	/*
 	 * Return the Amazon S3 client for the US Standard Region

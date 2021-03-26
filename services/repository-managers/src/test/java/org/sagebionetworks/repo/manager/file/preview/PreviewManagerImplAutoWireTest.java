@@ -31,7 +31,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.amazonaws.services.s3.model.AccessControlList;
+import com.amazonaws.services.s3.model.CanonicalGrantee;
+import com.amazonaws.services.s3.model.Grant;
+import com.amazonaws.services.s3.model.Grantee;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.Permission;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -118,6 +123,16 @@ public class PreviewManagerImplAutoWireTest {
 		assertNotNull(s3Meta);
 		assertEquals(ImagePreviewGenerator.IMAGE_PNG, s3Meta.getContentType());
 		assertEquals(ContentDispositionUtils.getContentDispositionValue(pfm.getFileName()), s3Meta.getContentDisposition());
+		AccessControlList acl = s3Client.getObjectAcl(pfm.getBucketName(), pfm.getKey());
+		List<Grant> grantList = acl.getGrantsAsList();
+		assertEquals(1, grantList.size());
+		Grant grant = grantList.get(0);
+		Grantee grantee = grant.getGrantee();
+		assertTrue(grantee instanceof CanonicalGrantee);
+		CanonicalGrantee canonicalGrantee = (CanonicalGrantee)grantee;
+		assertEquals(s3Client.getAccountOwnerId(pfm.getBucketName()), canonicalGrantee.getIdentifier());
+		Permission permission = grant.getPermission();
+		assertEquals("FullControl", permission.name());
 	}
 
 	@Test
