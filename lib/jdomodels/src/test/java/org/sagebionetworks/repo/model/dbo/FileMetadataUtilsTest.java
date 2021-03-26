@@ -306,6 +306,25 @@ public class FileMetadataUtilsTest {
 	
 	// See PLFM-6637
 	@Test
+	public void testBackfillDefaultStorageLocationWithDifferentBucket() {
+		FileHandleBackup backup = new FileHandleBackup();
+		backup.setMetadataType("S3");
+		backup.setBucketName("anotherBucket");
+		backup.setStorageLocationId(null);
+
+		DBOFileHandle expected = new DBOFileHandle();
+		expected.setBucketName("anotherBucket");
+		expected.setMetadataType(FileHandleMetadataType.S3);
+		expected.setStorageLocationId(null);
+		expected.setIsPreview(false);
+		
+		DBOFileHandle result = FileMetadataUtils.createDBOFromBackup(backup);
+		
+		assertEquals(expected, result);
+	}
+	
+	// See PLFM-6637
+	@Test
 	public void testBackfillDefaultStorageLocationWithPresent() {
 		FileHandleBackup backup = new FileHandleBackup();
 		backup.setMetadataType("S3");
@@ -341,4 +360,5 @@ public class FileMetadataUtilsTest {
 		
 		assertEquals(expected, result);
 	}
+	
 }
