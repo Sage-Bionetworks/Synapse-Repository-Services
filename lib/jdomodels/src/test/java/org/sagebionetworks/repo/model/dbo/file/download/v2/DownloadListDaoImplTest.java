@@ -16,9 +16,13 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mockito;
+import static org.mockito.Mockito.*;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
+import org.sagebionetworks.repo.model.download.DownloadListItemResult;
+import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -331,6 +335,57 @@ public class DownloadListDaoImplTest {
 			downloadListDao.clearDownloadList(nullUserId);
 		}).getMessage();
 		assertEquals("User Id is required.", message);
+	}
+	
+	@Test
+	public void testGetDownloadListItemWithVersion() {
+		List<DownloadListItem> userOneBatch = Arrays.asList(idsWithVersions.get(0));
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, userOneBatch);
+		
+		DownloadListItemResult result = downloadListDao.getDownloadListItem(userOneIdLong, idsWithVersions.get(0));
+		assertNotNull(result);
+		assertEquals(idsWithVersions.get(0).getFileEntityId(), result.getFileEntityId());
+		assertEquals(idsWithVersions.get(0).getVersionNumber(), result.getVersionNumber());
+		assertNotNull(result.getAddedOn());
+	}
+	
+	@Test
+	public void testGetDownloadListItemWihtoutVersion() {
+		List<DownloadListItem> userOneBatch = Arrays.asList(idsWithoutVersions.get(0));
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, userOneBatch);
+		
+		DownloadListItemResult result = downloadListDao.getDownloadListItem(userOneIdLong, idsWithVersions.get(0));
+		assertNotNull(result);
+		assertEquals(idsWithVersions.get(0).getFileEntityId(), result.getFileEntityId());
+		assertEquals(idsWithVersions.get(0).getVersionNumber(), result.getVersionNumber());
+		assertNotNull(result.getAddedOn());
+	}
+	
+	@Test
+	public void testGetFilesAvailableToDownloadFromDownloadList() {
+
+		List<DownloadListItem> userOneBatch = Arrays.asList(idsWithVersions.get(0), idsWithoutVersions.get(0),
+				idsWithVersions.get(1), idsWithoutVersions.get(1));
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, userOneBatch);
+
+		EntityAccessCallback mockCallback = Mockito.mock(EntityAccessCallback.class);
+		when(mockCallback.canDownload(any()))
+				.thenReturn(KeyFactory.stringToKey(Arrays.asList(idsWithVersions.get(0).getFileEntityId(),
+						idsWithoutVersions.get(0).getFileEntityId(), idsWithoutVersions.get(1).getFileEntityId())));
+
+		List<DownloadListItemResult> explected = downloadListDao.getDownloadListItems(userOneIdLong,
+				idsWithVersions.get(0), idsWithoutVersions.get(0), idsWithoutVersions.get(1));
+
+		Long userId = userOneIdLong;
+		List<Sort> sort = null;
+		Long limit = 10L;
+		Long offset = 0L;
+
+		// call under test
+		List<DownloadListItemResult> results = downloadListDao.getFilesAvailableToDownloadFromDownloadList(mockCallback,
+				userId, sort, limit, offset);
+		assertNotNull(results);
+		assertEquals(explected, results);
 	}
 	
 
