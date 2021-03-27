@@ -5,12 +5,14 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.DynamicTest.stream;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,11 +20,19 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import static org.mockito.Mockito.*;
+
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.Sort;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -38,6 +48,14 @@ public class DownloadListDaoImplTest {
 	private UserGroupDAO userGroupDao;
 	@Autowired
 	private DownloadListDAO downloadListDao;
+	@Autowired
+	private DaoObjectHelper<Node> nodeDaoHelper;
+	@Autowired
+	private NodeDAO nodeDao;
+	@Autowired
+	private DaoObjectHelper<FileHandle> fileHandleDaoHelper;
+	@Autowired
+	private FileHandleDao fileHandleDao;
 
 	Long userOneIdLong;
 	String userOneId;
@@ -82,6 +100,9 @@ public class DownloadListDaoImplTest {
 
 	@AfterEach
 	public void after() {
+		nodeDao.truncateAll();
+		fileHandleDao.truncateTable();
+		
 		if (userOneId != null) {
 			userGroupDao.delete(userOneId);
 
@@ -386,8 +407,91 @@ public class DownloadListDaoImplTest {
 				userId, sort, limit, offset);
 		assertNotNull(results);
 		assertEquals(explected, results);
+		
 	}
 	
+	@Test
+	public void test() {
+		int numberOfProject = 2;
+		int foldersPerProject = 2;
+		int filesPerFolder = 2;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		// add the latest version of each file to the list
+		List<DownloadListItem> batchToAdd = files.stream()
+				.map(n -> new DownloadListItem().setFileEntityId(n.getId()).setVersionNumber(null))
+				.collect(Collectors.toList());
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, batchToAdd);
+		// add the first version of each file to the list
+		batchToAdd = files.stream()
+				.map(n -> new DownloadListItem().setFileEntityId(n.getId()).setVersionNumber(1L))
+				.collect(Collectors.toList());
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, batchToAdd);
+		
+		System.out.println("not done yet");
+	}
+	
+	/**
+	 * Create a simple hierarchy of files.
+	 * 
+	 * @param numberOfProject  The number of root projects
+	 * @param foldersPerProject The number of folders in each project
+	 * @param filesPerFolder The number of files per folder.
+	 * @return Only the files are returned. 
+	 */
+	public List<Node> createFileHierarchy(int numberOfProject, int foldersPerProject, int filesPerFolder) {
+		List<Node> results = new ArrayList<Node>(numberOfProject * foldersPerProject * filesPerFolder);
+		for (int p = 0; p < numberOfProject; p++) {
+			final int projectNumber = p;
+			Node project = nodeDaoHelper.create(n -> {
+				n.setName(String.join("-", "project", "" + projectNumber));
+				n.setCreatedByPrincipalId(userOneIdLong);
+				n.setParentId(NodeConstants.BOOTSTRAP_NODES.ROOT.getId().toString());
+				n.setNodeType(EntityType.project);
+			});
+			for (int d = 0; d < foldersPerProject; d++) {
+				final int dirNumber = d;
+				Node dir = nodeDaoHelper.create(n -> {
+					n.setName(String.join("-", "folder", "" + projectNumber, "" + dirNumber));
+					n.setCreatedByPrincipalId(userOneIdLong);
+					n.setParentId(project.getId());
+					n.setNodeType(EntityType.folder);
+				});
+				for (int f = 0; f < filesPerFolder; f++) {
+					final int fileNumber = f;
+					final String fileName = String.join("-", "dir", "" + projectNumber, "" + dirNumber,
+							"" + fileNumber);
+					FileHandle fh1 = fileHandleDaoHelper.create(h -> {
+						h.setContentSize(1L + (2L * fileNumber));
+						h.setFileName(fileName);
+					});
+					Node file = nodeDaoHelper.create(n -> {
+						n.setName(fileName);
+						n.setCreatedByPrincipalId(userOneIdLong);
+						n.setParentId(dir.getId());
+						n.setNodeType(EntityType.file);
+						n.setFileHandleId(fh1.getId());
+						n.setVersionNumber(1L);
+						n.setVersionComment("v1");
+						n.setVersionLabel("v1");
+					});
+					// Create a second version for this file.
+					final String fileName2 = String.join("-", "file", "" + projectNumber, "" + dirNumber,
+							"" + fileNumber, "v2");
+					FileHandle fh2 = fileHandleDaoHelper.create(h -> {
+						h.setContentSize(1L + (2L * fileNumber + 1));
+						h.setFileName(fileName2);
+					});
+					file.setFileHandleId(fh2.getId());
+					file.setVersionComment("v2");
+					file.setVersionLabel("v2");
+					nodeDao.createNewVersion(file);
+					file = nodeDao.getNode(file.getId());
+					results.add(file);
+				}
+			}
+		}
+		return results;
+	}
 
 	/**
 	 * Helper to validate a download list.

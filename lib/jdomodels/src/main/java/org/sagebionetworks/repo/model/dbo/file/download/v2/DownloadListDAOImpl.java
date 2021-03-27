@@ -216,8 +216,8 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 
 		String sql = String.format("SELECT T.ENTITY_ID, D." + COL_DOWNLOAD_LIST_ITEM_V2_VERION_NUMBER + ", D."
 				+ COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON + " FROM %S T JOIN " + TABLE_DOWNLOAD_LIST_ITEM_V2
-				+ " D ON (T.ENTITY_ID = D.ENTITY_ID)", tempTableName);
-		return streamingJdbcTemplate.query(sql, RESULT_MAPPER);
+				+ " D ON (T.ENTITY_ID = D.ENTITY_ID AND "+COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID+" = ?)", tempTableName);
+		return streamingJdbcTemplate.query(sql, RESULT_MAPPER, userId);
 	}
 
 	/**
