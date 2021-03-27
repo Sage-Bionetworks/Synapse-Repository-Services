@@ -314,9 +314,9 @@ public class JiraClientImplTest {
         issue.setSummary("this is the summary");
         issue.setIssueTypeId(202L);
         Map<String,Object> customFields = new HashMap<String,Object>();
-        customFields.put("components", JRJCHelper.componentName("some name"));
+        customFields.put("components", JRJCHelper.componentId("9999"));
         issue.setCustomFields(customFields);
-        String expectedBody ="{\"fields\":{\"summary\":\"this is the summary\",\"issuetype\":{\"id\":202},\"components\":[{\"name\":\"some name\"}],\"project\":{\"id\":\"101\"}}}";
+        String expectedBody ="{\"fields\":{\"summary\":\"this is the summary\",\"issuetype\":{\"id\":202},\"components\":[{\"id\":\"9999\"}],\"project\":{\"id\":\"101\"}}}";
 
         // Call under test
         CreatedIssue i = jiraClient.createIssue(issue);
@@ -355,14 +355,14 @@ public class JiraClientImplTest {
     @Test
     public void testHandleResponseStatusOK() {
         when(mockResponse.getStatusCode()).thenReturn(HttpStatus.SC_CREATED);
-        JiraClientImpl.handleResponseStatus(mockResponse.getStatusCode()); // Should not fail
+        JiraClientImpl.handleResponseStatus(mockResponse.getStatusCode(), ""); // Should not fail
     }
 
     @Test
     public void testHandleResponseStatusError() {
         when(mockResponse.getStatusCode()).thenReturn(HttpStatus.SC_BAD_REQUEST);
         Assertions.assertThrows(JiraClientException.class, () -> {
-                    JiraClientImpl.handleResponseStatus(mockResponse.getStatusCode());
+                    JiraClientImpl.handleResponseStatus(mockResponse.getStatusCode(), "");
                 }
         );
     }
