@@ -14,8 +14,8 @@ public class JRJCHelper {
 	private static final String JIRA_USER_DISPLAY_NAME_ISSUE_FIELD_NAME = "Synapse User Display Name"; // The display name of the Synapse user reporting the issue.
 	private static final String JIRA_SYNAPSE_ENTITY_ID_FIELD_NAME = "Synapse Data Object"; // The ID of the Synapse object which is the subject of the issue.
 	private static final String JIRA_COMPONENT_FIELD_NAME = "Components";
-	private static final String JIRA_COMPONENT_NAME = "name";
-	private static final String JIRA_COMPONENT_FIELD_VALUE_RESTRICTION_REQUEST = "Data Restriction Request";
+	private static final String JIRA_COMPONENT_ID = "id";
+	private static final String JIRA_COMPONENT_FIELD_VALUE_RESTRICTION_REQUEST_ID = "14865"; // [Automated Synapse Jira] Data Restriction Request
 	private static final String FLAG_SUMMARY = "Request for ACT to review data";
 	private static final String RESTRICT_SUMMARY = "Request for ACT to add data restriction";
 	
@@ -28,9 +28,9 @@ public class JRJCHelper {
 		return createdIssue.getKey();
 	}
 	
-	public static List<Map<String,String>> componentName(String name) {
+	public static List<Map<String,String>> componentId(String id) {
 		Map<String,String> component = new HashMap<String,String>();
-		component.put(JIRA_COMPONENT_NAME, name);
+		component.put(JIRA_COMPONENT_ID, id);
 		return Collections.singletonList(component);
 	}
 	
@@ -39,7 +39,7 @@ public class JRJCHelper {
         params.put(JIRA_PRINCIPAL_ID_ISSUE_FIELD_NAME, principalId);
         params.put(JIRA_USER_DISPLAY_NAME_ISSUE_FIELD_NAME, displayName);
         params.put(JIRA_SYNAPSE_ENTITY_ID_FIELD_NAME, dataObjectId);
-        params.put(JIRA_COMPONENT_FIELD_NAME, componentName(JIRA_COMPONENT_FIELD_VALUE_RESTRICTION_REQUEST));
+        params.put(JIRA_COMPONENT_FIELD_NAME, componentId(JIRA_COMPONENT_FIELD_VALUE_RESTRICTION_REQUEST_ID));
         CreatedIssue createdIssue = createIssue(jiraClient, JIRA_RESTRICT_ISSUE_TYPE_NAME, RESTRICT_SUMMARY, params);
         return createdIssue.getKey();
 	} 

@@ -109,27 +109,27 @@ public class JiraClientImpl implements JiraClient {
 		} catch (IOException e) {
 			throw new JiraClientException(e.getMessage(), e);
 		}
-		String json = null;
-		handleResponseStatus(resp.getStatusCode());
-		json = resp.getContent();
+		int status = resp.getStatusCode();
+		String json = resp.getContent();
+		handleResponseStatus(status, json);
 		return json;
 	}
 
-	static void handleResponseStatus(int status) {
+	static void handleResponseStatus(int status, String body) {
 		switch (status) {
 			case HttpStatus.SC_BAD_REQUEST:
-				throw new JiraClientException("JIRA Client: invalid request" + status);
+				throw new JiraClientException("JIRA Client: invalid request " + status+ " "+body);
 			case HttpStatus.SC_NOT_FOUND:
-				throw new JiraClientException("JIRA Client: not found" + status);
+				throw new JiraClientException("JIRA Client: not found " + status + " "+body);
 			case HttpStatus.SC_UNAUTHORIZED:
-				throw new JiraClientException("JIRA Client: credentials wrong or missing" + status);
+				throw new JiraClientException("JIRA Client: credentials wrong or missing " + status + " "+body);
 			case HttpStatus.SC_FORBIDDEN:
-				throw new JiraClientException("JIRA Client: insufficient permission" + status);
+				throw new JiraClientException("JIRA Client: insufficient permission " + status + " "+body);
 			case HttpStatus.SC_OK:
 			case HttpStatus.SC_CREATED:
 				return;
 			default:
-				throw new JiraClientException("JIRA: unexpected status received - " + status);
+				throw new JiraClientException("JIRA: unexpected status received - " + status + " "+body);
 		}
 	}
 
