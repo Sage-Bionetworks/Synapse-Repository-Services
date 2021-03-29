@@ -2,19 +2,23 @@ package org.sagebionetworks.cloudwatch;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
+import com.amazonaws.services.cloudwatch.model.Dimension;
 import com.amazonaws.services.cloudwatch.model.MetricDatum;
 import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
 
@@ -36,6 +40,11 @@ public class ConsumerTest {
 	}
 	
 	@Test
+	public void testScrubDimensionString() {
+		assertNull(Consumer.scrubDimensionString(null));
+	}
+	
+	@Test
 	public void testMakeMetricDatum(){
 		// Start with a profile data
 		ProfileData pd = new ProfileData();
@@ -44,12 +53,20 @@ public class ConsumerTest {
 		pd.setNamespace("nameSpace");
 		pd.setTimestamp(new Date());
 		pd.setUnit("Count");
+		Map<String,String> dimensionMap=new TreeMap<String,String>();
+		dimensionMap.put("baz", null);
+		dimensionMap.put("foo", "bar");
+		pd.setDimension(dimensionMap);
 		// Conver to a put metric.
 		MetricDatum expectedDatum = new MetricDatum();
 		expectedDatum.setMetricName(pd.getName());
 		expectedDatum.setValue(pd.getValue());
 		expectedDatum.setUnit(pd.getUnit());
 		expectedDatum.setTimestamp(pd.getTimestamp());
+		Collection<Dimension> dimensions=new ArrayList<Dimension>();
+		dimensions.add(new Dimension().withName("baz"));
+		dimensions.add(new Dimension().withName("foo").withValue("bar"));
+		expectedDatum.setDimensions(dimensions);
 		
 		MetricDatum mdResult = Consumer.makeMetricDatum(pd);
 		assertEquals(expectedDatum, mdResult);
