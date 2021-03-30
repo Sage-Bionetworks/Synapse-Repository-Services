@@ -68,6 +68,8 @@ public class DownloadListDaoImplTest {
 
 	@BeforeEach
 	public void before() {
+		nodeDao.truncateAll();
+		fileHandleDao.truncateTable();
 		downloadListDao.truncateAllData();
 		UserGroup ug = new UserGroup();
 		ug.setCreationDate(new Date(System.currentTimeMillis()));
@@ -451,14 +453,14 @@ public class DownloadListDaoImplTest {
 			for (int d = 0; d < foldersPerProject; d++) {
 				final int dirNumber = d;
 				Node dir = nodeDaoHelper.create(n -> {
-					n.setName(String.join("-", "folder", "" + projectNumber, "" + dirNumber));
+					n.setName(String.join("-", "dir", "" + projectNumber, "" + dirNumber));
 					n.setCreatedByPrincipalId(userOneIdLong);
 					n.setParentId(project.getId());
 					n.setNodeType(EntityType.folder);
 				});
 				for (int f = 0; f < filesPerFolder; f++) {
 					final int fileNumber = f;
-					final String fileName = String.join("-", "dir", "" + projectNumber, "" + dirNumber,
+					final String fileName = String.join("-", "file", "" + projectNumber, "" + dirNumber,
 							"" + fileNumber);
 					FileHandle fh1 = fileHandleDaoHelper.create(h -> {
 						h.setContentSize(1L + (2L * fileNumber));

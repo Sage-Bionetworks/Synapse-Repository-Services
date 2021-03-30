@@ -230,7 +230,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	 * @return The name of the temporary table.
 	 */
 	String createTempoaryTableOfAvailableFiles(EntityAccessCallback accessCallback, Long userId, int batchSize) {
-		String tableName = "U" + userId + "TEMP";
+		String tableName = "U" + userId + "T";
 		String sql = String.format("CREATE TEMPORARY TABLE %S (`ENTITY_ID` BIGINT NOT NULL, PRIMARY KEY (`ENTITY_ID`))",
 				tableName);
 		streamingJdbcTemplate.update(sql);
