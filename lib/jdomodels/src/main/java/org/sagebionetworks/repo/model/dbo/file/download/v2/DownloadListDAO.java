@@ -61,26 +61,30 @@ public interface DownloadListDAO {
 	 * @return
 	 */
 	List<DBODownloadListItem> getDBODownloadListItems(Long userId);
-	
-	/**
-	 * Get DownloadListItemResult for the given user and item.
-	 * @param userId
-	 * @param entityIds
-	 * @return
-	 */
-	DownloadListItemResult getDownloadListItem(Long userId, DownloadListItem item);
-	
+
 	/**
 	 * Get the DownloadListItemResult for the given user and each item.
+	 * 
 	 * @param userId
 	 * @param item
 	 * @return
 	 */
-	List<DownloadListItemResult> getDownloadListItems(Long userId, DownloadListItem...item);
+	List<DownloadListItemResult> getDownloadListItems(Long userId, DownloadListItem... item);
 
 	/**
 	 * Clear all download data for all users.
 	 */
 	void truncateAllData();
+
+	/**
+	 * Read all of value from a temporary of the items from a user's download list
+	 * that the user has download access to.
+	 * 
+	 * @param accessCallback
+	 * @param userId
+	 * @param batchSize
+	 * @return
+	 */
+	List<Long> readTempoaryTableOfAvailableFiles(EntityAccessCallback accessCallback, Long userId, int batchSize);
 
 }

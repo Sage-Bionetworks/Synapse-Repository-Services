@@ -14,11 +14,16 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.Sort;
@@ -30,21 +35,31 @@ import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+
+import com.google.common.base.Objects;
 
 @Repository
 public class DownloadListDAOImpl implements DownloadListDAO {
+
+	public static final String DOWNLOAD_LIST_RESULT_TEMPLATE = DDLUtilsImpl
+			.loadSQLFromClasspath("sql/DownloadListResultsTemplate.sql");
 
 	private static final int BATCH_SIZE = 1000;
 
 	public static final Long NULL_VERSION_NUMBER = -1L;
 
 	@Autowired
-	private JdbcTemplate streamingJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
+
+	@Autowired
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 
 	private static final RowMapper<DBODownloadList> LIST_MAPPER = new DBODownloadList().getTableMapping();
 	private static final RowMapper<DBODownloadListItem> LIST_ITEM_MAPPER = new DBODownloadListItem().getTableMapping();
-	
+
 	private static final RowMapper<DownloadListItemResult> RESULT_MAPPER = (ResultSet rs, int rowNum) -> {
 		DownloadListItemResult r = new DownloadListItemResult();
 		r.setFileEntityId(KeyFactory.keyToString(rs.getLong(COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID)));
@@ -53,6 +68,12 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			r.setVersionNumber(null);
 		}
 		r.setAddedOn(rs.getTimestamp(COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON));
+		r.setFileName(rs.getString("ENTITY_NAME"));
+		r.setCreatedBy(rs.getString("CREATED_BY"));
+		r.setCreatedOn(new Date(rs.getLong("CREATED_ON")));
+		r.setProjectId(KeyFactory.keyToString(rs.getLong("PROJECT_ID")));
+		r.setProjectName(rs.getString("PROJECT_NAME"));
+		r.setFileSizeBytes(rs.getLong("CONTENT_SIZE"));
 		return r;
 	};
 
@@ -66,7 +87,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		final Timestamp now = new Timestamp(System.currentTimeMillis());
 		createOrUpdateDownloadList(userId);
 		DownloadListItem[] batchArray = batchToAdd.toArray(new DownloadListItem[batchToAdd.size()]);
-		int[] updates = streamingJdbcTemplate.batchUpdate(
+		int[] updates = jdbcTemplate.batchUpdate(
 				"INSERT IGNORE INTO " + TABLE_DOWNLOAD_LIST_ITEM_V2 + " (" + COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID
 						+ "," + COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID + "," + COL_DOWNLOAD_LIST_ITEM_V2_VERION_NUMBER
 						+ "," + COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON + ")  VALUES(?,?,?,?)",
@@ -110,7 +131,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		}
 		createOrUpdateDownloadList(userId);
 		DownloadListItem[] batchArray = batchToRemove.toArray(new DownloadListItem[batchToRemove.size()]);
-		int[] updates = streamingJdbcTemplate.batchUpdate("DELETE FROM " + TABLE_DOWNLOAD_LIST_ITEM_V2 + " WHERE "
+		int[] updates = jdbcTemplate.batchUpdate("DELETE FROM " + TABLE_DOWNLOAD_LIST_ITEM_V2 + " WHERE "
 				+ COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID + " = ? AND " + COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID + " = ? AND "
 				+ COL_DOWNLOAD_LIST_ITEM_V2_VERION_NUMBER + " = ?", new BatchPreparedStatementSetter() {
 
@@ -143,7 +164,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 
 	private void createOrUpdateDownloadList(Long userId) {
 		ValidateArgument.required(userId, "User Id");
-		streamingJdbcTemplate.update("INSERT INTO " + TABLE_DOWNLOAD_LIST_V2 + "(" + COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID
+		jdbcTemplate.update("INSERT INTO " + TABLE_DOWNLOAD_LIST_V2 + "(" + COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID
 				+ ", " + COL_DOWNLOAD_LIST_V2_UPDATED_ON + ", " + COL_DOWNLOAD_LIST_V2_ETAG
 				+ ") VALUES (?, NOW(3), UUID()) ON DUPLICATE KEY UPDATE " + COL_DOWNLOAD_LIST_V2_UPDATED_ON
 				+ " = NOW(3), " + COL_DOWNLOAD_LIST_V2_ETAG + " = UUID()", userId);
@@ -153,20 +174,20 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	public void clearDownloadList(Long userId) {
 		ValidateArgument.required(userId, "User Id");
 		createOrUpdateDownloadList(userId);
-		streamingJdbcTemplate.update("DELETE FROM " + TABLE_DOWNLOAD_LIST_ITEM_V2 + " WHERE "
+		jdbcTemplate.update("DELETE FROM " + TABLE_DOWNLOAD_LIST_ITEM_V2 + " WHERE "
 				+ COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID + " = ?", userId);
 	}
 
 	@Override
 	public void truncateAllData() {
-		streamingJdbcTemplate.update(
+		jdbcTemplate.update(
 				"DELETE FROM " + TABLE_DOWNLOAD_LIST_V2 + " WHERE " + COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID + " > -1");
 	}
 
 	@Override
 	public DBODownloadList getDBODownloadList(Long userId) {
 		ValidateArgument.required(userId, "User Id");
-		return streamingJdbcTemplate.queryForObject(
+		return jdbcTemplate.queryForObject(
 				"SELECT * FROM " + TABLE_DOWNLOAD_LIST_V2 + " WHERE " + COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID + " = ?",
 				LIST_MAPPER, userId);
 	}
@@ -174,35 +195,46 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	@Override
 	public List<DBODownloadListItem> getDBODownloadListItems(Long userId) {
 		ValidateArgument.required(userId, "User Id");
-		return streamingJdbcTemplate.query("SELECT * FROM " + TABLE_DOWNLOAD_LIST_ITEM_V2 + " WHERE "
+		return jdbcTemplate.query("SELECT * FROM " + TABLE_DOWNLOAD_LIST_ITEM_V2 + " WHERE "
 				+ COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID + " = ? ORDER BY " + COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID + ", "
 				+ COL_DOWNLOAD_LIST_ITEM_V2_VERION_NUMBER, LIST_ITEM_MAPPER, userId);
 	}
-	
+
 	@Override
-	public DownloadListItemResult getDownloadListItem(Long userId, DownloadListItem item) {
-		ValidateArgument.required(userId, "User Id");
-		ValidateArgument.required(item, "item");
-		Long entityId = KeyFactory.stringToKey(item.getFileEntityId());
-		Long versionNumber = item.getVersionNumber();
-		if (versionNumber == null) {
-			versionNumber = NULL_VERSION_NUMBER;
-		}
-		return streamingJdbcTemplate.queryForObject(
-				"SELECT * FROM " + TABLE_DOWNLOAD_LIST_ITEM_V2 + " WHERE " + COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID
-						+ " = ? AND " + COL_DOWNLOAD_LIST_ITEM_V2_VERION_NUMBER + " = ?",
-				RESULT_MAPPER, entityId, versionNumber);
-	}
-	
-	@Override
-	public List<DownloadListItemResult> getDownloadListItems(Long userId, DownloadListItem...items) {
+	public List<DownloadListItemResult> getDownloadListItems(Long userId, DownloadListItem... items) {
 		ValidateArgument.required(userId, "User Id");
 		ValidateArgument.required(items, "item");
-		List<DownloadListItemResult> results = new ArrayList<>(items.length);
-		for(DownloadListItem item: items) {
-			results.add(getDownloadListItem(userId, item));
+		// Create a temp table that contains only the IDs we want to keep.
+		Set<Long> idsToKeep = Arrays.stream(items).map(i -> KeyFactory.stringToKey(i.getFileEntityId()))
+				.collect(Collectors.toSet());
+		String tempTableName = createTempoaryTableOfAvailableFiles(
+				t -> t.stream().filter(i -> idsToKeep.contains(i)).collect(Collectors.toList()), userId, BATCH_SIZE);
+
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("principalId", userId);
+		params.addValue("depth", NodeConstants.MAX_PATH_DEPTH_PLUS_ONE);
+		String sql = String.format(DOWNLOAD_LIST_RESULT_TEMPLATE, tempTableName);
+		List<DownloadListItemResult> unorderedResults = namedJdbcTemplate.query(sql, params, RESULT_MAPPER);
+
+		// Put the results in same order as the request. Note: O(n*m) where both n and m
+		// should be small.
+		return Arrays.stream(items).map(i -> unorderedResults.stream().filter(u -> isMatch(i, u)).findFirst().get())
+				.collect(Collectors.toList());
+
+	}
+
+	/**
+	 * Does the given DownloadListItem match the given DownloadListItemResult?
+	 * 
+	 * @param item
+	 * @param result
+	 * @return
+	 */
+	public static boolean isMatch(DownloadListItem item, DownloadListItemResult result) {
+		if (item.getFileEntityId().equals(result.getFileEntityId())) {
+			return Objects.equal(item.getVersionNumber(), result.getVersionNumber());
 		}
-		return results;
+		return false;
 	}
 
 	@Override
@@ -214,10 +246,12 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		 */
 		String tempTableName = createTempoaryTableOfAvailableFiles(accessCallback, userId, BATCH_SIZE);
 
-		String sql = String.format("SELECT T.ENTITY_ID, D." + COL_DOWNLOAD_LIST_ITEM_V2_VERION_NUMBER + ", D."
-				+ COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON + " FROM %S T JOIN " + TABLE_DOWNLOAD_LIST_ITEM_V2
-				+ " D ON (T.ENTITY_ID = D.ENTITY_ID AND "+COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID+" = ?)", tempTableName);
-		return streamingJdbcTemplate.query(sql, RESULT_MAPPER, userId);
+		String sql = String.format(
+				"SELECT T.ENTITY_ID, D." + COL_DOWNLOAD_LIST_ITEM_V2_VERION_NUMBER + ", D."
+						+ COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON + " FROM %S T JOIN " + TABLE_DOWNLOAD_LIST_ITEM_V2
+						+ " D ON (T.ENTITY_ID = D.ENTITY_ID AND " + COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID + " = ?)",
+				tempTableName);
+		return jdbcTemplate.query(sql, RESULT_MAPPER, userId);
 	}
 
 	/**
@@ -233,24 +267,22 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		String tableName = "U" + userId + "T";
 		String sql = String.format("CREATE TEMPORARY TABLE %S (`ENTITY_ID` BIGINT NOT NULL, PRIMARY KEY (`ENTITY_ID`))",
 				tableName);
-		streamingJdbcTemplate.update(sql);
+		jdbcTemplate.update(sql);
+		
 		List<Long> batchToCheck = new LinkedList<>();
-		// Stream over all of the files in the user's download list and add all files that the user can download in batches to the temp table.
-		streamingJdbcTemplate.query("SELECT " + COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID + " FROM "
-				+ TABLE_DOWNLOAD_LIST_ITEM_V2 + " WHERE " + COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID + " = ? ORDER BY "
-				+ COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID + " ASC", new RowCallbackHandler() {
-
-					@Override
-					public void processRow(ResultSet rs) throws SQLException {
-						batchToCheck.add(rs.getLong(COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID));
-						if (batchToCheck.size() >= batchSize) {
-							// Get the sub-set of files the user can download.
-							List<Long> canDownload = accessCallback.canDownload(batchToCheck);
-							addBatchOfEntityIdsToTempTable(canDownload.toArray(new Long[canDownload.size()]),
-									tableName);
-							batchToCheck.clear();
-						}
+		// Stream over all of the files in the user's download list and add all files
+		// that the user can download in batches to the temp table.
+		jdbcTemplate.query("SELECT DISTINCT " + COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID + " FROM "
+				+ TABLE_DOWNLOAD_LIST_ITEM_V2 + " WHERE " + COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID + " = ?",
+				(ResultSet rs) -> {
+					batchToCheck.add(rs.getLong(COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID));
+					if (batchToCheck.size() >= batchSize) {
+						// Get the sub-set of files the user can download.
+						List<Long> canDownload = accessCallback.canDownload(batchToCheck);
+						addBatchOfEntityIdsToTempTable(canDownload.toArray(new Long[canDownload.size()]), tableName);
+						batchToCheck.clear();
 					}
+
 				}, userId);
 		// Add any remaining elements to the table.
 		if (batchToCheck.size() > 0) {
@@ -261,6 +293,13 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		return tableName;
 	}
 
+	@Override
+	public List<Long> readTempoaryTableOfAvailableFiles(EntityAccessCallback accessCallback, Long userId,
+			int batchSize) {
+		String tempTableName = createTempoaryTableOfAvailableFiles(accessCallback, userId, batchSize);
+		return jdbcTemplate.queryForList("SELECT ENTITY_ID FROM " + tempTableName+" ORDER BY ENTITY_ID ASC", Long.class);
+	}
+
 	/**
 	 * Helper to add the given batch of entity IDs to a temporary table.
 	 * 
@@ -268,11 +307,11 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	 * @param tableName
 	 */
 	void addBatchOfEntityIdsToTempTable(Long[] entityIdsToAdd, String tableName) {
-		if(entityIdsToAdd.length < 1) {
+		if (entityIdsToAdd.length < 1) {
 			return;
 		}
 		String sql = String.format("INSERT INTO %S (ENTITY_ID) VALUES (?)", tableName);
-		streamingJdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
+		jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
 			@Override
 			public void setValues(PreparedStatement ps, int i) throws SQLException {
 				ps.setLong(1, entityIdsToAdd[i]);

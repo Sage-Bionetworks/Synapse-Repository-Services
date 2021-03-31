@@ -1,13 +1,38 @@
 {
-	"extends":{
-		"$ref":"org.sagebionetworks.repo.model.download.DownloadListItem"
+	"extends": {
+		"$ref": "org.sagebionetworks.repo.model.download.DownloadListItem"
 	},
 	"description": "The results of a single item on a user's download list.",
 	"properties": {
+		"fileName": {
+			"description": "The name of the file.",
+			"type": "string"
+		},
 		"addedOn": {
 			"description": "The date-time when this file was added to the user's download list.",
 			"type": "string",
 			"format": "date-time"
+		},
+		"projectId": {
+			"description": "The ID of the project that contains this file.",
+			"type": "string"
+		},
+		"projectName": {
+			"description": "The name of the project that contains this file.",
+			"type": "string"
+		},
+		"createdBy": {
+			"description": "The ID of the user that created this file.",
+			"type": "string"
+		},
+		"createdOn": {
+			"description": "The date-time when this file was created.",
+			"type": "string",
+			"format": "date-time"
+		},
+		"fileSizeBytes": {
+			"description": "The size of the file in bytes.",
+			"type": "integer"
 		}
 	}
 }
