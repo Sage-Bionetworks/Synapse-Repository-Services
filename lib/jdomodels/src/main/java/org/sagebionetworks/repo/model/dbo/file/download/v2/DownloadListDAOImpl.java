@@ -269,27 +269,22 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 				tableName);
 		jdbcTemplate.update(sql);
 		
-		List<Long> batchToCheck = new LinkedList<>();
-		// Stream over all of the files in the user's download list and add all files
-		// that the user can download in batches to the temp table.
-		jdbcTemplate.query("SELECT DISTINCT " + COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID + " FROM "
-				+ TABLE_DOWNLOAD_LIST_ITEM_V2 + " WHERE " + COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID + " = ?",
-				(ResultSet rs) -> {
-					batchToCheck.add(rs.getLong(COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID));
-					if (batchToCheck.size() >= batchSize) {
-						// Get the sub-set of files the user can download.
-						List<Long> canDownload = accessCallback.canDownload(batchToCheck);
-						addBatchOfEntityIdsToTempTable(canDownload.toArray(new Long[canDownload.size()]), tableName);
-						batchToCheck.clear();
-					}
-
-				}, userId);
-		// Add any remaining elements to the table.
-		if (batchToCheck.size() > 0) {
-			// Get the sub-set of files the user can download.
-			List<Long> canDownload = accessCallback.canDownload(batchToCheck);
+		List<Long> batch = null;
+		long limit = batchSize;
+		long offset = 0L;
+		do {
+			// Gather a single batch of distinct entity IDs from the user's download list
+			batch = jdbcTemplate.queryForList(
+					"SELECT DISTINCT " + COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID + " FROM " + TABLE_DOWNLOAD_LIST_ITEM_V2
+							+ " WHERE " + COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID + " = ? LIMIT ? OFFSET ?",
+					new Long[] { userId, limit, offset }, Long.class);
+			offset += limit;
+			// Determine the sub-set that the user can actually download.
+			List<Long> canDownload = accessCallback.canDownload(batch);
+			// Add the sub-set to the temporary table.
 			addBatchOfEntityIdsToTempTable(canDownload.toArray(new Long[canDownload.size()]), tableName);
-		}
+		}while(batch.size() == batchSize);
+		
 		return tableName;
 	}
 

@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -413,6 +413,16 @@ public class DownloadListDaoImplTest {
 		// call under test
 		assertFalse(DownloadListDAOImpl.isMatch(item, result));
 	}
+	
+	@Test
+	public void testReadTempoaryTableOfAvailableFilesWithEmptyDownloadLists() {
+		int batchSize = 100;
+		// deny access to all files
+		// Call under test
+		List<Long> results = downloadListDao.readTempoaryTableOfAvailableFiles(l -> Collections.emptyList(),
+				userOneIdLong, batchSize);
+		assertEquals(Collections.emptyList(), results);
+	}
 
 	@Test
 	public void testReadTempoaryTableOfAvailableFilesWithNoDownloadAccess() {
@@ -463,7 +473,7 @@ public class DownloadListDaoImplTest {
 		List<Long> expected = files.stream().map(n -> KeyFactory.stringToKey(n.getId())).collect(Collectors.toList());
 		assertEquals(expected, results);
 	}
-	
+
 	@Test
 	public void testReadTempoaryTableOfAvailableFilesWithPartialAccess() {
 		int numberOfProject = 1;
@@ -489,9 +499,9 @@ public class DownloadListDaoImplTest {
 		List<Long> results = downloadListDao.readTempoaryTableOfAvailableFiles(l -> subSet, userOneIdLong, batchSize);
 		assertEquals(subSet, results);
 	}
-	
+
 	@Test
-	public void testReadTempoaryTableOfAvailableFilesWithBatchingAllFiles() {
+	public void testReadTempoaryTableOfAvailableFilesWithBatchingCanAccessAllFiles() {
 		int numberOfProject = 1;
 		int foldersPerProject = 1;
 		int filesPerFolder = 5;
@@ -509,14 +519,54 @@ public class DownloadListDaoImplTest {
 		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
 		// grant access to a sub-set of the files
 		List<Long> subSet = Arrays.asList(fileIds.get(0), fileIds.get(2), fileIds.get(4));
-		
-		EntityAccessCallback mockCallback = Mockito.mock(EntityAccessCallback.class);
-		when(mockCallback.canDownload(any())).thenReturn(fileIds.subList(0, 2),	fileIds.subList(2, 4), fileIds.subList(4, 4));
 
-		int batchSize = 100;
+		EntityAccessCallback mockCallback = Mockito.mock(EntityAccessCallback.class);
+		when(mockCallback.canDownload(any())).thenReturn(fileIds.subList(0, 2), fileIds.subList(2, 4),
+				fileIds.subList(4, 5));
+
+		int batchSize = 2;
 		// Call under test
-		List<Long> results = downloadListDao.readTempoaryTableOfAvailableFiles(l -> l, userOneIdLong, batchSize);
+		List<Long> results = downloadListDao.readTempoaryTableOfAvailableFiles(mockCallback, userOneIdLong, batchSize);
 		assertEquals(fileIds, results);
+		verify(mockCallback, times(3)).canDownload(any());
+		verify(mockCallback).canDownload(fileIds.subList(0, 2));
+		verify(mockCallback).canDownload(fileIds.subList(2, 4));
+		verify(mockCallback).canDownload(fileIds.subList(4, 5));
+	}
+
+	@Test
+	public void testReadTempoaryTableOfAvailableFilesWithBatchingCanAccessSubsetOfFiles() {
+		int numberOfProject = 1;
+		int foldersPerProject = 1;
+		int filesPerFolder = 5;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		List<Long> fileIds = files.stream().map(n -> KeyFactory.stringToKey(n.getId())).collect(Collectors.toList());
+
+		// Add the latest version of each file to the user's download list
+		List<DownloadListItem> toAdd = files.stream()
+				.map(n -> new DownloadListItem().setFileEntityId(n.getId()).setVersionNumber(null))
+				.collect(Collectors.toList());
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
+		// Add the first version of each file to the user's download list
+		toAdd = files.stream().map(n -> new DownloadListItem().setFileEntityId(n.getId()).setVersionNumber(1L))
+				.collect(Collectors.toList());
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
+		// grant access to a sub-set of the files
+		List<Long> subSet = Arrays.asList(fileIds.get(0), fileIds.get(2), fileIds.get(4));
+
+		EntityAccessCallback mockCallback = Mockito.mock(EntityAccessCallback.class);
+		when(mockCallback.canDownload(any())).thenReturn(Arrays.asList(fileIds.get(1)), Arrays.asList(fileIds.get(2)),
+				Arrays.asList(fileIds.get(4)));
+
+		int batchSize = 2;
+		// Call under test
+		List<Long> results = downloadListDao.readTempoaryTableOfAvailableFiles(mockCallback, userOneIdLong, batchSize);
+		List<Long> expected = Arrays.asList(fileIds.get(1), fileIds.get(2), fileIds.get(4));
+		assertEquals(expected, results);
+		verify(mockCallback, times(3)).canDownload(any());
+		verify(mockCallback).canDownload(fileIds.subList(0, 2));
+		verify(mockCallback).canDownload(fileIds.subList(2, 4));
+		verify(mockCallback).canDownload(fileIds.subList(4, 5));
 	}
 
 	@Test
