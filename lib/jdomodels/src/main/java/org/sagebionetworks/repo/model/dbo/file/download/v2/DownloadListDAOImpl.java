@@ -16,7 +16,6 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -27,13 +26,13 @@ import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.Sort;
+import org.sagebionetworks.repo.model.download.SortField;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -44,10 +43,17 @@ import com.google.common.base.Objects;
 @Repository
 public class DownloadListDAOImpl implements DownloadListDAO {
 
+	public static final String PROJECT_ID = "PROJECT_ID";
+	public static final String PROJECT_NAME = "PROJECT_NAME";
+	public static final String CONTENT_SIZE = "CONTENT_SIZE";
+	public static final String CREATED_ON = "CREATED_ON";
+	public static final String CREATED_BY = "CREATED_BY";
+	public static final String ENTITY_NAME = "ENTITY_NAME";
+
 	public static final String DOWNLOAD_LIST_RESULT_TEMPLATE = DDLUtilsImpl
 			.loadSQLFromClasspath("sql/DownloadListResultsTemplate.sql");
 
-	private static final int BATCH_SIZE = 1000;
+	private static final int BATCH_SIZE = 10000;
 
 	public static final Long NULL_VERSION_NUMBER = -1L;
 
@@ -68,12 +74,12 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			r.setVersionNumber(null);
 		}
 		r.setAddedOn(rs.getTimestamp(COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON));
-		r.setFileName(rs.getString("ENTITY_NAME"));
-		r.setCreatedBy(rs.getString("CREATED_BY"));
-		r.setCreatedOn(new Date(rs.getLong("CREATED_ON")));
-		r.setProjectId(KeyFactory.keyToString(rs.getLong("PROJECT_ID")));
-		r.setProjectName(rs.getString("PROJECT_NAME"));
-		r.setFileSizeBytes(rs.getLong("CONTENT_SIZE"));
+		r.setFileName(rs.getString(ENTITY_NAME));
+		r.setCreatedBy(rs.getString(CREATED_BY));
+		r.setCreatedOn(new Date(rs.getLong(CREATED_ON)));
+		r.setProjectId(KeyFactory.keyToString(rs.getLong(PROJECT_ID)));
+		r.setProjectName(rs.getString(PROJECT_NAME));
+		r.setFileSizeBytes(rs.getLong(CONTENT_SIZE));
 		return r;
 	};
 
@@ -207,20 +213,22 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		// Create a temp table that contains only the IDs we want to keep.
 		Set<Long> idsToKeep = Arrays.stream(items).map(i -> KeyFactory.stringToKey(i.getFileEntityId()))
 				.collect(Collectors.toSet());
-		String tempTableName = createTempoaryTableOfAvailableFiles(
+		String tempTableName = createTemporaryTableOfAvailableFiles(
 				t -> t.stream().filter(i -> idsToKeep.contains(i)).collect(Collectors.toList()), userId, BATCH_SIZE);
-
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("principalId", userId);
-		params.addValue("depth", NodeConstants.MAX_PATH_DEPTH_PLUS_ONE);
-		String sql = String.format(DOWNLOAD_LIST_RESULT_TEMPLATE, tempTableName);
-		List<DownloadListItemResult> unorderedResults = namedJdbcTemplate.query(sql, params, RESULT_MAPPER);
-
-		// Put the results in same order as the request. Note: O(n*m) where both n and m
-		// should be small.
-		return Arrays.stream(items).map(i -> unorderedResults.stream().filter(u -> isMatch(i, u)).findFirst().get())
-				.collect(Collectors.toList());
-
+		try {
+			MapSqlParameterSource params = new MapSqlParameterSource();
+			params.addValue("principalId", userId);
+			params.addValue("depth", NodeConstants.MAX_PATH_DEPTH_PLUS_ONE);
+			String sql = String.format(DOWNLOAD_LIST_RESULT_TEMPLATE, tempTableName);
+			List<DownloadListItemResult> unorderedResults = namedJdbcTemplate.query(sql, params, RESULT_MAPPER);
+			
+			// Put the results in same order as the request. Note: O(n*m) where both n and m
+			// should be small.
+			return Arrays.stream(items).map(i -> unorderedResults.stream().filter(u -> isMatch(i, u)).findFirst().get())
+					.collect(Collectors.toList());
+		}finally {
+			dropTemporaryTable(tempTableName);
+		}
 	}
 
 	/**
@@ -244,15 +252,85 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		 * The first step is to create a temporary table containing all of the entity
 		 * IDs from the user's download list that the user can download.
 		 */
-		String tempTableName = createTempoaryTableOfAvailableFiles(accessCallback, userId, BATCH_SIZE);
-
-		String sql = String.format(
-				"SELECT T.ENTITY_ID, D." + COL_DOWNLOAD_LIST_ITEM_V2_VERION_NUMBER + ", D."
-						+ COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON + " FROM %S T JOIN " + TABLE_DOWNLOAD_LIST_ITEM_V2
-						+ " D ON (T.ENTITY_ID = D.ENTITY_ID AND " + COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID + " = ?)",
-				tempTableName);
-		return jdbcTemplate.query(sql, RESULT_MAPPER, userId);
+		String tempTableName = createTemporaryTableOfAvailableFiles(accessCallback, userId, BATCH_SIZE);
+		try {
+			StringBuilder sqlBuilder = new StringBuilder(String.format(DOWNLOAD_LIST_RESULT_TEMPLATE, tempTableName));
+			sqlBuilder.append(buildAvailableDownloadQuerySuffix(sort, limit, offset));
+			MapSqlParameterSource params = new MapSqlParameterSource();
+			params.addValue("principalId", userId);
+			params.addValue("depth", NodeConstants.MAX_PATH_DEPTH_PLUS_ONE);
+			params.addValue("limit", limit);
+			params.addValue("offset", offset);
+			return namedJdbcTemplate.query(sqlBuilder.toString(),params, RESULT_MAPPER);
+		}finally {
+			dropTemporaryTable(tempTableName);
+		}
 	}
+	
+	/**
+	 * Build the SQL suffix to handle both sorting and paging based on the provided sorting and paging.
+	 * @param sort
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public static String buildAvailableDownloadQuerySuffix(List<Sort> sort, Long limit, Long offset) {
+		StringBuilder builder = new StringBuilder();
+		if(sort != null && !sort.isEmpty()) {
+			builder.append(" ORDER BY");
+			boolean first = true;
+			for(Sort s: sort) {
+				if(!first) {
+					builder.append(",");
+				}
+				first = false;
+				ValidateArgument.required(s.getField(), "sort.field");
+				builder.append(" ").append(sortFieldToColumnName(s.getField()));
+				if(s.getDirection() != null) {
+					builder.append(" ").append(s.getDirection().name());
+				}
+			}
+		}
+		if(limit != null) {
+			builder.append(" LIMIT :limit");
+		}
+		if(offset != null) {
+			builder.append(" OFFSET :offset");
+		}
+		return builder.toString();
+	}
+	
+	public static String sortFieldToColumnName(SortField field) {
+		ValidateArgument.required(field, "field");
+		switch (field) {
+		case fileName:
+			return ENTITY_NAME;
+		case projectName:
+			return PROJECT_NAME;
+		case synId:
+			return COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID;
+		case addedOn:
+			return COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON;
+		case createdBy:
+			return CREATED_BY;
+		case createdOn:
+			return CREATED_ON;
+		case fileSize:
+			return CONTENT_SIZE;
+		default:
+			throw new IllegalArgumentException("Unknown SortField: " + field.name());
+		}
+	}
+	
+	/**
+	 * Drop the given temporary table by name.
+	 * @param tempTableName
+	 */
+	void dropTemporaryTable(String tempTableName) {
+		String sql = String.format("DROP TEMPORARY TABLE %S", tempTableName);
+		jdbcTemplate.update(sql);
+	}
+	
 
 	/**
 	 * Create a temporary table containing all of the Entity IDs from the given
@@ -263,7 +341,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	 * @param batchSize
 	 * @return The name of the temporary table.
 	 */
-	String createTempoaryTableOfAvailableFiles(EntityAccessCallback accessCallback, Long userId, int batchSize) {
+	String createTemporaryTableOfAvailableFiles(EntityAccessCallback accessCallback, Long userId, int batchSize) {
 		String tableName = "U" + userId + "T";
 		String sql = String.format("CREATE TEMPORARY TABLE %S (`ENTITY_ID` BIGINT NOT NULL, PRIMARY KEY (`ENTITY_ID`))",
 				tableName);
@@ -291,7 +369,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	@Override
 	public List<Long> readTempoaryTableOfAvailableFiles(EntityAccessCallback accessCallback, Long userId,
 			int batchSize) {
-		String tempTableName = createTempoaryTableOfAvailableFiles(accessCallback, userId, batchSize);
+		String tempTableName = createTemporaryTableOfAvailableFiles(accessCallback, userId, batchSize);
 		return jdbcTemplate.queryForList("SELECT ENTITY_ID FROM " + tempTableName+" ORDER BY ENTITY_ID ASC", Long.class);
 	}
 
