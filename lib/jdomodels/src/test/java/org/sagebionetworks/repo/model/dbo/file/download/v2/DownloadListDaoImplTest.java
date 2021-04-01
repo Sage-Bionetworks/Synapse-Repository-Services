@@ -1,24 +1,42 @@
 package org.sagebionetworks.repo.model.dbo.file.download.v2;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
+import org.sagebionetworks.repo.model.download.DownloadListItemResult;
+import org.sagebionetworks.repo.model.download.Sort;
+import org.sagebionetworks.repo.model.download.SortDirection;
+import org.sagebionetworks.repo.model.download.SortField;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -34,6 +52,14 @@ public class DownloadListDaoImplTest {
 	private UserGroupDAO userGroupDao;
 	@Autowired
 	private DownloadListDAO downloadListDao;
+	@Autowired
+	private DaoObjectHelper<Node> nodeDaoHelper;
+	@Autowired
+	private NodeDAO nodeDao;
+	@Autowired
+	private DaoObjectHelper<FileHandle> fileHandleDaoHelper;
+	@Autowired
+	private FileHandleDao fileHandleDao;
 
 	Long userOneIdLong;
 	String userOneId;
@@ -46,6 +72,8 @@ public class DownloadListDaoImplTest {
 
 	@BeforeEach
 	public void before() {
+		nodeDao.truncateAll();
+		fileHandleDao.truncateTable();
 		downloadListDao.truncateAllData();
 		UserGroup ug = new UserGroup();
 		ug.setCreationDate(new Date(System.currentTimeMillis()));
@@ -78,6 +106,9 @@ public class DownloadListDaoImplTest {
 
 	@AfterEach
 	public void after() {
+		nodeDao.truncateAll();
+		fileHandleDao.truncateTable();
+
 		if (userOneId != null) {
 			userGroupDao.delete(userOneId);
 
@@ -138,11 +169,11 @@ public class DownloadListDaoImplTest {
 		List<DBODownloadListItem> items = downloadListDao.getDBODownloadListItems(userOneIdLong);
 		compareIdAndVersionToListItem(userOneIdLong, batch, items);
 	}
-	
+
 	@Test
 	public void testAddBatchOfFilesWithNullItem() {
 		List<DownloadListItem> batch = Arrays.asList(idsWithVersions.get(0), idsWithoutVersions.get(0), null);
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, batch);
 		}).getMessage();
@@ -262,15 +293,14 @@ public class DownloadListDaoImplTest {
 		DBODownloadList listStart = downloadListDao.getDBODownloadList(userOneIdLong);
 		validateDBODownloadList(userOneIdLong, listStart);
 		List<DownloadListItem> batchToRemove = Arrays.asList(idsWithVersions.get(1), idsWithoutVersions.get(0), null);
-		
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			downloadListDao.removeBatchOfFilesFromDownloadList(userOneIdLong, batchToRemove);
 		}).getMessage();
 		assertEquals("Null Item at index: 2", message);
 	}
-	
-	
+
 	@Test
 	public void testRemoveBatchOfFilesToDownloadListWithMultipleUsers() {
 		List<DownloadListItem> userOneBatch = Arrays.asList(idsWithVersions.get(0), idsWithoutVersions.get(0));
@@ -306,14 +336,14 @@ public class DownloadListDaoImplTest {
 				downloadListDao.getDBODownloadListItems(userOneIdLong));
 		validateListChanged(listStart, downloadListDao.getDBODownloadList(userOneIdLong));
 	}
-	
+
 	@Test
 	public void testClearDownloadListWithMultipleUsers() {
 		List<DownloadListItem> userOneBatch = Arrays.asList(idsWithVersions.get(0), idsWithoutVersions.get(0));
 		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, userOneBatch);
 		List<DownloadListItem> userTwoBatch = Arrays.asList(idsWithVersions.get(0), idsWithoutVersions.get(1));
 		downloadListDao.addBatchOfFilesToDownloadList(userTwoIdLong, userTwoBatch);
-		
+
 		// call under test
 		downloadListDao.clearDownloadList(userOneIdLong);
 		compareIdAndVersionToListItem(userOneIdLong, Collections.emptyList(),
@@ -322,17 +352,724 @@ public class DownloadListDaoImplTest {
 		compareIdAndVersionToListItem(userTwoIdLong, userTwoBatch,
 				downloadListDao.getDBODownloadListItems(userTwoIdLong));
 	}
-	
+
 	@Test
 	public void testClearDownloadListWithNullUserId() {
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			Long nullUserId = null;
 			// call under test
 			downloadListDao.clearDownloadList(nullUserId);
 		}).getMessage();
 		assertEquals("User Id is required.", message);
 	}
+
+	@Test
+	public void testIsMatch() {
+		DownloadListItem item = new DownloadListItem().setFileEntityId("syn123").setVersionNumber(3L);
+		DownloadListItemResult result = (DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn123")
+				.setVersionNumber(3L);
+		// call under test
+		assertTrue(DownloadListDAOImpl.isMatch(item, result));
+	}
+
+	@Test
+	public void testIsMatchWithDifferentIds() {
+		DownloadListItem item = new DownloadListItem().setFileEntityId("syn123").setVersionNumber(3L);
+		DownloadListItemResult result = (DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn456")
+				.setVersionNumber(3L);
+		// call under test
+		assertFalse(DownloadListDAOImpl.isMatch(item, result));
+	}
+
+	@Test
+	public void testIsMatchWithDifferentVersions() {
+		DownloadListItem item = new DownloadListItem().setFileEntityId("syn123").setVersionNumber(3L);
+		DownloadListItemResult result = (DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn123")
+				.setVersionNumber(4L);
+		// call under test
+		assertFalse(DownloadListDAOImpl.isMatch(item, result));
+	}
+
+	@Test
+	public void testIsMatchWithVersionNull() {
+		DownloadListItem item = new DownloadListItem().setFileEntityId("syn123").setVersionNumber(null);
+		DownloadListItemResult result = (DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn123")
+				.setVersionNumber(null);
+		// call under test
+		assertTrue(DownloadListDAOImpl.isMatch(item, result));
+	}
+
+	@Test
+	public void testIsMatchWithVersionNullItem() {
+		DownloadListItem item = new DownloadListItem().setFileEntityId("syn123").setVersionNumber(null);
+		DownloadListItemResult result = (DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn123")
+				.setVersionNumber(1L);
+		// call under test
+		assertFalse(DownloadListDAOImpl.isMatch(item, result));
+	}
+
+	@Test
+	public void testIsMatchWithVersionNullResult() {
+		DownloadListItem item = new DownloadListItem().setFileEntityId("syn123").setVersionNumber(1L);
+		DownloadListItemResult result = (DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn123")
+				.setVersionNumber(null);
+		// call under test
+		assertFalse(DownloadListDAOImpl.isMatch(item, result));
+	}
 	
+	@Test
+	public void testReadTempoaryTableOfAvailableFilesWithEmptyDownloadLists() {
+		int batchSize = 100;
+		// deny access to all files
+		// Call under test
+		List<Long> results = downloadListDao.readTempoaryTableOfAvailableFiles(l -> Collections.emptyList(),
+				userOneIdLong, batchSize);
+		assertEquals(Collections.emptyList(), results);
+	}
+
+	@Test
+	public void testReadTempoaryTableOfAvailableFilesWithNoDownloadAccess() {
+		int numberOfProject = 1;
+		int foldersPerProject = 1;
+		int filesPerFolder = 5;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+
+		// Add the latest version of each file to the user's download list
+		List<DownloadListItem> toAdd = files.stream()
+				.map(n -> new DownloadListItem().setFileEntityId(n.getId()).setVersionNumber(null))
+				.collect(Collectors.toList());
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
+		// Add the first version of each file to the user's download list
+		toAdd = files.stream().map(n -> new DownloadListItem().setFileEntityId(n.getId()).setVersionNumber(1L))
+				.collect(Collectors.toList());
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
+
+		int batchSize = 100;
+		// deny access to all files
+		// Call under test
+		List<Long> results = downloadListDao.readTempoaryTableOfAvailableFiles(l -> Collections.emptyList(),
+				userOneIdLong, batchSize);
+		assertEquals(Collections.emptyList(), results);
+	}
+
+	@Test
+	public void testReadTempoaryTableOfAvailableFilesWithFullAccess() {
+		int numberOfProject = 1;
+		int foldersPerProject = 1;
+		int filesPerFolder = 5;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+
+		// Add the latest version of each file to the user's download list
+		List<DownloadListItem> toAdd = files.stream()
+				.map(n -> new DownloadListItem().setFileEntityId(n.getId()).setVersionNumber(null))
+				.collect(Collectors.toList());
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
+		// Add the first version of each file to the user's download list
+		toAdd = files.stream().map(n -> new DownloadListItem().setFileEntityId(n.getId()).setVersionNumber(1L))
+				.collect(Collectors.toList());
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
+
+		int batchSize = 100;
+		// grant access to all files
+		// Call under test
+		List<Long> results = downloadListDao.readTempoaryTableOfAvailableFiles(l -> l, userOneIdLong, batchSize);
+		List<Long> expected = files.stream().map(n -> KeyFactory.stringToKey(n.getId())).collect(Collectors.toList());
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testReadTempoaryTableOfAvailableFilesWithPartialAccess() {
+		int numberOfProject = 1;
+		int foldersPerProject = 1;
+		int filesPerFolder = 5;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		List<Long> fileIds = files.stream().map(n -> KeyFactory.stringToKey(n.getId())).collect(Collectors.toList());
+
+		// Add the latest version of each file to the user's download list
+		List<DownloadListItem> toAdd = files.stream()
+				.map(n -> new DownloadListItem().setFileEntityId(n.getId()).setVersionNumber(null))
+				.collect(Collectors.toList());
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
+		// Add the first version of each file to the user's download list
+		toAdd = files.stream().map(n -> new DownloadListItem().setFileEntityId(n.getId()).setVersionNumber(1L))
+				.collect(Collectors.toList());
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
+		// grant access to a sub-set of the files
+		List<Long> subSet = Arrays.asList(fileIds.get(0), fileIds.get(2), fileIds.get(4));
+
+		int batchSize = 100;
+		// Call under test
+		List<Long> results = downloadListDao.readTempoaryTableOfAvailableFiles(l -> subSet, userOneIdLong, batchSize);
+		assertEquals(subSet, results);
+	}
+
+	@Test
+	public void testReadTempoaryTableOfAvailableFilesWithBatchingCanAccessAllFiles() {
+		int numberOfProject = 1;
+		int foldersPerProject = 1;
+		int filesPerFolder = 5;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		List<Long> fileIds = files.stream().map(n -> KeyFactory.stringToKey(n.getId())).collect(Collectors.toList());
+
+		// Add the latest version of each file to the user's download list
+		List<DownloadListItem> toAdd = files.stream()
+				.map(n -> new DownloadListItem().setFileEntityId(n.getId()).setVersionNumber(null))
+				.collect(Collectors.toList());
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
+		// Add the first version of each file to the user's download list
+		toAdd = files.stream().map(n -> new DownloadListItem().setFileEntityId(n.getId()).setVersionNumber(1L))
+				.collect(Collectors.toList());
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
+		// grant access to a sub-set of the files
+		List<Long> subSet = Arrays.asList(fileIds.get(0), fileIds.get(2), fileIds.get(4));
+
+		EntityAccessCallback mockCallback = Mockito.mock(EntityAccessCallback.class);
+		when(mockCallback.canDownload(any())).thenReturn(fileIds.subList(0, 2), fileIds.subList(2, 4),
+				fileIds.subList(4, 5));
+
+		int batchSize = 2;
+		// Call under test
+		List<Long> results = downloadListDao.readTempoaryTableOfAvailableFiles(mockCallback, userOneIdLong, batchSize);
+		assertEquals(fileIds, results);
+		verify(mockCallback, times(3)).canDownload(any());
+		verify(mockCallback).canDownload(fileIds.subList(0, 2));
+		verify(mockCallback).canDownload(fileIds.subList(2, 4));
+		verify(mockCallback).canDownload(fileIds.subList(4, 5));
+	}
+
+	@Test
+	public void testReadTempoaryTableOfAvailableFilesWithBatchingCanAccessSubsetOfFiles() {
+		int numberOfProject = 1;
+		int foldersPerProject = 1;
+		int filesPerFolder = 5;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		List<Long> fileIds = files.stream().map(n -> KeyFactory.stringToKey(n.getId())).collect(Collectors.toList());
+
+		// Add the latest version of each file to the user's download list
+		List<DownloadListItem> toAdd = files.stream()
+				.map(n -> new DownloadListItem().setFileEntityId(n.getId()).setVersionNumber(null))
+				.collect(Collectors.toList());
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
+		// Add the first version of each file to the user's download list
+		toAdd = files.stream().map(n -> new DownloadListItem().setFileEntityId(n.getId()).setVersionNumber(1L))
+				.collect(Collectors.toList());
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
+
+		EntityAccessCallback mockCallback = Mockito.mock(EntityAccessCallback.class);
+		when(mockCallback.canDownload(any())).thenReturn(Arrays.asList(fileIds.get(1)), Arrays.asList(fileIds.get(2)),
+				Arrays.asList(fileIds.get(4)));
+
+		int batchSize = 2;
+		// Call under test
+		List<Long> results = downloadListDao.readTempoaryTableOfAvailableFiles(mockCallback, userOneIdLong, batchSize);
+		List<Long> expected = Arrays.asList(fileIds.get(1), fileIds.get(2), fileIds.get(4));
+		assertEquals(expected, results);
+		verify(mockCallback, times(3)).canDownload(any());
+		verify(mockCallback).canDownload(fileIds.subList(0, 2));
+		verify(mockCallback).canDownload(fileIds.subList(2, 4));
+		verify(mockCallback).canDownload(fileIds.subList(4, 5));
+	}
+
+	@Test
+	public void testGetDownloadListItemsWithLatestVersion() {
+		int numberOfProject = 1;
+		int foldersPerProject = 1;
+		int filesPerFolder = 1;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		assertEquals(1, files.size());
+		Node file = nodeDao.getNode(files.get(0).getId());
+		Node folder = nodeDao.getNode(file.getParentId());
+		Node project = nodeDao.getNode(folder.getParentId());
+
+		FileHandle fileHandle = fileHandleDao.get(file.getFileHandleId());
+
+		// add the latest version of the file to the download list.
+		DownloadListItem item = new DownloadListItem().setFileEntityId(file.getId()).setVersionNumber(null);
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, Arrays.asList(item));
+
+		List<DBODownloadListItem> allItems = downloadListDao.getDBODownloadListItems(userOneIdLong);
+
+		// call under test
+		List<DownloadListItemResult> results = downloadListDao.getDownloadListItems(userOneIdLong, item);
+
+		DownloadListItemResult expectedResult = new DownloadListItemResult();
+		expectedResult.setFileName(file.getName());
+		expectedResult.setAddedOn(allItems.get(0).getAddedOn());
+		expectedResult.setFileEntityId(file.getId());
+		expectedResult.setVersionNumber(null);
+		expectedResult.setProjectId(project.getId());
+		expectedResult.setProjectName(project.getName());
+		expectedResult.setCreatedBy(file.getCreatedByPrincipalId().toString());
+		expectedResult.setCreatedOn(file.getCreatedOn());
+		expectedResult.setFileSizeBytes(fileHandle.getContentSize());
+
+		List<DownloadListItemResult> expected = Arrays.asList(expectedResult);
+
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testGetDownloadListItemsWithPreviousVersion() {
+		int numberOfProject = 1;
+		int foldersPerProject = 1;
+		int filesPerFolder = 1;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		assertEquals(1, files.size());
+		Node file = nodeDao.getNode(files.get(0).getId());
+		Node folder = nodeDao.getNode(file.getParentId());
+		Node project = nodeDao.getNode(folder.getParentId());
+
+		Node fileV1 = nodeDao.getNodeForVersion(file.getId(), 1L);
+		FileHandle fileHandle = fileHandleDao.get(fileV1.getFileHandleId());
+
+		// add the first version of the file to the download list.
+		DownloadListItem item = new DownloadListItem().setFileEntityId(file.getId()).setVersionNumber(1L);
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, Arrays.asList(item));
+
+		List<DBODownloadListItem> allItems = downloadListDao.getDBODownloadListItems(userOneIdLong);
+
+		// call under test
+		List<DownloadListItemResult> results = downloadListDao.getDownloadListItems(userOneIdLong, item);
+
+		DownloadListItemResult expectedResult = new DownloadListItemResult();
+		expectedResult.setFileName(file.getName());
+		expectedResult.setAddedOn(allItems.get(0).getAddedOn());
+		expectedResult.setFileEntityId(file.getId());
+		expectedResult.setVersionNumber(1L);
+		expectedResult.setProjectId(project.getId());
+		expectedResult.setProjectName(project.getName());
+		expectedResult.setCreatedBy(file.getCreatedByPrincipalId().toString());
+		expectedResult.setCreatedOn(file.getCreatedOn());
+		expectedResult.setFileSizeBytes(fileHandle.getContentSize());
+
+		List<DownloadListItemResult> expected = Arrays.asList(expectedResult);
+
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testGetDownloadListItemsWithNestedProjects() {
+		Node p1 = nodeDaoHelper.create(n -> {
+			n.setName("p1");
+			n.setCreatedByPrincipalId(userOneIdLong);
+			n.setParentId(NodeConstants.BOOTSTRAP_NODES.ROOT.getId().toString());
+			n.setNodeType(EntityType.project);
+		});
+		Node p2 = nodeDaoHelper.create(n -> {
+			n.setName("p2");
+			n.setCreatedByPrincipalId(userOneIdLong);
+			n.setParentId(p1.getId());
+			n.setNodeType(EntityType.project);
+		});
+
+		FileHandle fh1 = fileHandleDaoHelper.create(h -> {
+			h.setContentSize(123L);
+			h.setFileName("file.txt");
+		});
+		Node file = nodeDaoHelper.create(n -> {
+			n.setName("f1");
+			n.setCreatedByPrincipalId(userOneIdLong);
+			n.setParentId(p2.getId());
+			n.setNodeType(EntityType.file);
+			n.setFileHandleId(fh1.getId());
+		});
+
+		DownloadListItem item = new DownloadListItem().setFileEntityId(file.getId()).setVersionNumber(null);
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, Arrays.asList(item));
+
+		List<DBODownloadListItem> allItems = downloadListDao.getDBODownloadListItems(userOneIdLong);
+
+		// call under test
+		List<DownloadListItemResult> results = downloadListDao.getDownloadListItems(userOneIdLong, item);
+
+		DownloadListItemResult expectedResult = new DownloadListItemResult();
+		expectedResult.setFileName(file.getName());
+		expectedResult.setAddedOn(allItems.get(0).getAddedOn());
+		expectedResult.setFileEntityId(file.getId());
+		expectedResult.setVersionNumber(null);
+		expectedResult.setProjectId(p2.getId());
+		expectedResult.setProjectName(p2.getName());
+		expectedResult.setCreatedBy(file.getCreatedByPrincipalId().toString());
+		expectedResult.setCreatedOn(file.getCreatedOn());
+		expectedResult.setFileSizeBytes(fh1.getContentSize());
+
+		List<DownloadListItemResult> expected = Arrays.asList(expectedResult);
+
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testGetDownloadListItemsWithMultipleUsers() {
+		int numberOfProject = 1;
+		int foldersPerProject = 1;
+		int filesPerFolder = 3;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		assertEquals(3, files.size());
+
+		List<DownloadListItem> userOneItems = Arrays.asList(
+				new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(null),
+				new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(2L));
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, userOneItems);
+
+		List<DownloadListItem> userTwoItems = Arrays.asList(
+				new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(2L),
+				new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(null),
+				new DownloadListItem().setFileEntityId(files.get(2).getId()).setVersionNumber(2L));
+
+		downloadListDao.addBatchOfFilesToDownloadList(userTwoIdLong, userTwoItems);
+
+		// call under test
+		List<DownloadListItemResult> oneResults = downloadListDao.getDownloadListItems(userOneIdLong,
+				userOneItems.toArray(new DownloadListItem[userOneItems.size()]));
+		validateMatches(userOneItems, oneResults);
+
+		// call under test
+		List<DownloadListItemResult> twoResults = downloadListDao.getDownloadListItems(userTwoIdLong,
+				userTwoItems.toArray(new DownloadListItem[userTwoItems.size()]));
+		validateMatches(userTwoItems, twoResults);
+	}
+	
+	@Test
+	public void testBuildAvailableDownloadQuerySuffix() {
+		List<Sort> sort = Arrays.asList(new Sort().setField(SortField.fileName).setDirection(SortDirection.ASC),
+				new Sort().setField(SortField.projectName).setDirection(SortDirection.DESC));
+		Long limit = 1L;
+		Long offset = 0L;
+		// call under test
+		assertEquals(" ORDER BY ENTITY_NAME ASC, PROJECT_NAME DESC LIMIT :limit OFFSET :offset",
+				DownloadListDAOImpl.buildAvailableDownloadQuerySuffix(sort, limit, offset));
+	}
+	
+	@Test
+	public void testBuildAvailableDownloadQuerySuffixWitNullLimit() {
+		List<Sort> sort = Arrays.asList(new Sort().setField(SortField.fileName).setDirection(SortDirection.ASC),
+				new Sort().setField(SortField.projectName).setDirection(SortDirection.DESC));
+		Long limit = null;
+		Long offset = 0L;
+		// call under test
+		assertEquals(" ORDER BY ENTITY_NAME ASC, PROJECT_NAME DESC OFFSET :offset",
+				DownloadListDAOImpl.buildAvailableDownloadQuerySuffix(sort, limit, offset));
+	}
+	
+	@Test
+	public void testBuildAvailableDownloadQuerySuffixWitNullOffset() {
+		List<Sort> sort = Arrays.asList(new Sort().setField(SortField.fileName).setDirection(SortDirection.ASC),
+				new Sort().setField(SortField.projectName).setDirection(SortDirection.DESC));
+		Long limit = 1L;
+		Long offset = null;
+		// call under test
+		assertEquals(" ORDER BY ENTITY_NAME ASC, PROJECT_NAME DESC LIMIT :limit",
+				DownloadListDAOImpl.buildAvailableDownloadQuerySuffix(sort, limit, offset));
+	}
+	
+	@Test
+	public void testBuildAvailableDownloadQuerySuffixWithNullDirection() {
+		List<Sort> sort = Arrays.asList(new Sort().setField(SortField.fileName).setDirection(null));
+		Long limit = 1L;
+		Long offset = 0L;
+		// call under test
+		assertEquals(" ORDER BY ENTITY_NAME LIMIT :limit OFFSET :offset",
+				DownloadListDAOImpl.buildAvailableDownloadQuerySuffix(sort, limit, offset));
+	}
+	
+	@Test
+	public void testBuildAvailableDownloadQuerySuffixWithNullSortField() {
+		List<Sort> sort = Arrays.asList(new Sort().setField(null).setDirection(SortDirection.DESC));
+		Long limit = 1L;
+		Long offset = 0L;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			DownloadListDAOImpl.buildAvailableDownloadQuerySuffix(sort, limit, offset);
+		}).getMessage();
+		assertEquals("sort.field is required.", message);
+	}
+	
+	@Test
+	public void testBuildAvailableDownloadQuerySuffixWithNullSort() {
+		List<Sort> sort = null;
+		Long limit = 1L;
+		Long offset = 0L;
+		// call under test
+		assertEquals(" LIMIT :limit OFFSET :offset",
+				DownloadListDAOImpl.buildAvailableDownloadQuerySuffix(sort, limit, offset));
+	}
+	
+	@Test
+	public void testBuildAvailableDownloadQuerySuffixWithAllNull() {
+		List<Sort> sort = null;
+		Long limit = null;
+		Long offset = null;
+		// call under test
+		assertEquals("", DownloadListDAOImpl.buildAvailableDownloadQuerySuffix(sort, limit, offset));
+	}
+	
+	@Test
+	public void testGetFilesAvailableToDownloadFromDownload() {
+		int numberOfProject = 2;
+		int foldersPerProject = 1;
+		int filesPerFolder = 3;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		assertEquals(6, files.size());
+
+		List<DownloadListItem> userOneItems = Arrays.asList(
+				new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(2l),
+				new DownloadListItem().setFileEntityId(files.get(3).getId()).setVersionNumber(null),
+				new DownloadListItem().setFileEntityId(files.get(4).getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(files.get(5).getId()).setVersionNumber(null));
+
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, userOneItems);
+
+		List<DownloadListItemResult> expected = downloadListDao.getDownloadListItems(userOneIdLong,
+				userOneItems.toArray(new DownloadListItem[userOneItems.size()]));
+
+		List<Sort> sort = Arrays.asList(new Sort().setField(SortField.synId).setDirection(SortDirection.ASC));
+		Long limit = 100L;
+		Long offset = 0L;
+		// call under test
+		List<DownloadListItemResult> result = downloadListDao.getFilesAvailableToDownloadFromDownloadList(l -> l,
+				userOneIdLong, sort, limit, offset);
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetFilesAvailableToDownloadFromDownloadListWithSubAccess() {
+		int numberOfProject = 2;
+		int foldersPerProject = 1;
+		int filesPerFolder = 3;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		assertEquals(6, files.size());
+		List<Long> fileIds = files.stream().map(n -> KeyFactory.stringToKey(n.getId())).collect(Collectors.toList());
+
+		List<DownloadListItem> userOneItems = Arrays.asList(
+				new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(2l),
+				new DownloadListItem().setFileEntityId(files.get(3).getId()).setVersionNumber(null),
+				new DownloadListItem().setFileEntityId(files.get(4).getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(files.get(5).getId()).setVersionNumber(null));
+
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, userOneItems);
+
+		List<DownloadListItemResult> expected = downloadListDao.getDownloadListItems(userOneIdLong,
+				userOneItems.get(1), userOneItems.get(3), userOneItems.get(4));
+		
+		// grant access to a sub-set of the files
+		List<Long> subSet = Arrays.asList(fileIds.get(1), fileIds.get(4), fileIds.get(5));
+
+		List<Sort> sort = Arrays.asList(new Sort().setField(SortField.synId).setDirection(SortDirection.ASC));
+		Long limit = 100L;
+		Long offset = 0L;
+		// call under test
+		List<DownloadListItemResult> result = downloadListDao.getFilesAvailableToDownloadFromDownloadList(l -> subSet,
+				userOneIdLong, sort, limit, offset);
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetFilesAvailableToDownloadFromDownloadListWithLimitOffset() {
+		int numberOfProject = 2;
+		int foldersPerProject = 1;
+		int filesPerFolder = 3;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		assertEquals(6, files.size());
+
+		List<DownloadListItem> userOneItems = Arrays.asList(
+				new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(2l),
+				new DownloadListItem().setFileEntityId(files.get(3).getId()).setVersionNumber(null),
+				new DownloadListItem().setFileEntityId(files.get(4).getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(files.get(5).getId()).setVersionNumber(null));
+
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, userOneItems);
+
+		List<DownloadListItemResult> expected = downloadListDao.getDownloadListItems(userOneIdLong, userOneItems.get(3),
+				userOneItems.get(4));
+
+		List<Sort> sort = Arrays.asList(new Sort().setField(SortField.synId).setDirection(SortDirection.ASC));
+		Long limit = 2L;
+		Long offset = 3L;
+		// call under test
+		List<DownloadListItemResult> result = downloadListDao.getFilesAvailableToDownloadFromDownloadList(l -> l,
+				userOneIdLong, sort, limit, offset);
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetFilesAvailableToDownloadFromDownloadListWithOrderByProjectName() {
+		int numberOfProject = 2;
+		int foldersPerProject = 1;
+		int filesPerFolder = 3;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		assertEquals(6, files.size());
+
+		// Add the latest version of each file to user's download list
+		List<DownloadListItem> userOneItems = files.stream()
+				.map(f -> new DownloadListItem().setFileEntityId(f.getId()).setVersionNumber(null))
+				.collect(Collectors.toList());
+
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, userOneItems);
+
+		List<DownloadListItemResult> expected = downloadListDao.getDownloadListItems(userOneIdLong,
+				userOneItems.get(3),
+				userOneItems.get(4),
+				userOneItems.get(5),
+				userOneItems.get(0),
+				userOneItems.get(1),
+				userOneItems.get(2)
+		);
+
+		List<Sort> sort = Arrays.asList(
+				new Sort().setField(SortField.projectName).setDirection(SortDirection.DESC),
+				new Sort().setField(SortField.synId).setDirection(SortDirection.ASC));
+		Long limit = 100L;
+		Long offset = 0L;
+		// call under test
+		List<DownloadListItemResult> result = downloadListDao.getFilesAvailableToDownloadFromDownloadList(l -> l,
+				userOneIdLong, sort, limit, offset);
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetFilesAvailableToDownloadFromDownloadListWithMultipleVersionOfSameFile() {
+		int numberOfProject = 1;
+		int foldersPerProject = 1;
+		int filesPerFolder = 1;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		assertEquals(1, files.size());
+
+		List<DownloadListItem> userOneItems = Arrays.asList(
+				new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(2l),
+				new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(null)
+		);
+
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, userOneItems);
+
+		List<DownloadListItemResult> expected = downloadListDao.getDownloadListItems(userOneIdLong,
+				userOneItems.get(2),
+				userOneItems.get(0),
+				userOneItems.get(1)
+		);
+
+		List<Sort> sort = null;
+		Long limit = 100L;
+		Long offset = 0L;
+		// call under test
+		List<DownloadListItemResult> result = downloadListDao.getFilesAvailableToDownloadFromDownloadList(l -> l,
+				userOneIdLong, sort, limit, offset);
+		assertEquals(expected.size(), result.size());
+		assertTrue(expected.containsAll(result));
+	}
+	
+	@Test
+	public void testGetFilesAvailableToDownloadFromDownloadListWithSortEachField() {
+		int numberOfProject = 2;
+		int foldersPerProject = 1;
+		int filesPerFolder = 3;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		assertEquals(6, files.size());
+
+		List<DownloadListItem> userOneItems = files.stream()
+				.map(f -> new DownloadListItem().setFileEntityId(f.getId()).setVersionNumber(2L))
+				.collect(Collectors.toList());
+
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, userOneItems);
+		
+		List<DownloadListItemResult> expected = downloadListDao.getDownloadListItems(userOneIdLong,
+				userOneItems.toArray(new DownloadListItem[userOneItems.size()]));
+		
+		for(SortField field: SortField.values()) {
+			List<Sort> sort = Arrays.asList(
+					new Sort().setField(field).setDirection(SortDirection.DESC));
+			Long limit = 100L;
+			Long offset = 0L;
+			// call under test
+			List<DownloadListItemResult> result = downloadListDao.getFilesAvailableToDownloadFromDownloadList(l -> l,
+					userOneIdLong, sort, limit, offset);
+			assertEquals(expected.size(), result.size());
+			assertTrue(expected.containsAll(result));
+		}
+	}
+
+
+	/**
+	 * Create a simple hierarchy of files.  Each file created will have two versions.
+	 * 
+	 * @param numberOfProject   The number of root projects
+	 * @param foldersPerProject The number of folders in each project
+	 * @param filesPerFolder    The number of files per folder.
+	 * @return Only the files are returned.
+	 */
+	public List<Node> createFileHierarchy(int numberOfProject, int foldersPerProject, int filesPerFolder) {
+		List<Node> results = new ArrayList<Node>(numberOfProject * foldersPerProject * filesPerFolder);
+		for (int p = 0; p < numberOfProject; p++) {
+			final int projectNumber = p;
+			Node project = nodeDaoHelper.create(n -> {
+				n.setName(String.join("-", "project", "" + projectNumber));
+				n.setCreatedByPrincipalId(userOneIdLong);
+				n.setParentId(NodeConstants.BOOTSTRAP_NODES.ROOT.getId().toString());
+				n.setNodeType(EntityType.project);
+			});
+			for (int d = 0; d < foldersPerProject; d++) {
+				final int dirNumber = d;
+				Node dir = nodeDaoHelper.create(n -> {
+					n.setName(String.join("-", "dir", "" + projectNumber, "" + dirNumber));
+					n.setCreatedByPrincipalId(userOneIdLong);
+					n.setParentId(project.getId());
+					n.setNodeType(EntityType.folder);
+				});
+				for (int f = 0; f < filesPerFolder; f++) {
+					final int fileNumber = f;
+					final String fileName = String.join("-", "file", "" + projectNumber, "" + dirNumber,
+							"" + fileNumber);
+					FileHandle fh1 = fileHandleDaoHelper.create(h -> {
+						h.setContentSize(1L + (2L * fileNumber));
+						h.setFileName(fileName);
+					});
+					Node file = nodeDaoHelper.create(n -> {
+						n.setName(fileName);
+						n.setCreatedByPrincipalId(userOneIdLong);
+						n.setParentId(dir.getId());
+						n.setNodeType(EntityType.file);
+						n.setFileHandleId(fh1.getId());
+						n.setVersionNumber(1L);
+						n.setVersionComment("v1");
+						n.setVersionLabel("v1");
+					});
+					// Create a second version for this file.
+					final String fileName2 = String.join("-", "file", "" + projectNumber, "" + dirNumber,
+							"" + fileNumber, "v2");
+					FileHandle fh2 = fileHandleDaoHelper.create(h -> {
+						h.setContentSize(1L + (2L * fileNumber + 1));
+						h.setFileName(fileName2);
+					});
+					file.setFileHandleId(fh2.getId());
+					file.setVersionComment("v2");
+					file.setVersionLabel("v2");
+					nodeDao.createNewVersion(file);
+					file = nodeDao.getNode(file.getId());
+					results.add(file);
+				}
+			}
+		}
+		return results;
+	}
+
+	/**
+	 * Validate that the passed items match the order, ids, and version of the
+	 * passed results.
+	 * 
+	 * @param items
+	 * @param results
+	 */
+	public static void validateMatches(List<DownloadListItem> items, List<DownloadListItemResult> results) {
+		assertNotNull(items);
+		assertNotNull(results);
+		assertEquals(items.size(), results.size());
+		for (int i = 0; i < items.size(); i++) {
+			assertTrue(DownloadListDAOImpl.isMatch(items.get(0), results.get(0)));
+		}
+	}
 
 	/**
 	 * Helper to validate a download list.

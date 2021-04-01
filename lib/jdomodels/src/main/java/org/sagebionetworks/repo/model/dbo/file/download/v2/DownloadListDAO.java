@@ -36,13 +36,16 @@ public interface DownloadListDAO {
 	 * Get a single page of files from a user's download list that are available for
 	 * download.
 	 * 
+	 * @param accessCallback Callback used to determine which entities on the user's
+	 *                       download list that the user can download.
 	 * @param userId
 	 * @param sort
 	 * @param limit
 	 * @param offset
 	 * @return
 	 */
-	List<DownloadListItemResult> getFilesAvailableToDownloadFromDownloadList(Long userId, List<Sort> sort, Long limit, Long offset);
+	List<DownloadListItemResult> getFilesAvailableToDownloadFromDownloadList(EntityAccessCallback accessCallback,
+			Long userId, List<Sort> sort, Long limit, Long offset);
 
 	/**
 	 * Get the DBODownloadList for the given user.
@@ -60,8 +63,28 @@ public interface DownloadListDAO {
 	List<DBODownloadListItem> getDBODownloadListItems(Long userId);
 
 	/**
+	 * Get the DownloadListItemResult for the given user and each item.
+	 * 
+	 * @param userId
+	 * @param item
+	 * @return
+	 */
+	List<DownloadListItemResult> getDownloadListItems(Long userId, DownloadListItem... item);
+
+	/**
 	 * Clear all download data for all users.
 	 */
 	void truncateAllData();
+
+	/**
+	 * Read all of value from a temporary of the items from a user's download list
+	 * that the user has download access to.
+	 * 
+	 * @param accessCallback
+	 * @param userId
+	 * @param batchSize
+	 * @return
+	 */
+	List<Long> readTempoaryTableOfAvailableFiles(EntityAccessCallback accessCallback, Long userId, int batchSize);
 
 }
