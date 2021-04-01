@@ -113,7 +113,7 @@ public class OpenIDConnectController {
 	 * <br>
 	 * See the <a href="https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication">Open ID Connect specification for client authentication</a>
 	 * <br>
-	 * Synapse supports 'client_secret_basic'.
+	 * Synapse supports 'client_secret_basic' and 'client_secret_post'.
 	 * <br>
 	 * <em>NOTE:  This request will invalidate any previously issued secrets.</em>
 	 * 
