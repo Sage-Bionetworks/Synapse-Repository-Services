@@ -278,18 +278,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		StringBuilder builder = new StringBuilder();
 		if(sort != null && !sort.isEmpty()) {
 			builder.append(" ORDER BY");
-			boolean first = true;
-			for(Sort s: sort) {
-				if(!first) {
-					builder.append(",");
-				}
-				first = false;
-				ValidateArgument.required(s.getField(), "sort.field");
-				builder.append(" ").append(sortFieldToColumnName(s.getField()));
-				if(s.getDirection() != null) {
-					builder.append(" ").append(s.getDirection().name());
-				}
-			}
+			builder.append(sort.stream().map(DownloadListDAOImpl::sortToSql).collect(Collectors.joining(",")));
 		}
 		if(limit != null) {
 			builder.append(" LIMIT :limit");
@@ -300,7 +289,28 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		return builder.toString();
 	}
 	
-	public static String sortFieldToColumnName(SortField field) {
+	/**
+	 * Generate the SQL for the given Sort.
+	 * @param sort
+	 * @return
+	 */
+	public static String sortToSql(Sort sort) {
+		ValidateArgument.required(sort, "sort");
+		ValidateArgument.required(sort.getField(), "sort.field");
+		StringBuilder builder = new StringBuilder(" ");
+		builder.append(getColumnName(sort.getField()));
+		if(sort.getDirection() != null) {
+			builder.append(" ").append(sort.getDirection().name());
+		}
+		return builder.toString();
+	}
+	
+	/**
+	 * Get the column name for the given SortField.
+	 * @param field
+	 * @return
+	 */
+	public static String getColumnName(SortField field) {
 		ValidateArgument.required(field, "field");
 		switch (field) {
 		case fileName:
@@ -309,6 +319,8 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			return PROJECT_NAME;
 		case synId:
 			return COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID;
+		case versionNumber:
+			return "ACTUAL_VERSION";
 		case addedOn:
 			return COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON;
 		case createdBy:
@@ -343,7 +355,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	 */
 	String createTemporaryTableOfAvailableFiles(EntityAccessCallback accessCallback, Long userId, int batchSize) {
 		String tableName = "U" + userId + "T";
-		String sql = String.format("CREATE TEMPORARY TABLE %S (`ENTITY_ID` BIGINT NOT NULL, PRIMARY KEY (`ENTITY_ID`))",
+		String sql = String.format("CREATE TEMPORARY TABLE %S (`ENTITY_ID` BIGINT NOT NULL)",
 				tableName);
 		jdbcTemplate.update(sql);
 		
@@ -355,10 +367,13 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			batch = jdbcTemplate.queryForList(
 					"SELECT DISTINCT " + COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID + " FROM " + TABLE_DOWNLOAD_LIST_ITEM_V2
 							+ " WHERE " + COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID + " = ? LIMIT ? OFFSET ?",
-					new Long[] { userId, limit, offset }, Long.class);
+					Long.class, userId, limit, offset);
 			offset += limit;
+			if(batch.isEmpty()) {
+				break;
+			}
 			// Determine the sub-set that the user can actually download.
-			List<Long> canDownload = accessCallback.canDownload(batch);
+			List<Long> canDownload = accessCallback.filter(batch);
 			// Add the sub-set to the temporary table.
 			addBatchOfEntityIdsToTempTable(canDownload.toArray(new Long[canDownload.size()]), tableName);
 		}while(batch.size() == batchSize);
@@ -367,7 +382,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	}
 
 	@Override
-	public List<Long> readTempoaryTableOfAvailableFiles(EntityAccessCallback accessCallback, Long userId,
+	public List<Long> getAvailableFilesFromDownloadList(EntityAccessCallback accessCallback, Long userId,
 			int batchSize) {
 		String tempTableName = createTemporaryTableOfAvailableFiles(accessCallback, userId, batchSize);
 		return jdbcTemplate.queryForList("SELECT ENTITY_ID FROM " + tempTableName+" ORDER BY ENTITY_ID ASC", Long.class);

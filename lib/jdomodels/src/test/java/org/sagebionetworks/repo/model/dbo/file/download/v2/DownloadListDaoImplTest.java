@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -418,17 +419,19 @@ public class DownloadListDaoImplTest {
 	}
 	
 	@Test
-	public void testReadTempoaryTableOfAvailableFilesWithEmptyDownloadLists() {
+	public void testGetAvailableFilesFromDownloadListWithEmptyDownloadLists() {
 		int batchSize = 100;
-		// deny access to all files
+		EntityAccessCallback mockCallback = Mockito.mock(EntityAccessCallback.class);
+		when(mockCallback.filter(any())).thenReturn(Collections.emptyList());
 		// Call under test
-		List<Long> results = downloadListDao.readTempoaryTableOfAvailableFiles(l -> Collections.emptyList(),
+		List<Long> results = downloadListDao.getAvailableFilesFromDownloadList(mockCallback,
 				userOneIdLong, batchSize);
 		assertEquals(Collections.emptyList(), results);
+		verifyNoMoreInteractions(mockCallback);
 	}
 
 	@Test
-	public void testReadTempoaryTableOfAvailableFilesWithNoDownloadAccess() {
+	public void testGetAvailableFilesFromDownloadListWithNoDownloadAccess() {
 		int numberOfProject = 1;
 		int foldersPerProject = 1;
 		int filesPerFolder = 5;
@@ -447,13 +450,13 @@ public class DownloadListDaoImplTest {
 		int batchSize = 100;
 		// deny access to all files
 		// Call under test
-		List<Long> results = downloadListDao.readTempoaryTableOfAvailableFiles(l -> Collections.emptyList(),
+		List<Long> results = downloadListDao.getAvailableFilesFromDownloadList(l -> Collections.emptyList(),
 				userOneIdLong, batchSize);
 		assertEquals(Collections.emptyList(), results);
 	}
 
 	@Test
-	public void testReadTempoaryTableOfAvailableFilesWithFullAccess() {
+	public void testGetAvailableFilesFromDownloadListWithFullAccess() {
 		int numberOfProject = 1;
 		int foldersPerProject = 1;
 		int filesPerFolder = 5;
@@ -472,13 +475,13 @@ public class DownloadListDaoImplTest {
 		int batchSize = 100;
 		// grant access to all files
 		// Call under test
-		List<Long> results = downloadListDao.readTempoaryTableOfAvailableFiles(l -> l, userOneIdLong, batchSize);
+		List<Long> results = downloadListDao.getAvailableFilesFromDownloadList(l -> l, userOneIdLong, batchSize);
 		List<Long> expected = files.stream().map(n -> KeyFactory.stringToKey(n.getId())).collect(Collectors.toList());
 		assertEquals(expected, results);
 	}
 
 	@Test
-	public void testReadTempoaryTableOfAvailableFilesWithPartialAccess() {
+	public void testGetAvailableFilesFromDownloadListWithPartialAccess() {
 		int numberOfProject = 1;
 		int foldersPerProject = 1;
 		int filesPerFolder = 5;
@@ -499,12 +502,12 @@ public class DownloadListDaoImplTest {
 
 		int batchSize = 100;
 		// Call under test
-		List<Long> results = downloadListDao.readTempoaryTableOfAvailableFiles(l -> subSet, userOneIdLong, batchSize);
+		List<Long> results = downloadListDao.getAvailableFilesFromDownloadList(l -> subSet, userOneIdLong, batchSize);
 		assertEquals(subSet, results);
 	}
 
 	@Test
-	public void testReadTempoaryTableOfAvailableFilesWithBatchingCanAccessAllFiles() {
+	public void testGetAvailableFilesFromDownloadListWithBatchingCanAccessAllFiles() {
 		int numberOfProject = 1;
 		int foldersPerProject = 1;
 		int filesPerFolder = 5;
@@ -520,25 +523,24 @@ public class DownloadListDaoImplTest {
 		toAdd = files.stream().map(n -> new DownloadListItem().setFileEntityId(n.getId()).setVersionNumber(1L))
 				.collect(Collectors.toList());
 		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
-		// grant access to a sub-set of the files
-		List<Long> subSet = Arrays.asList(fileIds.get(0), fileIds.get(2), fileIds.get(4));
+
 
 		EntityAccessCallback mockCallback = Mockito.mock(EntityAccessCallback.class);
-		when(mockCallback.canDownload(any())).thenReturn(fileIds.subList(0, 2), fileIds.subList(2, 4),
+		when(mockCallback.filter(any())).thenReturn(fileIds.subList(0, 2), fileIds.subList(2, 4),
 				fileIds.subList(4, 5));
 
 		int batchSize = 2;
 		// Call under test
-		List<Long> results = downloadListDao.readTempoaryTableOfAvailableFiles(mockCallback, userOneIdLong, batchSize);
+		List<Long> results = downloadListDao.getAvailableFilesFromDownloadList(mockCallback, userOneIdLong, batchSize);
 		assertEquals(fileIds, results);
-		verify(mockCallback, times(3)).canDownload(any());
-		verify(mockCallback).canDownload(fileIds.subList(0, 2));
-		verify(mockCallback).canDownload(fileIds.subList(2, 4));
-		verify(mockCallback).canDownload(fileIds.subList(4, 5));
+		verify(mockCallback, times(3)).filter(any());
+		verify(mockCallback).filter(fileIds.subList(0, 2));
+		verify(mockCallback).filter(fileIds.subList(2, 4));
+		verify(mockCallback).filter(fileIds.subList(4, 5));
 	}
 
 	@Test
-	public void testReadTempoaryTableOfAvailableFilesWithBatchingCanAccessSubsetOfFiles() {
+	public void testGetAvailableFilesFromDownloadListWithBatchingCanAccessSubsetOfFiles() {
 		int numberOfProject = 1;
 		int foldersPerProject = 1;
 		int filesPerFolder = 5;
@@ -556,18 +558,18 @@ public class DownloadListDaoImplTest {
 		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
 
 		EntityAccessCallback mockCallback = Mockito.mock(EntityAccessCallback.class);
-		when(mockCallback.canDownload(any())).thenReturn(Arrays.asList(fileIds.get(1)), Arrays.asList(fileIds.get(2)),
+		when(mockCallback.filter(any())).thenReturn(Arrays.asList(fileIds.get(1)), Arrays.asList(fileIds.get(2)),
 				Arrays.asList(fileIds.get(4)));
 
 		int batchSize = 2;
 		// Call under test
-		List<Long> results = downloadListDao.readTempoaryTableOfAvailableFiles(mockCallback, userOneIdLong, batchSize);
+		List<Long> results = downloadListDao.getAvailableFilesFromDownloadList(mockCallback, userOneIdLong, batchSize);
 		List<Long> expected = Arrays.asList(fileIds.get(1), fileIds.get(2), fileIds.get(4));
 		assertEquals(expected, results);
-		verify(mockCallback, times(3)).canDownload(any());
-		verify(mockCallback).canDownload(fileIds.subList(0, 2));
-		verify(mockCallback).canDownload(fileIds.subList(2, 4));
-		verify(mockCallback).canDownload(fileIds.subList(4, 5));
+		verify(mockCallback, times(3)).filter(any());
+		verify(mockCallback).filter(fileIds.subList(0, 2));
+		verify(mockCallback).filter(fileIds.subList(2, 4));
+		verify(mockCallback).filter(fileIds.subList(4, 5));
 	}
 
 	@Test
@@ -921,6 +923,48 @@ public class DownloadListDaoImplTest {
 		List<Sort> sort = Arrays.asList(
 				new Sort().setField(SortField.projectName).setDirection(SortDirection.DESC),
 				new Sort().setField(SortField.synId).setDirection(SortDirection.ASC));
+		Long limit = 100L;
+		Long offset = 0L;
+		// call under test
+		List<DownloadListItemResult> result = downloadListDao.getFilesAvailableToDownloadFromDownloadList(l -> l,
+				userOneIdLong, sort, limit, offset);
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetFilesAvailableToDownloadFromDownloadListWithOrderByEntityNameAndVersion() {
+		int numberOfProject = 1;
+		int foldersPerProject = 1;
+		int filesPerFolder = 3;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		assertEquals(3, files.size());
+
+		// add latest version
+		List<DownloadListItem> currentVersionItems = files.stream()
+				.map(f -> new DownloadListItem().setFileEntityId(f.getId()).setVersionNumber(null))
+				.collect(Collectors.toList());
+		// add first version
+		List<DownloadListItem> firstVersionItems = files.stream()
+				.map(f -> new DownloadListItem().setFileEntityId(f.getId()).setVersionNumber(1L))
+				.collect(Collectors.toList());
+		List<DownloadListItem> userOneItems = new ArrayList<>(files.size()*2);
+		userOneItems.addAll(currentVersionItems);
+		userOneItems.addAll(firstVersionItems);
+
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, userOneItems);
+		
+		List<DownloadListItemResult> expected = downloadListDao.getDownloadListItems(userOneIdLong,
+				userOneItems.get(5),
+				userOneItems.get(2),
+				userOneItems.get(4),
+				userOneItems.get(1),
+				userOneItems.get(3),
+				userOneItems.get(0)
+		);
+
+		List<Sort> sort = Arrays.asList(
+				new Sort().setField(SortField.fileName).setDirection(SortDirection.DESC),
+				new Sort().setField(SortField.versionNumber).setDirection(SortDirection.ASC));
 		Long limit = 100L;
 		Long offset = 0L;
 		// call under test

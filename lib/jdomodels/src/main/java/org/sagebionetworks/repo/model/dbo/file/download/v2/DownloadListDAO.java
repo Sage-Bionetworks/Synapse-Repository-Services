@@ -85,6 +85,6 @@ public interface DownloadListDAO {
 	 * @param batchSize
 	 * @return
 	 */
-	List<Long> readTempoaryTableOfAvailableFiles(EntityAccessCallback accessCallback, Long userId, int batchSize);
+	List<Long> getAvailableFilesFromDownloadList(EntityAccessCallback accessCallback, Long userId, int batchSize);
 
 }
