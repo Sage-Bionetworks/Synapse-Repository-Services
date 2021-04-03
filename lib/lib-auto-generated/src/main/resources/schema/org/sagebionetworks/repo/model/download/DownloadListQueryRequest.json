@@ -1,0 +1,18 @@
+{
+	"description": "A request to start an asynchronous job to query a user's download list.  This request must include one or more parts: availableFilesRequest, inlcudeStatistics, ",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	],
+	"properties": {
+		"availableFilesRequest": {
+			"description": "Optional. When included, the resulting query results will include a single page of results of files from the user's download list that are currently available for download.",
+			"$ref": "org.sagebionetworks.repo.model.download.AvailableFilesRequest"
+		},
+		"inlcudeStatistics": {
+			"description": "Optional.  When included and set to true, the results will include DownloadListStatistics about the files on the user's download list.",
+			"type": "boolean"
+		}
+	}
+}

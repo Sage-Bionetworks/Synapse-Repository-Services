@@ -87,4 +87,12 @@ public interface DownloadListDAO {
 	 */
 	List<Long> getAvailableFilesFromDownloadList(EntityAccessCallback accessCallback, Long userId, int batchSize);
 
+	/**
+	 * Get the total number of files currently on the user's download list.
+	 * 
+	 * @param userId
+	 * @return
+	 */
+	long getTotalNumberOfFilesOnDownloadList(Long userId);
+
 }

@@ -43,6 +43,7 @@ import com.google.common.base.Objects;
 @Repository
 public class DownloadListDAOImpl implements DownloadListDAO {
 
+	private static final String ACTUAL_VERSION = "ACTUAL_VERSION";
 	public static final String PROJECT_ID = "PROJECT_ID";
 	public static final String PROJECT_NAME = "PROJECT_NAME";
 	public static final String CONTENT_SIZE = "CONTENT_SIZE";
@@ -320,7 +321,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		case synId:
 			return COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID;
 		case versionNumber:
-			return "ACTUAL_VERSION";
+			return ACTUAL_VERSION;
 		case addedOn:
 			return COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON;
 		case createdBy:
