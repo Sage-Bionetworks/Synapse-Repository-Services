@@ -1,12 +1,18 @@
 package org.sagebionetworks.repo.model.dbo.auth;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_PASS_HASH;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_SECRET_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TERMS_OF_USE_AGREEMENT_AGREEMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CREDENTIAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SESSION_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TERMS_OF_USE_AGREEMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -14,10 +20,10 @@ import java.util.Date;
 import java.util.UUID;
 
 import org.sagebionetworks.StackConfigurationSingleton;
-import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
@@ -25,7 +31,6 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.principal.BootstrapGroup;
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
-import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
@@ -64,18 +69,18 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	private static final String SELECT_COUNT_BY_EMAIL_AND_PASSWORD =
 			"SELECT COUNT(*)"+
-			" FROM "+SqlConstants.TABLE_CREDENTIAL+", "+SqlConstants.TABLE_USER_GROUP+
-			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"="+SqlConstants.COL_USER_GROUP_ID+
-				" AND "+SqlConstants.COL_USER_GROUP_ID+"= ?"+
-				" AND "+SqlConstants.COL_CREDENTIAL_PASS_HASH+"=?";
+			" FROM "+TABLE_CREDENTIAL+", "+TABLE_USER_GROUP+
+			" WHERE "+COL_CREDENTIAL_PRINCIPAL_ID+"="+COL_USER_GROUP_ID+
+				" AND "+COL_USER_GROUP_ID+"= ?"+
+				" AND "+COL_CREDENTIAL_PASS_HASH+"=?";
 	
 	private static final String UPDATE_VALIDATION_TIME = 
-			"UPDATE "+SqlConstants.TABLE_SESSION_TOKEN+
-			" SET "+SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON+"= ?"+
-			" WHERE "+SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID+"= ?";
+			"UPDATE "+TABLE_SESSION_TOKEN+
+			" SET "+COL_SESSION_TOKEN_VALIDATED_ON+"= ?"+
+			" WHERE "+COL_SESSION_TOKEN_PRINCIPAL_ID+"= ?";
 
 	private static final String IF_VALID_SUFFIX =
-			" AND "+SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON+"> ?";
+			" AND "+COL_SESSION_TOKEN_VALIDATED_ON+"> ?";
 	
 	// NOTE: Neither in this version, or the prior version, were you selecting by user's name
 	private static final String SELECT_SESSION_TOKEN_BY_USERNAME_IF_VALID = 
@@ -91,55 +96,55 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 			" WHERE "+COL_SESSION_TOKEN_PRINCIPAL_ID+"= ? ";
 	
 	private static final String NULLIFY_SESSION_TOKEN =
-			"UPDATE "+SqlConstants.TABLE_SESSION_TOKEN+
-			" SET "+SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN+"=NULL"+
-			" WHERE "+SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN+"= ?";
+			"UPDATE "+TABLE_SESSION_TOKEN+
+			" SET "+COL_SESSION_TOKEN_SESSION_TOKEN+"=NULL"+
+			" WHERE "+COL_SESSION_TOKEN_SESSION_TOKEN+"= ?";
 
 	private static final String NULLIFY_SESSION_TOKEN_FOR_PRINCIPAL_ID =
-			"UPDATE "+SqlConstants.TABLE_SESSION_TOKEN+
-			" SET "+SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN+"=NULL"+
+			"UPDATE "+TABLE_SESSION_TOKEN+
+			" SET "+COL_SESSION_TOKEN_SESSION_TOKEN+"=NULL"+
 			" WHERE "+ COL_SESSION_TOKEN_PRINCIPAL_ID+"= ?";
 
 	private static final String SELECT_PRINCIPAL_BY_TOKEN = 
-			"SELECT "+SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID+
-			" FROM "+SqlConstants.TABLE_SESSION_TOKEN+
-			" WHERE "+SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN+"= ?";
+			"SELECT "+COL_SESSION_TOKEN_PRINCIPAL_ID+
+			" FROM "+TABLE_SESSION_TOKEN+
+			" WHERE "+COL_SESSION_TOKEN_SESSION_TOKEN+"= ?";
 	
 	private static final String SELECT_PRINCIPAL_BY_TOKEN_IF_VALID = 
 			SELECT_PRINCIPAL_BY_TOKEN+IF_VALID_SUFFIX;
 	
 	private static final String SELECT_PASSWORD = 
-			"SELECT "+SqlConstants.COL_CREDENTIAL_PASS_HASH+
-			" FROM "+SqlConstants.TABLE_CREDENTIAL+", "+SqlConstants.TABLE_USER_GROUP+
-			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"="+SqlConstants.COL_USER_GROUP_ID+
-			" AND "+SqlConstants.COL_USER_GROUP_ID+"= ?";
+			"SELECT "+COL_CREDENTIAL_PASS_HASH+
+			" FROM "+TABLE_CREDENTIAL+", "+TABLE_USER_GROUP+
+			" WHERE "+COL_CREDENTIAL_PRINCIPAL_ID+"="+COL_USER_GROUP_ID+
+			" AND "+COL_USER_GROUP_ID+"= ?";
 	
 	private static final String UPDATE_PASSWORD = 
-			"UPDATE "+SqlConstants.TABLE_CREDENTIAL+
-			" SET "+SqlConstants.COL_CREDENTIAL_PASS_HASH+"= ?"+
-			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"= ?";
+			"UPDATE "+TABLE_CREDENTIAL+
+			" SET "+COL_CREDENTIAL_PASS_HASH+"= ?"+
+			" WHERE "+COL_CREDENTIAL_PRINCIPAL_ID+"= ?";
 	
 	private static final String SELECT_SECRET_KEY = 
-			"SELECT "+SqlConstants.COL_CREDENTIAL_SECRET_KEY+
-			" FROM "+SqlConstants.TABLE_CREDENTIAL+
-			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"= ?";
+			"SELECT "+COL_CREDENTIAL_SECRET_KEY+
+			" FROM "+TABLE_CREDENTIAL+
+			" WHERE "+COL_CREDENTIAL_PRINCIPAL_ID+"= ?";
 	
 	private static final String UPDATE_SECRET_KEY = 
-			"UPDATE "+SqlConstants.TABLE_CREDENTIAL+
-			" SET "+SqlConstants.COL_CREDENTIAL_SECRET_KEY+"= ?"+
-			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"= ?";
+			"UPDATE "+TABLE_CREDENTIAL+
+			" SET "+COL_CREDENTIAL_SECRET_KEY+"= ?"+
+			" WHERE "+COL_CREDENTIAL_PRINCIPAL_ID+"= ?";
 	
 	private static final String SELECT_TOU_ACCEPTANCE = 
-			"SELECT "+SqlConstants.COL_TERMS_OF_USE_AGREEMENT_AGREEMENT+
-			" FROM "+SqlConstants.TABLE_TERMS_OF_USE_AGREEMENT+
-			" WHERE "+SqlConstants.COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID+"= ?";
+			"SELECT "+COL_TERMS_OF_USE_AGREEMENT_AGREEMENT+
+			" FROM "+TABLE_TERMS_OF_USE_AGREEMENT+
+			" WHERE "+COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID+"= ?";
 	
 	private RowMapper<Session> sessionRowMapper = new RowMapper<Session>() {
 		@Override
 		public Session mapRow(ResultSet rs, int rowNum) throws SQLException {
 			Session session = new Session();
-			session.setSessionToken(rs.getString(SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN));
-			session.setAcceptsTermsOfUse(rs.getBoolean(SqlConstants.COL_TERMS_OF_USE_AGREEMENT_AGREEMENT));
+			session.setSessionToken(rs.getString(COL_SESSION_TOKEN_SESSION_TOKEN));
+			session.setAcceptsTermsOfUse(rs.getBoolean(COL_TERMS_OF_USE_AGREEMENT_AGREEMENT));
 			return session;
 		}
 	};
