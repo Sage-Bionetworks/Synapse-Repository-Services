@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.download;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -11,6 +12,7 @@ import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityAccessCallback;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AvailableFilesRequest;
@@ -21,6 +23,9 @@ import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListResponse;
+import org.sagebionetworks.repo.model.download.Sort;
+import org.sagebionetworks.repo.model.download.SortDirection;
+import org.sagebionetworks.repo.model.download.SortField;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +34,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class DownloadListManagerImpl implements DownloadListManager {
 
+	public static final String YOU_MUST_LOGIN_TO_ACCESS_YOUR_DOWNLOAD_LIST = "You must login to access your download list";
 	public static final String BATCH_SIZE_EXCEEDS_LIMIT_TEMPLATE = "Batch size of '%s' exceeds the maximum of '%s'";
 	public static final String ADDING_S_FILES_EXCEEDS_LIMIT_TEMPLATE = "Adding '%s' files to your download list would exceed the maximum number of '%s' files.  You currently have '%s' files on you download list.";
 
@@ -64,7 +70,6 @@ public class DownloadListManagerImpl implements DownloadListManager {
 			throw new IllegalArgumentException(String.format(ADDING_S_FILES_EXCEEDS_LIMIT_TEMPLATE,
 					toAdd.getBatchToAdd().size(), MAX_FILES_PER_USER, currentFileCount));
 		}
-
 		long nubmerOfFilesAdded = downloadListDao.addBatchOfFilesToDownloadList(userInfo.getId(),
 				toAdd.getBatchToAdd());
 		return new AddBatchOfFilesToDownloadListResponse().setNumberOfFilesAdded(nubmerOfFilesAdded);
@@ -91,7 +96,6 @@ public class DownloadListManagerImpl implements DownloadListManager {
 
 	@Override
 	public DownloadListQueryResponse queryDownloadList(UserInfo userInfo, DownloadListQueryRequest requestBody) {
-		validateUser(userInfo);
 		ValidateArgument.required(requestBody, "requestBody");
 		AvailableFilesResponse availableFiles = null;
 		// The AvailableFilesRequest is optional.
@@ -110,20 +114,48 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 * @return
 	 */
 	AvailableFilesResponse queryAvialableFiles(UserInfo userInfo, AvailableFilesRequest availableRequest) {
+		validateUser(userInfo);
+		ValidateArgument.required(availableRequest, "availableRequest");
+		
+		List<Sort> sort = availableRequest.getSort();
+		if (sort == null || sort.isEmpty()) {
+			sort = getDefaultSort();
+		}
+		
 		NextPageToken pageToken = new NextPageToken(availableRequest.getNextPageToken());
 
-		List<DownloadListItemResult> page = downloadListDao
-				.getFilesAvailableToDownloadFromDownloadList((List<Long> enityIds) -> {
-					// Determine which files of this batch the user can download.
-					List<UsersEntityAccessInfo> batchInfo = entityAuthorizationManager.batchHasAccess(userInfo,
-							enityIds, ACCESS_TYPE.DOWNLOAD);
-					// filter out any entity that the user is not authorized to download.
-					return batchInfo.stream().filter(e -> e.getAuthroizationStatus().isAuthorized())
-							.map(e -> e.getEntityId()).collect(Collectors.toList());
-				}, userInfo.getId(), availableRequest.getSort(), pageToken.getLimitForQuery(), pageToken.getOffset());
+		List<DownloadListItemResult> page = downloadListDao.getFilesAvailableToDownloadFromDownloadList(
+				createAccessCallback(userInfo), userInfo.getId(), sort,
+				pageToken.getLimitForQuery(), pageToken.getOffset());
 
 		return new AvailableFilesResponse().setNextPageToken(pageToken.getNextPageTokenForCurrentResults(page))
 				.setPage(page);
+	}
+	
+	/**
+	 * Create a default sort.
+	 * @return
+	 */
+	public static List<Sort> getDefaultSort() {
+		return Arrays.asList(new Sort().setField(SortField.synId).setDirection(SortDirection.ASC),
+				new Sort().setField(SortField.versionNumber).setDirection(SortDirection.ASC));
+	}
+	
+	
+	/**
+	 * Create a callback to filter the entities that the given user can download.
+	 * @param userInfo
+	 * @return
+	 */
+	EntityAccessCallback createAccessCallback(UserInfo userInfo) {
+		return (List<Long> enityIds) -> {
+			// Determine which files of this batch the user can download.
+			List<UsersEntityAccessInfo> batchInfo = entityAuthorizationManager.batchHasAccess(userInfo,
+					enityIds, ACCESS_TYPE.DOWNLOAD);
+			// filter out any entity that the user is not authorized to download.
+			return batchInfo.stream().filter(e -> e.getAuthroizationStatus().isAuthorized())
+					.map(e -> e.getEntityId()).collect(Collectors.toList());
+		};
 	}
 
 	/**
@@ -133,6 +165,9 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 */
 	static void validateBatch(List<DownloadListItem> batch) {
 		ValidateArgument.required(batch, "batch");
+		if(batch.size() < 1) {
+			throw new IllegalArgumentException("Batch must contain at least one item");
+		}
 		if (batch.size() > MAX_FILES_PER_BATCH) {
 			throw new IllegalArgumentException(
 					String.format(BATCH_SIZE_EXCEEDS_LIMIT_TEMPLATE, batch.size(), MAX_FILES_PER_BATCH));
@@ -147,7 +182,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	static void validateUser(UserInfo userInfo) {
 		ValidateArgument.required(userInfo, "userInfo");
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
-			throw new UnauthorizedException("Must login to access your download list");
+			throw new UnauthorizedException(YOU_MUST_LOGIN_TO_ACCESS_YOUR_DOWNLOAD_LIST);
 		}
 	}
 
