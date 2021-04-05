@@ -239,7 +239,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		authorizationRequest.setUserId((new Long(userInfo.getId()).toString()));
 		authorizationRequest.setAuthorizedAt(clock.now());
-		authorizationRequest.setAuthenticatedAt(authDao.getSessionValidatedOn(userInfo.getId()));
+		authorizationRequest.setAuthenticatedAt(authDao.getAuthenticatedOn(userInfo.getId()));
 
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
 		try {
@@ -453,7 +453,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		// In the JWT, we will need to supply both the current time and the date/time of the initial authorization
 		long now = clock.currentTimeMillis();
-		Date authTime = authDao.getSessionValidatedOn(Long.parseLong(refreshTokenMetadata.getPrincipalId()));
+		Date authTime = authDao.getAuthenticatedOn(Long.parseLong(refreshTokenMetadata.getPrincipalId()));
 
 		// The following implements 'pairwise' subject_type, https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
 		// Pairwise Pseudonymous Identifier (PPID)
@@ -559,7 +559,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			userInfo.put(OIDCClaimName.sub, ppid);
 			return userInfo;
 		} else {
-			Date authTime = authDao.getSessionValidatedOn(Long.parseLong(userId));
+			Date authTime = authDao.getAuthenticatedOn(Long.parseLong(userId));
 
 			String jwtIdToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, clock.currentTimeMillis(), null,
 					authTime, UUID.randomUUID().toString(), userInfo);

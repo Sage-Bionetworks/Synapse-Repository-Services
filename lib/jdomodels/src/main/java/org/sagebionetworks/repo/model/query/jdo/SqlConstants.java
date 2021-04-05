@@ -781,9 +781,14 @@ public class SqlConstants {
 	// Session token
 	public static final String TABLE_SESSION_TOKEN             = "SESSION_TOKEN";
 	public static final String COL_SESSION_TOKEN_PRINCIPAL_ID  = "PRINCIPAL_ID";
-	public static final String COL_SESSION_TOKEN_VALIDATED_ON  = "VALIDATED_ON";
 	public static final String COL_SESSION_TOKEN_SESSION_TOKEN = "SESSION_TOKEN";
 
+	// AuthenticatedOn
+	public static final String TABLE_AUTHENTICATED_ON					= "AUTHENTICATED_ON";
+	public static final String COL_AUTHENTICATED_ON_PRINCIPAL_ID		= "PRINCIPAL_ID";
+	public static final String COL_AUTHENTICATED_ON_ETAG				= "ETAG";
+	public static final String COL_AUTHENTICATED_ON_AUTHENTICATED_ON	= "AUTHENTICATED_ON";
+	
 	// Terms of use agreement
 	public static final String TABLE_TERMS_OF_USE_AGREEMENT             = "TERMS_OF_USE_AGREEMENT";
 	public static final String COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID  = "PRINCIPAL_ID";
