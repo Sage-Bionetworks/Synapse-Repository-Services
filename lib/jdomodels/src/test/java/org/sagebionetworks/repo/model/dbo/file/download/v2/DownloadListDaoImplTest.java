@@ -1034,6 +1034,41 @@ public class DownloadListDaoImplTest {
 			assertTrue(expected.containsAll(result));
 		}
 	}
+	
+	@Test
+	public void testGetTotalNumberOfFilesOnDownloadList() {
+		int numberOfProject = 2;
+		int foldersPerProject = 1;
+		int filesPerFolder = 3;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		assertEquals(6, files.size());
+
+		List<DownloadListItem> userOneItems = files.stream()
+				.map(f -> new DownloadListItem().setFileEntityId(f.getId()).setVersionNumber(2L))
+				.collect(Collectors.toList());
+
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, userOneItems);
+		
+		userOneItems = files.stream()
+				.map(f -> new DownloadListItem().setFileEntityId(f.getId()).setVersionNumber(null))
+				.collect(Collectors.toList());
+
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, userOneItems);
+		
+		List<DownloadListItem> userTwoItems = files.stream()
+				.map(f -> new DownloadListItem().setFileEntityId(f.getId()).setVersionNumber(1L))
+				.collect(Collectors.toList());
+
+		downloadListDao.addBatchOfFilesToDownloadList(userTwoIdLong, userTwoItems);
+		
+		// call under test
+		long count = downloadListDao.getTotalNumberOfFilesOnDownloadList(userOneIdLong);
+		assertEquals(12L, count);
+		
+		// call under test
+		count = downloadListDao.getTotalNumberOfFilesOnDownloadList(userTwoIdLong);
+		assertEquals(6L, count);
+	}
 
 
 	/**
@@ -1170,4 +1205,5 @@ public class DownloadListDaoImplTest {
 			assertNotNull(item.getAddedOn());
 		}
 	}
+
 }

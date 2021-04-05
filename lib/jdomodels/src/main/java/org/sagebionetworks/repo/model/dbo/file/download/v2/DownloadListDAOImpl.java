@@ -171,8 +171,8 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 
 	private void createOrUpdateDownloadList(Long userId) {
 		ValidateArgument.required(userId, "User Id");
-		jdbcTemplate.update("INSERT INTO " + TABLE_DOWNLOAD_LIST_V2 + "(" + COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID
-				+ ", " + COL_DOWNLOAD_LIST_V2_UPDATED_ON + ", " + COL_DOWNLOAD_LIST_V2_ETAG
+		jdbcTemplate.update("INSERT INTO " + TABLE_DOWNLOAD_LIST_V2 + "(" + COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID + ", "
+				+ COL_DOWNLOAD_LIST_V2_UPDATED_ON + ", " + COL_DOWNLOAD_LIST_V2_ETAG
 				+ ") VALUES (?, NOW(3), UUID()) ON DUPLICATE KEY UPDATE " + COL_DOWNLOAD_LIST_V2_UPDATED_ON
 				+ " = NOW(3), " + COL_DOWNLOAD_LIST_V2_ETAG + " = UUID()", userId);
 	}
@@ -222,12 +222,12 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			params.addValue("depth", NodeConstants.MAX_PATH_DEPTH_PLUS_ONE);
 			String sql = String.format(DOWNLOAD_LIST_RESULT_TEMPLATE, tempTableName);
 			List<DownloadListItemResult> unorderedResults = namedJdbcTemplate.query(sql, params, RESULT_MAPPER);
-			
+
 			// Put the results in same order as the request. Note: O(n*m) where both n and m
 			// should be small.
 			return Arrays.stream(items).map(i -> unorderedResults.stream().filter(u -> isMatch(i, u)).findFirst().get())
 					.collect(Collectors.toList());
-		}finally {
+		} finally {
 			dropTemporaryTable(tempTableName);
 		}
 	}
@@ -262,14 +262,16 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			params.addValue("depth", NodeConstants.MAX_PATH_DEPTH_PLUS_ONE);
 			params.addValue("limit", limit);
 			params.addValue("offset", offset);
-			return namedJdbcTemplate.query(sqlBuilder.toString(),params, RESULT_MAPPER);
-		}finally {
+			return namedJdbcTemplate.query(sqlBuilder.toString(), params, RESULT_MAPPER);
+		} finally {
 			dropTemporaryTable(tempTableName);
 		}
 	}
-	
+
 	/**
-	 * Build the SQL suffix to handle both sorting and paging based on the provided sorting and paging.
+	 * Build the SQL suffix to handle both sorting and paging based on the provided
+	 * sorting and paging.
+	 * 
 	 * @param sort
 	 * @param limit
 	 * @param offset
@@ -277,21 +279,22 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	 */
 	public static String buildAvailableDownloadQuerySuffix(List<Sort> sort, Long limit, Long offset) {
 		StringBuilder builder = new StringBuilder();
-		if(sort != null && !sort.isEmpty()) {
+		if (sort != null && !sort.isEmpty()) {
 			builder.append(" ORDER BY");
 			builder.append(sort.stream().map(DownloadListDAOImpl::sortToSql).collect(Collectors.joining(",")));
 		}
-		if(limit != null) {
+		if (limit != null) {
 			builder.append(" LIMIT :limit");
 		}
-		if(offset != null) {
+		if (offset != null) {
 			builder.append(" OFFSET :offset");
 		}
 		return builder.toString();
 	}
-	
+
 	/**
 	 * Generate the SQL for the given Sort.
+	 * 
 	 * @param sort
 	 * @return
 	 */
@@ -300,14 +303,15 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		ValidateArgument.required(sort.getField(), "sort.field");
 		StringBuilder builder = new StringBuilder(" ");
 		builder.append(getColumnName(sort.getField()));
-		if(sort.getDirection() != null) {
+		if (sort.getDirection() != null) {
 			builder.append(" ").append(sort.getDirection().name());
 		}
 		return builder.toString();
 	}
-	
+
 	/**
 	 * Get the column name for the given SortField.
+	 * 
 	 * @param field
 	 * @return
 	 */
@@ -334,16 +338,16 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			throw new IllegalArgumentException("Unknown SortField: " + field.name());
 		}
 	}
-	
+
 	/**
 	 * Drop the given temporary table by name.
+	 * 
 	 * @param tempTableName
 	 */
 	void dropTemporaryTable(String tempTableName) {
 		String sql = String.format("DROP TEMPORARY TABLE %S", tempTableName);
 		jdbcTemplate.update(sql);
 	}
-	
 
 	/**
 	 * Create a temporary table containing all of the Entity IDs from the given
@@ -356,10 +360,9 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	 */
 	String createTemporaryTableOfAvailableFiles(EntityAccessCallback accessCallback, Long userId, int batchSize) {
 		String tableName = "U" + userId + "T";
-		String sql = String.format("CREATE TEMPORARY TABLE %S (`ENTITY_ID` BIGINT NOT NULL)",
-				tableName);
+		String sql = String.format("CREATE TEMPORARY TABLE %S (`ENTITY_ID` BIGINT NOT NULL)", tableName);
 		jdbcTemplate.update(sql);
-		
+
 		List<Long> batch = null;
 		long limit = batchSize;
 		long offset = 0L;
@@ -370,15 +373,15 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 							+ " WHERE " + COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID + " = ? LIMIT ? OFFSET ?",
 					Long.class, userId, limit, offset);
 			offset += limit;
-			if(batch.isEmpty()) {
+			if (batch.isEmpty()) {
 				break;
 			}
 			// Determine the sub-set that the user can actually download.
 			List<Long> canDownload = accessCallback.filter(batch);
 			// Add the sub-set to the temporary table.
 			addBatchOfEntityIdsToTempTable(canDownload.toArray(new Long[canDownload.size()]), tableName);
-		}while(batch.size() == batchSize);
-		
+		} while (batch.size() == batchSize);
+
 		return tableName;
 	}
 
@@ -386,7 +389,8 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	public List<Long> getAvailableFilesFromDownloadList(EntityAccessCallback accessCallback, Long userId,
 			int batchSize) {
 		String tempTableName = createTemporaryTableOfAvailableFiles(accessCallback, userId, batchSize);
-		return jdbcTemplate.queryForList("SELECT ENTITY_ID FROM " + tempTableName+" ORDER BY ENTITY_ID ASC", Long.class);
+		return jdbcTemplate.queryForList("SELECT ENTITY_ID FROM " + tempTableName + " ORDER BY ENTITY_ID ASC",
+				Long.class);
 	}
 
 	/**
@@ -411,6 +415,13 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 				return entityIdsToAdd.length;
 			}
 		});
+	}
+
+	@Override
+	public long getTotalNumberOfFilesOnDownloadList(Long userId) {
+		ValidateArgument.required(userId, "userId");
+		return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM " + TABLE_DOWNLOAD_LIST_ITEM_V2 + " WHERE "
+				+ COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID + " = ?", Long.class, userId);
 	}
 
 }
