@@ -3,43 +3,70 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTICATED_ON_AUTHENTICATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTICATED_ON_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTICATED_ON_PRINCIPAL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_AUTHENTICATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_AUTHENTICATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
-import org.sagebionetworks.repo.model.dbo.Field;
-import org.sagebionetworks.repo.model.dbo.ForeignKey;
+import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
-import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
-@Table(name = TABLE_AUTHENTICATED_ON)
 public class DBOAuthenticatedOn implements MigratableDatabaseObject<DBOAuthenticatedOn, DBOAuthenticatedOn> {
 	
-	private static TableMapping<DBOAuthenticatedOn> tableMapping = AutoTableMapping.create(DBOAuthenticatedOn.class);
+	private static FieldColumn[] FIELDS = new FieldColumn[] {
+			new FieldColumn("principalId", COL_AUTHENTICATED_ON_PRINCIPAL_ID, true).withIsBackupId(true),
+			new FieldColumn("etag", COL_AUTHENTICATED_ON_ETAG).withIsEtag(true),
+			new FieldColumn("authenticatedOn", COL_AUTHENTICATED_ON_AUTHENTICATED_ON)
+	};
 	
-	@Field(name = COL_AUTHENTICATED_ON_PRINCIPAL_ID, backupId = true, primary = true, nullable = false)
-	@ForeignKey(table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true)
 	private Long principalId;
-	
-	@Field(name = COL_AUTHENTICATED_ON_ETAG, backupId = false, primary = false, nullable = false, etag=true)
 	private String etag;
-	
-	@Field(name = COL_AUTHENTICATED_ON_AUTHENTICATED_ON)
 	private Date authenticatedOn;
 
 	@Override
 	public TableMapping<DBOAuthenticatedOn> getTableMapping() {
-		return tableMapping;
-	}
+		return new TableMapping<DBOAuthenticatedOn>() {
 
+			@Override
+			public DBOAuthenticatedOn mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DBOAuthenticatedOn dbo = new DBOAuthenticatedOn();
+				dbo.setPrincipalId(rs.getLong(COL_FORM_DATA_ID));
+				dbo.setEtag(rs.getString(COL_FORM_DATA_ETAG));
+				dbo.setAuthenticatedOn(rs.getDate(COL_FORM_DATA_NAME));
+				return dbo;
+			}
+
+			@Override
+			public String getTableName() {
+				return TABLE_AUTHENTICATED_ON;
+			}
+
+			@Override
+			public String getDDLFileName() {
+				return DDL_AUTHENTICATED_ON;
+			}
+
+			@Override
+			public FieldColumn[] getFieldColumns() {
+				return FIELDS;
+			}
+
+			@Override
+			public Class<? extends DBOAuthenticatedOn> getDBOClass() {
+				return DBOAuthenticatedOn.class;
+			}
+		};
+	}
 	public String getEtag() {
 		return etag;
 	}

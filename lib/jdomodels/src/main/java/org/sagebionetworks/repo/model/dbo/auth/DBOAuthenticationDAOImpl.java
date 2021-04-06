@@ -80,11 +80,10 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	private static final String UPDATE_AUTHENTICATED_ON = 
 			"UPDATE "+TABLE_AUTHENTICATED_ON+
-			" SET "+COL_AUTHENTICATED_ON_AUTHENTICATED_ON+"= ?, "+COL_AUTHENTICATED_ON_ETAG+"=?"+
+			" SET "+COL_AUTHENTICATED_ON_AUTHENTICATED_ON+"= ?, "+COL_AUTHENTICATED_ON_ETAG+"=UUID()"+
 			" WHERE "+COL_AUTHENTICATED_ON_PRINCIPAL_ID+"= ?";
 	
-	// NOTE: Neither in this version, or the prior version, were you selecting by user's name
-	private static final String SELECT_SESSION_TOKEN_BY_USERNAME_IF_VALID = 
+	private static final String SELECT_SESSION_TOKEN_BY_PRINCIPAL_ID_IF_VALID = 
 			"SELECT st."+COL_SESSION_TOKEN_SESSION_TOKEN+", tou."+COL_TERMS_OF_USE_AGREEMENT_AGREEMENT+
 			" FROM "+TABLE_SESSION_TOKEN+" st, "+TABLE_TERMS_OF_USE_AGREEMENT+" tou, "+TABLE_AUTHENTICATED_ON+" ao "+
 			" WHERE tou."+COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID+"=st."+COL_SESSION_TOKEN_PRINCIPAL_ID+
@@ -176,7 +175,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		if(lastValidatedOn + HALF_SESSION_EXPIRATION < now){
 			// The session token needs to be revaldiated.
 			userGroupDAO.touch(principalId);
-			jdbcTemplate.update(UPDATE_AUTHENTICATED_ON, clock.currentTimeMillis(), UUID.randomUUID().toString(), principalId);
+			jdbcTemplate.update(UPDATE_AUTHENTICATED_ON, clock.currentTimeMillis(), principalId);
 			return true;
 		}else{
 			// no need to update.
@@ -227,7 +226,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	public Session getSessionTokenIfValid(long principalId, Date now) {
 		long time = now.getTime() - SESSION_EXPIRATION_TIME;
 		try {
-			return jdbcTemplate.queryForObject(SELECT_SESSION_TOKEN_BY_USERNAME_IF_VALID, sessionRowMapper,
+			return jdbcTemplate.queryForObject(SELECT_SESSION_TOKEN_BY_PRINCIPAL_ID_IF_VALID, sessionRowMapper,
 					principalId, time);
 		} catch(EmptyResultDataAccessException e) {
 			return null;

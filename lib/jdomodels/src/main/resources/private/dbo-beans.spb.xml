@@ -187,6 +187,7 @@
 		<property name="databaseObjectRegister" >
 			<list>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAuthenticatedOn" />
 				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBOPrincipalAlias" />
 				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBONotificationEmail" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile" />
