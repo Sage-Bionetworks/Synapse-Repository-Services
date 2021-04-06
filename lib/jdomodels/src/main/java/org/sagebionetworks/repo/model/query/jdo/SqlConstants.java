@@ -788,6 +788,7 @@ public class SqlConstants {
 	public static final String COL_AUTHENTICATED_ON_PRINCIPAL_ID		= "PRINCIPAL_ID";
 	public static final String COL_AUTHENTICATED_ON_ETAG				= "ETAG";
 	public static final String COL_AUTHENTICATED_ON_AUTHENTICATED_ON	= "AUTHENTICATED_ON";
+	public static final String DDL_AUTHENTICATED_ON = "schema/AuthenticatedOn-ddl.sql";
 	
 	// Terms of use agreement
 	public static final String TABLE_TERMS_OF_USE_AGREEMENT             = "TERMS_OF_USE_AGREEMENT";
