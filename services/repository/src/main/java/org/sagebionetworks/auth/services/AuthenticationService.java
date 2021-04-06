@@ -2,6 +2,7 @@ package org.sagebionetworks.auth.services;
 
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
@@ -17,6 +18,7 @@ import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
+
 
 /**
  * Abstraction for the handling authentication
@@ -52,7 +54,12 @@ public interface AuthenticationService {
 	/**
 	 * Identifies a user via session token and signs that user's terms of use
 	 */
-	public void signTermsOfUse(Session session) throws NotFoundException;
+	public void signTermsOfUseSession(Session session) throws NotFoundException;
+	
+	/**
+	 * Identifies a user via access token and signs that user's terms of use
+	 */
+	public void signTermsOfUse(AccessToken accessToken) throws NotFoundException;
 	
 	/**
 	 * Gets the current secret key of the user
@@ -106,6 +113,15 @@ public interface AuthenticationService {
 	 * @throws org.sagebionetworks.repo.model.UnauthenticatedException If the credentials are incorrect
 	 */
 	public LoginResponse login(LoginRequest request);
+
+	/**
+	 * Authenticates username and password combination
+	 * User can use an authentication receipt from previous login to skip extra security checks
+	 * 
+	 * @return a LoginResponse if username/password is valid
+	 * @throws org.sagebionetworks.repo.model.UnauthenticatedException If the credentials are incorrect
+	 */
+	public LoginResponse login2(LoginRequest request);
 
 	/**
 	 * Creates a scoped personal access token for the requesting user.

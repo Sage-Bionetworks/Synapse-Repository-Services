@@ -1130,6 +1130,7 @@ public class UrlHelpers {
 	public static final String AUTH_USER_PASSWORD_RESET = AUTH_USER_PASSWORD + "/reset";
 
 	public static final String AUTH_TERMS_OF_USE = "/termsOfUse";
+	public static final String AUTH_TERMS_OF_USE_V2 = "/termsOfUse2";
 	public static final String AUTH_SECRET_KEY = "/secretKey";
 
 	public static final String AUTH_PERSONAL_ACCESS_TOKEN = "/personalAccessToken";
@@ -1174,6 +1175,7 @@ public class UrlHelpers {
 
 
 	public static final String AUTH_LOGIN = "/login";
+	public static final String AUTH_LOGIN_2 = "/login2";
 	
 	/**
 	 * API for creating integration test users

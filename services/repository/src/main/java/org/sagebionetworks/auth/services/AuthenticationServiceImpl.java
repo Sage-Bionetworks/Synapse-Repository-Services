@@ -6,9 +6,11 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.authentication.PersonalAccessTokenManager;
 import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
+import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
@@ -29,8 +31,10 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 
 @Service
 public class AuthenticationServiceImpl implements AuthenticationService {
@@ -44,6 +48,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Autowired
 	private OAuthManager oauthManager;
+	
+	@Autowired
+	private OpenIDConnectManager oidcManager;
 	
 	@Autowired
 	private MessageManager messageManager;
@@ -84,7 +91,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	@WriteTransaction
-	public void signTermsOfUse(Session session) throws NotFoundException {
+	public void signTermsOfUseSession(Session session) throws NotFoundException {
 		if (session.getSessionToken() == null) {
 			throw new IllegalArgumentException("Session token may not be null");
 		}
@@ -99,6 +106,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		if (!session.getAcceptsTermsOfUse().equals(authManager.hasUserAcceptedTermsOfUse(principalId))) {
 			authManager.setTermsOfUseAcceptance(userInfo.getId(), session.getAcceptsTermsOfUse());
 		}
+	}
+	
+	@Override
+	@WriteTransaction
+	public void signTermsOfUse(AccessToken accessToken) throws NotFoundException {
+		ValidateArgument.required(accessToken.getAccessToken(), "Access token");
+		
+		Long principalId =  Long.parseLong(oidcManager.validateAccessToken(accessToken.getAccessToken()));
+		UserInfo userInfo = userManager.getUserInfo(principalId);
+		
+		// Save the state of acceptance
+		authManager.setTermsOfUseAcceptance(userInfo.getId(), true);
 	}
 	
 	@Override
@@ -192,6 +211,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Override
 	public LoginResponse login(LoginRequest request) {
 		return authManager.login(request);
+	}
+
+	@Override
+	public LoginResponse login2(LoginRequest request) {
+		return authManager.login2(request);
 	}
 
 	@Override

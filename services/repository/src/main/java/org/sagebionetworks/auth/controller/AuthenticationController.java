@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.SecretKey;
-import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.auth.*;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -43,6 +43,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.util.UriComponentsBuilder;
+
 
 /**
  * <p>
@@ -136,8 +137,21 @@ public class AuthenticationController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_LOGIN, method = RequestMethod.POST)
 	public @ResponseBody
-	LoginResponse login(@RequestBody LoginRequest request) throws NotFoundException {
+	LoginResponse loginForSessionToken(@RequestBody LoginRequest request) throws NotFoundException {
 		return authenticationService.login(request);
+	}
+
+	/**
+	 * Retrieve an access token that will be usable for 24 hours. 
+	 * The user must accept the terms of use before the access token
+	 * can be used.
+	 */
+	@RequiredScope({})
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.AUTH_LOGIN_2, method = RequestMethod.POST)
+	public @ResponseBody
+	LoginResponse login(@RequestBody LoginRequest request) throws NotFoundException {
+		return authenticationService.login2(request);
 	}
 
 	/**
@@ -196,10 +210,22 @@ public class AuthenticationController {
 	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE, method = RequestMethod.POST)
-	public void signTermsOfUse(
+	public void signTermsOfUseSessionToken(
 			@RequestBody Session session)
 			throws NotFoundException {
-		authenticationService.signTermsOfUse(session);
+		authenticationService.signTermsOfUseSession(session);
+	}
+
+	/**
+	 * Identifies a user by an access token and signs that user's terms of use
+	 */
+	@RequiredScope({modify})
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE_V2, method = RequestMethod.POST)
+	public void signTermsOfUse(
+			@RequestBody AccessToken accessToken)
+			throws NotFoundException {
+		authenticationService.signTermsOfUse(accessToken);
 	}
 
 	/**

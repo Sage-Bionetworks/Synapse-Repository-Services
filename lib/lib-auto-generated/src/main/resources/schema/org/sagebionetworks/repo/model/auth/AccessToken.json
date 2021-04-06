@@ -1,0 +1,10 @@
+{
+	"title": "Access Token", 
+	"description": "Holds an access token used for short-term authentication with Synapse",
+	"properties": {
+		"accessToken": {
+			"type": "string",
+			"description": "An access token"
+		}
+	}
+}

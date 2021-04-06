@@ -229,6 +229,26 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 
 	/**
+	 * Note: We explicitly removed the transaction annotation from this method (see:
+	 * PLFM-6562). Most login calls will not result in any database changes. A new
+	 * transaction will only be created if a database change is needed.
+	 */
+	@Override
+	public LoginResponse login2(LoginRequest request){
+		ValidateArgument.required(request, "loginRequest");
+		ValidateArgument.required(request.getUsername(), "LoginRequest.username");
+		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
+
+		final long userId = findUserIdForAuthentication(request.getUsername());
+		final String password = request.getPassword();
+		final String authenticationReceipt = request.getAuthenticationReceipt();
+
+		validateAuthReceiptAndCheckPassword(userId, password, authenticationReceipt);
+
+		return getLoginResponseAfterSuccessfulPasswordAuthentication(userId);
+	}
+
+	/**
 	 * Validate authenticationReceipt and then checks that the password is correct for the given pricipalId
 	 * @param userId id of the user
 	 * @param password password of the user
