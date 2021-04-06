@@ -345,7 +345,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	 * @param tempTableName
 	 */
 	void dropTemporaryTable(String tempTableName) {
-		String sql = String.format("DROP TEMPORARY TABLE %S", tempTableName);
+		String sql = String.format("DROP TEMPORARY TABLE IF EXISTS %S ", tempTableName);
 		jdbcTemplate.update(sql);
 	}
 
