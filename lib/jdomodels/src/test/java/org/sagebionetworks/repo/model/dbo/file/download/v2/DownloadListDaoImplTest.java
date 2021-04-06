@@ -1069,6 +1069,68 @@ public class DownloadListDaoImplTest {
 		count = downloadListDao.getTotalNumberOfFilesOnDownloadList(userTwoIdLong);
 		assertEquals(6L, count);
 	}
+	
+	@Test
+	public void testFilterNonFiles() {
+		int numberOfProject = 1;
+		int foldersPerProject = 1;
+		int filesPerFolder = 2;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		
+		Node folder = nodeDao.getNode(files.get(0).getParentId());
+		assertNotNull(folder);
+		assertEquals(EntityType.folder, folder.getNodeType());
+		Node project = nodeDao.getNode(folder.getParentId());
+		assertNotNull(project);
+		assertEquals(EntityType.project, project.getNodeType());
+		
+		List<DownloadListItem> filesV1 = files.stream()
+				.map(f -> new DownloadListItem().setFileEntityId(f.getId()).setVersionNumber(1L))
+				.collect(Collectors.toList());
+		List<DownloadListItem> filesV2 = files.stream()
+				.map(f -> new DownloadListItem().setFileEntityId(f.getId()).setVersionNumber(2L))
+				.collect(Collectors.toList());
+		List<DownloadListItem> filesVNull = files.stream()
+				.map(f -> new DownloadListItem().setFileEntityId(f.getId()).setVersionNumber(null))
+				.collect(Collectors.toList());
+		
+		List<DownloadListItem> otherTypes = Arrays.asList(
+				new DownloadListItem().setFileEntityId(folder.getId()),
+				new DownloadListItem().setFileEntityId(project.getId())
+		);
+		List<DownloadListItem> toFilter = new ArrayList<>();
+		toFilter.addAll(filesV1);
+		toFilter.addAll(otherTypes);
+		toFilter.addAll(filesV2);
+		toFilter.addAll(filesVNull);
+		
+		// call under test
+		List<DownloadListItem> results = downloadListDao.filterNonFiles(toFilter);
+		
+		List<DownloadListItem> expected = new ArrayList<>();
+		expected.addAll(filesV1);
+		expected.addAll(filesV2);
+		expected.addAll(filesVNull);
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testFilterNonFilesWithNullBatch() {
+		List<DownloadListItem> toFilter = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			downloadListDao.filterNonFiles(toFilter);
+		}).getMessage();
+		assertEquals("batch is required.", message);
+	}
+	
+	@Test
+	public void testFilterNonFilesWithEmptyBatch() {
+		List<DownloadListItem> toFilter = Collections.emptyList();
+		// call under test
+		List<DownloadListItem> results = downloadListDao.filterNonFiles(toFilter);
+		assertEquals(Collections.emptyList(), results);
+	}
 
 
 	/**

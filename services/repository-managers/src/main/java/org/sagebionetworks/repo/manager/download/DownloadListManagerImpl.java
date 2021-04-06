@@ -65,13 +65,14 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		validateUser(userInfo);
 		ValidateArgument.required(toAdd, "toAdd");
 		validateBatch(toAdd.getBatchToAdd());
+		// filter out all non-files from the input
+		List<DownloadListItem> filteredBatch = downloadListDao.filterNonFiles(toAdd.getBatchToAdd());
 		long currentFileCount = downloadListDao.getTotalNumberOfFilesOnDownloadList(userInfo.getId());
-		if (toAdd.getBatchToAdd().size() + currentFileCount > MAX_FILES_PER_USER) {
+		if (filteredBatch.size() + currentFileCount > MAX_FILES_PER_USER) {
 			throw new IllegalArgumentException(String.format(ADDING_S_FILES_EXCEEDS_LIMIT_TEMPLATE,
-					toAdd.getBatchToAdd().size(), MAX_FILES_PER_USER, currentFileCount));
+					filteredBatch.size(), MAX_FILES_PER_USER, currentFileCount));
 		}
-		long nubmerOfFilesAdded = downloadListDao.addBatchOfFilesToDownloadList(userInfo.getId(),
-				toAdd.getBatchToAdd());
+		long nubmerOfFilesAdded = downloadListDao.addBatchOfFilesToDownloadList(userInfo.getId(), filteredBatch);
 		return new AddBatchOfFilesToDownloadListResponse().setNumberOfFilesAdded(nubmerOfFilesAdded);
 	}
 
@@ -99,7 +100,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		ValidateArgument.required(requestBody, "requestBody");
 		AvailableFilesResponse availableFiles = null;
 		// The AvailableFilesRequest is optional.
-		if (requestBody.getAvailableFilesRequest() != null) {
+		if (Boolean.TRUE.equals(requestBody.getInlcudeAvaiableFiles())) {
 			availableFiles = queryAvialableFiles(userInfo, requestBody.getAvailableFilesRequest());
 		}
 		return new DownloadListQueryResponse().setAvailableFiles(availableFiles);
@@ -115,7 +116,9 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 */
 	AvailableFilesResponse queryAvialableFiles(UserInfo userInfo, AvailableFilesRequest availableRequest) {
 		validateUser(userInfo);
-		ValidateArgument.required(availableRequest, "availableRequest");
+		if(availableRequest == null) {
+			availableRequest = new AvailableFilesRequest();
+		}
 		
 		List<Sort> sort = availableRequest.getSort();
 		if (sort == null || sort.isEmpty()) {

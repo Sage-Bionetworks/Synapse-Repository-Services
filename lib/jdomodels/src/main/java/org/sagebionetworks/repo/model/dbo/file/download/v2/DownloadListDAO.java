@@ -16,7 +16,16 @@ public interface DownloadListDAO {
 	 * @return The number of files that were actually added.
 	 */
 	long addBatchOfFilesToDownloadList(Long userId, List<DownloadListItem> batchToAdd);
-
+	
+	
+	/**
+	 * For a given list of DownloadListItem, filter out all items that are not actual files.
+	 * 
+	 * @param batch
+	 * @return
+	 */
+	List<DownloadListItem> filterNonFiles(List<DownloadListItem> batch);
+	
 	/**
 	 * 
 	 * @param userId        The id of the user.

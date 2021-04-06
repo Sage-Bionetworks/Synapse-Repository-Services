@@ -7,20 +7,26 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_UPDATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_LIST_ITEM_V2;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_LIST_V2;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
@@ -422,6 +428,23 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		ValidateArgument.required(userId, "userId");
 		return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM " + TABLE_DOWNLOAD_LIST_ITEM_V2 + " WHERE "
 				+ COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID + " = ?", Long.class, userId);
+	}
+
+	@Override
+	public List<DownloadListItem> filterNonFiles(List<DownloadListItem> batch) {
+		ValidateArgument.required(batch, "batch");
+		if(batch.isEmpty()) {
+			return Collections.emptyList();
+		}
+		Set<Long> allIds = batch.stream().map(i -> KeyFactory.stringToKey(i.getFileEntityId()))
+				.collect(Collectors.toSet());
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("ids", allIds);
+		Set<Long> fileIds = new HashSet<>(namedJdbcTemplate.queryForList("SELECT " + COL_NODE_ID + " FROM " + TABLE_NODE
+				+ " WHERE " + COL_NODE_ID + " IN (:ids) AND " + COL_NODE_TYPE + " = '" + EntityType.file.name() + "'",
+				params, Long.class));
+		return batch.stream().filter(i -> fileIds.contains(KeyFactory.stringToKey(i.getFileEntityId())))
+				.collect(Collectors.toList());
 	}
 
 }

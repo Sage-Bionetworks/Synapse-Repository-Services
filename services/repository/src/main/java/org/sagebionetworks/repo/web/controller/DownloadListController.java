@@ -47,6 +47,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <td>100,000 files</td>
  * <td></td>
  * </tr>
+ * <tr>
+ * <td>Maximum batch for adding/removing files in batchs</td>
+ * <td>1000 files</td>
+ * <td></td>
+ * </tr>
  * </table>
  *
  */
@@ -65,9 +70,8 @@ public class DownloadListController {
 
 	/**
 	 * A request to add a batch of files to the user’s download list.
-	 * <p>
-	 * Note: There is a limit of 1000 files per batch.
 	 * </p>
+	 * Authentication is required. A user can only access their own download list.
 	 * 
 	 * @param userId
 	 * @param toAdd  The batch of files to add to a user's download list.
@@ -86,9 +90,8 @@ public class DownloadListController {
 
 	/**
 	 * A request to remove a batch of files from the user's download list.
-	 * <p>
-	 * Note: There is a limit of 1000 files per batch.
 	 * </p>
+	 * Authentication is required. A user can only access their own download list.
 	 * 
 	 * @param userId
 	 * @param toRemove The batch of files to remove from the user's download list.
@@ -108,6 +111,8 @@ public class DownloadListController {
 
 	/**
 	 * Clear all files from the user's download list.
+	 * </p>
+	 * Authentication is required. A user can only access their own download list.
 	 * 
 	 * @param userId
 	 * @throws DatastoreException
@@ -123,13 +128,15 @@ public class DownloadListController {
 
 	/**
 	 * Start an asynchronous job to query the user's download list.
+	 * </p>
+	 * Authentication is required. A user can only access their own download list.
 	 */
 	@RequiredScope({ view, modify, download })
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_QUERY_START_ASYNCH, method = RequestMethod.POST)
 	public @ResponseBody AsyncJobId queryAsyncStart(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody DownloadListQueryRequest request)  {
+			@RequestBody DownloadListQueryRequest request) {
 		ValidateArgument.required(request, "request");
 		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, request);
 		AsyncJobId asyncJobId = new AsyncJobId();

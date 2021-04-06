@@ -84,12 +84,13 @@ public class DownloadListManagerImplTest {
 		availableRequest.setNextPageToken(null);
 		
 		queryRequestBody = new DownloadListQueryRequest();
+		queryRequestBody.setInlcudeAvaiableFiles(true);
 		queryRequestBody.setAvailableFilesRequest(availableRequest);
 	}
 
 	@Test
 	public void testAddBatchOfFilesToDownloadList() {
-
+		when(mockDownloadListDao.filterNonFiles(anyList())).thenReturn(toAddRequest.getBatchToAdd());
 		long addedCount = 2L;
 		when(mockDownloadListDao.addBatchOfFilesToDownloadList(any(), any())).thenReturn(addedCount);
 		long totalNumberOfFilesOnList = 0L;
@@ -101,12 +102,13 @@ public class DownloadListManagerImplTest {
 				.setNumberOfFilesAdded(addedCount);
 		assertEquals(expected, response);
 		verify(mockDownloadListDao).getTotalNumberOfFilesOnDownloadList(userOne.getId());
+		verify(mockDownloadListDao).filterNonFiles(toAddRequest.getBatchToAdd());
 		verify(mockDownloadListDao).addBatchOfFilesToDownloadList(userOne.getId(), toAddRequest.getBatchToAdd());
 	}
 
 	@Test
 	public void testAddBatchOfFilesToDownloadListWithAtMaxFilesPerUser() {
-
+		when(mockDownloadListDao.filterNonFiles(anyList())).thenReturn(toAddRequest.getBatchToAdd());
 		long addedCount = 2L;
 		when(mockDownloadListDao.addBatchOfFilesToDownloadList(any(), any())).thenReturn(addedCount);
 		long totalNumberOfFilesOnList = DownloadListManagerImpl.MAX_FILES_PER_USER - addedCount;
@@ -118,12 +120,13 @@ public class DownloadListManagerImplTest {
 				.setNumberOfFilesAdded(addedCount);
 		assertEquals(expected, response);
 		verify(mockDownloadListDao).getTotalNumberOfFilesOnDownloadList(userOne.getId());
+		verify(mockDownloadListDao).filterNonFiles(toAddRequest.getBatchToAdd());
 		verify(mockDownloadListDao).addBatchOfFilesToDownloadList(userOne.getId(), toAddRequest.getBatchToAdd());
 	}
 
 	@Test
 	public void testAddBatchOfFilesToDownloadListWithOverMaxFilesPerUser() {
-
+		when(mockDownloadListDao.filterNonFiles(anyList())).thenReturn(toAddRequest.getBatchToAdd());
 		long totalNumberOfFilesOnList = DownloadListManagerImpl.MAX_FILES_PER_USER - 1L;
 		when(mockDownloadListDao.getTotalNumberOfFilesOnDownloadList(any())).thenReturn(totalNumberOfFilesOnList);
 
@@ -136,6 +139,45 @@ public class DownloadListManagerImplTest {
 				message);
 
 		verify(mockDownloadListDao).getTotalNumberOfFilesOnDownloadList(userOne.getId());
+		verify(mockDownloadListDao).filterNonFiles(toAddRequest.getBatchToAdd());
+		verify(mockDownloadListDao, never()).addBatchOfFilesToDownloadList(any(), any());
+	}
+	
+	@Test
+	public void testAddBatchOfFilesToDownloadListWithNonFilesFiltered() {
+		// filter out the second value
+		when(mockDownloadListDao.filterNonFiles(anyList())).thenReturn(toAddRequest.getBatchToAdd().subList(0, 1));
+		long addedCount = 2L;
+		when(mockDownloadListDao.addBatchOfFilesToDownloadList(any(), any())).thenReturn(addedCount);
+		long totalNumberOfFilesOnList = DownloadListManagerImpl.MAX_FILES_PER_USER - addedCount;
+		when(mockDownloadListDao.getTotalNumberOfFilesOnDownloadList(any())).thenReturn(totalNumberOfFilesOnList);
+
+		// call under test
+		AddBatchOfFilesToDownloadListResponse response = manager.addBatchOfFilesToDownloadList(userOne, toAddRequest);
+		AddBatchOfFilesToDownloadListResponse expected = new AddBatchOfFilesToDownloadListResponse()
+				.setNumberOfFilesAdded(addedCount);
+		assertEquals(expected, response);
+		verify(mockDownloadListDao).getTotalNumberOfFilesOnDownloadList(userOne.getId());
+		verify(mockDownloadListDao).filterNonFiles(toAddRequest.getBatchToAdd());
+		verify(mockDownloadListDao).addBatchOfFilesToDownloadList(userOne.getId(), toAddRequest.getBatchToAdd().subList(0, 1));
+	}
+	
+	@Test
+	public void testAddBatchOfFilesToDownloadListWithFilteredNonFilesOverMaxFilesPerUser() {
+		when(mockDownloadListDao.filterNonFiles(anyList())).thenReturn(toAddRequest.getBatchToAdd().subList(1, 2));
+		long totalNumberOfFilesOnList = DownloadListManagerImpl.MAX_FILES_PER_USER;
+		when(mockDownloadListDao.getTotalNumberOfFilesOnDownloadList(any())).thenReturn(totalNumberOfFilesOnList);
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.addBatchOfFilesToDownloadList(userOne, toAddRequest);
+		}).getMessage();
+		assertEquals(
+				"Adding '1' files to your download list would exceed the maximum number of '100000' files.  You currently have '100000' files on you download list.",
+				message);
+
+		verify(mockDownloadListDao).getTotalNumberOfFilesOnDownloadList(userOne.getId());
+		verify(mockDownloadListDao).filterNonFiles(toAddRequest.getBatchToAdd());
 		verify(mockDownloadListDao, never()).addBatchOfFilesToDownloadList(any(), any());
 	}
 
@@ -332,6 +374,28 @@ public class DownloadListManagerImplTest {
 	}
 	
 	@Test
+	public void testQueryAvialableFilesWithNullRequest() {
+		List<DownloadListItemResult> resultPage = Arrays
+				.asList((DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn1"),
+						(DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn2"),
+						(DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn3"));
+		List<Long> ids = Arrays.asList(1L, 2L, 3L);
+		setupAvailableCallback(resultPage, ids);
+		
+		availableRequest = null;
+		List<Sort> expectedSort = DownloadListManagerImpl.getDefaultSort();
+		
+		// call under test
+		AvailableFilesResponse response = manager.queryAvialableFiles(userOne, availableRequest);
+		assertNotNull(response);
+		assertEquals(resultPage, response.getPage());
+		assertNull(response.getNextPageToken());
+		verify(mockEntityAuthorizationManager).batchHasAccess(userOne, ids, ACCESS_TYPE.DOWNLOAD);
+		verify(mockDownloadListDao).getFilesAvailableToDownloadFromDownloadList(any(), eq(userOne.getId()),
+				eq(expectedSort), eq(51L), eq(0L));
+	}
+	
+	@Test
 	public void testQueryAvialableFilesWithNullSort() {
 		List<DownloadListItemResult> resultPage = Arrays
 				.asList((DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn1"),
@@ -412,17 +476,6 @@ public class DownloadListManagerImplTest {
 			manager.queryAvialableFiles(userOne, availableRequest);
 		}).getMessage();
 		assertEquals("userInfo is required.", message);
-		verifyNoMoreInteractions(mockDownloadListDao);
-	}
-	
-	@Test
-	public void testQueryAvialableFilesWithNullRequest() {
-		availableRequest = null;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			manager.queryAvialableFiles(userOne, availableRequest);
-		}).getMessage();
-		assertEquals("availableRequest is required.", message);
 		verifyNoMoreInteractions(mockDownloadListDao);
 	}
 	
