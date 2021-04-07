@@ -252,6 +252,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		return false;
 	}
 
+	@WriteTransaction
 	@Override
 	public List<DownloadListItemResult> getFilesAvailableToDownloadFromDownloadList(EntityAccessCallback accessCallback,
 			Long userId, List<Sort> sort, Long limit, Long offset) {
@@ -391,6 +392,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		return tableName;
 	}
 
+	@WriteTransaction
 	@Override
 	public List<Long> getAvailableFilesFromDownloadList(EntityAccessCallback accessCallback, Long userId,
 			int batchSize) {
