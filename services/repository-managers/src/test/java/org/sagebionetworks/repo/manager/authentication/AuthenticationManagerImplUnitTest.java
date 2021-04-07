@@ -225,7 +225,7 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockAuthDAO.changeSessionToken(eq(userId), eq((String) null))).thenReturn(synapseSessionToken);
 
 		//method under test
-		LoginResponse loginResponse = authManager.getLoginResponseAfterSuccessfulPasswordAuthentication(userId);
+		LoginResponse loginResponse = authManager.getLoginResponseWithSessionAfterSuccessfulPasswordAuthentication(userId);
 
 		assertEquals(newReceipt, loginResponse.getAuthenticationReceipt());
 		assertEquals(synapseSessionToken, loginResponse.getSessionToken());

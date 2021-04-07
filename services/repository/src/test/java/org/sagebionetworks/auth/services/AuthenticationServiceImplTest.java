@@ -176,7 +176,7 @@ public class AuthenticationServiceImplTest {
 		when(mockAuthenticationManager.getSessionToken(userId)).thenReturn(session);
 		
 		//call under test
-		Session result = service.createAccountViaOauth(request);
+		Session result = service.createAccountViaOauthForSession(request);
 		assertEquals(session, result);
 	}
 	

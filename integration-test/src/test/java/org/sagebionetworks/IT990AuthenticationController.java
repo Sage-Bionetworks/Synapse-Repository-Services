@@ -20,6 +20,7 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
@@ -65,7 +66,10 @@ public class IT990AuthenticationController {
 		nu.setUsername(username);
 		nu.setPassword(PASSWORD);
 		
-		userToDelete = adminSynapse.createUser(nu);
+
+		AccessToken accessToken = adminSynapse.createUser(nu);
+		String accessTokenSubject = SynapseClientHelper.getSubjectFromJWTAccessToken(accessToken.getAccessToken());
+		userToDelete = Long.parseLong(accessTokenSubject);
 		
 		// Construct the client, but do nothing else
 		synapse = new SynapseClientImpl();

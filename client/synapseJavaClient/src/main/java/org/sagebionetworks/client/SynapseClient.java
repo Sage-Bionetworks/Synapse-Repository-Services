@@ -391,13 +391,6 @@ public interface SynapseClient extends BaseClient {
 			String fileName, File target) throws SynapseException;
 
 	/**
-	 * Returns a Session and UserProfile object
-	 * 
-	 * Note: if the user has not accepted the terms of use, the profile will not (cannot) be retrieved
-	 */
-	public UserSessionData getUserSessionData() throws SynapseException;
-
-	/**
 	 * Create a new Entity.
 	 * 
 	 * @return the newly created entity

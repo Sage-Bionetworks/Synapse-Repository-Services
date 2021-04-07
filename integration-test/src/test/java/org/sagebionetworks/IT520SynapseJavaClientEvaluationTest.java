@@ -517,8 +517,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// Update ACL
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
-		UserSessionData session = synapseTwo.getUserSessionData();
-		Long user2Id = Long.parseLong(session.getProfile().getOwnerId());
+		Long user2Id = Long.parseLong(synapseTwo.getMyProfile().getOwnerId());
 		ra.setPrincipalId(user2Id);
 		
 		acl.getResourceAccess().add(ra);
@@ -1179,8 +1178,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		accessSet.add(ACCESS_TYPE.DELETE);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(accessSet);
-		UserSessionData session = synapseTwo.getUserSessionData();
-		Long user2Id = Long.parseLong(session.getProfile().getOwnerId());
+		Long user2Id = Long.parseLong(synapseTwo.getMyProfile().getOwnerId());
 		ra.setPrincipalId(user2Id);
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
 		raSet.add(ra);

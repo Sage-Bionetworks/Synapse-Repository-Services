@@ -7,10 +7,10 @@ import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.feature.FeatureStatus;
@@ -259,11 +259,10 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	}
 
 	@Override
-	public long createUser(NewIntegrationTestUser user) throws SynapseException {
+	public AccessToken createUser(NewIntegrationTestUser user) throws SynapseException {
 		if(user.getEmail() == null) throw new IllegalArgumentException("New users must have an email");
 		if(user.getUsername() == null) throw new IllegalArgumentException("New users must have a username");
-		EntityId id = postJSONEntity(getRepoEndpoint(), ADMIN_USER, user, EntityId.class);
-		return Long.parseLong(id.getId());
+		return postJSONEntity(getRepoEndpoint(), ADMIN_USER, user, AccessToken.class);
 	}
 
 

@@ -6,10 +6,10 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.feature.FeatureStatus;
@@ -109,7 +109,7 @@ public interface AdministrationService {
 	/**
 	 * Creates a test user
 	 */
-	public EntityId createOrGetTestUser(Long userId, NewIntegrationTestUser userSpecs) throws NotFoundException;
+	public AccessToken createOrGetTestUser(Long userId, NewIntegrationTestUser userSpecs) throws NotFoundException;
 
 	/**
 	 * Deletes a user, iff all FK constraints are met
