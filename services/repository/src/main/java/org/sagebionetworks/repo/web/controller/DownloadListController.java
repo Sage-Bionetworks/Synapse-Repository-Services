@@ -150,7 +150,7 @@ public class DownloadListController {
 	 * </p>
 	 * The download list query results can include three parts:
 	 * <ul>
-	 * <li>Files currently available for download (inlcudeAvaiableFiles=true)</li>
+	 * <li>Files currently available for download (inlcudeAvailableFiles=true)</li>
 	 * <li>Files that require the user's action before they can be downloaded
 	 * (includeActionRequired=true).</li>
 	 * <li>Statistics about the files on the user's download list
