@@ -9,16 +9,17 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Date;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
 import org.mockito.ArgumentMatchers;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationDAOImpl;
 import org.sagebionetworks.util.Clock;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -54,7 +55,7 @@ public class DBOAuthenticationDAOImplUnitTest {
 		long lastValidate = 0;
 		long now = lastValidate + 1L;
 		when(mockClock.currentTimeMillis()).thenReturn(now);
-		when(mockJdbcTemplate.queryForObject(any(String.class), ArgumentMatchers.<RowMapper<Long>>any(), ArgumentMatchers.<Object>any())).thenReturn(lastValidate);
+		when(mockJdbcTemplate.queryForObject(any(String.class), ArgumentMatchers.<RowMapper<Date>>any(), ArgumentMatchers.<Object>any())).thenReturn(new Date(lastValidate));
 		// call under test
 		assertFalse("The token did not need to be validated yet",authDao.revalidateSessionTokenIfNeeded(principalId));
 		verify(mockUserGroupDao, never()).touch(anyLong());
@@ -70,7 +71,7 @@ public class DBOAuthenticationDAOImplUnitTest {
 		long lastValidate = 1;
 		long now = lastValidate + DBOAuthenticationDAOImpl.HALF_SESSION_EXPIRATION+1L;
 		when(mockClock.currentTimeMillis()).thenReturn(now);
-		when(mockJdbcTemplate.queryForObject(any(String.class), ArgumentMatchers.<RowMapper<Long>>any(),ArgumentMatchers.<Object>any())).thenReturn(lastValidate);
+		when(mockJdbcTemplate.queryForObject(any(String.class), ArgumentMatchers.<RowMapper<Date>>any(),ArgumentMatchers.<Object>any())).thenReturn(new Date(lastValidate));
 		// call under test
 		assertTrue("The token needed to be revalidated",authDao.revalidateSessionTokenIfNeeded(principalId));
 		verify(mockUserGroupDao).touch(principalId);

@@ -516,7 +516,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());	
-		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
+		when(mockAuthDao.getAuthenticatedOn(USER_ID_LONG)).thenReturn(now);
 		when(mockClock.now()).thenReturn(new Date());
 
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
@@ -671,7 +671,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
-		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
+		when(mockAuthDao.getAuthenticatedOn(USER_ID_LONG)).thenReturn(now);
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 		when(mockClock.now()).thenReturn(new Date());
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID_LONG)).thenReturn(EMAIL);
@@ -735,7 +735,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
-		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
+		when(mockAuthDao.getAuthenticatedOn(USER_ID_LONG)).thenReturn(now);
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 		when(mockClock.now()).thenReturn(new Date());
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID_LONG)).thenReturn(EMAIL);
@@ -850,7 +850,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());	
-		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
+		when(mockAuthDao.getAuthenticatedOn(USER_ID_LONG)).thenReturn(now);
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 		when(mockClock.now()).thenReturn(new Date());
 
@@ -873,7 +873,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());	
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
-		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
+		when(mockAuthDao.getAuthenticatedOn(USER_ID_LONG)).thenReturn(now);
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 		when(mockClock.now()).thenReturn(new Date());
 
@@ -957,7 +957,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID_LONG)).thenReturn(EMAIL);
 		when(mockUserProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
 		Date authenticationTime = new Date(now.getTime()-1000L*3600*24*7); // we logged in a week ago
-		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(authenticationTime);
+		when(mockAuthDao.getAuthenticatedOn(USER_ID_LONG)).thenReturn(authenticationTime);
 
 		// This will be the new token and metadata
 		OAuthRefreshTokenAndMetadata expectedRefreshTokenAndId = createRotatedToken();
@@ -1045,7 +1045,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 		Date authenticationTime = new Date(now.getTime()-1000L*3600*24*7); // we logged in a week ago
-		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(authenticationTime);
+		when(mockAuthDao.getAuthenticatedOn(USER_ID_LONG)).thenReturn(authenticationTime);
 
 		// This will be the new token and metadata
 		OAuthRefreshTokenAndMetadata expectedRefreshTokenAndId = createRotatedToken();
@@ -1088,7 +1088,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID_LONG)).thenReturn(EMAIL);
 		when(mockUserProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
 		Date authenticationTime = new Date(now.getTime()-1000L*3600*24*7); // we logged in a week ago
-		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(authenticationTime);
+		when(mockAuthDao.getAuthenticatedOn(USER_ID_LONG)).thenReturn(authenticationTime);
 
 		// This will be the new token and metadata
 		OAuthRefreshTokenAndMetadata expectedRefreshTokenAndId = createRotatedToken();
@@ -1190,7 +1190,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	public void testGetUserInfoAsJWT() {
 		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
-		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
+		when(mockAuthDao.getAuthenticatedOn(USER_ID_LONG)).thenReturn(now);
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID_LONG)).thenReturn(EMAIL);
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);

@@ -168,14 +168,11 @@ public class AdministrationServiceImpl implements AdministrationService  {
 			cred.setPassHash(PBKDF2Utils.hashPassword(userSpecs.getPassword(), null));
 		}
 		if (userSpecs.getSession() != null) {
-			Date date = new Date();
-
 			touAgreement = new DBOTermsOfUseAgreement();
 			touAgreement.setAgreesToTermsOfUse(userSpecs.getSession().getAcceptsTermsOfUse());
 
 			token = new DBOSessionToken();
 			token.setSessionToken(userSpecs.getSession().getSessionToken());
-			token.setValidatedOn(date);
 		}
 		
 		NewUser nu = new NewUser();

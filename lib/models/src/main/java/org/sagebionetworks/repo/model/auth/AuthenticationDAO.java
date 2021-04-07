@@ -59,7 +59,7 @@ public interface AuthenticationDAO {
 	 * @param principalId
 	 * @return the validation time stamp or null, if there is no session
 	 */
-	public Date getSessionValidatedOn(long principalId) ;
+	public Date getAuthenticatedOn(long principalId) ;
 	
 	/**
 	 * Nullifies the session token
