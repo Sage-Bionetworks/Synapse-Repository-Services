@@ -41,6 +41,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 public class DownloadListQueryWorkerIntegrationTest {
 
 	public static final long MAX_WAIT_MS = 1000 * 30;
+	
+	public static final int MAX_RETRIES = 25;
 
 	@Autowired
 	private UserManager userManager;
@@ -96,7 +98,7 @@ public class DownloadListQueryWorkerIntegrationTest {
 		List<DownloadListItem> batch = Arrays.asList(new DownloadListItem().setFileEntityId(file.getId()));
 		downloadListDao.addBatchOfFilesToDownloadList(user.getId(), batch);
 
-		DownloadListQueryRequest request = new DownloadListQueryRequest()
+		DownloadListQueryRequest request = new DownloadListQueryRequest().setInlcudeAvailableFiles(true)
 				.setAvailableFilesRequest(new AvailableFilesRequest());
 		// call under test
 		asynchronousJobWorkerHelper.assertJobResponse(user, request, (DownloadListQueryResponse response) -> {
@@ -107,7 +109,7 @@ public class DownloadListQueryWorkerIntegrationTest {
 			assertEquals(1, page.size());
 			DownloadListItemResult item = page.get(0);
 			assertEquals(file.getId(), item.getFileEntityId());
-		}, MAX_WAIT_MS);
+		}, MAX_WAIT_MS, MAX_RETRIES);
 	}
 
 	/**
