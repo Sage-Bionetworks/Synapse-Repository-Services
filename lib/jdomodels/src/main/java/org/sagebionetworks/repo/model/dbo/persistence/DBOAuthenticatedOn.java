@@ -8,6 +8,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_AUTHEN
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 
@@ -39,7 +40,8 @@ public class DBOAuthenticatedOn implements MigratableDatabaseObject<DBOAuthentic
 				DBOAuthenticatedOn dbo = new DBOAuthenticatedOn();
 				dbo.setPrincipalId(rs.getLong(COL_AUTHENTICATED_ON_PRINCIPAL_ID));
 				dbo.setEtag(rs.getString(COL_AUTHENTICATED_ON_ETAG));
-				dbo.setAuthenticatedOn(rs.getDate(COL_AUTHENTICATED_ON_AUTHENTICATED_ON));
+				Timestamp ts = rs.getTimestamp(COL_AUTHENTICATED_ON_AUTHENTICATED_ON);
+				dbo.setAuthenticatedOn(ts==null ? null : new Date(ts.getTime()));
 				return dbo;
 			}
 
