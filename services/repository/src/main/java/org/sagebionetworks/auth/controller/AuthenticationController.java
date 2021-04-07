@@ -10,6 +10,7 @@ import org.sagebionetworks.auth.DeprecatedUtils;
 import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
@@ -19,7 +20,7 @@ import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.SecretKey;
-import org.sagebionetworks.repo.model.auth.*;
+import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -124,21 +125,17 @@ public class AuthenticationController {
 			@RequestBody LoginCredentials credentials)
 			throws NotFoundException {
 		LoginRequest request = DeprecatedUtils.createLoginRequest(credentials);
-		LoginResponse loginResponse =  authenticationService.login(request);
+		LoginResponse loginResponse =  authenticationService.loginForSession(request);
 		return DeprecatedUtils.createSession(loginResponse);
 	}
 
-	/**
-	 * Retrieve a session token that will be usable for 24 hours or until
-	 * invalidated. The user must accept the terms of use before a session token
-	 * is issued.
-	 */
+	@Deprecated
 	@RequiredScope({})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_LOGIN, method = RequestMethod.POST)
 	public @ResponseBody
 	LoginResponse loginForSessionToken(@RequestBody LoginRequest request) throws NotFoundException {
-		return authenticationService.login(request);
+		return authenticationService.loginForSession(request);
 	}
 
 	/**
@@ -150,8 +147,10 @@ public class AuthenticationController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_LOGIN_2, method = RequestMethod.POST)
 	public @ResponseBody
-	LoginResponse login(@RequestBody LoginRequest request) throws NotFoundException {
-		return authenticationService.login2(request);
+	LoginResponse login(@RequestBody LoginRequest request,
+			UriComponentsBuilder uriComponentsBuilder
+	) throws NotFoundException {
+		return authenticationService.login(request, EndpointHelper.getEndpoint(uriComponentsBuilder));
 	}
 
 	/**
@@ -204,9 +203,7 @@ public class AuthenticationController {
 		authenticationService.changePassword(request);
 	}
 
-	/**
-	 * Identifies a user by a session token and signs that user's terms of use
-	 */
+	@Deprecated
 	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE, method = RequestMethod.POST)
@@ -279,9 +276,19 @@ public class AuthenticationController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_AUTH_URL, method = RequestMethod.POST)
 	public @ResponseBody
-	OAuthUrlResponse getSessionTokenViaOAuth2(
+	OAuthUrlResponse getRedirectURLForOAuth2Authentication(
 			@RequestBody OAuthUrlRequest request) throws Exception {
 		return authenticationService.getOAuthAuthenticationUrl(request);
+	}
+
+	@Deprecated
+	@RequiredScope({})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_SESSION, method = RequestMethod.POST)
+	public @ResponseBody
+	Session validateOAuthSessionAndReturnSession(@RequestBody OAuthValidationRequest request)
+			throws Exception {
+		return authenticationService.validateOAuthAuthenticationCodeAndLoginForSession(request);
 	}
 
 	/**
@@ -291,23 +298,22 @@ public class AuthenticationController {
 	 * represent the authorization code for the user. This method will use the
 	 * authorization code to validate the user and fetch information about the
 	 * user from the OAuthProvider. If Synapse can match the user's information
-	 * to a Synapse user then a session token for the user will be returned.
+	 * to a Synapse user then an access token for the user will be returned.
 	 * 
 	 * Note: If Synapse cannot match the user's information to an existing
 	 * Synapse user, then a status code of 404 (not found) will be returned. The
 	 * user should be prompted to create an account.
 	 * 
-	 * @param request
-	 * @return
-	 * @throws Exception
 	 */
 	@RequiredScope({})
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_SESSION, method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_SESSION_V2, method = RequestMethod.POST)
 	public @ResponseBody
-	Session validateOAuthSession(@RequestBody OAuthValidationRequest request)
+	AccessToken validateOAuthSessionAndReturnAccessToken(
+			@RequestBody OAuthValidationRequest request,
+			UriComponentsBuilder uriComponentsBuilder)
 			throws Exception {
-		return authenticationService.validateOAuthAuthenticationCodeAndLogin(request);
+		return authenticationService.validateOAuthAuthenticationCodeAndLogin(request, EndpointHelper.getEndpoint(uriComponentsBuilder));
 	}
 
 	/**
@@ -335,6 +341,16 @@ public class AuthenticationController {
 		return authenticationService.bindExternalID(userId, request);
 	}
 	
+	@Deprecated
+	@RequiredScope({})
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_ACCOUNT, method = RequestMethod.POST)
+	public @ResponseBody
+	Session createAccountViaOAuth2ForSession(@RequestBody OAuthAccountCreationRequest request)
+			throws Exception {
+		return authenticationService.createAccountViaOauthForSession(request);
+	}
+	
 	/**
 	 * After a user has been authenticated at an OAuthProvider's web page, the
 	 * provider will redirect the browser to the provided redirectUrl. The
@@ -343,7 +359,7 @@ public class AuthenticationController {
 	 * authorization code to validate the user and fetch the user's email address
 	 * from the OAuthProvider. If there is no existing account using the email address
 	 * from the provider then a new account will be created, the user will be authenticated,
-	 * and a session will be returned.
+	 * and an access token will be returned.
 	 * 
 	 * If the email address from the provider is already associated with an account or
 	 * if the passed user name is used by another account then the request will
@@ -355,11 +371,12 @@ public class AuthenticationController {
 	 */
 	@RequiredScope({})
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_ACCOUNT, method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_ACCOUNT_V2, method = RequestMethod.POST)
 	public @ResponseBody
-	Session createAccountViaOAuth2(@RequestBody OAuthAccountCreationRequest request)
+	AccessToken createAccountViaOAuth2(@RequestBody OAuthAccountCreationRequest request,
+			UriComponentsBuilder uriComponentsBuilder)
 			throws Exception {
-		return authenticationService.createAccountViaOauth(request);
+		return authenticationService.createAccountViaOauth(request, EndpointHelper.getEndpoint(uriComponentsBuilder));
 	}
 	
 	/**
@@ -411,7 +428,7 @@ public class AuthenticationController {
 			UriComponentsBuilder uriComponentsBuilder
 	) {
 		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
-		return authenticationService.createPersonalAccessToken(userId, accessToken, request, OpenIDConnectController.getEndpoint(uriComponentsBuilder));
+		return authenticationService.createPersonalAccessToken(userId, accessToken, request, EndpointHelper.getEndpoint(uriComponentsBuilder));
 	}
 
 	/**

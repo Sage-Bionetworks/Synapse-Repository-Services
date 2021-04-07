@@ -95,11 +95,16 @@ public interface AuthenticationService {
 
 	public OAuthUrlResponse getOAuthAuthenticationUrl(OAuthUrlRequest request);
 
-	public Session validateOAuthAuthenticationCodeAndLogin(
+	public Session validateOAuthAuthenticationCodeAndLoginForSession(
 			OAuthValidationRequest request) throws NotFoundException;
 	
-	public Session createAccountViaOauth(OAuthAccountCreationRequest request) throws NotFoundException;
+	public AccessToken validateOAuthAuthenticationCodeAndLogin(
+			OAuthValidationRequest request, String tokenIssuer) throws NotFoundException;
+	
+	@Deprecated
+	public Session createAccountViaOauthForSession(OAuthAccountCreationRequest request) throws NotFoundException;
 
+	public AccessToken createAccountViaOauth(OAuthAccountCreationRequest request, String tokenIssuer) throws NotFoundException;
 
 	public PrincipalAlias bindExternalID(Long userId, OAuthValidationRequest validationRequest);
 
@@ -112,7 +117,7 @@ public interface AuthenticationService {
 	 * @return a LoginResponse if username/password is valid
 	 * @throws org.sagebionetworks.repo.model.UnauthenticatedException If the credentials are incorrect
 	 */
-	public LoginResponse login(LoginRequest request);
+	public LoginResponse loginForSession(LoginRequest request);
 
 	/**
 	 * Authenticates username and password combination
@@ -121,7 +126,7 @@ public interface AuthenticationService {
 	 * @return a LoginResponse if username/password is valid
 	 * @throws org.sagebionetworks.repo.model.UnauthenticatedException If the credentials are incorrect
 	 */
-	public LoginResponse login2(LoginRequest request);
+	public LoginResponse login(LoginRequest request, String tokenIssuer);
 
 	/**
 	 * Creates a scoped personal access token for the requesting user.

@@ -48,7 +48,7 @@ public class AuthenticationManagerImplAutowiredTest {
 			authenticationManager.setPassword(createdUserId, password);
 
 
-			assertNotNull(authenticationManager.login(loginRequest));
+			assertNotNull(authenticationManager.loginForSession(loginRequest));
 		}
 	}
 
@@ -66,7 +66,7 @@ public class AuthenticationManagerImplAutowiredTest {
 		try {
 			for (int i = 0; i < 10; i++) {
 				try {
-					authenticationManager.login(loginRequest);
+					authenticationManager.loginForSession(loginRequest);
 					Thread.sleep(10);
 					fail("expected exception to be throw for wrong password");
 				} catch (UnauthenticatedException e) {

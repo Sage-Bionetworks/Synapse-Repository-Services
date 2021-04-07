@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.principal;
 import java.util.Date;
 
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -43,13 +44,16 @@ public interface PrincipalManager {
 	 */
 	void newAccountEmailValidation(NewUser user, String portalEndpoint, Date now);
 	
+	@Deprecated
+	LoginResponse createNewAccountForSession(AccountSetupInfo accountSetupInfo) throws NotFoundException;
+	
 	/**
 	 * Create a new account, following email validation
 	 * @param accountSetupInfo
 	 * @return session
 	 * @throws NotFoundException 
 	 */
-	LoginResponse createNewAccount(AccountSetupInfo accountSetupInfo) throws NotFoundException;
+	LoginResponse createNewAccount(AccountSetupInfo accountSetupInfo, String tokenIssuer) throws NotFoundException;
 	
 	/**
 	 * Send an email validation as a precursor to adding a new email address to an existing account.

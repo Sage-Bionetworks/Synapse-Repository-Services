@@ -94,7 +94,7 @@ public class DockerClientAuthFilter extends BasicAuthenticationFilter {
 			credential.setPassword(credentials.getPassword());
 			
 			try {
-				authenticationService.login(credential);
+				authenticationService.loginForSession(credential);
 			} catch (UnauthenticatedException e) {
 				return Optional.empty();
 			}
@@ -106,7 +106,7 @@ public class DockerClientAuthFilter extends BasicAuthenticationFilter {
 				return Optional.empty();
 			}
 			Long userId = alias.getPrincipalId();
-			String accessToken = oidcTokenHelper.createTotalAccessToken(userId);
+			String accessToken = oidcTokenHelper.createInternalTotalAccessToken(userId);
 			return Optional.of(new UserIdAndAccessToken(userId.toString(), accessToken));
 		}
 	}

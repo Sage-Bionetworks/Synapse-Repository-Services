@@ -202,7 +202,7 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
 
 		// call under test
-		LoginResponse response = authManager.login(loginRequest);
+		LoginResponse response = authManager.loginForSession(loginRequest);
 		assertNotNull(response);
 		assertEquals(newReceipt, response.getAuthenticationReceipt());
 		assertEquals(synapseSessionToken, response.getSessionToken());

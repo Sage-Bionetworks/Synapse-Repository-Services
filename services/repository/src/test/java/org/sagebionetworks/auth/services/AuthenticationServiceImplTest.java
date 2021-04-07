@@ -155,7 +155,7 @@ public class AuthenticationServiceImplTest {
 		session.setSessionToken("token");
 		when(mockAuthenticationManager.getSessionToken(userId)).thenReturn(session);
 		//call under test
-		Session result = service.validateOAuthAuthenticationCodeAndLogin(request);
+		Session result = service.validateOAuthAuthenticationCodeAndLoginForSession(request);
 		assertEquals(session, result);
 	}
 	
@@ -196,7 +196,7 @@ public class AuthenticationServiceImplTest {
 		session.setSessionToken("token");
 
 		//call under test
-		assertThrows(IllegalArgumentException.class, ()->service.validateOAuthAuthenticationCodeAndLogin(request));
+		assertThrows(IllegalArgumentException.class, ()->service.validateOAuthAuthenticationCodeAndLoginForSession(request));
 	}
 	
 	@Test
@@ -242,10 +242,10 @@ public class AuthenticationServiceImplTest {
 	
 	@Test
 	public void testLogin() {
-		when(mockAuthenticationManager.login(loginRequest)).thenReturn(loginResponse);
+		when(mockAuthenticationManager.loginForSession(loginRequest)).thenReturn(loginResponse);
 
 		// call under test
-		LoginResponse response = service.login(loginRequest);
+		LoginResponse response = service.loginForSession(loginRequest);
 		assertNotNull(response);
 		assertEquals(loginResponse, response);
 	}
@@ -259,7 +259,7 @@ public class AuthenticationServiceImplTest {
 		// NotFoundException should be converted to UnauthenticatedException;
 		try {
 			// call under test
-			service.login(loginRequest);
+			service.loginForSession(loginRequest);
 		} catch (UnauthenticatedException e) {
 			assertEquals(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT, e.getMessage());
 		}

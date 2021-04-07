@@ -200,6 +200,11 @@ public class AuthorizationConstants {
 	 */
 	public static final String SYNAPSE_OAUTH_CLIENT_ID = "0";
 	
+	/**
+	 * The time, in seconds, that an access token lasts
+	 */
+	public static final long ACCESS_TOKEN_EXPIRATION_TIME_SECONDS = 3600*24L; // a day
+
 	
 	/**
 	 * Request parameters for the Synapse OAuth server, defined by

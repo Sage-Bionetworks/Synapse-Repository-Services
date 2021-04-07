@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.authentication.PersonalAccessTokenManager;
 import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -58,6 +59,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Autowired
 	private PersonalAccessTokenManager personalAccessTokenManager;
 
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+	
 	@Override
 	@WriteTransaction
 	public Long revalidate(String sessionToken) throws NotFoundException {
@@ -155,8 +159,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		return response;
 	}
 
+	@Deprecated
 	@Override
-	public Session validateOAuthAuthenticationCodeAndLogin(
+	public Session validateOAuthAuthenticationCodeAndLoginForSession(
 			OAuthValidationRequest request) throws NotFoundException {
 		// Use the authentication code to lookup the user's information.
 		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
@@ -170,8 +175,29 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		return authManager.getSessionToken(emailAlias.getPrincipalId());
 	}
 	
+	@Override
+	public AccessToken validateOAuthAuthenticationCodeAndLogin(
+			OAuthValidationRequest request, String tokenIssuer) throws NotFoundException {
+		// Use the authentication code to lookup the user's information.
+		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
+				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
+		if(providedInfo.getUsersVerifiedEmail() == null){
+			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide a user email");
+		}
+		// This is the ID of the user within the provider's system.
+		PrincipalAlias emailAlias = userManager.lookupUserByUsernameOrEmail(providedInfo.getUsersVerifiedEmail());
+		// Return the user's session token
+		
+		String accessToken = oidcTokenHelper.createClientTotalAccessToken(emailAlias.getPrincipalId(), tokenIssuer);
+		AccessToken result = new AccessToken();
+		result.setAccessToken(accessToken);
+
+		return result;
+	}
+	
+	@Deprecated
 	@WriteTransaction
-	public Session createAccountViaOauth(OAuthAccountCreationRequest request) {
+	public Session createAccountViaOauthForSession(OAuthAccountCreationRequest request) {
 		// Use the authentication code to lookup the user's information.
 		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
 				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
@@ -188,6 +214,29 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		
 		Session session = authManager.getSessionToken(newPrincipalId);
 		return session;
+	}
+	
+	@WriteTransaction
+	public AccessToken createAccountViaOauth(OAuthAccountCreationRequest request, String tokenIssuer) {
+		// Use the authentication code to lookup the user's information.
+		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
+				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
+		if(providedInfo.getUsersVerifiedEmail() == null){
+			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide a user email");
+		}
+		// create account with the returned user info.
+		NewUser newUser = new NewUser();
+		newUser.setEmail(providedInfo.getUsersVerifiedEmail());
+		newUser.setFirstName(providedInfo.getFirstName());
+		newUser.setLastName(providedInfo.getLastName());
+		newUser.setUserName(request.getUserName());
+		long newPrincipalId = userManager.createUser(newUser);
+		
+		String accessToken = oidcTokenHelper.createClientTotalAccessToken(newPrincipalId, tokenIssuer);
+		AccessToken result = new AccessToken();
+		result.setAccessToken(accessToken);
+
+		return result;
 	}
 	
 	@Override
@@ -209,13 +258,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 
 	@Override
-	public LoginResponse login(LoginRequest request) {
-		return authManager.login(request);
+	public LoginResponse loginForSession(LoginRequest request) {
+		return authManager.loginForSession(request);
 	}
 
 	@Override
-	public LoginResponse login2(LoginRequest request) {
-		return authManager.login2(request);
+	public LoginResponse login(LoginRequest request, String tokenIssuer) {
+		return authManager.login(request, tokenIssuer);
 	}
 
 	@Override

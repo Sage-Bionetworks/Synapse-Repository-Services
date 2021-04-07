@@ -167,7 +167,7 @@ public class AuthenticationFilterTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		MockFilterChain filterChain = new MockFilterChain();
 		
-		when(oidcTokenHelper.createTotalAccessToken(userId)).thenReturn(BEARER_TOKEN);
+		when(oidcTokenHelper.createInternalTotalAccessToken(userId)).thenReturn(BEARER_TOKEN);
 
 		// method under test
 		filter.doFilter(request, response, filterChain);
@@ -190,7 +190,7 @@ public class AuthenticationFilterTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		MockFilterChain filterChain = new MockFilterChain();
 		
-		when(oidcTokenHelper.createTotalAccessToken(userId)).thenReturn(BEARER_TOKEN);
+		when(oidcTokenHelper.createInternalTotalAccessToken(userId)).thenReturn(BEARER_TOKEN);
 
 		// method under test
 		filter.doFilter(request, response, filterChain);
@@ -231,7 +231,7 @@ public class AuthenticationFilterTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		MockFilterChain filterChain = new MockFilterChain();
 		
-		when(oidcTokenHelper.createTotalAccessToken(userId)).thenReturn(BEARER_TOKEN);
+		when(oidcTokenHelper.createInternalTotalAccessToken(userId)).thenReturn(BEARER_TOKEN);
 
 		// method under test
 		filter.doFilter(request, response, filterChain);
