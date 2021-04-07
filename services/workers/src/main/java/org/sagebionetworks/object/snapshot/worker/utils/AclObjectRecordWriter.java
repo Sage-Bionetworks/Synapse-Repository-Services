@@ -7,6 +7,9 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
+import org.sagebionetworks.audit.kinesis.ObjectRecordLogger;
+import org.sagebionetworks.audit.kinesis.AclKinesisLogRecord;
+import org.sagebionetworks.audit.kinesis.AclKinesisLogRecordUtils;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -26,6 +29,8 @@ public class AclObjectRecordWriter implements ObjectRecordWriter {
 	private AccessControlListDAO accessControlListDao;
 	@Autowired
 	private ObjectRecordDAO objectRecordDAO;
+	@Autowired
+	private ObjectRecordLogger objectRecordLogger;
 
 	/**
 	 * Build an AclRecord that wrap around AccessControlList object and contains
@@ -51,6 +56,7 @@ public class AclObjectRecordWriter implements ObjectRecordWriter {
 	@Override
 	public void buildAndWriteRecords(ProgressCallback progressCallback, List<ChangeMessage> messages) throws IOException {
 		List<ObjectRecord> toWrite = new LinkedList<ObjectRecord>();
+		List<AclKinesisLogRecord> kinesisToWrite = new LinkedList<AclKinesisLogRecord>();
 		for (ChangeMessage message : messages) {
 			if (message.getObjectType() != ObjectType.ACCESS_CONTROL_LIST) {
 				throw new IllegalArgumentException();
@@ -64,12 +70,15 @@ public class AclObjectRecordWriter implements ObjectRecordWriter {
 				AclRecord record = buildAclRecord(acl, accessControlListDao.getOwnerType(Long.parseLong(message.getObjectId())));
 				ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime());
 				toWrite.add(objectRecord);
+				AclKinesisLogRecord aclKinesisLogRecord = AclKinesisLogRecordUtils.buildAclKinesisLogRecord(record, message.getTimestamp().getTime());
+				kinesisToWrite.add(aclKinesisLogRecord);
 			} catch (NotFoundException e) {
 				log.error("Cannot find acl for a " + message.getChangeType() + " message: " + message.toString()) ;
 			}
 		}
 		if (!toWrite.isEmpty()) {
 			objectRecordDAO.saveBatch(toWrite, toWrite.get(0).getJsonClassName());
+			objectRecordLogger.saveBatch(AclKinesisLogRecord.KINESIS_STREAM_NAME, kinesisToWrite);
 		}
 	}
 
