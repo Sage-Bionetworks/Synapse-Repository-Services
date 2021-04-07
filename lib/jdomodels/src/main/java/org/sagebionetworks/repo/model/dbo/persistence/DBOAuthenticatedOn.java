@@ -3,9 +3,6 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTICATED_ON_AUTHENTICATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTICATED_ON_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTICATED_ON_PRINCIPAL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_AUTHENTICATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_AUTHENTICATED_ON;
 
@@ -40,9 +37,9 @@ public class DBOAuthenticatedOn implements MigratableDatabaseObject<DBOAuthentic
 			@Override
 			public DBOAuthenticatedOn mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOAuthenticatedOn dbo = new DBOAuthenticatedOn();
-				dbo.setPrincipalId(rs.getLong(COL_FORM_DATA_ID));
-				dbo.setEtag(rs.getString(COL_FORM_DATA_ETAG));
-				dbo.setAuthenticatedOn(rs.getDate(COL_FORM_DATA_NAME));
+				dbo.setPrincipalId(rs.getLong(COL_AUTHENTICATED_ON_PRINCIPAL_ID));
+				dbo.setEtag(rs.getString(COL_AUTHENTICATED_ON_ETAG));
+				dbo.setAuthenticatedOn(rs.getDate(COL_AUTHENTICATED_ON_AUTHENTICATED_ON));
 				return dbo;
 			}
 
@@ -93,7 +90,7 @@ public class DBOAuthenticatedOn implements MigratableDatabaseObject<DBOAuthentic
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return MigrationType.SESSION_TOKEN;
+		return MigrationType.AUTHENTICATED_ON;
 	}
 
 	@Override

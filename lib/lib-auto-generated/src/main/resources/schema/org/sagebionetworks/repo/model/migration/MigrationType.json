@@ -23,6 +23,10 @@
 			"description": "TODO: Auto-generated description"
 		},
 		{
+			"name": "AUTHENTICATED_ON",
+			"description": "User authenticated date"
+		},
+		{
 			"name": "PRINCIPAL_ALIAS",
 			"description": "TODO: Auto-generated description"
 		},
