@@ -355,7 +355,7 @@ public class DBOAuthenticationDAOImplTest {
 		
 		// check that 'userId's validation date is as expected
 		Date validatedOn = authDAO.getAuthenticatedOn(userId);
-		assertEquals(VALIDATED_ON, validatedOn);
+		assertEquals(VALIDATED_ON.getTime(), validatedOn.getTime());
 		
 		
 	}

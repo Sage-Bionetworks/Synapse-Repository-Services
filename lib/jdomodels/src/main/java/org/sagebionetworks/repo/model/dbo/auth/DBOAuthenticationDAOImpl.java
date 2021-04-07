@@ -166,16 +166,16 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	@WriteTransaction
 	public boolean revalidateSessionTokenIfNeeded(long principalId) {
 		// Determine the last time the token was re-validate.
-		Long lastValidatedOn = jdbcTemplate.queryForObject(SELECT_AUTHENTICATED_ON_FOR_PRINCIPAL_ID, new SingleColumnRowMapper<Long>(), principalId);
+		Date lastValidatedOn = jdbcTemplate.queryForObject(SELECT_AUTHENTICATED_ON_FOR_PRINCIPAL_ID, new SingleColumnRowMapper<Date>(), principalId);
 		long now = clock.currentTimeMillis();
 		/*
 		 * Only revalidate a token if it is past its half-life.
 		 * See: PLFM-3202 & PLFM-3206
 		 */
-		if(lastValidatedOn + HALF_SESSION_EXPIRATION < now){
+		if(lastValidatedOn.getTime() + HALF_SESSION_EXPIRATION < now){
 			// The session token needs to be revaldiated.
 			userGroupDAO.touch(principalId);
-			jdbcTemplate.update(UPDATE_AUTHENTICATED_ON, clock.currentTimeMillis(), principalId);
+			jdbcTemplate.update(UPDATE_AUTHENTICATED_ON, clock.now(), principalId);
 			return true;
 		}else{
 			// no need to update.
@@ -214,9 +214,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	@Override
 	public Date getAuthenticatedOn(long principalId) {
 		try {
-			Long validatedOn = jdbcTemplate.queryForObject(SELECT_AUTHENTICATED_ON_FOR_PRINCIPAL_ID, Long.class, principalId);
-			if (validatedOn==null) return null;
-			return new Date(validatedOn);
+			return jdbcTemplate.queryForObject(SELECT_AUTHENTICATED_ON_FOR_PRINCIPAL_ID, Date.class, principalId);
 		} catch (EmptyResultDataAccessException e) {
 			return null;
 		}
@@ -227,7 +225,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		long time = now.getTime() - SESSION_EXPIRATION_TIME;
 		try {
 			return jdbcTemplate.queryForObject(SELECT_SESSION_TOKEN_BY_PRINCIPAL_ID_IF_VALID, sessionRowMapper,
-					principalId, time);
+					principalId, new Date(time));
 		} catch(EmptyResultDataAccessException e) {
 			return null;
 		}
