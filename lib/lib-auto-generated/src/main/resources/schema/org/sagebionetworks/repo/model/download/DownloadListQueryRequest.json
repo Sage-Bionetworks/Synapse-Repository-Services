@@ -1,20 +1,24 @@
 {
-	"description": "A request to start an asynchronous job to query a user's download list.  Set inlcudeAvaiableFiles=true to get and AvailableFilesResonse.  Set inlcudeStatistics=true to get DownloadListStatistics.",
+	"description": "A request to start an asynchronous job to query a user's download list.  Set inlcudeAvailableFiles=true to get and AvailableFilesResonse.  Set inlcudeStatistics=true to get DownloadListStatistics.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
 		}
 	],
 	"properties": {
-		"inlcudeAvaiableFiles": {
+		"inlcudeAvailableFiles": {
 			"description": "Optional.  When included and set to true, the results will include AvailableFilesResonse about the files on the user's download list.",
 			"type": "boolean"
 		},
 		"availableFilesRequest": {
-			"description": "Only used when inlcudeAvaiableFiles=true. Used to control sorting and/or pagination of the AvailableFilesResonse.",
+			"description": "When inlcudeAvailableFiles=true, use this request to control sorting and/or pagination of the AvailableFilesResonse.",
 			"$ref": "org.sagebionetworks.repo.model.download.AvailableFilesRequest"
 		},
 		"inlcudeStatistics": {
+			"description": "Optional.  When included and set to true, the results will include DownloadListStatistics about the files on the user's download list.",
+			"type": "boolean"
+		},
+		"includeActionRequired": {
 			"description": "Optional.  When included and set to true, the results will include DownloadListStatistics about the files on the user's download list.",
 			"type": "boolean"
 		}

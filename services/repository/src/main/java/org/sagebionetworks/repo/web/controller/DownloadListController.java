@@ -14,8 +14,6 @@ import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListResponse;
-import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
-import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -34,8 +32,26 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * Services for managing a user's download list. <b>Download List Service
- * Limits</b>
+ * Services for managing a user's download list.
+ * </p>
+ * Files can be added to the user's download list using
+ * <a href="${POST.download.list.add}">POST /download/list/add</a>. Files can be
+ * removed from the user's download by calling either
+ * <a href="${POST.download.list.remove}">POST /download/list/remove</a>, or the
+ * entire list can be cleared with: <a href="${DELETE.download.list}">DELETE
+ * /download/list</a>.
+ * </p>
+ * In order to query the files on a user's download list, first start an
+ * asynchronous job using <a href="${POST.download.list.query.async.start}">POST
+ * /download/list/query/async/start</a> to get an asynchToken. The job results
+ * can be monitored using
+ * <a href="${GET.download.list.query.async.get.asyncToken}">GET
+ * /download/list/query/async/get/{asyncToken}</a>. While the job is still
+ * processing the GET call will return a status code of 202 (ACCEPTED). Once the
+ * job is complete the GET call will return a status code of 200 with the
+ * response body.
+ * </p>
+ * <b>Download List Service Limits</b>
  * <table border="1">
  * <tr>
  * <th>resource</th>
@@ -127,7 +143,20 @@ public class DownloadListController {
 	}
 
 	/**
-	 * Start an asynchronous job to query the user's download list.
+	 * Start an asynchronous job to query the user's download list. This call will
+	 * return an asyncToken that can be used to monitor the job by calling
+	 * <a href="${GET.download.list.query.async.get.asyncToken}">GET
+	 * /download/list/query/async/get/{asyncToken}</a>
+	 * </p>
+	 * The download list query results can include three parts:
+	 * <ul>
+	 * <li>Files currently available for download (inlcudeAvaiableFiles=true)</li>
+	 * <li>Files that require the user's action before they can be downloaded
+	 * (includeActionRequired=true).</li>
+	 * <li>Statistics about the files on the user's download list
+	 * (inlcudeStatistics=true).</li>
+	 * </ul>
+	 * The desired parts are indicated using boolean parameters in the request.
 	 * </p>
 	 * Authentication is required. A user can only access their own download list.
 	 */
@@ -146,6 +175,10 @@ public class DownloadListController {
 
 	/**
 	 * Get the results of an asynchronous job to query the user's download list.
+	 * Started with <a href="${POST.download.list.query.async.start}">POST
+	 * /download/list/query/async/start</a>. While the job is still processing, this
+	 * call will return a status code of 202 (ACCEPTED). Once the job completes a
+	 * status code of 200 will be returned with the query results.
 	 * 
 	 * @param userId
 	 * @param asyncToken

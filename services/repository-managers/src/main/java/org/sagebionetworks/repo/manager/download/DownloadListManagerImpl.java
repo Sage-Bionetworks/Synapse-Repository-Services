@@ -100,7 +100,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		ValidateArgument.required(requestBody, "requestBody");
 		AvailableFilesResponse availableFiles = null;
 		// The AvailableFilesRequest is optional.
-		if (Boolean.TRUE.equals(requestBody.getInlcudeAvaiableFiles())) {
+		if (Boolean.TRUE.equals(requestBody.getInlcudeAvailableFiles())) {
 			availableFiles = queryAvialableFiles(userInfo, requestBody.getAvailableFilesRequest());
 		}
 		return new DownloadListQueryResponse().setAvailableFiles(availableFiles);

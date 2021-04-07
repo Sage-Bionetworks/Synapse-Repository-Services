@@ -84,7 +84,7 @@ public class DownloadListManagerImplTest {
 		availableRequest.setNextPageToken(null);
 		
 		queryRequestBody = new DownloadListQueryRequest();
-		queryRequestBody.setInlcudeAvaiableFiles(true);
+		queryRequestBody.setInlcudeAvailableFiles(true);
 		queryRequestBody.setAvailableFilesRequest(availableRequest);
 	}
 
