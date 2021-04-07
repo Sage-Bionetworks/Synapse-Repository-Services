@@ -30,6 +30,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -337,7 +338,7 @@ public class BasicFileHandleAssociationScannerAutowireTest {
 		List<ScannedFileHandleAssociation> expected = Arrays.asList(
 				new ScannedFileHandleAssociation(1L, 1L),
 				new ScannedFileHandleAssociation(2L),
-				new ScannedFileHandleAssociation(3L).withFileHandleIds(Arrays.asList(1L, 2L))
+				new ScannedFileHandleAssociation(3L).withFileHandleIds(ImmutableSet.of(1L, 2L))
 		);
 		
 		testScanRange(tableMapping, rowMapperSupplier, new IdRange(1, 10), batchSize,

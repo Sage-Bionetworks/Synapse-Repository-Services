@@ -146,9 +146,9 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 			Long fileHandleId = rs.getLong(fileHandleColumnName);
 			
 			if (rs.wasNull()) {
-				scanned.withFileHandleIds(Collections.emptyList());
+				scanned.withFileHandleIds(Collections.emptySet());
 			} else {
-				scanned.withFileHandleIds(Collections.singletonList(fileHandleId));
+				scanned.withFileHandleIds(Collections.singleton(fileHandleId));
 			}
 
 			return scanned;

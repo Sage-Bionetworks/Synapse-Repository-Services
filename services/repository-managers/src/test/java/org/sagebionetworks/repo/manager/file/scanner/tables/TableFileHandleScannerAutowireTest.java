@@ -141,7 +141,7 @@ public class TableFileHandleScannerAutowireTest {
 		// No file in the schema, but the first change is the column change (schema)
 		expected.add(new ScannedFileHandleAssociation(tableWithNoFiles));
 		// No file in the schema for this change (row change but no file handles)
-		expected.add(new ScannedFileHandleAssociation(tableWithNoFiles).withFileHandleIds(Collections.emptyList()));
+		expected.add(new ScannedFileHandleAssociation(tableWithNoFiles).withFileHandleIds(Collections.emptySet()));
 		
 		// File in the schema, but the first change is the column change (schema)
 		expected.add(new ScannedFileHandleAssociation(tableWithFiles));
@@ -149,7 +149,7 @@ public class TableFileHandleScannerAutowireTest {
 		expected.add(new ScannedFileHandleAssociation(tableWithFiles, Long.valueOf(fileHandlesIds.get(0))));
 		// The second change has the remaining file handles
 		expected.add(new ScannedFileHandleAssociation(tableWithFiles).withFileHandleIds(
-				fileHandlesIds.subList(1, fileHandlesIds.size()).stream().map(Long::valueOf).collect(Collectors.toList()))
+				fileHandlesIds.subList(1, fileHandlesIds.size()).stream().map(Long::valueOf).collect(Collectors.toSet()))
 		);
 		
 		// Call under test, consume the whole iterable
