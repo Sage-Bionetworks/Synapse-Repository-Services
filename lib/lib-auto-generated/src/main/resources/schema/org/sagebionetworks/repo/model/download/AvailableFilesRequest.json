@@ -1,0 +1,16 @@
+{
+	"description": "Request to get a single page of files from the user's download list for files that are currently available for download.",
+	"properties": {
+		"nextPageToken": {
+			"description": "Forward the resulting nextPageToken from a previous request to get the next page of results",
+			"type": "string"
+		},
+		"sort": {
+			"description": "Defines how the query results should be sorted.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.download.Sort"
+			}
+		}
+	}
+}

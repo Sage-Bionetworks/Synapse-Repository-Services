@@ -16,6 +16,10 @@
             "description": "The synId of the file"
         },
         {
+            "name": "versionNumber",
+            "description": "The version of number of the file."
+        },
+        {
             "name": "addedOn",
             "description": "The date-time that the file was added to the user's download list"
         },

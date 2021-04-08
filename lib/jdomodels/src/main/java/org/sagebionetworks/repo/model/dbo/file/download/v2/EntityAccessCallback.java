@@ -11,6 +11,6 @@ public interface EntityAccessCallback {
 	 * @param enityIds
 	 * @return
 	 */
-	List<Long> canDownload(List<Long> enityIds);
+	List<Long> filter(List<Long> enityIds);
 
 }
