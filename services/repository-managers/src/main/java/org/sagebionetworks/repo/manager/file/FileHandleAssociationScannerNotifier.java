@@ -10,6 +10,6 @@ public interface FileHandleAssociationScannerNotifier {
 	
 	FileHandleAssociationScanRangeRequest fromSqsMessage(Message message);
 
-	void sendScanRequest(FileHandleAssociationScanRangeRequest request);
+	void sendScanRequest(FileHandleAssociationScanRangeRequest request, int delay);
 	
 }
