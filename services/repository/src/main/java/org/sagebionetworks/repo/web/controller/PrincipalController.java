@@ -127,7 +127,7 @@ public class PrincipalController {
 	 */
 	@RequiredScope({})
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = { UrlHelpers.ACCOUNT }, method = RequestMethod.POST)
+	@RequestMapping(value = { UrlHelpers.ACCOUNT_V2 }, method = RequestMethod.POST)
 	@ResponseBody
 	public LoginResponse createNewAccount(
 			@RequestBody AccountSetupInfo accountSetupInfo,
