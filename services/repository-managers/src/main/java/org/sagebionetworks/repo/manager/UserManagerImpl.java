@@ -183,8 +183,8 @@ public class UserManagerImpl implements UserManager {
 				basicDAO.createOrUpdate(touAgreement);
 			}
 			if (token != null) {
-				token.setPrincipalId(principalId);
-				basicDAO.createOrUpdate(token);
+				// set the session token and record the auth time
+				authDAO.changeSessionToken(principalId, token.getSessionToken());
 			}
 		} else {
 			principalId = alias.getPrincipalId();

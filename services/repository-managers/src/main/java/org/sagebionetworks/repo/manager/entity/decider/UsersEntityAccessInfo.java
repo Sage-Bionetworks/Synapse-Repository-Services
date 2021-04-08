@@ -17,6 +17,8 @@ public class UsersEntityAccessInfo {
 	Long entityId;
 	AuthorizationStatus authroizationStatus;
 	UsersRestrictionStatus accessRestrictions;
+	
+	public UsersEntityAccessInfo(){}
 
 	public UsersEntityAccessInfo(AccessContext context, AuthorizationStatus status) {
 		ValidateArgument.required(context, "context");

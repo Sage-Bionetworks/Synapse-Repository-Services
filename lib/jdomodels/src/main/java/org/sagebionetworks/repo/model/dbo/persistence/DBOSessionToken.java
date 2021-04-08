@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SESSION_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
@@ -29,8 +28,6 @@ public class DBOSessionToken implements MigratableDatabaseObject<DBOSessionToken
 	@ForeignKey(table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true)
 	private Long principalId;
 	
-	@Field(name = COL_SESSION_TOKEN_VALIDATED_ON)
-	private Date validatedOn;
 
 	@Field(name = COL_SESSION_TOKEN_SESSION_TOKEN, varchar = 100)
 	private String sessionToken;
@@ -45,12 +42,6 @@ public class DBOSessionToken implements MigratableDatabaseObject<DBOSessionToken
 	}
 	public void setPrincipalId(Long principalId) {
 		this.principalId = principalId;
-	}
-	public Date getValidatedOn() {
-		return validatedOn;
-	}
-	public void setValidatedOn(Date validatedOn) {
-		this.validatedOn = validatedOn;
 	}
 	public String getSessionToken() {
 		return sessionToken;
@@ -90,7 +81,6 @@ public class DBOSessionToken implements MigratableDatabaseObject<DBOSessionToken
 		int result = 1;
 		result = prime * result + ((principalId == null) ? 0 : principalId.hashCode());
 		result = prime * result + ((sessionToken == null) ? 0 : sessionToken.hashCode());
-		result = prime * result + ((validatedOn == null) ? 0 : validatedOn.hashCode());
 		return result;
 	}
 
@@ -113,18 +103,14 @@ public class DBOSessionToken implements MigratableDatabaseObject<DBOSessionToken
 				return false;
 		} else if (!sessionToken.equals(other.sessionToken))
 			return false;
-		if (validatedOn == null) {
-			if (other.validatedOn != null)
-				return false;
-		} else if (!validatedOn.equals(other.validatedOn))
-			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "DBOSessionToken [principalId=" + principalId + ", validatedOn=" + validatedOn + ", sessionToken="
-				+ sessionToken + "]";
+		return "DBOSessionToken [principalId=" + principalId + ", sessionToken=" + sessionToken + "]";
 	}
+
+
 
 }

@@ -13,6 +13,7 @@ import java.util.stream.StreamSupport;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.EntityManager;
@@ -130,6 +131,7 @@ public class TableFileHandleScannerAutowireTest {
 		
 	}
 	
+	@Disabled // See PLFM-6681
 	@Test
 	public void testScanner() {
 		

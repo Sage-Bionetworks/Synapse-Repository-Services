@@ -249,6 +249,10 @@ public class UrlHelpers {
 	public static final String DOWNLOAD_LIST_ADD_START_ASYNCH = DOWNLOAD_LIST_ADD+ASYNC_START_REQUEST;
 	public static final String DOWNLOAD_LIST_ADD_GET_ASYNCH = DOWNLOAD_LIST_ADD+ASYNC_GET_REQUEST;
 	
+	public static final String DOWNLOAD_LIST_QUERY = DOWNLOAD_LIST+"/query";
+	public static final String DOWNLOAD_LIST_QUERY_START_ASYNCH = DOWNLOAD_LIST_QUERY+ASYNC_START_REQUEST;
+	public static final String DOWNLOAD_LIST_QUERY_GET_ASYNCH = DOWNLOAD_LIST_QUERY+ASYNC_GET_REQUEST;
+	
 	public static final String DOWNLOAD_ORDER = "/download/order";
 	public static final String DOWNLOAD_ORDER_ID = DOWNLOAD_ORDER+"/{orderId}";
 	public static final String DOWNLOAD_ORDER_HISTORY = DOWNLOAD_ORDER+"/history";

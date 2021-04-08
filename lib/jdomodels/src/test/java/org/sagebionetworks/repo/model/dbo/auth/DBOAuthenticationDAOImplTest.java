@@ -10,20 +10,21 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfigurationSingleton;
-import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationDAOImpl;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOAuthenticatedOn;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
@@ -56,6 +57,7 @@ public class DBOAuthenticationDAOImplTest {
 	private Long userId;
 	private DBOCredential credential;
 	private DBOSessionToken sessionToken;
+	private DBOAuthenticatedOn authOn;
 	private DBOTermsOfUseAgreement touAgreement;
 	private static String userEtag;
 	
@@ -83,9 +85,14 @@ public class DBOAuthenticationDAOImplTest {
 		
 		sessionToken = new DBOSessionToken();
 		sessionToken.setPrincipalId(userId);
-		sessionToken.setValidatedOn(VALIDATED_ON);
 		sessionToken.setSessionToken("Hsssssss...");
 		sessionToken = basicDAO.createNew(sessionToken);
+		
+		authOn = new DBOAuthenticatedOn();
+		authOn.setPrincipalId(userId);
+		authOn.setAuthenticatedOn(VALIDATED_ON);
+		authOn.setEtag(UUID.randomUUID().toString());
+		authOn = basicDAO.createNew(authOn);
 		
 		touAgreement = new DBOTermsOfUseAgreement();
 		touAgreement.setPrincipalId(userId);
@@ -200,9 +207,9 @@ public class DBOAuthenticationDAOImplTest {
 	@Test
 	public void testSessionTokenRevalidation() throws Exception {
 		// Test fast!  Only one second before expiration!
-		Date now = sessionToken.getValidatedOn();
-		sessionToken.setValidatedOn(new Date(now.getTime() - DBOAuthenticationDAOImpl.SESSION_EXPIRATION_TIME + 1000));
-		basicDAO.update(sessionToken);
+		Date now = authOn.getAuthenticatedOn();
+		authOn.setAuthenticatedOn(new Date(now.getTime() - DBOAuthenticationDAOImpl.SESSION_EXPIRATION_TIME + 1000));
+		basicDAO.update(authOn);
 
 		// Still valid
 		Session session = authDAO.getSessionTokenIfValid(userId, now);
@@ -344,11 +351,11 @@ public class DBOAuthenticationDAOImplTest {
 	@Test
 	public void testGetSessionValidatedOn() {
 		// if no validation date, return null
-		assertNull(authDAO.getSessionValidatedOn(999999L));
+		assertNull(authDAO.getAuthenticatedOn(999999L));
 		
 		// check that 'userId's validation date is as expected
-		Date validatedOn = authDAO.getSessionValidatedOn(userId);
-		assertEquals(VALIDATED_ON, validatedOn);
+		Date validatedOn = authDAO.getAuthenticatedOn(userId);
+		assertEquals(VALIDATED_ON.getTime(), validatedOn.getTime());
 		
 		
 	}

@@ -7,20 +7,26 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_UPDATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_LIST_ITEM_V2;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_LIST_V2;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
@@ -43,6 +49,7 @@ import com.google.common.base.Objects;
 @Repository
 public class DownloadListDAOImpl implements DownloadListDAO {
 
+	private static final String ACTUAL_VERSION = "ACTUAL_VERSION";
 	public static final String PROJECT_ID = "PROJECT_ID";
 	public static final String PROJECT_NAME = "PROJECT_NAME";
 	public static final String CONTENT_SIZE = "CONTENT_SIZE";
@@ -170,8 +177,8 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 
 	private void createOrUpdateDownloadList(Long userId) {
 		ValidateArgument.required(userId, "User Id");
-		jdbcTemplate.update("INSERT INTO " + TABLE_DOWNLOAD_LIST_V2 + "(" + COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID
-				+ ", " + COL_DOWNLOAD_LIST_V2_UPDATED_ON + ", " + COL_DOWNLOAD_LIST_V2_ETAG
+		jdbcTemplate.update("INSERT INTO " + TABLE_DOWNLOAD_LIST_V2 + "(" + COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID + ", "
+				+ COL_DOWNLOAD_LIST_V2_UPDATED_ON + ", " + COL_DOWNLOAD_LIST_V2_ETAG
 				+ ") VALUES (?, NOW(3), UUID()) ON DUPLICATE KEY UPDATE " + COL_DOWNLOAD_LIST_V2_UPDATED_ON
 				+ " = NOW(3), " + COL_DOWNLOAD_LIST_V2_ETAG + " = UUID()", userId);
 	}
@@ -221,12 +228,12 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			params.addValue("depth", NodeConstants.MAX_PATH_DEPTH_PLUS_ONE);
 			String sql = String.format(DOWNLOAD_LIST_RESULT_TEMPLATE, tempTableName);
 			List<DownloadListItemResult> unorderedResults = namedJdbcTemplate.query(sql, params, RESULT_MAPPER);
-			
+
 			// Put the results in same order as the request. Note: O(n*m) where both n and m
 			// should be small.
 			return Arrays.stream(items).map(i -> unorderedResults.stream().filter(u -> isMatch(i, u)).findFirst().get())
 					.collect(Collectors.toList());
-		}finally {
+		} finally {
 			dropTemporaryTable(tempTableName);
 		}
 	}
@@ -245,6 +252,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		return false;
 	}
 
+	@WriteTransaction
 	@Override
 	public List<DownloadListItemResult> getFilesAvailableToDownloadFromDownloadList(EntityAccessCallback accessCallback,
 			Long userId, List<Sort> sort, Long limit, Long offset) {
@@ -261,14 +269,16 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			params.addValue("depth", NodeConstants.MAX_PATH_DEPTH_PLUS_ONE);
 			params.addValue("limit", limit);
 			params.addValue("offset", offset);
-			return namedJdbcTemplate.query(sqlBuilder.toString(),params, RESULT_MAPPER);
-		}finally {
+			return namedJdbcTemplate.query(sqlBuilder.toString(), params, RESULT_MAPPER);
+		} finally {
 			dropTemporaryTable(tempTableName);
 		}
 	}
-	
+
 	/**
-	 * Build the SQL suffix to handle both sorting and paging based on the provided sorting and paging.
+	 * Build the SQL suffix to handle both sorting and paging based on the provided
+	 * sorting and paging.
+	 * 
 	 * @param sort
 	 * @param limit
 	 * @param offset
@@ -276,31 +286,43 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	 */
 	public static String buildAvailableDownloadQuerySuffix(List<Sort> sort, Long limit, Long offset) {
 		StringBuilder builder = new StringBuilder();
-		if(sort != null && !sort.isEmpty()) {
+		if (sort != null && !sort.isEmpty()) {
 			builder.append(" ORDER BY");
-			boolean first = true;
-			for(Sort s: sort) {
-				if(!first) {
-					builder.append(",");
-				}
-				first = false;
-				ValidateArgument.required(s.getField(), "sort.field");
-				builder.append(" ").append(sortFieldToColumnName(s.getField()));
-				if(s.getDirection() != null) {
-					builder.append(" ").append(s.getDirection().name());
-				}
-			}
+			builder.append(sort.stream().map(DownloadListDAOImpl::sortToSql).collect(Collectors.joining(",")));
 		}
-		if(limit != null) {
+		if (limit != null) {
 			builder.append(" LIMIT :limit");
 		}
-		if(offset != null) {
+		if (offset != null) {
 			builder.append(" OFFSET :offset");
 		}
 		return builder.toString();
 	}
-	
-	public static String sortFieldToColumnName(SortField field) {
+
+	/**
+	 * Generate the SQL for the given Sort.
+	 * 
+	 * @param sort
+	 * @return
+	 */
+	public static String sortToSql(Sort sort) {
+		ValidateArgument.required(sort, "sort");
+		ValidateArgument.required(sort.getField(), "sort.field");
+		StringBuilder builder = new StringBuilder(" ");
+		builder.append(getColumnName(sort.getField()));
+		if (sort.getDirection() != null) {
+			builder.append(" ").append(sort.getDirection().name());
+		}
+		return builder.toString();
+	}
+
+	/**
+	 * Get the column name for the given SortField.
+	 * 
+	 * @param field
+	 * @return
+	 */
+	public static String getColumnName(SortField field) {
 		ValidateArgument.required(field, "field");
 		switch (field) {
 		case fileName:
@@ -309,6 +331,8 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			return PROJECT_NAME;
 		case synId:
 			return COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID;
+		case versionNumber:
+			return ACTUAL_VERSION;
 		case addedOn:
 			return COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON;
 		case createdBy:
@@ -321,16 +345,16 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			throw new IllegalArgumentException("Unknown SortField: " + field.name());
 		}
 	}
-	
+
 	/**
 	 * Drop the given temporary table by name.
+	 * 
 	 * @param tempTableName
 	 */
 	void dropTemporaryTable(String tempTableName) {
-		String sql = String.format("DROP TEMPORARY TABLE %S", tempTableName);
+		String sql = String.format("DROP TEMPORARY TABLE IF EXISTS %S ", tempTableName);
 		jdbcTemplate.update(sql);
 	}
-	
 
 	/**
 	 * Create a temporary table containing all of the Entity IDs from the given
@@ -343,10 +367,9 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	 */
 	String createTemporaryTableOfAvailableFiles(EntityAccessCallback accessCallback, Long userId, int batchSize) {
 		String tableName = "U" + userId + "T";
-		String sql = String.format("CREATE TEMPORARY TABLE %S (`ENTITY_ID` BIGINT NOT NULL, PRIMARY KEY (`ENTITY_ID`))",
-				tableName);
+		String sql = String.format("CREATE TEMPORARY TABLE %S (`ENTITY_ID` BIGINT NOT NULL)", tableName);
 		jdbcTemplate.update(sql);
-		
+
 		List<Long> batch = null;
 		long limit = batchSize;
 		long offset = 0L;
@@ -355,22 +378,27 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			batch = jdbcTemplate.queryForList(
 					"SELECT DISTINCT " + COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID + " FROM " + TABLE_DOWNLOAD_LIST_ITEM_V2
 							+ " WHERE " + COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID + " = ? LIMIT ? OFFSET ?",
-					new Long[] { userId, limit, offset }, Long.class);
+					Long.class, userId, limit, offset);
 			offset += limit;
+			if (batch.isEmpty()) {
+				break;
+			}
 			// Determine the sub-set that the user can actually download.
-			List<Long> canDownload = accessCallback.canDownload(batch);
+			List<Long> canDownload = accessCallback.filter(batch);
 			// Add the sub-set to the temporary table.
 			addBatchOfEntityIdsToTempTable(canDownload.toArray(new Long[canDownload.size()]), tableName);
-		}while(batch.size() == batchSize);
-		
+		} while (batch.size() == batchSize);
+
 		return tableName;
 	}
 
+	@WriteTransaction
 	@Override
-	public List<Long> readTempoaryTableOfAvailableFiles(EntityAccessCallback accessCallback, Long userId,
+	public List<Long> getAvailableFilesFromDownloadList(EntityAccessCallback accessCallback, Long userId,
 			int batchSize) {
 		String tempTableName = createTemporaryTableOfAvailableFiles(accessCallback, userId, batchSize);
-		return jdbcTemplate.queryForList("SELECT ENTITY_ID FROM " + tempTableName+" ORDER BY ENTITY_ID ASC", Long.class);
+		return jdbcTemplate.queryForList("SELECT ENTITY_ID FROM " + tempTableName + " ORDER BY ENTITY_ID ASC",
+				Long.class);
 	}
 
 	/**
@@ -395,6 +423,30 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 				return entityIdsToAdd.length;
 			}
 		});
+	}
+
+	@Override
+	public long getTotalNumberOfFilesOnDownloadList(Long userId) {
+		ValidateArgument.required(userId, "userId");
+		return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM " + TABLE_DOWNLOAD_LIST_ITEM_V2 + " WHERE "
+				+ COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID + " = ?", Long.class, userId);
+	}
+
+	@Override
+	public List<DownloadListItem> filterNonFiles(List<DownloadListItem> batch) {
+		ValidateArgument.required(batch, "batch");
+		if(batch.isEmpty()) {
+			return Collections.emptyList();
+		}
+		Set<Long> allIds = batch.stream().map(i -> KeyFactory.stringToKey(i.getFileEntityId()))
+				.collect(Collectors.toSet());
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("ids", allIds);
+		Set<Long> fileIds = new HashSet<>(namedJdbcTemplate.queryForList("SELECT " + COL_NODE_ID + " FROM " + TABLE_NODE
+				+ " WHERE " + COL_NODE_ID + " IN (:ids) AND " + COL_NODE_TYPE + " = '" + EntityType.file.name() + "'",
+				params, Long.class));
+		return batch.stream().filter(i -> fileIds.contains(KeyFactory.stringToKey(i.getFileEntityId())))
+				.collect(Collectors.toList());
 	}
 
 }
