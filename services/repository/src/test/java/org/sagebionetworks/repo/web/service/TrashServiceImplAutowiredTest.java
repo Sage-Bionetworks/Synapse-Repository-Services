@@ -15,7 +15,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.SynapseClientHelper;
 import org.sagebionetworks.file.services.FileUploadService;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -30,6 +29,7 @@ import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.auth.AccessToken;
+import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
@@ -110,7 +110,7 @@ public class TrashServiceImplAutowiredTest {
 		user.setEmail(username + "@test.com");
 		user.setUsername(username);
 		AccessToken accessToken = adminService.createOrGetTestUser(adminUserId, user);
-		String accessTokenSubject = SynapseClientHelper.getSubjectFromJWTAccessToken(accessToken.getAccessToken());
+		String accessTokenSubject = JSONWebTokenHelper.getSubjectFromJWTAccessToken(accessToken.getAccessToken());
 		long createdUserId = Long.valueOf(accessTokenSubject);
 		certifiedUserService.setUserCertificationStatus(adminUserId, createdUserId, true);
 

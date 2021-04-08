@@ -7,14 +7,9 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.auth.AccessToken;
+import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
-import org.sagebionetworks.repo.model.oauth.JsonWebKey;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Header;
-import io.jsonwebtoken.Jwt;
-import io.jsonwebtoken.Jwts;
 
 /**
  * Holds helpers for setting up integration tests
@@ -44,15 +39,6 @@ public class SynapseClientHelper {
 		return createUser(client, newUserClient, username, password, UUID.randomUUID().toString() + "@sagebase.org");
 	}
 	
-	public static String getSubjectFromJWTAccessToken(String accessToken) {
-		String[] pieces = accessToken.split("\\.");
-		if (pieces.length!=3) throw new IllegalArgumentException("Expected three sections of the token but found "+pieces.length);
-		String unsignedToken = pieces[0]+"."+pieces[1]+".";
-		Jwt<Header,Claims> unsignedJwt = Jwts.parser().parseClaimsJwt(unsignedToken);
-
-		return unsignedJwt.getBody().getSubject();
-	}
-
 	public static Long createUser(SynapseAdminClient client, SynapseClient newUserClient, String username, String password, String email) throws SynapseException, JSONObjectAdapterException {
 		if (newUserClient == null) {
 			newUserClient = new SynapseClientImpl();
@@ -66,7 +52,7 @@ public class SynapseClientHelper {
 		nu.setPassword(password);
 		AccessToken accessToken = client.createUser(nu);
 		
-		String accessTokenSubject = getSubjectFromJWTAccessToken(accessToken.getAccessToken());
+		String accessTokenSubject = JSONWebTokenHelper.getSubjectFromJWTAccessToken(accessToken.getAccessToken());
 		Long principalId = Long.parseLong(accessTokenSubject);
 		
 		newUserClient.setBearerAuthorizationToken(accessToken.getAccessToken());
