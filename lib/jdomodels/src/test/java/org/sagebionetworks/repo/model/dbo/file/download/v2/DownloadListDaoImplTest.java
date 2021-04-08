@@ -1071,7 +1071,7 @@ public class DownloadListDaoImplTest {
 	}
 	
 	@Test
-	public void testFilterNonFiles() {
+	public void testFilterUnsupportedTypes() {
 		int numberOfProject = 1;
 		int foldersPerProject = 1;
 		int filesPerFolder = 2;
@@ -1105,7 +1105,7 @@ public class DownloadListDaoImplTest {
 		toFilter.addAll(filesVNull);
 		
 		// call under test
-		List<DownloadListItem> results = downloadListDao.filterNonFiles(toFilter);
+		List<DownloadListItem> results = downloadListDao.filterUnsupportedTypes(toFilter);
 		
 		List<DownloadListItem> expected = new ArrayList<>();
 		expected.addAll(filesV1);
@@ -1115,20 +1115,20 @@ public class DownloadListDaoImplTest {
 	}
 	
 	@Test
-	public void testFilterNonFilesWithNullBatch() {
+	public void testFilterUnsupportedTypesWithNullBatch() {
 		List<DownloadListItem> toFilter = null;
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			downloadListDao.filterNonFiles(toFilter);
+			downloadListDao.filterUnsupportedTypes(toFilter);
 		}).getMessage();
 		assertEquals("batch is required.", message);
 	}
 	
 	@Test
-	public void testFilterNonFilesWithEmptyBatch() {
+	public void testFilterUnsupportedTypesWithEmptyBatch() {
 		List<DownloadListItem> toFilter = Collections.emptyList();
 		// call under test
-		List<DownloadListItem> results = downloadListDao.filterNonFiles(toFilter);
+		List<DownloadListItem> results = downloadListDao.filterUnsupportedTypes(toFilter);
 		assertEquals(Collections.emptyList(), results);
 	}
 

@@ -52,7 +52,7 @@ public interface TableManagerSupport {
 	Optional<TableState> getTableStatusState(IdAndVersion idAndVersion);
 
 	/**
-	 * Attempt to set the table status to AVIALABLE. The state will be changed will
+	 * Attempt to set the table status to AVAILABLE. The state will be changed will
 	 * be applied as long as the passed resetToken matches the current restToken
 	 * indicating all changes have been accounted for.
 	 * 

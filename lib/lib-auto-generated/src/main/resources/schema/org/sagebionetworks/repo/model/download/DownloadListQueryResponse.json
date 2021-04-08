@@ -1,14 +1,14 @@
 {
-	"description": "The results of an asynchronous job to query a user's download list. That parts that will be included are dependent on the parts that were requested.",
+	"description": "The results of an asynchronous job to query a user's download list.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
 		}
 	],
 	"properties": {
-		"availableFiles": {
-			"description": "When an availableFilesRequest is provided in the request, the results will be returned here.",
-			"$ref": "org.sagebionetworks.repo.model.download.AvailableFilesResponse"
+		"reponseDetails": {
+			"description": "The response details type is determined by the request details type.",
+			"$ref": "org.sagebionetworks.repo.model.download.QueryResponseDetails"
 		}
 	}
 }

@@ -1,0 +1,10 @@
+{
+	"description": "Required.  Must be one of the implementations of QueryRequestDetails.",
+	"type": "interface",
+	"properties": {
+		"concreteType": {
+			"type": "string",
+			"description": "Required. Should be the full package name of the details implementation.  For example, the value should be: 'org.sagebionetworks.repo.model.download.AvailalbeFilesRequest' for AvailalbeFilesRequest"
+		}
+	}
+}

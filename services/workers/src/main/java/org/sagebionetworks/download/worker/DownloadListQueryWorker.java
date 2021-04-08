@@ -10,7 +10,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
-import org.sagebionetworks.schema.worker.CreateJsonSchemaWorker;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +18,7 @@ import com.amazonaws.services.sqs.model.Message;
 
 public class DownloadListQueryWorker implements MessageDrivenRunner {
 
-	static private Logger log = LogManager.getLogger(CreateJsonSchemaWorker.class);
+	static private Logger log = LogManager.getLogger(DownloadListQueryWorker.class);
 
 	private AsynchJobStatusManager asynchJobStatusManager;
 	private DownloadListManager downloadListManager;
