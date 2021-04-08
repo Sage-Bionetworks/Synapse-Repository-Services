@@ -44,7 +44,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-
+import org.springframework.jdbc.core.SingleColumnRowMapper;
 
 public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 
@@ -165,7 +165,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	@WriteTransaction
 	public boolean revalidateSessionTokenIfNeeded(long principalId) {
 		// Determine the last time the token was re-validate.
-		Date lastValidatedOn = jdbcTemplate.queryForObject(SELECT_AUTHENTICATED_ON_FOR_PRINCIPAL_ID, Date.class, principalId);
+		Date lastValidatedOn = jdbcTemplate.queryForObject(SELECT_AUTHENTICATED_ON_FOR_PRINCIPAL_ID, new SingleColumnRowMapper<Date>(), principalId);
 		long now = clock.currentTimeMillis();
 		/*
 		 * Only revalidate a token if it is past its half-life.
