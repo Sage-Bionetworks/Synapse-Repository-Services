@@ -5,8 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,7 +26,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -84,13 +88,12 @@ public class DownloadListManagerImplTest {
 		availableRequest.setNextPageToken(null);
 		
 		queryRequestBody = new DownloadListQueryRequest();
-		queryRequestBody.setInlcudeAvailableFiles(true);
-		queryRequestBody.setAvailableFilesRequest(availableRequest);
+		queryRequestBody.setRequestDetails(availableRequest);
 	}
 
 	@Test
 	public void testAddBatchOfFilesToDownloadList() {
-		when(mockDownloadListDao.filterNonFiles(anyList())).thenReturn(toAddRequest.getBatchToAdd());
+		when(mockDownloadListDao.filterUnsupportedTypes(anyList())).thenReturn(toAddRequest.getBatchToAdd());
 		long addedCount = 2L;
 		when(mockDownloadListDao.addBatchOfFilesToDownloadList(any(), any())).thenReturn(addedCount);
 		long totalNumberOfFilesOnList = 0L;
@@ -102,13 +105,13 @@ public class DownloadListManagerImplTest {
 				.setNumberOfFilesAdded(addedCount);
 		assertEquals(expected, response);
 		verify(mockDownloadListDao).getTotalNumberOfFilesOnDownloadList(userOne.getId());
-		verify(mockDownloadListDao).filterNonFiles(toAddRequest.getBatchToAdd());
+		verify(mockDownloadListDao).filterUnsupportedTypes(toAddRequest.getBatchToAdd());
 		verify(mockDownloadListDao).addBatchOfFilesToDownloadList(userOne.getId(), toAddRequest.getBatchToAdd());
 	}
 
 	@Test
 	public void testAddBatchOfFilesToDownloadListWithAtMaxFilesPerUser() {
-		when(mockDownloadListDao.filterNonFiles(anyList())).thenReturn(toAddRequest.getBatchToAdd());
+		when(mockDownloadListDao.filterUnsupportedTypes(anyList())).thenReturn(toAddRequest.getBatchToAdd());
 		long addedCount = 2L;
 		when(mockDownloadListDao.addBatchOfFilesToDownloadList(any(), any())).thenReturn(addedCount);
 		long totalNumberOfFilesOnList = DownloadListManagerImpl.MAX_FILES_PER_USER - addedCount;
@@ -120,13 +123,13 @@ public class DownloadListManagerImplTest {
 				.setNumberOfFilesAdded(addedCount);
 		assertEquals(expected, response);
 		verify(mockDownloadListDao).getTotalNumberOfFilesOnDownloadList(userOne.getId());
-		verify(mockDownloadListDao).filterNonFiles(toAddRequest.getBatchToAdd());
+		verify(mockDownloadListDao).filterUnsupportedTypes(toAddRequest.getBatchToAdd());
 		verify(mockDownloadListDao).addBatchOfFilesToDownloadList(userOne.getId(), toAddRequest.getBatchToAdd());
 	}
 
 	@Test
 	public void testAddBatchOfFilesToDownloadListWithOverMaxFilesPerUser() {
-		when(mockDownloadListDao.filterNonFiles(anyList())).thenReturn(toAddRequest.getBatchToAdd());
+		when(mockDownloadListDao.filterUnsupportedTypes(anyList())).thenReturn(toAddRequest.getBatchToAdd());
 		long totalNumberOfFilesOnList = DownloadListManagerImpl.MAX_FILES_PER_USER - 1L;
 		when(mockDownloadListDao.getTotalNumberOfFilesOnDownloadList(any())).thenReturn(totalNumberOfFilesOnList);
 
@@ -139,14 +142,14 @@ public class DownloadListManagerImplTest {
 				message);
 
 		verify(mockDownloadListDao).getTotalNumberOfFilesOnDownloadList(userOne.getId());
-		verify(mockDownloadListDao).filterNonFiles(toAddRequest.getBatchToAdd());
+		verify(mockDownloadListDao).filterUnsupportedTypes(toAddRequest.getBatchToAdd());
 		verify(mockDownloadListDao, never()).addBatchOfFilesToDownloadList(any(), any());
 	}
 	
 	@Test
 	public void testAddBatchOfFilesToDownloadListWithNonFilesFiltered() {
 		// filter out the second value
-		when(mockDownloadListDao.filterNonFiles(anyList())).thenReturn(toAddRequest.getBatchToAdd().subList(0, 1));
+		when(mockDownloadListDao.filterUnsupportedTypes(anyList())).thenReturn(toAddRequest.getBatchToAdd().subList(0, 1));
 		long addedCount = 2L;
 		when(mockDownloadListDao.addBatchOfFilesToDownloadList(any(), any())).thenReturn(addedCount);
 		long totalNumberOfFilesOnList = DownloadListManagerImpl.MAX_FILES_PER_USER - addedCount;
@@ -158,13 +161,13 @@ public class DownloadListManagerImplTest {
 				.setNumberOfFilesAdded(addedCount);
 		assertEquals(expected, response);
 		verify(mockDownloadListDao).getTotalNumberOfFilesOnDownloadList(userOne.getId());
-		verify(mockDownloadListDao).filterNonFiles(toAddRequest.getBatchToAdd());
+		verify(mockDownloadListDao).filterUnsupportedTypes(toAddRequest.getBatchToAdd());
 		verify(mockDownloadListDao).addBatchOfFilesToDownloadList(userOne.getId(), toAddRequest.getBatchToAdd().subList(0, 1));
 	}
 	
 	@Test
 	public void testAddBatchOfFilesToDownloadListWithFilteredNonFilesOverMaxFilesPerUser() {
-		when(mockDownloadListDao.filterNonFiles(anyList())).thenReturn(toAddRequest.getBatchToAdd().subList(1, 2));
+		when(mockDownloadListDao.filterUnsupportedTypes(anyList())).thenReturn(toAddRequest.getBatchToAdd().subList(1, 2));
 		long totalNumberOfFilesOnList = DownloadListManagerImpl.MAX_FILES_PER_USER;
 		when(mockDownloadListDao.getTotalNumberOfFilesOnDownloadList(any())).thenReturn(totalNumberOfFilesOnList);
 
@@ -177,7 +180,7 @@ public class DownloadListManagerImplTest {
 				message);
 
 		verify(mockDownloadListDao).getTotalNumberOfFilesOnDownloadList(userOne.getId());
-		verify(mockDownloadListDao).filterNonFiles(toAddRequest.getBatchToAdd());
+		verify(mockDownloadListDao).filterUnsupportedTypes(toAddRequest.getBatchToAdd());
 		verify(mockDownloadListDao, never()).addBatchOfFilesToDownloadList(any(), any());
 	}
 
@@ -356,7 +359,7 @@ public class DownloadListManagerImplTest {
 	}
 
 	@Test
-	public void testQueryAvialableFiles() {
+	public void testQueryAvailableFiles() {
 		List<DownloadListItemResult> resultPage = Arrays.asList(
 				(DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn1"),
 				(DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn2"),
@@ -364,7 +367,7 @@ public class DownloadListManagerImplTest {
 		List<Long> ids = Arrays.asList(1L, 2L, 3L);
 		setupAvailableCallback(resultPage, ids);
 		// call under test
-		AvailableFilesResponse response = manager.queryAvialableFiles(userOne, availableRequest);
+		AvailableFilesResponse response = manager.queryAvailableFiles(userOne, availableRequest);
 		assertNotNull(response);
 		assertEquals(resultPage, response.getPage());
 		assertNull(response.getNextPageToken());
@@ -374,7 +377,7 @@ public class DownloadListManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryAvialableFilesWithNullRequest() {
+	public void testQueryAvailableFilesWithNullRequest() {
 		List<DownloadListItemResult> resultPage = Arrays
 				.asList((DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn1"),
 						(DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn2"),
@@ -386,7 +389,7 @@ public class DownloadListManagerImplTest {
 		List<Sort> expectedSort = DownloadListManagerImpl.getDefaultSort();
 		
 		// call under test
-		AvailableFilesResponse response = manager.queryAvialableFiles(userOne, availableRequest);
+		AvailableFilesResponse response = manager.queryAvailableFiles(userOne, availableRequest);
 		assertNotNull(response);
 		assertEquals(resultPage, response.getPage());
 		assertNull(response.getNextPageToken());
@@ -396,7 +399,7 @@ public class DownloadListManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryAvialableFilesWithNullSort() {
+	public void testQueryAvailableFilesWithNullSort() {
 		List<DownloadListItemResult> resultPage = Arrays
 				.asList((DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn1"),
 						(DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn2"),
@@ -408,7 +411,7 @@ public class DownloadListManagerImplTest {
 		List<Sort> expectedSort = DownloadListManagerImpl.getDefaultSort();
 		
 		// call under test
-		AvailableFilesResponse response = manager.queryAvialableFiles(userOne, availableRequest);
+		AvailableFilesResponse response = manager.queryAvailableFiles(userOne, availableRequest);
 		assertNotNull(response);
 		assertEquals(resultPage, response.getPage());
 		assertNull(response.getNextPageToken());
@@ -418,7 +421,7 @@ public class DownloadListManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryAvialableFilesWithEmptySort() {
+	public void testQueryAvailableFilesWithEmptySort() {
 		List<DownloadListItemResult> resultPage = Arrays
 				.asList((DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn1"),
 						(DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn2"),
@@ -430,7 +433,7 @@ public class DownloadListManagerImplTest {
 		List<Sort> expectedSort = DownloadListManagerImpl.getDefaultSort();
 		
 		// call under test
-		AvailableFilesResponse response = manager.queryAvialableFiles(userOne, availableRequest);
+		AvailableFilesResponse response = manager.queryAvailableFiles(userOne, availableRequest);
 		assertNotNull(response);
 		assertEquals(resultPage, response.getPage());
 		assertNull(response.getNextPageToken());
@@ -440,7 +443,7 @@ public class DownloadListManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryAvialableFilesWithNextPageToken() {
+	public void testQueryAvailableFilesWithNextPageToken() {
 		List<DownloadListItemResult> resultPage = new ArrayList<>(4);
 		resultPage.add((DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn1"));
 		resultPage.add((DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn2"));
@@ -454,7 +457,7 @@ public class DownloadListManagerImplTest {
 		availableRequest.setNextPageToken(new NextPageToken(limit, offset).toToken());
 		
 		// call under test
-		AvailableFilesResponse response = manager.queryAvialableFiles(userOne, availableRequest);
+		AvailableFilesResponse response = manager.queryAvailableFiles(userOne, availableRequest);
 		assertNotNull(response);
 		assertEquals(resultPage, response.getPage());
 		// results will be trimmed due to the next page token
@@ -469,21 +472,21 @@ public class DownloadListManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryAvialableFilesWithNullUser() {
+	public void testQueryAvailableFilesWithNullUser() {
 		userOne = null;
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.queryAvialableFiles(userOne, availableRequest);
+			manager.queryAvailableFiles(userOne, availableRequest);
 		}).getMessage();
 		assertEquals("userInfo is required.", message);
 		verifyNoMoreInteractions(mockDownloadListDao);
 	}
 	
 	@Test
-	public void testQueryAvialableFilesWithAnonymous() {
+	public void testQueryAvailableFilesWithAnonymous() {
 		String message = assertThrows(UnauthorizedException.class, ()->{
 			// call under test
-			manager.queryAvialableFiles(anonymousUser, availableRequest);
+			manager.queryAvailableFiles(anonymousUser, availableRequest);
 		}).getMessage();
 		assertEquals(DownloadListManagerImpl.YOU_MUST_LOGIN_TO_ACCESS_YOUR_DOWNLOAD_LIST, message);
 		verifyNoMoreInteractions(mockDownloadListDao);
@@ -504,7 +507,7 @@ public class DownloadListManagerImplTest {
 		// call under test
 		DownloadListQueryResponse response = manager.queryDownloadList(userOne, queryRequestBody);
 		assertNotNull(response);
-		assertEquals(expectedAvailable, response.getAvailableFiles());
+		assertEquals(expectedAvailable, response.getReponseDetails());
 	}
 	
 	@Test
@@ -524,13 +527,10 @@ public class DownloadListManagerImplTest {
 	 * @param forwardToCallback A list of IDs to be forwarded to the callback.
 	 */
 	public void setupAvailableCallback(List<DownloadListItemResult> results, List<Long> forwardToCallback) {
-		doAnswer(new Answer<List<DownloadListItemResult>>() {
-			@Override
-			public List<DownloadListItemResult> answer(InvocationOnMock invocation) throws Throwable {
-				EntityAccessCallback accessCallback = invocation.getArgument(0);
-				accessCallback.filter(forwardToCallback);
-				return results;
-			}
+		doAnswer((InvocationOnMock invocation) -> {
+			EntityAccessCallback accessCallback = invocation.getArgument(0);
+			accessCallback.filter(forwardToCallback);
+			return results;
 		}).when(mockDownloadListDao).getFilesAvailableToDownloadFromDownloadList(any(), any(), any(), any(), any());
 	}
 }

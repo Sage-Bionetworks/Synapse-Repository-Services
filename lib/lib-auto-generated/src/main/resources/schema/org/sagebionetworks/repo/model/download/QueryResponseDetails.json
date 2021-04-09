@@ -1,0 +1,10 @@
+{
+	"description": "Base interface that all download lists query response types implement.",
+	"type": "interface",
+	"properties": {
+		"concreteType": {
+			"type": "string",
+			"description": "Will indicate the full package name of the response type."
+		}
+	}
+}

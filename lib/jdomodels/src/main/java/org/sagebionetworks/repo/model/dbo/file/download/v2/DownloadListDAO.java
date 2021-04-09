@@ -24,7 +24,7 @@ public interface DownloadListDAO {
 	 * @param batch
 	 * @return
 	 */
-	List<DownloadListItem> filterNonFiles(List<DownloadListItem> batch);
+	List<DownloadListItem> filterUnsupportedTypes(List<DownloadListItem> batch);
 	
 	/**
 	 * 

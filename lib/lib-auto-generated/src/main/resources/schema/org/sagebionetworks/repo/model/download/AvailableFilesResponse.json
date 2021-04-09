@@ -1,5 +1,10 @@
 {
 	"description": "Represents a single page of files that are available for download from the user's download list.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.download.QueryResponseDetails"
+		}
+	],
 	"properties": {
 		"page": {
 			"description": "The page of download list items",

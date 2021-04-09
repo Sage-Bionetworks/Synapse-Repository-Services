@@ -95,7 +95,7 @@ public class DownloadListController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	@RequiredScope({ view, modify, download })
+	@RequiredScope({ view, modify })
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_ADD, method = RequestMethod.POST)
 	public @ResponseBody AddBatchOfFilesToDownloadListResponse addBatchOfFilesToDownloadList(
@@ -115,7 +115,7 @@ public class DownloadListController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	@RequiredScope({ view, modify, download })
+	@RequiredScope({ view, modify })
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_REMOVE, method = RequestMethod.POST)
 	public @ResponseBody RemoveBatchOfFilesFromDownloadListResponse removeBatchOfFilesToDownloadList(
@@ -134,7 +134,7 @@ public class DownloadListController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	@RequiredScope({ view, modify, download })
+	@RequiredScope({ view, modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST, method = RequestMethod.DELETE)
 	public void clearDownloadList(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
@@ -160,7 +160,7 @@ public class DownloadListController {
 	 * </p>
 	 * Authentication is required. A user can only access their own download list.
 	 */
-	@RequiredScope({ view, modify, download })
+	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_QUERY_START_ASYNCH, method = RequestMethod.POST)
 	public @ResponseBody AsyncJobId queryAsyncStart(
@@ -185,7 +185,7 @@ public class DownloadListController {
 	 * @return
 	 * @throws Throwable
 	 */
-	@RequiredScope({ download })
+	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_QUERY_GET_ASYNCH, method = RequestMethod.GET)
 	public @ResponseBody DownloadListQueryResponse getBulkFileDownloadResults(

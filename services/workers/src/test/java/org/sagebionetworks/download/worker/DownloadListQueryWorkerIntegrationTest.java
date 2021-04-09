@@ -2,6 +2,7 @@ package org.sagebionetworks.download.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
 
 import java.util.Arrays;
@@ -25,6 +26,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
 import org.sagebionetworks.repo.model.download.AvailableFilesRequest;
+import org.sagebionetworks.repo.model.download.AvailableFilesResponse;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
@@ -98,14 +100,15 @@ public class DownloadListQueryWorkerIntegrationTest {
 		List<DownloadListItem> batch = Arrays.asList(new DownloadListItem().setFileEntityId(file.getId()));
 		downloadListDao.addBatchOfFilesToDownloadList(user.getId(), batch);
 
-		DownloadListQueryRequest request = new DownloadListQueryRequest().setInlcudeAvailableFiles(true)
-				.setAvailableFilesRequest(new AvailableFilesRequest());
+		DownloadListQueryRequest request = new DownloadListQueryRequest().setRequestDetails(new AvailableFilesRequest());
 		// call under test
 		asynchronousJobWorkerHelper.assertJobResponse(user, request, (DownloadListQueryResponse response) -> {
 			assertNotNull(response);
-			assertNotNull(response.getAvailableFiles());
-			assertNotNull(response.getAvailableFiles().getPage());
-			List<DownloadListItemResult> page = response.getAvailableFiles().getPage();
+			assertNotNull(response.getReponseDetails());
+			assertTrue(response.getReponseDetails() instanceof AvailableFilesResponse);
+			AvailableFilesResponse details = (AvailableFilesResponse) response.getReponseDetails();
+			assertNotNull(details.getPage());
+			List<DownloadListItemResult> page = details.getPage();
 			assertEquals(1, page.size());
 			DownloadListItemResult item = page.get(0);
 			assertEquals(file.getId(), item.getFileEntityId());

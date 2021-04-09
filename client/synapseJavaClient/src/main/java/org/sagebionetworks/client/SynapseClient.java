@@ -123,6 +123,12 @@ import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
+import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
+import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
+import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
+import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
+import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListResponse;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
@@ -3864,5 +3870,47 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	void updateEntityFileHandle(String entityId, Long versionNumber, FileHandleUpdateRequest request) throws SynapseException;
+
+	/**
+	 * Add a batch of files to the user's download list.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	AddBatchOfFilesToDownloadListResponse addFilesToDownloadList(AddBatchOfFilesToDownloadListRequest request) throws SynapseException;
+
+	/**
+	 * Remove a batch of files from the user's download list.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	RemoveBatchOfFilesFromDownloadListResponse removeFilesFromDownloadList(
+			RemoveBatchOfFilesFromDownloadListRequest request) throws SynapseException;
+
+	/**
+	 * Clear all files from the user's download list.
+	 * @throws SynapseException
+	 */
+	void clearUsersDownloadList() throws SynapseException;
+
+	/**
+	 * Start an asynchronous job to query the user's download list.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	String startDownloadListQuery(DownloadListQueryRequest request) throws SynapseException;
+
+	/**
+	 * Get the results of an asynchronous job to query the user's download list.
+	 * @param asyncJobToken
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseResultNotReadyException
+	 */
+	DownloadListQueryResponse getDownloadListQueryResult(String asyncJobToken)
+			throws SynapseException, SynapseResultNotReadyException;
 
 }

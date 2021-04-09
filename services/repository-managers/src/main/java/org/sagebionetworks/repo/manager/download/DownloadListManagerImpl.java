@@ -47,8 +47,8 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 */
 	public static long MAX_FILES_PER_USER = 100 * 1000;
 
-	EntityAuthorizationManager entityAuthorizationManager;
-	DownloadListDAO downloadListDao;
+	private EntityAuthorizationManager entityAuthorizationManager;
+	private DownloadListDAO downloadListDao;
 
 	@Autowired
 	public DownloadListManagerImpl(EntityAuthorizationManager entityAuthorizationManager,
@@ -66,14 +66,14 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		ValidateArgument.required(toAdd, "toAdd");
 		validateBatch(toAdd.getBatchToAdd());
 		// filter out all non-files from the input
-		List<DownloadListItem> filteredBatch = downloadListDao.filterNonFiles(toAdd.getBatchToAdd());
+		List<DownloadListItem> filteredBatch = downloadListDao.filterUnsupportedTypes(toAdd.getBatchToAdd());
 		long currentFileCount = downloadListDao.getTotalNumberOfFilesOnDownloadList(userInfo.getId());
 		if (filteredBatch.size() + currentFileCount > MAX_FILES_PER_USER) {
 			throw new IllegalArgumentException(String.format(ADDING_S_FILES_EXCEEDS_LIMIT_TEMPLATE,
 					filteredBatch.size(), MAX_FILES_PER_USER, currentFileCount));
 		}
-		long nubmerOfFilesAdded = downloadListDao.addBatchOfFilesToDownloadList(userInfo.getId(), filteredBatch);
-		return new AddBatchOfFilesToDownloadListResponse().setNumberOfFilesAdded(nubmerOfFilesAdded);
+		long numberOfFilesAdded = downloadListDao.addBatchOfFilesToDownloadList(userInfo.getId(), filteredBatch);
+		return new AddBatchOfFilesToDownloadListResponse().setNumberOfFilesAdded(numberOfFilesAdded);
 	}
 
 	@WriteTransaction
@@ -98,12 +98,12 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	@Override
 	public DownloadListQueryResponse queryDownloadList(UserInfo userInfo, DownloadListQueryRequest requestBody) {
 		ValidateArgument.required(requestBody, "requestBody");
-		AvailableFilesResponse availableFiles = null;
-		// The AvailableFilesRequest is optional.
-		if (Boolean.TRUE.equals(requestBody.getInlcudeAvailableFiles())) {
-			availableFiles = queryAvialableFiles(userInfo, requestBody.getAvailableFilesRequest());
+		ValidateArgument.required(requestBody.getRequestDetails(), "requestBody.requestDetails");
+		if (requestBody.getRequestDetails() instanceof AvailableFilesRequest) {
+			return new DownloadListQueryResponse().setReponseDetails(
+					queryAvailableFiles(userInfo, (AvailableFilesRequest) requestBody.getRequestDetails()));
 		}
-		return new DownloadListQueryResponse().setAvailableFiles(availableFiles);
+		throw new IllegalArgumentException("Unknown type: " + requestBody.getRequestDetails().getConcreteType());
 	}
 
 	/**
@@ -114,50 +114,51 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 * @param availableRequest
 	 * @return
 	 */
-	AvailableFilesResponse queryAvialableFiles(UserInfo userInfo, AvailableFilesRequest availableRequest) {
+	AvailableFilesResponse queryAvailableFiles(UserInfo userInfo, AvailableFilesRequest availableRequest) {
 		validateUser(userInfo);
-		if(availableRequest == null) {
+		if (availableRequest == null) {
 			availableRequest = new AvailableFilesRequest();
 		}
-		
+
 		List<Sort> sort = availableRequest.getSort();
 		if (sort == null || sort.isEmpty()) {
 			sort = getDefaultSort();
 		}
-		
+
 		NextPageToken pageToken = new NextPageToken(availableRequest.getNextPageToken());
 
 		List<DownloadListItemResult> page = downloadListDao.getFilesAvailableToDownloadFromDownloadList(
-				createAccessCallback(userInfo), userInfo.getId(), sort,
-				pageToken.getLimitForQuery(), pageToken.getOffset());
+				createAccessCallback(userInfo), userInfo.getId(), sort, pageToken.getLimitForQuery(),
+				pageToken.getOffset());
 
 		return new AvailableFilesResponse().setNextPageToken(pageToken.getNextPageTokenForCurrentResults(page))
 				.setPage(page);
 	}
-	
+
 	/**
 	 * Create a default sort.
+	 * 
 	 * @return
 	 */
 	public static List<Sort> getDefaultSort() {
 		return Arrays.asList(new Sort().setField(SortField.synId).setDirection(SortDirection.ASC),
 				new Sort().setField(SortField.versionNumber).setDirection(SortDirection.ASC));
 	}
-	
-	
+
 	/**
 	 * Create a callback to filter the entities that the given user can download.
+	 * 
 	 * @param userInfo
 	 * @return
 	 */
 	EntityAccessCallback createAccessCallback(UserInfo userInfo) {
 		return (List<Long> enityIds) -> {
 			// Determine which files of this batch the user can download.
-			List<UsersEntityAccessInfo> batchInfo = entityAuthorizationManager.batchHasAccess(userInfo,
-					enityIds, ACCESS_TYPE.DOWNLOAD);
+			List<UsersEntityAccessInfo> batchInfo = entityAuthorizationManager.batchHasAccess(userInfo, enityIds,
+					ACCESS_TYPE.DOWNLOAD);
 			// filter out any entity that the user is not authorized to download.
-			return batchInfo.stream().filter(e -> e.getAuthroizationStatus().isAuthorized())
-					.map(e -> e.getEntityId()).collect(Collectors.toList());
+			return batchInfo.stream().filter(e -> e.getAuthroizationStatus().isAuthorized()).map(e -> e.getEntityId())
+					.collect(Collectors.toList());
 		};
 	}
 
@@ -168,7 +169,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 */
 	static void validateBatch(List<DownloadListItem> batch) {
 		ValidateArgument.required(batch, "batch");
-		if(batch.size() < 1) {
+		if (batch.size() < 1) {
 			throw new IllegalArgumentException("Batch must contain at least one item");
 		}
 		if (batch.size() > MAX_FILES_PER_BATCH) {

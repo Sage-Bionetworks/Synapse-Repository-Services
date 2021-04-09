@@ -433,7 +433,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	}
 
 	@Override
-	public List<DownloadListItem> filterNonFiles(List<DownloadListItem> batch) {
+	public List<DownloadListItem> filterUnsupportedTypes(List<DownloadListItem> batch) {
 		ValidateArgument.required(batch, "batch");
 		if(batch.isEmpty()) {
 			return Collections.emptyList();

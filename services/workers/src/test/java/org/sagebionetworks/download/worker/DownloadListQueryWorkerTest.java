@@ -58,7 +58,7 @@ public class DownloadListQueryWorkerTest {
 		user = new UserInfo(isAdmin, startedByUserId);
 
 		requestBody = new DownloadListQueryRequest();
-		requestBody.setAvailableFilesRequest(new AvailableFilesRequest());
+		requestBody.setRequestDetails(new AvailableFilesRequest());
 
 		jobStatus = new AsynchronousJobStatus();
 		jobStatus.setJobId(jobId);
@@ -66,7 +66,7 @@ public class DownloadListQueryWorkerTest {
 		jobStatus.setStartedByUserId(startedByUserId);
 
 		responseBody = new DownloadListQueryResponse();
-		responseBody.setAvailableFiles(new AvailableFilesResponse());
+		responseBody.setReponseDetails(new AvailableFilesResponse());
 	}
 
 	@Test
