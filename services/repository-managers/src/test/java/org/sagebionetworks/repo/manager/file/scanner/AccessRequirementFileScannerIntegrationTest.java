@@ -81,7 +81,7 @@ public class AccessRequirementFileScannerIntegrationTest {
 			ScannedFileHandleAssociation association = new ScannedFileHandleAssociation(ar.getId());
 			
 			if (ar.getDucTemplateFileHandleId() != null) {
-				association.withFileHandleIds(Collections.singletonList(Long.valueOf(ar.getDucTemplateFileHandleId())));
+				association.withFileHandleIds(Collections.singleton(Long.valueOf(ar.getDucTemplateFileHandleId())));
 			}
 			
 			expected.add(association);

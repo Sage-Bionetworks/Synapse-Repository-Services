@@ -13,7 +13,6 @@ import java.util.stream.StreamSupport;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.EntityManager;
@@ -131,7 +130,6 @@ public class TableFileHandleScannerAutowireTest {
 		
 	}
 	
-	@Disabled // See PLFM-6681
 	@Test
 	public void testScanner() {
 		
@@ -143,7 +141,7 @@ public class TableFileHandleScannerAutowireTest {
 		// No file in the schema, but the first change is the column change (schema)
 		expected.add(new ScannedFileHandleAssociation(tableWithNoFiles));
 		// No file in the schema for this change (row change but no file handles)
-		expected.add(new ScannedFileHandleAssociation(tableWithNoFiles).withFileHandleIds(Collections.emptyList()));
+		expected.add(new ScannedFileHandleAssociation(tableWithNoFiles).withFileHandleIds(Collections.emptySet()));
 		
 		// File in the schema, but the first change is the column change (schema)
 		expected.add(new ScannedFileHandleAssociation(tableWithFiles));
@@ -151,7 +149,7 @@ public class TableFileHandleScannerAutowireTest {
 		expected.add(new ScannedFileHandleAssociation(tableWithFiles, Long.valueOf(fileHandlesIds.get(0))));
 		// The second change has the remaining file handles
 		expected.add(new ScannedFileHandleAssociation(tableWithFiles).withFileHandleIds(
-				fileHandlesIds.subList(1, fileHandlesIds.size()).stream().map(Long::valueOf).collect(Collectors.toList()))
+				fileHandlesIds.subList(1, fileHandlesIds.size()).stream().map(Long::valueOf).collect(Collectors.toSet()))
 		);
 		
 		// Call under test, consume the whole iterable

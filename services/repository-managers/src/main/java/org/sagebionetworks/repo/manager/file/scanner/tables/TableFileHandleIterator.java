@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.file.scanner.tables;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
@@ -80,7 +79,7 @@ public class TableFileHandleIterator implements Iterator<ScannedFileHandleAssoci
 				
 				Set<Long> fileHandleSet = changeSet.getFileHandleIdsInSparseChangeSet();
 				
-				association.withFileHandleIds(fileHandleSet.stream().collect(Collectors.toList()));
+				association.withFileHandleIds(fileHandleSet);
 			}
 				
 			

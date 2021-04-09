@@ -146,7 +146,7 @@ public class AccessSubmissionFileScannerIntegrationTest {
 					fileHandles.addAll(r.getAttachments());
 				}
 				
-				association.withFileHandleIds(fileHandles.stream().map(id -> Long.valueOf(id)).collect(Collectors.toList()));
+				association.withFileHandleIds(fileHandles.stream().map(id -> Long.valueOf(id)).collect(Collectors.toSet()));
 
 				return association;
 			}).collect(Collectors.toList());
