@@ -74,7 +74,6 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
