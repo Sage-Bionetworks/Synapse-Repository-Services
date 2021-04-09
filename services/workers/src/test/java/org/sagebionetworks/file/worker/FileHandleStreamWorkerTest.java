@@ -229,13 +229,15 @@ public class FileHandleStreamWorkerTest {
 		FileHandle file = new S3FileHandle()
 				.setId("123")
 				.setIsPreview(true)
-				.setCreatedOn(createdOn);
+				.setCreatedOn(createdOn)
+				.setContentSize(123L);
 				
 		FileHandleRecord expected = new FileHandleRecord()
 				.withId(123)
 				.withCreatedOn(createdOn.getTime())
 				.withIsPreview(true)
-				.withStatus("AVAILABLE");
+				.withStatus("AVAILABLE")
+				.withContentSize(123L);
 		
 		// Call under test
 		FileHandleRecord result = worker.mapFileHandle(file);
@@ -257,6 +259,33 @@ public class FileHandleStreamWorkerTest {
 				.withCreatedOn(createdOn.getTime())
 				.withIsPreview(false)
 				.withStatus("AVAILABLE");
+		
+		// Call under test
+		FileHandleRecord result = worker.mapFileHandle(file);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testMapFileWithBucketAndKey() {
+		Date createdOn = new Date();
+		
+		FileHandle file = new S3FileHandle()
+				.setId("123")
+				.setIsPreview(false)
+				.setCreatedOn(createdOn)
+				.setContentSize(123L)
+				.setBucketName("bucket")
+				.setKey("key");
+				
+		FileHandleRecord expected = new FileHandleRecord()
+				.withId(123)
+				.withCreatedOn(createdOn.getTime())
+				.withIsPreview(false)
+				.withStatus("AVAILABLE")
+				.withContentSize(123L)
+				.withBucket("bucket")
+				.withKey("key");
 		
 		// Call under test
 		FileHandleRecord result = worker.mapFileHandle(file);

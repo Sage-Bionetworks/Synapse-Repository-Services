@@ -13,6 +13,9 @@ public class FileHandleRecord implements AwsKinesisLogRecord {
 	private long createdOn;
 	private String status;
 	private boolean isPreview;
+	private Long contentSize;
+	private String bucket;
+	private String key;
 	private String stack;
 	private String instance;
 
@@ -51,6 +54,33 @@ public class FileHandleRecord implements AwsKinesisLogRecord {
 		this.isPreview = isPreview;
 		return this;
 	}
+	
+	public Long getContentSize() {
+		return contentSize;
+	}
+	
+	public FileHandleRecord withContentSize(Long contentSize) {
+		this.contentSize = contentSize;
+		return this;
+	}
+
+	public String getBucket() {
+		return bucket;
+	}
+	
+	public FileHandleRecord withBucket(String bucket) {
+		this.bucket = bucket;
+		return this;
+	}
+	
+	public String getKey() {
+		return key;
+	}
+	
+	public FileHandleRecord withKey(String key) {
+		this.key = key;
+		return this;
+	}
 
 	@Override
 	public String getStack() {
@@ -76,7 +106,7 @@ public class FileHandleRecord implements AwsKinesisLogRecord {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(createdOn, id, instance, isPreview, stack, status);
+		return Objects.hash(bucket, contentSize, createdOn, id, instance, isPreview, key, stack, status);
 	}
 
 	@Override
@@ -91,13 +121,16 @@ public class FileHandleRecord implements AwsKinesisLogRecord {
 			return false;
 		}
 		FileHandleRecord other = (FileHandleRecord) obj;
-		return createdOn == other.createdOn && id == other.id && Objects.equals(instance, other.instance) && isPreview == other.isPreview
+		return Objects.equals(bucket, other.bucket) && contentSize == other.contentSize && createdOn == other.createdOn && id == other.id
+				&& Objects.equals(instance, other.instance) && isPreview == other.isPreview && Objects.equals(key, other.key)
 				&& Objects.equals(stack, other.stack) && Objects.equals(status, other.status);
 	}
 
 	@Override
 	public String toString() {
-		return "FileHandleRecord [id=" + id + ", createdOn=" + createdOn + ", status=" + status + ", isPreview=" + isPreview + ", stack="
-				+ stack + ", instance=" + instance + "]";
+		return "FileHandleRecord [id=" + id + ", createdOn=" + createdOn + ", status=" + status + ", isPreview=" + isPreview
+				+ ", contentSize=" + contentSize + ", bucket=" + bucket + ", key=" + key + ", stack=" + stack + ", instance=" + instance
+				+ "]";
 	}
+
 }

@@ -67,7 +67,8 @@ public class FileHandleStreamWorker implements  BatchChangeMessageDrivenRunner {
 		FileHandleRecord record = new FileHandleRecord()
 				.withId(Long.parseLong(file.getId()))
 				.withCreatedOn(file.getCreatedOn().getTime())
-				.withStatus(STATUS_AVAILABLE);
+				.withStatus(STATUS_AVAILABLE)
+				.withContentSize(file.getContentSize());
 		
 		if (file instanceof CloudProviderFileHandleInterface) {
 			CloudProviderFileHandleInterface cloudFile = (CloudProviderFileHandleInterface) file;
@@ -76,6 +77,8 @@ public class FileHandleStreamWorker implements  BatchChangeMessageDrivenRunner {
 			} else {
 				record.withIsPreview(false);
 			}
+			record.withBucket(cloudFile.getBucketName());
+			record.withKey(cloudFile.getKey());
 		} else {
 			record.withIsPreview(false);
 		}
