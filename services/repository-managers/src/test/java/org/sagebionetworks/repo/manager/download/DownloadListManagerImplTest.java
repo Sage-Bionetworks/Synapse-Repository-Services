@@ -5,8 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,7 +26,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -523,13 +527,10 @@ public class DownloadListManagerImplTest {
 	 * @param forwardToCallback A list of IDs to be forwarded to the callback.
 	 */
 	public void setupAvailableCallback(List<DownloadListItemResult> results, List<Long> forwardToCallback) {
-		doAnswer(new Answer<List<DownloadListItemResult>>() {
-			@Override
-			public List<DownloadListItemResult> answer(InvocationOnMock invocation) throws Throwable {
-				EntityAccessCallback accessCallback = invocation.getArgument(0);
-				accessCallback.filter(forwardToCallback);
-				return results;
-			}
+		doAnswer((InvocationOnMock invocation) -> {
+			EntityAccessCallback accessCallback = invocation.getArgument(0);
+			accessCallback.filter(forwardToCallback);
+			return results;
 		}).when(mockDownloadListDao).getFilesAvailableToDownloadFromDownloadList(any(), any(), any(), any(), any());
 	}
 }

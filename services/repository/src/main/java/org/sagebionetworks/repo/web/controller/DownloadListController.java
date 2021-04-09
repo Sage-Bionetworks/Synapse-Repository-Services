@@ -95,7 +95,7 @@ public class DownloadListController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	@RequiredScope({ view, modify, download })
+	@RequiredScope({ view, modify })
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_ADD, method = RequestMethod.POST)
 	public @ResponseBody AddBatchOfFilesToDownloadListResponse addBatchOfFilesToDownloadList(
@@ -115,7 +115,7 @@ public class DownloadListController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	@RequiredScope({ view, modify, download })
+	@RequiredScope({ view, modify })
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_REMOVE, method = RequestMethod.POST)
 	public @ResponseBody RemoveBatchOfFilesFromDownloadListResponse removeBatchOfFilesToDownloadList(
@@ -134,7 +134,7 @@ public class DownloadListController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	@RequiredScope({ view, modify, download })
+	@RequiredScope({ view, modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST, method = RequestMethod.DELETE)
 	public void clearDownloadList(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)

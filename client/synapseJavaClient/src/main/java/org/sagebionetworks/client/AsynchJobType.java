@@ -4,6 +4,7 @@ package org.sagebionetworks.client;
 import static org.sagebionetworks.client.SynapseClientImpl.ASYNC_GET;
 import static org.sagebionetworks.client.SynapseClientImpl.ASYNC_START;
 import static org.sagebionetworks.client.SynapseClientImpl.DOI;
+import static org.sagebionetworks.client.SynapseClientImpl.DOWNLOAD_LIST_QUERY;
 import static org.sagebionetworks.client.SynapseClientImpl.DOWNLOAD_LIST_ADD;
 import static org.sagebionetworks.client.SynapseClientImpl.FILE_BULK;
 import static org.sagebionetworks.client.SynapseClientImpl.SCHEMA_TYPE_CREATE;
@@ -21,6 +22,7 @@ import static org.sagebionetworks.client.SynapseClientImpl.VIEW_COLUMNS;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
+import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
@@ -57,7 +59,8 @@ public enum AsynchJobType {
 	DownloadStorageReport(STORAGE_REPORT, DownloadStorageReportResponse.class, RestEndpointType.repo),
 	CreateJsonSchema(SCHEMA_TYPE_CREATE, CreateSchemaResponse.class, RestEndpointType.repo),
 	GetValidationSchema(SCHEMA_TYPE_VALIDATION, GetValidationSchemaResponse.class, RestEndpointType.repo),
-	ViewColumnModelRequest(VIEW_COLUMNS, ViewColumnModelResponse.class, RestEndpointType.repo);
+	ViewColumnModelRequest(VIEW_COLUMNS, ViewColumnModelResponse.class, RestEndpointType.repo),
+	QueryDownloadList(DOWNLOAD_LIST_QUERY, DownloadListQueryResponse.class, RestEndpointType.repo);
 
 	String prefix;
 	Class<? extends AsynchronousResponseBody> responseClass;
