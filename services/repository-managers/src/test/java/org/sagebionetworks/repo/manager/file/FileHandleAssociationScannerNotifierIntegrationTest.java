@@ -36,7 +36,7 @@ public class FileHandleAssociationScannerNotifierIntegrationTest {
 				.withJobId(123L)
 				.withIdRange(new IdRange(1, 10));
 		
-		notifier.sendScanRequest(expected);
+		notifier.sendScanRequest(expected, /*delay*/ 0);
 		
 		FileHandleAssociationScanRangeRequest result = TimeUtils.waitFor(TIMEOUT, 1000L, () -> {
 			

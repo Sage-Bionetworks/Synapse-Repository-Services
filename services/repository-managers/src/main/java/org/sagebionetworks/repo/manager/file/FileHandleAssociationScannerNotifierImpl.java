@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.Message;
+import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -45,12 +46,21 @@ public class FileHandleAssociationScannerNotifierImpl implements FileHandleAssoc
 	}
 
 	@Override
-	public void sendScanRequest(FileHandleAssociationScanRangeRequest request) {
+	public void sendScanRequest(FileHandleAssociationScanRangeRequest request, int delay) {
+		String messageBody;
+		
 		try {
-			sqsClient.sendMessage(sqsQueueUrl, objectMapper.writeValueAsString(request));
+			messageBody = objectMapper.writeValueAsString(request);
 		} catch (JsonProcessingException e) {
 			throw new IllegalArgumentException("Could not serialize FileHandleAssociationScanRangeRequest message: " + e.getMessage(), e);
 		}
+		
+		SendMessageRequest sendMessageRequest = new SendMessageRequest()
+				.withQueueUrl(sqsQueueUrl)
+				.withMessageBody(messageBody)
+				.withDelaySeconds(delay);
+		
+		sqsClient.sendMessage(sendMessageRequest);
 	}
 
 }

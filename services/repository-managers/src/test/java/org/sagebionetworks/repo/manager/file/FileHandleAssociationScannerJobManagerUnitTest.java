@@ -353,8 +353,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		}
 		
 		verify(mockAssociationManager).getMaxIdRangeSize(FileHandleAssociateType.FileEntity);
-		
-		verify(mockNotifier).sendScanRequest(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(2, 1001)));
+		verify(mockNotifier).sendScanRequest(eq(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(2, 1001))), anyInt());
 		verify(mockStatusDao).setStartedJobsCount(jobId, 1);
 		
 	}
@@ -373,7 +372,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		
 		RuntimeException ex = new RuntimeException();
 		
-		doThrow(ex).when(mockNotifier).sendScanRequest(any());
+		doThrow(ex).when(mockNotifier).sendScanRequest(any(), anyInt());
 		
 		RuntimeException result = assertThrows(RuntimeException.class, () -> {
 			// Call under test
@@ -385,7 +384,8 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		verify(mockStatusDao).create();
 		verify(mockAssociationManager).getIdRange(FileHandleAssociateType.FileEntity);
 		verify(mockAssociationManager).getMaxIdRangeSize(FileHandleAssociateType.FileEntity);
-		verify(mockNotifier).sendScanRequest(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(2, 1001)));
+		
+		verify(mockNotifier).sendScanRequest(eq(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(2, 1001))), anyInt());
 		verify(mockStatusDao).delete(jobId);
 		
 	}
@@ -413,8 +413,8 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		
 		verify(mockAssociationManager).getMaxIdRangeSize(FileHandleAssociateType.FileEntity);
 		
-		verify(mockNotifier).sendScanRequest(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(2, 6)));
-		verify(mockNotifier).sendScanRequest(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(7, 11)));
+		verify(mockNotifier).sendScanRequest(eq(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(2, 6))), anyInt());
+		verify(mockNotifier).sendScanRequest(eq(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(7, 11))), anyInt());
 		verify(mockStatusDao).setStartedJobsCount(jobId, 2);
 		
 	}
@@ -442,9 +442,9 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		
 		verify(mockAssociationManager).getMaxIdRangeSize(FileHandleAssociateType.FileEntity);
 		
-		verify(mockNotifier).sendScanRequest(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(1, 3)));
-		verify(mockNotifier).sendScanRequest(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(4, 6)));
-		verify(mockNotifier).sendScanRequest(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(7, 9)));
+		verify(mockNotifier).sendScanRequest(eq(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(1, 3))), anyInt());
+		verify(mockNotifier).sendScanRequest(eq(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(4, 6))), anyInt());
+		verify(mockNotifier).sendScanRequest(eq(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(7, 9))), anyInt());
 		
 		verify(mockStatusDao).setStartedJobsCount(jobId, 3);
 		
