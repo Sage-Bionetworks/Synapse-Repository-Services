@@ -6,7 +6,6 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 import org.sagebionetworks.auth.DeprecatedUtils;
 import org.sagebionetworks.auth.controller.EndpointHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -92,7 +91,7 @@ public class PrincipalController {
 	 * @param user the first name, last name and email address for the user
 	 * @param portalEndpoint the beginning of the URL included in the email verification message. When concatenated with
 	 *        a list of ampersand (&) separated request parameters, must become a well formed URL. The concatenated
-	 *        string must be included with the <a href="${POST.account}">POST /account</a> request.
+	 *        string must be included with the <a href="${POST.account2}">POST /account</a> request.
 	 */
 	@RequiredScope({})
 	@ResponseStatus(HttpStatus.CREATED)
