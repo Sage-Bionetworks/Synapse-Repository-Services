@@ -48,6 +48,8 @@ public class BaseClientImplTest {
 	@Mock
 	SimpleHttpResponse mockResponse;
 	@Mock
+	SimpleHttpResponse mockResponse2;
+	@Mock
 	File mockFile;
 	@Mock
 	Header mockHeader;
@@ -219,22 +221,30 @@ public class BaseClientImplTest {
 
 	@Test
 	public void testDownloadZippedFileToString() throws Exception {
-		when(mockClient.getFile(any(SimpleHttpRequest.class), any(File.class)))
+		when(mockClient.get(any(SimpleHttpRequest.class)))
 				.thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		when(mockHeader.getValue()).thenReturn("text/plain; charset=UTF-8");
 		when(mockResponse.getFirstHeader(CONTENT_TYPE)).thenReturn(mockHeader);
+		
+		when(mockClient.getFile(any(SimpleHttpRequest.class), any(File.class)))
+				.thenReturn(mockResponse2);
+		when(mockResponse2.getStatusCode()).thenReturn(200);
+		when(mockResponse2.getFirstHeader(CONTENT_TYPE)).thenReturn(mockHeader);
+		
 		try {
-			baseClient.downloadZippedFileToString("https://repo-prod.prod.sagebase.org", "/fileToDownload");
+			baseClient.downloadZippedFileToString("https://repo-prod.prod.sagebase.org", "/fileToDownload?redirect=false");
 			fail("should throw a FileNotFoundException");
 		} catch (FileNotFoundException e) {
 			// since we do not mock the client to actually download the file
 		}
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
+		ArgumentCaptor<SimpleHttpRequest> redirCaptor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		ArgumentCaptor<File> fileCaptor = ArgumentCaptor.forClass(File.class);
+		verify(mockClient).get(redirCaptor.capture());
+		assertEquals("https://repo-prod.prod.sagebase.org/fileToDownload?redirect=false",
+				redirCaptor.getValue().getUri());
 		verify(mockClient).getFile(captor.capture(), fileCaptor.capture());
-		assertEquals("https://repo-prod.prod.sagebase.org/fileToDownload",
-				captor.getValue().getUri());
 		File file = fileCaptor.getValue();
 		assertEquals("zipped", file.getName());
 		// has been deleted
@@ -258,27 +268,33 @@ public class BaseClientImplTest {
 				.thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		try {
-			baseClient.downloadFromSynapse("https://repo-prod.prod.sagebase.org/fileToDownload", "md5", mockFile);
+			baseClient.downloadFromSynapse("https://repo-prod.prod.sagebase.org/fileToDownload?redirect=false", "md5", mockFile);
 			// expected FileNotFoundException when checking md5
 		} catch (Exception e) {
 			// the mockFile doesn't exist
 		}
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
-		verify(mockClient).getFile(captor.capture(), eq(mockFile));
-		assertEquals("https://repo-prod.prod.sagebase.org/fileToDownload",
+		verify(mockClient).get(captor.capture());
+		assertEquals("https://repo-prod.prod.sagebase.org/fileToDownload?redirect=false",
 				captor.getValue().getUri());
 	}
 
 	@Test
 	public void testDownloadFromSynapseWithNullMd5() throws Exception {
-		when(mockClient.getFile(any(SimpleHttpRequest.class), any(File.class)))
+		when(mockClient.get(any(SimpleHttpRequest.class)))
 				.thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
+
+		when(mockClient.getFile(any(SimpleHttpRequest.class), any(File.class)))
+			.thenReturn(mockResponse2);
+		when(mockResponse2.getStatusCode()).thenReturn(200);
+		when(mockResponse2.getFirstHeader(CONTENT_TYPE)).thenReturn(mockHeader);
+		
 		assertEquals(mockFile, baseClient.downloadFromSynapse(
-				"https://repo-prod.prod.sagebase.org/fileToDownload", null, mockFile));
+				"https://repo-prod.prod.sagebase.org/fileToDownload?redirect=false", null, mockFile));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
-		verify(mockClient).getFile(captor.capture(), eq(mockFile));
-		assertEquals("https://repo-prod.prod.sagebase.org/fileToDownload",
+		verify(mockClient).get(captor.capture());
+		assertEquals("https://repo-prod.prod.sagebase.org/fileToDownload?redirect=false",
 				captor.getValue().getUri());
 	}
 
@@ -287,7 +303,7 @@ public class BaseClientImplTest {
 	 */
 	@Test (expected = SynapseForbiddenException.class)
 	public void testDownloadFromSynapseWithJsonError() throws Exception {
-		when(mockClient.getFile(any(SimpleHttpRequest.class), any(File.class)))
+		when(mockClient.get(any(SimpleHttpRequest.class)))
 				.thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(403);
 		when(mockResponse.getContent()).thenReturn("{\"reason\":\"User lacks READ_PRIVATE_SUBMISSION access to Evaluation 8719759\"}");
@@ -296,7 +312,7 @@ public class BaseClientImplTest {
 
 	@Test (expected = SynapseForbiddenException.class)
 	public void testDownloadFromSynapseWithNonJsonError() throws Exception {
-		when(mockClient.getFile(any(SimpleHttpRequest.class), any(File.class)))
+		when(mockClient.get(any(SimpleHttpRequest.class)))
 				.thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(403);
 		when(mockResponse.getContent()).thenReturn("User lacks READ_PRIVATE_SUBMISSION access to Evaluation 8719759");
