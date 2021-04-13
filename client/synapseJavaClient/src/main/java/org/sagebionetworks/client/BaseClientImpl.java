@@ -405,14 +405,11 @@ public class BaseClientImpl implements BaseClient {
 			throws ClientProtocolException, IOException, FileNotFoundException, SynapseException {
 		ValidateArgument.required(endpoint, "endpoint");
 		ValidateArgument.required(uri, "uri");
+		// step 1: get redirect URL
+		String redirUrl = getStringDirect(endpoint, uri);
+		// step 2: download file
 		SimpleHttpRequest request = new SimpleHttpRequest();
-		request.setUri(endpoint + uri);
-		Map<String, String> requestHeaders = new HashMap<String, String>(defaultGETDELETEHeaders);
-		requestHeaders.put(USER_AGENT, userAgent);
-		if (apiKey!=null) {
-			addDigitalSignature(endpoint + uri, requestHeaders);
-		}
-		request.setHeaders(requestHeaders);
+		request.setUri(redirUrl);
 		File zippedFile = new File("zipped");
 		InputStream inputStream = null;
 		try {
@@ -445,24 +442,15 @@ public class BaseClientImpl implements BaseClient {
 			throws SynapseException {
 		ValidateArgument.required(url, "url");
 		ValidateArgument.required(destinationFile, "destinationFile");
-		SimpleHttpRequest request = new SimpleHttpRequest();
-		request.setUri(url);
-		Map<String, String> requestHeaders = new HashMap<String, String>(defaultGETDELETEHeaders);
-		// remove session token if it is null
-		if(requestHeaders.containsKey(SESSION_TOKEN_HEADER) && requestHeaders.get(SESSION_TOKEN_HEADER) == null) {
-			requestHeaders.remove(SESSION_TOKEN_HEADER);
-		}
-		requestHeaders.put(USER_AGENT, userAgent);
-		if (apiKey!=null) {
-			addDigitalSignature(url, requestHeaders);
-		}
-		request.setHeaders(requestHeaders);
 
 		try {
+			// step 1: get redirect URL
+			String redirUrl = getStringDirect(url, "");
+			// step 2: download file
+			SimpleHttpRequest request = new SimpleHttpRequest();
+			request.setUri(redirUrl);
 			SimpleHttpResponse response = simpleHttpClient.getFile(request, destinationFile);
-			if (!ClientUtils.is200sStatusCode(response.getStatusCode())) {
 				ClientUtils.convertResponseBodyToJSONAndThrowException(response);
-			}
 			// Check that the md5s match, if applicable
 			if (null != md5) {
 				String localMd5 = MD5ChecksumHelper.getMD5Checksum(destinationFile.getAbsolutePath());
