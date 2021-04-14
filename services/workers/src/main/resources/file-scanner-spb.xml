@@ -63,7 +63,7 @@
 								<property name="runner" ref="fileHandleAssociationScanRangeWorker" />
 								<property name="semaphoreLockKey" value="fileHandleAssociationScanRangeWorker" />
 								<property name="semaphoreMaxLockCount" value="10" />
-								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="60" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="300" />
 								<property name="queueName" value="#{stackConfiguration.getQueueName('FILE_HANDLE_SCAN_REQUEST')}"/>
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
@@ -78,7 +78,7 @@
 		</property>
 		<!-- We stagger the start delay of each trigger to spread out the timing -->
 		<property name="startDelay" value="3465" />
-		<property name="repeatInterval" value="200" />
+		<property name="repeatInterval" value="1003" />
 	</bean>
 	
 	<bean id="fileHandleStreamWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"

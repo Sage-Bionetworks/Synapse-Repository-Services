@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.file.scanner;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 
@@ -39,7 +38,7 @@ public class FileHandleScannerUtilsTest {
 		Instant timestamp = Instant.now();
 		Long objectId = 123L;
 		
-		ScannedFileHandleAssociation scanned = new ScannedFileHandleAssociation(objectId).withFileHandleIds(Collections.emptyList());
+		ScannedFileHandleAssociation scanned = new ScannedFileHandleAssociation(objectId).withFileHandleIds(Collections.emptySet());
 		
 		Set<FileHandleAssociationRecord> expected = Collections.emptySet();
 		
@@ -70,7 +69,7 @@ public class FileHandleScannerUtilsTest {
 		Instant timestamp = Instant.now();
 		Long objectId = 123L;
 		
-		ScannedFileHandleAssociation scanned = new ScannedFileHandleAssociation(objectId).withFileHandleIds(Arrays.asList(456L, 789L));
+		ScannedFileHandleAssociation scanned = new ScannedFileHandleAssociation(objectId).withFileHandleIds(ImmutableSet.of(456L, 789L));
 		
 		Set<FileHandleAssociationRecord> expected = ImmutableSet.of(
 				new FileHandleAssociationRecord().withAssociateType(associateType).withTimestamp(timestamp.toEpochMilli()).withAssociateId(objectId).withFileHandleId(456L),

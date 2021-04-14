@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.file;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,6 +32,7 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 		
 	static final long FLUSH_DELAY_MS = 250;
 	static final int KINESIS_BATCH_SIZE = 10000;
+	static final int MAX_DELAY_SEC = 60;
 	
 	private FileHandleAssociationManager associationManager;
 	private AwsKinesisFirehoseLogger kinesisLogger;
@@ -156,13 +158,17 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 					.withJobId(jobId)
 					.withIdRange(requestRange);
 			
-			notifier.sendScanRequest(request);
+			notifier.sendScanRequest(request, getMessageDelay());
 			
 			requestMinId += scanRangeRequestSize;
 			requestMaxId += scanRangeRequestSize;
 		}
 		
 		return requestsCount;
+	}
+	
+	private static int getMessageDelay() {
+		return ThreadLocalRandom.current().nextInt(MAX_DELAY_SEC + 1);
 	}
 	
 	private int flushRecordsBatch(Set<FileHandleAssociationRecord> recordsBatch) {

@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.file.scanner;
 
 import java.sql.ResultSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -61,7 +60,7 @@ public class SerializedFieldRowMapperSupplier<T> implements RowMapperSupplier {
 		};
 	}
 	
-	private static List<Long> mapFileHandleIds(Set<String> fileHandleIds) {
+	private static Set<Long> mapFileHandleIds(Set<String> fileHandleIds) {
 		return fileHandleIds.stream().map(idString -> {
 			try {
 				return Long.valueOf(idString);
@@ -71,7 +70,7 @@ public class SerializedFieldRowMapperSupplier<T> implements RowMapperSupplier {
 			return null;
 		})
 		.filter(Objects::nonNull)
-		.collect(Collectors.toList());
+		.collect(Collectors.toSet());
 	}
 	
 	/**

@@ -157,6 +157,13 @@ import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
+import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
+import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
+import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
+import org.sagebionetworks.repo.model.download.QueryRequestDetails;
+import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
+import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListResponse;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
@@ -647,6 +654,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String DOWNLOAD_LIST_REMOVE = DOWNLOAD_LIST+"/remove";
 	public static final String DOWNLOAD_LIST_CLEAR = DOWNLOAD_LIST+"/clear";
 	
+	public static final String DOWNLOAD_LIST_QUERY = DOWNLOAD_LIST+"/query";
+	
 	public static final String DOWNLOAD_ORDER = "/download/order";
 	public static final String DOWNLOAD_ORDER_ID = DOWNLOAD_ORDER+"/{orderId}";
 	public static final String DOWNLOAD_ORDER_HISTORY = DOWNLOAD_ORDER+"/history";
@@ -657,6 +666,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String SCHEMA_TYPE_CREATE = "/schema/type/create/";
 	public static final String SCHEMA_TYPE_VALIDATION = "/schema/type/validation/";
 	public static final String VIEW_COLUMNS = "/column/view/scope/";
+	
 
 	/**
 	 * Default constructor uses the default repository and file services endpoints.
@@ -5921,4 +5931,37 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		
 	}
 
+	@Override
+	public AddBatchOfFilesToDownloadListResponse addFilesToDownloadList(AddBatchOfFilesToDownloadListRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		String url = "/download/list/add";
+		return postJSONEntity(getRepoEndpoint(), url, request, AddBatchOfFilesToDownloadListResponse.class);
+	}
+	
+	@Override
+	public RemoveBatchOfFilesFromDownloadListResponse removeFilesFromDownloadList(RemoveBatchOfFilesFromDownloadListRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		String url = "/download/list/remove";
+		return postJSONEntity(getRepoEndpoint(), url, request, RemoveBatchOfFilesFromDownloadListResponse.class);
+	}
+	
+	@Override
+	public void clearUsersDownloadList() throws SynapseException {
+		String uri = "/download/list";
+		deleteUri(getRepoEndpoint(), uri);
+	}
+	
+	@Override
+	public String startDownloadListQuery(DownloadListQueryRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return startAsynchJob(AsynchJobType.QueryDownloadList, request);
+	}
+
+	@Override
+	public DownloadListQueryResponse getDownloadListQueryResult(String asyncJobToken)
+			throws SynapseException, SynapseResultNotReadyException {
+		ValidateArgument.required(asyncJobToken, "asyncJobToken");
+		String url = DOWNLOAD_LIST_QUERY + ASYNC_GET + asyncJobToken;
+		return (DownloadListQueryResponse) getAsynchJobResponse(url, DownloadListQueryResponse.class, getRepoEndpoint());
+	}
 }

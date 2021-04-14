@@ -16,7 +16,16 @@ public interface DownloadListDAO {
 	 * @return The number of files that were actually added.
 	 */
 	long addBatchOfFilesToDownloadList(Long userId, List<DownloadListItem> batchToAdd);
-
+	
+	
+	/**
+	 * For a given list of DownloadListItem, filter out all items that are not actual files.
+	 * 
+	 * @param batch
+	 * @return
+	 */
+	List<DownloadListItem> filterUnsupportedTypes(List<DownloadListItem> batch);
+	
 	/**
 	 * 
 	 * @param userId        The id of the user.
@@ -85,6 +94,14 @@ public interface DownloadListDAO {
 	 * @param batchSize
 	 * @return
 	 */
-	List<Long> readTempoaryTableOfAvailableFiles(EntityAccessCallback accessCallback, Long userId, int batchSize);
+	List<Long> getAvailableFilesFromDownloadList(EntityAccessCallback accessCallback, Long userId, int batchSize);
+
+	/**
+	 * Get the total number of files currently on the user's download list.
+	 * 
+	 * @param userId
+	 * @return
+	 */
+	long getTotalNumberOfFilesOnDownloadList(Long userId);
 
 }

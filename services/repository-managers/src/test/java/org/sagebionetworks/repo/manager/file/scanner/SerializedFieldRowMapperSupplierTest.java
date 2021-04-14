@@ -71,7 +71,7 @@ public class SerializedFieldRowMapperSupplierTest {
 		when(mockDeserializer.deserialize(any())).thenReturn(deserialized);
 		when(mockExtractor.extractAll(any())).thenReturn(fileHandleIds);
 		
-		ScannedFileHandleAssociation expected = new ScannedFileHandleAssociation(objectId).withFileHandleIds(Arrays.asList(1L, 2L, 3L));
+		ScannedFileHandleAssociation expected = new ScannedFileHandleAssociation(objectId).withFileHandleIds(ImmutableSet.of(1L, 2L, 3L));
 		
 		// Call under test
 		ScannedFileHandleAssociation result = rowMapper.mapRow(mockResultSet, 0);
@@ -100,7 +100,7 @@ public class SerializedFieldRowMapperSupplierTest {
 		when(mockDeserializer.deserialize(any())).thenReturn(deserialized);
 		when(mockExtractor.extractAll(any())).thenReturn(fileHandleIds);
 		
-		ScannedFileHandleAssociation expected = new ScannedFileHandleAssociation(objectId).withFileHandleIds(Arrays.asList(1L, 2L));
+		ScannedFileHandleAssociation expected = new ScannedFileHandleAssociation(objectId).withFileHandleIds(ImmutableSet.of(1L, 2L));
 		
 		// Call under test
 		ScannedFileHandleAssociation result = rowMapper.mapRow(mockResultSet, 0);

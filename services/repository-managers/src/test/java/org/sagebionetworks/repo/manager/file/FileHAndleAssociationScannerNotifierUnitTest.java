@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.file.IdRange;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.GetQueueUrlResult;
 import com.amazonaws.services.sqs.model.Message;
+import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -110,11 +111,18 @@ public class FileHAndleAssociationScannerNotifierUnitTest {
 		
 		when(mockObjectMapper.writeValueAsString(any())).thenReturn(messageBody);
 		
+		int delay = 10;
+		
 		// Call under test
-		notifier.sendScanRequest(request);
+		notifier.sendScanRequest(request, delay);
+
+		SendMessageRequest expectedRequest = new SendMessageRequest()
+				.withQueueUrl(queueUrl)
+				.withMessageBody(messageBody)
+				.withDelaySeconds(delay);
 		
 		verify(mockObjectMapper).writeValueAsString(request);
-		verify(mockSqsClient).sendMessage(queueUrl, messageBody);
+		verify(mockSqsClient).sendMessage(expectedRequest);
 	}
 	
 	@Test
@@ -124,9 +132,11 @@ public class FileHAndleAssociationScannerNotifierUnitTest {
 		
 		doThrow(ex).when(mockObjectMapper).writeValueAsString(any());
 		
+		int delay = 10;
+		
 		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			notifier.sendScanRequest(request);
+			notifier.sendScanRequest(request, delay);
 		});
 		
 		assertEquals(ex, result.getCause());
