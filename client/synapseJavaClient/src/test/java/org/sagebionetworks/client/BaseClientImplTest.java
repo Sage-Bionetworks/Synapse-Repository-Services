@@ -17,7 +17,9 @@ import static org.sagebionetworks.client.Method.GET;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -27,6 +29,8 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
@@ -55,7 +59,7 @@ public class BaseClientImplTest {
 	Header mockHeader;
 
 	private static final String CONTENT_TYPE = "Content-Type";
-	private static final String CONTENT_TYPE_APPLICATION_JSON = "application/json";
+	private static final String CONTENT_TYPE_APPLICATION_JSON = "application/json; charset=utf-8";
 	
 	BaseClientImpl baseClient;
 	private final String sessionIdVal = "mySessionIdValue";
@@ -220,33 +224,37 @@ public class BaseClientImplTest {
 	}
 
 	@Test
-	public void testDownloadZippedFileToString() throws Exception {
+	public void testDownloadFileToString() throws Exception {
 		when(mockClient.get(any(SimpleHttpRequest.class)))
 				.thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		when(mockHeader.getValue()).thenReturn("text/plain; charset=UTF-8");
 		when(mockResponse.getFirstHeader(CONTENT_TYPE)).thenReturn(mockHeader);
 		
-		when(mockClient.getFile(any(SimpleHttpRequest.class), any(File.class)))
-				.thenReturn(mockResponse2);
+		ArgumentCaptor<File> fileCaptor = ArgumentCaptor.forClass(File.class);
+		when(mockClient.getFile(any(SimpleHttpRequest.class), fileCaptor.capture()))
+				.thenAnswer(new Answer<SimpleHttpResponse>() {
+					@Override
+					public SimpleHttpResponse answer(InvocationOnMock invocation) throws Throwable {
+						try (FileOutputStream fos = new FileOutputStream(fileCaptor.getValue())) {
+							fos.write("some content".getBytes());
+						}
+						return mockResponse2;
+					}});
+		
 		when(mockResponse2.getStatusCode()).thenReturn(200);
 		when(mockResponse2.getFirstHeader(CONTENT_TYPE)).thenReturn(mockHeader);
 		
-		try {
-			baseClient.downloadFileToString("https://repo-prod.prod.sagebase.org", "/fileToDownload?redirect=false", true);
-			fail("should throw a FileNotFoundException");
-		} catch (FileNotFoundException e) {
-			// since we do not mock the client to actually download the file
-		}
+		baseClient.downloadFileToString("https://repo-prod.prod.sagebase.org", "/fileToDownload?redirect=false", false);
+
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		ArgumentCaptor<SimpleHttpRequest> redirCaptor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
-		ArgumentCaptor<File> fileCaptor = ArgumentCaptor.forClass(File.class);
 		verify(mockClient).get(redirCaptor.capture());
 		assertEquals("https://repo-prod.prod.sagebase.org/fileToDownload?redirect=false",
 				redirCaptor.getValue().getUri());
 		verify(mockClient).getFile(captor.capture(), fileCaptor.capture());
 		File file = fileCaptor.getValue();
-		assertEquals("zipped", file.getName());
+		assertEquals(fileCaptor.getValue().getName(), file.getName());
 		// has been deleted
 		assertFalse(file.exists());
 	}
@@ -290,7 +298,7 @@ public class BaseClientImplTest {
 		when(mockResponse2.getStatusCode()).thenReturn(200);
 		when(mockResponse2.getFirstHeader(CONTENT_TYPE)).thenReturn(mockHeader);
 		
-		assertEquals(mockFile, baseClient.downloadFromSynapse(
+		assertEquals(Charset.forName("utf-8"), baseClient.downloadFromSynapse(
 				"https://repo-prod.prod.sagebase.org/fileToDownload?redirect=false", null, mockFile));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).get(captor.capture());

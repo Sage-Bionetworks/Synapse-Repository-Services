@@ -402,7 +402,7 @@ public class BaseClientImpl implements BaseClient {
 			throws ClientProtocolException, IOException, FileNotFoundException, SynapseException {
 		ValidateArgument.required(endpoint, "endpoint");
 		ValidateArgument.required(uri, "uri");
-		File file = File.createTempFile("", "");
+		File file = File.createTempFile("file", null);
 		Charset charset = downloadFromSynapse(endpoint+uri, null, file);
 		InputStream inputStream = null;
 		try {
