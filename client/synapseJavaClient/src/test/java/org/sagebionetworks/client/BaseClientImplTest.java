@@ -211,12 +211,12 @@ public class BaseClientImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testDownloadZippedFileToStringWithNullEndpoint() throws Exception {
-		baseClient.downloadZippedFileToString(null, "uri");
+		baseClient.downloadFileToString(null, "uri", true);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testDownloadZippedFileToStringWithNullURI() throws Exception {
-		baseClient.downloadZippedFileToString("endpoint", null);
+		baseClient.downloadFileToString("endpoint", null, true);
 	}
 
 	@Test
@@ -233,7 +233,7 @@ public class BaseClientImplTest {
 		when(mockResponse2.getFirstHeader(CONTENT_TYPE)).thenReturn(mockHeader);
 		
 		try {
-			baseClient.downloadZippedFileToString("https://repo-prod.prod.sagebase.org", "/fileToDownload?redirect=false");
+			baseClient.downloadFileToString("https://repo-prod.prod.sagebase.org", "/fileToDownload?redirect=false", true);
 			fail("should throw a FileNotFoundException");
 		} catch (FileNotFoundException e) {
 			// since we do not mock the client to actually download the file

@@ -2268,7 +2268,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			SynapseException {
 		ValidateArgument.required(key, "key");
 		String uri = createV2WikiURL(key) + MARKDOWN_FILE + AND_REDIRECT_PARAMETER + "false";
-		return downloadZippedFileToString(getRepoEndpoint(), uri);
+		return downloadFileToString(getRepoEndpoint(), uri, /*gunzip*/true);
 	}
 
 	@Override
@@ -2280,7 +2280,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(version, "version");
 		String uri = createV2WikiURL(key) + MARKDOWN_FILE + VERSION_PARAMETER
 				+ version;
-		return downloadZippedFileToString(getRepoEndpoint(), uri);
+		return downloadFileToString(getRepoEndpoint(), uri, /*gunzip*/true);
 	}
 
 	private static String createV2WikiAttachmentURI(WikiPageKey key,
@@ -2711,8 +2711,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public String downloadMessage(String messageId) throws SynapseException,
 			MalformedURLException, IOException {
-		String uri = createDownloadMessageURI(messageId, true);
-		return getStringDirect(getRepoEndpoint(), uri);
+		String redirUri = getMessageTemporaryUrl(messageId);
+		return downloadFileToString(redirUri, "", /*gunzip*/false);
 	}
 
 	@Override
