@@ -21,7 +21,7 @@
 		},
 		"submittedBy": {
 			"type": "string",
-			"description": "The ID of the user that submited this submission."
+			"description": "The ID of the user that submitted this submission."
 		},
 		"accessorChanges": {
 			"type": "array",
