@@ -319,12 +319,14 @@ public class DBOSubmissionDAOImplTest {
 		assertEquals(0, submissions.size());
 	}
 	
-	private static SubmissionInfo createSubmissionInfo(ResearchProject rp, long modifiedOn) {
+	private static SubmissionInfo createSubmissionInfo(ResearchProject rp, long modifiedOn, Submission submission) {
 		SubmissionInfo result = new SubmissionInfo();
 		result.setInstitution(rp.getInstitution());
 		result.setIntendedDataUseStatement(rp.getIntendedDataUseStatement());
 		result.setProjectLead(rp.getProjectLead());
 		result.setModifiedOn(new Date(modifiedOn));
+		result.setSubmittedBy(submission.getSubmittedBy());
+		result.setAccessorChanges(submission.getAccessorChanges());
 		return result;
 		
 	}
@@ -351,7 +353,7 @@ public class DBOSubmissionDAOImplTest {
 		dtosToDelete.add( submissionDao.createSubmission(dto3).getSubmissionId() );	
 		modifiedOn += 60000L;
 		submissionDao.updateSubmissionStatus(dto3.getId(), SubmissionState.APPROVED, null, user1.getId(), modifiedOn);
-		SubmissionInfo dto3Info = createSubmissionInfo(researchProject2, modifiedOn);
+		SubmissionInfo dto3Info = createSubmissionInfo(researchProject2, modifiedOn, dto3);
 		
 		// now create another, later submission for research project 1
 		modifiedOn += 60000L;
@@ -359,7 +361,7 @@ public class DBOSubmissionDAOImplTest {
 		dtosToDelete.add( submissionDao.createSubmission(dto4).getSubmissionId() );	
 		modifiedOn += 60000L;
 		submissionDao.updateSubmissionStatus(dto4.getId(), SubmissionState.APPROVED, null, user1.getId(), modifiedOn);
-		SubmissionInfo dto4Info = createSubmissionInfo(researchProject, modifiedOn);
+		SubmissionInfo dto4Info = createSubmissionInfo(researchProject, modifiedOn, dto4);
 		
 		// create another submission for some other access requirement.  (Shouldn't see it in the results.)
 		modifiedOn += 60000L;

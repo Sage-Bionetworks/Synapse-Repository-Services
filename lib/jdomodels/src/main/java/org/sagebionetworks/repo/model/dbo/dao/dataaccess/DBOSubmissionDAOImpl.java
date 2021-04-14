@@ -247,6 +247,8 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO{
 				result.setIntendedDataUseStatement(researchProject.getIntendedDataUseStatement());
 				result.setProjectLead(researchProject.getProjectLead());
 				result.setModifiedOn(new Date(rs.getLong(COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON)));
+				result.setSubmittedBy(submission.getSubmittedBy());
+				result.setAccessorChanges(submission.getAccessorChanges());
 				return result;
 			} catch (IOException e) {
 				throw new RuntimeException(e);
