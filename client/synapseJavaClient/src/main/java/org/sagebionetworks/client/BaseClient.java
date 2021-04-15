@@ -56,6 +56,13 @@ public interface BaseClient {
 	public String getCurrentSessionToken();
 
 	/**
+	 * Get the current access token used by this client.
+	 * 
+	 * @return the access token
+	 */
+	public String getAccessToken();
+
+	/**
 	 * Get the endpoint of the repository service
 	 */
 	public String getRepoEndpoint();

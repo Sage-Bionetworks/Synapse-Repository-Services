@@ -62,6 +62,7 @@ public class ITDocker {
 
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapseOne;
+	private static SynapseClient anonymousSynapseClient;
 	private static Long userToDelete;
 	private static String username;
 	private static String password;
@@ -88,7 +89,10 @@ public class ITDocker {
 		adminSynapse.clearAllLocks();
 		synapseOne = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(synapseOne);
-
+		
+		anonymousSynapseClient = new SynapseClientImpl();
+		SynapseClientHelper.setEndpoints(anonymousSynapseClient);
+		
 		username = UUID.randomUUID().toString();
 		password = UUID.randomUUID().toString();
 		userToDelete = SynapseClientHelper
@@ -155,7 +159,7 @@ public class ITDocker {
 	public void testDockerClientAuthorizationWithAccessToken() throws Exception {
 		String accessToken = OAuthHelper.getAccessToken(
 				synapseOne, 
-				synapseOne, 
+				anonymousSynapseClient, 
 				oauthClient.getClient_id(), 
 				oauthClientSecret, 
 				oauthClient.getRedirect_uris().get(0),

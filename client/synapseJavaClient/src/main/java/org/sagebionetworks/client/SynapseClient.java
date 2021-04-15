@@ -85,6 +85,7 @@ import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -328,7 +329,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return session
 	 * @throws NotFoundException 
 	 */
-	Session createNewAccount(AccountSetupInfo accountSetupInfo) throws SynapseException;
+	LoginResponse createNewAccount(AccountSetupInfo accountSetupInfo) throws SynapseException;
 	
 	/**
 	 * Send an email validation as a precursor to adding a new email address to an existing account.
@@ -1877,9 +1878,9 @@ public interface SynapseClient extends BaseClient {
 	public void changePassword(ChangePasswordInterface changePasswordRequest) throws SynapseException;
 
 	/**
-	 * Signs the terms of use for utilization of Synapse, as identified by a session token
+	 * Signs the terms of use for utilization of Synapse, as identified by an access token
 	 */
-	public void signTermsOfUse(String sessionToken, boolean acceptTerms) throws SynapseException;
+	public void signTermsOfUse(String accessToken) throws SynapseException;
 
 	/**
 	 * The first step in OAuth authentication involves sending the user to

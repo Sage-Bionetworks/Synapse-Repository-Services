@@ -2,7 +2,6 @@ package org.sagebionetworks;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -101,7 +100,7 @@ public class IT990AuthenticationController {
 		request.setPassword(PASSWORD);
 		request.setAuthenticationReceipt(receipt);
 		receipt = synapse.login(request).getAuthenticationReceipt();
-		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), true);
+		synapse.signTermsOfUse(synapse.getAccessToken());
 	}
 	
 	@Before
@@ -134,7 +133,12 @@ public class IT990AuthenticationController {
 	@Test
 	public void testLoginThenLogout() throws Exception {
 		synapse.logout();
-		assertNull(synapse.getCurrentSessionToken());
+		try {
+			synapse.getAccessToken();
+			fail("Expected IllegalStateException");
+		} catch (IllegalStateException e) {
+			// as expected
+		}
 	}
 
 	@Test
@@ -151,11 +155,11 @@ public class IT990AuthenticationController {
 	}
 
 	@Test
-	public void testSignTermsViaSessionToken() throws Exception {
-		String sessionToken = synapse.getCurrentSessionToken();
+	public void testSignTermsViaAccessToken() throws Exception {
+		String accessToken = synapse.getAccessToken();
 		
 		// Reject the terms
-		synapse.signTermsOfUse(sessionToken, false);
+		synapse.signTermsOfUse(accessToken);
 	}
 
 	@Test

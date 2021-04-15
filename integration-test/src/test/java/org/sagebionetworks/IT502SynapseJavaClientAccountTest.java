@@ -19,8 +19,8 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.principal.AccountCreationToken;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
@@ -103,14 +103,14 @@ public class IT502SynapseJavaClientAccountTest {
 		accountSetupInfo.setPassword(UUID.randomUUID().toString());
 		String username = UUID.randomUUID().toString();
 		accountSetupInfo.setUsername(username);
-		Session session = synapseAnonymous.createNewAccount(accountSetupInfo);
-		assertNotNull(session.getSessionToken());
+		LoginResponse loginResponse = synapseAnonymous.createNewAccount(accountSetupInfo);
+		assertNotNull(loginResponse.getAccessToken());
 		// need to get the ID of the new user to delete it
 		SynapseClientImpl sc = new SynapseClientImpl();
-		sc.setSessionToken(session.getSessionToken());
+		sc.setBearerAuthorizationToken(loginResponse.getAccessToken());
 		SynapseClientHelper.setEndpoints(sc);
 		sc.setUsername(username);
-		sc.signTermsOfUse(session.getSessionToken(), true);
+		sc.signTermsOfUse(loginResponse.getAccessToken());
 		UserProfile up = sc.getMyProfile();
 		user2ToDelete = Long.parseLong(up.getOwnerId());
 	}

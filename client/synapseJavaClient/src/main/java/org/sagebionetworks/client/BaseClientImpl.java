@@ -143,9 +143,8 @@ public class BaseClientImpl implements BaseClient {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getUsername(), "LoginRequest.username");
 		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
-		LoginResponse response = postJSONEntity(authEndpoint, "/login", request, LoginResponse.class);
-		defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, response.getSessionToken());
-		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, response.getSessionToken());
+		LoginResponse response = postJSONEntity(authEndpoint, "/login2", request, LoginResponse.class);
+		setBearerAuthorizationToken(response.getAccessToken());
 		return response;
 	}
 
@@ -154,9 +153,9 @@ public class BaseClientImpl implements BaseClient {
 	 * @throws SynapseException
 	 */
 	public void logout() throws SynapseException {
-		deleteUri(authEndpoint, "/session");
 		defaultGETDELETEHeaders.remove(SESSION_TOKEN_HEADER);
 		defaultPOSTPUTHeaders.remove(SESSION_TOKEN_HEADER);
+		removeAuthorizationHeader();
 	}
 
 	//================================================================================
@@ -216,7 +215,8 @@ public class BaseClientImpl implements BaseClient {
 		return authorizationHeader;
 	}
 	
-	protected String getAccessToken() {
+	@Override
+	public String getAccessToken() {
 		if (authorizationHeader==null || !authorizationHeader.startsWith(AuthorizationConstants.BEARER_TOKEN_HEADER))
 			throw new IllegalStateException("Missing bearer token header.");
 		return authorizationHeader.substring(AuthorizationConstants.BEARER_TOKEN_HEADER.length());
