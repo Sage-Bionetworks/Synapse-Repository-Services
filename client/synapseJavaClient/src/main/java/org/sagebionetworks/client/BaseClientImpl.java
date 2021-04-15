@@ -330,25 +330,6 @@ public class BaseClientImpl implements BaseClient {
 		return this.userAgent;
 	}
 
-	/**
-	 * @category Authentication
-	 * @throws SynapseException
-	 */
-	protected void revalidateSession() throws SynapseException {
-		Session session = new Session();
-		String currentSessionToken = getCurrentSessionToken();
-		if (currentSessionToken==null) throw new 
-			SynapseClientException("You must log in before revalidating the session.");
-		session.setSessionToken(currentSessionToken);
-		try {
-			voidPut(authEndpoint, "/session", session);
-		} catch (SynapseForbiddenException e) {
-			throw new SynapseTermsOfUseException(e.getMessage());
-		}
-	}
-
-	
-
 	//================================================================================
 	// Upload & Download related helping functions
 	//================================================================================

@@ -99,12 +99,6 @@ public class SynapseTest {
 		when(mockResponse.getFirstHeader(CONTENT_TYPE)).thenReturn(mockHeader);
 	}
 	
-	@Test (expected=SynapseTermsOfUseException.class)
-	public void testTermsOfUseNotAccepted() throws Exception{
-		configureMockHttpResponse(403, "{\"reason\":\"foo\"}");
-		synapse.revalidateSession();
-	}
-	
 	@Test
 	public void testCreateStudyEntity() throws Exception {
 		Folder ds = EntityCreator.createNewFolder();
