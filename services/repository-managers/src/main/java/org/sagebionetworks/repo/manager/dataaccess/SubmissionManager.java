@@ -61,10 +61,11 @@ public interface SubmissionManager {
 	/**
 	 * List the submission info for approved submissions.
 	 * 
+	 * @param userInfo
 	 * @param request
 	 * @return
 	 */
-	public SubmissionInfoPage listInfoForApprovedSubmissions(SubmissionInfoPageRequest request);
+	public SubmissionInfoPage listInfoForApprovedSubmissions(UserInfo user, SubmissionInfoPageRequest request);
 
 	/**
 	 * Retrieve the status of a user meeting an access requirement

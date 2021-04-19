@@ -102,9 +102,10 @@ public interface SubmissionDAO {
 	 * @param accessRequirementId
 	 * @param limit
 	 * @param offset
+	 * @param includeAccessorChanges
 	 * @return
 	 */
-	public List<SubmissionInfo> listInfoForApprovedSubmissions(String accessRequirementId, long limit, long offset);
+	public List<SubmissionInfo> listInfoForApprovedSubmissions(String accessRequirementId, long limit, long offset, boolean includeAccessorChanges);
 	
 	/**
 	 * Return true if userId is an accessor of submissionId
