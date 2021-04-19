@@ -385,7 +385,7 @@ public class DBOSubmissionDAOImplTest {
 		assertEquals(expectedWithAccessorChanges, actual);
 		
 		// method under test
-		List<SubmissionInfo> actualWithoutAccessorChanges = submissionDao.listInfoForApprovedSubmissions(accessRequirement.getId().toString(), 10, 0, true);
+		List<SubmissionInfo> actualWithoutAccessorChanges = submissionDao.listInfoForApprovedSubmissions(accessRequirement.getId().toString(), 10, 0, false);
 		
 		SubmissionInfo dto3InfoWithoutAccessorChanges = createSubmissionInfo(researchProject2, modifiedOn, dto3, false);
 		SubmissionInfo dto4InfoWithoutAccessorChanges = createSubmissionInfo(researchProject, modifiedOn, dto4, false);
