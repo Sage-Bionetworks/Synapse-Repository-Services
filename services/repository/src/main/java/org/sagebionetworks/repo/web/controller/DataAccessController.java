@@ -217,7 +217,7 @@ public class DataAccessController {
 	/**
 	 * Return the research project info for approved data access submissions, 
 	 * ordered by submission modified-on date, ascending.  Note that accessor 
-	 * changes are only nvisible to members of the ACT.
+	 * changes are only visible to members of the ACT.
 	 * 
 	 * @param userId
 	 * @param researchProjectPageRequest
