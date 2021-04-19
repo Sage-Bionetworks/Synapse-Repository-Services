@@ -35,7 +35,7 @@ public interface DataAccessService {
 
 	void deleteSubmission(Long userId, String submissionId);
 
-	SubmissionInfoPage listInfoForApprovedSubmissions(SubmissionInfoPageRequest request);
+	SubmissionInfoPage listInfoForApprovedSubmissions(Long userId, SubmissionInfoPageRequest request);
 
 	AccessRequirementStatus getAccessRequirementStatus(Long userId, String requirementId);
 

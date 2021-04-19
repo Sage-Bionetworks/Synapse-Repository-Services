@@ -92,8 +92,9 @@ public class DataAccessServiceImpl implements DataAccessService {
 
 
 	@Override
-	public SubmissionInfoPage listInfoForApprovedSubmissions(SubmissionInfoPageRequest request) {
-		return dataAccessSubmissionManager.listInfoForApprovedSubmissions(request);
+	public SubmissionInfoPage listInfoForApprovedSubmissions(Long userId, SubmissionInfoPageRequest request) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return dataAccessSubmissionManager.listInfoForApprovedSubmissions(user, request);
 	}
 
 	@Override
