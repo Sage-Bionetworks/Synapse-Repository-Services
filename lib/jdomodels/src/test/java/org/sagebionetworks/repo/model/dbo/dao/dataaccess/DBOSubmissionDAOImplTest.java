@@ -356,6 +356,7 @@ public class DBOSubmissionDAOImplTest {
 		modifiedOn += 60000L;
 		submissionDao.updateSubmissionStatus(dto3.getId(), SubmissionState.APPROVED, null, user1.getId(), modifiedOn);
 		SubmissionInfo dto3InfoWithAccessorChanges = createSubmissionInfo(researchProject2, modifiedOn, dto3, true);
+		SubmissionInfo dto3InfoWithoutAccessorChanges = createSubmissionInfo(researchProject2, modifiedOn, dto3, false);
 		
 		// now create another, later submission for research project 1
 		modifiedOn += 60000L;
@@ -364,6 +365,7 @@ public class DBOSubmissionDAOImplTest {
 		modifiedOn += 60000L;
 		submissionDao.updateSubmissionStatus(dto4.getId(), SubmissionState.APPROVED, null, user1.getId(), modifiedOn);
 		SubmissionInfo dto4InfoWithAccessorChanges = createSubmissionInfo(researchProject, modifiedOn, dto4, true);
+		SubmissionInfo dto4InfoWithoutAccessorChanges = createSubmissionInfo(researchProject, modifiedOn, dto4, false);
 		
 		// create another submission for some other access requirement.  (Shouldn't see it in the results.)
 		modifiedOn += 60000L;
@@ -387,8 +389,6 @@ public class DBOSubmissionDAOImplTest {
 		// method under test
 		List<SubmissionInfo> actualWithoutAccessorChanges = submissionDao.listInfoForApprovedSubmissions(accessRequirement.getId().toString(), 10, 0, false);
 		
-		SubmissionInfo dto3InfoWithoutAccessorChanges = createSubmissionInfo(researchProject2, modifiedOn, dto3, false);
-		SubmissionInfo dto4InfoWithoutAccessorChanges = createSubmissionInfo(researchProject, modifiedOn, dto4, false);
 		List<SubmissionInfo> expectedWithoutAccessorChanges = ImmutableList.of(dto3InfoWithoutAccessorChanges, dto4InfoWithoutAccessorChanges);
 		assertEquals(expectedWithoutAccessorChanges, actualWithoutAccessorChanges);
 		
