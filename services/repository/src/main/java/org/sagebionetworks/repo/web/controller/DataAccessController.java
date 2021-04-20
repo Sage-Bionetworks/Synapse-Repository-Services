@@ -216,7 +216,8 @@ public class DataAccessController {
 
 	/**
 	 * Return the research project info for approved data access submissions, 
-	 * ordered by submission modified-on date, ascending
+	 * ordered by submission modified-on date, ascending.  Note that accessor 
+	 * changes are only visible to members of the ACT.
 	 * 
 	 * @param userId
 	 * @param researchProjectPageRequest
@@ -227,8 +228,9 @@ public class DataAccessController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_LIST_APPROVED_SUBMISISON_INFO, method = RequestMethod.POST)
 	public @ResponseBody SubmissionInfoPage listInfoForApprovedSubmissions(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody SubmissionInfoPageRequest submissionInfoPageRequest) throws NotFoundException {
-		return serviceProvider.getDataAccessService().listInfoForApprovedSubmissions(submissionInfoPageRequest);
+		return serviceProvider.getDataAccessService().listInfoForApprovedSubmissions(userId, submissionInfoPageRequest);
 	}
 
 	/**
