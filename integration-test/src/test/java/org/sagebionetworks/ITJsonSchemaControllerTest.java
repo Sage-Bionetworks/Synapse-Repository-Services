@@ -335,7 +335,7 @@ public class ITJsonSchemaControllerTest {
 		schema.setDescription("test with a version");
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(schema);
-
+		// A change
 		// Call under test
 		waitForSchemaCreate(request, (response) -> {
 			assertNotNull(response);
