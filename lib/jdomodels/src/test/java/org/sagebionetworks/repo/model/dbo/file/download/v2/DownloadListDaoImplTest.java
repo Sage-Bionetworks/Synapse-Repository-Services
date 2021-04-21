@@ -1196,6 +1196,48 @@ public class DownloadListDaoImplTest {
 		assertEquals(expected, stats);
 	}
 	
+	@Test
+	public void testGetListStatisticsWithMultipleUsers() {
+		int numberOfProject = 2;
+		int foldersPerProject = 1;
+		int filesPerFolder = 3;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		assertEquals(6, files.size());
+		List<Long> fileIds = files.stream().map(n -> KeyFactory.stringToKey(n.getId())).collect(Collectors.toList());
+
+		List<DownloadListItem> items = files.stream()
+				.map(f -> new DownloadListItem().setFileEntityId(f.getId()).setVersionNumber(2L))
+				.collect(Collectors.toList());
+		
+		List<DownloadListItem> toAdd = Arrays.asList(items.get(0), items.get(1), items.get(2));
+		List<Long> accessibleToOne = Arrays.asList(fileIds.get(1), fileIds.get(2));
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
+		
+		toAdd = Arrays.asList(items.get(1), items.get(2), items.get(3), items.get(4), items.get(5));
+		List<Long> accessibleToTwo = Arrays.asList(fileIds.get(1), fileIds.get(2), fileIds.get(5));
+		downloadListDao.addBatchOfFilesToDownloadList(userTwoIdLong, toAdd);
+		
+		ListStatisticsResponse expectedOne = new ListStatisticsResponse()
+				.setNumberOfFilesAvailableForDownload(2L)
+				.setNumberOfFilesRequiringAction(1L)
+				.setSumOfFileSizesAvailableForDownload(getSumFileSize(accessibleToOne))
+				.setTotalNumberOfFiles(3L);
+		
+		// call under test
+		ListStatisticsResponse stats = downloadListDao.getListStatistics(l->accessibleToOne, userOneIdLong);
+		assertEquals(expectedOne, stats);
+		
+		ListStatisticsResponse expectedTwo = new ListStatisticsResponse()
+				.setNumberOfFilesAvailableForDownload(3L)
+				.setNumberOfFilesRequiringAction(2L)
+				.setSumOfFileSizesAvailableForDownload(getSumFileSize(accessibleToTwo))
+				.setTotalNumberOfFiles(5L);
+		
+		// call under test
+		stats = downloadListDao.getListStatistics(l->accessibleToTwo, userTwoIdLong);
+		assertEquals(expectedTwo, stats);
+	}
+	
 	/**
 	 * Helper to calculate the sum of the sizes of the given node Ids
 	 * 
