@@ -8,7 +8,7 @@
 	"properties": {
 		"concreteType": {
 			"type": "string",
-			"description": "Required. For this type the value should be: 'org.sagebionetworks.repo.model.download.ListStatisticsRequest'"
+			"description": "Required. For this type the value should be: 'org.sagebionetworks.repo.model.download.FilesStatisticsRequest'"
 		}
 	}
 }

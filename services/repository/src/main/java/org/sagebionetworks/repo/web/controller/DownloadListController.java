@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.sagebionetworks.repo.model.oauth.OAuthScope.download;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 
@@ -134,7 +133,7 @@ public class DownloadListController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	@RequiredScope({ view, modify})
+	@RequiredScope({ view, modify })
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST, method = RequestMethod.DELETE)
 	public void clearDownloadList(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
@@ -148,15 +147,24 @@ public class DownloadListController {
 	 * <a href="${GET.download.list.query.async.get.asyncToken}">GET
 	 * /download/list/query/async/get/{asyncToken}</a>
 	 * </p>
-	 * The download list query results can include three parts:
-	 * <ul>
-	 * <li>Files currently available for download (inlcudeAvailableFiles=true)</li>
-	 * <li>Files that require the user's action before they can be downloaded
-	 * (includeActionRequired=true).</li>
-	 * <li>Statistics about the files on the user's download list
-	 * (inlcudeStatistics=true).</li>
-	 * </ul>
-	 * The desired parts are indicated using boolean parameters in the request.
+	 * There are three types of queries that can be run against the user's download list:
+	 * <table border="1">
+	 * <tr>
+	 * <th>requestDetails</th>
+	 * <th>reponseDetails</th>
+	 * <th>description</th>
+	 * </tr>
+	 * <tr>
+	 * <td><a href="${org.sagebionetworks.repo.model.download.AvailableFilesRequest}">AvailableFilesRequest</a></td>
+	 * <td><a href="${org.sagebionetworks.repo.model.download.AvailableFilesResponse}">AvailableFilesResponse</a></td>
+	 * <td>Request to get a single page of the files that are available for the user to download from their download list.</td>
+	 * </tr>
+	 * <tr>
+	 * <td><a href="${org.sagebionetworks.repo.model.download.FilesStatisticsRequest}">FilesStatisticsRequest</a></td>
+	 * <td><a href="${org.sagebionetworks.repo.model.download.FilesStatisticsResponse}">FilesStatisticsResponse</a></td>
+	 * <td>Request to get the statistics about the files on the user's download list.</td>
+	 * </tr>
+	 * </table>
 	 * </p>
 	 * Authentication is required. A user can only access their own download list.
 	 */

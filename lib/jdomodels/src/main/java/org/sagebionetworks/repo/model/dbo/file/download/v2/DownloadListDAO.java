@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
-import org.sagebionetworks.repo.model.download.ListStatisticsResponse;
+import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
 import org.sagebionetworks.repo.model.download.Sort;
 
 public interface DownloadListDAO {
@@ -112,6 +112,6 @@ public interface DownloadListDAO {
 	 * @param id
 	 * @return
 	 */
-	ListStatisticsResponse getListStatistics(EntityAccessCallback createAccessCallback, Long id);
+	FilesStatisticsResponse getListStatistics(EntityAccessCallback createAccessCallback, Long id);
 
 }

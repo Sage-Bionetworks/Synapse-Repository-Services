@@ -31,7 +31,7 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
-import org.sagebionetworks.repo.model.download.ListStatisticsResponse;
+import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
 import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.download.SortField;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -94,8 +94,8 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		return r;
 	};
 	
-	private static final RowMapper<ListStatisticsResponse> STATS_MAPPER = (ResultSet rs, int rowNum) -> {
-		ListStatisticsResponse stats = new ListStatisticsResponse();
+	private static final RowMapper<FilesStatisticsResponse> STATS_MAPPER = (ResultSet rs, int rowNum) -> {
+		FilesStatisticsResponse stats = new FilesStatisticsResponse();
 		stats.setTotalNumberOfFiles(rs.getLong("TOTAL_FILE_COUNT"));
 		stats.setNumberOfFilesAvailableForDownload(rs.getLong("AVAILABLE_COUNT"));
 		stats.setSumOfFileSizesAvailableForDownload(rs.getLong("SUM_AVAIABLE_SIZE"));
@@ -465,7 +465,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 
 	@WriteTransaction
 	@Override
-	public ListStatisticsResponse getListStatistics(EntityAccessCallback createAccessCallback, Long userId) {
+	public FilesStatisticsResponse getListStatistics(EntityAccessCallback createAccessCallback, Long userId) {
 		/*
 		 * The first step is to create a temporary table containing all of the entity
 		 * IDs from the user's download list that the user can download.

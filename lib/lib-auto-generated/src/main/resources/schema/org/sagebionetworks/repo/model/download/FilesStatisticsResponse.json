@@ -1,5 +1,5 @@
 {
-	"description": "",
+	"description": "The response of a FilesStatisticsRequest.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.download.QueryResponseDetails"

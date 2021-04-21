@@ -33,7 +33,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
-import org.sagebionetworks.repo.model.download.ListStatisticsResponse;
+import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
 import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.download.SortDirection;
 import org.sagebionetworks.repo.model.download.SortField;
@@ -1152,14 +1152,14 @@ public class DownloadListDaoImplTest {
 				.collect(Collectors.toList());
 		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, items);
 				
-		ListStatisticsResponse expected = new ListStatisticsResponse()
+		FilesStatisticsResponse expected = new FilesStatisticsResponse()
 				.setNumberOfFilesAvailableForDownload(12L)
 				.setNumberOfFilesRequiringAction(0L)
 				.setSumOfFileSizesAvailableForDownload(getSumFileSize(fileIds)*2L)
 				.setTotalNumberOfFiles(12L);
 		
 		// call under test
-		ListStatisticsResponse stats = downloadListDao.getListStatistics(l->l, userOneIdLong);
+		FilesStatisticsResponse stats = downloadListDao.getListStatistics(l->l, userOneIdLong);
 		assertEquals(expected, stats);
 	}
 	
@@ -1185,14 +1185,14 @@ public class DownloadListDaoImplTest {
 		// grant access to a sub-set of the files
 		List<Long> subSet = Arrays.asList(fileIds.get(1), fileIds.get(5));
 		
-		ListStatisticsResponse expected = new ListStatisticsResponse()
+		FilesStatisticsResponse expected = new FilesStatisticsResponse()
 				.setNumberOfFilesAvailableForDownload(4L)
 				.setNumberOfFilesRequiringAction(8L)
 				.setSumOfFileSizesAvailableForDownload(getSumFileSize(subSet)*2L)
 				.setTotalNumberOfFiles(12L);
 		
 		// call under test
-		ListStatisticsResponse stats = downloadListDao.getListStatistics(l->subSet, userOneIdLong);
+		FilesStatisticsResponse stats = downloadListDao.getListStatistics(l->subSet, userOneIdLong);
 		assertEquals(expected, stats);
 	}
 	
@@ -1217,17 +1217,17 @@ public class DownloadListDaoImplTest {
 		List<Long> accessibleToTwo = Arrays.asList(fileIds.get(1), fileIds.get(2), fileIds.get(5));
 		downloadListDao.addBatchOfFilesToDownloadList(userTwoIdLong, toAdd);
 		
-		ListStatisticsResponse expectedOne = new ListStatisticsResponse()
+		FilesStatisticsResponse expectedOne = new FilesStatisticsResponse()
 				.setNumberOfFilesAvailableForDownload(2L)
 				.setNumberOfFilesRequiringAction(1L)
 				.setSumOfFileSizesAvailableForDownload(getSumFileSize(accessibleToOne))
 				.setTotalNumberOfFiles(3L);
 		
 		// call under test
-		ListStatisticsResponse stats = downloadListDao.getListStatistics(l->accessibleToOne, userOneIdLong);
+		FilesStatisticsResponse stats = downloadListDao.getListStatistics(l->accessibleToOne, userOneIdLong);
 		assertEquals(expectedOne, stats);
 		
-		ListStatisticsResponse expectedTwo = new ListStatisticsResponse()
+		FilesStatisticsResponse expectedTwo = new FilesStatisticsResponse()
 				.setNumberOfFilesAvailableForDownload(3L)
 				.setNumberOfFilesRequiringAction(2L)
 				.setSumOfFileSizesAvailableForDownload(getSumFileSize(accessibleToTwo))

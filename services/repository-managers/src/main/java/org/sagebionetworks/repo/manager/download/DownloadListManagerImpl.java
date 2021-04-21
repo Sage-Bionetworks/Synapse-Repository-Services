@@ -21,8 +21,8 @@ import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
-import org.sagebionetworks.repo.model.download.ListStatisticsRequest;
-import org.sagebionetworks.repo.model.download.ListStatisticsResponse;
+import org.sagebionetworks.repo.model.download.FilesStatisticsRequest;
+import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListResponse;
 import org.sagebionetworks.repo.model.download.Sort;
@@ -104,9 +104,9 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		if (requestBody.getRequestDetails() instanceof AvailableFilesRequest) {
 			return new DownloadListQueryResponse().setReponseDetails(
 					queryAvailableFiles(userInfo, (AvailableFilesRequest) requestBody.getRequestDetails()));
-		}else if(requestBody.getRequestDetails() instanceof ListStatisticsRequest) {
+		}else if(requestBody.getRequestDetails() instanceof FilesStatisticsRequest) {
 			return new DownloadListQueryResponse().setReponseDetails(
-					getListStatistics(userInfo, (ListStatisticsRequest) requestBody.getRequestDetails()));
+					getListStatistics(userInfo, (FilesStatisticsRequest) requestBody.getRequestDetails()));
 		}
 		throw new IllegalArgumentException("Unknown type: " + requestBody.getRequestDetails().getConcreteType());
 	}
@@ -146,7 +146,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 * @param statsResquest
 	 * @return
 	 */
-	ListStatisticsResponse getListStatistics(UserInfo user, ListStatisticsRequest statsResquest) {
+	FilesStatisticsResponse getListStatistics(UserInfo user, FilesStatisticsRequest statsResquest) {
 		return downloadListDao.getListStatistics(createAccessCallback(user), user.getId());
 	}
 
