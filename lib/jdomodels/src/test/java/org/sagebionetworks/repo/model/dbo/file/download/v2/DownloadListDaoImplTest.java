@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
+import org.sagebionetworks.repo.model.download.ListStatisticsResponse;
 import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.download.SortDirection;
 import org.sagebionetworks.repo.model.download.SortField;
@@ -1130,6 +1131,85 @@ public class DownloadListDaoImplTest {
 		// call under test
 		List<DownloadListItem> results = downloadListDao.filterUnsupportedTypes(toFilter);
 		assertEquals(Collections.emptyList(), results);
+	}
+	
+	@Test
+	public void testGetListStatistics() {
+		int numberOfProject = 2;
+		int foldersPerProject = 1;
+		int filesPerFolder = 3;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		assertEquals(6, files.size());
+		List<Long> fileIds = files.stream().map(n -> KeyFactory.stringToKey(n.getId())).collect(Collectors.toList());
+
+		List<DownloadListItem> items = files.stream()
+				.map(f -> new DownloadListItem().setFileEntityId(f.getId()).setVersionNumber(2L))
+				.collect(Collectors.toList());
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, items);
+		
+		items = files.stream()
+				.map(f -> new DownloadListItem().setFileEntityId(f.getId()).setVersionNumber(null))
+				.collect(Collectors.toList());
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, items);
+				
+		ListStatisticsResponse expected = new ListStatisticsResponse()
+				.setNumberOfFilesAvailableForDownload(12L)
+				.setNumberOfFilesRequiringAction(0L)
+				.setSumOfFileSizesAvailableForDownload(getSumFileSize(fileIds)*2L)
+				.setTotalNumberOfFiles(12L);
+		
+		// call under test
+		ListStatisticsResponse stats = downloadListDao.getListStatistics(l->l, userOneIdLong);
+		assertEquals(expected, stats);
+	}
+	
+	@Test
+	public void testGetListStatisticsWithRestrictions() {
+		int numberOfProject = 2;
+		int foldersPerProject = 1;
+		int filesPerFolder = 3;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		assertEquals(6, files.size());
+		List<Long> fileIds = files.stream().map(n -> KeyFactory.stringToKey(n.getId())).collect(Collectors.toList());
+
+		List<DownloadListItem> items = files.stream()
+				.map(f -> new DownloadListItem().setFileEntityId(f.getId()).setVersionNumber(2L))
+				.collect(Collectors.toList());
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, items);
+		
+		items = files.stream()
+				.map(f -> new DownloadListItem().setFileEntityId(f.getId()).setVersionNumber(null))
+				.collect(Collectors.toList());
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, items);
+		
+		// grant access to a sub-set of the files
+		List<Long> subSet = Arrays.asList(fileIds.get(1), fileIds.get(5));
+		
+		ListStatisticsResponse expected = new ListStatisticsResponse()
+				.setNumberOfFilesAvailableForDownload(4L)
+				.setNumberOfFilesRequiringAction(8L)
+				.setSumOfFileSizesAvailableForDownload(getSumFileSize(subSet)*2L)
+				.setTotalNumberOfFiles(12L);
+		
+		// call under test
+		ListStatisticsResponse stats = downloadListDao.getListStatistics(l->subSet, userOneIdLong);
+		assertEquals(expected, stats);
+	}
+	
+	/**
+	 * Helper to calculate the sum of the sizes of the given node Ids
+	 * 
+	 * @param fileIds
+	 * @return
+	 */
+	public long getSumFileSize(List<Long> fileIds) {
+		long sum = 0L;
+		for(Long id: fileIds) {
+			Node node = nodeDao.getNode(id.toString());
+			FileHandle fh = fileHandleDao.get(node.getFileHandleId());
+			sum += fh.getContentSize();
+		}
+		return sum;
 	}
 
 

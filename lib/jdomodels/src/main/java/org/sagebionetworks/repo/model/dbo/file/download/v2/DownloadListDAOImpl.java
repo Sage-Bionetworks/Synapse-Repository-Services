@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
+import org.sagebionetworks.repo.model.download.ListStatisticsResponse;
 import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.download.SortField;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -59,6 +60,9 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 
 	public static final String DOWNLOAD_LIST_RESULT_TEMPLATE = DDLUtilsImpl
 			.loadSQLFromClasspath("sql/DownloadListResultsTemplate.sql");
+	
+	public static final String DOWNLOAD_LIST_STATISTICS_TEMPLATE = DDLUtilsImpl
+			.loadSQLFromClasspath("sql/DownloadListStatistics.sql");
 
 	private static final int BATCH_SIZE = 10000;
 
@@ -88,6 +92,16 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		r.setProjectName(rs.getString(PROJECT_NAME));
 		r.setFileSizeBytes(rs.getLong(CONTENT_SIZE));
 		return r;
+	};
+	
+	private static final RowMapper<ListStatisticsResponse> STATS_MAPPER = (ResultSet rs, int rowNum) -> {
+		ListStatisticsResponse stats = new ListStatisticsResponse();
+		stats.setTotalNumberOfFiles(rs.getLong("TOTAL_FILE_COUNT"));
+		stats.setNumberOfFilesAvailableForDownload(rs.getLong("AVAILABLE_COUNT"));
+		stats.setSumOfFileSizesAvailableForDownload(rs.getLong("SUM_AVAIABLE_SIZE"));
+		stats.setNumberOfFilesRequiringAction(
+				stats.getTotalNumberOfFiles() - stats.getNumberOfFilesAvailableForDownload());
+		return stats;
 	};
 
 	@WriteTransaction
@@ -447,6 +461,24 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 				params, Long.class));
 		return batch.stream().filter(i -> fileIds.contains(KeyFactory.stringToKey(i.getFileEntityId())))
 				.collect(Collectors.toList());
+	}
+
+	@WriteTransaction
+	@Override
+	public ListStatisticsResponse getListStatistics(EntityAccessCallback createAccessCallback, Long userId) {
+		/*
+		 * The first step is to create a temporary table containing all of the entity
+		 * IDs from the user's download list that the user can download.
+		 */
+		String tempTableName = createTemporaryTableOfAvailableFiles(createAccessCallback, userId, BATCH_SIZE);
+		try {
+			String sql = String.format(DOWNLOAD_LIST_STATISTICS_TEMPLATE, tempTableName);
+			MapSqlParameterSource params = new MapSqlParameterSource();
+			params.addValue("principalId", userId);
+			return namedJdbcTemplate.queryForObject(sql, params,STATS_MAPPER);
+		} finally {
+			dropTemporaryTable(tempTableName);
+		}
 	}
 
 }

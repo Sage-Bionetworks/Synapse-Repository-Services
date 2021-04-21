@@ -1,0 +1,14 @@
+{
+	"description": "Request to get statistics about the files currently on the user's download list.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.download.QueryRequestDetails"
+		}
+	],
+	"properties": {
+		"concreteType": {
+			"type": "string",
+			"description": "Required. For this type the value should be: 'org.sagebionetworks.repo.model.download.ListStatisticsRequest'"
+		}
+	}
+}

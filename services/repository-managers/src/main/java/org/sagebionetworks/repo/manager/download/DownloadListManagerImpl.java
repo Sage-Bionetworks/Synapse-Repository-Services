@@ -21,6 +21,8 @@ import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
+import org.sagebionetworks.repo.model.download.ListStatisticsRequest;
+import org.sagebionetworks.repo.model.download.ListStatisticsResponse;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListResponse;
 import org.sagebionetworks.repo.model.download.Sort;
@@ -102,6 +104,9 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		if (requestBody.getRequestDetails() instanceof AvailableFilesRequest) {
 			return new DownloadListQueryResponse().setReponseDetails(
 					queryAvailableFiles(userInfo, (AvailableFilesRequest) requestBody.getRequestDetails()));
+		}else if(requestBody.getRequestDetails() instanceof ListStatisticsRequest) {
+			return new DownloadListQueryResponse().setReponseDetails(
+					getListStatistics(userInfo, (ListStatisticsRequest) requestBody.getRequestDetails()));
 		}
 		throw new IllegalArgumentException("Unknown type: " + requestBody.getRequestDetails().getConcreteType());
 	}
@@ -133,6 +138,16 @@ public class DownloadListManagerImpl implements DownloadListManager {
 
 		return new AvailableFilesResponse().setNextPageToken(pageToken.getNextPageTokenForCurrentResults(page))
 				.setPage(page);
+	}
+	
+	/**
+	 * Get the statistics for the files on the user's download list.
+	 * @param user
+	 * @param statsResquest
+	 * @return
+	 */
+	ListStatisticsResponse getListStatistics(UserInfo user, ListStatisticsRequest statsResquest) {
+		return downloadListDao.getListStatistics(createAccessCallback(user), user.getId());
 	}
 
 	/**
