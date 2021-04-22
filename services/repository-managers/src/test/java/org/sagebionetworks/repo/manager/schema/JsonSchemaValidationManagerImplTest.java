@@ -648,6 +648,54 @@ public class JsonSchemaValidationManagerImplTest {
 		assertNotNull(result);
 		assertTrue(result.getIsValid());
 	}
+	
+	/**
+	 * This is a test for PLFM-6701.
+	 */
+	@Test
+	public void testValidateWithBooleanCondition() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/BooleanCondition.json");
+		assertNotNull(schema.getProperties());
+		
+		JsonSubject subject = setupSubject();
+		// when isMultiSpecimen=true then assay is required.
+		subject.toJson().put("isMultiSpecimen", true);
+		subject.toJson().remove("assay");
+		
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertFalse(result.getIsValid());
+		String stackTrace = buildStackTrack(result.getValidationException());
+		System.out.println(stackTrace);
+		assertTrue(stackTrace.contains("input is invalid against the \"then\" schema"));
+		assertTrue(stackTrace.contains("required key [assay] not found"));
+	}
+	
+	/**
+	 * Helper to build a stack trace for the given exception.
+	 * @param validationException
+	 * @return
+	 */
+	public String buildStackTrack(ValidationException validationException) {
+		StringBuilder builder = new StringBuilder();
+		buildStackTrackRecursive(builder, validationException);
+		return builder.toString();
+	}
+	
+	/**
+	 * Recursive method to build a stack trace from a ValidationException
+	 * @param builder
+	 * @param validationException
+	 */
+	void buildStackTrackRecursive(StringBuilder builder, ValidationException validationException) {
+		builder.append(validationException.getMessage()).append("\n");
+		if(validationException.getCausingExceptions() != null) {
+			for(ValidationException e: validationException.getCausingExceptions()) {
+				buildStackTrackRecursive(builder, e);
+			}
+		}
+	}
 
 	public JsonSubject setupSubject() {
 		JSONObject jsonObject = new JSONObject();
