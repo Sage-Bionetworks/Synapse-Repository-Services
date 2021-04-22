@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
+import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
 import org.sagebionetworks.repo.model.download.Sort;
 
 public interface DownloadListDAO {
@@ -103,5 +104,14 @@ public interface DownloadListDAO {
 	 * @return
 	 */
 	long getTotalNumberOfFilesOnDownloadList(Long userId);
+
+
+	/**
+	 * Get the download list statistics for the given user.
+	 * @param createAccessCallback
+	 * @param id
+	 * @return
+	 */
+	FilesStatisticsResponse getListStatistics(EntityAccessCallback createAccessCallback, Long id);
 
 }
