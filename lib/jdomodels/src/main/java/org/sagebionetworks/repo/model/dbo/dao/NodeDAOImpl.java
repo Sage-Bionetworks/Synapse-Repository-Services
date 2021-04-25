@@ -122,6 +122,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
@@ -2039,9 +2040,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		long modifiedOn = System.currentTimeMillis();
 		Long revisionNumber = this.getCurrentRevisionNumber(nodeIdString);
 		String label = request.getSnapshotLabel() != null ? request.getSnapshotLabel() : revisionNumber.toString();
-		this.jdbcTemplate.update(SQL_CREATE_SNAPSHOT_VERSION, request.getSnapshotComment(), label,
-				request.getSnapshotActivityId(), userId, modifiedOn, nodeId, revisionNumber);
-		return revisionNumber;
+		try {
+			this.jdbcTemplate.update(SQL_CREATE_SNAPSHOT_VERSION, request.getSnapshotComment(), label,
+					request.getSnapshotActivityId(), userId, modifiedOn, nodeId, revisionNumber);
+			return revisionNumber;
+		} catch (DuplicateKeyException e) {
+			throw new IllegalArgumentException(e);
+		}
 	}
 
 	@Override

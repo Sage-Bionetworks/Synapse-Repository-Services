@@ -4051,6 +4051,43 @@ public class NodeDAOImplTest {
 		assertEquals(request1.getSnapshotLabel(), snapshot1.getVersionLabel());
 		assertEquals(request1.getSnapshotActivityId(), snapshot1.getActivityId());
 	}
+
+	@Test
+	public void testSnapshotVersionDuplicateLabel() throws InterruptedException {
+		Long user1Id = Long.parseLong(user1);
+		Long user2Id = Long.parseLong(user2);
+		Node node = NodeTestUtils.createNew("one",  user1Id);
+		node = nodeDao.createNewNode(node);
+		toDelete.add(node.getId());
+		// sleep so modified on is larger than the start.
+		Thread.sleep(10);
+
+		SnapshotRequest request1 = new SnapshotRequest();
+		request1.setSnapshotComment("a comment string");
+		request1.setSnapshotLabel("some label");
+		request1.setSnapshotActivityId(testActivity.getId());
+
+		Long snapshotVersion1 = nodeDao.snapshotVersion(user1Id, node.getId(), request1);
+
+		// Create a new version then a new snapshot
+		Node current = nodeDao.getNodeForVersion(node.getId(), snapshotVersion1);
+		current.setVersionComment("in-progress");
+		current.setVersionLabel("in-progress");
+		current.setActivityId(null);
+		Long newVersion = nodeDao.createNewVersion(current);
+
+		// Create a second snapshot for the current version.s
+		SnapshotRequest request2 = new SnapshotRequest();
+		request2.setSnapshotComment("different comment");
+		request2.setSnapshotLabel("some label");
+		request2.setSnapshotActivityId(testActivity2.getId());
+
+		// call under test: this should fail
+		String id = node.getId();
+		assertThrows(
+			IllegalArgumentException.class, () -> {nodeDao.snapshotVersion(user1Id, id, request2);}
+		);
+	}
 	
 	@Test
 	public void testSnapshotVersionNullValues() {
