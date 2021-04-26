@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -282,10 +283,106 @@ public class FileMetadataUtilsTest {
 		List<DBOFileHandle> dbos = FileMetadataUtils.createDBOsFromDTOs(list);
 
 		for (int i = 0; i < list.size(); i++) {
-			assertEquals(FileHandleStatus.AVAILABLE.name(), dbos.get(i).getStatus());
-			assertEquals(dbos.get(i).getCreatedOn(), dbos.get(i).getUpdatedOn());
-			assertEquals(list.get(i), FileMetadataUtils.createDTOFromDBO(dbos.get(i)));
+			DBOFileHandle dbo = dbos.get(i);
+			assertEquals(FileHandleStatus.AVAILABLE.name(), dbo.getStatus());
+			assertTrue(dbo.getUpdatedOn().equals(dbo.getCreatedOn()) || dbo.getUpdatedOn().after(dbo.getCreatedOn()));
+			assertEquals(list.get(i), FileMetadataUtils.createDTOFromDBO(dbo));
 		}
+	}
+	
+	@Test
+	public void testCreateDBOsFromDTOWithNoCreatedOn() {
+		S3FileHandle s3 = new S3FileHandle();
+		s3.setCreatedBy("456");
+		s3.setCreatedOn(null);
+		s3.setId("987");
+		s3.setBucketName("bucketName");
+		s3.setKey("key");
+		s3.setContentMd5("md5");
+		s3.setContentSize(123l);
+		s3.setContentType("contentType");
+		s3.setPreviewId("9999");
+		s3.setEtag("etag");
+		s3.setFileName("foo.txt");
+		s3.setIsPreview(false);
+		
+		DBOFileHandle expected = new DBOFileHandle();
+		expected.setCreatedBy(456L);
+		expected.setId(987L);
+		expected.setBucketName("bucketName");
+		expected.setKey("key");
+		expected.setContentMD5("md5");
+		expected.setKey("key");
+		expected.setPreviewId(9999L);
+		expected.setEtag("etag");
+		expected.setName("foo.txt");
+		expected.setContentSize(123L);
+		expected.setContentType("contentType");
+		expected.setIsPreview(false);
+		expected.setMetadataType(FileHandleMetadataType.S3);
+		expected.setStatus(FileHandleStatus.AVAILABLE.name());
+		
+		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(s3);
+		
+		assertNotNull(dbo.getStatus());
+		assertNotNull(dbo.getCreatedOn());
+		assertNotNull(dbo.getUpdatedOn());
+		assertEquals(dbo.getCreatedOn(), dbo.getUpdatedOn());
+
+		expected.setCreatedOn(dbo.getCreatedOn());
+		expected.setUpdatedOn(dbo.getUpdatedOn());
+		
+		assertEquals(expected, dbo);
+		
+	}
+	
+	@Test
+	public void testCreateDBOsFromDTOWithCreatedOn() {
+		S3FileHandle s3 = new S3FileHandle();
+		s3.setCreatedBy("456");
+		s3.setCreatedOn(null);
+		s3.setId("987");
+		s3.setBucketName("bucketName");
+		s3.setKey("key");
+		s3.setCreatedOn(new Date());
+		s3.setContentMd5("md5");
+		s3.setContentSize(123l);
+		s3.setContentType("contentType");
+		s3.setPreviewId("9999");
+		s3.setEtag("etag");
+		s3.setFileName("foo.txt");
+		s3.setIsPreview(false);
+		
+		DBOFileHandle expected = new DBOFileHandle();
+		expected.setCreatedBy(456L);
+		expected.setId(987L);
+		expected.setCreatedOn(new Timestamp(s3.getCreatedOn().getTime()));
+		expected.setBucketName("bucketName");
+		expected.setKey("key");
+		expected.setContentMD5("md5");
+		expected.setKey("key");
+		expected.setPreviewId(9999L);
+		expected.setEtag("etag");
+		expected.setName("foo.txt");
+		expected.setContentSize(123L);
+		expected.setContentType("contentType");
+		expected.setIsPreview(false);
+		expected.setMetadataType(FileHandleMetadataType.S3);
+		expected.setStatus(FileHandleStatus.AVAILABLE.name());
+		
+		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(s3);
+		
+		assertNotNull(dbo.getStatus());
+		assertNotNull(dbo.getCreatedOn());
+		assertNotNull(dbo.getUpdatedOn());
+
+		assertTrue(dbo.getUpdatedOn().equals(dbo.getCreatedOn()) || dbo.getUpdatedOn().after(dbo.getCreatedOn()));
+
+		expected.setCreatedOn(dbo.getCreatedOn());
+		expected.setUpdatedOn(dbo.getUpdatedOn());
+		
+		assertEquals(expected, dbo);
+		
 	}
 	
 	// See PLFM-6637
