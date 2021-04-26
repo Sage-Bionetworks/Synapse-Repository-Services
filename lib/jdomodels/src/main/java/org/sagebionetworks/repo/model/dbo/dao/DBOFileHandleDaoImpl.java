@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_IS_PREVIEW;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
@@ -11,6 +11,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ME
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_PREVIEW_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 
+import java.sql.ResultSet;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,13 +43,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 /**
@@ -100,7 +101,11 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	@Autowired
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
 
-	private TableMapping<DBOFileHandle> rowMapping = new DBOFileHandle().getTableMapping();
+	private static final TableMapping<DBOFileHandle> DBO_MAPPER = new DBOFileHandle().getTableMapping();
+	
+	private static final RowMapper<FileHandle> ROW_MAPPER = (ResultSet rs, int rowNum) -> {
+		return FileMetadataUtils.createDTOFromDBO(DBO_MAPPER.mapRow(rs, rowNum));
+	};
 
 	@Override
 	public FileHandle get(String id) throws DatastoreException, NotFoundException {
@@ -294,16 +299,16 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 
 	@Override
 	public Map<String, FileHandle> getAllFileHandlesBatch(Iterable<String> idsList) {
-		Map<String, FileHandle> resultMap = Maps.newHashMap();
+		Map<String, FileHandle> resultMap = new HashMap<>();
 
 		// because we are using an IN clause and the number of incoming fileHandleIds is undetermined, we need to batch
 		// the selects here
 		for (List<String> fileHandleIdsBatch : Iterables.partition(idsList, 100)) {
-			List<DBOFileHandle> handles = namedJdbcTemplate.query(SQL_SELECT_BATCH,
-					new SinglePrimaryKeySqlParameterSource(fileHandleIdsBatch), rowMapping);
-			for (DBOFileHandle handle : handles) {
-				resultMap.put(handle.getIdString(), FileMetadataUtils.createDTOFromDBO(handle));
-			}
+			
+			namedJdbcTemplate.query(SQL_SELECT_BATCH, new SinglePrimaryKeySqlParameterSource(fileHandleIdsBatch), ROW_MAPPER).forEach( handle -> {
+				resultMap.put(handle.getId(), handle);
+			});
+			
 		}
 		return resultMap;
 	}
