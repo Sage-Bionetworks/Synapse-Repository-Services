@@ -85,17 +85,21 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			+ " WHERE S." + COL_FILES_ID + "= ?"
 			+ " AND T." + COL_FILES_ID + "= ?";
 	
-	@Autowired
 	private TransactionalMessenger transactionalMessenger;
 		
-	@Autowired
 	private DBOBasicDao basicDao;
 
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-
-	@Autowired
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
+	
+	private JdbcTemplate jdbcTemplate;
+	
+	@Autowired
+	public DBOFileHandleDaoImpl(TransactionalMessenger transactionalMessenger, DBOBasicDao basicDao, NamedParameterJdbcTemplate namedJdbcTemplate) {
+		this.transactionalMessenger = transactionalMessenger;
+		this.basicDao = basicDao;
+		this.namedJdbcTemplate = namedJdbcTemplate;
+		this.jdbcTemplate = namedJdbcTemplate.getJdbcTemplate();
+	}
 
 	private static final TableMapping<DBOFileHandle> DBO_MAPPER = new DBOFileHandle().getTableMapping();
 	
