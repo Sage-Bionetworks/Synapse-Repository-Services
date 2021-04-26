@@ -10,8 +10,6 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.web.FileHandleLinkedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.google.common.collect.Multimap;
-
 /**
  * Abstraction for creating/updating/reading/deleting CRUD metadata about files. 
  * 
@@ -23,7 +21,7 @@ public interface FileHandleDao {
 	/**
 	 * Create file metadata.
 	 */
-	public FileHandle createFile(FileHandle fileHandle);
+	FileHandle createFile(FileHandle fileHandle);
 
 	/**
 	 * Set the preview ID of a file.
@@ -32,7 +30,7 @@ public interface FileHandleDao {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public void setPreviewId(String fileId, String previewId) throws DatastoreException, NotFoundException;
+	void setPreviewId(String fileId, String previewId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the file metadata by ID.
@@ -41,7 +39,7 @@ public interface FileHandleDao {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public FileHandle get(String id) throws DatastoreException, NotFoundException;
+	FileHandle get(String id) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get all of the file handles for a given list of IDs.
@@ -51,7 +49,7 @@ public interface FileHandleDao {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public FileHandleResults getAllFileHandles(Iterable<String> ids, boolean includePreviews) throws DatastoreException, NotFoundException;
+	FileHandleResults getAllFileHandles(Iterable<String> ids, boolean includePreviews) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Map all of the file handles for a given list of IDs in batch calls
@@ -61,21 +59,21 @@ public interface FileHandleDao {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public Map<String, FileHandle> getAllFileHandlesBatch(Iterable<String> idsList);
+	Map<String, FileHandle> getAllFileHandlesBatch(Iterable<String> idsList);
 
 	/**
 	 * Delete the file metadata.
 	 * @param id
 	 * @throws FileHandleLinkedException If the file handle is still linked to some object through a FK that restricts its deletion
 	 */
-	public void delete(String id);
+	void delete(String id);
 	
 	/**
 	 * Does the given file object exist?
 	 * @param id
 	 * @return true if it exists.
 	 */
-	public boolean doesExist(String id);
+	boolean doesExist(String id);
 
 	/**
 	 * Lookup the creator of a FileHandle.
@@ -83,17 +81,7 @@ public interface FileHandleDao {
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	public String getHandleCreator(String fileHandleId) throws NotFoundException;
-
-	/**
-	 * Lookup the creators of a FileHandles.
-	 * 
-	 * @param fileHandleIds
-	 * @return the list of creators in the same order as the file handles
-	 * @throws NotFoundException
-	 */
-	@Deprecated
-	public Multimap<String, String> getHandleCreators(List<String> fileHandleIds) throws NotFoundException;
+	String getHandleCreator(String fileHandleId) throws NotFoundException;
 	
 
 	/**
@@ -104,7 +92,7 @@ public interface FileHandleDao {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public Set<String> getFileHandleIdsCreatedByUser(Long createdById, List<String> fileHandleIds) throws NotFoundException;
+	Set<String> getFileHandleIdsCreatedByUser(Long createdById, List<String> fileHandleIds) throws NotFoundException;
 	
 	/**
 	 * Given a list of {@link FileHandle} ids, gets the sub-set of ids that are previews mapped to the originating file handle id.
@@ -112,7 +100,7 @@ public interface FileHandleDao {
 	 * @param fileHandlePreviewIds A list of ids of {@link FileHandle}
 	 * @return A map where each entry is a (fileHandlePreviewId, fileHandleId) entry which is subset of the input fileHandlePreviewIds.
 	 */
-	public Map<String, String> getFileHandlePreviewIds(List<String> fileHandlePreviewIds);
+	Map<String, String> getFileHandlePreviewIds(List<String> fileHandlePreviewIds);
 	
 	/**
 	 * Get the preview associated with a given file handle.
@@ -120,7 +108,7 @@ public interface FileHandleDao {
 	 * @param handleId
 	 * @return
 	 */
-	public String getPreviewFileHandleId(String handleId) throws NotFoundException;
+	String getPreviewFileHandleId(String handleId) throws NotFoundException;
 
 	/**
 	 * Get the number of file handles referencing this bucket and key
@@ -129,7 +117,7 @@ public interface FileHandleDao {
 	 * @param key
 	 * @return
 	 */
-	public long getNumberOfReferencesToFile(FileHandleMetadataType metadataType, String bucketName, String key);
+	long getNumberOfReferencesToFile(FileHandleMetadataType metadataType, String bucketName, String key);
 
 	long getCount() throws DatastoreException;
 
@@ -140,7 +128,7 @@ public interface FileHandleDao {
 	 * 
 	 * @param toCreate
 	 */
-	public void createBatch(List<FileHandle> toCreate);
+	void createBatch(List<FileHandle> toCreate);
 	
 	/**
 	 * Checks if the MD5 of the file handles identified by the given ids is not null and matches.
@@ -154,6 +142,6 @@ public interface FileHandleDao {
 	/**
 	 * Deleted all file data
 	 */
-	public void truncateTable();
+	void truncateTable();
 	
 }

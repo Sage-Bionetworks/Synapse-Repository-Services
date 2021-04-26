@@ -47,10 +47,8 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 
 /**
  * Basic JDBC implementation of the FileMetadataDao.
@@ -67,8 +65,6 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	private static final String SQL_COUNT_ALL_FILES = "SELECT COUNT(*) FROM "+TABLE_FILES;
 	private static final String SQL_MAX_FILE_ID = "SELECT MAX(ID) FROM " + TABLE_FILES;
 	private static final String SQL_SELECT_CREATOR = "SELECT "+COL_FILES_CREATED_BY+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
-	private static final String SQL_SELECT_CREATORS = "SELECT " + COL_FILES_CREATED_BY + "," + COL_FILES_ID + " FROM " + TABLE_FILES
-			+ " WHERE " + COL_FILES_ID + " IN ( " + IDS_PARAM + " )";
 	private static final String SQL_SELECT_BATCH = "SELECT * FROM " + TABLE_FILES + " WHERE " + COL_FILES_ID + " IN ( " + IDS_PARAM + " )";
 	private static final String SQL_SELECT_PREVIEW_ID = "SELECT "+COL_FILES_PREVIEW_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
 	private static final String UPDATE_PREVIEW_AND_ETAG = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_PREVIEW_ID+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
@@ -202,24 +198,6 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		}catch(EmptyResultDataAccessException e){
 			throw new NotFoundException("The FileHandle does not exist: "+fileHandleId);
 		}
-	}
-
-	@Deprecated
-	@Override
-	public Multimap<String, String> getHandleCreators(List<String> fileHandleIds) throws NotFoundException {
-		final Multimap<String, String> resultMap = ArrayListMultimap.create();
-
-		// because we are using an IN clause and the number of incoming fileHandleIds is undetermined, we need to batch
-		// the selects here
-		for (List<String> fileHandleIdsBatch : Lists.partition(fileHandleIds, SqlConstants.MAX_LONGS_PER_IN_CLAUSE / 2)) {
-			namedJdbcTemplate.query(SQL_SELECT_CREATORS, new SinglePrimaryKeySqlParameterSource(fileHandleIdsBatch),
-					rs -> {
-						String creator = rs.getString(COL_FILES_CREATED_BY);
-						String id = rs.getString(COL_FILES_ID);
-						resultMap.put(creator, id);
-					});
-		}
-		return resultMap;
 	}
 	
 	@Override
