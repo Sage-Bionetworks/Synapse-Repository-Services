@@ -306,20 +306,18 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 
 	@Override
 	public long getCount() throws DatastoreException {
-		try {
-			return jdbcTemplate.queryForObject(SQL_COUNT_ALL_FILES, Long.class);
-		} catch (NullPointerException e) {
-			return 0L;
-		}
+		return jdbcTemplate.queryForObject(SQL_COUNT_ALL_FILES, Long.class);
 	}
 	
 	@Override
 	public long getMaxId() throws DatastoreException {
-		try {
-			return jdbcTemplate.queryForObject(SQL_MAX_FILE_ID, Long.class);
-		} catch (NullPointerException e) {
-			return 0L;
+		Long maxId = jdbcTemplate.queryForObject(SQL_MAX_FILE_ID, Long.class);
+		
+		if (maxId == null) {
+			maxId = 0L;
 		}
+		
+		return maxId;
 	}
 
 	@WriteTransaction
