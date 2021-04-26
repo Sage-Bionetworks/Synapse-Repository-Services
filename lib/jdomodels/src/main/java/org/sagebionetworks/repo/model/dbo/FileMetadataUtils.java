@@ -73,7 +73,7 @@ public class FileMetadataUtils {
 			updateDBOFromDTO(dbo, (ExternalObjectStoreFileHandle) fileHandle);
 		}
 
-		dbo.setStatus(FileHandleStatus.AVAILABLE);
+		dbo.setStatus(FileHandleStatus.AVAILABLE.name());
 		
 		return dbo;
 	}
@@ -91,11 +91,12 @@ public class FileMetadataUtils {
 
 		if (fileHandle.getCreatedOn() != null) {
 			dbo.setCreatedOn(new Timestamp(fileHandle.getCreatedOn().getTime()));
+			dbo.setUpdatedOn(new Timestamp(System.currentTimeMillis()));
 		} else {
 			dbo.setCreatedOn(new Timestamp(System.currentTimeMillis()));
+			dbo.setUpdatedOn(dbo.getCreatedOn());
 		}
 		
-		dbo.setUpdatedOn(new Timestamp(System.currentTimeMillis()));
 		dbo.setName(fileHandle.getFileName());
 		dbo.setStorageLocationId(fileHandle.getStorageLocationId());
 		dbo.setContentType(fileHandle.getContentType());

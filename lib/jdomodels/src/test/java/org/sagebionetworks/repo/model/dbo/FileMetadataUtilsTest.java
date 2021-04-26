@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
+import org.sagebionetworks.repo.model.dao.FileHandleStatus;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
@@ -281,6 +282,8 @@ public class FileMetadataUtilsTest {
 		List<DBOFileHandle> dbos = FileMetadataUtils.createDBOsFromDTOs(list);
 
 		for (int i = 0; i < list.size(); i++) {
+			assertEquals(FileHandleStatus.AVAILABLE.name(), dbos.get(i).getStatus());
+			assertEquals(dbos.get(i).getCreatedOn(), dbos.get(i).getUpdatedOn());
 			assertEquals(list.get(i), FileMetadataUtils.createDTOFromDBO(dbos.get(i)));
 		}
 	}

@@ -14,8 +14,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_PREVIEW_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_STORAGE_LOCATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_STATUS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_STORAGE_LOCATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_UPDATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
@@ -30,7 +30,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
-import org.sagebionetworks.repo.model.dao.FileHandleStatus;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
@@ -98,7 +97,7 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 			}
 			results.setEndpoint(rs.getString(COL_FILES_ENDPOINT));
 			results.setIsPreview(rs.getBoolean(COL_FILES_IS_PREVIEW));
-			results.setStatus(FileHandleStatus.valueOf(rs.getString(COL_FILES_STATUS)));
+			results.setStatus(rs.getString(COL_FILES_STATUS));
 			
 			return results;
 		}
@@ -153,7 +152,7 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 	private Long storageLocationId;
 	private String endpoint;
 	private Boolean isPreview;
-	private FileHandleStatus status;
+	private String status;
 
 	@Override
 	public TableMapping<DBOFileHandle> getTableMapping() {
@@ -328,11 +327,11 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 		this.isPreview = isPreview;
 	}
 	
-	public FileHandleStatus getStatus() {
+	public String getStatus() {
 		return status;
 	}
 	
-	public void setStatus(FileHandleStatus status) {
+	public void setStatus(String status) {
 		this.status = status;
 	}
 
@@ -359,7 +358,7 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 				&& Objects.equals(createdBy, other.createdBy) && Objects.equals(createdOn, other.createdOn)
 				&& Objects.equals(endpoint, other.endpoint) && Objects.equals(etag, other.etag) && Objects.equals(id, other.id)
 				&& Objects.equals(isPreview, other.isPreview) && Objects.equals(key, other.key) && metadataType == other.metadataType
-				&& Objects.equals(name, other.name) && Objects.equals(previewId, other.previewId) && status == other.status
+				&& Objects.equals(name, other.name) && Objects.equals(previewId, other.previewId) && Objects.equals(status, other.status)
 				&& Objects.equals(storageLocationId, other.storageLocationId) && Objects.equals(updatedOn, other.updatedOn);
 	}
 

@@ -3,8 +3,6 @@ package org.sagebionetworks.repo.model.backup;
 import java.sql.Timestamp;
 import java.util.Objects;
 
-import org.sagebionetworks.repo.model.dao.FileHandleStatus;
-
 /**
  * Backup of a FileHandle object.
  * 
@@ -29,7 +27,7 @@ public class FileHandleBackup {
 	private Long storageLocationId;
 	private String endpoint;
 	private Boolean isPreview;
-	private FileHandleStatus status;
+	private String status;
 
 	public Long getId() {
 		return id;
@@ -159,11 +157,11 @@ public class FileHandleBackup {
 		this.isPreview = isPreview;
 	}
 
-	public FileHandleStatus getStatus() {
+	public String getStatus() {
 		return status;
 	}
 
-	public void setStatus(FileHandleStatus status) {
+	public void setStatus(String status) {
 		this.status = status;
 	}
 
@@ -191,7 +189,7 @@ public class FileHandleBackup {
 				&& Objects.equals(endpoint, other.endpoint) && Objects.equals(etag, other.etag) && Objects.equals(id, other.id)
 				&& Objects.equals(isPreview, other.isPreview) && Objects.equals(key, other.key)
 				&& Objects.equals(metadataType, other.metadataType) && Objects.equals(name, other.name)
-				&& Objects.equals(previewId, other.previewId) && status == other.status
+				&& Objects.equals(previewId, other.previewId) && Objects.equals(status, other.status)
 				&& Objects.equals(storageLocationId, other.storageLocationId) && Objects.equals(updatedOn, other.updatedOn);
 	}
 
