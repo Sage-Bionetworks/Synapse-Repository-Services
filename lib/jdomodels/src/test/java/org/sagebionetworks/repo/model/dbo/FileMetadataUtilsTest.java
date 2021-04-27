@@ -180,6 +180,7 @@ public class FileMetadataUtilsTest {
 		dbo.setContentType("contentType");
 		dbo.setCreatedOn(new Timestamp(1L));
 		dbo.setCreatedBy(9999L);
+		dbo.setUpdatedOn(new Timestamp(2L));
 		dbo.setEtag("etag");
 		dbo.setId(456L);
 		dbo.setKey("key");
@@ -187,12 +188,75 @@ public class FileMetadataUtilsTest {
 		dbo.setName("name");
 		dbo.setPreviewId(4444L);
 		dbo.setIsPreview(false);
+		dbo.setStatus(FileHandleStatus.AVAILABLE.name());
 
 		// to Backup
 		FileHandleBackup backup = FileMetadataUtils.createBackupFromDBO(dbo);
 		assertNotNull(backup);
 		// Clone from the backup
 		DBOFileHandle clone = FileMetadataUtils.createDBOFromBackup(backup);
+		assertNotNull(clone);
+		assertEquals(dbo, clone);
+	}
+	
+	@Test
+	public void testBackupRoundTripWihtoutStatus(){
+		DBOFileHandle dbo = new DBOFileHandle();
+		dbo.setBucketName("bucket");
+		dbo.setContentMD5("md5");
+		dbo.setContentSize(123L);
+		dbo.setContentType("contentType");
+		dbo.setCreatedOn(new Timestamp(1L));
+		dbo.setCreatedBy(9999L);
+		dbo.setUpdatedOn(new Timestamp(2L));
+		dbo.setEtag("etag");
+		dbo.setId(456L);
+		dbo.setKey("key");
+		dbo.setMetadataType(FileHandleMetadataType.S3);
+		dbo.setName("name");
+		dbo.setPreviewId(4444L);
+		dbo.setIsPreview(false);
+		
+		// to Backup
+		FileHandleBackup backup = FileMetadataUtils.createBackupFromDBO(dbo);
+		assertNotNull(backup);
+		// Clone from the backup
+		DBOFileHandle clone = FileMetadataUtils.createDBOFromBackup(backup);
+		
+		// The clone now should have the default available status
+		dbo.setStatus(FileHandleStatus.AVAILABLE.name());
+		
+		assertNotNull(clone);
+		assertEquals(dbo, clone);
+	}
+	
+	@Test
+	public void testBackupRoundTripWihtoutUpdatedOn(){
+		DBOFileHandle dbo = new DBOFileHandle();
+		dbo.setBucketName("bucket");
+		dbo.setContentMD5("md5");
+		dbo.setContentSize(123L);
+		dbo.setContentType("contentType");
+		dbo.setCreatedOn(new Timestamp(1L));
+		dbo.setCreatedBy(9999L);
+		dbo.setEtag("etag");
+		dbo.setId(456L);
+		dbo.setKey("key");
+		dbo.setMetadataType(FileHandleMetadataType.S3);
+		dbo.setName("name");
+		dbo.setPreviewId(4444L);
+		dbo.setIsPreview(false);
+		dbo.setStatus(FileHandleStatus.AVAILABLE.name());
+		
+		// to Backup
+		FileHandleBackup backup = FileMetadataUtils.createBackupFromDBO(dbo);
+		assertNotNull(backup);
+		// Clone from the backup
+		DBOFileHandle clone = FileMetadataUtils.createDBOFromBackup(backup);
+		
+		// The clone now should have the updatedOn set to the createdOn
+		dbo.setUpdatedOn(dbo.getCreatedOn());
+		
 		assertNotNull(clone);
 		assertEquals(dbo, clone);
 	}
@@ -285,7 +349,7 @@ public class FileMetadataUtilsTest {
 		for (int i = 0; i < list.size(); i++) {
 			DBOFileHandle dbo = dbos.get(i);
 			assertEquals(FileHandleStatus.AVAILABLE.name(), dbo.getStatus());
-			assertTrue(dbo.getUpdatedOn().equals(dbo.getCreatedOn()) || dbo.getUpdatedOn().after(dbo.getCreatedOn()));
+			assertTrue(dbo.getUpdatedOn().equals(dbo.getCreatedOn()));
 			assertEquals(list.get(i), FileMetadataUtils.createDTOFromDBO(dbo));
 		}
 	}
@@ -376,7 +440,7 @@ public class FileMetadataUtilsTest {
 		assertNotNull(dbo.getCreatedOn());
 		assertNotNull(dbo.getUpdatedOn());
 
-		assertTrue(dbo.getUpdatedOn().equals(dbo.getCreatedOn()) || dbo.getUpdatedOn().after(dbo.getCreatedOn()));
+		assertTrue(dbo.getUpdatedOn().equals(dbo.getCreatedOn()));
 
 		expected.setCreatedOn(dbo.getCreatedOn());
 		expected.setUpdatedOn(dbo.getUpdatedOn());
@@ -398,6 +462,7 @@ public class FileMetadataUtilsTest {
 		expected.setMetadataType(FileHandleMetadataType.S3);
 		expected.setStorageLocationId(StorageLocationDAO.DEFAULT_STORAGE_LOCATION_ID);
 		expected.setIsPreview(false);
+		expected.setStatus(FileHandleStatus.AVAILABLE.name());
 		
 		DBOFileHandle result = FileMetadataUtils.createDBOFromBackup(backup);
 		
@@ -417,6 +482,7 @@ public class FileMetadataUtilsTest {
 		expected.setMetadataType(FileHandleMetadataType.S3);
 		expected.setStorageLocationId(null);
 		expected.setIsPreview(false);
+		expected.setStatus(FileHandleStatus.AVAILABLE.name());
 		
 		DBOFileHandle result = FileMetadataUtils.createDBOFromBackup(backup);
 		
@@ -436,6 +502,7 @@ public class FileMetadataUtilsTest {
 		expected.setMetadataType(FileHandleMetadataType.S3);
 		expected.setStorageLocationId(123L);
 		expected.setIsPreview(false);
+		expected.setStatus(FileHandleStatus.AVAILABLE.name());
 		
 		DBOFileHandle result = FileMetadataUtils.createDBOFromBackup(backup);
 		
@@ -455,6 +522,7 @@ public class FileMetadataUtilsTest {
 		expected.setMetadataType(FileHandleMetadataType.GOOGLE_CLOUD);
 		expected.setStorageLocationId(123L);
 		expected.setIsPreview(false);
+		expected.setStatus(FileHandleStatus.AVAILABLE.name());
 		
 		DBOFileHandle result = FileMetadataUtils.createDBOFromBackup(backup);
 		

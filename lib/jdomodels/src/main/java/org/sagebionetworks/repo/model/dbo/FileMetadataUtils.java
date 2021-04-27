@@ -72,8 +72,6 @@ public class FileMetadataUtils {
 		if (fileHandle instanceof ExternalObjectStoreFileHandle) {
 			updateDBOFromDTO(dbo, (ExternalObjectStoreFileHandle) fileHandle);
 		}
-
-		dbo.setStatus(FileHandleStatus.AVAILABLE.name());
 		
 		return dbo;
 	}
@@ -91,17 +89,20 @@ public class FileMetadataUtils {
 
 		if (fileHandle.getCreatedOn() != null) {
 			dbo.setCreatedOn(new Timestamp(fileHandle.getCreatedOn().getTime()));
-			dbo.setUpdatedOn(new Timestamp(System.currentTimeMillis()));
 		} else {
 			dbo.setCreatedOn(new Timestamp(System.currentTimeMillis()));
-			dbo.setUpdatedOn(dbo.getCreatedOn());
 		}
-		
+
+
+		// Note that we do not expose the updatedOn in a fileHandle, on creation we set it to the same as the createdOn
+		dbo.setUpdatedOn(dbo.getCreatedOn());
 		dbo.setName(fileHandle.getFileName());
 		dbo.setStorageLocationId(fileHandle.getStorageLocationId());
 		dbo.setContentType(fileHandle.getContentType());
 		dbo.setContentSize(fileHandle.getContentSize());
 		dbo.setContentMD5(fileHandle.getContentMd5());
+		// Note that we do not expose the status in a fileHandle, on creation we always set to available
+		dbo.setStatus(FileHandleStatus.AVAILABLE.name());
 	}
 
 	private static void updateDBOFromDTO(DBOFileHandle dbo, ExternalFileHandle fileHandle) {
@@ -309,6 +310,9 @@ public class FileMetadataUtils {
 		}
 		if (in.getUpdatedOn() != null) {
 			out.setUpdatedOn(in.getUpdatedOn());
+		} else {
+			// First time migration, set it the same as the creation date
+			out.setUpdatedOn(out.getCreatedOn());
 		}
 		if (in.getEtag() != null) {
 			out.setEtag(in.getEtag());
@@ -345,6 +349,9 @@ public class FileMetadataUtils {
 		}
 		if (in.getStatus() != null) {
 			out.setStatus(in.getStatus());
+		} else {
+			// First time migration, we set everything as available
+			out.setStatus(FileHandleStatus.AVAILABLE.name());
 		}
 		return out;
 	}
