@@ -667,9 +667,65 @@ public class JsonSchemaValidationManagerImplTest {
 		assertNotNull(result);
 		assertFalse(result.getIsValid());
 		String stackTrace = buildStackTrack(result.getValidationException());
-		System.out.println(stackTrace);
 		assertTrue(stackTrace.contains("input is invalid against the \"then\" schema"));
 		assertTrue(stackTrace.contains("required key [assay] not found"));
+	}
+	
+	/**
+	 * This is a test for PLFM-6701.
+	 */
+	@Test
+	public void testValidateWithBooleanConditionWithFalse() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/BooleanCondition.json");
+		assertNotNull(schema.getProperties());
+		
+		JsonSubject subject = setupSubject();
+		// when isMultiSpecimen=false then assay is not required.
+		subject.toJson().put("isMultiSpecimen", false);
+		subject.toJson().remove("assay");
+		
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertTrue(result.getIsValid());
+	}
+	
+	/**
+	 * This is a test for PLFM-6701.
+	 */
+	@Test
+	public void testValidateWithEnumCondition() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/EnumCondition.json");
+		assertNotNull(schema.getProperties());
+		
+		JsonSubject subject = setupSubject();
+		// when other=1,2,or3 then assay is required.
+		subject.toJson().put("other", 3);
+		subject.toJson().remove("assay");
+		
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertFalse(result.getIsValid());
+		String stackTrace = buildStackTrack(result.getValidationException());
+		assertTrue(stackTrace.contains("input is invalid against the \"then\" schema"));
+		assertTrue(stackTrace.contains("required key [assay] not found"));
+	}
+	
+	@Test
+	public void testValidateWithEnumConditionWithNoMatch() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/EnumCondition.json");
+		assertNotNull(schema.getProperties());
+		
+		JsonSubject subject = setupSubject();
+		// when other=1,2,or3 then assay is required.
+		subject.toJson().put("other", 4);
+		subject.toJson().remove("assay");
+		
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertTrue(result.getIsValid());
 	}
 	
 	/**
