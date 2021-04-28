@@ -139,7 +139,7 @@ public class AthenaResultsProviderTest {
 	@Test
 	public void testGetNextPageMultiplePagesExcludingHeader() {
 
-		int firstPageResults = AthenaResultsProvider.PAGE_SIZE;
+		int firstPageResults = AthenaResultsProvider.MAX_PAGE_SIZE;
 		int secondPageResults = 10;
 		
 		ResultSet firstPage = getResultSet(firstPageResults);
@@ -188,7 +188,7 @@ public class AthenaResultsProviderTest {
 	@Test
 	public void testGetNextPageMultiplePagesIncludingHeader() {
 
-		int firstPageResults = AthenaResultsProvider.PAGE_SIZE;
+		int firstPageResults = AthenaResultsProvider.MAX_PAGE_SIZE;
 		int secondPageResults = 10;
 		
 		// Max page size is reached, we need to exclude one row from the first page (the header)
@@ -242,7 +242,7 @@ public class AthenaResultsProviderTest {
 
 	private GetQueryResultsRequest getQueryResultsRequest(String nextToken) {
 		GetQueryResultsRequest request = new GetQueryResultsRequest().withQueryExecutionId(QUERY_ID)
-				.withMaxResults(AthenaResultsProvider.PAGE_SIZE).withNextToken(nextToken);
+				.withMaxResults(AthenaResultsProvider.MAX_PAGE_SIZE).withNextToken(nextToken);
 
 		return request;
 	}
