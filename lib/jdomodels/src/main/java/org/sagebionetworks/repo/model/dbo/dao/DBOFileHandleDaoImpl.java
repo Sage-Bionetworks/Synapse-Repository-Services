@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_IS_PREVIEW;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
@@ -11,6 +11,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ME
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_PREVIEW_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 
+import java.sql.ResultSet;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,14 +43,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
 
 /**
  * Basic JDBC implementation of the FileMetadataDao.
@@ -66,8 +65,6 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	private static final String SQL_COUNT_ALL_FILES = "SELECT COUNT(*) FROM "+TABLE_FILES;
 	private static final String SQL_MAX_FILE_ID = "SELECT MAX(ID) FROM " + TABLE_FILES;
 	private static final String SQL_SELECT_CREATOR = "SELECT "+COL_FILES_CREATED_BY+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
-	private static final String SQL_SELECT_CREATORS = "SELECT " + COL_FILES_CREATED_BY + "," + COL_FILES_ID + " FROM " + TABLE_FILES
-			+ " WHERE " + COL_FILES_ID + " IN ( " + IDS_PARAM + " )";
 	private static final String SQL_SELECT_BATCH = "SELECT * FROM " + TABLE_FILES + " WHERE " + COL_FILES_ID + " IN ( " + IDS_PARAM + " )";
 	private static final String SQL_SELECT_PREVIEW_ID = "SELECT "+COL_FILES_PREVIEW_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
 	private static final String UPDATE_PREVIEW_AND_ETAG = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_PREVIEW_ID+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
@@ -88,19 +85,27 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			+ " WHERE S." + COL_FILES_ID + "= ?"
 			+ " AND T." + COL_FILES_ID + "= ?";
 	
-	@Autowired
 	private TransactionalMessenger transactionalMessenger;
 		
-	@Autowired
 	private DBOBasicDao basicDao;
 
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-
-	@Autowired
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
+	
+	private JdbcTemplate jdbcTemplate;
+	
+	@Autowired
+	public DBOFileHandleDaoImpl(TransactionalMessenger transactionalMessenger, DBOBasicDao basicDao, NamedParameterJdbcTemplate namedJdbcTemplate) {
+		this.transactionalMessenger = transactionalMessenger;
+		this.basicDao = basicDao;
+		this.namedJdbcTemplate = namedJdbcTemplate;
+		this.jdbcTemplate = namedJdbcTemplate.getJdbcTemplate();
+	}
 
-	private TableMapping<DBOFileHandle> rowMapping = new DBOFileHandle().getTableMapping();
+	private static final TableMapping<DBOFileHandle> DBO_MAPPER = new DBOFileHandle().getTableMapping();
+	
+	private static final RowMapper<FileHandle> ROW_MAPPER = (ResultSet rs, int rowNum) -> {
+		return FileMetadataUtils.createDTOFromDBO(DBO_MAPPER.mapRow(rs, rowNum));
+	};
 
 	@Override
 	public FileHandle get(String id) throws DatastoreException, NotFoundException {
@@ -198,24 +203,6 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			throw new NotFoundException("The FileHandle does not exist: "+fileHandleId);
 		}
 	}
-
-	@Deprecated
-	@Override
-	public Multimap<String, String> getHandleCreators(List<String> fileHandleIds) throws NotFoundException {
-		final Multimap<String, String> resultMap = ArrayListMultimap.create();
-
-		// because we are using an IN clause and the number of incoming fileHandleIds is undetermined, we need to batch
-		// the selects here
-		for (List<String> fileHandleIdsBatch : Lists.partition(fileHandleIds, SqlConstants.MAX_LONGS_PER_IN_CLAUSE / 2)) {
-			namedJdbcTemplate.query(SQL_SELECT_CREATORS, new SinglePrimaryKeySqlParameterSource(fileHandleIdsBatch),
-					rs -> {
-						String creator = rs.getString(COL_FILES_CREATED_BY);
-						String id = rs.getString(COL_FILES_ID);
-						resultMap.put(creator, id);
-					});
-		}
-		return resultMap;
-	}
 	
 	@Override
 	public Set<String> getFileHandleIdsCreatedByUser(final Long createdById,
@@ -294,16 +281,16 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 
 	@Override
 	public Map<String, FileHandle> getAllFileHandlesBatch(Iterable<String> idsList) {
-		Map<String, FileHandle> resultMap = Maps.newHashMap();
+		Map<String, FileHandle> resultMap = new HashMap<>();
 
 		// because we are using an IN clause and the number of incoming fileHandleIds is undetermined, we need to batch
 		// the selects here
 		for (List<String> fileHandleIdsBatch : Iterables.partition(idsList, 100)) {
-			List<DBOFileHandle> handles = namedJdbcTemplate.query(SQL_SELECT_BATCH,
-					new SinglePrimaryKeySqlParameterSource(fileHandleIdsBatch), rowMapping);
-			for (DBOFileHandle handle : handles) {
-				resultMap.put(handle.getIdString(), FileMetadataUtils.createDTOFromDBO(handle));
-			}
+			
+			namedJdbcTemplate.query(SQL_SELECT_BATCH, new SinglePrimaryKeySqlParameterSource(fileHandleIdsBatch), ROW_MAPPER).forEach( handle -> {
+				resultMap.put(handle.getId(), handle);
+			});
+			
 		}
 		return resultMap;
 	}
@@ -319,20 +306,18 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 
 	@Override
 	public long getCount() throws DatastoreException {
-		try {
-			return jdbcTemplate.queryForObject(SQL_COUNT_ALL_FILES, Long.class);
-		} catch (NullPointerException e) {
-			return 0L;
-		}
+		return jdbcTemplate.queryForObject(SQL_COUNT_ALL_FILES, Long.class);
 	}
 	
 	@Override
 	public long getMaxId() throws DatastoreException {
-		try {
-			return jdbcTemplate.queryForObject(SQL_MAX_FILE_ID, Long.class);
-		} catch (NullPointerException e) {
-			return 0L;
+		Long maxId = jdbcTemplate.queryForObject(SQL_MAX_FILE_ID, Long.class);
+		
+		if (maxId == null) {
+			maxId = 0L;
 		}
+		
+		return maxId;
 	}
 
 	@WriteTransaction
