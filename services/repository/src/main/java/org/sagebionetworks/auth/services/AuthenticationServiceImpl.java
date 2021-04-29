@@ -190,8 +190,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 
 	@Override
-	public LoginResponse login(LoginRequest request) {
-		return authManager.login(request);
+	public LoginResponse loginForSession(LoginRequest request) {
+			return authManager.loginForSession(request);
+	}
+
+	@Override
+	public LoginResponse login(LoginRequest request, String tokenIssuer) {
+			return authManager.login(request, tokenIssuer);
 	}
 
 	@Override

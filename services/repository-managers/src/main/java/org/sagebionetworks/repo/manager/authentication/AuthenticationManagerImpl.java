@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.authentication;
 
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserCredentialValidator;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
 import org.sagebionetworks.repo.model.TermsOfUseException;
@@ -54,6 +55,9 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@Autowired
 	private PasswordResetTokenGenerator passwordResetTokenGenerator;
 	
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+
 	@Override
 	public Long getPrincipalId(String sessionToken) {
 		Long principalId = authDAO.getPrincipal(sessionToken);
@@ -214,7 +218,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	 * transaction will only be created if a database change is needed.
 	 */
 	@Override
-	public LoginResponse login(LoginRequest request){
+	public LoginResponse loginForSession(LoginRequest request){
 		ValidateArgument.required(request, "loginRequest");
 		ValidateArgument.required(request.getUsername(), "LoginRequest.username");
 		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
@@ -225,7 +229,22 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 		validateAuthReceiptAndCheckPassword(userId, password, authenticationReceipt);
 
-		return getLoginResponseAfterSuccessfulPasswordAuthentication(userId);
+		return getLoginResponseWithSessionAfterSuccessfulPasswordAuthentication(userId);
+	}
+
+	@Override
+	public LoginResponse login(LoginRequest request, String tokenIssuer){
+		ValidateArgument.required(request, "loginRequest");
+		ValidateArgument.required(request.getUsername(), "LoginRequest.username");
+		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
+
+		final long userId = findUserIdForAuthentication(request.getUsername());
+		final String password = request.getPassword();
+		final String authenticationReceipt = request.getAuthenticationReceipt();
+
+		validateAuthReceiptAndCheckPassword(userId, password, authenticationReceipt);
+
+		return getLoginResponseAfterSuccessfulPasswordAuthentication(userId, tokenIssuer);
 	}
 
 	/**
@@ -255,17 +274,23 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	@Override
 	public LoginResponse loginWithNoPasswordCheck(long principalId){
-		return getLoginResponseAfterSuccessfulPasswordAuthentication(principalId);
+		return getLoginResponseWithSessionAfterSuccessfulPasswordAuthentication(principalId);
 	}
 
-	LoginResponse getLoginResponseAfterSuccessfulPasswordAuthentication(long principalId){
+	LoginResponse getLoginResponseWithSessionAfterSuccessfulPasswordAuthentication(long principalId){
 		String newAuthenticationReceipt = authenticationReceiptTokenGenerator.createNewAuthenticationReciept(principalId);
 		//generate session tokens for user after successful check
 		Session session = getSessionToken(principalId);
 		return createLoginResponse(session, newAuthenticationReceipt);
 	}
 
-
+	LoginResponse getLoginResponseAfterSuccessfulPasswordAuthentication(long principalId, String issuer) {
+		String newAuthenticationReceipt = authenticationReceiptTokenGenerator.createNewAuthenticationReciept(principalId);
+		String accessToken = oidcTokenHelper.createClientTotalAccessToken(principalId, issuer);
+		boolean acceptsTermsOfUse = authDAO.hasUserAcceptedToU(principalId);
+		return createLoginResponse(accessToken, acceptsTermsOfUse, newAuthenticationReceipt);
+	}
+	
 	/**
 	 * Create a login response from the session and the new authentication receipt
 	 * 
@@ -277,6 +302,14 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		LoginResponse response = new LoginResponse();
 		response.setSessionToken(session.getSessionToken());
 		response.setAcceptsTermsOfUse(session.getAcceptsTermsOfUse());
+		response.setAuthenticationReceipt(newReceipt);
+		return response;
+	}
+
+	private LoginResponse createLoginResponse(String accessToken, boolean acceptsTermsOfUse, String newReceipt) {
+		LoginResponse response = new LoginResponse();
+		response.setAccessToken(accessToken);
+		response.setAcceptsTermsOfUse(acceptsTermsOfUse);
 		response.setAuthenticationReceipt(newReceipt);
 		return response;
 	}

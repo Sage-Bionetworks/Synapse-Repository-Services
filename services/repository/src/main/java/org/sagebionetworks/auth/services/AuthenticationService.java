@@ -105,7 +105,16 @@ public interface AuthenticationService {
 	 * @return a LoginResponse if username/password is valid
 	 * @throws org.sagebionetworks.repo.model.UnauthenticatedException If the credentials are incorrect
 	 */
-	public LoginResponse login(LoginRequest request);
+	public LoginResponse loginForSession(LoginRequest request);
+
+	/**
+	 * Authenticates username and password combination
+	 * User can use an authentication receipt from previous login to skip extra security checks
+	 * 
+	 * @return a LoginResponse if username/password is valid
+	 * @throws org.sagebionetworks.repo.model.UnauthenticatedException If the credentials are incorrect
+	 */
+	public LoginResponse login(LoginRequest request, String tokenIssuer);
 
 	/**
 	 * Creates a scoped personal access token for the requesting user.

@@ -46,7 +46,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 
-
 public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 
 	@Autowired
@@ -251,7 +250,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	@Override
 	public Long getPrincipal(String sessionToken) {
 		try {
-			return jdbcTemplate.queryForObject(SELECT_PRINCIPAL_BY_TOKEN,new SingleColumnRowMapper<Long>(), sessionToken); 
+			return jdbcTemplate.queryForObject(SELECT_PRINCIPAL_BY_TOKEN, Long.class, sessionToken); 
 		} catch (EmptyResultDataAccessException e) {
 			return null;
 		}
@@ -261,7 +260,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	public Long getPrincipalIfValid(String sessionToken) {
 		long time =clock.currentTimeMillis() - SESSION_EXPIRATION_TIME;
 		try {
-			return jdbcTemplate.queryForObject(SELECT_PRINCIPAL_BY_TOKEN_IF_VALID, new SingleColumnRowMapper<Long>(), sessionToken, time); 
+			return jdbcTemplate.queryForObject(SELECT_PRINCIPAL_BY_TOKEN_IF_VALID, Long.class, sessionToken, time); 
 		} catch (EmptyResultDataAccessException e) {
 			return null;
 		}
@@ -279,7 +278,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	@Override
 	public String getPasswordHash(long principalId) {
 		try {
-			return jdbcTemplate.queryForObject(SELECT_PASSWORD, new SingleColumnRowMapper<String>(), principalId);
+			return jdbcTemplate.queryForObject(SELECT_PASSWORD, String.class, principalId);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("User (" + principalId + ") does not exist");
 		}
@@ -295,7 +294,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	@Override
 	public String getSecretKey(long principalId) throws NotFoundException {
 		try {
-			return jdbcTemplate.queryForObject(SELECT_SECRET_KEY, new SingleColumnRowMapper<String>(), principalId);
+			return jdbcTemplate.queryForObject(SELECT_SECRET_KEY, String.class, principalId);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("");
 		}
@@ -318,7 +317,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	public boolean hasUserAcceptedToU(long principalId) throws NotFoundException {
 		Boolean acceptance;
 		try {
-			acceptance = jdbcTemplate.queryForObject(SELECT_TOU_ACCEPTANCE, new SingleColumnRowMapper<Boolean>(), principalId);
+			acceptance = jdbcTemplate.queryForObject(SELECT_TOU_ACCEPTANCE, Boolean.class, principalId);
 		} catch (EmptyResultDataAccessException e) {
 			// It's possible now that there is no record. That shouldn't be an
 			// exception, that's a "false, not accepted".

@@ -110,7 +110,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		oauthClient = oauthClientManager.createOpenIDConnectClient(userInfo, toCreate);
 		assertNotNull(oauthClient.getClient_id());
 	
-		fullAccessToken = oidcTokenHelper.createTotalAccessToken(userInfo.getId());
+		fullAccessToken = oidcTokenHelper.createClientTotalAccessToken(userInfo.getId(), null);
 	}
 
 	@AfterEach

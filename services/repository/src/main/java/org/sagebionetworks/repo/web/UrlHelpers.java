@@ -1178,7 +1178,7 @@ public class UrlHelpers {
 
 
 	public static final String AUTH_LOGIN = "/login";
-	
+	public static final String AUTH_LOGIN_2 = "/login2";	
 	/**
 	 * API for creating integration test users
 	 */
