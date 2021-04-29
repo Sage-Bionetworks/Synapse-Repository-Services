@@ -55,7 +55,7 @@ public class DBOAuthenticationDAOImplUnitTest {
 		long lastValidate = 0;
 		long now = lastValidate + 1L;
 		when(mockClock.currentTimeMillis()).thenReturn(now);
-		when(mockJdbcTemplate.queryForObject(any(String.class), ArgumentMatchers.<RowMapper<Date>>any(),ArgumentMatchers.<Object>any())).thenReturn(new Date(lastValidate));
+		when(mockJdbcTemplate.queryForObject(any(String.class), ArgumentMatchers.<RowMapper<Date>>any(), ArgumentMatchers.<Object>any())).thenReturn(new Date(lastValidate));
 		// call under test
 		assertFalse("The token did not need to be validated yet",authDao.revalidateSessionTokenIfNeeded(principalId));
 		verify(mockUserGroupDao, never()).touch(anyLong());
