@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -11,6 +12,12 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
@@ -21,10 +28,14 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.ExampleEntity;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.schema.adapter.org.json.JSONArrayAdapterImpl;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
@@ -44,6 +55,8 @@ public class JSONEntityHttpMessageConverterTest {
 	HttpInputMessage mockInMessage;
 	ByteArrayOutputStream outStream;
 	HttpHeaders mockHeaders;
+	JSONEntityHttpMessageConverter converter;
+	
 
 	
 	@Before
@@ -62,11 +75,14 @@ public class JSONEntityHttpMessageConverterTest {
 		Mockito.when(mockOutMessage.getHeaders()).thenReturn(mockHeaders);
 		Mockito.when(mockHeaders.getContentType()).thenReturn(MediaType.APPLICATION_JSON);
 		
+		Set<Class <? extends JSONEntity>> set = new HashSet<>();
+		set.add(CreateSchemaRequest.class);
+		converter = new JSONEntityHttpMessageConverter(set);
+		
 	}
 
 	@Test
 	public void testCanRead(){
-		JSONEntityHttpMessageConverter converter = new JSONEntityHttpMessageConverter();
 		assertTrue(converter.canRead(Project.class, MediaType.APPLICATION_JSON));
 		assertFalse(converter.canRead(Object.class, MediaType.APPLICATION_JSON));
 		assertTrue(converter.canRead(Project.class, new MediaType("application","json", Charset.forName("ISO-8859-1"))));
@@ -74,14 +90,12 @@ public class JSONEntityHttpMessageConverterTest {
 	
 	@Test
 	public void testCanWrite(){
-		JSONEntityHttpMessageConverter converter = new JSONEntityHttpMessageConverter();
 		assertTrue(converter.canWrite(Project.class, MediaType.APPLICATION_JSON));
 		assertFalse(converter.canWrite(Object.class, MediaType.APPLICATION_JSON));
 	}
 	
 	@Test
 	public void testRoundTrip() throws HttpMessageNotWritableException, IOException{
-		JSONEntityHttpMessageConverter converter = new JSONEntityHttpMessageConverter();
 		// Write it out.
 		converter.write(project, MediaType.APPLICATION_JSON, mockOutMessage);
 		
@@ -94,7 +108,6 @@ public class JSONEntityHttpMessageConverterTest {
 	
 	@Test
 	public void testRoundTripWithPlainTextMediaType() throws HttpMessageNotWritableException, IOException{
-		JSONEntityHttpMessageConverter converter = new JSONEntityHttpMessageConverter();
 		// Write it out.
 		converter.write(project, MediaType.TEXT_PLAIN, mockOutMessage);
 		
@@ -107,7 +120,6 @@ public class JSONEntityHttpMessageConverterTest {
 	
 	@Test
 	public void testErrorResponseRoundTripWithPlainTextMediaType() throws HttpMessageNotWritableException, IOException{
-		JSONEntityHttpMessageConverter converter = new JSONEntityHttpMessageConverter();
 		ErrorResponse error = new ErrorResponse();
 		error.setReason("foo");
 		// Write it out.
@@ -210,7 +222,6 @@ public class JSONEntityHttpMessageConverterTest {
 		assertTrue(json.indexOf("entityType") > 0);
 		assertFalse(json.indexOf("concreteType") > 0);
 		// Now make sure we can parse the json
-		JSONEntityHttpMessageConverter converter = new JSONEntityHttpMessageConverter();
 		Mockito.when(mockInMessage.getBody()).thenReturn(new StringInputStream(json));
 		try{
 			Project clone = (Project) converter.read(Entity.class, mockInMessage);
@@ -222,4 +233,189 @@ public class JSONEntityHttpMessageConverterTest {
 		}
 	}
 	
+	
+	private JSONObjectAdapter setUpValidJSONEntity() throws Exception {
+		JSONObjectAdapter schema = new JSONObjectAdapterImpl();
+		schema.put("description", "Expect this to fail");
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+		adapter.put("concreteType", "org.sagebionetworks.repo.model.schema.CreateSchemaRequest");
+		adapter.put("schema", schema);
+		return adapter;
+	}
+	
+	private JSONObjectAdapter setUpInvalidJSONEntity() throws Exception {
+		JSONObjectAdapter schema = new JSONObjectAdapterImpl();
+		schema.put("description", "Expect this to fail");
+		schema.put("notPartOfSpecification", "random");
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+		adapter.put("concreteType", "org.sagebionetworks.repo.model.schema.CreateSchemaRequest");
+		adapter.put("schema", schema);
+		return adapter;
+	}
+	
+	private JSONObjectAdapter setUpInvalidJSONEntityEmbeddedSchema() throws Exception {
+		JSONObjectAdapter items = new JSONObjectAdapterImpl();
+		items.put("notPartOfSpecification", "random");
+		JSONObjectAdapter schema = new JSONObjectAdapterImpl();
+		// items is a JsonSchema
+		schema.put("items", items);
+		schema.put("description", "Expect this to fail");
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+		adapter.put("concreteType", "org.sagebionetworks.repo.model.schema.CreateSchemaRequest");
+		adapter.put("schema", schema);
+		return adapter;
+	}
+	
+	private JSONObjectAdapter setUpInvalidJSONEntityArrayOfSchemas() throws Exception {
+		JSONArrayAdapter allOf = new JSONArrayAdapterImpl();
+		JSONObjectAdapter schemaInArray = new JSONObjectAdapterImpl();
+		schemaInArray.put("notPartOfSpecification", "random");
+		allOf.put(0, schemaInArray);
+		JSONObjectAdapter schema = new JSONObjectAdapterImpl();
+		// "allOf" is an array of JsonSchemas
+		schema.put("allOf", allOf);
+		schema.put("description", "Expect this to fail");
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+		adapter.put("concreteType", "org.sagebionetworks.repo.model.schema.CreateSchemaRequest");
+		adapter.put("schema", schema);
+		return adapter;
+	}
+	
+	private JSONObjectAdapter setUpInvalidJSONEntityMapOfSchemas() throws Exception {
+		JSONObjectAdapter properties = new JSONObjectAdapterImpl();
+		JSONObjectAdapter schema1 = new JSONObjectAdapterImpl();
+		schema1.put("description", "Expect this to fail");
+		JSONObjectAdapter schema2 = new JSONObjectAdapterImpl();
+		schema2.put("notPartOfSpecification", "random");
+		properties.put("schema1", schema1);
+		properties.put("schema2", schema2);
+		JSONObjectAdapter schema = new JSONObjectAdapterImpl();
+		// properties is a map of String to JsonSchema
+		schema.put("properties", properties);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+		adapter.put("schema", schema);
+		adapter.put("concreteType", "org.sagebionetworks.repo.model.schema.CreateSchemaRequest");
+		return adapter;
+	}
+	
+	@Test
+	public void testValidateJSONEntityValid() throws Exception {
+		// set up
+		JSONObjectAdapter adapter = setUpValidJSONEntity();
+		String beforeJsonString = adapter.toJSONString();
+		CreateSchemaRequest entity = new CreateSchemaRequest(adapter);
+		// test, no exception should be thrown
+		JSONEntityHttpMessageConverter.validateJSONEntity(entity, beforeJsonString);
+	}
+	
+	
+	@Test
+	public void testValidateJSONEntityNormal() throws Exception {
+		// set up
+		JSONObjectAdapter adapter = setUpInvalidJSONEntity();
+		String beforeJsonString = adapter.toJSONString();
+		CreateSchemaRequest entity = new CreateSchemaRequest(adapter);
+		// test
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			JSONEntityHttpMessageConverter.validateJSONEntity(entity, beforeJsonString);
+		}).getMessage();
+		assertEquals(message, "JSON Element in Entity is Unsupported: notPartOfSpecification");
+	}
+	
+	
+	@Test
+	public void testValidateJSONEntityEmbeddedSchema() throws Exception {
+		// set up
+		JSONObjectAdapter adapter = setUpInvalidJSONEntityEmbeddedSchema();
+		String beforeJsonString = adapter.toJSONString();
+		CreateSchemaRequest entity = new CreateSchemaRequest(adapter);
+		// test
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			JSONEntityHttpMessageConverter.validateJSONEntity(entity, beforeJsonString);
+		}).getMessage();
+		assertEquals(message, "JSON Element in Entity is Unsupported: notPartOfSpecification");
+	}
+	
+	@Test
+	public void testValidateJSONEntityArrayOfSchemas() throws Exception {
+		// set up
+		JSONObjectAdapter adapter = setUpInvalidJSONEntityArrayOfSchemas();
+		String beforeJsonString = adapter.toJSONString();
+		CreateSchemaRequest entity = new CreateSchemaRequest(adapter);
+		// test
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			JSONEntityHttpMessageConverter.validateJSONEntity(entity, beforeJsonString);
+		}).getMessage();
+		assertEquals(message, "JSON Element in Entity is Unsupported: notPartOfSpecification");
+	}
+	
+	@Test
+	public void testValidateJSONEntityMapOfSchemas() throws Exception {
+		// set up
+		JSONObjectAdapter adapter = setUpInvalidJSONEntityMapOfSchemas();
+		String beforeJsonString = adapter.toJSONString();
+		CreateSchemaRequest entity = new CreateSchemaRequest(adapter);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			JSONEntityHttpMessageConverter.validateJSONEntity(entity, beforeJsonString);
+		}).getMessage();
+		assertEquals(message, "JSON Element in Entity is Unsupported: notPartOfSpecification");
+	}
+	
+	@Test
+	public void testReadWhereValidationSucceeds() throws Exception {
+		// PLFM-6320
+		JSONObjectAdapter adapter = setUpValidJSONEntity();
+		String jsonString = adapter.toJSONString();
+		Mockito.when(mockInMessage.getBody()).thenReturn(new StringInputStream(jsonString));
+		CreateSchemaRequest result = (CreateSchemaRequest) converter.read(CreateSchemaRequest.class, mockInMessage);
+		assertNotNull(result);
+	}
+	
+	@Test
+	public void testReadWhereValidationFails() throws Exception {
+		// PLFM-6320
+		JSONObjectAdapter adapter = setUpInvalidJSONEntity();
+		String jsonString = adapter.toJSONString();
+		Mockito.when(mockInMessage.getBody()).thenReturn(new StringInputStream(jsonString));
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			converter.read(CreateSchemaRequest.class, mockInMessage);
+		}).getMessage();
+		assertEquals(message, "JSON Element in Entity is Unsupported: notPartOfSpecification");
+	}
+	
+	@Test
+	public void testReadWhereValidationFailsEmbeddedSchema() throws Exception {
+		// PLFM-6320
+		JSONObjectAdapter adapter = setUpInvalidJSONEntityEmbeddedSchema();
+		String jsonString = adapter.toJSONString();
+		Mockito.when(mockInMessage.getBody()).thenReturn(new StringInputStream(jsonString));
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			converter.read(CreateSchemaRequest.class, mockInMessage);
+		}).getMessage();
+		assertEquals(message, "JSON Element in Entity is Unsupported: notPartOfSpecification");
+	}
+	
+	@Test
+	public void testReadWhereValidationFailsArrayOfSchemas() throws Exception {
+		// PLFM-6320
+		JSONObjectAdapter adapter = setUpInvalidJSONEntityArrayOfSchemas();
+		String jsonString = adapter.toJSONString();
+		Mockito.when(mockInMessage.getBody()).thenReturn(new StringInputStream(jsonString));
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			converter.read(CreateSchemaRequest.class, mockInMessage);
+		}).getMessage();
+		assertEquals(message, "JSON Element in Entity is Unsupported: notPartOfSpecification");
+	}
+	
+	@Test
+	public void testReadWhereValidationFailsMapOfSchemas() throws Exception {
+		// PLFM-6320
+		JSONObjectAdapter adapter = setUpInvalidJSONEntityMapOfSchemas();
+		String jsonString = adapter.toJSONString();
+		Mockito.when(mockInMessage.getBody()).thenReturn(new StringInputStream(jsonString));
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			converter.read(CreateSchemaRequest.class, mockInMessage);
+		}).getMessage();
+		assertEquals(message, "JSON Element in Entity is Unsupported: notPartOfSpecification");
+	}
 }

@@ -6,6 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import org.json.JSONObject;
@@ -18,6 +22,7 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
@@ -326,30 +331,105 @@ public class ITJsonSchemaControllerTest {
 	}
 	
 	@Test
-	public void temp() throws SynapseException, InterruptedException {
+	public void testCreateSchemaWithUnsupportedElement() throws SynapseException {
 		organization = synapse.createOrganization(createOrganizationRequest);
 		assertNotNull(organization);
 		String semanticVersion = "1.45.67-alpha+beta";
-		JsonSchema schema = new JsonSchema();
+		FakeJsonSchema schema = new FakeJsonSchema();
 		schema.set$id(organizationName + "-" + schemaName + "-" + semanticVersion);
-		schema.setDescription("test with a version");
+		schema.setDescription("Expect this to fail");
+		schema.setNotPartOfSpecification("random");
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(schema);
-		// A change
-		// Call under test
-		waitForSchemaCreate(request, (response) -> {
-			assertNotNull(response);
-			assertNotNull(response.getNewVersionInfo());
-			assertEquals(organizationName, response.getNewVersionInfo().getOrganizationName());
-			assertEquals(schemaName, response.getNewVersionInfo().getSchemaName());
-		});
-
-		// call under test
-		JsonSchema fetched = synapse.getJsonSchema(organizationName, schemaName, semanticVersion);
-		schema.set$id(JsonSchemaManager.createAbsolute$id(schema.get$id()));
-		assertEquals(schema, fetched);
-		// call under test
-		synapse.deleteSchema(organizationName, schemaName);
+		// fail here
+		String message = assertThrows(SynapseBadRequestException.class, () -> {
+			waitForSchemaCreate(request, (response) -> {
+				assertNotNull(response);
+				assertNotNull(response.getNewVersionInfo());
+				assertEquals(organizationName, response.getNewVersionInfo().getOrganizationName());
+				assertEquals(schemaName, response.getNewVersionInfo().getSchemaName());
+			});
+		}).getMessage();
+		assertEquals(message, "JSON Element in Entity is Unsupported: notPartOfSpecification");
+	}
+	
+	@Test
+	public void testCreateSchemaWithUnsupportedElementEmbeddedSchema() throws SynapseException {
+		organization = synapse.createOrganization(createOrganizationRequest);
+		assertNotNull(organization);
+		JsonSchema schema = new JsonSchema();
+		String semanticVersion = "1.45.67-alpha+beta";
+		FakeJsonSchema schema2 = new FakeJsonSchema();
+		schema.set$id(organizationName + "-" + schemaName + "-" + semanticVersion);
+		schema.setDescription("Expect this to fail");
+		schema2.setNotPartOfSpecification("random");
+		schema.setItems(schema2);
+		CreateSchemaRequest request = new CreateSchemaRequest();
+		request.setSchema(schema);
+		// fail here
+		String message = assertThrows(SynapseBadRequestException.class, () -> {
+			waitForSchemaCreate(request, (response) -> {
+				assertNotNull(response);
+				assertNotNull(response.getNewVersionInfo());
+				assertEquals(organizationName, response.getNewVersionInfo().getOrganizationName());
+				assertEquals(schemaName, response.getNewVersionInfo().getSchemaName());
+			});
+		}).getMessage();
+		assertEquals(message, "JSON Element in Entity is Unsupported: notPartOfSpecification");
+	}
+	
+	@Test
+	public void testCreateSchemaWithUnsupportedElementListOfSchemas() throws SynapseException {
+		organization = synapse.createOrganization(createOrganizationRequest);
+		assertNotNull(organization);
+		JsonSchema schema = new JsonSchema();
+		String semanticVersion = "1.45.67-alpha+beta";
+		FakeJsonSchema schema2 = new FakeJsonSchema();
+		schema.set$id(organizationName + "-" + schemaName + "-" + semanticVersion);
+		schema.setDescription("Expect this to fail");
+		schema2.setNotPartOfSpecification("random");
+		List<JsonSchema> list = new ArrayList<>();
+		list.add(schema2);
+		schema.setAllOf(list);
+		CreateSchemaRequest request = new CreateSchemaRequest();
+		request.setSchema(schema);
+		// fail here
+		String message = assertThrows(SynapseBadRequestException.class, () -> {
+			waitForSchemaCreate(request, (response) -> {
+				assertNotNull(response);
+				assertNotNull(response.getNewVersionInfo());
+				assertEquals(organizationName, response.getNewVersionInfo().getOrganizationName());
+				assertEquals(schemaName, response.getNewVersionInfo().getSchemaName());
+			});
+		}).getMessage();
+		assertEquals(message, "JSON Element in Entity is Unsupported: notPartOfSpecification");
+	}
+	
+	@Test
+	public void testCreateSchemaWithUnsupportedElementMapOfSchemas() throws SynapseException {
+		organization = synapse.createOrganization(createOrganizationRequest);
+		assertNotNull(organization);
+		JsonSchema schema = new JsonSchema();
+		String semanticVersion = "1.45.67-alpha+beta";
+		FakeJsonSchema schema2 = new FakeJsonSchema();
+		schema.set$id(organizationName + "-" + schemaName + "-" + semanticVersion);
+		schema.setDescription("Expect this to fail");
+		schema2.setNotPartOfSpecification("random");
+		Map<String, JsonSchema> map = new HashMap<>();
+		map.put("invalidSchema", schema2);
+		schema.setProperties(map);
+		CreateSchemaRequest request = new CreateSchemaRequest();
+		request.setSchema(schema);
+		// fail here
+		String message = assertThrows(SynapseBadRequestException.class, () -> {
+			waitForSchemaCreate(request, (response) -> {
+				assertNotNull(response);
+				assertNotNull(response.getNewVersionInfo());
+				assertEquals(organizationName, response.getNewVersionInfo().getOrganizationName());
+				assertEquals(schemaName, response.getNewVersionInfo().getSchemaName());
+			});
+		}).getMessage();
+		assertEquals(message, "JSON Element in Entity is Unsupported: notPartOfSpecification");
 	}
 	
 	@Test
