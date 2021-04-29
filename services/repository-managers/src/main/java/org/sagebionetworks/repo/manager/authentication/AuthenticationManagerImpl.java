@@ -232,11 +232,6 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		return getLoginResponseWithSessionAfterSuccessfulPasswordAuthentication(userId);
 	}
 
-	/**
-	 * Note: We explicitly removed the transaction annotation from this method (see:
-	 * PLFM-6562). Most login calls will not result in any database changes. A new
-	 * transaction will only be created if a database change is needed.
-	 */
 	@Override
 	public LoginResponse login(LoginRequest request, String tokenIssuer){
 		ValidateArgument.required(request, "loginRequest");
