@@ -111,7 +111,7 @@ public class FileHandleUnlinkedManagerImpl implements FileHandleUnlinkedManager 
 				return;
 			}
 			
-			fileHandleDao.updateStatus(page.getResults(), FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE);
+			fileHandleDao.updateBatchStatus(page.getResults(), FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE);
 			
 			currentPageToken = page.getNextPageToken();
 			pageRequests++;

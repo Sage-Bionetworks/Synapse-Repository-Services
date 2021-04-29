@@ -141,9 +141,15 @@ public class StubFileMetadataDao implements FileHandleDao {
 	}
 
 	@Override
-	public void updateStatus(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus) {
+	public void updateBatchStatus(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public List<FileHandle> getFileHandlesBatchByStatus(List<Long> ids, FileHandleStatus status) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

@@ -267,7 +267,7 @@ public class FileHandleUnlinkedManagerTest {
 		
 		verify(mockAthenaSupport).getQueryExecutionStatus(mockQueryExecution.getQueryExecutionId());
 		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), FileHandleUnlinkedManagerImpl.ROW_MAPPER, null, FileHandleUnlinkedManagerImpl.MAX_QUERY_RESULTS);
-		verify(mockFileHandleDao).updateStatus(page.getResults(), FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE);
+		verify(mockFileHandleDao).updateBatchStatus(page.getResults(), FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE);
 		verify(mockSqsClient, never()).sendMessage(any());
 	}
 	
@@ -333,8 +333,8 @@ public class FileHandleUnlinkedManagerTest {
 		verify(mockAthenaSupport).getQueryExecutionStatus(mockQueryExecution.getQueryExecutionId());
 		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), FileHandleUnlinkedManagerImpl.ROW_MAPPER, null, FileHandleUnlinkedManagerImpl.MAX_QUERY_RESULTS);
 		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), FileHandleUnlinkedManagerImpl.ROW_MAPPER, page1.getNextPageToken(), FileHandleUnlinkedManagerImpl.MAX_QUERY_RESULTS);
-		verify(mockFileHandleDao).updateStatus(page1.getResults(), FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE);
-		verify(mockFileHandleDao).updateStatus(page2.getResults(), FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE);
+		verify(mockFileHandleDao).updateBatchStatus(page1.getResults(), FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE);
+		verify(mockFileHandleDao).updateBatchStatus(page2.getResults(), FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE);
 		verify(mockSqsClient, never()).sendMessage(any());
 	}
 	
@@ -370,7 +370,7 @@ public class FileHandleUnlinkedManagerTest {
 		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), FileHandleUnlinkedManagerImpl.ROW_MAPPER, null, FileHandleUnlinkedManagerImpl.MAX_QUERY_RESULTS);
 		verify(mockAthenaSupport, times(FileHandleUnlinkedManagerImpl.MAX_PAGE_REQUESTS - 1)).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), FileHandleUnlinkedManagerImpl.ROW_MAPPER, nextToken, FileHandleUnlinkedManagerImpl.MAX_QUERY_RESULTS);
 		
-		verify(mockFileHandleDao, times(FileHandleUnlinkedManagerImpl.MAX_PAGE_REQUESTS)).updateStatus(anyList(), eq(FileHandleStatus.UNLINKED), eq(FileHandleStatus.AVAILABLE));
+		verify(mockFileHandleDao, times(FileHandleUnlinkedManagerImpl.MAX_PAGE_REQUESTS)).updateBatchStatus(anyList(), eq(FileHandleStatus.UNLINKED), eq(FileHandleStatus.AVAILABLE));
 		
 		verify(mockSqsClient).sendMessage(new SendMessageRequest()
 				.withQueueUrl(queueUrl)
