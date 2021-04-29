@@ -106,10 +106,19 @@ public interface BaseClient {
 	 * Log into Synapse
 	 * 
 	 * @param request
-	 * @return
+	 * @return a session token for subsequent requests
 	 * @throws SynapseException
 	 */
 	LoginResponse login(LoginRequest request) throws SynapseException;
+
+	/**
+	 * Log into Synapse
+	 * 
+	 * @param request
+	 * @return an access token for subsequent requests
+	 * @throws SynapseException
+	 */
+	LoginResponse loginForAccessToken(LoginRequest request) throws SynapseException;
 
 	/**
 	 * Log out of Synapse

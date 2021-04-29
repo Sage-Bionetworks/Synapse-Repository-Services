@@ -286,16 +286,40 @@ public class OIDCTokenHelperImplTest {
 	}
 	
 	@Test
-	public void testCreateTotalAccessToken() {
-		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
+	public void testCreateInternalTotalAccessToken() {
+		long now = System.currentTimeMillis();
+		when(mockClock.currentTimeMillis()).thenReturn(now);
 		Long principalId = 101L;
+		
+		// method under test
 		String accessToken = oidcTokenHelper.createInternalTotalAccessToken(principalId);
+		
 		Jwt<JwsHeader,Claims> jwt = Jwts.parser().setSigningKey(getPublicSigningKey()).parse(accessToken);
 		Claims claims = jwt.getBody();
 		assertNull(claims.getIssuer());
 		assertEquals(principalId.toString(), claims.getSubject());
 		assertEquals(""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID, claims.getAudience());
 		assertNotNull(claims.getId());
+		assertEquals(now/1000L+60, claims.getExpiration().getTime()/1000L);
+		assertEquals(Arrays.asList(OAuthScope.values()), ClaimsJsonUtil.getScopeFromClaims(claims));
+	}
+
+	@Test
+	public void testCreateClientTotalAccessToken() {
+		long now = System.currentTimeMillis();
+		when(mockClock.currentTimeMillis()).thenReturn(now);
+		Long principalId = 101L;
+		
+		// method under test
+		String accessToken = oidcTokenHelper.createClientTotalAccessToken(principalId, ISSUER);
+		
+		Jwt<JwsHeader,Claims> jwt = Jwts.parser().setSigningKey(getPublicSigningKey()).parse(accessToken);
+		Claims claims = jwt.getBody();
+		assertEquals(ISSUER, claims.getIssuer());
+		assertEquals(principalId.toString(), claims.getSubject());
+		assertEquals(""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID, claims.getAudience());
+		assertNotNull(claims.getId());
+		assertEquals(now/1000L+24*3600, claims.getExpiration().getTime()/1000L);
 		assertEquals(Arrays.asList(OAuthScope.values()), ClaimsJsonUtil.getScopeFromClaims(claims));
 	}
 
