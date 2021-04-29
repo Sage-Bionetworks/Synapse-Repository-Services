@@ -16,7 +16,6 @@ import static org.sagebionetworks.client.BaseClientImpl.MAX_RETRY_SERVICE_UNAVAI
 import static org.sagebionetworks.client.Method.GET;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -234,7 +233,7 @@ public class BaseClientImplTest {
 		// has been deleted
 		assertFalse(file.exists());
 	}
-
+	
 	@Test (expected = IllegalArgumentException.class)
 	public void testDownloadFromSynapseWithNullURL() throws Exception {
 		baseClient.downloadFromSynapse(null, "md5", mockFile);

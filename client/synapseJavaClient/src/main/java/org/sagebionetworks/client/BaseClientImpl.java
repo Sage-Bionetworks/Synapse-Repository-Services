@@ -370,6 +370,10 @@ public class BaseClientImpl implements BaseClient {
 	/**
 	 * Download the file at the given URL.
 	 * 
+<<<<<<< HEAD
+=======
+	 * @category Upload & Download
+>>>>>>> 1402801193ad39fef4621ec40f014d2976261e62
 	 * @param endpoint
 	 * @param uri
 	 * @param gunzip unzip if zipped
@@ -385,14 +389,9 @@ public class BaseClientImpl implements BaseClient {
 		ValidateArgument.required(uri, "uri");
 		File file = File.createTempFile("file", null);
 		Charset charset = downloadFromSynapse(endpoint+uri, null, file);
-		InputStream inputStream = null;
-		try {
-			inputStream = new FileInputStream(file);
+		try (InputStream inputStream = new FileInputStream(file)){
 			return FileUtils.readStreamAsString(inputStream, charset, gunzip);
 		} finally {
-			if (inputStream != null) {
-				inputStream.close();
-			}
 			if (file != null) {
 				file.delete();
 			}
@@ -419,7 +418,7 @@ public class BaseClientImpl implements BaseClient {
 			SimpleHttpRequest request = new SimpleHttpRequest();
 			request.setUri(redirUrl);
 			SimpleHttpResponse response = simpleHttpClient.getFile(request, destinationFile);
-				ClientUtils.convertResponseBodyToJSONAndThrowException(response);
+			ClientUtils.convertResponseBodyToJSONAndThrowException(response);
 			// Check that the md5s match, if applicable
 			if (null != md5) {
 				String localMd5 = MD5ChecksumHelper.getMD5Checksum(destinationFile.getAbsolutePath());
@@ -430,7 +429,7 @@ public class BaseClientImpl implements BaseClient {
 				}
 			}
 			Charset charset = ClientUtils.getCharacterSetFromResponse(response);
-		
+
 			return charset;
 		} catch (ClientProtocolException e) {
 			throw new SynapseClientException(e);
