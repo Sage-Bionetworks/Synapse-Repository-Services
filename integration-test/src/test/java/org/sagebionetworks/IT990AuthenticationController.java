@@ -119,6 +119,17 @@ public class IT990AuthenticationController {
 	public static void afterClass() throws Exception {
 		adminSynapse.deleteUser(userToDelete);
 	}
+	
+	@Test
+	public void testLoginForAccessToken() throws Exception {
+		LoginRequest request = new LoginRequest();
+		request.setUsername(username);
+		request.setPassword(PASSWORD);
+		LoginResponse response = synapse.loginForAccessToken(request);
+		assertNotNull(response);
+		assertNotNull(response.getAccessToken());
+		assertNotNull(response.getAuthenticationReceipt());		
+	}
 
 	@Test
 	public void testLoginWithReceipt() throws Exception {

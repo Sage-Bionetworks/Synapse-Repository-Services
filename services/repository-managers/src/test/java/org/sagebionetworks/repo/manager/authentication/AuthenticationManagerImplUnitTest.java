@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.authentication;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -27,6 +26,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.UserCredentialValidator;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidatorImpl;
 import org.sagebionetworks.repo.model.TermsOfUseException;
@@ -66,12 +66,16 @@ public class AuthenticationManagerImplUnitTest {
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
 	@Mock
 	private PasswordResetTokenGenerator mockPasswordResetTokenGenerator;
-
+	@Mock
+	private OIDCTokenHelper mockOIDCTokenHelper;
+	
 	final Long userId = 12345L;
 	final String username = "AuthManager@test.org";
 	final String password = "gro.tset@reganaMhtuA";
 	final String synapseSessionToken = "synapsesessiontoken";
+	final String synapseAccessToken = "synapseaccesstoken";
 	final String receipt = "receipt";
+	final String issuer = "https://repo-prod.sagebase.org/v1";
 
 	final String newChangedPassword = "hunter2";
 
@@ -192,7 +196,7 @@ public class AuthenticationManagerImplUnitTest {
 	///////////////
 
 	@Test
-	public void testLogin(){
+	public void testLoginForSession() {
 		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(true);
 		setupMockPrincipalAliasDAO();
 		setupMockUserGroupDAO();
@@ -207,6 +211,28 @@ public class AuthenticationManagerImplUnitTest {
 		assertEquals(newReceipt, response.getAuthenticationReceipt());
 		assertEquals(synapseSessionToken, response.getSessionToken());
 
+
+		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
+		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
+		verify(mockUserCredentialValidator).checkPassword(userId, password);
+		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
+	}
+
+
+	@Test
+	public void testLogin() {
+		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(true);
+		setupMockPrincipalAliasDAO();
+		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(true);
+		String newReceipt = "newReceipt";
+		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
+		when(mockOIDCTokenHelper.createClientTotalAccessToken(userId, issuer)).thenReturn(synapseAccessToken);
+
+		// call under test
+		LoginResponse response = authManager.login(loginRequest, issuer);
+		assertNotNull(response);
+		assertEquals(newReceipt, response.getAuthenticationReceipt());
+		assertEquals(synapseAccessToken, response.getAccessToken());
 
 		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
 		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);

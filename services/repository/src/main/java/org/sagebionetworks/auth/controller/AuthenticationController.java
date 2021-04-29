@@ -67,8 +67,8 @@ import org.springframework.web.util.UriComponentsBuilder;
  * </p>
  * <p>
  * To authenticate using the access token returned by the 
- * <a href="${POST.login2}">POST /login</a> service,
- * add it to the request a header: "Authorization: Bearer <token>".
+ * <a href="${POST.login2}">POST /login2</a> service,
+ * add to the request the header: "Authorization: Bearer <token>".
  * </p>
  * <p>
  * To authenticate with an OAuth access token, use the OAuth 2.0 services,

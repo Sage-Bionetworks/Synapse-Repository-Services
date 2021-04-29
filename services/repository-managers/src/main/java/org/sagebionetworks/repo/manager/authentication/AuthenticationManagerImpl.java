@@ -6,7 +6,6 @@ import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -237,11 +236,6 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		return getLoginResponseWithSessionAfterSuccessfulPasswordAuthentication(userId);
 	}
 
-	/**
-	 * Note: We explicitly removed the transaction annotation from this method (see:
-	 * PLFM-6562). Most login calls will not result in any database changes. A new
-	 * transaction will only be created if a database change is needed.
-	 */
 	@Override
 	public LoginResponse login(LoginRequest request, String tokenIssuer){
 		ValidateArgument.required(request, "loginRequest");

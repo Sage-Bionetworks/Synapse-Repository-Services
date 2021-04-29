@@ -139,6 +139,31 @@ public class BaseClientImplTest {
 	}
 
 	@Test
+	public void testLoginForAccessToken() throws Exception{
+		LoginRequest request = new LoginRequest();
+		request.setUsername("username");
+		request.setPassword("password");
+		when(mockClient.post(any(SimpleHttpRequest.class),anyString()))
+				.thenReturn(mockResponse);
+		when(mockResponse.getStatusCode()).thenReturn(200);
+		when(mockResponse.getContent()).thenReturn("{"
+				+ "\"accessToken\":\"token\","
+				+ "\"authenticationReceipt\":\"receipt\","
+				+ "\"acceptsTermsOfUse\":\"true\","
+				+ "}");
+		LoginResponse loginResponse = new LoginResponse();
+		loginResponse.setAcceptsTermsOfUse(true);
+		loginResponse.setAuthenticationReceipt("receipt");
+		loginResponse.setAccessToken("token");
+		assertEquals(loginResponse , baseClient.loginForAccessToken(request));
+		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
+		verify(mockClient).post(captor.capture(),
+				eq(EntityFactory.createJSONObjectForEntity(request).toString()));
+		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/login2",
+				captor.getValue().getUri());
+	}
+
+	@Test
 	public void testLogout() throws Exception {
 		baseClient.logout();
 

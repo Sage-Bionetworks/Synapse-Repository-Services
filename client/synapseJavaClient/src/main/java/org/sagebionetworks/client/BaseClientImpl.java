@@ -150,6 +150,21 @@ public class BaseClientImpl implements BaseClient {
 
 	/**
 	 * @category Authentication
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	public LoginResponse loginForAccessToken(LoginRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getUsername(), "LoginRequest.username");
+		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
+		LoginResponse response = postJSONEntity(authEndpoint, "/login2", request, LoginResponse.class);
+		setBearerAuthorizationToken(response.getAccessToken());
+		return response;
+	}
+
+	/**
+	 * @category Authentication
 	 * @throws SynapseException
 	 */
 	public void logout() throws SynapseException {
