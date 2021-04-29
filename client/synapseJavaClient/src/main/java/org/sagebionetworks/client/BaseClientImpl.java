@@ -370,10 +370,7 @@ public class BaseClientImpl implements BaseClient {
 	/**
 	 * Download the file at the given URL.
 	 * 
-<<<<<<< HEAD
-=======
 	 * @category Upload & Download
->>>>>>> 1402801193ad39fef4621ec40f014d2976261e62
 	 * @param endpoint
 	 * @param uri
 	 * @param gunzip unzip if zipped
