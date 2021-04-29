@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
+import org.sagebionetworks.repo.model.dao.FileHandleStatus;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -135,6 +136,12 @@ public class StubFileMetadataDao implements FileHandleDao {
 
 	@Override
 	public void truncateTable() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void updateStatus(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus) {
 		// TODO Auto-generated method stub
 		
 	}

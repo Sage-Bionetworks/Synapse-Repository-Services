@@ -70,6 +70,7 @@
     <import resource="classpath:schema-validation-worker-spb.xml" />
     <import resource="classpath:multipart-cleanup-spb.xml" />
     <import resource="classpath:file-scanner-spb.xml" />
+    <import resource="classpath:file-unlinked-spb.xml" />
     <import resource="classpath:download-list-query-worker-spb.xml" />
 
 	<util:list id="workerTriggersList">
@@ -129,6 +130,7 @@
 		<ref bean="fileHandleAssociationScanRangeWorkerTrigger" />
 		<ref bean="fileHandleStreamWorkerTrigger" />
 		<ref bean="downloadListQueryTrigger" />
+		<ref bean="fileHandleUnlinkedWorkerTrigger" />
 	</util:list>
 
 	<bean id="mainScheduler"

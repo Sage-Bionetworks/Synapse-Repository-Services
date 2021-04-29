@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
+import org.sagebionetworks.repo.model.dao.FileHandleStatus;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
@@ -333,6 +334,13 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	@Override
 	public boolean isMatchingMD5(String sourceFileHandleId, String targetFileHandleId) {
 		return jdbcTemplate.queryForObject(SQL_IS_MATCHING_MD5, Boolean.class, sourceFileHandleId, targetFileHandleId);
+	}
+	
+	@Override
+	@WriteTransaction
+	public void updateStatus(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus) {
+		// TODO Auto-generated method stub
+		
 	}
 
 	@WriteTransaction
