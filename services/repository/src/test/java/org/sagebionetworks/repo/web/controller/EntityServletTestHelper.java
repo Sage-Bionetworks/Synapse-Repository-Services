@@ -76,7 +76,7 @@ public class EntityServletTestHelper {
 	}
 
 	private String token(Long userId) {
-		return oidcTokenHelper.createTotalAccessToken(userId);
+		return oidcTokenHelper.createInternalTotalAccessToken(userId);
 	}
 	
 	/**

@@ -6,6 +6,10 @@
 			"type": "string",
 			"description": "A token that identifies the user"
 		}, 
+		"accessToken": {
+			"type": "string",
+			"description": "A token that authorizes subsequent requests"
+		}, 
 		"acceptsTermsOfUse": {
 			"type": "boolean",
 			"description": "Does the user accept the terms of use?"

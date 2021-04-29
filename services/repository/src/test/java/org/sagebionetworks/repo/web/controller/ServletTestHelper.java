@@ -203,7 +203,7 @@ public class ServletTestHelper {
 	}
 
 	private String token(Long userId) {
-		return oidcTokenHelper.createTotalAccessToken(userId);
+		return oidcTokenHelper.createInternalTotalAccessToken(userId);
 	}
 	
 	public <T extends Entity> T createEntity(T entity,

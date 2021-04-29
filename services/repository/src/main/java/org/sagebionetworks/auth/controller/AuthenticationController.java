@@ -64,9 +64,9 @@ import org.springframework.web.util.UriComponentsBuilder;
  * initially, obtaining a session token for use in other requests.
  * </p>
  * <p>
- * To authenticate using the session token returned by the 
- * <a href="${POST.login}">POST /login</a> service,
- * add it to the request a header named "sessionToken".
+ * To authenticate using the access token returned by the 
+ * <a href="${POST.login2}">POST /login</a> service,
+ * add to the request a header: "Authorization: Bearer <token>".
  * </p>
  * <p>
  * To authenticate with an OAuth access token, use the OAuth 2.0 services,
@@ -123,21 +123,32 @@ public class AuthenticationController {
 			@RequestBody LoginCredentials credentials)
 			throws NotFoundException {
 		LoginRequest request = DeprecatedUtils.createLoginRequest(credentials);
-		LoginResponse loginResponse =  authenticationService.login(request);
+		LoginResponse loginResponse =  authenticationService.loginForSession(request);
 		return DeprecatedUtils.createSession(loginResponse);
 	}
 
-	/**
-	 * Retrieve a session token that will be usable for 24 hours or until
-	 * invalidated. The user must accept the terms of use before a session token
-	 * is issued.
-	 */
+	@Deprecated
 	@RequiredScope({})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_LOGIN, method = RequestMethod.POST)
 	public @ResponseBody
-	LoginResponse login(@RequestBody LoginRequest request) throws NotFoundException {
-		return authenticationService.login(request);
+	LoginResponse loginForSessionToken(@RequestBody LoginRequest request) throws NotFoundException {
+		return authenticationService.loginForSession(request);
+	}
+	
+	/**
+	 * Retrieve an access token that will be usable for 24 hours. 
+	 * The user must accept the terms of use before the access token
+	 * can be used.
+	 */
+	@RequiredScope({})
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.AUTH_LOGIN_2, method = RequestMethod.POST)
+	public @ResponseBody
+	LoginResponse login(@RequestBody LoginRequest request,
+			UriComponentsBuilder uriComponentsBuilder
+			) throws NotFoundException {
+		return authenticationService.login(request, EndpointHelper.getEndpoint(uriComponentsBuilder));
 	}
 
 	/**

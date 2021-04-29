@@ -289,7 +289,7 @@ public class OIDCTokenHelperImplTest {
 	public void testCreateTotalAccessToken() {
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 		Long principalId = 101L;
-		String accessToken = oidcTokenHelper.createTotalAccessToken(principalId);
+		String accessToken = oidcTokenHelper.createInternalTotalAccessToken(principalId);
 		Jwt<JwsHeader,Claims> jwt = Jwts.parser().setSigningKey(getPublicSigningKey()).parse(accessToken);
 		Claims claims = jwt.getBody();
 		assertNull(claims.getIssuer());
@@ -303,7 +303,7 @@ public class OIDCTokenHelperImplTest {
 	public void testParseExpiredJWTException() {
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis() - ONE_YEAR_MILLIS);
 		Long principalId = 101L;
-		String expiredAccessToken = oidcTokenHelper.createTotalAccessToken(principalId);
+		String expiredAccessToken = oidcTokenHelper.createInternalTotalAccessToken(principalId);
 		assertThrows(OAuthUnauthenticatedException.class, () ->
 				oidcTokenHelper.parseJWT(expiredAccessToken));
 	}

@@ -83,8 +83,18 @@ public interface AuthenticationManager {
 	 * @param request
 	 * @return
 	 */
-	public LoginResponse login(LoginRequest request);
+	public LoginResponse loginForSession(LoginRequest request);
 
+
+	/**
+	 * Log user in using information form the LoginRequest
+	 * 
+	 * @param request
+	 * @param tokenIssuer
+	 * @return
+	 */
+	public LoginResponse login(LoginRequest request, String tokenIssuer);
+	
 	/**
 	 * Bypass password check and just create a login response for the user.
 	 * @param principalId
