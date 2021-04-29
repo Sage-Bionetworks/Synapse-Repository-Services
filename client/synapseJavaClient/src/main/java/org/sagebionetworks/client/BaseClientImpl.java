@@ -382,46 +382,27 @@ public class BaseClientImpl implements BaseClient {
 	/**
 	 * Download the file at the given URL.
 	 * 
-	 * @deprecated - should only being used for downloading wiki markdown,
-	 *  and should be removed when a new way of getting markdown is implemented.
 	 * @category Upload & Download
 	 * @param endpoint
 	 * @param uri
+	 * @param gunzip unzip if zipped
 	 * @return
 	 * @throws ClientProtocolException
 	 * @throws IOException
 	 * @throws FileNotFoundException
 	 * @throws SynapseException 
 	 */
-	@Deprecated
-	protected String downloadZippedFileToString(String endpoint, String uri)
+	protected String downloadFileToString(String endpoint, String uri, boolean gunzip)
 			throws ClientProtocolException, IOException, FileNotFoundException, SynapseException {
 		ValidateArgument.required(endpoint, "endpoint");
 		ValidateArgument.required(uri, "uri");
-		SimpleHttpRequest request = new SimpleHttpRequest();
-		request.setUri(endpoint + uri);
-		Map<String, String> requestHeaders = new HashMap<String, String>(defaultGETDELETEHeaders);
-		requestHeaders.put(USER_AGENT, userAgent);
-		if (apiKey!=null) {
-			addDigitalSignature(endpoint + uri, requestHeaders);
-		}
-		request.setHeaders(requestHeaders);
-		File zippedFile = new File("zipped");
-		InputStream inputStream = null;
-		try {
-			SimpleHttpResponse response = simpleHttpClient.getFile(request, zippedFile);
-			if (!ClientUtils.is200sStatusCode(response.getStatusCode())) {
-				ClientUtils.convertResponseBodyToJSONAndThrowException(response);
-			}
-			Charset charset = ClientUtils.getCharacterSetFromResponse(response);
-			inputStream = new FileInputStream(zippedFile);
-			return FileUtils.readStreamAsString(inputStream, charset, /*gunzip*/ true);
+		File file = File.createTempFile("file", null);
+		Charset charset = downloadFromSynapse(endpoint+uri, null, file);
+		try (InputStream inputStream = new FileInputStream(file)){
+			return FileUtils.readStreamAsString(inputStream, charset, gunzip);
 		} finally {
-			if (inputStream != null) {
-				inputStream.close();
-			}
-			if (zippedFile != null) {
-				zippedFile.delete();
+			if (file != null) {
+				file.delete();
 			}
 		}
 	}
@@ -431,31 +412,22 @@ public class BaseClientImpl implements BaseClient {
 	 * @param url
 	 * @param md5
 	 * @param destinationFile
-	 * @return
+	 * @return the character set used to encode the downloaded file
 	 * @throws SynapseException
 	 */
-	protected File downloadFromSynapse(String url, String md5, File destinationFile)
+	protected Charset downloadFromSynapse(String url, String md5, File destinationFile)
 			throws SynapseException {
 		ValidateArgument.required(url, "url");
 		ValidateArgument.required(destinationFile, "destinationFile");
-		SimpleHttpRequest request = new SimpleHttpRequest();
-		request.setUri(url);
-		Map<String, String> requestHeaders = new HashMap<String, String>(defaultGETDELETEHeaders);
-		// remove session token if it is null
-		if(requestHeaders.containsKey(SESSION_TOKEN_HEADER) && requestHeaders.get(SESSION_TOKEN_HEADER) == null) {
-			requestHeaders.remove(SESSION_TOKEN_HEADER);
-		}
-		requestHeaders.put(USER_AGENT, userAgent);
-		if (apiKey!=null) {
-			addDigitalSignature(url, requestHeaders);
-		}
-		request.setHeaders(requestHeaders);
 
 		try {
+			// step 1: get redirect URL
+			String redirUrl = getStringDirect(url, "");
+			// step 2: download file
+			SimpleHttpRequest request = new SimpleHttpRequest();
+			request.setUri(redirUrl);
 			SimpleHttpResponse response = simpleHttpClient.getFile(request, destinationFile);
-			if (!ClientUtils.is200sStatusCode(response.getStatusCode())) {
-				ClientUtils.convertResponseBodyToJSONAndThrowException(response);
-			}
+			ClientUtils.convertResponseBodyToJSONAndThrowException(response);
 			// Check that the md5s match, if applicable
 			if (null != md5) {
 				String localMd5 = MD5ChecksumHelper.getMD5Checksum(destinationFile.getAbsolutePath());
@@ -465,8 +437,9 @@ public class BaseClientImpl implements BaseClient {
 									+ destinationFile);
 				}
 			}
-		
-			return destinationFile;
+			Charset charset = ClientUtils.getCharacterSetFromResponse(response);
+			
+			return charset;
 		} catch (ClientProtocolException e) {
 			throw new SynapseClientException(e);
 		} catch (IOException e) {
