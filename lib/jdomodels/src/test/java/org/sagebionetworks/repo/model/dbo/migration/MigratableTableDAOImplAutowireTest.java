@@ -232,7 +232,6 @@ public class MigratableTableDAOImplAutowireTest {
 	@Test
 	public void testGetChecksumForIdRange1() throws Exception {
 		long startId = fileHandleDao.getMaxId() + 1;
-		long startCount = fileHandleDao.getCount();
 
 		// Add file handle
 		S3FileHandle handle1 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());

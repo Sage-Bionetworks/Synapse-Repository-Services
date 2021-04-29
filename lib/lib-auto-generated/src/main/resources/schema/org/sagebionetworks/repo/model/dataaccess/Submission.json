@@ -68,7 +68,7 @@
 		},
 		"submittedBy": {
 			"type": "string",
-			"description": "The ID of the user that submit this submission."
+			"description": "The ID of the user that submitted this submission."
 		},
 		"modifiedBy": {
 			"type": "string",

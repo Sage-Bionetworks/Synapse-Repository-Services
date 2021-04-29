@@ -208,6 +208,8 @@ public class ITDataAccessTest {
 		assertEquals(submission.getResearchProjectSnapshot().getIntendedDataUseStatement(), 
 				submissionInfo.getIntendedDataUseStatement());
 		assertEquals(submission.getModifiedOn().getTime(), submissionInfo.getModifiedOn().getTime());
+		assertEquals(submission.getSubmittedBy(), submissionInfo.getSubmittedBy());
+		assertEquals(submission.getAccessorChanges(), submissionInfo.getAccessorChanges());
 		
 		AccessorGroupRequest accessorGroupRequest = new AccessorGroupRequest();
 		AccessorGroupResponse response = adminSynapse.listAccessorGroup(accessorGroupRequest);

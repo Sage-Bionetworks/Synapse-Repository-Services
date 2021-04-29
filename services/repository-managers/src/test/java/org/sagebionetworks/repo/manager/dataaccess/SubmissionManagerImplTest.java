@@ -890,14 +890,14 @@ public class SubmissionManagerImplTest {
 	@Test
 	public void testListResearchProjectsForApprovedSubmissionsWithNullRequest() {
 		assertThrows(IllegalArgumentException.class, ()->{
-			manager.listInfoForApprovedSubmissions(null);
+			manager.listInfoForApprovedSubmissions(mockUser, null);
 		});
 	}
 
 	@Test
 	public void testListResearchProjectsForApprovedSubmissionsWithNullAccessRequirementId() {
 		assertThrows(IllegalArgumentException.class, ()->{
-			manager.listInfoForApprovedSubmissions(new SubmissionInfoPageRequest());
+			manager.listInfoForApprovedSubmissions(mockUser, new SubmissionInfoPageRequest());
 		});
 	}
 	
@@ -910,7 +910,7 @@ public class SubmissionManagerImplTest {
 		
 		assertThrows(IllegalArgumentException.class, ()->{
 			// method under test
-			manager.listInfoForApprovedSubmissions(request);
+			manager.listInfoForApprovedSubmissions(mockUser, request);
 		});
 		verify(mockSubmissionDao, never()).getSubmissions(any(), any(), any(), any(), anyLong(), anyLong());
 	}
@@ -925,13 +925,13 @@ public class SubmissionManagerImplTest {
 		
 		assertThrows(IllegalArgumentException.class, ()->{
 			// method under test
-			manager.listInfoForApprovedSubmissions(request);
+			manager.listInfoForApprovedSubmissions(mockUser, request);
 		});
 		verify(mockSubmissionDao, never()).getSubmissions(any(), any(), any(), any(), anyLong(), anyLong());
 	}
 
 	@Test
-	public void testListResearchProjectsForApprovedSubmissionsAuthorized() {
+	public void testListResearchProjectsForApprovedSubmissionsAuthorizedNotACT() {
 		SubmissionInfoPageRequest request = new SubmissionInfoPageRequest();
 		request.setAccessRequirementId(accessRequirementId);
 		
@@ -939,10 +939,12 @@ public class SubmissionManagerImplTest {
 		expected.add(new SubmissionInfo());
 		
 		when(mockSubmissionDao.listInfoForApprovedSubmissions(accessRequirementId, 
-				NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET)).thenReturn(expected);
+				NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET, false)).thenReturn(expected);
+		
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(false);
 		
 		// call under test
-		SubmissionInfoPage page = manager.listInfoForApprovedSubmissions(request);
+		SubmissionInfoPage page = manager.listInfoForApprovedSubmissions(mockUser, request);
 		
 		assertNotNull(page);
 		
@@ -952,7 +954,34 @@ public class SubmissionManagerImplTest {
 		assertNull(page.getNextPageToken());
 
 		verify(mockSubmissionDao).listInfoForApprovedSubmissions(accessRequirementId,
-				NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET);
+				NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET, false);
+	}
+
+	@Test
+	public void testListResearchProjectsForApprovedSubmissionsAuthorizedIsACT() {
+		SubmissionInfoPageRequest request = new SubmissionInfoPageRequest();
+		request.setAccessRequirementId(accessRequirementId);
+		
+		List<SubmissionInfo> expected = new ArrayList<SubmissionInfo>();
+		expected.add(new SubmissionInfo());
+		
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
+		
+		when(mockSubmissionDao.listInfoForApprovedSubmissions(accessRequirementId, 
+				NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET, true)).thenReturn(expected);
+		
+		// call under test
+		SubmissionInfoPage page = manager.listInfoForApprovedSubmissions(mockUser, request);
+		
+		assertNotNull(page);
+		
+		List<SubmissionInfo> actual = page.getResults();
+		assertEquals(expected, actual);
+		// in this test we've returned the last page, so the next page token will be null
+		assertNull(page.getNextPageToken());
+
+		verify(mockSubmissionDao).listInfoForApprovedSubmissions(accessRequirementId,
+				NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET, true);
 	}
 
 	@Test

@@ -44,6 +44,8 @@ import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
+import org.sagebionetworks.repo.model.download.FilesStatisticsRequest;
+import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListResponse;
 import org.sagebionetworks.repo.model.download.Sort;
@@ -495,6 +497,37 @@ public class DownloadListManagerImplTest {
 	@Test
 	public void testQueryDownloadListWithAvaiable() {
 		
+		FilesStatisticsResponse details = new FilesStatisticsResponse();
+		details.setNumberOfFilesAvailableForDownload(2L);
+		details.setNumberOfFilesRequiringAction(3L);
+		details.setTotalNumberOfFiles(5L);
+		details.setTotalNumberOfFiles(123L);
+
+		List<Long> ids = Arrays.asList(1L, 2L, 3L);
+		setupStatisticsCallback(details, ids);
+		
+		queryRequestBody.setRequestDetails(new FilesStatisticsRequest());
+		
+		// call under test
+		DownloadListQueryResponse response = manager.queryDownloadList(userOne, queryRequestBody);
+		assertNotNull(response);
+		assertEquals(details, response.getReponseDetails());
+		verify(mockDownloadListDao).getListStatistics(any(), eq(userOne.getId()));
+	}
+	
+	@Test
+	public void testQueryDownloadListWithNullRequest() {
+		queryRequestBody = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.queryDownloadList(userOne, queryRequestBody);
+		}).getMessage();
+		assertEquals("requestBody is required.", message);
+	}
+	
+	@Test
+	public void testQueryDownloadListWithStatistics() {
+		
 		List<DownloadListItemResult> resultPage = new ArrayList<>(4);
 		resultPage.add((DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn1"));
 		resultPage.add((DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn2"));
@@ -509,16 +542,6 @@ public class DownloadListManagerImplTest {
 		assertNotNull(response);
 		assertEquals(expectedAvailable, response.getReponseDetails());
 	}
-	
-	@Test
-	public void testQueryDownloadListWithNullRequest() {
-		queryRequestBody = null;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			manager.queryDownloadList(userOne, queryRequestBody);
-		}).getMessage();
-		assertEquals("requestBody is required.", message);
-	}
 
 	/**
 	 * Helper to setup both the return of getFilesAvailableToDownloadFromDownloadList() 
@@ -532,5 +555,18 @@ public class DownloadListManagerImplTest {
 			accessCallback.filter(forwardToCallback);
 			return results;
 		}).when(mockDownloadListDao).getFilesAvailableToDownloadFromDownloadList(any(), any(), any(), any(), any());
+	}
+	
+	/**
+	 * 
+	 * @param reponse
+	 * @param forwardToCallback
+	 */
+	public void setupStatisticsCallback(FilesStatisticsResponse reponse, List<Long> forwardToCallback) {
+		doAnswer((InvocationOnMock invocation) -> {
+			EntityAccessCallback accessCallback = invocation.getArgument(0);
+			accessCallback.filter(forwardToCallback);
+			return reponse;
+		}).when(mockDownloadListDao).getListStatistics(any(), any());
 	}
 }

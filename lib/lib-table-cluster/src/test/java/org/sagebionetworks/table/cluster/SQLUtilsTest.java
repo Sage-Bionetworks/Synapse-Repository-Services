@@ -2938,7 +2938,7 @@ public class SQLUtilsTest {
 				"_C0_," +
 				" '$[*]' COLUMNS (" +
 				" ORDINAL FOR ORDINALITY," +
-				"  COLUMN_EXPAND VARCHAR(42) PATH '$' " +
+				"  COLUMN_EXPAND VARCHAR(42) PATH '$' ERROR ON ERROR " +
 				")" +
 				") TEMP_JSON_TABLE";
 		assertEquals(expected, sql);
@@ -2958,7 +2958,7 @@ public class SQLUtilsTest {
 				"_C0_," +
 				" '$[*]' COLUMNS (" +
 				" ORDINAL FOR ORDINALITY," +
-				"  COLUMN_EXPAND VARCHAR(42) PATH '$' " +
+				"  COLUMN_EXPAND VARCHAR(42) PATH '$' ERROR ON ERROR " +
 				")" +
 				") TEMP_JSON_TABLE WHERE T999.ROW_ID IN (:ids)";
 		assertEquals(expected, sql);
@@ -2978,7 +2978,7 @@ public class SQLUtilsTest {
 				"_C0_," +
 				" '$[*]' COLUMNS (" +
 				" ORDINAL FOR ORDINALITY," +
-				"  COLUMN_EXPAND VARCHAR(42) PATH '$' " +
+				"  COLUMN_EXPAND VARCHAR(42) PATH '$' ERROR ON ERROR " +
 				")" +
 				") TEMP_JSON_TABLE WHERE TEMPT999.ROW_ID IN (:ids)";
 		assertEquals(expected, sql);

@@ -2004,7 +2004,9 @@ public class SQLUtils {
 				", '$[*]'" +
 				" COLUMNS (" +
 				" ORDINAL FOR ORDINALITY, " +
-				" COLUMN_EXPAND " + columnExpandTypeSQl + " PATH '$'" +
+				// "error on error" ensures that data will not be replicated if varchar() size is too small to fit the values
+				// see PLFM-6690
+				" COLUMN_EXPAND " + columnExpandTypeSQl + " PATH '$' ERROR ON ERROR" +
 				" )" +
 				") TEMP_JSON_TABLE"+rowFilter;
 	}

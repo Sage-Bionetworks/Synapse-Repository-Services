@@ -29,6 +29,8 @@ import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
+import org.sagebionetworks.repo.model.download.FilesStatisticsRequest;
+import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListResponse;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
@@ -120,6 +122,34 @@ public class ITDownloadListControllerTest {
 			assertEquals(1, details.getPage().size());
 			DownloadListItemResult item = details.getPage().get(0);
 			assertEquals(file.getId(), item.getFileEntityId());
+		}, MAX_WAIT_MS).getResponse();
+	}
+	
+	@Test
+	public void testQueryStatistics() throws SynapseException {
+		FileEntity file = setupFileEntity();
+
+		Long fileSize = synapse.getRawFileHandle(file.getDataFileHandleId()).getContentSize();
+
+		AddBatchOfFilesToDownloadListRequest addRequest = new AddBatchOfFilesToDownloadListRequest()
+				.setBatchToAdd(Arrays.asList(new DownloadListItem().setFileEntityId(file.getId())));
+		AddBatchOfFilesToDownloadListResponse addResponse = synapse.addFilesToDownloadList(addRequest);
+		AddBatchOfFilesToDownloadListResponse expectedAddResponse = new AddBatchOfFilesToDownloadListResponse()
+				.setNumberOfFilesAdded(1L);
+		assertEquals(expectedAddResponse, addResponse);
+
+		DownloadListQueryRequest queryRequest = new DownloadListQueryRequest()
+				.setRequestDetails(new FilesStatisticsRequest());
+		// call under test
+		AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.QueryDownloadList, queryRequest, body -> {
+			assertTrue(body instanceof DownloadListQueryResponse);
+			DownloadListQueryResponse response = (DownloadListQueryResponse) body;
+			assertTrue(response.getReponseDetails() instanceof FilesStatisticsResponse);
+			FilesStatisticsResponse details = (FilesStatisticsResponse) response.getReponseDetails();
+			FilesStatisticsResponse expected = new FilesStatisticsResponse().setNumberOfFilesAvailableForDownload(1L)
+					.setNumberOfFilesRequiringAction(0L).setSumOfFileSizesAvailableForDownload(fileSize)
+					.setTotalNumberOfFiles(1L);
+			assertEquals(expected, details);
 		}, MAX_WAIT_MS).getResponse();
 	}
 
