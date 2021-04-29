@@ -78,16 +78,12 @@ public interface AuthenticationManager {
 	public void setTermsOfUseAcceptance(Long principalId, Boolean acceptance);
 
 
-	/**
-	 * Log user in using information form the LoginRequest
-	 * @param request
-	 * @return
-	 */
+	@Deprecated
 	public LoginResponse loginForSession(LoginRequest request);
 
 
 	/**
-	 * Log user in using information form the LoginRequest
+	 * Log user in using information from the LoginRequest
 	 * 
 	 * @param request
 	 * @param tokenIssuer
