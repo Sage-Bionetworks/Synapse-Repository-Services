@@ -202,7 +202,7 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
 
 		// call under test
-		LoginResponse response = authManager.login(loginRequest);
+		LoginResponse response = authManager.loginForSession(loginRequest);
 		assertNotNull(response);
 		assertEquals(newReceipt, response.getAuthenticationReceipt());
 		assertEquals(synapseSessionToken, response.getSessionToken());
@@ -225,7 +225,7 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockAuthDAO.changeSessionToken(eq(userId), eq((String) null))).thenReturn(synapseSessionToken);
 
 		//method under test
-		LoginResponse loginResponse = authManager.getLoginResponseAfterSuccessfulPasswordAuthentication(userId);
+		LoginResponse loginResponse = authManager.getLoginResponseWithSessionAfterSuccessfulPasswordAuthentication(userId);
 
 		assertEquals(newReceipt, loginResponse.getAuthenticationReceipt());
 		assertEquals(synapseSessionToken, loginResponse.getSessionToken());

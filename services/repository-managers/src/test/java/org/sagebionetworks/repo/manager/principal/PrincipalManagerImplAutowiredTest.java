@@ -120,7 +120,7 @@ public class PrincipalManagerImplAutowiredTest {
 		LoginRequest loginRequest = new LoginRequest();
 		loginRequest.setUsername(username);
 		loginRequest.setPassword(password);
-		authenticationManager.login(loginRequest);
+		authenticationManager.loginForSession(loginRequest);
 
 		// Modify the existing profile to ensure content changes
 		UserProfile profile = userProfileDAO.get(testUser.getId().toString());
@@ -171,6 +171,6 @@ public class PrincipalManagerImplAutowiredTest {
 		assertNull(profile.getUrl());
 
 		// Verify that the password has been changed
-		assertThrows(UnauthenticatedException.class, () -> authenticationManager.login(loginRequest));
+		assertThrows(UnauthenticatedException.class, () -> authenticationManager.loginForSession(loginRequest));
 	}
 }
