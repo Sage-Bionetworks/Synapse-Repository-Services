@@ -184,15 +184,6 @@ public class SchemaUtilsTest {
 	}
 	
 	@Test
-	public void testTypeToLinkStringObjectNullId(){
-		ObjectSchema schema = new ObjectSchemaImpl(TYPE.OBJECT);
-		schema.setId(null);
-		assertThrows(IllegalArgumentException.class, ()->{
-			SchemaUtils.typeToLinkString(schema, recursiveAnchor);
-		});
-	}
-	
-	@Test
 	public void testTypeToLinkStringArrayNullItems(){
 		ObjectSchema schema = new ObjectSchemaImpl(TYPE.ARRAY);
 		schema.setItems(null);
@@ -209,6 +200,28 @@ public class SchemaUtilsTest {
 		assertArrayEquals(new String[] { TYPE.STRING.name() }, result.getDisplay());
 		assertArrayEquals(new String[] { null }, result.getHref());
 		assertTrue(result.getIsArray());
+		assertFalse(result.getIsUnique());
+	}
+	
+	@Test
+	public void testTypeToLinkStringWithArrayPrimitiveObject(){
+		ObjectSchema schema = new ObjectSchemaImpl(TYPE.ARRAY);
+		schema.setItems(new ObjectSchemaImpl(TYPE.OBJECT));
+		// call under test
+		TypeReference result = SchemaUtils.typeToLinkString(schema, recursiveAnchor);
+		assertArrayEquals(new String[] { TYPE.OBJECT.name() }, result.getDisplay());
+		assertArrayEquals(new String[] { null }, result.getHref());
+		assertTrue(result.getIsArray());
+		assertFalse(result.getIsUnique());
+	}
+	
+	@Test
+	public void testTypeToLinkStringWithPrimitiveObject(){
+		ObjectSchema schema = new ObjectSchemaImpl(TYPE.OBJECT);
+		TypeReference result = SchemaUtils.typeToLinkString(schema, recursiveAnchor);
+		assertArrayEquals(new String[] { TYPE.OBJECT.name() }, result.getDisplay());
+		assertArrayEquals(new String[] { null }, result.getHref());
+		assertFalse(result.getIsArray());
 		assertFalse(result.getIsUnique());
 	}
 	
@@ -388,6 +401,39 @@ public class SchemaUtilsTest {
 		assertEquals(2, resultMap.size());
 		assertNotNull(resultMap.get(schemaToTestId));
 		assertNotNull(resultMap.get(enumId));
+	}
+	
+	@Test
+	public void testRecursiveAddTypesWithArrayOfGenericbjects(){
+		//create array of generic objects
+		ObjectSchema arrayOfObjects = new ObjectSchemaImpl(TYPE.ARRAY);
+		arrayOfObjects.setItems(new ObjectSchemaImpl(TYPE.OBJECT));
+
+		//create object schema with a list containing enums
+		String schemaToTestId = "org.sagebionetworks.test.ArrayOfObjects";
+		ObjectSchema schemaToTest = new ObjectSchemaImpl(TYPE.OBJECT);
+		schemaToTest.setProperties(new LinkedHashMap<>(Collections.singletonMap("myObjects", arrayOfObjects)));
+
+		Map<String, ObjectSchema> resultMap = new HashMap<>();
+		//call under test
+		SchemaUtils.recursiveAddTypes(resultMap, schemaToTestId, schemaToTest);
+
+		assertEquals(1, resultMap.size());
+		assertNotNull(resultMap.get(schemaToTestId));
+	}
+	
+	@Test
+	public void testRecursiveAddTypesWithGenericbject(){
+		String schemaToTestId = "org.sagebionetworks.test.Object";
+		ObjectSchema schemaToTest = new ObjectSchemaImpl(TYPE.OBJECT);
+		schemaToTest.setProperties(new LinkedHashMap<>(Collections.singletonMap("myObject", new ObjectSchemaImpl(TYPE.OBJECT))));
+
+		Map<String, ObjectSchema> resultMap = new HashMap<>();
+		//call under test
+		SchemaUtils.recursiveAddTypes(resultMap, schemaToTestId, schemaToTest);
+
+		assertEquals(1, resultMap.size());
+		assertNotNull(resultMap.get(schemaToTestId));
 	}
 	
 	@Test

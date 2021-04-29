@@ -105,15 +105,13 @@ public class SchemaUtils {
 			Iterator<ObjectSchema> it = schema.getSubSchemaIterator();
 			while (it.hasNext()) {
 				ObjectSchema sub = it.next();
-				if (TYPE.OBJECT == sub.getType()) {
-					if(sub.getId() == null) throw new IllegalArgumentException("ObjectSchema.id cannot be null for TYPE.OBJECT");
+				if (TYPE.OBJECT == sub.getType() && sub.getId() != null) {
 					recursiveAddTypes(schemaMap, sub.getId(), sub);
 				}else if(TYPE.ARRAY == sub.getType()){
 					if(sub.getItems() == null) throw new IllegalArgumentException("ObjectSchema.items cannot be null for TYPE.ARRAY");
 					ObjectSchema arrayItems = sub.getItems();
-					if (TYPE.OBJECT == arrayItems.getType()
-						/*PLFM-5723*/ || arrayItems.getEnum() != null) {
-						if(arrayItems.getId() == null) throw new IllegalArgumentException("ObjectSchema.id cannot be null for TYPE.OBJECT");
+					if ((TYPE.OBJECT == arrayItems.getType()
+						/*PLFM-5723*/ || arrayItems.getEnum() != null) && arrayItems.getId() != null) {
 						recursiveAddTypes(schemaMap, arrayItems.getId(), arrayItems);
 					}
 				}else if(TYPE.INTERFACE == sub.getType()){
@@ -343,7 +341,7 @@ public class SchemaUtils {
 			builder.append("${").append(recursiveAnchor.getId()).append("}");
 			return new String[] { builder.toString() };
 		}
-		if(TYPE.OBJECT == type.getType() || TYPE.INTERFACE == type.getType()){
+		if((TYPE.OBJECT == type.getType() || TYPE.INTERFACE == type.getType()) && type.getId() != null){
 			if(type.getId() == null) throw new IllegalArgumentException("ObjectSchema.id cannot be null for TYPE.OBJECT");
 			StringBuilder builder = new StringBuilder();
 			builder.append("${").append(type.getId()).append("}");
@@ -396,7 +394,7 @@ public class SchemaUtils {
 			}
 			return new String[] { recursiveAnchor.getName() };
 		}
-		if(TYPE.OBJECT == type.getType() || TYPE.INTERFACE == type.getType()){
+		if((TYPE.OBJECT == type.getType() || TYPE.INTERFACE == type.getType()) && type.getId() != null){
 			return new String[] { type.getName() };
 		} if(TYPE.ARRAY == type.getType()){
 			if(type.getItems() == null) throw new IllegalArgumentException("ObjectSchema.items cannot be null for TYPE.ARRAY");
