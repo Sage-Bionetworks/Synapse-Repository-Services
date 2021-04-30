@@ -1,8 +1,5 @@
 package org.sagebionetworks;
 
-import java.util.List;
-import java.util.Map;
-
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;

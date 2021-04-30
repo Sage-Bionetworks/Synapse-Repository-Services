@@ -98,33 +98,33 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 		return supportedMedia;
 	}
 	
-	private static void validateJSONEntityHelper(JSONObjectAdapter adapter, 
-			String beforeJsonString) throws IllegalArgumentException, JSONObjectAdapterException {
-		// HELPER: this is recursive
-		JSONObjectAdapter originalSchema = new JSONObjectAdapterImpl(beforeJsonString);
-		for (String key : originalSchema.keySet()) {
-			Object value = originalSchema.get(key);
-			if (!adapter.has(key)) {
+	
+	public static void validateJSONEntity(JSONEntity parsedEntity, String originalJsonString) 
+			throws JSONObjectAdapterException {
+		// Validating: throws an IllegalArgumentException if the parsedEntity is missing
+		// an element from the originalJsonString
+		JSONObject parsedEntityJsonObject = EntityFactory.createJSONObjectForEntity(parsedEntity);
+		JSONObjectAdapter parsedObject = new JSONObjectAdapterImpl(parsedEntityJsonObject);
+		JSONObjectAdapter originalObject = new JSONObjectAdapterImpl(originalJsonString);
+		validateJSONEntityRecursive(parsedObject, originalObject);
+	}
+	
+	private static void validateJSONEntityRecursive(JSONObjectAdapter parsedObject, 
+			JSONObjectAdapter originalObject) throws JSONObjectAdapterException {
+		for (String key : originalObject.keySet()) {
+			Object value = originalObject.get(key);
+			if (!parsedObject.has(key)) {
 				throw new IllegalArgumentException(String.format(VALIDATION_ERROR, key));
 			} else if (value instanceof JSONObjectAdapterImpl) {
-				validateJSONEntityHelper(adapter.getJSONObject(key), 
-						((JSONObjectAdapterImpl) value).toJSONString());
+				validateJSONEntityRecursive(parsedObject.getJSONObject(key), 
+						((JSONObjectAdapterImpl)value));
 			} else if (value instanceof JSONArrayAdapterImpl) {
-					for (int i = 0; i < ((JSONArrayAdapterImpl) value).length(); i++) {
-					validateJSONEntityHelper(adapter.getJSONArray(key).getJSONObject(i),
-							((JSONArrayAdapterImpl) value).getJSONObject(i).toJSONString());
+				for (int i = 0; i < ((JSONArrayAdapterImpl) value).length(); i++) {
+					validateJSONEntityRecursive(parsedObject.getJSONArray(key).getJSONObject(i), 
+							((JSONArrayAdapterImpl) value).getJSONObject(i));
 				}
 			}
 		}
-	}
-	
-	public static void validateJSONEntity(JSONEntity entity, String beforeJsonString) throws
-			IllegalArgumentException, JSONObjectAdapterException {
-		// This is recursive. Validates if the entity has all the same JSON schema elements 
-		// as the beforeJsonString, throws an IllegalArgumentException if not
-		JSONObject entityJsonObject = EntityFactory.createJSONObjectForEntity(entity);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(entityJsonObject);
-		validateJSONEntityHelper(adapter, beforeJsonString);
 	}
 	
 	// This is specified by HTTP 1.1
