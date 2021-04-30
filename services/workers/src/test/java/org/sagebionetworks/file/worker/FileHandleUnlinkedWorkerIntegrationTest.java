@@ -8,6 +8,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
@@ -19,8 +20,6 @@ import org.quartz.SchedulerException;
 import org.quartz.Trigger;
 import org.quartz.TriggerKey;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationRecord;
@@ -74,9 +73,6 @@ public class FileHandleUnlinkedWorkerIntegrationTest {
 	
 	@Autowired
 	private AccessRequirementDAO arDao;
-	
-	@Autowired
-	private IdGenerator idGenerator;
 	
 	@Autowired
 	private Scheduler scheduler;
@@ -134,8 +130,11 @@ public class FileHandleUnlinkedWorkerIntegrationTest {
 		// Makes sure to create "old" file handles
 		Date createdOn = Date.from(Instant.now().minus(60, ChronoUnit.DAYS));
 		
-		FileHandle linkedHandle = TestUtils.createS3FileHandle(user.getId().toString(), idGenerator.generateNewId(IdType.FILE_IDS).toString()).setCreatedOn(createdOn);
-		FileHandle unlinkedHandle = TestUtils.createS3FileHandle(user.getId().toString(), idGenerator.generateNewId(IdType.FILE_IDS).toString()).setCreatedOn(createdOn);
+		// Generate an high random number to avoid issues with different users
+		Long startId = 1_000_000L + config.getStackInstanceNumber() + new Random().nextInt(10000);
+		
+		FileHandle linkedHandle = TestUtils.createS3FileHandle(user.getId().toString(), (++startId).toString()).setCreatedOn(createdOn);
+		FileHandle unlinkedHandle = TestUtils.createS3FileHandle(user.getId().toString(), (++startId).toString()).setCreatedOn(createdOn);
 				
 		fileHandleDao.createBatch(Arrays.asList(linkedHandle, unlinkedHandle));
 		
@@ -189,7 +188,7 @@ public class FileHandleUnlinkedWorkerIntegrationTest {
 		
 		String query = "SELECT COUNT(*) FROM " + fileHandleDataTable.getName() + " WHERE " + idColumn + " IN (" + String.join(",", ids) + ")";
 		
-		TimeUtils.waitFor(TIMEOUT, 1000L, () -> {
+		TimeUtils.waitFor(TIMEOUT, 10000L, () -> {
 			
 			AthenaQueryResult<Long> q = athenaSupport.executeQuery(dataBase, query, (row) -> {
 				return Long.valueOf(row.getData().get(0).getVarCharValue());
