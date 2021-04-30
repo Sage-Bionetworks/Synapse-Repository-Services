@@ -359,6 +359,17 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	}
 	
 	@Override
+	public List<DBOFileHandle> getDBOFileHandlesBatch(List<Long> ids) {
+		if (ids == null || ids.isEmpty()) {
+			return Collections.emptyList();
+		}
+		
+		MapSqlParameterSource paramSource = new  MapSqlParameterSource("ids", ids);
+		
+		return namedJdbcTemplate.query(SQL_SELECT_BATCH, paramSource, DBO_MAPPER);
+	}
+	
+	@Override
 	@WriteTransaction
 	public void updateBatchStatus(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus) {
 		ValidateArgument.required(newStatus, "The newStatus");
