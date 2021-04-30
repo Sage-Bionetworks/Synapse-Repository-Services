@@ -25,10 +25,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import com.amazonaws.services.glue.model.Database;
 import com.amazonaws.services.glue.model.Table;
 
-// Note that we disabled this test since delivery from kinesis is setup after 15 minutes. This was used to test the wiring of the workers.
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-@Disabled
 public class FileHandleStreamWorkerIntegrationTest {
 	
 	private static final int TIMEOUT = 2 * 60 * 1000;

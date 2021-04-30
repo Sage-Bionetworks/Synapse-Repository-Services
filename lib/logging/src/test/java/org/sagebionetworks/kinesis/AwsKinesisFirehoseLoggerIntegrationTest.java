@@ -1,7 +1,5 @@
 package org.sagebionetworks.kinesis;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -76,21 +74,7 @@ public class AwsKinesisFirehoseLoggerIntegrationTest {
 			
 			return Pair.create(delivered, null);
 		});
-	}
-	
-	@Test
-	public void testChangeDeliveryTime() {
-		
-		int prev = 60;
-		
-		try {
-			int result = logger.updateKinesisDeliveryTime(STREAM_NAME, 120);
-			assertEquals(prev, result);
-		} finally {
-			logger.updateKinesisDeliveryTime(STREAM_NAME, prev);
-		}
-	}
-	
+	}	
 	
 	// We query directly with Athena, the stream is setup to deliver to a table that uses partition projection so that there is no need for "repairing"
 	// the table as Athena will infer the partitions automatically
