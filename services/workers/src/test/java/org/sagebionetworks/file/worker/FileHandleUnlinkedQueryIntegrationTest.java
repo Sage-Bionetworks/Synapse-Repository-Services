@@ -196,6 +196,7 @@ public class FileHandleUnlinkedQueryIntegrationTest {
 			result = stepFunctionsClient.listStateMachines(new ListStateMachinesRequest().withMaxResults(10).withNextToken(nextPageToken));
 			for (StateMachineListItem stateMachine : result.getStateMachines()) {
 				if (stateMachine.getName().toLowerCase().contains((stack + instance + name).toLowerCase())) {
+					System.out.println("Found state machine with name: " + stateMachine.getName() + ", ARN: " + stateMachine.getStateMachineArn());
 					return stateMachine.getStateMachineArn();
 				}
 			}
