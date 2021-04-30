@@ -1,13 +1,12 @@
-package org.sagebionetworks.repo.model.file;
+package org.sagebionetworks.repo.model.athena;
 
 import java.util.Objects;
 
 /**
- * DTO that represents an SQS message with the Athena query execution whose results contain the
- * files to be set as unlinked
+ * DTO that represents an SQS message with the Athena query execution started by a recurrent step function
  */
-public class FileHandleUnlinkedRequest {
-
+public class RecurrentAthenaQueryResult {
+	
 	private String queryName;
 	private String functionExecutionId;
 	private String queryExecutionId;
@@ -17,7 +16,7 @@ public class FileHandleUnlinkedRequest {
 		return queryName;
 	}
 
-	public FileHandleUnlinkedRequest withQueryName(String queryName) {
+	public RecurrentAthenaQueryResult withQueryName(String queryName) {
 		this.queryName = queryName;
 		return this;
 	}
@@ -26,7 +25,7 @@ public class FileHandleUnlinkedRequest {
 		return functionExecutionId;
 	}
 
-	public FileHandleUnlinkedRequest withFunctionExecutionId(String functionExecutionId) {
+	public RecurrentAthenaQueryResult withFunctionExecutionId(String functionExecutionId) {
 		this.functionExecutionId = functionExecutionId;
 		return this;
 	}
@@ -35,7 +34,7 @@ public class FileHandleUnlinkedRequest {
 		return queryExecutionId;
 	}
 
-	public FileHandleUnlinkedRequest withQueryExecutionId(String queryExecutionId) {
+	public RecurrentAthenaQueryResult withQueryExecutionId(String queryExecutionId) {
 		this.queryExecutionId = queryExecutionId;
 		return this;
 	}
@@ -44,7 +43,7 @@ public class FileHandleUnlinkedRequest {
 		return pageToken;
 	}
 
-	public FileHandleUnlinkedRequest withPageToken(String pageToken) {
+	public RecurrentAthenaQueryResult withPageToken(String pageToken) {
 		this.pageToken = pageToken;
 		return this;
 	}
@@ -65,14 +64,14 @@ public class FileHandleUnlinkedRequest {
 		if (getClass() != obj.getClass()) {
 			return false;
 		}
-		FileHandleUnlinkedRequest other = (FileHandleUnlinkedRequest) obj;
+		RecurrentAthenaQueryResult other = (RecurrentAthenaQueryResult) obj;
 		return Objects.equals(functionExecutionId, other.functionExecutionId) && Objects.equals(pageToken, other.pageToken)
 				&& Objects.equals(queryExecutionId, other.queryExecutionId) && Objects.equals(queryName, other.queryName);
 	}
 
 	@Override
 	public String toString() {
-		return "FileHandleUnlinkedRequest [queryName=" + queryName + ", functionExecutionId=" + functionExecutionId + ", queryExecutionId="
+		return "RecurrentAthenaQueryResult [queryName=" + queryName + ", functionExecutionId=" + functionExecutionId + ", queryExecutionId="
 				+ queryExecutionId + ", pageToken=" + pageToken + "]";
 	}
 

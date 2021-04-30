@@ -1,10 +1,10 @@
-package org.sagebionetworks.repo.manager.file;
+package org.sagebionetworks.repo.manager.athena;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.repo.model.file.FileHandleUnlinkedRequest;
+import org.sagebionetworks.repo.model.athena.RecurrentAthenaQueryResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -13,10 +13,10 @@ import com.amazonaws.services.sqs.model.Message;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class FileHandleUnlinkedManagerIntegrationTest {
+public class RecurrentAthenaQueryManagerIntegrationTest {
 
 	@Autowired
-	private FileHandleUnlinkedManagerImpl manager;
+	private RecurrentAthenaQueryManagerImpl manager;
 	
 	@Test
 	public void testFromSqsMessage() {
@@ -27,13 +27,13 @@ public class FileHandleUnlinkedManagerIntegrationTest {
 		Message message = new Message()
 				.withBody(messageBody);
 		
-		FileHandleUnlinkedRequest expected = new FileHandleUnlinkedRequest()
+		RecurrentAthenaQueryResult expected = new RecurrentAthenaQueryResult()
 				.withQueryName("UnlinkedFileHandles")
 				.withFunctionExecutionId("123")
 				.withQueryExecutionId("456");
 		
 		// Call under test
-		FileHandleUnlinkedRequest result = manager.fromSqsMessage(message);
+		RecurrentAthenaQueryResult result = manager.fromSqsMessage(message);
 		
 		assertEquals(expected, result);
 	}
@@ -48,14 +48,14 @@ public class FileHandleUnlinkedManagerIntegrationTest {
 		Message message = new Message()
 				.withBody(messageBody);
 		
-		FileHandleUnlinkedRequest expected = new FileHandleUnlinkedRequest()
+		RecurrentAthenaQueryResult expected = new RecurrentAthenaQueryResult()
 				.withQueryName("UnlinkedFileHandles")
 				.withFunctionExecutionId("123")
 				.withQueryExecutionId("456")
 				.withPageToken("token");
 		
 		// Call under test
-		FileHandleUnlinkedRequest result = manager.fromSqsMessage(message);
+		RecurrentAthenaQueryResult result = manager.fromSqsMessage(message);
 		
 		assertEquals(expected, result);
 	}
@@ -70,21 +70,21 @@ public class FileHandleUnlinkedManagerIntegrationTest {
 		Message message = new Message()
 				.withBody(messageBody);
 		
-		FileHandleUnlinkedRequest expected = new FileHandleUnlinkedRequest()
+		RecurrentAthenaQueryResult expected = new RecurrentAthenaQueryResult()
 				.withQueryName("UnlinkedFileHandles")
 				.withFunctionExecutionId("123")
 				.withQueryExecutionId("456")
 				.withPageToken("token");
 		
 		// Call under test
-		FileHandleUnlinkedRequest result = manager.fromSqsMessage(message);
+		RecurrentAthenaQueryResult result = manager.fromSqsMessage(message);
 		
 		assertEquals(expected, result);
 	}
 
 	@Test
 	public void testToJsonMessage() {
-		FileHandleUnlinkedRequest request = new FileHandleUnlinkedRequest()
+		RecurrentAthenaQueryResult request = new RecurrentAthenaQueryResult()
 				.withQueryName("UnlinkedFileHandles")
 				.withFunctionExecutionId("123")
 				.withQueryExecutionId("456")

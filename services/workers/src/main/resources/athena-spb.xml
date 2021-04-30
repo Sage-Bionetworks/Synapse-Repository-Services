@@ -44,4 +44,40 @@
 		<property name="repeatInterval" value="86400000" />
 	</bean>
 	
+	<!-- This worker process an SQS message that contains the query results from an Athena query executed by a step function -->
+	<bean id="recurrentAthenaQueryWorker" class="org.sagebionetworks.athena.workers.RecurrentAthenaQueryWorker" scope="singleton" >
+		<property name="queueName" value="#{stackConfiguration.getQueueName('RECURRENT_ATHENA_QUERIES')}" />
+	</bean>
+	
+	<!-- Trigger for the worker that process unlinked file handles -->
+	<bean id="recurrentAthenaQueryWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean" scope="singleton">
+		<property name="jobDetail">
+			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject">
+					<bean class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack">
+						<constructor-arg index="0" ref="countingSemaphore" />
+						<constructor-arg index="1" ref="awsSQSClient" />
+						<constructor-arg index="2">
+							<bean class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
+								<property name="runner" ref="recurrentAthenaQueryWorker" />
+								<property name="semaphoreLockKey" value="recurrentAthenaQueryWorker" />
+								<property name="semaphoreMaxLockCount" value="5" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="300" />
+								<property name="queueName" value="#{stackConfiguration.getQueueName('RECURRENT_ATHENA_QUERIES')}"/>
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+								</property>
+							</bean>
+						</constructor-arg>
+					</bean>
+				</property>
+				<property name="targetMethod" value="run" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<!-- We stagger the start delay of each trigger to spread out the timing -->
+		<property name="startDelay" value="1437" />
+		<property name="repeatInterval" value="1001" />
+	</bean>
+	
 </beans>

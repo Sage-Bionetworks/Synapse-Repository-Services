@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.file;
+package org.sagebionetworks.repo.manager.athena;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -19,7 +18,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,17 +28,14 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.athena.AthenaQueryExecutionAdapter;
 import org.sagebionetworks.repo.model.athena.AthenaQueryResultPage;
 import org.sagebionetworks.repo.model.athena.AthenaSupport;
+import org.sagebionetworks.repo.model.athena.RecurrentAthenaQueryResult;
 import org.sagebionetworks.repo.model.athena.RowMapper;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.dao.FileHandleStatus;
 import org.sagebionetworks.repo.model.exception.RecoverableException;
-import org.sagebionetworks.repo.model.file.FileHandleUnlinkedRequest;
 
 import com.amazonaws.services.athena.model.QueryExecution;
 import com.amazonaws.services.athena.model.QueryExecutionState;
 import com.amazonaws.services.athena.model.QueryExecutionStatus;
 import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.GetQueueUrlResult;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.fasterxml.jackson.core.JsonParseException;
@@ -49,50 +44,46 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @ExtendWith(MockitoExtension.class)
-public class FileHandleUnlinkedManagerTest {
+public class RecurrentAthenaQueryManagerTest {
 	
 	@Mock
 	private ObjectMapper mockObjectMapper;
 	@Mock
 	private AthenaSupport mockAthenaSupport;
 	@Mock
-	private FileHandleDao mockFileHandleDao;
-	@Mock
 	private AmazonSQS mockSqsClient;
 	@Mock
 	private StackConfiguration mockConfig;
 	
 	@InjectMocks
-	private FileHandleUnlinkedManagerImpl manager;
+	private RecurrentAthenaQueryManagerImpl manager;
+	
+	@Mock
+	private RecurrentAthenaQueryProcessor<Long> mockProcessor;
+	
+	@Mock
+	private RowMapper<Long> mockRowMapper;
 	
 	@Mock
 	private Message mockMessage;
 	
 	private QueryExecution mockQueryExecution;
-	private FileHandleUnlinkedRequest mockRequest;
+	private RecurrentAthenaQueryResult mockRequest;
 
-	private String queueName = "queue";
 	private String queueUrl = "queueUrl";
 
 	@BeforeEach
 	public void beforeEach() {
-		when(mockConfig.getQueueName(FileHandleUnlinkedManagerImpl.QUEUE_NAME)).thenReturn(queueName);
-		when(mockSqsClient.getQueueUrl(queueName)).thenReturn(new GetQueueUrlResult().withQueueUrl(queueUrl));
+		when(mockProcessor.getQueryName()).thenReturn("SomeQueryName");
 		
-		manager.configureQueryUrl(mockConfig);
+		manager.configureProcessorMap(Arrays.asList(mockProcessor));
 		
 		mockQueryExecution = new QueryExecution().withQueryExecutionId("456").withStatus(new QueryExecutionStatus().withState(QueryExecutionState.SUCCEEDED));
 		
-		mockRequest = new FileHandleUnlinkedRequest()
-				.withQueryName("UnlinkedFileHandles")
+		mockRequest = new RecurrentAthenaQueryResult()
+				.withQueryName("SomeQueryName")
 				.withFunctionExecutionId("123")
 				.withQueryExecutionId("456");
-	}
-	
-	@AfterEach
-	public void after() {
-		verify(mockConfig).getQueueName(FileHandleUnlinkedManagerImpl.QUEUE_NAME);
-		verify(mockSqsClient).getQueueUrl(queueName);
 	}
 
 	@Test
@@ -105,7 +96,7 @@ public class FileHandleUnlinkedManagerTest {
 		// Call under test
 		manager.fromSqsMessage(mockMessage);
 		
-		verify(mockObjectMapper).readValue(messageBody, FileHandleUnlinkedRequest.class);
+		verify(mockObjectMapper).readValue(messageBody, RecurrentAthenaQueryResult.class);
 		
 	}
 	
@@ -126,64 +117,75 @@ public class FileHandleUnlinkedManagerTest {
 		});
 		
 		assertEquals(ex, result.getCause());
-		assertEquals("Could not parse FileHandleUnlinkedRequest from message: " + ex.getMessage(), result.getMessage());
+		assertEquals("Could not parse RecurrentAthenaQueryResult from message: " + ex.getMessage(), result.getMessage());
 		
 	}
 	
 	@Test
-	public void testProcessFileHandleUnlinkRequestWithNoQueryName() {
+	public void testProcessRecurrentAthenaQueryResultWithNoQueryUrl() {
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			manager.processRecurrentAthenaQueryResult(mockRequest, null);
+		}).getMessage();
+		
+		assertEquals("The queueUrl is required and must not be the empty string.", message);
+	}
+	
+	@Test
+	public void testProcessRecurrentAthenaQueryResultWithNoQueryName() {
 		
 		mockRequest.withQueryName(null);
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.processFileHandleUnlinkRequest(mockRequest);
+			manager.processRecurrentAthenaQueryResult(mockRequest, queueUrl);
 		}).getMessage();
 		
 		assertEquals("The queryName is required and must not be the empty string.", message);
 	}
 	
 	@Test
-	public void testProcessFileHandleUnlinkRequestWithWrongQueryName() {
+	public void testProcessRecurrentAthenaQueryResultWithWrongQueryName() {
 		
 		mockRequest.withQueryName("SomeOtherQuery");
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.processFileHandleUnlinkRequest(mockRequest);
+			manager.processRecurrentAthenaQueryResult(mockRequest, queueUrl);
 		}).getMessage();
 		
-		assertEquals("Unsupported query: was SomeOtherQuery, expected UnlinkedFileHandles.", message);
+		assertEquals("Unsupported query: SomeOtherQuery.", message);
 	}
 	
 	@Test
-	public void testProcessFileHandleUnlinkRequestWithNoQueryExecutionId() {
+	public void testProcessRecurrentAthenaQueryResultWithNoQueryExecutionId() {
 		
 		mockRequest.withQueryExecutionId(null);
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.processFileHandleUnlinkRequest(mockRequest);
+			manager.processRecurrentAthenaQueryResult(mockRequest, queueUrl);
 		}).getMessage();
 		
 		assertEquals("The queryExecutionId is required.", message);
 	}
 	
 	@Test
-	public void testProcessFileHandleUnlinkRequestWithNoFunctionExecutionId() {
+	public void testProcessRecurrentAthenaQueryResultWithNoFunctionExecutionId() {
 		
 		mockRequest.withFunctionExecutionId(null);
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.processFileHandleUnlinkRequest(mockRequest);
+			manager.processRecurrentAthenaQueryResult(mockRequest, queueUrl);
 		}).getMessage();
 		
 		assertEquals("The functionExecutionId is required and must not be the empty string.", message);
 	}
-	
+		
 	@Test
-	public void testProcessFileHandleUnlinkRequestWithQueryQueued() {
+	public void testProcessRecurrentAthenaQueryResultWithQueryQueued() {
 		
 		mockQueryExecution.setStatus(new QueryExecutionStatus().withState(QueryExecutionState.QUEUED));
 		
@@ -191,14 +193,14 @@ public class FileHandleUnlinkedManagerTest {
 		
 		String message = assertThrows(RecoverableException.class, () -> {
 			// Call under test
-			manager.processFileHandleUnlinkRequest(mockRequest);
+			manager.processRecurrentAthenaQueryResult(mockRequest, queueUrl);
 		}).getMessage();
 		
 		assertEquals("The query with id " + mockQueryExecution.getQueryExecutionId() + " is still processing.", message);
 	}
 	
 	@Test
-	public void testProcessFileHandleUnlinkRequestWithQueryRunning() {
+	public void testProcessRecurrentAthenaQueryResultWithQueryRunning() {
 		
 		mockQueryExecution.setStatus(new QueryExecutionStatus().withState(QueryExecutionState.RUNNING));
 		
@@ -206,14 +208,14 @@ public class FileHandleUnlinkedManagerTest {
 		
 		String message = assertThrows(RecoverableException.class, () -> {
 			// Call under test
-			manager.processFileHandleUnlinkRequest(mockRequest);
+			manager.processRecurrentAthenaQueryResult(mockRequest, queueUrl);
 		}).getMessage();
 		
 		assertEquals("The query with id " + mockQueryExecution.getQueryExecutionId() + " is still processing.", message);
 	}
 	
 	@Test
-	public void testProcessFileHandleUnlinkRequestWithQueryNotSucceded() {
+	public void testProcessRecurrentAthenaQueryResultWithQueryNotSucceded() {
 		
 		int count = 0;
 		
@@ -229,7 +231,7 @@ public class FileHandleUnlinkedManagerTest {
 			
 			String message = assertThrows(IllegalStateException.class, () -> {
 				// Call under test
-				manager.processFileHandleUnlinkRequest(mockRequest);
+				manager.processRecurrentAthenaQueryResult(mockRequest, queueUrl);
 			}).getMessage();
 			
 			assertEquals("The query with id " +  mockQueryExecution.getQueryExecutionId() + " did not SUCCEED (State: " + state + ", reason: some reason)", message);
@@ -240,67 +242,70 @@ public class FileHandleUnlinkedManagerTest {
 	}
 	
 	@Test
-	public void testProcessFileHandleUnlinkRequestWithQuerySucceeded() {
+	public void testProcessRecurrentAthenaQueryResultWithQuerySucceeded() {
 		
 		AthenaQueryResultPage<Long> page = new AthenaQueryResultPage<Long>()
 				.withResults(Arrays.asList(1L, 2L, 3L))
 				.withQueryExecutionId(mockQueryExecution.getQueryExecutionId())
 				.withNextPageToken(null);
 		
+		when(mockProcessor.getRowMapper()).thenReturn(mockRowMapper);
 		when(mockAthenaSupport.getQueryExecutionStatus(anyString())).thenReturn(new AthenaQueryExecutionAdapter(mockQueryExecution));	
 		when(mockAthenaSupport.getQueryResultsPage(any(), any(RowMapper.class), any(), anyInt())).thenReturn(page);
 		
 		// Call under test
-		manager.processFileHandleUnlinkRequest(mockRequest);
+		manager.processRecurrentAthenaQueryResult(mockRequest, queueUrl);
 		
 		verify(mockAthenaSupport).getQueryExecutionStatus(mockQueryExecution.getQueryExecutionId());
-		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), FileHandleUnlinkedManagerImpl.ROW_MAPPER, null, FileHandleUnlinkedManagerImpl.MAX_QUERY_RESULTS);
-		verify(mockFileHandleDao).updateBatchStatus(page.getResults(), FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE);
+		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), mockRowMapper, null, RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
+		verify(mockProcessor).processQueryResultsPage(page.getResults());
 		verify(mockSqsClient, never()).sendMessage(any());
 	}
 	
 	@Test
-	public void testProcessFileHandleUnlinkRequestWithEmptyResults() {
+	public void testProcessRecurrentAthenaQueryResultWithEmptyResults() {
 		
 		AthenaQueryResultPage<Long> page = new AthenaQueryResultPage<Long>()
 				.withResults(Collections.emptyList())
 				.withQueryExecutionId(mockQueryExecution.getQueryExecutionId())
 				.withNextPageToken(null);
 		
+		when(mockProcessor.getRowMapper()).thenReturn(mockRowMapper);
 		when(mockAthenaSupport.getQueryExecutionStatus(anyString())).thenReturn(new AthenaQueryExecutionAdapter(mockQueryExecution));	
 		when(mockAthenaSupport.getQueryResultsPage(any(), any(RowMapper.class), any(), anyInt())).thenReturn(page);
 		
 		// Call under test
-		manager.processFileHandleUnlinkRequest(mockRequest);
+		manager.processRecurrentAthenaQueryResult(mockRequest, queueUrl);
 		
 		verify(mockAthenaSupport).getQueryExecutionStatus(mockQueryExecution.getQueryExecutionId());
-		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), FileHandleUnlinkedManagerImpl.ROW_MAPPER, null, FileHandleUnlinkedManagerImpl.MAX_QUERY_RESULTS);
-		verifyZeroInteractions(mockFileHandleDao);
+		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), mockRowMapper, null, RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
+		verifyZeroInteractions(mockProcessor);
 		verify(mockSqsClient, never()).sendMessage(any());
 	}
 	
 	@Test
-	public void testProcessFileHandleUnlinkRequestWithNoResults() {
+	public void testProcessRecurrentAthenaQueryResultWithNoResults() {
 		
 		AthenaQueryResultPage<Long> page = new AthenaQueryResultPage<Long>()
 				.withResults(null)
 				.withQueryExecutionId(mockQueryExecution.getQueryExecutionId())
 				.withNextPageToken(null);
 		
+		when(mockProcessor.getRowMapper()).thenReturn(mockRowMapper);
 		when(mockAthenaSupport.getQueryExecutionStatus(anyString())).thenReturn(new AthenaQueryExecutionAdapter(mockQueryExecution));	
 		when(mockAthenaSupport.getQueryResultsPage(any(), any(RowMapper.class), any(), anyInt())).thenReturn(page);
 		
 		// Call under test
-		manager.processFileHandleUnlinkRequest(mockRequest);
+		manager.processRecurrentAthenaQueryResult(mockRequest, queueUrl);
 		
 		verify(mockAthenaSupport).getQueryExecutionStatus(mockQueryExecution.getQueryExecutionId());
-		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), FileHandleUnlinkedManagerImpl.ROW_MAPPER, null, FileHandleUnlinkedManagerImpl.MAX_QUERY_RESULTS);
-		verifyZeroInteractions(mockFileHandleDao);
+		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), mockRowMapper, null, RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
+		verifyZeroInteractions(mockProcessor);
 		verify(mockSqsClient, never()).sendMessage(any());
 	}
 	
 	@Test
-	public void testProcessFileHandleUnlinkRequestWithNextPage() {
+	public void testProcessRecurrentAthenaQueryResultWithNextPage() {
 		
 		AthenaQueryResultPage<Long> page1 = new AthenaQueryResultPage<Long>()
 				.withResults(Arrays.asList(1L, 2L, 3L))
@@ -312,22 +317,23 @@ public class FileHandleUnlinkedManagerTest {
 				.withQueryExecutionId(mockQueryExecution.getQueryExecutionId())
 				.withNextPageToken(null);
 		
+		when(mockProcessor.getRowMapper()).thenReturn(mockRowMapper);
 		when(mockAthenaSupport.getQueryExecutionStatus(anyString())).thenReturn(new AthenaQueryExecutionAdapter(mockQueryExecution));	
 		when(mockAthenaSupport.getQueryResultsPage(any(), any(RowMapper.class), any(), anyInt())).thenReturn(page1, page2);
 		
 		// Call under test
-		manager.processFileHandleUnlinkRequest(mockRequest);
+		manager.processRecurrentAthenaQueryResult(mockRequest, queueUrl);
 		
 		verify(mockAthenaSupport).getQueryExecutionStatus(mockQueryExecution.getQueryExecutionId());
-		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), FileHandleUnlinkedManagerImpl.ROW_MAPPER, null, FileHandleUnlinkedManagerImpl.MAX_QUERY_RESULTS);
-		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), FileHandleUnlinkedManagerImpl.ROW_MAPPER, page1.getNextPageToken(), FileHandleUnlinkedManagerImpl.MAX_QUERY_RESULTS);
-		verify(mockFileHandleDao).updateBatchStatus(page1.getResults(), FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE);
-		verify(mockFileHandleDao).updateBatchStatus(page2.getResults(), FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE);
+		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), mockRowMapper, null, RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
+		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), mockRowMapper, page1.getNextPageToken(), RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
+		verify(mockProcessor).processQueryResultsPage(page1.getResults());
+		verify(mockProcessor).processQueryResultsPage(page2.getResults());
 		verify(mockSqsClient, never()).sendMessage(any());
 	}
 	
 	@Test
-	public void testProcessFileHandleUnlinkRequestWithExceedProcessingLimit() throws JsonProcessingException {
+	public void testProcessRecurrentAthenaQueryResultWithExceedProcessingLimit() throws JsonProcessingException {
 		
 		String nextToken = "next"; 
 				
@@ -338,7 +344,7 @@ public class FileHandleUnlinkedManagerTest {
 		
 		List<AthenaQueryResultPage<Long>> nextPages = new ArrayList<>();		
 		
-		for (int i=0; i< FileHandleUnlinkedManagerImpl.MAX_PAGE_REQUESTS; i++) {
+		for (int i=0; i< RecurrentAthenaQueryManagerImpl.MAX_PAGE_REQUESTS; i++) {
 			AthenaQueryResultPage<Long> next = new AthenaQueryResultPage<Long>()
 				.withResults(Arrays.asList(4L, 5L))
 				.withQueryExecutionId(mockQueryExecution.getQueryExecutionId())
@@ -346,26 +352,27 @@ public class FileHandleUnlinkedManagerTest {
 			nextPages.add(next);
 		}
 		
+		when(mockProcessor.getRowMapper()).thenReturn(mockRowMapper);
 		when(mockAthenaSupport.getQueryExecutionStatus(anyString())).thenReturn(new AthenaQueryExecutionAdapter(mockQueryExecution));	
 		when(mockAthenaSupport.getQueryResultsPage(any(), any(RowMapper.class), any(), anyInt())).thenReturn(page1, nextPages.toArray(new AthenaQueryResultPage[nextPages.size()]));
 		when(mockObjectMapper.writeValueAsString(any())).thenReturn("sqsMessage");
 		
 		// Call under test
-		manager.processFileHandleUnlinkRequest(mockRequest);
+		manager.processRecurrentAthenaQueryResult(mockRequest, queueUrl);
 		
 		verify(mockAthenaSupport).getQueryExecutionStatus(mockQueryExecution.getQueryExecutionId());
 		
-		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), FileHandleUnlinkedManagerImpl.ROW_MAPPER, null, FileHandleUnlinkedManagerImpl.MAX_QUERY_RESULTS);
-		verify(mockAthenaSupport, times(FileHandleUnlinkedManagerImpl.MAX_PAGE_REQUESTS - 1)).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), FileHandleUnlinkedManagerImpl.ROW_MAPPER, nextToken, FileHandleUnlinkedManagerImpl.MAX_QUERY_RESULTS);
+		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), mockRowMapper, null, RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
+		verify(mockAthenaSupport, times(RecurrentAthenaQueryManagerImpl.MAX_PAGE_REQUESTS - 1)).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), mockRowMapper, nextToken, RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
 		
-		verify(mockFileHandleDao, times(FileHandleUnlinkedManagerImpl.MAX_PAGE_REQUESTS)).updateBatchStatus(anyList(), eq(FileHandleStatus.UNLINKED), eq(FileHandleStatus.AVAILABLE));
+		verify(mockProcessor, times(RecurrentAthenaQueryManagerImpl.MAX_PAGE_REQUESTS)).processQueryResultsPage(anyList());
 		
 		verify(mockSqsClient).sendMessage(new SendMessageRequest()
 				.withQueueUrl(queueUrl)
 				.withMessageBody("sqsMessage")
 		);
 
-		FileHandleUnlinkedRequest expectedRequest = new FileHandleUnlinkedRequest()
+		RecurrentAthenaQueryResult expectedRequest = new RecurrentAthenaQueryResult()
 				.withQueryName(mockRequest.getQueryName())
 				.withFunctionExecutionId(mockRequest.getFunctionExecutionId())
 				.withPageToken(nextToken)

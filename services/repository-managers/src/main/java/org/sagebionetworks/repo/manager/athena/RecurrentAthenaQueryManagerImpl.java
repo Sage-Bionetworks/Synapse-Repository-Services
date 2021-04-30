@@ -1,20 +1,19 @@
-package org.sagebionetworks.repo.manager.file;
+package org.sagebionetworks.repo.manager.athena;
 
-import org.sagebionetworks.StackConfiguration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.sagebionetworks.repo.model.athena.AthenaQueryExecution;
 import org.sagebionetworks.repo.model.athena.AthenaQueryExecutionState;
 import org.sagebionetworks.repo.model.athena.AthenaQueryResultPage;
 import org.sagebionetworks.repo.model.athena.AthenaSupport;
-import org.sagebionetworks.repo.model.athena.RowMapper;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.dao.FileHandleStatus;
+import org.sagebionetworks.repo.model.athena.RecurrentAthenaQueryResult;
 import org.sagebionetworks.repo.model.exception.RecoverableException;
-import org.sagebionetworks.repo.model.file.FileHandleUnlinkedRequest;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.amazonaws.services.athena.model.Row;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
@@ -22,74 +21,81 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
-public class FileHandleUnlinkedManagerImpl implements FileHandleUnlinkedManager {
-
+public class RecurrentAthenaQueryManagerImpl implements RecurrentAthenaQueryManager {
+	
 	static final int MAX_QUERY_RESULTS = 1000;
 	static final int MAX_PAGE_REQUESTS = 10;
 
-	static final String QUEUE_NAME = "UNLINKED_FILE_HANDLES";
-	static final String QUERY_NAME = "UnlinkedFileHandles";
-	static final RowMapper<Long> ROW_MAPPER = (Row row) -> {
-		return Long.valueOf(row.getData().get(0).getVarCharValue());
-	};
-
+	private Map<String, RecurrentAthenaQueryProcessor<?>> processorMap;
+	
 	private ObjectMapper objectMapper;
 	private AthenaSupport athenaSupport;
-	private FileHandleDao fileHandleDao;
 	private AmazonSQS sqsClient;
-	private String sqsQueueUrl;
-
+	
 	@Autowired
-	public FileHandleUnlinkedManagerImpl(ObjectMapper objectMapper, AthenaSupport athenaSupport, FileHandleDao fileHandleDao, AmazonSQS sqsClient) {
+	public RecurrentAthenaQueryManagerImpl(ObjectMapper objectMapper, AthenaSupport athenaSupport, AmazonSQS sqsClient) {
 		this.objectMapper = objectMapper;
 		this.athenaSupport = athenaSupport;
-		this.fileHandleDao = fileHandleDao;
 		this.sqsClient = sqsClient;
 	}
-
+	
 	@Autowired
-	public void configureQueryUrl(StackConfiguration config) {
-		this.sqsQueueUrl = sqsClient.getQueueUrl(config.getQueueName(QUEUE_NAME)).getQueueUrl();
+	public void configureProcessorMap(List<RecurrentAthenaQueryProcessor<?>> processors) {
+		
+		processorMap = new HashMap<>(processors.size());
+		
+		processors.forEach(p -> {
+			if (processorMap.put(p.getQueryName(), p) != null) {
+				throw new IllegalStateException("Duplicate query processor for queryName " + p.getQueryName());
+			};
+		});
+		
 	}
-
+	
 	@Override
-	public FileHandleUnlinkedRequest fromSqsMessage(Message message) {
-		FileHandleUnlinkedRequest request;
+	public RecurrentAthenaQueryResult fromSqsMessage(Message message) {
+		RecurrentAthenaQueryResult request;
 
 		try {
-			request = objectMapper.readValue(message.getBody(), FileHandleUnlinkedRequest.class);
+			request = objectMapper.readValue(message.getBody(), RecurrentAthenaQueryResult.class);
 		} catch (JsonProcessingException e) {
-			throw new IllegalArgumentException("Could not parse FileHandleUnlinkedRequest from message: " + e.getMessage(), e);
+			throw new IllegalArgumentException("Could not parse RecurrentAthenaQueryResult from message: " + e.getMessage(), e);
 		}
 
 		return request;
 	}
 	
-	String toJsonMessage(FileHandleUnlinkedRequest request) {
+	String toJsonMessage(RecurrentAthenaQueryResult request) {
 		String messageBody;
 		
 		try {
 			messageBody = objectMapper.writeValueAsString(request);
 		} catch (JsonProcessingException e) {
-			throw new IllegalArgumentException("Could not serialize FileHandleUnlinkedRequest message: " + e.getMessage(), e);
+			throw new IllegalArgumentException("Could not serialize RecurrentAthenaQueryResult message: " + e.getMessage(), e);
 		}
 		
 		return messageBody;
 	}
 	
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
-	public void processFileHandleUnlinkRequest(FileHandleUnlinkedRequest request) {
+	public void processRecurrentAthenaQueryResult(RecurrentAthenaQueryResult request, String queueUrl) {
 		ValidateArgument.requiredNotBlank(request.getQueryName(), "The queryName");
 		ValidateArgument.requiredNotBlank(request.getFunctionExecutionId(), "The functionExecutionId");
 		ValidateArgument.required(request.getQueryExecutionId(), "The queryExecutionId");
-		ValidateArgument.requirement(QUERY_NAME.equals(request.getQueryName()), String.format("Unsupported query: was %s, expected %s.", request.getQueryName(), QUERY_NAME));
+		ValidateArgument.requiredNotBlank(queueUrl, "The queueUrl");
+		
+		RecurrentAthenaQueryProcessor<?> processor = processorMap.get(request.getQueryName());
+		
+		if (processor == null) {
+			throw new IllegalArgumentException(String.format("Unsupported query: %s.", request.getQueryName()));
+		}
 
 		final String queryExecutionId = request.getQueryExecutionId();
 
 		AthenaQueryExecution execution = athenaSupport.getQueryExecutionStatus(queryExecutionId);
 
-		if (AthenaQueryExecutionState.QUEUED.equals(execution.getState())
-				|| AthenaQueryExecutionState.RUNNING.equals(execution.getState())) {
+		if (AthenaQueryExecutionState.QUEUED.equals(execution.getState()) || AthenaQueryExecutionState.RUNNING.equals(execution.getState())) {
 			throw new RecoverableException("The query with id " + queryExecutionId + " is still processing.");
 		}
 
@@ -104,13 +110,13 @@ public class FileHandleUnlinkedManagerImpl implements FileHandleUnlinkedManager 
 		
 		do {
 		
-			AthenaQueryResultPage<Long> page = athenaSupport.getQueryResultsPage(queryExecutionId, ROW_MAPPER, currentPageToken, MAX_QUERY_RESULTS);
+			AthenaQueryResultPage page = athenaSupport.getQueryResultsPage(queryExecutionId, processor.getRowMapper(), currentPageToken, MAX_QUERY_RESULTS);
 			
 			if (page.getResults() == null || page.getResults().isEmpty()) {
 				return;
 			}
 			
-			fileHandleDao.updateBatchStatus(page.getResults(), FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE);
+			processor.processQueryResultsPage(page.getResults());
 			
 			currentPageToken = page.getNextPageToken();
 			pageRequests++;
@@ -119,13 +125,13 @@ public class FileHandleUnlinkedManagerImpl implements FileHandleUnlinkedManager 
 
 		// If there are more results to process we send a message on the same queue, this reduce the amount of time a worker spends processing
 		if (currentPageToken != null) {
-			sendNextPageMessage(request, currentPageToken);
+			sendNextPageMessage(queueUrl, request, currentPageToken);
 		}
 		
 	}
 	
-	private void sendNextPageMessage(final FileHandleUnlinkedRequest request, final String nextPageToken) {
-		FileHandleUnlinkedRequest nextRequest = new FileHandleUnlinkedRequest()
+	private void sendNextPageMessage(String queueUrl, final RecurrentAthenaQueryResult request, final String nextPageToken) {
+		RecurrentAthenaQueryResult nextRequest = new RecurrentAthenaQueryResult()
 				.withQueryName(request.getQueryName())
 				.withFunctionExecutionId(request.getFunctionExecutionId())
 				.withQueryExecutionId(request.getQueryExecutionId())
@@ -134,7 +140,7 @@ public class FileHandleUnlinkedManagerImpl implements FileHandleUnlinkedManager 
 		String messageBody = toJsonMessage(nextRequest);
 		
 		SendMessageRequest sendMessageRequest = new SendMessageRequest()
-				.withQueueUrl(sqsQueueUrl)
+				.withQueueUrl(queueUrl)
 				.withMessageBody(messageBody);
 				
 		sqsClient.sendMessage(sendMessageRequest);

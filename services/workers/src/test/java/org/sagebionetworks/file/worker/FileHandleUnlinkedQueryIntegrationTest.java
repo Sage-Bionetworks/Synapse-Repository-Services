@@ -50,7 +50,7 @@ import com.amazonaws.services.stepfunctions.model.StateMachineListItem;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class FileHandleUnlinkedWorkerIntegrationTest {
+public class FileHandleUnlinkedQueryIntegrationTest {
 	
 	private static final long TIMEOUT = 3 * 60 * 1000;
 	
