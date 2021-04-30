@@ -115,7 +115,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		
 		verify(mockStackStatusDao, times(2)).isStackReadWrite();
 		verify(mockAssociationManager).scanRange(scanRangeRequest.getAssociationType(), scanRangeRequest.getIdRange());
-		verify(mockKinesisLogger).logBatch(eq(FileHandleAssociationRecord.KINESIS_STREAM_NAME), recordsCaptor.capture());
+		verify(mockKinesisLogger).logBatch(eq(FileHandleAssociationRecord.STREAM_NAME), recordsCaptor.capture());
 		verify(mockClock).currentTimeMillis();
 		verify(mockStatusDao).increaseJobCompletedCount(scanRangeRequest.getJobId(), expectedRecords.size());
 		
@@ -154,7 +154,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		
 		verify(mockStackStatusDao, times(2)).isStackReadWrite();
 		verify(mockAssociationManager).scanRange(scanRangeRequest.getAssociationType(), scanRangeRequest.getIdRange());
-		verify(mockKinesisLogger).logBatch(eq(FileHandleAssociationRecord.KINESIS_STREAM_NAME), recordsCaptor.capture());
+		verify(mockKinesisLogger).logBatch(eq(FileHandleAssociationRecord.STREAM_NAME), recordsCaptor.capture());
 		verify(mockClock).currentTimeMillis();
 		
 		List<FileHandleAssociationRecord> records = recordsCaptor.getValue();
@@ -206,7 +206,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		
 		verify(mockStackStatusDao, times(expectedBatches.size() + 1)).isStackReadWrite();
 		verify(mockAssociationManager).scanRange(scanRangeRequest.getAssociationType(), scanRangeRequest.getIdRange());
-		verify(mockKinesisLogger, times(expectedBatches.size())).logBatch(eq(FileHandleAssociationRecord.KINESIS_STREAM_NAME), recordsCaptor.capture());
+		verify(mockKinesisLogger, times(expectedBatches.size())).logBatch(eq(FileHandleAssociationRecord.STREAM_NAME), recordsCaptor.capture());
 		verify(mockClock, times(expectedBatches.size())).currentTimeMillis();
 		verify(mockClock, times(expectedBatches.size() - 1)).sleep(FileHandleAssociationScannerJobManagerImpl.FLUSH_DELAY_MS);
 		

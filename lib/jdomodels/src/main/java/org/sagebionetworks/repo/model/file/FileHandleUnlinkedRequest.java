@@ -2,8 +2,6 @@ package org.sagebionetworks.repo.model.file;
 
 import java.util.Objects;
 
-import com.amazonaws.services.athena.model.QueryExecution;
-
 /**
  * DTO that represents an SQS message with the Athena query execution whose results contain the
  * files to be set as unlinked
@@ -12,7 +10,7 @@ public class FileHandleUnlinkedRequest {
 
 	private String queryName;
 	private String functionExecutionId;
-	private QueryExecution queryExecution;
+	private String queryExecutionId;
 	private String pageToken;
 
 	public String getQueryName() {
@@ -33,12 +31,12 @@ public class FileHandleUnlinkedRequest {
 		return this;
 	}
 
-	public QueryExecution getQueryExecution() {
-		return queryExecution;
+	public String getQueryExecutionId() {
+		return queryExecutionId;
 	}
 
-	public FileHandleUnlinkedRequest withQueryExecution(QueryExecution queryExecution) {
-		this.queryExecution = queryExecution;
+	public FileHandleUnlinkedRequest withQueryExecutionId(String queryExecutionId) {
+		this.queryExecutionId = queryExecutionId;
 		return this;
 	}
 
@@ -53,7 +51,7 @@ public class FileHandleUnlinkedRequest {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(functionExecutionId, pageToken, queryExecution, queryName);
+		return Objects.hash(functionExecutionId, pageToken, queryExecutionId, queryName);
 	}
 
 	@Override
@@ -69,13 +67,13 @@ public class FileHandleUnlinkedRequest {
 		}
 		FileHandleUnlinkedRequest other = (FileHandleUnlinkedRequest) obj;
 		return Objects.equals(functionExecutionId, other.functionExecutionId) && Objects.equals(pageToken, other.pageToken)
-				&& Objects.equals(queryExecution, other.queryExecution) && Objects.equals(queryName, other.queryName);
+				&& Objects.equals(queryExecutionId, other.queryExecutionId) && Objects.equals(queryName, other.queryName);
 	}
 
 	@Override
 	public String toString() {
-		return "FileHandleUnlinkedRequest [queryName=" + queryName + ", functionExecutionId=" + functionExecutionId + ", queryExecution="
-				+ queryExecution + ", pageToken=" + pageToken + "]";
+		return "FileHandleUnlinkedRequest [queryName=" + queryName + ", functionExecutionId=" + functionExecutionId + ", queryExecutionId="
+				+ queryExecutionId + ", pageToken=" + pageToken + "]";
 	}
 
 }

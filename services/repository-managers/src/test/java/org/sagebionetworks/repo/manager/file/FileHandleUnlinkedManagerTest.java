@@ -82,10 +82,11 @@ public class FileHandleUnlinkedManagerTest {
 		manager.configureQueryUrl(mockConfig);
 		
 		mockQueryExecution = new QueryExecution().withQueryExecutionId("456").withStatus(new QueryExecutionStatus().withState(QueryExecutionState.SUCCEEDED));
+		
 		mockRequest = new FileHandleUnlinkedRequest()
 				.withQueryName("UnlinkedFileHandles")
 				.withFunctionExecutionId("123")
-				.withQueryExecution(mockQueryExecution);
+				.withQueryExecutionId("456");
 	}
 	
 	@AfterEach
@@ -156,16 +157,16 @@ public class FileHandleUnlinkedManagerTest {
 	}
 	
 	@Test
-	public void testProcessFileHandleUnlinkRequestWithNoQueryExecution() {
+	public void testProcessFileHandleUnlinkRequestWithNoQueryExecutionId() {
 		
-		mockRequest.withQueryExecution(null);
+		mockRequest.withQueryExecutionId(null);
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			manager.processFileHandleUnlinkRequest(mockRequest);
 		}).getMessage();
 		
-		assertEquals("The queryExecution is required.", message);
+		assertEquals("The queryExecutionId is required.", message);
 	}
 	
 	@Test
@@ -181,19 +182,6 @@ public class FileHandleUnlinkedManagerTest {
 		assertEquals("The functionExecutionId is required and must not be the empty string.", message);
 	}
 	
-	@Test
-	public void testProcessFileHandleUnlinkRequestWithNoQueryExecutionId() {
-		
-		mockQueryExecution.withQueryExecutionId(null);
-		
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			manager.processFileHandleUnlinkRequest(mockRequest);
-		}).getMessage();
-		
-		assertEquals("The queryExecution.queryExecutionId is required.", message);
-	}
-
 	@Test
 	public void testProcessFileHandleUnlinkRequestWithQueryQueued() {
 		
@@ -381,7 +369,7 @@ public class FileHandleUnlinkedManagerTest {
 				.withQueryName(mockRequest.getQueryName())
 				.withFunctionExecutionId(mockRequest.getFunctionExecutionId())
 				.withPageToken(nextToken)
-				.withQueryExecution(mockRequest.getQueryExecution());
+				.withQueryExecutionId(mockRequest.getQueryExecutionId());
 		
 		verify(mockObjectMapper).writeValueAsString(expectedRequest);
 	}

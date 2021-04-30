@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.amazonaws.services.athena.model.QueryExecution;
 import com.amazonaws.services.sqs.model.Message;
 
 @ExtendWith(SpringExtension.class)
@@ -23,9 +22,7 @@ public class FileHandleUnlinkedManagerIntegrationTest {
 	public void testFromSqsMessage() {
 		
 		String messageBody = "{ \"queryName\": \"UnlinkedFileHandles\", \"functionExecutionId\": \"123\""
-				+ ",\"queryExecution\": {"
-				+ "\"queryExecutionId\":\"456\""
-				+ "}}";
+				+ ",\"queryExecutionId\": \"456\"}";
 		
 		Message message = new Message()
 				.withBody(messageBody);
@@ -33,7 +30,7 @@ public class FileHandleUnlinkedManagerIntegrationTest {
 		FileHandleUnlinkedRequest expected = new FileHandleUnlinkedRequest()
 				.withQueryName("UnlinkedFileHandles")
 				.withFunctionExecutionId("123")
-				.withQueryExecution(new QueryExecution().withQueryExecutionId("456"));
+				.withQueryExecutionId("456");
 		
 		// Call under test
 		FileHandleUnlinkedRequest result = manager.fromSqsMessage(message);
@@ -45,8 +42,7 @@ public class FileHandleUnlinkedManagerIntegrationTest {
 	public void testFromSqsMessageWithPageToken() {
 		
 		String messageBody = "{ \"queryName\": \"UnlinkedFileHandles\", \"functionExecutionId\": \"123\""
-				+ ",\"queryExecution\": {"
-				+ "\"queryExecutionId\":\"456\"}"
+				+ ",\"queryExecutionId\": \"456\""
 				+ ", \"pageToken\": \"token\"}";
 		
 		Message message = new Message()
@@ -55,7 +51,7 @@ public class FileHandleUnlinkedManagerIntegrationTest {
 		FileHandleUnlinkedRequest expected = new FileHandleUnlinkedRequest()
 				.withQueryName("UnlinkedFileHandles")
 				.withFunctionExecutionId("123")
-				.withQueryExecution(new QueryExecution().withQueryExecutionId("456"))
+				.withQueryExecutionId("456")
 				.withPageToken("token");
 		
 		// Call under test
@@ -68,8 +64,7 @@ public class FileHandleUnlinkedManagerIntegrationTest {
 	public void testFromSqsMessageWithUnknownField() {
 		
 		String messageBody = "{ \"queryName\": \"UnlinkedFileHandles\", \"functionExecutionId\": \"123\""
-				+ ",\"queryExecution\": {"
-				+ "\"queryExecutionId\":\"456\", \"somethingNew\": \"someNewValue\"}"
+				+ ",\"queryExecutionId\": \"456\", \"somethingNew\": \"someNewValue\""
 				+ ", \"pageToken\": \"token\"}";
 		
 		Message message = new Message()
@@ -78,7 +73,7 @@ public class FileHandleUnlinkedManagerIntegrationTest {
 		FileHandleUnlinkedRequest expected = new FileHandleUnlinkedRequest()
 				.withQueryName("UnlinkedFileHandles")
 				.withFunctionExecutionId("123")
-				.withQueryExecution(new QueryExecution().withQueryExecutionId("456"))
+				.withQueryExecutionId("456")
 				.withPageToken("token");
 		
 		// Call under test
@@ -92,12 +87,12 @@ public class FileHandleUnlinkedManagerIntegrationTest {
 		FileHandleUnlinkedRequest request = new FileHandleUnlinkedRequest()
 				.withQueryName("UnlinkedFileHandles")
 				.withFunctionExecutionId("123")
-				.withQueryExecution(new QueryExecution().withQueryExecutionId("456"))
+				.withQueryExecutionId("456")
 				.withPageToken("token");
 
 		String expected = "{\"queryName\":\"UnlinkedFileHandles\""
 				+ ",\"functionExecutionId\":\"123\""
-				+ ",\"queryExecution\":{\"queryExecutionId\":\"456\",\"query\":null,\"statementType\":null,\"resultConfiguration\":null,\"queryExecutionContext\":null,\"status\":null,\"statistics\":null,\"workGroup\":null}"
+				+ ",\"queryExecutionId\":\"456\""
 				+ ",\"pageToken\":\"token\"}";
 
 		String result = manager.toJsonMessage(request);

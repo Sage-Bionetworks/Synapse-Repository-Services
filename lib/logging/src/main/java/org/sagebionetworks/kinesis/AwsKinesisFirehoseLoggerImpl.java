@@ -16,7 +16,6 @@ import com.amazonaws.services.kinesisfirehose.model.DestinationDescription;
 import com.amazonaws.services.kinesisfirehose.model.ExtendedS3DestinationDescription;
 import com.amazonaws.services.kinesisfirehose.model.ExtendedS3DestinationUpdate;
 import com.amazonaws.services.kinesisfirehose.model.UpdateDestinationRequest;
-import com.amazonaws.services.kinesisfirehose.model.UpdateDestinationResult;
 
 @Component
 public class AwsKinesisFirehoseLoggerImpl implements AwsKinesisFirehoseLogger {

@@ -23,7 +23,6 @@ public class FileHandleStreamWorker implements  BatchChangeMessageDrivenRunner {
 
 	// TODO: This will need to be replaced with some status column
 	private static final String STATUS_AVAILABLE = "AVAILABLE";
-	private static final String STREAM_NAME = "fileHandleData";
 	private FileHandleDao fileHandleDao;
 	private AwsKinesisFirehoseLogger kinesisLogger;
 	
@@ -59,7 +58,7 @@ public class FileHandleStreamWorker implements  BatchChangeMessageDrivenRunner {
 			return;
 		}
 		
-		kinesisLogger.logBatch(STREAM_NAME, records);
+		kinesisLogger.logBatch(FileHandleRecord.STREAM_NAME, records);
 		
 	}
 	

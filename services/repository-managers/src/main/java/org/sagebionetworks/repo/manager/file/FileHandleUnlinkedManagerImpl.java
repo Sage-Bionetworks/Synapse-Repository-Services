@@ -81,11 +81,10 @@ public class FileHandleUnlinkedManagerImpl implements FileHandleUnlinkedManager 
 	public void processFileHandleUnlinkRequest(FileHandleUnlinkedRequest request) {
 		ValidateArgument.requiredNotBlank(request.getQueryName(), "The queryName");
 		ValidateArgument.requiredNotBlank(request.getFunctionExecutionId(), "The functionExecutionId");
-		ValidateArgument.required(request.getQueryExecution(), "The queryExecution");
-		ValidateArgument.required(request.getQueryExecution().getQueryExecutionId(), "The queryExecution.queryExecutionId");
+		ValidateArgument.required(request.getQueryExecutionId(), "The queryExecutionId");
 		ValidateArgument.requirement(QUERY_NAME.equals(request.getQueryName()), String.format("Unsupported query: was %s, expected %s.", request.getQueryName(), QUERY_NAME));
 
-		final String queryExecutionId = request.getQueryExecution().getQueryExecutionId();
+		final String queryExecutionId = request.getQueryExecutionId();
 
 		AthenaQueryExecution execution = athenaSupport.getQueryExecutionStatus(queryExecutionId);
 
@@ -129,7 +128,7 @@ public class FileHandleUnlinkedManagerImpl implements FileHandleUnlinkedManager 
 		FileHandleUnlinkedRequest nextRequest = new FileHandleUnlinkedRequest()
 				.withQueryName(request.getQueryName())
 				.withFunctionExecutionId(request.getFunctionExecutionId())
-				.withQueryExecution(request.getQueryExecution())
+				.withQueryExecutionId(request.getQueryExecutionId())
 				.withPageToken(nextPageToken);
 		
 		String messageBody = toJsonMessage(nextRequest);

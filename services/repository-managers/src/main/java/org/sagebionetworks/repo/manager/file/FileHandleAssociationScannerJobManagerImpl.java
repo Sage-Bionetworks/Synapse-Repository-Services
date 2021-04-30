@@ -174,7 +174,7 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 	private int flushRecordsBatch(Set<FileHandleAssociationRecord> recordsBatch) {
 		validateStackReadWrite();
 		int size = recordsBatch.size();
-		kinesisLogger.logBatch(FileHandleAssociationRecord.KINESIS_STREAM_NAME, new ArrayList<>(recordsBatch));
+		kinesisLogger.logBatch(FileHandleAssociationRecord.STREAM_NAME, new ArrayList<>(recordsBatch));
 		recordsBatch.clear();
 		return size;
 	}
