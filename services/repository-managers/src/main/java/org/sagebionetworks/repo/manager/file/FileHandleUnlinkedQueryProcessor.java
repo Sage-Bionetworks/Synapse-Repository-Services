@@ -4,8 +4,8 @@ import java.util.List;
 
 import org.sagebionetworks.repo.manager.athena.RecurrentAthenaQueryProcessor;
 import org.sagebionetworks.repo.model.athena.RowMapper;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.FileHandleStatus;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
