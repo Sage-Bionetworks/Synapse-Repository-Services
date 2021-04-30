@@ -7,7 +7,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Collectors;
 
@@ -32,7 +31,6 @@ import org.sagebionetworks.repo.model.athena.AthenaSupport;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.FileHandleStatus;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
-import org.sagebionetworks.repo.model.dbo.dao.files.DBOFilesScannerStatus;
 import org.sagebionetworks.repo.model.dbo.dao.files.FilesScannerStatusDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
@@ -145,8 +143,10 @@ public class FileHandleUnlinkedWorkerIntegrationTest {
 			ar.setDucTemplateFileHandleId(linkedHandle.getId());
 		});
 		
-		triggerAndWaitForScanner();
+		// Manually trigger the job for the scanner since the start time is very long
+		scheduler.triggerJob(dispatcherTrigger.getJobKey(), dispatcherTrigger.getJobDataMap());
 		
+		// We wait for the ids to end up in the right glue tables, using athena itself to check 
 		waitForKinesisData(Arrays.asList(linkedHandle, unlinkedHandle).stream().map(f -> f.getId()).collect(Collectors.toList()), "fileHandleDataRecords", "id");
 		waitForKinesisData(Arrays.asList(linkedHandle).stream().map(f -> f.getId()).collect(Collectors.toList()), "fileHandleAssociationsRecords", "filehandleid");
 		
@@ -154,30 +154,11 @@ public class FileHandleUnlinkedWorkerIntegrationTest {
 		
 		stepFunctionsClient.startExecution(new StartExecutionRequest().withStateMachineArn(stateMachineArn));
 		
-		TimeUtils.waitFor(TIMEOUT, 5000L, () -> {
+		TimeUtils.waitFor(TIMEOUT, 1000L, () -> {
 			List<FileHandle> linked = fileHandleDao.getFileHandlesBatchByStatus(Arrays.asList(Long.valueOf(linkedHandle.getId())), FileHandleStatus.AVAILABLE);
 			List<FileHandle> unlinked = fileHandleDao.getFileHandlesBatchByStatus(Arrays.asList(Long.valueOf(unlinkedHandle.getId())), FileHandleStatus.UNLINKED);
 			
 			return new Pair<>(linked.size() == 1 && unlinked.size() == 1, null);
-		});
-	}
-	
-	private void triggerAndWaitForScanner() throws Exception {
-		// Manually trigger the job since the start time is very long
-		scheduler.triggerJob(dispatcherTrigger.getJobKey(), dispatcherTrigger.getJobDataMap());
-		
-		// First wait for the dispatcher job to trigger
-		DBOFilesScannerStatus currentJob = TimeUtils.waitFor(TIMEOUT, 1000L, () -> {
-			Optional<DBOFilesScannerStatus> status = scannerDao.getLatest();
-			
-			return new Pair<>(status.isPresent() && status.get().getJobsStartedCount() > 0, status.orElse(null));
-		});
-		
-		// Now wait for all the dispatched requests to finish
-		TimeUtils.waitFor(TIMEOUT, 1000L, () -> {
-			DBOFilesScannerStatus status = scannerDao.get(currentJob.getId());
-			
-			return new Pair<>(status.getJobsCompletedCount() >= status.getJobsStartedCount(), null);
 		});
 	}
 	
@@ -188,7 +169,7 @@ public class FileHandleUnlinkedWorkerIntegrationTest {
 		
 		String query = "SELECT COUNT(*) FROM " + fileHandleDataTable.getName() + " WHERE " + idColumn + " IN (" + String.join(",", ids) + ")";
 		
-		TimeUtils.waitFor(TIMEOUT, 10000L, () -> {
+		TimeUtils.waitFor(TIMEOUT, 5000L, () -> {
 			
 			AthenaQueryResult<Long> q = athenaSupport.executeQuery(dataBase, query, (row) -> {
 				return Long.valueOf(row.getData().get(0).getVarCharValue());
