@@ -133,6 +133,7 @@ public class BaseClientImpl implements BaseClient {
 		}
 	}
 
+	@Deprecated
 	/**
 	 * @category Authentication
 	 * @param request
@@ -143,8 +144,9 @@ public class BaseClientImpl implements BaseClient {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getUsername(), "LoginRequest.username");
 		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
-		LoginResponse response = postJSONEntity(authEndpoint, "/login2", request, LoginResponse.class);
-		setBearerAuthorizationToken(response.getAccessToken());
+		LoginResponse response = postJSONEntity(authEndpoint, "/login", request, LoginResponse.class);
+		defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, response.getSessionToken());
+		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, response.getSessionToken());
 		return response;
 	}
 
@@ -163,13 +165,18 @@ public class BaseClientImpl implements BaseClient {
 		return response;
 	}
 
+	@Deprecated
 	/**
 	 * @category Authentication
 	 * @throws SynapseException
 	 */
 	public void logout() throws SynapseException {
+		deleteUri(authEndpoint, "/session");
 		defaultGETDELETEHeaders.remove(SESSION_TOKEN_HEADER);
 		defaultPOSTPUTHeaders.remove(SESSION_TOKEN_HEADER);
+	}
+
+	public void logoutForAccessToken() throws SynapseException {
 		removeAuthorizationHeader();
 	}
 
@@ -345,6 +352,25 @@ public class BaseClientImpl implements BaseClient {
 		return this.userAgent;
 	}
 
+	/**
+	 * @category Authentication
+	 * @throws SynapseException
+	 */
+	@Deprecated
+	protected void revalidateSession() throws SynapseException {
+		Session session = new Session();
+		String currentSessionToken = getCurrentSessionToken();
+		if (currentSessionToken==null) throw new 
+			SynapseClientException("You must log in before revalidating the session.");
+		session.setSessionToken(currentSessionToken);
+		try {
+			voidPut(authEndpoint, "/session", session);
+		} catch (SynapseForbiddenException e) {
+			throw new SynapseTermsOfUseException(e.getMessage());
+		}
+	}
+
+
 	//================================================================================
 	// Upload & Download related helping functions
 	//================================================================================
@@ -441,7 +467,7 @@ public class BaseClientImpl implements BaseClient {
 				}
 			}
 			Charset charset = ClientUtils.getCharacterSetFromResponse(response);
-
+			
 			return charset;
 		} catch (ClientProtocolException e) {
 			throw new SynapseClientException(e);

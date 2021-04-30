@@ -76,6 +76,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -323,13 +324,16 @@ public interface SynapseClient extends BaseClient {
 	 */
 	void newAccountEmailValidation(NewUser user, String portalEndpoint) throws SynapseException;
 	
+	@Deprecated
+	Session createNewAccount(AccountSetupInfo accountSetupInfo) throws SynapseException;
+	
 	/**
-	 * Create a new account, following email validation.  Sets the password and logs the user in, returning a valid session token
+	 * Create a new account, following email validation.  Sets the password and logs the user in, returning a valid access token
 	 * @param accountSetupInfo  Note:  Caller may override the first/last name, but not the email, given in 'newAccountEmailValidation' 
 	 * @return session
 	 * @throws NotFoundException 
 	 */
-	LoginResponse createNewAccount(AccountSetupInfo accountSetupInfo) throws SynapseException;
+	LoginResponse createNewAccountForAccessToken(AccountSetupInfo accountSetupInfo) throws SynapseException;
 	
 	/**
 	 * Send an email validation as a precursor to adding a new email address to an existing account.
@@ -395,6 +399,13 @@ public interface SynapseClient extends BaseClient {
 	
 	public void downloadWikiAttachment(WikiPageKey properKey,
 			String fileName, File target) throws SynapseException;
+
+	/**
+	 * Returns an access token and UserProfile object
+	 * 
+	 * Note: if the user has not accepted the terms of use, the profile will not (cannot) be retrieved
+	 */
+	public UserSessionData getUserSessionData() throws SynapseException;
 
 	/**
 	 * Create a new Entity.
@@ -1876,6 +1887,11 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	public void changePassword(ChangePasswordInterface changePasswordRequest) throws SynapseException;
+
+	/**
+	 * Signs the terms of use for utilization of Synapse, as identified by a session token
+	 */
+	public void signTermsOfUse(String accessToken, boolean acceptTerms) throws SynapseException;
 
 	/**
 	 * Signs the terms of use for utilization of Synapse, as identified by an access token
