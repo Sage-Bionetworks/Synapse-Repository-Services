@@ -20,8 +20,8 @@ public class AwsKinesisFirehoseLoggerImpl implements AwsKinesisFirehoseLogger {
 	private String instance;
 
 	@Autowired
-	public AwsKinesisFirehoseLoggerImpl(AwsKinesisFirehoseBatchClient kinesisFirehoseClient,  AwsKinesisLogRecordSerializer kinesisRecordSerializer) {
-		this.kinesisFirehoseBatchClient = kinesisFirehoseClient;
+	public AwsKinesisFirehoseLoggerImpl(AwsKinesisFirehoseBatchClient kinesisFirehoseBatchClient,  AwsKinesisLogRecordSerializer kinesisRecordSerializer) {
+		this.kinesisFirehoseBatchClient = kinesisFirehoseBatchClient;
 		this.kinesisRecordSerializer = kinesisRecordSerializer;
 	}
 	

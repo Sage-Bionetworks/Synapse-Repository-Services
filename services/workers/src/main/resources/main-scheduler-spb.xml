@@ -129,6 +129,7 @@
 		<ref bean="fileHandleAssociationScanRangeWorkerTrigger" />
 		<ref bean="fileHandleStreamWorkerTrigger" />
 		<ref bean="downloadListQueryTrigger" />
+		<ref bean="recurrentAthenaQueryWorkerTrigger" />
 	</util:list>
 
 	<bean id="mainScheduler"

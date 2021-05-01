@@ -140,6 +140,24 @@ public interface FileHandleDao {
 	boolean isMatchingMD5(String sourceFileHandleId, String targetFileHandleId);
 	
 	/**
+	 * Updates the status of the given batch of file handle ids for any that is in the given currentStatus
+	 * 
+	 * @param ids The batch of ids to update
+	 * @param newStatus The new status to assign
+	 * @param currentStatus The current status for the update to apply
+	 */
+	void updateBatchStatus(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus);
+	
+	/**
+	 * Get the given list of file handles, filtering those that are not in the given status
+	 * 
+	 * @param ids The batch of file handles
+	 * @param status The status to filter by
+	 * @return
+	 */
+	List<FileHandle> getFileHandlesBatchByStatus(List<Long> ids, FileHandleStatus status);
+	
+	/**
 	 * Deleted all file data
 	 */
 	void truncateTable();

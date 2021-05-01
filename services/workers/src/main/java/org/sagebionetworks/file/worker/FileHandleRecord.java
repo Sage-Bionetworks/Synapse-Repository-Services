@@ -8,6 +8,8 @@ import org.sagebionetworks.kinesis.AwsKinesisLogRecord;
  * DTO for sending file handle data to kinesis
  */
 public class FileHandleRecord implements AwsKinesisLogRecord {
+
+	public static final String STREAM_NAME = "fileHandleData";
 	
 	private long id;
 	private long createdOn;

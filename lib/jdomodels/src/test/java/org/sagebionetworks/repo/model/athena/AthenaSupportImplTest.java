@@ -4,12 +4,15 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -28,6 +31,7 @@ import com.amazonaws.services.athena.AmazonAthena;
 import com.amazonaws.services.athena.model.Datum;
 import com.amazonaws.services.athena.model.GetQueryExecutionRequest;
 import com.amazonaws.services.athena.model.GetQueryExecutionResult;
+import com.amazonaws.services.athena.model.GetQueryResultsRequest;
 import com.amazonaws.services.athena.model.GetQueryResultsResult;
 import com.amazonaws.services.athena.model.QueryExecution;
 import com.amazonaws.services.athena.model.QueryExecutionContext;
@@ -434,6 +438,141 @@ public class AthenaSupportImplTest {
 		
 		verify(mockAthenaClient).getQueryExecution(getQueryExecutionRequest(queryId));
 		verify(mockAthenaClient, never()).getQueryResults(any());
+	}
+	
+	@Test
+	public void testGetQueryResultsPageWithNoToken() {
+		String queryId = "abcd";
+		String value = "Some Value";
+		int limit = 100;
+		String pageToken = null;
+
+		when(mockQueryResult.getNextToken()).thenReturn("next");
+		when(mockQueryResult.getResultSet()).thenReturn(getResultSet("Header", value, value));
+		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResult);
+		
+		AthenaQueryResultPage<String> expected = new AthenaQueryResultPage<String>()
+				.withQueryExecutionId(queryId)
+				.withNextPageToken("next")
+				// Note that since the pageToken is null the header is skipped
+				.withResults(Arrays.asList(value, value));
+		
+		GetQueryResultsRequest expectedRequest = new GetQueryResultsRequest()
+				.withQueryExecutionId(queryId)
+				.withMaxResults(limit)
+				.withNextToken(pageToken);
+
+		// Call under test
+		AthenaQueryResultPage<String> result = athenaSupport.getQueryResultsPage(queryId, rowMapper, pageToken, limit);
+		
+		assertEquals(expected, result);
+
+		// Now the fetch is fired
+		verify(mockAthenaClient).getQueryResults(expectedRequest);
+
+	}
+	
+	@Test
+	public void testGetQueryResultsPageWithPageToken() {
+		String queryId = "abcd";
+		String value = "Some Value";
+		int limit = 100;
+		String pageToken = "someToken";
+
+		when(mockQueryResult.getNextToken()).thenReturn("next");
+		when(mockQueryResult.getResultSet()).thenReturn(getResultSet(value, value));
+		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResult);
+		
+		AthenaQueryResultPage<String> expected = new AthenaQueryResultPage<String>()
+				.withQueryExecutionId(queryId)
+				.withNextPageToken("next")
+				.withResults(Arrays.asList(value, value));
+		
+		GetQueryResultsRequest expectedRequest = new GetQueryResultsRequest()
+				.withQueryExecutionId(queryId)
+				.withMaxResults(limit)
+				.withNextToken(pageToken);
+
+		// Call under test
+		AthenaQueryResultPage<String> result = athenaSupport.getQueryResultsPage(queryId, rowMapper, pageToken, limit);
+		
+		assertEquals(expected, result);
+
+		// Now the fetch is fired
+		verify(mockAthenaClient).getQueryResults(expectedRequest);
+
+	}
+	
+	@Test
+	public void testGetQueryResultsPageWithNoQueryId() {
+		String queryId = null;
+		int limit = 100;
+		String pageToken = "someToken";
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			athenaSupport.getQueryResultsPage(queryId, rowMapper, pageToken, limit);
+		}).getMessage();
+		
+		assertEquals("executionQueryId is required.", message);
+
+		// Now the fetch is fired
+		verifyZeroInteractions(mockAthenaClient);
+
+	}
+	
+	@Test
+	public void testGetQueryResultsPageWithNoRowMapper() {
+		String queryId = "abc";
+		int limit = 100;
+		String pageToken = "someToken";
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			athenaSupport.getQueryResultsPage(queryId, null, pageToken, limit);
+		}).getMessage();
+		
+		assertEquals("rowMapper is required.", message);
+
+		// Now the fetch is fired
+		verifyZeroInteractions(mockAthenaClient);
+
+	}
+	
+	@Test
+	public void testGetQueryResultsPageWithNegativeLimit() {
+		String queryId = "abcd";
+		int limit = -1;
+		String pageToken = "someToken";
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			athenaSupport.getQueryResultsPage(queryId, rowMapper, pageToken, limit);
+		}).getMessage();
+		
+		assertEquals("The limit must be greater than 0 and less or equal than 1000", message);
+
+		// Now the fetch is fired
+		verifyZeroInteractions(mockAthenaClient);
+
+	}
+	
+	@Test
+	public void testGetQueryResultsPageWithExceedLimit() {
+		String queryId = "abcd";
+		int limit = AthenaResultsProvider.MAX_PAGE_SIZE + 1;
+		String pageToken = "someToken";
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			athenaSupport.getQueryResultsPage(queryId, rowMapper, pageToken, limit);
+		}).getMessage();
+		
+		assertEquals("The limit must be greater than 0 and less or equal than 1000", message);
+
+		// Now the fetch is fired
+		verifyZeroInteractions(mockAthenaClient);
+
 	}
 
 	@Test
