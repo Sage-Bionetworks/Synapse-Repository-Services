@@ -1,10 +1,13 @@
-package org.sagebionetworks.repo.model.dao;
+package org.sagebionetworks.repo.model.dbo.file;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
+import org.sagebionetworks.repo.model.dao.FileHandleStatus;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.web.FileHandleLinkedException;
@@ -156,6 +159,12 @@ public interface FileHandleDao {
 	 * @return
 	 */
 	List<FileHandle> getFileHandlesBatchByStatus(List<Long> ids, FileHandleStatus status);
+	
+	/**
+	 * @param ids
+	 * @return The plain DBO object for the file handles with the given id
+	 */
+	List<DBOFileHandle> getDBOFileHandlesBatch(List<Long> ids);
 	
 	/**
 	 * Deleted all file data

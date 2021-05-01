@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dao.FileHandleStatus;
+import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
@@ -860,6 +861,35 @@ public class DBOFileHandleDaoImplTest {
 		
 		// Only the second is available now
 		assertEquals(Arrays.asList(Long.valueOf(file1.getId())), result);
+	}
+	
+	@Test
+	public void testGetDBOFileHandlesBatch() {
+		S3FileHandle file1 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		S3FileHandle file2 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		
+		fileHandleDao.createBatch(Arrays.asList(file1, file2));
+		
+		List<Long> ids = Arrays.asList(file1.getId(), file2.getId(), "567").stream().map(id-> Long.valueOf(id)).collect(Collectors.toList());
+
+		List<DBOFileHandle> expected = Arrays.asList(
+				FileMetadataUtils.createDBOFromDTO(file1),
+				FileMetadataUtils.createDBOFromDTO(file2)
+		);
+		
+		// Call under test
+		List<DBOFileHandle> result = fileHandleDao.getDBOFileHandlesBatch(ids);
+		
+		for (int i=0; i<result.size(); i++) {
+			DBOFileHandle truth = result.get(i);
+			DBOFileHandle toAlign = expected.get(i);
+			
+			toAlign.setCreatedOn(truth.getCreatedOn());
+			toAlign.setUpdatedOn(truth.getUpdatedOn());
+		}
+		
+		assertEquals(expected, result);
+		
 	}
 	
 	@Test

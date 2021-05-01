@@ -26,13 +26,13 @@ import java.util.UUID;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dao.FileHandleStatus;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -356,6 +356,17 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 				.addValue(COL_FILES_STATUS, status.name());
 		
 		return namedJdbcTemplate.query(sql, paramSource, ROW_MAPPER);
+	}
+	
+	@Override
+	public List<DBOFileHandle> getDBOFileHandlesBatch(List<Long> ids) {
+		if (ids == null || ids.isEmpty()) {
+			return Collections.emptyList();
+		}
+		
+		MapSqlParameterSource paramSource = new  MapSqlParameterSource("ids", ids);
+		
+		return namedJdbcTemplate.query(SQL_SELECT_BATCH, paramSource, DBO_MAPPER);
 	}
 	
 	@Override

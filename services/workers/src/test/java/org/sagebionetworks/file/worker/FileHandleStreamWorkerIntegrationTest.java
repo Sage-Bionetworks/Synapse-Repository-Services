@@ -3,7 +3,6 @@ package org.sagebionetworks.file.worker;
 import java.util.Iterator;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.ids.IdGenerator;
@@ -13,8 +12,8 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.athena.AthenaQueryResult;
 import org.sagebionetworks.repo.model.athena.AthenaSupport;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
