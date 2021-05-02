@@ -2045,7 +2045,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 					request.getSnapshotActivityId(), userId, modifiedOn, nodeId, revisionNumber);
 			return revisionNumber;
 		} catch (DuplicateKeyException e) {
-			throw new IllegalArgumentException(e);
+			if (e.getMessage().contains("UNIQUE_REVISION_LABEL")) {
+				throw new IllegalArgumentException(String.format("The label '%s' has already been used for a version of this entity", label), e);
+			} else {
+				throw(e);
+			}
 		}
 	}
 

@@ -77,6 +77,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.UncategorizedSQLException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -4082,11 +4083,14 @@ public class NodeDAOImplTest {
 		request2.setSnapshotLabel("some label");
 		request2.setSnapshotActivityId(testActivity2.getId());
 
-		// call under test: this should fail
+		// call under test
 		String id = node.getId();
-		assertThrows(
+		Throwable thrownException = assertThrows(
 			IllegalArgumentException.class, () -> {nodeDao.snapshotVersion(user1Id, id, request2);}
 		);
+		assertTrue(thrownException.getMessage().equals(String.format("The label '%s' has already been used for a version of this entity", "some label")));
+		assertTrue(thrownException.getCause() instanceof DuplicateKeyException);
+
 	}
 	
 	@Test
