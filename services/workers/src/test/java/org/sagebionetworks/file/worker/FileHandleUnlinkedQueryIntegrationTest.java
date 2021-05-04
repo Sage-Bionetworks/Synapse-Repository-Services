@@ -51,9 +51,13 @@ import com.amazonaws.services.s3.model.DeleteObjectsRequest.KeyVersion;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.stepfunctions.AWSStepFunctions;
+import com.amazonaws.services.stepfunctions.model.DescribeExecutionRequest;
+import com.amazonaws.services.stepfunctions.model.DescribeExecutionResult;
+import com.amazonaws.services.stepfunctions.model.ExecutionStatus;
 import com.amazonaws.services.stepfunctions.model.ListStateMachinesRequest;
 import com.amazonaws.services.stepfunctions.model.ListStateMachinesResult;
 import com.amazonaws.services.stepfunctions.model.StartExecutionRequest;
+import com.amazonaws.services.stepfunctions.model.StartExecutionResult;
 import com.amazonaws.services.stepfunctions.model.StateMachineListItem;
 
 @ExtendWith(SpringExtension.class)
@@ -187,9 +191,23 @@ public class FileHandleUnlinkedQueryIntegrationTest {
 		
 		String stateMachineArn = findStateMachineArn("UnlinkedFileHandles");
 		
-		stepFunctionsClient.startExecution(new StartExecutionRequest().withStateMachineArn(stateMachineArn));
+		String executionArn = stepFunctionsClient.startExecution(new StartExecutionRequest().withStateMachineArn(stateMachineArn)).getExecutionArn();
 		
 		TimeUtils.waitFor(TIMEOUT, 1000L, () -> {
+			
+			ExecutionStatus status = ExecutionStatus.valueOf(stepFunctionsClient.describeExecution(new DescribeExecutionRequest().withExecutionArn(executionArn)).getStatus());
+			
+			switch (status) {
+			case FAILED:
+			case ABORTED:
+			case TIMED_OUT:
+				throw new IllegalStateException("The execution " + executionArn + " failed: " + status);
+			case RUNNING:
+				return new Pair<>(false, null);
+			default:
+				break;
+			}
+			
 			List<FileHandle> linked = fileHandleDao.getFileHandlesBatchByStatus(Arrays.asList(Long.valueOf(linkedHandle.getId())), FileHandleStatus.AVAILABLE);
 			List<FileHandle> unlinked = fileHandleDao.getFileHandlesBatchByStatus(Arrays.asList(Long.valueOf(unlinkedHandle.getId())), FileHandleStatus.UNLINKED);
 			
