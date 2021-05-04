@@ -68,6 +68,7 @@ public class TableFileHandleIterator implements Iterator<ScannedFileHandleAssoci
 				// According to the docs the service type error are for requests received by AWS that cannot be fulfilled at the moment
 				// The caller can try iterating again from scratch
 				if (ErrorType.Service.equals(e.getErrorType())) {
+					// Since we are in an iterator we cannot throw a checked exception
 					throw new RecoverableException(e);
 				}
 				throw e;
