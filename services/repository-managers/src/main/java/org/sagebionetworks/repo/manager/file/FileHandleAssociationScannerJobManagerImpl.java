@@ -14,7 +14,6 @@ import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociatio
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.files.DBOFilesScannerStatus;
 import org.sagebionetworks.repo.model.dbo.dao.files.FilesScannerStatusDao;
-import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.exception.RecoverableException;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationScanRangeRequest;
@@ -183,7 +182,7 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 		if (stackStatusDao.isStackReadWrite()) {
 			return;
 		}
-		throw new ReadOnlyException("The stack was in read-only mode.");
+		throw new RecoverableException("The stack was in read-only mode.");
 	}
 
 }

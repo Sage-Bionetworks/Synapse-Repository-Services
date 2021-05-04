@@ -38,7 +38,7 @@ import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociatio
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.files.DBOFilesScannerStatus;
 import org.sagebionetworks.repo.model.dbo.dao.files.FilesScannerStatusDao;
-import org.sagebionetworks.repo.model.exception.ReadOnlyException;
+import org.sagebionetworks.repo.model.exception.RecoverableException;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationScanRangeRequest;
 import org.sagebionetworks.repo.model.file.IdRange;
@@ -284,7 +284,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		when(mockStatusDao.exist(anyLong())).thenReturn(true);
 		when(mockStackStatusDao.isStackReadWrite()).thenReturn(false); 
 		
-		String errorMessage = assertThrows(ReadOnlyException.class, () -> {
+		String errorMessage = assertThrows(RecoverableException.class, () -> {
 			// Call under test
 			manager.processScanRangeRequest(scanRangeRequest);
 		}).getMessage();
