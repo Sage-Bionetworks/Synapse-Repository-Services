@@ -24,7 +24,6 @@ import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociatio
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.exception.RecoverableException;
-import org.sagebionetworks.repo.model.exception.UnrecoverableException;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
@@ -271,7 +270,7 @@ public class TableFileHandleIteratorTest {
 		when(mockTableChange.getChangeType()).thenReturn(TableChangeType.ROW);
 		when(mockTableChangeIterator.next()).thenReturn(mockTableChange);
 		
-		UnrecoverableException result = assertThrows(UnrecoverableException.class, () -> {			
+		IllegalStateException result = assertThrows(IllegalStateException.class, () -> {			
 			// Call under test
 			iterator.next();
 		});
@@ -296,12 +295,12 @@ public class TableFileHandleIteratorTest {
 		when(mockTableChange.getChangeType()).thenReturn(TableChangeType.ROW);
 		when(mockTableChangeIterator.next()).thenReturn(mockTableChange);
 		
-		UnrecoverableException result = assertThrows(UnrecoverableException.class, () -> {			
+		AmazonServiceException result = assertThrows(AmazonServiceException.class, () -> {			
 			// Call under test
 			iterator.next();
 		});
 
-		assertEquals(ex, result.getCause());
+		assertEquals(ex, result);
 		
 		verify(mockTableChangeIterator).next();
 		verify(mockTableChange).getChangeType();
