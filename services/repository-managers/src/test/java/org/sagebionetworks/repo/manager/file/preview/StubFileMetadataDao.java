@@ -154,7 +154,7 @@ public class StubFileMetadataDao implements FileHandleDao {
 	}
 	
 	@Override
-	public List<DBOFileHandle> getDBOFileHandlesBatch(List<Long> ids) {
+	public List<DBOFileHandle> getDBOFileHandlesBatch(List<Long> ids, int updatedOnBeforeDays) {
 		// TODO Auto-generated method stub
 		return null;
 	}

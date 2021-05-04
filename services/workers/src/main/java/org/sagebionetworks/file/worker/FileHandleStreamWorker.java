@@ -15,9 +15,11 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
- * Worker that streams file handle changes to S3 through kinesis
+ * Worker that streams file handle changes to S3 through kinesis for unlinked file handle detection
  */
 public class FileHandleStreamWorker implements  BatchChangeMessageDrivenRunner {
+	
+	static final int UPDATED_ON_DAYS_FILTER = 30;
 
 	private FileHandleDao fileHandleDao;
 	private AwsKinesisFirehoseLogger kinesisLogger;
@@ -44,7 +46,7 @@ public class FileHandleStreamWorker implements  BatchChangeMessageDrivenRunner {
 			return;
 		}
 		
-		List<DBOFileHandle> fileHandles = fileHandleDao.getDBOFileHandlesBatch(fileHandleIds);
+		List<DBOFileHandle> fileHandles = fileHandleDao.getDBOFileHandlesBatch(fileHandleIds, UPDATED_ON_DAYS_FILTER);
 		
 		List<FileHandleRecord> records = fileHandles.stream()
 				.map(this::mapFileHandle)

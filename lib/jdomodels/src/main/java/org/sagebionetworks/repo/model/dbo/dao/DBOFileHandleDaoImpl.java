@@ -359,14 +359,21 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	}
 	
 	@Override
-	public List<DBOFileHandle> getDBOFileHandlesBatch(List<Long> ids) {
+	public List<DBOFileHandle> getDBOFileHandlesBatch(List<Long> ids, int updatedOnBeforeDays) {
+		ValidateArgument.requirement(updatedOnBeforeDays >= 0, "The updatedOnBeforeDays must be greater or equal than 0");
 		if (ids == null || ids.isEmpty()) {
 			return Collections.emptyList();
 		}
 		
+		StringBuilder sql = new StringBuilder(SQL_SELECT_BATCH);
+		
+		if (updatedOnBeforeDays > 0) {
+			sql.append(" AND ").append(COL_FILES_UPDATED_ON).append(" < NOW() - INTERVAL ").append(updatedOnBeforeDays).append(" DAY");
+		}
+		
 		MapSqlParameterSource paramSource = new  MapSqlParameterSource("ids", ids);
 		
-		return namedJdbcTemplate.query(SQL_SELECT_BATCH, paramSource, DBO_MAPPER);
+		return namedJdbcTemplate.query(sql.toString(), paramSource, DBO_MAPPER);
 	}
 	
 	@Override
