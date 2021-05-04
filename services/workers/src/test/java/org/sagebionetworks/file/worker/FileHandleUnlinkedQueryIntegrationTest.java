@@ -52,12 +52,10 @@ import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.stepfunctions.AWSStepFunctions;
 import com.amazonaws.services.stepfunctions.model.DescribeExecutionRequest;
-import com.amazonaws.services.stepfunctions.model.DescribeExecutionResult;
 import com.amazonaws.services.stepfunctions.model.ExecutionStatus;
 import com.amazonaws.services.stepfunctions.model.ListStateMachinesRequest;
 import com.amazonaws.services.stepfunctions.model.ListStateMachinesResult;
 import com.amazonaws.services.stepfunctions.model.StartExecutionRequest;
-import com.amazonaws.services.stepfunctions.model.StartExecutionResult;
 import com.amazonaws.services.stepfunctions.model.StateMachineListItem;
 
 @ExtendWith(SpringExtension.class)
@@ -186,8 +184,8 @@ public class FileHandleUnlinkedQueryIntegrationTest {
 		scheduler.triggerJob(dispatcherTrigger.getJobKey(), dispatcherTrigger.getJobDataMap());
 		
 		// We wait for the ids to end up in the right glue tables, using athena itself to check 
-		waitForKinesisData(Arrays.asList(linkedHandle, unlinkedHandle).stream().map(f -> f.getId().toString()).collect(Collectors.toList()), "fileHandleDataRecords", "id");
-		waitForKinesisData(Arrays.asList(linkedHandle).stream().map(f -> f.getId().toString()).collect(Collectors.toList()), "fileHandleAssociationsRecords", "filehandleid");
+		waitForKinesisData(Arrays.asList(linkedHandle.getId(), unlinkedHandle.getId()), "fileHandleDataRecords", "id");
+		waitForKinesisData(Arrays.asList(linkedHandle.getId()), "fileHandleAssociationsRecords", "filehandleid");
 		
 		String stateMachineArn = findStateMachineArn("UnlinkedFileHandles");
 		
@@ -208,19 +206,19 @@ public class FileHandleUnlinkedQueryIntegrationTest {
 				break;
 			}
 			
-			List<FileHandle> linked = fileHandleDao.getFileHandlesBatchByStatus(Arrays.asList(Long.valueOf(linkedHandle.getId())), FileHandleStatus.AVAILABLE);
-			List<FileHandle> unlinked = fileHandleDao.getFileHandlesBatchByStatus(Arrays.asList(Long.valueOf(unlinkedHandle.getId())), FileHandleStatus.UNLINKED);
+			List<FileHandle> linked = fileHandleDao.getFileHandlesBatchByStatus(Arrays.asList(linkedHandle.getId()), FileHandleStatus.AVAILABLE);
+			List<FileHandle> unlinked = fileHandleDao.getFileHandlesBatchByStatus(Arrays.asList(unlinkedHandle.getId()), FileHandleStatus.UNLINKED);
 			
 			return new Pair<>(linked.size() == 1 && unlinked.size() == 1, null);
 		});
 	}
 	
-	private void waitForKinesisData(List<String> ids, String tableName, String idColumn) throws Exception {
+	private void waitForKinesisData(List<Long> ids, String tableName, String idColumn) throws Exception {
 		Database dataBase = athenaSupport.getDatabase("firehoseLogs");
 		
 		Table fileHandleDataTable = athenaSupport.getTable(dataBase, tableName);
 		
-		String query = "SELECT COUNT(*) FROM " + fileHandleDataTable.getName() + " WHERE " + idColumn + " IN (" + String.join(",", ids) + ")";
+		String query = "SELECT COUNT(*) FROM " + fileHandleDataTable.getName() + " WHERE " + idColumn + " IN (" + String.join(",", ids.stream().map(id -> id.toString()).collect(Collectors.toList())) + ")";
 		
 		LOG.info("Executing query {}...", query);
 		
