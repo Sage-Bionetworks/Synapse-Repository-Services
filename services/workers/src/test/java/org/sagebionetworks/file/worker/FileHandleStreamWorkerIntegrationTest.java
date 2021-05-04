@@ -1,5 +1,9 @@
 package org.sagebionetworks.file.worker;
 
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Collections;
 import java.util.Iterator;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -12,9 +16,10 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.athena.AthenaQueryResult;
 import org.sagebionetworks.repo.model.athena.AthenaSupport;
+import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
-import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,9 +57,17 @@ public class FileHandleStreamWorkerIntegrationTest {
 		
 		fileHandleDao.truncateTable();
 
-		FileHandle handle = TestUtils.createS3FileHandle(user.getId().toString(), idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		// We need to set an old timetamp manuall so that the file handle is not filtered out
+		Timestamp createdOn = Timestamp.from(Instant.now().minus(FileHandleStreamWorker.UPDATED_ON_DAYS_FILTER + 1, ChronoUnit.DAYS));
 		
-		fileHandleId = fileHandleDao.createFile(handle).getId();
+		fileHandleId = idGenerator.generateNewId(IdType.FILE_IDS).toString();
+		
+		DBOFileHandle handle = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(user.getId().toString(), fileHandleId));
+		
+		handle.setCreatedOn(createdOn);
+		handle.setUpdatedOn(createdOn);
+		
+		fileHandleDao.createBatchDbo(Collections.singletonList(handle));
 	}
  
 	@Test

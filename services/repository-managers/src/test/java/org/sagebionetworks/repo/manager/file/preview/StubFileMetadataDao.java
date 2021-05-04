@@ -118,6 +118,12 @@ public class StubFileMetadataDao implements FileHandleDao {
 		// TODO Auto-generated method stub
 		
 	}
+	
+	@Override
+	public void createBatchDbo(List<DBOFileHandle> dbos) {
+		// TODO Auto-generated method stub
+		
+	}
 
 	@Override
 	public FileHandle createFile(FileHandle metadata) {

@@ -171,5 +171,12 @@ public interface FileHandleDao {
 	 * Deleted all file data
 	 */
 	void truncateTable();
+
+	/**
+	 * Creates a batch from the given list of DBOs
+	 * 
+	 * @param dbos
+	 */
+	void createBatchDbo(List<DBOFileHandle> dbos);
 	
 }
