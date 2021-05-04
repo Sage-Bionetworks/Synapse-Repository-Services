@@ -7,6 +7,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.kinesis.AwsKinesisDeliveryException;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationRecord;
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleScannerUtils;
@@ -179,7 +180,11 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 	private int flushRecordsBatch(Set<FileHandleAssociationRecord> recordsBatch) throws RecoverableMessageException {
 		validateStackReadWrite();
 		int size = recordsBatch.size();
-		kinesisLogger.logBatch(FileHandleAssociationRecord.STREAM_NAME, new ArrayList<>(recordsBatch));
+		try {
+			kinesisLogger.logBatch(FileHandleAssociationRecord.STREAM_NAME, new ArrayList<>(recordsBatch));
+		} catch (AwsKinesisDeliveryException e) {
+			throw new RecoverableMessageException(e);
+		}
 		recordsBatch.clear();
 		return size;
 	}
