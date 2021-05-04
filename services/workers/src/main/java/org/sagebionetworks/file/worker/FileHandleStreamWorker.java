@@ -64,6 +64,7 @@ public class FileHandleStreamWorker implements  BatchChangeMessageDrivenRunner {
 		FileHandleRecord record = new FileHandleRecord()
 				.withId(file.getId())
 				.withCreatedOn(file.getCreatedOn().getTime())
+				.withUpdatedOn(file.getUpdatedOn().getTime())
 				.withStatus(file.getStatus())
 				.withContentSize(file.getContentSize())
 				.withBucket(file.getBucketName())

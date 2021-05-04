@@ -49,6 +49,7 @@ public class FileHandleStreamWorkerTest {
 		DBOFileHandle file = new DBOFileHandle();
 		file.setId(id);
 		file.setCreatedOn(createdOn);
+		file.setUpdatedOn(createdOn);
 		file.setStatus(FileHandleStatus.AVAILABLE.name());
 		return file;
 	}
@@ -78,8 +79,8 @@ public class FileHandleStreamWorkerTest {
 		
 		verify(mockFileHandleDao).getDBOFileHandlesBatch(Arrays.asList(id1, id2), FileHandleStreamWorker.UPDATED_ON_DAYS_FILTER);
 		verify(mockKinesisLogger).logBatch("fileHandleData", Arrays.asList(
-				new FileHandleRecord().withId(123).withCreatedOn(createdOn.getTime()).withIsPreview(false).withStatus("AVAILABLE"),
-				new FileHandleRecord().withId(456).withCreatedOn(createdOn.getTime()).withIsPreview(false).withStatus("AVAILABLE")
+				new FileHandleRecord().withId(123).withCreatedOn(createdOn.getTime()).withUpdatedOn(createdOn.getTime()).withIsPreview(false).withStatus("AVAILABLE"),
+				new FileHandleRecord().withId(456).withCreatedOn(createdOn.getTime()).withUpdatedOn(createdOn.getTime()).withIsPreview(false).withStatus("AVAILABLE")
 		));
 		
 	}
@@ -108,7 +109,7 @@ public class FileHandleStreamWorkerTest {
 		
 		verify(mockFileHandleDao).getDBOFileHandlesBatch(Arrays.asList(id1, id2), FileHandleStreamWorker.UPDATED_ON_DAYS_FILTER);
 		verify(mockKinesisLogger).logBatch("fileHandleData", Arrays.asList(
-				new FileHandleRecord().withId(123).withCreatedOn(createdOn.getTime()).withIsPreview(false).withStatus("AVAILABLE")
+				new FileHandleRecord().withId(123).withCreatedOn(createdOn.getTime()).withUpdatedOn(createdOn.getTime()).withIsPreview(false).withStatus("AVAILABLE")
 		));
 		
 	}
@@ -137,7 +138,7 @@ public class FileHandleStreamWorkerTest {
 		
 		verify(mockFileHandleDao).getDBOFileHandlesBatch(Arrays.asList(id1), FileHandleStreamWorker.UPDATED_ON_DAYS_FILTER);
 		verify(mockKinesisLogger).logBatch("fileHandleData", Arrays.asList(
-				new FileHandleRecord().withId(123).withCreatedOn(createdOn.getTime()).withIsPreview(false).withStatus("AVAILABLE")
+				new FileHandleRecord().withId(123).withCreatedOn(createdOn.getTime()).withUpdatedOn(createdOn.getTime()).withIsPreview(false).withStatus("AVAILABLE")
 		));
 		
 	}
@@ -185,7 +186,7 @@ public class FileHandleStreamWorkerTest {
 		
 		verify(mockFileHandleDao).getDBOFileHandlesBatch(Arrays.asList(id1), FileHandleStreamWorker.UPDATED_ON_DAYS_FILTER);
 		verify(mockKinesisLogger).logBatch("fileHandleData", Arrays.asList(
-				new FileHandleRecord().withId(123).withCreatedOn(createdOn.getTime()).withIsPreview(false).withStatus("AVAILABLE")
+				new FileHandleRecord().withId(123).withCreatedOn(createdOn.getTime()).withUpdatedOn(createdOn.getTime()).withIsPreview(false).withStatus("AVAILABLE")
 		));
 		
 	}
@@ -239,6 +240,7 @@ public class FileHandleStreamWorkerTest {
 		FileHandleRecord expected = new FileHandleRecord()
 				.withId(123)
 				.withCreatedOn(createdOn.getTime())
+				.withUpdatedOn(createdOn.getTime())
 				.withIsPreview(true)
 				.withStatus(FileHandleStatus.AVAILABLE.name())
 				.withContentSize(123L);
@@ -261,6 +263,7 @@ public class FileHandleStreamWorkerTest {
 		FileHandleRecord expected = new FileHandleRecord()
 				.withId(123)
 				.withCreatedOn(createdOn.getTime())
+				.withUpdatedOn(createdOn.getTime())
 				.withIsPreview(false)
 				.withStatus(FileHandleStatus.AVAILABLE.name());
 		
@@ -285,6 +288,7 @@ public class FileHandleStreamWorkerTest {
 		FileHandleRecord expected = new FileHandleRecord()
 				.withId(123)
 				.withCreatedOn(createdOn.getTime())
+				.withUpdatedOn(createdOn.getTime())
 				.withIsPreview(false)
 				.withStatus(FileHandleStatus.AVAILABLE.name())
 				.withContentSize(123L)
