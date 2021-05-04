@@ -1,5 +1,6 @@
 package org.sagebionetworks.file.worker;
 
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -30,9 +31,11 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.athena.AthenaQueryResult;
 import org.sagebionetworks.repo.model.athena.AthenaSupport;
 import org.sagebionetworks.repo.model.dao.FileHandleStatus;
+import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.files.FilesScannerStatusDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.util.Pair;
@@ -153,29 +156,34 @@ public class FileHandleUnlinkedQueryIntegrationTest {
 	public void testRoundTrip() throws Exception {
 		
 		// Makes sure to create "old" file handles
-		Date createdOn = Date.from(Instant.now().minus(60, ChronoUnit.DAYS));
+		Timestamp createdOn = Timestamp.from(Instant.now().minus(60, ChronoUnit.DAYS));
 		
 		// Generate an high random number to avoid issues with different users
 		Long startId = 1_000_000L + config.getStackInstanceNumber() + new Random().nextInt(100_000);
 		
-		FileHandle linkedHandle = TestUtils.createS3FileHandle(user.getId().toString(), (++startId).toString()).setCreatedOn(createdOn);
-		FileHandle unlinkedHandle = TestUtils.createS3FileHandle(user.getId().toString(), (++startId).toString()).setCreatedOn(createdOn);
+		DBOFileHandle linkedHandle = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(user.getId().toString(), (++startId).toString()));
+		DBOFileHandle unlinkedHandle = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(user.getId().toString(), (++startId).toString()));
+		
+		linkedHandle.setCreatedOn(createdOn);
+		linkedHandle.setUpdatedOn(createdOn);
+		unlinkedHandle.setCreatedOn(createdOn);
+		unlinkedHandle.setUpdatedOn(createdOn);
 				
-		fileHandleDao.createBatch(Arrays.asList(linkedHandle, unlinkedHandle));
+		fileHandleDao.createBatchDbo(Arrays.asList(linkedHandle, unlinkedHandle));
 		
 		// We create at least one association so that we are sure one job need to run at least
 		managedHelper.create(ar-> {
 			ar.setCreatedBy(user.getId().toString());
 			ar.setSubjectIds(Collections.emptyList());
-			ar.setDucTemplateFileHandleId(linkedHandle.getId());
+			ar.setDucTemplateFileHandleId(linkedHandle.getId().toString());
 		});
 		
 		// Manually trigger the job for the scanner since the start time is very long
 		scheduler.triggerJob(dispatcherTrigger.getJobKey(), dispatcherTrigger.getJobDataMap());
 		
 		// We wait for the ids to end up in the right glue tables, using athena itself to check 
-		waitForKinesisData(Arrays.asList(linkedHandle, unlinkedHandle).stream().map(f -> f.getId()).collect(Collectors.toList()), "fileHandleDataRecords", "id");
-		waitForKinesisData(Arrays.asList(linkedHandle).stream().map(f -> f.getId()).collect(Collectors.toList()), "fileHandleAssociationsRecords", "filehandleid");
+		waitForKinesisData(Arrays.asList(linkedHandle, unlinkedHandle).stream().map(f -> f.getId().toString()).collect(Collectors.toList()), "fileHandleDataRecords", "id");
+		waitForKinesisData(Arrays.asList(linkedHandle).stream().map(f -> f.getId().toString()).collect(Collectors.toList()), "fileHandleAssociationsRecords", "filehandleid");
 		
 		String stateMachineArn = findStateMachineArn("UnlinkedFileHandles");
 		
