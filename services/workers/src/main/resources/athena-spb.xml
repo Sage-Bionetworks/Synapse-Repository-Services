@@ -61,7 +61,7 @@
 							<bean class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner" ref="recurrentAthenaQueryWorker" />
 								<property name="semaphoreLockKey" value="recurrentAthenaQueryWorker" />
-								<property name="semaphoreMaxLockCount" value="5" />
+								<property name="semaphoreMaxLockCount" value="1" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="300" />
 								<property name="queueName" value="#{stackConfiguration.getQueueName('RECURRENT_ATHENA_QUERIES')}"/>
 								<property name="gate">
