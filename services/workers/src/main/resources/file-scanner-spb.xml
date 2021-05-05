@@ -45,8 +45,11 @@
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>
-		<!-- We do not need to check this often, we run this every 5 days -->
-		<property name="startDelay" value="1800000" />
+		<!-- We do not need to check this often, we run this every 5 days. 
+			Note: the start delay is actually 2 hours, reason being that when the staging stack is first deployed it might take a while before we start migration which is when the stack is put to read-only mode.
+			If we do not wait for this the scanner will scan a mostly empty database delaying the next scan for at least 5 days.		
+		 -->
+		<property name="startDelay" value="7200000" />
 		<property name="repeatInterval" value="1800000" />
 	</bean>
 	
