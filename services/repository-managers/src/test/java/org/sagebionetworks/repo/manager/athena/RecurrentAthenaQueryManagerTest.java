@@ -30,7 +30,7 @@ import org.sagebionetworks.repo.model.athena.AthenaQueryResultPage;
 import org.sagebionetworks.repo.model.athena.AthenaSupport;
 import org.sagebionetworks.repo.model.athena.RecurrentAthenaQueryResult;
 import org.sagebionetworks.repo.model.athena.RowMapper;
-import org.sagebionetworks.repo.model.exception.RecoverableException;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 import com.amazonaws.services.athena.model.QueryExecution;
 import com.amazonaws.services.athena.model.QueryExecutionState;
@@ -191,7 +191,7 @@ public class RecurrentAthenaQueryManagerTest {
 		
 		when(mockAthenaSupport.getQueryExecutionStatus(anyString())).thenReturn(new AthenaQueryExecutionAdapter(mockQueryExecution));
 		
-		String message = assertThrows(RecoverableException.class, () -> {
+		String message = assertThrows(RecoverableMessageException.class, () -> {
 			// Call under test
 			manager.processRecurrentAthenaQueryResult(mockRequest, queueUrl);
 		}).getMessage();
@@ -206,7 +206,7 @@ public class RecurrentAthenaQueryManagerTest {
 		
 		when(mockAthenaSupport.getQueryExecutionStatus(anyString())).thenReturn(new AthenaQueryExecutionAdapter(mockQueryExecution));
 		
-		String message = assertThrows(RecoverableException.class, () -> {
+		String message = assertThrows(RecoverableMessageException.class, () -> {
 			// Call under test
 			manager.processRecurrentAthenaQueryResult(mockRequest, queueUrl);
 		}).getMessage();
@@ -242,7 +242,7 @@ public class RecurrentAthenaQueryManagerTest {
 	}
 	
 	@Test
-	public void testProcessRecurrentAthenaQueryResultWithQuerySucceeded() {
+	public void testProcessRecurrentAthenaQueryResultWithQuerySucceeded() throws RecoverableMessageException {
 		
 		AthenaQueryResultPage<Long> page = new AthenaQueryResultPage<Long>()
 				.withResults(Arrays.asList(1L, 2L, 3L))
@@ -263,7 +263,7 @@ public class RecurrentAthenaQueryManagerTest {
 	}
 	
 	@Test
-	public void testProcessRecurrentAthenaQueryResultWithEmptyResults() {
+	public void testProcessRecurrentAthenaQueryResultWithEmptyResults() throws RecoverableMessageException {
 		
 		AthenaQueryResultPage<Long> page = new AthenaQueryResultPage<Long>()
 				.withResults(Collections.emptyList())
@@ -284,7 +284,7 @@ public class RecurrentAthenaQueryManagerTest {
 	}
 	
 	@Test
-	public void testProcessRecurrentAthenaQueryResultWithNoResults() {
+	public void testProcessRecurrentAthenaQueryResultWithNoResults() throws RecoverableMessageException {
 		
 		AthenaQueryResultPage<Long> page = new AthenaQueryResultPage<Long>()
 				.withResults(null)
@@ -305,7 +305,7 @@ public class RecurrentAthenaQueryManagerTest {
 	}
 	
 	@Test
-	public void testProcessRecurrentAthenaQueryResultWithNextPage() {
+	public void testProcessRecurrentAthenaQueryResultWithNextPage() throws RecoverableMessageException {
 		
 		AthenaQueryResultPage<Long> page1 = new AthenaQueryResultPage<Long>()
 				.withResults(Arrays.asList(1L, 2L, 3L))
@@ -333,7 +333,7 @@ public class RecurrentAthenaQueryManagerTest {
 	}
 	
 	@Test
-	public void testProcessRecurrentAthenaQueryResultWithExceedProcessingLimit() throws JsonProcessingException {
+	public void testProcessRecurrentAthenaQueryResultWithExceedProcessingLimit() throws JsonProcessingException, RecoverableMessageException {
 		
 		String nextToken = "next"; 
 				

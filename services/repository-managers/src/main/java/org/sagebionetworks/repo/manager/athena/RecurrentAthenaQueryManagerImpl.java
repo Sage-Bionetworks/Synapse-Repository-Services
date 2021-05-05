@@ -9,8 +9,8 @@ import org.sagebionetworks.repo.model.athena.AthenaQueryExecutionState;
 import org.sagebionetworks.repo.model.athena.AthenaQueryResultPage;
 import org.sagebionetworks.repo.model.athena.AthenaSupport;
 import org.sagebionetworks.repo.model.athena.RecurrentAthenaQueryResult;
-import org.sagebionetworks.repo.model.exception.RecoverableException;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -79,7 +79,7 @@ public class RecurrentAthenaQueryManagerImpl implements RecurrentAthenaQueryMana
 	
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
-	public void processRecurrentAthenaQueryResult(RecurrentAthenaQueryResult request, String queueUrl) {
+	public void processRecurrentAthenaQueryResult(RecurrentAthenaQueryResult request, String queueUrl) throws RecoverableMessageException {
 		ValidateArgument.requiredNotBlank(request.getQueryName(), "The queryName");
 		ValidateArgument.requiredNotBlank(request.getFunctionExecutionId(), "The functionExecutionId");
 		ValidateArgument.required(request.getQueryExecutionId(), "The queryExecutionId");
@@ -96,13 +96,16 @@ public class RecurrentAthenaQueryManagerImpl implements RecurrentAthenaQueryMana
 		AthenaQueryExecution execution = athenaSupport.getQueryExecutionStatus(queryExecutionId);
 
 		if (AthenaQueryExecutionState.QUEUED.equals(execution.getState()) || AthenaQueryExecutionState.RUNNING.equals(execution.getState())) {
-			throw new RecoverableException("The query with id " + queryExecutionId + " is still processing.");
+			throw new RecoverableMessageException("The query with id " + queryExecutionId + " is still processing.");
 		}
 
 		if (!AthenaQueryExecutionState.SUCCEEDED.equals(execution.getState())) {
 			throw new IllegalStateException("The query with id " + queryExecutionId + " did not SUCCEED (State: " + execution.getState() + ", reason: " + execution.getStateChangeReason() + ")");
 		}
 		
+		// We limit the processing of the results to a finite set of pages: this allows the worker to perform a limited set of work if retrying is necessary or if the message is put
+		// back on the queue (e.g. when a worker dies) without starting from scratch, if more results are available subsequent SQS messages are sent to the same queue so that the 
+		// worker can keep processing the remaining results.
 		int pageRequests = 0;
 		
 		// The initial page token is null since it's coming from the step function that does not include any (e.g. first page)
