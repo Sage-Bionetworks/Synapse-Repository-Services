@@ -5,6 +5,7 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.exception.RecoverableException;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.IdRange;
 
@@ -53,10 +54,13 @@ public interface FileHandleAssociationManager {
 	long getMaxIdRangeSize(FileHandleAssociateType associationType);
 	
 	/**
-	 * Return an iterable for all the file handles associatied with the given asociation type
+	 * Return an iterable for all the file handles associatied with the given asociation type.
+	 * <p> 
+	 * Note: the iterable can throw a {@link RecoverableException} if the process fails while iterating and
+	 * can be retried later
 	 * 
 	 * @param associationType The association type
-	 * @param range The range of ids to scan, inclusive
+	 * @param range           The range of ids to scan, inclusive
 	 * @return An iterable over all the file handles found in the given range
 	 */
 	Iterable<ScannedFileHandleAssociation> scanRange(FileHandleAssociateType associationType, IdRange range);

@@ -276,6 +276,28 @@ public class AthenaSupportImpl implements AthenaSupport {
 
 		return retrieveQueryResults(queryExecutionId, queryExecution.getStatistics(), rowMapper, excludeHeader);
 	}
+	
+	
+	@Override
+	public <T> AthenaQueryResultPage<T> getQueryResultsPage(String queryExecutionId, RowMapper<T> rowMapper, String pageToken, int limit) {
+		ValidateArgument.required(queryExecutionId, "executionQueryId");
+		ValidateArgument.required(rowMapper, "rowMapper");
+		ValidateArgument.requirement(limit > 0 && limit <= AthenaResultsProvider.MAX_PAGE_SIZE, "The limit must be greater than 0 and less or equal than " + AthenaResultsProvider.MAX_PAGE_SIZE);
+		
+		boolean excludeHeader = pageToken == null;
+		
+		AthenaResultsProvider<T> resultsProvider = new AthenaResultsProvider<>(athenaClient, queryExecutionId, rowMapper, excludeHeader, limit);
+		
+		TokenPaginationPage<T> page = resultsProvider.getNextPage(pageToken);
+		
+		AthenaQueryResultPage<T> result = new AthenaQueryResultPage<T>()
+				.withResults(page.getResults())
+				.withNextPageToken(page.getNextToken())
+				.withQueryExecutionId(queryExecutionId);
+		
+		return result;
+		
+	}
 
 	private <T> AthenaQueryResult<T> retrieveQueryResults(String queryExecutionId, AthenaQueryStatistics queryStatistics,
 			RowMapper<T> rowMapper, boolean excludeHeader) {
@@ -331,7 +353,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 			}
 		};
 	}
-
+	
 	private String prefixWithStack(String value) {
 		return (stackPrefix + value).toLowerCase();
 	}

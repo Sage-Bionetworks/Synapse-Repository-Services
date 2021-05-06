@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.model.exception;
 
 /**
- * Exception throw for operations that can be retried
+ * Exception throw for operations that can be retried, this can be used as an alternative the checked RecoverableMessageException when implementing an interface that
+ * cannot work with checked exceptions (e.g. An iterable)
  * 
  * @author Marco Marasca
  */

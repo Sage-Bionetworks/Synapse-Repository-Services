@@ -10,7 +10,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
  */
 public class FileHandleAssociationRecord implements AwsKinesisLogRecord {
 	
-	public static final String KINESIS_STREAM_NAME = "fileHandleAssociations";
+	public static final String STREAM_NAME = "fileHandleAssociations";
 
 	private Long timestamp;
 	private FileHandleAssociateType associateType;

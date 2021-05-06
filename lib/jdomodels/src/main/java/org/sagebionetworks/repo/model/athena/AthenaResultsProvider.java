@@ -22,19 +22,29 @@ import com.amazonaws.services.athena.model.ResultSet;
 public class AthenaResultsProvider<T> implements TokenPaginationProvider<T> {
 
 	// The maximum number of results per page that athena allows
-	static final int PAGE_SIZE = 500;
+	static final int MAX_PAGE_SIZE = 1000;
 
 	private AmazonAthena athenaClient;
 	private String queryExecutionId;
 	private RowMapper<T> rowMapper;
 	private boolean excludeHeader;
 	private boolean isFirstPage = true;
+	private int pageSize;
 
+	public AthenaResultsProvider(AmazonAthena athenaClient, String queryExecutionId, RowMapper<T> rowMapper, boolean excludeHeader, int pageSize) {
+		this.athenaClient = athenaClient;
+		this.queryExecutionId = queryExecutionId;
+		this.rowMapper = rowMapper;
+		this.excludeHeader = excludeHeader;
+		this.pageSize = pageSize;
+	}
+	
 	public AthenaResultsProvider(AmazonAthena athenaClient, String queryExecutionId, RowMapper<T> rowMapper, boolean excludeHeader) {
 		this.athenaClient = athenaClient;
 		this.queryExecutionId = queryExecutionId;
 		this.rowMapper = rowMapper;
 		this.excludeHeader = excludeHeader;
+		this.pageSize = MAX_PAGE_SIZE;
 	}
 
 	@Override
@@ -43,7 +53,7 @@ public class AthenaResultsProvider<T> implements TokenPaginationProvider<T> {
 
 		GetQueryResultsRequest request = new GetQueryResultsRequest()
 				.withQueryExecutionId(queryExecutionId)
-				.withMaxResults(PAGE_SIZE)
+				.withMaxResults(pageSize)
 				.withNextToken(nextToken);
 				
 		GetQueryResultsResult result;

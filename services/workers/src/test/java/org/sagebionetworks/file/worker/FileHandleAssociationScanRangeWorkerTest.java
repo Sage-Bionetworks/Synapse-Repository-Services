@@ -23,7 +23,6 @@ import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationScannerJobManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationScannerNotifier;
-import org.sagebionetworks.repo.model.exception.RecoverableException;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationScanRangeRequest;
 import org.sagebionetworks.repo.model.file.IdRange;
@@ -81,7 +80,7 @@ public class FileHandleAssociationScanRangeWorkerTest {
 		
 		when(mockNotifier.fromSqsMessage(any())).thenReturn(request);
 		
-		RecoverableException ex = new RecoverableException("Some ex");
+		RecoverableMessageException ex = new RecoverableMessageException("Some ex");
 		
 		doThrow(ex).when(mockManager).processScanRangeRequest(any());
 		
@@ -90,7 +89,7 @@ public class FileHandleAssociationScanRangeWorkerTest {
 			worker.run(mockCallback, mockMessage);
 		});
 		
-		assertEquals(ex, result.getCause());
+		assertEquals(ex, result);
 		
 		verify(mockNotifier).fromSqsMessage(mockMessage);
 		verify(mockManager).processScanRangeRequest(request);

@@ -17,7 +17,7 @@
     <context:component-scan base-package="org.sagebionetworks.repo.web" annotation-config="false"/>
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
-
+	
 	<!-- slightly misplaced here, as it is under the controller package, but services use it -->
 	<bean id="objectTypeSerializer"
 		class="org.sagebionetworks.repo.web.controller.ObjectTypeSerializerImpl" />
