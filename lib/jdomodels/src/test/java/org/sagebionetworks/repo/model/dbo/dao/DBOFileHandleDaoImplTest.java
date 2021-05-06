@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.net.MalformedURLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -34,6 +35,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dao.FileHandleStatus;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
@@ -59,6 +61,8 @@ public class DBOFileHandleDaoImplTest {
 
 	@Autowired
 	private DBOFileHandleDaoImpl fileHandleDao;
+	@Autowired
+	private DBOBasicDao basicDao;
 	@Autowired
 	private IdGenerator idGenerator;
 	@Autowired
@@ -864,7 +868,7 @@ public class DBOFileHandleDaoImplTest {
 	}
 	
 	@Test
-	public void testGetDBOFileHandlesBatch() {
+	public void testGetDBOFileHandlesBatchWithNoUpdatedOnFilter() {
 		S3FileHandle file1 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		S3FileHandle file2 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		
@@ -877,8 +881,45 @@ public class DBOFileHandleDaoImplTest {
 				FileMetadataUtils.createDBOFromDTO(file2)
 		);
 		
+		int updatedOnBeforeDays = 0;
+		
 		// Call under test
-		List<DBOFileHandle> result = fileHandleDao.getDBOFileHandlesBatch(ids);
+		List<DBOFileHandle> result = fileHandleDao.getDBOFileHandlesBatch(ids, updatedOnBeforeDays);
+		
+		for (int i=0; i<result.size(); i++) {
+			DBOFileHandle truth = result.get(i);
+			DBOFileHandle toAlign = expected.get(i);
+			
+			toAlign.setCreatedOn(truth.getCreatedOn());
+			toAlign.setUpdatedOn(truth.getUpdatedOn());
+		}
+		
+		assertEquals(expected, result);
+		
+	}
+	
+	@Test
+	public void testGetDBOFileHandlesBatchWithUpdatedOnFilter() {
+		
+		int updatedOnBeforeDays = 30;
+		
+		Timestamp updatedOn = Timestamp.from(Instant.now().minus(updatedOnBeforeDays + 1, ChronoUnit.DAYS));
+		
+		DBOFileHandle file1 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		DBOFileHandle file2 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		
+		file2.setUpdatedOn(updatedOn);
+		
+		basicDao.createBatch(Arrays.asList(file1, file2));
+		
+		List<Long> ids = Arrays.asList(file1.getId(), file2.getId(), 567L);
+
+		List<DBOFileHandle> expected = Arrays.asList(
+				file2
+		);
+		
+		// Call under test
+		List<DBOFileHandle> result = fileHandleDao.getDBOFileHandlesBatch(ids, updatedOnBeforeDays);
 		
 		for (int i=0; i<result.size(); i++) {
 			DBOFileHandle truth = result.get(i);
