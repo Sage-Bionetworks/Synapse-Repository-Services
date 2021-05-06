@@ -8,6 +8,7 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
@@ -50,12 +51,12 @@ public class SynapseClientHelper {
 		nu.setEmail(email);
 		nu.setUsername(username);
 		nu.setPassword(password);
-		AccessToken accessToken = client.createUser(nu);
+		LoginResponse loginResponse = client.createIntegrationTestUser(nu);
 		
-		String accessTokenSubject = JSONWebTokenHelper.getSubjectFromJWTAccessToken(accessToken.getAccessToken());
+		String accessTokenSubject = JSONWebTokenHelper.getSubjectFromJWTAccessToken(loginResponse.getAccessToken());
 		Long principalId = Long.parseLong(accessTokenSubject);
 		
-		newUserClient.setBearerAuthorizationToken(accessToken.getAccessToken());
+		newUserClient.setBearerAuthorizationToken(loginResponse.getAccessToken());
 		client.setCertifiedUserStatus(accessTokenSubject, true);
 		return principalId;
 	}

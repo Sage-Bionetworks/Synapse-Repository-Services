@@ -68,8 +68,8 @@ public class IT990AuthenticationController {
 		nu.setPassword(PASSWORD);
 		
 
-		AccessToken accessToken = adminSynapse.createUser(nu);
-		String accessTokenSubject = JSONWebTokenHelper.getSubjectFromJWTAccessToken(accessToken.getAccessToken());
+		LoginResponse loginResponse = adminSynapse.createIntegrationTestUser(nu);
+		String accessTokenSubject = JSONWebTokenHelper.getSubjectFromJWTAccessToken(loginResponse.getAccessToken());
 		userToDelete = Long.parseLong(accessTokenSubject);
 		
 		// Construct the client, but do nothing else

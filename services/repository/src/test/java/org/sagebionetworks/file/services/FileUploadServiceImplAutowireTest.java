@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
@@ -106,8 +107,8 @@ public class FileUploadServiceImplAutowireTest {
 		user.setEmail(username + "@test.com");
 		user.setUsername(username);
 		user.setTou(true);
-		AccessToken accessToken = adminService.createOrGetTestUser(adminUserId, user);
-		String subject = JSONWebTokenHelper.getSubjectFromJWTAccessToken(accessToken.getAccessToken());
+		LoginResponse loginResponse = adminService.createOrGetTestUser(adminUserId, user);
+		String subject = JSONWebTokenHelper.getSubjectFromJWTAccessToken(loginResponse.getAccessToken());
 		userId = Long.valueOf(subject);
 		certifiedUserService.setUserCertificationStatus(adminUserId, userId, true);
 
@@ -116,8 +117,8 @@ public class FileUploadServiceImplAutowireTest {
 		user2.setEmail(user2name + "@test.com");
 		user2.setUsername(user2name);
 		user2.setTou(true);
-		AccessToken accessToken2 = adminService.createOrGetTestUser(adminUserId, user2);
-		String subject2 = JSONWebTokenHelper.getSubjectFromJWTAccessToken(accessToken2.getAccessToken());
+		LoginResponse loginResponse2 = adminService.createOrGetTestUser(adminUserId, user2);
+		String subject2 = JSONWebTokenHelper.getSubjectFromJWTAccessToken(loginResponse2.getAccessToken());
 		user2Id = Long.valueOf(subject2);
 		certifiedUserService.setUserCertificationStatus(adminUserId, user2Id, true);
 

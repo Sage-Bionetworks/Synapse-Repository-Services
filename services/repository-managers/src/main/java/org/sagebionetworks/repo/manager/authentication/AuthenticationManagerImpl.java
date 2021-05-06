@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -61,6 +62,9 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
+	
+	@Autowired
+	private Clock clock;
 
 	@Override
 	public Long getPrincipalId(String sessionToken) {
@@ -295,6 +299,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		String newAuthenticationReceipt = authenticationReceiptTokenGenerator.createNewAuthenticationReciept(principalId);
 		String accessToken = oidcTokenHelper.createClientTotalAccessToken(principalId, issuer);
 		boolean acceptsTermsOfUse = authDAO.hasUserAcceptedToU(principalId);
+		authDAO.setAuthenticatedOn(principalId, clock.now());
 		return createLoginResponse(accessToken, acceptsTermsOfUse, newAuthenticationReceipt);
 	}
 	

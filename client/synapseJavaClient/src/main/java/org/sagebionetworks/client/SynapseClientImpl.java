@@ -4526,8 +4526,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public AccessToken validateOAuthAuthenticationCodeForAccessToken(OAuthValidationRequest request) throws SynapseException{
-		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_SESSION_V2, request, AccessToken.class);
+	public LoginResponse validateOAuthAuthenticationCodeForAccessToken(OAuthValidationRequest request) throws SynapseException{
+		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_SESSION_V2, request, LoginResponse.class);
 	}
 	
 	@Override
@@ -4536,8 +4536,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public AccessToken createAccountViaOAuth2ForAccessToken(OAuthAccountCreationRequest request) throws SynapseException {
-		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_ACCOUNT_V2, request, AccessToken.class);
+	public LoginResponse createAccountViaOAuth2ForAccessToken(OAuthAccountCreationRequest request) throws SynapseException {
+		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_ACCOUNT_V2, request, LoginResponse.class);
 	}
 	
 	@Override

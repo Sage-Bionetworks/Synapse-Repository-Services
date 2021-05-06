@@ -6,7 +6,6 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.authentication.PersonalAccessTokenManager;
 import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -58,9 +57,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Autowired
 	private PersonalAccessTokenManager personalAccessTokenManager;
-
-	@Autowired
-	private OIDCTokenHelper oidcTokenHelper;
 	
 	@Override
 	@WriteTransaction
@@ -177,7 +173,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 	
 	@Override
-	public AccessToken validateOAuthAuthenticationCodeAndLogin(
+	public LoginResponse validateOAuthAuthenticationCodeAndLogin(
 			OAuthValidationRequest request, String tokenIssuer) throws NotFoundException {
 		// Use the authentication code to lookup the user's information.
 		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
@@ -189,11 +185,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		PrincipalAlias emailAlias = userManager.lookupUserByUsernameOrEmail(providedInfo.getUsersVerifiedEmail());
 		// Return the user's session token
 		
-		String accessToken = oidcTokenHelper.createClientTotalAccessToken(emailAlias.getPrincipalId(), tokenIssuer);
-		AccessToken result = new AccessToken();
-		result.setAccessToken(accessToken);
-
-		return result;
+		return authManager.loginWithNoPasswordCheck(emailAlias.getPrincipalId(), tokenIssuer);
 	}
 	
 	@Deprecated
@@ -218,7 +210,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 	
 	@WriteTransaction
-	public AccessToken createAccountViaOauth(OAuthAccountCreationRequest request, String tokenIssuer) {
+	public LoginResponse createAccountViaOauth(OAuthAccountCreationRequest request, String tokenIssuer) {
 		// Use the authentication code to lookup the user's information.
 		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
 				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
@@ -232,12 +224,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		newUser.setLastName(providedInfo.getLastName());
 		newUser.setUserName(request.getUserName());
 		long newPrincipalId = userManager.createUser(newUser);
-		
-		String accessToken = oidcTokenHelper.createClientTotalAccessToken(newPrincipalId, tokenIssuer);
-		AccessToken result = new AccessToken();
-		result.setAccessToken(accessToken);
 
-		return result;
+		return authManager.loginWithNoPasswordCheck(newPrincipalId, tokenIssuer);
+
 	}
 	
 	@Override

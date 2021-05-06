@@ -1951,7 +1951,7 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 * @throws NotFoundException if the user does not exist in Synapse.
 	 */
-	AccessToken validateOAuthAuthenticationCodeForAccessToken(OAuthValidationRequest request)
+	LoginResponse validateOAuthAuthenticationCodeForAccessToken(OAuthValidationRequest request)
 			throws SynapseException;
 	
 	@Deprecated
@@ -1995,7 +1995,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	AccessToken createAccountViaOAuth2ForAccessToken(OAuthAccountCreationRequest request) throws SynapseException;
+	LoginResponse createAccountViaOAuth2ForAccessToken(OAuthAccountCreationRequest request) throws SynapseException;
 		
 	/**
 	 * After a user has been authenticated at an OAuthProvider's web page, the

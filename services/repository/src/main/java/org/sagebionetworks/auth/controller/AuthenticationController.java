@@ -309,7 +309,7 @@ public class AuthenticationController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_SESSION_V2, method = RequestMethod.POST)
 	public @ResponseBody
-	AccessToken validateOAuthSessionAndReturnAccessToken(
+	LoginResponse validateOAuthSessionAndReturnAccessToken(
 			@RequestBody OAuthValidationRequest request,
 			UriComponentsBuilder uriComponentsBuilder)
 			throws Exception {
@@ -373,7 +373,7 @@ public class AuthenticationController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_ACCOUNT_V2, method = RequestMethod.POST)
 	public @ResponseBody
-	AccessToken createAccountViaOAuth2(@RequestBody OAuthAccountCreationRequest request,
+	LoginResponse createAccountViaOAuth2(@RequestBody OAuthAccountCreationRequest request,
 			UriComponentsBuilder uriComponentsBuilder)
 			throws Exception {
 		return authenticationService.createAccountViaOauth(request, EndpointHelper.getEndpoint(uriComponentsBuilder));

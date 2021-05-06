@@ -100,13 +100,13 @@ public interface AuthenticationService {
 	public Session validateOAuthAuthenticationCodeAndLoginForSession(
 			OAuthValidationRequest request) throws NotFoundException;
 	
-	public AccessToken validateOAuthAuthenticationCodeAndLogin(
+	public LoginResponse validateOAuthAuthenticationCodeAndLogin(
 			OAuthValidationRequest request, String tokenIssuer) throws NotFoundException;
 	
 	@Deprecated
 	public Session createAccountViaOauthForSession(OAuthAccountCreationRequest request) throws NotFoundException;
 
-	public AccessToken createAccountViaOauth(OAuthAccountCreationRequest request, String tokenIssuer) throws NotFoundException;
+	public LoginResponse createAccountViaOauth(OAuthAccountCreationRequest request, String tokenIssuer) throws NotFoundException;
 
 	public PrincipalAlias bindExternalID(Long userId, OAuthValidationRequest validationRequest);
 

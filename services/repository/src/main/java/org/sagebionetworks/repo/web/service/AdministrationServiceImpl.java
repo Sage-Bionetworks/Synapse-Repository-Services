@@ -7,6 +7,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.doi.DoiAdminManager;
@@ -20,7 +21,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.AccessToken;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
@@ -57,6 +58,9 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	
 	@Autowired
 	private UserManager userManager;
+	
+	@Autowired
+	private AuthenticationManager authManager;
 	
 	@Autowired
 	private StackStatusManager stackStatusManager;
@@ -159,7 +163,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	}
 	
 	@Override
-	public AccessToken createOrGetTestUser(Long userId, NewIntegrationTestUser userSpecs) throws NotFoundException {
+	public LoginResponse createOrGetTestUser(Long userId, NewIntegrationTestUser userSpecs) throws NotFoundException {
 		adminCheck(userId);
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		
@@ -175,12 +179,11 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		NewUser nu = new NewUser();
 		nu.setEmail(userSpecs.getEmail());
 		nu.setUserName(userSpecs.getUsername());
-		UserInfo user = userManager.createOrGetTestUser(userInfo, nu, cred, touAgreement, token);
+		UserInfo createdUser = userManager.createOrGetTestUser(userInfo, nu, cred, touAgreement, token);
 		
-		AccessToken result = new AccessToken();
-		result.setAccessToken(oidcTokenHelper.createClientTotalAccessToken(user.getId(), null));
-		return result;
+		return authManager.loginWithNoPasswordCheck(createdUser.getId(), null);
 	}
+	
 	@Override
 	public void deleteUser(Long userId, String id) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);

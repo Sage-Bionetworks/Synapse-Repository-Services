@@ -28,8 +28,8 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
@@ -109,8 +109,8 @@ public class TrashServiceImplAutowiredTest {
 		String username = UUID.randomUUID().toString();
 		user.setEmail(username + "@test.com");
 		user.setUsername(username);
-		AccessToken accessToken = adminService.createOrGetTestUser(adminUserId, user);
-		String accessTokenSubject = JSONWebTokenHelper.getSubjectFromJWTAccessToken(accessToken.getAccessToken());
+		LoginResponse loginResponse = adminService.createOrGetTestUser(adminUserId, user);
+		String accessTokenSubject = JSONWebTokenHelper.getSubjectFromJWTAccessToken(loginResponse.getAccessToken());
 		long createdUserId = Long.valueOf(accessTokenSubject);
 		certifiedUserService.setUserCertificationStatus(adminUserId, createdUserId, true);
 
