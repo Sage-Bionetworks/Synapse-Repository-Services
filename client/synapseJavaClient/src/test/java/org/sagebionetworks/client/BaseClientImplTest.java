@@ -134,7 +134,7 @@ public class BaseClientImplTest {
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).post(captor.capture(),
 				eq(EntityFactory.createJSONObjectForEntity(request).toString()));
-		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/login2",
+		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/login",
 				captor.getValue().getUri());
 	}
 
@@ -165,9 +165,40 @@ public class BaseClientImplTest {
 
 	@Test
 	public void testLogout() throws Exception {
+		when(mockClient.delete(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
+		when(mockResponse.getStatusCode()).thenReturn(200);
 		baseClient.logout();
+		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
+		verify(mockClient).delete(captor.capture());
+		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/session",
+				captor.getValue().getUri());
+	}
+	
+	@Test
+	public void testLogoutForAccessToken() throws Exception {
+		baseClient.logoutForAccessToken();
 
 		assertNull(baseClient.getAuthorizationHeader());
+	}
+	
+	@Test (expected = SynapseClientException.class)
+	public void testRevalidateSessionNotLogin() throws Exception {
+		baseClient.revalidateSession();
+	}
+
+	@Test
+	public void testRevalidateSession() throws Exception {
+		when(mockClient.put(any(SimpleHttpRequest.class), anyString()))
+				.thenReturn(mockResponse);
+		when(mockResponse.getStatusCode()).thenReturn(200);
+		baseClient.setSessionToken("token");
+		baseClient.revalidateSession();
+		ArgumentCaptor<SimpleHttpRequest> requestCaptor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
+		ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
+		verify(mockClient).put(requestCaptor.capture(), bodyCaptor.capture());
+		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/session",
+				requestCaptor.getValue().getUri());
+		assertEquals("{\"sessionToken\":\"token\"}", bodyCaptor.getValue());
 	}
 
 	@Test

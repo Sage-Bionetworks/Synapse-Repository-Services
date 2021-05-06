@@ -45,7 +45,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.util.UriComponentsBuilder;
 
-
 /**
  * <p>
  * Provides REST APIs for managing and obtaining the necessary credentials to
@@ -128,7 +127,7 @@ public class AuthenticationController {
 		LoginResponse loginResponse =  authenticationService.loginForSession(request);
 		return DeprecatedUtils.createSession(loginResponse);
 	}
-
+	
 	@Deprecated
 	@RequiredScope({})
 	@ResponseStatus(HttpStatus.CREATED)
@@ -149,7 +148,7 @@ public class AuthenticationController {
 	public @ResponseBody
 	LoginResponse login(@RequestBody LoginRequest request,
 			UriComponentsBuilder uriComponentsBuilder
-	) throws NotFoundException {
+			) throws NotFoundException {
 		return authenticationService.login(request, EndpointHelper.getEndpoint(uriComponentsBuilder));
 	}
 

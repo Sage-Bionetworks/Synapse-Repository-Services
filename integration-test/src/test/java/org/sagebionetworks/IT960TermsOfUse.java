@@ -77,7 +77,7 @@ public class IT960TermsOfUse {
 	
 	@BeforeEach
 	public void before() throws Exception {
-		synapse.signTermsOfUse(synapse.getAccessToken());
+		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), true);
 	}
 	
 	@AfterAll
@@ -105,4 +105,18 @@ public class IT960TermsOfUse {
 		assertNotNull(synapse.getFileEntityTemporaryUrlForCurrentVersion(idHolder.getId()));
 
 	}
+	
+	@Test
+	public void testRejectSynapseTermsOfUse() throws SynapseException, Exception {
+		// I can download a data file because I have agreed to the Synapse terms of use
+		assertNotNull(synapse.getFileEntityTemporaryUrlForCurrentVersion(dataset.getId()));
+		
+		// method under test
+		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), false);
+		
+		// I cannot download the file because I have rejected the TOU
+		assertThrows(SynapseForbiddenException.class, () -> synapse.getFileEntityTemporaryUrlForCurrentVersion(dataset.getId()));
+	}
+	
+
 }

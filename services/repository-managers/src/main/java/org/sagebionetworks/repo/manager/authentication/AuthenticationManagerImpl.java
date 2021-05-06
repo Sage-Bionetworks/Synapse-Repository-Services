@@ -61,7 +61,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
-	
+
 	@Override
 	public Long getPrincipalId(String sessionToken) {
 		Long principalId = authDAO.getPrincipal(sessionToken);
@@ -211,16 +211,12 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@WriteTransaction
 	public void setTermsOfUseAcceptance(Long principalId, Boolean acceptance) {
 		if (acceptance == null) {
-			throw new IllegalArgumentException("Cannot \"unsee\" the terms of use");
+			throw new IllegalArgumentException("Cannot \"unsign\" the terms of use");
 		}
 		authDAO.setTermsOfUseAcceptance(principalId, acceptance);
 	}
 
-	/**
-	 * Note: We explicitly removed the transaction annotation from this method (see:
-	 * PLFM-6562). Most login calls will not result in any database changes. A new
-	 * transaction will only be created if a database change is needed.
-	 */
+	@Deprecated
 	@Override
 	public LoginResponse loginForSession(LoginRequest request){
 		ValidateArgument.required(request, "loginRequest");
@@ -276,6 +272,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		}
 	}
 
+	@Deprecated
 	@Override
 	public LoginResponse loginForSessionWithNoPasswordCheck(long principalId){
 		return getLoginResponseWithSessionAfterSuccessfulPasswordAuthentication(principalId);
@@ -286,6 +283,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		return getLoginResponseAfterSuccessfulPasswordAuthentication(principalId, issuer);
 	}
 
+	@Deprecated
 	LoginResponse getLoginResponseWithSessionAfterSuccessfulPasswordAuthentication(long principalId){
 		String newAuthenticationReceipt = authenticationReceiptTokenGenerator.createNewAuthenticationReciept(principalId);
 		//generate session tokens for user after successful check
@@ -299,7 +297,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		boolean acceptsTermsOfUse = authDAO.hasUserAcceptedToU(principalId);
 		return createLoginResponse(accessToken, acceptsTermsOfUse, newAuthenticationReceipt);
 	}
-
+	
 	/**
 	 * Create a login response from the session and the new authentication receipt
 	 * 

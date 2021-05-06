@@ -90,6 +90,7 @@ public class ITUserInfoRemoval {
 
 
 		// Verify we cannot log in with the old username, user ID, or email address (the password should be changed)
+		client.logout();
 		LoginRequest loginRequest = new LoginRequest();
 		loginRequest.setUsername(username);
 		loginRequest.setPassword(password);

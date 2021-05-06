@@ -1888,6 +1888,7 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public void changePassword(ChangePasswordInterface changePasswordRequest) throws SynapseException;
 
+	@Deprecated
 	/**
 	 * Signs the terms of use for utilization of Synapse, as identified by a session token
 	 */

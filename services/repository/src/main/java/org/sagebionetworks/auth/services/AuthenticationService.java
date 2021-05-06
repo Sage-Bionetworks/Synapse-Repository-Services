@@ -51,6 +51,7 @@ public interface AuthenticationService {
 	 */
 	public void changePassword(ChangePasswordInterface request) throws NotFoundException;
 	
+	@Deprecated
 	/**
 	 * Identifies a user via session token and signs that user's terms of use
 	 */
@@ -95,6 +96,7 @@ public interface AuthenticationService {
 
 	public OAuthUrlResponse getOAuthAuthenticationUrl(OAuthUrlRequest request);
 
+	@Deprecated
 	public Session validateOAuthAuthenticationCodeAndLoginForSession(
 			OAuthValidationRequest request) throws NotFoundException;
 	

@@ -41,7 +41,7 @@ public class DBOAuthenticatedOn implements MigratableDatabaseObject<DBOAuthentic
 				dbo.setPrincipalId(rs.getLong(COL_AUTHENTICATED_ON_PRINCIPAL_ID));
 				dbo.setEtag(rs.getString(COL_AUTHENTICATED_ON_ETAG));
 				Timestamp ts = rs.getTimestamp(COL_AUTHENTICATED_ON_AUTHENTICATED_ON);
-				dbo.setAuthenticatedOn(new Date(ts.getTime()));
+				dbo.setAuthenticatedOn(ts==null ? null : new Date(ts.getTime()));
 				return dbo;
 			}
 

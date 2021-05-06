@@ -74,6 +74,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
@@ -516,7 +517,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// Update ACL
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
-		Long user2Id = Long.parseLong(synapseTwo.getMyProfile().getOwnerId());
+		UserSessionData session = synapseTwo.getUserSessionData();
+		Long user2Id = Long.parseLong(session.getProfile().getOwnerId());
 		ra.setPrincipalId(user2Id);
 		
 		acl.getResourceAccess().add(ra);
@@ -1177,7 +1179,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		accessSet.add(ACCESS_TYPE.DELETE);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(accessSet);
-		Long user2Id = Long.parseLong(synapseTwo.getMyProfile().getOwnerId());
+		UserSessionData session = synapseTwo.getUserSessionData();
+		Long user2Id = Long.parseLong(session.getProfile().getOwnerId());
 		ra.setPrincipalId(user2Id);
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
 		raSet.add(ra);

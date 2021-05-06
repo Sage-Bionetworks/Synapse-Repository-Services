@@ -93,6 +93,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		messageManager.sendPasswordChangeConfirmationEmail(userId);
 	}
 
+	@Deprecated
 	@Override
 	@WriteTransaction
 	public void signTermsOfUseSession(Session session) throws NotFoundException {
@@ -257,9 +258,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		userManager.unbindAlias(aliasName, aliasType, userId);
 	}
 
+	@Deprecated
 	@Override
 	public LoginResponse loginForSession(LoginRequest request) {
-		return authManager.loginForSession(request);
+			return authManager.loginForSession(request);
 	}
 
 	@Override

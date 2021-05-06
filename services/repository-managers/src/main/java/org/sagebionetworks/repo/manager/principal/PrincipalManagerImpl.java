@@ -128,6 +128,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		sesClient.sendRawEmail(sendEmailRequest);
 	}
 
+	@Deprecated
 	@WriteTransaction
 	@Override
 	public LoginResponse createNewAccountForSession(AccountSetupInfo accountSetupInfo) throws NotFoundException {

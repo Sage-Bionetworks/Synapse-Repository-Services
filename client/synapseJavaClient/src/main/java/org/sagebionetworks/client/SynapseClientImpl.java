@@ -30,6 +30,7 @@ import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
+import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationRound;
@@ -97,6 +98,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
@@ -358,9 +360,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	public static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 
+	private static final String ACCOUNT = "/account";
 	private static final String ACCOUNT_V2 = "/account2";
 	private static final String EMAIL_VALIDATION = "/emailValidation";
-	private static final String ACCOUNT_EMAIL_VALIDATION = "/account" + EMAIL_VALIDATION;
+	private static final String ACCOUNT_EMAIL_VALIDATION = ACCOUNT
+					+ EMAIL_VALIDATION;
 	private static final String EMAIL = "/email";
 	private static final String PORTAL_ENDPOINT_PARAM = "portalEndpoint";
 	private static final String SET_AS_NOTIFICATION_EMAIL_PARAM = "setAsNotificationEmail";
@@ -381,8 +385,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String BUNDLE = "/bundle";
 	private static final String BUNDLE_V2 = "/bundle2";
 	private static final String BENEFACTOR = "/benefactor"; // from
-	private static final String CREATE = "/create";
 															// org.sagebionetworks.repo.web.UrlHelpers
+	private static final String CREATE = "/create";
 	private static final String ACTIVITY_URI_PATH = "/activity";
 	private static final String GENERATED_PATH = "/generated";
 	private static final String FAVORITE_URI_PATH = "/favorite";
@@ -696,6 +700,26 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new IllegalArgumentException("Unknown type: "+type);
 		}
 	}
+	
+	@Override
+	public UserSessionData getUserSessionData() throws SynapseException {
+		Session session = new Session();
+		session.setSessionToken(getCurrentSessionToken());
+		try {
+			revalidateSession();
+			session.setAcceptsTermsOfUse(true);
+		} catch (SynapseTermsOfUseException e) {
+			session.setAcceptsTermsOfUse(false);
+		}
+
+		UserSessionData userData = null;
+		userData = new UserSessionData();
+		userData.setSession(session);
+		if (session.getAcceptsTermsOfUse()) {
+			userData.setProfile(getMyProfile());
+		}
+		return userData;
+	}
 
 	/********************
 	 * Mid Level Repository Service APIs
@@ -733,9 +757,17 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		voidPost(getRepoEndpoint(), ACCOUNT_EMAIL_VALIDATION, user, paramMap);
 	}
 
+	@Deprecated
+	@Override
+	public Session createNewAccount(AccountSetupInfo accountSetupInfo)
+			throws SynapseException {
+		ValidateArgument.required(accountSetupInfo, "accountSetupInfo");
+		return postJSONEntity(getRepoEndpoint(), ACCOUNT, accountSetupInfo, Session.class);
+	}
+
 	/**
 	 * Create a new account, following email validation. Sets the password and
-	 * logs the user in, returning a valid session token
+	 * logs the user in, returning a valid access token
 	 * 
 	 * @param accountSetupInfo
 	 *            Note: Caller may override the first/last name, but not the
@@ -744,7 +776,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws NotFoundException
 	 */
 	@Override
-	public LoginResponse createNewAccount(AccountSetupInfo accountSetupInfo)
+	public LoginResponse createNewAccountForAccessToken(AccountSetupInfo accountSetupInfo)
 			throws SynapseException {
 		ValidateArgument.required(accountSetupInfo, "accountSetupInfo");
 		return postJSONEntity(getRepoEndpoint(), ACCOUNT_V2, accountSetupInfo, LoginResponse.class);
@@ -769,7 +801,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(email, "email");
 		ValidateArgument.required(portalEndpoint, "portalEndpoint");
 
-		String uri = "/account/" + userId + EMAIL_VALIDATION;
+		String uri = ACCOUNT + "/" + userId + EMAIL_VALIDATION;
 		Map<String, String> paramMap = new HashMap<String, String>();
 		paramMap.put(PORTAL_ENDPOINT_PARAM, portalEndpoint);
 
@@ -4454,13 +4486,23 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		voidPost(getAuthEndpoint(), "/user/changePassword", changePasswordRequest, null);
 	}
 
+	@Deprecated
 	@Override
+	public void signTermsOfUse(String sessionToken, boolean acceptTerms)
+				throws SynapseException {
+			Session session = new Session();
+			session.setSessionToken(sessionToken);
+			session.setAcceptsTermsOfUse(acceptTerms);
+			voidPost(getAuthEndpoint(), "/termsOfUse", session, null);
+	}
+
 	public void signTermsOfUse(String accessToken) throws SynapseException {
 		AccessToken accessTokenWrapper = new AccessToken();
 		accessTokenWrapper.setAccessToken(accessToken);
 		voidPost(getAuthEndpoint(), "/termsOfUse2", accessTokenWrapper, null);
+		
 	}
-
+	
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.client.SynapseClient#getOAuth2AuthenticationUrl(org.sagebionetworks.repo.model.oauth.OAuthUrlRequest)

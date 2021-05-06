@@ -88,11 +88,7 @@ public interface AuthenticationManager {
 	 */
 	public LoginResponse login(LoginRequest request, String tokenIssuer);
 	
-	/**
-	 * Bypass password check and just create a login response for the user.
-	 * @param principalId
-	 * @return
-	 */
+	@Deprecated
 	public LoginResponse loginForSessionWithNoPasswordCheck(long principalId);
 	
 	/**
