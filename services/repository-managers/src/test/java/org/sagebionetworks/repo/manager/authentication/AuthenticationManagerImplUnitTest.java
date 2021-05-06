@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.util.Clock;
 
 @ExtendWith(MockitoExtension.class)
 public class AuthenticationManagerImplUnitTest {
@@ -68,6 +69,8 @@ public class AuthenticationManagerImplUnitTest {
 	private PasswordResetTokenGenerator mockPasswordResetTokenGenerator;
 	@Mock
 	private OIDCTokenHelper mockOIDCTokenHelper;
+	@Mock
+	private Clock mockClock;
 	
 	final Long userId = 12345L;
 	final String username = "AuthManager@test.org";

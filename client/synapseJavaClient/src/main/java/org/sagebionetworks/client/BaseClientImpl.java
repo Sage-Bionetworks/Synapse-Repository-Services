@@ -93,6 +93,8 @@ public class BaseClientImpl implements BaseClient {
 
 	private String authorizationHeader;
 	
+	private boolean acceptsTermsOfUse;
+	
 	//cached value that is derived from repoEndpoint
 	String repoEndpointBaseDomain;
 
@@ -147,6 +149,7 @@ public class BaseClientImpl implements BaseClient {
 		LoginResponse response = postJSONEntity(authEndpoint, "/login", request, LoginResponse.class);
 		defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, response.getSessionToken());
 		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, response.getSessionToken());
+		acceptsTermsOfUse = response.getAcceptsTermsOfUse();
 		return response;
 	}
 
@@ -162,7 +165,12 @@ public class BaseClientImpl implements BaseClient {
 		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
 		LoginResponse response = postJSONEntity(authEndpoint, "/login2", request, LoginResponse.class);
 		setBearerAuthorizationToken(response.getAccessToken());
+		acceptsTermsOfUse = response.getAcceptsTermsOfUse();
 		return response;
+	}
+	
+	protected boolean acceptsTermsOfUse() {
+		return acceptsTermsOfUse;
 	}
 
 	@Deprecated

@@ -29,25 +29,30 @@ public class SynapseClientHelper {
 	 * @return The ID of the user
 	 */
 	public static Long createUser(SynapseAdminClient client, SynapseClient newUserClient) throws SynapseException, JSONObjectAdapterException {
-		return createUser(client, newUserClient, UUID.randomUUID().toString());
+		return createUser(client, newUserClient, UUID.randomUUID().toString(), true);
 	}
 
-	public static Long createUser(SynapseAdminClient client, SynapseClient newUserClient, String username) throws SynapseException, JSONObjectAdapterException {
-		return createUser(client, newUserClient, username, "password"+UUID.randomUUID().toString());
+	public static Long createUser(SynapseAdminClient client, SynapseClient newUserClient, boolean acceptsTermsOfUse) throws SynapseException, JSONObjectAdapterException {
+		return createUser(client, newUserClient, UUID.randomUUID().toString(), acceptsTermsOfUse);
+	}
+
+	public static Long createUser(SynapseAdminClient client, SynapseClient newUserClient, String username, boolean acceptsTermsOfUse) throws SynapseException, JSONObjectAdapterException {
+		return createUser(client, newUserClient, username, "password"+UUID.randomUUID().toString(), acceptsTermsOfUse);
 	}
 	
-	public static Long createUser(SynapseAdminClient client, SynapseClient newUserClient, String username, String password) throws SynapseException, JSONObjectAdapterException {
-		return createUser(client, newUserClient, username, password, UUID.randomUUID().toString() + "@sagebase.org");
+	public static Long createUser(SynapseAdminClient client, SynapseClient newUserClient, String username, String password, boolean acceptsTermsOfUse) throws SynapseException, JSONObjectAdapterException {
+		return createUser(client, newUserClient, username, password, UUID.randomUUID().toString() + "@sagebase.org", acceptsTermsOfUse);
 	}
 	
-	public static Long createUser(SynapseAdminClient client, SynapseClient newUserClient, String username, String password, String email) throws SynapseException, JSONObjectAdapterException {
+	public static Long createUser(SynapseAdminClient client, SynapseClient newUserClient, 
+			String username, String password, String email, boolean acceptsTermsOfUse) throws SynapseException, JSONObjectAdapterException {
 		if (newUserClient == null) {
 			newUserClient = new SynapseClientImpl();
 		}
 		setEndpoints(newUserClient);
 
 		NewIntegrationTestUser nu = new NewIntegrationTestUser();
-		nu.setTou(true);
+		nu.setTou(acceptsTermsOfUse);
 		nu.setEmail(email);
 		nu.setUsername(username);
 		nu.setPassword(password);

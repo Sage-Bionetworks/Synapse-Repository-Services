@@ -708,12 +708,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public UserSessionData getUserSessionData() throws SynapseException {
 		Session session = new Session();
 		session.setSessionToken(getCurrentSessionToken());
-		try {
-			revalidateSession();
-			session.setAcceptsTermsOfUse(true);
-		} catch (SynapseTermsOfUseException e) {
-			session.setAcceptsTermsOfUse(false);
-		}
+		session.setAcceptsTermsOfUse(acceptsTermsOfUse());
 
 		UserSessionData userData = null;
 		userData = new UserSessionData();

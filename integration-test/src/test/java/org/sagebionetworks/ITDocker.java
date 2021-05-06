@@ -96,7 +96,7 @@ public class ITDocker {
 		username = UUID.randomUUID().toString();
 		password = UUID.randomUUID().toString();
 		userToDelete = SynapseClientHelper
-				.createUser(adminSynapse, synapseOne, username, password);
+				.createUser(adminSynapse, synapseOne, username, password, true);
 		simpleClient = new SimpleHttpClientImpl();
 	}
 
