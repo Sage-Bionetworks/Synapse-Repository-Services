@@ -530,7 +530,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String AUTH_OAUTH_2 = "/oauth2";
 	public static final String AUTH_OAUTH_2_AUTH_URL = AUTH_OAUTH_2+"/authurl";
 	public static final String AUTH_OAUTH_2_SESSION = AUTH_OAUTH_2+"/session";
+	public static final String AUTH_OAUTH_2_SESSION_V2 = AUTH_OAUTH_2+"/session2";
 	public static final String AUTH_OAUTH_2_ACCOUNT = AUTH_OAUTH_2+"/account";
+	public static final String AUTH_OAUTH_2_ACCOUNT_V2 = AUTH_OAUTH_2+"/account2";
 	public static final String AUTH_OAUTH_2_ALIAS = AUTH_OAUTH_2+"/alias";
 	
 	public static final String AUTH_OPENID_CONFIG = "/.well-known/openid-configuration";
@@ -701,6 +703,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 	
+	@Deprecated
 	@Override
 	public UserSessionData getUserSessionData() throws SynapseException {
 		Session session = new Session();
@@ -4512,6 +4515,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_AUTH_URL, request, OAuthUrlResponse.class);
 	}
 
+	@Deprecated
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.client.SynapseClient#validateOAuthAuthenticationCode(org.sagebionetworks.repo.model.oauth.OAuthValidationRequest)
@@ -4522,8 +4526,18 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
+	public AccessToken validateOAuthAuthenticationCodeForAccessToken(OAuthValidationRequest request) throws SynapseException{
+		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_SESSION_V2, request, AccessToken.class);
+	}
+	
+	@Override
 	public Session createAccountViaOAuth2(OAuthAccountCreationRequest request) throws SynapseException{
 		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_ACCOUNT, request, Session.class);
+	}
+	
+	@Override
+	public AccessToken createAccountViaOAuth2ForAccessToken(OAuthAccountCreationRequest request) throws SynapseException {
+		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_ACCOUNT_V2, request, AccessToken.class);
 	}
 	
 	@Override

@@ -184,6 +184,7 @@ public class BaseClientImpl implements BaseClient {
 	// Setters and Getters
 	//================================================================================
 	
+	@Deprecated
 	/**
 	 * Authenticate the synapse client with an existing session token
 	 * 
@@ -194,6 +195,8 @@ public class BaseClientImpl implements BaseClient {
 		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
 	}
 
+
+	@Deprecated
 	/**
 	 * Get the current session token used by this client.
 	 * 

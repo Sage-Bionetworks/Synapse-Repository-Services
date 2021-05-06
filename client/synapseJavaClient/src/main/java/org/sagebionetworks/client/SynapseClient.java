@@ -82,6 +82,7 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
@@ -400,6 +401,7 @@ public interface SynapseClient extends BaseClient {
 	public void downloadWikiAttachment(WikiPageKey properKey,
 			String fileName, File target) throws SynapseException;
 
+	@Deprecated
 	/**
 	 * Returns an access token and UserProfile object
 	 * 
@@ -1917,6 +1919,7 @@ public interface SynapseClient extends BaseClient {
 	OAuthUrlResponse getOAuth2AuthenticationUrl(OAuthUrlRequest request)
 			throws SynapseException;
 	
+	@Deprecated
 	/**
 	 * After a user has been authenticated at an OAuthProvider's web page, the
 	 * provider will redirect the browser to the provided redirectUrl. The
@@ -1934,7 +1937,24 @@ public interface SynapseClient extends BaseClient {
 	Session validateOAuthAuthenticationCode(OAuthValidationRequest request)
 			throws SynapseException;
 	
-
+	/**
+	 * After a user has been authenticated at an OAuthProvider's web page, the
+	 * provider will redirect the browser to the provided redirectUrl. The
+	 * provider will add a query parameter to the redirectUrl called "code" that
+	 * represent the authorization code for the user. This method will use the
+	 * authorization code to validate the user and fetch information about the
+	 * user from the OAuthProvider. If successful, an access token for the user
+	 * will be returned.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 * @throws NotFoundException if the user does not exist in Synapse.
+	 */
+	AccessToken validateOAuthAuthenticationCodeForAccessToken(OAuthValidationRequest request)
+			throws SynapseException;
+	
+	@Deprecated
 	/**
 	 * 
 	 * After a user has been authenticated at an OAuthProvider's web page, the
@@ -1956,6 +1976,27 @@ public interface SynapseClient extends BaseClient {
 	 */
 	Session createAccountViaOAuth2(OAuthAccountCreationRequest request) throws SynapseException;
 	
+	/**
+	 * 
+	 * After a user has been authenticated at an OAuthProvider's web page, the
+	 * provider will redirect the browser to the provided redirectUrl. The
+	 * provider will add a query parameter to the redirectUrl called "code" that
+	 * represent the authorization code for the user. This method will use the
+	 * authorization code to validate the user and fetch the user's email address
+	 * from the OAuthProvider. If there is no existing account using the email address
+	 * from the provider then a new account will be created, the user will be authenticated,
+	 * and an access token for a new session will be returned.
+	 * 
+	 * If the email address from the provider is already associated with an account or
+	 * if the passed user name is used by another account then the request will
+	 * return HTTP Status 409 Conflict.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	AccessToken createAccountViaOAuth2ForAccessToken(OAuthAccountCreationRequest request) throws SynapseException;
+		
 	/**
 	 * After a user has been authenticated at an OAuthProvider's web page, the
 	 * provider will redirect the browser to the provided redirectUrl. The

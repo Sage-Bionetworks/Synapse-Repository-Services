@@ -164,6 +164,7 @@ public class AuthenticationController {
 		authenticationService.revalidate(session.getSessionToken());
 	}
 
+	@Deprecated
 	/**
 	 * Deauthenticate a session token. This will sign out all active sessions
 	 * using the session token.

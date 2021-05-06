@@ -21,6 +21,7 @@ public interface BaseClient {
 	 */
 	public void appendUserAgent(String toAppend);
 
+	@Deprecated
 	/**
 	 * Authenticate the Synapse client with an existing session token
 	 */
