@@ -364,7 +364,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String ACCOUNT_V2 = "/account2";
 	private static final String EMAIL_VALIDATION = "/emailValidation";
 	private static final String ACCOUNT_EMAIL_VALIDATION = ACCOUNT
-					+ EMAIL_VALIDATION;
+			+ EMAIL_VALIDATION;
 	private static final String EMAIL = "/email";
 	private static final String PORTAL_ENDPOINT_PARAM = "portalEndpoint";
 	private static final String SET_AS_NOTIFICATION_EMAIL_PARAM = "setAsNotificationEmail";

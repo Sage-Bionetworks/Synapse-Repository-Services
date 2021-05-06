@@ -58,9 +58,6 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	private PasswordResetTokenGenerator passwordResetTokenGenerator;
 	
 	@Autowired
-	private OpenIDConnectManager oidcManager;
-	
-	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
 	
 	@Autowired

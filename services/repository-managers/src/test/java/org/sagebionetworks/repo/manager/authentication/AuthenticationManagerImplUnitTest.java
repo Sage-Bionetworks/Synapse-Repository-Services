@@ -15,6 +15,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Date;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
@@ -230,6 +231,8 @@ public class AuthenticationManagerImplUnitTest {
 		String newReceipt = "newReceipt";
 		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
 		when(mockOIDCTokenHelper.createClientTotalAccessToken(userId, issuer)).thenReturn(synapseAccessToken);
+		Date now = new Date(12345L);
+		when(mockClock.now()).thenReturn(now);
 
 		// call under test
 		LoginResponse response = authManager.login(loginRequest, issuer);
@@ -241,6 +244,7 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
 		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
+		verify(mockAuthDAO).setAuthenticatedOn(userId, now);
 	}
 
 	///////////////////////////////////////////////////////////

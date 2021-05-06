@@ -104,7 +104,7 @@ public class SynapseTest {
 		configureMockHttpResponse(403, "{\"reason\":\"foo\"}");
 		synapse.revalidateSession();
 	}
-
+	
 	@Test
 	public void testCreateStudyEntity() throws Exception {
 		Folder ds = EntityCreator.createNewFolder();

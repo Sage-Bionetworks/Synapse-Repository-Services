@@ -204,6 +204,16 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		return sessionToken;
 	}
 
+	@Override
+	@WriteTransaction
+	public void setAuthenticatedOn(long principalId, Date authTime) {
+		DBOAuthenticatedOn dboAuthOn = new DBOAuthenticatedOn();
+		dboAuthOn.setPrincipalId(principalId);
+		dboAuthOn.setAuthenticatedOn(authTime);
+		dboAuthOn.setEtag(UUID.randomUUID().toString());
+		basicDAO.createOrUpdate(dboAuthOn);
+	}
+
 	@Deprecated
 	@Override
 	public Session getSessionTokenIfValid(long principalId) {
@@ -248,16 +258,6 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	public void deleteSessionToken(long principalId) {
 		userGroupDAO.touch(principalId);
 		jdbcTemplate.update(NULLIFY_SESSION_TOKEN_FOR_PRINCIPAL_ID, principalId);
-	}
-
-	@Override
-	@WriteTransaction
-	public void setAuthenticatedOn(long principalId, Date authTime) {
-		DBOAuthenticatedOn dboAuthOn = new DBOAuthenticatedOn();
-		dboAuthOn.setPrincipalId(principalId);
-		dboAuthOn.setAuthenticatedOn(authTime);
-		dboAuthOn.setEtag(UUID.randomUUID().toString());
-		basicDAO.createOrUpdate(dboAuthOn);
 	}
 
 	@Override
