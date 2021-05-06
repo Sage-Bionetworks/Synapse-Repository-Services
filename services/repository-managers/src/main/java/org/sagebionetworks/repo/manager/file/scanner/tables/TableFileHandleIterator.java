@@ -10,11 +10,11 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
-import org.sagebionetworks.repo.model.exception.RecoverableException;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.AmazonServiceException.ErrorType;
@@ -68,8 +68,7 @@ public class TableFileHandleIterator implements Iterator<ScannedFileHandleAssoci
 				// According to the docs the service type error are for requests received by AWS that cannot be fulfilled at the moment
 				// The caller can try iterating again from scratch
 				if (ErrorType.Service.equals(e.getErrorType())) {
-					// Since we are in an iterator we cannot throw a checked exception
-					throw new RecoverableException(e);
+					throw new RecoverableMessageException(e);
 				}
 				throw e;
 			}
