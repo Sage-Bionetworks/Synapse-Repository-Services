@@ -4,6 +4,7 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 
 import org.sagebionetworks.auth.DeprecatedUtils;
+import org.sagebionetworks.auth.controller.EndpointHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -31,6 +32,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * A <a href="http://en.wikipedia.org/wiki/Principal_%28computer_security%29">
@@ -89,7 +91,7 @@ public class PrincipalController {
 	 * @param user the first name, last name and email address for the user
 	 * @param portalEndpoint the beginning of the URL included in the email verification message. When concatenated with
 	 *        a list of ampersand (&) separated request parameters, must become a well formed URL. The concatenated
-	 *        string must be included with the <a href="${POST.account}">POST /account</a> request.
+	 *        string must be included with the <a href="${POST.account2}">POST /account</a> request.
 	 */
 	@RequiredScope({})
 	@ResponseStatus(HttpStatus.CREATED)
@@ -101,6 +103,17 @@ public class PrincipalController {
 		serviceProvider.getPrincipalService().newAccountEmailValidation(user, portalEndpoint);
 	}
 	
+	@Deprecated
+	@RequiredScope({})
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = { UrlHelpers.ACCOUNT }, method = RequestMethod.POST)
+	@ResponseBody
+	public Session createNewAccountForSession(
+			@RequestBody AccountSetupInfo accountSetupInfo) throws NotFoundException {
+		LoginResponse response = serviceProvider.getPrincipalService().createNewAccountForSession(accountSetupInfo);
+		return DeprecatedUtils.createSession(response);
+	}
+	
 	/**
 	 * This service completes the email validation process for setting up a new account. The client must provide the
 	 * validation token which was sent by email. The request will be rejected if the validation token is missing or
@@ -108,17 +121,17 @@ public class PrincipalController {
 	 * and a session token returned to the client.
 	 * 
 	 * @param accountSetupInfo user's first name, last name, requested user name, password, and validation token
-	 * @return a session token, allowing the client to begin making authenticated requests
+	 * @return an access token, allowing the client to begin making authenticated requests
 	 * @throws NotFoundException
 	 */
 	@RequiredScope({})
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = { UrlHelpers.ACCOUNT }, method = RequestMethod.POST)
+	@RequestMapping(value = { UrlHelpers.ACCOUNT_V2 }, method = RequestMethod.POST)
 	@ResponseBody
-	public Session createNewAccount(
-			@RequestBody AccountSetupInfo accountSetupInfo) throws NotFoundException {
-		LoginResponse response = serviceProvider.getPrincipalService().createNewAccount(accountSetupInfo);
-		return DeprecatedUtils.createSession(response);
+	public LoginResponse createNewAccount(
+			@RequestBody AccountSetupInfo accountSetupInfo,
+			UriComponentsBuilder uriComponentsBuilder) throws NotFoundException {
+		return serviceProvider.getPrincipalService().createNewAccount(accountSetupInfo, EndpointHelper.getEndpoint(uriComponentsBuilder));
 	}
 	
 	/**

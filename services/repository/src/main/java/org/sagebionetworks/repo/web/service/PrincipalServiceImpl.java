@@ -59,14 +59,20 @@ public class PrincipalServiceImpl implements PrincipalService {
 		principalManager.newAccountEmailValidation(user, portalEndpoint, new Date());
 	}
 	
+	@Deprecated
+	public LoginResponse createNewAccountForSession(AccountSetupInfo accountSetupInfo) throws NotFoundException {
+		return principalManager.createNewAccountForSession(accountSetupInfo);
+	}
+	
 	/**
 	 * Create a new account, following email validation
 	 * @param accountSetupInfo
-	 * @return session
+	 * @param tokenIssuer
+	 * @return access token
 	 * @throws NotFoundException 
 	 */
-	public LoginResponse createNewAccount(AccountSetupInfo accountSetupInfo) throws NotFoundException {
-		return principalManager.createNewAccount(accountSetupInfo);
+	public LoginResponse createNewAccount(AccountSetupInfo accountSetupInfo, String tokenIssuer) throws NotFoundException {
+		return principalManager.createNewAccount(accountSetupInfo, tokenIssuer);
 	}
 	
 	/**
