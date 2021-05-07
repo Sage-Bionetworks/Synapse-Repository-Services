@@ -257,8 +257,10 @@ public class BaseClientImpl implements BaseClient {
 	
 	@Override
 	public String getAccessToken() {
-		if (authorizationHeader==null || !authorizationHeader.startsWith(AuthorizationConstants.BEARER_TOKEN_HEADER))
+		if (authorizationHeader==null || !authorizationHeader.
+				startsWith(AuthorizationConstants.BEARER_TOKEN_HEADER)) {
 			throw new IllegalStateException("Missing bearer token header.");
+		}
 		return authorizationHeader.substring(AuthorizationConstants.BEARER_TOKEN_HEADER.length());
 	}
 	

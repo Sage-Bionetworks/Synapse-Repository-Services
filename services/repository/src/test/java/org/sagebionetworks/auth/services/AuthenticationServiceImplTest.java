@@ -133,12 +133,10 @@ public class AuthenticationServiceImplTest {
 		AccessToken accessToken = new AccessToken();
 		accessToken.setAccessToken(ACCESS_TOKEN);
 		when(mockOidcManager.validateAccessToken(ACCESS_TOKEN)).thenReturn(""+userId);
-		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		
 		// method under test
 		service.signTermsOfUse(accessToken);
 		
-		verify(mockUserManager).getUserInfo(userId);
 		verify(mockOidcManager).validateAccessToken(ACCESS_TOKEN);
 		verify(mockAuthenticationManager).setTermsOfUseAcceptance(userId, true);
 	}

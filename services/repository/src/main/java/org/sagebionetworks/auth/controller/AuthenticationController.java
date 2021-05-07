@@ -150,6 +150,7 @@ public class AuthenticationController {
 		return authenticationService.login(request, EndpointHelper.getEndpoint(uriComponentsBuilder));
 	}
 
+	@Deprecated
 	/**
 	 * Refresh a session token to render it usable for another 24 hours.
 	 */

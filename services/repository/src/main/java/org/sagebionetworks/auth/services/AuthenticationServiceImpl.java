@@ -112,13 +112,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Override
 	@WriteTransaction
 	public void signTermsOfUse(AccessToken accessToken) throws NotFoundException {
-		ValidateArgument.required(accessToken.getAccessToken(), "Access token");
+		ValidateArgument.required(accessToken, "Access token");
+		ValidateArgument.required(accessToken.getAccessToken(), "Access token contents");
 		
-		Long principalId =  Long.parseLong(oidcManager.validateAccessToken(accessToken.getAccessToken()));
-		UserInfo userInfo = userManager.getUserInfo(principalId);
+		Long principalId = Long.parseLong(oidcManager.validateAccessToken(accessToken.getAccessToken()));
 		
 		// Save the state of acceptance
-		authManager.setTermsOfUseAcceptance(userInfo.getId(), true);
+		authManager.setTermsOfUseAcceptance(principalId, true);
 	}
 	
 	@Override
