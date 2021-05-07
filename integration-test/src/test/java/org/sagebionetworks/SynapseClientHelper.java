@@ -62,6 +62,8 @@ public class SynapseClientHelper {
 		Long principalId = Long.parseLong(accessTokenSubject);
 		
 		newUserClient.setBearerAuthorizationToken(loginResponse.getAccessToken());
+		
+		newUserClient.setAcceptsTermsOfUse(loginResponse.getAcceptsTermsOfUse());
 		client.setCertifiedUserStatus(accessTokenSubject, true);
 		return principalId;
 	}

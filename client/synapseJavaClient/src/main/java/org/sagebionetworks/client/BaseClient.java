@@ -28,6 +28,12 @@ public interface BaseClient {
 	public void setSessionToken(String sessionToken);
 	
 	/**
+	 * Set whether the user accepts the Synapse terms of use
+	 * @param b
+	 */
+	public void setAcceptsTermsOfUse(boolean b);
+	
+	/**
 	 * Set a uname and password as a Basic Authorization header.
 	 * This should be used exclusively of the Synapse session token
 	 * or any other authorization scheme.

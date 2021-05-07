@@ -66,7 +66,6 @@ public class IT990AuthenticationController {
 		nu.setEmail(email);
 		nu.setUsername(username);
 		nu.setPassword(PASSWORD);
-		
 
 		LoginResponse loginResponse = adminSynapse.createIntegrationTestUser(nu);
 		String accessTokenSubject = JSONWebTokenHelper.getSubjectFromJWTAccessToken(loginResponse.getAccessToken());
@@ -163,7 +162,14 @@ public class IT990AuthenticationController {
 
 	@Test
 	public void testSignTermsViaSessionToken() throws Exception {
+		LoginRequest request = new LoginRequest();
+		request.setUsername(username);
+		request.setPassword(PASSWORD);
+		request.setAuthenticationReceipt(receipt);
+		synapse.login(request);
 		String sessionToken = synapse.getCurrentSessionToken();
+		// Accept the terms
+		synapse.signTermsOfUse(sessionToken, true);
 		// Reject the terms
 		synapse.signTermsOfUse(sessionToken, false);
 	}

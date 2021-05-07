@@ -169,6 +169,11 @@ public class BaseClientImpl implements BaseClient {
 		return response;
 	}
 	
+	@Override
+	public void setAcceptsTermsOfUse(boolean b) {
+		acceptsTermsOfUse = b;
+	}
+	
 	protected boolean acceptsTermsOfUse() {
 		return acceptsTermsOfUse;
 	}
@@ -179,7 +184,9 @@ public class BaseClientImpl implements BaseClient {
 	 * @throws SynapseException
 	 */
 	public void logout() throws SynapseException {
-		deleteUri(authEndpoint, "/session");
+		if (defaultGETDELETEHeaders.containsKey(SESSION_TOKEN_HEADER)) {
+			deleteUri(authEndpoint, "/session");
+		}
 		defaultGETDELETEHeaders.remove(SESSION_TOKEN_HEADER);
 		defaultPOSTPUTHeaders.remove(SESSION_TOKEN_HEADER);
 	}
