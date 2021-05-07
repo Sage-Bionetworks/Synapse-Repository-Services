@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -34,6 +35,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.kinesis.AwsKinesisDeliveryException;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationRecord;
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleScannerUtils;
@@ -258,6 +260,38 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		verifyZeroInteractions(mockKinesisLogger);
 		verifyZeroInteractions(mockStackStatusDao);
 		
+	}
+	
+	@Test
+	public void processScanRangeRequestWithKinesisException() throws RecoverableMessageException {
+		
+		List<ScannedFileHandleAssociation> associations = Arrays.asList(
+				new ScannedFileHandleAssociation(1L, 1L),
+				new ScannedFileHandleAssociation(2L, 2L)
+		);
+		
+		long batchTimestamp = 123L;
+		
+		AwsKinesisDeliveryException ex = new AwsKinesisDeliveryException("Could not deliver");
+		
+		when(mockStatusDao.exist(anyLong())).thenReturn(true);
+		when(mockStackStatusDao.isStackReadWrite()).thenReturn(true);
+		when(mockAssociationManager.scanRange(any(), any())).thenReturn(associations);
+		when(mockClock.currentTimeMillis()).thenReturn(batchTimestamp, 456L);
+		doThrow(ex).when(mockKinesisLogger).logBatch(any(), any());
+		
+		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {			
+			// Call under test
+			manager.processScanRangeRequest(scanRangeRequest);
+		});
+		
+		assertEquals(ex, result.getCause());
+		
+		verify(mockStackStatusDao, times(2)).isStackReadWrite();
+		verify(mockAssociationManager).scanRange(scanRangeRequest.getAssociationType(), scanRangeRequest.getIdRange());
+		verify(mockKinesisLogger).logBatch(eq(FileHandleAssociationRecord.STREAM_NAME), anyList());
+		verify(mockClock).currentTimeMillis();
+		verifyZeroInteractions(mockStatusDao);
 	}
 	
 	@Test

@@ -162,13 +162,21 @@ public interface FileHandleDao {
 	
 	/**
 	 * @param ids
+	 * @param updatedOnBeforeDays Filter on the updatedOn, only fetch data for file handles that have been update more than the given number of days ago. If 0 no filter is applied
 	 * @return The plain DBO object for the file handles with the given id
 	 */
-	List<DBOFileHandle> getDBOFileHandlesBatch(List<Long> ids);
+	List<DBOFileHandle> getDBOFileHandlesBatch(List<Long> ids, int updatedOnBeforeDays);
 	
 	/**
 	 * Deleted all file data
 	 */
 	void truncateTable();
+
+	/**
+	 * Creates a batch from the given list of DBOs
+	 * 
+	 * @param dbos
+	 */
+	void createBatchDbo(List<DBOFileHandle> dbos);
 	
 }

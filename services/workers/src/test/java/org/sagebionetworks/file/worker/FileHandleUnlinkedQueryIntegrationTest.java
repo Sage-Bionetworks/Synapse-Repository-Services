@@ -1,5 +1,6 @@
 package org.sagebionetworks.file.worker;
 
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -30,9 +31,11 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.athena.AthenaQueryResult;
 import org.sagebionetworks.repo.model.athena.AthenaSupport;
 import org.sagebionetworks.repo.model.dao.FileHandleStatus;
+import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.files.FilesScannerStatusDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.util.Pair;
@@ -48,6 +51,8 @@ import com.amazonaws.services.s3.model.DeleteObjectsRequest.KeyVersion;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.stepfunctions.AWSStepFunctions;
+import com.amazonaws.services.stepfunctions.model.DescribeExecutionRequest;
+import com.amazonaws.services.stepfunctions.model.ExecutionStatus;
 import com.amazonaws.services.stepfunctions.model.ListStateMachinesRequest;
 import com.amazonaws.services.stepfunctions.model.ListStateMachinesResult;
 import com.amazonaws.services.stepfunctions.model.StartExecutionRequest;
@@ -153,48 +158,67 @@ public class FileHandleUnlinkedQueryIntegrationTest {
 	public void testRoundTrip() throws Exception {
 		
 		// Makes sure to create "old" file handles
-		Date createdOn = Date.from(Instant.now().minus(60, ChronoUnit.DAYS));
+		Timestamp createdOn = Timestamp.from(Instant.now().minus(60, ChronoUnit.DAYS));
 		
 		// Generate an high random number to avoid issues with different users
 		Long startId = 1_000_000L + config.getStackInstanceNumber() + new Random().nextInt(100_000);
 		
-		FileHandle linkedHandle = TestUtils.createS3FileHandle(user.getId().toString(), (++startId).toString()).setCreatedOn(createdOn);
-		FileHandle unlinkedHandle = TestUtils.createS3FileHandle(user.getId().toString(), (++startId).toString()).setCreatedOn(createdOn);
+		DBOFileHandle linkedHandle = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(user.getId().toString(), (++startId).toString()));
+		DBOFileHandle unlinkedHandle = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(user.getId().toString(), (++startId).toString()));
+		
+		linkedHandle.setCreatedOn(createdOn);
+		linkedHandle.setUpdatedOn(createdOn);
+		unlinkedHandle.setCreatedOn(createdOn);
+		unlinkedHandle.setUpdatedOn(createdOn);
 				
-		fileHandleDao.createBatch(Arrays.asList(linkedHandle, unlinkedHandle));
+		fileHandleDao.createBatchDbo(Arrays.asList(linkedHandle, unlinkedHandle));
 		
 		// We create at least one association so that we are sure one job need to run at least
 		managedHelper.create(ar-> {
 			ar.setCreatedBy(user.getId().toString());
 			ar.setSubjectIds(Collections.emptyList());
-			ar.setDucTemplateFileHandleId(linkedHandle.getId());
+			ar.setDucTemplateFileHandleId(linkedHandle.getId().toString());
 		});
 		
 		// Manually trigger the job for the scanner since the start time is very long
 		scheduler.triggerJob(dispatcherTrigger.getJobKey(), dispatcherTrigger.getJobDataMap());
 		
 		// We wait for the ids to end up in the right glue tables, using athena itself to check 
-		waitForKinesisData(Arrays.asList(linkedHandle, unlinkedHandle).stream().map(f -> f.getId()).collect(Collectors.toList()), "fileHandleDataRecords", "id");
-		waitForKinesisData(Arrays.asList(linkedHandle).stream().map(f -> f.getId()).collect(Collectors.toList()), "fileHandleAssociationsRecords", "filehandleid");
+		waitForKinesisData(Arrays.asList(linkedHandle.getId(), unlinkedHandle.getId()), "fileHandleDataRecords", "id");
+		waitForKinesisData(Arrays.asList(linkedHandle.getId()), "fileHandleAssociationsRecords", "filehandleid");
 		
 		String stateMachineArn = findStateMachineArn("UnlinkedFileHandles");
 		
-		stepFunctionsClient.startExecution(new StartExecutionRequest().withStateMachineArn(stateMachineArn));
+		String executionArn = stepFunctionsClient.startExecution(new StartExecutionRequest().withStateMachineArn(stateMachineArn)).getExecutionArn();
 		
 		TimeUtils.waitFor(TIMEOUT, 1000L, () -> {
-			List<FileHandle> linked = fileHandleDao.getFileHandlesBatchByStatus(Arrays.asList(Long.valueOf(linkedHandle.getId())), FileHandleStatus.AVAILABLE);
-			List<FileHandle> unlinked = fileHandleDao.getFileHandlesBatchByStatus(Arrays.asList(Long.valueOf(unlinkedHandle.getId())), FileHandleStatus.UNLINKED);
+			
+			ExecutionStatus status = ExecutionStatus.valueOf(stepFunctionsClient.describeExecution(new DescribeExecutionRequest().withExecutionArn(executionArn)).getStatus());
+			
+			switch (status) {
+			case FAILED:
+			case ABORTED:
+			case TIMED_OUT:
+				throw new IllegalStateException("The execution " + executionArn + " failed: " + status);
+			case RUNNING:
+				return new Pair<>(false, null);
+			default:
+				break;
+			}
+			
+			List<FileHandle> linked = fileHandleDao.getFileHandlesBatchByStatus(Arrays.asList(linkedHandle.getId()), FileHandleStatus.AVAILABLE);
+			List<FileHandle> unlinked = fileHandleDao.getFileHandlesBatchByStatus(Arrays.asList(unlinkedHandle.getId()), FileHandleStatus.UNLINKED);
 			
 			return new Pair<>(linked.size() == 1 && unlinked.size() == 1, null);
 		});
 	}
 	
-	private void waitForKinesisData(List<String> ids, String tableName, String idColumn) throws Exception {
+	private void waitForKinesisData(List<Long> ids, String tableName, String idColumn) throws Exception {
 		Database dataBase = athenaSupport.getDatabase("firehoseLogs");
 		
 		Table fileHandleDataTable = athenaSupport.getTable(dataBase, tableName);
 		
-		String query = "SELECT COUNT(*) FROM " + fileHandleDataTable.getName() + " WHERE " + idColumn + " IN (" + String.join(",", ids) + ")";
+		String query = "SELECT COUNT(*) FROM " + fileHandleDataTable.getName() + " WHERE " + idColumn + " IN (" + String.join(",", ids.stream().map(id -> id.toString()).collect(Collectors.toList())) + ")";
 		
 		LOG.info("Executing query {}...", query);
 		
