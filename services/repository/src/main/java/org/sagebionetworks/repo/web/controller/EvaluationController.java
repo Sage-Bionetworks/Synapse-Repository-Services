@@ -688,7 +688,6 @@ public class EvaluationController {
 	
 	/**	
 	 * Deletes a Submission and its accompanying SubmissionStatus.
-	 * <b>This service is intended to only be used by ChallengesInfrastructure service account.</b>
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
