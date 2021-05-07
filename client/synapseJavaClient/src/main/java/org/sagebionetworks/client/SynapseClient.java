@@ -1894,7 +1894,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Signs the terms of use for utilization of Synapse, as identified by a session token
 	 */
-	public void signTermsOfUse(String accessToken, boolean acceptTerms) throws SynapseException;
+	public void signTermsOfUse(String sessionToken, boolean acceptTerms) throws SynapseException;
 
 	/**
 	 * Signs the terms of use for utilization of Synapse, as identified by an access token

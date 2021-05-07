@@ -360,6 +360,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	public static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 
+	private static final String TERMS_OF_USE_V2 = "/termsOfUse2";
 	private static final String ACCOUNT = "/account";
 	private static final String ACCOUNT_V2 = "/account2";
 	private static final String EMAIL_VALIDATION = "/emailValidation";
@@ -4498,7 +4499,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public void signTermsOfUse(String accessToken) throws SynapseException {
 		AccessToken accessTokenWrapper = new AccessToken();
 		accessTokenWrapper.setAccessToken(accessToken);
-		voidPost(getAuthEndpoint(), "/termsOfUse2", accessTokenWrapper, null);
+		voidPost(getAuthEndpoint(), TERMS_OF_USE_V2, accessTokenWrapper, null);
 		
 	}
 	
