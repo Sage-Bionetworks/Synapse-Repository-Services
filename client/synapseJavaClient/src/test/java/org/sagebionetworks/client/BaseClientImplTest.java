@@ -166,6 +166,7 @@ public class BaseClientImplTest {
 
 	@Test
 	public void testLogout() throws Exception {
+		baseClient.setSessionToken("some token");
 		when(mockClient.delete(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		baseClient.logout();
