@@ -1,6 +1,19 @@
 package org.sagebionetworks.table.cluster;
 
-import com.google.common.collect.Lists;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
@@ -21,6 +34,9 @@ import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.BacktickDelimitedIdentifier;
 import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
+import org.sagebionetworks.table.query.model.CharacterFactor;
+import org.sagebionetworks.table.query.model.CharacterPrimary;
+import org.sagebionetworks.table.query.model.CharacterValueExpression;
 import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.ColumnReference;
@@ -28,6 +44,7 @@ import org.sagebionetworks.table.query.model.CurrentUserFunction;
 import org.sagebionetworks.table.query.model.DelimitedIdentifier;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.Element;
+import org.sagebionetworks.table.query.model.EscapeCharacter;
 import org.sagebionetworks.table.query.model.ExactNumericLiteral;
 import org.sagebionetworks.table.query.model.FromClause;
 import org.sagebionetworks.table.query.model.FunctionReturnType;
@@ -38,13 +55,16 @@ import org.sagebionetworks.table.query.model.HasReferencedColumn;
 import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.InPredicateValue;
+import org.sagebionetworks.table.query.model.InValueList;
 import org.sagebionetworks.table.query.model.IntervalLiteral;
 import org.sagebionetworks.table.query.model.JoinCondition;
 import org.sagebionetworks.table.query.model.JoinType;
+import org.sagebionetworks.table.query.model.LikePredicate;
 import org.sagebionetworks.table.query.model.NumericValueFunction;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.OuterJoinType;
 import org.sagebionetworks.table.query.model.Pagination;
+import org.sagebionetworks.table.query.model.Pattern;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QualifiedJoin;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -62,18 +82,7 @@ import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+import com.google.common.collect.Lists;
 
 /**
  * Helper methods to translate user generated queries
@@ -666,18 +675,20 @@ public class SQLTranslatorUtils {
 
 		//build up subquery against the flattened index table
 		String columnFlattenedIndexTable = SQLUtils.getTableNameForMultiValueColumnIndex(idAndVersion, schemaColumnTranslationReference.getId());
+		
 		try {
-			QuerySpecification subquery = TableQueryParser.parserQuery("SELECT " + SQLUtils.getRowIdRefColumnNameForId(schemaColumnTranslationReference.getId()) +
-					" FROM " + columnFlattenedIndexTable +
-					" WHERE "
-					//use a placeholder predicate because the colons in bind variables (e.g. ":b1") are not accepted by the parser
-					+ " placeholder IN ( placeholder )");
-
-			//create a "IN" predicate that has the same right hand side as the "HAS" predicate for the subquery
+			
+			String rowIdRefColumnName = SQLUtils.getRowIdRefColumnNameForId(schemaColumnTranslationReference.getId());
 			ColumnReference unnestedColumn = SqlElementUntils.createColumnReference(SQLUtils.getUnnestedColumnNameForId(schemaColumnTranslationReference.getId()));
-			InPredicate subqueryInPredicate = new InPredicate(unnestedColumn, null, arrayHasPredicate.getInPredicateValue());
-			subquery.getFirstElementOfType(Predicate.class).replaceChildren(subqueryInPredicate);
-
+			
+			QuerySpecification subquery;
+			
+			if (arrayHasPredicate.getHasLikeSpec() == null) {
+				subquery = createArrayHasSubqueryWithInClause(columnFlattenedIndexTable, rowIdRefColumnName, unnestedColumn, arrayHasPredicate.getInPredicateValue());
+			} else {
+				subquery = createArrayHasSubqueryWithLikeClause(columnFlattenedIndexTable, rowIdRefColumnName, unnestedColumn, arrayHasPredicate.getInPredicateValue(), arrayHasPredicate.getHasLikeSpec().getEscapeCharacter());
+			}
+			
 			//replace the "HAS" with "IN" predicate containing the subquery
 			Predicate replacementPredicate = new Predicate(new InPredicate(
 					SqlElementUntils.createColumnReference(ROW_ID),
@@ -688,6 +699,69 @@ public class SQLTranslatorUtils {
 		}catch (ParseException e){
 			throw new IllegalArgumentException(e);
 		}
+	}
+	
+	private static QuerySpecification createArrayHasSubqueryWithInClause(String columnFlattenedIndexTable, String rowIdRefColumnName, ColumnReference unnestedColumn, InPredicateValue value) throws ParseException {
+		StringBuilder sql = new StringBuilder("SELECT ")
+				.append(rowIdRefColumnName)
+				.append(" FROM ")
+				.append(columnFlattenedIndexTable)
+				.append(" WHERE ")
+				//use a placeholder predicate because the colons in bind variables (e.g. ":b1") are not accepted by the parser
+				.append(" placeholder IN ( placeholder )");
+		
+		QuerySpecification subquery = TableQueryParser.parserQuery(sql.toString());
+
+		//create a "IN" predicate that has the same right hand side as the "HAS" predicate for the subquery
+		InPredicate subqueryInPredicate = new InPredicate(unnestedColumn, null, value);
+		subquery.getFirstElementOfType(Predicate.class).replaceChildren(subqueryInPredicate);
+		return subquery;
+	}
+	
+	private static QuerySpecification createArrayHasSubqueryWithLikeClause(String columnFlattenedIndexTable, String rowIdRefColumnName, ColumnReference unnestedColumn, InPredicateValue value, EscapeCharacter escapeCharacter) throws ParseException {
+		StringBuilder sql = new StringBuilder("SELECT ")
+				.append(rowIdRefColumnName)
+				.append(" FROM ")
+				.append(columnFlattenedIndexTable)
+				.append(" WHERE ");
+		
+		// For each of the values in the "inPredicate" of the has_like we construct a like expression for variable bind replacement
+		InValueList inValueList = value.getFirstElementOfType(InValueList.class);
+		
+		List<ValueExpressionPrimary> valueExpressions = inValueList.getValueExpressions().stream()
+				.map((e) -> e.getFirstElementOfType(ValueExpressionPrimary.class))
+				.collect(Collectors.toList());
+		
+		List<LikePredicate> likePredicates = new ArrayList<>(valueExpressions.size());
+		
+		for (int i = 0; i< valueExpressions.size(); i++) {
+			if (i > 0) {
+				sql.append(" OR ");
+			}
+			//use a placeholder predicate because the colons in bind variables (e.g. ":b1") are not accepted by the parser
+			String placeholder = "placeholder";
+			
+			sql.append(placeholder).append(" LIKE ").append(placeholder);
+			
+			if (escapeCharacter != null) {
+				sql.append(" ESCAPE ").append(placeholder);
+			}
+			
+			Pattern likePattern = new Pattern(new CharacterValueExpression(new CharacterFactor(new CharacterPrimary(valueExpressions.get(i)))));
+			
+			likePredicates.add(new LikePredicate(unnestedColumn, null, likePattern, escapeCharacter));
+		}
+				
+		QuerySpecification subquery = TableQueryParser.parserQuery(sql.toString());
+		
+		int i=0;
+		
+		// Replace all the placeholder with the bind variables
+		for (Predicate predicate : subquery.createIterable(Predicate.class)) {
+			predicate.replaceChildren(likePredicates.get(i++));
+		}
+		
+		return subquery;
 	}
 
 	/**

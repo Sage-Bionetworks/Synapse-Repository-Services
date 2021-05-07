@@ -1,6 +1,28 @@
 package org.sagebionetworks.table.cluster;
 
-import com.google.common.collect.Lists;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,28 +67,8 @@ import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 
 @ExtendWith(MockitoExtension.class)
 public class SQLTranslatorUtilsTest {
@@ -868,6 +870,51 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.replaceArrayHasPredicate(notArrayHasPredicate, columnMap, tableIdAndVersion);
 		//if not an ArrayHasPredicate, nothing should have changed
 		assertEquals(beforeCallSqll, notArrayHasPredicate.toSql());
+	}
+	
+	@Test
+	public void testReplaceArrayHasPredicateWithLike() throws ParseException {
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
+		HashMap<String, Object> parameters = new HashMap<>();
+		
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has_like ('asdf%', 'qwerty', 'yeet')");
+		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasLikePredicate is called in actual code.
+		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), parameters, columnMap);
+
+		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
+
+		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST LIKE :b0 OR _C111__UNNEST LIKE :b1 OR _C111__UNNEST LIKE :b2 )", booleanPrimary.toSql());
+		assertEquals(ImmutableMap.of(
+				"b0", "asdf%",
+				"b1", "qwerty",
+				"b2", "yeet"
+		), parameters);
+
+	}
+	
+	@Test
+	public void testReplaceArrayHasPredicateWithLikeAndEscape() throws ParseException {
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
+		HashMap<String, Object> parameters = new HashMap<>();
+		
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has_like ('asdf%', 'qwerty', 'yeet') escape '_'");
+		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasLikePredicate is called in actual code.
+		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), parameters, columnMap);
+
+		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
+
+		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST LIKE :b0 ESCAPE :b3 OR _C111__UNNEST LIKE :b1 ESCAPE :b3 OR _C111__UNNEST LIKE :b2 ESCAPE :b3 )", booleanPrimary.toSql());
+		assertEquals(ImmutableMap.of(
+				"b0", "asdf%",
+				"b1", "qwerty",
+				"b2", "yeet",
+				"b3", "_"
+		), parameters);
+
 	}
 
 	@Test
@@ -1780,7 +1827,48 @@ public class SQLTranslatorUtilsTest {
 		assertEquals("yah", parameters.get("b3"));
 		assertEquals("yeet", parameters.get("b4"));
 	}
+	
+	@Test
+	public void testTranslateModelWithHasLikeKeyword() throws ParseException {
+		columnDouble.setColumnType(ColumnType.INTEGER_LIST);
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
 
+		//need to recreate the translation reference
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
+		QuerySpecification element = new TableQueryParser( "select * from syn123 where aDouble has (1,2,3) and ( foo has_like ('yah%', 'wow') or bar = 'yeet')").querySpecification();
+		Map<String, Object> parameters = new HashMap<>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap, userId);
+		assertEquals( "SELECT * FROM T123 WHERE ROW_ID IN ( SELECT ROW_ID_REF_C777_ FROM T123_INDEX_C777_ WHERE _C777__UNNEST IN ( :b0, :b1, :b2 ) ) AND ( ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_INDEX_C111_ WHERE _C111__UNNEST LIKE :b3 OR _C111__UNNEST LIKE :b4 ) OR _C333_ = :b5 )",element.toSql());
+		assertEquals(1L, parameters.get("b0"));
+		assertEquals(2L, parameters.get("b1"));
+		assertEquals(3L, parameters.get("b2"));
+		assertEquals("yah%", parameters.get("b3"));
+		assertEquals("wow", parameters.get("b4"));
+		assertEquals("yeet", parameters.get("b5"));
+	}
+	
+	@Test
+	public void testTranslateModelWithHasLikeKeywordAndEscape() throws ParseException {
+		columnDouble.setColumnType(ColumnType.INTEGER_LIST);
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
+
+		//need to recreate the translation reference
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
+		QuerySpecification element = new TableQueryParser( "select * from syn123 where aDouble has (1,2,3) and ( foo has_like ('yah%', 'wow') escape '_' or bar = 'yeet')").querySpecification();
+		Map<String, Object> parameters = new HashMap<>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap, userId);
+		assertEquals( "SELECT * FROM T123 WHERE ROW_ID IN ( SELECT ROW_ID_REF_C777_ FROM T123_INDEX_C777_ WHERE _C777__UNNEST IN ( :b0, :b1, :b2 ) ) AND ( ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_INDEX_C111_ WHERE _C111__UNNEST LIKE :b3 ESCAPE :b5 OR _C111__UNNEST LIKE :b4 ESCAPE :b5 ) OR _C333_ = :b6 )",element.toSql());
+		assertEquals(1L, parameters.get("b0"));
+		assertEquals(2L, parameters.get("b1"));
+		assertEquals(3L, parameters.get("b2"));
+		assertEquals("yah%", parameters.get("b3"));
+		assertEquals("wow", parameters.get("b4"));
+		assertEquals("_", parameters.get("b5"));
+		assertEquals("yeet", parameters.get("b6"));
+	}
+	
 	@Test
 	public void testTranslateModel_UnnestArrayColumn() throws ParseException{
 		columnFoo.setColumnType(ColumnType.STRING_LIST);//not a list type

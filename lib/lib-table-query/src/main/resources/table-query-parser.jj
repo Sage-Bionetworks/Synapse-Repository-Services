@@ -173,6 +173,7 @@ TOKEN [IGNORE_CASE]: {
 | < interval: "INTERVAL">
 | < in: "IN">
 | < has: "HAS">
+| < has_like: "HAS_LIKE">
 | < is: "IS">
 | < like: "LIKE" >
 | < limit: "LIMIT" >
@@ -828,10 +829,13 @@ BetweenPredicate betweenPredicate(ColumnReference leftHandSide, Boolean notB):
 ArrayHasPredicate arrayHasPredicate(ColumnReference leftHandSide, Boolean notB):
 {
 	InPredicateValue inPredicateValue = null;
+	EscapeCharacter escapeCharacter = null;
 }
 {
 	<has> inPredicateValue = inPredicateValue()
-	{ return new ArrayHasPredicate(leftHandSide, notB, inPredicateValue);}
+	{ return new ArrayHasPredicate(leftHandSide, notB, inPredicateValue);} |
+	<has_like> inPredicateValue = inPredicateValue() [ <escape> escapeCharacter = escapeCharacter() ]
+	{ return new ArrayHasPredicate(leftHandSide, notB, inPredicateValue, new ArrayHasLikeSpec(escapeCharacter));}
 
 }
 InPredicate inPredicate(ColumnReference leftHandSide, Boolean notB):
