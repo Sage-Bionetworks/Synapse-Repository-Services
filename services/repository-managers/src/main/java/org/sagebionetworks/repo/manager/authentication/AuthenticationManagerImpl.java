@@ -300,6 +300,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		return createLoginResponse(accessToken, acceptsTermsOfUse, newAuthenticationReceipt);
 	}
 	
+	@Deprecated
 	/**
 	 * Create a login response from the session and the new authentication receipt
 	 * 
@@ -307,7 +308,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	 * @param newReceipt
 	 * @return
 	 */
-	private LoginResponse createLoginResponse(Session session, String newReceipt) {
+	private static LoginResponse createLoginResponse(Session session, String newReceipt) {
 		LoginResponse response = new LoginResponse();
 		response.setSessionToken(session.getSessionToken());
 		response.setAcceptsTermsOfUse(session.getAcceptsTermsOfUse());
@@ -315,7 +316,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		return response;
 	}
 
-	private LoginResponse createLoginResponse(String accessToken, boolean acceptsTermsOfUse, String newReceipt) {
+	private static LoginResponse createLoginResponse(String accessToken, boolean acceptsTermsOfUse, String newReceipt) {
 		LoginResponse response = new LoginResponse();
 		response.setAccessToken(accessToken);
 		response.setAcceptsTermsOfUse(acceptsTermsOfUse);

@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -29,6 +30,7 @@ import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
@@ -69,6 +71,8 @@ public class AuthenticationServiceImplTest {
 	private static String password = "NeverUse_thisPassword";
 	private static long userId = 123456789L;
 	private static String sessionToken = "Some session token";
+	private static String ACCESS_TOKEN = "Some access token";
+	private static final String ISSUER = "https://repo-prod.sagebase.org/v1";
 	
 	String alias, aliasEmail;
 	PrincipalAlias principalAlias, principalEmailAlias;
@@ -125,6 +129,21 @@ public class AuthenticationServiceImplTest {
 	}
 	
 	@Test
+	public void testSignTermsOfUse() {
+		AccessToken accessToken = new AccessToken();
+		accessToken.setAccessToken(ACCESS_TOKEN);
+		when(mockOidcManager.validateAccessToken(ACCESS_TOKEN)).thenReturn(""+userId);
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+		
+		// method under test
+		service.signTermsOfUse(accessToken);
+		
+		verify(mockUserManager).getUserInfo(userId);
+		verify(mockOidcManager).validateAccessToken(ACCESS_TOKEN);
+		verify(mockAuthenticationManager).setTermsOfUseAcceptance(userId, true);
+	}
+	
+	@Test
 	public void testGetOAuthAuthenticationUrl(){
 		OAuthUrlRequest request = new OAuthUrlRequest();
 		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
@@ -139,7 +158,7 @@ public class AuthenticationServiceImplTest {
 	
 	
 	@Test
-	public void testValidateOAuthAuthenticationCode() throws NotFoundException{
+	public void testValidateOAuthAuthenticationCodeForSession() throws NotFoundException{
 		OAuthValidationRequest request = new OAuthValidationRequest();
 		request.setAuthenticationCode("some code");
 		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
@@ -160,7 +179,36 @@ public class AuthenticationServiceImplTest {
 	}
 	
 	@Test
-	public void testCreateAccountViaOauth() throws NotFoundException{
+	public void testValidateOAuthAuthenticationCode() throws NotFoundException{
+		OAuthValidationRequest request = new OAuthValidationRequest();
+		request.setAuthenticationCode("some code");
+		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+		request.setRedirectUrl("https://domain.com");
+		ProvidedUserInfo info = new ProvidedUserInfo();
+		info.setUsersVerifiedEmail("first.last@domain.com");
+		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
+		PrincipalAlias alias = new PrincipalAlias();
+		long userId = 3456L;
+		alias.setPrincipalId(userId);
+		when(mockUserManager.lookupUserByUsernameOrEmail(info.getUsersVerifiedEmail())).thenReturn(alias);
+		LoginResponse authMgrLoginResponse = new LoginResponse();
+		authMgrLoginResponse.setAcceptsTermsOfUse(true);
+		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
+		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
+		when(mockAuthenticationManager.loginWithNoPasswordCheck(userId, ISSUER)).thenReturn(authMgrLoginResponse);
+		
+		//call under test
+		LoginResponse result = service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
+		
+		assertEquals(authMgrLoginResponse, result);
+		
+		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
+		verify(mockUserManager).lookupUserByUsernameOrEmail(info.getUsersVerifiedEmail());
+		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
+	}
+	
+	@Test
+	public void testCreateAccountViaOauthForSession() throws NotFoundException{
 		OAuthAccountCreationRequest request = new OAuthAccountCreationRequest();
 		request.setAuthenticationCode("some code");
 		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
@@ -181,7 +229,41 @@ public class AuthenticationServiceImplTest {
 	}
 	
 	@Test
-	public void testValidateOAuthAuthenticationCodeEmailNull() throws NotFoundException{
+	public void testCreateAccountViaOauth() throws NotFoundException{
+		OAuthAccountCreationRequest request = new OAuthAccountCreationRequest();
+		request.setAuthenticationCode("some code");
+		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+		request.setRedirectUrl("https://domain.com");
+		request.setUserName("uname");
+		ProvidedUserInfo info = new ProvidedUserInfo();
+		info.setUsersVerifiedEmail("first.last@domain.com");
+		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
+		
+		when(mockUserManager.createUser((NewUser)any())).thenReturn(userId);
+		LoginResponse authMgrLoginResponse = new LoginResponse();
+		authMgrLoginResponse.setAcceptsTermsOfUse(true);
+		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
+		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
+		when(mockAuthenticationManager.loginWithNoPasswordCheck(userId, ISSUER)).thenReturn(authMgrLoginResponse);
+		
+		//call under test
+		LoginResponse result = service.createAccountViaOauth(request, ISSUER);
+		assertEquals(authMgrLoginResponse, result);
+		
+		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
+		NewUser newUser = new NewUser();
+		newUser.setEmail(info.getUsersVerifiedEmail());
+		newUser.setFirstName(info.getFirstName());
+		newUser.setLastName(info.getLastName());
+		newUser.setUserName(request.getUserName());
+		ArgumentCaptor<NewUser> captor = ArgumentCaptor.forClass(NewUser.class);
+		verify(mockUserManager).createUser(captor.capture());
+		assertEquals(newUser, captor.getValue());
+		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
+	}
+	
+	@Test
+	public void testValidateOAuthAuthenticationCodeForSessionEmailNull() throws NotFoundException{
 		OAuthValidationRequest request = new OAuthValidationRequest();
 		request.setAuthenticationCode("some code");
 		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
@@ -197,6 +279,21 @@ public class AuthenticationServiceImplTest {
 
 		//call under test
 		assertThrows(IllegalArgumentException.class, ()->service.validateOAuthAuthenticationCodeAndLoginForSession(request));
+	}
+	
+	@Test
+	public void testValidateOAuthAuthenticationCodeEmailNull() throws NotFoundException{
+		OAuthValidationRequest request = new OAuthValidationRequest();
+		request.setAuthenticationCode("some code");
+		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+		request.setRedirectUrl("https://domain.com");
+		ProvidedUserInfo info = new ProvidedUserInfo();
+		info.setUsersVerifiedEmail(null);
+		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), 
+				request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
+
+		//call under test
+		assertThrows(IllegalArgumentException.class, ()->service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER));
 	}
 	
 	@Test

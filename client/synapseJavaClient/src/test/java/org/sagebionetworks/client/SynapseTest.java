@@ -80,7 +80,7 @@ public class SynapseTest {
 		when(mockClient.put(any(), any())).thenReturn(mockResponse);
 		when(mockClient.post(any(), any())).thenReturn(mockResponse);
 
-		configureMockHttpResponse(201, "{\"sessionToken\":\"some-session-token\"}");
+		configureMockHttpResponse(201, "{\"sessionToken\":\"some-session-token\",\"acceptsTermsOfUse\":true}");
 		LoginRequest request = new LoginRequest();
 		request.setUsername("foo");
 		request.setPassword("bar");

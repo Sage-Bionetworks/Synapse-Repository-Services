@@ -183,8 +183,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		}
 		// This is the ID of the user within the provider's system.
 		PrincipalAlias emailAlias = userManager.lookupUserByUsernameOrEmail(providedInfo.getUsersVerifiedEmail());
-		// Return the user's session token
 		
+		// Return the user's access token
 		return authManager.loginWithNoPasswordCheck(emailAlias.getPrincipalId(), tokenIssuer);
 	}
 	

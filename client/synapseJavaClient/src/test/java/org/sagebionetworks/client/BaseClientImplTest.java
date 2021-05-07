@@ -161,6 +161,7 @@ public class BaseClientImplTest {
 				eq(EntityFactory.createJSONObjectForEntity(request).toString()));
 		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/login2",
 				captor.getValue().getUri());
+		assertEquals("token", baseClient.getAccessToken());
 	}
 
 	@Test
@@ -179,6 +180,13 @@ public class BaseClientImplTest {
 		baseClient.logoutForAccessToken();
 
 		assertNull(baseClient.getAuthorizationHeader());
+	}
+	
+	@Test(expected=IllegalStateException.class)
+	public void testGetAccessTokenAfterLogout() throws Exception {
+		baseClient.logoutForAccessToken();
+
+		assertNull(baseClient.getAccessToken());
 	}
 	
 	@Test (expected = SynapseClientException.class)

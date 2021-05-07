@@ -251,7 +251,7 @@ public class AuthenticationManagerImplUnitTest {
 	// getLoginResponseAfterSuccessfulPasswordAuthentication ()
 	///////////////////////////////////////////////////////////
 	@Test
-	public void testGetLoginResponseAfterSuccessfulAuthentication_validReciept(){
+	public void testGetLoginResponseWithSessionAfterSuccessfulAuthentication_validReciept(){
 		setupMockUserGroupDAO();
 		String newReceipt = "uwu";
 		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
@@ -263,6 +263,28 @@ public class AuthenticationManagerImplUnitTest {
 		assertEquals(newReceipt, loginResponse.getAuthenticationReceipt());
 		assertEquals(synapseSessionToken, loginResponse.getSessionToken());
 		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
+	}
+
+	@Test
+	public void testGetLoginResponseAfterSuccessfulAuthentication_validReciept(){
+		String newReceipt = "uwu";
+		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
+		when(mockOIDCTokenHelper.createClientTotalAccessToken(userId, issuer)).thenReturn(synapseAccessToken);
+		when(mockAuthDAO.hasUserAcceptedToU(eq(userId))).thenReturn(true);
+		Date authTime = new Date(12345L);
+		when(mockClock.now()).thenReturn(authTime);
+		LoginResponse expected = new LoginResponse();
+		expected.setAcceptsTermsOfUse(true);
+		expected.setAccessToken(synapseAccessToken);
+		expected.setAuthenticationReceipt(newReceipt);
+
+		//method under test
+		LoginResponse loginResponse = authManager.getLoginResponseAfterSuccessfulPasswordAuthentication(userId, issuer);
+		
+		assertEquals(loginResponse, loginResponse);
+		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
+		verify(mockOIDCTokenHelper).createClientTotalAccessToken(userId, issuer);
+		verify(mockAuthDAO).setAuthenticatedOn(userId, authTime);
 	}
 
 	///////////////////////////////////////////

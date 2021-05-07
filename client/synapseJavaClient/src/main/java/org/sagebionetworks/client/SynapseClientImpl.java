@@ -4494,6 +4494,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			voidPost(getAuthEndpoint(), "/termsOfUse", session, null);
 	}
 
+	@Override
 	public void signTermsOfUse(String accessToken) throws SynapseException {
 		AccessToken accessTokenWrapper = new AccessToken();
 		accessTokenWrapper.setAccessToken(accessToken);
