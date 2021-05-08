@@ -180,7 +180,7 @@ public class PrincipalController {
 	@RequestMapping(value = { UrlHelpers.EMAIL }, method = RequestMethod.POST)
 	public void addEmail(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = AuthorizationConstants.SET_AS_NOTIFICATION_EMAIL_PARM) Boolean setAsNotificationEmail,
+			@RequestParam(value = AuthorizationConstants.SET_AS_NOTIFICATION_EMAIL_PARM, required=false) Boolean setAsNotificationEmail,
 			@RequestBody EmailValidationSignedToken emailValidationSignedToken
 
 			) throws NotFoundException {

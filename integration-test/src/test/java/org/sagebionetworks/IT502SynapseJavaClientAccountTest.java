@@ -163,6 +163,8 @@ public class IT502SynapseJavaClientAccountTest {
 		EmailValidationSignedToken token = SerializationUtils.hexDecodeAndDeserialize(encodedToken, EmailValidationSignedToken.class);
 		// we are _not_ setting it to be the notification email
 		synapseOne.addEmail(token, false);
+		// check also that 'false' can be set by omitting the parameter
+		synapseOne.addEmail(token, null);
 		
 		// now remove the email
 		synapseOne.removeEmail(email);
