@@ -804,7 +804,7 @@ public class NodeManagerImpl implements NodeManager {
 	@Override
 	public ChildStatsResponse getChildrenStats(ChildStatsRequest request) {
 		// EntityManager handles all of the business logic for this call.
-		return nodeDao.getChildernStats(request);
+		return nodeDao.getChildrenStats(request);
 	}
 
 	@Override

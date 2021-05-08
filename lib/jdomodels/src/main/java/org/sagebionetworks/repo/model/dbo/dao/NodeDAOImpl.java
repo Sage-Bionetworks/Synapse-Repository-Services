@@ -1820,7 +1820,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 	
 	@Override
-	public ChildStatsResponse getChildernStats(ChildStatsRequest request) {
+	public ChildStatsResponse getChildrenStats(ChildStatsRequest request) {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getParentId(), "parentId");
 		ValidateArgument.required(request.getIncludeTypes(), "includeTypes");
@@ -1865,7 +1865,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 */
 	public static List<String> getTypeNames(List<EntityType> includeTypes){
 		List<String> results = new LinkedList<String>();
-		for(EntityType type: includeTypes){
+		if (includeTypes==null) {
+			return results;
+		}
+		for(EntityType type: includeTypes) {
+			if (type==null) continue;
+			
 			results.add(type.name());
 		}
 		return results;
