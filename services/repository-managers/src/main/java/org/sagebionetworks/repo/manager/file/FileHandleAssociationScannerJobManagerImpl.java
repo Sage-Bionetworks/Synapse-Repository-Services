@@ -15,7 +15,6 @@ import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociatio
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.files.DBOFilesScannerStatus;
 import org.sagebionetworks.repo.model.dbo.dao.files.FilesScannerStatusDao;
-import org.sagebionetworks.repo.model.exception.RecoverableException;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationScanRangeRequest;
 import org.sagebionetworks.repo.model.file.IdRange;
@@ -75,31 +74,27 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 
 		int totalRecords = 0;
 
-		try {
-			for (ScannedFileHandleAssociation association : iterable) {
+		for (ScannedFileHandleAssociation association : iterable) {
 
-				Set<FileHandleAssociationRecord> associationRecords = FileHandleScannerUtils.mapAssociation(request.getAssociationType(), association, batchTimestamp);
+			Set<FileHandleAssociationRecord> associationRecords = FileHandleScannerUtils.mapAssociation(request.getAssociationType(), association, batchTimestamp);
 
-				if (associationRecords.isEmpty()) {
-					continue;
-				}
+			if (associationRecords.isEmpty()) {
+				continue;
+			}
 
-				recordsBatch.addAll(associationRecords);
+			recordsBatch.addAll(associationRecords);
 
-				if (recordsBatch.size() >= KINESIS_BATCH_SIZE) {
-					totalRecords += flushRecordsBatch(recordsBatch);
-					batchTimestamp = clock.currentTimeMillis();
+			if (recordsBatch.size() >= KINESIS_BATCH_SIZE) {
+				totalRecords += flushRecordsBatch(recordsBatch);
+				batchTimestamp = clock.currentTimeMillis();
 
-					// Put a small sleep before continuing with the next batch to avoid saturating kinesis
-					try {
-						clock.sleep(FLUSH_DELAY_MS);
-					} catch (InterruptedException e) {
-						LOG.warn(e.getMessage(), e);
-					}
+				// Put a small sleep before continuing with the next batch to avoid saturating kinesis
+				try {
+					clock.sleep(FLUSH_DELAY_MS);
+				} catch (InterruptedException e) {
+					LOG.warn(e.getMessage(), e);
 				}
 			}
-		} catch (RecoverableException e) {
-			throw new RecoverableMessageException(e);
 		}
 
 		if (!recordsBatch.isEmpty()) {

@@ -23,7 +23,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
-import org.sagebionetworks.repo.model.exception.RecoverableException;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
@@ -31,6 +30,7 @@ import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.AmazonServiceException.ErrorType;
@@ -320,7 +320,7 @@ public class TableFileHandleIteratorTest {
 		when(mockTableChange.getChangeType()).thenReturn(TableChangeType.ROW);
 		when(mockTableChangeIterator.next()).thenReturn(mockTableChange);
 		
-		RecoverableException result = assertThrows(RecoverableException.class, () -> {			
+		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {			
 			// Call under test
 			iterator.next();
 		});

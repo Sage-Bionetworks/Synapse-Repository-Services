@@ -5,9 +5,9 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.exception.RecoverableException;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.IdRange;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 /**
  * Abstraction for all of the different type of FileHandleAssociationsProviders.
@@ -56,7 +56,7 @@ public interface FileHandleAssociationManager {
 	/**
 	 * Return an iterable for all the file handles associatied with the given asociation type.
 	 * <p> 
-	 * Note: the iterable can throw a {@link RecoverableException} if the process fails while iterating and
+	 * Note: the iterable can throw a {@link RecoverableMessageException} if the process fails while iterating and
 	 * can be retried later
 	 * 
 	 * @param associationType The association type

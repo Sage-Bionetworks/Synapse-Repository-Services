@@ -15,7 +15,6 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
@@ -55,7 +54,7 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 					return updateTableWithTransactionWithExclusiveLock(callback, userInfo, request);
 				}
 			});
-		} catch (TableUnavailableException | RecoverableMessageException | RuntimeException e) {
+		} catch (TableUnavailableException | RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
